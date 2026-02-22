@@ -533,7 +533,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
         background: rgba(5, 205, 153, 0.08);
     }
 
-    .arch-toc-sublist {
+    /* :global() needed because sublist elements are created at runtime by script */
+    .arch-toc-layer :global(.arch-toc-sublist) {
         list-style: none;
         padding-left: var(--spacing-xl);
         margin-top: var(--spacing-sm);
@@ -542,19 +543,19 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
         gap: var(--spacing-xs);
     }
 
-    .arch-toc-sublist li {
+    .arch-toc-layer :global(.arch-toc-sublist li) {
         display: flex;
         align-items: baseline;
         gap: var(--spacing-xs);
     }
 
-    .arch-toc-sublist .bullet-icon {
+    .arch-toc-layer :global(.arch-toc-sublist .bullet-icon) {
         flex-shrink: 0;
         margin-top: 0;
         opacity: 0.5;
     }
 
-    .arch-toc-sublist a {
+    .arch-toc-layer :global(.arch-toc-sublist a) {
         font-size: var(--text-sm);
         text-transform: none;
         letter-spacing: normal;
@@ -567,7 +568,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
         transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
     }
 
-    .arch-toc-sublist a:hover {
+    .arch-toc-layer :global(.arch-toc-sublist a:hover) {
         color: var(--color-primary);
         background: rgba(5, 205, 153, 0.06);
         border-left-color: var(--color-primary);
@@ -939,11 +940,11 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
             font-size: 0.75rem;
         }
 
-        .arch-toc-sublist {
+        .arch-toc-layer :global(.arch-toc-sublist) {
             padding-left: var(--spacing-md);
         }
 
-        .arch-toc-sublist a {
+        .arch-toc-layer :global(.arch-toc-sublist a) {
             font-size: 0.8rem;
             padding: 2px var(--spacing-xs);
         }
@@ -1003,19 +1004,19 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
             background: rgba(5, 205, 153, 0.08);
         }
 
-        .arch-toc-sublist {
+        .arch-toc-layer :global(.arch-toc-sublist) {
             padding-left: var(--spacing-lg);
             list-style: none;
         }
 
-        .arch-toc-sublist a {
+        .arch-toc-layer :global(.arch-toc-sublist a) {
             display: block;
             padding: var(--spacing-xs) var(--spacing-sm);
             border-radius: 4px;
             font-size: var(--text-sm);
         }
 
-        .arch-toc-sublist a:hover {
+        .arch-toc-layer :global(.arch-toc-sublist a:hover) {
             background: rgba(5, 205, 153, 0.08);
         }
 
