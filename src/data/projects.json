@@ -138,8 +138,8 @@
     "engagementCategory": "Value Creation & Strategy"
   },
   {
-    "id": "project-quorum",
-    "codeName": "Project Quorum",
+    "id": "project-legis",
+    "codeName": "Project Legis",
     "industry": "Government Affairs",
     "theme": "Public Sector",
     "summary": "Unified platform for legislative tracking, grassroots advocacy, and PAC management with integrated data scraping and AI capabilities.",
