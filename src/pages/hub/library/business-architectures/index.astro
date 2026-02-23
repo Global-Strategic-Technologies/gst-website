@@ -184,13 +184,18 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
 
                     <div class="arch-diligence-callout">
                         <p class="arch-diligence-label">What to look for in diligence</p>
-                        <ul class="arch-diligence-list">
-                            <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="10" height="10" />Deployment frequency and incident recovery times as indicators of operational maturity</li>
-                            <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="10" height="10" />The gap between the current operational model and what the go-forward strategy requires</li>
-                            <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="10" height="10" />Cultural readiness for operational change</li>
-                            <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="10" height="10" />Infrastructure costs relative to revenue and how they trend as the business scales</li>
-                            <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="10" height="10" />Automation levels in build, test, and deployment pipelines</li>
-                        </ul>
+                        <div class="arch-diligence-section">
+                            <p class="arch-diligence-sublabel">Signals to look for</p>
+                            <p class="arch-diligence-text">Deployment frequency and mean time to recovery (MTTR) as indicators of operational maturity. Infrastructure costs as a percentage of revenue — and whether that ratio improves or degrades as the business scales. Automation coverage across build, test, and deployment pipelines.</p>
+                        </div>
+                        <div class="arch-diligence-section">
+                            <p class="arch-diligence-sublabel">Questions to ask</p>
+                            <p class="arch-diligence-text">What is the gap between the current operational model and what the go-forward strategy requires? If we need to 3x throughput in 18 months, what breaks first? How does the on-call rotation work, and what does incident response look like at 2 AM?</p>
+                        </div>
+                        <div class="arch-diligence-section">
+                            <p class="arch-diligence-sublabel">Artifacts to request</p>
+                            <p class="arch-diligence-text">Infrastructure cost breakdown with 12-month trend. Incident log with severity classification and resolution times. CI/CD pipeline configuration and deployment history. Capacity planning documentation or load test results.</p>
+                        </div>
                     </div>
                 </section>
 
