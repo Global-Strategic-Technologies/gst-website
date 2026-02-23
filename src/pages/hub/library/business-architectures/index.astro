@@ -52,6 +52,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     <li class="arch-toc-separator" aria-hidden="true"></li>
                     <li><a href="#interactions">How the Layers Interact</a></li>
                     <li><a href="#applying">Applying This Framework</a></li>
+                    <li><a href="#further-reading">Further Reading</a></li>
                 </ul>
             </nav>
 
@@ -416,6 +417,41 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     <div class="arch-closing">
                         <p>The difference between a good technology investment and a bad one often comes down to architectural affordance; can you see how choices at different levels affect opportunity? Architecture isn't just an engineering concern. It's an invisible enabler or disabler of business strategy.</p>
                     </div>
+                </section>
+
+                <!-- Further Reading -->
+                <section class="arch-section" id="further-reading">
+                    <h2 class="arch-section-heading">
+                        <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" />
+                        Further Reading
+                    </h2>
+                    <p class="arch-body">The concepts in this guide draw on established frameworks from both software engineering and business strategy. For readers who want to go deeper:</p>
+
+                    <h3 class="arch-subheading">Software Architecture &amp; Patterns</h3>
+                    <ul class="arch-reading-list">
+                        <li>Gamma, Helm, Johnson, Vlissides — <em>Design Patterns: Elements of Reusable Object-Oriented Software</em> (the "Gang of Four" work referenced in Layer 1)</li>
+                        <li>Christopher Alexander — <em>A Pattern Language</em> (the building architecture research that inspired software design patterns)</li>
+                        <li>The Twelve-Factor App methodology — twelve-factor.net (the operational principles referenced in the Signals of Architectural Health section)</li>
+                    </ul>
+
+                    <h3 class="arch-subheading">Organizational Architecture</h3>
+                    <ul class="arch-reading-list">
+                        <li>Melvin Conway — "How Do Committees Invent?" (the original 1968 paper articulating Conway's Law)</li>
+                        <li>Tushman &amp; Nadler — the Congruence Model (the organizational alignment framework referenced in Layer 4)</li>
+                        <li>Matthew Skelton &amp; Manuel Pais — <em>Team Topologies</em> (a modern treatment of Conway's Law applied to software team design)</li>
+                    </ul>
+
+                    <h3 class="arch-subheading">Business Strategy &amp; Innovation</h3>
+                    <ul class="arch-reading-list">
+                        <li>Clayton Christensen — <em>The Innovator's Dilemma</em> (the disruption framework referenced in Layer 5)</li>
+                        <li>Clayton Christensen — <em>Competing Against Luck</em> (the Jobs to Be Done framework referenced in Layer 3)</li>
+                        <li>Jeff Bezos — annual shareholder letters (the source of the "two-way doors" and "course correcting" principles cited in Layer 3)</li>
+                    </ul>
+
+                    <h3 class="arch-subheading">Architecture Communication</h3>
+                    <ul class="arch-reading-list">
+                        <li>Simon Brown — the C4 Model (a practical framework for communicating software architecture at multiple levels of abstraction — complements the Layer 1 hierarchy discussed in this guide)</li>
+                    </ul>
                 </section>
 
             </div>
@@ -941,6 +977,42 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
         line-height: 1.8;
         font-style: italic;
         margin: 0;
+    }
+
+    /* Reading list */
+    .arch-reading-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 var(--spacing-xl);
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .arch-reading-list li {
+        font-size: var(--text-sm);
+        color: var(--text-light-secondary);
+        line-height: 1.6;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        padding-left: var(--spacing-lg);
+        position: relative;
+    }
+
+    .arch-reading-list li::before {
+        content: '';
+        position: absolute;
+        left: var(--spacing-xs);
+        top: 0.85em;
+        width: 6px;
+        height: 6px;
+        border: 1.5px solid var(--color-primary);
+        border-radius: 50%;
+        opacity: 0.6;
+    }
+
+    .arch-reading-list em {
+        color: var(--text-light-primary);
+        font-style: italic;
     }
 
     /* Back Navigation */
