@@ -137,13 +137,13 @@ const lastUpdated = new Date();
       )}
 
       <footer class="radar-footer">
+        <a href="/hub" class="cta-button secondary">&larr; Return to Hub</a>
         <p class="last-updated">
           Updated {lastUpdated.toLocaleDateString('en-US', {
             month: 'short', day: 'numeric', year: 'numeric',
             hour: 'numeric', minute: '2-digit'
           })}
         </p>
-        <a href="/hub" class="cta-button secondary">Return to Hub</a>
       </footer>
     </div>
   </div>
@@ -195,12 +195,13 @@ const lastUpdated = new Date();
   }
 
   .radar-footer {
-    padding: var(--spacing-xl) 0;
+    margin-top: var(--spacing-3xl);
+    padding: var(--spacing-2xl) 0;
     border-top: 1px solid var(--border-light);
-    margin-top: var(--spacing-2xl);
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
+    gap: var(--spacing-lg);
   }
 
   .last-updated {
@@ -210,13 +211,5 @@ const lastUpdated = new Date();
 
   :global(html.dark-theme) .radar-footer {
     border-top-color: var(--border-dark);
-  }
-
-  @media (max-width: 480px) {
-    .radar-footer {
-      flex-direction: column;
-      gap: var(--spacing-lg);
-      align-items: flex-start;
-    }
   }
 </style>
