@@ -179,18 +179,13 @@ When the Inoreader API rate limit (200 requests/day) has been exhausted — or w
 
 ### Quick Start
 
-Run the E2E seed script directly with `tsx`:
-
 ```bash
-npx tsx -e "import { seedRadarCache } from './tests/e2e/fixtures/seed-radar-cache'; seedRadarCache();"
-```
-
-This writes two cache entries into `.cache/inoreader/` with a fresh timestamp (24h TTL). Start the dev server normally afterward:
-
-```bash
+npm run radar:seed
 npm run dev
 # Visit http://localhost:4321/hub/radar — renders with mock data, zero API calls
 ```
+
+The `radar:seed` script writes two cache entries into `.cache/inoreader/` with a fresh timestamp (24h TTL). Start the dev server normally afterward.
 
 ### How It Works
 
@@ -204,7 +199,7 @@ The seed script (`tests/e2e/fixtures/seed-radar-cache.ts`) writes the same cache
 When you're ready to return to live API data:
 
 ```bash
-rm -rf .cache/inoreader    # Remove seeded mock data
+npm run radar:unseed       # Remove seeded mock data
 npm run dev                # Next page load fetches from Inoreader and re-caches
 ```
 
