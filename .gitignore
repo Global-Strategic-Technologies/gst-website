@@ -33,3 +33,6 @@ agents/
 # playwright test results and reports
 test-results/
 playwright-report/
+
+# test coverage reports
+coverage/
