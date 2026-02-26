@@ -91,11 +91,19 @@ const { categories } = Astro.props;
       overflow-x: auto;
       flex-wrap: nowrap;
       -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
       padding-bottom: var(--spacing-lg);
+    }
+
+    .category-filter::-webkit-scrollbar {
+      display: none;
     }
 
     .filter-btn {
       white-space: nowrap;
+      font-size: var(--text-sm);
+      padding: var(--spacing-sm) var(--spacing-lg);
+      min-height: 44px;
     }
   }
 </style>
