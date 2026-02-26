@@ -77,6 +77,15 @@ Create folders in Inoreader prefixed with `GST-`:
 3. Add a note with practitioner context (becomes "Δ GST Take")
 4. Optionally tag with `gst-[category]` for category override
 
+### FYI Content Retention
+
+FYI items have no time-based expiry on the GST side. Visibility is determined by a **most-recent-N window**:
+
+- The Radar fetches the **30 most recent** annotated items from Inoreader each ISR cycle
+- An item remains visible until it falls outside that top-30 window (i.e., 30+ newer annotations push it off)
+- Removing annotations (highlights/notes) in Inoreader also removes the item
+- There is up to a **6-hour stale window** between an item leaving the API and disappearing from the page (due to ISR cache)
+
 ## Page UX Features
 
 ### Collapsible Sections
