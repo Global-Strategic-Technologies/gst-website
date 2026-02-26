@@ -7,22 +7,19 @@
  * interval. No build-time data files needed.
  *
  * Content tiers:
- *   1. Signals — Original markdown posts (from content collection)
- *   2. FYI — Annotated items from Inoreader (highlights + GST Take)
- *   3. The Wire — Automated RSS from Inoreader subscriptions
+ *   1. FYI — Annotated items from Inoreader (highlights + GST Take)
+ *   2. The Wire — Automated RSS from Inoreader subscriptions
  */
 export const prerender = false;
 
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import RadarHeader from '../../../components/radar/RadarHeader.astro';
-import SignalCard from '../../../components/radar/SignalCard.astro';
 import FyiItem from '../../../components/radar/FyiItem.astro';
 import WireItem from '../../../components/radar/WireItem.astro';
 import CategoryFilter from '../../../components/radar/CategoryFilter.astro';
 
 import { fetchAnnotatedItems, fetchAllStreams } from '../../../lib/inoreader/client';
 import { toFyiItem, toWireItem, CATEGORIES } from '../../../lib/inoreader/transform';
-import { getCollection } from 'astro:content';
 import { trackPageView } from '../../../utils/analytics';
 
 import type { RadarFyiItem, RadarWireItem } from '../../../lib/inoreader/types';
@@ -31,12 +28,7 @@ trackPageView('hub-radar', 'The Radar - Perspectives | GST');
 
 // --- Data Fetching (runs on Vercel at revalidation time) ---
 
-// Tier 1: Signal posts from content collection
-const allSignals = await getCollection('signals');
-const signals = allSignals
-  .sort((a, b) => new Date(b.data.publishedAt).getTime() - new Date(a.data.publishedAt).getTime());
-
-// Tier 2: FYI items (annotated in Inoreader)
+// FYI items (annotated in Inoreader)
 let fyi: RadarFyiItem[] = [];
 try {
   const annotatedResponse = await fetchAnnotatedItems(30);
@@ -49,7 +41,7 @@ try {
   console.error('[Radar] FYI items fetch failed:', e);
 }
 
-// Tier 3: The Wire — automated feed from all GST folders
+// The Wire — automated feed from all GST folders
 let wire: RadarWireItem[] = [];
 try {
   const folderPrefix = import.meta.env.INOREADER_FOLDER_PREFIX || 'GST-';
@@ -117,27 +109,7 @@ const lastUpdated = new Date();
 
       <CategoryFilter categories={CATEGORIES} />
 
-      {/* Tier 1: Signal Posts (most prominent) */}
-      {signals.length > 0 && (
-        <section class="radar-section radar-section--signals" id="signals">
-          <details class="radar-section__details" open data-section="signals">
-            <summary class="section-header">
-              <span class="section-toggle" aria-hidden="true"></span>
-              <div class="section-header__text">
-                <h2 class="section-label">Δ Signals</h2>
-                <p class="section-description">Original analysis from GST</p>
-              </div>
-            </summary>
-            <div class="signals-grid">
-              {signals.slice(0, 3).map(signal => (
-                <SignalCard signal={signal} />
-              ))}
-            </div>
-          </details>
-        </section>
-      )}
-
-      {/* Tier 2: FYI Items (annotated with GST Take) */}
+      {/* FYI Items (annotated with GST Take) */}
       {fyi.length > 0 && (
         <section class="radar-section radar-section--fyi" id="fyi">
           <details class="radar-section__details" open data-section="fyi">
@@ -160,7 +132,7 @@ const lastUpdated = new Date();
         </section>
       )}
 
-      {/* Tier 3: The Wire — Automated Feed */}
+      {/* The Wire — Automated Feed */}
       {wire.length > 0 && (
         <section class="radar-section radar-section--wire" id="wire">
           <details class="radar-section__details" open data-section="wire">
@@ -181,7 +153,7 @@ const lastUpdated = new Date();
       )}
 
       {/* Fallback if no content available */}
-      {fyi.length === 0 && wire.length === 0 && signals.length === 0 && (
+      {fyi.length === 0 && wire.length === 0 && (
         <section class="radar-section radar-empty">
           <p>Intelligence feed is currently being refreshed. Check back shortly.</p>
         </section>
@@ -330,12 +302,6 @@ const lastUpdated = new Date();
 
   /* --- Per-section visual identity --- */
 
-  .radar-section--signals .section-label {
-    color: var(--color-primary);
-    border-left: 3px solid var(--color-primary);
-    padding-left: var(--spacing-md);
-  }
-
   .radar-section--fyi {
     background: var(--accent-light-bg);
     border: 1px solid var(--border-light);
@@ -355,18 +321,6 @@ const lastUpdated = new Date();
   }
 
   /* --- Content grids/lists --- */
-
-  .signals-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--spacing-xl);
-  }
-
-  @media (min-width: 768px) {
-    .signals-grid {
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    }
-  }
 
   .radar-empty {
     padding: var(--spacing-3xl) 0;

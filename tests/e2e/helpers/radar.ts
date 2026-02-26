@@ -17,14 +17,13 @@ export async function waitForRadarReady(page: Page): Promise<void> {
 }
 
 /**
- * Check whether the Radar page has any content (signals, FYI, or wire).
+ * Check whether the Radar page has any content (FYI or wire).
  * Returns true if at least one content item exists; false if only the fallback.
  */
 export async function hasRadarContent(page: Page): Promise<boolean> {
-  const signalCount = await page.locator('.signal-card').count();
   const fyiCount = await page.locator('.fyi-item').count();
   const wireCount = await page.locator('.wire-item').count();
-  return signalCount > 0 || fyiCount > 0 || wireCount > 0;
+  return fyiCount > 0 || wireCount > 0;
 }
 
 /**

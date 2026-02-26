@@ -78,7 +78,7 @@ test.describe('Radar Page', () => {
           Array.from(document.querySelectorAll('.section-label'))
             .map(el => el.textContent?.trim().toLowerCase())
         );
-        const knownSections = ['signals', 'fyi', 'the wire'];
+        const knownSections = ['fyi', 'the wire'];
         const foundSection = allLabelText.some(
           text => knownSections.some(s => (text || '').includes(s))
         );

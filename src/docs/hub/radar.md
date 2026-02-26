@@ -14,20 +14,16 @@ The Radar is a curated intelligence feed on the GST Strategic Intelligence Hub a
 |------|------|--------|--------|-------|
 | 1 | The Wire | Automated RSS via Inoreader folders | Zero per item | Source curation signal |
 | 2 | FYI | Inoreader annotated items (highlights + notes) | Seconds per item | Practitioner commentary |
-| 3 | Signals | Original markdown posts in `src/content/signals/` | 30-60 min per post | Original indexed content |
 
 ### Rendering Model
 
 - **Radar page** (`/hub/radar`): Server-rendered with Vercel ISR (6-hour cache)
-- **Signal posts** (`/hub/radar/signals/[slug]`): Static HTML at build time
 - **All other pages**: Unchanged, remain fully static
 
 ### Data Flow
 
 ```
 Inoreader API ──► Astro SSR page ──► Vercel ISR cache (6h) ──► Visitors
-                       ▲
-src/content/signals/ ──┘ (markdown, at build time)
 ```
 
 No GitHub Action crons. No auto-committed JSON files. No manual rebuilds for feed content.
@@ -85,12 +81,12 @@ Create folders in Inoreader prefixed with `GST-`:
 
 ### Collapsible Sections
 
-Each content tier (Signals, FYI, The Wire) is wrapped in a native `<details>`/`<summary>` element:
+Each content tier (FYI, The Wire) is wrapped in a native `<details>`/`<summary>` element:
 
 - **Default state**: All sections open
 - **Toggle indicator**: `+` (collapsed) / `−` (expanded) on the left side of each section header
 - **Hover**: Toggle turns green (`--color-primary`)
-- **localStorage persistence**: Section open/closed states are saved to `localStorage` key `radar-sections` (format: `{"signals": true, "fyi": false, "wire": true}`). On return visits, saved preferences override the default open state.
+- **localStorage persistence**: Section open/closed states are saved to `localStorage` key `radar-sections` (format: `{"fyi": false, "wire": true}`). On return visits, saved preferences override the default open state.
 - **Pattern**: Follows the same `<details>`/`<summary>` approach used in `FyiItem.astro` for individual FYI items, and the `ThemeToggle.astro` try/catch pattern for localStorage access.
 
 ### Category Filter with Gravity Spacing
@@ -107,10 +103,8 @@ The category filter pills (`CategoryFilter.astro`) use a gravitational spacing e
 
 ```
 src/
-├── content/signals/              # Tier 3: Signal markdown posts
 ├── components/radar/
 │   ├── RadarHeader.astro         # Page header with breadcrumb
-│   ├── SignalCard.astro          # Signal post preview card
 │   ├── FyiItem.astro             # Collapsible FYI item with GST Take
 │   ├── WireItem.astro            # Compact wire feed item
 │   └── CategoryFilter.astro     # Client-side filter pills (gravity spacing)
@@ -120,30 +114,10 @@ src/
 │   ├── cache.ts                  # Dev-mode file cache (24h TTL)
 │   └── transform.ts             # Data transformation + categories
 ├── pages/hub/radar/
-│   ├── index.astro               # Main Radar page (SSR + ISR + collapsible sections)
-│   └── signals/[...slug].astro  # Signal post detail pages
+│   └── index.astro               # Main Radar page (SSR + ISR + collapsible sections)
 scripts/
 └── inoreader-auth.mjs           # OAuth setup helper
 ```
-
-## Adding a Signal Post
-
-1. Create a markdown file in `src/content/signals/`:
-
-```markdown
----
-title: "Your Signal Title"
-description: "Brief description for card preview."
-publishedAt: 2026-02-23
-category: "ai-automation"
-tags: ["tag1", "tag2"]
----
-
-Your full post content here...
-```
-
-2. Push to trigger Vercel build
-3. The post appears on the Radar page and gets its own URL
 
 ## Token Management
 
@@ -328,7 +302,6 @@ Because the page sets `export const prerender = false`, Astro delegates it to a 
 1. **First request after deploy** — Vercel invokes the ISR function:
    - Fetches Wire items from Inoreader API (up to 30 across `GST-` folders)
    - Fetches FYI items from Inoreader annotated stream (up to 30)
-   - Loads Signals from the content collection (markdown, resolved at build time)
    - Renders full HTML and **caches the result for 6 hours**
 2. **Requests within 6 hours** — Vercel serves the **cached HTML from CDN**. No serverless function runs, no Inoreader API calls.
 3. **First request after 6 hours** — **Stale-while-revalidate** pattern:
@@ -343,7 +316,6 @@ Because the page sets `export const prerender = false`, Astro delegates it to a 
 |---------|----------------|-----------|
 | The Wire (RSS feeds) | ISR revalidation | Every 6 hours |
 | FYI (annotated items) | ISR revalidation | Every 6 hours |
-| Signals (original posts) | Vercel deployment | On each push/deploy |
 | Static assets (JS/CSS) | Vercel deployment | Immutable, 1-year cache |
 
 ### Vercel Routing
@@ -361,7 +333,7 @@ The prerender config (`.vercel/output/functions/_isr.prerender-config.json`) set
 
 ## Error Handling
 
-- **API down**: Radar page renders with empty FYI/Wire sections; Signals still show
+- **API down**: Radar page renders with empty FYI/Wire sections and fallback message
 - **Token expired**: Automatic refresh via refresh token; no manual intervention needed
 - **Refresh token expired**: Re-run OAuth flow (`node scripts/inoreader-auth.mjs setup`) and update Vercel env vars
 - **No env vars**: Radar page shows "Intelligence feed is currently being refreshed" fallback
@@ -371,12 +343,12 @@ The prerender config (`.vercel/output/functions/_isr.prerender-config.json`) set
 
 | Scenario | User Sees | ISR Cache Impact | Logged |
 |----------|-----------|------------------|--------|
-| Inoreader API temporarily down | Signals only + fallback message | Degraded page cached for 6h | `[Radar] Inoreader API error: {status}` |
+| Inoreader API temporarily down | Fallback message | Degraded page cached for 6h | `[Radar] Inoreader API error: {status}` |
 | Access token expired (refresh works) | **Normal page** — auto-heals | Good page cached | `[Radar] Access token expired, attempting refresh...` + success |
-| Refresh token revoked/expired | Signals only + fallback message | Degraded page cached for 6h | `[Radar] Token refresh failed: {status}` |
-| Both tokens invalid | Signals only + fallback message | Degraded page cached for 6h | `[Radar] Token refresh failed` |
+| Refresh token revoked/expired | Fallback message | Degraded page cached for 6h | `[Radar] Token refresh failed: {status}` |
+| Both tokens invalid | Fallback message | Degraded page cached for 6h | `[Radar] Token refresh failed` |
 | Env vars missing entirely | **Page render crashes** | No cache generated | `Inoreader credentials not configured` error |
-| Network timeout to Inoreader | Signals only + fallback message | Degraded page cached for 6h | `[Radar] Wire fetch failed` / `Folder fetch failed` |
+| Network timeout to Inoreader | Fallback message | Degraded page cached for 6h | `[Radar] Wire fetch failed` / `Folder fetch failed` |
 
 **Key risk:** If tokens go permanently bad, Vercel ISR caches the degraded page for 6 hours, then re-renders another degraded page for another 6 hours, indefinitely — with no automatic alerting.
 
@@ -410,7 +382,7 @@ The Inoreader client (`src/lib/inoreader/client.ts`) logs to `console.error` / `
 
 **Quick manual check:**
 - Visit `/hub/radar` — if FYI and Wire sections are populated, it's working
-- Empty FYI/Wire with only Signals visible indicates an API or token problem
+- Empty FYI/Wire with fallback message indicates an API or token problem
 
 **Vercel dashboard checks:**
 - **Logs tab**: Filter for `[Radar]` errors in recent ISR invocations
@@ -455,7 +427,6 @@ The Inoreader client (`src/lib/inoreader/client.ts`) logs to `console.error` / `
 
 1. Content refreshes every 6 hours via ISR — wait for the next cycle
 2. To force a refresh: trigger a redeployment from Vercel dashboard
-3. Signal posts (markdown) only update on deploy — push a commit to trigger
 
 ## Category Inference
 
