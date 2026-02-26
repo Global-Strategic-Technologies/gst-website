@@ -12,7 +12,7 @@ import type { InoreaderStreamResponse, InoreaderItem } from './types';
 const API_BASE = 'https://www.inoreader.com/reader/api/0';
 const OAUTH_BASE = 'https://www.inoreader.com/oauth2';
 
-interface ClientConfig {
+export interface ClientConfig {
   appId: string;
   appKey: string;
   accessToken: string;
@@ -21,6 +21,11 @@ interface ClientConfig {
 
 /** In-memory cache of the refreshed access token for the lifetime of this SSR invocation */
 let refreshedAccessToken: string | null = null;
+
+/** Reset the token cache. Exported for test cleanup only. */
+export function resetTokenCache(): void {
+  refreshedAccessToken = null;
+}
 
 function getConfig(): ClientConfig {
   const appId = import.meta.env.INOREADER_APP_ID;
@@ -113,8 +118,11 @@ async function authenticatedFetch(url: string, config: ClientConfig): Promise<Re
  * Fetch annotated articles (Tier 2: Featured items).
  * Returns articles where Reid has added highlights and notes.
  */
-export async function fetchAnnotatedItems(count: number = 30): Promise<InoreaderStreamResponse | null> {
-  const config = getConfig();
+export async function fetchAnnotatedItems(
+  count: number = 30,
+  configOverride?: ClientConfig,
+): Promise<InoreaderStreamResponse | null> {
+  const config = configOverride ?? getConfig();
   const streamId = encodeURIComponent('user/-/state/com.google/annotated');
 
   const url = `${API_BASE}/stream/contents/${streamId}?` + new URLSearchParams({
@@ -146,9 +154,10 @@ export async function fetchAnnotatedItems(count: number = 30): Promise<Inoreader
  */
 export async function fetchFolderStream(
   folderName: string,
-  count: number = 20
+  count: number = 20,
+  configOverride?: ClientConfig,
 ): Promise<InoreaderStreamResponse | null> {
-  const config = getConfig();
+  const config = configOverride ?? getConfig();
   const streamId = encodeURIComponent(`user/-/label/${folderName}`);
 
   const url = `${API_BASE}/stream/contents/${streamId}?` + new URLSearchParams({
@@ -180,9 +189,10 @@ export async function fetchFolderStream(
  */
 export async function fetchAllStreams(
   folderPrefix: string = 'GST-',
-  countPerFolder: number = 15
+  countPerFolder: number = 15,
+  configOverride?: ClientConfig,
 ): Promise<InoreaderStreamResponse | null> {
-  const config = getConfig();
+  const config = configOverride ?? getConfig();
 
   const tagsUrl = `${API_BASE}/tag/list?output=json`;
 
@@ -206,7 +216,7 @@ export async function fetchAllStreams(
     const results = await Promise.allSettled(
       gstFolders.map((folderId: string) => {
         const label = folderId.split('/').pop()!;
-        return fetchFolderStream(label, countPerFolder);
+        return fetchFolderStream(label, countPerFolder, configOverride);
       })
     );
 
