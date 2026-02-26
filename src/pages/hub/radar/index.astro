@@ -120,48 +120,63 @@ const lastUpdated = new Date();
       {/* Tier 1: Signal Posts (most prominent) */}
       {signals.length > 0 && (
         <section class="radar-section radar-section--signals" id="signals">
-          <div class="section-header">
-            <h2 class="section-label">Δ Signals</h2>
-            <p class="section-description">Original analysis from GST practitioners</p>
-          </div>
-          <div class="signals-grid">
-            {signals.slice(0, 3).map(signal => (
-              <SignalCard signal={signal} />
-            ))}
-          </div>
+          <details class="radar-section__details" data-section="signals">
+            <summary class="section-header">
+              <div class="section-header__text">
+                <h2 class="section-label">Δ Signals</h2>
+                <p class="section-description">Original analysis from GST</p>
+              </div>
+              <span class="section-toggle" aria-hidden="true"></span>
+            </summary>
+            <div class="signals-grid">
+              {signals.slice(0, 3).map(signal => (
+                <SignalCard signal={signal} />
+              ))}
+            </div>
+          </details>
         </section>
       )}
 
       {/* Tier 2: FYI Items (annotated with GST Take) */}
       {fyi.length > 0 && (
         <section class="radar-section radar-section--fyi" id="fyi">
-          <div class="section-header">
-            <h2 class="section-label">
-              Δ FYI
-              <span class="section-count">({fyi.length})</span>
-            </h2>
-            <p class="section-description">Curated reads with practitioner commentary</p>
-          </div>
-          <div class="fyi-list">
-            {fyi.map(item => (
-              <FyiItem item={item} />
-            ))}
-          </div>
+          <details class="radar-section__details" data-section="fyi">
+            <summary class="section-header">
+              <div class="section-header__text">
+                <h2 class="section-label">
+                  Δ FYI
+                  <span class="section-count">({fyi.length})</span>
+                </h2>
+                <p class="section-description">Curated reads with our commentary</p>
+              </div>
+              <span class="section-toggle" aria-hidden="true"></span>
+            </summary>
+            <div class="fyi-list">
+              {fyi.map(item => (
+                <FyiItem item={item} />
+              ))}
+            </div>
+          </details>
         </section>
       )}
 
       {/* Tier 3: The Wire — Automated Feed */}
       {wire.length > 0 && (
         <section class="radar-section radar-section--wire" id="wire">
-          <div class="section-header">
-            <h2 class="section-label">Δ The Wire</h2>
-            <p class="section-description">Latest from tracked sources</p>
-          </div>
-          <div class="wire-list">
-            {wire.map(item => (
-              <WireItem item={item} />
-            ))}
-          </div>
+          <details class="radar-section__details" data-section="wire">
+            <summary class="section-header">
+              <div class="section-header__text">
+                <h2 class="section-label">Δ The Wire</h2>
+                <p class="section-description">Latest from tracked sources</p>
+              </div>
+              <span class="section-toggle" aria-hidden="true"></span>
+            </summary>
+            <div class="wire-list">
+              {wire.map(item => (
+                <WireItem item={item} />
+              ))}
+            </div>
+          </details>
         </section>
       )}
 
@@ -185,6 +200,49 @@ const lastUpdated = new Date();
   </div>
 </BaseLayout>
 
+<script>
+  const STORAGE_KEY = 'radar-sections';
+
+  function restoreSectionStates() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return;
+
+      const states: Record<string, boolean> = JSON.parse(saved);
+      for (const [section, isOpen] of Object.entries(states)) {
+        const el = document.querySelector<HTMLDetailsElement>(
+          `.radar-section__details[data-section="${section}"]`
+        );
+        if (el) el.open = isOpen;
+      }
+    } catch {
+      // Ignore corrupted localStorage
+    }
+  }
+
+  function saveSectionStates() {
+    try {
+      const details = document.querySelectorAll<HTMLDetailsElement>('.radar-section__details');
+      const states: Record<string, boolean> = {};
+      details.forEach(el => {
+        const key = el.dataset.section;
+        if (key) states[key] = el.open;
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(states));
+    } catch {
+      // Ignore if localStorage is unavailable
+    }
+  }
+
+  // Restore saved states on load
+  restoreSectionStates();
+
+  // Save state whenever a section is toggled
+  document.querySelectorAll('.radar-section__details').forEach(el => {
+    el.addEventListener('toggle', saveSectionStates);
+  });
+</script>
+
 <style>
   .radar-container {
     padding-bottom: var(--spacing-3xl);
@@ -194,8 +252,60 @@ const lastUpdated = new Date();
     margin-bottom: var(--spacing-3xl);
   }
 
+  /* --- Details/Summary reset --- */
+
+  .radar-section__details {
+    border: none;
+  }
+
+  .radar-section__details summary {
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .radar-section__details summary::-webkit-details-marker {
+    display: none;
+  }
+
   .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
     margin-bottom: var(--spacing-xl);
+  }
+
+  .section-header__text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .section-toggle {
+    flex-shrink: 0;
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-light-muted);
+    width: 1.5em;
+    text-align: center;
+    line-height: 1;
+    transition: color var(--transition-fast);
+  }
+
+  .section-toggle::before {
+    content: "+";
+  }
+
+  .radar-section__details[open] .section-toggle::before {
+    content: "\2212";
+  }
+
+  .section-header:hover .section-toggle {
+    color: var(--color-primary);
+  }
+
+  /* Hide content spacing when collapsed */
+  .radar-section__details:not([open]) .section-header {
+    margin-bottom: 0;
   }
 
   .section-label {
