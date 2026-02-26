@@ -17,12 +17,12 @@ export const CATEGORIES: Record<string, RadarCategory> = {
   'pe-ma': {
     id: 'pe-ma',
     label: 'PE & M&A',
-    color: '#2C3E50',
+    color: '#9B59B6',
   },
   'enterprise-tech': {
     id: 'enterprise-tech',
     label: 'Enterprise Tech',
-    color: '#05cd99',
+    color: '#A0785A',
   },
   'ai-automation': {
     id: 'ai-automation',

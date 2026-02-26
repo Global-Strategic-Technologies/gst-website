@@ -108,7 +108,7 @@ const lastUpdated = new Date();
 >
   <div class="radar-container">
     <div class="container">
-      <RadarHeader />
+      <RadarHeader lastUpdated={lastUpdated} />
 
       <CategoryFilter categories={CATEGORIES} />
 
@@ -128,12 +128,6 @@ const lastUpdated = new Date();
 
       <footer class="radar-footer">
         <a href="/hub" class="cta-button secondary">&larr; Return to Hub</a>
-        <p class="last-updated">
-          Updated {lastUpdated.toLocaleDateString('en-US', {
-            month: 'short', day: 'numeric', year: 'numeric',
-            hour: 'numeric', minute: '2-digit'
-          })}
-        </p>
       </footer>
     </div>
   </div>
@@ -166,8 +160,4 @@ const lastUpdated = new Date();
     gap: var(--spacing-lg);
   }
 
-  .last-updated {
-    font-size: var(--text-xs);
-    color: var(--text-light-muted);
-  }
 </style>

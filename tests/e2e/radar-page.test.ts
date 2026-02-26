@@ -55,14 +55,14 @@ test.describe('Radar Page', () => {
       }
     });
 
-    test('should display footer with return link and valid timestamp', async ({ page }) => {
+    test('should display footer with return link and header with valid timestamp', async ({ page }) => {
       const footer = page.locator('.radar-footer');
       await expect(footer).toBeVisible();
 
       const returnLink = footer.locator('a[href="/hub"]');
       await expect(returnLink).toBeVisible();
 
-      const timestamp = footer.locator('.last-updated');
+      const timestamp = page.locator('.radar-header__updated');
       const timestampText = await timestamp.textContent();
       // Verify it contains "Updated" and a date-like pattern (month name)
       expect(timestampText).toBeTruthy();
