@@ -100,9 +100,10 @@ const { categories } = Astro.props;
     .category-filter {
       overflow-x: auto;
       flex-wrap: nowrap;
+      justify-content: flex-start;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
-      padding-bottom: var(--spacing-lg);
+      padding: var(--spacing-md) 0 var(--spacing-lg);
     }
 
     .category-filter::-webkit-scrollbar {
@@ -110,6 +111,7 @@ const { categories } = Astro.props;
     }
 
     .filter-btn {
+      flex-shrink: 0;
       white-space: nowrap;
       min-height: 44px;
       margin: var(--spacing-xs) var(--spacing-xs);

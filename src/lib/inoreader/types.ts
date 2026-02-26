@@ -72,3 +72,8 @@ export interface RadarCategory {
   label: string;
   color: string;
 }
+
+/** Unified feed item — discriminated union of Wire and FYI items. */
+export type RadarFeedItem =
+  | (RadarWireItem & { kind: 'wire'; sortDate: string })
+  | (RadarFyiItem & { kind: 'fyi'; sortDate: string });

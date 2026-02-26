@@ -1,7 +1,7 @@
 /**
  * Mock Inoreader API responses for Radar E2E tests.
  *
- * Produces deterministic data that exercises all 5 categories across
+ * Produces deterministic data that exercises all 4 categories across
  * both FYI (annotated) and Wire (folder stream) tiers.
  *
  * Factory patterns based on tests/integration/radar-data-flow.test.ts.
@@ -18,7 +18,6 @@ const FOLDER_MAP: Record<string, string> = {
   'enterprise-tech': 'GST-Enterprise-Tech',
   'ai-automation': 'GST-AI-Automation',
   'security': 'GST-Security',
-  'verticals': 'GST-Verticals',
 };
 
 // ---------------------------------------------------------------------------
@@ -101,16 +100,6 @@ export function createMockAnnotatedResponse(): InoreaderStreamResponse {
       }],
     }),
     makeItem({
-      id: 'fyi-verticals-1',
-      title: 'Healthcare SaaS Verticalization Trend Report',
-      folder: FOLDER_MAP['verticals'],
-      annotations: [{
-        id: 5, start: 0, end: 55, added_on: 1708500000,
-        text: 'Vertical SaaS in healthcare growing 2x faster than horizontal.',
-        note: 'Vertical specificity creates stickiness. Look for domain-specific workflow automation, not just CRM with a healthcare skin.',
-      }],
-    }),
-    makeItem({
       id: 'fyi-enterprise-tech-2',
       title: 'Cloud Cost Optimization Becomes Board-Level Priority',
       folder: FOLDER_MAP['enterprise-tech'],
@@ -160,11 +149,6 @@ export function createMockAllStreamsResponse(): InoreaderStreamResponse {
     makeItem({ id: 'wire-sec-1', title: 'Zero Trust Architecture Mandated by New Regulations', folder: FOLDER_MAP['security'] }),
     makeItem({ id: 'wire-sec-2', title: 'Supply Chain Security Becomes Top CISO Priority', folder: FOLDER_MAP['security'] }),
     makeItem({ id: 'wire-sec-3', title: 'SOC Automation Reduces Mean Time to Respond by 60%', folder: FOLDER_MAP['security'] }),
-
-    // Verticals items
-    makeItem({ id: 'wire-vert-1', title: 'Fintech Embedded Finance APIs See Record Adoption', folder: FOLDER_MAP['verticals'] }),
-    makeItem({ id: 'wire-vert-2', title: 'Insurance Tech Modernization Enters Growth Phase', folder: FOLDER_MAP['verticals'] }),
-    makeItem({ id: 'wire-vert-3', title: 'Healthcare Interoperability Standards Finally Converge', folder: FOLDER_MAP['verticals'] }),
   ];
 
   // Sort by published timestamp (newest first), matching fetchAllStreams behavior

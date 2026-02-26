@@ -11,12 +11,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { toFyiItem, toWireItem, CATEGORIES } from '@/lib/inoreader/transform';
+import { toFyiItem, toWireItem, mergeFeed, CATEGORIES } from '@/lib/inoreader/transform';
 import type {
   InoreaderItem,
   InoreaderAnnotation,
   RadarFyiItem,
   RadarWireItem,
+  RadarFeedItem,
 } from '@/lib/inoreader/types';
 
 // ---------------------------------------------------------------------------
@@ -70,7 +71,6 @@ function makeCategoryItems(
     'enterprise-tech': 'GST-Enterprise-Tech',
     'ai-automation': 'GST-AI-Automation',
     'security': 'GST-Security',
-    'verticals': 'GST-Verticals',
   };
   const folder = folderMap[category] || 'GST-Enterprise-Tech';
 
@@ -285,8 +285,7 @@ describe('Category Balancing', () => {
       ...makeCategoryItems('enterprise-tech', 10, 1710000000), // newest
       ...makeCategoryItems('pe-ma', 3, 1705000000),
       ...makeCategoryItems('ai-automation', 3, 1704000000),
-      ...makeCategoryItems('security', 3, 1703000000),
-      ...makeCategoryItems('verticals', 3, 1702000000), // oldest
+      ...makeCategoryItems('security', 3, 1703000000), // oldest
     ];
 
     const wire = sim.processWire(items, []);
@@ -301,7 +300,6 @@ describe('Category Balancing', () => {
     expect(counts['pe-ma']).toBe(3);
     expect(counts['ai-automation']).toBe(3);
     expect(counts['security']).toBe(3);
-    expect(counts['verticals']).toBe(3);
     // ET has 10 available; 3 guaranteed + up to 7 more in pass 2
     expect(counts['enterprise-tech']).toBeGreaterThan(3);
   });
@@ -312,8 +310,7 @@ describe('Category Balancing', () => {
       ...makeCategoryItems('enterprise-tech', 20, 1710000000),
       ...makeCategoryItems('pe-ma', 10, 1709000000),
       ...makeCategoryItems('ai-automation', 10, 1708000000),
-      ...makeCategoryItems('security', 5, 1707000000),
-      ...makeCategoryItems('verticals', 5, 1706000000),
+      ...makeCategoryItems('security', 10, 1707000000),
     ];
 
     const wire = sim.processWire(items, []);
@@ -321,18 +318,17 @@ describe('Category Balancing', () => {
   });
 
   it('should fill remaining slots chronologically after pass 1', () => {
-    // 5 categories × 3 = 15 guaranteed, leaves 15 remaining slots
+    // 4 categories × 3 = 12 guaranteed, leaves 18 remaining slots
     const items = [
       ...makeCategoryItems('enterprise-tech', 20, 1710000000),
       ...makeCategoryItems('pe-ma', 3, 1705000000),
       ...makeCategoryItems('ai-automation', 3, 1704000000),
       ...makeCategoryItems('security', 3, 1703000000),
-      ...makeCategoryItems('verticals', 3, 1702000000),
     ];
 
     const wire = sim.processWire(items, []);
 
-    // Should have 15 guaranteed + 15 fill = 30 total (capped)
+    // Should have 12 guaranteed + 17 fill from ET = 29 total (under cap)
     // enterprise-tech has 20 items but only 3 are guaranteed; the rest fill from its pool
     expect(wire.length).toBeLessThanOrEqual(30);
 
@@ -347,7 +343,6 @@ describe('Category Balancing', () => {
       ...makeCategoryItems('pe-ma', 5, 1709000000),
       ...makeCategoryItems('ai-automation', 5, 1708000000),
       ...makeCategoryItems('security', 5, 1707000000),
-      ...makeCategoryItems('verticals', 5, 1706000000),
     ];
 
     const wire = sim.processWire(items, []);
@@ -362,7 +357,6 @@ describe('Category Balancing', () => {
       ...makeCategoryItems('pe-ma', 5, 1709000000),
       ...makeCategoryItems('security', 5, 1708000000),
       ...makeCategoryItems('ai-automation', 5, 1707000000),
-      ...makeCategoryItems('verticals', 5, 1706000000),
     ];
 
     const wire = sim.processWire(items, []);
@@ -396,33 +390,31 @@ describe('Category Balancing', () => {
     expect(wire.every(s => s.category === 'enterprise-tech')).toBe(true);
   });
 
-  it('should include verticals even when all other categories have newer items', () => {
-    // This is the exact bug scenario that was fixed
+  it('should include older categories even when other categories have newer items', () => {
+    // This tests that the two-pass algorithm guarantees representation
     const items = [
       ...makeCategoryItems('enterprise-tech', 15, 1710000000), // newest
       ...makeCategoryItems('ai-automation', 15, 1709000000),
-      ...makeCategoryItems('security', 15, 1708000000),
-      ...makeCategoryItems('pe-ma', 15, 1707000000),
-      ...makeCategoryItems('verticals', 15, 1700000000), // much older
+      ...makeCategoryItems('pe-ma', 15, 1708000000),
+      ...makeCategoryItems('security', 15, 1700000000), // much older
     ];
 
     const wire = sim.processWire(items, []);
 
-    const verticalsCount = wire.filter(s => s.category === 'verticals').length;
-    expect(verticalsCount).toBeGreaterThanOrEqual(3);
+    const securityCount = wire.filter(s => s.category === 'security').length;
+    expect(securityCount).toBeGreaterThanOrEqual(3);
   });
 
-  it('should handle exact boundary of 30 items with 5 categories × 6 each', () => {
+  it('should handle exact boundary of 28 items with 4 categories × 7 each', () => {
     const items = [
-      ...makeCategoryItems('enterprise-tech', 6, 1710000000),
-      ...makeCategoryItems('pe-ma', 6, 1709000000),
-      ...makeCategoryItems('ai-automation', 6, 1708000000),
-      ...makeCategoryItems('security', 6, 1707000000),
-      ...makeCategoryItems('verticals', 6, 1706000000),
+      ...makeCategoryItems('enterprise-tech', 7, 1710000000),
+      ...makeCategoryItems('pe-ma', 7, 1709000000),
+      ...makeCategoryItems('ai-automation', 7, 1708000000),
+      ...makeCategoryItems('security', 7, 1707000000),
     ];
 
     const wire = sim.processWire(items, []);
-    expect(wire.length).toBe(30); // exactly at cap
+    expect(wire.length).toBe(28); // all items included, under cap
   });
 });
 
@@ -571,7 +563,6 @@ describe('Full Pipeline', () => {
       ...makeCategoryItems('pe-ma', 6, 1709000000),
       ...makeCategoryItems('ai-automation', 6, 1708500000),
       ...makeCategoryItems('security', 6, 1708000000),
-      ...makeCategoryItems('verticals', 6, 1707500000),
     ];
 
     const fyi = sim.processFyi(annotatedItems);
@@ -589,9 +580,9 @@ describe('Full Pipeline', () => {
       expect(fyiUrls.has(item.url)).toBe(false);
     }
 
-    // All 5 categories represented
+    // All 4 categories represented
     const categories = new Set(wire.map(s => s.category));
-    expect(categories.size).toBe(5);
+    expect(categories.size).toBe(4);
 
     // Chronological order
     for (let i = 1; i < wire.length; i++) {
@@ -601,6 +592,58 @@ describe('Full Pipeline', () => {
 
     // No duplicate IDs
     const ids = wire.map(s => s.id);
+    expect(ids.length).toBe(new Set(ids).size);
+  });
+
+  it('should produce a correctly merged unified feed', () => {
+    // FYI items with specific annotation timestamps
+    const annotatedItems = Array.from({ length: 3 }, (_, i) =>
+      makeItem({
+        id: `fyi-merge-${i}`,
+        title: `FYI Merge ${i}`,
+        canonical: [{ href: `https://example.com/fyi-merge-${i}` }],
+        annotations: [makeAnnotation({
+          note: `Take ${i}`,
+          added_on: 1710500000 - i * 50000, // staggered annotation times
+        })],
+        published: 1708000000 - i * 1000, // older publish dates
+      }),
+    );
+
+    const wireItems = [
+      ...makeCategoryItems('enterprise-tech', 5, 1710000000),
+      ...makeCategoryItems('pe-ma', 3, 1709000000),
+    ];
+
+    const fyi = sim.processFyi(annotatedItems);
+    const wire = sim.processWire(wireItems, fyi);
+    const feed = mergeFeed(fyi, wire);
+
+    // All items present
+    expect(feed.length).toBe(fyi.length + wire.length);
+
+    // Kind discrimination preserved
+    const fyiIds = new Set(fyi.map(f => f.id));
+    for (const item of feed) {
+      if (fyiIds.has(item.id)) {
+        expect(item.kind).toBe('fyi');
+      } else {
+        expect(item.kind).toBe('wire');
+      }
+    }
+
+    // Sorted by sortDate descending
+    for (let i = 1; i < feed.length; i++) {
+      expect(new Date(feed[i - 1].sortDate).getTime())
+        .toBeGreaterThanOrEqual(new Date(feed[i].sortDate).getTime());
+    }
+
+    // FYI items always included regardless of wire cap
+    const fyiInFeed = feed.filter(f => f.kind === 'fyi');
+    expect(fyiInFeed).toHaveLength(fyi.length);
+
+    // No duplicate IDs
+    const ids = feed.map(f => f.id);
     expect(ids.length).toBe(new Set(ids).size);
   });
 });

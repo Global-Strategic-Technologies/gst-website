@@ -5,12 +5,14 @@
  * - CATEGORIES constant validation
  * - toWireItem() — compact wire display model
  * - toFyiItem() — FYI item with annotation extraction
+ * - mergeFeed() — unified feed merge with sort-by-annotatedAt for FYI
  * - Category inference (tested indirectly through public API)
  * - HTML stripping, entity decoding, text truncation
  */
 
-import { toFyiItem, toWireItem, CATEGORIES } from '@/lib/inoreader/transform';
+import { toFyiItem, toWireItem, mergeFeed, CATEGORIES } from '@/lib/inoreader/transform';
 import type { InoreaderItem, InoreaderAnnotation } from '@/lib/inoreader/types';
+import type { RadarFyiItem, RadarWireItem } from '@/lib/inoreader/types';
 
 /** Factory for creating InoreaderItem test fixtures with sensible defaults. */
 function makeItem(overrides: Partial<InoreaderItem> = {}): InoreaderItem {
@@ -48,13 +50,13 @@ function makeAnnotation(overrides: Partial<InoreaderAnnotation> = {}): Inoreader
 // ---------------------------------------------------------------------------
 
 describe('CATEGORIES', () => {
-  it('should define exactly 5 categories', () => {
-    expect(Object.keys(CATEGORIES)).toHaveLength(5);
+  it('should define exactly 4 categories', () => {
+    expect(Object.keys(CATEGORIES)).toHaveLength(4);
   });
 
-  it('should have pe-ma, enterprise-tech, ai-automation, security, verticals keys', () => {
+  it('should have pe-ma, enterprise-tech, ai-automation, security keys', () => {
     expect(Object.keys(CATEGORIES)).toEqual(
-      expect.arrayContaining(['pe-ma', 'enterprise-tech', 'ai-automation', 'security', 'verticals'])
+      expect.arrayContaining(['pe-ma', 'enterprise-tech', 'ai-automation', 'security'])
     );
   });
 
@@ -182,11 +184,6 @@ describe('toWireItem - Category Inference', () => {
       expect(toWireItem(item).category).toBe('ai-automation');
     });
 
-    it('should infer verticals from gst-verticals tag', () => {
-      const item = makeItem({ categories: ['user/123/label/gst-verticals'] });
-      expect(toWireItem(item).category).toBe('verticals');
-    });
-
     it('should ignore gst- tags that do not match a known category', () => {
       const item = makeItem({ categories: ['user/123/label/gst-nonexistent'] });
       expect(toWireItem(item).category).toBe('enterprise-tech'); // default
@@ -215,10 +212,6 @@ describe('toWireItem - Category Inference', () => {
       expect(toWireItem(item).category).toBe('security');
     });
 
-    it('should infer verticals from GST-Verticals folder', () => {
-      const item = makeItem({ categories: ['user/123/label/GST-Verticals'] });
-      expect(toWireItem(item).category).toBe('verticals');
-    });
   });
 
   // Priority 3: Title keyword matching
@@ -258,15 +251,6 @@ describe('toWireItem - Category Inference', () => {
       expect(toWireItem(item).category).toBe('ai-automation');
     });
 
-    it('should infer verticals from title containing "healthcare"', () => {
-      const item = makeItem({ title: 'Healthcare IT Spending Surges' });
-      expect(toWireItem(item).category).toBe('verticals');
-    });
-
-    it('should infer verticals from title containing "fintech"', () => {
-      const item = makeItem({ title: 'Fintech Startup Raises Series B' });
-      expect(toWireItem(item).category).toBe('verticals');
-    });
   });
 
   // Priority 4: Default
@@ -289,9 +273,9 @@ describe('toWireItem - Category Inference', () => {
   it('should prefer folder label over title keyword', () => {
     const item = makeItem({
       title: 'Major Acquisition in Healthcare',
-      categories: ['user/123/label/GST-Verticals'],
+      categories: ['user/123/label/GST-Security'],
     });
-    expect(toWireItem(item).category).toBe('verticals');
+    expect(toWireItem(item).category).toBe('security');
   });
 });
 
@@ -430,5 +414,117 @@ describe('toFyiItem', () => {
     });
     const result = toFyiItem(item);
     expect(result!.category).toBe('security');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mergeFeed
+// ---------------------------------------------------------------------------
+
+describe('mergeFeed', () => {
+  function makeFyi(overrides: Partial<RadarFyiItem> = {}): RadarFyiItem {
+    return {
+      id: 'fyi-1',
+      title: 'FYI Article',
+      url: 'https://example.com/fyi',
+      source: 'Feed',
+      sourceUrl: 'https://example.com',
+      category: 'enterprise-tech',
+      publishedAt: '2024-02-15T10:00:00.000Z',
+      annotatedAt: '2024-02-16T12:00:00.000Z',
+      highlightedText: 'Key passage',
+      gstTake: 'Expert take',
+      summary: 'Summary text',
+      ...overrides,
+    };
+  }
+
+  function makeWire(overrides: Partial<RadarWireItem> = {}): RadarWireItem {
+    return {
+      id: 'wire-1',
+      title: 'Wire Article',
+      url: 'https://example.com/wire',
+      source: 'Feed',
+      category: 'enterprise-tech',
+      publishedAt: '2024-02-16T10:00:00.000Z',
+      ...overrides,
+    };
+  }
+
+  it('should combine fyi and wire items into a single array', () => {
+    const fyi = [makeFyi()];
+    const wire = [makeWire()];
+    const feed = mergeFeed(fyi, wire);
+    expect(feed).toHaveLength(2);
+  });
+
+  it('should tag fyi items with kind "fyi"', () => {
+    const feed = mergeFeed([makeFyi()], []);
+    expect(feed[0].kind).toBe('fyi');
+  });
+
+  it('should tag wire items with kind "wire"', () => {
+    const feed = mergeFeed([], [makeWire()]);
+    expect(feed[0].kind).toBe('wire');
+  });
+
+  it('should use annotatedAt as sortDate for FYI items', () => {
+    const fyi = makeFyi({ annotatedAt: '2024-02-20T00:00:00.000Z' });
+    const feed = mergeFeed([fyi], []);
+    expect(feed[0].sortDate).toBe('2024-02-20T00:00:00.000Z');
+  });
+
+  it('should use publishedAt as sortDate for Wire items', () => {
+    const wire = makeWire({ publishedAt: '2024-02-18T00:00:00.000Z' });
+    const feed = mergeFeed([], [wire]);
+    expect(feed[0].sortDate).toBe('2024-02-18T00:00:00.000Z');
+  });
+
+  it('should sort by sortDate descending (newest first)', () => {
+    const fyi = makeFyi({ id: 'fyi-old', annotatedAt: '2024-02-10T00:00:00.000Z' });
+    const wire = makeWire({ id: 'wire-new', publishedAt: '2024-02-20T00:00:00.000Z' });
+    const feed = mergeFeed([fyi], [wire]);
+    expect(feed[0].id).toBe('wire-new');
+    expect(feed[1].id).toBe('fyi-old');
+  });
+
+  it('should interleave items chronologically by their sort dates', () => {
+    const fyi1 = makeFyi({ id: 'fyi-1', annotatedAt: '2024-02-20T00:00:00.000Z' });
+    const fyi2 = makeFyi({ id: 'fyi-2', annotatedAt: '2024-02-14T00:00:00.000Z' });
+    const wire1 = makeWire({ id: 'wire-1', publishedAt: '2024-02-18T00:00:00.000Z' });
+    const wire2 = makeWire({ id: 'wire-2', publishedAt: '2024-02-12T00:00:00.000Z' });
+
+    const feed = mergeFeed([fyi1, fyi2], [wire1, wire2]);
+    expect(feed.map(f => f.id)).toEqual(['fyi-1', 'wire-1', 'fyi-2', 'wire-2']);
+  });
+
+  it('should handle empty fyi array', () => {
+    const wire = [makeWire({ id: 'w1' }), makeWire({ id: 'w2' })];
+    const feed = mergeFeed([], wire);
+    expect(feed).toHaveLength(2);
+    expect(feed.every(f => f.kind === 'wire')).toBe(true);
+  });
+
+  it('should handle empty wire array', () => {
+    const fyi = [makeFyi({ id: 'f1' }), makeFyi({ id: 'f2' })];
+    const feed = mergeFeed(fyi, []);
+    expect(feed).toHaveLength(2);
+    expect(feed.every(f => f.kind === 'fyi')).toBe(true);
+  });
+
+  it('should handle both arrays empty', () => {
+    const feed = mergeFeed([], []);
+    expect(feed).toHaveLength(0);
+  });
+
+  it('should preserve all original fields on FYI items', () => {
+    const fyi = makeFyi({ gstTake: 'Practitioner insight' });
+    const feed = mergeFeed([fyi], []);
+    const item = feed[0];
+    expect(item.kind).toBe('fyi');
+    if (item.kind === 'fyi') {
+      expect(item.gstTake).toBe('Practitioner insight');
+      expect(item.highlightedText).toBe('Key passage');
+    }
   });
 });

@@ -15,6 +15,8 @@ The Radar is a curated intelligence feed on the GST Strategic Intelligence Hub a
 | 1 | The Wire | Automated RSS via Inoreader folders | Zero per item | Source curation signal |
 | 2 | FYI | Inoreader annotated items (highlights + notes) | Seconds per item | Practitioner commentary |
 
+Both tiers render in a **single unified feed**, sorted chronologically (FYI by annotation date, Wire by publish date). FYI items retain their visual distinction (expandable, category tag, GST Take) but appear inline among Wire items.
+
 ### Rendering Model
 
 - **Radar page** (`/hub/radar`): Server-rendered with Vercel ISR (6-hour cache)
@@ -68,7 +70,6 @@ Create folders in Inoreader prefixed with `GST-`:
 | `GST-Enterprise-Tech` | Enterprise Tech | Cloud, infrastructure, platforms |
 | `GST-AI-Automation` | AI & Automation | Enterprise AI, ML ops |
 | `GST-Security` | Security | Cybersecurity, regulatory |
-| `GST-Verticals` | Industry | Healthcare IT, fintech, vertical SaaS |
 
 ### Annotation Workflow (Publishing to FYI)
 
@@ -88,15 +89,11 @@ FYI items have no time-based expiry on the GST side. Visibility is determined by
 
 ## Page UX Features
 
-### Collapsible Sections
+### Unified Feed
 
-Each content tier (FYI, The Wire) is wrapped in a native `<details>`/`<summary>` element:
+FYI and Wire items render in a single chronological feed below the category filter. The `mergeFeed()` helper in `transform.ts` combines both tiers, sorting FYI items by `annotatedAt` and Wire items by `publishedAt`.
 
-- **Default state**: All sections open
-- **Toggle indicator**: `+` (collapsed) / `−` (expanded) on the left side of each section header
-- **Hover**: Toggle turns green (`--color-primary`)
-- **localStorage persistence**: Section open/closed states are saved to `localStorage` key `radar-sections` (format: `{"fyi": false, "wire": true}`). On return visits, saved preferences override the default open state.
-- **Pattern**: Follows the same `<details>`/`<summary>` approach used in `FyiItem.astro` for individual FYI items, and the `ThemeToggle.astro` try/catch pattern for localStorage access.
+Individual FYI items use native `<details>`/`<summary>` for expand/collapse of their summary, highlight, and GST Take content.
 
 ### Category Filter with Gravity Spacing
 
@@ -121,9 +118,9 @@ src/
 │   ├── types.ts                  # TypeScript interfaces
 │   ├── client.ts                 # API client (fetch wrappers + dev cache)
 │   ├── cache.ts                  # Dev-mode file cache (24h TTL)
-│   └── transform.ts             # Data transformation + categories
+│   └── transform.ts             # Data transformation + categories + feed merge
 ├── pages/hub/radar/
-│   └── index.astro               # Main Radar page (SSR + ISR + collapsible sections)
+│   └── index.astro               # Main Radar page (SSR + ISR + unified feed)
 scripts/
 └── inoreader-auth.mjs           # OAuth setup helper
 ```
@@ -199,8 +196,8 @@ npm run dev
 
 The seed script (`tests/e2e/fixtures/seed-radar-cache.ts`) writes the same cache files the dev-mode cache system reads. The Astro dev server sees valid cache entries and skips all Inoreader API calls. The mock data includes:
 
-- **6 FYI items** with annotations (highlights + GST Take) across all 5 categories
-- **16 Wire items** across all 5 GST-* folders with realistic titles and sources
+- **5 FYI items** with annotations (highlights + GST Take) across all 4 categories
+- **13 Wire items** across all 4 GST-* folders with realistic titles and sources
 
 ### Resetting to Live Data
 
@@ -248,8 +245,8 @@ E2E tests reuse the dev-mode file cache (see above) to serve deterministic mock 
 3. **Playwright global teardown** (`tests/e2e/global-teardown.ts`) cleans up the cache after tests complete
 
 Only two cache entries are needed:
-- `fetchAnnotatedItems(30)` — seeds 6 FYI items across all 5 categories
-- `fetchAllStreams('GST-', 15)` — seeds 16 Wire items across all 5 folders
+- `fetchAnnotatedItems(30)` — seeds 5 FYI items across all 4 categories
+- `fetchAllStreams('GST-', 15)` — seeds 13 Wire items across all 4 folders
 
 ### File Structure
 
@@ -271,10 +268,11 @@ The seeding script duplicates `buildCacheKey()` from `src/lib/inoreader/cache.ts
 
 ### Mock Data Characteristics
 
-- **FYI items**: 6 articles with annotations (highlighted text + GST Take), covering all 5 categories
-- **Wire items**: 16 articles spread across 5 GST-* folders with realistic titles and sources
+- **FYI items**: 5 articles with annotations (highlighted text + GST Take), covering all 4 categories
+- **Wire items**: 13 articles spread across 4 GST-* folders with realistic titles and sources
 - All items have valid URLs, timestamps, sources, and category folder labels
 - Category distribution is intentionally uneven so filter tests can verify count changes
+- Both tiers render in a single unified feed, interleaved chronologically
 
 ### Running Radar E2E Tests
 
@@ -390,8 +388,8 @@ The Inoreader client (`src/lib/inoreader/client.ts`) logs to `console.error` / `
 ### Verifying It's Working
 
 **Quick manual check:**
-- Visit `/hub/radar` — if FYI and Wire sections are populated, it's working
-- Empty FYI/Wire with fallback message indicates an API or token problem
+- Visit `/hub/radar` — if the unified feed shows FYI and Wire items, it's working
+- Empty feed with fallback message indicates an API or token problem
 
 **Vercel dashboard checks:**
 - **Logs tab**: Filter for `[Radar]` errors in recent ISR invocations
@@ -408,7 +406,7 @@ The Inoreader client (`src/lib/inoreader/client.ts`) logs to `console.error` / `
 
 ### Troubleshooting Playbook
 
-**Symptom: FYI and Wire sections are empty on the live site**
+**Symptom: Feed is empty on the live site**
 
 1. Go to Vercel Dashboard → Logs → filter for `[Radar]`
 2. Look for `Token refresh failed` → refresh token is dead

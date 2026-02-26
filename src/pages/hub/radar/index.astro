@@ -6,7 +6,7 @@
  * at render time and is cached by Vercel for the configured revalidation
  * interval. No build-time data files needed.
  *
- * Content tiers:
+ * Content tiers (rendered in a single unified feed):
  *   1. FYI — Annotated items from Inoreader (highlights + GST Take)
  *   2. The Wire — Automated RSS from Inoreader subscriptions
  */
@@ -19,7 +19,7 @@ import WireItem from '../../../components/radar/WireItem.astro';
 import CategoryFilter from '../../../components/radar/CategoryFilter.astro';
 
 import { fetchAnnotatedItems, fetchAllStreams } from '../../../lib/inoreader/client';
-import { toFyiItem, toWireItem, CATEGORIES } from '../../../lib/inoreader/transform';
+import { toFyiItem, toWireItem, mergeFeed, CATEGORIES } from '../../../lib/inoreader/transform';
 import { trackPageView } from '../../../utils/analytics';
 
 import type { RadarFyiItem, RadarWireItem } from '../../../lib/inoreader/types';
@@ -92,6 +92,9 @@ try {
   console.error('[Radar] Wire fetch failed:', e);
 }
 
+// --- Merge into unified feed ---
+const feed = mergeFeed(fyi, wire);
+
 const lastUpdated = new Date();
 ---
 
@@ -109,54 +112,16 @@ const lastUpdated = new Date();
 
       <CategoryFilter categories={CATEGORIES} />
 
-      <div class="radar-columns">
-        {/* The Wire — Automated Feed (left column) */}
-        {wire.length > 0 && (
-          <section class="radar-section radar-section--wire" id="wire">
-            <details class="radar-section__details" open data-section="wire">
-              <summary class="section-header">
-                <span class="section-toggle" aria-hidden="true"></span>
-                <div class="section-header__text">
-                  <h2 class="section-label">Δ The Wire</h2>
-                  <p class="section-description">Latest from tracked sources</p>
-                </div>
-              </summary>
-              <div class="wire-list">
-                {wire.map(item => (
-                  <WireItem item={item} />
-                ))}
-              </div>
-            </details>
-          </section>
-        )}
-
-        {/* FYI Items — annotated with GST Take (right column) */}
-        {fyi.length > 0 && (
-          <section class="radar-section radar-section--fyi" id="fyi">
-            <details class="radar-section__details" open data-section="fyi">
-              <summary class="section-header">
-                <span class="section-toggle" aria-hidden="true"></span>
-                <div class="section-header__text">
-                  <h2 class="section-label">
-                    Δ FYI
-                    <span class="section-count">({fyi.length})</span>
-                  </h2>
-                  <p class="section-description">Curated reads with our commentary</p>
-                </div>
-              </summary>
-              <div class="fyi-list">
-                {fyi.map(item => (
-                  <FyiItem item={item} />
-                ))}
-              </div>
-            </details>
-          </section>
-        )}
-      </div>
-
-      {/* Fallback if no content available */}
-      {fyi.length === 0 && wire.length === 0 && (
-        <section class="radar-section radar-empty">
+      {feed.length > 0 ? (
+        <div class="feed-list">
+          {feed.map(item =>
+            item.kind === 'fyi'
+              ? <FyiItem item={item} />
+              : <WireItem item={item} />
+          )}
+        </div>
+      ) : (
+        <section class="radar-empty">
           <p>Intelligence feed is currently being refreshed. Check back shortly.</p>
         </section>
       )}
@@ -174,168 +139,15 @@ const lastUpdated = new Date();
   </div>
 </BaseLayout>
 
-<script>
-  const STORAGE_KEY = 'radar-sections';
-
-  function restoreSectionStates() {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (!saved) return;
-
-      const states: Record<string, boolean> = JSON.parse(saved);
-      for (const [section, isOpen] of Object.entries(states)) {
-        const el = document.querySelector<HTMLDetailsElement>(
-          `.radar-section__details[data-section="${section}"]`
-        );
-        if (el) el.open = isOpen;
-      }
-    } catch {
-      // Ignore corrupted localStorage
-    }
-  }
-
-  function saveSectionStates() {
-    try {
-      const details = document.querySelectorAll<HTMLDetailsElement>('.radar-section__details');
-      const states: Record<string, boolean> = {};
-      details.forEach(el => {
-        const key = el.dataset.section;
-        if (key) states[key] = el.open;
-      });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(states));
-    } catch {
-      // Ignore if localStorage is unavailable
-    }
-  }
-
-  // Restore saved states on load
-  restoreSectionStates();
-
-  // Save state whenever a section is toggled
-  document.querySelectorAll('.radar-section__details').forEach(el => {
-    el.addEventListener('toggle', saveSectionStates);
-  });
-</script>
-
 <style>
   .radar-container {
     padding-bottom: var(--spacing-3xl);
   }
 
-  .radar-section {
-    margin-bottom: var(--spacing-3xl);
+  .feed-list {
+    max-width: 48rem;
+    margin: 0 auto;
   }
-
-  /* --- Two-column layout (desktop) --- */
-
-  .radar-columns {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--spacing-2xl);
-    align-items: start;
-  }
-
-  .radar-columns .radar-section {
-    margin-bottom: 0;
-  }
-
-  /* --- Details/Summary reset --- */
-
-  .radar-section__details {
-    border: none;
-  }
-
-  .radar-section__details summary {
-    list-style: none;
-    cursor: pointer;
-  }
-
-  .radar-section__details summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .section-header {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-xl);
-  }
-
-  .section-header__text {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .section-toggle {
-    flex-shrink: 0;
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-bold);
-    color: var(--text-light-muted);
-    width: 1.5em;
-    text-align: center;
-    line-height: 1;
-    transition: color var(--transition-fast);
-  }
-
-  .section-toggle::before {
-    content: "+";
-  }
-
-  .radar-section__details[open] .section-toggle::before {
-    content: "\2212";
-  }
-
-  .section-header:hover .section-toggle {
-    color: var(--color-primary);
-  }
-
-  /* Hide content spacing when collapsed */
-  .radar-section__details:not([open]) .section-header {
-    margin-bottom: 0;
-  }
-
-  .section-label {
-    font-size: var(--text-sm);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-light-muted);
-    margin-bottom: 0.25rem;
-  }
-
-  .section-count {
-    font-weight: var(--font-weight-normal);
-    text-transform: none;
-    letter-spacing: normal;
-    font-size: var(--text-xs);
-  }
-
-  .section-description {
-    font-size: var(--text-sm);
-    color: var(--text-light-secondary);
-  }
-
-  /* --- Per-section visual identity --- */
-
-  .radar-section--fyi {
-    background: var(--accent-light-bg);
-    border: 1px solid var(--border-light);
-    padding: var(--spacing-xl);
-  }
-
-  .radar-section--fyi .section-label {
-    color: var(--text-light-primary);
-    border-left: 3px dashed var(--color-primary);
-    padding-left: var(--spacing-md);
-  }
-
-  .radar-section--wire .section-label {
-    color: var(--text-light-muted);
-    border-left: 3px dotted var(--text-light-muted);
-    padding-left: var(--spacing-md);
-  }
-
-  /* --- Content grids/lists --- */
 
   .radar-empty {
     padding: var(--spacing-3xl) 0;
@@ -357,39 +169,5 @@ const lastUpdated = new Date();
   .last-updated {
     font-size: var(--text-xs);
     color: var(--text-light-muted);
-  }
-
-  /* --- Dark theme --- */
-
-  :global(html.dark-theme) .radar-section--fyi {
-    border-color: var(--border-dark);
-  }
-
-  /* --- Tablet and below: stack columns --- */
-
-  @media (max-width: 768px) {
-    .radar-columns {
-      grid-template-columns: 1fr;
-    }
-
-    .radar-columns .radar-section {
-      margin-bottom: var(--spacing-3xl);
-    }
-
-    .radar-columns .radar-section:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  /* --- Mobile --- */
-
-  @media (max-width: 480px) {
-    .radar-section--fyi {
-      padding: var(--spacing-md);
-    }
-
-    .section-label {
-      font-size: var(--text-xs);
-    }
   }
 </style>

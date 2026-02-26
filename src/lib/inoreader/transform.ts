@@ -9,6 +9,7 @@ import type {
   InoreaderItem,
   RadarFyiItem,
   RadarWireItem,
+  RadarFeedItem,
   RadarCategory,
 } from './types';
 
@@ -33,11 +34,6 @@ export const CATEGORIES: Record<string, RadarCategory> = {
     label: 'Security',
     color: '#E74C3C',
   },
-  'verticals': {
-    id: 'verticals',
-    label: 'Industry',
-    color: '#8E44AD',
-  },
 };
 
 const FOLDER_TO_CATEGORY: Record<string, string> = {
@@ -45,7 +41,6 @@ const FOLDER_TO_CATEGORY: Record<string, string> = {
   'GST-Enterprise-Tech': 'enterprise-tech',
   'GST-AI-Automation': 'ai-automation',
   'GST-Security': 'security',
-  'GST-Verticals': 'verticals',
 };
 
 function extractUrl(item: InoreaderItem): string {
@@ -98,7 +93,6 @@ function inferCategory(item: InoreaderItem): string {
   if (/private equity|m&a|merger|acquisition|deal|buyout|portfolio company/.test(title)) return 'pe-ma';
   if (/security|cyber|vulnerability|breach|compliance|soc\b/.test(title)) return 'security';
   if (/\bai\b|artificial intelligence|machine learning|llm|automation|ml ops/.test(title)) return 'ai-automation';
-  if (/healthcare|fintech|insurance|vertical saas/.test(title)) return 'verticals';
 
   return 'enterprise-tech';
 }
@@ -143,4 +137,20 @@ export function toWireItem(item: InoreaderItem): RadarWireItem {
     category: inferCategory(item),
     publishedAt: new Date(item.published * 1000).toISOString(),
   };
+}
+
+/**
+ * Merge FYI and Wire items into a single chronological feed.
+ * FYI items sort by annotatedAt; Wire items sort by publishedAt.
+ */
+export function mergeFeed(
+  fyi: RadarFyiItem[],
+  wire: RadarWireItem[],
+): RadarFeedItem[] {
+  return [
+    ...fyi.map(item => ({ ...item, kind: 'fyi' as const, sortDate: item.annotatedAt })),
+    ...wire.map(item => ({ ...item, kind: 'wire' as const, sortDate: item.publishedAt })),
+  ].sort((a, b) =>
+    new Date(b.sortDate).getTime() - new Date(a.sortDate).getTime()
+  );
 }

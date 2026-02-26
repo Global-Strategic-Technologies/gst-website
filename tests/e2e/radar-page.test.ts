@@ -35,13 +35,13 @@ test.describe('Radar Page', () => {
       expect(linkText).toContain('Hub');
     });
 
-    test('should display exactly 6 category filter buttons (All + 5 categories)', async ({ page }) => {
+    test('should display exactly 5 category filter buttons (All + 4 categories)', async ({ page }) => {
       const filterNav = page.locator('.category-filter');
       await expect(filterNav).toBeVisible();
 
       const buttons = page.locator('.filter-btn');
       const count = await buttons.count();
-      expect(count).toBe(6);
+      expect(count).toBe(5);
 
       // Verify the button labels match known categories
       const labels = await page.evaluate(() =>
@@ -49,7 +49,7 @@ test.describe('Radar Page', () => {
           .map(el => el.textContent?.trim())
       );
       expect(labels[0]).toBe('All');
-      // Remaining 5 should all be non-empty category labels
+      // Remaining 4 should all be non-empty category labels
       for (let i = 1; i < labels.length; i++) {
         expect(labels[i]!.length).toBeGreaterThan(0);
       }
@@ -70,19 +70,14 @@ test.describe('Radar Page', () => {
       expect(timestampText).toMatch(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/);
     });
 
-    test('should show either live content sections or fallback message', async ({ page }) => {
+    test('should show either live feed items or fallback message', async ({ page }) => {
       const hasContent = await hasRadarContent(page);
       if (hasContent) {
-        // Verify at least one known section header is present
-        const allLabelText = await page.evaluate(() =>
-          Array.from(document.querySelectorAll('.section-label'))
-            .map(el => el.textContent?.trim().toLowerCase())
+        // Verify at least one feed item (FYI or Wire) is present
+        const itemCount = await page.evaluate(() =>
+          document.querySelectorAll('.fyi-item, .wire-item').length
         );
-        const knownSections = ['fyi', 'the wire'];
-        const foundSection = allLabelText.some(
-          text => knownSections.some(s => (text || '').includes(s))
-        );
-        expect(foundSection).toBe(true);
+        expect(itemCount).toBeGreaterThan(0);
       } else {
         const fallback = page.locator('.radar-empty');
         await expect(fallback).toBeVisible();
@@ -125,7 +120,7 @@ test.describe('Radar Page', () => {
         return;
       }
 
-      const validCategories = ['pe-ma', 'enterprise-tech', 'ai-automation', 'security', 'verticals'];
+      const validCategories = ['pe-ma', 'enterprise-tech', 'ai-automation', 'security'];
       const categoryValues = await page.evaluate(() =>
         Array.from(document.querySelectorAll('[data-category]'))
           .map(el => (el as HTMLElement).dataset.category)
@@ -138,13 +133,13 @@ test.describe('Radar Page', () => {
     });
 
     test('FYI items should display category tags with visible labels', async ({ page }) => {
-      const fyiSection = page.locator('#fyi');
-      if (await fyiSection.count() === 0) {
+      const fyiItems = page.locator('.fyi-item');
+      if (await fyiItems.count() === 0) {
         test.skip();
         return;
       }
 
-      const categoryTags = fyiSection.locator('.category-tag');
+      const categoryTags = page.locator('.fyi-item .category-tag');
       const tagCount = await categoryTags.count();
       expect(tagCount).toBeGreaterThan(0);
 
@@ -183,7 +178,7 @@ test.describe('Radar Page', () => {
       }
 
       // Find a category that has items but doesn't contain ALL items
-      const categories = ['enterprise-tech', 'pe-ma', 'ai-automation', 'security', 'verticals'];
+      const categories = ['enterprise-tech', 'pe-ma', 'ai-automation', 'security'];
       let targetCategory: string | null = null;
 
       for (const cat of categories) {
