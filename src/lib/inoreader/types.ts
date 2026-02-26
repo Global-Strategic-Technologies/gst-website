@@ -42,8 +42,8 @@ export interface InoreaderStreamResponse {
   continuation?: string;
 }
 
-/** Transformed display model for Featured items (Tier 2) */
-export interface RadarFeaturedItem {
+/** Transformed display model for FYI items (Tier 2 — curated reads) */
+export interface RadarFyiItem {
   id: string;
   title: string;
   url: string;
@@ -57,8 +57,8 @@ export interface RadarFeaturedItem {
   summary: string;
 }
 
-/** Transformed display model for Stream items (Tier 1) */
-export interface RadarStreamItem {
+/** Transformed display model for Wire items (Tier 1 — automated feed) */
+export interface RadarWireItem {
   id: string;
   title: string;
   url: string;

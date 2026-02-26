@@ -11,12 +11,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { toFeaturedItem, toStreamItem, CATEGORIES } from '@/lib/inoreader/transform';
+import { toFyiItem, toWireItem, CATEGORIES } from '@/lib/inoreader/transform';
 import type {
   InoreaderItem,
   InoreaderAnnotation,
-  RadarFeaturedItem,
-  RadarStreamItem,
+  RadarFyiItem,
+  RadarWireItem,
 } from '@/lib/inoreader/types';
 
 // ---------------------------------------------------------------------------
@@ -90,51 +90,49 @@ function makeCategoryItems(
 
 /**
  * Replicates the data pipeline from index.astro:
- * 1. Transform annotated items → featured
- * 2. Deduplicate stream items (remove URLs in featured)
- * 3. Two-pass category balancing with MIN_PER_CATEGORY and MAX_STREAM cap
+ * 1. Transform annotated items → FYI
+ * 2. Deduplicate wire items (remove URLs in FYI)
+ * 3. Two-pass category balancing with MIN_PER_CATEGORY and MAX_WIRE cap
  * 4. Final chronological sort
  */
 class RadarDataFlowSimulator {
   static readonly MIN_PER_CATEGORY = 3;
-  static readonly MAX_STREAM = 30;
+  static readonly MAX_WIRE = 30;
 
   /**
-   * Process annotated items into featured display models.
-   * Mirrors index.astro lines 42-47.
+   * Process annotated items into FYI display models.
    */
-  processFeatured(annotatedItems: InoreaderItem[]): RadarFeaturedItem[] {
+  processFyi(annotatedItems: InoreaderItem[]): RadarFyiItem[] {
     return annotatedItems
-      .map(toFeaturedItem)
-      .filter((item): item is RadarFeaturedItem => item !== null);
+      .map(toFyiItem)
+      .filter((item): item is RadarFyiItem => item !== null);
   }
 
   /**
-   * Process raw stream items into balanced, deduplicated display models.
-   * Mirrors index.astro lines 57-97.
+   * Process raw items into balanced, deduplicated Wire display models.
    */
-  processStream(
+  processWire(
     rawItems: InoreaderItem[],
-    featured: RadarFeaturedItem[],
-  ): RadarStreamItem[] {
-    // Dedup: exclude items whose URL already appears in featured
-    const featuredUrls = new Set(featured.map(f => f.url));
-    const allStreamItems = rawItems
+    fyi: RadarFyiItem[],
+  ): RadarWireItem[] {
+    // Dedup: exclude items whose URL already appears in FYI
+    const fyiUrls = new Set(fyi.map(f => f.url));
+    const allWireItems = rawItems
       .filter(item => {
         const url = item.canonical?.[0]?.href || item.alternate?.[0]?.href || '';
-        return !featuredUrls.has(url);
+        return !fyiUrls.has(url);
       })
-      .map(toStreamItem);
+      .map(toWireItem);
 
     // Two-pass category balancing
     const picked = new Set<string>();
-    const result: RadarStreamItem[] = [];
+    const result: RadarWireItem[] = [];
 
     // Pass 1: guarantee MIN_PER_CATEGORY per category
     const categoryKeys = Object.keys(CATEGORIES);
     for (const cat of categoryKeys) {
       let count = 0;
-      for (const item of allStreamItems) {
+      for (const item of allWireItems) {
         if (item.category === cat && count < RadarDataFlowSimulator.MIN_PER_CATEGORY) {
           picked.add(item.id);
           result.push(item);
@@ -144,8 +142,8 @@ class RadarDataFlowSimulator {
     }
 
     // Pass 2: fill remaining slots chronologically
-    for (const item of allStreamItems) {
-      if (result.length >= RadarDataFlowSimulator.MAX_STREAM) break;
+    for (const item of allWireItems) {
+      if (result.length >= RadarDataFlowSimulator.MAX_WIRE) break;
       if (!picked.has(item.id)) {
         result.push(item);
       }
@@ -170,30 +168,30 @@ beforeEach(() => {
 });
 
 // ---------------------------------------------------------------------------
-// Featured Processing
+// FYI Processing
 // ---------------------------------------------------------------------------
 
-describe('Featured Processing', () => {
+describe('FYI Processing', () => {
   it('should filter out items without annotations', () => {
     const items = [
       makeItem({ annotations: [makeAnnotation()] }),
       makeItem({ annotations: [] }),
       makeItem({ annotations: undefined }),
     ];
-    const featured = sim.processFeatured(items);
-    expect(featured).toHaveLength(1);
+    const fyi = sim.processFyi(items);
+    expect(fyi).toHaveLength(1);
   });
 
   it('should transform annotated items into display models', () => {
     const items = [
       makeItem({
-        title: 'Featured Article',
+        title: 'FYI Article',
         annotations: [makeAnnotation({ note: 'Great insight' })],
       }),
     ];
-    const featured = sim.processFeatured(items);
-    expect(featured[0].title).toBe('Featured Article');
-    expect(featured[0].gstTake).toBe('Great insight');
+    const fyi = sim.processFyi(items);
+    expect(fyi[0].title).toBe('FYI Article');
+    expect(fyi[0].gstTake).toBe('Great insight');
   });
 
   it('should preserve all annotated items', () => {
@@ -204,20 +202,20 @@ describe('Featured Processing', () => {
         canonical: [{ href: `https://example.com/ann-${i}` }],
       }),
     );
-    const featured = sim.processFeatured(items);
-    expect(featured).toHaveLength(5);
+    const fyi = sim.processFyi(items);
+    expect(fyi).toHaveLength(5);
   });
 });
 
 // ---------------------------------------------------------------------------
-// Stream Deduplication
+// Wire Deduplication
 // ---------------------------------------------------------------------------
 
-describe('Stream Deduplication', () => {
-  it('should remove stream items whose URL appears in featured', () => {
-    const featured: RadarFeaturedItem[] = [{
+describe('Wire Deduplication', () => {
+  it('should remove wire items whose URL appears in FYI', () => {
+    const fyi: RadarFyiItem[] = [{
       id: 'f1',
-      title: 'Featured',
+      title: 'FYI Article',
       url: 'https://example.com/shared-url',
       source: 'Feed',
       sourceUrl: '',
@@ -234,15 +232,15 @@ describe('Stream Deduplication', () => {
       makeItem({ canonical: [{ href: 'https://example.com/unique-url' }] }),
     ];
 
-    const stream = sim.processStream(rawItems, featured);
-    expect(stream).toHaveLength(1);
-    expect(stream[0].url).toBe('https://example.com/unique-url');
+    const wire = sim.processWire(rawItems, fyi);
+    expect(wire).toHaveLength(1);
+    expect(wire[0].url).toBe('https://example.com/unique-url');
   });
 
   it('should check alternate URL for dedup when canonical is missing', () => {
-    const featured: RadarFeaturedItem[] = [{
+    const fyi: RadarFyiItem[] = [{
       id: 'f1',
-      title: 'Featured',
+      title: 'FYI Article',
       url: 'https://example.com/alt-url',
       source: 'Feed',
       sourceUrl: '',
@@ -265,14 +263,14 @@ describe('Stream Deduplication', () => {
       categories: [],
     }];
 
-    const stream = sim.processStream(rawItems, featured);
-    expect(stream).toHaveLength(0);
+    const wire = sim.processWire(rawItems, fyi);
+    expect(wire).toHaveLength(0);
   });
 
-  it('should keep all items when featured is empty', () => {
+  it('should keep all items when FYI is empty', () => {
     const rawItems = [makeItem(), makeItem()];
-    const stream = sim.processStream(rawItems, []);
-    expect(stream).toHaveLength(2);
+    const wire = sim.processWire(rawItems, []);
+    expect(wire).toHaveLength(2);
   });
 });
 
@@ -291,11 +289,11 @@ describe('Category Balancing', () => {
       ...makeCategoryItems('verticals', 3, 1702000000), // oldest
     ];
 
-    const stream = sim.processStream(items, []);
+    const wire = sim.processWire(items, []);
 
     // Count items per category
     const counts: Record<string, number> = {};
-    for (const item of stream) {
+    for (const item of wire) {
       counts[item.category] = (counts[item.category] || 0) + 1;
     }
 
@@ -308,7 +306,7 @@ describe('Category Balancing', () => {
     expect(counts['enterprise-tech']).toBeGreaterThan(3);
   });
 
-  it('should respect MAX_STREAM (30) cap', () => {
+  it('should respect MAX_WIRE (30) cap', () => {
     // Create 50 items
     const items = [
       ...makeCategoryItems('enterprise-tech', 20, 1710000000),
@@ -318,8 +316,8 @@ describe('Category Balancing', () => {
       ...makeCategoryItems('verticals', 5, 1706000000),
     ];
 
-    const stream = sim.processStream(items, []);
-    expect(stream.length).toBeLessThanOrEqual(30);
+    const wire = sim.processWire(items, []);
+    expect(wire.length).toBeLessThanOrEqual(30);
   });
 
   it('should fill remaining slots chronologically after pass 1', () => {
@@ -332,14 +330,14 @@ describe('Category Balancing', () => {
       ...makeCategoryItems('verticals', 3, 1702000000),
     ];
 
-    const stream = sim.processStream(items, []);
+    const wire = sim.processWire(items, []);
 
     // Should have 15 guaranteed + 15 fill = 30 total (capped)
     // enterprise-tech has 20 items but only 3 are guaranteed; the rest fill from its pool
-    expect(stream.length).toBeLessThanOrEqual(30);
+    expect(wire.length).toBeLessThanOrEqual(30);
 
     // enterprise-tech should have more than MIN_PER_CATEGORY because it fills remaining slots
-    const etCount = stream.filter(s => s.category === 'enterprise-tech').length;
+    const etCount = wire.filter(s => s.category === 'enterprise-tech').length;
     expect(etCount).toBeGreaterThan(3);
   });
 
@@ -352,8 +350,8 @@ describe('Category Balancing', () => {
       ...makeCategoryItems('verticals', 5, 1706000000),
     ];
 
-    const stream = sim.processStream(items, []);
-    const ids = stream.map(s => s.id);
+    const wire = sim.processWire(items, []);
+    const ids = wire.map(s => s.id);
     const uniqueIds = new Set(ids);
     expect(ids.length).toBe(uniqueIds.size);
   });
@@ -367,11 +365,11 @@ describe('Category Balancing', () => {
       ...makeCategoryItems('verticals', 5, 1706000000),
     ];
 
-    const stream = sim.processStream(items, []);
+    const wire = sim.processWire(items, []);
 
-    for (let i = 1; i < stream.length; i++) {
-      const prev = new Date(stream[i - 1].publishedAt).getTime();
-      const curr = new Date(stream[i].publishedAt).getTime();
+    for (let i = 1; i < wire.length; i++) {
+      const prev = new Date(wire[i - 1].publishedAt).getTime();
+      const curr = new Date(wire[i].publishedAt).getTime();
       expect(prev).toBeGreaterThanOrEqual(curr);
     }
   });
@@ -383,9 +381,9 @@ describe('Category Balancing', () => {
       ...makeCategoryItems('security', 3, 1708000000),
     ];
 
-    const stream = sim.processStream(items, []);
+    const wire = sim.processWire(items, []);
 
-    const pemaCount = stream.filter(s => s.category === 'pe-ma').length;
+    const pemaCount = wire.filter(s => s.category === 'pe-ma').length;
     expect(pemaCount).toBe(1); // only 1 available
   });
 
@@ -393,9 +391,9 @@ describe('Category Balancing', () => {
     // 40 enterprise-tech items, 0 from other categories
     const items = makeCategoryItems('enterprise-tech', 40, 1710000000);
 
-    const stream = sim.processStream(items, []);
-    expect(stream.length).toBe(30); // capped at MAX_STREAM
-    expect(stream.every(s => s.category === 'enterprise-tech')).toBe(true);
+    const wire = sim.processWire(items, []);
+    expect(wire.length).toBe(30); // capped at MAX_WIRE
+    expect(wire.every(s => s.category === 'enterprise-tech')).toBe(true);
   });
 
   it('should include verticals even when all other categories have newer items', () => {
@@ -408,9 +406,9 @@ describe('Category Balancing', () => {
       ...makeCategoryItems('verticals', 15, 1700000000), // much older
     ];
 
-    const stream = sim.processStream(items, []);
+    const wire = sim.processWire(items, []);
 
-    const verticalsCount = stream.filter(s => s.category === 'verticals').length;
+    const verticalsCount = wire.filter(s => s.category === 'verticals').length;
     expect(verticalsCount).toBeGreaterThanOrEqual(3);
   });
 
@@ -423,8 +421,8 @@ describe('Category Balancing', () => {
       ...makeCategoryItems('verticals', 6, 1706000000),
     ];
 
-    const stream = sim.processStream(items, []);
-    expect(stream.length).toBe(30); // exactly at cap
+    const wire = sim.processWire(items, []);
+    expect(wire.length).toBe(30); // exactly at cap
   });
 });
 
@@ -434,18 +432,18 @@ describe('Category Balancing', () => {
 
 describe('Edge Cases', () => {
   it('should return empty array when no items provided', () => {
-    const stream = sim.processStream([], []);
-    expect(stream).toHaveLength(0);
+    const wire = sim.processWire([], []);
+    expect(wire).toHaveLength(0);
   });
 
-  it('should return empty featured when all items lack annotations', () => {
+  it('should return empty FYI when all items lack annotations', () => {
     const items = [makeItem(), makeItem(), makeItem()];
-    const featured = sim.processFeatured(items);
-    expect(featured).toHaveLength(0);
+    const fyi = sim.processFyi(items);
+    expect(fyi).toHaveLength(0);
   });
 
-  it('should handle combined featured + stream dedup correctly', () => {
-    // Item A appears in both annotated and stream feeds
+  it('should handle combined FYI + wire dedup correctly', () => {
+    // Item A appears in both annotated and wire feeds
     const sharedUrl = 'https://example.com/shared';
 
     const annotatedItems = [
@@ -456,17 +454,17 @@ describe('Edge Cases', () => {
       }),
     ];
 
-    const rawStreamItems = [
-      makeItem({ id: 'stream-1', canonical: [{ href: sharedUrl }] }),
-      makeItem({ id: 'stream-2', canonical: [{ href: 'https://example.com/other' }] }),
+    const rawWireItems = [
+      makeItem({ id: 'wire-1', canonical: [{ href: sharedUrl }] }),
+      makeItem({ id: 'wire-2', canonical: [{ href: 'https://example.com/other' }] }),
     ];
 
-    const featured = sim.processFeatured(annotatedItems);
-    const stream = sim.processStream(rawStreamItems, featured);
+    const fyi = sim.processFyi(annotatedItems);
+    const wire = sim.processWire(rawWireItems, fyi);
 
-    expect(featured).toHaveLength(1);
-    expect(stream).toHaveLength(1);
-    expect(stream[0].url).toBe('https://example.com/other');
+    expect(fyi).toHaveLength(1);
+    expect(wire).toHaveLength(1);
+    expect(wire[0].url).toBe('https://example.com/other');
   });
 
   it('should handle items with no URL gracefully in dedup', () => {
@@ -474,10 +472,10 @@ describe('Edge Cases', () => {
       makeItem({ canonical: undefined, alternate: undefined }),
     ];
 
-    // Featured has empty URL too — should not match and remove
-    const featured: RadarFeaturedItem[] = [{
+    // FYI has a URL — should not match and remove the no-URL item
+    const fyi: RadarFyiItem[] = [{
       id: 'f1',
-      title: 'Featured',
+      title: 'FYI Article',
       url: 'https://example.com/some-url',
       source: 'Feed',
       sourceUrl: '',
@@ -489,15 +487,15 @@ describe('Edge Cases', () => {
       summary: 'summary',
     }];
 
-    const stream = sim.processStream(rawItems, featured);
-    expect(stream).toHaveLength(1);
+    const wire = sim.processWire(rawItems, fyi);
+    expect(wire).toHaveLength(1);
   });
 
-  it('should handle all items being deduped (stream becomes empty)', () => {
+  it('should handle all items being deduped (wire becomes empty)', () => {
     const sharedUrl = 'https://example.com/same';
-    const featured: RadarFeaturedItem[] = [{
+    const fyi: RadarFyiItem[] = [{
       id: 'f1',
-      title: 'Featured',
+      title: 'FYI Article',
       url: sharedUrl,
       source: 'Feed',
       sourceUrl: '',
@@ -514,8 +512,8 @@ describe('Edge Cases', () => {
       makeItem({ canonical: [{ href: sharedUrl }] }),
     ];
 
-    const stream = sim.processStream(rawItems, featured);
-    expect(stream).toHaveLength(0);
+    const wire = sim.processWire(rawItems, fyi);
+    expect(wire).toHaveLength(0);
   });
 
   it('should work with fewer total items than MAX_STREAM', () => {
@@ -524,8 +522,8 @@ describe('Edge Cases', () => {
       ...makeCategoryItems('pe-ma', 2, 1709000000),
     ];
 
-    const stream = sim.processStream(items, []);
-    expect(stream).toHaveLength(4);
+    const wire = sim.processWire(items, []);
+    expect(wire).toHaveLength(4);
   });
 
   it('should preserve category assignment through the full pipeline', () => {
@@ -537,34 +535,34 @@ describe('Edge Cases', () => {
       }),
     ];
 
-    const stream = sim.processStream(items, []);
-    expect(stream[0].category).toBe('security');
+    const wire = sim.processWire(items, []);
+    expect(wire[0].category).toBe('security');
   });
 });
 
 // ---------------------------------------------------------------------------
-// Full Pipeline (Featured + Stream together)
+// Full Pipeline (FYI + Wire together)
 // ---------------------------------------------------------------------------
 
 describe('Full Pipeline', () => {
   it('should process a realistic mixed feed correctly', () => {
-    // Annotated items (become featured)
+    // Annotated items (become FYI)
     const annotatedItems = Array.from({ length: 5 }, (_, i) =>
       makeItem({
-        id: `featured-${i}`,
-        title: `Featured Article ${i}`,
-        canonical: [{ href: `https://example.com/featured-${i}` }],
+        id: `fyi-${i}`,
+        title: `FYI Article ${i}`,
+        canonical: [{ href: `https://example.com/fyi-${i}` }],
         annotations: [makeAnnotation({ note: `Take ${i}` })],
         published: 1710000000 - i * 100,
       }),
     );
 
-    // Stream items (some overlap with featured URLs)
-    const streamItems = [
-      // Duplicate of featured-0
+    // Wire items (some overlap with FYI URLs)
+    const wireItems = [
+      // Duplicate of fyi-0
       makeItem({
-        id: 'stream-dup',
-        canonical: [{ href: 'https://example.com/featured-0' }],
+        id: 'wire-dup',
+        canonical: [{ href: 'https://example.com/fyi-0' }],
         published: 1710000000,
         categories: ['user/123/label/GST-Enterprise-Tech'],
       }),
@@ -576,33 +574,33 @@ describe('Full Pipeline', () => {
       ...makeCategoryItems('verticals', 6, 1707500000),
     ];
 
-    const featured = sim.processFeatured(annotatedItems);
-    const stream = sim.processStream(streamItems, featured);
+    const fyi = sim.processFyi(annotatedItems);
+    const wire = sim.processWire(wireItems, fyi);
 
-    // Featured: all 5 annotated items
-    expect(featured).toHaveLength(5);
+    // FYI: all 5 annotated items
+    expect(fyi).toHaveLength(5);
 
-    // Stream: duplicate removed, capped at 30
-    expect(stream.length).toBeLessThanOrEqual(30);
+    // Wire: duplicate removed, capped at 30
+    expect(wire.length).toBeLessThanOrEqual(30);
 
-    // No featured URLs in stream
-    const featuredUrls = new Set(featured.map(f => f.url));
-    for (const item of stream) {
-      expect(featuredUrls.has(item.url)).toBe(false);
+    // No FYI URLs in wire
+    const fyiUrls = new Set(fyi.map(f => f.url));
+    for (const item of wire) {
+      expect(fyiUrls.has(item.url)).toBe(false);
     }
 
     // All 5 categories represented
-    const categories = new Set(stream.map(s => s.category));
+    const categories = new Set(wire.map(s => s.category));
     expect(categories.size).toBe(5);
 
     // Chronological order
-    for (let i = 1; i < stream.length; i++) {
-      expect(new Date(stream[i - 1].publishedAt).getTime())
-        .toBeGreaterThanOrEqual(new Date(stream[i].publishedAt).getTime());
+    for (let i = 1; i < wire.length; i++) {
+      expect(new Date(wire[i - 1].publishedAt).getTime())
+        .toBeGreaterThanOrEqual(new Date(wire[i].publishedAt).getTime());
     }
 
     // No duplicate IDs
-    const ids = stream.map(s => s.id);
+    const ids = wire.map(s => s.id);
     expect(ids.length).toBe(new Set(ids).size);
   });
 });

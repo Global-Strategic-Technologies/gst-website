@@ -78,8 +78,10 @@ test.describe('Radar Page', () => {
           Array.from(document.querySelectorAll('.section-label'))
             .map(el => el.textContent?.trim().toLowerCase())
         );
-        const knownSections = ['signals', 'featured', 'stream'];
-        const foundSection = allLabelText.some(text => knownSections.includes(text || ''));
+        const knownSections = ['signals', 'fyi', 'the wire'];
+        const foundSection = allLabelText.some(
+          text => knownSections.some(s => (text || '').includes(s))
+        );
         expect(foundSection).toBe(true);
       } else {
         const fallback = page.locator('.radar-empty');
@@ -135,14 +137,14 @@ test.describe('Radar Page', () => {
       }
     });
 
-    test('featured items should display category tags with visible labels', async ({ page }) => {
-      const featuredSection = page.locator('#featured');
-      if (await featuredSection.count() === 0) {
+    test('FYI items should display category tags with visible labels', async ({ page }) => {
+      const fyiSection = page.locator('#fyi');
+      if (await fyiSection.count() === 0) {
         test.skip();
         return;
       }
 
-      const categoryTags = featuredSection.locator('.category-tag');
+      const categoryTags = fyiSection.locator('.category-tag');
       const tagCount = await categoryTags.count();
       expect(tagCount).toBeGreaterThan(0);
 

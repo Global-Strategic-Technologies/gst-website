@@ -6,6 +6,10 @@ import { Page, expect } from '@playwright/test';
  * The Radar page is SSR — all HTML is delivered complete by the server.
  * By the time page.goto() resolves, the DOM is ready. We just need to
  * confirm the expected structure exists (header or fallback section).
+ *
+ * Note: Mock Inoreader data is seeded into the dev cache by the Playwright
+ * global setup (tests/e2e/global-setup.ts). The Astro dev server reads
+ * this cache during SSR, so content is always available during E2E runs.
  */
 export async function waitForRadarReady(page: Page): Promise<void> {
   // SSR page delivers full HTML — just confirm the radar structure rendered
@@ -13,24 +17,24 @@ export async function waitForRadarReady(page: Page): Promise<void> {
 }
 
 /**
- * Check whether the Radar page has any content (signals, featured, or stream).
+ * Check whether the Radar page has any content (signals, FYI, or wire).
  * Returns true if at least one content item exists; false if only the fallback.
  */
 export async function hasRadarContent(page: Page): Promise<boolean> {
   const signalCount = await page.locator('.signal-card').count();
-  const featuredCount = await page.locator('.featured-item').count();
-  const streamCount = await page.locator('.stream-item').count();
-  return signalCount > 0 || featuredCount > 0 || streamCount > 0;
+  const fyiCount = await page.locator('.fyi-item').count();
+  const wireCount = await page.locator('.wire-item').count();
+  return signalCount > 0 || fyiCount > 0 || wireCount > 0;
 }
 
 /**
- * Check whether the page has Inoreader-sourced content (featured or stream).
+ * Check whether the page has Inoreader-sourced content (FYI or wire).
  * Use this for tests that depend on live API data (category filtering, etc.).
  */
 export async function hasInoreaderContent(page: Page): Promise<boolean> {
-  const featuredCount = await page.locator('.featured-item').count();
-  const streamCount = await page.locator('.stream-item').count();
-  return featuredCount > 0 || streamCount > 0;
+  const fyiCount = await page.locator('.fyi-item').count();
+  const wireCount = await page.locator('.wire-item').count();
+  return fyiCount > 0 || wireCount > 0;
 }
 
 /**

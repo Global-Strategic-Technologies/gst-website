@@ -2,13 +2,13 @@
  * Transform Inoreader API responses into Radar display models.
  *
  * Handles URL extraction, category inference, HTML stripping,
- * and annotation extraction for Featured items.
+ * and annotation extraction for FYI items.
  */
 
 import type {
   InoreaderItem,
-  RadarFeaturedItem,
-  RadarStreamItem,
+  RadarFyiItem,
+  RadarWireItem,
   RadarCategory,
 } from './types';
 
@@ -104,10 +104,10 @@ function inferCategory(item: InoreaderItem): string {
 }
 
 /**
- * Transform an annotated Inoreader item into a Featured display model.
+ * Transform an annotated Inoreader item into an FYI display model.
  * Extracts the first highlight and note as the GST Take.
  */
-export function toFeaturedItem(item: InoreaderItem): RadarFeaturedItem | null {
+export function toFyiItem(item: InoreaderItem): RadarFyiItem | null {
   const annotations = item.annotations || [];
   if (annotations.length === 0) return null;
 
@@ -132,9 +132,9 @@ export function toFeaturedItem(item: InoreaderItem): RadarFeaturedItem | null {
 }
 
 /**
- * Transform an Inoreader item into a compact Stream display model.
+ * Transform an Inoreader item into a compact Wire display model.
  */
-export function toStreamItem(item: InoreaderItem): RadarStreamItem {
+export function toWireItem(item: InoreaderItem): RadarWireItem {
   return {
     id: item.id,
     title: (item.title || 'Untitled').trim(),

@@ -8,6 +8,7 @@
  */
 
 import type { InoreaderStreamResponse, InoreaderItem } from './types';
+import { buildCacheKey, getCachedResponse, setCachedResponse } from './cache';
 
 const API_BASE = 'https://www.inoreader.com/reader/api/0';
 const OAUTH_BASE = 'https://www.inoreader.com/oauth2';
@@ -115,13 +116,23 @@ async function authenticatedFetch(url: string, config: ClientConfig): Promise<Re
 }
 
 /**
- * Fetch annotated articles (Tier 2: Featured items).
+ * Fetch annotated articles (Tier 2: FYI items).
  * Returns articles where Reid has added highlights and notes.
  */
 export async function fetchAnnotatedItems(
   count: number = 30,
   configOverride?: ClientConfig,
 ): Promise<InoreaderStreamResponse | null> {
+  const useCache = import.meta.env.DEV && !configOverride;
+  const cacheKey = useCache ? buildCacheKey('fetchAnnotatedItems', count) : '';
+  if (useCache) {
+    const cached = getCachedResponse<InoreaderStreamResponse>(cacheKey);
+    if (cached) {
+      console.log('[Radar] Dev cache hit: fetchAnnotatedItems');
+      return cached;
+    }
+  }
+
   const config = configOverride ?? getConfig();
   const streamId = encodeURIComponent('user/-/state/com.google/annotated');
 
@@ -141,7 +152,12 @@ export async function fetchAnnotatedItems(
       return null;
     }
 
-    return await response.json();
+    const data: InoreaderStreamResponse = await response.json();
+    if (useCache) {
+      setCachedResponse(cacheKey, data);
+      console.log('[Radar] Dev cache stored: fetchAnnotatedItems');
+    }
+    return data;
   } catch (error) {
     console.error(`[Radar] Inoreader request failed: ${(error as Error).message}`);
     return null;
@@ -149,7 +165,7 @@ export async function fetchAnnotatedItems(
 }
 
 /**
- * Fetch stream items for a specific folder (Tier 1: Automated stream).
+ * Fetch stream items for a specific folder (Tier 1: The Wire).
  * Stream ID format for folders: user/-/label/FolderName
  */
 export async function fetchFolderStream(
@@ -157,6 +173,16 @@ export async function fetchFolderStream(
   count: number = 20,
   configOverride?: ClientConfig,
 ): Promise<InoreaderStreamResponse | null> {
+  const useCache = import.meta.env.DEV && !configOverride;
+  const cacheKey = useCache ? buildCacheKey('fetchFolderStream', folderName, count) : '';
+  if (useCache) {
+    const cached = getCachedResponse<InoreaderStreamResponse>(cacheKey);
+    if (cached) {
+      console.log(`[Radar] Dev cache hit: fetchFolderStream(${folderName})`);
+      return cached;
+    }
+  }
+
   const config = configOverride ?? getConfig();
   const streamId = encodeURIComponent(`user/-/label/${folderName}`);
 
@@ -175,7 +201,12 @@ export async function fetchFolderStream(
       return null;
     }
 
-    return await response.json();
+    const data: InoreaderStreamResponse = await response.json();
+    if (useCache) {
+      setCachedResponse(cacheKey, data);
+      console.log(`[Radar] Dev cache stored: fetchFolderStream(${folderName})`);
+    }
+    return data;
   } catch (error) {
     console.error(`[Radar] Folder fetch failed: ${(error as Error).message}`);
     return null;
@@ -192,6 +223,16 @@ export async function fetchAllStreams(
   countPerFolder: number = 15,
   configOverride?: ClientConfig,
 ): Promise<InoreaderStreamResponse | null> {
+  const useCache = import.meta.env.DEV && !configOverride;
+  const cacheKey = useCache ? buildCacheKey('fetchAllStreams', folderPrefix, countPerFolder) : '';
+  if (useCache) {
+    const cached = getCachedResponse<InoreaderStreamResponse>(cacheKey);
+    if (cached) {
+      console.log('[Radar] Dev cache hit: fetchAllStreams');
+      return cached;
+    }
+  }
+
   const config = configOverride ?? getConfig();
 
   const tagsUrl = `${API_BASE}/tag/list?output=json`;
@@ -237,12 +278,19 @@ export async function fetchAllStreams(
 
     allItems.sort((a, b) => b.published - a.published);
 
-    return {
+    const merged: InoreaderStreamResponse = {
       direction: 'ltr',
       id: 'gst-radar-merged',
       updated: Date.now() / 1000,
       items: allItems,
     };
+
+    if (useCache) {
+      setCachedResponse(cacheKey, merged);
+      console.log('[Radar] Dev cache stored: fetchAllStreams');
+    }
+
+    return merged;
   } catch (error) {
     console.error(`[Radar] Stream fetch failed: ${(error as Error).message}`);
     return null;

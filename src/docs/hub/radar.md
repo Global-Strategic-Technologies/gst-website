@@ -12,8 +12,8 @@ The Radar is a curated intelligence feed on the GST Strategic Intelligence Hub a
 
 | Tier | Name | Source | Effort | Value |
 |------|------|--------|--------|-------|
-| 1 | Stream | Automated RSS via Inoreader folders | Zero per item | Source curation signal |
-| 2 | Featured | Inoreader annotated items (highlights + notes) | Seconds per item | Practitioner commentary |
+| 1 | The Wire | Automated RSS via Inoreader folders | Zero per item | Source curation signal |
+| 2 | FYI | Inoreader annotated items (highlights + notes) | Seconds per item | Practitioner commentary |
 | 3 | Signals | Original markdown posts in `src/content/signals/` | 30-60 min per post | Original indexed content |
 
 ### Rendering Model
@@ -74,7 +74,7 @@ Create folders in Inoreader prefixed with `GST-`:
 | `GST-Security` | Security | Cybersecurity, regulatory |
 | `GST-Verticals` | Industry | Healthcare IT, fintech, vertical SaaS |
 
-### Annotation Workflow (Publishing to Featured)
+### Annotation Workflow (Publishing to FYI)
 
 1. Read an article in Inoreader
 2. Highlight a key passage
@@ -89,8 +89,8 @@ src/
 ├── components/radar/
 │   ├── RadarHeader.astro         # Page header with breadcrumb
 │   ├── SignalCard.astro          # Signal post preview card
-│   ├── FeaturedItem.astro        # Annotated item with GST Take
-│   ├── StreamItem.astro          # Compact feed item
+│   ├── FyiItem.astro             # Collapsible FYI item with GST Take
+│   ├── WireItem.astro            # Compact wire feed item
 │   └── CategoryFilter.astro     # Client-side filter pills
 ├── lib/inoreader/
 │   ├── types.ts                  # TypeScript interfaces
@@ -135,6 +135,98 @@ The API client handles token refresh automatically at runtime:
 
 The manual refresh script (`node scripts/inoreader-auth.mjs refresh`) is available as a fallback if the refresh token itself expires, which would require re-running the full OAuth flow.
 
+## Dev-Mode API Cache
+
+### Why It Exists
+
+Inoreader enforces a **200 requests/day** rate limit (100/zone x 2 zones). Each Radar page load makes ~7 API calls (1 annotated items + 1 tag list + ~5 folder streams). During local development, hot reloads and page refreshes can exhaust this budget in under 15 page loads, resulting in **429 Too Many Requests** errors and a blank Radar feed.
+
+Production is unaffected (ISR revalidates every 6 hours = ~28 calls/day), but the dev and production environments share the same API credentials and rate limit bucket.
+
+### How It Works
+
+When `import.meta.env.DEV` is true (local dev server only), the API client in `src/lib/inoreader/client.ts` checks a file cache before making real API calls:
+
+1. Before each API call, the client checks `.cache/inoreader/` for a cached response
+2. Cache files are keyed by function name + parameters (SHA-256 hash)
+3. If a valid cache file exists (< 24 hours old), it is returned immediately — no API call made
+4. If no cache exists or it has expired, the real API call proceeds and the response is stored
+
+Cache logic lives in `src/lib/inoreader/cache.ts`.
+
+### Cache Location & Cleanup
+
+- **Directory**: `.cache/inoreader/` (project root, gitignored)
+- **TTL**: 24 hours (hardcoded)
+- **Manual clear**: Delete the `.cache/` directory to force fresh API calls on next page load
+- **Production**: Cache is completely bypassed — `import.meta.env.DEV` is `false` in Vercel builds
+
+### Console Output
+
+During dev, the cache logs its behavior to the terminal:
+
+```
+[Radar] Dev cache hit: fetchAnnotatedItems        # using cached response
+[Radar] Dev cache stored: fetchAllStreams          # fresh response saved
+```
+
+## E2E Test Mocking
+
+### Why Mock Data Is Needed
+
+The Radar page is **server-side rendered** — Inoreader API calls happen in the Astro dev server (Node.js), not in the browser. This means Playwright's `page.route()` cannot intercept these calls. Without mock data, E2E tests either burn through the 200 req/day API budget or silently skip when the API is rate-limited.
+
+### How It Works
+
+E2E tests reuse the dev-mode file cache (see above) to serve deterministic mock data:
+
+1. **Playwright global setup** (`tests/e2e/global-setup.ts`) writes mock Inoreader responses to `.cache/inoreader/` before any test runs
+2. The Astro dev server reads these cache files during SSR — zero live API calls
+3. **Playwright global teardown** (`tests/e2e/global-teardown.ts`) cleans up the cache after tests complete
+
+Only two cache entries are needed:
+- `fetchAnnotatedItems(30)` — seeds 6 FYI items across all 5 categories
+- `fetchAllStreams('GST-', 15)` — seeds 16 Wire items across all 5 folders
+
+### File Structure
+
+```
+tests/e2e/
+├── global-setup.ts              # Seeds mock cache before tests
+├── global-teardown.ts           # Clears mock cache after tests
+├── fixtures/
+│   ├── radar-mock-data.ts       # Mock Inoreader API response factories
+│   └── seed-radar-cache.ts      # Writes/clears mock data in .cache/
+├── helpers/
+│   └── radar.ts                 # Page interaction helpers
+└── radar-page.test.ts           # Radar E2E tests (17 tests x 3 browsers)
+```
+
+### Cache Key Alignment
+
+The seeding script duplicates `buildCacheKey()` from `src/lib/inoreader/cache.ts` (same SHA-256 hashing of function name + args). If the cache key algorithm changes, E2E tests break immediately — providing fast feedback.
+
+### Mock Data Characteristics
+
+- **FYI items**: 6 articles with annotations (highlighted text + GST Take), covering all 5 categories
+- **Wire items**: 16 articles spread across 5 GST-* folders with realistic titles and sources
+- All items have valid URLs, timestamps, sources, and category folder labels
+- Category distribution is intentionally uneven so filter tests can verify count changes
+
+### Running Radar E2E Tests
+
+```bash
+npx playwright test tests/e2e/radar-page.test.ts              # All browsers
+npx playwright test tests/e2e/radar-page.test.ts --project=chromium  # Chromium only
+```
+
+Console output confirms mock data is active:
+```
+[E2E Setup] Radar mock cache seeded
+...
+[E2E Teardown] Radar mock cache cleared
+```
+
 ## Vercel Caching & ISR Details
 
 ### How ISR Works for the Radar
@@ -154,8 +246,8 @@ Because the page sets `export const prerender = false`, Astro delegates it to a 
 ### Cache Lifecycle
 
 1. **First request after deploy** — Vercel invokes the ISR function:
-   - Fetches Stream items from Inoreader API (up to 30 across `GST-` folders)
-   - Fetches Featured items from Inoreader annotated stream (up to 30)
+   - Fetches Wire items from Inoreader API (up to 30 across `GST-` folders)
+   - Fetches FYI items from Inoreader annotated stream (up to 30)
    - Loads Signals from the content collection (markdown, resolved at build time)
    - Renders full HTML and **caches the result for 6 hours**
 2. **Requests within 6 hours** — Vercel serves the **cached HTML from CDN**. No serverless function runs, no Inoreader API calls.
@@ -169,8 +261,8 @@ Because the page sets `export const prerender = false`, Astro delegates it to a 
 
 | Content | Refresh Trigger | Frequency |
 |---------|----------------|-----------|
-| Stream (RSS feeds) | ISR revalidation | Every 6 hours |
-| Featured (annotated items) | ISR revalidation | Every 6 hours |
+| The Wire (RSS feeds) | ISR revalidation | Every 6 hours |
+| FYI (annotated items) | ISR revalidation | Every 6 hours |
 | Signals (original posts) | Vercel deployment | On each push/deploy |
 | Static assets (JS/CSS) | Vercel deployment | Immutable, 1-year cache |
 
@@ -189,7 +281,7 @@ The prerender config (`.vercel/output/functions/_isr.prerender-config.json`) set
 
 ## Error Handling
 
-- **API down**: Radar page renders with empty Featured/Stream sections; Signals still show
+- **API down**: Radar page renders with empty FYI/Wire sections; Signals still show
 - **Token expired**: Automatic refresh via refresh token; no manual intervention needed
 - **Refresh token expired**: Re-run OAuth flow (`node scripts/inoreader-auth.mjs setup`) and update Vercel env vars
 - **No env vars**: Radar page shows "Intelligence feed is currently being refreshed" fallback
@@ -204,7 +296,7 @@ The prerender config (`.vercel/output/functions/_isr.prerender-config.json`) set
 | Refresh token revoked/expired | Signals only + fallback message | Degraded page cached for 6h | `[Radar] Token refresh failed: {status}` |
 | Both tokens invalid | Signals only + fallback message | Degraded page cached for 6h | `[Radar] Token refresh failed` |
 | Env vars missing entirely | **Page render crashes** | No cache generated | `Inoreader credentials not configured` error |
-| Network timeout to Inoreader | Signals only + fallback message | Degraded page cached for 6h | `[Radar] Stream fetch failed` / `Folder fetch failed` |
+| Network timeout to Inoreader | Signals only + fallback message | Degraded page cached for 6h | `[Radar] Wire fetch failed` / `Folder fetch failed` |
 
 **Key risk:** If tokens go permanently bad, Vercel ISR caches the degraded page for 6 hours, then re-renders another degraded page for another 6 hours, indefinitely — with no automatic alerting.
 
@@ -224,7 +316,7 @@ The Inoreader client (`src/lib/inoreader/client.ts`) logs to `console.error` / `
 | `[Radar] No refresh token available` | Error | **Action needed** — env var missing |
 | `[Radar] Request failed after token refresh: {status}` | Error | API issue persists after token refresh |
 | `[Radar] Inoreader API error: {status} {statusText}` | Error | Inoreader returned non-200 |
-| `[Radar] Stream fetch failed` | Error | Network error fetching folders |
+| `[Radar] Wire fetch failed` | Error | Network error fetching folders |
 | `[Radar] No folders found with prefix "GST-"` | Warn | No matching folders — check Inoreader organization |
 
 ### How to View Logs
@@ -237,8 +329,8 @@ The Inoreader client (`src/lib/inoreader/client.ts`) logs to `console.error` / `
 ### Verifying It's Working
 
 **Quick manual check:**
-- Visit `/hub/radar` — if Featured and Stream sections are populated, it's working
-- Empty Featured/Stream with only Signals visible indicates an API or token problem
+- Visit `/hub/radar` — if FYI and Wire sections are populated, it's working
+- Empty FYI/Wire with only Signals visible indicates an API or token problem
 
 **Vercel dashboard checks:**
 - **Logs tab**: Filter for `[Radar]` errors in recent ISR invocations
@@ -255,7 +347,7 @@ The Inoreader client (`src/lib/inoreader/client.ts`) logs to `console.error` / `
 
 ### Troubleshooting Playbook
 
-**Symptom: Featured and Stream sections are empty on the live site**
+**Symptom: FYI and Wire sections are empty on the live site**
 
 1. Go to Vercel Dashboard → Logs → filter for `[Radar]`
 2. Look for `Token refresh failed` → refresh token is dead
@@ -268,7 +360,7 @@ The Inoreader client (`src/lib/inoreader/client.ts`) logs to `console.error` / `
    - Redeploy or wait up to 6 hours for ISR to pick up the new env vars
 3. Look for `Inoreader API error: 429` → rate limited
    - Wait and let the next ISR cycle retry (6 hours)
-4. Look for `Stream fetch failed` or `Folder fetch failed` → network issue
+4. Look for `Wire fetch failed` or `Folder fetch failed` → network issue
    - Usually transient; next ISR cycle should recover
 5. Look for `No folders found with prefix "GST-"` → Inoreader folder naming issue
    - Verify folders in Inoreader are prefixed with `GST-`

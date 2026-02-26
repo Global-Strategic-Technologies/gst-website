@@ -3,13 +3,13 @@
  *
  * Tests the pure transformation functions in src/lib/inoreader/transform.ts:
  * - CATEGORIES constant validation
- * - toStreamItem() — compact stream display model
- * - toFeaturedItem() — featured item with annotation extraction
+ * - toWireItem() — compact wire display model
+ * - toFyiItem() — FYI item with annotation extraction
  * - Category inference (tested indirectly through public API)
  * - HTML stripping, entity decoding, text truncation
  */
 
-import { toFeaturedItem, toStreamItem, CATEGORIES } from '@/lib/inoreader/transform';
+import { toFyiItem, toWireItem, CATEGORIES } from '@/lib/inoreader/transform';
 import type { InoreaderItem, InoreaderAnnotation } from '@/lib/inoreader/types';
 
 /** Factory for creating InoreaderItem test fixtures with sensible defaults. */
@@ -74,13 +74,13 @@ describe('CATEGORIES', () => {
 });
 
 // ---------------------------------------------------------------------------
-// toStreamItem
+// toWireItem
 // ---------------------------------------------------------------------------
 
-describe('toStreamItem', () => {
+describe('toWireItem', () => {
   it('should transform a basic item with all fields', () => {
     const item = makeItem();
-    const result = toStreamItem(item);
+    const result = toWireItem(item);
 
     expect(result).toEqual({
       id: item.id,
@@ -97,7 +97,7 @@ describe('toStreamItem', () => {
       canonical: [{ href: 'https://canonical.example.com' }],
       alternate: [{ href: 'https://alternate.example.com', type: 'text/html' }],
     });
-    const result = toStreamItem(item);
+    const result = toWireItem(item);
     expect(result.url).toBe('https://canonical.example.com');
   });
 
@@ -106,7 +106,7 @@ describe('toStreamItem', () => {
       canonical: undefined,
       alternate: [{ href: 'https://alternate.example.com', type: 'text/html' }],
     });
-    const result = toStreamItem(item);
+    const result = toWireItem(item);
     expect(result.url).toBe('https://alternate.example.com');
   });
 
@@ -115,19 +115,19 @@ describe('toStreamItem', () => {
       canonical: undefined,
       alternate: undefined,
     });
-    const result = toStreamItem(item);
+    const result = toWireItem(item);
     expect(result.url).toBe('');
   });
 
   it('should default title to Untitled when title is empty', () => {
     const item = makeItem({ title: '' });
-    const result = toStreamItem(item);
+    const result = toWireItem(item);
     expect(result.title).toBe('Untitled');
   });
 
   it('should trim whitespace from title', () => {
     const item = makeItem({ title: '  Padded Title  ' });
-    const result = toStreamItem(item);
+    const result = toWireItem(item);
     expect(result.title).toBe('Padded Title');
   });
 
@@ -135,61 +135,61 @@ describe('toStreamItem', () => {
     const item = makeItem({
       origin: { streamId: 'feed/test', title: 'My Feed', htmlUrl: 'https://feed.com' },
     });
-    const result = toStreamItem(item);
+    const result = toWireItem(item);
     expect(result.source).toBe('My Feed');
   });
 
   it('should default source to Unknown when origin is missing', () => {
     const item = makeItem({ origin: undefined as any });
-    const result = toStreamItem(item);
+    const result = toWireItem(item);
     expect(result.source).toBe('Unknown');
   });
 
   it('should convert published Unix timestamp to ISO string', () => {
     const item = makeItem({ published: 1708000000 });
-    const result = toStreamItem(item);
+    const result = toWireItem(item);
     const date = new Date(result.publishedAt);
     expect(date.getTime()).toBe(1708000000 * 1000);
   });
 
   it('should produce a valid ISO 8601 publishedAt string', () => {
     const item = makeItem();
-    const result = toStreamItem(item);
+    const result = toWireItem(item);
     expect(() => new Date(result.publishedAt)).not.toThrow();
     expect(new Date(result.publishedAt).toISOString()).toBe(result.publishedAt);
   });
 });
 
 // ---------------------------------------------------------------------------
-// toStreamItem — Category Inference
+// toWireItem — Category Inference
 // ---------------------------------------------------------------------------
 
-describe('toStreamItem - Category Inference', () => {
+describe('toWireItem - Category Inference', () => {
   // Priority 1: Explicit gst-* tags
   describe('Priority 1: gst-* tags', () => {
     it('should infer pe-ma from gst-pe-ma tag', () => {
       const item = makeItem({ categories: ['user/123/label/gst-pe-ma'] });
-      expect(toStreamItem(item).category).toBe('pe-ma');
+      expect(toWireItem(item).category).toBe('pe-ma');
     });
 
     it('should infer security from gst-security tag', () => {
       const item = makeItem({ categories: ['user/123/label/gst-security'] });
-      expect(toStreamItem(item).category).toBe('security');
+      expect(toWireItem(item).category).toBe('security');
     });
 
     it('should infer ai-automation from gst-ai-automation tag', () => {
       const item = makeItem({ categories: ['user/123/label/gst-ai-automation'] });
-      expect(toStreamItem(item).category).toBe('ai-automation');
+      expect(toWireItem(item).category).toBe('ai-automation');
     });
 
     it('should infer verticals from gst-verticals tag', () => {
       const item = makeItem({ categories: ['user/123/label/gst-verticals'] });
-      expect(toStreamItem(item).category).toBe('verticals');
+      expect(toWireItem(item).category).toBe('verticals');
     });
 
     it('should ignore gst- tags that do not match a known category', () => {
       const item = makeItem({ categories: ['user/123/label/gst-nonexistent'] });
-      expect(toStreamItem(item).category).toBe('enterprise-tech'); // default
+      expect(toWireItem(item).category).toBe('enterprise-tech'); // default
     });
   });
 
@@ -197,27 +197,27 @@ describe('toStreamItem - Category Inference', () => {
   describe('Priority 2: GST-* folder labels', () => {
     it('should infer pe-ma from GST-PE-MA folder', () => {
       const item = makeItem({ categories: ['user/123/label/GST-PE-MA'] });
-      expect(toStreamItem(item).category).toBe('pe-ma');
+      expect(toWireItem(item).category).toBe('pe-ma');
     });
 
     it('should infer enterprise-tech from GST-Enterprise-Tech folder', () => {
       const item = makeItem({ categories: ['user/123/label/GST-Enterprise-Tech'] });
-      expect(toStreamItem(item).category).toBe('enterprise-tech');
+      expect(toWireItem(item).category).toBe('enterprise-tech');
     });
 
     it('should infer ai-automation from GST-AI-Automation folder', () => {
       const item = makeItem({ categories: ['user/123/label/GST-AI-Automation'] });
-      expect(toStreamItem(item).category).toBe('ai-automation');
+      expect(toWireItem(item).category).toBe('ai-automation');
     });
 
     it('should infer security from GST-Security folder', () => {
       const item = makeItem({ categories: ['user/123/label/GST-Security'] });
-      expect(toStreamItem(item).category).toBe('security');
+      expect(toWireItem(item).category).toBe('security');
     });
 
     it('should infer verticals from GST-Verticals folder', () => {
       const item = makeItem({ categories: ['user/123/label/GST-Verticals'] });
-      expect(toStreamItem(item).category).toBe('verticals');
+      expect(toWireItem(item).category).toBe('verticals');
     });
   });
 
@@ -225,54 +225,54 @@ describe('toStreamItem - Category Inference', () => {
   describe('Priority 3: Title keywords', () => {
     it('should infer pe-ma from title containing "private equity"', () => {
       const item = makeItem({ title: 'Private Equity Fund Raises $2B' });
-      expect(toStreamItem(item).category).toBe('pe-ma');
+      expect(toWireItem(item).category).toBe('pe-ma');
     });
 
     it('should infer pe-ma from title containing "acquisition"', () => {
       const item = makeItem({ title: 'Major Acquisition Closes Today' });
-      expect(toStreamItem(item).category).toBe('pe-ma');
+      expect(toWireItem(item).category).toBe('pe-ma');
     });
 
     it('should infer pe-ma from title containing "buyout"', () => {
       const item = makeItem({ title: 'Leveraged Buyout of Software Firm' });
-      expect(toStreamItem(item).category).toBe('pe-ma');
+      expect(toWireItem(item).category).toBe('pe-ma');
     });
 
     it('should infer security from title containing "cyber"', () => {
       const item = makeItem({ title: 'Cyber Attacks Reach New Heights' });
-      expect(toStreamItem(item).category).toBe('security');
+      expect(toWireItem(item).category).toBe('security');
     });
 
     it('should infer security from title containing "vulnerability"', () => {
       const item = makeItem({ title: 'Critical Vulnerability Discovered in OpenSSL' });
-      expect(toStreamItem(item).category).toBe('security');
+      expect(toWireItem(item).category).toBe('security');
     });
 
     it('should infer ai-automation from title containing "artificial intelligence"', () => {
       const item = makeItem({ title: 'Artificial Intelligence Reshapes Enterprise' });
-      expect(toStreamItem(item).category).toBe('ai-automation');
+      expect(toWireItem(item).category).toBe('ai-automation');
     });
 
     it('should infer ai-automation from title containing "LLM"', () => {
       const item = makeItem({ title: 'New LLM Benchmark Released' });
-      expect(toStreamItem(item).category).toBe('ai-automation');
+      expect(toWireItem(item).category).toBe('ai-automation');
     });
 
     it('should infer verticals from title containing "healthcare"', () => {
       const item = makeItem({ title: 'Healthcare IT Spending Surges' });
-      expect(toStreamItem(item).category).toBe('verticals');
+      expect(toWireItem(item).category).toBe('verticals');
     });
 
     it('should infer verticals from title containing "fintech"', () => {
       const item = makeItem({ title: 'Fintech Startup Raises Series B' });
-      expect(toStreamItem(item).category).toBe('verticals');
+      expect(toWireItem(item).category).toBe('verticals');
     });
   });
 
   // Priority 4: Default
   it('should default to enterprise-tech when no category signals found', () => {
     const item = makeItem({ title: 'Generic Technology News Article', categories: [] });
-    expect(toStreamItem(item).category).toBe('enterprise-tech');
+    expect(toWireItem(item).category).toBe('enterprise-tech');
   });
 
   // Priority ordering
@@ -283,7 +283,7 @@ describe('toStreamItem - Category Inference', () => {
         'user/123/label/GST-AI-Automation',
       ],
     });
-    expect(toStreamItem(item).category).toBe('security');
+    expect(toWireItem(item).category).toBe('security');
   });
 
   it('should prefer folder label over title keyword', () => {
@@ -291,29 +291,29 @@ describe('toStreamItem - Category Inference', () => {
       title: 'Major Acquisition in Healthcare',
       categories: ['user/123/label/GST-Verticals'],
     });
-    expect(toStreamItem(item).category).toBe('verticals');
+    expect(toWireItem(item).category).toBe('verticals');
   });
 });
 
 // ---------------------------------------------------------------------------
-// toFeaturedItem
+// toFyiItem
 // ---------------------------------------------------------------------------
 
-describe('toFeaturedItem', () => {
+describe('toFyiItem', () => {
   it('should return null when item has no annotations', () => {
     const item = makeItem({ annotations: [] });
-    expect(toFeaturedItem(item)).toBeNull();
+    expect(toFyiItem(item)).toBeNull();
   });
 
   it('should return null when annotations field is undefined', () => {
     const item = makeItem({ annotations: undefined });
-    expect(toFeaturedItem(item)).toBeNull();
+    expect(toFyiItem(item)).toBeNull();
   });
 
   it('should transform item with a single annotation', () => {
     const annotation = makeAnnotation();
     const item = makeItem({ annotations: [annotation] });
-    const result = toFeaturedItem(item);
+    const result = toFyiItem(item);
 
     expect(result).not.toBeNull();
     expect(result!.title).toBe('Test Article Title');
@@ -327,7 +327,7 @@ describe('toFeaturedItem', () => {
     const noNote = makeAnnotation({ id: 1, note: '', text: 'Highlight without note' });
     const withNote = makeAnnotation({ id: 2, note: 'The real take', text: 'Highlight with note' });
     const item = makeItem({ annotations: [noNote, withNote] });
-    const result = toFeaturedItem(item);
+    const result = toFyiItem(item);
 
     expect(result!.gstTake).toBe('The real take');
     expect(result!.highlightedText).toBe('Highlight with note');
@@ -337,7 +337,7 @@ describe('toFeaturedItem', () => {
     const ann1 = makeAnnotation({ id: 1, note: '', text: 'First highlight' });
     const ann2 = makeAnnotation({ id: 2, note: '', text: 'Second highlight' });
     const item = makeItem({ annotations: [ann1, ann2] });
-    const result = toFeaturedItem(item);
+    const result = toFyiItem(item);
 
     expect(result!.highlightedText).toBe('First highlight');
   });
@@ -345,14 +345,14 @@ describe('toFeaturedItem', () => {
   it('should extract highlightedText from annotation text', () => {
     const annotation = makeAnnotation({ text: 'Key insight from the article' });
     const item = makeItem({ annotations: [annotation] });
-    const result = toFeaturedItem(item);
+    const result = toFyiItem(item);
     expect(result!.highlightedText).toBe('Key insight from the article');
   });
 
   it('should extract gstTake from annotation note', () => {
     const annotation = makeAnnotation({ note: 'Practitioner perspective on this trend' });
     const item = makeItem({ annotations: [annotation] });
-    const result = toFeaturedItem(item);
+    const result = toFyiItem(item);
     expect(result!.gstTake).toBe('Practitioner perspective on this trend');
   });
 
@@ -361,7 +361,7 @@ describe('toFeaturedItem', () => {
       summary: { content: '<p><strong>Bold</strong> text with <a href="#">links</a></p>' },
       annotations: [makeAnnotation()],
     });
-    const result = toFeaturedItem(item);
+    const result = toFyiItem(item);
     expect(result!.summary).toBe('Bold text with links');
   });
 
@@ -370,7 +370,7 @@ describe('toFeaturedItem', () => {
       summary: { content: 'AT&amp;T says &lt;hello&gt; &amp; &quot;goodbye&quot; it&#39;s&nbsp;done' },
       annotations: [makeAnnotation()],
     });
-    const result = toFeaturedItem(item);
+    const result = toFyiItem(item);
     expect(result!.summary).toContain('AT&T');
     expect(result!.summary).toContain('<hello>');
     expect(result!.summary).toContain('"goodbye"');
@@ -383,7 +383,7 @@ describe('toFeaturedItem', () => {
       summary: { content: longText },
       annotations: [makeAnnotation()],
     });
-    const result = toFeaturedItem(item);
+    const result = toFyiItem(item);
     expect(result!.summary.length).toBeLessThanOrEqual(260);
     expect(result!.summary).toMatch(/\.\.\.$/);
     // Should end with a complete word before the ellipsis (space before truncation point)
@@ -399,7 +399,7 @@ describe('toFeaturedItem', () => {
       summary: { content: shortText },
       annotations: [makeAnnotation()],
     });
-    const result = toFeaturedItem(item);
+    const result = toFyiItem(item);
     expect(result!.summary).toBe(shortText);
     expect(result!.summary).not.toContain('...');
   });
@@ -410,25 +410,25 @@ describe('toFeaturedItem', () => {
       content: { content: '<p>Content fallback text</p>' },
       annotations: [makeAnnotation()],
     });
-    const result = toFeaturedItem(item);
+    const result = toFyiItem(item);
     expect(result!.summary).toBe('Content fallback text');
   });
 
   it('should convert annotation added_on to ISO annotatedAt string', () => {
     const annotation = makeAnnotation({ added_on: 1708100000 });
     const item = makeItem({ annotations: [annotation] });
-    const result = toFeaturedItem(item);
+    const result = toFyiItem(item);
     const date = new Date(result!.annotatedAt);
     expect(date.getTime()).toBe(1708100000 * 1000);
     expect(date.toISOString()).toBe(result!.annotatedAt);
   });
 
-  it('should assign category using the same inference rules as toStreamItem', () => {
+  it('should assign category using the same inference rules as toWireItem (shared inferCategory)', () => {
     const item = makeItem({
       categories: ['user/123/label/GST-Security'],
       annotations: [makeAnnotation()],
     });
-    const result = toFeaturedItem(item);
+    const result = toFyiItem(item);
     expect(result!.category).toBe('security');
   });
 });

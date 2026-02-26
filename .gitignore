@@ -36,3 +36,6 @@ playwright-report/
 
 # test coverage reports
 coverage/
+
+# dev-mode API response cache
+.cache/
