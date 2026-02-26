@@ -109,48 +109,50 @@ const lastUpdated = new Date();
 
       <CategoryFilter categories={CATEGORIES} />
 
-      {/* FYI Items (annotated with GST Take) */}
-      {fyi.length > 0 && (
-        <section class="radar-section radar-section--fyi" id="fyi">
-          <details class="radar-section__details" open data-section="fyi">
-            <summary class="section-header">
-              <span class="section-toggle" aria-hidden="true"></span>
-              <div class="section-header__text">
-                <h2 class="section-label">
-                  Δ FYI
-                  <span class="section-count">({fyi.length})</span>
-                </h2>
-                <p class="section-description">Curated reads with our commentary</p>
+      <div class="radar-columns">
+        {/* The Wire — Automated Feed (left column) */}
+        {wire.length > 0 && (
+          <section class="radar-section radar-section--wire" id="wire">
+            <details class="radar-section__details" open data-section="wire">
+              <summary class="section-header">
+                <span class="section-toggle" aria-hidden="true"></span>
+                <div class="section-header__text">
+                  <h2 class="section-label">Δ The Wire</h2>
+                  <p class="section-description">Latest from tracked sources</p>
+                </div>
+              </summary>
+              <div class="wire-list">
+                {wire.map(item => (
+                  <WireItem item={item} />
+                ))}
               </div>
-            </summary>
-            <div class="fyi-list">
-              {fyi.map(item => (
-                <FyiItem item={item} />
-              ))}
-            </div>
-          </details>
-        </section>
-      )}
+            </details>
+          </section>
+        )}
 
-      {/* The Wire — Automated Feed */}
-      {wire.length > 0 && (
-        <section class="radar-section radar-section--wire" id="wire">
-          <details class="radar-section__details" open data-section="wire">
-            <summary class="section-header">
-              <span class="section-toggle" aria-hidden="true"></span>
-              <div class="section-header__text">
-                <h2 class="section-label">Δ The Wire</h2>
-                <p class="section-description">Latest from tracked sources</p>
+        {/* FYI Items — annotated with GST Take (right column) */}
+        {fyi.length > 0 && (
+          <section class="radar-section radar-section--fyi" id="fyi">
+            <details class="radar-section__details" open data-section="fyi">
+              <summary class="section-header">
+                <span class="section-toggle" aria-hidden="true"></span>
+                <div class="section-header__text">
+                  <h2 class="section-label">
+                    Δ FYI
+                    <span class="section-count">({fyi.length})</span>
+                  </h2>
+                  <p class="section-description">Curated reads with our commentary</p>
+                </div>
+              </summary>
+              <div class="fyi-list">
+                {fyi.map(item => (
+                  <FyiItem item={item} />
+                ))}
               </div>
-            </summary>
-            <div class="wire-list">
-              {wire.map(item => (
-                <WireItem item={item} />
-              ))}
-            </div>
-          </details>
-        </section>
-      )}
+            </details>
+          </section>
+        )}
+      </div>
 
       {/* Fallback if no content available */}
       {fyi.length === 0 && wire.length === 0 && (
@@ -222,6 +224,19 @@ const lastUpdated = new Date();
 
   .radar-section {
     margin-bottom: var(--spacing-3xl);
+  }
+
+  /* --- Two-column layout (desktop) --- */
+
+  .radar-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-2xl);
+    align-items: start;
+  }
+
+  .radar-columns .radar-section {
+    margin-bottom: 0;
   }
 
   /* --- Details/Summary reset --- */
@@ -348,6 +363,22 @@ const lastUpdated = new Date();
 
   :global(html.dark-theme) .radar-section--fyi {
     border-color: var(--border-dark);
+  }
+
+  /* --- Tablet and below: stack columns --- */
+
+  @media (max-width: 768px) {
+    .radar-columns {
+      grid-template-columns: 1fr;
+    }
+
+    .radar-columns .radar-section {
+      margin-bottom: var(--spacing-3xl);
+    }
+
+    .radar-columns .radar-section:last-child {
+      margin-bottom: 0;
+    }
   }
 
   /* --- Mobile --- */
