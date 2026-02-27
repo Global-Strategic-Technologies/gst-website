@@ -1,0 +1,113 @@
+---
+/**
+ * RadarFeed — Server island that fetches and renders the unified feed.
+ *
+ * Used with `server:defer` so the page shell (header, nav, category filter)
+ * renders instantly while this component fetches from the Inoreader API.
+ * No props — data fetching is self-contained to avoid prop serialization
+ * limits imposed by server islands.
+ */
+import FyiItem from './FyiItem.astro';
+import WireItem from './WireItem.astro';
+
+import { fetchAnnotatedItems, fetchAllStreams } from '../../lib/inoreader/client';
+import { toFyiItem, toWireItem, mergeFeed, CATEGORIES } from '../../lib/inoreader/transform';
+
+import type { RadarFyiItem, RadarWireItem } from '../../lib/inoreader/types';
+
+// --- Data Fetching (runs on Vercel at revalidation time) ---
+
+// FYI items (annotated in Inoreader)
+let fyi: RadarFyiItem[] = [];
+try {
+  const annotatedResponse = await fetchAnnotatedItems(30);
+  if (annotatedResponse) {
+    fyi = annotatedResponse.items
+      .map(toFyiItem)
+      .filter((item): item is RadarFyiItem => item !== null);
+  }
+} catch (e) {
+  console.error('[Radar] FYI items fetch failed:', e);
+}
+
+// The Wire — automated feed from all GST folders
+let wire: RadarWireItem[] = [];
+try {
+  const folderPrefix = import.meta.env.INOREADER_FOLDER_PREFIX || 'GST-';
+  const streamsResponse = await fetchAllStreams(folderPrefix, 15);
+  if (streamsResponse) {
+    const fyiUrls = new Set(fyi.map(f => f.url));
+    const allWireItems = streamsResponse.items
+      .filter(item => {
+        const url = item.canonical?.[0]?.href || item.alternate?.[0]?.href || '';
+        return !fyiUrls.has(url);
+      })
+      .map(toWireItem);
+
+    // Guarantee each category is represented before filling chronologically.
+    // Without this, categories with older items get pushed past the display cap.
+    const MIN_PER_CATEGORY = 3;
+    const MAX_WIRE = 30;
+    const picked = new Set<string>();
+    const result: RadarWireItem[] = [];
+
+    // Pass 1: pick up to MIN_PER_CATEGORY items per category (newest first)
+    const categoryKeys = Object.keys(CATEGORIES);
+    for (const cat of categoryKeys) {
+      let count = 0;
+      for (const item of allWireItems) {
+        if (item.category === cat && count < MIN_PER_CATEGORY) {
+          picked.add(item.id);
+          result.push(item);
+          count++;
+        }
+      }
+    }
+
+    // Pass 2: fill remaining slots chronologically from unpicked items
+    for (const item of allWireItems) {
+      if (result.length >= MAX_WIRE) break;
+      if (!picked.has(item.id)) {
+        result.push(item);
+      }
+    }
+
+    // Sort final set by date so the display order stays chronological
+    wire = result.sort((a, b) =>
+      new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+    );
+  }
+} catch (e) {
+  console.error('[Radar] Wire fetch failed:', e);
+}
+
+// --- Merge into unified feed ---
+const feed = mergeFeed(fyi, wire);
+---
+
+{feed.length > 0 ? (
+  <div class="feed-list">
+    {feed.map(item =>
+      item.kind === 'fyi'
+        ? <FyiItem item={item} />
+        : <WireItem item={item} />
+    )}
+  </div>
+) : (
+  <section class="radar-empty">
+    <p>Intelligence feed is currently being refreshed. Check back shortly.</p>
+  </section>
+)}
+
+<style>
+  .feed-list {
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+
+  .radar-empty {
+    padding: var(--spacing-3xl) 0;
+    text-align: center;
+    color: var(--text-light-muted);
+  }
+</style>
