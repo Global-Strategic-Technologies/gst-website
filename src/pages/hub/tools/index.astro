@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../components/hub/HubHeader.astro';
 import { trackPageView } from '../../../utils/analytics';
 
 trackPageView('hub-tools', 'The Workbench - Tools | GST');
@@ -15,17 +16,12 @@ const isDev = import.meta.env.DEV;
     ogImage="/og-image.png"
     ogUrl="https://globalstrategic.tech/hub/tools"
 >
-    <section class="placeholder-hero">
+    <section class="workbench-section">
         <div class="container">
-            <span class="section-label">Tools</span>
-            <h1>The Workbench</h1>
-            <svg class="page-icon" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <rect x="4" y="8" width="40" height="32" rx="2" stroke="currentColor" stroke-width="2"/>
-                <path d="M12 20L18 26L12 32" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <line x1="22" y1="32" x2="36" y2="32" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <p class="placeholder-description">Coming soon. Strategic intelligence for quantifying risk and value in technology investments.</p>
-            <p class="content-type-label">Interactive tools</p>
+            <HubHeader
+                title="The Workbench"
+                subtitle="Strategic intelligence for quantifying risk and value in technology investments."
+            />
 
             <article class="teaser-card teaser-card--live">
                 <div class="teaser-header">
@@ -109,63 +105,8 @@ const isDev = import.meta.env.DEV;
 </BaseLayout>
 
 <style>
-    .placeholder-hero {
-        padding: 5rem 0;
-        text-align: center;
-    }
-
-    .section-label {
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--color-primary);
-        margin-bottom: var(--spacing-lg);
-        display: block;
-    }
-
-    .placeholder-hero h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: rgba(26, 26, 26, 0.95);
-        text-transform: uppercase;
-        letter-spacing: 0.02em;
-        margin-bottom: var(--spacing-lg);
-    }
-
-    .page-icon {
-        color: var(--color-primary);
-        margin: 0 auto var(--spacing-xl);
-        display: block;
-    }
-
-    :global(html.dark-theme) .placeholder-hero h1 {
-        color: rgba(245, 245, 245, 0.95);
-    }
-
-    .placeholder-description {
-        font-size: 1.1rem;
-        color: rgba(26, 26, 26, 0.7);
-        line-height: 1.8;
-        max-width: 600px;
-        margin: 0 auto var(--spacing-lg);
-    }
-
-    :global(html.dark-theme) .placeholder-description {
-        color: rgba(200, 200, 200, 0.7);
-    }
-
-    .content-type-label {
-        font-size: 0.9rem;
-        color: rgba(26, 26, 26, 0.6);
-        line-height: 1.6;
-        max-width: 600px;
-        margin: 0 auto var(--spacing-3xl);
-        font-style: italic;
-    }
-
-    :global(html.dark-theme) .content-type-label {
-        color: rgba(200, 200, 200, 0.6);
+    .workbench-section {
+        padding-bottom: var(--spacing-3xl);
     }
 
     .teaser-card {
@@ -244,28 +185,6 @@ const isDev = import.meta.env.DEV;
         opacity: 0.8;
     }
 
-    @media (max-width: 768px) {
-        .placeholder-hero {
-            padding: 3rem 0;
-        }
-
-        .placeholder-hero h1 {
-            font-size: 1.75rem;
-        }
-
-        .placeholder-description {
-            font-size: 1rem;
-        }
-
-        .teaser-card {
-            padding: 1.5rem;
-        }
-
-        .teaser-card h2 {
-            font-size: 1.15rem;
-        }
-    }
-
     .teaser-card--live {
         border-color: rgba(5, 205, 153, 0.3);
     }
@@ -275,19 +194,17 @@ const isDev = import.meta.env.DEV;
         display: inline-block;
     }
 
+    @media (max-width: 768px) {
+        .teaser-card {
+            padding: 1.5rem;
+        }
+
+        .teaser-card h2 {
+            font-size: 1.15rem;
+        }
+    }
+
     @media (max-width: 480px) {
-        .placeholder-hero {
-            padding: 2rem 0;
-        }
-
-        .placeholder-hero h1 {
-            font-size: 1.5rem;
-        }
-
-        .placeholder-description {
-            font-size: 0.9rem;
-        }
-
         .teaser-card {
             padding: 1.25rem;
         }

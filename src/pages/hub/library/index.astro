@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../components/hub/HubHeader.astro';
 import { trackPageView } from '../../../utils/analytics';
 
 trackPageView('hub-library', 'The Library - Resources | GST');
@@ -13,19 +14,12 @@ trackPageView('hub-library', 'The Library - Resources | GST');
     ogImage="/og-image.png"
     ogUrl="https://globalstrategic.tech/hub/library"
 >
-    <section class="placeholder-hero">
+    <section class="library-section">
         <div class="container">
-            <span class="section-label">Resources</span>
-            <h1>The Library</h1>
-            <svg class="page-icon" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M8 6H32L40 14V42H8V6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                <path d="M32 6V14H40" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                <line x1="16" y1="22" x2="32" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <line x1="16" y1="28" x2="32" y2="28" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <line x1="16" y1="34" x2="28" y2="34" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <p class="placeholder-description">Useful information for technical due diligence frameworks and value creation blueprints.</p>
-            <p class="content-type-label">Downloadable PDF resources, diligence checklists, and case studies</p>
+            <HubHeader
+                title="The Library"
+                subtitle="Useful information for technical due diligence frameworks and value creation blueprints."
+            />
 
             <article class="teaser-card teaser-card--live">
                 <div class="teaser-header">
@@ -63,63 +57,8 @@ trackPageView('hub-library', 'The Library - Resources | GST');
 </script>
 
 <style>
-    .placeholder-hero {
-        padding: 5rem 0;
-        text-align: center;
-    }
-
-    .section-label {
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--color-primary);
-        margin-bottom: var(--spacing-lg);
-        display: block;
-    }
-
-    .placeholder-hero h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: rgba(26, 26, 26, 0.95);
-        text-transform: uppercase;
-        letter-spacing: 0.02em;
-        margin-bottom: var(--spacing-lg);
-    }
-
-    .page-icon {
-        color: var(--color-primary);
-        margin: 0 auto var(--spacing-xl);
-        display: block;
-    }
-
-    :global(html.dark-theme) .placeholder-hero h1 {
-        color: rgba(245, 245, 245, 0.95);
-    }
-
-    .placeholder-description {
-        font-size: 1.1rem;
-        color: rgba(26, 26, 26, 0.7);
-        line-height: 1.8;
-        max-width: 600px;
-        margin: 0 auto var(--spacing-lg);
-    }
-
-    :global(html.dark-theme) .placeholder-description {
-        color: rgba(200, 200, 200, 0.7);
-    }
-
-    .content-type-label {
-        font-size: 0.9rem;
-        color: rgba(26, 26, 26, 0.6);
-        line-height: 1.6;
-        max-width: 600px;
-        margin: 0 auto var(--spacing-3xl);
-        font-style: italic;
-    }
-
-    :global(html.dark-theme) .content-type-label {
-        color: rgba(200, 200, 200, 0.6);
+    .library-section {
+        padding-bottom: var(--spacing-3xl);
     }
 
     .teaser-card {
@@ -187,18 +126,6 @@ trackPageView('hub-library', 'The Library - Resources | GST');
     }
 
     @media (max-width: 768px) {
-        .placeholder-hero {
-            padding: 3rem 0;
-        }
-
-        .placeholder-hero h1 {
-            font-size: 1.75rem;
-        }
-
-        .placeholder-description {
-            font-size: 1rem;
-        }
-
         .teaser-card {
             padding: 1.5rem;
         }
@@ -209,18 +136,6 @@ trackPageView('hub-library', 'The Library - Resources | GST');
     }
 
     @media (max-width: 480px) {
-        .placeholder-hero {
-            padding: 2rem 0;
-        }
-
-        .placeholder-hero h1 {
-            font-size: 1.5rem;
-        }
-
-        .placeholder-description {
-            font-size: 0.9rem;
-        }
-
         .teaser-card {
             padding: 1.25rem;
         }

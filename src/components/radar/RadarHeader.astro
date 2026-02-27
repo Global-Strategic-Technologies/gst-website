@@ -1,95 +1,13 @@
 ---
 /**
  * Header for the Radar page.
- * Breadcrumb, title, subtitle, last-updated timestamp — matches GST design language.
+ * Thin wrapper around HubHeader with timestamp enabled.
  */
-const lastUpdated = new Date();
-const dateStr = lastUpdated.toLocaleDateString('en-US', {
-  timeZone: 'America/Santiago',
-  month: 'short', day: 'numeric', year: 'numeric',
-  hour: 'numeric', minute: '2-digit',
-});
+import HubHeader from '../hub/HubHeader.astro';
 ---
 
-<header class="radar-header">
-  <div class="radar-header__breadcrumb">
-    <a href="/hub">Hub</a>
-    <span class="separator">/</span>
-    <span>The Radar</span>
-  </div>
-  <h1 class="radar-header__title heading-xl">The Radar</h1>
-  <p class="radar-header__subtitle">
-    What's happening in business and technology news.
-  </p>
-  <p class="radar-header__updated">Updated {dateStr}</p>
-</header>
-
-<style>
-  .radar-header {
-    padding: var(--spacing-3xl) 0 var(--spacing-2xl);
-    margin-bottom: var(--spacing-2xl);
-  }
-
-  .radar-header__breadcrumb {
-    font-size: var(--text-sm);
-    color: var(--text-light-muted);
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .radar-header__breadcrumb a {
-    color: var(--color-primary);
-    text-decoration: none;
-    transition: opacity var(--transition-fast);
-  }
-
-  .radar-header__breadcrumb a:hover {
-    opacity: 0.8;
-  }
-
-  .radar-header__breadcrumb .separator {
-    margin: 0 var(--spacing-sm);
-  }
-
-  .radar-header__title {
-    margin-bottom: var(--spacing-md);
-    line-height: 1.2;
-  }
-
-  .radar-header__subtitle {
-    font-size: var(--text-lg);
-    color: var(--text-light-secondary);
-    max-width: 600px;
-    line-height: 1.6;
-  }
-
-  .radar-header__updated {
-    font-size: var(--text-xs);
-    font-style: italic;
-    color: var(--text-light-muted);
-    margin-top: var(--spacing-sm);
-  }
-
-  @media (max-width: 768px) {
-    .radar-header {
-      padding: var(--spacing-2xl) 0 var(--spacing-xl);
-    }
-
-    .radar-header__title {
-      font-size: var(--text-2xl);
-    }
-  }
-
-  @media (max-width: 480px) {
-    .radar-header {
-      padding: var(--spacing-xl) 0 var(--spacing-lg);
-    }
-
-    .radar-header__title {
-      font-size: var(--text-xl);
-    }
-
-    .radar-header__subtitle {
-      font-size: var(--text-base);
-    }
-  }
-</style>
+<HubHeader
+  title="The Radar"
+  subtitle="What's happening in business and technology news."
+  showTimestamp={true}
+/>
