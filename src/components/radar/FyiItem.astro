@@ -4,6 +4,7 @@
  * Collapsed by default; expands to show summary, highlight, and GST Take.
  * Uses native <details>/<summary> for zero-JS, accessible expand/collapse.
  */
+import { CATEGORIES } from '../../lib/inoreader/transform';
 import type { RadarFyiItem } from '../../lib/inoreader/types';
 
 interface Props {
@@ -11,11 +12,12 @@ interface Props {
 }
 
 const { item } = Astro.props;
+const catColor = CATEGORIES[item.category]?.color ?? '#9B59B6';
 const pubDate = new Date(item.publishedAt);
 const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 ---
 
-<article class="fyi-item" data-category={item.category}>
+<article class="fyi-item" data-category={item.category} style={`--cat-color: ${catColor}`}>
   <details class="fyi-item__details">
     <summary class="fyi-item__header">
       <div class="fyi-item__meta">
@@ -45,7 +47,14 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
         </div>
       )}
 
-      {item.gstTake && (
+      {item.highlightedText && item.gstTake && (
+        <div class="fyi-item__nested-take">
+          <span class="take-label">Δ GST Take</span>
+          <p>{item.gstTake}</p>
+        </div>
+      )}
+
+      {!item.highlightedText && item.gstTake && (
         <div class="fyi-item__take">
           <span class="take-label">Δ GST Take</span>
           <p>{item.gstTake}</p>
@@ -162,8 +171,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
   }
 
   .fyi-item__highlight {
-    background: var(--accent-light-bg);
-    border-left: 3px solid var(--color-primary);
+    border-left: 3px solid var(--cat-color);
     padding: var(--spacing-sm) var(--spacing-md);
     margin: var(--spacing-sm) 0;
   }
@@ -173,7 +181,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     font-weight: var(--font-weight-bold);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--color-primary);
+    color: var(--cat-color);
     display: block;
     margin-bottom: 0.25rem;
   }
@@ -190,6 +198,29 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     border-left: 3px solid var(--color-primary);
     padding: var(--spacing-sm) var(--spacing-md);
     margin-top: var(--spacing-sm);
+  }
+
+  .fyi-item__nested-take {
+    margin-top: var(--spacing-md);
+    margin-left: var(--spacing-md);
+    padding-top: var(--spacing-sm);
+    padding-left: var(--spacing-md);
+    border-top: 1px solid var(--border-light);
+  }
+
+  .fyi-item__nested-take .take-label {
+    color: var(--color-primary);
+  }
+
+  .fyi-item__nested-take p {
+    font-size: var(--text-sm);
+    color: var(--text-light-primary);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  :global(html.dark-theme) .fyi-item__nested-take {
+    border-top-color: var(--border-dark);
   }
 
   .take-label {

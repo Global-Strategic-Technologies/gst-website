@@ -59,6 +59,7 @@ function makeItem(overrides: Partial<InoreaderItem> & { folder?: string } = {}):
 /** Creates a mock response for fetchAnnotatedItems(30). */
 export function createMockAnnotatedResponse(): InoreaderStreamResponse {
   const items: InoreaderItem[] = [
+    // --- Highlight + Comment (both sections render) ---
     makeItem({
       id: 'fyi-pe-ma-1',
       title: 'PE Deal Activity Surges in Q4 Amid M&A Recovery',
@@ -67,16 +68,6 @@ export function createMockAnnotatedResponse(): InoreaderStreamResponse {
         id: 1, start: 0, end: 50, added_on: 1708100000,
         text: 'Deal volume increased 35% quarter-over-quarter.',
         note: 'Classic late-cycle pattern. PE firms deploying dry powder before rates shift. Watch for quality degradation in deal pipelines.',
-      }],
-    }),
-    makeItem({
-      id: 'fyi-enterprise-tech-1',
-      title: 'Enterprise SaaS Consolidation Wave Accelerates',
-      folder: FOLDER_MAP['enterprise-tech'],
-      annotations: [{
-        id: 2, start: 0, end: 60, added_on: 1708200000,
-        text: 'Mid-market SaaS companies increasingly targeted by platform players.',
-        note: 'Consolidation is inevitable in crowded categories. Portfolio companies should assess competitive moats before multiples compress.',
       }],
     }),
     makeItem({
@@ -89,16 +80,52 @@ export function createMockAnnotatedResponse(): InoreaderStreamResponse {
         note: 'The real ROI is in boring use cases: invoice processing, data reconciliation. Not chatbots.',
       }],
     }),
+
+    // --- Highlight only (no comment / GST Take) ---
+    makeItem({
+      id: 'fyi-enterprise-tech-1',
+      title: 'Enterprise SaaS Consolidation Wave Accelerates',
+      folder: FOLDER_MAP['enterprise-tech'],
+      annotations: [{
+        id: 2, start: 0, end: 60, added_on: 1708200000,
+        text: 'Mid-market SaaS companies increasingly targeted by platform players seeking vertical integration.',
+        note: '',
+      }],
+    }),
+    makeItem({
+      id: 'fyi-security-2',
+      title: 'Supply Chain Attacks Double Year-Over-Year',
+      folder: FOLDER_MAP['security'],
+      annotations: [{
+        id: 7, start: 0, end: 55, added_on: 1708650000,
+        text: 'Third-party dependency compromises now account for 62% of initial access vectors in enterprise breaches.',
+        note: '',
+      }],
+    }),
+
+    // --- Comment only (no highlighted text) ---
     makeItem({
       id: 'fyi-security-1',
       title: 'Critical Vulnerability in Enterprise Identity Platforms',
       folder: FOLDER_MAP['security'],
       annotations: [{
-        id: 4, start: 0, end: 45, added_on: 1708400000,
-        text: 'Affects over 10,000 enterprise deployments worldwide.',
+        id: 4, start: 0, end: 0, added_on: 1708400000,
+        text: '',
         note: 'Identity is the new perimeter. Every portfolio company should have MFA and SSO on the diligence checklist.',
       }],
     }),
+    makeItem({
+      id: 'fyi-pe-ma-2',
+      title: 'GP-Led Secondaries Market Hits Record Volume',
+      folder: FOLDER_MAP['pe-ma'],
+      annotations: [{
+        id: 8, start: 0, end: 0, added_on: 1708700000,
+        text: '',
+        note: 'Continuation vehicles are the new exit. LPs need to scrutinize valuation marks carefully — conflicts of interest are structural.',
+      }],
+    }),
+
+    // --- Highlight + Comment ---
     makeItem({
       id: 'fyi-enterprise-tech-2',
       title: 'Cloud Cost Optimization Becomes Board-Level Priority',
