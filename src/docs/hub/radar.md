@@ -20,15 +20,22 @@ Both tiers render in a **single unified feed**, sorted chronologically (FYI by a
 ### Rendering Model
 
 - **Radar page** (`/hub/radar`): Server-rendered with Vercel ISR (6-hour cache)
+- **RadarFeed**: Loaded as an Astro **server island** (`server:defer`) — the page shell (header, category filter, footer) renders instantly while the feed streams in asynchronously
+- **RadarFeedSkeleton**: Placeholder shown in the server island's `slot="fallback"` while feed data loads — renders 6 pulsing skeleton items mimicking wire-item layout
 - **All other pages**: Unchanged, remain fully static
 
 ### Data Flow
 
 ```
-Inoreader API ──► Astro SSR page ──► Vercel ISR cache (6h) ──► Visitors
+Inoreader API ──► RadarFeed server island ──► Vercel ISR cache (6h) ──► Visitors
+                  (streams into page shell)
 ```
 
 No GitHub Action crons. No auto-committed JSON files. No manual rebuilds for feed content.
+
+### Timestamp
+
+The "Updated" timestamp in the page header (`RadarHeader.astro`) displays the server render time in the **America/Santiago** (Chile) timezone, regardless of where the Vercel edge function executes. This uses `toLocaleDateString('en-US', { timeZone: 'America/Santiago', ... })`.
 
 ## Environment Variables
 
@@ -110,7 +117,9 @@ The category filter pills (`CategoryFilter.astro`) use a gravitational spacing e
 ```
 src/
 ├── components/radar/
-│   ├── RadarHeader.astro         # Page header with breadcrumb
+│   ├── RadarHeader.astro         # Page header with breadcrumb + Santiago timestamp
+│   ├── RadarFeed.astro           # Server island — fetches and renders unified feed
+│   ├── RadarFeedSkeleton.astro   # Skeleton placeholder while server island loads
 │   ├── FyiItem.astro             # Collapsible FYI item with GST Take
 │   ├── WireItem.astro            # Compact wire feed item
 │   └── CategoryFilter.astro     # Client-side filter pills (gravity spacing)

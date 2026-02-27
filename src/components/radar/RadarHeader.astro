@@ -3,17 +3,12 @@
  * Header for the Radar page.
  * Breadcrumb, title, subtitle, last-updated timestamp — matches GST design language.
  */
-interface Props {
-  lastUpdated?: Date;
-}
-
-const { lastUpdated } = Astro.props;
-const dateStr = lastUpdated
-  ? lastUpdated.toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric',
-      hour: 'numeric', minute: '2-digit'
-    })
-  : '';
+const lastUpdated = new Date();
+const dateStr = lastUpdated.toLocaleDateString('en-US', {
+  timeZone: 'America/Santiago',
+  month: 'short', day: 'numeric', year: 'numeric',
+  hour: 'numeric', minute: '2-digit',
+});
 ---
 
 <header class="radar-header">
@@ -26,9 +21,7 @@ const dateStr = lastUpdated
   <p class="radar-header__subtitle">
     What's happening in business and technology news.
   </p>
-  {dateStr && (
-    <p class="radar-header__updated">Updated {dateStr}</p>
-  )}
+  <p class="radar-header__updated">Updated {dateStr}</p>
 </header>
 
 <style>
