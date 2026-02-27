@@ -28,7 +28,6 @@ const { categories } = Astro.props;
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const buttons = document.querySelectorAll('.filter-btn');
-    const items = document.querySelectorAll('[data-category]');
 
     // Gravity: set --d (0–1) based on distance from center index
     const count = buttons.length;
@@ -46,6 +45,10 @@ const { categories } = Astro.props;
         buttons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
 
+        // Query items at click time — RadarFeed is a server island
+        // that streams in after DOMContentLoaded, so items don't
+        // exist during initial script setup.
+        const items = document.querySelectorAll('[data-category]');
         items.forEach(item => {
           const el = item as HTMLElement;
           if (filter === 'all' || el.dataset.category === filter) {

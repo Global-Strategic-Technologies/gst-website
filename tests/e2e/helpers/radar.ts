@@ -13,7 +13,7 @@ import { Page, expect } from '@playwright/test';
  */
 export async function waitForRadarReady(page: Page): Promise<void> {
   // SSR page delivers full HTML — just confirm the radar structure rendered
-  await expect(page.locator('.radar-header')).toBeVisible();
+  await expect(page.locator('.hub-header')).toBeVisible();
 }
 
 /**

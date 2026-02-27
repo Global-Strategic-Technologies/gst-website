@@ -21,14 +21,14 @@ test.describe('Radar Page', () => {
       expect(page.url()).toContain('/hub/radar');
 
       // Verify page renders with real content (not a blank/error page)
-      const title = page.locator('.radar-header__title');
+      const title = page.locator('.hub-header__title');
       await expect(title).toBeVisible();
       const titleText = await title.textContent();
       expect(titleText).toContain('The Radar');
     });
 
     test('should display breadcrumb linking back to Hub', async ({ page }) => {
-      const hubLink = page.locator('.radar-header__breadcrumb a[href="/hub"]');
+      const hubLink = page.locator('.hub-header__breadcrumb a[href="/hub"]');
       await expect(hubLink).toBeVisible();
       const linkText = await hubLink.textContent();
       expect(linkText).toContain('Hub');
@@ -61,7 +61,7 @@ test.describe('Radar Page', () => {
       const returnLink = footer.locator('a[href="/hub"]');
       await expect(returnLink).toBeVisible();
 
-      const timestamp = page.locator('.radar-header__updated');
+      const timestamp = page.locator('.hub-header__updated');
       const timestampText = await timestamp.textContent();
       // Verify it contains "Updated" and a date-like pattern (month name)
       expect(timestampText).toBeTruthy();
