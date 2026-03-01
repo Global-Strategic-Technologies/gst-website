@@ -25,20 +25,20 @@ interface Props {
 }
 
 const {
-    title = 'Global Strategic Technology | M&A Strategic Technology Advisory',
+    title = 'GST | M&A Strategic Technology Advisory',
     description = 'Expert strategic technology advisory for M&A buy-side and sell-side technical due diligence, post-acquisition integration, value creation, and platform modernization. Led by Reid Peryam, 20-year veteran in technology strategy execution.',
-    ogTitle = 'Global Strategic Technology | Strategic Tech Advisory',
+    ogTitle = 'GST | Strategic Technology Advisory',
     ogDescription = 'Specialized technical diligence and AI strategy for organizations navigating complex product transitions.',
     ogImage = '/og-image.png',
     ogType = 'website',
     ogUrl,
     canonicalUrl,
     // Enhanced social media meta tags
-    ogImageAlt = 'Global Strategic Technology - M&A Strategic Technology Advisory and Technical Due Diligence',
+    ogImageAlt = 'GST - M&A Strategic Technology Advisory and Technical Due Diligence',
     ogImageWidth = 1200,
     ogImageHeight = 630,
     ogImageType = 'image/png',
-    ogSiteName = 'Global Strategic Technology',
+    ogSiteName = 'GST',
     ogLocale = 'en_US',
     twitterSite = '@globalstrategic',
 } = Astro.props;
@@ -59,7 +59,7 @@ const absoluteOgImage = ogImage.startsWith('http')
 const jsonLdData = {
     '@context': 'https://schema.org',
     '@type': 'ProfessionalService',
-    'name': 'Global Strategic Technology',
+    'name': 'GST',
     'url': 'https://globalstrategic.tech',
     'logo': 'https://globalstrategic.tech/icon.svg',
     'sameAs': [
