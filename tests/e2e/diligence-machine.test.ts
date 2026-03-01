@@ -513,7 +513,7 @@ test.describe('Diligence Machine E2E', () => {
       // Verify document header
       await expect(page.locator('[data-testid="doc-header"]')).toBeVisible();
       await expect(page.locator('.doc-title')).toHaveText('Overview and Agenda');
-      await expect(page.locator('.doc-brand-name')).toHaveText('Global Strategic Technologies');
+      await expect(page.locator('.doc-brand-name')).toHaveText('GST');
 
       // Verify generation date is present
       const docDate = page.locator('#docDate');
@@ -809,7 +809,7 @@ test.describe('Diligence Machine E2E', () => {
         const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
 
         expect(clipboardContent).toContain('OVERVIEW AND AGENDA');
-        expect(clipboardContent).toContain('Global Strategic Technologies');
+        expect(clipboardContent).toContain('GST');
         expect(clipboardContent).toContain('TARGET PARAMETERS');
         expect(clipboardContent).toContain('Full Acquisition');
         expect(clipboardContent).toContain('B2B SaaS');
