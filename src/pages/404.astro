@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+---
+
+<BaseLayout
+    title="404 | Page Not Found"
+    description="The page you're looking for doesn't exist or has been moved."
+>
+    <Hero
+        title="404"
+        subtitle="Page Not Found"
+        description="The page you're looking for doesn't exist or has been moved. Navigate back to explore what GST has to offer."
+        primaryCTA={{ text: "Return Home", href: "/" }}
+        secondaryCTA={{ text: "View Services", href: "/services" }}
+    />
+</BaseLayout>
