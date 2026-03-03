@@ -307,17 +307,27 @@ describe('toFyiItem', () => {
     expect(result!.gstTake).toBe('This is the GST Take on this article.');
   });
 
-  it('should prefer annotation with a non-empty note as primary', () => {
+  it('should merge highlight and note from separate annotations', () => {
+    const highlightOnly = makeAnnotation({ id: 1, note: '', text: 'Key passage from article' });
+    const noteOnly = makeAnnotation({ id: 2, text: '', note: 'The real take' });
+    const item = makeItem({ annotations: [highlightOnly, noteOnly] });
+    const result = toFyiItem(item);
+
+    expect(result!.highlightedText).toBe('Key passage from article');
+    expect(result!.gstTake).toBe('The real take');
+  });
+
+  it('should use first non-empty text and first non-empty note across annotations', () => {
     const noNote = makeAnnotation({ id: 1, note: '', text: 'Highlight without note' });
     const withNote = makeAnnotation({ id: 2, note: 'The real take', text: 'Highlight with note' });
     const item = makeItem({ annotations: [noNote, withNote] });
     const result = toFyiItem(item);
 
+    expect(result!.highlightedText).toBe('Highlight without note');
     expect(result!.gstTake).toBe('The real take');
-    expect(result!.highlightedText).toBe('Highlight with note');
   });
 
-  it('should use first annotation when none have notes', () => {
+  it('should use first annotation text when none have notes', () => {
     const ann1 = makeAnnotation({ id: 1, note: '', text: 'First highlight' });
     const ann2 = makeAnnotation({ id: 2, note: '', text: 'Second highlight' });
     const item = makeItem({ annotations: [ann1, ann2] });
@@ -405,6 +415,15 @@ describe('toFyiItem', () => {
     const date = new Date(result!.annotatedAt);
     expect(date.getTime()).toBe(1708100000 * 1000);
     expect(date.toISOString()).toBe(result!.annotatedAt);
+  });
+
+  it('should use the most recent annotation timestamp for annotatedAt', () => {
+    const older = makeAnnotation({ id: 1, added_on: 1708100000, text: 'Highlight' });
+    const newer = makeAnnotation({ id: 2, added_on: 1708200000, note: 'Comment' });
+    const item = makeItem({ annotations: [older, newer] });
+    const result = toFyiItem(item);
+    const date = new Date(result!.annotatedAt);
+    expect(date.getTime()).toBe(1708200000 * 1000);
   });
 
   it('should assign category using the same inference rules as toWireItem (shared inferCategory)', () => {

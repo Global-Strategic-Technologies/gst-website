@@ -108,14 +108,23 @@ function inferCategory(item: InoreaderItem): string {
 
 /**
  * Transform an annotated Inoreader item into an FYI display model.
- * Extracts the first highlight and note as the GST Take.
+ * Merges highlight text and notes across all annotations for the item,
+ * since Inoreader may return them as separate annotation objects.
  */
 export function toFyiItem(item: InoreaderItem): RadarFyiItem | null {
   const annotations = item.annotations || [];
   if (annotations.length === 0) return null;
 
-  const primaryAnnotation = annotations.find(a => a.note && a.note.trim() !== '')
-    || annotations[0];
+  // Merge across all annotations: collect the first non-empty text and note.
+  // Inoreader may store a highlight (text only) and a comment (note only)
+  // as separate annotation objects on the same item.
+  const highlightedText = annotations.find(a => a.text && a.text.trim() !== '')?.text || '';
+  const gstTake = annotations.find(a => a.note && a.note.trim() !== '')?.note || '';
+
+  // Use the most recent annotation timestamp for sort ordering
+  const latestAnnotation = annotations.reduce((latest, a) =>
+    a.added_on > latest.added_on ? a : latest
+  );
 
   const summary = stripHtml(item.summary?.content || item.content?.content || '');
 
@@ -127,9 +136,9 @@ export function toFyiItem(item: InoreaderItem): RadarFyiItem | null {
     sourceUrl: item.origin?.htmlUrl || '',
     category: inferCategory(item),
     publishedAt: new Date(item.published * 1000).toISOString(),
-    annotatedAt: new Date(primaryAnnotation.added_on * 1000).toISOString(),
-    highlightedText: primaryAnnotation.text || '',
-    gstTake: primaryAnnotation.note || '',
+    annotatedAt: new Date(latestAnnotation.added_on * 1000).toISOString(),
+    highlightedText,
+    gstTake,
     summary: truncate(summary, 250),
   };
 }
