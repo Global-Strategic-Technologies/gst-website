@@ -24,6 +24,7 @@ Complete documentation for GA4 integration on the GST website.
 | `filter_applied` | User applies portfolio filter | Portfolio page |
 | `theme_toggle` | User switches light/dark theme | Theme toggle |
 | `cta_click` | User clicks call-to-action | Various CTAs |
+| `faq_interaction` | User opens/closes FAQ item | Services, Hub |
 
 For complete event documentation, see [GOOGLE_ANALYTICS.md](./GOOGLE_ANALYTICS.md#tracked-events).
 
@@ -50,17 +51,19 @@ npm run test:coverage
 GA4 loads automatically on all pages via `BaseLayout.astro`. Components use type-safe tracking:
 
 ```typescript
-import { trackNavigation, trackPortfolioInteraction, trackThemeToggle } from '../utils/analytics';
+import { trackNavigation, trackCTA, trackThemeToggle, trackEvent } from '../utils/analytics';
 
-// Navigation events
+// Navigation events (helper)
 trackNavigation('/ma-portfolio', 'M&A Portfolio');
 
-// Portfolio events
-trackPortfolioInteraction('view_details', projectId, projectName);
-trackPortfolioInteraction('close_modal');
+// CTA events (helper)
+trackCTA('calendly', 'hero');
 
-// Theme events
+// Theme events (helper)
 trackThemeToggle('dark');
+
+// One-off events (use trackEvent directly)
+trackEvent({ event: 'faq_interaction', category: 'engagement', question: '...', action: 'open', page: 'services' });
 ```
 
 See [ANALYTICS_TESTING.md](./ANALYTICS_TESTING.md) for test examples and patterns.

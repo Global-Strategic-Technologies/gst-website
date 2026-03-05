@@ -488,3 +488,21 @@ const faqItems = [
         }
     }
 </style>
+
+<script>
+    import { trackEvent } from '../../utils/analytics';
+
+    document.querySelectorAll('.faq-item').forEach((item) => {
+        item.addEventListener('toggle', () => {
+            const details = item as HTMLDetailsElement;
+            const question = details.querySelector('.faq-question')?.textContent?.trim() || '';
+            trackEvent({
+                event: 'faq_interaction',
+                category: 'engagement',
+                question,
+                action: details.open ? 'open' : 'close',
+                page: 'hub',
+            });
+        });
+    });
+</script>

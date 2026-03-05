@@ -49,12 +49,11 @@ The GA4 component is integrated in the root layout (`src/layouts/BaseLayout.astr
 
 TypeScript utility module providing type-safe event tracking functions:
 
-- `trackEvent(eventData)` - Low-level event tracking with custom parameters
+- `trackEvent(eventData)` - Low-level event tracking with custom parameters (use directly for one-off event types)
 - `trackNavigation(destination, label)` - Track navigation link clicks
-- `trackPortfolioInteraction(action, projectId?, projectName?)` - Track portfolio project interactions
 - `trackCTA(ctaType, location)` - Track call-to-action button clicks
-- `trackFilterAction(filterType, filterValue)` - Track portfolio filter applications
 - `trackThemeToggle(theme)` - Track light/dark mode switches
+- `trackPageView(pageName, pageTitle)` - Track page views
 
 ## Tracked Events
 
@@ -145,7 +144,26 @@ TypeScript utility module providing type-safe event tracking functions:
 
 ---
 
-### 6. Theme Toggle Events
+### 6. FAQ Interaction Events
+
+**Event Name:** `faq_interaction`
+**Category:** `engagement`
+**Parameters:**
+- `question` - The text of the FAQ question that was toggled
+- `action` - Whether the FAQ was opened or closed ("open" or "close")
+- `page` - The page where the FAQ is located (e.g., "services", "hub")
+
+**Triggered By:** Opening or closing a FAQ accordion (`<details>` element) on the Services or Hub pages
+
+**Use Cases:**
+- Identify which questions visitors ask most
+- Understand user information needs by page
+- Optimize FAQ content and ordering
+- Inform content strategy for services and hub pages
+
+---
+
+### 7. Theme Toggle Events
 
 **Event Name:** `theme_toggle`
 **Category:** `ui`
@@ -192,6 +210,16 @@ Tracks:
 Tracks:
 - Filter applications (listens to `portfolioFiltered` custom events)
 - Passes filter_type and filter_value to analytics
+
+### Services Page
+**File:** `src/pages/services.astro`
+
+Tracks FAQ accordion open/close interactions via `trackEvent` directly.
+
+### Hub Page
+**File:** `src/pages/hub/index.astro`
+
+Tracks FAQ accordion open/close interactions via `trackEvent` directly.
 
 ### Theme Toggle Component
 **File:** `src/components/ThemeToggle.astro`
@@ -266,6 +294,7 @@ Google Analytics Servers
 - [ ] Project views include `project_id`, `project_name`, and `industry`
 - [ ] Filter applications include `filter_type` and `filter_value`
 - [ ] CTA clicks include `cta_type` and `location`
+- [ ] FAQ interactions include `question`, `action` ("open"/"close"), and `page`
 - [ ] Theme toggles include correct `theme` value ("light" or "dark")
 
 ## Privacy Considerations
