@@ -77,7 +77,7 @@ For **Astro static sites**, the pyramid is inverted from traditional SPAs:
 ### 3.1 Unit Tests (Utilities & Helpers)
 
 **Files to test:**
-- `src/data/projects.json` - Data validation (schema)
+- `src/data/ma-portfolio/projects.json` - Data validation (schema)
 - Utility scripts:
   - `abbreviate-arr.js` - Array abbreviation logic
   - `convert-excel.js` - Data transformation

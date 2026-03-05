@@ -92,7 +92,7 @@ The site is configured to deploy to Vercel as a static site.
 ## 📝 Content & Data Management
 
 ### Portfolio Data
-Portfolio project data is stored in `src/data/projects.json` as the single source of truth:
+Portfolio project data is stored in `src/data/ma-portfolio/projects.json` as the single source of truth:
 
 - **51 active projects** with validated schema
 - Fields: id, codeName, industry, theme, summary, arr, arrNumeric, currency, growthStage, year, technologies
@@ -100,7 +100,7 @@ Portfolio project data is stored in `src/data/projects.json` as the single sourc
 - **Auto-validated on commit** via CI/CD pipeline
 
 To update portfolio data:
-1. Edit `src/data/projects.json` directly
+1. Edit `src/data/ma-portfolio/projects.json` directly
 2. Commit changes to GitHub
 3. CI/CD tests validate data integrity automatically
 4. Push triggers Vercel deployment

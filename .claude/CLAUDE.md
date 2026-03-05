@@ -128,7 +128,8 @@ gst-website/
 │   │   ├── CTASection.astro
 │   │   └── ThemeToggle.astro
 │   ├── data/                 # Project/portfolio data
-│   │   └── projects.json     # 51 validated projects
+│   │   └── ma-portfolio/
+│   │       └── projects.json # 51 validated projects
 │   ├── docs/                 # Strategic documentation
 │   │   ├── testing/          # Test strategy & CI/CD docs
 │   │   ├── development/      # Development roadmap
@@ -298,7 +299,7 @@ Expert in identifying and addressing technical debt:
 ## 📊 Data Management
 
 ### Portfolio Data
-- **Source**: `src/data/projects.json`
+- **Source**: `src/data/ma-portfolio/projects.json`
 - **Content**: 51 active projects with validated schema
 - **Fields**: id, codeName, industry, theme, summary, arr, arrNumeric, currency, growthStage, year, technologies
 - **Validation**: 20 unit tests covering schema integrity and data quality
@@ -380,7 +381,7 @@ Expert in identifying and addressing technical debt:
 7. Run: `npm run test:all` to verify no regressions
 
 ### Updating Portfolio Data
-1. Edit `src/data/projects.json`
+1. Edit `src/data/ma-portfolio/projects.json`
 2. Ensure schema validation passes
 3. Run: `npm run test:run`
 4. Commit and push

@@ -25,7 +25,7 @@ let projects: Project[];
 
 describe('Projects Data Validation', () => {
   beforeAll(() => {
-    const projectsPath = path.join(process.cwd(), 'src/data/projects.json');
+    const projectsPath = path.join(process.cwd(), 'src/data/ma-portfolio/projects.json');
     const rawData = fs.readFileSync(projectsPath, 'utf-8');
     projects = JSON.parse(rawData);
   });

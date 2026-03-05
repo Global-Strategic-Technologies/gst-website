@@ -13,7 +13,7 @@ GST already has structured, high-value data and tools that AI agents could consu
 
 | Asset | Current Form | MCP Potential |
 |---|---|---|
-| **Portfolio data** | 51 projects in `projects.json` with rich schema | `search_portfolio`, `filter_by_industry`, `get_engagement_stats` tools |
+| **Portfolio data** | 51 projects in `ma-portfolio/projects.json` with rich schema | `search_portfolio`, `filter_by_industry`, `get_engagement_stats` tools |
 | **Diligence Machine** | Client-side wizard generating M&A diligence agendas | `generate_diligence_agenda` tool — the crown jewel |
 | **Radar feed** | Inoreader-powered curated intelligence | `search_radar`, `get_latest_insights` tools |
 | **Domain expertise** | Embedded in question banks, project summaries | Structured knowledge accessible to agents |
