@@ -5,6 +5,21 @@ import CTASection from '../../components/CTASection.astro';
 import { trackPageView } from '../../utils/analytics';
 
 trackPageView('hub', 'Strategic Intelligence Hub | GST');
+
+const faqItems = [
+    {
+        question: "What tools are available in the GST Hub?",
+        answer: "The Hub includes the Diligence Machine, which generates customized technology due diligence agendas based on target parameters. We also provide reference architectures, integration checklists, and VDR structure templates drawn from patterns proven across 100+ engagements."
+    },
+    {
+        question: "Are the Hub tools free to use?",
+        answer: "Yes. All tools, frameworks, and resources in the GST Hub are freely available. We built them to help PE investors and technical leaders make better-informed decisions, whether or not they engage GST for advisory work."
+    },
+    {
+        question: "Who are these resources designed for?",
+        answer: "The Hub is built for private equity investors evaluating technology assets, portfolio company executives managing platform transitions, and technical leaders navigating complex architecture decisions. The content is calibrated for professionals who need actionable insight, not generic advice."
+    },
+];
 ---
 
 <BaseLayout
@@ -14,6 +29,7 @@ trackPageView('hub', 'Strategic Intelligence Hub | GST');
     ogDescription="Professional-grade tools and frameworks for technology due diligence and value creation."
     ogImage="/og-image.png"
     ogUrl="https://globalstrategic.tech/hub"
+    faqItems={faqItems}
 >
     <Hero
         title="The GST Hub"
@@ -76,6 +92,20 @@ trackPageView('hub', 'Strategic Intelligence Hub | GST');
                     <p>Rapid-response analysis of emerging technology shifts, AI developments, and M&A market dynamics.</p>
                     <span class="hub-card-cta">Read the Perspective →</span>
                 </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="faq-section">
+        <div class="container">
+            <h2 class="heading-lg">Frequently Asked Questions</h2>
+            <div class="faq-list">
+                {faqItems.map((item) => (
+                    <details class="faq-item">
+                        <summary class="faq-question">{item.question}</summary>
+                        <div class="faq-answer" set:html={item.answer} />
+                    </details>
+                ))}
             </div>
         </div>
     </section>
@@ -327,6 +357,134 @@ trackPageView('hub', 'Strategic Intelligence Hub | GST');
 
         .hub-card-cta {
             font-size: 0.875rem;
+        }
+    }
+
+    .faq-section {
+        padding: var(--spacing-3xl) 0;
+    }
+
+    .faq-section .heading-lg {
+        margin-bottom: var(--spacing-2xl);
+        text-align: center;
+    }
+
+    .faq-list {
+        max-width: 800px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    .faq-item {
+        background: rgba(5, 205, 153, 0.03);
+        border: 1px solid rgba(5, 205, 153, 0.1);
+        border-radius: 8px;
+        transition: background var(--transition-normal), border-color var(--transition-normal);
+    }
+
+    .faq-item[open] {
+        background: rgba(5, 205, 153, 0.06);
+        border-color: rgba(5, 205, 153, 0.2);
+    }
+
+    .faq-question {
+        padding: var(--spacing-xl);
+        font-size: var(--text-lg);
+        font-weight: var(--font-weight-semibold);
+        color: rgba(26, 26, 26, 0.95);
+        cursor: pointer;
+        list-style: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--spacing-md);
+        transition: color var(--transition-fast);
+    }
+
+    .faq-question::-webkit-details-marker {
+        display: none;
+    }
+
+    .faq-question::after {
+        content: '+';
+        font-size: var(--text-2xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-primary);
+        flex-shrink: 0;
+        transition: transform var(--transition-fast);
+    }
+
+    .faq-item[open] .faq-question::after {
+        content: '\2212';
+    }
+
+    .faq-question:hover {
+        color: var(--color-primary);
+    }
+
+    .faq-answer {
+        padding: 0 var(--spacing-xl) var(--spacing-xl);
+        font-size: var(--text-base);
+        color: rgba(26, 26, 26, 0.7);
+        line-height: 1.7;
+    }
+
+    .faq-answer :global(p) {
+        margin: 0 0 var(--spacing-md) 0;
+    }
+
+    .faq-answer :global(p:last-child) {
+        margin-bottom: 0;
+    }
+
+    :global(html.dark-theme) .faq-item {
+        background: rgba(5, 205, 153, 0.05);
+        border-color: rgba(5, 205, 153, 0.15);
+    }
+
+    :global(html.dark-theme) .faq-item[open] {
+        background: rgba(5, 205, 153, 0.08);
+        border-color: rgba(5, 205, 153, 0.25);
+    }
+
+    :global(html.dark-theme) .faq-question {
+        color: rgba(245, 245, 245, 0.95);
+    }
+
+    :global(html.dark-theme) .faq-question:hover {
+        color: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .faq-answer {
+        color: rgba(200, 200, 200, 0.7);
+    }
+
+    @media (max-width: 768px) {
+        .faq-section {
+            padding: var(--spacing-2xl) 0;
+        }
+
+        .faq-question {
+            padding: var(--spacing-lg);
+            font-size: var(--text-base);
+        }
+
+        .faq-answer {
+            padding: 0 var(--spacing-lg) var(--spacing-lg);
+            font-size: var(--text-sm);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .faq-question {
+            padding: var(--spacing-md);
+        }
+
+        .faq-answer {
+            padding: 0 var(--spacing-md) var(--spacing-md);
+            font-size: var(--text-sm);
         }
     }
 </style>

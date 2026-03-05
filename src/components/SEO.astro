@@ -22,6 +22,7 @@ interface Props {
     ogSiteName?: string;
     ogLocale?: string;
     twitterSite?: string;
+    faqItems?: Array<{ question: string; answer: string }>;
 }
 
 const {
@@ -41,6 +42,7 @@ const {
     ogSiteName = 'GST',
     ogLocale = 'en_US',
     twitterSite = '@globalstrategic',
+    faqItems,
 } = Astro.props;
 
 // Dynamic URL generation using Astro.url
@@ -55,6 +57,64 @@ const finalOgUrl = ogUrl || currentUrl;
 const absoluteOgImage = ogImage.startsWith('http')
     ? ogImage
     : `${baseUrl}${ogImage.startsWith('/') ? ogImage : '/' + ogImage}`;
+
+// Breadcrumb slug-to-name lookup
+const breadcrumbNames: Record<string, string> = {
+    'services': 'Services',
+    'about': 'About',
+    'ma-portfolio': 'M&A Portfolio',
+    'privacy': 'Privacy Policy',
+    'terms': 'Terms of Service',
+    'hub': 'The GST Hub',
+    'tools': 'The Workbench',
+    'diligence-machine': 'Diligence Machine',
+    'library': 'The Library',
+    'business-architectures': 'Business Architectures',
+    'vdr-structure': 'VDR Structure',
+    'radar': 'The Radar',
+};
+
+// Build BreadcrumbList from pathname
+const pathname = Astro.url.pathname.replace(/\/$/, '');
+const segments = pathname.split('/').filter(Boolean);
+const isHomepage = segments.length === 0;
+
+const breadcrumbJsonLd = !isHomepage ? {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    'itemListElement': [
+        {
+            '@type': 'ListItem',
+            'position': 1,
+            'name': 'Home',
+            'item': 'https://globalstrategic.tech/',
+        },
+        ...segments.map((slug, index) => {
+            const position = index + 2;
+            const name = breadcrumbNames[slug] || slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            const isLast = index === segments.length - 1;
+            const path = '/' + segments.slice(0, index + 1).join('/') + '/';
+
+            return isLast
+                ? { '@type': 'ListItem' as const, 'position': position, 'name': name }
+                : { '@type': 'ListItem' as const, 'position': position, 'name': name, 'item': `https://globalstrategic.tech${path}` };
+        }),
+    ],
+} : null;
+
+// Build FAQPage schema when faqItems are provided
+const faqJsonLd = faqItems && faqItems.length > 0 ? {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    'mainEntity': faqItems.map(item => ({
+        '@type': 'Question',
+        'name': item.question,
+        'acceptedAnswer': {
+            '@type': 'Answer',
+            'text': item.answer,
+        },
+    })),
+} : null;
 
 const jsonLdData = {
     '@context': 'https://schema.org',
@@ -329,6 +389,16 @@ const jsonLdData = {
 
 <!-- JSON-LD Structured Data -->
 <script type="application/ld+json" set:html={JSON.stringify(jsonLdData)} />
+
+<!-- BreadcrumbList Structured Data -->
+{breadcrumbJsonLd && (
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} />
+)}
+
+<!-- FAQPage Structured Data -->
+{faqJsonLd && (
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+)}
 
 <!-- Open Graph Meta Tags -->
 <meta property="og:title" content={ogTitle} />

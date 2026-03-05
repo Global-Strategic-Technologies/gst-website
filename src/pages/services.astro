@@ -7,6 +7,29 @@ import { trackPageView } from '../utils/analytics';
 
 // Track page view
 trackPageView('services', 'Services | Strategic Advisory & Implementation');
+
+const faqItems = [
+    {
+        question: "What's the difference between buy-side and sell-side diligence?",
+        answer: "<p><strong>Buy-side</strong> diligence is for investors or companies acquiring a business. Is the technology sound? What will it cost to integrate, maintain, or scale? Where are the hidden risks, and where are the untapped opportunities that could accelerate growth after close (value creation)? We give you the full picture so you can negotiate from a position of knowledge.</p><p><strong>Sell-side</strong> diligence is for founders and executives preparing to sell their company. The objective is to maximize the valuation of the company's technology in the eyes of external investors. Buyers will scrutinize everything, and unresolved issues like technical debt, security gaps, or poor documentation can reduce your price or kill a deal entirely. We work with you before going to market to fix those issues proactively, so your technology becomes a selling point rather than a liability.</p>"
+    },
+    {
+        question: "What is value creation?",
+        answer: "Value creation is the process of leveraging technology to grow the business after an acquisition or investment. This can mean scaling operations to handle more customers without proportional cost increases, unlocking new revenue streams through platform capabilities, expanding market share by shipping faster than competitors, or reducing operational overhead through automation. In a PE context, value creation is where the real returns come from, not just cutting costs, but building the technology foundation that compounds growth across the hold period."
+    },
+    {
+        question: "What does a technology due diligence engagement include?",
+        answer: "A typical engagement includes a comprehensive review of the target's architecture, infrastructure, security posture, development practices, and technical team. We deliver a detailed findings report with risk quantification, remediation cost estimates, and a prioritized integration roadmap tailored to your investment thesis."
+    },
+    {
+        question: "How long does a typical buy-side diligence take?",
+        answer: "Most buy-side technical diligence engagements are completed in three to six weeks, depending on the complexity of the target's technology stack and the availability of key personnel. We can accommodate accelerated timelines for competitive deal processes when needed."
+    },
+    {
+        question: "Do you work with companies outside the US?",
+        answer: "Yes. We regularly support cross-border transactions and have conducted diligence on targets across North America, Europe, and Asia-Pacific. Our frameworks are designed to evaluate distributed teams, multi-region infrastructure, and varying regulatory environments."
+    },
+];
 ---
 
 <BaseLayout
@@ -16,6 +39,7 @@ trackPageView('services', 'Services | Strategic Advisory & Implementation');
     ogDescription="M&A advisory, product development, and technical leadership for high-stakes environments."
     ogImage="/og-image.png"
     ogImageAlt="GST Services - M&A Advisory, Product Development, Technical Leadership"
+    faqItems={faqItems}
 >
     <Hero
         title="Technology Advisory & Execution"
@@ -83,6 +107,20 @@ trackPageView('services', 'Services | Strategic Advisory & Implementation');
     </section>
 
     <EngagementFlow />
+
+    <section class="faq-section">
+        <div class="container">
+            <h2 class="heading-lg">Frequently Asked Questions</h2>
+            <div class="faq-list">
+                {faqItems.map((item) => (
+                    <details class="faq-item">
+                        <summary class="faq-question">{item.question}</summary>
+                        <div class="faq-answer" set:html={item.answer} />
+                    </details>
+                ))}
+            </div>
+        </div>
+    </section>
 
     <CTASection
         title="Let's discuss your next challenge"
@@ -406,6 +444,134 @@ trackPageView('services', 'Services | Strategic Advisory & Implementation');
         .service-list .bullet-icon {
             width: 12px;
             height: 12px;
+        }
+    }
+
+    .faq-section {
+        padding: var(--spacing-3xl) 0;
+    }
+
+    .faq-section .heading-lg {
+        margin-bottom: var(--spacing-2xl);
+        text-align: center;
+    }
+
+    .faq-list {
+        max-width: 800px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    .faq-item {
+        background: rgba(5, 205, 153, 0.03);
+        border: 1px solid rgba(5, 205, 153, 0.1);
+        border-radius: 8px;
+        transition: background var(--transition-normal), border-color var(--transition-normal);
+    }
+
+    .faq-item[open] {
+        background: rgba(5, 205, 153, 0.06);
+        border-color: rgba(5, 205, 153, 0.2);
+    }
+
+    .faq-question {
+        padding: var(--spacing-xl);
+        font-size: var(--text-lg);
+        font-weight: var(--font-weight-semibold);
+        color: rgba(26, 26, 26, 0.95);
+        cursor: pointer;
+        list-style: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--spacing-md);
+        transition: color var(--transition-fast);
+    }
+
+    .faq-question::-webkit-details-marker {
+        display: none;
+    }
+
+    .faq-question::after {
+        content: '+';
+        font-size: var(--text-2xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-primary);
+        flex-shrink: 0;
+        transition: transform var(--transition-fast);
+    }
+
+    .faq-item[open] .faq-question::after {
+        content: '\2212';
+    }
+
+    .faq-question:hover {
+        color: var(--color-primary);
+    }
+
+    .faq-answer {
+        padding: 0 var(--spacing-xl) var(--spacing-xl);
+        font-size: var(--text-base);
+        color: rgba(26, 26, 26, 0.7);
+        line-height: 1.7;
+    }
+
+    .faq-answer :global(p) {
+        margin: 0 0 var(--spacing-md) 0;
+    }
+
+    .faq-answer :global(p:last-child) {
+        margin-bottom: 0;
+    }
+
+    :global(html.dark-theme) .faq-item {
+        background: rgba(5, 205, 153, 0.05);
+        border-color: rgba(5, 205, 153, 0.15);
+    }
+
+    :global(html.dark-theme) .faq-item[open] {
+        background: rgba(5, 205, 153, 0.08);
+        border-color: rgba(5, 205, 153, 0.25);
+    }
+
+    :global(html.dark-theme) .faq-question {
+        color: rgba(245, 245, 245, 0.95);
+    }
+
+    :global(html.dark-theme) .faq-question:hover {
+        color: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .faq-answer {
+        color: rgba(200, 200, 200, 0.7);
+    }
+
+    @media (max-width: 768px) {
+        .faq-section {
+            padding: var(--spacing-2xl) 0;
+        }
+
+        .faq-question {
+            padding: var(--spacing-lg);
+            font-size: var(--text-base);
+        }
+
+        .faq-answer {
+            padding: 0 var(--spacing-lg) var(--spacing-lg);
+            font-size: var(--text-sm);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .faq-question {
+            padding: var(--spacing-md);
+        }
+
+        .faq-answer {
+            padding: 0 var(--spacing-md) var(--spacing-md);
+            font-size: var(--text-sm);
         }
     }
 </style>
