@@ -1,0 +1,17 @@
+{
+  "id": "cn-algo-rec",
+  "name": "Administrative Provisions on Algorithm Recommendation for Internet Information Services",
+  "regions": ["CHN"],
+  "effectiveDate": "2022-03-01",
+  "summary": "The world's first comprehensive regulation governing recommendation algorithms. Requires transparency over algorithm functionality, gives users control over their data profiles, and mandates algorithm filing with the Cyberspace Administration of China. Targets services that use algorithms to recommend content to users.",
+  "keyRequirements": [
+    "Algorithm recommendation providers must file algorithms with the Cyberspace Administration of China within 10 working days",
+    "Users must be given the option to disable personalized recommendations",
+    "Algorithms must not be used for anti-competitive practices or price discrimination",
+    "Providers must audit keywords and enable user access to personal data profiles",
+    "Content recommendation algorithms must adhere to mainstream values",
+    "Licensing requirement for providers operating in online news",
+    "Prohibition on algorithmic generation of fake news"
+  ],
+  "penalties": "Warnings, public denouncements, rectification orders, administrative fines on companies and individuals, business suspension, and criminal liability for severe violations under the Cybersecurity Law, Data Security Law, and PIPL."
+}

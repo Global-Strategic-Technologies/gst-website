@@ -1,0 +1,17 @@
+{
+  "id": "jp-ai-promotion",
+  "name": "Act on the Promotion of Research and Development and the Utilization of AI-Related Technologies (AI Promotion Act)",
+  "regions": ["JPN"],
+  "effectiveDate": "2025-06-04",
+  "summary": "Japan's first comprehensive AI legislation, structured as a fundamental law establishing high-level principles rather than prescriptive rules. Embodies Japan's agile governance philosophy, positioning the country to be the most AI-friendly nation while promoting responsible AI development and use.",
+  "keyRequirements": [
+    "Enhance AI research and development capabilities",
+    "Ensure transparency regarding AI risks",
+    "Promote international cooperation on AI governance",
+    "Businesses and citizens to cooperate with government on reasonable efforts basis",
+    "Establish AI Strategy Headquarters under the Prime Minister's Office",
+    "Government may issue advice and guidance to businesses using AI harmfully",
+    "Promote comprehensive stakeholder initiatives from R&D to social implementation"
+  ],
+  "penalties": "No direct fines or penalties. Authorities may issue advice, request information, or publicly disclose non-compliance. Enforcement relies on existing sector-specific laws including privacy, competition, intellectual property, and product safety."
+}

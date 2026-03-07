@@ -1,0 +1,16 @@
+{
+  "id": "us-ut-aipa",
+  "name": "Utah Artificial Intelligence Policy Act (SB 149)",
+  "regions": ["US-UT"],
+  "effectiveDate": "2024-05-01",
+  "summary": "One of the first comprehensive state AI consumer protection laws in the US. Brings generative AI usage into Utah's consumer protection framework. Requires disclosure of AI interactions in licensed and regulated professions and establishes the Office of AI Policy.",
+  "keyRequirements": [
+    "Disclose use of generative AI when providing services requiring a license or state certification",
+    "Disclose AI interaction to any person who directly asks whether they are interacting with AI",
+    "Businesses are liable for consumer deception caused by their AI systems",
+    "Licensed mental health providers must disclose AI use upfront",
+    "Establish Office of AI Policy within consumer protection division",
+    "AI Learning Lab Program to study risks and benefits"
+  ],
+  "penalties": "Administrative fine up to $2,500. Civil penalty up to $5,000. Criminal liability if AI is used to commit an offense."
+}

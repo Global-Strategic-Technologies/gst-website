@@ -28,8 +28,8 @@ describe('Regulatory Map Data Validation', () => {
       expect(Array.isArray(regulations)).toBe(true);
     });
 
-    it('should have exactly 56 regulation files', () => {
-      expect(filenames.length).toBe(56);
+    it('should have exactly 72 regulation files', () => {
+      expect(filenames.length).toBe(72);
     });
   });
 

@@ -1,0 +1,21 @@
+{
+  "id": "eu-ai-act",
+  "name": "EU Artificial Intelligence Act (Regulation 2024/1689)",
+  "regions": [
+    "AUT", "BEL", "BGR", "HRV", "CYP", "CZE", "DNK", "EST", "FIN", "FRA",
+    "DEU", "GRC", "HUN", "IRL", "ITA", "LVA", "LTU", "LUX", "MLT", "NLD",
+    "POL", "PRT", "ROU", "SVK", "SVN", "ESP", "SWE"
+  ],
+  "effectiveDate": "2024-08-01",
+  "summary": "The world's first comprehensive AI regulatory framework. Establishes a risk-based classification system for AI systems across the EU, banning certain practices outright and imposing strict requirements on high-risk applications. Applies to providers, deployers, importers, and distributors of AI systems in the EU market, with phased implementation through 2027.",
+  "keyRequirements": [
+    "Prohibition of AI for social scoring, subliminal manipulation, exploitation of vulnerabilities, and real-time remote biometric identification in public spaces",
+    "Risk management systems and conformity assessments for high-risk AI systems",
+    "High-quality training data requirements with bias detection and mitigation",
+    "Transparency obligations including user notification when interacting with AI",
+    "Human oversight mechanisms for high-risk AI systems",
+    "Registration of high-risk AI systems in an EU-wide public database",
+    "General-purpose AI model providers must provide technical documentation, comply with copyright law, and publish training content summaries"
+  ],
+  "penalties": "Prohibited practices: up to EUR 35 million or 7% of global annual turnover. High-risk system violations: up to EUR 15 million or 3% of global annual turnover. Providing incorrect information: up to EUR 7.5 million or 1% of global annual turnover."
+}
