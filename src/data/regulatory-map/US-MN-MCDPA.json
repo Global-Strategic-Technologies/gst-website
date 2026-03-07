@@ -1,0 +1,17 @@
+{
+  "id": "us-mn-mcdpa",
+  "name": "Minnesota Consumer Data Privacy Act",
+  "regions": ["US-MN"],
+  "effectiveDate": "2025-07-31",
+  "summary": "The Minnesota Consumer Data Privacy Act provides comprehensive data privacy protections for Minnesota residents. It applies to entities conducting business in Minnesota or targeting its residents that control or process personal data of at least 100,000 consumers, or 25,000 consumers if deriving more than 25% of revenue from selling personal data.",
+  "keyRequirements": [
+    "Right to access and confirm whether a controller is processing personal data",
+    "Right to correct inaccuracies in personal data",
+    "Right to delete personal data provided by or obtained about the consumer",
+    "Right to data portability in a readily usable format",
+    "Right to opt out of sale of personal data, targeted advertising, and profiling",
+    "Right to question the results of profiling decisions and be informed of the reason behind them",
+    "Data protection assessments required for processing activities that present heightened risk of harm"
+  ],
+  "penalties": "Enforced by the Minnesota Attorney General. Civil penalties up to $7,500 per violation. No private right of action. Controllers must honor universal opt-out mechanisms."
+}

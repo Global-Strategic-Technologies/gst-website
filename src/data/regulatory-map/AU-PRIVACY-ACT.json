@@ -1,0 +1,16 @@
+{
+  "id": "au-privacy-act",
+  "name": "Privacy Act 1988 (as amended 2024)",
+  "regions": ["AUS"],
+  "effectiveDate": "1989-01-01",
+  "summary": "Australia's primary federal privacy legislation, substantially amended in December 2024. It establishes 13 Australian Privacy Principles (APPs) governing how organizations handle personal information, with a statutory tort for serious invasions of privacy and dramatically increased penalties.",
+  "keyRequirements": [
+    "Comply with 13 Australian Privacy Principles (APPs) covering collection, use, disclosure, and storage",
+    "Mandatory data breach notification to the OAIC and affected individuals for eligible breaches",
+    "Publish a clear and up-to-date privacy policy",
+    "Provide individuals with access to and correction of their personal information",
+    "Take reasonable steps to protect personal information from misuse, loss, and unauthorized access",
+    "Only collect personal information that is reasonably necessary for organizational functions"
+  ],
+  "penalties": "Maximum penalty for serious or repeated breaches: the greater of AUD 50 million, three times the benefit obtained, or 30% of adjusted turnover. Mid-tier penalties of AUD 3.3 million for bodies corporate. Enforced by the Office of the Australian Information Commissioner (OAIC)."
+}

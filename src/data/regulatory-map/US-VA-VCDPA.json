@@ -1,0 +1,17 @@
+{
+  "id": "us-va-vcdpa",
+  "name": "Virginia Consumer Data Protection Act (VCDPA)",
+  "regions": ["US-VA"],
+  "effectiveDate": "2023-01-01",
+  "summary": "The Virginia Consumer Data Protection Act grants Virginia consumers rights over their personal data and imposes obligations on data controllers and processors. It applies to entities that conduct business in Virginia or target Virginia residents and process personal data of at least 100,000 consumers, or 25,000 consumers while deriving over 50% of gross revenue from data sales.",
+  "keyRequirements": [
+    "Right to access personal data held by a controller",
+    "Right to correct inaccuracies in personal data",
+    "Right to delete personal data provided by or obtained about the consumer",
+    "Right to obtain a portable copy of personal data in a usable format",
+    "Right to opt out of processing for targeted advertising, sale, or profiling",
+    "Data protection assessments required for high-risk processing activities",
+    "Contracts required between controllers and processors governing data handling"
+  ],
+  "penalties": "Enforced exclusively by the Virginia Attorney General. Civil penalties up to $7,500 per violation. No private right of action. 30-day cure period for alleged violations."
+}

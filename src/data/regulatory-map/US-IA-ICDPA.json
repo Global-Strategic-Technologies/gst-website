@@ -1,0 +1,17 @@
+{
+  "id": "us-ia-icdpa",
+  "name": "Iowa Consumer Data Protection Act (ICDPA)",
+  "regions": ["US-IA"],
+  "effectiveDate": "2025-01-01",
+  "summary": "The Iowa Consumer Data Protection Act provides Iowa residents with data privacy rights and imposes obligations on controllers and processors. It applies to entities conducting business in Iowa or targeting Iowa residents that control or process data of 100,000 or more consumers, or 25,000 or more consumers while deriving more than 50% of gross revenue from the sale of personal data. It is considered one of the more business-friendly state privacy laws.",
+  "keyRequirements": [
+    "Right to access and confirm whether a controller is processing personal data",
+    "Right to delete personal data provided by the consumer",
+    "Right to obtain a portable copy of personal data in a readily usable format",
+    "Right to opt out of the sale of personal data and targeted advertising",
+    "Consent required before processing sensitive personal data",
+    "Clear and accessible privacy notice with mandated disclosures",
+    "Controllers must respond to consumer requests within 90 days"
+  ],
+  "penalties": "Enforced exclusively by the Iowa Attorney General. Civil penalties up to $7,500 per violation. 90-day cure period with no sunset provision. No private right of action. No right to correct inaccurate data."
+}

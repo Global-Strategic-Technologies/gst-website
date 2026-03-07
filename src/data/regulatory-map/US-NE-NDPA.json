@@ -1,0 +1,17 @@
+{
+  "id": "us-ne-ndpa",
+  "name": "Nebraska Data Privacy Act",
+  "regions": ["US-NE"],
+  "effectiveDate": "2025-01-01",
+  "summary": "The Nebraska Data Privacy Act provides comprehensive data privacy protections for Nebraska residents. Unlike most state privacy laws, it applies to all entities conducting business in Nebraska that process personal data without a minimum processing threshold, making it one of the broadest state privacy laws in scope.",
+  "keyRequirements": [
+    "Right to confirm whether a controller is processing personal data and to access that data",
+    "Right to correct inaccuracies in personal data",
+    "Right to delete personal data provided by or obtained about the consumer",
+    "Right to obtain a portable copy of personal data",
+    "Right to opt out of sale of personal data, targeted advertising, and profiling",
+    "Consent required before processing sensitive data including biometric and geolocation data",
+    "Controllers must provide clear and accessible privacy notices disclosing data practices"
+  ],
+  "penalties": "Enforced by the Nebraska Attorney General. Civil penalties up to $7,500 per violation. 30-day cure period for violations; no private right of action."
+}

@@ -1,0 +1,17 @@
+{
+  "id": "us-co-cpa",
+  "name": "Colorado Privacy Act (CPA)",
+  "regions": ["US-CO"],
+  "effectiveDate": "2023-07-01",
+  "summary": "The Colorado Privacy Act provides Colorado residents with rights over their personal data and establishes obligations for data controllers. It applies to entities conducting business in Colorado or targeting Colorado residents that control or process data of 100,000 or more consumers annually, or 25,000 or more consumers while deriving revenue from the sale of personal data.",
+  "keyRequirements": [
+    "Right to access, confirm, and obtain a portable copy of personal data",
+    "Right to correct inaccuracies in personal data",
+    "Right to delete personal data",
+    "Right to opt out of targeted advertising, sale of personal data, and certain profiling",
+    "Universal opt-out mechanism recognition required by July 1, 2024",
+    "Data protection assessments required for processing that presents heightened risk",
+    "Purpose limitation and data minimization obligations for controllers"
+  ],
+  "penalties": "Enforced by the Colorado Attorney General and district attorneys. Civil penalties up to $20,000 per violation, with a maximum of $500,000 per related series of violations. 60-day cure period, which sunsets on January 1, 2025."
+}

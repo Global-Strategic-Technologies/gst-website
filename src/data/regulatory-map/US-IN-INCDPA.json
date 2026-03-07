@@ -1,0 +1,17 @@
+{
+  "id": "us-in-incdpa",
+  "name": "Indiana Consumer Data Protection Act",
+  "regions": ["US-IN"],
+  "effectiveDate": "2026-01-01",
+  "summary": "The Indiana Consumer Data Protection Act establishes consumer privacy rights for Indiana residents. It applies to entities conducting business in Indiana or targeting its residents that control or process personal data of at least 100,000 consumers, or 25,000 consumers if deriving more than 50% of gross revenue from the sale of personal data.",
+  "keyRequirements": [
+    "Right to confirm whether a controller is processing personal data and to access that data",
+    "Right to correct inaccuracies in personal data",
+    "Right to delete personal data provided by or obtained about the consumer",
+    "Right to data portability in a readily usable format",
+    "Right to opt out of sale of personal data, targeted advertising, and profiling",
+    "Consent required before processing sensitive data including precise geolocation and biometric data",
+    "Controllers must respond to consumer requests within 45 days with one 45-day extension"
+  ],
+  "penalties": "Enforced exclusively by the Indiana Attorney General. Civil penalties up to $7,500 per violation. 30-day cure period for violations; no private right of action."
+}

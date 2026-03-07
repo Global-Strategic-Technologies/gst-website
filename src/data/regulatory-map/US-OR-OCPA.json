@@ -1,0 +1,17 @@
+{
+  "id": "us-or-ocpa",
+  "name": "Oregon Consumer Privacy Act (OCPA)",
+  "regions": ["US-OR"],
+  "effectiveDate": "2024-07-01",
+  "summary": "The Oregon Consumer Privacy Act provides Oregon consumers with comprehensive data privacy rights and applies broadly to entities conducting business in Oregon or targeting Oregon residents. It covers entities that control or process data of 100,000 or more consumers, or 25,000 or more consumers while deriving 25% or more of annual gross revenue from selling personal data. Notably, it extends certain rights to nonprofit organizations, unlike most other state privacy laws.",
+  "keyRequirements": [
+    "Right to access, correct, delete, and obtain a portable copy of personal data",
+    "Right to opt out of the sale of personal data, targeted advertising, and profiling",
+    "Right to obtain a list of third parties to whom data has been disclosed",
+    "Consent required before processing sensitive data including demographic data",
+    "Data protection assessments required for high-risk processing activities",
+    "Applicability to nonprofit organizations beginning July 1, 2025",
+    "Data minimization and purpose limitation obligations for controllers"
+  ],
+  "penalties": "Enforced by the Oregon Attorney General. Civil penalties up to $7,500 per violation. 30-day cure period available until January 1, 2026. No private right of action."
+}

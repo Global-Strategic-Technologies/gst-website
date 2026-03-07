@@ -1,0 +1,139 @@
+---
+/**
+ * Compliance detail panel that displays regulation information
+ * for the selected country. Subscribes to `regionSelected` CustomEvent.
+ */
+---
+
+<aside class="compliance-panel" id="compliancePanel" data-testid="compliance-panel" aria-live="polite" hidden>
+  <div class="panel-header">
+    <h2 class="panel-country-name" id="panelCountryName"></h2>
+    <span class="panel-regulation-count" id="panelRegCount"></span>
+  </div>
+  <div class="panel-regulations" id="panelRegulations"></div>
+</aside>
+
+<style>
+  .compliance-panel {
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    background: var(--bg-light);
+    padding: var(--spacing-lg);
+    max-height: 520px;
+    overflow-y: auto;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .panel-country-name {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-secondary);
+    margin: 0;
+  }
+
+  .panel-regulation-count {
+    font-size: var(--text-xs);
+    color: var(--text-light-muted);
+    white-space: nowrap;
+  }
+
+  .panel-regulations {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+  }
+
+  /* Regulation card (rendered by client JS) */
+  :global(.reg-card) {
+    padding: var(--spacing-md);
+    background: var(--bg-light-alt);
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--color-primary);
+    border-radius: 6px;
+  }
+
+  :global(.reg-card__name) {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-light-primary);
+    margin: 0 0 var(--spacing-xs);
+  }
+
+  :global(.reg-card__date) {
+    font-size: var(--text-xs);
+    color: var(--text-light-muted);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  :global(.reg-card__summary) {
+    font-size: var(--text-sm);
+    color: var(--text-light-secondary);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  :global(.reg-card__requirements) {
+    list-style: none;
+    padding: 0;
+    margin: var(--spacing-sm) 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  :global(.reg-card__requirements li) {
+    font-size: var(--text-xs);
+    color: var(--text-light-secondary);
+    line-height: 1.5;
+    padding-left: var(--spacing-md);
+    position: relative;
+  }
+
+  :global(.reg-card__requirements li::before) {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.5em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    opacity: 0.6;
+  }
+
+  :global(.reg-card__penalties) {
+    font-size: var(--text-xs);
+    color: var(--text-light-muted);
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--border-light);
+    font-style: italic;
+  }
+
+  /* Dark theme */
+  :global(html.dark-theme) .compliance-panel {
+    background: var(--bg-dark-secondary);
+  }
+
+  :global(html.dark-theme .reg-card) {
+    background: var(--bg-dark-tertiary);
+  }
+
+  /* Responsive */
+  @media (min-width: 1024px) {
+    .compliance-panel {
+      max-height: calc(100vh - 280px);
+      position: sticky;
+      top: var(--spacing-lg);
+    }
+  }
+</style>

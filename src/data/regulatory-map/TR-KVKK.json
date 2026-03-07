@@ -1,0 +1,17 @@
+{
+  "id": "tr-kvkk",
+  "name": "Law No. 6698 on the Protection of Personal Data (KVKK)",
+  "regions": ["TUR"],
+  "effectiveDate": "2016-04-07",
+  "summary": "Turkey's comprehensive data protection law regulates the processing of personal data by both public and private entities, including those outside Turkey handling data of Turkish residents. The law is modeled on EU data protection principles and establishes registration, consent, and security obligations.",
+  "keyRequirements": [
+    "Register with the Data Controllers Registry (VERBIS)",
+    "Obtain explicit consent for processing sensitive personal data",
+    "Implement adequate technical and organizational security measures",
+    "Notify the Personal Data Protection Authority of data breaches",
+    "Respond to data subject rights requests within 30 days",
+    "Ensure cross-border transfers meet adequacy or safeguard requirements",
+    "Appoint a data controller representative for foreign entities"
+  ],
+  "penalties": "Administrative fines range from TRY 68,083 to TRY 13,620,402 (2025 figures, adjusted annually). Criminal penalties of 1-3 years imprisonment for unlawful processing of personal data. Enforced by the Personal Data Protection Authority (KVKK Board)."
+}

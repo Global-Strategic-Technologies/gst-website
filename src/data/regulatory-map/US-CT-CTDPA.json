@@ -1,0 +1,17 @@
+{
+  "id": "us-ct-ctdpa",
+  "name": "Connecticut Data Privacy Act (CTDPA)",
+  "regions": ["US-CT"],
+  "effectiveDate": "2023-07-01",
+  "summary": "The Connecticut Data Privacy Act provides Connecticut residents with comprehensive rights over their personal data. It applies to entities conducting business in Connecticut or producing products or services targeted at Connecticut residents that control or process data of 100,000 or more consumers, or 25,000 or more consumers while deriving more than 25% of gross revenue from personal data sales.",
+  "keyRequirements": [
+    "Right to access, correct, delete, and obtain a portable copy of personal data",
+    "Right to opt out of the sale of personal data, targeted advertising, and profiling",
+    "Consent required for processing sensitive data",
+    "Universal opt-out mechanism recognition required beginning January 1, 2025",
+    "Data protection assessments for high-risk processing activities",
+    "Clear and accessible privacy notices with specified disclosures",
+    "Data minimization and purpose limitation requirements"
+  ],
+  "penalties": "Enforced exclusively by the Connecticut Attorney General under the Connecticut Unfair Trade Practices Act. Civil penalties up to $5,000 per violation. 60-day cure period, which sunsets on December 31, 2024."
+}

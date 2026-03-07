@@ -1,0 +1,16 @@
+{
+  "id": "in-dpdpa",
+  "name": "Digital Personal Data Protection Act, 2023",
+  "regions": ["IND"],
+  "effectiveDate": "2023-08-11",
+  "summary": "India's first comprehensive digital personal data protection law. It regulates the processing of digital personal data within India and cross-border processing of Indian citizens' data. Enforcement is phased, with full consent and processing obligations taking effect by May 2027.",
+  "keyRequirements": [
+    "Obtain free, specific, informed, and unambiguous consent with clear privacy notices",
+    "Mandatory data breach notification to the Data Protection Board and affected individuals",
+    "Data principals have rights to access, correction, erasure, and grievance redressal",
+    "Heightened protections for children's data including verifiable parental consent",
+    "Data fiduciaries must implement reasonable security safeguards",
+    "Restrictions on cross-border data transfers to notified countries"
+  ],
+  "penalties": "Maximum penalty of INR 250 crore (~USD 30 million) per contravention. Specific penalties: up to INR 200 crore for failure to notify breaches, up to INR 200 crore for children's data violations. Enforced by the Data Protection Board of India (DPBI)."
+}

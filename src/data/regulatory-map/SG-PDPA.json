@@ -1,0 +1,17 @@
+{
+  "id": "sg-pdpa",
+  "name": "Personal Data Protection Act (PDPA)",
+  "regions": ["SGP"],
+  "effectiveDate": "2014-07-02",
+  "summary": "Singapore's Personal Data Protection Act governs the collection, use, disclosure, and care of personal data by organizations. It balances individuals' rights to protect their data with organizations' needs to collect and use data for legitimate purposes.",
+  "keyRequirements": [
+    "Consent required before collecting, using, or disclosing personal data",
+    "Purpose limitation: data used only for purposes the individual was informed of",
+    "Access and correction rights for individuals",
+    "Data Protection Officer appointment required",
+    "Data breach notification to PDPC within 3 calendar days of assessment",
+    "Mandatory data protection policies and practices",
+    "Do Not Call (DNC) Registry compliance for marketing"
+  ],
+  "penalties": "Up to SGD 1 million or 10% of annual turnover (for organizations with turnover exceeding SGD 10 million)."
+}

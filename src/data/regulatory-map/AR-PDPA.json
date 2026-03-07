@@ -1,0 +1,17 @@
+{
+  "id": "ar-pdpa",
+  "name": "Personal Data Protection Act (Ley 25.326)",
+  "regions": ["ARG"],
+  "effectiveDate": "2000-11-02",
+  "summary": "Argentina's comprehensive data protection law was one of the earliest in Latin America, leading to an EU adequacy determination in 2003. It regulates the processing of personal data in both public and private databases, granting individuals habeas data rights.",
+  "keyRequirements": [
+    "Obtain free, express, and informed consent before processing personal data",
+    "Register databases with the national registry (AAIP)",
+    "Implement adequate security and confidentiality measures",
+    "Respect data subject rights (access, rectification, suppression, opposition)",
+    "Restrict cross-border transfers to countries with adequate protection",
+    "Limit data collection to what is relevant and not excessive",
+    "Ensure data quality, accuracy, and currency"
+  ],
+  "penalties": "Administrative fines from ARS 1,000 to ARS 100,000. Additional sanctions include database suspension or closure. Criminal penalties: 1 month to 3 years imprisonment for knowingly inserting false data. Enforced by the Agencia de Acceso a la Informacion Publica (AAIP)."
+}
