@@ -1,0 +1,17 @@
+{
+  "id": "rs-lpdp",
+  "name": "Law on Personal Data Protection (Zakon o zastiti podataka o licnosti)",
+  "regions": ["SRB"],
+  "effectiveDate": "2019-08-21",
+  "summary": "Serbia's GDPR-aligned data protection law was enacted as part of the country's EU accession process. It incorporates core GDPR principles including data protection by design, data portability, 72-hour breach notification, and mandatory data protection officers.",
+  "keyRequirements": [
+    "Implement data protection by design and by default",
+    "Conduct data protection impact assessments for high-risk processing",
+    "Notify the Commissioner of data breaches within 72 hours",
+    "Appoint a data protection officer where required",
+    "Ensure lawful basis for processing (consent, contract, legal obligation, etc.)",
+    "Respect data subject rights including portability and erasure",
+    "Maintain records of processing activities"
+  ],
+  "penalties": "Fines for legal entities range from RSD 50,000 to RSD 2,000,000 per violation (~EUR 17,000 maximum). Entrepreneurs face RSD 20,000 to RSD 500,000. Enforced by the Commissioner for Information of Public Importance and Personal Data Protection."
+}

@@ -1,0 +1,17 @@
+{
+  "id": "ca-bc-pipa",
+  "name": "British Columbia Personal Information Protection Act (PIPA)",
+  "regions": ["CA-BC"],
+  "effectiveDate": "2004-01-01",
+  "summary": "British Columbia's private-sector privacy legislation, deemed substantially similar to PIPEDA. It governs how private-sector organizations in BC collect, use, and disclose personal information, including employee personal information. Uniquely among Canadian provinces, BC PIPA also applies to provincial and federal political parties.",
+  "keyRequirements": [
+    "Obtain consent appropriate to the sensitivity of the personal information",
+    "Collect personal information only for purposes a reasonable person would consider appropriate",
+    "Allow individuals to access and request correction of their personal information",
+    "Implement reasonable security measures to protect personal information",
+    "Designate a privacy officer responsible for the organization's compliance",
+    "Mandatory breach notification to the Office of the Information and Privacy Commissioner for BC",
+    "Coverage extends to employee personal information and political party data"
+  ],
+  "penalties": "Fines up to $100,000 CAD for individuals and $500,000 CAD for organizations per offense. Enforced by the Office of the Information and Privacy Commissioner for British Columbia. No private right of action."
+}

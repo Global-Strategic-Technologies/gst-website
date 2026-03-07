@@ -1,0 +1,17 @@
+{
+  "id": "pe-law29733",
+  "name": "Law 29.733 on the Protection of Personal Data",
+  "regions": ["PER"],
+  "effectiveDate": "2013-05-08",
+  "summary": "Peru's data protection law was enacted in 2011 with implementing regulations effective May 2013. A major update via Supreme Decree 016-2024-JUS took effect March 2025, modernizing obligations including extraterritorial application and local representative requirements for foreign entities.",
+  "keyRequirements": [
+    "Obtain free, prior, express, informed, and unequivocal consent",
+    "Register personal data banks with the national registry",
+    "Implement appropriate technical and organizational security measures",
+    "Respect data subject rights (access, rectification, cancellation, opposition)",
+    "Restrict cross-border transfers to countries with adequate protection or with consent",
+    "Appoint a local representative for foreign entities",
+    "Comply with purpose limitation, proportionality, and data quality principles"
+  ],
+  "penalties": "Minor infractions: up to 5 UIT (~USD 5,500). Serious infractions: up to 50 UIT (~USD 55,000). Very serious infractions: up to 100 UIT (~USD 110,000). Enforced by the Autoridad Nacional de Proteccion de Datos Personales (ANPDP) within the Ministry of Justice."
+}

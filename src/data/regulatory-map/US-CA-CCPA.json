@@ -1,0 +1,17 @@
+{
+  "id": "us-ca-ccpa",
+  "name": "California Consumer Privacy Act (CCPA/CPRA)",
+  "regions": ["US-CA"],
+  "effectiveDate": "2020-01-01",
+  "summary": "The California Consumer Privacy Act, amended by the California Privacy Rights Act (CPRA), grants California residents expanded rights over their personal information. It applies to businesses meeting revenue or data processing thresholds and establishes the California Privacy Protection Agency for enforcement.",
+  "keyRequirements": [
+    "Right to know what personal information is collected and how it is used",
+    "Right to delete personal information held by businesses",
+    "Right to opt-out of the sale or sharing of personal information",
+    "Right to non-discrimination for exercising privacy rights",
+    "Right to correct inaccurate personal information (CPRA)",
+    "Right to limit use of sensitive personal information (CPRA)",
+    "Mandatory privacy notices at or before the point of collection"
+  ],
+  "penalties": "Up to $7,500 per intentional violation; $2,500 per unintentional violation. Private right of action for data breaches: $100-$750 per consumer per incident."
+}

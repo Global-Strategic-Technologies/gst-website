@@ -1,0 +1,17 @@
+{
+  "id": "vn-pdpl",
+  "name": "Law on Personal Data Protection (Law No. 91/2025/QH15)",
+  "regions": ["VNM"],
+  "effectiveDate": "2026-01-01",
+  "summary": "Vietnam's comprehensive personal data protection law, passed June 2025 and effective 1 January 2026, replacing the earlier Decree 13/2023. It governs personal data processing activities by domestic and foreign entities handling Vietnamese citizens' data, with data localization requirements and revenue-based penalties.",
+  "keyRequirements": [
+    "Obtain consent for personal data processing with specific form and content requirements",
+    "Mandatory data breach notification within 72 hours to the Department of Cybersecurity",
+    "Conduct impact assessments for cross-border data transfers and file with authorities",
+    "Appoint a data protection department or officer for organizations processing large volumes of data",
+    "Data subject rights including access, correction, deletion, and withdrawal of consent",
+    "Data localization requirements with copies of data stored in Vietnam for cross-border transfers",
+    "Register and declare data processing activities with the Ministry of Public Security"
+  ],
+  "penalties": "For sale or purchase of personal data: fines of 10x revenue from the sale or VND 3 billion (~USD 120,000), whichever is higher. For cross-border transfer violations: 5% of prior year's revenue or VND 3 billion. Enforced by the Department of Cybersecurity and High-Tech Crime Prevention under the Ministry of Public Security."
+}

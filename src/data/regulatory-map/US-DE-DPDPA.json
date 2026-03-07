@@ -1,0 +1,17 @@
+{
+  "id": "us-de-dpdpa",
+  "name": "Delaware Personal Data Privacy Act (DPDPA)",
+  "regions": ["US-DE"],
+  "effectiveDate": "2025-01-01",
+  "summary": "The Delaware Personal Data Privacy Act grants Delaware residents comprehensive rights over their personal data. It applies to entities conducting business in Delaware or targeting Delaware residents that control or process data of 35,000 or more consumers, or 10,000 or more consumers while deriving more than 20% of gross revenue from the sale of personal data. Delaware's thresholds are among the lowest of any state privacy law, reflecting its smaller population.",
+  "keyRequirements": [
+    "Right to access, correct, delete, and obtain a portable copy of personal data",
+    "Right to opt out of the sale of personal data, targeted advertising, and profiling",
+    "Consent required before processing sensitive personal data",
+    "Universal opt-out mechanism recognition required beginning January 1, 2026",
+    "Data protection assessments for processing that presents heightened risk",
+    "Clear and meaningful privacy notice obligations",
+    "Data minimization and purpose limitation requirements for controllers"
+  ],
+  "penalties": "Enforced exclusively by the Delaware Department of Justice. Civil penalties up to $10,000 per violation. 60-day cure period, which sunsets on December 31, 2025. No private right of action."
+}

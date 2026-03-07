@@ -1,0 +1,17 @@
+{
+  "id": "us-tn-tipa",
+  "name": "Tennessee Information Protection Act",
+  "regions": ["US-TN"],
+  "effectiveDate": "2025-07-01",
+  "summary": "The Tennessee Information Protection Act establishes consumer data privacy rights for Tennessee residents. It applies to entities conducting business in Tennessee or targeting its residents that exceed $25 million in revenue and control or process personal information of at least 25,000 consumers, or derive more than 50% of revenue from selling personal information of at least 175,000 consumers.",
+  "keyRequirements": [
+    "Right to confirm whether a controller is processing personal information and to access that data",
+    "Right to correct inaccuracies in personal information",
+    "Right to delete personal information provided by or obtained about the consumer",
+    "Right to obtain a copy of personal information in a portable format",
+    "Right to opt out of sale of personal information, targeted advertising, and profiling",
+    "Affirmative defense available for controllers maintaining a privacy program conforming to NIST frameworks",
+    "Consent required before processing sensitive data such as biometric, geolocation, and health data"
+  ],
+  "penalties": "Enforced exclusively by the Tennessee Attorney General. Civil penalties up to $7,500 per violation. 60-day cure period for violations; no private right of action."
+}

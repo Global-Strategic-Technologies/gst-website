@@ -1,0 +1,17 @@
+{
+  "id": "ch-fadp",
+  "name": "Federal Act on Data Protection (FADP / nFADP)",
+  "regions": ["CHE"],
+  "effectiveDate": "2023-09-01",
+  "summary": "Switzerland's revised Federal Act on Data Protection replaced the 1992 law to align more closely with the EU GDPR. It applies to the processing of personal data of natural persons by private persons and federal bodies, including organizations outside Switzerland processing Swiss residents' data.",
+  "keyRequirements": [
+    "Maintain records of processing activities",
+    "Conduct data protection impact assessments for high-risk processing",
+    "Notify the FDPIC of data security breaches as soon as possible",
+    "Obtain opt-in consent for processing of sensitive personal data",
+    "Provide transparent privacy notices to data subjects",
+    "Ensure adequate protection for cross-border data transfers",
+    "Implement privacy by design and privacy by default"
+  ],
+  "penalties": "Maximum fine of CHF 250,000 (~EUR 263,000) against responsible individuals for intentional serious violations. Companies may be fined up to CHF 50,000 if identifying the responsible individual would require disproportionate effort. Enforced by the Federal Data Protection and Information Commissioner (FDPIC)."
+}

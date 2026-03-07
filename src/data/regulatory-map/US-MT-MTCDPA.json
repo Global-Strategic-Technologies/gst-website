@@ -1,0 +1,17 @@
+{
+  "id": "us-mt-mtcdpa",
+  "name": "Montana Consumer Data Privacy Act (MTCDPA)",
+  "regions": ["US-MT"],
+  "effectiveDate": "2024-10-01",
+  "summary": "The Montana Consumer Data Privacy Act provides Montana residents with rights over their personal data and establishes obligations for data controllers and processors. It applies to entities conducting business in Montana or targeting Montana residents that control or process data of 50,000 or more consumers, or 25,000 or more consumers while deriving more than 25% of gross revenue from the sale of personal data. Montana's lower population threshold reflects its smaller population.",
+  "keyRequirements": [
+    "Right to access, correct, delete, and obtain a portable copy of personal data",
+    "Right to opt out of the sale of personal data, targeted advertising, and profiling",
+    "Consent required before processing sensitive personal data",
+    "Universal opt-out mechanism recognition required beginning January 1, 2025",
+    "Data protection assessments for processing presenting heightened risk to consumers",
+    "Clear and accessible privacy notice with mandated disclosures",
+    "Purpose limitation and data minimization obligations for controllers"
+  ],
+  "penalties": "Enforced exclusively by the Montana Attorney General. Civil penalties up to $7,500 per violation. 60-day cure period, which sunsets on April 1, 2026. No private right of action."
+}

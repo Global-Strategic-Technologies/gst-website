@@ -1,0 +1,17 @@
+{
+  "id": "sa-pdpl",
+  "name": "Personal Data Protection Law (Royal Decree M/19 of 2021, amended 2023)",
+  "regions": ["SAU"],
+  "effectiveDate": "2023-09-14",
+  "summary": "Saudi Arabia's comprehensive data protection framework governing the collection, processing, disclosure, and retention of personal data. Originally issued in 2021 and amended in March 2023, it applies to both public and private sector entities processing personal data within Saudi Arabia.",
+  "keyRequirements": [
+    "Obtain consent before collecting or processing personal data",
+    "Implement appropriate technical and organizational security measures",
+    "Notify SDAIA and affected individuals of data breaches",
+    "Appoint a Data Protection Officer",
+    "Conduct data protection impact assessments before high-risk processing",
+    "Restrict cross-border transfers to approved jurisdictions or with adequate safeguards",
+    "Maintain records of processing activities and privacy policies"
+  ],
+  "penalties": "Administrative fines up to SAR 5,000,000 (~USD 1.33 million), doubled for repeat offenses. Criminal penalties include imprisonment up to 2 years and/or fine up to SAR 3,000,000 for unauthorized disclosure of sensitive data. Enforced by the Saudi Data and Artificial Intelligence Authority (SDAIA)."
+}

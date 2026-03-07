@@ -1,0 +1,17 @@
+{
+  "id": "ca-qc-law25",
+  "name": "Quebec Law 25 (Act Respecting the Protection of Personal Information in the Private Sector)",
+  "regions": ["CA-QC"],
+  "effectiveDate": "2022-09-22",
+  "summary": "Quebec's comprehensive modernization of its private-sector privacy framework, introducing GDPR-style requirements in three phases completed by September 2024. It applies to all organizations collecting, holding, or using personal information of Quebec residents, regardless of where the organization is based.",
+  "keyRequirements": [
+    "Designate a person responsible for the protection of personal information",
+    "Mandatory privacy impact assessments for information systems and electronic service delivery",
+    "Breach notification to the Commission d'acces a l'information and affected individuals",
+    "Right to data portability in a commonly used technological format",
+    "Express consent required for the collection of sensitive personal information",
+    "Privacy by default for technology products and services",
+    "Restrictions on profiling and automated decision-making with right to explanation"
+  ],
+  "penalties": "Administrative monetary penalties up to $10 million CAD or 2% of worldwide turnover. Penal fines up to $25 million CAD or 4% of worldwide turnover for serious offenses. Private right of action for individuals."
+}

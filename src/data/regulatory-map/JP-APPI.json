@@ -1,0 +1,17 @@
+{
+  "id": "jp-appi",
+  "name": "Act on the Protection of Personal Information (APPI)",
+  "regions": ["JPN"],
+  "effectiveDate": "2022-04-01",
+  "summary": "Japan's comprehensive data protection law, significantly amended in 2020 with changes taking effect April 2022. It regulates how businesses handle personal information, with extraterritorial reach covering foreign entities processing data of individuals in Japan.",
+  "keyRequirements": [
+    "Obtain consent before providing personal data to third parties",
+    "Mandatory breach notification to the PPC and affected individuals for qualifying incidents",
+    "Restrictions on cross-border data transfers requiring consent or equivalent protection",
+    "Individual rights including access, correction, deletion, and usage suspension",
+    "Obligation to specify and publicly announce the purpose of use of personal information",
+    "Appoint a personal information protection manager",
+    "Maintain records of third-party data transfers and receipts"
+  ],
+  "penalties": "No administrative fines. Criminal penalties: up to JPY 100 million (~USD 680,000) for corporations and up to JPY 1 million and/or 1 year imprisonment for individuals who violate PPC orders. Enforced by the Personal Information Protection Commission (PPC)."
+}

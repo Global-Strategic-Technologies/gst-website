@@ -1,0 +1,17 @@
+{
+  "id": "us-nh-nhpa",
+  "name": "New Hampshire Privacy Act (SB 255)",
+  "regions": ["US-NH"],
+  "effectiveDate": "2025-01-01",
+  "summary": "The New Hampshire Privacy Act establishes consumer data privacy rights for New Hampshire residents. It applies to entities conducting business in the state or targeting its residents that control or process the personal data of at least 35,000 consumers, or 10,000 consumers if deriving more than 25% of revenue from selling personal data.",
+  "keyRequirements": [
+    "Right to confirm whether a controller is processing personal data and to access that data",
+    "Right to correct inaccuracies in personal data",
+    "Right to delete personal data provided by or obtained about the consumer",
+    "Right to data portability in a readily usable format",
+    "Right to opt out of sale of personal data, targeted advertising, and profiling",
+    "Requirement to obtain consent before processing sensitive data",
+    "Controllers must conduct data protection assessments for targeted advertising and sale of personal data"
+  ],
+  "penalties": "Enforced exclusively by the New Hampshire Attorney General under the state Consumer Protection Act. Civil penalties up to $10,000 per violation; no private right of action."
+}

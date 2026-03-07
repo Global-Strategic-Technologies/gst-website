@@ -1,0 +1,17 @@
+{
+  "id": "rw-dpp",
+  "name": "Law No. 058/2021 Relating to the Protection of Personal Data and Privacy",
+  "regions": ["RWA"],
+  "effectiveDate": "2021-10-15",
+  "summary": "Rwanda's data protection law regulates the processing of personal data of individuals in Rwanda by both domestic and foreign entities. It included a 24-month compliance period with enforcement beginning from October 2023, requiring data processor registration, DPO appointment, and breach notification.",
+  "keyRequirements": [
+    "Register with the NCSA and obtain a Data Protection and Privacy certificate",
+    "Designate a Data Protection Officer (internal or external)",
+    "Obtain consent before processing personal data",
+    "Implement appropriate technical and organizational security measures",
+    "Notify the authority of data breaches within 48 hours",
+    "Conduct data protection impact assessments for high-risk processing",
+    "Restrict cross-border transfers to countries with adequate protection"
+  ],
+  "penalties": "Administrative fines from RWF 2,000,000 to RWF 5,000,000 or 1% of global turnover. Criminal penalties for serious violations: 7-10 years imprisonment and fines of RWF 20,000,000-25,000,000. Enforced by the National Cyber Security Authority (NCSA)."
+}
