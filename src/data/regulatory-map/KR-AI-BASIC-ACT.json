@@ -1,0 +1,17 @@
+{
+  "id": "kr-ai-basic-act",
+  "name": "Framework Act on the Development of Artificial Intelligence and Establishment of Trust (AI Basic Act)",
+  "regions": ["KOR"],
+  "effectiveDate": "2026-01-22",
+  "summary": "South Korea's comprehensive national AI regulatory framework, the second after the EU AI Act. Establishes a legal framework for advancing competitiveness in AI while ensuring ethical standards and public trust. Assigns transparency and safety responsibilities to businesses developing or deploying high-impact AI and generative AI.",
+  "keyRequirements": [
+    "Notify users when interacting with high-impact AI or generative AI systems",
+    "Clearly label AI-generated content",
+    "Implement risk management throughout the AI lifecycle with human oversight",
+    "Conduct impact assessments on fundamental rights for high-impact AI",
+    "Designate a domestic representative for foreign AI providers meeting scale thresholds",
+    "Document safety measures for high-impact AI systems",
+    "Establish AI safety institute and national AI governance body"
+  ],
+  "penalties": "Administrative fines up to KRW 30 million (~USD 22,000) for violations of notification obligations, domestic agent designation, and non-compliance with suspension or corrective orders."
+}

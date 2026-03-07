@@ -1,0 +1,17 @@
+{
+  "id": "cn-genai",
+  "name": "Interim Measures for the Management of Generative Artificial Intelligence Services",
+  "regions": ["CHN"],
+  "effectiveDate": "2023-08-15",
+  "summary": "China's first regulation specifically targeting generative AI services. Governs the provision of text, image, audio, video, and other content generation services to the public within China. Takes a balanced approach promoting innovation while requiring safety assessments and lawful data sourcing.",
+  "keyRequirements": [
+    "Training data must be from lawful sources with no intellectual property infringement",
+    "Obtain consent for personal information used in training",
+    "Ensure training data quality, accuracy, objectivity, and diversity",
+    "Security assessments required for services with public opinion properties or social mobilization capacity",
+    "Comply with algorithmic filing requirements",
+    "Generated content must not incite subversion of state power or contain illegal content",
+    "Providers must accept and process user complaints"
+  ],
+  "penalties": "Violations penalized under the Cybersecurity Law, Data Security Law, PIPL, and Law on Progress of Science and Technology. Includes warnings, rectification orders, and suspension orders."
+}

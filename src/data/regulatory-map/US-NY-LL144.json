@@ -1,0 +1,15 @@
+{
+  "id": "us-ny-ll144",
+  "name": "NYC Local Law 144 - Automated Employment Decision Tools",
+  "regions": ["US-NY"],
+  "effectiveDate": "2023-07-05",
+  "summary": "Regulates the use of automated employment decision tools (AEDTs) in hiring and promotion decisions in New York City. Requires independent bias audits, public disclosure of audit results, and candidate notification before using AI-powered hiring tools.",
+  "keyRequirements": [
+    "Conduct independent bias audit of AEDT no more than 1 year prior to use",
+    "Publish summary of bias audit results on employer's website",
+    "Notify candidates that AEDT will be used in hiring or promotion decisions",
+    "Disclose how the AEDT will be used and what data will be collected",
+    "Allow candidates to request alternative selection process or human review"
+  ],
+  "penalties": "Civil penalties of up to $500 for first violation and additional violations on the same day. $500 to $1,500 for each subsequent violation. Each day of non-compliance constitutes a separate violation."
+}

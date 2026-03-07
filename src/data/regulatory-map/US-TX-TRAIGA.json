@@ -1,0 +1,17 @@
+{
+  "id": "us-tx-traiga",
+  "name": "Texas Responsible Artificial Intelligence Governance Act (TRAIGA, HB 149)",
+  "regions": ["US-TX"],
+  "effectiveDate": "2026-01-01",
+  "summary": "Texas's first comprehensive AI law. Focuses on prohibiting AI systems designed for harmful purposes rather than broad regulatory compliance. Requires disclosure by state agencies and healthcare providers. Provides affirmative defenses for NIST AI Risk Management Framework compliance.",
+  "keyRequirements": [
+    "Prohibits AI systems intended to incite self-harm or criminal activity",
+    "Prohibits AI for generating child sexual abuse material or deepfake pornography",
+    "Prohibits government use of AI for social scoring",
+    "State agencies must disclose AI interactions to consumers",
+    "Healthcare providers must disclose AI use in treatment to patients",
+    "Affirmative defense available for compliance with NIST AI Risk Management Framework",
+    "60-day cure period after receiving notice of violation from the Attorney General"
+  ],
+  "penalties": "Curable violations: $10,000 to $12,000 per violation. Uncurable violations: $80,000 to $200,000 per violation. Continuing violations: $2,000 to $40,000 per day. Plus attorney's fees and court costs."
+}

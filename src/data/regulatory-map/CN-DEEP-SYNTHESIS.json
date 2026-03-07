@@ -1,0 +1,17 @@
+{
+  "id": "cn-deep-synthesis",
+  "name": "Administrative Provisions on Deep Synthesis in Internet-Based Information Services",
+  "regions": ["CHN"],
+  "effectiveDate": "2023-01-10",
+  "summary": "Regulates the use of deep synthesis (deepfake) technology for generating or altering video, voice, text, and image content online. Requires content labeling, platform responsibilities for blocking harmful content, and establishes mechanisms for algorithm filing and user protection.",
+  "keyRequirements": [
+    "Mandatory labeling and tagging of AI-generated content including voice simulation, face synthesis, and face manipulation",
+    "Establish management systems for algorithm review, ethics review, and content monitoring",
+    "File applicable algorithms with the Cyberspace Administration of China",
+    "Implement personal data protection and child protection measures",
+    "Platform capabilities to identify and block toxic synthesis content",
+    "User reporting mechanisms and timely removal of illegal content",
+    "Prohibition on creating politically sensitive deepfake content"
+  ],
+  "penalties": "Rectification orders, suspension of services, penalties under the Cybersecurity Law, Data Security Law, and PIPL. Criminal liability for severe violations."
+}

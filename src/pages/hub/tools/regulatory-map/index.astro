@@ -10,12 +10,12 @@ trackPageView('regulatory-map', 'Regulatory Map | GST');
 
 const faqItems = [
     {
-        question: "Why does data regulation matter for technology investments?",
-        answer: "Data is the foundation of nearly every modern business. It drives product decisions, customer engagement, and revenue. When a company operates across jurisdictions without a clear understanding of its regulatory obligations, the result is unchecked exposure: fines, forced operational changes, or deal-killing liabilities discovered during diligence. For investors, regulatory posture is a direct indicator of operational maturity and risk."
+        question: "Why do data privacy and AI regulations matter for technology investments?",
+        answer: "Data and AI capabilities are central to nearly every modern business. They drive product decisions, customer engagement, and revenue. When a company operates across jurisdictions without a clear understanding of its regulatory obligations in both data privacy and AI governance, the result is unchecked exposure: fines, forced operational changes, or deal-killing liabilities discovered during diligence. For investors, regulatory posture is a direct indicator of operational maturity and risk."
     },
     {
         question: "What regulations does the map cover?",
-        answer: "The map includes major data protection and privacy frameworks across global jurisdictions, including the EU's GDPR, California's CCPA/CPRA, Brazil's LGPD, Canada's PIPEDA and provincial laws, and dozens of other national and sub-national regulations. Coverage is continually expanding as new frameworks are enacted worldwide."
+        answer: "The map covers two categories of regulation. For data privacy, it includes major frameworks such as the EU's GDPR, California's CCPA/CPRA, Brazil's LGPD, Canada's PIPEDA and provincial laws, and dozens of other national and sub-national regulations. For artificial intelligence, it includes the EU AI Act, China's algorithm and generative AI regulations, South Korea's AI Basic Act, and US state-level AI laws covering areas like algorithmic discrimination, AI transparency, and automated employment decisions. Coverage is continually expanding as new frameworks are enacted worldwide."
     },
     {
         question: "How current is the regulatory data shown here?",
@@ -23,11 +23,11 @@ const faqItems = [
     },
     {
         question: "How should I use this tool during due diligence?",
-        answer: "Start by identifying every jurisdiction where the target company collects, processes, or stores data. Use the map to surface the applicable regulations in those regions, then cross-reference the target's compliance posture against each framework's key requirements. This gives you a structured view of regulatory exposure, highlighting gaps that could translate into remediation costs, integration delays, or post-close liabilities."
+        answer: "Start by identifying every jurisdiction where the target company collects, processes, or stores data, and where it develops or deploys AI systems. Use the map to surface the applicable regulations in those regions, then cross-reference the target's compliance posture against each framework's key requirements. This gives you a structured view of regulatory exposure across both data privacy and AI governance, highlighting gaps that could translate into remediation costs, integration delays, or post-close liabilities."
     },
     {
         question: "Does GST provide regulatory compliance advisory?",
-        answer: "<p>Yes. The Regulatory Map is one component of GST's broader technology diligence capability. When regulatory exposure is identified during an engagement, we assess the scope of non-compliance, estimate remediation costs, and build those findings into our overall risk analysis and integration roadmap.</p><p><a href='/services'>Learn more about our advisory services</a> or <a href='https://calendly.com/globalstrategictech'>schedule a consultation</a>.</p>"
+        answer: "<p>Yes. The Regulatory Map is one component of GST's broader technology diligence capability. When regulatory exposure is identified during an engagement, whether in data privacy, AI governance, or both, we assess the scope of non-compliance, estimate remediation costs, and build those findings into our overall risk analysis and integration roadmap.</p><p><a href='/services'>Learn more about our advisory services</a> or <a href='https://calendly.com/globalstrategictech'>schedule a consultation</a>.</p>"
     },
 ];
 
@@ -42,9 +42,9 @@ import caData from '../../../../data/canada-provinces.json';
 
 <BaseLayout
     title="Regulatory Map | Strategic Intelligence Hub"
-    description="Interactive map of global technology regulations and data privacy compliance requirements across jurisdictions."
+    description="Interactive map of global data privacy and AI regulations. Explore GDPR, CCPA, the EU AI Act, and dozens of other frameworks across jurisdictions."
     ogTitle="Regulatory Map | GST"
-    ogDescription="Explore regulatory frameworks — GDPR, CCPA, LGPD and more — across global jurisdictions."
+    ogDescription="Explore data privacy and AI regulatory frameworks, including GDPR, CCPA, EU AI Act and more, across global jurisdictions."
     ogImage="/og-image.png"
     ogUrl="https://globalstrategic.tech/hub/tools/regulatory-map"
     faqItems={faqItems}
@@ -53,7 +53,7 @@ import caData from '../../../../data/canada-provinces.json';
         <div class="container">
             <HubHeader
                 title="Regulatory Map"
-                subtitle="Data is the lifeblood of every digital organization. Understanding the regulatory frameworks governing how it can legally be collected, stored, and transferred across jurisdictions is imperative."
+                subtitle="Data privacy and artificial intelligence are among the most actively regulated areas in technology. Understanding the frameworks governing how data can be collected, stored, and transferred, and how AI can be developed and deployed, across jurisdictions is imperative."
             />
 
             <div class="map-layout" id="mapLayout">
