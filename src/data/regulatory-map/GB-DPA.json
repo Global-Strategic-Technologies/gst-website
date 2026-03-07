@@ -1,0 +1,17 @@
+{
+  "id": "gb-dpa",
+  "name": "UK Data Protection Act 2018",
+  "regions": ["GBR"],
+  "effectiveDate": "2018-05-25",
+  "summary": "The UK Data Protection Act 2018 supplements the UK GDPR (retained EU law post-Brexit) and provides a comprehensive data protection framework. The Information Commissioner's Office (ICO) is the independent supervisory authority responsible for enforcement.",
+  "keyRequirements": [
+    "Lawful basis required for processing personal data (mirrors UK GDPR)",
+    "Enhanced protections for special category and criminal conviction data",
+    "Rights of data subjects including access, rectification, and erasure",
+    "Data Protection Officer required for public authorities and high-risk processing",
+    "International data transfer mechanisms (UK adequacy regulations, SCCs)",
+    "Mandatory breach notification to ICO within 72 hours",
+    "Age-appropriate design code for children's online services"
+  ],
+  "penalties": "Up to GBP 17.5 million or 4% of annual global turnover, whichever is greater."
+}

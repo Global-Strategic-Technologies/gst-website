@@ -1,0 +1,16 @@
+{
+  "id": "cl-law19628",
+  "name": "Law 19.628 on the Protection of Private Life (Ley sobre Proteccion de la Vida Privada)",
+  "regions": ["CHL"],
+  "effectiveDate": "1999-08-28",
+  "summary": "Chile's current data protection law, enacted in 1999, was one of the first in Latin America. It regulates the processing of personal data in public and private databases. A comprehensive replacement (Law 21.719) was enacted in December 2024 but does not enter into force until December 2026.",
+  "keyRequirements": [
+    "Obtain consent of the data holder for the processing of personal data",
+    "Process personal data only for purposes for which it was collected",
+    "Ensure data accuracy and update or delete inaccurate data",
+    "Respect data subject rights (access, rectification, cancellation, objection)",
+    "Restrict collection of sensitive data without explicit legal basis",
+    "Publish transparency requirements for public databases"
+  ],
+  "penalties": "Civil liability for damages caused by improper data processing. No dedicated enforcement authority or administrative fines under the current law. Courts handle complaints directly. The upcoming Law 21.719 (effective December 2026) will create a dedicated agency with administrative fining powers."
+}

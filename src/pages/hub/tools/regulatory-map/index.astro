@@ -1,0 +1,532 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../../components/hub/HubHeader.astro';
+import MapVisualizer from '../../../../components/hub/tools/regulatory-map/MapVisualizer.astro';
+import CompliancePanel from '../../../../components/hub/tools/regulatory-map/CompliancePanel.astro';
+import { trackPageView } from '../../../../utils/analytics';
+import { fetchAllRegulations, getRegulationsByRegion } from '../../../../utils/fetchRegulations';
+
+trackPageView('regulatory-map', 'Regulatory Map | GST');
+
+const regulations = await fetchAllRegulations();
+const regionMap = getRegulationsByRegion(regulations);
+
+// Import TopoJSON data at build time
+import worldData from 'world-atlas/countries-110m.json';
+import usData from 'us-atlas/states-10m.json';
+import caData from '../../../../data/canada-provinces.json';
+---
+
+<BaseLayout
+    title="Regulatory Map | Strategic Intelligence Hub"
+    description="Interactive map of global technology regulations and data privacy compliance requirements across jurisdictions."
+    ogTitle="Regulatory Map | GST"
+    ogDescription="Explore regulatory frameworks — GDPR, CCPA, LGPD and more — across global jurisdictions."
+    ogImage="/og-image.png"
+    ogUrl="https://globalstrategic.tech/hub/tools/regulatory-map"
+>
+    <section class="regulatory-map-section">
+        <div class="container">
+            <HubHeader
+                title="Regulatory Map"
+                subtitle="Global data regulation and privacy compliance landscape."
+            />
+
+            <div class="map-layout" id="mapLayout">
+                <div class="map-wrapper">
+                    <MapVisualizer />
+                    <div class="map-legend">
+                        <div class="legend-item">
+                            <span class="legend-swatch legend-swatch--active" aria-hidden="true"></span>
+                            <span class="legend-label">Regulation coverage</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-swatch legend-swatch--neutral" aria-hidden="true"></span>
+                            <span class="legend-label">No data</span>
+                        </div>
+                    </div>
+                    <div class="map-cta" id="mapCta">
+                        <svg class="map-cta__cursor" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M4 1l16 12.5H11l-2.5 9z"/>
+                        </svg>
+                        <span class="map-cta__text">Select a highlighted region to view regulatory details</span>
+                    </div>
+                </div>
+                <CompliancePanel />
+            </div>
+
+            <a href="/hub/tools" class="cta-button secondary back-link">Back to The Workbench</a>
+        </div>
+    </section>
+</BaseLayout>
+
+<!-- Embedded build-time data for client consumption -->
+<script type="application/json" id="regulationData" set:html={JSON.stringify(regionMap)} />
+<script type="application/json" id="worldTopoData" set:html={JSON.stringify(worldData)} />
+<script type="application/json" id="usTopoData" set:html={JSON.stringify(usData)} />
+<script type="application/json" id="caTopoData" set:html={JSON.stringify(caData)} />
+
+<script>
+    import { geoEquirectangular, geoPath } from 'd3-geo';
+    import { select } from 'd3-selection';
+    import { zoom as d3Zoom, zoomIdentity } from 'd3-zoom';
+    import 'd3-transition';
+    import { feature } from 'topojson-client';
+    import type { Topology, GeometryCollection } from 'topojson-specification';
+    import type { FeatureCollection, Geometry } from 'geojson';
+    import type { Regulation, RegionSelectedDetail } from '../../../../types/regulatory-map';
+    import { numericToAlpha3, alpha3ToName } from '../../../../utils/countryCodeMap';
+    import { fipsToStateCode, stateCodeToName } from '../../../../utils/fipsToStateCode';
+    import { provinceCodeToName } from '../../../../utils/canadianProvinceMap';
+
+    // --- Parse embedded data ---
+    const regionMap: Record<string, Regulation[]> = JSON.parse(
+        document.getElementById('regulationData')!.textContent!
+    );
+    const topology: Topology = JSON.parse(
+        document.getElementById('worldTopoData')!.textContent!
+    );
+
+    // --- Parse US states data ---
+    const usTopo: Topology = JSON.parse(
+        document.getElementById('usTopoData')!.textContent!
+    );
+    const usStates = feature(
+        usTopo as unknown as Topology<{ states: GeometryCollection }>,
+        usTopo.objects.states as GeometryCollection
+    ) as unknown as FeatureCollection<Geometry, { name?: string }>;
+
+    // --- Parse Canadian provinces data ---
+    const caTopo: Topology = JSON.parse(
+        document.getElementById('caTopoData')!.textContent!
+    );
+    const caProvinces = feature(
+        caTopo as unknown as Topology<{ collection: GeometryCollection }>,
+        caTopo.objects.collection as GeometryCollection
+    ) as unknown as FeatureCollection<Geometry, { iso_3166_2?: string; name?: string }>;
+
+    // --- D3 Setup ---
+    // Convert TopoJSON to GeoJSON first so we can fit the projection to the data
+    const countries = feature(
+        topology as unknown as Topology<{ countries: GeometryCollection }>,
+        topology.objects.countries as GeometryCollection
+    ) as unknown as FeatureCollection<Geometry, { name?: string }>;
+
+    // Exclude Antarctica to reclaim vertical space
+    const visibleCountries: FeatureCollection<Geometry, { name?: string }> = {
+        type: 'FeatureCollection',
+        features: countries.features.filter((f) => f.id !== '010'),
+    };
+
+    // Equirectangular fills the rectangle perfectly — no wasted corner space.
+    // Clip latitude to ~60°S (post-Antarctica removal) to maximize land area.
+    const MAP_WIDTH = 960;
+    const MAP_HEIGHT = 440;
+
+    const svg = select<SVGSVGElement, unknown>('#mapSvg')
+        .attr('viewBox', `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`);
+
+    const projection = geoEquirectangular()
+        .fitSize([MAP_WIDTH, MAP_HEIGHT], visibleCountries);
+
+    const pathGenerator = geoPath(projection);
+
+    // --- Zoom behavior ---
+    const g = svg.append('g');
+
+    const zoomBehavior = d3Zoom<SVGSVGElement, unknown>()
+        .scaleExtent([1, 8])
+        .translateExtent([[0, 0], [MAP_WIDTH, MAP_HEIGHT]])
+        .on('zoom', (event) => {
+            g.attr('transform', event.transform);
+        });
+
+    // Apply zoom to SVG — on touch devices require two-finger pinch (touchAction: pan-x pan-y
+    // lets single-finger scroll pass through to the page)
+    svg.call(zoomBehavior)
+        .on('dblclick.zoom', null); // disable double-click zoom to avoid conflicts with clicks
+
+    const svgNode = svg.node() as SVGSVGElement;
+    svgNode.style.touchAction = 'pan-x pan-y';
+
+    // Zoom controls
+    const zoomInBtn = document.getElementById('zoomIn');
+    const zoomOutBtn = document.getElementById('zoomOut');
+    const zoomResetBtn = document.getElementById('zoomReset');
+
+    zoomInBtn?.addEventListener('click', () => {
+        svg.transition().duration(300).call(zoomBehavior.scaleBy, 1.5);
+    });
+    zoomOutBtn?.addEventListener('click', () => {
+        svg.transition().duration(300).call(zoomBehavior.scaleBy, 1 / 1.5);
+    });
+    zoomResetBtn?.addEventListener('click', () => {
+        svg.transition().duration(300).call(zoomBehavior.transform, zoomIdentity);
+    });
+
+    // --- Render countries ---
+    let selectedPath: SVGPathElement | null = null;
+
+    g.selectAll('path')
+        .data(visibleCountries.features)
+        .enter()
+        .append('path')
+        .attr('d', (d) => pathGenerator(d) ?? '')
+        .attr('class', (d) => {
+            const alpha3 = numericToAlpha3[d.id as string];
+            // USA and CAN are handled at state/province level — don't mark them active
+            if (alpha3 === 'USA' || alpha3 === 'CAN') return 'country-path';
+            const hasRegulations = alpha3 && regionMap[alpha3];
+            return `country-path${hasRegulations ? ' country-path--active' : ''}`;
+        })
+        .attr('data-id', (d) => d.id as string)
+        .attr('data-alpha3', (d) => numericToAlpha3[d.id as string] ?? '')
+        .attr('aria-label', (d) => {
+            const alpha3 = numericToAlpha3[d.id as string];
+            return alpha3ToName[alpha3] ?? '';
+        })
+        .attr('role', (d) => {
+            const alpha3 = numericToAlpha3[d.id as string];
+            if (alpha3 === 'USA' || alpha3 === 'CAN') return 'presentation';
+            return alpha3 && regionMap[alpha3] ? 'button' : 'presentation';
+        })
+        .attr('tabindex', (d) => {
+            const alpha3 = numericToAlpha3[d.id as string];
+            if (alpha3 === 'USA' || alpha3 === 'CAN') return null;
+            return alpha3 && regionMap[alpha3] ? '0' : null;
+        })
+        .on('click', function (event: MouseEvent) {
+            if (this.classList.contains('country-path--active')) handleCountryClick(event);
+        })
+        .on('keydown', function (event: KeyboardEvent) {
+            if (this.classList.contains('country-path--active') && (event.key === 'Enter' || event.key === ' ')) {
+                event.preventDefault();
+                handleCountryClick(event);
+            }
+        })
+        .on('mouseenter', handleMouseEnter)
+        .on('mouseleave', handleMouseLeave);
+
+    // --- Render US state paths ---
+    g.selectAll('path.state-path')
+        .data(usStates.features)
+        .enter()
+        .append('path')
+        .attr('d', (d) => pathGenerator(d) ?? '')
+        .attr('class', (d) => {
+            const code = fipsToStateCode[d.id as string];
+            const hasRegs = code && regionMap[code];
+            return `state-path${hasRegs ? ' state-path--active' : ''}`;
+        })
+        .attr('data-state-code', (d) => fipsToStateCode[d.id as string] ?? '')
+        .attr('aria-label', (d) => {
+            const code = fipsToStateCode[d.id as string];
+            return code ? (stateCodeToName[code] ?? '') : '';
+        })
+        .attr('role', (d) => {
+            const code = fipsToStateCode[d.id as string];
+            return code && regionMap[code] ? 'button' : 'presentation';
+        })
+        .attr('tabindex', (d) => {
+            const code = fipsToStateCode[d.id as string];
+            return code && regionMap[code] ? '0' : null;
+        })
+        .on('click', function (event: MouseEvent) {
+            if (this.classList.contains('state-path--active')) handleStateClick(event);
+        })
+        .on('keydown', function (event: KeyboardEvent) {
+            if (this.classList.contains('state-path--active') && (event.key === 'Enter' || event.key === ' ')) {
+                event.preventDefault();
+                handleStateClick(event);
+            }
+        })
+        .on('mouseenter', handleMouseEnter)
+        .on('mouseleave', handleMouseLeave);
+
+    // --- Render Canadian province paths ---
+    g.selectAll('path.province-path')
+        .data(caProvinces.features)
+        .enter()
+        .append('path')
+        .attr('d', (d) => pathGenerator(d) ?? '')
+        .attr('class', (d) => {
+            const code = d.properties?.iso_3166_2 ?? '';
+            const hasRegs = code && regionMap[code];
+            return `state-path${hasRegs ? ' state-path--active' : ''}`;
+        })
+        .attr('data-state-code', (d) => d.properties?.iso_3166_2 ?? '')
+        .attr('aria-label', (d) => {
+            const code = d.properties?.iso_3166_2 ?? '';
+            return provinceCodeToName[code] ?? '';
+        })
+        .attr('role', (d) => {
+            const code = d.properties?.iso_3166_2 ?? '';
+            return code && regionMap[code] ? 'button' : 'presentation';
+        })
+        .attr('tabindex', (d) => {
+            const code = d.properties?.iso_3166_2 ?? '';
+            return code && regionMap[code] ? '0' : null;
+        })
+        .on('click', function (event: MouseEvent) {
+            if (this.classList.contains('state-path--active')) handleStateClick(event);
+        })
+        .on('keydown', function (event: KeyboardEvent) {
+            if (this.classList.contains('state-path--active') && (event.key === 'Enter' || event.key === ' ')) {
+                event.preventDefault();
+                handleStateClick(event);
+            }
+        })
+        .on('mouseenter', handleMouseEnter)
+        .on('mouseleave', handleMouseLeave);
+
+    // --- Tooltip ---
+    const tooltip = document.getElementById('mapTooltip')!;
+
+    function handleMouseEnter(event: MouseEvent): void {
+        const target = event.currentTarget as SVGPathElement;
+        // Resolve name from either country alpha3 or state code
+        const alpha3 = target.dataset.alpha3 ?? '';
+        const stateCode = target.dataset.stateCode ?? '';
+        const name = stateCode
+            ? (stateCodeToName[stateCode] ?? provinceCodeToName[stateCode])
+            : alpha3ToName[alpha3];
+        if (!name) return;
+
+        tooltip.textContent = name;
+        tooltip.classList.add('visible');
+
+        const rect = document.getElementById('mapContainer')!.getBoundingClientRect();
+        const x = event.clientX - rect.left + 12;
+        const y = event.clientY - rect.top - 28;
+        tooltip.style.left = `${x}px`;
+        tooltip.style.top = `${y}px`;
+    }
+
+    function handleMouseLeave(): void {
+        tooltip.classList.remove('visible');
+    }
+
+    // --- Region selection (shared by country + state clicks) ---
+    function selectRegion(target: SVGPathElement, regionId: string, selectedClass: string): void {
+        if (selectedPath) {
+            selectedPath.classList.remove('country-path--selected', 'state-path--selected');
+        }
+        target.classList.add(selectedClass);
+        selectedPath = target;
+
+        document.dispatchEvent(
+            new CustomEvent<RegionSelectedDetail>('regionSelected', {
+                detail: { regionId },
+            })
+        );
+    }
+
+    // --- Country click ---
+    function handleCountryClick(event: Event): void {
+        const target = (event.currentTarget ?? event.target) as SVGPathElement;
+        const alpha3 = target.dataset.alpha3 ?? '';
+        if (!alpha3) return;
+        selectRegion(target, alpha3, 'country-path--selected');
+    }
+
+    // --- State click ---
+    function handleStateClick(event: Event): void {
+        const target = (event.currentTarget ?? event.target) as SVGPathElement;
+        const stateCode = target.dataset.stateCode ?? '';
+        if (!stateCode) return;
+        selectRegion(target, stateCode, 'state-path--selected');
+    }
+
+    // --- Panel updates ---
+    const compliancePanel = document.getElementById('compliancePanel')!;
+    const panelCountryName = document.getElementById('panelCountryName')!;
+    const panelRegCount = document.getElementById('panelRegCount')!;
+    const panelRegulations = document.getElementById('panelRegulations')!;
+
+    document.addEventListener('regionSelected', ((event: CustomEvent<RegionSelectedDetail>) => {
+        const { regionId } = event.detail;
+        const countryName = stateCodeToName[regionId] ?? provinceCodeToName[regionId] ?? alpha3ToName[regionId] ?? regionId;
+        const regs = regionMap[regionId];
+
+        panelCountryName.textContent = countryName;
+
+        const count = regs?.length ?? 0;
+        panelRegCount.textContent = `${count} regulation${count !== 1 ? 's' : ''}`;
+        panelRegulations.innerHTML = (regs ?? []).map(renderRegulationCard).join('');
+
+        document.getElementById('mapCta')?.remove();
+        compliancePanel.hidden = false;
+
+        // On mobile, scroll the panel into view
+        if (window.innerWidth < 1024) {
+            compliancePanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }) as EventListener);
+
+    function renderRegulationCard(reg: Regulation): string {
+        const date = new Date(reg.effectiveDate).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        });
+
+        let html = `
+            <div class="reg-card">
+                <h3 class="reg-card__name">${escapeHtml(reg.name)}</h3>
+                <p class="reg-card__date">Effective: ${escapeHtml(date)}</p>
+                <p class="reg-card__summary">${escapeHtml(reg.summary)}</p>`;
+
+        if (reg.keyRequirements && reg.keyRequirements.length > 0) {
+            html += '<ul class="reg-card__requirements">';
+            for (const req of reg.keyRequirements) {
+                html += `<li>${escapeHtml(req)}</li>`;
+            }
+            html += '</ul>';
+        }
+
+        if (reg.penalties) {
+            html += `<p class="reg-card__penalties">Penalties: ${escapeHtml(reg.penalties)}</p>`;
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    function escapeHtml(str: string): string {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // --- Sync panel max-height to map height so the back-link stays stable ---
+    function syncPanelHeight(): void {
+        if (window.innerWidth < 1024) return;
+        const mapEl = document.getElementById('mapContainer');
+        if (!mapEl) return;
+        compliancePanel.style.maxHeight = `${mapEl.offsetHeight}px`;
+    }
+    syncPanelHeight();
+    window.addEventListener('resize', syncPanelHeight);
+</script>
+
+<style>
+    .regulatory-map-section {
+        padding-bottom: var(--spacing-3xl);
+    }
+
+    .map-layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--spacing-lg);
+        align-items: start;
+    }
+
+    .map-wrapper {
+        position: relative;
+    }
+
+    .map-legend {
+        position: absolute;
+        bottom: var(--spacing-sm);
+        left: var(--spacing-sm);
+        display: flex;
+        gap: var(--spacing-md);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(4px);
+        border-radius: 4px;
+        border: 1px solid var(--border-light);
+        z-index: 5;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .legend-swatch {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+        border: 1px solid var(--border-light);
+    }
+
+    .legend-swatch--active {
+        background: rgba(5, 205, 153, 0.3);
+        border-color: rgba(5, 205, 153, 0.5);
+    }
+
+    .legend-swatch--neutral {
+        background: rgba(26, 26, 26, 0.08);
+    }
+
+    .legend-label {
+        font-size: var(--text-xs);
+        color: var(--text-light-secondary);
+    }
+
+    .map-cta {
+        position: absolute;
+        bottom: calc(var(--spacing-sm) + 36px);
+        left: var(--spacing-sm);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(4px);
+        border-radius: 4px;
+        border: 1px solid var(--border-light);
+        z-index: 5;
+        pointer-events: none;
+        animation: ctaPulse 2.5s ease-in-out infinite;
+    }
+
+    .map-cta__cursor {
+        color: var(--color-secondary);
+        flex-shrink: 0;
+        transform: rotate(45deg);
+    }
+
+    .map-cta__text {
+        font-size: var(--text-xs);
+        color: var(--text-light-secondary);
+        white-space: nowrap;
+    }
+
+    :global(html.dark-theme) .map-cta {
+        background: rgba(10, 10, 10, 0.85);
+        border-color: rgba(245, 245, 245, 0.1);
+    }
+
+    @keyframes ctaPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-top: var(--spacing-md);
+    }
+
+    /* Dark theme */
+    :global(html.dark-theme) .map-legend {
+        background: rgba(10, 10, 10, 0.85);
+        border-color: rgba(245, 245, 245, 0.1);
+    }
+
+    :global(html.dark-theme) .legend-swatch--neutral {
+        background: rgba(245, 245, 245, 0.06);
+    }
+
+    /* Responsive */
+    @media (min-width: 1024px) {
+        .map-layout {
+            grid-template-columns: 1fr 380px;
+            gap: var(--spacing-xl);
+        }
+
+    }
+</style>

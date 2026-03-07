@@ -1,0 +1,16 @@
+{
+  "id": "bh-pdpl",
+  "name": "Personal Data Protection Law (Law No. 30 of 2018)",
+  "regions": ["BHR"],
+  "effectiveDate": "2019-08-01",
+  "summary": "Bahrain's first comprehensive data protection law regulates the collection, processing, and use of personal data by both public and private sector entities. It establishes individual rights similar to the GDPR, including rights to access, rectification, erasure, and objection to automated decision-making.",
+  "keyRequirements": [
+    "Obtain consent before processing personal data",
+    "Implement appropriate technical and organizational security measures",
+    "Notify the authority of data breaches",
+    "Restrict cross-border transfers to countries on the authority's approved list",
+    "Respect data subject rights (access, rectification, deletion, objection)",
+    "Register data processing activities with the Personal Data Protection Authority"
+  ],
+  "penalties": "Criminal penalties: imprisonment up to 1 year and/or fine from BHD 1,000 to BHD 20,000. Administrative fines up to BHD 20,000, plus daily penalties up to BHD 1,000 for ongoing violations. Fines may be doubled for corporate entities and repeat offenses. Enforced by the Personal Data Protection Authority (PDPA)."
+}

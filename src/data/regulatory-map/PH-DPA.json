@@ -1,0 +1,17 @@
+{
+  "id": "ph-dpa",
+  "name": "Data Privacy Act of 2012 (Republic Act No. 10173)",
+  "regions": ["PHL"],
+  "effectiveDate": "2012-09-08",
+  "summary": "The Philippines' comprehensive data privacy law establishing rights of data subjects and obligations of personal information controllers and processors. It created the National Privacy Commission as an independent regulatory body and imposes both criminal and administrative penalties for violations.",
+  "keyRequirements": [
+    "Obtain consent for processing of personal and sensitive personal information",
+    "Register data processing systems with the National Privacy Commission",
+    "Appoint a Data Protection Officer (DPO)",
+    "Mandatory breach notification to the NPC within 72 hours of discovery",
+    "Implement reasonable and appropriate organizational, physical, and technical security measures",
+    "Data subject rights including access, correction, erasure, and data portability",
+    "Comply with requirements for cross-border data transfers including contractual protections"
+  ],
+  "penalties": "Criminal penalties: imprisonment from 1 to 7 years and fines from PHP 500,000 to PHP 5,000,000 (~USD 9,000 to USD 90,000). Penalties increased if the offender is a public official or if the breach affects at least 100 individuals. Enforced by the National Privacy Commission (NPC)."
+}

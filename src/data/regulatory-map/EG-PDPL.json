@@ -1,0 +1,17 @@
+{
+  "id": "eg-pdpl",
+  "name": "Personal Data Protection Law No. 151 of 2020",
+  "regions": ["EGY"],
+  "effectiveDate": "2020-10-14",
+  "summary": "Egypt's first comprehensive data protection law regulates the processing of personal data by both public and private entities. The Executive Regulations were issued in November 2025 with a 12-month grace period, meaning full enforcement begins approximately November 2026.",
+  "keyRequirements": [
+    "Obtain explicit consent before processing personal data",
+    "Obtain a license or permit from the Personal Data Protection Center",
+    "Notify the PDPC of data breaches within 72 hours, and affected individuals within 3 working days",
+    "Conduct data protection impact assessments for high-risk processing",
+    "Restrict cross-border transfers to PDPC-approved countries with data subject consent",
+    "Appoint a Data Protection Officer",
+    "Maintain records of processing activities"
+  ],
+  "penalties": "Imprisonment of 3-6 months and fines from EGP 200,000 to EGP 5,000,000 depending on severity. Unauthorized cross-border transfer: minimum 3 months imprisonment and/or EGP 500,000-5,000,000 fine. Enforced by the Personal Data Protection Center (under Ministry of Communications and Information Technology)."
+}

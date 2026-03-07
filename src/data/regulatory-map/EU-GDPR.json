@@ -1,0 +1,21 @@
+{
+  "id": "eu-gdpr",
+  "name": "General Data Protection Regulation (GDPR)",
+  "regions": [
+    "AUT", "BEL", "BGR", "HRV", "CYP", "CZE", "DNK", "EST", "FIN", "FRA",
+    "DEU", "GRC", "HUN", "IRL", "ITA", "LVA", "LTU", "LUX", "MLT", "NLD",
+    "POL", "PRT", "ROU", "SVK", "SVN", "ESP", "SWE"
+  ],
+  "effectiveDate": "2018-05-25",
+  "summary": "The EU General Data Protection Regulation is the most comprehensive data privacy framework globally. It governs the collection, processing, and storage of personal data for individuals within the European Union, imposing strict consent requirements, data subject rights, and cross-border transfer restrictions.",
+  "keyRequirements": [
+    "Lawful basis required for all personal data processing",
+    "Explicit consent with clear opt-in mechanisms",
+    "Right to access, rectification, erasure, and data portability",
+    "Data Protection Officer (DPO) appointment for qualifying organizations",
+    "72-hour breach notification to supervisory authorities",
+    "Data Protection Impact Assessments (DPIA) for high-risk processing",
+    "Cross-border data transfer safeguards (SCCs, BCRs, adequacy decisions)"
+  ],
+  "penalties": "Up to 4% of annual global turnover or EUR 20 million, whichever is greater."
+}

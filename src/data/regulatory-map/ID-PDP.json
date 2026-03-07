@@ -1,0 +1,17 @@
+{
+  "id": "id-pdp",
+  "name": "Personal Data Protection Law (Law No. 27 of 2022)",
+  "regions": ["IDN"],
+  "effectiveDate": "2024-10-17",
+  "summary": "Indonesia's first comprehensive personal data protection law, enacted October 2022 with a two-year transition period making it fully enforceable from 17 October 2024. It covers both electronic and non-electronic personal data processing and applies to entities within and outside Indonesia processing data of Indonesian residents.",
+  "keyRequirements": [
+    "Obtain valid and explicit consent for personal data processing",
+    "Mandatory breach notification to data subjects within 72 hours of discovering a breach",
+    "Data subject rights including access, correction, deletion, portability, and withdrawal of consent",
+    "Conduct Data Protection Impact Assessments for high-risk processing",
+    "Appoint a Data Protection Officer for large-scale processing or sensitive data",
+    "Cross-border data transfer restrictions requiring equivalent protection in receiving country",
+    "Maintain records of data processing activities"
+  ],
+  "penalties": "Administrative fines up to 2% of annual revenue. Criminal penalties: imprisonment up to 4-6 years and/or fines up to IDR 4-6 billion (~USD 250,000-400,000). For corporations, monetary penalties can be up to 10x the individual maximum. Enforced by the Ministry of Communications and Digital (interim, pending establishment of dedicated DPA)."
+}

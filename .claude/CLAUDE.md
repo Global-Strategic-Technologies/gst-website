@@ -173,7 +173,7 @@ npm run test:e2e:debug        # E2E tests with debugger
 npm run test:all              # Run all tests (unit + integration + E2E)
 npm run test:ui               # Visual test UI
 
-# Radar (see src/docs/hub/radar.md § Working Offline)
+# Radar (see src/docs/hub/RADAR.md § Working Offline)
 npm run radar:seed            # Seed dev cache with mock data for offline/rate-limited dev
 npm run radar:unseed          # Clear seeded mock data, return to live API
 

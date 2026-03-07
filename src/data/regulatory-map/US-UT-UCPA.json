@@ -1,0 +1,17 @@
+{
+  "id": "us-ut-ucpa",
+  "name": "Utah Consumer Privacy Act (UCPA)",
+  "regions": ["US-UT"],
+  "effectiveDate": "2023-12-31",
+  "summary": "The Utah Consumer Privacy Act establishes consumer data privacy rights for Utah residents and applies to data controllers and processors conducting business in Utah. It is considered more business-friendly than other state privacy laws, with higher applicability thresholds requiring annual revenue of $25 million or more, and either controlling or processing data of 100,000 or more consumers or deriving over 50% of gross revenue from the sale of personal data of 25,000 or more consumers.",
+  "keyRequirements": [
+    "Right to access and confirm whether a controller is processing personal data",
+    "Right to delete personal data provided by the consumer to the controller",
+    "Right to obtain a portable copy of personal data in a readily usable format",
+    "Right to opt out of the sale of personal data or targeted advertising",
+    "Consent required before processing sensitive data",
+    "Clear and conspicuous privacy notice with specified content requirements",
+    "Controllers must establish and respond to consumer requests within 45 days"
+  ],
+  "penalties": "Enforced exclusively by the Utah Attorney General. Civil penalties up to $7,500 per violation. 30-day cure period with no sunset provision. No private right of action."
+}

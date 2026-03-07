@@ -1,0 +1,218 @@
+---
+/**
+ * Interactive SVG world map rendered by D3.js on the client.
+ * Publishes `regionSelected` CustomEvent when a country is clicked.
+ */
+---
+
+<div class="map-container" id="mapContainer" data-testid="map-container">
+  <div class="map-controls">
+    <button id="zoomIn" class="map-control-btn" aria-label="Zoom in" title="Zoom in">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <button id="zoomOut" class="map-control-btn" aria-label="Zoom out" title="Zoom out">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <button id="zoomReset" class="map-control-btn" aria-label="Reset zoom" title="Reset zoom">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="3" width="10" height="10" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+    </button>
+  </div>
+  <svg
+    id="mapSvg"
+    class="map-svg"
+    role="img"
+    aria-label="Interactive world map showing countries with regulatory data highlighted. Use scroll wheel or pinch to zoom, drag to pan."
+    preserveAspectRatio="xMidYMid meet"
+  ></svg>
+  <div class="map-tooltip" id="mapTooltip" role="tooltip" aria-hidden="true"></div>
+</div>
+
+<style>
+  .map-container {
+    position: relative;
+    width: 100%;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg-light-alt);
+  }
+
+  .map-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    cursor: grab;
+  }
+
+  .map-svg:active {
+    cursor: grabbing;
+  }
+
+  .map-controls {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 5;
+  }
+
+  .map-control-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    background: var(--bg-light);
+    color: var(--text-light-primary);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    padding: 0;
+  }
+
+  .map-control-btn:hover {
+    background: var(--bg-light-alt);
+    color: var(--color-primary);
+  }
+
+  .map-control-btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  :global(html.dark-theme) .map-control-btn {
+    background: var(--bg-dark-tertiary);
+    border-color: rgba(245, 245, 245, 0.1);
+  }
+
+  :global(html.dark-theme) .map-control-btn:hover {
+    background: var(--bg-dark-secondary);
+  }
+
+  .map-tooltip {
+    position: absolute;
+    pointer-events: none;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--bg-light);
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    font-size: var(--text-xs);
+    color: var(--text-light-primary);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+    z-index: 10;
+  }
+
+  .map-tooltip.visible {
+    opacity: 1;
+  }
+
+  /* Remove browser default focus outline on SVG paths; selection is shown via fill/stroke */
+  :global(.country-path:focus),
+  :global(.country-path:focus-visible),
+  :global(.state-path:focus),
+  :global(.state-path:focus-visible) {
+    outline: none;
+  }
+
+  /* Country path base state */
+  :global(.country-path) {
+    fill: rgba(26, 26, 26, 0.08);
+    stroke: rgba(26, 26, 26, 0.15);
+    stroke-width: 0.5;
+    transition: fill var(--transition-fast);
+    cursor: default;
+  }
+
+  /* Country with regulation data */
+  :global(.country-path--active) {
+    fill: rgba(5, 205, 153, 0.25);
+    cursor: pointer;
+  }
+
+  :global(.country-path--active:hover) {
+    fill: rgba(5, 205, 153, 0.45);
+  }
+
+  /* Selected country */
+  :global(.country-path--selected) {
+    fill: rgba(5, 205, 153, 0.6);
+    stroke: var(--color-secondary);
+    stroke-width: 1.5;
+  }
+
+  /* Dark theme overrides */
+  :global(html.dark-theme) .map-container {
+    background: var(--bg-dark-secondary);
+  }
+
+  :global(html.dark-theme .country-path) {
+    fill: rgba(245, 245, 245, 0.06);
+    stroke: rgba(245, 245, 245, 0.1);
+  }
+
+  :global(html.dark-theme .country-path--active) {
+    fill: rgba(5, 205, 153, 0.3);
+  }
+
+  :global(html.dark-theme .country-path--active:hover) {
+    fill: rgba(5, 205, 153, 0.5);
+  }
+
+  :global(html.dark-theme .country-path--selected) {
+    fill: rgba(5, 205, 153, 0.65);
+    stroke: var(--color-secondary);
+    stroke-width: 1.5;
+  }
+
+  /* US state path base state */
+  :global(.state-path) {
+    fill: transparent;
+    stroke: rgba(26, 26, 26, 0.12);
+    stroke-width: 0.3;
+    transition: fill var(--transition-fast);
+    cursor: default;
+  }
+
+  /* State with regulation data */
+  :global(.state-path--active) {
+    fill: rgba(5, 205, 153, 0.25);
+    cursor: pointer;
+  }
+
+  :global(.state-path--active:hover) {
+    fill: rgba(5, 205, 153, 0.45);
+  }
+
+  /* Selected state */
+  :global(.state-path--selected) {
+    fill: rgba(5, 205, 153, 0.6);
+    stroke: var(--color-secondary);
+    stroke-width: 1;
+  }
+
+  /* Dark theme state overrides */
+  :global(html.dark-theme .state-path) {
+    fill: transparent;
+    stroke: rgba(245, 245, 245, 0.08);
+  }
+
+  :global(html.dark-theme .state-path--active) {
+    fill: rgba(5, 205, 153, 0.3);
+  }
+
+  :global(html.dark-theme .state-path--active:hover) {
+    fill: rgba(5, 205, 153, 0.5);
+  }
+
+  :global(html.dark-theme .state-path--selected) {
+    fill: rgba(5, 205, 153, 0.65);
+    stroke: var(--color-secondary);
+    stroke-width: 1;
+  }
+</style>

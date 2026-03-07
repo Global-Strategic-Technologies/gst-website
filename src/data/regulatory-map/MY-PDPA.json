@@ -1,0 +1,17 @@
+{
+  "id": "my-pdpa",
+  "name": "Personal Data Protection Act 2010 (Act 709, as amended 2024)",
+  "regions": ["MYS"],
+  "effectiveDate": "2013-11-15",
+  "summary": "Malaysia's comprehensive personal data protection law governing the processing of personal data in commercial transactions. Significantly amended in 2024 with enhanced penalties effective April 2025, including mandatory breach notification and increased fines.",
+  "keyRequirements": [
+    "Comply with seven Personal Data Protection Principles (General, Notice and Choice, Disclosure, Security, Retention, Data Integrity, Access)",
+    "Obtain consent for processing personal data with clear and informed notice",
+    "Register as a data processor with the Commissioner for specified classes of data users",
+    "Mandatory data breach notification to the Commissioner and affected individuals",
+    "Appoint a data protection officer for certain categories of data users",
+    "Restrictions on cross-border data transfers unless the destination has adequate protections",
+    "Provide data subjects with access to and correction of their personal data"
+  ],
+  "penalties": "Non-compliance with data protection principles: fines up to MYR 1,000,000 (~USD 210,000) and/or up to 3 years imprisonment. Breach notification violations: up to MYR 250,000 and/or 2 years imprisonment. Unlawful collection or sale of data: up to MYR 500,000 and/or 3 years imprisonment. Enforced by the Department of Personal Data Protection (JPDP)."
+}

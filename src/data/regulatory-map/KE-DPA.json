@@ -1,0 +1,17 @@
+{
+  "id": "ke-dpa",
+  "name": "Data Protection Act, No. 24 of 2019",
+  "regions": ["KEN"],
+  "effectiveDate": "2019-11-25",
+  "summary": "Kenya's Data Protection Act establishes a comprehensive framework for the protection of personal data, applying to all organizations that collect, process, or store personal data of individuals in Kenya. It created the Office of the Data Protection Commissioner (ODPC) as the regulatory authority.",
+  "keyRequirements": [
+    "Register as a data controller or processor with the Data Commissioner",
+    "Obtain consent before collecting or processing personal data",
+    "Conduct data protection impact assessments for high-risk processing",
+    "Implement appropriate technical and organizational security measures",
+    "Notify the Data Commissioner of data breaches within 72 hours",
+    "Appoint a Data Protection Officer where required",
+    "Restrict cross-border transfers to countries with adequate protection"
+  ],
+  "penalties": "Administrative fines up to KES 5,000,000 or 1% of annual turnover, whichever is lower. Criminal penalties include fines up to KES 3,000,000 and/or imprisonment up to 10 years. Enforced by the Office of the Data Protection Commissioner (ODPC)."
+}
