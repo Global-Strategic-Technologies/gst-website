@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Regulatory Map is an interactive D3.js world map that visualizes global technology and data privacy regulations across 56 jurisdictions. Users click highlighted countries, US states, or Canadian provinces to view regulation details in a side panel.
+The Regulatory Map is an interactive D3.js world map that visualizes global data privacy and AI regulations across 72 regulatory frameworks. Users click highlighted countries, US states, or Canadian provinces to view regulation details in a side panel. Regions with multiple applicable regulations (e.g., an EU member state with both GDPR and the AI Act) display all of them.
 
 **Entry point**: `src/pages/hub/tools/regulatory-map/index.astro`
 
@@ -20,7 +20,7 @@ User (Map UI)
 │     CompliancePanel.astro       ← Regulation detail panel (cards, requirements, penalties)
 │
 ├── src/data/regulatory-map/
-│     *.json                      ← 56 regulation files (Zod-validated at build time)
+│     *.json                      ← 72 regulation files (Zod-validated at build time)
 │
 ├── src/data/canada-provinces.json ← TopoJSON for Canadian province boundaries
 │
@@ -113,16 +113,22 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 
 ---
 
-## Regulation Coverage (56 regulations)
+## Regulation Coverage (72 regulations)
 
-### Multi-Country (2)
+The map covers two categories of regulation: **data privacy** (56 regulations) and **artificial intelligence** (16 regulations). Both categories share the same data schema, rendering pipeline, and region code system. A single region may have multiple regulations from both categories.
+
+---
+
+### Data Privacy Regulations (56)
+
+#### Multi-Country (2)
 
 | File | Regulation | Coverage |
 |------|-----------|---------|
 | `EU-GDPR.json` | General Data Protection Regulation | 27 EU member states |
 | `CA-PIPEDA.json` | Personal Information Protection and Electronic Documents Act | All Canadian provinces |
 
-### US State Laws (20)
+#### US State Privacy Laws (20)
 
 | File | State | Law |
 |------|-------|-----|
@@ -147,7 +153,7 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 | `US-UT-UCPA.json` | Utah | UCPA |
 | `US-VA-VCDPA.json` | Virginia | VCDPA |
 
-### Canadian Provincial Laws (3)
+#### Canadian Provincial Laws (3)
 
 | File | Province | Law |
 |------|----------|-----|
@@ -155,7 +161,7 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 | `CA-AB-PIPA.json` | Alberta | PIPA |
 | `CA-BC-PIPA.json` | British Columbia | PIPA |
 
-### Asia-Pacific (11)
+#### Asia-Pacific (11)
 
 | File | Country | Law |
 |------|---------|-----|
@@ -171,7 +177,7 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 | `VN-PDPL.json` | Vietnam | PDPL |
 | `MY-PDPA.json` | Malaysia | PDPA 2010 |
 
-### Europe Non-EU (3)
+#### Europe Non-EU (3)
 
 | File | Country | Law |
 |------|---------|-----|
@@ -179,7 +185,7 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 | `CH-FADP.json` | Switzerland | nFADP |
 | `TR-KVKK.json` | Turkey | KVKK (Law 6698) |
 
-### Middle East & Africa (7)
+#### Middle East & Africa (7)
 
 | File | Country | Law |
 |------|---------|-----|
@@ -191,7 +197,7 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 | `EG-PDPL.json` | Egypt | PDPL |
 | `RW-DPP.json` | Rwanda | DPP Law |
 
-### Latin America (6)
+#### Latin America (6)
 
 | File | Country | Law |
 |------|---------|-----|
@@ -202,7 +208,7 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 | `UY-LAW18331.json` | Uruguay | Law 18.331 |
 | `PE-LAW29733.json` | Peru | Law 29.733 |
 
-### Other (3)
+#### Other (4)
 
 | File | Country | Law | Note |
 |------|---------|-----|------|
@@ -210,6 +216,60 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 | `BH-PDPL.json` | Bahrain | PDPL | Not visible on 110m map (too small) |
 | `CL-LAW19628.json` | Chile | Law 19.628 | |
 | `RS-LPDP.json` | Serbia | LPDP | Not visible on 110m map |
+
+---
+
+### AI Regulations (16)
+
+#### Multi-Country (1)
+
+| File | Regulation | Coverage | Effective |
+|------|-----------|---------|-----------|
+| `EU-AI-ACT.json` | EU Artificial Intelligence Act (Regulation 2024/1689) | 27 EU member states | 2024-08-01 (phased through 2027) |
+
+#### National AI Laws (6)
+
+| File | Country | Law | Effective |
+|------|---------|-----|-----------|
+| `CN-ALGO-REC.json` | China | Algorithm Recommendation Regulation | 2022-03-01 |
+| `CN-DEEP-SYNTHESIS.json` | China | Deep Synthesis Provisions (deepfakes) | 2023-01-10 |
+| `CN-GENAI.json` | China | Interim Measures for Generative AI | 2023-08-15 |
+| `KR-AI-BASIC-ACT.json` | South Korea | AI Basic Act | 2026-01-22 |
+| `JP-AI-PROMOTION.json` | Japan | AI Promotion Act | 2025-06-04 |
+| `PE-AI-LAW31814.json` | Peru | AI Promotion Law (Law 31814) | 2023-07-05 |
+
+#### US State AI Laws (9)
+
+| File | State | Law | Focus | Effective |
+|------|-------|-----|-------|-----------|
+| `US-IL-AIVRA.json` | Illinois | AI Video Interview Act | AI in employment video interviews | 2020-01-01 |
+| `US-NY-LL144.json` | New York | NYC Local Law 144 (AEDT) | Automated employment decision tools | 2023-07-05 |
+| `US-TN-ELVIS.json` | Tennessee | ELVIS Act | AI voice cloning and deepfakes | 2024-07-01 |
+| `US-UT-AIPA.json` | Utah | AI Policy Act (SB 149) | AI consumer protection and disclosure | 2024-05-01 |
+| `US-NY-APDA.json` | New York | Algorithmic Pricing Disclosure Act | AI-driven personalized pricing | 2025-11-10 |
+| `US-CO-AI-ACT.json` | Colorado | AI Act (SB 24-205) | Algorithmic discrimination in consequential decisions | 2026-06-30 |
+| `US-IL-AI-EMPLOYMENT.json` | Illinois | AI Employment Discrimination Law (HB 3773) | AI discrimination in employment | 2026-01-01 |
+| `US-TX-TRAIGA.json` | Texas | TRAIGA (HB 149) | Harmful AI prohibition, state/healthcare disclosure | 2026-01-01 |
+| `US-CA-AI-TRANSPARENCY.json` | California | AI Transparency Act (SB 942) | AI content watermarking and detection | 2026-08-02 |
+
+#### Multi-Regulation Regions
+
+Some regions now display regulations from both categories:
+
+| Region | Privacy | AI |
+|--------|---------|-----|
+| EU member states (27) | GDPR | EU AI Act |
+| China | PIPL | Algorithm Rec, Deep Synthesis, Generative AI |
+| South Korea | PIPA | AI Basic Act |
+| Japan | APPI | AI Promotion Act |
+| Peru | Law 29.733 | AI Promotion Law 31814 |
+| California | CCPA/CPRA | AI Transparency Act |
+| Colorado | CPA | AI Act (SB 24-205) |
+| Illinois | (none) | AIVRA, AI Employment (HB 3773) |
+| New York | (none) | NYC LL144, Algorithmic Pricing Act |
+| Tennessee | TIPA | ELVIS Act |
+| Texas | TDPSA | TRAIGA |
+| Utah | UCPA | AI Policy Act |
 
 ---
 
@@ -294,8 +354,8 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 
 ## Future Expansion
 
-- Additional regulations (AI Act, HIPAA, SOX, PCI-DSS)
-- Regulation category filtering (data privacy, cybersecurity, AI governance)
+- Regulation category filtering (data privacy, AI governance, cybersecurity)
+- Additional regulation categories (HIPAA, SOX, PCI-DSS, sector-specific cybersecurity)
 - Timeline view showing regulation effective dates
 - Comparison mode for multi-jurisdiction analysis
 - Search/filter by regulation name or keyword
@@ -304,3 +364,4 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 ---
 
 **Created:** March 2026
+**Last updated:** March 2026 (added 16 AI regulations, total 72)
