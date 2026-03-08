@@ -56,6 +56,15 @@ import caData from '../../../../data/canada-provinces.json';
                 subtitle="Data privacy and artificial intelligence are among the most actively regulated areas in technology. Understanding the frameworks governing how data can be collected, stored, and transferred, and how AI can be developed and deployed, across jurisdictions is imperative."
             />
 
+            <div class="regulation-filters" role="toolbar" aria-label="Filter regulations by category">
+                <div class="filter-chips" id="regulation-filter-chips">
+                    <button class="filter-chip active" data-category="all">All</button>
+                    <button class="filter-chip" data-category="data-privacy">Data Privacy</button>
+                    <button class="filter-chip" data-category="ai-governance">AI Governance</button>
+                    <button class="filter-chip" data-category="industry-compliance">Industry Compliance</button>
+                </div>
+            </div>
+
             <div class="map-layout" id="mapLayout">
                 <div class="map-wrapper">
                     <MapVisualizer />
@@ -143,6 +152,20 @@ import caData from '../../../../data/canada-provinces.json';
         caTopo as unknown as Topology<{ collection: GeometryCollection }>,
         caTopo.objects.collection as GeometryCollection
     ) as unknown as FeatureCollection<Geometry, { iso_3166_2?: string; name?: string }>;
+
+    // --- Filter state ---
+    let activeCategory = 'all';
+    let currentRegionId: string | null = null;
+
+    function getFilteredRegionMap(): Record<string, Regulation[]> {
+        if (activeCategory === 'all') return regionMap;
+        const filtered: Record<string, Regulation[]> = {};
+        for (const [code, regs] of Object.entries(regionMap)) {
+            const matching = regs.filter(r => r.category === activeCategory);
+            if (matching.length > 0) filtered[code] = matching;
+        }
+        return filtered;
+    }
 
     // --- D3 Setup ---
     // Convert TopoJSON to GeoJSON first so we can fit the projection to the data
@@ -382,26 +405,35 @@ import caData from '../../../../data/canada-provinces.json';
     const panelRegCount = document.getElementById('panelRegCount')!;
     const panelRegulations = document.getElementById('panelRegulations')!;
 
-    document.addEventListener('regionSelected', ((event: CustomEvent<RegionSelectedDetail>) => {
-        const { regionId } = event.detail;
+    function renderPanel(regionId: string): void {
         const countryName = stateCodeToName[regionId] ?? provinceCodeToName[regionId] ?? alpha3ToName[regionId] ?? regionId;
-        const regs = regionMap[regionId];
+        const filteredMap = getFilteredRegionMap();
+        const regs = filteredMap[regionId] ?? [];
 
         panelCountryName.textContent = countryName;
 
-        const count = regs?.length ?? 0;
+        const count = regs.length;
         panelRegCount.textContent = `${count} regulation${count !== 1 ? 's' : ''}`;
-        panelRegulations.innerHTML = (regs ?? []).map(renderRegulationCard).join('');
+        panelRegulations.innerHTML = regs.map(renderRegulationCard).join('');
+    }
+
+    document.addEventListener('regionSelected', ((event: CustomEvent<RegionSelectedDetail>) => {
+        const { regionId } = event.detail;
+        currentRegionId = regionId;
+        const countryName = stateCodeToName[regionId] ?? provinceCodeToName[regionId] ?? alpha3ToName[regionId] ?? regionId;
+
+        renderPanel(regionId);
 
         document.getElementById('mapCta')?.remove();
         compliancePanel.hidden = false;
 
+        const totalRegs = regionMap[regionId]?.length ?? 0;
         trackEvent({
             event: 'region_selected',
             category: 'engagement',
             region_id: regionId,
             region_name: countryName,
-            regulation_count: count,
+            regulation_count: totalRegs,
             page: 'regulatory-map',
         });
 
@@ -459,6 +491,52 @@ import caData from '../../../../data/canada-provinces.json';
     }
     syncPanelHeight();
     window.addEventListener('resize', syncPanelHeight);
+
+    // --- Category filter ---
+    function updateMapHighlighting(): void {
+        const filteredMap = getFilteredRegionMap();
+
+        // Update country paths
+        select('#mapSvg').selectAll('path[class^="country-path"]')
+            .attr('class', function(this: SVGPathElement) {
+                const d = select(this).datum() as { id?: string; properties?: { iso_3166_2?: string } } | undefined;
+                if (!d || !d.id) return 'country-path';
+                const alpha3 = numericToAlpha3[d.id as string];
+                if (alpha3 === 'USA' || alpha3 === 'CAN') return 'country-path';
+                const hasRegs = alpha3 && filteredMap[alpha3];
+                return `country-path${hasRegs ? ' country-path--active' : ''}`;
+            });
+
+        // Update US state and Canadian province paths
+        select('#mapSvg').selectAll('path[class^="state-path"]')
+            .attr('class', function(this: SVGPathElement) {
+                const code = this.dataset.stateCode ?? '';
+                const hasRegs = code && filteredMap[code];
+                return `state-path${hasRegs ? ' state-path--active' : ''}`;
+            });
+    }
+
+    document.getElementById('regulation-filter-chips')?.addEventListener('click', (e) => {
+        const chip = (e.target as HTMLElement).closest('.filter-chip') as HTMLElement | null;
+        if (!chip) return;
+
+        document.querySelectorAll('#regulation-filter-chips .filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        activeCategory = chip.dataset.category ?? 'all';
+
+        updateMapHighlighting();
+
+        if (currentRegionId && !compliancePanel.hidden) {
+            renderPanel(currentRegionId);
+        }
+
+        trackEvent({
+            event: 'regulation_filter_applied',
+            category: 'engagement',
+            filter_value: activeCategory,
+            page: 'regulatory-map',
+        });
+    });
 </script>
 
 <script>
@@ -482,6 +560,65 @@ import caData from '../../../../data/canada-provinces.json';
 <style>
     .regulatory-map-section {
         padding-bottom: var(--spacing-3xl);
+    }
+
+    .regulation-filters {
+        display: flex;
+        justify-content: center;
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+    }
+
+    .filter-chip {
+        padding: 0.5rem 1rem;
+        background: rgba(26, 26, 26, 0.05);
+        color: rgba(26, 26, 26, 0.7);
+        border: 1px solid rgba(26, 26, 26, 0.1);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        transition: var(--transition-normal);
+        user-select: none;
+        font-family: inherit;
+    }
+
+    .filter-chip:hover {
+        background: rgba(26, 26, 26, 0.08);
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+    }
+
+    .filter-chip.active {
+        background: var(--color-primary);
+        color: #ffffff;
+        border-color: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .filter-chip {
+        background: rgba(5, 205, 153, 0.1);
+        border-color: rgba(5, 205, 153, 0.2);
+        color: rgba(200, 200, 200, 0.8);
+    }
+
+    :global(html.dark-theme) .filter-chip:hover {
+        background: rgba(5, 205, 153, 0.15);
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .filter-chip.active {
+        background: var(--color-primary);
+        color: #0a0a0a;
+        border-color: var(--color-primary);
     }
 
     .map-layout {
