@@ -1,0 +1,17 @@
+{
+  "id": "sg-psa",
+  "name": "Singapore Payment Services Act (PSA)",
+  "regions": ["SGP"],
+  "effectiveDate": "2020-01-28",
+  "summary": "The Payment Services Act provides a comprehensive regulatory framework for payment services and digital payment token (cryptocurrency) services in Singapore. Administered by the Monetary Authority of Singapore (MAS), it consolidates previously fragmented payment regulations and introduces licensing for digital payment token service providers.",
+  "category": "industry-compliance",
+  "keyRequirements": [
+    "Three-tier licensing: money-changing, standard payment institution, and major payment institution licenses",
+    "Regulation of seven payment services including digital payment token services and cross-border money transfers",
+    "AML/CFT requirements including customer due diligence, transaction monitoring, and suspicious transaction reporting",
+    "Technology risk management and cybersecurity requirements for payment service providers",
+    "Consumer protection measures including safeguarding of customer funds",
+    "Interoperability requirements for designated payment systems"
+  ],
+  "penalties": "Fines up to SGD 250,000 for operating without a license. Additional penalties for AML/CFT violations including imprisonment up to 7 years. MAS may revoke licenses, impose conditions, or issue prohibition orders."
+}

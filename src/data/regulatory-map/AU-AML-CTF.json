@@ -1,0 +1,18 @@
+{
+  "id": "au-aml-ctf",
+  "name": "Anti-Money Laundering and Counter-Terrorism Financing Act 2006",
+  "regions": ["AUS"],
+  "effectiveDate": "2006-12-12",
+  "summary": "Australia's AML/CTF Act establishes a regulatory framework to prevent money laundering and terrorism financing. Administered by AUSTRAC, it imposes customer identification, reporting, and record-keeping obligations on reporting entities across financial services, gambling, bullion dealing, and designated services sectors.",
+  "category": "industry-compliance",
+  "keyRequirements": [
+    "Customer identification and verification (Know Your Customer/KYC) before providing designated services",
+    "Ongoing customer due diligence and enhanced due diligence for high-risk customers",
+    "Suspicious matter reporting (SMRs) to AUSTRAC for suspected money laundering or terrorism financing",
+    "Threshold transaction reports for cash transactions of AUD 10,000 or more",
+    "International funds transfer instructions (IFTI) reporting",
+    "AML/CTF programs with Part A (customer identification) and Part B (employee due diligence) components",
+    "Record-keeping requirements for 7 years after the end of the customer relationship"
+  ],
+  "penalties": "Civil penalties up to AUD 22.2 million per contravention for reporting entities. Criminal penalties including imprisonment for tipping off or structuring offences. AUSTRAC may issue infringement notices, enforceable undertakings, and remedial directions."
+}

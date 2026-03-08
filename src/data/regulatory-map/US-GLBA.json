@@ -1,0 +1,26 @@
+{
+  "id": "us-glba",
+  "name": "Gramm-Leach-Bliley Act (GLBA)",
+  "regions": [
+    "US-AL", "US-AK", "US-AZ", "US-AR", "US-CA", "US-CO", "US-CT", "US-DE",
+    "US-DC", "US-FL", "US-GA", "US-HI", "US-ID", "US-IL", "US-IN", "US-IA",
+    "US-KS", "US-KY", "US-LA", "US-ME", "US-MD", "US-MA", "US-MI", "US-MN",
+    "US-MS", "US-MO", "US-MT", "US-NE", "US-NV", "US-NH", "US-NJ", "US-NM",
+    "US-NY", "US-NC", "US-ND", "US-OH", "US-OK", "US-OR", "US-PA", "US-RI",
+    "US-SC", "US-SD", "US-TN", "US-TX", "US-UT", "US-VT", "US-VA", "US-WA",
+    "US-WV", "US-WI", "US-WY"
+  ],
+  "effectiveDate": "1999-11-12",
+  "summary": "The Gramm-Leach-Bliley Act requires financial institutions to explain their information-sharing practices to customers and to safeguard sensitive data. Its Financial Privacy Rule, Safeguards Rule, and Pretexting provisions establish a framework for protecting nonpublic personal information (NPI) held by financial institutions including banks, securities firms, and insurance companies.",
+  "category": "industry-compliance",
+  "keyRequirements": [
+    "Financial Privacy Rule: clear privacy notices to customers describing data collection and sharing practices",
+    "Opt-out rights for consumers before sharing NPI with nonaffiliated third parties",
+    "Safeguards Rule: comprehensive information security program with administrative, technical, and physical safeguards",
+    "Designated qualified individual to oversee and implement the information security program",
+    "Regular risk assessments and testing of security controls",
+    "Pretexting provisions: prohibit obtaining customer information through false pretenses",
+    "Service provider oversight and contractual security requirements"
+  ],
+  "penalties": "Financial institutions face fines up to $100,000 per violation. Officers and directors face personal fines up to $10,000 per violation. Imprisonment up to 5 years for individuals. FTC, banking regulators, and state attorneys general enforce compliance."
+}

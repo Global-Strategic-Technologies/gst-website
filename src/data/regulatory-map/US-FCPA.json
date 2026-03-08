@@ -1,0 +1,25 @@
+{
+  "id": "us-fcpa",
+  "name": "Foreign Corrupt Practices Act (FCPA)",
+  "regions": [
+    "US-AL", "US-AK", "US-AZ", "US-AR", "US-CA", "US-CO", "US-CT", "US-DE",
+    "US-DC", "US-FL", "US-GA", "US-HI", "US-ID", "US-IL", "US-IN", "US-IA",
+    "US-KS", "US-KY", "US-LA", "US-ME", "US-MD", "US-MA", "US-MI", "US-MN",
+    "US-MS", "US-MO", "US-MT", "US-NE", "US-NV", "US-NH", "US-NJ", "US-NM",
+    "US-NY", "US-NC", "US-ND", "US-OH", "US-OK", "US-OR", "US-PA", "US-RI",
+    "US-SC", "US-SD", "US-TN", "US-TX", "US-UT", "US-VT", "US-VA", "US-WA",
+    "US-WV", "US-WI", "US-WY"
+  ],
+  "effectiveDate": "1977-12-19",
+  "summary": "The Foreign Corrupt Practices Act prohibits US persons and entities from bribing foreign government officials to obtain or retain business. It also requires SEC-registered companies to maintain accurate books and records and adequate internal accounting controls, making it a cornerstone of international anti-corruption enforcement.",
+  "category": "industry-compliance",
+  "keyRequirements": [
+    "Anti-bribery provisions: prohibit payments to foreign officials to influence acts or secure improper advantage",
+    "Books and records provisions: maintain accurate books, records, and accounts in reasonable detail",
+    "Internal controls: devise and maintain adequate internal accounting controls",
+    "Third-party due diligence for agents, consultants, and business partners",
+    "Applies to US issuers, domestic concerns, and foreign nationals acting within US territory",
+    "No exception for facilitating or grease payments under DOJ enforcement policy"
+  ],
+  "penalties": "Criminal penalties: up to $250,000 and 5 years imprisonment for individuals; up to $2 million per violation for entities. Civil penalties up to $16,000 per violation. Disgorgement of profits, pre-judgment interest, and injunctive relief. DOJ and SEC concurrent enforcement authority."
+}

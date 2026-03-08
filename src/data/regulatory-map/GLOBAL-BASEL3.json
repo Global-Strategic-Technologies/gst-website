@@ -1,0 +1,23 @@
+{
+  "id": "global-basel3",
+  "name": "Basel III International Banking Standards",
+  "regions": [
+    "AUT", "BEL", "BGR", "HRV", "CYP", "CZE", "DNK", "EST", "FIN", "FRA",
+    "DEU", "GRC", "HUN", "IRL", "ITA", "LVA", "LTU", "LUX", "MLT", "NLD",
+    "POL", "PRT", "ROU", "SVK", "SVN", "ESP", "SWE",
+    "USA", "GBR", "CHN", "JPN", "AUS", "CAN", "CHE", "SGP", "BRA", "IND"
+  ],
+  "effectiveDate": "2023-01-01",
+  "summary": "Basel III is a comprehensive set of international banking standards developed by the Basel Committee on Banking Supervision to strengthen regulation, supervision, and risk management of banks worldwide. Finalized after the 2008 financial crisis, it sets minimum requirements for capital adequacy, leverage ratios, and liquidity, with full implementation phased through 2028.",
+  "category": "industry-compliance",
+  "keyRequirements": [
+    "Minimum Common Equity Tier 1 (CET1) capital ratio of 4.5% plus capital conservation buffer of 2.5%",
+    "Leverage ratio minimum of 3% to constrain excessive balance sheet growth",
+    "Liquidity Coverage Ratio (LCR): sufficient high-quality liquid assets to cover 30-day net cash outflows",
+    "Net Stable Funding Ratio (NSFR): stable funding relative to liquidity profiles of assets over one year",
+    "Countercyclical capital buffer of 0-2.5% set by national authorities based on credit conditions",
+    "Standardized approach for credit risk with revised risk weight framework",
+    "Output floor: internal model capital requirements cannot fall below 72.5% of standardized approach"
+  ],
+  "penalties": "Basel III is implemented through national legislation; penalties vary by jurisdiction. Non-compliant banks face supervisory actions including capital surcharges, restrictions on dividends and bonus payments, enhanced reporting requirements, and potential revocation of banking licenses."
+}
