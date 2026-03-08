@@ -1,0 +1,17 @@
+{
+  "id": "in-cert",
+  "name": "CERT-In Cybersecurity Directions",
+  "regions": ["IND"],
+  "effectiveDate": "2022-06-28",
+  "summary": "India's CERT-In Directions issued under the Information Technology Act mandate strict cybersecurity incident reporting and data retention requirements for all organizations operating in India. The directions require reporting of cybersecurity incidents within 6 hours and impose log retention obligations of 180 days within Indian jurisdiction.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "Report cybersecurity incidents to CERT-In within 6 hours of noticing or being notified",
+    "Maintain ICT system logs for 180 days within Indian jurisdiction",
+    "Synchronize ICT system clocks to Network Time Protocol (NTP) servers",
+    "Data centres, VPS providers, cloud providers, and VPN providers must register subscriber information for 5 years",
+    "Virtual asset service providers must maintain KYC and transaction records for 5 years",
+    "Designate a Point of Contact for CERT-In communications"
+  ],
+  "penalties": "Non-compliance may result in imprisonment up to one year or fine up to INR 100,000 under the IT Act. CERT-In may issue directions to block, restrict, or mandate specific security measures. Service providers may face license revocation."
+}

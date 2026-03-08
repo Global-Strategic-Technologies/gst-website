@@ -1,0 +1,17 @@
+{
+  "id": "sg-csa",
+  "name": "Singapore Cybersecurity Act",
+  "regions": ["SGP"],
+  "effectiveDate": "2018-08-31",
+  "summary": "Singapore's Cybersecurity Act establishes a legal framework for the oversight and maintenance of national cybersecurity. It designates Critical Information Infrastructure (CII) across 11 essential services sectors and empowers the Cyber Security Agency of Singapore (CSA) to manage cybersecurity threats and incidents.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "Designation of Critical Information Infrastructure (CII) across 11 sectors including energy, water, healthcare, and banking",
+    "CII owners must comply with codes of practice and standards of performance",
+    "Mandatory reporting of prescribed cybersecurity incidents to CSA",
+    "Regular cybersecurity audits and risk assessments for CII",
+    "Licensing framework for cybersecurity service providers (penetration testing, managed SOC)",
+    "Commissioner of Cybersecurity empowered to investigate threats and direct emergency measures"
+  ],
+  "penalties": "Fines up to SGD 100,000 for failure to comply with CII obligations. Additional fines of up to SGD 50,000 for failure to report cybersecurity incidents. Imprisonment of up to 2 years for providing false information. Continuing offences carry daily penalties."
+}

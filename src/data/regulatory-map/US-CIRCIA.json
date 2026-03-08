@@ -1,0 +1,25 @@
+{
+  "id": "us-circia",
+  "name": "Cyber Incident Reporting for Critical Infrastructure Act (CIRCIA)",
+  "regions": [
+    "US-AL", "US-AK", "US-AZ", "US-AR", "US-CA", "US-CO", "US-CT", "US-DE",
+    "US-DC", "US-FL", "US-GA", "US-HI", "US-ID", "US-IL", "US-IN", "US-IA",
+    "US-KS", "US-KY", "US-LA", "US-ME", "US-MD", "US-MA", "US-MI", "US-MN",
+    "US-MS", "US-MO", "US-MT", "US-NE", "US-NV", "US-NH", "US-NJ", "US-NM",
+    "US-NY", "US-NC", "US-ND", "US-OH", "US-OK", "US-OR", "US-PA", "US-RI",
+    "US-SC", "US-SD", "US-TN", "US-TX", "US-UT", "US-VT", "US-VA", "US-WA",
+    "US-WV", "US-WI", "US-WY"
+  ],
+  "effectiveDate": "2026-04-01",
+  "summary": "CIRCIA requires critical infrastructure entities to report substantial cyber incidents to CISA within 72 hours and ransomware payments within 24 hours. Signed into law in March 2022, CISA's final rulemaking establishes reporting obligations for 16 critical infrastructure sectors defined by Presidential Policy Directive 21.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "Report substantial cyber incidents to CISA within 72 hours of reasonable belief",
+    "Report ransomware payments to CISA within 24 hours",
+    "Preserve data relevant to covered cyber incidents for at least two years",
+    "Supplemental reports required when substantial new or different information becomes available",
+    "Covers 16 critical infrastructure sectors including energy, financial services, healthcare, and communications",
+    "CISA may issue subpoenas to non-compliant entities and refer to DOJ"
+  ],
+  "penalties": "Non-compliance may result in CISA subpoenas, contempt of court proceedings, and referral to the Department of Justice. Entities that fail to comply with subpoenas may face civil action. Reports are protected from use in regulatory enforcement actions."
+}

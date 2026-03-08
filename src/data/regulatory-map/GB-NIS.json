@@ -1,0 +1,17 @@
+{
+  "id": "gb-nis",
+  "name": "UK Network and Information Systems Regulations 2018 (NIS Regulations)",
+  "regions": ["GBR"],
+  "effectiveDate": "2018-05-10",
+  "summary": "The UK NIS Regulations implement the EU NIS Directive into UK law and remain in force post-Brexit. They impose cybersecurity and incident reporting obligations on operators of essential services and relevant digital service providers across critical sectors including energy, transport, health, water, and digital infrastructure.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "Operators of Essential Services (OES) must take appropriate and proportionate security measures",
+    "Mandatory incident notification to relevant competent authorities without undue delay",
+    "Implementation of the NCSC Cyber Assessment Framework (CAF) principles",
+    "Relevant Digital Service Providers must ensure security of network and information systems",
+    "Competent authorities designated per sector (Ofgem for energy, Ofcom for digital infrastructure, etc.)",
+    "Regular risk assessments and implementation of security measures proportionate to identified risks"
+  ],
+  "penalties": "Fines up to GBP 17 million for failure to implement appropriate security measures or report incidents. Enforcement notices, penalty notices, and information requests by competent authorities. NCSC provides technical guidance but enforcement is sector-specific."
+}

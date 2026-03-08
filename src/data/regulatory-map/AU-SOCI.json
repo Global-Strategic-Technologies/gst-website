@@ -1,0 +1,17 @@
+{
+  "id": "au-soci",
+  "name": "Security of Critical Infrastructure Act 2018 (SOCI Act)",
+  "regions": ["AUS"],
+  "effectiveDate": "2022-04-02",
+  "summary": "Australia's SOCI Act establishes a regulatory framework to manage risks to critical infrastructure across 11 sectors. Significantly expanded in 2021-2022, it introduced mandatory cyber incident reporting, critical infrastructure risk management programs, and government assistance powers for responding to serious cyber incidents.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "Critical infrastructure risk management programs covering cyber, physical, personnel, and supply chain risks",
+    "Mandatory reporting of critical cyber security incidents to the Australian Cyber Security Centre within 12 hours",
+    "Reporting of other cyber security incidents within 72 hours",
+    "Systems of National Significance subject to enhanced obligations including incident response planning",
+    "Government assistance measures allowing ASD to intervene during serious cyber incidents",
+    "Covers 11 sectors: communications, data storage, energy, financial services, food, health, higher education, space, transport, water, defence"
+  ],
+  "penalties": "Civil penalties up to AUD 55,500 per contravention for failure to comply with risk management obligations. Fines up to AUD 11,100 for failure to report cyber incidents. Government assistance provisions allow mandatory directions during imminent threats."
+}
