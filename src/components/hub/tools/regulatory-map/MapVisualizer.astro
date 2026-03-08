@@ -30,10 +30,10 @@
   ></svg>
   <div class="map-tooltip" id="mapTooltip" role="tooltip" aria-hidden="true"></div>
   <div class="map-quick-zoom" id="mapQuickZoom">
-    <button class="quick-zoom-btn" data-region="americas" aria-label="Zoom to Americas">Americas</button>
-    <button class="quick-zoom-btn" data-region="europe" aria-label="Zoom to Europe">Europe</button>
-    <button class="quick-zoom-btn" data-region="asia-pacific" aria-label="Zoom to Asia-Pacific">Asia-Pacific</button>
-    <button class="quick-zoom-btn" data-region="africa-mideast" aria-label="Zoom to Africa & Middle East">Africa/ME</button>
+    <button class="quick-zoom-btn" data-region="americas" aria-label="Zoom to Americas">AMR</button>
+    <button class="quick-zoom-btn" data-region="europe" aria-label="Zoom to Europe">EUR</button>
+    <button class="quick-zoom-btn" data-region="asia-pacific" aria-label="Zoom to Asia-Pacific">APAC</button>
+    <button class="quick-zoom-btn" data-region="africa-mideast" aria-label="Zoom to Africa & Middle East">MEA</button>
   </div>
   <div class="map-pinch-hint" id="mapPinchHint" hidden aria-hidden="true">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -106,6 +106,13 @@
 
   :global(html.dark-theme) .map-control-btn:hover {
     background: var(--bg-dark-secondary);
+  }
+
+  @media (max-width: 1023px) {
+    .map-controls {
+      right: auto;
+      left: var(--spacing-sm);
+    }
   }
 
   @media (max-width: 767px) {

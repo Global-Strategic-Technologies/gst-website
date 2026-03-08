@@ -339,11 +339,13 @@ import caData from '../../../../data/canada-provinces.json';
     });
 
     // --- Quick-zoom regions (mobile) ---
+    // Translate values: tx = vw/2 - k*cx, ty = vh/2 - k*cy
+    // where (cx,cy) is the SVG center of the region on the 960x440 equirectangular projection
     const REGION_VIEWS: Record<string, { x: number; y: number; k: number }> = {
-        'americas':       { x: -120, y: -40, k: 2.2 },
-        'europe':         { x: -380, y: -20, k: 3.5 },
-        'asia-pacific':   { x: -560, y: -30, k: 2.5 },
-        'africa-mideast': { x: -370, y: -100, k: 2.8 },
+        'americas':       { x: -107, y: -257, k: 2.2 },
+        'europe':         { x: -1340, y: -148, k: 3.5 },
+        'asia-pacific':   { x: -1488, y: -283, k: 2.5 },
+        'africa-mideast': { x: -1088, y: -432, k: 2.8 },
     };
 
     document.getElementById('mapQuickZoom')?.addEventListener('click', (e) => {
@@ -1362,6 +1364,14 @@ import caData from '../../../../data/canada-provinces.json';
 
         .map-cta {
             max-width: calc(100% - var(--spacing-lg));
+            bottom: auto;
+            top: var(--spacing-sm);
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .map-cta__cursor {
+            transform: rotate(225deg);
         }
     }
 
