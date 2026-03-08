@@ -1,9 +1,12 @@
 {
   "id": "ar-pdpa",
   "name": "Personal Data Protection Act (Ley 25.326)",
-  "regions": ["ARG"],
+  "regions": [
+    "ARG"
+  ],
   "effectiveDate": "2000-11-02",
   "summary": "Argentina's comprehensive data protection law was one of the earliest in Latin America, leading to an EU adequacy determination in 2003. It regulates the processing of personal data in both public and private databases, granting individuals habeas data rights.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain free, express, and informed consent before processing personal data",
     "Register databases with the national registry (AAIP)",

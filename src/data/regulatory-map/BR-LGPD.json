@@ -1,9 +1,12 @@
 {
   "id": "br-lgpd",
   "name": "Lei Geral de Protecao de Dados (LGPD)",
-  "regions": ["BRA"],
+  "regions": [
+    "BRA"
+  ],
   "effectiveDate": "2020-09-18",
   "summary": "Brazil's General Data Protection Law is modeled after the EU GDPR and establishes comprehensive rules for the collection, use, processing, and storage of personal data. The ANPD (National Data Protection Authority) oversees enforcement and regulation.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Ten legal bases for processing personal data (including consent and legitimate interest)",
     "Data subject rights including access, correction, deletion, and portability",

@@ -1,9 +1,12 @@
 {
   "id": "tr-kvkk",
   "name": "Law No. 6698 on the Protection of Personal Data (KVKK)",
-  "regions": ["TUR"],
+  "regions": [
+    "TUR"
+  ],
   "effectiveDate": "2016-04-07",
   "summary": "Turkey's comprehensive data protection law regulates the processing of personal data by both public and private entities, including those outside Turkey handling data of Turkish residents. The law is modeled on EU data protection principles and establishes registration, consent, and security obligations.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Register with the Data Controllers Registry (VERBIS)",
     "Obtain explicit consent for processing sensitive personal data",

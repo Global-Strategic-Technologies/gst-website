@@ -1,9 +1,12 @@
 {
   "id": "ch-fadp",
   "name": "Federal Act on Data Protection (FADP / nFADP)",
-  "regions": ["CHE"],
+  "regions": [
+    "CHE"
+  ],
   "effectiveDate": "2023-09-01",
   "summary": "Switzerland's revised Federal Act on Data Protection replaced the 1992 law to align more closely with the EU GDPR. It applies to the processing of personal data of natural persons by private persons and federal bodies, including organizations outside Switzerland processing Swiss residents' data.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Maintain records of processing activities",
     "Conduct data protection impact assessments for high-risk processing",

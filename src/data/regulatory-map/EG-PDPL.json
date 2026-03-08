@@ -1,9 +1,12 @@
 {
   "id": "eg-pdpl",
   "name": "Personal Data Protection Law No. 151 of 2020",
-  "regions": ["EGY"],
+  "regions": [
+    "EGY"
+  ],
   "effectiveDate": "2020-10-14",
   "summary": "Egypt's first comprehensive data protection law regulates the processing of personal data by both public and private entities. The Executive Regulations were issued in November 2025 with a 12-month grace period, meaning full enforcement begins approximately November 2026.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain explicit consent before processing personal data",
     "Obtain a license or permit from the Personal Data Protection Center",

@@ -1,9 +1,12 @@
 {
   "id": "sa-pdpl",
   "name": "Personal Data Protection Law (Royal Decree M/19 of 2021, amended 2023)",
-  "regions": ["SAU"],
+  "regions": [
+    "SAU"
+  ],
   "effectiveDate": "2023-09-14",
   "summary": "Saudi Arabia's comprehensive data protection framework governing the collection, processing, disclosure, and retention of personal data. Originally issued in 2021 and amended in March 2023, it applies to both public and private sector entities processing personal data within Saudi Arabia.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain consent before collecting or processing personal data",
     "Implement appropriate technical and organizational security measures",

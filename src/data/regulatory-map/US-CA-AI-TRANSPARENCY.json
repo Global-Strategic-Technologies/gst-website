@@ -1,9 +1,12 @@
 {
   "id": "us-ca-ai-transparency",
   "name": "California AI Transparency Act (SB 942)",
-  "regions": ["US-CA"],
+  "regions": [
+    "US-CA"
+  ],
   "effectiveDate": "2026-08-02",
   "summary": "Requires large generative AI providers to watermark AI-generated content and provide free detection tools. Focuses on image, video, and audio content transparency. Applies to providers with over 1 million monthly users accessible in California.",
+  "category": "ai-governance",
   "keyRequirements": [
     "Embed invisible watermarks in AI-generated image, video, and audio content",
     "Watermarks must include creator name, AI system version, timestamp, and unique identifier",

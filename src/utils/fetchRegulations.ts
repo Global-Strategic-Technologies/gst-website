@@ -9,6 +9,8 @@ const RegulationSchema = z.object({
   ).min(1),
   effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD format'),
   summary: z.string().min(1),
+  category: z.enum(['data-privacy', 'ai-governance', 'industry-compliance', 'cybersecurity']),
+  scope: z.string().min(1).optional(),
   keyRequirements: z.array(z.string()).optional(),
   penalties: z.string().optional(),
 });

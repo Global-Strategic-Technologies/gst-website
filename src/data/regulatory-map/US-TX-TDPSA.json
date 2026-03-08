@@ -1,9 +1,12 @@
 {
   "id": "us-tx-tdpsa",
   "name": "Texas Data Privacy and Security Act (TDPSA)",
-  "regions": ["US-TX"],
+  "regions": [
+    "US-TX"
+  ],
   "effectiveDate": "2024-07-01",
   "summary": "The Texas Data Privacy and Security Act provides Texas residents with data privacy rights and imposes obligations on businesses that process personal data. Notably, the TDPSA has no revenue or data volume threshold, applying to any entity conducting business in Texas or producing products or services consumed by Texas residents that processes personal data, excluding small businesses as defined by the U.S. Small Business Administration.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Right to access, correct, delete, and obtain a portable copy of personal data",
     "Right to opt out of the sale of personal data, targeted advertising, and profiling",

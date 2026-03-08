@@ -1,9 +1,12 @@
 {
   "id": "ph-dpa",
   "name": "Data Privacy Act of 2012 (Republic Act No. 10173)",
-  "regions": ["PHL"],
+  "regions": [
+    "PHL"
+  ],
   "effectiveDate": "2012-09-08",
   "summary": "The Philippines' comprehensive data privacy law establishing rights of data subjects and obligations of personal information controllers and processors. It created the National Privacy Commission as an independent regulatory body and imposes both criminal and administrative penalties for violations.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain consent for processing of personal and sensitive personal information",
     "Register data processing systems with the National Privacy Commission",

@@ -1,9 +1,12 @@
 {
   "id": "us-md-modpa",
   "name": "Maryland Online Data Privacy Act",
-  "regions": ["US-MD"],
+  "regions": [
+    "US-MD"
+  ],
   "effectiveDate": "2025-10-01",
   "summary": "The Maryland Online Data Privacy Act is one of the most restrictive state privacy laws, imposing strong data minimization requirements and prohibiting the sale of sensitive data entirely. It applies to entities conducting business in Maryland or targeting its residents that control or process personal data of at least 35,000 consumers, or 10,000 consumers if deriving more than 20% of revenue from selling personal data.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Right to confirm whether a controller is processing personal data and to access that data",
     "Right to correct inaccuracies in personal data",

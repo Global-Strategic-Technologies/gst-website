@@ -1,9 +1,12 @@
 {
   "id": "us-tx-traiga",
   "name": "Texas Responsible Artificial Intelligence Governance Act (TRAIGA, HB 149)",
-  "regions": ["US-TX"],
+  "regions": [
+    "US-TX"
+  ],
   "effectiveDate": "2026-01-01",
   "summary": "Texas's first comprehensive AI law. Focuses on prohibiting AI systems designed for harmful purposes rather than broad regulatory compliance. Requires disclosure by state agencies and healthcare providers. Provides affirmative defenses for NIST AI Risk Management Framework compliance.",
+  "category": "ai-governance",
   "keyRequirements": [
     "Prohibits AI systems intended to incite self-harm or criminal activity",
     "Prohibits AI for generating child sexual abuse material or deepfake pornography",

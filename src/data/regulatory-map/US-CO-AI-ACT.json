@@ -1,9 +1,12 @@
 {
   "id": "us-co-ai-act",
   "name": "Colorado Artificial Intelligence Act (SB 24-205)",
-  "regions": ["US-CO"],
+  "regions": [
+    "US-CO"
+  ],
   "effectiveDate": "2026-06-30",
   "summary": "The most detailed AI-specific consumer protection law in the United States. Focuses on preventing algorithmic discrimination in consequential decisions covering employment, education, healthcare, housing, insurance, and legal services. Requires a duty of care from both developers and deployers of high-risk AI systems.",
+  "category": "ai-governance",
   "keyRequirements": [
     "Developers must use reasonable care to protect consumers from algorithmic discrimination",
     "Deployers must implement a risk management policy and program",

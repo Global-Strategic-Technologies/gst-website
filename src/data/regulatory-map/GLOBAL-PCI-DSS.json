@@ -1,0 +1,39 @@
+{
+  "id": "global-pci-dss",
+  "name": "Payment Card Industry Data Security Standard (PCI DSS)",
+  "regions": [
+    "US-AL", "US-AK", "US-AZ", "US-AR", "US-CA", "US-CO", "US-CT", "US-DE",
+    "US-DC", "US-FL", "US-GA", "US-HI", "US-ID", "US-IL", "US-IN", "US-IA",
+    "US-KS", "US-KY", "US-LA", "US-ME", "US-MD", "US-MA", "US-MI", "US-MN",
+    "US-MS", "US-MO", "US-MT", "US-NE", "US-NV", "US-NH", "US-NJ", "US-NM",
+    "US-NY", "US-NC", "US-ND", "US-OH", "US-OK", "US-OR", "US-PA", "US-RI",
+    "US-SC", "US-SD", "US-TN", "US-TX", "US-UT", "US-VT", "US-VA", "US-WA",
+    "US-WV", "US-WI", "US-WY",
+    "CA-AB", "CA-BC", "CA-MB", "CA-NB", "CA-NL", "CA-NS", "CA-NT", "CA-NU",
+    "CA-ON", "CA-PE", "CA-QC", "CA-SK", "CA-YT",
+    "AUT", "BEL", "BGR", "HRV", "CYP", "CZE", "DNK", "EST", "FIN", "FRA",
+    "DEU", "GRC", "HUN", "IRL", "ITA", "LVA", "LTU", "LUX", "MLT", "NLD",
+    "POL", "PRT", "ROU", "SVK", "SVN", "ESP", "SWE",
+    "GBR", "AUS", "BRA", "ARG", "MEX", "JPN", "KOR", "CHN", "IND", "IDN",
+    "SAU", "TUR", "ZAF"
+  ],
+  "effectiveDate": "2004-12-15",
+  "summary": "PCI DSS is a global information security standard established by the Payment Card Industry Security Standards Council (PCI SSC), founded by Visa, Mastercard, American Express, Discover, and JCB. It is not a government law but an industry standard enforced contractually by card networks and acquiring banks. Organizations that fail to comply risk fines, increased transaction fees, and loss of card processing privileges.",
+  "category": "industry-compliance",
+  "scope": "Any organization that stores, processes, or transmits payment cardholder data, including merchants, payment processors, acquirers, issuers, and service providers",
+  "keyRequirements": [
+    "Install and maintain network security controls (firewalls, network segmentation)",
+    "Apply secure configurations to all system components",
+    "Protect stored account data with encryption and access controls",
+    "Encrypt transmission of cardholder data across open, public networks",
+    "Protect all systems and networks from malicious software",
+    "Develop and maintain secure systems and software",
+    "Restrict access to system components and cardholder data by business need-to-know",
+    "Identify users and authenticate access to system components",
+    "Restrict physical access to cardholder data",
+    "Log and monitor all access to system components and cardholder data",
+    "Test security of systems and networks regularly",
+    "Support information security with organizational policies and programs"
+  ],
+  "penalties": "Non-compliance penalties are contractual, not statutory. Card networks may impose fines of $5,000 to $100,000 per month on acquiring banks, which pass costs to merchants. Severe non-compliance can result in increased transaction fees, mandatory forensic audits, and revocation of card processing privileges."
+}

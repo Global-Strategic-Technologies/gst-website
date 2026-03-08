@@ -15,7 +15,7 @@ const faqItems = [
     },
     {
         question: "What regulations does the map cover?",
-        answer: "The map covers two categories of regulation. For data privacy, it includes major frameworks such as the EU's GDPR, California's CCPA/CPRA, Brazil's LGPD, Canada's PIPEDA and provincial laws, and dozens of other national and sub-national regulations. For artificial intelligence, it includes the EU AI Act, China's algorithm and generative AI regulations, South Korea's AI Basic Act, and US state-level AI laws covering areas like algorithmic discrimination, AI transparency, and automated employment decisions. Coverage is continually expanding as new frameworks are enacted worldwide."
+        answer: "The map covers three categories of regulation. For data privacy, it includes major frameworks such as the EU's GDPR, California's CCPA/CPRA, Brazil's LGPD, Canada's PIPEDA and provincial laws, and dozens of other national and sub-national regulations. For artificial intelligence, it includes the EU AI Act, China's algorithm and generative AI regulations, South Korea's AI Basic Act, and US state-level AI laws covering areas like algorithmic discrimination, AI transparency, and automated employment decisions. For industry compliance, it covers HIPAA for healthcare data protection and PCI DSS for payment card security. Coverage is continually expanding as new frameworks are enacted worldwide."
     },
     {
         question: "How current is the regulatory data shown here?",
@@ -423,6 +423,10 @@ import caData from '../../../../data/canada-provinces.json';
                 <h3 class="reg-card__name">${escapeHtml(reg.name)}</h3>
                 <p class="reg-card__date">Effective: ${escapeHtml(date)}</p>
                 <p class="reg-card__summary">${escapeHtml(reg.summary)}</p>`;
+
+        if (reg.scope) {
+            html += `<p class="reg-card__scope">Applies to: ${escapeHtml(reg.scope)}</p>`;
+        }
 
         if (reg.keyRequirements && reg.keyRequirements.length > 0) {
             html += '<ul class="reg-card__requirements">';

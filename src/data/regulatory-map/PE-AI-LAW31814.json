@@ -1,9 +1,12 @@
 {
   "id": "pe-ai-law31814",
   "name": "Law No. 31814 - Law that Promotes the Use of Artificial Intelligence in Favor of Economic and Social Development",
-  "regions": ["PER"],
+  "regions": [
+    "PER"
+  ],
   "effectiveDate": "2023-07-05",
   "summary": "Peru's foundational AI law establishing a national framework to promote AI development while protecting fundamental rights. Designates the Presidency of the Council of Ministers as the national AI regulator and sets principles for risk-based governance, transparency, and interoperability.",
+  "category": "ai-governance",
   "keyRequirements": [
     "Perform risk assessments for AI systems",
     "Establish governance structures for AI lifecycle management",

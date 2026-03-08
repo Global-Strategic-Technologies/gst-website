@@ -1,9 +1,12 @@
 {
   "id": "us-co-cpa",
   "name": "Colorado Privacy Act (CPA)",
-  "regions": ["US-CO"],
+  "regions": [
+    "US-CO"
+  ],
   "effectiveDate": "2023-07-01",
   "summary": "The Colorado Privacy Act provides Colorado residents with rights over their personal data and establishes obligations for data controllers. It applies to entities conducting business in Colorado or targeting Colorado residents that control or process data of 100,000 or more consumers annually, or 25,000 or more consumers while deriving revenue from the sale of personal data.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Right to access, confirm, and obtain a portable copy of personal data",
     "Right to correct inaccuracies in personal data",

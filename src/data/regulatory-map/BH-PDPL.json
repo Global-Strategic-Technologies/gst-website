@@ -1,9 +1,12 @@
 {
   "id": "bh-pdpl",
   "name": "Personal Data Protection Law (Law No. 30 of 2018)",
-  "regions": ["BHR"],
+  "regions": [
+    "BHR"
+  ],
   "effectiveDate": "2019-08-01",
   "summary": "Bahrain's first comprehensive data protection law regulates the collection, processing, and use of personal data by both public and private sector entities. It establishes individual rights similar to the GDPR, including rights to access, rectification, erasure, and objection to automated decision-making.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain consent before processing personal data",
     "Implement appropriate technical and organizational security measures",

@@ -1,9 +1,12 @@
 {
   "id": "us-il-ai-employment",
   "name": "Illinois AI Employment Discrimination Law (HB 3773)",
-  "regions": ["US-IL"],
+  "regions": [
+    "US-IL"
+  ],
   "effectiveDate": "2026-01-01",
   "summary": "Amends the Illinois Human Rights Act to address AI use in employment decisions. Prohibits employers from using AI that discriminates against employees based on protected classes and requires notice to employees and applicants when AI is used in employment decisions.",
+  "category": "ai-governance",
   "keyRequirements": [
     "Prohibits AI use that discriminates based on protected classes in recruitment, hiring, promotion, discharge, discipline, or terms of employment",
     "Employers must provide notice to employees and applicants when AI is used in employment decisions",

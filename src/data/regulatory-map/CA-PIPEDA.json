@@ -1,9 +1,24 @@
 {
   "id": "ca-pipeda",
   "name": "Personal Information Protection and Electronic Documents Act (PIPEDA)",
-  "regions": ["CA-AB", "CA-BC", "CA-MB", "CA-NB", "CA-NL", "CA-NS", "CA-NT", "CA-NU", "CA-ON", "CA-PE", "CA-QC", "CA-SK", "CA-YT"],
+  "regions": [
+    "CA-AB",
+    "CA-BC",
+    "CA-MB",
+    "CA-NB",
+    "CA-NL",
+    "CA-NS",
+    "CA-NT",
+    "CA-NU",
+    "CA-ON",
+    "CA-PE",
+    "CA-QC",
+    "CA-SK",
+    "CA-YT"
+  ],
   "effectiveDate": "2000-04-13",
   "summary": "Canada's federal private-sector privacy law governing how commercial organizations collect, use, and disclose personal information in the course of for-profit activities. PIPEDA applies across all provinces for federally regulated industries and in provinces without substantially similar legislation.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain meaningful consent for the collection, use, or disclosure of personal information",
     "Limit collection to purposes a reasonable person would consider appropriate",

@@ -1,9 +1,12 @@
 {
   "id": "us-il-aivra",
   "name": "Illinois Artificial Intelligence Video Interview Act",
-  "regions": ["US-IL"],
+  "regions": [
+    "US-IL"
+  ],
   "effectiveDate": "2020-01-01",
   "summary": "One of the first AI-specific laws in the United States. Regulates the use of AI analysis in video interviews for employment purposes. Requires employers to notify applicants, explain AI functionality, and obtain consent before using AI to evaluate video interviews.",
+  "category": "ai-governance",
   "keyRequirements": [
     "Notify applicants that AI may be used to analyze video interviews",
     "Provide information explaining how the AI works and what characteristics it evaluates",

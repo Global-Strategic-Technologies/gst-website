@@ -1,9 +1,12 @@
 {
   "id": "us-ca-ccpa",
   "name": "California Consumer Privacy Act (CCPA/CPRA)",
-  "regions": ["US-CA"],
+  "regions": [
+    "US-CA"
+  ],
   "effectiveDate": "2020-01-01",
   "summary": "The California Consumer Privacy Act, amended by the California Privacy Rights Act (CPRA), grants California residents expanded rights over their personal information. It applies to businesses meeting revenue or data processing thresholds and establishes the California Privacy Protection Agency for enforcement.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Right to know what personal information is collected and how it is used",
     "Right to delete personal information held by businesses",
