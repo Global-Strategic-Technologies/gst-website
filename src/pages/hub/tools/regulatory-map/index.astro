@@ -777,6 +777,55 @@ import caData from '../../../../data/canada-provinces.json';
         'cybersecurity': 'cyber',
     };
 
+    /**
+     * Position the Today marker absolutely over the timeline track.
+     * Finds the year group matching the current year (or the gap between
+     * the closest past and future year groups) and centers the marker there.
+     */
+    function positionTodayMarker(track: HTMLElement): void {
+        const marker = document.getElementById('timelineTodayMarker');
+        if (!marker) return;
+
+        const currentYear = new Date().getFullYear();
+        const yearGroups = Array.from(track.querySelectorAll('.timeline-year-group'));
+        if (yearGroups.length === 0) return;
+
+        // Find the year group for the current year
+        let targetLeft = 0;
+        let found = false;
+
+        for (const group of yearGroups) {
+            const label = group.querySelector('.timeline-year-label');
+            const year = parseInt(label?.textContent ?? '0');
+            if (year === currentYear) {
+                // Center on the current year group
+                targetLeft = (group as HTMLElement).offsetLeft + (group as HTMLElement).offsetWidth / 2;
+                found = true;
+                break;
+            }
+            if (year > currentYear) {
+                // Current year has no entries — position between previous group and this one
+                const prev = group.previousElementSibling as HTMLElement | null;
+                if (prev && prev.classList.contains('timeline-year-group')) {
+                    targetLeft = prev.offsetLeft + prev.offsetWidth +
+                                 ((group as HTMLElement).offsetLeft - prev.offsetLeft - prev.offsetWidth) / 2;
+                } else {
+                    targetLeft = (group as HTMLElement).offsetLeft;
+                }
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            // All entries are in the past — place after last group
+            const last = yearGroups[yearGroups.length - 1] as HTMLElement;
+            targetLeft = last.offsetLeft + last.offsetWidth + 20;
+        }
+
+        marker.style.left = `${targetLeft}px`;
+    }
+
     function renderTimeline(): void {
         const track = document.getElementById('timelineTrack')!;
         const allRegs = buildTimelineData();
@@ -785,9 +834,11 @@ import caData from '../../../../data/canada-provinces.json';
             : allRegs.filter(r => r.category === activeCategory);
 
         const today = new Date().toISOString().slice(0, 10);
-        const todayYear = new Date().getFullYear();
 
-        // Group by year
+        // Sort chronologically so year groups render in order
+        filteredRegs.sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
+
+        // Group by year (Map preserves insertion order of sorted data)
         const byYear = new Map<number, Regulation[]>();
         for (const reg of filteredRegs) {
             const year = parseInt(reg.effectiveDate.slice(0, 4));
@@ -796,25 +847,13 @@ import caData from '../../../../data/canada-provinces.json';
         }
 
         let html = '';
-        let todayInserted = false;
 
         for (const [year, regs] of byYear) {
-            // Insert Today marker after past year groups (before next future year)
-            if (!todayInserted && year > todayYear) {
-                html += `<div class="timeline-today"><span class="timeline-today__label">Today</span></div>`;
-                todayInserted = true;
-            }
-
             html += `<div class="timeline-year-group">`;
             html += `<span class="timeline-year-label">${year}</span>`;
             html += `<div class="timeline-year-entries">`;
             for (const reg of regs) {
                 const isUpcoming = reg.effectiveDate > today;
-                // Insert Today marker within the current year, between past and upcoming regs
-                if (!todayInserted && year === todayYear && isUpcoming) {
-                    html += `<div class="timeline-today"><span class="timeline-today__label">Today</span></div>`;
-                    todayInserted = true;
-                }
                 const catClass = categoryColorMap[reg.category] ?? 'privacy';
                 const [y, m] = reg.effectiveDate.split('-');
                 const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -832,14 +871,17 @@ import caData from '../../../../data/canada-provinces.json';
             html += `</div></div>`;
         }
 
-        if (!todayInserted) {
-            html += `<div class="timeline-today"><span class="timeline-today__label">Today</span></div>`;
-        }
+        // Today marker — absolutely positioned based on chronological position
+        // among the rendered year groups. This is filter-independent.
+        html += `<div class="timeline-today" id="timelineTodayMarker"><span class="timeline-today__label">Today</span></div>`;
 
         track.innerHTML = html;
 
+        // Position the Today marker over the correct year group
+        positionTodayMarker(track);
+
         // Auto-scroll to "today" marker
-        const todayMarker = track.querySelector('.timeline-today') as HTMLElement | null;
+        const todayMarker = document.getElementById('timelineTodayMarker');
         if (todayMarker) {
             const scroll = document.getElementById('timelineScroll')!;
             scroll.scrollLeft = todayMarker.offsetLeft - scroll.clientWidth / 3;
@@ -1429,6 +1471,7 @@ import caData from '../../../../data/canada-provinces.json';
     .timeline-scroll {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        padding-top: 14px;
         padding-bottom: var(--spacing-sm);
         cursor: grab;
     }
@@ -1555,29 +1598,35 @@ import caData from '../../../../data/canada-provinces.json';
         display: flex;
         flex-direction: column;
         align-items: center;
-        position: relative;
+        position: absolute;
+        top: -6px;
+        transform: translateX(-50%);
         z-index: 2;
-        min-width: 40px;
-        padding: 0 var(--spacing-sm);
+        pointer-events: none;
     }
 
     :global(.timeline-today::after) {
         content: '';
         width: 2px;
-        height: 100%;
+        flex: 1;
         min-height: 60px;
         background: var(--color-primary);
         opacity: 0.6;
-        position: absolute;
-        top: 20px;
     }
 
     :global(.timeline-today__label) {
-        font-size: var(--text-xs);
+        font-size: 0.625rem;
         font-weight: var(--font-weight-bold);
         color: var(--color-primary);
+        background: var(--bg-light-alt);
+        padding: 1px var(--spacing-xs);
+        border-radius: 3px;
         white-space: nowrap;
-        margin-bottom: var(--spacing-sm);
+        margin-bottom: 2px;
+    }
+
+    :global(html.dark-theme .timeline-today__label) {
+        background: var(--bg-dark-secondary);
     }
 
     /* Timeline dark theme */
