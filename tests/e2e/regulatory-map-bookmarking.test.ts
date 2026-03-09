@@ -207,9 +207,6 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
     });
 
     test('should show copied feedback on click', async ({ page }) => {
-      // Grant clipboard permission
-      await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
-
       await clickSvgPath(page, '[data-alpha3="DEU"].country-path--active');
       await expect(page.locator('[data-testid="compliance-panel"]')).toBeVisible();
 

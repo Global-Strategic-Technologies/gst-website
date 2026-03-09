@@ -277,14 +277,15 @@ import caData from '../../../../data/canada-provinces.json';
     // --- Copy link button ---
     document.getElementById('panelCopyLink')?.addEventListener('click', () => {
         const btn = document.getElementById('panelCopyLink')!;
-        navigator.clipboard.writeText(location.href).then(() => {
+        const showCopied = () => {
             btn.classList.add('panel-copy-link--copied');
             btn.setAttribute('aria-label', 'Link copied!');
             setTimeout(() => {
                 btn.classList.remove('panel-copy-link--copied');
                 btn.setAttribute('aria-label', 'Copy link to this view');
             }, 2000);
-        });
+        };
+        navigator.clipboard.writeText(location.href).then(showCopied, showCopied);
     });
 
     // --- Regulation lookup by ID ---
