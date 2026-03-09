@@ -254,6 +254,39 @@ import caData from '../../../../data/canada-provinces.json';
     let currentRegionId: string | null = null;
     let activeTimelineEntry: HTMLElement | null = null;
 
+    // --- URL bookmarking helpers ---
+    const VALID_FILTERS = new Set(['data-privacy', 'ai-governance', 'industry-compliance', 'cybersecurity']);
+
+    function syncUrlParams(): void {
+        const params = new URLSearchParams();
+        if (currentRegionId) params.set('region', currentRegionId);
+        if (activeCategory !== 'all') params.set('filter', activeCategory);
+        const qs = params.toString();
+        history.replaceState(null, '', qs ? `${location.pathname}?${qs}` : location.pathname);
+    }
+
+    function getUrlParams(): { region: string | null; filter: string | null } {
+        const params = new URLSearchParams(location.search);
+        const filter = params.get('filter');
+        return {
+            region: params.get('region'),
+            filter: filter && VALID_FILTERS.has(filter) ? filter : null,
+        };
+    }
+
+    // --- Copy link button ---
+    document.getElementById('panelCopyLink')?.addEventListener('click', () => {
+        const btn = document.getElementById('panelCopyLink')!;
+        navigator.clipboard.writeText(location.href).then(() => {
+            btn.classList.add('panel-copy-link--copied');
+            btn.setAttribute('aria-label', 'Link copied!');
+            setTimeout(() => {
+                btn.classList.remove('panel-copy-link--copied');
+                btn.setAttribute('aria-label', 'Copy link to this view');
+            }, 2000);
+        });
+    });
+
     // --- Regulation lookup by ID ---
     const regById: Record<string, Regulation> = {};
     for (const regs of Object.values(regionMap)) {
@@ -665,6 +698,7 @@ import caData from '../../../../data/canada-provinces.json';
     document.addEventListener('regionSelected', ((event: CustomEvent<RegionSelectedDetail>) => {
         const { regionId } = event.detail;
         currentRegionId = regionId;
+        syncUrlParams();
         const countryName = stateCodeToName[regionId] ?? provinceCodeToName[regionId] ?? alpha3ToName[regionId] ?? regionId;
 
         renderPanel(regionId);
@@ -770,6 +804,7 @@ import caData from '../../../../data/canada-provinces.json';
         document.querySelectorAll('#regulation-filter-chips .filter-chip').forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
         activeCategory = chip.dataset.category ?? 'all';
+        syncUrlParams();
 
         updateMapHighlighting();
 
@@ -792,6 +827,7 @@ import caData from '../../../../data/canada-provinces.json';
                     selectedPath = null;
                 }
                 currentRegionId = null;
+                syncUrlParams();
                 if (isMobile()) {
                     closeBottomSheet();
                 }
@@ -1253,6 +1289,33 @@ import caData from '../../../../data/canada-provinces.json';
 
     // Initial render
     renderTimeline();
+
+    // --- Restore bookmarked state from URL ---
+    (function restoreFromUrl() {
+        const { region, filter } = getUrlParams();
+
+        if (filter) {
+            activeCategory = filter;
+            document.querySelectorAll('#regulation-filter-chips .filter-chip').forEach(c => {
+                c.classList.toggle('active', (c as HTMLElement).dataset.category === filter);
+            });
+            updateMapHighlighting();
+            renderTimeline();
+        }
+
+        if (region) {
+            const isSubnational = region.includes('-');
+            const selector = isSubnational
+                ? `path[data-state-code="${CSS.escape(region)}"]`
+                : `path[data-alpha3="${CSS.escape(region)}"]`;
+            const pathEl = document.querySelector(selector) as SVGPathElement | null;
+
+            if (pathEl && (pathEl.classList.contains('country-path--active')
+                        || pathEl.classList.contains('state-path--active'))) {
+                selectRegion(pathEl, region, isSubnational ? 'state-path--selected' : 'country-path--selected');
+            }
+        }
+    })();
 </script>
 
 <script>

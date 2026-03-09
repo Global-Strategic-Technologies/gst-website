@@ -376,11 +376,9 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 **High Impact:**
 - **Category filter UI** — Toggle chips/buttons to filter by data privacy, AI governance, industry compliance, cybersecurity. Leverages existing `category` field on all 74 regulations. Updates map highlighting and panel cards in real time.
 - **Regulation timeline/tracker** — Visualize upcoming effective dates on a timeline. Several AI laws take effect 2026-2027; useful for diligence teams planning ahead.
-- **Compliance gap analysis / comparison mode** — Select multiple regions and view a side-by-side matrix showing which regulations apply where, highlighting coverage gaps across jurisdictions.
 - **Search/filter** — Text search across regulation names, summaries, and key requirements. Quick answers to questions like "which regions require breach notification?"
 
 **UX Improvements:**
-- Upgrade to 50m TopoJSON for better small-country visibility (Bahrain, Serbia, etc.)
 - Region bookmarking/sharing — URL state encoding so users can share a link to a specific region's regulations
 - Print/export — PDF export of selected region's regulation cards for inclusion in diligence reports
 - Regulation change alerts — Flag regulations with recent amendments or pending changes
@@ -426,6 +424,35 @@ Prioritized list of regulations and jurisdictions for future phases:
 - Australia: My Health Records Act 2012
 - Japan: Next Generation Medical Infrastructure Act (2018)
 - Canada: provincial health information acts (Ontario PHIPA, Alberta HIA, BC E-Health Act)
+
+---
+
+### Deprioritized: 50m TopoJSON Upgrade
+
+**Status:** Deprioritized — cost/benefit does not justify implementation at current regulation count.
+
+**Research (March 2026):**
+
+| | 110m (current) | 50m |
+|--|--|--|
+| Countries | 177 | 241 (+64) |
+| File size | 105 KB | 739 KB (+634 KB, 7x increase) |
+| Bahrain | Missing entirely | Present |
+| Serbia | Exists, small polygon | Better polygon |
+| Singapore | Present | Present (no change) |
+
+- Of 64 countries gained, only **Bahrain** (`BH-PDPL.json`) has a regulation in our data but no renderable polygon. Serbia exists in 110m but is small. Singapore is present in both.
+- The 634 KB payload increase is embedded inline at build time — significant for a single missing country.
+- No user-reported issues with current resolution.
+
+**Cheaper alternatives if Bahrain visibility becomes needed:**
+1. Delete `BH-PDPL.json` (remove unrenderable regulation data)
+2. Inject a manual marker/circle at Bahrain's coordinates as a clickable target
+
+**Revisit when:**
+- Regulation count for small-island/small-country nations exceeds 5+
+- Geographic expansion Tiers 2-4 add sub-national data requiring higher fidelity boundaries
+- Users report inability to find or interact with specific countries
 
 ---
 
