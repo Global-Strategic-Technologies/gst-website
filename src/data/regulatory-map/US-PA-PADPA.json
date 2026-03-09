@@ -1,0 +1,17 @@
+{
+  "id": "us-pa-padpa",
+  "name": "Pennsylvania Data Privacy Act",
+  "regions": ["US-PA"],
+  "effectiveDate": "2025-10-01",
+  "summary": "Pennsylvania's Data Privacy Act establishes consumer data privacy rights for one of the largest US state economies. It follows the Virginia/Connecticut framework with rights to access, delete, and opt out of data sales, while imposing data protection assessment requirements and processor-controller contractual obligations.",
+  "category": "data-privacy",
+  "keyRequirements": [
+    "Consumer rights to access, correct, delete, and obtain a portable copy of personal data",
+    "Right to opt out of sale of personal data, targeted advertising, and profiling",
+    "Data controllers must provide clear and accessible privacy notices",
+    "Data protection assessments required for targeted advertising, sale of data, and sensitive data processing",
+    "Data processing agreements with mandatory security and confidentiality provisions",
+    "Heightened consent requirements for processing sensitive personal data"
+  ],
+  "penalties": "Enforcement exclusively by the Pennsylvania Attorney General with civil penalties up to $7,500 per violation. No private right of action. 30-day cure period for violations."
+}

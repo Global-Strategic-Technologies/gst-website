@@ -1,9 +1,12 @@
 {
   "id": "id-pdp",
   "name": "Personal Data Protection Law (Law No. 27 of 2022)",
-  "regions": ["IDN"],
+  "regions": [
+    "IDN"
+  ],
   "effectiveDate": "2024-10-17",
   "summary": "Indonesia's first comprehensive personal data protection law, enacted October 2022 with a two-year transition period making it fully enforceable from 17 October 2024. It covers both electronic and non-electronic personal data processing and applies to entities within and outside Indonesia processing data of Indonesian residents.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain valid and explicit consent for personal data processing",
     "Mandatory breach notification to data subjects within 72 hours of discovering a breach",

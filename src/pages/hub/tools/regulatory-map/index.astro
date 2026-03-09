@@ -10,12 +10,12 @@ trackPageView('regulatory-map', 'Regulatory Map | GST');
 
 const faqItems = [
     {
-        question: "Why do data privacy and AI regulations matter for technology investments?",
-        answer: "Data and AI capabilities are central to nearly every modern business. They drive product decisions, customer engagement, and revenue. When a company operates across jurisdictions without a clear understanding of its regulatory obligations in both data privacy and AI governance, the result is unchecked exposure: fines, forced operational changes, or deal-killing liabilities discovered during diligence. For investors, regulatory posture is a direct indicator of operational maturity and risk."
+        question: "Why does regulatory coverage matter for technology investments?",
+        answer: "Data privacy, AI governance, cybersecurity, and industry compliance obligations are embedded in nearly every modern business. They shape product decisions, customer engagement, and revenue. When a company operates across jurisdictions without a clear understanding of its regulatory exposure across these domains, the result is unchecked risk: fines, forced operational changes, or deal-killing liabilities discovered during diligence. For investors, regulatory posture is a direct indicator of operational maturity and risk."
     },
     {
         question: "What regulations does the map cover?",
-        answer: "The map covers two categories of regulation. For data privacy, it includes major frameworks such as the EU's GDPR, California's CCPA/CPRA, Brazil's LGPD, Canada's PIPEDA and provincial laws, and dozens of other national and sub-national regulations. For artificial intelligence, it includes the EU AI Act, China's algorithm and generative AI regulations, South Korea's AI Basic Act, and US state-level AI laws covering areas like algorithmic discrimination, AI transparency, and automated employment decisions. Coverage is continually expanding as new frameworks are enacted worldwide."
+        answer: "The map covers four categories of regulation across 120+ frameworks worldwide. Data privacy includes the EU's GDPR, California's CCPA/CPRA, Brazil's LGPD, Canada's PIPEDA, and dozens of other national and sub-national laws. AI governance covers the EU AI Act, China's algorithm and generative AI regulations, South Korea's AI Basic Act, and US state-level AI laws addressing algorithmic discrimination, transparency, and automated decision-making. Cybersecurity includes the EU's NIS2 Directive, the US CIRCIA and CMMC frameworks, Singapore's Cybersecurity Act, and national cyber strategies across the Middle East, Africa, and Asia-Pacific. Industry compliance covers frameworks like DORA for financial services, SOX, Basel III, HIPAA, and PCI DSS. Coverage is continually expanding as new frameworks are enacted worldwide."
     },
     {
         question: "How current is the regulatory data shown here?",
@@ -23,11 +23,11 @@ const faqItems = [
     },
     {
         question: "How should I use this tool during due diligence?",
-        answer: "Start by identifying every jurisdiction where the target company collects, processes, or stores data, and where it develops or deploys AI systems. Use the map to surface the applicable regulations in those regions, then cross-reference the target's compliance posture against each framework's key requirements. This gives you a structured view of regulatory exposure across both data privacy and AI governance, highlighting gaps that could translate into remediation costs, integration delays, or post-close liabilities."
+        answer: "Start by identifying every jurisdiction where the target company operates, collects or processes data, deploys AI systems, or maintains critical infrastructure. Use the map to surface applicable regulations across data privacy, AI governance, cybersecurity, and industry compliance in those regions, then cross-reference the target's compliance posture against each framework's key requirements. This gives you a structured view of regulatory exposure across all four domains, highlighting gaps that could translate into remediation costs, integration delays, or post-close liabilities."
     },
     {
         question: "Does GST provide regulatory compliance advisory?",
-        answer: "<p>Yes. The Regulatory Map is one component of GST's broader technology diligence capability. When regulatory exposure is identified during an engagement, whether in data privacy, AI governance, or both, we assess the scope of non-compliance, estimate remediation costs, and build those findings into our overall risk analysis and integration roadmap.</p><p><a href='/services'>Learn more about our advisory services</a> or <a href='https://calendly.com/globalstrategictech'>schedule a consultation</a>.</p>"
+        answer: "<p>Yes. The Regulatory Map is one component of GST's broader technology diligence capability. When regulatory exposure is identified during an engagement, whether in data privacy, AI governance, cybersecurity, or industry compliance, we assess the scope of non-compliance, estimate remediation costs, and build those findings into our overall risk analysis and integration roadmap.</p><p><a href='/services'>Learn more about our advisory services</a> or <a href='https://calendly.com/globalstrategictech'>schedule a consultation</a>.</p>"
     },
 ];
 
@@ -77,6 +77,54 @@ import caData from '../../../../data/canada-provinces.json';
                     </div>
                 </div>
                 <CompliancePanel />
+                <div class="bottom-sheet-overlay" id="bottomSheetOverlay" hidden></div>
+            </div>
+
+            <div class="regulation-filters" role="toolbar" aria-label="Filter regulations by category">
+                <div class="regulation-search" id="regulationSearch">
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="M10.5 10.5L14.5 14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                        <input
+                            type="search"
+                            id="regulationSearchInput"
+                            class="search-input"
+                            placeholder="Search regulations..."
+                            aria-label="Search regulations by name, summary, or requirements"
+                            autocomplete="off"
+                        />
+                        <button id="searchClearBtn" class="search-clear-btn" aria-label="Clear search" hidden>
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                                <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="search-results" id="searchResults" role="listbox" aria-label="Search results" hidden></div>
+                </div>
+                <div class="filter-chips" id="regulation-filter-chips">
+                    <button class="filter-chip filter-chip--all active" data-category="all">All</button>
+                    <button class="filter-chip filter-chip--privacy" data-category="data-privacy">Data Privacy</button>
+                    <button class="filter-chip filter-chip--ai" data-category="ai-governance">AI Governance</button>
+                    <button class="filter-chip filter-chip--industry" data-category="industry-compliance">Industry Compliance</button>
+                    <button class="filter-chip filter-chip--cyber" data-category="cybersecurity">Cybersecurity</button>
+                </div>
+            </div>
+
+            <div class="timeline-section" id="timelineSection">
+                <h2 class="timeline-heading heading-md">Regulation Timeline</h2>
+                <div class="timeline-legend">
+                    <span class="timeline-legend__item"><span class="timeline-dot timeline-dot--privacy" aria-hidden="true"></span> Data Privacy</span>
+                    <span class="timeline-legend__item"><span class="timeline-dot timeline-dot--ai" aria-hidden="true"></span> AI Governance</span>
+                    <span class="timeline-legend__item"><span class="timeline-dot timeline-dot--industry" aria-hidden="true"></span> Industry Compliance</span>
+                    <span class="timeline-legend__item"><span class="timeline-dot timeline-dot--cyber" aria-hidden="true"></span> Cybersecurity</span>
+                </div>
+                <div class="timeline-scroll" id="timelineScroll">
+                    <div class="timeline-track" id="timelineTrack">
+                        <!-- Rendered by client JS -->
+                    </div>
+                </div>
             </div>
 
         </div>
@@ -144,6 +192,138 @@ import caData from '../../../../data/canada-provinces.json';
         caTopo.objects.collection as GeometryCollection
     ) as unknown as FeatureCollection<Geometry, { iso_3166_2?: string; name?: string }>;
 
+    // --- Mobile detection ---
+    const isMobile = (): boolean => window.innerWidth < 1024;
+
+    // --- Bottom sheet (mobile panel) ---
+    const overlay = document.getElementById('bottomSheetOverlay');
+
+    function openBottomSheet(): void {
+        if (!isMobile()) return;
+        compliancePanel.hidden = false;
+        // Force reflow before adding class for transition
+        void compliancePanel.offsetHeight;
+        compliancePanel.classList.add('bottom-sheet--open');
+        if (overlay) {
+            overlay.hidden = false;
+            void overlay.offsetHeight;
+            overlay.classList.add('visible');
+        }
+    }
+
+    function closeBottomSheet(): void {
+        compliancePanel.classList.remove('bottom-sheet--open');
+        overlay?.classList.remove('visible');
+        setTimeout(() => {
+            if (overlay) overlay.hidden = true;
+        }, 300);
+    }
+
+    overlay?.addEventListener('click', closeBottomSheet);
+
+    // Swipe-down-to-dismiss
+    const sheetHandle = document.getElementById('bottomSheetHandle');
+    let sheetStartY = 0;
+    let sheetCurrentY = 0;
+
+    sheetHandle?.addEventListener('touchstart', (e) => {
+        sheetStartY = e.touches[0].clientY;
+        sheetCurrentY = sheetStartY;
+        compliancePanel.style.transition = 'none';
+    }, { passive: true });
+
+    sheetHandle?.addEventListener('touchmove', (e) => {
+        sheetCurrentY = e.touches[0].clientY;
+        const dy = Math.max(0, sheetCurrentY - sheetStartY);
+        compliancePanel.style.transform = `translateY(${dy}px)`;
+    }, { passive: true });
+
+    sheetHandle?.addEventListener('touchend', () => {
+        compliancePanel.style.transition = '';
+        const dy = sheetCurrentY - sheetStartY;
+        if (dy > 80) {
+            closeBottomSheet();
+        } else {
+            compliancePanel.style.transform = '';
+            compliancePanel.classList.add('bottom-sheet--open');
+        }
+    });
+
+    // --- Filter & timeline state ---
+    let activeCategory = 'all';
+    let currentRegionId: string | null = null;
+    let activeTimelineEntry: HTMLElement | null = null;
+
+    // --- Regulation lookup by ID ---
+    const regById: Record<string, Regulation> = {};
+    for (const regs of Object.values(regionMap)) {
+        for (const reg of regs) {
+            if (!regById[reg.id]) regById[reg.id] = reg;
+        }
+    }
+
+    // --- Search index ---
+    interface SearchableReg {
+        reg: Regulation;
+        searchText: string;
+    }
+
+    const searchIndex: SearchableReg[] = Object.values(regById).map(reg => ({
+        reg,
+        searchText: [
+            reg.name,
+            reg.summary,
+            ...(reg.keyRequirements ?? []),
+        ].join(' ').toLowerCase(),
+    }));
+
+    let activeSearchTerm = '';
+    let searchResults: Regulation[] = [];
+    let activeResultIndex = -1;
+
+    function clearRegionHighlights(): void {
+        select('#mapSvg').selectAll('.country-path--highlighted')
+            .classed('country-path--highlighted', false);
+        select('#mapSvg').selectAll('.state-path--highlighted')
+            .classed('state-path--highlighted', false);
+    }
+
+    function highlightRegulationRegions(reg: Regulation): void {
+        clearRegionHighlights();
+
+        const regionSet = new Set(reg.regions);
+
+        // Highlight country paths
+        select('#mapSvg').selectAll('path[data-alpha3]')
+            .each(function() {
+                const el = this as SVGPathElement;
+                const alpha3 = el.dataset.alpha3 ?? '';
+                if (regionSet.has(alpha3)) {
+                    el.classList.add('country-path--highlighted');
+                }
+            });
+
+        // Highlight state/province paths
+        select('#mapSvg').selectAll('path[data-state-code]')
+            .each(function() {
+                const el = this as SVGPathElement;
+                const code = el.dataset.stateCode ?? '';
+                if (regionSet.has(code)) {
+                    el.classList.add('state-path--highlighted');
+                }
+            });
+    }
+
+    function getFilteredRegionMap(): Record<string, Regulation[]> {
+        if (activeCategory === 'all') return regionMap;
+        const filtered: Record<string, Regulation[]> = {};
+        for (const [code, regs] of Object.entries(regionMap)) {
+            const matching = regs.filter(r => r.category === activeCategory);
+            if (matching.length > 0) filtered[code] = matching;
+        }
+        return filtered;
+    }
+
     // --- D3 Setup ---
     // Convert TopoJSON to GeoJSON first so we can fit the projection to the data
     const countries = feature(
@@ -202,6 +382,51 @@ import caData from '../../../../data/canada-provinces.json';
     zoomResetBtn?.addEventListener('click', () => {
         svg.transition().duration(300).call(zoomBehavior.transform, zoomIdentity);
     });
+
+    // --- Quick-zoom regions (mobile) ---
+    // Translate values: tx = vw/2 - k*cx, ty = vh/2 - k*cy
+    // where (cx,cy) is the SVG center of the region on the 960x440 equirectangular projection
+    const REGION_VIEWS: Record<string, { x: number; y: number; k: number }> = {
+        'americas':       { x: -107, y: -257, k: 2.2 },
+        'europe':         { x: -1340, y: -148, k: 3.5 },
+        'asia-pacific':   { x: -1488, y: -283, k: 2.5 },
+        'africa-mideast': { x: -1088, y: -432, k: 2.8 },
+    };
+
+    document.getElementById('mapQuickZoom')?.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest('.quick-zoom-btn') as HTMLElement | null;
+        if (!btn) return;
+        const region = btn.dataset.region ?? '';
+        const view = REGION_VIEWS[region];
+        if (!view) return;
+
+        const transform = zoomIdentity.translate(view.x, view.y).scale(view.k);
+        svg.transition().duration(500).call(zoomBehavior.transform, transform);
+
+        trackEvent({
+            event: 'quick_zoom',
+            category: 'engagement',
+            region: region,
+            page: 'regulatory-map',
+        });
+    });
+
+    // --- Pinch-to-zoom hint (mobile, first touch only) ---
+    const pinchHint = document.getElementById('mapPinchHint');
+    let pinchHintShown = false;
+
+    svgNode.addEventListener('touchstart', () => {
+        if (pinchHintShown || !isMobile() || !pinchHint) return;
+        pinchHintShown = true;
+        pinchHint.hidden = false;
+        requestAnimationFrame(() => {
+            pinchHint.classList.add('visible');
+        });
+        setTimeout(() => {
+            pinchHint.classList.remove('visible');
+            setTimeout(() => { pinchHint.hidden = true; }, 300);
+        }, 2000);
+    }, { once: true, passive: true });
 
     // --- Render countries ---
     let selectedPath: SVGPathElement | null = null;
@@ -347,6 +572,13 @@ import caData from '../../../../data/canada-provinces.json';
 
     // --- Region selection (shared by country + state clicks) ---
     function selectRegion(target: SVGPathElement, regionId: string, selectedClass: string): void {
+        // Clear any timeline-driven highlights
+        clearRegionHighlights();
+        if (activeTimelineEntry) {
+            activeTimelineEntry.classList.remove('timeline-entry--active');
+            activeTimelineEntry = null;
+        }
+
         if (selectedPath) {
             selectedPath.classList.remove('country-path--selected', 'state-path--selected');
         }
@@ -360,12 +592,42 @@ import caData from '../../../../data/canada-provinces.json';
         );
     }
 
+    // --- Mobile tap bar ---
+    const tapBar = document.getElementById('mapTapBar');
+    const tapBarName = document.getElementById('tapBarName');
+    const tapBarAction = document.getElementById('tapBarAction');
+    let pendingTapTarget: SVGPathElement | null = null;
+    let pendingTapRegionId: string | null = null;
+    let pendingTapSelectedClass: string | null = null;
+
+    function showTapBar(name: string, target: SVGPathElement, regionId: string, selectedClass: string): void {
+        if (!tapBar || !tapBarName) return;
+        document.getElementById('mapCta')?.remove();
+        tapBarName.textContent = name;
+        tapBar.hidden = false;
+        pendingTapTarget = target;
+        pendingTapRegionId = regionId;
+        pendingTapSelectedClass = selectedClass;
+    }
+
+    tapBarAction?.addEventListener('click', () => {
+        if (pendingTapTarget && pendingTapRegionId && pendingTapSelectedClass) {
+            selectRegion(pendingTapTarget, pendingTapRegionId, pendingTapSelectedClass);
+        }
+    });
+
     // --- Country click ---
     function handleCountryClick(event: Event): void {
         const target = (event.currentTarget ?? event.target) as SVGPathElement;
         const alpha3 = target.dataset.alpha3 ?? '';
         if (!alpha3) return;
-        selectRegion(target, alpha3, 'country-path--selected');
+
+        if (isMobile()) {
+            const name = alpha3ToName[alpha3] ?? alpha3;
+            showTapBar(name, target, alpha3, 'country-path--selected');
+        } else {
+            selectRegion(target, alpha3, 'country-path--selected');
+        }
     }
 
     // --- State click ---
@@ -373,7 +635,13 @@ import caData from '../../../../data/canada-provinces.json';
         const target = (event.currentTarget ?? event.target) as SVGPathElement;
         const stateCode = target.dataset.stateCode ?? '';
         if (!stateCode) return;
-        selectRegion(target, stateCode, 'state-path--selected');
+
+        if (isMobile()) {
+            const name = stateCodeToName[stateCode] ?? provinceCodeToName[stateCode] ?? stateCode;
+            showTapBar(name, target, stateCode, 'state-path--selected');
+        } else {
+            selectRegion(target, stateCode, 'state-path--selected');
+        }
     }
 
     // --- Panel updates ---
@@ -382,32 +650,41 @@ import caData from '../../../../data/canada-provinces.json';
     const panelRegCount = document.getElementById('panelRegCount')!;
     const panelRegulations = document.getElementById('panelRegulations')!;
 
-    document.addEventListener('regionSelected', ((event: CustomEvent<RegionSelectedDetail>) => {
-        const { regionId } = event.detail;
+    function renderPanel(regionId: string): void {
         const countryName = stateCodeToName[regionId] ?? provinceCodeToName[regionId] ?? alpha3ToName[regionId] ?? regionId;
-        const regs = regionMap[regionId];
+        const filteredMap = getFilteredRegionMap();
+        const regs = filteredMap[regionId] ?? [];
 
         panelCountryName.textContent = countryName;
 
-        const count = regs?.length ?? 0;
+        const count = regs.length;
         panelRegCount.textContent = `${count} regulation${count !== 1 ? 's' : ''}`;
-        panelRegulations.innerHTML = (regs ?? []).map(renderRegulationCard).join('');
+        panelRegulations.innerHTML = regs.map(renderRegulationCard).join('');
+    }
+
+    document.addEventListener('regionSelected', ((event: CustomEvent<RegionSelectedDetail>) => {
+        const { regionId } = event.detail;
+        currentRegionId = regionId;
+        const countryName = stateCodeToName[regionId] ?? provinceCodeToName[regionId] ?? alpha3ToName[regionId] ?? regionId;
+
+        renderPanel(regionId);
 
         document.getElementById('mapCta')?.remove();
         compliancePanel.hidden = false;
 
+        const totalRegs = regionMap[regionId]?.length ?? 0;
         trackEvent({
             event: 'region_selected',
             category: 'engagement',
             region_id: regionId,
             region_name: countryName,
-            regulation_count: count,
+            regulation_count: totalRegs,
             page: 'regulatory-map',
         });
 
-        // On mobile, scroll the panel into view
-        if (window.innerWidth < 1024) {
-            compliancePanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // On mobile, open the bottom sheet
+        if (isMobile()) {
+            openBottomSheet();
         }
     }) as EventListener);
 
@@ -423,6 +700,10 @@ import caData from '../../../../data/canada-provinces.json';
                 <h3 class="reg-card__name">${escapeHtml(reg.name)}</h3>
                 <p class="reg-card__date">Effective: ${escapeHtml(date)}</p>
                 <p class="reg-card__summary">${escapeHtml(reg.summary)}</p>`;
+
+        if (reg.scope) {
+            html += `<p class="reg-card__scope">Applies to: ${escapeHtml(reg.scope)}</p>`;
+        }
 
         if (reg.keyRequirements && reg.keyRequirements.length > 0) {
             html += '<ul class="reg-card__requirements">';
@@ -455,6 +736,523 @@ import caData from '../../../../data/canada-provinces.json';
     }
     syncPanelHeight();
     window.addEventListener('resize', syncPanelHeight);
+
+    // --- Category filter ---
+    function updateMapHighlighting(): void {
+        const filteredMap = getFilteredRegionMap();
+
+        // Update country paths
+        select('#mapSvg').selectAll('path[class^="country-path"]')
+            .attr('class', function() {
+                const el = this as unknown as SVGPathElement;
+                const d = select(el).datum() as { id?: string; properties?: { iso_3166_2?: string } } | undefined;
+                if (!d || !d.id) return 'country-path';
+                const alpha3 = numericToAlpha3[d.id as string];
+                if (alpha3 === 'USA' || alpha3 === 'CAN') return 'country-path';
+                const hasRegs = alpha3 && filteredMap[alpha3];
+                return `country-path${hasRegs ? ' country-path--active' : ''}`;
+            });
+
+        // Update US state and Canadian province paths
+        select('#mapSvg').selectAll('path[class^="state-path"]')
+            .attr('class', function() {
+                const el = this as unknown as SVGPathElement;
+                const code = el.dataset.stateCode ?? '';
+                const hasRegs = code && filteredMap[code];
+                return `state-path${hasRegs ? ' state-path--active' : ''}`;
+            });
+    }
+
+    document.getElementById('regulation-filter-chips')?.addEventListener('click', (e) => {
+        const chip = (e.target as HTMLElement).closest('.filter-chip') as HTMLElement | null;
+        if (!chip) return;
+
+        document.querySelectorAll('#regulation-filter-chips .filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        activeCategory = chip.dataset.category ?? 'all';
+
+        updateMapHighlighting();
+
+        // Re-run search with new category filter
+        if (activeSearchTerm.trim()) {
+            searchResults = performSearch(activeSearchTerm);
+            renderSearchResults(searchResults);
+            updateMapForSearch(searchResults, activeSearchTerm);
+        }
+
+        if (currentRegionId && !compliancePanel.hidden) {
+            const filteredMap = getFilteredRegionMap();
+            const regs = filteredMap[currentRegionId] ?? [];
+            if (regs.length > 0) {
+                renderPanel(currentRegionId);
+            } else {
+                // Deselect region when it has no regulations for the new filter
+                if (selectedPath) {
+                    selectedPath.classList.remove('country-path--selected', 'state-path--selected');
+                    selectedPath = null;
+                }
+                currentRegionId = null;
+                if (isMobile()) {
+                    closeBottomSheet();
+                }
+                compliancePanel.hidden = true;
+            }
+        }
+
+        renderTimeline();
+
+        trackEvent({
+            event: 'regulation_filter_applied',
+            category: 'engagement',
+            filter_value: activeCategory,
+            page: 'regulatory-map',
+        });
+    });
+
+    // --- Search ---
+    const categoryColorMap: Record<string, string> = {
+        'data-privacy': 'privacy',
+        'ai-governance': 'ai',
+        'industry-compliance': 'industry',
+        'cybersecurity': 'cyber',
+    };
+
+    const categoryLabelMap: Record<string, string> = {
+        'data-privacy': 'Privacy',
+        'ai-governance': 'AI',
+        'industry-compliance': 'Industry',
+        'cybersecurity': 'Cyber',
+    };
+
+    function performSearch(query: string): Regulation[] {
+        if (!query.trim()) return [];
+        const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+        return searchIndex
+            .filter(({ searchText, reg }) => {
+                if (activeCategory !== 'all' && reg.category !== activeCategory) return false;
+                return terms.every(term => searchText.includes(term));
+            })
+            .map(({ reg }) => reg);
+    }
+
+    function renderSearchResults(results: Regulation[]): void {
+        const container = document.getElementById('searchResults')!;
+
+        if (!activeSearchTerm.trim()) {
+            container.hidden = true;
+            container.innerHTML = '';
+            return;
+        }
+
+        if (results.length === 0) {
+            container.innerHTML = '<div class="search-no-results">No regulations found</div>';
+            container.hidden = false;
+            return;
+        }
+
+        container.innerHTML = results.slice(0, 15).map((reg, i) => {
+            const catColor = categoryColorMap[reg.category] ?? 'privacy';
+            const catLabel = categoryLabelMap[reg.category] ?? reg.category;
+            const regionCount = reg.regions.length;
+            return `
+                <div class="search-result-item"
+                     role="option"
+                     id="search-result-${i}"
+                     data-reg-id="${escapeHtml(reg.id)}"
+                     tabindex="-1">
+                    <span class="search-result-name">${escapeHtml(reg.name)}</span>
+                    <span class="search-result-meta">
+                        <span class="search-result-category search-result-category--${catColor}">${catLabel}</span>
+                        <span class="search-result-regions">${regionCount} region${regionCount !== 1 ? 's' : ''}</span>
+                    </span>
+                </div>`;
+        }).join('');
+
+        if (results.length > 15) {
+            container.innerHTML += `<div class="search-result-overflow">${results.length - 15} more results\u2026</div>`;
+        }
+
+        container.hidden = false;
+        activeResultIndex = -1;
+    }
+
+    function updateMapForSearch(results: Regulation[], query: string): void {
+        if (!query.trim()) {
+            updateMapHighlighting();
+            return;
+        }
+
+        const matchingRegions = new Set<string>();
+        for (const reg of results) {
+            for (const region of reg.regions) {
+                matchingRegions.add(region);
+            }
+        }
+
+        select('#mapSvg').selectAll('path[class^="country-path"]')
+            .attr('class', function() {
+                const el = this as unknown as SVGPathElement;
+                const d = select(el).datum() as { id?: string } | undefined;
+                if (!d || !d.id) return 'country-path';
+                const alpha3 = numericToAlpha3[d.id as string];
+                if (alpha3 === 'USA' || alpha3 === 'CAN') return 'country-path';
+                return `country-path${matchingRegions.has(alpha3) ? ' country-path--active' : ''}`;
+            });
+
+        select('#mapSvg').selectAll('path[class^="state-path"]')
+            .attr('class', function() {
+                const el = this as unknown as SVGPathElement;
+                const code = el.dataset.stateCode ?? '';
+                return `state-path${matchingRegions.has(code) ? ' state-path--active' : ''}`;
+            });
+    }
+
+    function selectSearchResult(regId: string): void {
+        const reg = regById[regId];
+        if (!reg) return;
+
+        highlightRegulationRegions(reg);
+
+        const regionCount = reg.regions.length;
+        panelCountryName.textContent = reg.name;
+        panelRegCount.textContent = `${regionCount} region${regionCount !== 1 ? 's' : ''}`;
+        panelRegulations.innerHTML = renderRegulationCard(reg);
+        document.getElementById('mapCta')?.remove();
+        compliancePanel.hidden = false;
+
+        if (isMobile()) {
+            openBottomSheet();
+        }
+
+        document.getElementById('searchResults')!.hidden = true;
+
+        trackEvent({
+            event: 'regulation_search_result_clicked',
+            category: 'engagement',
+            regulation_id: regId,
+            regulation_name: reg.name,
+            search_term: activeSearchTerm,
+            page: 'regulatory-map',
+        });
+    }
+
+    // Search input handler with debounce
+    const searchInput = document.getElementById('regulationSearchInput') as HTMLInputElement;
+    const searchClearBtn = document.getElementById('searchClearBtn')!;
+    let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value;
+        activeSearchTerm = query;
+        searchClearBtn.hidden = !query;
+
+        if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+            searchResults = performSearch(query);
+            renderSearchResults(searchResults);
+            updateMapForSearch(searchResults, query);
+
+            if (query.trim()) {
+                trackEvent({
+                    event: 'regulation_search',
+                    category: 'engagement',
+                    search_term: query,
+                    result_count: searchResults.length,
+                    page: 'regulatory-map',
+                });
+            }
+        }, 200);
+    });
+
+    // Re-show results on focus
+    searchInput.addEventListener('focus', () => {
+        if (activeSearchTerm.trim() && searchResults.length > 0) {
+            document.getElementById('searchResults')!.hidden = false;
+        }
+    });
+
+    // Keyboard navigation
+    searchInput.addEventListener('keydown', (e) => {
+        const resultsEl = document.getElementById('searchResults')!;
+        const items = resultsEl.querySelectorAll('.search-result-item');
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeResultIndex = Math.min(activeResultIndex + 1, items.length - 1);
+            updateActiveSearchResult(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeResultIndex = Math.max(activeResultIndex - 1, -1);
+            updateActiveSearchResult(items);
+        } else if (e.key === 'Enter' && activeResultIndex >= 0 && activeResultIndex < items.length) {
+            e.preventDefault();
+            const item = items[activeResultIndex] as HTMLElement;
+            selectSearchResult(item.dataset.regId ?? '');
+        } else if (e.key === 'Escape') {
+            resultsEl.hidden = true;
+            activeResultIndex = -1;
+            searchInput.blur();
+        }
+    });
+
+    function updateActiveSearchResult(items: NodeListOf<Element>): void {
+        items.forEach((item, i) => {
+            item.classList.toggle('search-result-item--active', i === activeResultIndex);
+            if (i === activeResultIndex) {
+                (item as HTMLElement).scrollIntoView({ block: 'nearest' });
+            }
+        });
+        searchInput.setAttribute('aria-activedescendant',
+            activeResultIndex >= 0 ? `search-result-${activeResultIndex}` : '');
+    }
+
+    // Click on search result
+    document.getElementById('searchResults')?.addEventListener('click', (e) => {
+        const item = (e.target as HTMLElement).closest('.search-result-item') as HTMLElement | null;
+        if (!item) return;
+        selectSearchResult(item.dataset.regId ?? '');
+    });
+
+    // Clear button
+    searchClearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        activeSearchTerm = '';
+        searchResults = [];
+        document.getElementById('searchResults')!.hidden = true;
+        searchClearBtn.hidden = true;
+        activeResultIndex = -1;
+        updateMapHighlighting();
+        searchInput.focus();
+    });
+
+    // Close dropdown on outside click
+    document.addEventListener('click', (e) => {
+        const searchContainer = document.getElementById('regulationSearch')!;
+        if (!searchContainer.contains(e.target as Node)) {
+            document.getElementById('searchResults')!.hidden = true;
+            activeResultIndex = -1;
+        }
+    });
+
+    // --- Timeline ---
+    function buildTimelineData(): Regulation[] {
+        const seen = new Set<string>();
+        const all: Regulation[] = [];
+        for (const regs of Object.values(regionMap)) {
+            for (const reg of regs) {
+                if (!seen.has(reg.id)) {
+                    seen.add(reg.id);
+                    all.push(reg);
+                }
+            }
+        }
+        return all.sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
+    }
+
+    /**
+     * Position the Today marker absolutely over the timeline track.
+     * Finds the year group matching the current year (or the gap between
+     * the closest past and future year groups) and centers the marker there.
+     */
+    function positionTodayMarker(track: HTMLElement): void {
+        const marker = document.getElementById('timelineTodayMarker');
+        if (!marker) return;
+
+        const currentYear = new Date().getFullYear();
+        const yearGroups = Array.from(track.querySelectorAll('.timeline-year-group'));
+        if (yearGroups.length === 0) return;
+
+        // Find the year group for the current year
+        let targetLeft = 0;
+        let found = false;
+
+        for (const group of yearGroups) {
+            const label = group.querySelector('.timeline-year-label');
+            const year = parseInt(label?.textContent ?? '0');
+            if (year === currentYear) {
+                // Center on the current year group
+                targetLeft = (group as HTMLElement).offsetLeft + (group as HTMLElement).offsetWidth / 2;
+                found = true;
+                break;
+            }
+            if (year > currentYear) {
+                // Current year has no entries — position between previous group and this one
+                const prev = group.previousElementSibling as HTMLElement | null;
+                if (prev && prev.classList.contains('timeline-year-group')) {
+                    targetLeft = prev.offsetLeft + prev.offsetWidth +
+                                 ((group as HTMLElement).offsetLeft - prev.offsetLeft - prev.offsetWidth) / 2;
+                } else {
+                    targetLeft = (group as HTMLElement).offsetLeft;
+                }
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            // All entries are in the past — place after last group
+            const last = yearGroups[yearGroups.length - 1] as HTMLElement;
+            targetLeft = last.offsetLeft + last.offsetWidth + 20;
+        }
+
+        marker.style.left = `${targetLeft}px`;
+    }
+
+    function renderTimeline(): void {
+        const track = document.getElementById('timelineTrack')!;
+        const allRegs = buildTimelineData();
+        const filteredRegs = activeCategory === 'all'
+            ? allRegs
+            : allRegs.filter(r => r.category === activeCategory);
+
+        const today = new Date().toISOString().slice(0, 10);
+
+        // Sort chronologically so year groups render in order
+        filteredRegs.sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
+
+        // Group by year (Map preserves insertion order of sorted data)
+        const byYear = new Map<number, Regulation[]>();
+        for (const reg of filteredRegs) {
+            const year = parseInt(reg.effectiveDate.slice(0, 4));
+            if (!byYear.has(year)) byYear.set(year, []);
+            byYear.get(year)!.push(reg);
+        }
+
+        let html = '';
+
+        for (const [year, regs] of byYear) {
+            html += `<div class="timeline-year-group">`;
+            html += `<span class="timeline-year-label">${year}</span>`;
+            html += `<div class="timeline-year-entries">`;
+            for (const reg of regs) {
+                const isUpcoming = reg.effectiveDate > today;
+                const catClass = categoryColorMap[reg.category] ?? 'privacy';
+                const [y, m] = reg.effectiveDate.split('-');
+                const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                const shortDate = `${monthNames[parseInt(m, 10) - 1]} ${y}`;
+                const truncName = reg.name.length > 35 ? reg.name.slice(0, 33) + '\u2026' : reg.name;
+                html += `
+                    <div class="timeline-entry timeline-entry--${catClass}${isUpcoming ? ' timeline-entry--upcoming' : ''}"
+                         data-reg-id="${escapeHtml(reg.id)}"
+                         title="${escapeHtml(reg.name)} \u2014 ${shortDate}">
+                        <span class="timeline-dot timeline-dot--${catClass}${isUpcoming ? ' timeline-dot--upcoming' : ''}"></span>
+                        <span class="timeline-entry__name">${escapeHtml(truncName)}</span>
+                        <span class="timeline-entry__date">${shortDate}</span>
+                    </div>`;
+            }
+            html += `</div></div>`;
+        }
+
+        // Today marker — absolutely positioned based on chronological position
+        // among the rendered year groups. This is filter-independent.
+        html += `<div class="timeline-today" id="timelineTodayMarker"><span class="timeline-today__label">Today</span></div>`;
+
+        track.innerHTML = html;
+
+        // Position the Today marker over the correct year group
+        positionTodayMarker(track);
+
+        // Auto-scroll to "today" marker
+        const todayMarker = document.getElementById('timelineTodayMarker');
+        if (todayMarker) {
+            const scroll = document.getElementById('timelineScroll')!;
+            scroll.scrollLeft = todayMarker.offsetLeft - scroll.clientWidth / 3;
+        }
+    }
+
+    // Timeline click handler
+    document.getElementById('timelineTrack')?.addEventListener('click', (e) => {
+        const entry = (e.target as HTMLElement).closest('.timeline-entry') as HTMLElement | null;
+        if (!entry) return;
+
+        const regId = entry.dataset.regId ?? '';
+        const reg = regById[regId];
+        if (!reg) return;
+
+        // Toggle active state on timeline entry
+        if (activeTimelineEntry) {
+            activeTimelineEntry.classList.remove('timeline-entry--active');
+        }
+
+        if (activeTimelineEntry === entry) {
+            // Clicking same entry again — deselect
+            activeTimelineEntry = null;
+            clearRegionHighlights();
+            // Restore panel to previously selected region if any
+            if (currentRegionId && !compliancePanel.hidden) {
+                renderPanel(currentRegionId);
+            }
+        } else {
+            entry.classList.add('timeline-entry--active');
+            activeTimelineEntry = entry;
+
+            // Highlight regions on map
+            highlightRegulationRegions(reg);
+
+            // Show this single regulation in the panel
+            const regionCount = reg.regions.length;
+            panelCountryName.textContent = reg.name;
+            panelRegCount.textContent = `${regionCount} region${regionCount !== 1 ? 's' : ''}`;
+            panelRegulations.innerHTML = renderRegulationCard(reg);
+            document.getElementById('mapCta')?.remove();
+            compliancePanel.hidden = false;
+
+            // On mobile, open the bottom sheet
+            if (isMobile()) {
+                openBottomSheet();
+            }
+        }
+
+        trackEvent({
+            event: 'timeline_interaction',
+            category: 'engagement',
+            regulation_id: regId,
+            regulation_name: reg.name,
+            page: 'regulatory-map',
+        });
+    });
+
+    // --- Click-drag scrolling for timeline ---
+    const timelineScroll = document.getElementById('timelineScroll')!;
+    let isDragging = false;
+    let dragStartX = 0;
+    let scrollStartX = 0;
+    let hasDragged = false;
+
+    timelineScroll.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        hasDragged = false;
+        dragStartX = e.clientX;
+        scrollStartX = timelineScroll.scrollLeft;
+        timelineScroll.style.cursor = 'grabbing';
+        timelineScroll.style.userSelect = 'none';
+        e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - dragStartX;
+        if (Math.abs(dx) > 3) hasDragged = true;
+        timelineScroll.scrollLeft = scrollStartX - dx;
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        timelineScroll.style.cursor = '';
+        timelineScroll.style.userSelect = '';
+    });
+
+    // Suppress click on timeline entries after a drag
+    timelineScroll.addEventListener('click', (e) => {
+        if (hasDragged) {
+            e.stopPropagation();
+            hasDragged = false;
+        }
+    }, true);
+
+    // Initial render
+    renderTimeline();
 </script>
 
 <script>
@@ -478,6 +1276,353 @@ import caData from '../../../../data/canada-provinces.json';
 <style>
     .regulatory-map-section {
         padding-bottom: var(--spacing-3xl);
+    }
+
+    /* Bottom sheet overlay (mobile) */
+    .bottom-sheet-overlay {
+        display: none;
+    }
+
+    @media (max-width: 1023px) {
+        .bottom-sheet-overlay {
+            display: block;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .bottom-sheet-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    }
+
+    .regulation-filters {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin-top: var(--spacing-xl);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    @media (max-width: 1023px) {
+        .regulation-filters {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: var(--bg-light);
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        :global(html.dark-theme) .regulation-filters {
+            background: var(--bg-dark);
+            border-bottom-color: var(--border-dark);
+        }
+    }
+
+    /* Search */
+    .regulation-search {
+        width: 100%;
+        max-width: 480px;
+        position: relative;
+    }
+
+    .search-input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: var(--bg-light);
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        transition: border-color var(--transition-fast);
+    }
+
+    .search-input-wrapper:focus-within {
+        border-color: var(--color-primary);
+    }
+
+    .search-icon {
+        flex-shrink: 0;
+        color: var(--text-light-muted);
+    }
+
+    .search-input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        font-size: var(--text-sm);
+        font-family: inherit;
+        color: var(--text-light-primary);
+        outline: none;
+        min-width: 0;
+    }
+
+    .search-input::placeholder {
+        color: var(--text-light-muted);
+    }
+
+    /* Remove default search cancel button in WebKit */
+    .search-input::-webkit-search-cancel-button {
+        -webkit-appearance: none;
+    }
+
+    .search-clear-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: var(--text-light-muted);
+        cursor: pointer;
+        border-radius: 50%;
+        transition: background var(--transition-fast), color var(--transition-fast);
+    }
+
+    .search-clear-btn:hover {
+        background: rgba(26, 26, 26, 0.08);
+        color: var(--text-light-primary);
+    }
+
+    /* Search results dropdown */
+    .search-results {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: var(--bg-light);
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        box-shadow: var(--shadow-md);
+        max-height: 320px;
+        overflow-y: auto;
+        z-index: 30;
+    }
+
+    .search-result-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: var(--spacing-sm) var(--spacing-md);
+        cursor: pointer;
+        transition: background var(--transition-fast);
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .search-result-item:last-child {
+        border-bottom: none;
+    }
+
+    .search-result-item:hover,
+    .search-result-item--active {
+        background: rgba(5, 205, 153, 0.08);
+    }
+
+    .search-result-name {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-light-primary);
+    }
+
+    .search-result-meta {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .search-result-category {
+        font-size: 0.625rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 1px var(--spacing-xs);
+        border-radius: 3px;
+    }
+
+    .search-result-category--privacy { background: rgba(5, 205, 153, 0.15); color: var(--color-primary); }
+    .search-result-category--ai { background: rgba(26, 26, 26, 0.08); color: var(--color-secondary); }
+    .search-result-category--industry { background: rgba(108, 99, 255, 0.12); color: #6c63ff; }
+    .search-result-category--cyber { background: rgba(231, 76, 60, 0.12); color: #e74c3c; }
+
+    .search-result-regions {
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+    }
+
+    .search-no-results {
+        padding: var(--spacing-lg);
+        text-align: center;
+        font-size: var(--text-sm);
+        color: var(--text-light-muted);
+    }
+
+    .search-result-overflow {
+        padding: var(--spacing-sm) var(--spacing-md);
+        text-align: center;
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+        font-style: italic;
+    }
+
+    /* Search dark theme */
+    :global(html.dark-theme) .search-input-wrapper {
+        background: var(--bg-dark-secondary);
+        border-color: rgba(245, 245, 245, 0.1);
+    }
+
+    :global(html.dark-theme) .search-input-wrapper:focus-within {
+        border-color: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .search-input {
+        color: rgba(245, 245, 245, 0.9);
+    }
+
+    :global(html.dark-theme) .search-input::placeholder {
+        color: rgba(200, 200, 200, 0.5);
+    }
+
+    :global(html.dark-theme) .search-clear-btn:hover {
+        background: rgba(245, 245, 245, 0.1);
+        color: rgba(245, 245, 245, 0.9);
+    }
+
+    :global(html.dark-theme) .search-results {
+        background: var(--bg-dark-secondary);
+        border-color: rgba(245, 245, 245, 0.1);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    :global(html.dark-theme) .search-result-item {
+        border-bottom-color: rgba(245, 245, 245, 0.06);
+    }
+
+    :global(html.dark-theme) .search-result-item:hover,
+    :global(html.dark-theme) .search-result-item--active {
+        background: rgba(5, 205, 153, 0.12);
+    }
+
+    :global(html.dark-theme) .search-result-name {
+        color: rgba(245, 245, 245, 0.9);
+    }
+
+    :global(html.dark-theme) .search-result-category--ai {
+        background: rgba(245, 245, 245, 0.08);
+    }
+
+    /* Search responsive */
+    @media (max-width: 1023px) {
+        .regulation-search {
+            max-width: none;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .search-results {
+            max-height: 50vh;
+        }
+    }
+
+    .filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+    }
+
+    .filter-chip {
+        padding: 0.5rem 1rem;
+        background: rgba(26, 26, 26, 0.05);
+        color: rgba(26, 26, 26, 0.7);
+        border: 1px solid rgba(26, 26, 26, 0.1);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        transition: var(--transition-normal);
+        user-select: none;
+        font-family: inherit;
+    }
+
+    .filter-chip--privacy:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .filter-chip--ai:hover { border-color: var(--color-secondary); color: var(--color-secondary); }
+    .filter-chip--industry:hover { border-color: #6c63ff; color: #6c63ff; }
+    .filter-chip--cyber:hover { border-color: #e74c3c; color: #e74c3c; }
+    .filter-chip--all:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+    .filter-chip:hover {
+        background: rgba(26, 26, 26, 0.08);
+    }
+
+    .filter-chip--all.active,
+    .filter-chip--privacy.active {
+        background: var(--color-primary);
+        color: #ffffff;
+        border-color: var(--color-primary);
+    }
+
+    .filter-chip--ai.active {
+        background: var(--color-secondary);
+        color: #ffffff;
+        border-color: var(--color-secondary);
+    }
+
+    .filter-chip--industry.active {
+        background: #6c63ff;
+        color: #ffffff;
+        border-color: #6c63ff;
+    }
+
+    .filter-chip--cyber.active {
+        background: #e74c3c;
+        color: #ffffff;
+        border-color: #e74c3c;
+    }
+
+    :global(html.dark-theme) .filter-chip {
+        background: rgba(245, 245, 245, 0.06);
+        border-color: rgba(245, 245, 245, 0.1);
+        color: rgba(200, 200, 200, 0.8);
+    }
+
+    :global(html.dark-theme) .filter-chip:hover {
+        background: rgba(245, 245, 245, 0.1);
+    }
+
+    :global(html.dark-theme) .filter-chip--all.active,
+    :global(html.dark-theme) .filter-chip--privacy.active {
+        background: var(--color-primary);
+        color: #0a0a0a;
+        border-color: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .filter-chip--ai.active {
+        background: var(--color-secondary);
+        color: #0a0a0a;
+        border-color: var(--color-secondary);
+    }
+
+    :global(html.dark-theme) .filter-chip--industry.active {
+        background: #6c63ff;
+        color: #ffffff;
+        border-color: #6c63ff;
+    }
+
+    :global(html.dark-theme) .filter-chip--cyber.active {
+        background: #e74c3c;
+        color: #ffffff;
+        border-color: #e74c3c;
     }
 
     .map-layout {
@@ -587,6 +1732,18 @@ import caData from '../../../../data/canada-provinces.json';
 
     :global(html.dark-theme) .legend-swatch--neutral {
         background: rgba(245, 245, 245, 0.06);
+    }
+
+    @media (max-width: 767px) {
+        .map-legend {
+            position: static;
+            background: transparent;
+            backdrop-filter: none;
+            border: none;
+            justify-content: center;
+            padding: var(--spacing-sm) 0;
+            z-index: auto;
+        }
     }
 
     /* Responsive */
@@ -735,5 +1892,279 @@ import caData from '../../../../data/canada-provinces.json';
             padding: 0 var(--spacing-md) var(--spacing-md);
             font-size: var(--text-sm);
         }
+
+        .map-cta__text {
+            white-space: normal;
+        }
+
+        .map-cta {
+            max-width: calc(100% - var(--spacing-lg));
+            bottom: auto;
+            top: var(--spacing-sm);
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .map-cta__cursor {
+            transform: rotate(225deg);
+        }
+    }
+
+    /* Timeline */
+    .timeline-section {
+        margin-top: var(--spacing-3xl);
+        padding-top: var(--spacing-2xl);
+        border-top: 1px solid var(--border-light);
+    }
+
+    .timeline-heading {
+        text-align: center;
+        margin-bottom: var(--spacing-md);
+    }
+
+    .timeline-legend {
+        display: flex;
+        justify-content: center;
+        gap: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+        font-size: var(--text-xs);
+        color: var(--text-light-secondary);
+    }
+
+    .timeline-legend__item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .timeline-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .timeline-dot--privacy {
+        background: var(--color-primary);
+    }
+
+    .timeline-dot--ai {
+        background: var(--color-secondary);
+    }
+
+    .timeline-dot--industry {
+        background: #6c63ff;
+    }
+
+    .timeline-dot--cyber {
+        background: #e74c3c;
+    }
+
+    .timeline-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-top: 14px;
+        padding-bottom: var(--spacing-sm);
+        cursor: grab;
+    }
+
+    .timeline-scroll::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .timeline-scroll::-webkit-scrollbar-track {
+        background: rgba(26, 26, 26, 0.05);
+        border-radius: 3px;
+    }
+
+    .timeline-scroll::-webkit-scrollbar-thumb {
+        background: rgba(26, 26, 26, 0.15);
+        border-radius: 3px;
+    }
+
+    :global(.timeline-track) {
+        display: flex;
+        align-items: flex-start;
+        gap: 0;
+        min-width: max-content;
+        padding: var(--spacing-sm) var(--spacing-lg);
+        position: relative;
+    }
+
+    :global(.timeline-track::before) {
+        content: '';
+        position: absolute;
+        top: 28px;
+        left: var(--spacing-lg);
+        right: var(--spacing-lg);
+        height: 2px;
+        background: var(--border-light);
+        z-index: 0;
+    }
+
+    :global(.timeline-year-group) {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        min-width: 60px;
+        padding: 0 var(--spacing-xs);
+    }
+
+    :global(.timeline-year-label) {
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        color: var(--text-light-primary);
+        margin-bottom: var(--spacing-sm);
+        position: relative;
+        z-index: 1;
+        white-space: nowrap;
+    }
+
+    :global(.timeline-year-entries) {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+        align-items: flex-start;
+    }
+
+    :global(.timeline-entry) {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: 3px var(--spacing-sm);
+        border-radius: 4px;
+        border-left: 3px solid transparent;
+        cursor: pointer;
+        transition: background var(--transition-fast), border-color var(--transition-fast);
+        white-space: nowrap;
+        position: relative;
+        z-index: 1;
+    }
+
+    :global(.timeline-entry--privacy) { border-left-color: var(--color-primary); }
+    :global(.timeline-entry--ai) { border-left-color: var(--color-secondary); }
+    :global(.timeline-entry--industry) { border-left-color: #6c63ff; }
+    :global(.timeline-entry--cyber) { border-left-color: #e74c3c; }
+
+    :global(.timeline-entry:hover) {
+        background: rgba(26, 26, 26, 0.05);
+    }
+
+    :global(.timeline-entry--active) {
+        background: rgba(5, 205, 153, 0.1);
+        border-left-color: var(--color-primary) !important;
+    }
+
+    :global(.timeline-entry--upcoming) {
+        font-weight: var(--font-weight-semibold);
+    }
+
+    :global(.timeline-entry__name) {
+        font-size: 0.6875rem;
+        color: var(--text-light-secondary);
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    :global(.timeline-entry--upcoming .timeline-entry__name) {
+        color: var(--text-light-primary);
+    }
+
+    :global(.timeline-entry__date) {
+        font-size: 0.625rem;
+        color: var(--text-light-muted);
+    }
+
+    :global(.timeline-dot--upcoming) {
+        animation: dotPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes dotPulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.6; transform: scale(1.3); }
+    }
+
+    :global(.timeline-today) {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: absolute;
+        top: -6px;
+        transform: translateX(-50%);
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    :global(.timeline-today::after) {
+        content: '';
+        width: 2px;
+        flex: 1;
+        min-height: 60px;
+        background: var(--color-primary);
+        opacity: 0.6;
+    }
+
+    :global(.timeline-today__label) {
+        font-size: 0.625rem;
+        font-weight: var(--font-weight-bold);
+        color: var(--color-primary);
+        background: var(--bg-light-alt);
+        padding: 1px var(--spacing-xs);
+        border-radius: 3px;
+        white-space: nowrap;
+        margin-bottom: 2px;
+    }
+
+    :global(html.dark-theme .timeline-today__label) {
+        background: var(--bg-dark-secondary);
+    }
+
+    /* Timeline dark theme */
+    :global(html.dark-theme) .timeline-section {
+        border-top-color: var(--border-dark);
+    }
+
+    :global(html.dark-theme .timeline-year-label) {
+        color: rgba(245, 245, 245, 0.9);
+    }
+
+    :global(html.dark-theme .timeline-entry:hover) {
+        background: rgba(245, 245, 245, 0.05);
+    }
+
+    :global(html.dark-theme .timeline-entry--active) {
+        background: rgba(5, 205, 153, 0.15);
+    }
+
+    :global(html.dark-theme .timeline-entry__name) {
+        color: rgba(200, 200, 200, 0.7);
+    }
+
+    :global(html.dark-theme .timeline-entry--upcoming .timeline-entry__name) {
+        color: rgba(245, 245, 245, 0.9);
+    }
+
+    :global(html.dark-theme .timeline-entry__date) {
+        color: rgba(200, 200, 200, 0.5);
+    }
+
+    :global(html.dark-theme) .timeline-legend {
+        color: rgba(200, 200, 200, 0.7);
+    }
+
+    :global(html.dark-theme) .timeline-scroll::-webkit-scrollbar-track {
+        background: rgba(245, 245, 245, 0.05);
+    }
+
+    :global(html.dark-theme) .timeline-scroll::-webkit-scrollbar-thumb {
+        background: rgba(245, 245, 245, 0.15);
+    }
+
+    :global(html.dark-theme .timeline-track::before) {
+        background: var(--border-dark);
     }
 </style>

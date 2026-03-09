@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Regulatory Map is an interactive D3.js world map that visualizes global data privacy and AI regulations across 72 regulatory frameworks. Users click highlighted countries, US states, or Canadian provinces to view regulation details in a side panel. Regions with multiple applicable regulations (e.g., an EU member state with both GDPR and the AI Act) display all of them.
+The Regulatory Map is an interactive D3.js world map that visualizes global data privacy, AI, and industry compliance regulations across 74 regulatory frameworks. Users click highlighted countries, US states, or Canadian provinces to view regulation details in a side panel. Regions with multiple applicable regulations (e.g., an EU member state with both GDPR and the AI Act) display all of them.
 
 **Entry point**: `src/pages/hub/tools/regulatory-map/index.astro`
 
@@ -20,7 +20,7 @@ User (Map UI)
 │     CompliancePanel.astro       ← Regulation detail panel (cards, requirements, penalties)
 │
 ├── src/data/regulatory-map/
-│     *.json                      ← 72 regulation files (Zod-validated at build time)
+│     *.json                      ← 74 regulation files (Zod-validated at build time)
 │
 ├── src/data/canada-provinces.json ← TopoJSON for Canadian province boundaries
 │
@@ -85,6 +85,8 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
   "regions": ["AUT", "BEL", "BGR", ...],
   "effectiveDate": "2018-05-25",
   "summary": "Description of the regulation...",
+  "category": "data-privacy",
+  "scope": "Optional: who this regulation applies to",
   "keyRequirements": [
     "Requirement 1",
     "Requirement 2"
@@ -100,8 +102,10 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 | `regions` | string[] | ISO 3166-1 alpha-3 (countries), ISO 3166-2 (US-XX, CA-XX) |
 | `effectiveDate` | string | ISO 8601 date format |
 | `summary` | string | Required, regulation description |
-| `keyRequirements` | string[] | Required, at least 1 item |
-| `penalties` | string | Required, penalty description |
+| `category` | enum | Required: `data-privacy`, `ai-governance`, `industry-compliance`, `cybersecurity` |
+| `scope` | string | Optional, describes who the regulation applies to |
+| `keyRequirements` | string[] | Optional, list of key requirements |
+| `penalties` | string | Optional, penalty description |
 
 ### Region Code Formats
 
@@ -113,9 +117,9 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 
 ---
 
-## Regulation Coverage (72 regulations)
+## Regulation Coverage (74 regulations)
 
-The map covers two categories of regulation: **data privacy** (56 regulations) and **artificial intelligence** (16 regulations). Both categories share the same data schema, rendering pipeline, and region code system. A single region may have multiple regulations from both categories.
+The map covers three categories of regulation: **data privacy** (56 regulations), **artificial intelligence** (16 regulations), and **industry compliance** (2 regulations). All categories share the same data schema, rendering pipeline, and region code system. A single region may have multiple regulations from multiple categories.
 
 ---
 
@@ -252,24 +256,37 @@ The map covers two categories of regulation: **data privacy** (56 regulations) a
 | `US-TX-TRAIGA.json` | Texas | TRAIGA (HB 149) | Harmful AI prohibition, state/healthcare disclosure | 2026-01-01 |
 | `US-CA-AI-TRANSPARENCY.json` | California | AI Transparency Act (SB 942) | AI content watermarking and detection | 2026-08-02 |
 
+---
+
+### Industry Compliance Regulations (2)
+
+| File | Regulation | Coverage | Effective |
+|------|-----------|---------|-----------|
+| `US-HIPAA.json` | Health Insurance Portability and Accountability Act (HIPAA) | 51 US jurisdictions (50 states + DC) | 1996-08-21 |
+| `GLOBAL-PCI-DSS.json` | Payment Card Industry Data Security Standard (PCI DSS) | Global (~104 regions: US, Canada, EU, major economies) | 2004-12-15 |
+
+**Note:** HIPAA is a US federal law applying to healthcare entities handling Protected Health Information (PHI). PCI DSS is a global industry standard (not a government law) enforced contractually by card networks (Visa, Mastercard, etc.), applicable to any organization that stores, processes, or transmits payment cardholder data.
+
+---
+
 #### Multi-Regulation Regions
 
-Some regions now display regulations from both categories:
+Some regions display regulations from multiple categories:
 
-| Region | Privacy | AI |
-|--------|---------|-----|
-| EU member states (27) | GDPR | EU AI Act |
-| China | PIPL | Algorithm Rec, Deep Synthesis, Generative AI |
-| South Korea | PIPA | AI Basic Act |
-| Japan | APPI | AI Promotion Act |
-| Peru | Law 29.733 | AI Promotion Law 31814 |
-| California | CCPA/CPRA | AI Transparency Act |
-| Colorado | CPA | AI Act (SB 24-205) |
-| Illinois | (none) | AIVRA, AI Employment (HB 3773) |
-| New York | (none) | NYC LL144, Algorithmic Pricing Act |
-| Tennessee | TIPA | ELVIS Act |
-| Texas | TDPSA | TRAIGA |
-| Utah | UCPA | AI Policy Act |
+| Region | Privacy | AI | Industry |
+|--------|---------|-----|----------|
+| EU member states (27) | GDPR | EU AI Act | PCI DSS |
+| China | PIPL | Algorithm Rec, Deep Synthesis, Generative AI | PCI DSS |
+| South Korea | PIPA | AI Basic Act | PCI DSS |
+| Japan | APPI | AI Promotion Act | PCI DSS |
+| Peru | Law 29.733 | AI Promotion Law 31814 | — |
+| California | CCPA/CPRA | AI Transparency Act | HIPAA, PCI DSS |
+| Colorado | CPA | AI Act (SB 24-205) | HIPAA, PCI DSS |
+| Illinois | — | AIVRA, AI Employment (HB 3773) | HIPAA, PCI DSS |
+| New York | — | NYC LL144, Algorithmic Pricing Act | HIPAA, PCI DSS |
+| Tennessee | TIPA | ELVIS Act | HIPAA, PCI DSS |
+| Texas | TDPSA | TRAIGA | HIPAA, PCI DSS |
+| Utah | UCPA | AI Policy Act | HIPAA, PCI DSS |
 
 ---
 
@@ -354,14 +371,63 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 
 ## Future Expansion
 
-- Regulation category filtering (data privacy, AI governance, cybersecurity)
-- Additional regulation categories (HIPAA, SOX, PCI-DSS, sector-specific cybersecurity)
-- Timeline view showing regulation effective dates
-- Comparison mode for multi-jurisdiction analysis
-- Search/filter by regulation name or keyword
+### Feature Roadmap
+
+**High Impact:**
+- **Category filter UI** — Toggle chips/buttons to filter by data privacy, AI governance, industry compliance, cybersecurity. Leverages existing `category` field on all 74 regulations. Updates map highlighting and panel cards in real time.
+- **Regulation timeline/tracker** — Visualize upcoming effective dates on a timeline. Several AI laws take effect 2026-2027; useful for diligence teams planning ahead.
+- **Compliance gap analysis / comparison mode** — Select multiple regions and view a side-by-side matrix showing which regulations apply where, highlighting coverage gaps across jurisdictions.
+- **Search/filter** — Text search across regulation names, summaries, and key requirements. Quick answers to questions like "which regions require breach notification?"
+
+**UX Improvements:**
 - Upgrade to 50m TopoJSON for better small-country visibility (Bahrain, Serbia, etc.)
+- Region bookmarking/sharing — URL state encoding so users can share a link to a specific region's regulations
+- Print/export — PDF export of selected region's regulation cards for inclusion in diligence reports
+- Regulation change alerts — Flag regulations with recent amendments or pending changes
+
+**Data Expansion:**
+- Cybersecurity frameworks — NIS2 Directive (EU), CIRCIA (US), Australia's SOCI Act (fills unused `cybersecurity` category)
+- Sector-specific regulations — DORA (EU financial services), telecommunications, critical infrastructure
+- Enforcement actions/fines database — Real-world penalty data to contextualize penalties (e.g., "GDPR: 2,000+ fines totaling EUR 4.5B+")
+
+**Cross-Tool Integration:**
+- Diligence Machine cross-link — When a user runs a diligence wizard for a healthcare SaaS, surface HIPAA automatically from regulatory map data
+- VDR Structure cross-reference — Link regulation requirements to recommended VDR document categories
+
+### Geographic Expansion Roadmap
+
+Prioritized list of regulations and jurisdictions for future phases:
+
+**Tier 1 — EU National Implementations** (complements existing GDPR/AI Act):
+- Germany: BDSG (Bundesdatenschutzgesetz)
+- France: Loi Informatique et Libertes (CNIL enforcement framework)
+- Italy: Legislative Decree 196/2003 (Codice Privacy)
+- Spain: LOPDGDD (Ley Organica de Proteccion de Datos)
+- Netherlands: UAVG (Uitvoeringswet AVG)
+- Poland: Act on Personal Data Protection (2018)
+
+**Tier 2 — Asia-Pacific Sub-nationals**:
+- India: state-level IT Act implementations (Karnataka, Maharashtra)
+- Australia: state privacy acts (Victoria, NSW)
+- China: provincial data regulations (Shanghai, Shenzhen)
+
+**Tier 3 — Latin American Sub-nationals**:
+- Brazil: state-level LGPD implementations
+- Mexico: state data protection laws
+- Argentina: provincial data protection agencies
+
+**Tier 4 — Additional Countries**:
+- Israel: Privacy Protection Regulations
+- UAE: DIFC and ADGM data protection frameworks (free zone regulations)
+- Nigeria: sector-specific data regulations
+- Kenya: sector-specific guidelines
+
+**Tier 5 — Healthcare-Specific Regulations**:
+- Australia: My Health Records Act 2012
+- Japan: Next Generation Medical Infrastructure Act (2018)
+- Canada: provincial health information acts (Ontario PHIPA, Alberta HIA, BC E-Health Act)
 
 ---
 
 **Created:** March 2026
-**Last updated:** March 2026 (added 16 AI regulations, total 72)
+**Last updated:** March 2026 (added industry compliance regulations HIPAA and PCI DSS, category/scope schema fields, total 74)

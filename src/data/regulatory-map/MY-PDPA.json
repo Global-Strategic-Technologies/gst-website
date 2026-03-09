@@ -1,9 +1,12 @@
 {
   "id": "my-pdpa",
   "name": "Personal Data Protection Act 2010 (Act 709, as amended 2024)",
-  "regions": ["MYS"],
+  "regions": [
+    "MYS"
+  ],
   "effectiveDate": "2013-11-15",
   "summary": "Malaysia's comprehensive personal data protection law governing the processing of personal data in commercial transactions. Significantly amended in 2024 with enhanced penalties effective April 2025, including mandatory breach notification and increased fines.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Comply with seven Personal Data Protection Principles (General, Notice and Choice, Disclosure, Security, Retention, Data Integrity, Access)",
     "Obtain consent for processing personal data with clear and informed notice",

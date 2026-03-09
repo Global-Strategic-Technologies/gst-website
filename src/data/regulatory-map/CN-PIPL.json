@@ -1,9 +1,12 @@
 {
   "id": "cn-pipl",
   "name": "Personal Information Protection Law of the People's Republic of China",
-  "regions": ["CHN"],
+  "regions": [
+    "CHN"
+  ],
   "effectiveDate": "2021-11-01",
   "summary": "China's comprehensive personal information protection law, forming a pillar of China's data governance framework alongside the Cybersecurity Law and Data Security Law. It has extraterritorial scope and imposes strict requirements on cross-border data transfers, consent, and data localization.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain separate consent for sensitive personal information processing, cross-border transfers, and public disclosure",
     "Conduct personal information protection impact assessments for high-risk processing activities",

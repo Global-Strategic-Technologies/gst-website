@@ -1,0 +1,17 @@
+{
+  "id": "jp-apcs",
+  "name": "Act on the Protection of Critical Infrastructure Services (Japan)",
+  "regions": ["JPN"],
+  "effectiveDate": "2024-06-14",
+  "summary": "Japan's updated critical infrastructure protection framework strengthens cybersecurity obligations for operators across 14 critical sectors. Building on the Basic Act on Cybersecurity and NISC guidelines, it mandates incident reporting, risk assessments, and coordination with the National Center of Incident Readiness and Strategy for Cybersecurity (NISC).",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "Mandatory cybersecurity incident reporting to sector-specific regulators and NISC",
+    "Implementation of cybersecurity risk management measures aligned with NISC guidelines",
+    "Covers 14 critical sectors including information and communications, finance, aviation, railways, electric power, gas, government services, healthcare, water, and logistics",
+    "Business continuity planning and disaster recovery for cyber incidents",
+    "Supply chain cybersecurity risk management obligations",
+    "Coordination with NISC for cross-sector incident response"
+  ],
+  "penalties": "Administrative guidance and corrective orders from sector-specific regulators. Public disclosure of non-compliant operators. Regulatory penalties vary by sector-specific implementing legislation."
+}

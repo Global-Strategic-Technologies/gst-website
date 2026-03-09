@@ -1,9 +1,12 @@
 {
   "id": "mx-lfpdppp",
   "name": "Federal Law on the Protection of Personal Data Held by Private Parties (LFPDPPP)",
-  "regions": ["MEX"],
+  "regions": [
+    "MEX"
+  ],
   "effectiveDate": "2025-03-21",
   "summary": "Mexico's reformed federal data protection law, published March 2025, replaces the original 2010 LFPDPPP. It maintains ARCO rights (Access, Rectification, Cancellation, Opposition), incorporates data minimization and proactive accountability, and transfers enforcement from the dissolved INAI to the Secretariat of Anti-Corruption and Good Governance.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Provide a comprehensive privacy notice (aviso de privacidad) before processing",
     "Obtain consent (express consent required for sensitive and financial data)",

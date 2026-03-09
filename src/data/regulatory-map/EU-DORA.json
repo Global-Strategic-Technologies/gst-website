@@ -1,0 +1,21 @@
+{
+  "id": "eu-dora",
+  "name": "Digital Operational Resilience Act (DORA)",
+  "regions": [
+    "AUT", "BEL", "BGR", "HRV", "CYP", "CZE", "DNK", "EST", "FIN", "FRA",
+    "DEU", "GRC", "HUN", "IRL", "ITA", "LVA", "LTU", "LUX", "MLT", "NLD",
+    "POL", "PRT", "ROU", "SVK", "SVN", "ESP", "SWE"
+  ],
+  "effectiveDate": "2025-01-17",
+  "summary": "DORA is an EU regulation establishing a comprehensive framework for digital operational resilience in the financial sector. It harmonizes ICT risk management, incident reporting, digital operational resilience testing, and third-party risk management rules across all EU financial entities including banks, insurers, investment firms, and their critical ICT service providers.",
+  "category": "industry-compliance",
+  "keyRequirements": [
+    "ICT risk management framework with governance, identification, protection, detection, response, and recovery capabilities",
+    "Major ICT-related incident reporting to competent authorities within 4 hours (initial), 72 hours (intermediate), and 1 month (final)",
+    "Digital operational resilience testing including threat-led penetration testing (TLPT) every 3 years for significant entities",
+    "Third-party ICT risk management with mandatory contractual provisions for critical service providers",
+    "Oversight framework for critical ICT third-party service providers designated by European Supervisory Authorities",
+    "Information sharing arrangements on cyber threat intelligence between financial entities"
+  ],
+  "penalties": "Competent authorities may impose administrative penalties and remedial measures as defined by member state law. Critical ICT third-party service providers face periodic penalty payments of 1% of average daily worldwide turnover. Member states may impose criminal penalties for serious violations."
+}

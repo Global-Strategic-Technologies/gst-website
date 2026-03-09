@@ -1,0 +1,17 @@
+{
+  "id": "ke-cmca",
+  "name": "Kenya Computer Misuse and Cybercrimes Act 2018",
+  "regions": ["KEN"],
+  "effectiveDate": "2018-05-30",
+  "summary": "Kenya's Computer Misuse and Cybercrimes Act provides the legal framework for cybersecurity offences, critical infrastructure protection, and international cooperation on cybercrimes. It establishes the National Computer and Cybercrimes Coordination Committee (NC4) and Kenya Computer Incident Response Team (KE-CIRT) for coordinating cybersecurity incident response.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "National Computer and Cybercrimes Coordination Committee (NC4) for policy coordination and oversight",
+    "Kenya Computer Incident Response Team (KE-CIRT) for national incident detection and response",
+    "Critical infrastructure designation and protection obligations",
+    "Mandatory cybersecurity incident reporting for service providers and critical infrastructure operators",
+    "Criminalization of unauthorized access, interference with computer systems, and cyber espionage",
+    "International mutual assistance and cooperation on cybercrime investigations"
+  ],
+  "penalties": "Fines up to KES 20 million and/or imprisonment up to 20 years for critical infrastructure attacks. Unauthorized access penalties of up to KES 5 million and/or 3 years imprisonment. False publication offences carry fines up to KES 5 million and/or 2 years imprisonment."
+}

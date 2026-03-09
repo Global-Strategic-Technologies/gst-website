@@ -1,0 +1,17 @@
+{
+  "id": "pk-popa",
+  "name": "Pakistan Personal Data Protection Act",
+  "regions": ["PAK"],
+  "effectiveDate": "2023-08-17",
+  "summary": "Pakistan's Personal Data Protection Act establishes the country's first comprehensive data privacy framework. It regulates the processing of personal data by public and private entities, introduces consent requirements, creates the National Commission for Personal Data Protection, and sets rules for cross-border data transfers.",
+  "category": "data-privacy",
+  "keyRequirements": [
+    "Lawful basis for processing including consent, contractual necessity, and legitimate interest",
+    "Data subject rights including access, rectification, erasure, and data portability",
+    "Data Protection Impact Assessments for high-risk processing activities",
+    "Cross-border data transfer restrictions with government-approved adequacy list",
+    "National Commission for Personal Data Protection as supervisory authority",
+    "Data breach notification to the Commission and affected individuals"
+  ],
+  "penalties": "Fines up to PKR 25 million for data controllers and processors. Additional penalties for repeat violations. The National Commission may issue compliance orders, conduct investigations, and impose administrative sanctions."
+}

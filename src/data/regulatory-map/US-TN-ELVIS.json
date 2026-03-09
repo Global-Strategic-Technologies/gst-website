@@ -1,9 +1,12 @@
 {
   "id": "us-tn-elvis",
   "name": "Ensuring Likeness Voice and Image Security Act (ELVIS Act)",
-  "regions": ["US-TN"],
+  "regions": [
+    "US-TN"
+  ],
   "effectiveDate": "2024-07-01",
   "summary": "The first US state law specifically protecting individuals from unauthorized AI voice cloning and deepfakes. Expands Tennessee's right of publicity law to explicitly cover voice protection against AI-generated replicas. Applies nationwide regardless of where the individual resides or where the violation occurs.",
+  "category": "ai-governance",
   "keyRequirements": [
     "Prohibits unauthorized commercial use of an individual's voice including AI-generated replicas",
     "Creates liability for publishing or distributing AI-generated voice or likeness without authorization",

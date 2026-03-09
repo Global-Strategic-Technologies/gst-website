@@ -135,10 +135,14 @@ test.describe('Theme Toggle Journey', () => {
     );
     if (!initialIsDark) {
       await themeToggle.click();
-      await page.waitForTimeout(100);
+      // Wait for actual state change instead of arbitrary timeout
+      await page.waitForFunction(() =>
+        document.documentElement.classList.contains('dark-theme')
+      );
     }
 
-    // Get theme preference (check if stored in localStorage or cookie)
+    // Wait for localStorage to be set (theme toggle handler writes it)
+    await page.waitForFunction(() => localStorage.getItem('theme') !== null);
     const theme = await page.evaluate(() => localStorage.getItem('theme'));
     expect(theme).toBeTruthy();
 

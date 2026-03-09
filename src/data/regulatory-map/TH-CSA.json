@@ -1,0 +1,17 @@
+{
+  "id": "th-csa",
+  "name": "Thailand Cybersecurity Act B.E. 2562 (2019)",
+  "regions": ["THA"],
+  "effectiveDate": "2019-05-28",
+  "summary": "Thailand's Cybersecurity Act establishes the National Cybersecurity Committee (NCSC) and a legal framework for preventing, handling, and responding to cybersecurity threats. It designates Critical Information Infrastructure (CII) across government and private sectors and grants authorities emergency powers during severe cyber threats.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "National Cybersecurity Committee (NCSC) chaired by the Prime Minister for policy coordination",
+    "Designation of Critical Information Infrastructure (CII) organizations across key sectors",
+    "CII organizations must maintain cybersecurity standards and conduct risk assessments",
+    "Mandatory cybersecurity incident reporting to the NCSC",
+    "Emergency powers allowing authorities to access computer systems during critical-level cyber threats",
+    "Thai-CERT coordination for national incident response and threat intelligence sharing"
+  ],
+  "penalties": "Fines up to THB 300,000 for CII organizations failing to comply with cybersecurity standards. Imprisonment up to 3 years and/or fines up to THB 60,000 for obstructing NCSC operations. Additional penalties for failure to report cybersecurity incidents."
+}

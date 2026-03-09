@@ -1,9 +1,12 @@
 {
   "id": "us-ky-kcdpa",
   "name": "Kentucky Consumer Data Protection Act",
-  "regions": ["US-KY"],
+  "regions": [
+    "US-KY"
+  ],
   "effectiveDate": "2026-01-01",
   "summary": "The Kentucky Consumer Data Protection Act provides consumer data privacy rights for Kentucky residents. It applies to entities conducting business in Kentucky or targeting its residents that control or process personal data of at least 100,000 consumers, or 25,000 consumers if deriving more than 50% of gross revenue from the sale of personal data.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Right to confirm whether a controller is processing personal data and to access that data",
     "Right to correct inaccuracies in personal data",

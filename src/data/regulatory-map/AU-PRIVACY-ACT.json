@@ -1,9 +1,12 @@
 {
   "id": "au-privacy-act",
   "name": "Privacy Act 1988 (as amended 2024)",
-  "regions": ["AUS"],
+  "regions": [
+    "AUS"
+  ],
   "effectiveDate": "1989-01-01",
   "summary": "Australia's primary federal privacy legislation, substantially amended in December 2024. It establishes 13 Australian Privacy Principles (APPs) governing how organizations handle personal information, with a statutory tort for serious invasions of privacy and dramatically increased penalties.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Comply with 13 Australian Privacy Principles (APPs) covering collection, use, disclosure, and storage",
     "Mandatory data breach notification to the OAIC and affected individuals for eligible breaches",

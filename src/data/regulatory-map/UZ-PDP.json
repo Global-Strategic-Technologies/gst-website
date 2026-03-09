@@ -1,0 +1,17 @@
+{
+  "id": "uz-pdp",
+  "name": "Uzbekistan Law on Personal Data",
+  "regions": ["UZB"],
+  "effectiveDate": "2019-10-02",
+  "summary": "Uzbekistan's Law on Personal Data establishes a framework for the protection of personal information in Central Asia's most populous country. It regulates the collection, processing, storage, and transfer of personal data, with oversight by a designated state authority. The law applies to automated and manual processing by government and private entities.",
+  "category": "data-privacy",
+  "keyRequirements": [
+    "Consent required for collection and processing of personal data with specified exceptions",
+    "Purpose limitation and data minimization principles",
+    "Individual rights to access, correction, and deletion of personal data",
+    "Data localization: personal data of Uzbek citizens must be stored on servers within Uzbekistan",
+    "Cross-border data transfers subject to government approval or bilateral agreements",
+    "Registration of personal data databases with the authorized state body"
+  ],
+  "penalties": "Administrative fines for violations of personal data processing rules. Criminal liability for unlawful collection, storage, or dissemination of personal data. The authorized state body may issue compliance orders and suspend data processing activities."
+}

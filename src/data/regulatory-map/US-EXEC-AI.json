@@ -1,0 +1,26 @@
+{
+  "id": "us-exec-ai",
+  "name": "US Executive Order on Safe, Secure, and Trustworthy AI (EO 14110)",
+  "regions": [
+    "US-AL", "US-AK", "US-AZ", "US-AR", "US-CA", "US-CO", "US-CT", "US-DE",
+    "US-DC", "US-FL", "US-GA", "US-HI", "US-ID", "US-IL", "US-IN", "US-IA",
+    "US-KS", "US-KY", "US-LA", "US-ME", "US-MD", "US-MA", "US-MI", "US-MN",
+    "US-MS", "US-MO", "US-MT", "US-NE", "US-NV", "US-NH", "US-NJ", "US-NM",
+    "US-NY", "US-NC", "US-ND", "US-OH", "US-OK", "US-OR", "US-PA", "US-RI",
+    "US-SC", "US-SD", "US-TN", "US-TX", "US-UT", "US-VT", "US-VA", "US-WA",
+    "US-WV", "US-WI", "US-WY"
+  ],
+  "effectiveDate": "2023-10-30",
+  "summary": "Executive Order 14110 established the most comprehensive US federal AI governance framework, requiring safety testing and reporting for dual-use foundation models, directing federal agencies to develop AI governance policies, and addressing risks from AI in critical infrastructure, cybersecurity, and biological weapons. Note: portions were rescinded by subsequent executive action in January 2025.",
+  "category": "ai-governance",
+  "keyRequirements": [
+    "Safety testing and red-teaming reporting for dual-use foundation models exceeding compute thresholds",
+    "NIST AI Risk Management Framework and AI safety standards development",
+    "Federal agency AI governance policies and Chief AI Officer designations",
+    "Watermarking and content authentication for AI-generated content",
+    "Privacy protections for AI training data and federal data practices",
+    "Civil rights protections against AI-enabled discrimination in housing, lending, and employment",
+    "Workforce impact assessments and AI talent recruitment for federal government"
+  ],
+  "penalties": "Compliance is mandatory for federal agencies and contractors through existing regulatory authorities. Dual-use foundation model developers must report safety test results under the Defense Production Act. Non-compliance may result in loss of federal contracts and regulatory action under applicable sector-specific laws."
+}

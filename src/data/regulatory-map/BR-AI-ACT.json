@@ -1,0 +1,18 @@
+{
+  "id": "br-ai-act",
+  "name": "Brazil Artificial Intelligence Act (PL 2338/2023)",
+  "regions": ["BRA"],
+  "effectiveDate": "2025-07-01",
+  "summary": "Brazil's AI Act establishes a comprehensive risk-based regulatory framework for artificial intelligence systems. Approved by the Senate in December 2024, it classifies AI systems into risk tiers, mandates algorithmic impact assessments for high-risk applications, creates a national AI governance authority, and applies extraterritorially to AI systems whose effects reach Brazil.",
+  "category": "ai-governance",
+  "keyRequirements": [
+    "Risk-based classification: minimal, high, and excessive risk AI systems",
+    "Prohibited AI practices including social scoring and subliminal manipulation",
+    "Algorithmic impact assessments required for high-risk AI systems",
+    "Transparency requirements including disclosure when individuals interact with AI systems",
+    "Human oversight mechanisms for high-risk AI decision-making",
+    "National AI governance authority for oversight, registration, and enforcement",
+    "Extraterritorial application to AI systems producing effects in Brazil"
+  ],
+  "penalties": "Fines up to 2% of annual revenue in Brazil or BRL 50 million per violation, whichever is greater. Temporary or permanent suspension of AI system operations. Public disclosure of violations and prohibition of processing certain data types."
+}

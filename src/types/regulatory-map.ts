@@ -3,12 +3,16 @@
  * Used by build-time data validation (Zod) and client-side rendering (D3).
  */
 
+export type RegulationCategory = 'data-privacy' | 'ai-governance' | 'industry-compliance' | 'cybersecurity';
+
 export interface Regulation {
   id: string;
   name: string;
   regions: string[];
   effectiveDate: string;
   summary: string;
+  category: RegulationCategory;
+  scope?: string;
   keyRequirements?: string[];
   penalties?: string;
 }

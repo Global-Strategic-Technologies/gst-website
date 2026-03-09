@@ -1,0 +1,17 @@
+{
+  "id": "sa-nca",
+  "name": "Saudi Arabia National Cybersecurity Authority Essential Cybersecurity Controls (ECC)",
+  "regions": ["SAU"],
+  "effectiveDate": "2018-05-01",
+  "summary": "Saudi Arabia's Essential Cybersecurity Controls are mandatory standards issued by the National Cybersecurity Authority (NCA) applicable to all government entities, government-affiliated organizations, and private sector entities that operate national critical infrastructure. The ECC provides 114 cybersecurity controls across five domains aligned with Saudi Vision 2030.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "Cybersecurity governance: policies, roles, responsibilities, and risk management framework",
+    "Cybersecurity defense: network security, application security, and endpoint protection",
+    "Cybersecurity resilience: business continuity, disaster recovery, and incident management",
+    "Third-party and cloud cybersecurity: vendor risk management and cloud service security",
+    "Industrial Control Systems (ICS) cybersecurity for critical infrastructure operators",
+    "Regular compliance assessments and reporting to the National Cybersecurity Authority"
+  ],
+  "penalties": "Non-compliance may result in NCA-directed corrective actions, suspension of government contracts, and regulatory sanctions. Critical infrastructure operators face escalated enforcement including operational restrictions. The NCA may conduct audits and mandate remediation timelines."
+}

@@ -1,0 +1,22 @@
+{
+  "id": "eu-nis2",
+  "name": "Network and Information Security Directive 2 (NIS2)",
+  "regions": [
+    "AUT", "BEL", "BGR", "HRV", "CYP", "CZE", "DNK", "EST", "FIN", "FRA",
+    "DEU", "GRC", "HUN", "IRL", "ITA", "LVA", "LTU", "LUX", "MLT", "NLD",
+    "POL", "PRT", "ROU", "SVK", "SVN", "ESP", "SWE"
+  ],
+  "effectiveDate": "2024-10-17",
+  "summary": "NIS2 is the EU's updated cybersecurity directive replacing the original 2016 NIS Directive. It significantly expands the scope of sectors covered, introduces stricter incident reporting timelines, and imposes personal liability on senior management for cybersecurity failures. Member states were required to transpose it into national law by October 2024.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "Risk management measures including incident handling, business continuity, and supply chain security",
+    "24-hour early warning and 72-hour incident notification to national CSIRTs",
+    "Senior management accountability and mandatory cybersecurity training for leadership",
+    "Expanded sector coverage: energy, transport, banking, health, digital infrastructure, ICT service management, public administration, space",
+    "Supply chain and third-party risk assessment obligations",
+    "Regular security audits and vulnerability disclosure policies",
+    "Member state cooperation through EU-CyCLONe crisis management network"
+  ],
+  "penalties": "Up to EUR 10 million or 2% of total worldwide annual turnover for essential entities; up to EUR 7 million or 1.4% of turnover for important entities. Personal liability for senior management who fail to ensure compliance."
+}

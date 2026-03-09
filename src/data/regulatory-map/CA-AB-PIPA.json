@@ -1,9 +1,12 @@
 {
   "id": "ca-ab-pipa",
   "name": "Alberta Personal Information Protection Act (PIPA)",
-  "regions": ["CA-AB"],
+  "regions": [
+    "CA-AB"
+  ],
   "effectiveDate": "2004-01-01",
   "summary": "Alberta's private-sector privacy legislation, deemed substantially similar to PIPEDA by the federal government. It governs how private-sector organizations in Alberta collect, use, and disclose personal information, and applies to provincially regulated organizations operating within the province.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain consent before collecting, using, or disclosing personal information",
     "Collect only the personal information reasonably necessary for the stated purpose",

@@ -1,0 +1,17 @@
+{
+  "id": "bd-dsa",
+  "name": "Bangladesh Data Protection Act 2023",
+  "regions": ["BGD"],
+  "effectiveDate": "2023-11-19",
+  "summary": "Bangladesh's Data Protection Act establishes the country's first dedicated data protection framework. It regulates the processing of personal and sensitive personal data, creates the Office of the Data Protection Officer, and sets requirements for consent, data breach notification, and cross-border transfers applicable to both public and private sector entities.",
+  "category": "data-privacy",
+  "keyRequirements": [
+    "Consent required for processing personal data with specified lawful basis exceptions",
+    "Special protections for sensitive personal data including biometric, health, and financial data",
+    "Data breach notification to the Data Protection Office within 72 hours",
+    "Cross-border data transfer restrictions requiring adequate protection in the receiving country",
+    "Individual rights to access, correction, and erasure of personal data",
+    "Office of the Data Protection Officer established as the national supervisory authority"
+  ],
+  "penalties": "Fines up to BDT 25 lakh (2.5 million) for non-compliance. Higher penalties for repeat violations. The Data Protection Office may issue compliance orders, conduct investigations, and impose administrative sanctions."
+}

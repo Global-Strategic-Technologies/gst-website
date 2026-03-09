@@ -1,0 +1,17 @@
+{
+  "id": "kz-pdp",
+  "name": "Kazakhstan Law on Personal Data and Their Protection",
+  "regions": ["KAZ"],
+  "effectiveDate": "2013-05-21",
+  "summary": "Kazakhstan's Law on Personal Data and Their Protection establishes the legal framework for processing personal data in Kazakhstan. It sets requirements for consent, data security, and cross-border transfers, and designates the Ministry of Digital Development as the supervisory authority overseeing compliance.",
+  "category": "data-privacy",
+  "keyRequirements": [
+    "Consent required for collection and processing of personal data",
+    "Data subjects' rights to access, correction, supplementation, and blocking of personal data",
+    "Data localization: databases containing personal data of Kazakh citizens must be located in Kazakhstan",
+    "Cross-border data transfers permitted only to countries with adequate protection levels",
+    "Notification to the authorized body before commencing personal data processing",
+    "Mandatory data security measures including protection against unauthorized access, destruction, and modification"
+  ],
+  "penalties": "Administrative fines for violations of personal data protection requirements. The Ministry of Digital Development may conduct inspections, issue compliance orders, and suspend data processing. Criminal penalties for unlawful collection or dissemination of personal data."
+}

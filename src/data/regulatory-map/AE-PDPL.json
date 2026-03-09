@@ -1,9 +1,12 @@
 {
   "id": "ae-pdpl",
   "name": "Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data (PDPL)",
-  "regions": ["ARE"],
+  "regions": [
+    "ARE"
+  ],
   "effectiveDate": "2022-01-02",
   "summary": "The UAE's first federal-level data protection law establishes a framework for the protection of personal data. It applies to data controllers and processors operating within the UAE, excluding DIFC and ADGM free zones which have their own data protection regimes. Executive regulations for full enforcement details are pending.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain consent before processing personal data (with limited exceptions)",
     "Provide transparent privacy notices to data subjects",

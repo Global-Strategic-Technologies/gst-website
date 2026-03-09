@@ -1,0 +1,22 @@
+{
+  "id": "eu-mifid2",
+  "name": "Markets in Financial Instruments Directive II (MiFID II)",
+  "regions": [
+    "AUT", "BEL", "BGR", "HRV", "CYP", "CZE", "DNK", "EST", "FIN", "FRA",
+    "DEU", "GRC", "HUN", "IRL", "ITA", "LVA", "LTU", "LUX", "MLT", "NLD",
+    "POL", "PRT", "ROU", "SVK", "SVN", "ESP", "SWE"
+  ],
+  "effectiveDate": "2018-01-03",
+  "summary": "MiFID II is the EU's comprehensive framework for regulating financial markets, investment services, and investor protection. It replaced MiFID I with significantly expanded scope, introducing stricter transparency rules, best execution requirements, product governance obligations, and new trading venue categories to strengthen market integrity across the European Union.",
+  "category": "industry-compliance",
+  "keyRequirements": [
+    "Pre-trade and post-trade transparency requirements for equities, bonds, derivatives, and structured finance products",
+    "Best execution obligations with detailed policies, monitoring, and annual reporting to clients",
+    "Product governance requirements: manufacturers must define target markets and distribution strategies",
+    "Inducements ban for independent advisors; enhanced disclosure for non-independent advice",
+    "Transaction reporting to national competent authorities with 65+ data fields within T+1",
+    "Algorithmic and high-frequency trading controls including kill switches and risk limits",
+    "Third-country firm access through equivalence decisions or member state national regimes"
+  ],
+  "penalties": "National competent authorities may impose fines of at least EUR 5 million for natural persons and EUR 5 million or 10% of annual turnover for legal persons. Additional sanctions include public censure, withdrawal of authorization, temporary bans on management functions, and disgorgement of profits."
+}

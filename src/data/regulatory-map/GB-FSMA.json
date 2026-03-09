@@ -1,0 +1,17 @@
+{
+  "id": "gb-fsma",
+  "name": "Financial Services and Markets Act 2023 (FSMA 2023)",
+  "regions": ["GBR"],
+  "effectiveDate": "2023-06-29",
+  "summary": "The Financial Services and Markets Act 2023 is the UK's post-Brexit overhaul of financial services regulation. It revokes retained EU financial services law, transfers regulatory powers to the FCA and PRA, introduces a new framework for crypto-asset regulation, and establishes secondary competitiveness and growth objectives for UK financial regulators.",
+  "category": "industry-compliance",
+  "keyRequirements": [
+    "Revocation of retained EU financial services law and transfer of rulemaking to FCA and PRA",
+    "Designated Activities Regime (DAR) for regulating specific financial activities outside traditional authorization",
+    "Crypto-asset regulation framework bringing stablecoins and broader crypto activities under FCA oversight",
+    "Secondary objectives for FCA and PRA to facilitate international competitiveness and medium-term growth",
+    "Senior Managers and Certification Regime (SMCR) extension and accountability framework",
+    "Access to cash: requirements to maintain reasonable provision of cash access services"
+  ],
+  "penalties": "FCA and PRA enforcement powers including unlimited fines for market abuse and regulatory breaches. Criminal penalties for unauthorized financial activities up to 2 years imprisonment. Public censure, prohibition orders, and restitution orders."
+}

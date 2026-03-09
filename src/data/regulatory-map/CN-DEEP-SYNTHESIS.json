@@ -1,9 +1,12 @@
 {
   "id": "cn-deep-synthesis",
   "name": "Administrative Provisions on Deep Synthesis in Internet-Based Information Services",
-  "regions": ["CHN"],
+  "regions": [
+    "CHN"
+  ],
   "effectiveDate": "2023-01-10",
   "summary": "Regulates the use of deep synthesis (deepfake) technology for generating or altering video, voice, text, and image content online. Requires content labeling, platform responsibilities for blocking harmful content, and establishes mechanisms for algorithm filing and user protection.",
+  "category": "ai-governance",
   "keyRequirements": [
     "Mandatory labeling and tagging of AI-generated content including voice simulation, face synthesis, and face manipulation",
     "Establish management systems for algorithm review, ethics review, and content monitoring",

@@ -1,9 +1,12 @@
 {
   "id": "jp-appi",
   "name": "Act on the Protection of Personal Information (APPI)",
-  "regions": ["JPN"],
+  "regions": [
+    "JPN"
+  ],
   "effectiveDate": "2022-04-01",
   "summary": "Japan's comprehensive data protection law, significantly amended in 2020 with changes taking effect April 2022. It regulates how businesses handle personal information, with extraterritorial reach covering foreign entities processing data of individuals in Japan.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain consent before providing personal data to third parties",
     "Mandatory breach notification to the PPC and affected individuals for qualifying incidents",

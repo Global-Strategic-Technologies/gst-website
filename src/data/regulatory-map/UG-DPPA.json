@@ -1,0 +1,17 @@
+{
+  "id": "ug-dppa",
+  "name": "Uganda Data Protection and Privacy Act 2019",
+  "regions": ["UGA"],
+  "effectiveDate": "2019-02-25",
+  "summary": "Uganda's Data Protection and Privacy Act establishes a framework for the protection of personal data, regulates collection and processing by public and private bodies, and creates the Personal Data Protection Office under the National Information Technology Authority. It applies to data controllers and processors operating within Uganda or processing data of Ugandan residents.",
+  "category": "data-privacy",
+  "keyRequirements": [
+    "Registration of data controllers and processors with the Personal Data Protection Office",
+    "Consent or other specified lawful basis for collection and processing of personal data",
+    "Data subject rights including access, correction, and deletion",
+    "Data Protection Impact Assessments for processing likely to result in high risk",
+    "Cross-border data transfers only with adequate safeguards or consent",
+    "Mandatory data breach notification to the Personal Data Protection Office"
+  ],
+  "penalties": "Fines up to UGX 4.8 million or imprisonment up to 10 years, or both. Higher penalties for repeat offenders. The Personal Data Protection Office may issue compliance orders and conduct investigations."
+}

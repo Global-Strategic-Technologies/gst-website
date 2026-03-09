@@ -1,0 +1,17 @@
+{
+  "id": "br-cncs",
+  "name": "Brazil National Cybersecurity Policy (Decree No. 11,856/2023)",
+  "regions": ["BRA"],
+  "effectiveDate": "2024-01-01",
+  "summary": "Brazil's National Cybersecurity Policy establishes the strategic framework for protecting cyberspace and digital infrastructure across the country. It creates the National Cybersecurity Committee (CNCiber) to coordinate policy implementation, promote public-private collaboration, and develop cybersecurity capabilities for government and critical infrastructure sectors.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "National Cybersecurity Committee (CNCiber) established for policy coordination and oversight",
+    "Cybersecurity standards and guidelines for federal government information systems",
+    "Critical infrastructure protection framework across energy, telecommunications, and financial sectors",
+    "National cybersecurity incident response coordination through CERT.br and CTIR Gov",
+    "Promotion of cybersecurity education, workforce development, and research",
+    "International cooperation on cybersecurity threats and information sharing"
+  ],
+  "penalties": "The decree establishes policy framework rather than direct penalties. Enforcement is through sector-specific regulators. Federal agencies must comply with cybersecurity directives or face administrative accountability measures. Critical infrastructure non-compliance addressed through existing regulatory frameworks."
+}

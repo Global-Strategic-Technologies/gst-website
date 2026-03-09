@@ -1,9 +1,12 @@
 {
   "id": "nz-privacy-act",
   "name": "Privacy Act 2020",
-  "regions": ["NZL"],
+  "regions": [
+    "NZL"
+  ],
   "effectiveDate": "2020-12-01",
   "summary": "New Zealand's updated privacy legislation replacing the Privacy Act 1993. It establishes 13 Information Privacy Principles governing how agencies collect, store, use, and disclose personal information, with mandatory breach notification and extraterritorial application to overseas agencies carrying on business in New Zealand.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Comply with 13 Information Privacy Principles covering collection, storage, access, and disclosure",
     "Mandatory notification to the Privacy Commissioner and affected individuals for notifiable privacy breaches",

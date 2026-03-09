@@ -1,0 +1,17 @@
+{
+  "id": "ae-csl",
+  "name": "UAE Cybersecurity Law (Federal Decree-Law No. 34 of 2021)",
+  "regions": ["ARE"],
+  "effectiveDate": "2023-01-02",
+  "summary": "The UAE Cybersecurity Law establishes a comprehensive legal framework for protecting information systems, networks, and data across the UAE. Enforced by the UAE Cybersecurity Council, it criminalizes unauthorized access, data breaches, and cyberattacks, while mandating cybersecurity measures for government entities and critical infrastructure operators.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "Protection of government information systems, networks, databases, and IT infrastructure",
+    "Criminalization of unauthorized access to information systems and electronic data",
+    "Mandatory cybersecurity measures for entities handling sensitive government data",
+    "UAE Cybersecurity Council oversight and coordination of national cybersecurity strategy",
+    "Incident response coordination through the national Computer Emergency Response Team (aeCERT)",
+    "Regulation of cybersecurity service providers and penetration testing activities"
+  ],
+  "penalties": "Imprisonment of 1 to 15 years depending on offence severity. Fines ranging from AED 100,000 to AED 3 million. Deportation for non-citizens. Aggravated penalties for attacks on critical infrastructure, government systems, or systems affecting national security."
+}

@@ -1,0 +1,27 @@
+{
+  "id": "us-hipaa",
+  "name": "Health Insurance Portability and Accountability Act (HIPAA)",
+  "regions": [
+    "US-AL", "US-AK", "US-AZ", "US-AR", "US-CA", "US-CO", "US-CT", "US-DE",
+    "US-DC", "US-FL", "US-GA", "US-HI", "US-ID", "US-IL", "US-IN", "US-IA",
+    "US-KS", "US-KY", "US-LA", "US-ME", "US-MD", "US-MA", "US-MI", "US-MN",
+    "US-MS", "US-MO", "US-MT", "US-NE", "US-NV", "US-NH", "US-NJ", "US-NM",
+    "US-NY", "US-NC", "US-ND", "US-OH", "US-OK", "US-OR", "US-PA", "US-RI",
+    "US-SC", "US-SD", "US-TN", "US-TX", "US-UT", "US-VT", "US-VA", "US-WA",
+    "US-WV", "US-WI", "US-WY"
+  ],
+  "effectiveDate": "1996-08-21",
+  "summary": "HIPAA is a US federal law that establishes national standards for the protection of individually identifiable health information. It regulates how healthcare providers, health plans, healthcare clearinghouses, and their business associates handle Protected Health Information (PHI), imposing strict privacy, security, and breach notification requirements.",
+  "category": "industry-compliance",
+  "scope": "Healthcare entities handling Protected Health Information (PHI), including health plans, healthcare clearinghouses, healthcare providers conducting electronic transactions, and their business associates",
+  "keyRequirements": [
+    "Privacy Rule: limits use and disclosure of PHI without patient authorization",
+    "Security Rule: administrative, physical, and technical safeguards for electronic PHI",
+    "Breach Notification Rule: notify affected individuals, HHS, and media (for large breaches) within 60 days",
+    "Business Associate Agreements (BAAs) required for all third-party PHI handlers",
+    "Minimum Necessary Standard: limit PHI access to the minimum needed for a given purpose",
+    "Individual rights to access, amend, and receive an accounting of disclosures of their PHI",
+    "Administrative requirements including privacy officer designation, workforce training, and sanctions policies"
+  ],
+  "penalties": "Civil penalties range from $100 to $50,000 per violation, up to $1.5 million per year per violation category. Criminal penalties up to $250,000 and 10 years imprisonment for knowing misuse of PHI."
+}

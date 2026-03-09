@@ -1,0 +1,17 @@
+{
+  "id": "ng-ncps",
+  "name": "Nigeria National Cybersecurity Policy and Strategy 2021",
+  "regions": ["NGA"],
+  "effectiveDate": "2021-02-25",
+  "summary": "Nigeria's National Cybersecurity Policy and Strategy provides the comprehensive framework for securing Nigeria's cyberspace and digital economy. It establishes the National Cybersecurity Coordination Centre under the Office of the National Security Adviser and mandates cybersecurity measures for critical national information infrastructure across government and private sectors.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "National Cybersecurity Coordination Centre for policy implementation and threat coordination",
+    "Critical National Information Infrastructure (CNII) protection across designated sectors",
+    "Mandatory cybersecurity incident reporting to ngCERT (Nigerian Computer Emergency Response Team)",
+    "Cybersecurity standards and compliance framework for government agencies and CNII operators",
+    "Capacity building and cybersecurity workforce development initiatives",
+    "Public-private partnerships for cybersecurity information sharing and threat intelligence"
+  ],
+  "penalties": "Enforcement through the Cybercrimes (Prohibition, Prevention, etc.) Act 2015. Penalties for cybercrimes range from fines of NGN 2 million to NGN 7 million and imprisonment of 3 to 7 years. Critical infrastructure attacks carry enhanced penalties."
+}

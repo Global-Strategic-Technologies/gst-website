@@ -1,9 +1,12 @@
 {
   "id": "ng-ndpa",
   "name": "Nigeria Data Protection Act, 2023 (NDPA)",
-  "regions": ["NGA"],
+  "regions": [
+    "NGA"
+  ],
   "effectiveDate": "2023-06-12",
   "summary": "Nigeria's first comprehensive data protection statute replaces the earlier Nigeria Data Protection Regulation (NDPR) of 2019. It establishes the Nigeria Data Protection Commission (NDPC) as a standalone regulatory body and provides a legal framework for the processing of personal data by public and private entities.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain informed, specific, freely given, and unambiguous consent",
     "Execute data processing agreements with all data processors",

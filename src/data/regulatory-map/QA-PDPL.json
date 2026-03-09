@@ -1,0 +1,17 @@
+{
+  "id": "qa-pdpl",
+  "name": "Qatar Personal Data Privacy Law (Law No. 13 of 2016)",
+  "regions": ["QAT"],
+  "effectiveDate": "2024-03-14",
+  "summary": "Qatar's Personal Data Privacy Law establishes comprehensive data protection requirements for organizations processing personal data within Qatar, including the Qatar Financial Centre. It mandates consent-based processing, data minimization, and cross-border transfer restrictions, with enforcement by the Compliance and Data Protection Department.",
+  "category": "data-privacy",
+  "keyRequirements": [
+    "Explicit consent required for collection and processing of personal data",
+    "Data minimization and purpose limitation principles",
+    "Cross-border data transfer restrictions requiring adequate protection or consent",
+    "Data processor agreements with mandatory security and confidentiality provisions",
+    "Individual rights to access, rectification, and objection to processing",
+    "Special protections for sensitive personal data including health, biometric, and genetic data"
+  ],
+  "penalties": "Fines up to QAR 5 million for non-compliance. Imprisonment of up to 3 years for serious violations including unauthorized disclosure of personal data. Additional penalties for cross-border transfer violations."
+}

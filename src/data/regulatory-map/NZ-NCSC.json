@@ -1,0 +1,17 @@
+{
+  "id": "nz-ncsc",
+  "name": "New Zealand Intelligence and Security Act 2017 (NCSC Mandate)",
+  "regions": ["NZL"],
+  "effectiveDate": "2017-04-01",
+  "summary": "New Zealand's cybersecurity framework operates through the National Cyber Security Centre (NCSC) established under the Intelligence and Security Act 2017 within the Government Communications Security Bureau (GCSB). The NCSC provides cybersecurity services to significant government and critical infrastructure organizations, conducting threat detection, incident response, and resilience advisory services.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "NCSC provides cyber threat detection and disruption services for organizations of national significance",
+    "Cybersecurity incident response and advisory services for government and critical infrastructure",
+    "Threat intelligence sharing with Five Eyes partners and domestic stakeholders",
+    "Protective cybersecurity assessments for government agencies and critical infrastructure operators",
+    "CERT NZ coordinates cybersecurity incident reporting and public awareness",
+    "Voluntary cybersecurity frameworks and guidelines for private sector adoption"
+  ],
+  "penalties": "The framework is primarily advisory and service-based rather than punitive. Government agencies must comply with GCSB protective security requirements. Non-compliance by government entities addressed through public sector accountability mechanisms. Criminal penalties under the Crimes Act 1961 apply to cybercrimes."
+}

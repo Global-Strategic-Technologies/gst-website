@@ -6,6 +6,9 @@
 ---
 
 <aside class="compliance-panel" id="compliancePanel" data-testid="compliance-panel" aria-live="polite" hidden>
+  <div class="bottom-sheet-handle" id="bottomSheetHandle" aria-hidden="true">
+    <span class="bottom-sheet-handle__bar"></span>
+  </div>
   <div class="panel-header">
     <h2 class="panel-country-name" id="panelCountryName"></h2>
     <span class="panel-regulation-count" id="panelRegCount"></span>
@@ -81,6 +84,17 @@
     margin: 0;
   }
 
+  :global(.reg-card__scope) {
+    font-size: var(--text-xs);
+    color: var(--text-light-secondary);
+    margin: var(--spacing-xs) 0 var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: rgba(5, 205, 153, 0.06);
+    border-left: 2px solid var(--color-primary);
+    border-radius: 0 4px 4px 0;
+    line-height: 1.5;
+  }
+
   :global(.reg-card__requirements) {
     list-style: none;
     padding: 0;
@@ -119,6 +133,11 @@
     font-style: italic;
   }
 
+  /* Bottom sheet handle — hidden on desktop */
+  .bottom-sheet-handle {
+    display: none;
+  }
+
   /* Dark theme */
   :global(html.dark-theme) .compliance-panel {
     background: var(--bg-dark-secondary);
@@ -128,12 +147,57 @@
     background: var(--bg-dark-tertiary);
   }
 
-  /* Responsive */
+  /* Desktop */
   @media (min-width: 1024px) {
     .compliance-panel {
       max-height: calc(100vh - 280px);
       position: sticky;
       top: var(--spacing-lg);
     }
+  }
+
+  /* Mobile bottom sheet */
+  @media (max-width: 1023px) {
+    .compliance-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-height: 60vh;
+      border-radius: 16px 16px 0 0;
+      border-bottom: none;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 60;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .compliance-panel[hidden] {
+      display: block;
+      transform: translateY(100%);
+    }
+
+    .compliance-panel.bottom-sheet--open {
+      transform: translateY(0);
+    }
+
+    .bottom-sheet-handle {
+      display: flex;
+      justify-content: center;
+      padding: var(--spacing-sm) 0 var(--spacing-xs);
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .bottom-sheet-handle__bar {
+      width: 40px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(128, 128, 128, 0.4);
+    }
+  }
+
+  :global(html.dark-theme) .compliance-panel {
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
   }
 </style>

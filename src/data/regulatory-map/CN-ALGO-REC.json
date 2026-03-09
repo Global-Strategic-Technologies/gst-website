@@ -1,9 +1,12 @@
 {
   "id": "cn-algo-rec",
   "name": "Administrative Provisions on Algorithm Recommendation for Internet Information Services",
-  "regions": ["CHN"],
+  "regions": [
+    "CHN"
+  ],
   "effectiveDate": "2022-03-01",
   "summary": "The world's first comprehensive regulation governing recommendation algorithms. Requires transparency over algorithm functionality, gives users control over their data profiles, and mandates algorithm filing with the Cyberspace Administration of China. Targets services that use algorithms to recommend content to users.",
+  "category": "ai-governance",
   "keyRequirements": [
     "Algorithm recommendation providers must file algorithms with the Cyberspace Administration of China within 10 working days",
     "Users must be given the option to disable personalized recommendations",

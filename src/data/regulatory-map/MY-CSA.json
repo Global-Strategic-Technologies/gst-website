@@ -1,0 +1,17 @@
+{
+  "id": "my-csa",
+  "name": "Malaysia Cyber Security Act 2024 (Act 854)",
+  "regions": ["MYS"],
+  "effectiveDate": "2024-08-26",
+  "summary": "Malaysia's Cyber Security Act 2024 establishes a comprehensive legal framework for national cybersecurity, designating the National Cyber Security Agency (NACSA) as the lead agency. It mandates cybersecurity measures for National Critical Information Infrastructure (NCII) entities across 11 sectors and introduces licensing requirements for cybersecurity service providers.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "Designation of National Critical Information Infrastructure (NCII) entities across 11 sectors",
+    "NCII entities must implement cybersecurity risk assessment and management measures",
+    "Mandatory cybersecurity incident reporting to NACSA within prescribed timeframes",
+    "Cybersecurity audits and compliance assessments for NCII entities",
+    "Licensing framework for cybersecurity service providers",
+    "Chief Executive responsibility for ensuring organizational cybersecurity compliance"
+  ],
+  "penalties": "Fines up to MYR 500,000 and/or imprisonment up to 10 years for non-compliance with NCII obligations. Additional fines up to MYR 200,000 for failure to report cybersecurity incidents. Continuing offences carry daily penalties of up to MYR 10,000."
+}

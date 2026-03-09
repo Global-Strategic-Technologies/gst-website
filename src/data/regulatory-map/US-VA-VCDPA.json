@@ -1,9 +1,12 @@
 {
   "id": "us-va-vcdpa",
   "name": "Virginia Consumer Data Protection Act (VCDPA)",
-  "regions": ["US-VA"],
+  "regions": [
+    "US-VA"
+  ],
   "effectiveDate": "2023-01-01",
   "summary": "The Virginia Consumer Data Protection Act grants Virginia consumers rights over their personal data and imposes obligations on data controllers and processors. It applies to entities that conduct business in Virginia or target Virginia residents and process personal data of at least 100,000 consumers, or 25,000 consumers while deriving over 50% of gross revenue from data sales.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Right to access personal data held by a controller",
     "Right to correct inaccuracies in personal data",

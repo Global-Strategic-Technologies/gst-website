@@ -1,0 +1,17 @@
+{
+  "id": "ca-cccs",
+  "name": "Canada Critical Cyber Systems Protection Act (Bill C-26)",
+  "regions": ["CAN"],
+  "effectiveDate": "2025-06-01",
+  "summary": "Canada's Critical Cyber Systems Protection Act establishes a cybersecurity framework for federally regulated critical infrastructure operators. Part of Bill C-26, it empowers the government to direct operators to protect their cyber systems, mandates incident reporting to the Canadian Centre for Cyber Security, and creates information-sharing mechanisms across sectors.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "Designated operators must establish and implement cybersecurity programs",
+    "Mandatory reporting of cybersecurity incidents to the Canadian Centre for Cyber Security",
+    "Governor in Council may issue cybersecurity directions to protect critical cyber systems",
+    "Covers federally regulated sectors: telecommunications, finance, energy, and transportation",
+    "Record-keeping obligations for cybersecurity programs and incident reports",
+    "Information sharing with government agencies for threat intelligence coordination"
+  ],
+  "penalties": "Administrative monetary penalties up to CAD 15 million per violation for corporations. Criminal offences up to CAD 1 million fine and/or 5 years imprisonment for individuals who obstruct or provide false information. Compliance orders and injunctions."
+}

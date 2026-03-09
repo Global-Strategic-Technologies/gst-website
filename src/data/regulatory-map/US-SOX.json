@@ -1,0 +1,26 @@
+{
+  "id": "us-sox",
+  "name": "Sarbanes-Oxley Act (SOX)",
+  "regions": [
+    "US-AL", "US-AK", "US-AZ", "US-AR", "US-CA", "US-CO", "US-CT", "US-DE",
+    "US-DC", "US-FL", "US-GA", "US-HI", "US-ID", "US-IL", "US-IN", "US-IA",
+    "US-KS", "US-KY", "US-LA", "US-ME", "US-MD", "US-MA", "US-MI", "US-MN",
+    "US-MS", "US-MO", "US-MT", "US-NE", "US-NV", "US-NH", "US-NJ", "US-NM",
+    "US-NY", "US-NC", "US-ND", "US-OH", "US-OK", "US-OR", "US-PA", "US-RI",
+    "US-SC", "US-SD", "US-TN", "US-TX", "US-UT", "US-VT", "US-VA", "US-WA",
+    "US-WV", "US-WI", "US-WY"
+  ],
+  "effectiveDate": "2002-07-30",
+  "summary": "The Sarbanes-Oxley Act was enacted in response to major corporate accounting scandals (Enron, WorldCom) to protect investors through improved accuracy and reliability of corporate disclosures. It established the PCAOB, mandated internal control assessments, and imposed criminal penalties for securities fraud and document destruction.",
+  "category": "industry-compliance",
+  "keyRequirements": [
+    "Section 302: CEO and CFO certification of accuracy of financial statements and effectiveness of internal controls",
+    "Section 404: Annual assessment of internal controls over financial reporting with external auditor attestation",
+    "Section 802: Criminal penalties for altering, destroying, or concealing documents to impede investigations",
+    "Section 806: Whistleblower protections for employees reporting securities violations",
+    "Public Company Accounting Oversight Board (PCAOB) registration and inspection of audit firms",
+    "Audit committee independence requirements and financial expert designation",
+    "Real-time disclosure of material changes in financial condition"
+  ],
+  "penalties": "Criminal penalties up to $5 million in fines and 20 years imprisonment for securities fraud. Up to $1 million and 10 years for document destruction. Civil penalties including officer and director bars, disgorgement of profits, and shareholder lawsuits."
+}

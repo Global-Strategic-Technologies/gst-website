@@ -1,9 +1,12 @@
 {
   "id": "kr-pipa",
   "name": "Personal Information Protection Act (PIPA)",
-  "regions": ["KOR"],
+  "regions": [
+    "KOR"
+  ],
   "effectiveDate": "2011-09-30",
   "summary": "South Korea's comprehensive data protection law, substantially amended in September 2023. PIPA regulates all personal information processing in both public and private sectors and is considered one of the strictest privacy laws globally, with revenue-based penalties and data portability rights.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain informed consent for collection, use, and third-party provision of personal information",
     "Report data breaches to the PIPC and affected individuals within 72 hours",

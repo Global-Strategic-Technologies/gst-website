@@ -1,0 +1,25 @@
+{
+  "id": "us-cmmc",
+  "name": "Cybersecurity Maturity Model Certification 2.0 (CMMC)",
+  "regions": [
+    "US-AL", "US-AK", "US-AZ", "US-AR", "US-CA", "US-CO", "US-CT", "US-DE",
+    "US-DC", "US-FL", "US-GA", "US-HI", "US-ID", "US-IL", "US-IN", "US-IA",
+    "US-KS", "US-KY", "US-LA", "US-ME", "US-MD", "US-MA", "US-MI", "US-MN",
+    "US-MS", "US-MO", "US-MT", "US-NE", "US-NV", "US-NH", "US-NJ", "US-NM",
+    "US-NY", "US-NC", "US-ND", "US-OH", "US-OK", "US-OR", "US-PA", "US-RI",
+    "US-SC", "US-SD", "US-TN", "US-TX", "US-UT", "US-VT", "US-VA", "US-WA",
+    "US-WV", "US-WI", "US-WY"
+  ],
+  "effectiveDate": "2025-03-15",
+  "summary": "CMMC 2.0 is a Department of Defense program that requires defense contractors to demonstrate cybersecurity maturity through third-party assessments. It streamlines the original five-level model into three tiers aligned with NIST SP 800-171 and NIST SP 800-172, and will be required in DoD contracts through DFARS clauses.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "Level 1 (Foundational): 15 basic safeguarding practices from FAR 52.204-21, annual self-assessment",
+    "Level 2 (Advanced): 110 security requirements from NIST SP 800-171 Rev 2, triennial third-party assessment",
+    "Level 3 (Expert): NIST SP 800-172 enhanced requirements, government-led assessment",
+    "Plan of Action and Milestones (POA&M) allowed for limited deficiencies with 180-day remediation",
+    "Annual affirmation by senior official of continued compliance",
+    "Controlled Unclassified Information (CUI) flow-down to subcontractors"
+  ],
+  "penalties": "Non-certified contractors are ineligible for DoD contract awards requiring CMMC. False certification may result in False Claims Act liability with treble damages. Suspension or debarment from government contracting for material misrepresentation."
+}

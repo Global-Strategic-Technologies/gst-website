@@ -1,9 +1,12 @@
 {
   "id": "vn-pdpl",
   "name": "Law on Personal Data Protection (Law No. 91/2025/QH15)",
-  "regions": ["VNM"],
+  "regions": [
+    "VNM"
+  ],
   "effectiveDate": "2026-01-01",
   "summary": "Vietnam's comprehensive personal data protection law, passed June 2025 and effective 1 January 2026, replacing the earlier Decree 13/2023. It governs personal data processing activities by domestic and foreign entities handling Vietnamese citizens' data, with data localization requirements and revenue-based penalties.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain consent for personal data processing with specific form and content requirements",
     "Mandatory data breach notification within 72 hours to the Department of Cybersecurity",

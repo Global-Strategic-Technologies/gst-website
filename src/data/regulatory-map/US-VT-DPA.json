@@ -1,0 +1,17 @@
+{
+  "id": "us-vt-dpa",
+  "name": "Vermont Data Privacy Act (H.121)",
+  "regions": ["US-VT"],
+  "effectiveDate": "2025-07-01",
+  "summary": "Vermont's Data Privacy Act provides comprehensive consumer data privacy rights with notably stronger provisions than most US state privacy laws. It includes a private right of action for consumers, data broker registration requirements building on Vermont's existing data broker law, and strong protections against profiling and automated decision-making.",
+  "category": "data-privacy",
+  "keyRequirements": [
+    "Consumer rights to access, delete, correct, and port personal data",
+    "Right to opt out of sale, targeted advertising, and automated profiling",
+    "Private right of action allowing consumers to sue for violations",
+    "Data broker registration and transparency requirements",
+    "Data Protection Impact Assessments for high-risk processing activities",
+    "Heightened protections for sensitive data including biometric and health information"
+  ],
+  "penalties": "Enforcement by the Vermont Attorney General. Private right of action with statutory damages. Civil penalties for data broker registration violations. No cure period for consumer-initiated enforcement."
+}

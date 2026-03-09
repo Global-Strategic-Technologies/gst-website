@@ -1,0 +1,21 @@
+{
+  "id": "eu-amld6",
+  "name": "Anti-Money Laundering Directive 6 (AMLD6)",
+  "regions": [
+    "AUT", "BEL", "BGR", "HRV", "CYP", "CZE", "DNK", "EST", "FIN", "FRA",
+    "DEU", "GRC", "HUN", "IRL", "ITA", "LVA", "LTU", "LUX", "MLT", "NLD",
+    "POL", "PRT", "ROU", "SVK", "SVN", "ESP", "SWE"
+  ],
+  "effectiveDate": "2021-06-03",
+  "summary": "AMLD6 is the EU's sixth anti-money laundering directive, strengthening the criminal law framework against money laundering across member states. It harmonizes the definition of money laundering predicate offences, extends criminal liability to legal persons, and establishes minimum imprisonment terms to address inconsistencies in enforcement across the EU.",
+  "category": "industry-compliance",
+  "keyRequirements": [
+    "Harmonized list of 22 predicate offences for money laundering including cybercrime and environmental crime",
+    "Criminal liability for legal persons (companies) for money laundering committed for their benefit",
+    "Minimum imprisonment of 4 years for money laundering offences",
+    "Extended liability for aiding, abetting, inciting, and attempting money laundering",
+    "Self-laundering criminalized (laundering proceeds of crimes one committed)",
+    "Enhanced cooperation between member state Financial Intelligence Units (FIUs)"
+  ],
+  "penalties": "Minimum 4 years imprisonment for natural persons. Legal persons face fines, exclusion from public benefits, judicial winding-up, temporary or permanent closure of establishments. Aggravating circumstances (criminal organization involvement, obliged entity employees) increase penalties."
+}

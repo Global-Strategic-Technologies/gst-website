@@ -1,0 +1,17 @@
+{
+  "id": "kr-ncia",
+  "name": "South Korea National Cybersecurity Infrastructure Act",
+  "regions": ["KOR"],
+  "effectiveDate": "2024-09-15",
+  "summary": "South Korea's National Cybersecurity Infrastructure Act establishes a comprehensive legal framework for protecting national cybersecurity across public and private sectors. It consolidates previously fragmented cybersecurity regulations, creates the National Cybersecurity Committee, and mandates incident response coordination between government agencies and critical infrastructure operators.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "National Cybersecurity Committee established under the President for policy coordination",
+    "Mandatory cybersecurity incident reporting to the Korea Internet & Security Agency (KISA)",
+    "Critical infrastructure operators must implement cybersecurity management systems",
+    "National cybersecurity strategy development and implementation oversight",
+    "Cross-sector information sharing on cyber threats and vulnerabilities",
+    "Regular cybersecurity assessments and compliance audits for designated entities"
+  ],
+  "penalties": "Administrative corrective measures and improvement orders for non-compliant entities. Fines for failure to report cybersecurity incidents. Sector-specific penalties applied through implementing regulations."
+}

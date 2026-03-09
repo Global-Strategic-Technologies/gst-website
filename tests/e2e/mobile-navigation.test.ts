@@ -3,6 +3,30 @@ import { test, expect, devices } from '@playwright/test';
 // Run these tests with mobile viewport
 test.use({ ...devices['iPhone 12'] });
 
+/**
+ * Open the filter drawer and wait for its slide-in transition to complete.
+ * The drawer animates `right: -400px → 0` over 0.3s. Checking `toBeVisible()`
+ * alone is insufficient — browsers may consider the drawer visible mid-transition,
+ * causing subsequent chip clicks to miss. We wait for the `.open` class (applied
+ * immediately) AND for `transitionend` to fire or a stable computed position.
+ */
+async function openFilterDrawer(page: import('@playwright/test').Page): Promise<void> {
+  const filterToggle = page.locator('[data-testid="portfolio-filter-toggle"]');
+  await filterToggle.click();
+
+  const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
+  await expect(drawer).toBeVisible({ timeout: 5000 });
+
+  // Wait for the drawer to have the .open class and for the CSS transition to settle.
+  // We check that the computed right value is >= -1px (accounts for sub-pixel rounding).
+  await page.waitForFunction(() => {
+    const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
+    if (!el || !el.classList.contains('open')) return false;
+    const right = parseFloat(window.getComputedStyle(el).right);
+    return right >= -1;
+  }, { timeout: 5000 });
+}
+
 test.describe('Mobile Navigation Journey', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/ma-portfolio');
@@ -58,14 +82,11 @@ test.describe('Mobile Navigation Journey', () => {
     // Wait for portfolio to be fully initialized
     await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
 
-    // Click filter toggle
-    const filterToggle = page.locator('[data-testid="portfolio-filter-toggle"]');
-    await expect(filterToggle).toBeVisible();
-    await filterToggle.click();
+    await openFilterDrawer(page);
 
-    // Drawer should open
+    // Drawer should be visible and transition complete
     const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
-    await expect(drawer).toBeVisible({ timeout: 5000 });
+    await expect(drawer).toBeVisible();
   });
 
   test('should allow typing in search on mobile', async ({ page }) => {
@@ -211,13 +232,7 @@ test.describe('Mobile Navigation Journey', () => {
     // Wait for initialization
     await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
 
-    // Open filter drawer on mobile
-    const filterToggle = page.locator('[data-testid="portfolio-filter-toggle"]');
-    await filterToggle.click();
-
-    // Wait for drawer
-    const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
-    await expect(drawer).toBeVisible({ timeout: 5000 });
+    await openFilterDrawer(page);
 
     // Click Growth Stage filter
     const growthChip = page.locator('[data-testid="filter-chip-stage-growth"]');
@@ -235,13 +250,7 @@ test.describe('Mobile Navigation Journey', () => {
     // Wait for initialization
     await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
 
-    // Open filter drawer on mobile
-    const filterToggle = page.locator('[data-testid="portfolio-filter-toggle"]');
-    await filterToggle.click();
-
-    // Wait for drawer
-    const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
-    await expect(drawer).toBeVisible({ timeout: 5000 });
+    await openFilterDrawer(page);
 
     // Click a theme filter
     const themeChip = page.locator('[data-testid="filter-chip-theme-finance"]');
@@ -260,13 +269,7 @@ test.describe('Mobile Navigation Journey', () => {
     // Wait for initialization
     await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
 
-    // Open filter drawer on mobile
-    const filterToggle = page.locator('[data-testid="portfolio-filter-toggle"]');
-    await filterToggle.click();
-
-    // Wait for drawer
-    const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
-    await expect(drawer).toBeVisible({ timeout: 5000 });
+    await openFilterDrawer(page);
 
     // Click a year filter
     const yearChip = page.locator('[data-testid="filter-chip-year-2024"]');
@@ -285,13 +288,7 @@ test.describe('Mobile Navigation Journey', () => {
     // Wait for initialization
     await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
 
-    // Open filter drawer on mobile
-    const filterToggle = page.locator('[data-testid="portfolio-filter-toggle"]');
-    await filterToggle.click();
-
-    // Wait for drawer
-    const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
-    await expect(drawer).toBeVisible({ timeout: 5000 });
+    await openFilterDrawer(page);
 
     // Click an engagement filter
     const engagementChip = page.locator('[data-testid="filter-chip-engagement-value-creation"]');
@@ -315,13 +312,7 @@ test.describe('Mobile Navigation Journey', () => {
     const initialCount = await initialCards.count();
     expect(initialCount).toBeGreaterThan(0);
 
-    // Open filter drawer on mobile
-    const filterToggle = page.locator('[data-testid="portfolio-filter-toggle"]');
-    await filterToggle.click();
-
-    // Wait for drawer
-    const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
-    await expect(drawer).toBeVisible({ timeout: 5000 });
+    await openFilterDrawer(page);
 
     // Apply a filter
     const growthChip = page.locator('[data-testid="filter-chip-stage-growth"]');
@@ -331,13 +322,18 @@ test.describe('Mobile Navigation Journey', () => {
     const closeButton = page.locator('[data-testid="portfolio-drawer-close"]');
     await closeButton.click();
 
-    // Wait for drawer to close and filter to apply
-    await page.waitForTimeout(500);
+    // Wait for drawer slide-out transition to complete
+    await page.waitForFunction(() => {
+      const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
+      if (!el) return true;
+      const right = window.getComputedStyle(el).right;
+      return right !== '0px';
+    }, { timeout: 5000 });
 
     // Grid should still be visible and interactive
     const gridCards = page.locator('[data-testid^="project-card-"]');
     const gridCardCount = await gridCards.count();
-    expect(gridCardCount).toBeGreaterThanOrEqual(0);
+    expect(gridCardCount).toBeGreaterThan(0);
 
     // Verify filter state was applied
     const filterState = await page.evaluate(() => (window as any).portfolioState?.filters?.stage);
@@ -348,13 +344,7 @@ test.describe('Mobile Navigation Journey', () => {
     // Wait for initialization
     await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
 
-    // Open filter drawer on mobile
-    const filterToggle = page.locator('[data-testid="portfolio-filter-toggle"]');
-    await filterToggle.click();
-
-    // Wait for drawer
-    const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
-    await expect(drawer).toBeVisible({ timeout: 5000 });
+    await openFilterDrawer(page);
 
     // Apply multiple filters
     const growthChip = page.locator('[data-testid="filter-chip-stage-growth"]');
@@ -371,8 +361,11 @@ test.describe('Mobile Navigation Journey', () => {
     const clearButton = page.locator('[data-testid="clear-filters-button"]');
     await clearButton.click();
 
-    // Wait for reset
-    await page.waitForTimeout(300);
+    // Wait for filters to reset — "All Stages" chip should become active
+    await page.waitForFunction(() => {
+      const el = document.querySelector('[data-testid="filter-chip-stage-all"]');
+      return el && el.classList.contains('active');
+    }, { timeout: 5000 });
 
     // Filters should be reset to "All"
     const allStagesChip = page.locator('[data-testid="filter-chip-stage-all"]');

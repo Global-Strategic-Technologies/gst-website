@@ -1,0 +1,18 @@
+{
+  "id": "kr-ai-framework",
+  "name": "South Korea AI Basic Act (Framework Act on AI Industry Promotion)",
+  "regions": ["KOR"],
+  "effectiveDate": "2025-01-22",
+  "summary": "South Korea's AI Basic Act is one of the first comprehensive national AI laws globally. It establishes a regulatory framework promoting AI industry development while managing risks from high-impact AI systems. The law creates the AI Committee under the Prime Minister, mandates impact assessments for high-impact AI, and sets transparency and reliability requirements.",
+  "category": "ai-governance",
+  "keyRequirements": [
+    "AI Committee established under the Prime Minister for national AI policy coordination",
+    "High-impact AI designation for systems affecting life, safety, and fundamental rights",
+    "AI impact assessments required for high-impact AI systems before deployment",
+    "Transparency obligations including disclosure of AI-generated content and AI interaction",
+    "AI reliability standards and certification framework",
+    "Support measures for AI industry development, research, and talent cultivation",
+    "User protection measures including right to explanation of AI-driven decisions"
+  ],
+  "penalties": "Fines up to KRW 30 million for failure to comply with high-impact AI obligations. Administrative corrective orders and improvement directives. The AI Committee coordinates enforcement across sector-specific regulators."
+}

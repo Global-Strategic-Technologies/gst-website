@@ -1,9 +1,12 @@
 {
   "id": "uy-law18331",
   "name": "Law 18.331 on the Protection of Personal Data and Habeas Data Action (LPDP)",
-  "regions": ["URY"],
+  "regions": [
+    "URY"
+  ],
   "effectiveDate": "2008-08-11",
   "summary": "Uruguay's comprehensive data protection law was one of the earliest in Latin America, earning an EU adequacy determination in 2012. It establishes principles for the processing of personal data, creates a regulatory authority, and grants data subjects habeas data rights.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain prior, express, and informed consent for data processing",
     "Register all databases with the URCDP",

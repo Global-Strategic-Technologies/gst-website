@@ -1,9 +1,12 @@
 {
   "id": "za-popia",
   "name": "Protection of Personal Information Act (POPIA), Act 4 of 2013",
-  "regions": ["ZAF"],
+  "regions": [
+    "ZAF"
+  ],
   "effectiveDate": "2020-07-01",
   "summary": "South Africa's comprehensive data protection law regulates the processing of personal information by public and private bodies. It commenced on 1 July 2020 with a one-year grace period, making enforcement effective from 1 July 2021. POPIA grants data subjects extensive rights similar to the GDPR.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Process personal information only with a lawful justification (consent, contract, legal obligation, etc.)",
     "Implement adequate security safeguards to protect personal information",

@@ -1,9 +1,12 @@
 {
   "id": "us-ny-apda",
   "name": "New York Algorithmic Pricing Disclosure Act",
-  "regions": ["US-NY"],
+  "regions": [
+    "US-NY"
+  ],
   "effectiveDate": "2025-11-10",
   "summary": "First US state law requiring disclosure of AI-driven personalized pricing. Mandates clear notification when consumer prices are set by algorithms using personal data. Aims to protect consumers from opaque AI-driven price discrimination.",
+  "category": "ai-governance",
   "keyRequirements": [
     "Display clear and conspicuous disclosure alongside algorithmically personalized prices",
     "Disclosure must state that the price was set by an algorithm using the consumer's personal data",

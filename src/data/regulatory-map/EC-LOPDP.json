@@ -1,0 +1,17 @@
+{
+  "id": "ec-lopdp",
+  "name": "Ecuador Organic Law on Personal Data Protection",
+  "regions": ["ECU"],
+  "effectiveDate": "2023-05-26",
+  "summary": "Ecuador's Organic Law on Personal Data Protection is the country's first comprehensive data privacy law, closely modeled on the GDPR. It establishes principles-based data processing rules, individual rights, and cross-border transfer mechanisms, with enforcement by the Data Protection Authority under the Telecommunications Ministry.",
+  "category": "data-privacy",
+  "keyRequirements": [
+    "Lawful basis for processing including consent, contractual necessity, legal obligation, and legitimate interest",
+    "Data subject rights including access, rectification, erasure, portability, and objection",
+    "Data Protection Impact Assessments for high-risk processing",
+    "Data Protection Officer appointment for public entities and certain private organizations",
+    "Cross-border data transfer restrictions with adequacy or appropriate safeguards requirements",
+    "Data breach notification to the supervisory authority within 72 hours"
+  ],
+  "penalties": "Fines up to 1% of annual turnover for serious violations. Administrative sanctions including temporary or definitive suspension of data processing activities. The Data Protection Authority may conduct audits and issue corrective orders."
+}

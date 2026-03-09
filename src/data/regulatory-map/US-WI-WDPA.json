@@ -1,0 +1,17 @@
+{
+  "id": "us-wi-wdpa",
+  "name": "Wisconsin Data Privacy Act",
+  "regions": ["US-WI"],
+  "effectiveDate": "2025-01-01",
+  "summary": "Wisconsin's Data Privacy Act establishes consumer data privacy rights following the Virginia/Connecticut model. It provides residents with rights to access, delete, correct, and opt out of the sale of personal data and targeted advertising, with obligations on data controllers and processors operating in Wisconsin.",
+  "category": "data-privacy",
+  "keyRequirements": [
+    "Consumer rights to access, delete, correct, and obtain a copy of personal data",
+    "Right to opt out of sale of personal data, targeted advertising, and profiling",
+    "Data controller obligations including privacy notices, purpose limitation, and data minimization",
+    "Data protection assessments for targeted advertising, sale of data, and profiling activities",
+    "Data processing agreements required between controllers and processors",
+    "30-day cure period for violations before enforcement action"
+  ],
+  "penalties": "Enforcement by the Wisconsin Attorney General with civil penalties up to $7,500 per violation. No private right of action. 30-day cure period allows businesses to remedy violations before penalties apply."
+}

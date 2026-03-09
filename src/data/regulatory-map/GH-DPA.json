@@ -1,0 +1,17 @@
+{
+  "id": "gh-dpa",
+  "name": "Ghana Data Protection Act 2012 (Act 843)",
+  "regions": ["GHA"],
+  "effectiveDate": "2012-10-16",
+  "summary": "Ghana's Data Protection Act was one of the earliest comprehensive data protection laws in Africa. It establishes the Data Protection Commission, regulates the processing of personal data by both public and private entities, and sets conditions for lawful processing, individual rights, and cross-border data transfers.",
+  "category": "data-privacy",
+  "keyRequirements": [
+    "Registration with the Data Protection Commission before processing personal data",
+    "Consent or other lawful basis required for processing personal data",
+    "Data subjects' rights to access, correction, and deletion of personal data",
+    "Data Protection Commission oversight with investigation and enforcement powers",
+    "Cross-border data transfers only to countries with adequate data protection",
+    "Special protections for sensitive personal data including health, political opinions, and religious beliefs"
+  ],
+  "penalties": "Fines of up to GHS 36,000 (250 penalty units) for failure to register. Administrative sanctions including compliance orders and suspension of data processing activities. Criminal penalties for unlawful data processing."
+}

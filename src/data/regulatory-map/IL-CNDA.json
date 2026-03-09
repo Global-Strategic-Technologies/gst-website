@@ -1,0 +1,17 @@
+{
+  "id": "il-cnda",
+  "name": "Israel Cyber Network Defense Act",
+  "regions": ["ISR"],
+  "effectiveDate": "2022-11-14",
+  "summary": "Israel's Cyber Network Defense Act formalizes the Israel National Cyber Directorate's (INCD) authority to protect civilian cyberspace and critical infrastructure. It establishes legal powers for threat detection, incident response, and mandatory reporting, positioning Israel's cybersecurity framework among the most operationally active globally.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "Israel National Cyber Directorate (INCD) authority over civilian cybersecurity defense",
+    "Mandatory cybersecurity incident reporting for designated essential service organizations",
+    "Real-time threat intelligence sharing between INCD and critical infrastructure operators",
+    "INCD authority to issue binding cybersecurity directives during active cyber threats",
+    "Cybersecurity standards and guidelines for essential service sectors",
+    "National CERT (CERT-IL) coordination for civilian incident response and threat mitigation"
+  ],
+  "penalties": "Non-compliance with INCD directives may result in administrative enforcement measures and regulatory sanctions. Essential service organizations face corrective orders and mandatory remediation. Criminal penalties for cybercrimes addressed under existing computer crime statutes."
+}

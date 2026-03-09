@@ -1,0 +1,17 @@
+{
+  "id": "il-ppl",
+  "name": "Israel Privacy Protection Law (Amendment 13)",
+  "regions": ["ISR"],
+  "effectiveDate": "2022-08-01",
+  "summary": "Israel's Privacy Protection Law, significantly strengthened by Amendment 13, regulates the collection, storage, use, and transfer of personal data. Israel holds an EU adequacy decision enabling cross-border data transfers. The amendment modernized breach notification requirements, strengthened the Privacy Protection Authority's enforcement powers, and increased penalties.",
+  "category": "data-privacy",
+  "keyRequirements": [
+    "Database registration with the Privacy Protection Authority for databases exceeding defined thresholds",
+    "Purpose limitation: personal data may only be used for the purpose for which it was collected",
+    "Data security obligations proportionate to the type and sensitivity of data processed",
+    "Mandatory breach notification to the Privacy Protection Authority and affected individuals",
+    "Cross-border data transfer restrictions with adequacy-based exceptions",
+    "Individual rights to access, correction, and deletion of personal data"
+  ],
+  "penalties": "Administrative fines up to ILS 3.2 million per violation following Amendment 13. Criminal penalties including imprisonment for unauthorized use of personal data. The Privacy Protection Authority has expanded enforcement and investigation powers."
+}

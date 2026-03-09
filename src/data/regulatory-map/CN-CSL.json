@@ -1,0 +1,18 @@
+{
+  "id": "cn-csl",
+  "name": "China Cybersecurity Law (CSL)",
+  "regions": ["CHN"],
+  "effectiveDate": "2017-06-01",
+  "summary": "China's Cybersecurity Law is the foundational legislation governing network security, data protection, and critical information infrastructure in China. It establishes data localization requirements, mandatory security reviews for critical infrastructure operators, and real-name registration for network services, forming the basis of China's broader data governance framework alongside PIPL and the Data Security Law.",
+  "category": "cybersecurity",
+  "keyRequirements": [
+    "Critical Information Infrastructure (CII) operators must store personal information and important data within China",
+    "Security assessment required for cross-border data transfers by CII operators",
+    "Network operators must implement tiered cybersecurity protection (Multi-Level Protection Scheme)",
+    "Real-name registration required for users of network services",
+    "Mandatory cybersecurity incident reporting and emergency response plans",
+    "Regular network security monitoring, threat detection, and vulnerability management",
+    "Cooperation with public security and national security agencies during investigations"
+  ],
+  "penalties": "Fines up to RMB 1 million for network operators and up to RMB 100,000 for directly responsible persons. CII violations can result in fines up to RMB 1 million for the entity and RMB 100,000 for individuals. Business suspension, license revocation, and website closure for serious violations."
+}

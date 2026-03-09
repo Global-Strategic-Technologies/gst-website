@@ -1,9 +1,12 @@
 {
   "id": "us-fl-fdbr",
   "name": "Florida Digital Bill of Rights (FDBR)",
-  "regions": ["US-FL"],
+  "regions": [
+    "US-FL"
+  ],
   "effectiveDate": "2024-07-01",
   "summary": "The Florida Digital Bill of Rights grants data privacy rights to Florida residents and imposes obligations on controllers and processors. It applies to entities conducting business in Florida with gross annual revenues exceeding $1 billion and meeting specific data processing criteria, making it one of the narrowest state privacy laws in scope. It also includes provisions targeting large technology platforms and protections for children.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Right to access, correct, delete, and obtain a portable copy of personal data",
     "Right to opt out of the sale of personal data, targeted advertising, and profiling",

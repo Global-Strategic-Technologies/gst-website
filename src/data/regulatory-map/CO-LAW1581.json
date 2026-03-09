@@ -1,9 +1,12 @@
 {
   "id": "co-law1581",
   "name": "Law 1581 of 2012 (General Provisions for the Protection of Personal Data)",
-  "regions": ["COL"],
+  "regions": [
+    "COL"
+  ],
   "effectiveDate": "2012-10-17",
   "summary": "Colombia's statutory data protection law establishes general provisions for the protection of personal data and habeas data rights. It applies to any processing of personal data in Colombian territory or when Colombian law applies to the data controller.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain prior, express, and informed authorization (consent) from data subjects",
     "Register databases with the National Database Registry (RNBD) maintained by the SIC",

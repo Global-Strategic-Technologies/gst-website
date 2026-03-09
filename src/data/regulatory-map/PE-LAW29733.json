@@ -1,9 +1,12 @@
 {
   "id": "pe-law29733",
   "name": "Law 29.733 on the Protection of Personal Data",
-  "regions": ["PER"],
+  "regions": [
+    "PER"
+  ],
   "effectiveDate": "2013-05-08",
   "summary": "Peru's data protection law was enacted in 2011 with implementing regulations effective May 2013. A major update via Supreme Decree 016-2024-JUS took effect March 2025, modernizing obligations including extraterritorial application and local representative requirements for foreign entities.",
+  "category": "data-privacy",
   "keyRequirements": [
     "Obtain free, prior, express, informed, and unequivocal consent",
     "Register personal data banks with the national registry",

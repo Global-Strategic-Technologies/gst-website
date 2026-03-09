@@ -1,0 +1,17 @@
+{
+  "id": "tz-epda",
+  "name": "Tanzania Personal Data Protection Act (Written Laws Amendment Act)",
+  "regions": ["TZA"],
+  "effectiveDate": "2023-11-01",
+  "summary": "Tanzania's data protection framework was established through amendments to the Electronic and Postal Communications Act and subsequent regulations. It introduces data protection principles, individual rights, and oversight mechanisms for the processing of personal data in Tanzania, with the Tanzania Communications Regulatory Authority (TCRA) serving as the supervisory body.",
+  "category": "data-privacy",
+  "keyRequirements": [
+    "Consent or other lawful basis required for processing personal data",
+    "Data protection principles including purpose limitation, data minimization, and accuracy",
+    "Individual rights to access, correction, and objection to processing",
+    "Data security obligations including protection against unauthorized access and disclosure",
+    "Cross-border data transfer restrictions requiring adequate safeguards",
+    "Tanzania Communications Regulatory Authority (TCRA) oversight and enforcement"
+  ],
+  "penalties": "Fines and penalties as prescribed by the Tanzania Communications Regulatory Authority. Administrative sanctions including compliance orders and suspension of processing activities. Criminal penalties for serious violations of data protection requirements."
+}
