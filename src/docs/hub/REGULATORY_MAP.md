@@ -20,7 +20,7 @@ User (Map UI)
 │     CompliancePanel.astro       ← Regulation detail panel (cards, requirements, penalties)
 │
 ├── src/data/regulatory-map/
-│     *.json                      ← 74 regulation files (Zod-validated at build time)
+│     *.json                      ← 120 regulation files (Zod-validated at build time)
 │
 ├── src/data/canada-provinces.json ← TopoJSON for Canadian province boundaries
 │
@@ -117,13 +117,13 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 
 ---
 
-## Regulation Coverage (74 regulations)
+## Regulation Coverage (120 regulations)
 
-The map covers three categories of regulation: **data privacy** (56 regulations), **artificial intelligence** (16 regulations), and **industry compliance** (2 regulations). All categories share the same data schema, rendering pipeline, and region code system. A single region may have multiple regulations from multiple categories.
+The map covers four categories of regulation: **data privacy** (69), **cybersecurity** (20), **AI governance** (19), and **industry compliance** (12). All categories share the same data schema, rendering pipeline, and region code system. A single region may have multiple regulations from multiple categories.
 
 ---
 
-### Data Privacy Regulations (56)
+### Data Privacy Regulations (69)
 
 #### Multi-Country (2)
 
@@ -132,7 +132,7 @@ The map covers three categories of regulation: **data privacy** (56 regulations)
 | `EU-GDPR.json` | General Data Protection Regulation | 27 EU member states |
 | `CA-PIPEDA.json` | Personal Information Protection and Electronic Documents Act | All Canadian provinces |
 
-#### US State Privacy Laws (20)
+#### US State Privacy Laws (24)
 
 | File | State | Law |
 |------|-------|-----|
@@ -151,11 +151,14 @@ The map covers three categories of regulation: **data privacy** (56 regulations)
 | `US-NH-NHPA.json` | New Hampshire | NHPA |
 | `US-NJ-NJDPA.json` | New Jersey | NJDPA |
 | `US-OR-OCPA.json` | Oregon | OCPA |
+| `US-PA-PADPA.json` | Pennsylvania | PADPA |
 | `US-RI-RIDTPPA.json` | Rhode Island | RIDTPPA |
 | `US-TN-TIPA.json` | Tennessee | TIPA |
 | `US-TX-TDPSA.json` | Texas | TDPSA |
 | `US-UT-UCPA.json` | Utah | UCPA |
 | `US-VA-VCDPA.json` | Virginia | VCDPA |
+| `US-VT-DPA.json` | Vermont | DPA |
+| `US-WI-WDPA.json` | Wisconsin | WDPA |
 
 #### Canadian Provincial Laws (3)
 
@@ -165,7 +168,7 @@ The map covers three categories of regulation: **data privacy** (56 regulations)
 | `CA-AB-PIPA.json` | Alberta | PIPA |
 | `CA-BC-PIPA.json` | British Columbia | PIPA |
 
-#### Asia-Pacific (11)
+#### Asia-Pacific (12)
 
 | File | Country | Law |
 |------|---------|-----|
@@ -180,16 +183,18 @@ The map covers three categories of regulation: **data privacy** (56 regulations)
 | `ID-PDP.json` | Indonesia | PDP Law |
 | `VN-PDPL.json` | Vietnam | PDPL |
 | `MY-PDPA.json` | Malaysia | PDPA 2010 |
+| `BD-DSA.json` | Bangladesh | Data Protection Act 2023 |
 
-#### Europe Non-EU (3)
+#### Europe Non-EU (4)
 
 | File | Country | Law |
 |------|---------|-----|
 | `GB-DPA.json` | United Kingdom | Data Protection Act 2018 |
 | `CH-FADP.json` | Switzerland | nFADP |
 | `TR-KVKK.json` | Turkey | KVKK (Law 6698) |
+| `RS-LPDP.json` | Serbia | LPDP |
 
-#### Middle East & Africa (7)
+#### Middle East & Africa (11)
 
 | File | Country | Law |
 |------|---------|-----|
@@ -200,8 +205,12 @@ The map covers three categories of regulation: **data privacy** (56 regulations)
 | `SA-PDPL.json` | Saudi Arabia | PDPL |
 | `EG-PDPL.json` | Egypt | PDPL |
 | `RW-DPP.json` | Rwanda | DPP Law |
+| `QA-PDPL.json` | Qatar | PDPL |
+| `GH-DPA.json` | Ghana | DPA 2012 |
+| `TZ-EPDA.json` | Tanzania | PDP Act |
+| `UG-DPPA.json` | Uganda | Data Protection and Privacy Act 2019 |
 
-#### Latin America (6)
+#### Latin America (7)
 
 | File | Country | Law |
 |------|---------|-----|
@@ -211,27 +220,37 @@ The map covers three categories of regulation: **data privacy** (56 regulations)
 | `MX-LFPDPPP.json` | Mexico | LFPDPPP |
 | `UY-LAW18331.json` | Uruguay | Law 18.331 |
 | `PE-LAW29733.json` | Peru | Law 29.733 |
+| `EC-LOPDP.json` | Ecuador | LOPDP |
 
-#### Other (4)
+#### Central & South Asia (3)
+
+| File | Country | Law |
+|------|---------|-----|
+| `PK-POPA.json` | Pakistan | PDP Act |
+| `KZ-PDP.json` | Kazakhstan | PDP Law |
+| `UZ-PDP.json` | Uzbekistan | PDP Law |
+
+#### Other (3)
 
 | File | Country | Law | Note |
 |------|---------|-----|------|
 | `SG-PDPA.json` | Singapore | PDPA | |
 | `BH-PDPL.json` | Bahrain | PDPL | Not visible on 110m map (too small) |
 | `CL-LAW19628.json` | Chile | Law 19.628 | |
-| `RS-LPDP.json` | Serbia | LPDP | Not visible on 110m map |
+| `IL-PPL.json` | Israel | Privacy Protection Law | |
 
 ---
 
-### AI Regulations (16)
+### AI Governance Regulations (19)
 
-#### Multi-Country (1)
+#### Multi-Country (2)
 
 | File | Regulation | Coverage | Effective |
 |------|-----------|---------|-----------|
-| `EU-AI-ACT.json` | EU Artificial Intelligence Act (Regulation 2024/1689) | 27 EU member states | 2024-08-01 (phased through 2027) |
+| `EU-AI-ACT.json` | EU Artificial Intelligence Act (Regulation 2024/1689) | 27 EU member states | 2024-08-01 |
+| `US-EXEC-AI.json` | US Executive Order on Safe, Secure, and Trustworthy AI (EO 14110) | 51 US jurisdictions | 2023-10-30 |
 
-#### National AI Laws (6)
+#### National AI Laws (8)
 
 | File | Country | Law | Effective |
 |------|---------|-----|-----------|
@@ -239,8 +258,10 @@ The map covers three categories of regulation: **data privacy** (56 regulations)
 | `CN-DEEP-SYNTHESIS.json` | China | Deep Synthesis Provisions (deepfakes) | 2023-01-10 |
 | `CN-GENAI.json` | China | Interim Measures for Generative AI | 2023-08-15 |
 | `KR-AI-BASIC-ACT.json` | South Korea | AI Basic Act | 2026-01-22 |
+| `KR-AI-FRAMEWORK.json` | South Korea | AI Basic Act (Framework Act) | 2025-01-22 |
 | `JP-AI-PROMOTION.json` | Japan | AI Promotion Act | 2025-06-04 |
 | `PE-AI-LAW31814.json` | Peru | AI Promotion Law (Law 31814) | 2023-07-05 |
+| `BR-AI-ACT.json` | Brazil | AI Act (PL 2338/2023) | 2025-07-01 |
 
 #### US State AI Laws (9)
 
@@ -258,35 +279,98 @@ The map covers three categories of regulation: **data privacy** (56 regulations)
 
 ---
 
-### Industry Compliance Regulations (2)
+### Cybersecurity Regulations (20)
+
+#### Multi-Country (1)
 
 | File | Regulation | Coverage | Effective |
 |------|-----------|---------|-----------|
-| `US-HIPAA.json` | Health Insurance Portability and Accountability Act (HIPAA) | 51 US jurisdictions (50 states + DC) | 1996-08-21 |
-| `GLOBAL-PCI-DSS.json` | Payment Card Industry Data Security Standard (PCI DSS) | Global (~104 regions: US, Canada, EU, major economies) | 2004-12-15 |
+| `EU-NIS2.json` | Network and Information Security Directive 2 (NIS2) | 27 EU member states | 2024-10-17 |
 
-**Note:** HIPAA is a US federal law applying to healthcare entities handling Protected Health Information (PHI). PCI DSS is a global industry standard (not a government law) enforced contractually by card networks (Visa, Mastercard, etc.), applicable to any organization that stores, processes, or transmits payment cardholder data.
+#### US Federal (2)
+
+| File | Regulation | Coverage | Effective |
+|------|-----------|---------|-----------|
+| `US-CIRCIA.json` | Cyber Incident Reporting for Critical Infrastructure Act | 51 US jurisdictions | 2026-04-01 |
+| `US-CMMC.json` | Cybersecurity Maturity Model Certification 2.0 | 51 US jurisdictions | 2025-03-15 |
+
+#### Asia-Pacific (7)
+
+| File | Country | Law | Effective |
+|------|---------|-----|-----------|
+| `AU-SOCI.json` | Australia | Security of Critical Infrastructure Act 2018 | 2022-04-02 |
+| `CN-CSL.json` | China | Cybersecurity Law | 2017-06-01 |
+| `JP-APCS.json` | Japan | Act on Protection of Critical Infrastructure Services | 2024-06-14 |
+| `KR-NCIA.json` | South Korea | National Cybersecurity Infrastructure Act | 2024-09-15 |
+| `SG-CSA.json` | Singapore | Cybersecurity Act | 2018-08-31 |
+| `MY-CSA.json` | Malaysia | Cyber Security Act 2024 | 2024-08-26 |
+| `TH-CSA.json` | Thailand | Cybersecurity Act B.E. 2562 | 2019-05-28 |
+
+#### Europe Non-EU (1)
+
+| File | Country | Law | Effective |
+|------|---------|-----|-----------|
+| `GB-NIS.json` | United Kingdom | NIS Regulations 2018 | 2018-05-10 |
+
+#### Americas (3)
+
+| File | Country | Law | Effective |
+|------|---------|-----|-----------|
+| `CA-CCCS.json` | Canada | Critical Cyber Systems Protection Act | 2025-06-01 |
+| `BR-CNCS.json` | Brazil | National Cybersecurity Policy | 2024-01-01 |
+| `IN-CERT.json` | India | CERT-In Cybersecurity Directions | 2022-06-28 |
+
+#### Middle East & Africa (5)
+
+| File | Country | Law | Effective |
+|------|---------|-----|-----------|
+| `AE-CSL.json` | UAE | Cybersecurity Law | 2023-01-02 |
+| `IL-CNDA.json` | Israel | Cyber Network Defense Act | 2022-11-14 |
+| `SA-NCA.json` | Saudi Arabia | NCA Essential Cybersecurity Controls | 2018-05-01 |
+| `KE-CMCA.json` | Kenya | Computer Misuse and Cybercrimes Act 2018 | 2018-05-30 |
+| `NG-NCPS.json` | Nigeria | National Cybersecurity Policy and Strategy 2021 | 2021-02-25 |
+
+#### Oceania (1)
+
+| File | Country | Law | Effective |
+|------|---------|-----|-----------|
+| `NZ-NCSC.json` | New Zealand | Intelligence and Security Act 2017 | 2017-04-01 |
 
 ---
 
-#### Multi-Regulation Regions
+### Industry Compliance Regulations (12)
 
-Some regions display regulations from multiple categories:
+#### Global Standards (2)
 
-| Region | Privacy | AI | Industry |
-|--------|---------|-----|----------|
-| EU member states (27) | GDPR | EU AI Act | PCI DSS |
-| China | PIPL | Algorithm Rec, Deep Synthesis, Generative AI | PCI DSS |
-| South Korea | PIPA | AI Basic Act | PCI DSS |
-| Japan | APPI | AI Promotion Act | PCI DSS |
-| Peru | Law 29.733 | AI Promotion Law 31814 | — |
-| California | CCPA/CPRA | AI Transparency Act | HIPAA, PCI DSS |
-| Colorado | CPA | AI Act (SB 24-205) | HIPAA, PCI DSS |
-| Illinois | — | AIVRA, AI Employment (HB 3773) | HIPAA, PCI DSS |
-| New York | — | NYC LL144, Algorithmic Pricing Act | HIPAA, PCI DSS |
-| Tennessee | TIPA | ELVIS Act | HIPAA, PCI DSS |
-| Texas | TDPSA | TRAIGA | HIPAA, PCI DSS |
-| Utah | UCPA | AI Policy Act | HIPAA, PCI DSS |
+| File | Regulation | Coverage | Effective |
+|------|-----------|---------|-----------|
+| `GLOBAL-PCI-DSS.json` | Payment Card Industry Data Security Standard (PCI DSS) | ~104 regions (US, Canada, EU, major economies) | 2004-12-15 |
+| `GLOBAL-BASEL3.json` | Basel III International Banking Standards | 37 regions | 2023-01-01 |
+
+#### EU (3)
+
+| File | Regulation | Coverage | Effective |
+|------|-----------|---------|-----------|
+| `EU-DORA.json` | Digital Operational Resilience Act (DORA) | 27 EU member states | 2025-01-17 |
+| `EU-AMLD6.json` | Anti-Money Laundering Directive 6 (AMLD6) | 27 EU member states | 2021-06-03 |
+| `EU-MIFID2.json` | Markets in Financial Instruments Directive II (MiFID II) | 27 EU member states | 2018-01-03 |
+
+#### US Federal (4)
+
+| File | Regulation | Coverage | Effective |
+|------|-----------|---------|-----------|
+| `US-HIPAA.json` | Health Insurance Portability and Accountability Act (HIPAA) | 51 US jurisdictions | 1996-08-21 |
+| `US-SOX.json` | Sarbanes-Oxley Act (SOX) | 51 US jurisdictions | 2002-07-30 |
+| `US-GLBA.json` | Gramm-Leach-Bliley Act (GLBA) | 51 US jurisdictions | 1999-11-12 |
+| `US-FCPA.json` | Foreign Corrupt Practices Act (FCPA) | 51 US jurisdictions | 1977-12-19 |
+
+#### Other (3)
+
+| File | Country | Law | Effective |
+|------|---------|-----|-----------|
+| `AU-AML-CTF.json` | Australia | AML/CTF Act 2006 | 2006-12-12 |
+| `GB-FSMA.json` | United Kingdom | Financial Services and Markets Act 2023 | 2023-06-29 |
+| `SG-PSA.json` | Singapore | Payment Services Act | 2020-01-28 |
 
 ---
 
@@ -371,23 +455,24 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 
 ## Future Expansion
 
+### Shipped Features
+
+- **Category filter UI** — Filter chips for data privacy, AI governance, industry compliance, cybersecurity. Updates map highlighting and panel cards in real time.
+- **Regulation timeline/tracker** — Horizontal scrollable timeline with Today marker and filter-aware display.
+- **Search/filter** — Text search across regulation names, summaries, and key requirements with keyboard navigation and map integration.
+- **Region bookmarking/sharing** — URL state encoding (`?region=DEU&filter=ai-governance`) with copy-link button in panel header.
+- **Cybersecurity frameworks** — 20 cybersecurity regulations including NIS2 (EU), CIRCIA (US), SOCI Act (Australia), and 17 more.
+- **Industry compliance expansion** — 12 regulations including DORA, SOX, GLBA, Basel III, AMLD6, MiFID II.
+- **Mobile UX** — Bottom sheet panel, two-tap flow with tap bar, quick-zoom region buttons, drag handle, overlay dismiss.
+
 ### Feature Roadmap
 
-**High Impact:**
-- **Category filter UI** — Toggle chips/buttons to filter by data privacy, AI governance, industry compliance, cybersecurity. Leverages existing `category` field on all 74 regulations. Updates map highlighting and panel cards in real time.
-- **Regulation timeline/tracker** — Visualize upcoming effective dates on a timeline. Several AI laws take effect 2026-2027; useful for diligence teams planning ahead.
-- **Compliance gap analysis / comparison mode** — Select multiple regions and view a side-by-side matrix showing which regulations apply where, highlighting coverage gaps across jurisdictions.
-- **Search/filter** — Text search across regulation names, summaries, and key requirements. Quick answers to questions like "which regions require breach notification?"
-
 **UX Improvements:**
-- Upgrade to 50m TopoJSON for better small-country visibility (Bahrain, Serbia, etc.)
-- Region bookmarking/sharing — URL state encoding so users can share a link to a specific region's regulations
+- Coverage stats strip — Compact stat counters between the page header and the map showing key metrics at a glance (see design spec below)
 - Print/export — PDF export of selected region's regulation cards for inclusion in diligence reports
 - Regulation change alerts — Flag regulations with recent amendments or pending changes
 
 **Data Expansion:**
-- Cybersecurity frameworks — NIS2 Directive (EU), CIRCIA (US), Australia's SOCI Act (fills unused `cybersecurity` category)
-- Sector-specific regulations — DORA (EU financial services), telecommunications, critical infrastructure
 - Enforcement actions/fines database — Real-world penalty data to contextualize penalties (e.g., "GDPR: 2,000+ fines totaling EUR 4.5B+")
 
 **Cross-Tool Integration:**
@@ -429,5 +514,83 @@ Prioritized list of regulations and jurisdictions for future phases:
 
 ---
 
+### Design Spec: Coverage Stats Strip
+
+**Purpose:** Fill the empty space between the page header and the map with a compact stats strip that communicates the map's breadth at a glance — before the user interacts with anything.
+
+**Placement:** Between `<HubHeader>` and `<div class="map-layout">` in `index.astro` (line ~58).
+
+**Layout:**
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  120            4                  60+              2004–2027    │
+│  Regulations    Categories         Jurisdictions    Date Range  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- Horizontal row of 4 stat items, divided by subtle vertical separators
+- Desktop: single row, centered, with `gap: var(--spacing-xl)`
+- Mobile: 2×2 grid (matches existing `StatsBar.astro` responsive pattern)
+- Values are large (`heading-md` / `--text-2xl`), labels are small (`--text-xs`, muted)
+
+**Stats (computed at build time from `regulations` array):**
+
+| Value | Label | Source |
+|-------|-------|--------|
+| `regulations.length` | Regulations | Count of all JSON files |
+| `4` | Categories | Hardcoded (data-privacy, ai-governance, industry-compliance, cybersecurity) |
+| Unique region count | Jurisdictions | `new Set(regulations.flatMap(r => r.regions)).size` |
+| Date range | Date Range | `min(effectiveDate)` – `max(effectiveDate)` year |
+
+**Styling approach:**
+- Reuse the existing `.stats-bar` / `.stat-item` pattern from `global.css` (already handles dark theme, responsive grid, separator borders)
+- OR scope new styles inside `index.astro`'s `<style>` block if the global pattern doesn't fit visually (the global stats bar has a dark background which may clash)
+- Use CSS variables for all colors, spacing, typography — no hardcoded values
+- Primary color accent on the numeric values (`var(--color-primary)`) for visual pop
+
+**Animation (optional, low priority):**
+- Count-up animation on scroll-into-view using `IntersectionObserver` + `requestAnimationFrame`
+- Falls back to static numbers if `prefers-reduced-motion: reduce`
+
+**Implementation notes:**
+- All values are available at build time in the frontmatter (`regulations` is already fetched)
+- No client JS required for the base implementation — pure SSG HTML
+- Responsive breakpoint matches existing page: `@media (min-width: 1024px)`
+
+**Files to modify:**
+- `src/pages/hub/tools/regulatory-map/index.astro` — add HTML + scoped styles in frontmatter/template
+
+---
+
+### Deprioritized: 50m TopoJSON Upgrade
+
+**Status:** Deprioritized — cost/benefit does not justify implementation at current regulation count.
+
+**Research (March 2026):**
+
+| | 110m (current) | 50m |
+|--|--|--|
+| Countries | 177 | 241 (+64) |
+| File size | 105 KB | 739 KB (+634 KB, 7x increase) |
+| Bahrain | Missing entirely | Present |
+| Serbia | Exists, small polygon | Better polygon |
+| Singapore | Present | Present (no change) |
+
+- Of 64 countries gained, only **Bahrain** (`BH-PDPL.json`) has a regulation in our data but no renderable polygon. Serbia exists in 110m but is small. Singapore is present in both.
+- The 634 KB payload increase is embedded inline at build time — significant for a single missing country.
+- No user-reported issues with current resolution.
+
+**Cheaper alternatives if Bahrain visibility becomes needed:**
+1. Delete `BH-PDPL.json` (remove unrenderable regulation data)
+2. Inject a manual marker/circle at Bahrain's coordinates as a clickable target
+
+**Revisit when:**
+- Regulation count for small-island/small-country nations exceeds 5+
+- Geographic expansion Tiers 2-4 add sub-national data requiring higher fidelity boundaries
+- Users report inability to find or interact with specific countries
+
+---
+
 **Created:** March 2026
-**Last updated:** March 2026 (added industry compliance regulations HIPAA and PCI DSS, category/scope schema fields, total 74)
+**Last updated:** March 2026 (120 regulations across 4 categories, URL bookmarking, shipped features documented)

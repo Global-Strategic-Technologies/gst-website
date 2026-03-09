@@ -10,7 +10,7 @@
  * - generateScript: End-to-end script generation
  */
 
-import { describe, it, expect } from 'vitest';
+// globals: true in vitest.config.ts provides describe, it, expect
 import {
   matchesConditions,
   meetsMinimumBracket,

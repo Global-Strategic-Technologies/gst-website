@@ -50,6 +50,9 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                         >
                             <h2 class="step-title">{step.title}</h2>
                             <p class="step-subtitle">{step.subtitle}</p>
+                            {step.id === 'data-sensitivity' && (
+                                <p class="step-note">Explore jurisdiction-specific requirements in the <a href="/hub/tools/regulatory-map" target="_blank" rel="noopener">Regulatory Map</a>.</p>
+                            )}
 
                             {step.inputType === 'single-select' && step.options && (
                                 <div class="options-grid">
@@ -1180,6 +1183,15 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         text-align: center;
         margin: 0 0 var(--spacing-2xl) 0;
         line-height: 1.6;
+    }
+
+    .step-note {
+        font-size: var(--text-sm);
+        color: var(--text-light-tertiary);
+        text-align: center;
+        margin: calc(-1 * var(--spacing-xl)) 0 var(--spacing-2xl) 0;
+        line-height: 1.6;
+        font-style: italic;
     }
 
     /* ─── OPTION CARDS ─────────────────────────────────────────────────── */

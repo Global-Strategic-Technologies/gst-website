@@ -8,7 +8,7 @@
  * - Topic metadata consistency
  */
 
-import { describe, it, expect } from 'vitest';
+// globals: true in vitest.config.ts provides describe, it, expect
 import { QUESTIONS, TOPIC_META } from '../../src/data/diligence-machine/questions';
 import { ATTENTION_AREAS } from '../../src/data/diligence-machine/attention-areas';
 import { WIZARD_STEPS, BRACKET_ORDER } from '../../src/data/diligence-machine/wizard-config';

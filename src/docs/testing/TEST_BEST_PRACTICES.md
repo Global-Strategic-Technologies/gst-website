@@ -548,6 +548,118 @@ If your test has any of these, it's likely a false positive:
 13. ✗ Hardcoded data assumptions like "country X has no category Y regulations" without a comment explaining why
 14. ✗ Uses `click({ force: true })` on an element that's obscured by a higher z-index layer
 15. ✗ Uses `toBeHidden()` on an element whose CSS overrides `[hidden]` with `display: block`
+16. ✗ Imports `describe`/`it`/`expect` from `'vitest'` when `globals: true` is set — tests silently don't register
+17. ✗ Top-level `beforeEach`/`afterEach` outside a `describe` block — causes runner initialization failure
+18. ✗ Uses `grantPermissions(['clipboard-read', 'clipboard-write'])` — only works in Chromium, fails on Firefox/WebKit
+
+## E2E Cross-Browser Pitfalls
+
+### 11. ❌ Using `grantPermissions` with Clipboard Permissions on Firefox/WebKit
+
+Playwright's `browserContext.grantPermissions()` only supports clipboard permissions (`clipboard-read`, `clipboard-write`) on Chromium. Firefox and WebKit throw `"Unknown permission"` errors, causing immediate test failure.
+
+**Bad:**
+```typescript
+// ❌ Fails on Firefox ("Unknown permission: clipboard-read")
+// ❌ Fails on WebKit ("Unknown permission: clipboard-write")
+test('should copy link', async ({ page }) => {
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.locator('#copyBtn').click();
+  // ...assert clipboard content
+});
+```
+
+**Good:**
+```typescript
+// ✅ Test the UI feedback, not the clipboard content
+// Source code should show feedback regardless of clipboard API success:
+//   navigator.clipboard.writeText(url).then(showFeedback, showFeedback);
+test('should show copied feedback on click', async ({ page }) => {
+  await page.locator('#copyBtn').click();
+
+  // Assert on observable UI state, not clipboard contents
+  await page.waitForFunction(() => {
+    const btn = document.getElementById('copyBtn');
+    return btn && btn.classList.contains('copied');
+  });
+  await expect(page.locator('#copyBtn')).toHaveAttribute('aria-label', 'Copied!');
+});
+```
+
+**Key principle:** Make the source code resilient — show UI feedback on both clipboard success and failure (the `.then(onSuccess, onFailure)` pattern). Then test the UI feedback, which works identically across all browsers. Only test actual clipboard content in Chromium-specific test suites if needed.
+
+## Unit / Integration Test Pitfalls
+
+### 9. ❌ Explicit Vitest Imports When `globals: true` Is Enabled
+
+When `globals: true` is set in `vitest.config.ts`, test primitives (`describe`, `it`, `expect`, `beforeEach`, `afterEach`) are injected globally. Explicitly importing them from `'vitest'` in the same file causes Vitest 4.x to silently fail — tests appear to load but never register, producing "No test suite found" or "failed to find the runner" errors with 0 tests executed.
+
+**Bad:**
+```typescript
+// ❌ With globals: true, these imports shadow the global injections
+// Tests silently fail to register — 0 tests run, suite marked as failed
+import { describe, it, expect, beforeEach } from 'vitest';
+
+describe('my feature', () => {
+  it('should work', () => {
+    expect(true).toBe(true);
+  });
+});
+```
+
+**Good:**
+```typescript
+// ✅ Only import vi (for mocks/spies) — everything else comes from globals
+import { vi } from 'vitest';
+
+describe('my feature', () => {
+  it('should work', () => {
+    expect(true).toBe(true);
+  });
+});
+```
+
+**What to import from `'vitest'`:**
+- `vi` — always import (mocks, spies, timers, stubs)
+- `describe`, `it`, `test`, `expect`, `beforeEach`, `afterEach`, `beforeAll`, `afterAll` — **never import** when `globals: true`
+
+**How to detect:** If `npm run test:run` reports failing suites but all counted tests pass, check the failing files for explicit vitest imports. The symptom is 0 tests registered from those files.
+
+### 10. ❌ Top-Level `beforeEach` / `afterEach` Outside a `describe` Block
+
+Vitest 4.x requires lifecycle hooks to be nested inside a `describe` block. A top-level `beforeEach` (common when a file has a single implicit test group) causes a runner initialization error.
+
+**Bad:**
+```typescript
+// ❌ Top-level beforeEach — Vitest 4.x throws "failed to find the runner"
+let mockFetch: ReturnType<typeof vi.fn>;
+
+beforeEach(() => {
+  mockFetch = vi.fn();
+  vi.stubGlobal('fetch', mockFetch);
+});
+
+it('should fetch data', async () => { /* ... */ });
+```
+
+**Good:**
+```typescript
+// ✅ Wrap in a describe block
+import { vi } from 'vitest';
+
+describe('API Client', () => {
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    mockFetch = vi.fn();
+    vi.stubGlobal('fetch', mockFetch);
+  });
+
+  it('should fetch data', async () => { /* ... */ });
+});
+```
+
+---
 
 ## Running Tests
 

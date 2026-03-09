@@ -10,7 +10,7 @@
  * tests/integration/diligence-wizard-navigation.test.ts.
  */
 
-import { describe, it, expect } from 'vitest';
+// globals: true in vitest.config.ts provides describe, it, expect
 import { toFyiItem, toWireItem, mergeFeed, CATEGORIES } from '@/lib/inoreader/transform';
 import type {
   InoreaderItem,
@@ -160,6 +160,7 @@ class RadarDataFlowSimulator {
 // Tests
 // ---------------------------------------------------------------------------
 
+describe('Radar Data Flow', () => {
 let sim: RadarDataFlowSimulator;
 
 beforeEach(() => {
@@ -647,3 +648,4 @@ describe('Full Pipeline', () => {
     expect(ids.length).toBe(new Set(ids).size);
   });
 });
+}); // close Radar Data Flow

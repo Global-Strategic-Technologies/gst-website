@@ -12,7 +12,7 @@
  * Uses vi.stubGlobal('fetch', ...) to mock HTTP requests.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { vi } from 'vitest';
 import {
   fetchAnnotatedItems,
   fetchFolderStream,
@@ -64,6 +64,7 @@ function mockItem(overrides: Record<string, any> = {}) {
   };
 }
 
+describe('Radar Inoreader API Client', () => {
 let mockFetch: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
@@ -344,3 +345,4 @@ describe('Token Refresh (401 Handling)', () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 });
+}); // close Radar Inoreader API Client

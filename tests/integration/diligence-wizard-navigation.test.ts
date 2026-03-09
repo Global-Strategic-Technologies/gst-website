@@ -9,7 +9,7 @@
  * - CSS class management (active, completed, reachable)
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+// globals: true in vitest.config.ts provides describe, it, expect, beforeEach
 
 interface SavedState {
   version: number;
