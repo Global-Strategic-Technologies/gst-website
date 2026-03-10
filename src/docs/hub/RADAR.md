@@ -160,7 +160,7 @@ When resolving credentials, the client checks three sources in order:
 
 ### Upstash Redis Persistence
 
-Tokens are stored in Upstash Redis (Upstash Redis) to survive across serverless invocations:
+Tokens are stored in Upstash Redis to survive across serverless invocations:
 
 | Redis Key | Value | TTL |
 |--------|-------|-----|
@@ -493,6 +493,41 @@ The Inoreader client (`src/lib/inoreader/client.ts`) logs to `console.error` / `
 
 1. Content refreshes every 6 hours via ISR — wait for the next cycle
 2. To force a refresh: trigger a redeployment from Vercel dashboard
+
+## Unit Test Coverage
+
+### API Client Tests (`tests/unit/radar-client.test.ts`)
+
+25 tests covering the fetch layer with `configOverride` injection (bypasses `getConfig()`):
+
+- `fetchAnnotatedItems` — URL construction, headers, success/failure, query params
+- `fetchFolderStream` — URL encoding, success/failure, query params
+- `fetchAllStreams` — Tag discovery, prefix filtering, dedup, sort, partial failures
+- Token refresh on 401 — Refresh attempt, retry with new token, refresh failure, missing refresh token
+
+### KV Persistence Tests (`tests/unit/radar-kv-persistence.test.ts`)
+
+18 tests covering the Upstash Redis token persistence layer. These call public functions **without** `configOverride` to exercise the real `getConfig()` → `loadTokensFromKV()` → `getRedis()` code path.
+
+| Group | Tests | What's Covered |
+|-------|-------|----------------|
+| KV Token Loading | 6 | Token priority chain (in-memory > Redis > env), one-time load flag, env var fallback, exhausted sources |
+| Persistence on Refresh | 4 | Save both tokens on 401 refresh, skip when no refresh_token returned, in-memory cache update, KV write failure resilience |
+| Graceful Degradation | 3 | Redis read failure, Redis write failure, cached null instance reuse |
+| resetTokenCache | 1 | Full state reset triggers fresh KV reload (simulates new serverless invocation) |
+| Edge Cases | 3 | `UPSTASH_REDIS_REST_*` fallback env var names, 30-day TTL verification, correct Redis key names |
+
+**Mocking strategy:**
+- `@upstash/redis` is mocked at module level via `vi.mock()` — constructor and `get`/`set` methods are individually controllable
+- `import.meta.env` properties are set directly on the env object per test (with save/restore in `beforeEach`/`afterEach`)
+- Global `fetch` is stubbed to return controlled responses
+- Console spies are managed via `afterEach` cleanup to prevent leak on assertion failure
+
+```bash
+npm run test:run                                           # All tests (581)
+npx vitest run tests/unit/radar-client.test.ts             # API client only (25)
+npx vitest run tests/unit/radar-kv-persistence.test.ts     # KV persistence only (18)
+```
 
 ## Category Inference
 
