@@ -63,8 +63,7 @@ const BASE_ENV: Record<string, string> = {
   KV_REST_API_TOKEN: 'redis-token',
 };
 
-/** Save original values so we can restore them */
-const savedEnv: Record<string, any> = {};
+/** Save original values so we can restore them — declared in describe scope */
 
 function setEnv(overrides: Record<string, string> = {}) {
   const merged = { ...BASE_ENV, ...overrides };
@@ -119,6 +118,8 @@ function mockItem(overrides: Record<string, any> = {}) {
 
 describe('Radar KV Token Persistence', () => {
   let mockFetch: ReturnType<typeof vi.fn>;
+  const savedEnv: Record<string, any> = {};
+  let warnSpy: ReturnType<typeof vi.spyOn> | null = null;
 
   beforeEach(() => {
     mockFetch = vi.fn();
@@ -136,6 +137,10 @@ describe('Radar KV Token Persistence', () => {
   });
 
   afterEach(() => {
+    // Restore console.warn spy if any test set it (prevents leak on assertion failure)
+    if (warnSpy) {      warnSpy = null;
+    }
+
     // Restore original env values
     const env = import.meta.env;
     for (const key of ENV_KEYS) {
@@ -325,7 +330,7 @@ describe('Radar KV Token Persistence', () => {
       mockRedisGet.mockResolvedValue(null);
       mockRedisSet.mockRejectedValue(new Error('Redis write timeout'));
 
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       mockFetch.mockResolvedValueOnce(mockResponse({}, { ok: false, status: 401 }));
       mockFetch.mockResolvedValueOnce(mockResponse({
@@ -341,8 +346,6 @@ describe('Radar KV Token Persistence', () => {
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('KV write failed')
       );
-
-      warnSpy.mockRestore();
     });
   });
 
@@ -355,7 +358,7 @@ describe('Radar KV Token Persistence', () => {
       setEnv();
       mockRedisGet.mockRejectedValue(new Error('Redis connection refused'));
 
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       mockFetch.mockResolvedValueOnce(mockResponse(mockStreamResponse([mockItem()])));
 
@@ -368,8 +371,6 @@ describe('Radar KV Token Persistence', () => {
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('KV read failed')
       );
-
-      warnSpy.mockRestore();
     });
 
     it('should not throw when KV write fails with network error', async () => {
@@ -377,7 +378,7 @@ describe('Radar KV Token Persistence', () => {
       mockRedisGet.mockResolvedValue(null);
       mockRedisSet.mockRejectedValue(new Error('Redis unavailable'));
 
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       mockFetch.mockResolvedValueOnce(mockResponse({}, { ok: false, status: 401 }));
       mockFetch.mockResolvedValueOnce(mockResponse({
@@ -392,22 +393,36 @@ describe('Radar KV Token Persistence', () => {
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('KV write failed')
       );
-
-      warnSpy.mockRestore();
     });
 
     it('should cache null Redis instance and not re-attempt construction', async () => {
-      setEnv({ KV_REST_API_URL: '', KV_REST_API_TOKEN: '' });
+      // First call: Redis env vars present, constructor called once
+      setEnv();
+      mockRedisGet.mockResolvedValue(null);
 
       mockFetch
         .mockResolvedValueOnce(mockResponse(mockStreamResponse()))
         .mockResolvedValueOnce(mockResponse(mockStreamResponse()));
 
       await fetchAnnotatedItems(10);
+      expect(MockRedisConstructor).toHaveBeenCalledTimes(1);
+
+      // Second call (same invocation, no resetTokenCache): _redisInstance cached,
+      // constructor should NOT be called again
+      await fetchAnnotatedItems(10);
+      expect(MockRedisConstructor).toHaveBeenCalledTimes(1);
+    });
+
+    it('should fall back to env vars when Redis env vars are empty', async () => {
+      setEnv({ KV_REST_API_URL: '', KV_REST_API_TOKEN: '' });
+
+      mockFetch.mockResolvedValueOnce(mockResponse(mockStreamResponse()));
+
       await fetchAnnotatedItems(10);
 
-      // Redis constructor should never have been called (no env vars)
+      // No Redis env vars → constructor never called, _redisInstance set to null
       expect(MockRedisConstructor).not.toHaveBeenCalled();
+      expect(mockRedisGet).not.toHaveBeenCalled();
     });
   });
 
