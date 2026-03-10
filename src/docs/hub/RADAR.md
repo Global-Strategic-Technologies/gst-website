@@ -49,7 +49,9 @@ Set in Vercel project settings and local `.env`:
 | `INOREADER_REFRESH_TOKEN` | OAuth refresh token (initial/fallback) | OAuth flow or Redis auto-refresh |
 | `INOREADER_FOLDER_PREFIX` | Folder prefix filter (default: `GST-`) | Manual |
 | `KV_REST_API_URL` | Upstash Redis REST endpoint | Auto-provisioned by Vercel Upstash integration |
-| `KV_REST_API_TOKEN` | Upstash Redis auth token | Auto-provisioned by Vercel Upstash integration |
+| `KV_REST_API_TOKEN` | Upstash Redis standard token (read/write) | Auto-provisioned by Vercel Upstash integration |
+
+The Vercel Upstash integration also provisions `KV_REST_API_READ_ONLY_TOKEN`, `KV_URL`, and `REDIS_URL` — these are **not used** by the Radar client. See [Environment Variables for Redis](#environment-variables-for-redis) for details.
 
 ## Inoreader Setup
 
@@ -178,19 +180,26 @@ With Redis, the refreshed token chain stays alive indefinitely — each refresh 
 Redis is provisioned via the Upstash integration in the Vercel Marketplace (free tier: 10,000 commands/day, 256MB):
 
 1. **Vercel Dashboard → Storage → Upstash** → Create a Redis database named `gst-radar-tokens`
-2. **Connect to the project** — Upstash auto-provisions `KV_REST_API_URL` and `KV_REST_API_TOKEN` env vars
+2. **Connect to the project** — Upstash auto-provisions 5 env vars (`KV_REST_API_URL`, `KV_REST_API_TOKEN`, `KV_REST_API_READ_ONLY_TOKEN`, `KV_URL`, `REDIS_URL`); only the first two are used by the Radar client
 3. **Redeploy** — the code detects Redis automatically via `@upstash/redis`
 
 No code changes or local env var setup needed. For local development, Redis is not used — the client reads tokens from `.env` as usual.
 
 ### Environment Variables for Redis
 
-These are auto-provisioned when you connect an Upstash Redis store to the project:
+The Vercel Upstash integration auto-provisions **5 environment variables** when you connect a Redis store to the project. The Radar client only uses 2 of them:
 
-| Variable | Purpose | Source |
-|----------|---------|--------|
-| `KV_REST_API_URL` | Upstash Redis REST endpoint | Auto-set by Vercel Upstash integration |
-| `KV_REST_API_TOKEN` | Upstash Redis auth token | Auto-set by Vercel Upstash integration |
+| Variable | Used by Radar? | Purpose |
+|----------|:-:|---------|
+| `KV_REST_API_URL` | **Yes** | Upstash Redis REST endpoint (HTTPS) — used by `@upstash/redis` SDK |
+| `KV_REST_API_TOKEN` | **Yes** | Standard token with **full read/write** access — required because the client both reads and writes tokens |
+| `KV_REST_API_READ_ONLY_TOKEN` | No | Read-only token — permits only read commands (GET, not SET). Intended for client-side/browser code where the token is publicly exposed. Not needed here since all Redis calls are server-side in Vercel serverless functions |
+| `KV_URL` | No | Redis protocol connection string (`rediss://...`) — for native Redis clients like `ioredis`. Not needed since we use the REST SDK |
+| `REDIS_URL` | No | Alias for `KV_URL` — same Redis protocol string, provided for compatibility with frameworks that expect this name |
+
+**Why `KV_REST_API_TOKEN` and not `KV_REST_API_READ_ONLY_TOKEN`?** The Radar client calls `store.set()` to persist refreshed OAuth tokens. The read-only token would reject these write operations. The standard token is safe to use because it never leaves the server — it's only accessed in Vercel serverless functions, never exposed to browsers.
+
+**Fallback env var names:** The code also checks `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` as fallbacks, supporting direct Upstash SDK conventions if the Vercel-specific names are not set.
 
 ### Manual Fallback
 
