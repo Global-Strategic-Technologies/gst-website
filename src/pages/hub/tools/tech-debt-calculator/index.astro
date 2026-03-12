@@ -224,7 +224,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
                     <!-- Outputs Panel -->
                     <div data-calc-outputs>
 
-                        <!-- Quick mode: context card (always visible in Quick) -->
+                        <!-- Context card (always visible) -->
                         <div data-context-panel class="context-panel">
                             <div class="context-label">What This Means</div>
                             <div class="context-stat">
@@ -375,6 +375,9 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
     [data-calc-metrics-bar] {
         border-bottom: 1px solid rgba(5, 205, 153, 0.12);
         background: rgba(0, 0, 0, 0.06);
+        /* Flatten both rows into a single 8-column bar */
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
     }
 
     :global(html.dark-theme) [data-calc-metrics-bar] {
@@ -382,13 +385,16 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
     }
 
     .metrics-row {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        display: contents;
     }
 
     .metrics-row--detail {
-        border-top: 1px solid rgba(5, 205, 153, 0.06);
         transition: opacity 0.2s;
+    }
+
+    /* Detail group: left border separates the two halves */
+    .metrics-row--detail .metric-cell:first-child {
+        border-left: 1px solid rgba(5, 205, 153, 0.12);
     }
 
     .metric-cell {
@@ -438,7 +444,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
     [data-calc-body] {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        align-items: start;
+        align-items: stretch;
     }
 
     /* ── Inputs panel ────────────────────────────────────────────────────────── */
@@ -462,7 +468,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
         background: rgba(0, 0, 0, 0.18);
     }
 
-    /* ── Context panel (Quick mode right-side) ───────────────────────────────── */
+    /* ── Context panel ───────────────────────────────────────────────────────── */
     .context-panel {
         background: rgba(5, 205, 153, 0.04);
         border: 1px solid rgba(5, 205, 153, 0.12);
@@ -471,6 +477,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
         display: flex;
         flex-direction: column;
         gap: var(--spacing-md);
+        flex: 1;
     }
 
     :global(html.dark-theme) .context-panel {
@@ -869,14 +876,15 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
             background: transparent;
         }
 
-        /* Metrics bar: 2 per row on tablet */
-        .metrics-row {
-            grid-template-columns: repeat(2, 1fr);
+        /* Metrics bar: restack to 4 columns on tablet */
+        [data-calc-metrics-bar] {
+            grid-template-columns: repeat(4, 1fr);
         }
 
-        /* Second row cells need right border reset for 2-col */
-        .metrics-row [class*="metric-cell"]:nth-child(2) {
-            border-right: none;
+        /* Detail group loses its left-border separator in stacked layout */
+        .metrics-row--detail .metric-cell:first-child {
+            border-left: none;
+            border-top: 1px solid rgba(5, 205, 153, 0.06);
         }
 
         /* Base sliders: 2-col on tablet (better than 3-col squished) */
