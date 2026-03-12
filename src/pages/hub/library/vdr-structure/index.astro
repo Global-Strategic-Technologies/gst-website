@@ -361,9 +361,7 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
             </div>
             </div>
 
-            <div class="vdr-back-nav">
-                <a href="/hub/library" class="cta-button secondary">Back to The Library</a>
-            </div>
+            <a href="/hub/library" class="cta-button secondary back-link">Back to The Library</a>
         </div>
     </section>
 </BaseLayout>
@@ -688,15 +686,9 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
     }
 
     /* Back Navigation */
-    .vdr-back-nav {
-        text-align: center;
-        margin-top: var(--spacing-3xl);
-        padding-top: var(--spacing-3xl);
-        border-top: 1px solid rgba(5, 205, 153, 0.15);
-    }
-
-    :global(html.dark-theme) .vdr-back-nav {
-        border-top-color: rgba(5, 205, 153, 0.2);
+    .back-link {
+        display: inline-block;
+        margin-top: var(--spacing-2xl);
     }
 
     /* Hover effects (pointer devices only) */
@@ -1013,7 +1005,7 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
         }
 
         /* Remove back nav */
-        .vdr-back-nav {
+        .back-link {
             display: none;
         }
 
