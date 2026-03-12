@@ -30,18 +30,6 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
             <!-- Calculator -->
             <div data-calc>
 
-                <!-- Mode Tabs -->
-                <div data-calc-tabs>
-                    <button data-mode-tab="quick" class="calc-tab active" type="button">
-                        Quick
-                        <span class="calc-tab-sub">Back of napkin</span>
-                    </button>
-                    <button data-mode-tab="deep" class="calc-tab" type="button">
-                        Deep Dive
-                        <span class="calc-tab-sub">Full breakdown</span>
-                    </button>
-                </div>
-
                 <!-- Sticky metrics bar — always visible -->
                 <div data-calc-metrics-bar>
                     <!-- Row 1: Always visible -->
@@ -135,8 +123,19 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
                             </div>
                         </div>
 
-                        <!-- Deep Dive: Delivery Metrics + ROI -->
-                        <div data-show-in="deep" class="is-hidden">
+                        <!-- Advanced Metrics (collapsible) -->
+                        <div class="advanced-toggle-row">
+                            <button
+                                data-advanced-toggle
+                                type="button"
+                                class="advanced-toggle-btn"
+                                aria-expanded="false"
+                            >
+                                <span data-toggle-label>Show Advanced Metrics</span>
+                                <span class="toggle-chevron" aria-hidden="true">▾</span>
+                            </button>
+                        </div>
+                        <div data-advanced-section class="is-hidden">
                             <div class="inputs-divider">
                                 <span class="divider-label">Delivery Metrics</span>
                                 <div class="divider-line"></div>
@@ -243,8 +242,8 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
                             <p class="context-note" id="ctx-note"></p>
                         </div>
 
-                        <!-- Deep mode: payback box -->
-                        <div data-payback-section data-show-in="deep" class="is-hidden payback-box">
+                        <!-- Advanced mode: payback box -->
+                        <div data-payback-section data-advanced-section class="is-hidden payback-box">
                             <div class="payback-label">Remediation ROI</div>
                             <div class="payback-grid">
                                 <div>
@@ -335,59 +334,41 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
         border-color: rgba(5, 205, 153, 0.18);
     }
 
-    /* ── Mode tabs ───────────────────────────────────────────────────────────── */
-    [data-calc-tabs] {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        border-bottom: 1px solid rgba(5, 205, 153, 0.08);
-        background: rgba(0, 0, 0, 0.04);
+    /* ── Advanced toggle ─────────────────────────────────────────────────────── */
+    .advanced-toggle-row {
+        margin: var(--spacing-md) 0 0;
     }
 
-    :global(html.dark-theme) [data-calc-tabs] {
-        background: rgba(0, 0, 0, 0.25);
-    }
-
-    .calc-tab {
-        padding: var(--spacing-md) var(--spacing-lg);
-        border: none;
-        border-bottom: 2px solid transparent;
-        background: none;
-        cursor: pointer;
-        color: var(--text-light-muted);
-        font-family: var(--font-family);
-        font-weight: var(--font-weight-bold);
-        font-size: var(--text-sm);
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        transition: color var(--transition-fast), border-color var(--transition-fast);
-        position: relative;
-        bottom: -1px;
+    .advanced-toggle-btn {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        gap: 2px;
-        text-align: center;
-        /* Large enough tap target */
-        min-height: 48px;
-        justify-content: center;
-    }
-
-    .calc-tab:hover {
-        color: var(--text-light-secondary);
-    }
-
-    .calc-tab.active {
+        gap: var(--spacing-xs);
+        background: none;
+        border: none;
+        padding: var(--spacing-xs) 0;
+        cursor: pointer;
         color: var(--color-primary);
-        border-bottom-color: var(--color-primary);
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        transition: opacity var(--transition-fast);
+        min-height: 44px;
     }
 
-    .calc-tab-sub {
-        font-size: var(--text-xs);
-        font-weight: var(--font-weight-normal);
-        letter-spacing: 0.03em;
-        text-transform: none;
-        color: inherit;
-        opacity: 0.7;
+    .advanced-toggle-btn:hover {
+        opacity: 0.75;
+    }
+
+    .toggle-chevron {
+        font-size: var(--text-sm);
+        transition: transform var(--transition-fast);
+        display: inline-block;
+    }
+
+    .advanced-toggle-btn[aria-expanded="true"] .toggle-chevron {
+        transform: rotate(180deg);
     }
 
     /* ── Metrics bar ─────────────────────────────────────────────────────────── */
@@ -1073,14 +1054,14 @@ function render(): void {
 
   // ── Metric row 2 (opacity only) ──
   const detailRow = document.querySelector('[data-metrics-row="detail"]') as HTMLElement;
-  detailRow.style.opacity = state.mode === 'quick' ? '0.25' : '1';
+  detailRow.style.opacity = state.advancedOpen ? '1' : '0.25';
 
   const directEl   = getMetric('direct-labor');
   const incidentEl = getMetric('incident-labor');
   const velocityEl = getMetric('velocity');
   const debtPctEl  = getMetric('debt-pct-arr');
 
-  if (state.mode === 'quick') {
+  if (!state.advancedOpen) {
     directEl.textContent   = '—';
     incidentEl.textContent = '—';
     velocityEl.textContent = '—';
@@ -1101,16 +1082,20 @@ function render(): void {
     directEl.style.color    = '';
   }
 
-  // ── Mode tabs ──
-  document.querySelectorAll('[data-mode-tab]').forEach(btn => {
-    const b = btn as HTMLElement;
-    b.classList.toggle('active', b.dataset.modeTab === state.mode);
+  // ── Advanced section visibility ──
+  document.querySelectorAll('[data-advanced-section]').forEach(el => {
+    (el as HTMLElement).classList.toggle('is-hidden', !state.advancedOpen);
   });
 
-  // ── Deep Dive visibility ──
-  document.querySelectorAll('[data-show-in="deep"]').forEach(el => {
-    (el as HTMLElement).classList.toggle('is-hidden', state.mode !== 'deep');
-  });
+  // ── Toggle button ARIA sync ──
+  const toggleBtn = document.querySelector('[data-advanced-toggle]') as HTMLButtonElement | null;
+  if (toggleBtn) {
+    toggleBtn.setAttribute('aria-expanded', String(state.advancedOpen));
+    const labelEl = toggleBtn.querySelector('[data-toggle-label]') as HTMLElement | null;
+    if (labelEl) {
+      labelEl.textContent = state.advancedOpen ? 'Hide Advanced Metrics' : 'Show Advanced Metrics';
+    }
+  }
 
   // ── Context panel ──
   const teamSize = posToTeamSize(state.teamSizePos);
@@ -1154,7 +1139,7 @@ function render(): void {
   getDisplay('arr').textContent       = fmtShort(posToArr(state.arrPos));
 
   // ── Payback section ──
-  if (state.mode === 'deep') {
+  if (state.advancedOpen) {
     el('payback-breakeven').textContent = fmtPayback(result.paybackMonths);
     el('payback-breakeven').style.color = result.paybackMonths < 24
       ? 'var(--color-primary)'
@@ -1198,11 +1183,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  document.querySelectorAll('[data-mode-tab]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      state.mode = (btn as HTMLElement).dataset.modeTab as 'quick' | 'deep';
+  const advancedToggle = document.querySelector('[data-advanced-toggle]');
+  if (advancedToggle) {
+    advancedToggle.addEventListener('click', () => {
+      state.advancedOpen = !state.advancedOpen;
       render();
     });
-  });
+  }
 });
 </script>

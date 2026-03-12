@@ -123,19 +123,19 @@ describe('inverse transforms round-trip', () => {
   });
 });
 
-// ─── calculate() — quick mode ─────────────────────────────────────────────────
+// ─── calculate() — collapsed mode (advancedOpen: false) ───────────────────────
 
-describe('calculate() — quick mode', () => {
+describe('calculate() — collapsed mode (advancedOpen: false)', () => {
   it('excludes incident labor from totalMonthly', () => {
     // Use non-zero incidents to prove they are actively excluded, not just absent
-    const state = makeState({ mode: 'quick', incidents: 10, mttr: 8 });
+    const state = makeState({ advancedOpen: false, incidents: 10, mttr: 8 });
     const result = calculate(state);
     expect(result.totalMonthly).toBe(result.directMonthly);
     expect(result.incidentMonthly).toBeGreaterThan(0); // incidents were computed but excluded
   });
 
   it('annualCost is exactly 12× totalMonthly', () => {
-    const result = calculate(makeState({ mode: 'quick' }));
+    const result = calculate(makeState({ advancedOpen: false }));
     // annualCost = totalMonthly * 12 is exact integer multiplication
     expect(result.annualCost).toBe(result.totalMonthly * 12);
   });
@@ -148,7 +148,7 @@ describe('calculate() — quick mode', () => {
 
   it('costPerEng equals totalMonthly / teamSize', () => {
     // Explicitly set all inputs used by this formula
-    const state = makeState({ mode: 'quick', teamSizePos: teamSizeToPos(10), salaryPos: salaryToPos(120000), maintPct: 30, deployIdx: 2 });
+    const state = makeState({ advancedOpen: false, teamSizePos: teamSizeToPos(10), salaryPos: salaryToPos(120000), maintPct: 30, deployIdx: 2 });
     const result = calculate(state);
     const teamSize = posToTeamSize(state.teamSizePos);
     expect(result.costPerEng).toBeCloseTo(result.totalMonthly / teamSize, 5);
@@ -174,11 +174,11 @@ describe('calculate() — quick mode', () => {
   });
 });
 
-// ─── calculate() — deep mode ──────────────────────────────────────────────────
+// ─── calculate() — expanded mode (advancedOpen: true) ─────────────────────────
 
-describe('calculate() — deep mode', () => {
+describe('calculate() — expanded mode (advancedOpen: true)', () => {
   it('totalMonthly is directMonthly + incidentMonthly', () => {
-    const state = makeState({ mode: 'deep', incidents: 5, mttr: 8 });
+    const state = makeState({ advancedOpen: true, incidents: 5, mttr: 8 });
     const result = calculate(state);
     expect(result.totalMonthly).toBeCloseTo(result.directMonthly + result.incidentMonthly, 5);
   });
@@ -190,7 +190,7 @@ describe('calculate() — deep mode', () => {
     const salaryPos   = salaryToPos(salaryInput);
     const salary      = posToSalary(salaryPos); // = 150000 (exact round-trip)
     const state = makeState({
-      mode: 'deep',
+      advancedOpen: true,
       salaryPos,
       incidents: 4,
       mttr: 10,
@@ -205,7 +205,7 @@ describe('calculate() — deep mode', () => {
     // The engine computes debtPctArr = arrVal > 0 ? ... : 0
     // posToArr always returns >= 100000 for pos >= 0, so we test the formula
     // directly by verifying the guard branch: a tiny ARR yields large percentage
-    const state = makeState({ mode: 'deep', arrPos: 0 }); // arrVal = 100000
+    const state = makeState({ advancedOpen: true, arrPos: 0 }); // arrVal = 100000
     const result = calculate(state);
     // arrVal = 100000 (minimum floor, not zero) — guard NOT triggered, result is positive
     expect(result.debtPctArr).toBeGreaterThan(0);
@@ -213,14 +213,14 @@ describe('calculate() — deep mode', () => {
   });
 
   it('debtPctArr scales inversely with ARR — higher ARR means lower percentage', () => {
-    const loArr = calculate(makeState({ mode: 'deep', arrPos: arrToPos(1_000_000) }));
-    const hiArr = calculate(makeState({ mode: 'deep', arrPos: arrToPos(100_000_000) }));
+    const loArr = calculate(makeState({ advancedOpen: true, arrPos: arrToPos(1_000_000) }));
+    const hiArr = calculate(makeState({ advancedOpen: true, arrPos: arrToPos(100_000_000) }));
     expect(loArr.debtPctArr).toBeGreaterThan(hiArr.debtPctArr);
   });
 
   it('paybackMonths is Infinity when totalMonthly is 0', () => {
     // Set maintPct and incidents both to 0 to drive totalMonthly to 0
-    const state = makeState({ mode: 'deep', maintPct: 0, incidents: 0, mttr: 1 });
+    const state = makeState({ advancedOpen: true, maintPct: 0, incidents: 0, mttr: 1 });
     expect(calculate(state).paybackMonths).toBe(Infinity);
   });
 
@@ -228,7 +228,7 @@ describe('calculate() — deep mode', () => {
     // Use salary with exact hourlyRate to make incidentMonthly deterministic
     // budgetToPos(600000) → budgetVal ≈ 600000; verify exact formula holds
     const state = makeState({
-      mode: 'deep',
+      advancedOpen: true,
       budgetPos: budgetToPos(600000),
       maintPct: 50,
       incidents: 0,
@@ -240,8 +240,8 @@ describe('calculate() — deep mode', () => {
   });
 
   it('paybackMonths decreases as remediation budget decreases', () => {
-    const hi = calculate(makeState({ mode: 'deep', budgetPos: budgetToPos(1_000_000) }));
-    const lo = calculate(makeState({ mode: 'deep', budgetPos: budgetToPos(100_000) }));
+    const hi = calculate(makeState({ advancedOpen: true, budgetPos: budgetToPos(1_000_000) }));
+    const lo = calculate(makeState({ advancedOpen: true, budgetPos: budgetToPos(100_000) }));
     expect(lo.paybackMonths).toBeLessThan(hi.paybackMonths);
   });
 });
@@ -329,8 +329,8 @@ describe('fmtPayback', () => {
 // ─── DEFAULT_STATE ────────────────────────────────────────────────────────────
 
 describe('DEFAULT_STATE', () => {
-  it('starts in quick mode', () => {
-    expect(DEFAULT_STATE.mode).toBe('quick');
+  it('starts collapsed (advancedOpen: false)', () => {
+    expect(DEFAULT_STATE.advancedOpen).toBe(false);
   });
 
   it('initialises to team size of 8', () => {

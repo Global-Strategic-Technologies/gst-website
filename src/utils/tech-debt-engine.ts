@@ -50,7 +50,7 @@ export const arrToPos = (v: number): number =>
 // ─── State & result types ─────────────────────────────────────────────────────
 
 export interface CalcState {
-  mode: 'quick' | 'deep';
+  advancedOpen: boolean;
   teamSizePos: number;
   salaryPos: number;
   maintPct: number;
@@ -89,9 +89,9 @@ export function calculate(state: CalcState): CalcResult {
   const directMonthly   = teamSize * (salary / 12) * (state.maintPct / 100) * V;
   const incidentMonthly = state.incidents * state.mttr * hourlyRate;
   const hoursLostPerEng = 40 * (state.maintPct / 100);
-  const totalMonthly    = state.mode === 'quick'
-    ? directMonthly
-    : directMonthly + incidentMonthly;
+  const totalMonthly    = state.advancedOpen
+    ? directMonthly + incidentMonthly
+    : directMonthly;
   const annualCost      = totalMonthly * 12;
   const debtPctArr      = arrVal > 0 ? (annualCost / arrVal) * 100 : 0;
   const monthlySavings  = totalMonthly;
@@ -136,7 +136,7 @@ export const fmtPayback = (months: number): string => {
 // ─── Default initial state ────────────────────────────────────────────────────
 
 export const DEFAULT_STATE: CalcState = {
-  mode: 'quick',
+  advancedOpen: false,
   teamSizePos: teamSizeToPos(8),
   salaryPos:   salaryToPos(150000),
   maintPct:    40,
