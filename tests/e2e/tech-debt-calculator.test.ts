@@ -488,4 +488,94 @@ test.describe('Tech Debt Calculator', () => {
     });
   });
 
+  // ── Currency selector ──────────────────────────────────────────────────────
+
+  test.describe('currency selector', () => {
+    test('currency select is visible in the footer', async ({ page }) => {
+      await gotoCalc(page);
+      const select = page.locator('#currency-select');
+      await expect(select).toBeVisible();
+      await expect(select).toHaveValue('USD');
+    });
+
+    test('switching to EUR changes annual cost symbol to €', async ({ page }) => {
+      await gotoCalc(page);
+
+      await page.locator('#currency-select').selectOption('EUR');
+
+      const cost = await getMetric(page, 'annual-cost');
+      expect(cost).toContain('€');
+      expect(cost).not.toContain('$');
+    });
+
+    test('switching to GBP changes annual cost symbol to £', async ({ page }) => {
+      await gotoCalc(page);
+
+      await page.locator('#currency-select').selectOption('GBP');
+
+      const cost = await getMetric(page, 'annual-cost');
+      expect(cost).toContain('£');
+    });
+
+    test('switching back to USD restores $ symbol', async ({ page }) => {
+      await gotoCalc(page);
+
+      await page.locator('#currency-select').selectOption('EUR');
+      await page.locator('#currency-select').selectOption('USD');
+
+      const cost = await getMetric(page, 'annual-cost');
+      expect(cost).toContain('$');
+      expect(cost).not.toContain('€');
+    });
+
+    test('salary display value updates currency symbol on change', async ({ page }) => {
+      await gotoCalc(page);
+
+      await page.locator('#currency-select').selectOption('GBP');
+
+      const salary = await page.locator('[data-display="salary"]').textContent();
+      expect(salary).toContain('£');
+    });
+
+    test('salary slider hint labels update on currency change', async ({ page }) => {
+      await gotoCalc(page);
+
+      await page.locator('#currency-select').selectOption('EUR');
+
+      const minHint = await page.locator('[data-hint="salary-min"]').textContent();
+      const maxHint = await page.locator('[data-hint="salary-max"]').textContent();
+      expect(minHint).toContain('€');
+      expect(maxHint).toContain('€');
+    });
+
+    test('EUR annual cost is less than USD annual cost (multiplier < 1)', async ({ page }) => {
+      await gotoCalc(page);
+
+      const usdText = await getMetric(page, 'annual-cost');
+      const usdVal  = parseFloat(usdText.replace(/[^0-9.]/g, ''));
+
+      await page.locator('#currency-select').selectOption('EUR');
+
+      const eurText = await getMetric(page, 'annual-cost');
+      const eurVal  = parseFloat(eurText.replace(/[^0-9.]/g, ''));
+
+      // EUR multiplier is 0.92 — converted value must be lower
+      expect(eurVal).toBeLessThan(usdVal);
+    });
+
+    test('currency does not affect the ?s= URL param', async ({ page }) => {
+      await gotoCalc(page);
+
+      // Move slider to ensure URL has a state param
+      await setSlider(page, 'input-team-size', 50);
+      const urlBefore = page.url();
+
+      await page.locator('#currency-select').selectOption('GBP');
+      const urlAfter = page.url();
+
+      // The encoded state should be unchanged — currency is display-only
+      expect(urlAfter).toBe(urlBefore);
+    });
+  });
+
 });
