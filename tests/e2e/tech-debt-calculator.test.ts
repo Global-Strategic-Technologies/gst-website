@@ -352,4 +352,140 @@ test.describe('Tech Debt Calculator', () => {
     });
   });
 
+  // ── URL state persistence ──────────────────────────────────────────────────
+
+  test.describe('URL state persistence', () => {
+
+    /**
+     * Navigate to the TDC with a pre-encoded ?s= param.
+     * The param is built from encodeState via the engine, but here we use a
+     * known-valid base64 string to avoid importing Node-side code in the test.
+     *
+     * State: teamSizePos=80, salaryPos=70, maintPct=60, deployIdx=2,
+     *        incidents=3, mttr=4, budgetPos=50, arrPos=50, advancedOpen=0
+     * Encoded via btoa(JSON.stringify({a:0,ts:80,sp:70,mp:60,di:2,in:3,mttr:4,bp:50,ap:50}))
+     */
+    async function gotoCalcWithParams(page: Page, params: string): Promise<void> {
+      await page.goto(`/hub/tools/tech-debt-calculator?s=${params}`);
+      await page.waitForLoadState('domcontentloaded');
+      await page.waitForFunction(() => {
+        const el = document.querySelector('[data-metric="annual-cost"]');
+        return el && el.textContent !== '—';
+      }, { timeout: 5000 });
+    }
+
+    // Known-valid encoded state: {a:0,ts:80,sp:70,mp:60,di:2,in:3,mttr:4,bp:50,ap:50}
+    const ENCODED_STATE = btoa(JSON.stringify({ a: 0, ts: 80, sp: 70, mp: 60, di: 2, 'in': 3, mttr: 4, bp: 50, ap: 50 }));
+
+    test('URL ?s= param restores team size slider position', async ({ page }) => {
+      await gotoCalcWithParams(page, ENCODED_STATE);
+
+      // Team size slider should be at position 80 (large team)
+      const sliderVal = await page.locator('#input-team-size').inputValue();
+      expect(Number(sliderVal)).toBe(80);
+    });
+
+    test('URL ?s= param restores maint-pct display value', async ({ page }) => {
+      await gotoCalcWithParams(page, ENCODED_STATE);
+
+      // maintPct=60 → display should show "60%"
+      const display = await page.locator('[data-display="maint-pct"]').textContent();
+      expect(display).toContain('60');
+    });
+
+    test('URL ?s= param produces different results than defaults', async ({ page }) => {
+      // Get default result first
+      await gotoCalc(page);
+      const defaultCost = await getMetric(page, 'annual-cost');
+
+      // Now load with high-burden state (ts=80, mp=60)
+      await gotoCalcWithParams(page, ENCODED_STATE);
+      const paramCost = await getMetric(page, 'annual-cost');
+
+      expect(paramCost).not.toBe(defaultCost);
+    });
+
+    test('interacting with calculator updates the URL ?s= param', async ({ page }) => {
+      await gotoCalc(page);
+
+      const initialUrl = page.url();
+
+      // Move the team size slider — this triggers render() which calls pushUrlState()
+      await setSlider(page, 'input-team-size', 75);
+
+      // URL should now have ?s= param
+      const updatedUrl = page.url();
+      expect(updatedUrl).toContain('?s=');
+      expect(updatedUrl).not.toBe(initialUrl);
+    });
+
+    test('URL ?s= param is updated when slider changes', async ({ page }) => {
+      await gotoCalc(page);
+
+      await setSlider(page, 'input-team-size', 30);
+      const url30 = page.url();
+
+      await setSlider(page, 'input-team-size', 70);
+      const url70 = page.url();
+
+      // Each slider position produces a different encoded state
+      expect(url30).not.toBe(url70);
+      expect(url70).toContain('?s=');
+    });
+
+    test('invalid ?s= param falls back to defaults gracefully', async ({ page }) => {
+      // Garbage base64 that decodes to non-JSON
+      await page.goto('/hub/tools/tech-debt-calculator?s=not-valid-base64!!!');
+      await page.waitForLoadState('domcontentloaded');
+      await page.waitForFunction(() => {
+        const el = document.querySelector('[data-metric="annual-cost"]');
+        return el && el.textContent !== '—';
+      }, { timeout: 5000 });
+
+      // Calculator should still render with default values (not crash)
+      const annualCost = await getMetric(page, 'annual-cost');
+      expect(annualCost).not.toBe('—');
+      expect(annualCost.length).toBeGreaterThan(0);
+    });
+
+    // Clipboard tests — Chromium only (clipboard API not reliably available in Firefox/WebKit test environments)
+    test('Copy Link button is visible in the footer', async ({ page }) => {
+      await gotoCalc(page);
+
+      const btn = page.locator('#copy-link-btn');
+      await expect(btn).toBeVisible();
+      await expect(btn).toContainText('Copy Link');
+    });
+
+    test.describe('clipboard (Chromium only)', () => {
+      test.skip(({ browserName }) => browserName !== 'chromium',
+        'Clipboard API test scoped to Chromium');
+
+      test('Copy Link button changes text to Copied! on click', async ({ page, context }) => {
+        await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+        await gotoCalc(page);
+
+        await jsClick(page, '#copy-link-btn');
+
+        const btn = page.locator('#copy-link-btn');
+        await expect(btn).toContainText('Copied!');
+      });
+
+      test('Copy Link copies a URL containing the ?s= state param', async ({ page, context }) => {
+        await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+        await gotoCalc(page);
+
+        // Move slider so the URL has a non-default state
+        await setSlider(page, 'input-team-size', 60);
+
+        await jsClick(page, '#copy-link-btn');
+
+        // Read clipboard
+        const copied = await page.evaluate(() => navigator.clipboard.readText());
+        expect(copied).toContain('?s=');
+        expect(copied).toContain('tech-debt-calculator');
+      });
+    });
+  });
+
 });

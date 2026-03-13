@@ -239,6 +239,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
                 <!-- ── Footer ──────────────────────────────────────────────── -->
                 <div class="calc-footer">
                     <span>Δ Global Strategic Technologies · Workbench</span>
+                    <button id="copy-link-btn" type="button" class="copy-link-btn" aria-label="Copy shareable link to clipboard">Copy Link</button>
                     <span>Estimates based on industry benchmarks. Not a substitute for formal technical diligence.</span>
                 </div>
 
@@ -653,6 +654,28 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
         text-align: right;
     }
 
+    /* ── Copy Link button ─────────────────────────────────────────────────── */
+    .copy-link-btn {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border: 1px solid rgba(5, 205, 153, 0.3);
+        border-radius: 4px;
+        background: none;
+        color: var(--color-primary);
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: opacity var(--transition-fast), border-color var(--transition-fast);
+        flex-shrink: 0;
+    }
+
+    .copy-link-btn:hover {
+        opacity: 0.75;
+        border-color: var(--color-primary);
+    }
+
     /* ── Visibility ───────────────────────────────────────────────────────── */
     .is-hidden {
         display: none;
@@ -758,6 +781,8 @@ import {
   fmt,
   fmtShort,
   fmtPayback,
+  encodeState,
+  decodeState,
 } from '../../../../utils/tech-debt-engine';
 
 import type { CalcState } from '../../../../utils/tech-debt-engine';
@@ -778,6 +803,18 @@ function getMetric(key: string): HTMLElement {
 
 function el(id: string): HTMLElement {
   return document.getElementById(id) as HTMLElement;
+}
+
+// ─── URL state ────────────────────────────────────────────────────────────────
+
+function pushUrlState(state: CalcState): void {
+  const params = new URLSearchParams({ s: encodeState(state) });
+  history.replaceState(null, '', '?' + params.toString());
+}
+
+function readUrlState(): Partial<CalcState> | null {
+  const s = new URLSearchParams(window.location.search).get('s');
+  return s ? decodeState(s) : null;
 }
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -884,6 +921,9 @@ function render(): void {
   getDisplay('mttr').textContent      = state.mttr + 'h';
   getDisplay('budget').textContent    = fmtShort(posTobudget(state.budgetPos));
   getDisplay('arr').textContent       = fmtShort(posToArr(state.arrPos));
+
+  // ── Persist state to URL ──
+  pushUrlState(state);
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -901,6 +941,10 @@ function initSliders(): void {
 // ─── Event wiring ─────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Apply URL-encoded state before initialising sliders so DOM positions match
+  const urlState = readUrlState();
+  if (urlState) Object.assign(state, urlState);
+
   initSliders();
   render();
 
@@ -924,6 +968,20 @@ document.addEventListener('DOMContentLoaded', () => {
     advancedToggle.addEventListener('click', () => {
       state.advancedOpen = !state.advancedOpen;
       render();
+    });
+  }
+
+  const copyBtn = document.getElementById('copy-link-btn') as HTMLButtonElement | null;
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      const url = window.location.href;
+      const reset = () => { copyBtn.textContent = 'Copy Link'; };
+      navigator.clipboard.writeText(url).then(() => {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(reset, 2000);
+      }).catch(() => {
+        window.prompt('Copy this link:', url);
+      });
     });
   }
 });

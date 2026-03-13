@@ -133,6 +133,58 @@ export const fmtPayback = (months: number): string => {
   return `${months.toFixed(1)} mo`;
 };
 
+// ─── URL state serialisation ──────────────────────────────────────────────────
+//
+// Compact key map keeps the base64 string short.
+// 'in' is a JS reserved word in some contexts — always access as raw['in'].
+
+export function encodeState(state: CalcState): string {
+  const compact = {
+    a:    state.advancedOpen ? 1 : 0,
+    ts:   state.teamSizePos,
+    sp:   state.salaryPos,
+    mp:   state.maintPct,
+    di:   state.deployIdx,
+    'in': state.incidents,
+    mttr: state.mttr,
+    bp:   state.budgetPos,
+    ap:   state.arrPos,
+  };
+  return btoa(JSON.stringify(compact));
+}
+
+export function decodeState(encoded: string): Partial<CalcState> | null {
+  try {
+    const raw = JSON.parse(atob(encoded));
+    if (typeof raw !== 'object' || raw === null) return null;
+
+    const out: Partial<CalcState> = {};
+
+    if (raw.a === 0 || raw.a === 1)
+      out.advancedOpen = raw.a === 1;
+    if (Number.isInteger(raw.ts) && raw.ts >= 0 && raw.ts <= 100)
+      out.teamSizePos = raw.ts;
+    if (Number.isInteger(raw.sp) && raw.sp >= 0 && raw.sp <= 100)
+      out.salaryPos = raw.sp;
+    if (Number.isInteger(raw.mp) && raw.mp >= 5 && raw.mp <= 100)
+      out.maintPct = raw.mp;
+    if (Number.isInteger(raw.di) && raw.di >= 0 && raw.di <= 8)
+      out.deployIdx = raw.di;
+    if (Number.isInteger(raw['in']) && raw['in'] >= 0 && raw['in'] <= 20)
+      out.incidents = raw['in'];
+    if (Number.isInteger(raw.mttr) && raw.mttr >= 1 && raw.mttr <= 48)
+      out.mttr = raw.mttr;
+    if (Number.isInteger(raw.bp) && raw.bp >= 0 && raw.bp <= 100)
+      out.budgetPos = raw.bp;
+    if (Number.isInteger(raw.ap) && raw.ap >= 0 && raw.ap <= 100)
+      out.arrPos = raw.ap;
+
+    return out;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Default initial state ────────────────────────────────────────────────────
 
 export const DEFAULT_STATE: CalcState = {

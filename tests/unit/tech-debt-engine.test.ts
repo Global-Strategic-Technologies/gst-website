@@ -24,6 +24,8 @@ import {
   fmtPayback,
   DEFAULT_STATE,
   DEPLOY_OPTIONS,
+  encodeState,
+  decodeState,
 } from '../../src/utils/tech-debt-engine';
 
 import type { CalcState } from '../../src/utils/tech-debt-engine';
@@ -364,5 +366,146 @@ describe('DEFAULT_STATE', () => {
 
   it('initialises ARR within 3 × $100K snap of $10M', () => {
     expect(Math.abs(posToArr(DEFAULT_STATE.arrPos) - 10_000_000)).toBeLessThanOrEqual(300_000);
+  });
+});
+
+// ─── encodeState / decodeState ────────────────────────────────────────────────
+
+describe('encodeState', () => {
+  it('returns a non-empty string for DEFAULT_STATE', () => {
+    expect(encodeState(DEFAULT_STATE).length).toBeGreaterThan(0);
+  });
+
+  it('returns a string that survives atob without throwing', () => {
+    expect(() => atob(encodeState(DEFAULT_STATE))).not.toThrow();
+  });
+
+  it('encodes advancedOpen: true as 1', () => {
+    const s = { ...DEFAULT_STATE, advancedOpen: true };
+    const raw = JSON.parse(atob(encodeState(s)));
+    expect(raw.a).toBe(1);
+  });
+
+  it('encodes advancedOpen: false as 0', () => {
+    const s = { ...DEFAULT_STATE, advancedOpen: false };
+    const raw = JSON.parse(atob(encodeState(s)));
+    expect(raw.a).toBe(0);
+  });
+
+  it('different states produce different encoded strings', () => {
+    const a = encodeState({ ...DEFAULT_STATE, maintPct: 20 });
+    const b = encodeState({ ...DEFAULT_STATE, maintPct: 80 });
+    expect(a).not.toBe(b);
+  });
+
+  it('same state always produces the same encoded string (deterministic)', () => {
+    expect(encodeState(DEFAULT_STATE)).toBe(encodeState(DEFAULT_STATE));
+  });
+});
+
+describe('decodeState', () => {
+  it('round-trips DEFAULT_STATE through encode → decode with full field equality', () => {
+    const decoded = decodeState(encodeState(DEFAULT_STATE));
+    expect(decoded).not.toBeNull();
+    expect(decoded!.advancedOpen).toBe(DEFAULT_STATE.advancedOpen);
+    expect(decoded!.teamSizePos).toBe(DEFAULT_STATE.teamSizePos);
+    expect(decoded!.salaryPos).toBe(DEFAULT_STATE.salaryPos);
+    expect(decoded!.maintPct).toBe(DEFAULT_STATE.maintPct);
+    expect(decoded!.deployIdx).toBe(DEFAULT_STATE.deployIdx);
+    expect(decoded!.incidents).toBe(DEFAULT_STATE.incidents);
+    expect(decoded!.mttr).toBe(DEFAULT_STATE.mttr);
+    expect(decoded!.budgetPos).toBe(DEFAULT_STATE.budgetPos);
+    expect(decoded!.arrPos).toBe(DEFAULT_STATE.arrPos);
+  });
+
+  it('returns null for an empty string', () => {
+    expect(decodeState('')).toBeNull();
+  });
+
+  it('returns null for non-base64 garbage', () => {
+    expect(decodeState('not!!valid##base64')).toBeNull();
+  });
+
+  it('returns null for valid base64 that decodes to non-JSON', () => {
+    expect(decodeState(btoa('not json at all'))).toBeNull();
+  });
+
+  it('returns an empty partial (not null) for valid JSON with no known keys', () => {
+    const encoded = btoa(JSON.stringify({ unknown: 99 }));
+    const result = decodeState(encoded);
+    expect(result).not.toBeNull();
+    expect(Object.keys(result!)).toHaveLength(0);
+  });
+
+  it('returns partial result when only some fields are present — valid fields included', () => {
+    const encoded = btoa(JSON.stringify({ mp: 60 }));
+    const result = decodeState(encoded);
+    expect(result).not.toBeNull();
+    expect(result!.maintPct).toBe(60);
+    expect(result!.teamSizePos).toBeUndefined();
+  });
+
+  it('rejects teamSizePos > 100', () => {
+    expect(decodeState(btoa(JSON.stringify({ ts: 101 })))!.teamSizePos).toBeUndefined();
+  });
+
+  it('rejects teamSizePos < 0', () => {
+    expect(decodeState(btoa(JSON.stringify({ ts: -1 })))!.teamSizePos).toBeUndefined();
+  });
+
+  it('rejects deployIdx > 8', () => {
+    expect(decodeState(btoa(JSON.stringify({ di: 9 })))!.deployIdx).toBeUndefined();
+  });
+
+  it('rejects deployIdx < 0', () => {
+    expect(decodeState(btoa(JSON.stringify({ di: -1 })))!.deployIdx).toBeUndefined();
+  });
+
+  it('rejects maintPct < 5', () => {
+    expect(decodeState(btoa(JSON.stringify({ mp: 4 })))!.maintPct).toBeUndefined();
+  });
+
+  it('rejects maintPct > 100', () => {
+    expect(decodeState(btoa(JSON.stringify({ mp: 101 })))!.maintPct).toBeUndefined();
+  });
+
+  it('rejects mttr < 1', () => {
+    expect(decodeState(btoa(JSON.stringify({ mttr: 0 })))!.mttr).toBeUndefined();
+  });
+
+  it('rejects mttr > 48', () => {
+    expect(decodeState(btoa(JSON.stringify({ mttr: 49 })))!.mttr).toBeUndefined();
+  });
+
+  it('rejects incidents < 0', () => {
+    expect(decodeState(btoa(JSON.stringify({ in: -1 })))!.incidents).toBeUndefined();
+  });
+
+  it('rejects incidents > 20', () => {
+    expect(decodeState(btoa(JSON.stringify({ in: 21 })))!.incidents).toBeUndefined();
+  });
+
+  it('rejects float values for integer fields (e.g. deployIdx: 3.5)', () => {
+    expect(decodeState(btoa(JSON.stringify({ di: 3.5 })))!.deployIdx).toBeUndefined();
+  });
+
+  it('rejects advancedOpen values that are not 0 or 1 (e.g. 2)', () => {
+    expect(decodeState(btoa(JSON.stringify({ a: 2 })))!.advancedOpen).toBeUndefined();
+  });
+
+  it('accepts advancedOpen: 1 and maps it to boolean true', () => {
+    expect(decodeState(btoa(JSON.stringify({ a: 1 })))!.advancedOpen).toBe(true);
+  });
+
+  it('accepts advancedOpen: 0 and maps it to boolean false', () => {
+    expect(decodeState(btoa(JSON.stringify({ a: 0 })))!.advancedOpen).toBe(false);
+  });
+
+  it('ignores unknown keys — returns only known fields', () => {
+    const encoded = btoa(JSON.stringify({ mp: 50, future_field: 'x', another: 99 }));
+    const result = decodeState(encoded)!;
+    expect(result.maintPct).toBe(50);
+    expect((result as any).future_field).toBeUndefined();
+    expect((result as any).another).toBeUndefined();
   });
 });
