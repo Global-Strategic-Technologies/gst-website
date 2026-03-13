@@ -551,8 +551,38 @@ If your test has any of these, it's likely a false positive:
 16. ✗ Imports `describe`/`it`/`expect` from `'vitest'` when `globals: true` is set — tests silently don't register
 17. ✗ Top-level `beforeEach`/`afterEach` outside a `describe` block — causes runner initialization failure
 18. ✗ Uses `grantPermissions(['clipboard-read', 'clipboard-write'])` — only works in Chromium, fails on Firefox/WebKit
+19. ✗ Uses `waitUntil: 'networkidle'` in `page.goto()` or `waitForLoadState()` — times out under parallel worker load
 
 ## E2E Cross-Browser Pitfalls
+
+### 12. ❌ Using `waitUntil: 'networkidle'` Under Parallel Worker Load
+
+`networkidle` requires no network activity for 500ms. Under parallel worker contention (multiple test workers hitting the same dev server simultaneously), the server stays busy and the condition is never met — causing `page.goto()` to time out even on fast pages.
+
+This manifests as tests that **pass in isolation but fail in the full suite**, often with `Test timeout of 30000ms exceeded` on a `click()` or `waitForSelector()` call that follows the navigation — the page never finished loading so the element isn't interactive yet.
+
+**Bad:**
+```typescript
+// ❌ Times out when parallel workers saturate the dev server
+test.beforeEach(async ({ page }) => {
+  await page.goto('/hub/tools/regulatory-map', { waitUntil: 'networkidle' });
+  await waitForMapReady(page);
+});
+```
+
+**Good:**
+```typescript
+// ✅ domcontentloaded completes as soon as the HTML is parsed — reliable under load
+// The explicit waitForFunction/waitForSelector that follows is the real readiness guard
+test.beforeEach(async ({ page }) => {
+  await page.goto('/hub/tools/regulatory-map', { waitUntil: 'domcontentloaded' });
+  await waitForMapReady(page); // waits for actual content, not network quiet
+});
+```
+
+**Key principle:** `waitUntil: 'domcontentloaded'` is the correct default for most pages. Use a content-based `waitForFunction` or `waitForSelector` as the readiness signal instead — it's faster, more reliable, and tests the actual condition you care about (your content is visible/interactive), not a network heuristic.
+
+**Diagnostic:** If a test passes alone (`npx playwright test myfile.test.ts`) but fails in the full suite (`npm run test:e2e`), look for `networkidle` in the `beforeEach` or the failing `goto()` call. Replace it with `domcontentloaded` + an explicit wait.
 
 ### 11. ❌ Using `grantPermissions` with Clipboard Permissions on Firefox/WebKit
 
