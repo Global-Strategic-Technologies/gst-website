@@ -20,7 +20,9 @@ async function waitForMapReady(page: import('@playwright/test').Page): Promise<v
 
 test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/hub/tools/regulatory-map', { waitUntil: 'networkidle' });
+    // domcontentloaded is reliable under parallel worker contention; networkidle
+    // can time out when many workers share the same dev server.
+    await page.goto('/hub/tools/regulatory-map', { waitUntil: 'domcontentloaded' });
     await waitForMapReady(page);
   });
 
@@ -114,7 +116,7 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
 
   test.describe('2. State Restoration from URL', () => {
     test('should restore region selection from URL params', async ({ page }) => {
-      await page.goto('/hub/tools/regulatory-map?region=DEU', { waitUntil: 'networkidle' });
+      await page.goto('/hub/tools/regulatory-map?region=DEU', { waitUntil: 'domcontentloaded' });
       await waitForMapReady(page);
 
       // Panel should be visible with Germany
@@ -130,7 +132,7 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
     });
 
     test('should restore filter from URL params', async ({ page }) => {
-      await page.goto('/hub/tools/regulatory-map?filter=ai-governance', { waitUntil: 'networkidle' });
+      await page.goto('/hub/tools/regulatory-map?filter=ai-governance', { waitUntil: 'domcontentloaded' });
       await waitForMapReady(page);
 
       // AI Governance chip should be active
@@ -147,7 +149,7 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
     });
 
     test('should restore both region and filter from URL params', async ({ page }) => {
-      await page.goto('/hub/tools/regulatory-map?region=DEU&filter=data-privacy', { waitUntil: 'networkidle' });
+      await page.goto('/hub/tools/regulatory-map?region=DEU&filter=data-privacy', { waitUntil: 'domcontentloaded' });
       await waitForMapReady(page);
 
       // Filter should be applied
@@ -163,7 +165,7 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
     });
 
     test('should handle invalid region param gracefully', async ({ page }) => {
-      await page.goto('/hub/tools/regulatory-map?region=INVALID', { waitUntil: 'networkidle' });
+      await page.goto('/hub/tools/regulatory-map?region=INVALID', { waitUntil: 'domcontentloaded' });
       await waitForMapReady(page);
 
       // Page should load normally — no panel, no errors
@@ -176,7 +178,7 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
     });
 
     test('should handle invalid filter param gracefully', async ({ page }) => {
-      await page.goto('/hub/tools/regulatory-map?filter=bogus', { waitUntil: 'networkidle' });
+      await page.goto('/hub/tools/regulatory-map?filter=bogus', { waitUntil: 'domcontentloaded' });
       await waitForMapReady(page);
 
       // Should fall back to "All" filter
@@ -185,7 +187,7 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
 
     test('should not select region that has no regs for the given filter', async ({ page }) => {
       // Thailand has no industry-compliance regs
-      await page.goto('/hub/tools/regulatory-map?region=THA&filter=industry-compliance', { waitUntil: 'networkidle' });
+      await page.goto('/hub/tools/regulatory-map?region=THA&filter=industry-compliance', { waitUntil: 'domcontentloaded' });
       await waitForMapReady(page);
 
       // Filter should be applied

@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Theme Toggle Journey', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to page
-    await page.goto('/', { waitUntil: 'networkidle' });
-    await page.waitForLoadState('domcontentloaded');
+    // domcontentloaded is reliable under parallel worker contention; networkidle
+    // can time out when many workers share the same dev server.
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
   });
 
   test('should display theme toggle button', async ({ page }) => {
@@ -90,7 +90,7 @@ test.describe('Theme Toggle Journey', () => {
 
     if (href && !href.startsWith('http')) {
       await link.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Check if theme persisted - should match AFTER toggle state
       const isDarkAfterNav = await page.evaluate(() =>

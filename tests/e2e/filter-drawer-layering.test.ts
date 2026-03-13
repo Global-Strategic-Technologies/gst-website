@@ -2,10 +2,11 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to the MA portfolio page
-    await page.goto('/ma-portfolio', { waitUntil: 'networkidle' });
+    // domcontentloaded is reliable under parallel worker contention; networkidle
+    // can time out when many workers share the same dev server.
+    await page.goto('/ma-portfolio', { waitUntil: 'domcontentloaded' });
     // Wait for portfolio initialization
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
+    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 10000 });
   });
 
   test('should verify filter drawer is initially hidden with correct positioning', async ({ page }) => {
