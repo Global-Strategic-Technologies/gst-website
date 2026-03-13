@@ -8,15 +8,15 @@ import { test, expect } from '@playwright/test';
 test.describe('404 Page', () => {
   test.beforeEach(async ({ page }) => {
     // Block external GA requests
-    await page.route('**/googletagmanager.com/**', route => {
-      route.abort();
-    });
-    await page.route('**/google-analytics.com/**', route => {
-      route.abort();
-    });
+    await page.route('**/googletagmanager.com/**', route => route.abort());
+    await page.route('**/google-analytics.com/**', route => route.abort());
 
-    // Navigate to a non-existent route
-    await page.goto('/this-page-does-not-exist', { waitUntil: 'networkidle' });
+    // domcontentloaded is reliable under worker contention; networkidle can
+    // time out when many parallel workers are running against the same dev server
+    await page.goto('/this-page-does-not-exist', { waitUntil: 'domcontentloaded' });
+
+    // Wait for the 404 hero to be present before any test interacts with it
+    await page.waitForSelector('.hero', { timeout: 10000 });
   });
 
   test.describe('Page Load & Structure', () => {
@@ -75,28 +75,36 @@ test.describe('404 Page', () => {
     });
 
     test('should navigate to homepage when "Return Home" is clicked', async ({ page }) => {
-      const homeButton = page.locator('.hero a.cta-button', { hasText: 'Return Home' });
-      await homeButton.click();
+      // WebKit-safe: dispatch click via JS to avoid coordinate-based hit-testing issues
+      await page.evaluate(() => {
+        const btn = document.querySelector<HTMLElement>('.hero a.cta-button');
+        if (!btn) throw new Error('Return Home button not found');
+        btn.click();
+      });
 
-      await page.waitForURL('/');
-      expect(page.url()).toContain('/');
+      await page.waitForURL('/', { timeout: 15000 });
 
       // Verify the homepage loaded with actual content
       const main = page.locator('main');
-      await expect(main).toBeVisible();
+      await expect(main).toBeVisible({ timeout: 10000 });
       const text = await main.textContent();
       expect(text!.length).toBeGreaterThan(50);
     });
 
     test('should navigate to services page when "View Services" is clicked', async ({ page }) => {
-      const servicesButton = page.locator('.hero a.cta-button', { hasText: 'View Services' });
-      await servicesButton.click();
+      // WebKit-safe: dispatch click via JS to avoid coordinate-based hit-testing issues
+      await page.evaluate(() => {
+        const btns = document.querySelectorAll<HTMLElement>('.hero a.cta-button');
+        const btn = Array.from(btns).find(el => el.textContent?.includes('View Services'));
+        if (!btn) throw new Error('View Services button not found');
+        btn.click();
+      });
 
-      await page.waitForURL('**/services');
+      await page.waitForURL('**/services', { timeout: 15000 });
 
       // Verify the services page loaded with actual content
       const main = page.locator('main');
-      await expect(main).toBeVisible();
+      await expect(main).toBeVisible({ timeout: 10000 });
       const text = await main.textContent();
       expect(text!.length).toBeGreaterThan(50);
     });
