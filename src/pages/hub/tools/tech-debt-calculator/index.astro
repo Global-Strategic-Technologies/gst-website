@@ -1,0 +1,1069 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../../components/hub/HubHeader.astro';
+import { trackPageView } from '../../../../utils/analytics';
+import {
+  DEPLOY_OPTIONS,
+  DEFAULT_STATE,
+} from '../../../../utils/tech-debt-engine';
+
+trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
+---
+
+<BaseLayout
+    title="Technical Debt Cost Calculator | Strategic Intelligence Hub"
+    description="Quantify the annual cost of technical debt. Built for PE diligence and portfolio executive conversations."
+    ogTitle="Technical Debt Cost Calculator | GST"
+    ogDescription="Quantify the annual carrying cost of technical debt. Input team size, salary, maintenance burden, and delivery metrics to produce defensible estimates."
+    ogImage="/og-image.png"
+    ogUrl="https://globalstrategic.tech/hub/tools/tech-debt-calculator"
+>
+    <section class="tdc-section">
+        <div class="container">
+
+            <HubHeader
+                title="Tech Debt Cost Calculator"
+                subtitle="Quantify the real cost of deferred technical investment. Built for PE diligence and portfolio executive conversations."
+            />
+
+            <div data-calc>
+
+                <!-- ── Core inputs ─────────────────────────────────────────── -->
+                <div class="inputs-section">
+                    <div class="section-label">Team & Cost</div>
+
+                    <div class="sliders-stack">
+                        <div class="slider-row">
+                            <div class="slider-header">
+                                <label class="slider-label" for="input-team-size">Team Size</label>
+                                <span class="slider-value" data-display="team-size">8</span>
+                            </div>
+                            <input id="input-team-size" type="range" min="0" max="100" step="1"
+                                class="calc-slider" data-input="team-size" />
+                            <div class="slider-hints">
+                                <span>1</span>
+                                <span>500</span>
+                            </div>
+                        </div>
+
+                        <div class="slider-row">
+                            <div class="slider-header">
+                                <label class="slider-label" for="input-salary">Avg. Salary (all-in)</label>
+                                <span class="slider-value" data-display="salary">$150K</span>
+                            </div>
+                            <input id="input-salary" type="range" min="0" max="100" step="1"
+                                class="calc-slider" data-input="salary" />
+                            <div class="slider-hints">
+                                <span data-hint="salary-min">$60K</span>
+                                <span data-hint="salary-max">$1M</span>
+                            </div>
+                        </div>
+
+                        <div class="slider-row">
+                            <div class="slider-header">
+                                <label class="slider-label" for="input-maint-pct">Maintenance Burden</label>
+                                <span class="slider-value" data-display="maint-pct">40%</span>
+                            </div>
+                            <input id="input-maint-pct" type="range" min="5" max="100" step="1"
+                                class="calc-slider" data-input="maint-pct" />
+                            <div class="slider-hints">
+                                <span>5%</span>
+                                <span>100%</span>
+                            </div>
+                            <div class="slider-benchmark">20–30% healthy &nbsp;·&nbsp; 40%+ material debt</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Advanced inputs (collapsible) ──────────────────────── -->
+                <div class="advanced-section">
+                    <button
+                        data-advanced-toggle
+                        type="button"
+                        class="advanced-toggle"
+                        aria-expanded="false"
+                    >
+                        <span data-toggle-label>Show Advanced Inputs</span>
+                        <span class="toggle-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                    </button>
+
+                    <div data-advanced-panel class="advanced-panel is-hidden">
+
+                        <div class="section-label">Delivery & Incidents</div>
+                        <div class="sliders-grid-2">
+                            <div class="slider-row">
+                                <div class="slider-header">
+                                    <label class="slider-label" for="input-incidents">Incidents / Mo</label>
+                                    <span class="slider-value" data-display="incidents">3</span>
+                                </div>
+                                <input id="input-incidents" type="range" min="0" max="20" step="1"
+                                    class="calc-slider" data-input="incidents" />
+                                <div class="slider-hints">
+                                    <span>None</span>
+                                    <span>20+</span>
+                                </div>
+                            </div>
+
+                            <div class="slider-row">
+                                <div class="slider-header">
+                                    <label class="slider-label" for="input-mttr">Avg. Time to Resolve</label>
+                                    <span class="slider-value" data-display="mttr">4h</span>
+                                </div>
+                                <input id="input-mttr" type="range" min="1" max="48" step="1"
+                                    class="calc-slider" data-input="mttr" />
+                                <div class="slider-hints">
+                                    <span>1h</span>
+                                    <span>48h</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section-label section-label--spaced">Deployment Frequency</div>
+                        <div class="deploy-grid">
+                            {DEPLOY_OPTIONS.map((opt, i) => (
+                                <button
+                                    data-deploy-btn={i}
+                                    class={`deploy-btn${i === DEFAULT_STATE.deployIdx ? ' active' : ''}`}
+                                    type="button"
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                        <div data-dora-message class="dora-message"></div>
+
+                        <div class="section-label section-label--spaced">ROI Analysis</div>
+                        <div class="sliders-grid-2">
+                            <div class="slider-row">
+                                <div class="slider-header">
+                                    <label class="slider-label" for="input-arr">Annual Recurring Revenue</label>
+                                    <span class="slider-value" data-display="arr">$10M</span>
+                                </div>
+                                <input id="input-arr" type="range" min="0" max="100" step="1"
+                                    class="calc-slider" data-input="arr" />
+                                <div class="slider-hints">
+                                    <span data-hint="arr-min">$100K</span>
+                                    <span data-hint="arr-max">$1B</span>
+                                </div>
+                            </div>
+
+                            <div class="slider-row">
+                                <div class="slider-header">
+                                    <label class="slider-label" for="input-budget">Remediation Budget</label>
+                                    <span class="slider-value" data-display="budget">$500K</span>
+                                </div>
+                                <input id="input-budget" type="range" min="0" max="100" step="1"
+                                    class="calc-slider" data-input="budget" />
+                                <div class="slider-hints">
+                                    <span data-hint="budget-min">$10K</span>
+                                    <span data-hint="budget-max">$50M</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- ── Results panel ───────────────────────────────────────── -->
+                <div class="results-section">
+                    <div class="section-label">Results</div>
+
+                    <!-- Primary figure -->
+                    <div class="result-primary">
+                        <div class="result-primary__cost">
+                            <div class="result-cost-label">Annual Cost of Debt</div>
+                            <div class="result-cost-value" data-metric="annual-cost">—</div>
+                            <div class="result-cost-sub"><span data-metric="per-month">—</span> / mo</div>
+                        </div>
+                    </div>
+
+                    <!-- Core metrics grid -->
+                    <div class="result-grid">
+                        <div class="result-stat">
+                            <div class="result-stat-label">Hrs lost / eng / wk</div>
+                            <div class="result-stat-value" data-metric="hrs-lost">—</div>
+                        </div>
+                        <div class="result-stat">
+                            <div class="result-stat-label">Cost / eng / mo</div>
+                            <div class="result-stat-value" data-metric="cost-per-eng">—</div>
+                        </div>
+                        <div class="result-stat">
+                            <div class="result-stat-label">FTEs lost to debt</div>
+                            <div class="result-stat-value" id="ctx-engs-lost">—</div>
+                        </div>
+                        <div class="result-stat">
+                            <div class="result-stat-label">Burden level</div>
+                            <div class="result-stat-value" id="ctx-burden-label">—</div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced metrics — only visible when advanced is open -->
+                    <div data-adv-results class="adv-results is-hidden">
+                        <div class="adv-results__grid">
+                            <div class="result-stat">
+                                <div class="result-stat-label">Direct Labor</div>
+                                <div class="result-stat-value" data-metric="direct-labor">—</div>
+                            </div>
+                            <div class="result-stat">
+                                <div class="result-stat-label">Incident Labor</div>
+                                <div class="result-stat-value" data-metric="incident-labor">—</div>
+                            </div>
+                            <div class="result-stat">
+                                <div class="result-stat-label">Velocity (V)</div>
+                                <div class="result-stat-value" data-metric="velocity">—</div>
+                            </div>
+                            <div class="result-stat">
+                                <div class="result-stat-label">Debt % of ARR</div>
+                                <div class="result-stat-value" data-metric="debt-pct-arr">—</div>
+                            </div>
+                            <div class="result-stat">
+                                <div class="result-stat-label">Break-even</div>
+                                <div class="result-stat-value" id="payback-breakeven">—</div>
+                            </div>
+                            <div class="result-stat">
+                                <div class="result-stat-label">Monthly Savings</div>
+                                <div class="result-stat-value result-stat-value--teal" id="payback-savings">—</div>
+                            </div>
+                        </div>
+                        <div class="payback-disclaimer" id="payback-disclaimer"></div>
+                    </div>
+
+                    <!-- Contextual note -->
+                    <p class="result-note" id="ctx-note"></p>
+                </div>
+
+                <!-- ── Footer ──────────────────────────────────────────────── -->
+                <div class="calc-footer">
+                    <div class="calc-footer__controls">
+                        <select id="currency-select" class="currency-select" aria-label="Display currency">
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="GBP">GBP</option>
+                            <option value="CAD">CAD</option>
+                            <option value="AUD">AUD</option>
+                        </select>
+                        <button id="copy-link-btn" type="button" class="copy-link-btn" aria-label="Copy shareable link to clipboard">Copy Link</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <a href="/hub/tools" class="cta-button secondary back-link">Return to Workbench</a>
+
+        </div>
+    </section>
+</BaseLayout>
+
+<style>
+    /* ── Page wrapper ─────────────────────────────────────────────────────── */
+    .tdc-section {
+        padding-bottom: var(--spacing-3xl);
+    }
+
+    /* ── Calculator shell ─────────────────────────────────────────────────── */
+    [data-calc] {
+        max-width: 760px;
+        margin: 0 auto;
+        background: var(--bg-light-alt);
+        border: 1px solid rgba(5, 205, 153, 0.15);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    :global(html.dark-theme) [data-calc] {
+        background: rgba(5, 205, 153, 0.03);
+        border-color: rgba(5, 205, 153, 0.18);
+    }
+
+    /* ── Shared section padding ───────────────────────────────────────────── */
+    .inputs-section,
+    .results-section {
+        padding: var(--spacing-xl) var(--spacing-2xl);
+    }
+
+    .inputs-section {
+        border-bottom: 1px solid rgba(5, 205, 153, 0.08);
+    }
+
+    /* ── Section labels ───────────────────────────────────────────────────── */
+    .section-label {
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-light-faded);
+        margin-bottom: var(--spacing-md);
+    }
+
+    .section-label--spaced {
+        margin-top: var(--spacing-xl);
+    }
+
+    /* ── Slider layouts ───────────────────────────────────────────────────── */
+    .sliders-stack {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-lg);
+    }
+
+    .sliders-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-lg) var(--spacing-2xl);
+    }
+
+    /* ── Slider rows ──────────────────────────────────────────────────────── */
+    .slider-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+
+    .slider-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: var(--gap-tight);
+    }
+
+    .slider-label {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-light-muted);
+        cursor: pointer;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .slider-value {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        font-family: monospace;
+        color: var(--color-primary);
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .slider-hints {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 0.15rem;
+        font-size: var(--text-xs);
+        color: var(--text-light-faded);
+        opacity: 0.7;
+    }
+
+    .slider-benchmark {
+        font-size: var(--text-xs);
+        color: var(--text-light-faded);
+        font-style: italic;
+        margin-top: 0.15rem;
+    }
+
+    /* ── Slider track/thumb ───────────────────────────────────────────────── */
+    .calc-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 24px;
+        background: transparent;
+        outline: none;
+        cursor: pointer;
+        display: block;
+        padding: 0;
+        margin: 0;
+    }
+
+    .calc-slider::-webkit-slider-runnable-track {
+        height: 3px;
+        background: var(--border-light);
+        border-radius: 2px;
+    }
+
+    :global(html.dark-theme) .calc-slider::-webkit-slider-runnable-track {
+        background: rgba(5, 205, 153, 0.15);
+    }
+
+    .calc-slider::-moz-range-track {
+        height: 3px;
+        background: var(--border-light);
+        border-radius: 2px;
+    }
+
+    :global(html.dark-theme) .calc-slider::-moz-range-track {
+        background: rgba(5, 205, 153, 0.15);
+    }
+
+    .calc-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        background: var(--color-primary);
+        border-radius: 50%;
+        cursor: pointer;
+        margin-top: -8.5px;
+        transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+        box-shadow: 0 0 0 3px rgba(5, 205, 153, 0.12);
+    }
+
+    .calc-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+        box-shadow: 0 0 0 6px rgba(5, 205, 153, 0.18);
+    }
+
+    .calc-slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: var(--color-primary);
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+    }
+
+    /* ── Advanced section ─────────────────────────────────────────────────── */
+    .advanced-section {
+        border-top: 1px solid rgba(5, 205, 153, 0.08);
+        border-bottom: 1px solid rgba(5, 205, 153, 0.08);
+    }
+
+    .advanced-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--spacing-md) var(--spacing-2xl);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-light-muted);
+        font-family: var(--font-family);
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        min-height: 44px;
+        transition: color var(--transition-fast), background var(--transition-fast);
+    }
+
+    .advanced-toggle:hover {
+        color: var(--color-primary);
+        background: rgba(5, 205, 153, 0.03);
+    }
+
+    .toggle-icon {
+        color: var(--color-primary);
+        display: flex;
+        align-items: center;
+        transition: transform var(--transition-fast);
+    }
+
+    .advanced-toggle[aria-expanded="true"] .toggle-icon {
+        transform: rotate(180deg);
+    }
+
+    .advanced-panel {
+        padding: 0 var(--spacing-2xl) var(--spacing-xl);
+        border-top: 1px solid rgba(5, 205, 153, 0.06);
+    }
+
+    .advanced-panel .section-label:first-child {
+        margin-top: var(--spacing-xl);
+    }
+
+    /* ── Deploy frequency ─────────────────────────────────────────────────── */
+    .deploy-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--spacing-xs);
+    }
+
+    .deploy-btn {
+        min-height: 44px;
+        padding: var(--spacing-xs);
+        border: 1px solid var(--border-light);
+        background: rgba(5, 205, 153, 0.02);
+        border-radius: 4px;
+        color: var(--text-light-faded);
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        font-weight: 500;
+        cursor: pointer;
+        text-align: center;
+        transition: all var(--transition-fast);
+        line-height: 1.3;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    :global(html.dark-theme) .deploy-btn {
+        border-color: rgba(5, 205, 153, 0.12);
+    }
+
+    .deploy-btn:hover {
+        border-color: rgba(5, 205, 153, 0.3);
+        color: var(--text-light-secondary);
+    }
+
+    .deploy-btn.active {
+        border-color: var(--color-primary);
+        background: rgba(5, 205, 153, 0.08);
+        color: var(--color-primary);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .dora-message {
+        min-height: 1.4rem;
+        margin-top: var(--spacing-xs);
+        font-size: var(--text-sm);
+        font-style: italic;
+        opacity: 0.85;
+        line-height: 1.4;
+    }
+
+    /* ── Results section ──────────────────────────────────────────────────── */
+    .results-section {
+        background: rgba(5, 205, 153, 0.03);
+        border-top: 1px solid rgba(5, 205, 153, 0.12);
+    }
+
+    :global(html.dark-theme) .results-section {
+        background: rgba(5, 205, 153, 0.05);
+    }
+
+    /* Primary cost figure */
+    .result-primary {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .result-cost-label {
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--color-primary);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .result-cost-value {
+        font-family: monospace;
+        font-size: clamp(2rem, 6vw, 3rem);
+        font-weight: var(--font-weight-bold);
+        color: var(--text-light-primary);
+        line-height: 1;
+        letter-spacing: -0.03em;
+    }
+
+    .result-cost-sub {
+        font-family: monospace;
+        font-size: var(--text-sm);
+        color: var(--text-light-muted);
+        margin-top: var(--spacing-xs);
+    }
+
+    /* Metric grid — shared by core and advanced */
+    .result-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .result-stat {
+        padding-top: var(--spacing-sm);
+        border-top: 1px solid rgba(5, 205, 153, 0.1);
+    }
+
+    .result-stat-label {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-light-faded);
+        margin-bottom: 0.2rem;
+    }
+
+    .result-stat-value {
+        font-family: monospace;
+        font-size: var(--text-base);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-light-primary);
+    }
+
+    .result-stat-value--teal {
+        color: var(--color-primary);
+    }
+
+    /* Advanced results — same grid style, separated by a subtle rule */
+    .adv-results {
+        border-top: 1px solid rgba(5, 205, 153, 0.08);
+        padding-top: var(--spacing-lg);
+        margin-top: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
+    }
+
+    .adv-results__grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--spacing-md);
+    }
+
+    .payback-disclaimer {
+        font-size: var(--text-xs);
+        color: var(--text-light-faded);
+        font-style: italic;
+        line-height: 1.5;
+        margin-top: var(--spacing-sm);
+    }
+
+    /* Contextual note */
+    .result-note {
+        font-size: var(--text-sm);
+        color: var(--text-light-muted);
+        font-style: italic;
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    /* ── Footer ───────────────────────────────────────────────────────────── */
+    .calc-footer {
+        padding: var(--spacing-md) var(--spacing-2xl);
+        border-top: 1px solid rgba(5, 205, 153, 0.06);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--gap-normal);
+        background: rgba(0, 0, 0, 0.04);
+        font-size: var(--text-xs);
+        color: var(--text-light-faded);
+    }
+
+    :global(html.dark-theme) .calc-footer {
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    /* ── Footer controls group (currency + copy link) ─────────────────────── */
+    .calc-footer__controls {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        flex-shrink: 0;
+    }
+
+    /* ── Currency selector ────────────────────────────────────────────────── */
+    .currency-select {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border: 1px solid rgba(5, 205, 153, 0.3);
+        border-radius: 4px;
+        background: var(--bg-light-alt);
+        color: var(--text-light-muted);
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        appearance: none;
+        padding-right: var(--spacing-lg);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2305cd99' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 6px center;
+        transition: border-color var(--transition-fast);
+    }
+
+    .currency-select:hover,
+    .currency-select:focus {
+        border-color: var(--color-primary);
+        outline: none;
+    }
+
+    :global(html.dark-theme) .currency-select {
+        background-color: rgba(5, 205, 153, 0.05);
+        color: var(--text-dark-muted);
+    }
+
+    /* ── Copy Link button ─────────────────────────────────────────────────── */
+    .copy-link-btn {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border: 1px solid rgba(5, 205, 153, 0.3);
+        border-radius: 4px;
+        background: none;
+        color: var(--color-primary);
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: opacity var(--transition-fast), border-color var(--transition-fast);
+        flex-shrink: 0;
+    }
+
+    .copy-link-btn:hover {
+        opacity: 0.75;
+        border-color: var(--color-primary);
+    }
+
+    /* ── Visibility ───────────────────────────────────────────────────────── */
+    .is-hidden {
+        display: none;
+    }
+
+    /* ── Back link ────────────────────────────────────────────────────────── */
+    .back-link {
+        display: inline-block;
+        margin-top: var(--spacing-2xl);
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       RESPONSIVE — tablet (≤ 768px)
+    ════════════════════════════════════════════════════════════════════════ */
+    @media (max-width: 768px) {
+        .inputs-section,
+        .results-section,
+        .advanced-panel {
+            padding: var(--spacing-lg);
+        }
+
+        .advanced-toggle {
+            padding: var(--spacing-md) var(--spacing-lg);
+        }
+
+        .sliders-grid-2 {
+            grid-template-columns: 1fr;
+        }
+
+        .result-grid,
+        .adv-results__grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .calc-footer {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md) var(--spacing-lg);
+        }
+
+        .calc-footer__controls {
+            width: 100%;
+        }
+
+        .calc-footer__controls .currency-select,
+        .calc-footer__controls .copy-link-btn {
+            flex: 1;
+            min-height: 44px;
+        }
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       RESPONSIVE — mobile (≤ 480px)
+    ════════════════════════════════════════════════════════════════════════ */
+    @media (max-width: 480px) {
+        .inputs-section,
+        .results-section {
+            padding: var(--spacing-md);
+        }
+
+        .advanced-panel {
+            padding: 0 var(--spacing-md) var(--spacing-lg);
+        }
+
+        .advanced-toggle {
+            padding: var(--spacing-md);
+        }
+
+        .deploy-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .deploy-btn {
+            min-height: 48px;
+        }
+
+        .result-grid,
+        .adv-results__grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .calc-slider {
+            height: 28px;
+        }
+
+        .calc-slider::-webkit-slider-thumb {
+            width: 24px;
+            height: 24px;
+            margin-top: -10.5px;
+        }
+
+        .calc-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+        }
+    }
+</style>
+
+<script>
+import {
+  DEPLOY_OPTIONS,
+  DEFAULT_STATE,
+  posToTeamSize,
+  posToSalary,
+  posTobudget,
+  posToArr,
+  calculate,
+  fmtPayback,
+  encodeState,
+  decodeState,
+} from '../../../../utils/tech-debt-engine';
+
+import type { CalcState } from '../../../../utils/tech-debt-engine';
+
+// ─── DOM helpers ─────────────────────────────────────────────────────────────
+
+function getInput(key: string): HTMLInputElement {
+  return document.querySelector(`[data-input="${key}"]`) as HTMLInputElement;
+}
+
+function getDisplay(key: string): HTMLElement {
+  return document.querySelector(`[data-display="${key}"]`) as HTMLElement;
+}
+
+function getMetric(key: string): HTMLElement {
+  return document.querySelector(`[data-metric="${key}"]`) as HTMLElement;
+}
+
+function el(id: string): HTMLElement {
+  return document.getElementById(id) as HTMLElement;
+}
+
+// ─── URL state ────────────────────────────────────────────────────────────────
+
+function pushUrlState(state: CalcState): void {
+  const params = new URLSearchParams({ s: encodeState(state) });
+  history.replaceState(null, '', '?' + params.toString());
+}
+
+function readUrlState(): Partial<CalcState> | null {
+  const s = new URLSearchParams(window.location.search).get('s');
+  return s ? decodeState(s) : null;
+}
+
+// ─── Currency ─────────────────────────────────────────────────────────────────
+// Static approximate multipliers (mid-market rates, fixed at tool release).
+
+const CURRENCIES: Record<string, { symbol: string; multiplier: number }> = {
+  USD: { symbol: '$',  multiplier: 1.00 },
+  EUR: { symbol: '€',  multiplier: 0.92 },
+  GBP: { symbol: '£',  multiplier: 0.79 },
+  CAD: { symbol: 'C$', multiplier: 1.36 },
+  AUD: { symbol: 'A$', multiplier: 1.53 },
+};
+
+let currency = 'USD';
+
+function fmtC(n: number): string {
+  const { symbol, multiplier } = CURRENCIES[currency];
+  const converted = n * multiplier;
+  return symbol + new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(converted);
+}
+
+function fmtShortC(n: number): string {
+  const { symbol, multiplier } = CURRENCIES[currency];
+  const v = n * multiplier;
+  if (v >= 1_000_000) return `${symbol}${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000)     return `${symbol}${(v / 1_000).toFixed(0)}K`;
+  return fmtC(n);
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+
+const state: CalcState = { ...DEFAULT_STATE };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function burdenLabel(pct: number): { text: string; color: string } {
+  if (pct < 20) return { text: 'Healthy (< 20%)',   color: 'var(--color-primary)' };
+  if (pct < 35) return { text: 'Moderate (20–35%)', color: 'var(--color-primary)' };
+  if (pct < 50) return { text: 'Material (35–50%)', color: 'var(--color-secondary)' };
+  return              { text: 'Critical (> 50%)',   color: 'var(--color-secondary)' };
+}
+
+function contextNote(pct: number, formattedAnnualCost: string): string {
+  if (pct < 20) return 'Debt is well-managed. Focus on preventing accumulation as the team scales.';
+  if (pct < 35) return 'Debt is growing. Allocate 1–2 sprints per quarter to targeted paydown before it compounds.';
+  if (pct < 50) return `At ${pct}% burden, debt is consuming significant engineering capacity and compounding velocity loss.`;
+  return `At ${pct}% burden, debt is likely the primary drag on throughput. The annual carrying cost of ${formattedAnnualCost} makes a remediation case compelling.`;
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+
+function render(): void {
+  const result = calculate(state);
+  const teamSize = posToTeamSize(state.teamSizePos);
+
+  // ── Core results ──
+  getMetric('annual-cost').textContent  = fmtShortC(result.annualCost);
+  getMetric('per-month').textContent    = fmtShortC(result.totalMonthly);
+  getMetric('hrs-lost').textContent     = result.hoursLostPerEng.toFixed(0) + 'h';
+  getMetric('cost-per-eng').textContent = fmtShortC(result.costPerEng);
+
+  const engsLost = (teamSize * state.maintPct / 100).toFixed(1);
+  const burden   = burdenLabel(state.maintPct);
+
+  el('ctx-engs-lost').textContent    = engsLost + ' FTEs';
+  el('ctx-engs-lost').style.color    = state.maintPct >= 35 ? 'var(--color-secondary)' : 'var(--color-primary)';
+  el('ctx-burden-label').textContent = burden.text;
+  el('ctx-burden-label').style.color = burden.color;
+  el('ctx-note').textContent         = contextNote(state.maintPct, fmtShortC(result.annualCost));
+
+  // Colour the primary cost figure by severity
+  getMetric('annual-cost').style.color = state.maintPct >= 35 ? 'var(--color-secondary)' : 'var(--color-primary)';
+
+  // ── Advanced panel + results visibility ──
+  const advPanel   = document.querySelector('[data-advanced-panel]') as HTMLElement | null;
+  const advResults = document.querySelector('[data-adv-results]') as HTMLElement | null;
+  if (advPanel)   advPanel.classList.toggle('is-hidden', !state.advancedOpen);
+  if (advResults) advResults.classList.toggle('is-hidden', !state.advancedOpen);
+
+  const toggleBtn = document.querySelector('[data-advanced-toggle]') as HTMLButtonElement | null;
+  if (toggleBtn) {
+    toggleBtn.setAttribute('aria-expanded', String(state.advancedOpen));
+    const labelEl = toggleBtn.querySelector('[data-toggle-label]') as HTMLElement | null;
+    if (labelEl) {
+      labelEl.textContent = state.advancedOpen ? 'Hide Advanced Inputs' : 'Show Advanced Inputs';
+    }
+  }
+
+  if (state.advancedOpen) {
+    getMetric('direct-labor').textContent   = fmtShortC(result.directMonthly) + '/mo';
+    getMetric('incident-labor').textContent = fmtShortC(result.incidentMonthly) + '/mo';
+    getMetric('velocity').textContent       = result.V.toFixed(2) + '× ' + result.doraLabel;
+    getMetric('debt-pct-arr').textContent   = result.debtPctArr.toFixed(1) + '%';
+
+    getMetric('velocity').style.color       = result.V <= 1.0 ? 'var(--color-primary)' : 'var(--color-secondary)';
+    getMetric('debt-pct-arr').style.color   = result.debtPctArr < 5 ? 'var(--color-primary)' : 'var(--color-secondary)';
+    getMetric('incident-labor').style.color = 'var(--color-secondary)';
+    getMetric('direct-labor').style.color   = '';
+
+    el('payback-breakeven').textContent = fmtPayback(result.paybackMonths);
+    el('payback-breakeven').style.color = result.paybackMonths < 24 ? 'var(--color-primary)' : 'var(--color-secondary)';
+    el('payback-savings').textContent   = fmtShortC(result.monthlySavings);
+    el('payback-disclaimer').textContent =
+      `Assumes full resolution of identified debt · Budget: ${fmtC(posTobudget(state.budgetPos))}`;
+  }
+
+  // ── Deploy buttons ──
+  document.querySelectorAll('[data-deploy-btn]').forEach(btn => {
+    const b = btn as HTMLElement;
+    b.classList.toggle('active', Number(b.dataset.deployBtn) === state.deployIdx);
+  });
+
+  // ── DORA message ──
+  const doraEl = document.querySelector('[data-dora-message]') as HTMLElement;
+  if (state.deployIdx >= 6) {
+    doraEl.textContent = 'DORA Low tier — constrained velocity signals debt is likely the rate-limiting factor';
+    doraEl.style.color = 'var(--color-secondary)';
+  } else if (state.deployIdx >= 4) {
+    doraEl.textContent = 'DORA Medium tier — deployment lag suggests debt friction is dampening throughput';
+    doraEl.style.color = 'var(--color-secondary)';
+  } else {
+    doraEl.textContent = '';
+    doraEl.style.color = '';
+  }
+
+  // ── Slider display values ──
+  getDisplay('team-size').textContent = String(teamSize);
+  getDisplay('salary').textContent    = fmtShortC(posToSalary(state.salaryPos));
+  getDisplay('maint-pct').textContent = state.maintPct + '%';
+  getDisplay('incidents').textContent = state.incidents === 0 ? 'None' : String(state.incidents);
+  getDisplay('mttr').textContent      = state.mttr + 'h';
+  getDisplay('budget').textContent    = fmtShortC(posTobudget(state.budgetPos));
+  getDisplay('arr').textContent       = fmtShortC(posToArr(state.arrPos));
+
+  // ── Slider endpoint hint labels (currency-sensitive) ──
+  const hint = (key: string): HTMLElement | null => document.querySelector(`[data-hint="${key}"]`);
+  const salaryMin = hint('salary-min'); if (salaryMin) salaryMin.textContent = fmtShortC(60000);
+  const salaryMax = hint('salary-max'); if (salaryMax) salaryMax.textContent = fmtShortC(1000000);
+  const arrMin    = hint('arr-min');    if (arrMin)    arrMin.textContent    = fmtShortC(100000);
+  const arrMax    = hint('arr-max');    if (arrMax)    arrMax.textContent    = fmtShortC(1000000000);
+  const budgetMin = hint('budget-min'); if (budgetMin) budgetMin.textContent = fmtShortC(10000);
+  const budgetMax = hint('budget-max'); if (budgetMax) budgetMax.textContent = fmtShortC(50000000);
+
+  // ── Persist state to URL ──
+  pushUrlState(state);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+
+function initSliders(): void {
+  getInput('team-size').value = String(state.teamSizePos);
+  getInput('salary').value    = String(state.salaryPos);
+  getInput('maint-pct').value = String(state.maintPct);
+  getInput('incidents').value = String(state.incidents);
+  getInput('mttr').value      = String(state.mttr);
+  getInput('budget').value    = String(state.budgetPos);
+  getInput('arr').value       = String(state.arrPos);
+}
+
+// ─── Event wiring ─────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Apply URL-encoded state before initialising sliders so DOM positions match
+  const urlState = readUrlState();
+  if (urlState) Object.assign(state, urlState);
+
+  initSliders();
+  render();
+
+  getInput('team-size').addEventListener('input', e => { state.teamSizePos = Number((e.target as HTMLInputElement).value); render(); });
+  getInput('salary').addEventListener('input',    e => { state.salaryPos   = Number((e.target as HTMLInputElement).value); render(); });
+  getInput('maint-pct').addEventListener('input', e => { state.maintPct    = Number((e.target as HTMLInputElement).value); render(); });
+  getInput('incidents').addEventListener('input', e => { state.incidents   = Number((e.target as HTMLInputElement).value); render(); });
+  getInput('mttr').addEventListener('input',      e => { state.mttr        = Number((e.target as HTMLInputElement).value); render(); });
+  getInput('budget').addEventListener('input',    e => { state.budgetPos   = Number((e.target as HTMLInputElement).value); render(); });
+  getInput('arr').addEventListener('input',       e => { state.arrPos      = Number((e.target as HTMLInputElement).value); render(); });
+
+  document.querySelectorAll('[data-deploy-btn]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.deployIdx = Number((btn as HTMLElement).dataset.deployBtn);
+      render();
+    });
+  });
+
+  const advancedToggle = document.querySelector('[data-advanced-toggle]');
+  if (advancedToggle) {
+    advancedToggle.addEventListener('click', () => {
+      state.advancedOpen = !state.advancedOpen;
+      render();
+    });
+  }
+
+  const currencySelect = document.getElementById('currency-select') as HTMLSelectElement | null;
+  if (currencySelect) {
+    currencySelect.addEventListener('change', () => {
+      currency = currencySelect.value;
+      render();
+    });
+  }
+
+  const copyBtn = document.getElementById('copy-link-btn') as HTMLButtonElement | null;
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      const url = window.location.href;
+      const reset = () => { copyBtn.textContent = 'Copy Link'; };
+      navigator.clipboard.writeText(url).then(
+        () => { copyBtn.textContent = 'Copied!'; setTimeout(reset, 2000); },
+        () => { copyBtn.textContent = 'Copied!'; setTimeout(reset, 2000); },
+      );
+    });
+  }
+});
+</script>

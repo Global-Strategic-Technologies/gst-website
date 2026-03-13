@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../../components/hub/HubHeader.astro';
 import { trackPageView } from '../../../../utils/analytics';
 
 trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
@@ -15,11 +16,10 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
 >
     <section class="vdr-guide">
         <div class="container">
-            <header class="vdr-header">
-                <span class="section-label">Resources</span>
-                <h1>VDR Structure Guide</h1>
-                <p class="vdr-subtitle">A reference guide for organizing a technology-focused Virtual Data Room for M&A due diligence.</p>
-            </header>
+            <HubHeader
+                title="VDR Structure Guide"
+                subtitle="A reference guide for organizing a technology-focused Virtual Data Room for M&A due diligence."
+            />
 
             <div class="vdr-layout">
             <nav class="vdr-toc" aria-label="Table of contents">
@@ -361,9 +361,7 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
             </div>
             </div>
 
-            <div class="vdr-back-nav">
-                <a href="/hub/library" class="cta-button secondary">Back to The Library</a>
-            </div>
+            <a href="/hub/library" class="cta-button secondary back-link">Back to The Library</a>
         </div>
     </section>
 </BaseLayout>
@@ -414,38 +412,6 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
         padding: var(--spacing-3xl) 0 5rem;
     }
 
-    /* Header */
-    .vdr-header {
-        text-align: center;
-        margin-bottom: var(--spacing-3xl);
-    }
-
-    .section-label {
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--color-primary);
-        margin-bottom: var(--spacing-lg);
-        display: block;
-    }
-
-    .vdr-header h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--text-light-primary);
-        text-transform: uppercase;
-        letter-spacing: 0.02em;
-        margin-bottom: var(--spacing-lg);
-    }
-
-    .vdr-subtitle {
-        font-size: 1.1rem;
-        color: var(--text-light-secondary);
-        line-height: 1.8;
-        max-width: 600px;
-        margin: 0 auto;
-    }
 
     /* Table of Contents */
     .vdr-toc {
@@ -720,15 +686,9 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
     }
 
     /* Back Navigation */
-    .vdr-back-nav {
-        text-align: center;
-        margin-top: var(--spacing-3xl);
-        padding-top: var(--spacing-3xl);
-        border-top: 1px solid rgba(5, 205, 153, 0.15);
-    }
-
-    :global(html.dark-theme) .vdr-back-nav {
-        border-top-color: rgba(5, 205, 153, 0.2);
+    .back-link {
+        display: inline-block;
+        margin-top: var(--spacing-2xl);
     }
 
     /* Hover effects (pointer devices only) */
@@ -868,14 +828,6 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
             padding: var(--spacing-2xl) 0 var(--spacing-3xl);
         }
 
-        .vdr-header h1 {
-            font-size: 1.75rem;
-        }
-
-        .vdr-subtitle {
-            font-size: 1rem;
-        }
-
         .vdr-toc {
             padding: var(--spacing-lg);
         }
@@ -941,14 +893,6 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
             padding: var(--spacing-xl) 0 var(--spacing-2xl);
         }
 
-        .vdr-header h1 {
-            font-size: 1.5rem;
-        }
-
-        .vdr-subtitle {
-            font-size: 0.9rem;
-        }
-
         .vdr-toc {
             padding: var(--spacing-sm);
         }
@@ -997,14 +941,6 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
         /* Reset page-level spacing */
         .vdr-guide {
             padding: 0;
-        }
-
-        .vdr-header {
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .vdr-header h1 {
-            margin-bottom: var(--spacing-sm);
         }
 
         /* Hide TOC — not useful on paper */
@@ -1069,7 +1005,7 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
         }
 
         /* Remove back nav */
-        .vdr-back-nav {
+        .back-link {
             display: none;
         }
 

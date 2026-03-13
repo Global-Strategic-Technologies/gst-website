@@ -16,7 +16,7 @@ async function clickSvgPath(page: import('@playwright/test').Page, selector: str
 
 test.describe('Regulatory Map E2E', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/hub/tools/regulatory-map', { waitUntil: 'networkidle' });
+    await page.goto('/hub/tools/regulatory-map', { waitUntil: 'domcontentloaded' });
     // Wait for D3 to finish rendering paths
     await page.waitForFunction(() => document.querySelectorAll('.country-path').length > 0);
   });
@@ -203,7 +203,7 @@ test.describe('Regulatory Map E2E', () => {
     });
 
     test('should have Regulatory Map card on Workbench page', async ({ page }) => {
-      await page.goto('/hub/tools', { waitUntil: 'networkidle' });
+      await page.goto('/hub/tools', { waitUntil: 'domcontentloaded' });
       const regMapLink = page.locator('a[href="/hub/tools/regulatory-map"]');
       await expect(regMapLink).toBeVisible();
     });

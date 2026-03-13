@@ -12,6 +12,8 @@ Complete catalog of all CSS variables used in the GST Website design system. Use
 |----------|---|---|---|
 | `--color-primary` | `#05cd99` | `#05cd99` | Primary action color, links, borders, accents |
 | `--color-primary-dark` | `#04a87a` | `#04a87a` | Darker shade for emphasis |
+| `--color-secondary` | `#CC8800` | `#FFAA33` | Secondary accent color (amber) |
+| `--color-secondary-dark` | `#FFAA33` | `#FFAA33` | Secondary color dark variant |
 
 ### Background Colors
 
@@ -49,6 +51,7 @@ Complete catalog of all CSS variables used in the GST Website design system. Use
 | `--border-dark` | `rgba(5, 205, 153, 0.2)` | `rgba(5, 205, 153, 0.2)` | Dark borders |
 | `--accent-light-bg` | `rgba(5, 205, 153, 0.08)` | `rgba(5, 205, 153, 0.1)` | Subtle accent backgrounds |
 | `--accent-light-bg-hover` | `rgba(5, 205, 153, 0.15)` | `rgba(5, 205, 153, 0.15)` | Accent backgrounds on hover |
+| `--accent-dark-bg` | `rgba(5, 205, 153, 0.1)` | `rgba(5, 205, 153, 0.1)` | Dark accent backgrounds |
 
 ### Component-Specific Colors
 
@@ -250,7 +253,7 @@ Light theme (default):
 
 Dark theme (automatic override):
 ```css
-body.dark-theme {
+html.dark-theme {
   --filter-text: rgba(200, 200, 200, 0.8);
   --filter-bg: rgba(5, 205, 153, 0.1);
 }
@@ -277,7 +280,7 @@ When adding a new component that needs styling:
      --my-component-text: #1a1a1a;
    }
 
-   body.dark-theme {
+   html.dark-theme {
      --my-component-bg: #1a1a1a;
      --my-component-text: #f5f5f5;
    }
@@ -341,6 +344,6 @@ Quick lookup by purpose:
 
 ---
 
-**Last Updated**: February 3, 2026
-**Total Variables**: 80+
+**Last Updated**: March 11, 2026
+**Total Variables**: 85+
 **Theme Coverage**: 100% (all variables have light and dark values)

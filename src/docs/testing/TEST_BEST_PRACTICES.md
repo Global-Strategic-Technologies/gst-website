@@ -551,8 +551,38 @@ If your test has any of these, it's likely a false positive:
 16. ✗ Imports `describe`/`it`/`expect` from `'vitest'` when `globals: true` is set — tests silently don't register
 17. ✗ Top-level `beforeEach`/`afterEach` outside a `describe` block — causes runner initialization failure
 18. ✗ Uses `grantPermissions(['clipboard-read', 'clipboard-write'])` — only works in Chromium, fails on Firefox/WebKit
+19. ✗ Uses `waitUntil: 'networkidle'` in `page.goto()` or `waitForLoadState()` — times out under parallel worker load
 
 ## E2E Cross-Browser Pitfalls
+
+### 12. ❌ Using `waitUntil: 'networkidle'` Under Parallel Worker Load
+
+`networkidle` requires no network activity for 500ms. Under parallel worker contention (multiple test workers hitting the same dev server simultaneously), the server stays busy and the condition is never met — causing `page.goto()` to time out even on fast pages.
+
+This manifests as tests that **pass in isolation but fail in the full suite**, often with `Test timeout of 30000ms exceeded` on a `click()` or `waitForSelector()` call that follows the navigation — the page never finished loading so the element isn't interactive yet.
+
+**Bad:**
+```typescript
+// ❌ Times out when parallel workers saturate the dev server
+test.beforeEach(async ({ page }) => {
+  await page.goto('/hub/tools/regulatory-map', { waitUntil: 'networkidle' });
+  await waitForMapReady(page);
+});
+```
+
+**Good:**
+```typescript
+// ✅ domcontentloaded completes as soon as the HTML is parsed — reliable under load
+// The explicit waitForFunction/waitForSelector that follows is the real readiness guard
+test.beforeEach(async ({ page }) => {
+  await page.goto('/hub/tools/regulatory-map', { waitUntil: 'domcontentloaded' });
+  await waitForMapReady(page); // waits for actual content, not network quiet
+});
+```
+
+**Key principle:** `waitUntil: 'domcontentloaded'` is the correct default for most pages. Use a content-based `waitForFunction` or `waitForSelector` as the readiness signal instead — it's faster, more reliable, and tests the actual condition you care about (your content is visible/interactive), not a network heuristic.
+
+**Diagnostic:** If a test passes alone (`npx playwright test myfile.test.ts`) but fails in the full suite (`npm run test:e2e`), look for `networkidle` in the `beforeEach` or the failing `goto()` call. Replace it with `domcontentloaded` + an explicit wait.
 
 ### 11. ❌ Using `grantPermissions` with Clipboard Permissions on Firefox/WebKit
 
@@ -658,6 +688,94 @@ describe('API Client', () => {
   it('should fetch data', async () => { /* ... */ });
 });
 ```
+
+### 13. ❌ Using `waitForTimeout` to Wait for CSS Transitions
+
+Arbitrary `waitForTimeout(300)` / `waitForTimeout(400)` calls after triggering a UI state change (open/close drawer, toggle, etc.) are a specific form of §3. They guess at the transition duration and fail under load when the system is slower than expected.
+
+The correct approach is to poll the DOM condition that the transition produces — the CSS class change — not the transition duration.
+
+**Bad:**
+```typescript
+// ❌ Guesses transition is done after 400ms — fails under CI load
+await closeButton.click();
+await page.waitForTimeout(400); // Transition time is 0.3s
+const hasOpenClass = await drawer.evaluate(el => el.classList.contains('open'));
+expect(hasOpenClass).toBe(false);
+```
+
+**Good:**
+```typescript
+// ✅ Waits for the actual class change — zero arbitrary delay
+await closeButton.click();
+await page.waitForFunction(() => {
+  const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
+  return el && !el.classList.contains('open');
+});
+const hasOpenClass = await drawer.evaluate(el => el.classList.contains('open'));
+expect(hasOpenClass).toBe(false);
+```
+
+**Why this matters in drawer tests specifically:** The `filter-drawer-layering` tests toggle the drawer open and closed multiple times in a loop. With `waitForTimeout`, each iteration adds fixed latency and the timing can drift, causing subsequent `click()` calls to land mid-transition. With `waitForFunction`, each step waits for the actual condition before proceeding — robust at any speed.
+
+### 14. ❌ Using `overlay.click()` on Z-Index-Layered Elements
+
+When a full-viewport overlay element is at a high z-index, Playwright's `locator.click()` uses a hit-test to find the topmost element at the click coordinates. Even if you hold a reference to the overlay locator, the click may land on a sibling element (e.g., the drawer itself) that sits at the same z-level, causing `click()` to either throw "element intercepts pointer events" or click the wrong element.
+
+This is a special case of §7 (Clicking Elements Obscured by Z-Index Layering), common in drawer/modal overlay patterns.
+
+**Bad:**
+```typescript
+// ❌ Hit-test can land on the drawer (higher z-index sibling) instead of the overlay
+const overlay = page.locator('[data-testid="portfolio-filter-overlay"]');
+await overlay.click(); // Fails: "element intercepts pointer events"
+```
+
+**Good:**
+```typescript
+// ✅ dispatchEvent bypasses the hit-test entirely — event fires directly on the target
+await page.evaluate(() => {
+  const el = document.querySelector('[data-testid="portfolio-filter-overlay"]');
+  if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+});
+```
+
+**Key principle:** Use `page.evaluate(() => el.dispatchEvent(...))` any time you need to click an element that may be obscured by a sibling at the same or higher z-index. This is the same pattern used in the D3 map SVG path helpers (`clickSvgPath`). The `dispatchEvent` approach is equivalent from the JavaScript event model's perspective — the element's click handler fires — but it bypasses Playwright's coordinate-based hit-test.
+
+### 15. ❌ Asserting on CSS Property Values Immediately After Closing an Animated Element
+
+CSS transitions run asynchronously. When a class is removed to trigger a close animation (e.g., `right: -400px` sliding a drawer off-screen), the class change is synchronous but the animated CSS property (like `right`) is still at its open-state value and won't reach its final value until the transition completes (~300ms later). Reading `getComputedStyle` immediately after the class change gives the mid-transition value, not the closed-state value.
+
+This manifests as intermittent failures with unexpected values like `-6.9` instead of `-400` — the test happened to read the property at a different point in the animation each time.
+
+**Bad:**
+```typescript
+// ❌ Reads right value mid-animation — non-deterministic result
+await closeButton.click();
+await page.waitForFunction(() => {
+  const el = document.querySelector('[data-testid="drawer"]');
+  return el && !el.classList.contains('open'); // class is gone, but animation still running
+});
+
+const finalRight = await drawer.evaluate((el) => parseFloat(getComputedStyle(el).right));
+expect(finalRight).toBeLessThanOrEqual(-360); // Fails: actual value is e.g. -6.9
+```
+
+**Good:**
+```typescript
+// ✅ Assert on the logical state (class, aria), not the animated CSS property
+await closeButton.click();
+await page.waitForFunction(() => {
+  const el = document.querySelector('[data-testid="drawer"]');
+  return el && !el.classList.contains('open');
+});
+
+const hasOpenClass = await drawer.evaluate((el) => el.classList.contains('open'));
+expect(hasOpenClass).toBe(false); // ✅ Deterministic
+expect(await filterButton.getAttribute('aria-expanded')).toBe('false'); // ✅ Deterministic
+```
+
+**Key principle:** Test the logical closed state (CSS class, `aria-expanded`, `hidden` attribute, visibility), not the animated CSS property value. If you genuinely need to assert on a final CSS position, wait for the `transitionend` event instead of using `waitForFunction` on the class.
 
 ---
 

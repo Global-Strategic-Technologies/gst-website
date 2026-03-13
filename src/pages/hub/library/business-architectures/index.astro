@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../../components/hub/HubHeader.astro';
 import { trackPageView } from '../../../../utils/analytics';
 
 trackPageView('business-architectures-guide', 'Business & Technology Architectures | GST');
@@ -15,11 +16,10 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
 >
     <section class="arch-guide">
         <div class="container">
-            <header class="arch-header">
-                <span class="section-label">Resources</span>
-                <h1>Business &amp; Technology Architectures</h1>
-                <p class="arch-subtitle">How technology architecture choices cascade into business outcomes, and what every investor, executive, and board member should understand before the next deal.</p>
-            </header>
+            <HubHeader
+                title="Business & Technology Architectures"
+                subtitle="How technology architecture choices cascade into business outcomes, and what every investor, executive, and board member should understand before the next deal."
+            />
 
             <blockquote class="arch-epigraph">
                 <p>Architecture defines business affordance: what a business can do easily, what it can do only with difficulty, and what it effectively cannot do at all. It shapes how fast the organization can move, what it costs to change direction, and where value is compounding or eroding.</p>
@@ -465,9 +465,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
             </div>
             </div>
 
-            <div class="arch-back-nav">
-                <a href="/hub/library" class="cta-button secondary">Back to The Library</a>
-            </div>
+            <a href="/hub/library" class="cta-button secondary back-link">Back to The Library</a>
         </div>
     </section>
 </BaseLayout>
@@ -511,39 +509,6 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
 <style>
     .arch-guide {
         padding: var(--spacing-3xl) 0 5rem;
-    }
-
-    /* Header */
-    .arch-header {
-        text-align: center;
-        margin-bottom: var(--spacing-3xl);
-    }
-
-    .section-label {
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--color-primary);
-        margin-bottom: var(--spacing-lg);
-        display: block;
-    }
-
-    .arch-header h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--text-light-primary);
-        text-transform: uppercase;
-        letter-spacing: 0.02em;
-        margin-bottom: var(--spacing-lg);
-    }
-
-    .arch-subtitle {
-        font-size: 1.1rem;
-        color: var(--text-light-secondary);
-        line-height: 1.8;
-        max-width: 780px;
-        margin: 0 auto;
     }
 
     /* Epigraph */
@@ -1023,16 +988,10 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
         font-style: italic;
     }
 
-    /* Back Navigation */
-    .arch-back-nav {
-        text-align: center;
-        margin-top: var(--spacing-3xl);
-        padding-top: var(--spacing-3xl);
-        border-top: 1px solid rgba(5, 205, 153, 0.15);
-    }
-
-    :global(html.dark-theme) .arch-back-nav {
-        border-top-color: rgba(5, 205, 153, 0.2);
+    /* Back link */
+    .back-link {
+        display: inline-block;
+        margin-top: var(--spacing-2xl);
     }
 
     /* Hover effects (pointer devices only) */
@@ -1150,14 +1109,6 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
             padding: var(--spacing-2xl) 0 var(--spacing-3xl);
         }
 
-        .arch-header h1 {
-            font-size: 1.75rem;
-        }
-
-        .arch-subtitle {
-            font-size: 1rem;
-        }
-
         .arch-epigraph {
             padding: var(--spacing-lg);
         }
@@ -1217,14 +1168,6 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
     @media (max-width: 480px) {
         .arch-guide {
             padding: var(--spacing-xl) 0 var(--spacing-2xl);
-        }
-
-        .arch-header h1 {
-            font-size: 1.5rem;
-        }
-
-        .arch-subtitle {
-            font-size: 0.9rem;
         }
 
         .arch-epigraph {
@@ -1296,14 +1239,6 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
             padding: 0;
         }
 
-        .arch-header {
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .arch-header h1 {
-            margin-bottom: var(--spacing-sm);
-        }
-
         .arch-epigraph {
             margin-bottom: var(--spacing-lg);
         }
@@ -1356,7 +1291,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
             break-inside: avoid;
         }
 
-        .arch-back-nav {
+        .back-link {
             display: none;
         }
 

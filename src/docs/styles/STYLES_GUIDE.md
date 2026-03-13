@@ -26,6 +26,8 @@ The GST Website uses a **centralized CSS variable-based design system** as the s
 **Colors**
 - Primary Color: `--color-primary: #05cd99` (Teal)
 - Primary Dark: `--color-primary-dark: #04a87a`
+- Secondary Color: `--color-secondary: #CC8800` (Amber, light theme)
+- Secondary Dark: `--color-secondary-dark: #FFAA33` (Amber, dark theme)
 
 **Backgrounds**
 - Light Theme: `--bg-light: #ffffff`, `--bg-light-alt: #f5f5f5`
@@ -86,7 +88,7 @@ src/styles/
 - Define base color, spacing, typography values
 - These establish the "happy path" for the majority of users
 
-**Dark theme overrides** (`body.dark-theme`)
+**Dark theme overrides** (`html.dark-theme`)
 - Override only the variables that change for dark mode
 - Use the same variable names - don't create separate dark/light variable sets
 - This approach requires 50% fewer total variables
@@ -99,7 +101,7 @@ src/styles/
   --filter-chip-text: rgba(26, 26, 26, 0.7);
 }
 
-body.dark-theme {
+html.dark-theme {
   --bg-light: #0a0a0a;
   --filter-chip-bg: rgba(5, 205, 153, 0.1);
   --filter-chip-text: rgba(200, 200, 200, 0.8);
@@ -244,7 +246,7 @@ import '../../styles/my-component.css';
   --text-color: #1a1a1a;
 }
 
-body.dark-theme {
+html.dark-theme {
   --text-color: #f5f5f5;
 }
 
@@ -271,7 +273,7 @@ When adding a new component, ensure dark theme support by:
    --my-component-text: #1a1a1a;
    ```
 
-3. **Add dark theme overrides to `body.dark-theme`** in `variables.css`
+3. **Add dark theme overrides to `html.dark-theme`** in `variables.css`
    ```css
    --my-component-bg: #1a1a1a;
    --my-component-text: #f5f5f5;
@@ -430,14 +432,14 @@ The project uses these standard breakpoints:
 
 ### ❌ Anti-Pattern 2: Duplicate Dark Theme Selectors
 
-**Problem**: Creates 100+ lines of redundant `body.dark-theme` rules
+**Problem**: Creates 100+ lines of redundant `html.dark-theme` rules
 
 ```css
 /* ❌ BAD - 100+ lines of duplication */
-body.dark-theme .button { color: #05cd99; border-color: #05cd99; }
-body.dark-theme .link { color: #f5f5f5; }
-body.dark-theme .card { background: #1a1a1a; }
-body.dark-theme .heading { color: #f5f5f5; }
+html.dark-theme .button { color: #05cd99; border-color: #05cd99; }
+html.dark-theme .link { color: #f5f5f5; }
+html.dark-theme .card { background: #1a1a1a; }
+html.dark-theme .heading { color: #f5f5f5; }
 /* ... 50+ more rules */
 ```
 
@@ -451,7 +453,7 @@ body.dark-theme .heading { color: #f5f5f5; }
   --card-bg: #ffffff;
 }
 
-body.dark-theme {
+html.dark-theme {
   --button-color: #05cd99;  /* Same */
   --text-color: #f5f5f5;    /* Different */
   --card-bg: #1a1a1a;       /* Different */
@@ -691,11 +693,11 @@ In stylesheets:
 
 ```css
 /* Dark Theme - Filters */
-body.dark-theme .filter-chip { ... }
-body.dark-theme .filter-button { ... }
+html.dark-theme .filter-chip { ... }
+html.dark-theme .filter-button { ... }
 
 /* Dark Theme - Services */
-body.dark-theme .service-card { ... }
+html.dark-theme .service-card { ... }
 ```
 
 ### 3. Group Related Properties
@@ -796,7 +798,7 @@ body > main > section > .cards > .card { padding: ... }
 **Use CSS variables for dynamic theming** (no JavaScript style changes)
 ```css
 /* ✅ GOOD - No paint/layout thrashing */
-body.dark-theme {
+html.dark-theme {
   --bg-light: #0a0a0a;
   --text-light-primary: #f5f5f5;
 }
@@ -844,7 +846,7 @@ Before committing style changes:
 - [ ] Use spacing variables from scale
 - [ ] Use typography utilities or variables
 - [ ] Add light theme defaults to `:root` in variables.css
-- [ ] Add dark theme overrides to `body.dark-theme` in variables.css
+- [ ] Add dark theme overrides to `html.dark-theme` in variables.css
 - [ ] Test in both light and dark modes
 - [ ] Verify focus states are visible
 - [ ] Check responsive behavior at breakpoints
@@ -861,6 +863,6 @@ Before committing style changes:
 
 ---
 
-**Last Updated**: February 3, 2026
-**Document Version**: 1.0
+**Last Updated**: March 11, 2026
+**Document Version**: 1.1
 **CSS Architecture**: Design System v3 (Phase 1-3 Consolidation Complete)

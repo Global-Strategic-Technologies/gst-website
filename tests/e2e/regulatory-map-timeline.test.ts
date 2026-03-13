@@ -9,7 +9,9 @@ async function waitForMapReady(page: import('@playwright/test').Page): Promise<v
 
 test.describe('Regulatory Map — Timeline', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/hub/tools/regulatory-map', { waitUntil: 'networkidle' });
+    // domcontentloaded is reliable under parallel worker contention; networkidle
+    // can time out when many workers share the same dev server.
+    await page.goto('/hub/tools/regulatory-map', { waitUntil: 'domcontentloaded' });
     await waitForMapReady(page);
   });
 

@@ -139,14 +139,14 @@ src/styles/
 ### 2. **Duplicate Dark Theme Rules**
 ```css
 /* ❌ DON'T - 100+ lines of duplication */
-body.dark-theme .button { color: #05cd99; }
-body.dark-theme .text { color: #f5f5f5; }
-body.dark-theme .card { background: #1a1a1a; }
+html.dark-theme .button { color: #05cd99; }
+html.dark-theme .text { color: #f5f5f5; }
+html.dark-theme .card { background: #1a1a1a; }
 /* ... 50+ more rules */
 
 /* ✅ DO - Variables override automatically */
 :root { --button-color: #05cd99; --text-color: #1a1a1a; }
-body.dark-theme { --button-color: #05cd99; --text-color: #f5f5f5; }
+html.dark-theme { --button-color: #05cd99; --text-color: #f5f5f5; }
 .button { color: var(--button-color); }
 .text { color: var(--text-color); }
 ```
@@ -274,7 +274,7 @@ When making styling changes:
 
 ---
 
-**Last Updated**: February 3, 2026
+**Last Updated**: March 11, 2026
 **Status**: Complete and ready for use
 **Related Files**:
 - `src/styles/variables.css`
