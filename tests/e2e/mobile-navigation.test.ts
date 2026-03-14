@@ -29,7 +29,7 @@ async function openFilterDrawer(page: import('@playwright/test').Page): Promise<
 
 test.describe('Mobile Navigation Journey', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/ma-portfolio');
+    await page.goto('/ma-portfolio', { waitUntil: 'domcontentloaded' });
   });
 
   test('should display responsive layout on mobile', async ({ page }) => {
@@ -90,6 +90,9 @@ test.describe('Mobile Navigation Journey', () => {
   });
 
   test('should allow typing in search on mobile', async ({ page }) => {
+    // Wait for portfolio to be fully initialized
+    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
+
     // Focus search input
     const searchInput = page.locator('[data-testid="portfolio-search-input"]');
     await expect(searchInput).toBeVisible();

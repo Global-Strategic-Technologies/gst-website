@@ -346,7 +346,7 @@ test.describe('Tech Debt Calculator', () => {
       await gotoCalc(page);
 
       await page.locator('.back-link').click();
-      await page.waitForLoadState('domcontentloaded');
+      await page.waitForURL('**/hub/tools', { timeout: 10000 });
 
       expect(page.url()).toContain('/hub/tools');
     });

@@ -198,7 +198,7 @@ test.describe('Regulatory Map E2E', () => {
   test.describe('5. Navigation', () => {
     test('should navigate back to The Workbench', async ({ page }) => {
       await page.locator('a.back-link').click();
-      await page.waitForURL('**/hub/tools');
+      await page.waitForURL('**/hub/tools', { timeout: 10000 });
       await expect(page).toHaveURL(/\/hub\/tools$/);
     });
 
