@@ -1,349 +1,202 @@
 # CSS Variables Reference
 
-Complete catalog of all CSS variables used in the GST Website design system. Use this as a reference when styling components.
+Complete catalog of all CSS custom properties defined in `src/styles/variables.css`. Use this when styling components.
+
+**Source of truth**: `src/styles/variables.css` — 95 variables in `:root`, 43 dark theme overrides in `html.dark-theme`.
 
 ---
 
-## Color Variables
+## Primary Colors
 
-### Primary Colors
+| Variable | Value | Usage |
+|----------|-------|-------|
+| `--color-primary` | `#05cd99` | Primary accent — links, borders, buttons, active states |
+| `--color-primary-dark` | `#04a87a` | Darker shade for emphasis |
+| `--color-secondary` | `#CC8800` (light) / `#FFAA33` (dark) | Secondary accent (amber) |
+| `--color-secondary-dark` | `#FFAA33` | Secondary dark variant |
 
-| Variable | Light Value | Dark Value | Usage |
-|----------|---|---|---|
-| `--color-primary` | `#05cd99` | `#05cd99` | Primary action color, links, borders, accents |
-| `--color-primary-dark` | `#04a87a` | `#04a87a` | Darker shade for emphasis |
-| `--color-secondary` | `#CC8800` | `#FFAA33` | Secondary accent color (amber) |
-| `--color-secondary-dark` | `#FFAA33` | `#FFAA33` | Secondary color dark variant |
+## Backgrounds
 
-### Background Colors
-
-| Variable | Light Value | Dark Value | Usage |
-|----------|---|---|---|
-| `--bg-light` | `#ffffff` | `#0a0a0a` | Primary background (site background) |
+| Variable | Light | Dark | Usage |
+|----------|-------|------|-------|
+| `--bg-light` | `#ffffff` | `#0a0a0a` | Primary page background |
 | `--bg-light-alt` | `#f5f5f5` | `#141414` | Secondary background (sections, cards) |
-| `--bg-dark` | `#0a0a0a` | `#0a0a0a` | Dark background for components |
+| `--bg-dark` | `#0a0a0a` | `#0a0a0a` | Dark component backgrounds |
 | `--bg-dark-secondary` | `#1a1a1a` | `#1a1a1a` | Secondary dark background |
 | `--bg-dark-tertiary` | `#141414` | `#141414` | Tertiary dark background |
 
-### Text Colors - Light Theme
+## Text Colors
+
+### Light Theme Defaults (auto-switch in dark theme)
+
+| Variable | Light Value | Dark Override | Usage |
+|----------|------------|---------------|-------|
+| `--text-light-primary` | `rgba(26,26,26, 0.95)` | `rgba(245,245,245, 0.95)` | Headings, primary text |
+| `--text-light-secondary` | `rgba(26,26,26, 0.7)` | `rgba(200,200,200, 0.8)` | Body text, descriptions |
+| `--text-light-muted` | `rgba(26,26,26, 0.6)` | `rgba(200,200,200, 0.6)` | Labels, captions |
+| `--text-light-faded` | `rgba(26,26,26, 0.5)` | `rgba(200,200,200, 0.5)` | Disabled, placeholders |
+
+> In dark theme, `--text-light-*` variables are overridden to point to the dark equivalents. Components only need to reference `--text-light-*` — they get dark values automatically.
+
+### Dark Theme Raw Values (used internally by overrides)
 
 | Variable | Value | Usage |
-|----------|---|---|
-| `--text-light-primary` | `rgba(26, 26, 26, 0.95)` | Primary text (headings, body) |
-| `--text-light-secondary` | `rgba(26, 26, 26, 0.7)` | Secondary text (descriptions) |
-| `--text-light-muted` | `rgba(26, 26, 26, 0.6)` | Muted text (labels, captions) |
-| `--text-light-faded` | `rgba(26, 26, 26, 0.5)` | Faded text (disabled states) |
+|----------|-------|-------|
+| `--text-dark-primary` | `rgba(245,245,245, 0.95)` | Referenced by dark theme override |
+| `--text-dark-secondary` | `rgba(200,200,200, 0.8)` | Referenced by dark theme override |
+| `--text-dark-muted` | `rgba(200,200,200, 0.6)` | Referenced by dark theme override |
+| `--text-dark-faded` | `rgba(200,200,200, 0.5)` | Referenced by dark theme override |
 
-### Text Colors - Dark Theme
+## Borders & Accents
 
-| Variable | Value | Usage |
-|----------|---|---|
-| `--text-dark-primary` | `rgba(245, 245, 245, 0.95)` | Primary text in dark mode |
-| `--text-dark-secondary` | `rgba(200, 200, 200, 0.8)` | Secondary text in dark mode |
-| `--text-dark-muted` | `rgba(200, 200, 200, 0.6)` | Muted text in dark mode |
-| `--text-dark-faded` | `rgba(200, 200, 200, 0.5)` | Faded text in dark mode |
+| Variable | Light | Dark | Usage |
+|----------|-------|------|-------|
+| `--border-light` | `rgba(26,26,26, 0.1)` | — | Subtle borders (light theme) |
+| `--border-dark` | `rgba(5,205,153, 0.2)` | — | Teal borders (dark theme) |
+| `--accent-light-bg` | `rgba(5,205,153, 0.08)` | — | Subtle accent background |
+| `--accent-light-bg-hover` | `rgba(5,205,153, 0.15)` | — | Accent background on hover |
+| `--accent-dark-bg` | `rgba(5,205,153, 0.1)` | — | Dark accent background |
 
-### Border & Accent Colors
+## Spacing Scale
 
-| Variable | Light Value | Dark Value | Usage |
-|----------|---|---|---|
-| `--border-light` | `rgba(26, 26, 26, 0.1)` | `rgba(5, 205, 153, 0.2)` | Light borders |
-| `--border-dark` | `rgba(5, 205, 153, 0.2)` | `rgba(5, 205, 153, 0.2)` | Dark borders |
-| `--accent-light-bg` | `rgba(5, 205, 153, 0.08)` | `rgba(5, 205, 153, 0.1)` | Subtle accent backgrounds |
-| `--accent-light-bg-hover` | `rgba(5, 205, 153, 0.15)` | `rgba(5, 205, 153, 0.15)` | Accent backgrounds on hover |
-| `--accent-dark-bg` | `rgba(5, 205, 153, 0.1)` | `rgba(5, 205, 153, 0.1)` | Dark accent backgrounds |
+| Variable | Value | Pixels (at 16px base) |
+|----------|-------|-----------------------|
+| `--spacing-xs` | `0.25rem` | 4px |
+| `--spacing-sm` | `0.5rem` | 8px |
+| `--spacing-md` | `0.75rem` | 12px |
+| `--spacing-lg` | `1rem` | 16px |
+| `--spacing-xl` | `1.5rem` | 24px |
+| `--spacing-2xl` | `2rem` | 32px |
+| `--spacing-3xl` | `3rem` | 48px |
 
-### Component-Specific Colors
-
-#### Filter UI Variables
-
-| Variable | Light Value | Dark Value | Usage |
-|----------|---|---|---|
-| `--filter-chip-bg` | `rgba(26, 26, 26, 0.05)` | `rgba(5, 205, 153, 0.1)` | Filter chip background |
-| `--filter-chip-bg-hover` | `rgba(26, 26, 26, 0.08)` | `rgba(5, 205, 153, 0.15)` | Filter chip hover background |
-| `--filter-chip-border` | `rgba(26, 26, 26, 0.1)` | `rgba(5, 205, 153, 0.2)` | Filter chip border |
-| `--filter-chip-text` | `rgba(26, 26, 26, 0.7)` | `rgba(200, 200, 200, 0.8)` | Filter chip text |
-| `--filter-button-bg` | `rgba(26, 26, 26, 0.05)` | `rgba(5, 205, 153, 0.1)` | Filter button background |
-| `--filter-button-bg-hover` | `rgba(26, 26, 26, 0.08)` | `rgba(5, 205, 153, 0.15)` | Filter button hover background |
-| `--filter-button-border` | `rgba(26, 26, 26, 0.1)` | `rgba(5, 205, 153, 0.2)` | Filter button border |
-| `--filter-button-text` | `rgba(26, 26, 26, 0.7)` | `rgba(200, 200, 200, 0.8)` | Filter button text |
-| `--search-input-bg` | `rgba(26, 26, 26, 0.02)` | `rgba(5, 205, 153, 0.05)` | Search input background |
-| `--search-input-border` | `rgba(26, 26, 26, 0.1)` | `rgba(5, 205, 153, 0.2)` | Search input border |
-| `--search-input-focus-bg` | `var(--bg-light)` | `var(--bg-dark-secondary)` | Search input focused background |
-| `--search-input-focus-shadow` | `rgba(5, 205, 153, 0.1)` | `rgba(5, 205, 153, 0.15)` | Search input focus shadow |
-| `--search-input-text` | `rgba(26, 26, 26, 0.85)` | `rgba(245, 245, 245, 0.85)` | Search input text |
-| `--search-input-placeholder` | `rgba(26, 26, 26, 0.5)` | `rgba(200, 200, 200, 0.5)` | Search input placeholder |
-| `--clear-filters-text` | `rgba(26, 26, 26, 0.6)` | `rgba(200, 200, 200, 0.6)` | Clear filters button text |
-| `--clear-filters-border` | `rgba(26, 26, 26, 0.1)` | `rgba(5, 205, 153, 0.2)` | Clear filters button border |
-
-#### Section & Component Variables
-
-| Variable | Light Value | Dark Value | Usage |
-|----------|---|---|---|
-| `--services-bg` | `#eeeeee` | `var(--bg-dark-tertiary)` | Services section background |
-| `--footer-bg` | `#eeeeee` | `var(--bg-dark-tertiary)` | Footer section background |
-| `--footer-text` | `rgba(26, 26, 26, 0.85)` | `rgba(153, 153, 153, 0.85)` | Footer text color |
-| `--footer-border` | `rgba(26, 26, 26, 0.1)` | `rgba(153, 153, 153, 0.15)` | Footer border color |
-| `--cta-box-bg` | `var(--bg-light)` | `var(--bg-dark-secondary)` | CTA box background |
-| `--cta-box-text` | `rgba(26, 26, 26, 0.85)` | `rgba(200, 200, 200, 0.8)` | CTA box text color |
-| `--service-card-bg` | `var(--bg-dark)` | `var(--bg-dark-secondary)` | Service card background |
-| `--service-card-heading` | `var(--bg-light)` | `var(--bg-light)` | Service card heading color |
-| `--service-card-text` | `#b0b0b0` | `#d0d0d0` | Service card body text |
-| `--service-card-border` | `var(--bg-dark-secondary)` | `#2a2a2a` | Service card border |
-| `--filter-drawer-bg` | `var(--bg-light)` | `var(--bg-dark-secondary)` | Filter drawer background |
-| `--stat-item-border` | `var(--color-primary)` | `rgba(5, 205, 153, 0.2)` | Stats item border |
-| `--about-image-bg` | `var(--bg-dark-tertiary)` | `var(--bg-dark-secondary)` | About image background |
-| `--about-image-border` | `var(--bg-dark-secondary)` | `#2a2a2a` | About image border |
-| `--about-image-text` | `#404040` | `#808080` | About image text/placeholder |
-
-#### Miscellaneous Variables
-
-| Variable | Light Value | Dark Value | Usage |
-|----------|---|---|---|
-| `--checkerboard-line` | `rgba(0, 0, 0, 0.08)` | `rgba(255, 255, 255, 0.08)` | Grid background lines |
-| `--theme-toggle-color` | `rgba(74, 74, 74, 0.8)` | `rgba(200, 200, 200, 0.8)` | Theme toggle button color |
-
----
-
-## Spacing Variables
-
-### Spacing Scale
-
-All spacing values follow a consistent scale based on 0.25rem (4px):
+## Gap Variables
 
 | Variable | Value | Usage |
-|----------|---|---|
-| `--spacing-xs` | `0.25rem` | Extra-small padding/margins |
-| `--spacing-sm` | `0.5rem` | Small padding/margins |
-| `--spacing-md` | `0.75rem` | Standard padding/margins |
-| `--spacing-lg` | `1rem` | Large padding/margins |
-| `--spacing-xl` | `1.5rem` | Extra-large padding/margins |
-| `--spacing-2xl` | `2rem` | Large section spacing |
-| `--spacing-3xl` | `3rem` | Extra-large section spacing |
-
-### Gap Variables
-
-Used for flexbox/grid gaps:
-
-| Variable | Value | Usage |
-|----------|---|---|
+|----------|-------|-------|
 | `--gap-tight` | `0.5rem` | Small gaps between items |
-| `--gap-normal` | `0.75rem` | Standard gaps between items |
-| `--gap-wide` | `1.5rem` | Wide gaps between items |
-| `--gap-extra-wide` | `2rem` | Extra-wide gaps between items |
+| `--gap-normal` | `0.75rem` | Standard gaps |
+| `--gap-wide` | `1.5rem` | Wide gaps |
+| `--gap-extra-wide` | `2rem` | Extra-wide gaps |
 
----
-
-## Typography Variables
-
-### Font Family
+## Typography
 
 | Variable | Value |
-|----------|---|
+|----------|-------|
 | `--font-family` | `'Helvetica Neue', Arial, sans-serif` |
+| `--font-weight-normal` | `400` |
+| `--font-weight-semibold` | `600` |
+| `--font-weight-bold` | `700` |
+| `--text-xs` | `0.75rem` (12px) |
+| `--text-sm` | `0.875rem` (14px) |
+| `--text-base` | `1rem` (16px) |
+| `--text-lg` | `1.1rem` (17.6px) |
+| `--text-xl` | `1.25rem` (20px) |
+| `--text-2xl` | `1.5rem` (24px) |
 
-### Font Weights
-
-| Variable | Value | Usage |
-|----------|---|---|
-| `--font-weight-normal` | `400` | Body text, regular weight |
-| `--font-weight-semibold` | `600` | Subheadings, emphasis |
-| `--font-weight-bold` | `700` | Headings, strong emphasis |
-
-### Text Sizes
-
-| Variable | Value | Usage |
-|----------|---|---|
-| `--text-xs` | `0.75rem` | Labels, badges |
-| `--text-sm` | `0.875rem` | Small text, captions |
-| `--text-base` | `1rem` | Body text |
-| `--text-lg` | `1.1rem` | Large text, subheadings |
-| `--text-xl` | `1.25rem` | Larger headings |
-| `--text-2xl` | `1.5rem` | Large headings |
-
----
-
-## Transition Variables
-
-Animation and transition durations:
+## Transitions
 
 | Variable | Value | Usage |
-|----------|---|---|
-| `--transition-fast` | `0.2s ease-out` | Quick interactions (hover, focus) |
+|----------|-------|-------|
+| `--transition-fast` | `0.2s ease-out` | Hover, focus feedback |
 | `--transition-normal` | `0.25s cubic-bezier(0.4, 0, 0.2, 1)` | Standard animations |
-| `--transition-slow` | `0.3s cubic-bezier(0.4, 0, 0.2, 1)` | Slower animations (modals) |
+| `--transition-slow` | `0.3s cubic-bezier(0.4, 0, 0.2, 1)` | Drawers, modals |
 
----
-
-## Shadow Variables
-
-Elevation and depth effects:
+## Shadows
 
 | Variable | Value | Usage |
-|----------|---|---|
-| `--shadow-sm` | `0 2px 8px rgba(0, 0, 0, 0.1)` | Subtle elevation |
-| `--shadow-md` | `0 4px 12px rgba(0, 0, 0, 0.15)` | Medium elevation |
-| `--shadow-lg` | `-4px 0 20px rgba(0, 0, 0, 0.15)` | Large elevation (drawer) |
+|----------|-------|-------|
+| `--shadow-sm` | `0 2px 8px rgba(0,0,0, 0.1)` | Subtle elevation |
+| `--shadow-md` | `0 4px 12px rgba(0,0,0, 0.15)` | Medium elevation |
+| `--shadow-lg` | `-4px 0 20px rgba(0,0,0, 0.15)` | Large elevation (drawer) |
 
 ---
 
-## Usage Examples
+## Component-Specific Variables
 
-### Example 1: Creating a Card Component
+These variables exist for page sections and UI components that need distinct light/dark values.
 
-```css
-.my-card {
-  /* Use background variable - switches with theme */
-  background: var(--bg-light-alt);
+### Section Backgrounds
 
-  /* Use spacing variables for consistency */
-  padding: var(--spacing-lg);
-  margin-bottom: var(--spacing-md);
+| Variable | Light | Dark |
+|----------|-------|------|
+| `--services-bg` | `#eeeeee` | `var(--bg-dark-tertiary)` |
+| `--footer-bg` | `#eeeeee` | `var(--bg-dark-tertiary)` |
+| `--cta-box-bg` | `var(--bg-light)` | `var(--bg-dark-secondary)` |
+| `--service-card-bg` | `var(--bg-dark)` | `var(--bg-dark-secondary)` |
+| `--filter-drawer-bg` | `var(--bg-light)` | `var(--bg-dark-secondary)` |
 
-  /* Use text color variable */
-  color: var(--text-light-primary);
+### Filter UI
 
-  /* Use color variables for borders */
-  border: 2px solid var(--color-primary);
+| Variable | Light | Dark |
+|----------|-------|------|
+| `--filter-chip-bg` | `rgba(26,26,26, 0.05)` | `rgba(5,205,153, 0.1)` |
+| `--filter-chip-bg-hover` | `rgba(26,26,26, 0.08)` | `rgba(5,205,153, 0.15)` |
+| `--filter-chip-border` | `rgba(26,26,26, 0.1)` | `rgba(5,205,153, 0.2)` |
+| `--filter-chip-text` | `rgba(26,26,26, 0.7)` | `rgba(200,200,200, 0.8)` |
+| `--filter-button-bg` | `rgba(26,26,26, 0.05)` | `rgba(5,205,153, 0.1)` |
+| `--filter-button-bg-hover` | `rgba(26,26,26, 0.08)` | `rgba(5,205,153, 0.15)` |
+| `--filter-button-border` | `rgba(26,26,26, 0.1)` | `rgba(5,205,153, 0.2)` |
+| `--filter-button-text` | `rgba(26,26,26, 0.7)` | `rgba(200,200,200, 0.8)` |
+| `--search-input-bg` | `rgba(26,26,26, 0.02)` | `rgba(5,205,153, 0.05)` |
+| `--search-input-border` | `rgba(26,26,26, 0.1)` | `rgba(5,205,153, 0.2)` |
+| `--search-input-focus-bg` | `var(--bg-light)` | `var(--bg-dark-secondary)` |
+| `--search-input-focus-shadow` | `rgba(5,205,153, 0.1)` | `rgba(5,205,153, 0.15)` |
+| `--search-input-text` | `rgba(26,26,26, 0.85)` | `rgba(245,245,245, 0.85)` |
+| `--search-input-placeholder` | `rgba(26,26,26, 0.5)` | `rgba(200,200,200, 0.5)` |
+| `--clear-filters-text` | `rgba(26,26,26, 0.6)` | `rgba(200,200,200, 0.6)` |
+| `--clear-filters-border` | `rgba(26,26,26, 0.1)` | `rgba(5,205,153, 0.2)` |
 
-  /* Use transition variable */
-  transition: all var(--transition-normal);
-}
+### Section Text & Borders
 
-.my-card:hover {
-  /* Colors automatically follow theme */
-  background: var(--bg-light);
-  border-color: var(--color-primary-dark);
-}
-```
+| Variable | Light | Dark |
+|----------|-------|------|
+| `--service-card-text` | `#b0b0b0` | `#d0d0d0` |
+| `--service-card-heading` | `var(--bg-light)` | `var(--bg-light)` |
+| `--service-card-border` | `var(--bg-dark-secondary)` | `#2a2a2a` |
+| `--footer-text` | `rgba(26,26,26, 0.85)` | `rgba(153,153,153, 0.85)` |
+| `--footer-border` | `rgba(26,26,26, 0.1)` | `rgba(153,153,153, 0.15)` |
+| `--cta-box-text` | `rgba(26,26,26, 0.85)` | `rgba(200,200,200, 0.8)` |
+| `--stat-item-border` | `var(--color-primary)` | `rgba(5,205,153, 0.2)` |
+| `--about-image-bg` | `var(--bg-dark-tertiary)` | `var(--bg-dark-secondary)` |
+| `--about-image-border` | `var(--bg-dark-secondary)` | `#2a2a2a` |
+| `--about-image-text` | `#404040` | `#808080` |
 
-### Example 2: Responsive Button
+### Miscellaneous
 
-```css
-.button {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  font-size: var(--text-base);
-  color: var(--bg-light);
-  background: var(--color-primary);
-  border: none;
-  font-weight: var(--font-weight-bold);
-  transition: all var(--transition-fast);
-}
+| Variable | Light | Dark |
+|----------|-------|------|
+| `--checkerboard-line` | `rgba(0,0,0, 0.08)` | `rgba(255,255,255, 0.08)` |
+| `--theme-toggle-color` | `rgba(74,74,74, 0.8)` | `rgba(200,200,200, 0.8)` |
 
-@media (min-width: 768px) {
-  .button {
-    padding: var(--spacing-md) var(--spacing-xl);
-    font-size: var(--text-lg);
-  }
-}
-```
+---
 
-### Example 3: Dark Theme Automatic Switching
+## Quick Lookup by Purpose
 
-Light theme (default):
-```css
-:root {
-  --filter-text: rgba(26, 26, 26, 0.7);
-  --filter-bg: rgba(26, 26, 26, 0.05);
-}
-
-.filter { color: var(--filter-text); background: var(--filter-bg); }
-/* Result: Dark text on light background */
-```
-
-Dark theme (automatic override):
-```css
-html.dark-theme {
-  --filter-text: rgba(200, 200, 200, 0.8);
-  --filter-bg: rgba(5, 205, 153, 0.1);
-}
-
-/* Same CSS selector, automatically gets dark theme values */
-.filter { color: var(--filter-text); background: var(--filter-bg); }
-/* Result: Light text on dark background */
-```
+| I need... | Use |
+|-----------|-----|
+| Primary text color | `--text-light-primary` |
+| Secondary/body text | `--text-light-secondary` |
+| Muted/label text | `--text-light-muted` |
+| Page background | `--bg-light` |
+| Card/section background | `--bg-light-alt` |
+| Primary accent | `--color-primary` |
+| Borders | `--border-light` or `--color-primary` |
+| Padding/margin | `--spacing-sm` through `--spacing-3xl` |
+| Flex/grid gaps | `--gap-tight` through `--gap-extra-wide` |
+| Quick interaction | `--transition-fast` |
+| Standard animation | `--transition-normal` |
+| Elevation | `--shadow-sm`, `--shadow-md`, `--shadow-lg` |
 
 ---
 
 ## Adding New Variables
 
-When adding a new component that needs styling:
-
-1. **Check if existing variables apply**
-   - Can you use `--bg-light-alt` instead of creating new background?
-   - Can you use `--text-light-primary` instead of creating new text color?
-
-2. **If creating new variables, add both light and dark**
-   ```css
-   :root {
-     --my-component-bg: #ffffff;
-     --my-component-text: #1a1a1a;
-   }
-
-   html.dark-theme {
-     --my-component-bg: #1a1a1a;
-     --my-component-text: #f5f5f5;
-   }
-   ```
-
-3. **Use semantic names**
-   ```css
-   /* ✅ GOOD */
-   --filter-chip-bg
-   --service-card-text
-   --footer-border
-
-   /* ❌ BAD */
-   --bg-1
-   --text-light
-   --color-1
-   ```
-
-4. **Document the variable** in this file
+1. Check if an existing variable already covers your need
+2. Add both `:root` (light) and `html.dark-theme` (dark) values in `variables.css`
+3. Use semantic names: `--component-property` (e.g., `--filter-chip-bg`)
+4. Update this reference file
 
 ---
 
-## Variable Lookup Table
-
-Quick lookup by purpose:
-
-### "I need to style text"
-- Primary text: `--text-light-primary`
-- Secondary text: `--text-light-secondary`
-- Muted text: `--text-light-muted`
-- Label/small text: `--text-xs`, `--text-sm`
-
-### "I need a background color"
-- Primary background: `--bg-light`
-- Secondary background: `--bg-light-alt`
-- Dark card background: `--bg-dark`
-- Component-specific: `--service-card-bg`, `--filter-drawer-bg`
-
-### "I need spacing"
-- Padding/margin: `--spacing-sm` through `--spacing-3xl`
-- Gaps between items: `--gap-tight` through `--gap-extra-wide`
-
-### "I need to emphasize something"
-- Primary color: `--color-primary`
-- Darker shade: `--color-primary-dark`
-
-### "I need a border"
-- Light border: `--border-light`
-- Dark border: `--border-dark`
-- Primary accent: Use `--color-primary`
-
-### "I need animation"
-- Quick response: `--transition-fast`
-- Standard animation: `--transition-normal`
-- Slower animation: `--transition-slow`
-
-### "I need elevation/depth"
-- Subtle shadow: `--shadow-sm`
-- Medium shadow: `--shadow-md`
-- Strong shadow: `--shadow-lg`
-
----
-
-**Last Updated**: March 11, 2026
-**Total Variables**: 85+
-**Theme Coverage**: 100% (all variables have light and dark values)
+**Last Updated**: March 13, 2026
+**Total Variables**: 95 (`:root`) + 43 dark theme overrides
