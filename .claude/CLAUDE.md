@@ -333,10 +333,10 @@ Expert in identifying and addressing technical debt:
 - **All spacing must use the spacing scale** (`--spacing-xs` through `--spacing-3xl`)
 - **All font sizes must use typography utilities** (`.heading-*`, `.text-*`, `.label-*`) or variables
 - **Dark theme must work automatically** - Use variables, no `body.dark-theme` specific colors
-- **Responsive design mobile-first** - Start with mobile styles, add breakpoints for larger screens
+- **Responsive design desktop-first** - Base styles for desktop, `max-width` breakpoints for smaller screens
 - **No hardcoded transitions** - Use `--transition-fast`, `--transition-normal`, or `--transition-slow`
 - **Reference**: [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) for full standards
-- **Reference**: [src/docs/styles/STYLES_GUIDE.md - Anti-Patterns](src/docs/styles/STYLES_GUIDE.md#common-anti-patterns-to-avoid) to avoid common mistakes
+- **Reference**: [src/docs/styles/STYLES_GUIDE.md - Anti-Patterns](src/docs/styles/STYLES_GUIDE.md#anti-patterns) to avoid common mistakes
 
 ### Performance Standards
 - Core Web Vitals optimization
@@ -417,10 +417,9 @@ npm run test:e2e:ui       # Visual test runner
 ## 📞 Resources
 
 ### Internal Documentation
-- **Styles**: [src/docs/styles/INDEX.md](src/docs/styles/INDEX.md) - CSS conventions, design system, anti-patterns
-  - [STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) - Main styling reference
-  - [VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md) - Design token catalog
-  - [TYPOGRAPHY_REFERENCE.md](src/docs/styles/TYPOGRAPHY_REFERENCE.md) - Typography utilities
+- **Styles**: [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) - CSS conventions, design system, anti-patterns
+  - [VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md) - Design token catalog (95 variables)
+  - [TYPOGRAPHY_REFERENCE.md](src/docs/styles/TYPOGRAPHY_REFERENCE.md) - Typography utilities (11 classes)
 - Testing: [src/docs/testing/INDEX.md](src/docs/testing/INDEX.md)
 - Development: [src/docs/development/](src/docs/development/)
 - Analytics: [src/docs/analytics/](src/docs/analytics/)
