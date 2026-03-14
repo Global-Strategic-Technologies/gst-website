@@ -85,7 +85,6 @@ const domainCount = DOMAINS.length;
                         <div data-questions-container class="icg-questions"></div>
 
                         <!-- Navigation -->
-                        <div class="icg-wizard-counter text-tiny" data-wizard-counter></div>
                         <div class="icg-wizard-nav">
                             <button data-action="back" type="button" class="icg-btn-secondary">Back to intro</button>
                             <button data-action="next" type="button" class="icg-btn-primary" disabled>Next domain</button>
@@ -417,7 +416,7 @@ const domainCount = DOMAINS.length;
         flex: 1;
         min-width: 112px;
         padding: var(--spacing-sm) var(--spacing-sm);
-        border: 1px solid var(--border-light);
+        border: 2px solid var(--border-light);
         border-radius: 8px;
         background: var(--bg-light-alt);
         color: var(--text-light-secondary);
@@ -474,12 +473,6 @@ const domainCount = DOMAINS.length;
         flex: 1;
     }
 
-    .icg-wizard-counter {
-        color: var(--text-light-muted);
-        text-align: center;
-        margin-top: var(--spacing-xl);
-        margin-bottom: var(--spacing-xs);
-    }
 
     /* ── Results: Score display ────────────────────────────────────────────── */
     .icg-score-display {
@@ -1183,10 +1176,6 @@ function renderWizard(): void {
   backBtn.textContent = state.currentStep === 1 ? 'Back to intro' : 'Previous';
   nextBtn.textContent = state.currentStep === 6 ? 'View results' : 'Next domain';
   nextBtn.disabled = !canNext;
-
-  // Counter
-  qs<HTMLElement>('[data-wizard-counter]').textContent =
-    `${answered}/${domain.questions.length} answered in this domain`;
 }
 
 function renderResults(): void {
