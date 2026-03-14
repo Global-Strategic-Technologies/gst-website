@@ -1,0 +1,1127 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../../components/hub/HubHeader.astro';
+import { trackPageView } from '../../../../utils/analytics';
+import { DOMAINS, ANSWER_OPTIONS, TOTAL_QUESTIONS } from '../../../../data/infrastructure-cost-governance/domains';
+
+trackPageView('infrastructure-cost-governance', 'Infrastructure Cost Governance | GST');
+
+const domainCount = DOMAINS.length;
+---
+
+<BaseLayout
+    title="Infrastructure Cost Governance | Strategic Intelligence Hub"
+    description="A structured maturity assessment for cloud cost management. Answer 16 questions across five operational domains and receive a scored diagnostic with a prioritized improvement checklist."
+    ogTitle="Infrastructure Cost Governance | GST"
+    ogDescription="Cloud cost maturity assessment for PE diligence, board reviews, and 100-day planning. Score your cloud spend governance across five operational domains."
+    ogImage="/og-image.png"
+    ogUrl="https://globalstrategic.tech/hub/tools/infrastructure-cost-governance"
+>
+    <section class="icg-section">
+        <div class="container">
+
+            <HubHeader
+                title="Infrastructure Cost Governance"
+                subtitle="A structured maturity assessment for cloud cost management. Answer 16 questions across five operational domains and receive a scored diagnostic with a prioritized improvement checklist. Purpose-built for PE diligence, board reviews, and 100-day planning."
+            />
+
+            <div data-icg class="icg-shell">
+
+                <!-- ── Landing view (step 0) ─────────────────────────────── -->
+                <div data-view="landing" class="icg-view">
+                    <div class="landing-content">
+                        <div class="landing-callout">
+                            <span class="landing-callout__title">Who should complete this assessment.</span>
+                            This tool takes 4 to 6 minutes. Domains 2 through 5 require familiarity with cloud infrastructure. PE investors and executives should complete this alongside their engineering lead, or send them the link directly.
+                        </div>
+
+                        <div class="stats-row">
+                            <div class="stat-tile">
+                                <div class="stat-tile__value">{domainCount}</div>
+                                <div class="stat-tile__label">domains</div>
+                            </div>
+                            <div class="stat-tile">
+                                <div class="stat-tile__value">{TOTAL_QUESTIONS}</div>
+                                <div class="stat-tile__label">questions</div>
+                            </div>
+                            <div class="stat-tile">
+                                <div class="stat-tile__value">4-6 min</div>
+                                <div class="stat-tile__label">to complete</div>
+                            </div>
+                        </div>
+
+                        <button data-action="start" type="button" class="icg-btn-primary icg-btn-primary--full">Begin assessment</button>
+                    </div>
+                </div>
+
+                <!-- ── Wizard view (steps 1-5) ───────────────────────────── -->
+                <div data-view="wizard" class="icg-view is-hidden">
+                    <div class="wizard-content">
+                        <!-- Progress bar -->
+                        <div class="icg-progress">
+                            <div class="icg-progress__track">
+                                <div class="icg-progress__fill" data-progress-fill></div>
+                            </div>
+                            <span class="icg-progress__label text-tiny" data-progress-label></span>
+                        </div>
+
+                        <!-- Domain header -->
+                        <div class="icg-domain-header">
+                            <div class="icg-domain-header__meta">
+                                <span class="label icg-domain-label" data-domain-label></span>
+                                <span class="icg-foundational-badge is-hidden" data-foundational-badge>foundational</span>
+                            </div>
+                            <h2 class="heading-md icg-domain-name" data-domain-name></h2>
+                            <p class="text-small icg-domain-desc" data-domain-desc></p>
+                            <p class="text-small icg-foundational-note is-hidden" data-foundational-note>This is the foundational domain. Scores here affect how results in later sections should be interpreted.</p>
+                        </div>
+
+                        <!-- Questions container -->
+                        <div data-questions-container class="icg-questions"></div>
+
+                        <!-- Navigation -->
+                        <div class="icg-wizard-nav">
+                            <button data-action="back" type="button" class="icg-btn-secondary">Back to intro</button>
+                            <button data-action="next" type="button" class="icg-btn-primary" disabled>Next domain</button>
+                        </div>
+                        <div class="icg-wizard-counter text-tiny" data-wizard-counter></div>
+                    </div>
+                </div>
+
+                <!-- ── Results view (step 6) ─────────────────────────────── -->
+                <div data-view="results" class="icg-view is-hidden">
+                    <div class="results-content">
+
+                        <!-- Maturity score -->
+                        <div class="icg-score-display" data-score-display>
+                            <div data-gauge-container class="icg-gauge"></div>
+                            <div class="icg-score-level heading-md" data-score-level></div>
+                            <div class="icg-score-desc text-small" data-score-desc></div>
+                        </div>
+
+                        <!-- Foundational flag (conditional) -->
+                        <div class="icg-foundational-warning is-hidden" data-foundational-warning>
+                            <div class="icg-foundational-warning__title">Visibility and Tagging scored below the foundational threshold</div>
+                            <div class="icg-foundational-warning__text text-small">Without resource tagging and cost dashboards in place, scores in other domains may understate the true optimization gap. It is difficult to right-size or govern what you cannot see.</div>
+                        </div>
+
+                        <!-- Domain breakdown -->
+                        <div class="icg-card">
+                            <div class="icg-section-label">Domain breakdown</div>
+                            <div data-domain-bars class="icg-domain-bars"></div>
+                        </div>
+
+                        <!-- Benchmark reference -->
+                        <div class="icg-card">
+                            <div class="icg-section-label">Benchmark reference</div>
+                            <table class="icg-benchmark-table">
+                                <tbody data-benchmark-body>
+                                    <tr><td>Pre-Series B / high-growth startup</td><td data-bench="15-35">15-35</td></tr>
+                                    <tr><td>Series B-C SaaS, scaling team</td><td data-bench="30-55">30-55</td></tr>
+                                    <tr><td>PE-backed portco, 2+ years post-acquisition</td><td data-bench="45-70">45-70</td></tr>
+                                    <tr><td>Enterprise with established FinOps practice</td><td data-bench="65-90">65-90</td></tr>
+                                </tbody>
+                            </table>
+                            <div class="icg-benchmark-note text-tiny">Ranges reflect illustrative patterns from GST diligence and value creation engagements. Individual results vary based on team maturity and infrastructure complexity.</div>
+                        </div>
+
+                        <!-- Cost context -->
+                        <div class="icg-cost-context">
+                            <div class="text-small">For SaaS businesses, cloud infrastructure typically represents <strong>8 to 15 percent of revenue</strong> at scale. Spend above 20 percent warrants structural review. Spend above 25 percent without a clear growth-phase justification is a value creation flag in any diligence or 100-day context.</div>
+                        </div>
+
+                        <!-- Recommendations -->
+                        <div data-recs-container class="icg-recs"></div>
+
+                        <!-- Actions row -->
+                        <div class="icg-actions">
+                            <button data-action="copy" type="button" class="icg-btn-secondary">Copy link</button>
+                            <button data-action="print" type="button" class="icg-btn-secondary">Print / Save as PDF</button>
+                            <a data-action="email" href="#" class="icg-btn-secondary icg-btn-secondary--link">Send to engineering lead</a>
+                            <button data-action="reset" type="button" class="icg-btn-secondary">Start over</button>
+                        </div>
+                        <div class="icg-actions-note text-tiny">Your browser will open a print dialog. Select Save as PDF to download.</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <a href="/hub/tools" class="cta-button secondary icg-back-link">Return to Workbench</a>
+
+        </div>
+    </section>
+</BaseLayout>
+
+<style>
+    /* ── Page wrapper ─────────────────────────────────────────────────────── */
+    .icg-section {
+        padding-bottom: var(--spacing-3xl);
+    }
+
+    /* ── Tool shell ───────────────────────────────────────────────────────── */
+    .icg-shell {
+        max-width: 660px;
+        margin: 0 auto;
+    }
+
+    /* ── View toggling ────────────────────────────────────────────────────── */
+    .is-hidden {
+        display: none;
+    }
+
+    /* ── Landing view ─────────────────────────────────────────────────────── */
+    .landing-content {
+        max-width: 560px;
+        margin: 0 auto;
+    }
+
+    .landing-callout {
+        padding: var(--spacing-md) var(--spacing-lg);
+        background: var(--bg-light-alt);
+        border-radius: 8px;
+        font-size: var(--text-sm);
+        color: var(--text-light-secondary);
+        line-height: 1.65;
+        margin-bottom: var(--spacing-xl);
+    }
+
+    :global(html.dark-theme) .landing-callout {
+        background: rgba(5, 205, 153, 0.03);
+    }
+
+    .landing-callout__title {
+        color: var(--text-light-primary);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .stats-row {
+        display: flex;
+        gap: var(--gap-normal);
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .stat-tile {
+        flex: 1;
+        padding: var(--spacing-md);
+        background: var(--bg-light-alt);
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    :global(html.dark-theme) .stat-tile {
+        background: rgba(5, 205, 153, 0.03);
+    }
+
+    .stat-tile__value {
+        font-size: var(--text-xl);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-light-primary);
+    }
+
+    .stat-tile__label {
+        font-size: var(--text-xs);
+        color: var(--text-light-secondary);
+    }
+
+    /* ── Primary button ───────────────────────────────────────────────────── */
+    .icg-btn-primary {
+        padding: var(--spacing-sm) var(--spacing-xl);
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        font-family: var(--font-family);
+        background: var(--color-primary);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: opacity var(--transition-fast);
+    }
+
+    .icg-btn-primary:hover {
+        opacity: 0.9;
+    }
+
+    .icg-btn-primary:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+
+    .icg-btn-primary--full {
+        width: 100%;
+        padding: var(--spacing-md) 0;
+        font-size: var(--text-base);
+    }
+
+    /* ── Secondary button ─────────────────────────────────────────────────── */
+    .icg-btn-secondary {
+        padding: var(--spacing-sm) var(--spacing-lg);
+        font-size: var(--text-sm);
+        font-family: var(--font-family);
+        color: var(--text-light-secondary);
+        background: transparent;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: color var(--transition-fast), border-color var(--transition-fast);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    :global(html.dark-theme) .icg-btn-secondary {
+        border-color: rgba(5, 205, 153, 0.15);
+    }
+
+    .icg-btn-secondary:hover {
+        color: var(--text-light-primary);
+        border-color: var(--color-primary);
+    }
+
+    .icg-btn-secondary--link {
+        text-decoration: none;
+    }
+
+    /* ── Progress bar ─────────────────────────────────────────────────────── */
+    .icg-progress {
+        display: flex;
+        align-items: center;
+        gap: var(--gap-normal);
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .icg-progress__track {
+        flex: 1;
+        height: 4px;
+        background: var(--border-light);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    :global(html.dark-theme) .icg-progress__track {
+        background: rgba(5, 205, 153, 0.12);
+    }
+
+    .icg-progress__fill {
+        height: 100%;
+        width: 0;
+        background: var(--color-primary);
+        border-radius: 4px;
+        transition: width var(--transition-normal);
+    }
+
+    .icg-progress__label {
+        white-space: nowrap;
+        color: var(--text-light-muted);
+    }
+
+    /* ── Domain header ────────────────────────────────────────────────────── */
+    .icg-domain-header {
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .icg-domain-header__meta {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .icg-domain-label {
+        color: var(--color-primary);
+    }
+
+    .icg-foundational-badge {
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-semibold);
+        padding: 2px var(--spacing-sm);
+        border-radius: 4px;
+        background: rgba(5, 205, 153, 0.1);
+        color: var(--color-primary);
+    }
+
+    .icg-domain-name {
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .icg-domain-desc {
+        color: var(--text-light-secondary);
+    }
+
+    .icg-foundational-note {
+        color: var(--text-light-muted);
+        font-style: italic;
+        margin-top: var(--spacing-sm);
+    }
+
+    /* ── Question cards (injected via innerHTML — must use :global) ────── */
+    .icg-questions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--gap-normal);
+    }
+
+    :global(.icg-question-card) {
+        padding: var(--spacing-md) var(--spacing-lg);
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        background: var(--bg-light);
+    }
+
+    :global(html.dark-theme .icg-question-card) {
+        background: rgba(5, 205, 153, 0.02);
+        border-color: rgba(5, 205, 153, 0.12);
+    }
+
+    :global(.icg-question-text) {
+        font-size: var(--text-base);
+        color: var(--text-light-primary);
+        margin-bottom: var(--spacing-md);
+        line-height: 1.5;
+    }
+
+    :global(.icg-question-num) {
+        color: var(--text-light-muted);
+        font-size: var(--text-sm);
+        margin-right: var(--spacing-xs);
+    }
+
+    :global(.icg-options-row) {
+        display: flex;
+        gap: var(--spacing-xs);
+        flex-wrap: wrap;
+    }
+
+    :global(.icg-opt-btn) {
+        flex: 1;
+        min-width: 112px;
+        padding: var(--spacing-sm) var(--spacing-sm);
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        background: var(--bg-light-alt);
+        color: var(--text-light-secondary);
+        cursor: pointer;
+        font-size: var(--text-sm);
+        font-family: var(--font-family);
+        transition: border-color var(--transition-fast), color var(--transition-fast);
+        text-align: center;
+    }
+
+    :global(html.dark-theme .icg-opt-btn) {
+        background: rgba(5, 205, 153, 0.02);
+        border-color: rgba(5, 205, 153, 0.12);
+    }
+
+    :global(.icg-opt-btn:hover) {
+        border-color: var(--color-primary);
+        color: var(--text-light-primary);
+    }
+
+    :global(.icg-opt-btn.selected) {
+        border: 2px solid var(--color-primary);
+        color: var(--text-light-primary);
+        font-weight: var(--font-weight-semibold);
+        background: var(--bg-light);
+    }
+
+    :global(html.dark-theme .icg-opt-btn.selected) {
+        background: rgba(5, 205, 153, 0.05);
+    }
+
+    /* ── Wizard navigation ────────────────────────────────────────────────── */
+    .icg-wizard-nav {
+        display: flex;
+        gap: var(--gap-normal);
+        margin-top: var(--spacing-xl);
+    }
+
+    .icg-wizard-nav .icg-btn-primary {
+        flex: 1;
+    }
+
+    .icg-wizard-counter {
+        color: var(--text-light-muted);
+        text-align: right;
+        margin-top: var(--spacing-sm);
+    }
+
+    /* ── Results: Score display ────────────────────────────────────────────── */
+    .icg-score-display {
+        text-align: center;
+        margin-bottom: var(--spacing-2xl);
+    }
+
+    .icg-gauge {
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .icg-score-level {
+        margin-top: var(--spacing-xs);
+    }
+
+    .icg-score-desc {
+        color: var(--text-light-secondary);
+        margin-top: var(--spacing-xs);
+    }
+
+    /* ── Results: Cards ───────────────────────────────────────────────────── */
+    .icg-card {
+        padding: var(--spacing-lg) var(--spacing-xl);
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        background: var(--bg-light);
+        margin-bottom: var(--spacing-xl);
+    }
+
+    :global(html.dark-theme) .icg-card {
+        background: rgba(5, 205, 153, 0.02);
+        border-color: rgba(5, 205, 153, 0.12);
+    }
+
+    :global(.icg-section-label) {
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        color: var(--text-light-muted);
+        margin-bottom: var(--spacing-md);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    /* ── Results: Domain bars (injected via innerHTML — must use :global) ── */
+    .icg-domain-bars {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    :global(.icg-domain-bar) {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+
+    :global(.icg-domain-bar__header) {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+    }
+
+    :global(.icg-domain-bar__name) {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-light-primary);
+    }
+
+    :global(.icg-domain-bar__score) {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    :global(.icg-domain-bar__maturity) {
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-normal);
+        color: var(--text-light-muted);
+        margin-left: var(--spacing-xs);
+    }
+
+    :global(.icg-domain-bar__track) {
+        height: 6px;
+        background: var(--border-light);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    :global(html.dark-theme .icg-domain-bar__track) {
+        background: rgba(5, 205, 153, 0.1);
+    }
+
+    :global(.icg-domain-bar__fill) {
+        height: 100%;
+        border-radius: 4px;
+        transition: width var(--transition-normal);
+    }
+
+    /* ── Results: Foundational warning ─────────────────────────────────────── */
+    .icg-foundational-warning {
+        padding: var(--spacing-md) var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+        border: 1px solid var(--color-secondary);
+        border-radius: 8px;
+        background: rgba(204, 136, 0, 0.06);
+    }
+
+    :global(html.dark-theme) .icg-foundational-warning {
+        background: rgba(255, 170, 51, 0.06);
+        border-color: rgba(255, 170, 51, 0.3);
+    }
+
+    .icg-foundational-warning__title {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-secondary);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .icg-foundational-warning__text {
+        color: var(--color-secondary);
+        line-height: 1.55;
+    }
+
+    /* ── Results: Benchmark table ──────────────────────────────────────────── */
+    .icg-benchmark-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .icg-benchmark-table tr {
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    :global(html.dark-theme) .icg-benchmark-table tr {
+        border-bottom-color: rgba(5, 205, 153, 0.08);
+    }
+
+    .icg-benchmark-table td {
+        padding: var(--spacing-sm) 0;
+        font-size: var(--text-sm);
+        color: var(--text-light-secondary);
+    }
+
+    .icg-benchmark-table td:last-child {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    :global(.icg-benchmark-table td.in-range) {
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-primary);
+    }
+
+    .icg-benchmark-note {
+        color: var(--text-light-muted);
+        margin-top: var(--gap-normal);
+        line-height: 1.5;
+        font-style: italic;
+    }
+
+    /* ── Results: Cost context ─────────────────────────────────────────────── */
+    .icg-cost-context {
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-left: 3px solid var(--color-primary);
+        background: var(--bg-light-alt);
+        margin-bottom: var(--spacing-xl);
+    }
+
+    :global(html.dark-theme) .icg-cost-context {
+        background: rgba(5, 205, 153, 0.03);
+    }
+
+    .icg-cost-context .text-small {
+        color: var(--text-light-secondary);
+        line-height: 1.65;
+    }
+
+    .icg-cost-context strong {
+        color: var(--text-light-primary);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    /* ── Results: Recommendations (injected via innerHTML — must use :global) */
+    .icg-recs {
+        margin-bottom: var(--spacing-xl);
+    }
+
+    :global(.icg-recs-group) {
+        margin-bottom: var(--spacing-md);
+    }
+
+    :global(.icg-recs-group__label) {
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        margin-bottom: var(--spacing-sm);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    :global(.icg-rec-card) {
+        display: flex;
+        gap: var(--gap-normal);
+        padding: var(--spacing-md) var(--spacing-md);
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    :global(html.dark-theme .icg-rec-card) {
+        border-color: rgba(5, 205, 153, 0.1);
+    }
+
+    :global(.icg-rec-badge) {
+        flex-shrink: 0;
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-semibold);
+        padding: 2px var(--spacing-sm);
+        border-radius: 4px;
+        align-self: flex-start;
+    }
+
+    :global(.icg-rec-badge--high) {
+        background: rgba(226, 75, 74, 0.1);
+        color: #E24B4A;
+    }
+
+    :global(html.dark-theme .icg-rec-badge--high) {
+        background: rgba(226, 75, 74, 0.15);
+    }
+
+    :global(.icg-rec-badge--medium) {
+        background: rgba(204, 136, 0, 0.1);
+        color: var(--color-secondary);
+    }
+
+    :global(html.dark-theme .icg-rec-badge--medium) {
+        background: rgba(255, 170, 51, 0.1);
+    }
+
+    :global(.icg-rec-badge--low) {
+        background: var(--bg-light-alt);
+        color: var(--text-light-muted);
+    }
+
+    :global(html.dark-theme .icg-rec-badge--low) {
+        background: rgba(200, 200, 200, 0.05);
+    }
+
+    :global(.icg-rec-body__title) {
+        font-size: var(--text-base);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-light-primary);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    :global(.icg-rec-body__desc) {
+        font-size: var(--text-sm);
+        color: var(--text-light-secondary);
+        line-height: 1.55;
+    }
+
+    :global(.icg-recs-empty) {
+        text-align: center;
+        padding: var(--spacing-xl) 0;
+        color: var(--text-light-muted);
+        font-size: var(--text-sm);
+    }
+
+    /* ── Results: Actions ──────────────────────────────────────────────────── */
+    .icg-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+        padding-top: var(--spacing-lg);
+        border-top: 1px solid var(--border-light);
+    }
+
+    :global(html.dark-theme) .icg-actions {
+        border-top-color: rgba(5, 205, 153, 0.1);
+    }
+
+    .icg-actions-note {
+        color: var(--text-light-muted);
+        margin-top: var(--spacing-sm);
+    }
+
+    /* ── Back link ────────────────────────────────────────────────────────── */
+    .icg-back-link {
+        display: inline-block;
+        margin-top: var(--spacing-2xl);
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       RESPONSIVE — tablet (<=768px)
+    ════════════════════════════════════════════════════════════════════════ */
+    @media (max-width: 768px) {
+        .icg-card {
+            padding: var(--spacing-md) var(--spacing-lg);
+        }
+
+        :global(.icg-question-card) {
+            padding: var(--spacing-md);
+        }
+
+        .icg-actions {
+            flex-direction: column;
+        }
+
+        .icg-actions .icg-btn-secondary {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       RESPONSIVE — mobile (<=480px)
+    ════════════════════════════════════════════════════════════════════════ */
+    @media (max-width: 480px) {
+        :global(.icg-options-row) {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        :global(.icg-opt-btn) {
+            min-width: 0;
+        }
+
+        .stats-row {
+            gap: var(--spacing-sm);
+        }
+
+        .stat-tile {
+            padding: var(--spacing-sm);
+        }
+
+        .stat-tile__value {
+            font-size: var(--text-lg);
+        }
+
+        .icg-card {
+            padding: var(--spacing-md);
+        }
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       PRINT
+    ════════════════════════════════════════════════════════════════════════ */
+    @media print {
+        /* Hide non-results elements */
+        .icg-section :global(.site-header),
+        .icg-section :global(footer),
+        .icg-back-link,
+        .icg-actions,
+        .icg-actions-note,
+        [data-view="landing"],
+        [data-view="wizard"] {
+            display: none !important;
+        }
+
+        /* Show results */
+        [data-view="results"] {
+            display: block !important;
+        }
+
+        .icg-shell {
+            max-width: 100%;
+        }
+
+        .results-content::before {
+            content: '\0394  GST  \00B7  Infrastructure Cost Governance';
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #05cd99;
+            letter-spacing: 0.08em;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #05cd99;
+        }
+
+        .icg-card {
+            break-inside: avoid;
+            border: 1px solid #ddd;
+        }
+
+        :global(.icg-rec-card) {
+            break-inside: avoid;
+        }
+
+        .icg-foundational-warning {
+            break-inside: avoid;
+        }
+    }
+</style>
+
+<script>
+import {
+  DEFAULT_STATE,
+  calculateResults,
+  getMaturityLevel,
+  getRecommendations,
+  encodeState,
+  decodeState,
+} from '../../../../utils/icg-engine';
+
+import type { ICGState } from '../../../../utils/icg-engine';
+
+import { DOMAINS, ANSWER_OPTIONS, TOTAL_QUESTIONS } from '../../../../data/infrastructure-cost-governance/domains';
+import { RECOMMENDATIONS } from '../../../../data/infrastructure-cost-governance/recommendations';
+
+// ─── DOM helpers ────────────────────────────────────────────────────────────
+
+function qs<T extends HTMLElement>(sel: string): T {
+  return document.querySelector(sel) as T;
+}
+
+function qsa(sel: string): NodeListOf<HTMLElement> {
+  return document.querySelectorAll(sel);
+}
+
+// ─── URL state ──────────────────────────────────────────────────────────────
+
+function pushUrlState(state: ICGState): void {
+  const params = new URLSearchParams({ s: encodeState(state) });
+  history.replaceState(null, '', '?' + params.toString());
+}
+
+function readUrlState(): Partial<ICGState> | null {
+  const s = new URLSearchParams(window.location.search).get('s');
+  return s ? decodeState(s) : null;
+}
+
+// ─── State ──────────────────────────────────────────────────────────────────
+
+const state: ICGState = { ...DEFAULT_STATE };
+
+// ─── Gauge SVG ──────────────────────────────────────────────────────────────
+
+function gaugeArcSVG(score: number, color: string): string {
+  const cx = 110, cy = 92, r = 78;
+  const a = Math.PI * (1 - score / 100);
+  const ex = (cx + r * Math.cos(a)).toFixed(2);
+  const ey = (cy - r * Math.sin(a)).toFixed(2);
+  const track = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
+  const fill = score > 0 ? `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${ex} ${ey}` : null;
+  // Resolve CSS variable for SVG fill (can't use var() in SVG attributes in all browsers)
+  const resolvedColor = color.startsWith('var(')
+    ? getComputedStyle(document.documentElement).getPropertyValue(color.slice(4, -1)).trim() || '#05cd99'
+    : color;
+  return `<svg viewBox="0 0 220 112" style="width:100%;max-width:220px;display:block;margin:0 auto" aria-label="Maturity score: ${score} out of 100">
+    <path d="${track}" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" opacity="0.15"/>
+    ${fill ? `<path d="${fill}" fill="none" stroke="${resolvedColor}" stroke-width="14" stroke-linecap="round"/>` : ''}
+    <text x="${cx}" y="84" text-anchor="middle"
+      style="font-size:54px;font-weight:500;font-family:var(--font-family);fill:${resolvedColor}">${score}</text>
+    <text x="${cx}" y="109" text-anchor="middle"
+      style="font-size:12px;font-family:var(--font-family);fill:currentColor;opacity:0.5">out of 100</text>
+  </svg>`;
+}
+
+// ─── Maturity description ───────────────────────────────────────────────────
+
+function maturityDescription(score: number): string {
+  if (score <= 25) return 'Cloud spend is a black box with no visibility or controls.';
+  if (score <= 50) return 'Some monitoring exists but systematic optimization is absent.';
+  if (score <= 75) return 'Active cost management in place with meaningful room to improve.';
+  return 'Cloud spend is a managed, optimized discipline.';
+}
+
+// ─── Render ─────────────────────────────────────────────────────────────────
+
+function render(): void {
+  const landingView = qs<HTMLElement>('[data-view="landing"]');
+  const wizardView = qs<HTMLElement>('[data-view="wizard"]');
+  const resultsView = qs<HTMLElement>('[data-view="results"]');
+
+  // Toggle views
+  landingView.classList.toggle('is-hidden', state.currentStep !== 0);
+  wizardView.classList.toggle('is-hidden', state.currentStep < 1 || state.currentStep > 5);
+  resultsView.classList.toggle('is-hidden', state.currentStep !== 6);
+
+  if (state.currentStep >= 1 && state.currentStep <= 5) {
+    renderWizard();
+  } else if (state.currentStep === 6) {
+    renderResults();
+  }
+
+  pushUrlState(state);
+}
+
+function renderWizard(): void {
+  const domain = DOMAINS[state.currentStep - 1];
+
+  // Progress
+  const fill = qs<HTMLElement>('[data-progress-fill]');
+  const label = qs<HTMLElement>('[data-progress-label]');
+  fill.style.width = `${(state.currentStep / 5) * 100}%`;
+  label.textContent = `${state.currentStep} of 5`;
+
+  // Domain header
+  qs<HTMLElement>('[data-domain-label]').textContent = `Domain ${state.currentStep}`;
+  qs<HTMLElement>('[data-domain-name]').textContent = domain.name;
+  qs<HTMLElement>('[data-domain-desc]').textContent = domain.description;
+
+  // Foundational badge and note
+  const badge = qs<HTMLElement>('[data-foundational-badge]');
+  const note = qs<HTMLElement>('[data-foundational-note]');
+  badge.classList.toggle('is-hidden', !domain.foundational);
+  note.classList.toggle('is-hidden', !domain.foundational);
+
+  // Questions
+  const container = qs<HTMLElement>('[data-questions-container]');
+  container.innerHTML = domain.questions.map((q, qi) => {
+    const optBtns = ANSWER_OPTIONS.map(opt => {
+      const sel = state.answers[q.id] === opt.score;
+      return `<button class="icg-opt-btn${sel ? ' selected' : ''}" data-answer="${q.id}" data-score="${opt.score}" type="button">${opt.label}</button>`;
+    }).join('');
+    return `
+      <div class="icg-question-card">
+        <p class="icg-question-text">
+          <span class="icg-question-num">${qi + 1}.</span>${q.text}
+        </p>
+        <div class="icg-options-row">${optBtns}</div>
+      </div>`;
+  }).join('');
+
+  // Wire answer buttons
+  container.querySelectorAll('[data-answer]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const qId = (btn as HTMLElement).dataset.answer!;
+      const score = Number((btn as HTMLElement).dataset.score);
+      state.answers[qId] = score;
+      render();
+    });
+  });
+
+  // Navigation
+  const answered = domain.questions.filter(q => state.answers[q.id] !== undefined).length;
+  const canNext = answered === domain.questions.length;
+
+  const backBtn = qs<HTMLButtonElement>('[data-action="back"]');
+  const nextBtn = qs<HTMLButtonElement>('[data-action="next"]');
+
+  backBtn.textContent = state.currentStep === 1 ? 'Back to intro' : 'Previous';
+  nextBtn.textContent = state.currentStep === 5 ? 'View results' : 'Next domain';
+  nextBtn.disabled = !canNext;
+
+  // Counter
+  qs<HTMLElement>('[data-wizard-counter]').textContent =
+    `${answered}/${domain.questions.length} answered in this domain`;
+}
+
+function renderResults(): void {
+  const result = calculateResults(state, DOMAINS);
+  const recs = getRecommendations(state, RECOMMENDATIONS);
+
+  // Gauge
+  qs<HTMLElement>('[data-gauge-container]').innerHTML = gaugeArcSVG(result.overallScore, result.maturityColor);
+
+  // Level and description
+  const levelEl = qs<HTMLElement>('[data-score-level]');
+  levelEl.textContent = result.maturityLevel;
+  levelEl.style.color = result.maturityColor;
+  qs<HTMLElement>('[data-score-desc]').textContent = maturityDescription(result.overallScore);
+
+  // Foundational warning
+  qs<HTMLElement>('[data-foundational-warning]').classList.toggle('is-hidden', !result.showFoundationalFlag);
+
+  // Domain bars
+  const barsContainer = qs<HTMLElement>('[data-domain-bars]');
+  barsContainer.innerHTML = result.domainScores.map(ds => {
+    const { color } = getMaturityLevel(ds.score);
+    const { level } = getMaturityLevel(ds.score);
+    return `
+      <div class="icg-domain-bar">
+        <div class="icg-domain-bar__header">
+          <span class="icg-domain-bar__name">${ds.name}</span>
+          <span class="icg-domain-bar__score" style="color:${color}">${ds.score} <span class="icg-domain-bar__maturity">${level}</span></span>
+        </div>
+        <div class="icg-domain-bar__track">
+          <div class="icg-domain-bar__fill" style="width:${ds.score}%;background:${color}"></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Benchmark highlighting
+  const benchCells = document.querySelectorAll<HTMLElement>('[data-bench]');
+  benchCells.forEach(td => {
+    const range = td.dataset.bench!;
+    const [lo, hi] = range.split('-').map(Number);
+    const inRange = result.overallScore >= lo && result.overallScore <= hi;
+    td.classList.toggle('in-range', inRange);
+    td.textContent = range + (inRange ? ' \u25C0' : '');
+  });
+
+  // Email link
+  const emailLink = qs<HTMLAnchorElement>('[data-action="email"]');
+  const toolUrl = window.location.href.split('?')[0];
+  emailLink.href = `mailto:?subject=${encodeURIComponent('Cloud Cost Assessment - ' + result.overallScore + '/100')}&body=${encodeURIComponent('Infrastructure Cost Governance results: ' + window.location.href)}`;
+
+  // Recommendations
+  const recsContainer = qs<HTMLElement>('[data-recs-container]');
+  if (recs.length === 0) {
+    recsContainer.innerHTML = '<div class="icg-recs-empty">No recommendations triggered. All domains scored above threshold.</div>';
+  } else {
+    const high = recs.filter(r => r.impact === 'high');
+    const med = recs.filter(r => r.impact === 'medium');
+    const low = recs.filter(r => r.impact === 'low');
+
+    const renderGroup = (items: typeof recs, label: string, colorClass: string, labelColor: string) => {
+      if (items.length === 0) return '';
+      return `
+        <div class="icg-recs-group">
+          <div class="icg-recs-group__label" style="color:${labelColor}">${label} impact</div>
+          ${items.map(rec => `
+            <div class="icg-rec-card">
+              <span class="icg-rec-badge icg-rec-badge--${rec.impact}">${rec.impact}</span>
+              <div class="icg-rec-body">
+                <div class="icg-rec-body__title">${rec.title}</div>
+                <div class="icg-rec-body__desc">${rec.description}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+    };
+
+    recsContainer.innerHTML = `
+      <div class="icg-section-label">Prioritized recommendations (${recs.length})</div>
+      ${renderGroup(high, 'High', 'high', '#E24B4A')}
+      ${renderGroup(med, 'Medium', 'medium', 'var(--color-secondary)')}
+      ${renderGroup(low, 'Low', 'low', 'var(--text-light-muted)')}
+    `;
+  }
+}
+
+// ─── Init ───────────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Restore URL state
+  const urlState = readUrlState();
+  if (urlState) Object.assign(state, urlState);
+
+  render();
+
+  // ── Global actions ──
+  qs<HTMLElement>('[data-action="start"]').addEventListener('click', () => {
+    state.currentStep = 1;
+    render();
+  });
+
+  qs<HTMLElement>('[data-action="back"]').addEventListener('click', () => {
+    state.currentStep = state.currentStep > 1 ? state.currentStep - 1 : 0;
+    render();
+  });
+
+  qs<HTMLElement>('[data-action="next"]').addEventListener('click', () => {
+    state.currentStep = state.currentStep < 5 ? state.currentStep + 1 : 6;
+    render();
+  });
+
+  qs<HTMLElement>('[data-action="reset"]').addEventListener('click', () => {
+    state.currentStep = 0;
+    state.answers = {};
+    render();
+  });
+
+  qs<HTMLElement>('[data-action="print"]').addEventListener('click', () => {
+    window.print();
+  });
+
+  qs<HTMLElement>('[data-action="copy"]').addEventListener('click', () => {
+    const btn = qs<HTMLButtonElement>('[data-action="copy"]');
+    const url = window.location.href;
+    const reset = () => { btn.textContent = 'Copy link'; };
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(
+        () => { btn.textContent = 'Link copied'; setTimeout(reset, 2000); },
+        () => { btn.textContent = 'Link copied'; setTimeout(reset, 2000); },
+      );
+    }
+  });
+});
+</script>
