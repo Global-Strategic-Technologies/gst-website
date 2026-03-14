@@ -80,11 +80,11 @@ const domainCount = DOMAINS.length;
                         <div data-questions-container class="icg-questions"></div>
 
                         <!-- Navigation -->
+                        <div class="icg-wizard-counter text-tiny" data-wizard-counter></div>
                         <div class="icg-wizard-nav">
                             <button data-action="back" type="button" class="icg-btn-secondary">Back to intro</button>
                             <button data-action="next" type="button" class="icg-btn-primary" disabled>Next domain</button>
                         </div>
-                        <div class="icg-wizard-counter text-tiny" data-wizard-counter></div>
                     </div>
                 </div>
 
@@ -127,7 +127,7 @@ const domainCount = DOMAINS.length;
 
                         <!-- Cost context -->
                         <div class="icg-cost-context">
-                            <div class="text-small">For SaaS businesses, cloud infrastructure typically represents <strong>8 to 15 percent of revenue</strong> at scale. Spend above 20 percent warrants structural review. Spend above 25 percent without a clear growth-phase justification is a value creation flag in any diligence or 100-day context.</div>
+                            <div class="text-small">Cloud infrastructure as a percentage of revenue varies widely by company stage, business model, and architecture. Early-stage companies often run above 30 percent while scaling ahead of revenue. Mature SaaS businesses may converge below 10 percent. <strong>The trend matters more than the number</strong> - assess whether spend is moving in the right direction relative to revenue growth and whether the governance practices above are in place to sustain that trajectory.</div>
                         </div>
 
                         <!-- Recommendations -->
@@ -452,6 +452,17 @@ const domainCount = DOMAINS.length;
         display: flex;
         gap: var(--gap-normal);
         margin-top: var(--spacing-xl);
+        position: sticky;
+        bottom: 0;
+        background: var(--bg-light);
+        padding: var(--spacing-md) 0;
+        border-top: 1px solid var(--border-light);
+        z-index: 10;
+    }
+
+    :global(html.dark-theme) .icg-wizard-nav {
+        background: var(--bg-dark);
+        border-top-color: rgba(5, 205, 153, 0.1);
     }
 
     .icg-wizard-nav .icg-btn-primary {
@@ -460,8 +471,9 @@ const domainCount = DOMAINS.length;
 
     .icg-wizard-counter {
         color: var(--text-light-muted);
-        text-align: right;
-        margin-top: var(--spacing-sm);
+        text-align: center;
+        margin-top: var(--spacing-xl);
+        margin-bottom: var(--spacing-xs);
     }
 
     /* ── Results: Score display ────────────────────────────────────────────── */
@@ -778,21 +790,43 @@ const domainCount = DOMAINS.length;
             width: 100%;
             justify-content: center;
         }
+
+        /* Hide "Return to Workbench" during wizard/results to reduce clutter */
+        .icg-view:not(.is-hidden) ~ .icg-view ~ .icg-view ~ .icg-back-link {
+            /* Handled via JS class toggle instead */
+        }
     }
 
     /* ════════════════════════════════════════════════════════════════════════
        RESPONSIVE — mobile (<=480px)
     ════════════════════════════════════════════════════════════════════════ */
     @media (max-width: 480px) {
+        /* Options: 2-column grid with bigger tap targets */
         :global(.icg-options-row) {
             display: grid;
             grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-sm);
         }
 
         :global(.icg-opt-btn) {
             min-width: 0;
+            padding: var(--spacing-md) var(--spacing-sm);
+            min-height: 44px;
         }
 
+        /* Question cards: more breathing room */
+        .icg-questions {
+            gap: var(--spacing-lg);
+        }
+
+        :global(.icg-question-card) {
+            padding: var(--spacing-md) var(--spacing-sm);
+            border-left: none;
+            border-right: none;
+            border-radius: 0;
+        }
+
+        /* Stats row */
         .stats-row {
             gap: var(--spacing-sm);
         }
@@ -807,6 +841,52 @@ const domainCount = DOMAINS.length;
 
         .icg-card {
             padding: var(--spacing-md);
+        }
+
+        /* Wizard nav: stack buttons vertically, primary on top */
+        .icg-wizard-nav {
+            flex-direction: column-reverse;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) 0 var(--spacing-md);
+        }
+
+        .icg-wizard-nav .icg-btn-primary,
+        .icg-wizard-nav .icg-btn-secondary {
+            width: 100%;
+            justify-content: center;
+            min-height: 48px;
+        }
+
+        /* Progress bar: tighter layout */
+        .icg-progress {
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        /* Domain header: reduce spacing */
+        .icg-domain-header {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        /* Foundational note: slightly larger for readability */
+        .icg-foundational-note {
+            font-style: normal;
+            font-size: var(--text-xs);
+        }
+
+        /* Results: rec cards stack better */
+        :global(.icg-rec-card) {
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        :global(.icg-rec-badge) {
+            align-self: flex-start;
+        }
+
+        /* Hide back link on mobile when in wizard or results */
+        .icg-back-link {
+            margin-top: var(--spacing-lg);
         }
     }
 
@@ -945,6 +1025,10 @@ function render(): void {
   landingView.classList.toggle('is-hidden', state.currentStep !== 0);
   wizardView.classList.toggle('is-hidden', state.currentStep < 1 || state.currentStep > 5);
   resultsView.classList.toggle('is-hidden', state.currentStep !== 6);
+
+  // Hide back link during wizard/results to reduce mobile clutter
+  const backLink = document.querySelector('.icg-back-link') as HTMLElement | null;
+  if (backLink) backLink.classList.toggle('is-hidden', state.currentStep !== 0);
 
   if (state.currentStep >= 1 && state.currentStep <= 5) {
     renderWizard();
