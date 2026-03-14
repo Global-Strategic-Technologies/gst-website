@@ -1029,6 +1029,7 @@ import {
 } from '../../../../utils/icg-engine';
 
 import type { ICGState } from '../../../../utils/icg-engine';
+import { trackEvent } from '../../../../utils/analytics';
 
 import { DOMAINS, ANSWER_OPTIONS, TOTAL_QUESTIONS } from '../../../../data/infrastructure-cost-governance/domains';
 import { RECOMMENDATIONS } from '../../../../data/infrastructure-cost-governance/recommendations';
@@ -1234,6 +1235,9 @@ function renderResults(): void {
   // Email link
   const emailLink = qs<HTMLAnchorElement>('[data-action="email"]');
   emailLink.href = emailHref('results', result.overallScore);
+  emailLink.onclick = () => {
+    trackEvent({ event: 'icg_send_email', category: 'engagement', location: 'results', score: result.overallScore });
+  };
 
   // Recommendations
   const recsContainer = qs<HTMLElement>('[data-recs-container]');
@@ -1278,11 +1282,13 @@ function renderResults(): void {
       btn.addEventListener('click', () => {
         const recId = (btn as HTMLElement).dataset.dismiss!;
         const idx = state.dismissed.indexOf(recId);
+        const action = idx === -1 ? 'dismiss' : 'restore';
         if (idx === -1) {
           state.dismissed.push(recId);
         } else {
           state.dismissed.splice(idx, 1);
         }
+        trackEvent({ event: 'icg_recommendation_toggle', category: 'engagement', action, recommendation_id: recId });
         renderResults();
         pushUrlState(state);
       });
@@ -1301,6 +1307,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Global actions ──
   qs<HTMLElement>('[data-action="start"]').addEventListener('click', () => {
+    trackEvent({ event: 'icg_assessment_start', category: 'engagement' });
     state.currentStep = 1;
     render();
   });
@@ -1311,11 +1318,19 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   qs<HTMLElement>('[data-action="next"]').addEventListener('click', () => {
-    state.currentStep = state.currentStep < 5 ? state.currentStep + 1 : 6;
+    const nextStep = state.currentStep < 5 ? state.currentStep + 1 : 6;
+    if (nextStep <= 5) {
+      trackEvent({ event: 'icg_domain_advance', category: 'engagement', domain: DOMAINS[nextStep - 1].name, step: nextStep });
+    } else {
+      const result = calculateResults(state, DOMAINS);
+      trackEvent({ event: 'icg_assessment_complete', category: 'engagement', score: result.overallScore, maturity_level: result.maturityLevel });
+    }
+    state.currentStep = nextStep;
     render();
   });
 
   qs<HTMLElement>('[data-action="reset"]').addEventListener('click', () => {
+    trackEvent({ event: 'icg_start_over', category: 'engagement' });
     state.currentStep = 0;
     state.answers = {};
     state.dismissed = [];
@@ -1323,10 +1338,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   qs<HTMLElement>('[data-action="print"]').addEventListener('click', () => {
+    trackEvent({ event: 'icg_print', category: 'engagement' });
     window.print();
   });
 
   qs<HTMLElement>('[data-action="copy"]').addEventListener('click', () => {
+    trackEvent({ event: 'icg_copy_link', category: 'engagement', location: 'results' });
     const btn = qs<HTMLButtonElement>('[data-action="copy"]');
     const url = window.location.href;
     const reset = () => { btn.textContent = 'Copy link'; };
@@ -1341,6 +1358,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Landing actions ──
   const landingCopy = qs<HTMLButtonElement>('[data-action="landing-copy"]');
   landingCopy.addEventListener('click', () => {
+    trackEvent({ event: 'icg_copy_link', category: 'engagement', location: 'landing' });
     const url = window.location.href.split('?')[0];
     const reset = () => { landingCopy.textContent = 'Copy link'; };
     if (navigator.clipboard) {
@@ -1353,5 +1371,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const landingEmail = qs<HTMLAnchorElement>('[data-action="landing-email"]');
   landingEmail.href = emailHref('landing');
+  landingEmail.addEventListener('click', () => {
+    trackEvent({ event: 'icg_send_email', category: 'engagement', location: 'landing' });
+  });
 });
 </script>
