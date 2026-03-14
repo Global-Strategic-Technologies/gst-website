@@ -269,6 +269,7 @@ describe('encodeState / decodeState', () => {
     const state: ICGState = {
       currentStep: 3,
       answers: { q1_1: 2, q2_3: 1, q5_4: 0 },
+      dismissed: [],
     };
     const encoded = encodeState(state);
     const decoded = decodeState(encoded);
@@ -313,6 +314,34 @@ describe('encodeState / decodeState', () => {
     const decoded = decodeState(encoded);
     expect(decoded?.answers?.q1_1).toBeUndefined();
   });
+
+  it('round-trips dismissed recommendation IDs', () => {
+    const state: ICGState = {
+      currentStep: 6,
+      answers: { q1_1: 0 },
+      dismissed: ['r01', 'r05'],
+    };
+    const encoded = encodeState(state);
+    const decoded = decodeState(encoded);
+    expect(decoded?.dismissed).toEqual(['r01', 'r05']);
+  });
+
+  it('omits dismissed key when empty', () => {
+    const state: ICGState = {
+      currentStep: 1,
+      answers: {},
+      dismissed: [],
+    };
+    const encoded = encodeState(state);
+    const raw = JSON.parse(atob(encoded));
+    expect(raw.d).toBeUndefined();
+  });
+
+  it('filters non-string values from dismissed array', () => {
+    const encoded = btoa(JSON.stringify({ s: 6, a: {}, d: ['r01', 42, null, 'r03'] }));
+    const decoded = decodeState(encoded);
+    expect(decoded?.dismissed).toEqual(['r01', 'r03']);
+  });
 });
 
 // ─── DEFAULT_STATE ───────────────────────────────────────────────────────────
@@ -324,6 +353,10 @@ describe('DEFAULT_STATE', () => {
 
   it('has empty answers', () => {
     expect(Object.keys(DEFAULT_STATE.answers)).toHaveLength(0);
+  });
+
+  it('has empty dismissed array', () => {
+    expect(DEFAULT_STATE.dismissed).toEqual([]);
   });
 });
 

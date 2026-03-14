@@ -746,6 +746,52 @@ const domainCount = DOMAINS.length;
         font-size: var(--text-sm);
     }
 
+    /* ── N/A dismiss button ──────────────────────────────────────────────── */
+    :global(.icg-rec-na) {
+        flex-shrink: 0;
+        align-self: flex-start;
+        padding: 2px var(--spacing-sm);
+        font-size: 0.65rem;
+        font-weight: var(--font-weight-bold);
+        font-family: var(--font-family);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-light-muted);
+        background: transparent;
+        border: 1px solid var(--border-light);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: color var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    :global(.icg-rec-na:hover) {
+        color: var(--text-light-primary);
+        border-color: var(--text-light-secondary);
+    }
+
+    :global(html.dark-theme .icg-rec-na) {
+        border-color: rgba(5, 205, 153, 0.12);
+    }
+
+    :global(html.dark-theme .icg-rec-na:hover) {
+        border-color: rgba(5, 205, 153, 0.3);
+    }
+
+    /* ── Dismissed recommendation ─────────────────────────────────────────── */
+    :global(.icg-rec-card.is-dismissed) {
+        opacity: 0.45;
+        border-style: dashed;
+    }
+
+    :global(.icg-rec-card.is-dismissed .icg-rec-body__title) {
+        text-decoration: line-through;
+    }
+
+    :global(.icg-rec-card.is-dismissed .icg-rec-na) {
+        color: var(--color-primary);
+        border-color: var(--color-primary);
+    }
+
     /* ── Results: Actions ──────────────────────────────────────────────────── */
     .icg-actions {
         display: flex;
@@ -884,6 +930,10 @@ const domainCount = DOMAINS.length;
             align-self: flex-start;
         }
 
+        :global(.icg-rec-na) {
+            align-self: flex-end;
+        }
+
         /* Hide back link on mobile when in wizard or results */
         .icg-back-link {
             margin-top: var(--spacing-lg);
@@ -935,6 +985,11 @@ const domainCount = DOMAINS.length;
             break-inside: avoid;
         }
 
+        :global(.icg-rec-card.is-dismissed),
+        :global(.icg-rec-na) {
+            display: none !important;
+        }
+
         .icg-foundational-warning {
             break-inside: avoid;
         }
@@ -980,7 +1035,7 @@ function readUrlState(): Partial<ICGState> | null {
 
 // ─── State ──────────────────────────────────────────────────────────────────
 
-const state: ICGState = { ...DEFAULT_STATE };
+const state: ICGState = { ...DEFAULT_STATE, dismissed: [] };
 
 // ─── Gauge SVG ──────────────────────────────────────────────────────────────
 
@@ -1154,6 +1209,8 @@ function renderResults(): void {
   if (recs.length === 0) {
     recsContainer.innerHTML = '<div class="icg-recs-empty">No recommendations triggered. All domains scored above threshold.</div>';
   } else {
+    const dismissed = new Set(state.dismissed);
+    const activeCount = recs.filter(r => !dismissed.has(r.id)).length;
     const high = recs.filter(r => r.impact === 'high');
     const med = recs.filter(r => r.impact === 'medium');
     const low = recs.filter(r => r.impact === 'low');
@@ -1163,24 +1220,42 @@ function renderResults(): void {
       return `
         <div class="icg-recs-group">
           <div class="icg-recs-group__label" style="color:${labelColor}">${label} impact</div>
-          ${items.map(rec => `
-            <div class="icg-rec-card">
+          ${items.map(rec => {
+            const isDismissed = dismissed.has(rec.id);
+            return `
+            <div class="icg-rec-card${isDismissed ? ' is-dismissed' : ''}" data-rec-id="${rec.id}">
               <span class="icg-rec-badge icg-rec-badge--${rec.impact}">${rec.impact}</span>
               <div class="icg-rec-body">
                 <div class="icg-rec-body__title">${rec.title}</div>
                 <div class="icg-rec-body__desc">${rec.description}</div>
               </div>
-            </div>
-          `).join('')}
+              <button class="icg-rec-na" data-dismiss="${rec.id}" type="button" title="${isDismissed ? 'Restore recommendation' : 'Mark as not applicable'}">${isDismissed ? 'Restore' : 'N/A'}</button>
+            </div>`;
+          }).join('')}
         </div>`;
     };
 
     recsContainer.innerHTML = `
-      <div class="icg-section-label">Prioritized recommendations (${recs.length})</div>
+      <div class="icg-section-label">Prioritized recommendations (${activeCount} of ${recs.length})</div>
       ${renderGroup(high, 'High', 'high', '#E24B4A')}
       ${renderGroup(med, 'Medium', 'medium', 'var(--color-secondary)')}
       ${renderGroup(low, 'Low', 'low', 'var(--text-light-muted)')}
     `;
+
+    // Wire N/A dismiss buttons
+    recsContainer.querySelectorAll('[data-dismiss]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const recId = (btn as HTMLElement).dataset.dismiss!;
+        const idx = state.dismissed.indexOf(recId);
+        if (idx === -1) {
+          state.dismissed.push(recId);
+        } else {
+          state.dismissed.splice(idx, 1);
+        }
+        renderResults();
+        pushUrlState(state);
+      });
+    });
   }
 }
 
@@ -1212,6 +1287,7 @@ document.addEventListener('DOMContentLoaded', () => {
   qs<HTMLElement>('[data-action="reset"]').addEventListener('click', () => {
     state.currentStep = 0;
     state.answers = {};
+    state.dismissed = [];
     render();
   });
 

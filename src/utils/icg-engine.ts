@@ -13,6 +13,7 @@ import type { Recommendation } from '../data/infrastructure-cost-governance/reco
 export interface ICGState {
   answers: Record<string, number>;
   currentStep: number;
+  dismissed: string[];
 }
 
 export interface DomainScore {
@@ -117,10 +118,13 @@ export function calculateResults(state: ICGState, domains: readonly Domain[]): I
 // Compact key map keeps the base64 string short.
 
 export function encodeState(state: ICGState): string {
-  const compact = {
+  const compact: Record<string, unknown> = {
     s: state.currentStep,
     a: state.answers,
   };
+  if (state.dismissed.length > 0) {
+    compact.d = state.dismissed;
+  }
   return btoa(JSON.stringify(compact));
 }
 
@@ -146,6 +150,10 @@ export function decodeState(encoded: string): Partial<ICGState> | null {
       out.answers = answers;
     }
 
+    if (Array.isArray(raw.d)) {
+      out.dismissed = raw.d.filter((v: unknown) => typeof v === 'string');
+    }
+
     return out;
   } catch {
     return null;
@@ -157,4 +165,5 @@ export function decodeState(encoded: string): Partial<ICGState> | null {
 export const DEFAULT_STATE: ICGState = {
   answers: {},
   currentStep: 0,
+  dismissed: [],
 };
