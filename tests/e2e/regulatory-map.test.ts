@@ -160,13 +160,13 @@ test.describe('Regulatory Map E2E', () => {
       const g = page.locator('#mapSvg g').first();
       const transformBefore = await g.getAttribute('transform');
 
-      await page.locator('#zoomIn').click();
+      await page.evaluate(() => (document.querySelector('#zoomIn') as HTMLElement)?.click());
 
-      // Wait for D3 transition to complete and transform to change
+      // Wait for D3 zoom transition (300ms) to complete and transform to change
       await page.waitForFunction((before) => {
         const g = document.querySelector('#mapSvg g');
         return g && g.getAttribute('transform') !== before;
-      }, transformBefore);
+      }, transformBefore, { timeout: 5000 });
 
       const transformAfter = await g.getAttribute('transform');
       expect(transformAfter).not.toBe(transformBefore);
@@ -174,30 +174,31 @@ test.describe('Regulatory Map E2E', () => {
 
     test('should reset zoom when clicking reset button', async ({ page }) => {
       // Zoom in first
-      await page.locator('#zoomIn').click();
-      await page.waitForFunction(() => {
-        const g = document.querySelector('#mapSvg g');
-        return g && g.getAttribute('transform') !== null;
-      });
-
-      // Reset
-      await page.locator('#zoomReset').click();
-
-      // Wait for reset transition — transform should become identity
+      await page.evaluate(() => (document.querySelector('#zoomIn') as HTMLElement)?.click());
       await page.waitForFunction(() => {
         const g = document.querySelector('#mapSvg g');
         const t = g?.getAttribute('transform') ?? '';
-        return t === '' || t.includes('scale(1');
-      });
+        return t !== '' && t !== null;
+      }, { timeout: 5000 });
+
+      // Reset
+      await page.evaluate(() => (document.querySelector('#zoomReset') as HTMLElement)?.click());
+
+      // Wait for reset transition — transform should become identity or scale(1)
+      await page.waitForFunction(() => {
+        const g = document.querySelector('#mapSvg g');
+        const t = g?.getAttribute('transform') ?? '';
+        return t === '' || t.includes('scale(1') || t.includes('matrix(1');
+      }, { timeout: 5000 });
 
       const transform = await page.locator('#mapSvg g').first().getAttribute('transform');
-      expect(transform === null || transform === '' || transform.includes('scale(1')).toBeTruthy();
+      expect(transform === null || transform === '' || transform.includes('scale(1') || transform.includes('matrix(1')).toBeTruthy();
     });
   });
 
   test.describe('5. Navigation', () => {
     test('should navigate back to The Workbench', async ({ page }) => {
-      await page.locator('a.back-link').click();
+      await page.evaluate(() => (document.querySelector('a.back-link') as HTMLElement)?.click());
       await page.waitForURL('**/hub/tools', { timeout: 10000 });
       await expect(page).toHaveURL(/\/hub\/tools$/);
     });

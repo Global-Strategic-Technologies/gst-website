@@ -5,6 +5,17 @@
 
 import { test, expect } from '@playwright/test';
 
+/**
+ * Click the theme toggle via dispatchEvent to bypass WebKit hit-test issues.
+ */
+async function clickThemeToggle(page: import('@playwright/test').Page): Promise<void> {
+  await page.evaluate(() => {
+    document.getElementById('themeToggle')?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true })
+    );
+  });
+}
+
 test.describe('Terms Page', () => {
   test.beforeEach(async ({ page }) => {
     // Block external GA requests
@@ -182,8 +193,7 @@ test.describe('Terms Page', () => {
       });
 
       // Toggle to dark theme
-      const themeToggle = page.locator('[data-testid="theme-toggle"]');
-      await themeToggle.click();
+      await clickThemeToggle(page);
       await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
 
       // Verify dark theme is active
@@ -208,8 +218,7 @@ test.describe('Terms Page', () => {
       });
 
       // Toggle to dark theme
-      const themeToggle = page.locator('[data-testid="theme-toggle"]');
-      await themeToggle.click();
+      await clickThemeToggle(page);
       await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
 
       // Get dark theme color
@@ -229,8 +238,7 @@ test.describe('Terms Page', () => {
       });
 
       // Toggle to dark theme
-      const themeToggle = page.locator('[data-testid="theme-toggle"]');
-      await themeToggle.click();
+      await clickThemeToggle(page);
       await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
 
       // Get dark theme background

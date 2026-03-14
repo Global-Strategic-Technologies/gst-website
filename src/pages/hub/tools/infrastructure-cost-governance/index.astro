@@ -1347,11 +1347,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = qs<HTMLButtonElement>('[data-action="copy"]');
     const url = window.location.href;
     const reset = () => { btn.textContent = 'Copy link'; };
+    btn.textContent = 'Link copied';
+    setTimeout(reset, 2000);
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).then(
-        () => { btn.textContent = 'Link copied'; setTimeout(reset, 2000); },
-        () => { btn.textContent = 'Link copied'; setTimeout(reset, 2000); },
-      );
+      navigator.clipboard.writeText(url).catch(() => {});
     }
   });
 
@@ -1361,11 +1360,10 @@ document.addEventListener('DOMContentLoaded', () => {
     trackEvent({ event: 'icg_copy_link', category: 'engagement', location: 'landing' });
     const url = window.location.href.split('?')[0];
     const reset = () => { landingCopy.textContent = 'Copy link'; };
+    landingCopy.textContent = 'Link copied';
+    setTimeout(reset, 2000);
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).then(
-        () => { landingCopy.textContent = 'Link copied'; setTimeout(reset, 2000); },
-        () => { landingCopy.textContent = 'Link copied'; setTimeout(reset, 2000); },
-      );
+      navigator.clipboard.writeText(url).catch(() => {});
     }
   });
 

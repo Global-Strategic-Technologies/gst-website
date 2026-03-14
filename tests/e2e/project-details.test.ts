@@ -3,6 +3,8 @@ import { test, expect } from '@playwright/test';
 test.describe('Project Details Viewing Journey', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/ma-portfolio', { waitUntil: 'domcontentloaded' });
+    // Wait for portfolio JS to initialize and bind event handlers
+    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 10000 });
   });
 
   test('should have interactive project elements', async ({ page }) => {
@@ -19,7 +21,10 @@ test.describe('Project Details Viewing Journey', () => {
     const firstCard = page.locator('[data-testid="project-card"]').first();
     await expect(firstCard).toBeVisible();
 
-    await firstCard.click();
+    // Use evaluate-based click for WebKit hit-testing compatibility
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="project-card"]') as HTMLElement)?.click();
+    });
 
     // Modal should open
     const modal = page.locator('[data-testid="project-modal"]');
@@ -30,7 +35,9 @@ test.describe('Project Details Viewing Journey', () => {
     // Open a project to see details
     const firstCard = page.locator('[data-testid="project-card"]').first();
     await expect(firstCard).toBeVisible();
-    await firstCard.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="project-card"]') as HTMLElement)?.click();
+    });
 
     const modal = page.locator('[data-testid="project-modal"]');
     await expect(modal).toBeVisible({ timeout: 5000 });
@@ -49,7 +56,9 @@ test.describe('Project Details Viewing Journey', () => {
     // Open a project to see details
     const firstCard = page.locator('[data-testid="project-card"]').first();
     await expect(firstCard).toBeVisible();
-    await firstCard.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="project-card"]') as HTMLElement)?.click();
+    });
 
     const modal = page.locator('[data-testid="project-modal"]');
     await expect(modal).toBeVisible({ timeout: 5000 });
@@ -101,7 +110,10 @@ test.describe('Project Details Viewing Journey', () => {
     for (let i = 0; i < Math.min(cardCount, 2); i++) {
       const card = cards.nth(i);
       await expect(card).toBeVisible();
-      await card.click();
+      // Use evaluate-based click for WebKit hit-testing compatibility
+      await page.evaluate((index) => {
+        (document.querySelectorAll('[data-testid="project-card"]')[index] as HTMLElement)?.click();
+      }, i);
 
       // Modal should appear
       const modal = page.locator('[data-testid="project-modal"]');
@@ -119,7 +131,10 @@ test.describe('Project Details Viewing Journey', () => {
       // Close modal for next iteration
       const closeBtn = page.locator('[data-testid="project-modal-close"]');
       if (await closeBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await closeBtn.click();
+        // Use evaluate-based click for WebKit hit-testing compatibility
+        await page.evaluate(() => {
+          (document.querySelector('[data-testid="project-modal-close"]') as HTMLElement)?.click();
+        });
         // Wait for modal to close before next iteration
         await expect(modal).not.toBeVisible({ timeout: 2000 });
       }
@@ -150,7 +165,10 @@ test.describe('Project Details Viewing Journey', () => {
     // Open a project
     const card = page.locator('[data-testid="project-card"]').first();
     await expect(card).toBeVisible();
-    await card.click();
+    // Use evaluate-based click for WebKit hit-testing compatibility
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="project-card"]') as HTMLElement)?.click();
+    });
 
     const modal = page.locator('[data-testid="project-modal"]');
     await expect(modal).toBeVisible({ timeout: 5000 });
@@ -158,7 +176,10 @@ test.describe('Project Details Viewing Journey', () => {
     // Find and click close button
     const closeBtn = page.locator('[data-testid="project-modal-close"]');
     await expect(closeBtn).toBeVisible();
-    await closeBtn.click();
+    // Use evaluate-based click for WebKit hit-testing compatibility
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="project-modal-close"]') as HTMLElement)?.click();
+    });
 
     // Modal should close
     await expect(modal).not.toBeVisible({ timeout: 5000 });
@@ -171,10 +192,12 @@ test.describe('Project Details Viewing Journey', () => {
 
     expect(cardCount).toBeGreaterThan(0);
 
-    // Click first project card
+    // Click first project card — use evaluate for WebKit hit-testing
     const firstCard = cards.first();
     await expect(firstCard).toBeVisible();
-    await firstCard.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="project-card"]') as HTMLElement)?.click();
+    });
 
     // Modal should open
     const modal = page.locator('[data-testid="project-modal"]');
@@ -188,8 +211,10 @@ test.describe('Project Details Viewing Journey', () => {
     const closeBtn = page.locator('[data-testid="project-modal-close"]');
     await expect(closeBtn).toBeVisible();
 
-    // Modal should remain visible and responsive
-    await closeBtn.click();
+    // Modal should remain visible and responsive — use evaluate for WebKit
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="project-modal-close"]') as HTMLElement)?.click();
+    });
     await expect(modal).not.toBeVisible({ timeout: 5000 });
   });
 });

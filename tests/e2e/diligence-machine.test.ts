@@ -60,7 +60,7 @@ test.describe('Diligence Machine E2E', () => {
       await page.waitForFunction(() => {
         const activeStep = document.querySelector('.wizard-step.active');
         return activeStep?.getAttribute('data-step') === '2';
-      }, { timeout: 1000 });
+      }, { timeout: 5000 });
 
       // Verify we're now on step 2
       await expectWizardOnStep(page, 2);
@@ -481,7 +481,7 @@ test.describe('Diligence Machine E2E', () => {
       await page.waitForFunction(() => {
         const output = document.querySelector('[data-testid="output-container"]');
         return output && window.getComputedStyle(output).display !== 'none';
-      }, { timeout: 1000 });
+      }, { timeout: 5000 });
 
       // Output should be visible
       await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
@@ -800,9 +800,11 @@ test.describe('Diligence Machine E2E', () => {
       // Verify button label changed
       await expect(page.locator('#btnCopyLabel')).toHaveText('Copied!');
 
-      // Wait for label to revert
-      await page.waitForTimeout(2500);
-      await expect(page.locator('#btnCopyLabel')).toHaveText('Copy');
+      // Wait for label to revert (source uses setTimeout 2000ms)
+      await page.waitForFunction(() => {
+        const label = document.getElementById('btnCopyLabel');
+        return label && label.textContent === 'Copy';
+      }, { timeout: 5000 });
 
       // Verify clipboard content (skip for Firefox/WebKit which may not support clipboard API)
       if (browserName === 'chromium') {
@@ -870,17 +872,19 @@ test.describe('Diligence Machine E2E', () => {
 
       await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
 
-      // Click Restart
-      await page.locator('[data-testid="btn-restart"]').click();
+      // Click Restart — use evaluate for WebKit
+      await page.evaluate(() => {
+        (document.querySelector('[data-testid="btn-restart"]') as HTMLElement)?.click();
+      });
 
-      // Wait for wizard to appear
+      // Wait for wizard to appear (increased timeout for slower browsers under contention)
       await page.waitForFunction(() => {
         const wizard = document.querySelector('[data-testid="wizard-container"]');
         const output = document.querySelector('[data-testid="output-container"]');
         return wizard && output &&
                window.getComputedStyle(wizard).display !== 'none' &&
                window.getComputedStyle(output).display === 'none';
-      }, { timeout: 1000 });
+      }, { timeout: 10000 });
 
       // Wizard should be visible
       await expect(page.locator('[data-testid="wizard-container"]')).toBeVisible();
@@ -922,14 +926,16 @@ test.describe('Diligence Machine E2E', () => {
 
       await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
 
-      // Click Go Back button
-      await page.locator('[data-testid="btn-go-back"]').click();
+      // Click Go Back button — use evaluate for WebKit
+      await page.evaluate(() => {
+        (document.querySelector('[data-testid="btn-go-back"]') as HTMLElement)?.click();
+      });
 
       // Wait for wizard to appear
       await page.waitForFunction(() => {
         const wizard = document.querySelector('[data-testid="wizard-container"]');
         return wizard && window.getComputedStyle(wizard).display !== 'none';
-      });
+      }, { timeout: 5000 });
 
       // Wizard should be visible
       await expect(page.locator('[data-testid="wizard-container"]')).toBeVisible();
@@ -979,7 +985,7 @@ test.describe('Diligence Machine E2E', () => {
       await page.waitForFunction(() => {
         const wizard = document.querySelector('[data-testid="wizard-container"]');
         return wizard && window.getComputedStyle(wizard).display !== 'none';
-      }, { timeout: 1000 });
+      }, { timeout: 5000 });
 
       // Wizard should be visible
       await expect(page.locator('[data-testid="wizard-container"]')).toBeVisible();
@@ -1188,12 +1194,14 @@ test.describe('Diligence Machine E2E', () => {
 
       await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
 
-      // Test navigating to step 6 via Business Model label
-      await page.locator('.doc-meta-label--clickable[data-step-id="business-model"]').click();
+      // Test navigating to step 6 via Business Model label — use evaluate for WebKit
+      await page.evaluate(() => {
+        (document.querySelector('.doc-meta-label--clickable[data-step-id="business-model"]') as HTMLElement)?.click();
+      });
       await page.waitForFunction(() => {
         const wizard = document.querySelector('[data-testid="wizard-container"]');
         return wizard && window.getComputedStyle(wizard).display !== 'none';
-      }, { timeout: 1000 });
+      }, { timeout: 5000 });
       await expectWizardOnStep(page, 6);
       await verifyStepSelection(page, 'business-model', 'productized-platform');
 
@@ -1202,7 +1210,7 @@ test.describe('Diligence Machine E2E', () => {
       await page.waitForFunction(() => {
         const activeStep = document.querySelector('.wizard-step.active');
         return activeStep?.getAttribute('data-step') === '10';
-      }, { timeout: 2000 });
+      }, { timeout: 5000 });
       await expectWizardOnStep(page, 10);
       await verifyStepSelection(page, 'operating-model', 'centralized-eng');
     });

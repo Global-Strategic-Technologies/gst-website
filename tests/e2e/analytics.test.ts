@@ -5,6 +5,17 @@
 
 import { test, expect } from '@playwright/test';
 
+/**
+ * Click the theme toggle via dispatchEvent to bypass WebKit hit-test issues.
+ */
+async function clickThemeToggle(page: import('@playwright/test').Page): Promise<void> {
+  await page.evaluate(() => {
+    document.getElementById('themeToggle')?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true })
+    );
+  });
+}
+
 test.describe('Google Analytics E2E Tests', () => {
   // Helper function to setup gtag wrapping after page load
   async function setupAnalyticsMocking(page: any) {
@@ -104,10 +115,10 @@ test.describe('Google Analytics E2E Tests', () => {
         return typeof window.gtag === 'function';
       });
 
-      // Click navigation link
+      // Click navigation link — use evaluate for WebKit
       const portfolioLink = page.locator('a:has-text("M&A")');
       if (await portfolioLink.isVisible()) {
-        await portfolioLink.click();
+        await portfolioLink.evaluate(el => (el as HTMLElement).click());
         await page.waitForURL('/ma-portfolio');
 
         // Verify page loaded successfully
@@ -123,20 +134,23 @@ test.describe('Google Analytics E2E Tests', () => {
         return typeof window.gtag === 'function';
       });
 
-      // Navigate to portfolio
+      // Navigate to portfolio — use evaluate to bypass WebKit hit-testing issues
       const portfolioLink = page.locator('a:has-text("M&A")');
       if (await portfolioLink.isVisible()) {
-        await portfolioLink.click();
+        await portfolioLink.evaluate(el => (el as HTMLElement).click());
         await page.waitForURL('/ma-portfolio');
         expect(page.url()).toContain('/ma-portfolio');
       }
 
-      // Go back home if we can
+      // Go back home if we can — use evaluate for WebKit
       const logoLink = page.locator('a.logo, [data-testid="logo"]');
       if (await logoLink.isVisible()) {
-        await logoLink.click();
+        await logoLink.evaluate(el => (el as HTMLElement).click());
         await page.waitForURL('/', { timeout: 10000 }).catch(() => {});
       }
+
+      // Re-setup analytics mocking after navigation (previous page context is gone)
+      await setupAnalyticsMocking(page);
 
       // Verify gtag is still available
       const gtagExists = await page.evaluate(() => {
@@ -150,11 +164,13 @@ test.describe('Google Analytics E2E Tests', () => {
     test('should track project card clicks', async ({ page }) => {
       await gotoAndSetupAnalytics(page, '/ma-portfolio');
 
-      // Click first project card
+      // Click first project card — use evaluate for WebKit
       const firstCard = page.locator('[data-testid="project-card"]').first();
       await expect(firstCard).toBeVisible();
 
-      await firstCard.click();
+      await page.evaluate(() => {
+        (document.querySelector('[data-testid="project-card"]') as HTMLElement)?.click();
+      });
 
       // Wait for modal
       const modal = page.locator('[data-testid="project-modal"]');
@@ -172,18 +188,22 @@ test.describe('Google Analytics E2E Tests', () => {
     test('should track modal close action', async ({ page }) => {
       await gotoAndSetupAnalytics(page, '/ma-portfolio');
 
-      // Open modal
+      // Open modal — use evaluate for WebKit
       const firstCard = page.locator('[data-testid="project-card"]').first();
       await expect(firstCard).toBeVisible();
-      await firstCard.click();
+      await page.evaluate(() => {
+        (document.querySelector('[data-testid="project-card"]') as HTMLElement)?.click();
+      });
 
       const modal = page.locator('[data-testid="project-modal"]');
       await expect(modal).toBeVisible({ timeout: 5000 });
 
-      // Close modal
+      // Close modal — use evaluate for WebKit
       const closeButton = page.locator('[data-testid="project-modal-close"]');
       await expect(closeButton).toBeVisible();
-      await closeButton.click();
+      await page.evaluate(() => {
+        (document.querySelector('[data-testid="project-modal-close"]') as HTMLElement)?.click();
+      });
       await expect(modal).not.toBeVisible({ timeout: 5000 });
 
       // Verify close event was tracked
@@ -195,11 +215,13 @@ test.describe('Google Analytics E2E Tests', () => {
     test('should track project view with details', async ({ page }) => {
       await gotoAndSetupAnalytics(page, '/ma-portfolio');
 
-      // Open project modal
+      // Open project modal — use evaluate for WebKit
       const firstCard = page.locator('[data-testid="project-card"]').first();
       await expect(firstCard).toBeVisible();
 
-      await firstCard.click();
+      await page.evaluate(() => {
+        (document.querySelector('[data-testid="project-card"]') as HTMLElement)?.click();
+      });
 
       // Verify project details in modal
       const modal = page.locator('[data-testid="project-modal"]');
@@ -227,14 +249,17 @@ test.describe('Google Analytics E2E Tests', () => {
       const filterExists = await filterButton.isVisible({ timeout: 3000 }).catch(() => false);
 
       if (filterExists) {
-        await filterButton.click();
+        // Use evaluate for WebKit
+        await page.evaluate(() => {
+          (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+        });
 
         // Apply a filter if possible
         const filterOption = page.locator('[data-testid^="filter-option-"], label').first();
         const filterOptionExists = await filterOption.isVisible({ timeout: 2000 }).catch(() => false);
 
         if (filterOptionExists) {
-          await filterOption.click();
+          await filterOption.evaluate(el => (el as HTMLElement).click());
 
           // Verify filter_applied event was tracked
           const events = await page.evaluate(() => (window as any).gtagEvents || []);
@@ -261,7 +286,7 @@ test.describe('Google Analytics E2E Tests', () => {
         return document.documentElement.classList.contains('dark-theme') ? 'dark' : 'light';
       });
 
-      await themeToggle.click();
+      await clickThemeToggle(page);
 
       // Wait for theme to change
       await page.waitForFunction(
@@ -291,7 +316,7 @@ test.describe('Google Analytics E2E Tests', () => {
       // Toggle theme
       const themeToggle = page.locator('[data-testid="theme-toggle"]');
       if (await themeToggle.isVisible()) {
-        await themeToggle.click();
+        await clickThemeToggle(page);
 
         // Wait a bit for state update
         await page.waitForTimeout(100);
@@ -309,32 +334,36 @@ test.describe('Google Analytics E2E Tests', () => {
   test.describe('Complete User Journey', () => {
     test('should track full portfolio discovery journey', async ({ page }) => {
       // Start at home
-      await page.goto('/', { waitUntil: 'networkidle' });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
 
       // Wait for gtag to be available
       await page.waitForFunction(() => {
         return typeof window.gtag === 'function';
       });
 
-      // Step 1: Navigate to portfolio
+      // Step 1: Navigate to portfolio — use evaluate for WebKit
       const portfolioLink = page.locator('a:has-text("M&A")');
       if (await portfolioLink.isVisible()) {
-        await portfolioLink.click();
+        await portfolioLink.evaluate(el => (el as HTMLElement).click());
         await page.waitForURL('/ma-portfolio');
         expect(page.url()).toContain('/ma-portfolio');
 
-        // Step 2: View a project
+        // Step 2: View a project — use evaluate for WebKit
         const firstCard = page.locator('[data-testid="project-card"]').first();
         if (await firstCard.isVisible()) {
-          await firstCard.click();
+          await page.evaluate(() => {
+            (document.querySelector('[data-testid="project-card"]') as HTMLElement)?.click();
+          });
 
           const modal = page.locator('[data-testid="project-modal"]');
-          await expect(modal).toBeVisible();
+          await expect(modal).toBeVisible({ timeout: 5000 });
 
-          // Step 3: Close modal
+          // Step 3: Close modal — use evaluate for WebKit
           const closeBtn = page.locator('[data-testid="project-modal-close"]');
           if (await closeBtn.isVisible()) {
-            await closeBtn.click();
+            await page.evaluate(() => {
+              (document.querySelector('[data-testid="project-modal-close"]') as HTMLElement)?.click();
+            });
           }
         }
       }
@@ -362,7 +391,7 @@ test.describe('Google Analytics E2E Tests', () => {
       // Perform actions
       const portfolioLink = page.locator('a:has-text("M&A")');
       await expect(portfolioLink).toBeVisible();
-      await portfolioLink.click();
+      await portfolioLink.evaluate(el => (el as HTMLElement).click());
       await page.waitForURL('/ma-portfolio');
 
       // Even though we navigated, verify gtag is still functioning
@@ -441,10 +470,10 @@ test.describe('Google Analytics E2E Tests', () => {
       });
       expect(gtagExists).toBe(false);
 
-      // Perform actions while gtag is unavailable
+      // Perform actions while gtag is unavailable — use evaluate for WebKit
       const portfolioLink = page.locator('a:has-text("M&A")');
       await expect(portfolioLink).toBeVisible();
-      await portfolioLink.click();
+      await portfolioLink.evaluate(el => (el as HTMLElement).click());
       await page.waitForURL('/ma-portfolio');
 
       // Restore gtag by re-executing the analytics mocking (since direct restoration doesn't work)

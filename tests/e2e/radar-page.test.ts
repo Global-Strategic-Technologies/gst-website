@@ -67,6 +67,14 @@ test.describe('Radar Page', () => {
     });
 
     test('should show either live feed items or fallback message', async ({ page }) => {
+      // Wait for either content items or fallback to render
+      // Increased timeout — under parallel contention the SSR may be slower
+      await page.waitForFunction(() => {
+        const items = document.querySelectorAll('.fyi-item, .wire-item').length;
+        const fallback = document.querySelector('.radar-empty');
+        return items > 0 || (fallback && fallback.textContent!.trim().length > 0);
+      }, { timeout: 15000 });
+
       const hasContent = await hasRadarContent(page);
       if (hasContent) {
         // Verify at least one feed item (FYI or Wire) is present

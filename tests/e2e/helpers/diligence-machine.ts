@@ -117,14 +117,11 @@ export async function completeWizardToStep(
         if (element) (element as HTMLElement).click();
       }, [stepId, value]);
 
-      // Wait for auto-advance (300ms delay + 100ms buffer)
-      await page.waitForTimeout(400);
-
-      // Verify we advanced to next step
+      // Wait for auto-advance to complete (300ms setTimeout in source)
       await page.waitForFunction((expectedStep) => {
         const activeStep = document.querySelector('.wizard-step.active');
         return activeStep?.getAttribute('data-step') === String(expectedStep);
-      }, step + 1, { timeout: 2000 });
+      }, step + 1, { timeout: 5000 });
     }
 
     // Compound step (step 4)
@@ -155,10 +152,8 @@ export async function completeWizardToStep(
         growthStage: inputs.growthStage,
         companyAge: inputs.companyAge
       } as any);
-      await page.waitForTimeout(200); // Wait for state updates
-
-      // Click Next (compound step does NOT auto-advance)
-      await expect(page.locator('[data-testid="btn-next"]')).toBeEnabled();
+      // Wait for state updates — btn-next becomes enabled
+      await expect(page.locator('[data-testid="btn-next"]')).toBeEnabled({ timeout: 3000 });
       await page.locator('[data-testid="btn-next"]').click();
 
       // Wait for step 5
@@ -193,10 +188,8 @@ export async function completeWizardToStep(
           if (element) (element as HTMLElement).click();
         });
       }, geosToSelect);
-      await page.waitForTimeout(200); // Wait for all clicks to process
-
-      // Click Next (use evaluate for WebKit)
-      await expect(page.locator('[data-testid="btn-next"]')).toBeEnabled();
+      // Wait for all clicks to process — btn-next becomes enabled
+      await expect(page.locator('[data-testid="btn-next"]')).toBeEnabled({ timeout: 3000 });
       await page.evaluate(() => {
         const element = document.querySelector('[data-testid="btn-next"]');
         if (element) (element as HTMLElement).click();
@@ -234,29 +227,40 @@ export async function completeWizardAndGenerate(
     if (element) (element as HTMLElement).click();
   }, inputs.operatingModel);
 
-  // Wait for auto-advance delay to complete
-  await page.waitForTimeout(400);
+  // Wait for auto-advance — generate button becomes enabled
+  await expect(page.locator('[data-testid="btn-generate"]')).toBeEnabled({ timeout: 5000 });
 
-  // Generate button should now be enabled
-  await expect(page.locator('[data-testid="btn-generate"]')).toBeEnabled();
-
-  // Click Generate (use evaluate for WebKit)
+  // Click Generate — retry if first click doesn't trigger transition
+  // (Chromium can occasionally miss evaluate-based clicks under load)
   await page.evaluate(() => {
     const element = document.querySelector('[data-testid="btn-generate"]');
     if (element) (element as HTMLElement).click();
   });
 
+  // If wizard is still visible after 1s, click again
+  const wizardStillVisible = await page.waitForFunction(() => {
+    const wizard = document.querySelector('[data-testid="wizard-container"]');
+    return wizard && window.getComputedStyle(wizard).display === 'none';
+  }, { timeout: 1500 }).then(() => false).catch(() => true);
+
+  if (wizardStillVisible) {
+    await page.evaluate(() => {
+      const element = document.querySelector('[data-testid="btn-generate"]');
+      if (element) (element as HTMLElement).click();
+    });
+  }
+
   // Wait for wizard to hide
   await page.waitForFunction(() => {
     const wizard = document.querySelector('[data-testid="wizard-container"]');
     return wizard && window.getComputedStyle(wizard).display === 'none';
-  }, { timeout: 1000 });
+  }, { timeout: 5000 });
 
-  // Wait for output to appear (should be immediate now)
+  // Wait for output to appear
   await page.waitForFunction(() => {
     const output = document.querySelector('[data-testid="output-container"]');
     return output && window.getComputedStyle(output).display !== 'none';
-  }, { timeout: 1000 });
+  }, { timeout: 5000 });
 }
 
 /**

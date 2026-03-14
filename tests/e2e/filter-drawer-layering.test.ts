@@ -33,7 +33,9 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
 
     // Click the filter toggle button
-    await filterButton.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
 
     // Wait for drawer to transition and become visible
     await expect(drawer).toBeVisible({ timeout: 5000 });
@@ -115,7 +117,9 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     const themeToggle = page.locator('[data-testid="theme-toggle"]');
 
     // Open the filter drawer
-    await filterButton.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // Get bounding boxes to verify there's no visual overlap
@@ -148,15 +152,19 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     const closeButton = page.locator('[data-testid="portfolio-drawer-close"]');
 
     // Open the drawer
-    await filterButton.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // Verify it's open
     let hasOpenClass = await drawer.evaluate((el) => el.classList.contains('open'));
     expect(hasOpenClass).toBe(true);
 
-    // Click the close button
-    await closeButton.click();
+    // Click the close button — use evaluate for WebKit
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-drawer-close"]') as HTMLElement)?.click();
+    });
 
     // Wait for the open class to be removed (transition complete)
     await page.waitForFunction(() => {
@@ -179,7 +187,9 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     const overlay = page.locator('[data-testid="portfolio-filter-overlay"]');
 
     // Open the drawer
-    await filterButton.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // Verify it's open
@@ -216,7 +226,9 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     const overlay = page.locator('[data-testid="portfolio-filter-overlay"]');
 
     // Open the drawer
-    await filterButton.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
 
     // Wait for overlay to have open class (drawer is open)
     await page.waitForFunction(() => {
@@ -268,7 +280,9 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
 
     // Open the drawer
-    await filterButton.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // Verify drawer has overflow-y: auto
@@ -285,7 +299,9 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
 
     // Open the drawer
-    await filterButton.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // Verify drawer has fixed positioning
@@ -306,7 +322,9 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     expect(ariaExpanded).toBe('false');
 
     // Click to open
-    await filterButton.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // Should be expanded
@@ -345,17 +363,21 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     // Toggle open and close 3 times
     for (let i = 0; i < 3; i++) {
       // Open
-      await filterButton.click();
+      await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
       await expect(drawer).toBeVisible({ timeout: 5000 });
+
+      // Wait for open transition to complete (right: 0)
+      await page.waitForFunction(() => {
+        const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
+        if (!el || !el.classList.contains('open')) return false;
+        const right = parseFloat(window.getComputedStyle(el).right);
+        return right >= -1;
+      }, { timeout: 5000 });
 
       let hasOpenClass = await drawer.evaluate((el) => el.classList.contains('open'));
       expect(hasOpenClass).toBe(true);
-
-      // Wait for overlay to have open class (drawer is fully open)
-      await page.waitForFunction(() => {
-        const el = document.querySelector('[data-testid="portfolio-filter-overlay"]');
-        return el && el.classList.contains('open');
-      });
 
       // Close via dispatchEvent to avoid z-index pointer-event interception
       await page.evaluate(() => {
@@ -363,11 +385,13 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
         if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
 
-      // Wait for drawer to close
+      // Wait for drawer to close (class removed AND transition settled)
       await page.waitForFunction(() => {
         const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
-        return el && !el.classList.contains('open');
-      });
+        if (!el || el.classList.contains('open')) return false;
+        const right = parseFloat(window.getComputedStyle(el).right);
+        return right < -100;
+      }, { timeout: 5000 });
 
       hasOpenClass = await drawer.evaluate((el) => el.classList.contains('open'));
       expect(hasOpenClass).toBe(false);
@@ -379,7 +403,9 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
 
     // Open the drawer
-    await filterButton.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // Verify pointer-events is auto (interactive)
@@ -396,7 +422,9 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
 
     // Open the drawer
-    await filterButton.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // Verify drawer layout
@@ -418,7 +446,9 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     const overlay = page.locator('[data-testid="portfolio-filter-overlay"]');
 
     // Open the drawer
-    await filterButton.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // Verify both have fixed positioning
@@ -441,8 +471,18 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
 
     // Open the drawer
-    await filterButton.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
     await expect(drawer).toBeVisible({ timeout: 5000 });
+
+    // Wait for open transition to complete
+    await page.waitForFunction(() => {
+      const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
+      if (!el || !el.classList.contains('open')) return false;
+      const right = parseFloat(window.getComputedStyle(el).right);
+      return right >= -1;
+    }, { timeout: 5000 });
 
     // Get top position (should be some positive value)
     const topPosition = await drawer.evaluate((el) => {
@@ -459,12 +499,21 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 1024 });
 
-    const filterButton = page.locator('[data-testid="portfolio-filter-toggle"]');
     const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
 
-    // Open the drawer
-    await filterButton.click();
+    // Open the drawer — use evaluate to bypass WebKit hit-testing
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
     await expect(drawer).toBeVisible({ timeout: 5000 });
+
+    // Wait for transition to complete
+    await page.waitForFunction(() => {
+      const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
+      if (!el || !el.classList.contains('open')) return false;
+      const right = parseFloat(window.getComputedStyle(el).right);
+      return right >= -1;
+    }, { timeout: 5000 });
 
     // Get width (should be 350px on desktop)
     const width = await drawer.evaluate((el) => {
@@ -479,17 +528,20 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     // Set viewport to mobile size
     await page.setViewportSize({ width: 375, height: 667 });
 
-    const filterButton = page.locator('[data-testid="portfolio-filter-toggle"]');
     const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
 
-    // Open the drawer
-    await filterButton.click();
+    // Open the drawer — use evaluate to bypass WebKit hit-testing
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
 
-    // Wait for drawer to open (avoid arbitrary timeout)
+    // Wait for drawer to open and transition to complete
     await page.waitForFunction(() => {
       const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
-      return el && el.classList.contains('open');
-    });
+      if (!el || !el.classList.contains('open')) return false;
+      const right = parseFloat(window.getComputedStyle(el).right);
+      return right >= -1;
+    }, { timeout: 5000 });
 
     // Get width (should be 100% on mobile)
     const width = await drawer.evaluate((el) => {
@@ -501,12 +553,13 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
   });
 
   test('should verify clear filters button is accessible and functional', async ({ page }) => {
-    const filterButton = page.locator('[data-testid="portfolio-filter-toggle"]');
     const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
     const clearButton = page.locator('[data-testid="clear-filters-button"]');
 
-    // Open the drawer
-    await filterButton.click();
+    // Open the drawer — use evaluate to bypass WebKit hit-testing
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+    });
     await expect(drawer).toBeVisible({ timeout: 5000 });
 
     // Verify clear button is visible

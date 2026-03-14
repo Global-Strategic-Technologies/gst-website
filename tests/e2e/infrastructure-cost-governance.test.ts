@@ -21,7 +21,8 @@ async function jsClick(page: Page, selector: string): Promise<void> {
   }, selector);
 }
 
-/** Wait for a specific wizard step to render — verifies label AND question buttons exist */
+/** Wait for a specific wizard step to render — verifies label AND question buttons exist.
+ *  The extra rAF wait ensures event handlers are wired after innerHTML replacement. */
 async function waitForStep(page: Page, step: number): Promise<void> {
   await page.waitForFunction((s) => {
     const label = document.querySelector('[data-domain-label]');
@@ -29,19 +30,44 @@ async function waitForStep(page: Page, step: number): Promise<void> {
     // Ensure question buttons have been rendered via innerHTML
     return document.querySelectorAll('[data-answer]').length > 0;
   }, step, { timeout: 5000 });
+  // Wait one animation frame so addEventListener loop after innerHTML completes
+  await page.waitForFunction(() =>
+    new Promise(resolve => requestAnimationFrame(() => resolve(true)))
+  );
 }
 
-/** Answer all questions in the current step with a given score */
+/** Answer all questions in the current step with a given score.
+ *
+ *  Each click triggers render() which replaces innerHTML and re-wires listeners.
+ *  Clicking sequentially via Playwright locators breaks because render() replaces
+ *  the DOM between clicks, leaving stale references. Instead, we click each button
+ *  via evaluate (which always hits the live DOM) and let the synchronous render()
+ *  complete before the next iteration. */
 async function answerAllInStep(page: Page, score: number): Promise<void> {
-  // Wait for at least one answer button to exist (innerHTML render may lag)
   await page.waitForSelector(`[data-score="${score}"]`, { timeout: 3000 });
 
-  // Each question has one button per score — click all that match the desired score.
-  // Use locator (auto-waiting) rather than page.$$ (snapshot query).
-  const buttons = page.locator(`[data-score="${score}"]`);
-  const count = await buttons.count();
-  for (let i = 0; i < count; i++) {
-    await buttons.nth(i).click();
+  // Click each unselected button one at a time via evaluate.
+  // render() is synchronous — after each click the DOM is immediately rebuilt,
+  // so the next querySelectorAll call sees the fresh DOM.
+  const totalClicked = await page.evaluate((s) => {
+    let clicked = 0;
+    // Keep clicking unselected buttons until none remain
+    for (let safety = 0; safety < 20; safety++) {
+      const btns = Array.from(document.querySelectorAll(`[data-score="${s}"]`));
+      const target = btns.find(b => !b.classList.contains('selected')) as HTMLElement | undefined;
+      if (!target) break;
+      target.click(); // triggers synchronous render() which rebuilds innerHTML
+      clicked++;
+    }
+    return clicked;
+  }, score);
+
+  // Verify all questions were answered (next button should be enabled)
+  if (totalClicked > 0) {
+    await page.waitForFunction(() => {
+      const btn = document.querySelector('[data-action="next"]') as HTMLButtonElement | null;
+      return btn && !btn.disabled;
+    }, { timeout: 3000 });
   }
 }
 
@@ -237,7 +263,7 @@ test.describe('ICG - Shareable URL', () => {
   test('restores state correctly from URL on page load', async ({ page }) => {
     await gotoTool(page);
     await completeWizard(page, 3); // All optimized
-    await page.waitForSelector('[data-view="results"]:not(.is-hidden)', { timeout: 3000 });
+    await page.waitForSelector('[data-view="results"]:not(.is-hidden)', { timeout: 5000 });
 
     // Get the current URL with encoded state
     const url = page.url();

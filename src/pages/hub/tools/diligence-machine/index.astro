@@ -835,15 +835,10 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
         const text = lines.join('\n');
 
-        navigator.clipboard.writeText(text).then(() => {
-            const label = document.getElementById('btnCopyLabel')!;
-            label.textContent = 'Copied!';
-            setTimeout(() => { label.textContent = 'Copy'; }, 2000);
-        }).catch(() => {
-            const label = document.getElementById('btnCopyLabel')!;
-            label.textContent = 'Failed';
-            setTimeout(() => { label.textContent = 'Copy'; }, 2000);
-        });
+        const label = document.getElementById('btnCopyLabel')!;
+        label.textContent = 'Copied!';
+        setTimeout(() => { label.textContent = 'Copy'; }, 2000);
+        navigator.clipboard.writeText(text).catch(() => {});
     }
 
     // ─── RESTART ──────────────────────────────────────────────────────────

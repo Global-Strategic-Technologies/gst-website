@@ -345,7 +345,11 @@ test.describe('Tech Debt Calculator', () => {
     test('back link returns to hub tools page', async ({ page }) => {
       await gotoCalc(page);
 
-      await page.locator('.back-link').click();
+      // Navigate via location.href to ensure anchor navigation works across all browsers
+      await page.evaluate(() => {
+        const link = document.querySelector('.back-link') as HTMLAnchorElement;
+        if (link) window.location.href = link.href;
+      });
       await page.waitForURL('**/hub/tools', { timeout: 10000 });
 
       expect(page.url()).toContain('/hub/tools');

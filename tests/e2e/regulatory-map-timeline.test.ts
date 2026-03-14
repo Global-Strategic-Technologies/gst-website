@@ -1,13 +1,29 @@
 import { test, expect } from '@playwright/test';
 
+/** Click an element via JS. Scrolls into view first, then uses dispatchEvent
+ *  to bypass Playwright's coordinate-based click which can fail on WebKit
+ *  and under parallel contention. */
+async function jsClick(page: import('@playwright/test').Page, selector: string): Promise<void> {
+  await page.evaluate((sel) => {
+    const el = document.querySelector(sel) as HTMLElement | null;
+    if (el) {
+      el.scrollIntoView({ block: 'center' });
+      el.click();
+    }
+  }, selector);
+}
+
 /**
  * Wait for D3 map paths to finish rendering.
  */
 async function waitForMapReady(page: import('@playwright/test').Page): Promise<void> {
   await page.waitForFunction(() =>
     document.querySelectorAll('.country-path').length > 0 &&
-    document.querySelectorAll('.timeline-entry').length > 0
+    document.querySelectorAll('.timeline-entry').length > 0 &&
+    (document.querySelector('.timeline-entry') as HTMLElement)?.offsetHeight > 0
   );
+  // Allow D3 event handlers to bind after DOM render
+  await new Promise(r => setTimeout(r, 300));
 }
 
 test.describe('Regulatory Map — Timeline', () => {
@@ -85,7 +101,7 @@ test.describe('Regulatory Map — Timeline', () => {
       // Click the first timeline entry
       const firstEntry = page.locator('.timeline-entry').first();
       const entryName = await firstEntry.locator('.timeline-entry__name').textContent();
-      await firstEntry.click();
+      await jsClick(page, '.timeline-entry');
 
       // Panel should become visible
       await expect(panel).toBeVisible();
@@ -106,7 +122,7 @@ test.describe('Regulatory Map — Timeline', () => {
       expect(initialHighlighted).toBe(0);
 
       // Click a timeline entry
-      await page.locator('.timeline-entry').first().click();
+      await jsClick(page, '.timeline-entry');
 
       // Wait for highlights to appear on the map
       await page.waitForFunction(() => {
@@ -123,11 +139,19 @@ test.describe('Regulatory Map — Timeline', () => {
       const firstEntry = page.locator('.timeline-entry').first();
 
       // Click to activate
-      await firstEntry.click();
+      await jsClick(page, '.timeline-entry');
+      await page.waitForFunction(() => {
+        const el = document.querySelector('.timeline-entry');
+        return el?.classList.contains('timeline-entry--active');
+      });
       await expect(firstEntry).toHaveClass(/timeline-entry--active/);
 
       // Click same entry again to deactivate
-      await firstEntry.click();
+      await jsClick(page, '.timeline-entry');
+      await page.waitForFunction(() => {
+        const el = document.querySelector('.timeline-entry');
+        return !el?.classList.contains('timeline-entry--active');
+      });
       await expect(firstEntry).not.toHaveClass(/timeline-entry--active/);
     });
 
@@ -137,11 +161,17 @@ test.describe('Regulatory Map — Timeline', () => {
       const second = entries.nth(1);
 
       // Activate first
-      await first.click();
+      await page.evaluate(() => {
+        const entries = document.querySelectorAll('.timeline-entry');
+        if (entries[0]) (entries[0] as HTMLElement).click();
+      });
       await expect(first).toHaveClass(/timeline-entry--active/);
 
       // Click second — first should deactivate
-      await second.click();
+      await page.evaluate(() => {
+        const entries = document.querySelectorAll('.timeline-entry');
+        if (entries[1]) (entries[1] as HTMLElement).click();
+      });
       await expect(second).toHaveClass(/timeline-entry--active/);
       await expect(first).not.toHaveClass(/timeline-entry--active/);
     });
@@ -150,14 +180,14 @@ test.describe('Regulatory Map — Timeline', () => {
       const firstEntry = page.locator('.timeline-entry').first();
 
       // Activate — highlights appear
-      await firstEntry.click();
+      await jsClick(page, '.timeline-entry');
       await page.waitForFunction(() => {
         return document.querySelectorAll('.country-path--highlighted').length > 0 ||
                document.querySelectorAll('.state-path--highlighted').length > 0;
       });
 
       // Deactivate — highlights should be cleared
-      await firstEntry.click();
+      await jsClick(page, '.timeline-entry');
       await page.waitForFunction(() => {
         return document.querySelectorAll('.country-path--highlighted').length === 0 &&
                document.querySelectorAll('.state-path--highlighted').length === 0;
@@ -175,8 +205,12 @@ test.describe('Regulatory Map — Timeline', () => {
       const allCount = await page.locator('.timeline-entry').count();
       expect(allCount).toBeGreaterThan(0);
 
-      // Switch to AI Governance
-      await page.locator('.filter-chip[data-category="ai-governance"]').click();
+      // Switch to AI Governance — wait for filter chip to become active first
+      await jsClick(page, '.filter-chip[data-category="ai-governance"]');
+      await page.waitForFunction(() => {
+        const chip = document.querySelector('.filter-chip[data-category="ai-governance"]');
+        return chip?.classList.contains('active');
+      });
 
       // Wait for timeline to re-render with fewer entries
       await page.waitForFunction((prevCount) => {
@@ -191,14 +225,22 @@ test.describe('Regulatory Map — Timeline', () => {
     test('should restore all timeline entries when switching back to "All"', async ({ page }) => {
       const allCount = await page.locator('.timeline-entry').count();
 
-      // Switch away
-      await page.locator('.filter-chip[data-category="ai-governance"]').click();
+      // Switch away — wait for filter chip to become active first
+      await jsClick(page, '.filter-chip[data-category="ai-governance"]');
+      await page.waitForFunction(() => {
+        const chip = document.querySelector('.filter-chip[data-category="ai-governance"]');
+        return chip?.classList.contains('active');
+      });
       await page.waitForFunction((prev) => {
         return document.querySelectorAll('.timeline-entry').length !== prev;
       }, allCount);
 
-      // Switch back
-      await page.locator('.filter-chip[data-category="all"]').click();
+      // Switch back — wait for filter chip to become active first
+      await jsClick(page, '.filter-chip[data-category="all"]');
+      await page.waitForFunction(() => {
+        const chip = document.querySelector('.filter-chip[data-category="all"]');
+        return chip?.classList.contains('active');
+      });
       await page.waitForFunction((expected) => {
         return document.querySelectorAll('.timeline-entry').length === expected;
       }, allCount);

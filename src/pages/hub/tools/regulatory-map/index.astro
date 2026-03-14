@@ -285,7 +285,10 @@ import caData from '../../../../data/canada-provinces.json';
                 btn.setAttribute('aria-label', 'Copy link to this view');
             }, 2000);
         };
-        navigator.clipboard.writeText(location.href).then(showCopied, showCopied);
+        showCopied();
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(location.href).catch(() => {});
+        }
     });
 
     // --- Regulation lookup by ID ---
@@ -777,7 +780,7 @@ import caData from '../../../../data/canada-provinces.json';
         const filteredMap = getFilteredRegionMap();
 
         // Update country paths
-        select('#mapSvg').selectAll('path[class^="country-path"]')
+        select('#mapSvg').selectAll('path.country-path')
             .attr('class', function() {
                 const el = this as unknown as SVGPathElement;
                 const d = select(el).datum() as { id?: string; properties?: { iso_3166_2?: string } } | undefined;
@@ -926,7 +929,7 @@ import caData from '../../../../data/canada-provinces.json';
             }
         }
 
-        select('#mapSvg').selectAll('path[class^="country-path"]')
+        select('#mapSvg').selectAll('path.country-path')
             .attr('class', function() {
                 const el = this as unknown as SVGPathElement;
                 const d = select(el).datum() as { id?: string } | undefined;

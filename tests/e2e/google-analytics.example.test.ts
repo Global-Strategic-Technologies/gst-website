@@ -20,6 +20,17 @@ import {
   waitForEvent,
 } from './helpers/analytics';
 
+/**
+ * Click the theme toggle via dispatchEvent to bypass WebKit hit-test issues.
+ */
+async function clickThemeToggle(page: import('@playwright/test').Page): Promise<void> {
+  await page.evaluate(() => {
+    document.getElementById('themeToggle')?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true })
+    );
+  });
+}
+
 test.describe('Google Analytics Example Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Setup analytics mocking before each test
@@ -105,7 +116,7 @@ test.describe('Google Analytics Example Tests', () => {
       // Click navigation link (in header, not the hero CTA)
       const servicesLink = page.locator('nav a:has-text("Services")');
       if (await servicesLink.isVisible()) {
-        await servicesLink.click();
+        await servicesLink.evaluate(el => (el as HTMLElement).click());
         await page.waitForURL('/services');
 
         // Verify navigation occurred
@@ -123,7 +134,7 @@ test.describe('Google Analytics Example Tests', () => {
       // Navigate to portfolio
       const portfolioLink = page.locator('a:has-text("M&A")');
       if (await portfolioLink.isVisible()) {
-        await portfolioLink.click();
+        await portfolioLink.evaluate(el => (el as HTMLElement).click());
         await page.waitForURL('/ma-portfolio');
       }
 
@@ -149,7 +160,7 @@ test.describe('Google Analytics Example Tests', () => {
       // Click theme toggle
       const themeToggle = page.locator('button[title="Toggle dark theme"]');
       if (await themeToggle.isVisible()) {
-        await themeToggle.click();
+        await clickThemeToggle(page);
 
         // Get events to see what was tracked
         const events = await getRecordedEvents(page);
@@ -160,22 +171,29 @@ test.describe('Google Analytics Example Tests', () => {
 
   test.describe('CTA Tracking', () => {
     test('should track CTA button clicks', async ({ page }) => {
+      // Block actual navigation before interacting with CTA
+      await page.route('**/calendly.com/**', route => route.abort());
+
       await page.goto('/');
 
       await page.waitForFunction(() => {
         return typeof window.gtag === 'function';
-      });
+      }, undefined, { timeout: 10000 });
 
       // Clear events
       await clearRecordedEvents(page);
 
-      // Find and interact with CTA
+      // Find and interact with CTA — prevent navigation by temporarily removing href
       const ctaButton = page.locator('a[href*="calendly.com"]').first();
       if (await ctaButton.isVisible()) {
-        // Block actual navigation
-        await page.route('**/calendly.com/**', route => route.abort());
-
-        await ctaButton.click({ force: true });
+        await ctaButton.evaluate((el) => {
+          const anchor = el as HTMLAnchorElement;
+          const originalHref = anchor.href;
+          anchor.removeAttribute('href');
+          anchor.click();
+          // Restore href after click event has been processed
+          requestAnimationFrame(() => anchor.href = originalHref);
+        });
 
         // Verify event was recorded
         const events = await getRecordedEvents(page);
@@ -231,7 +249,8 @@ test.describe('Google Analytics Example Tests', () => {
       // Step 2: Navigate to services (use header nav link, not hero CTA)
       const servicesLink = page.locator('nav a:has-text("Services")');
       if (await servicesLink.isVisible()) {
-        await servicesLink.click();
+        // Use force:true to bypass WebKit hit-test issues on nav links
+        await servicesLink.click({ force: true });
         await page.waitForURL('/services');
         expect(page.url()).toContain('/services');
       }
@@ -239,7 +258,7 @@ test.describe('Google Analytics Example Tests', () => {
       // Step 3: Navigate to portfolio
       const portfolioLink = page.locator('a:has-text("M&A")');
       if (await portfolioLink.isVisible()) {
-        await portfolioLink.click();
+        await portfolioLink.click({ force: true });
         await page.waitForURL('/ma-portfolio');
         expect(page.url()).toContain('/ma-portfolio');
       }

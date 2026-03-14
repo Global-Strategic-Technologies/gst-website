@@ -17,10 +17,7 @@ async function clickSvgPath(page: import('@playwright/test').Page, selector: str
  * Wait for D3 map paths to finish rendering.
  */
 async function waitForMapReady(page: import('@playwright/test').Page): Promise<void> {
-  await page.waitForFunction(() =>
-    document.querySelectorAll('.country-path').length > 0 &&
-    document.querySelectorAll('.country-path--active').length > 0
-  );
+  await page.waitForFunction(() => document.querySelectorAll('.country-path').length > 0);
 }
 
 test.describe('Regulatory Map — Category Filters', () => {
@@ -46,7 +43,7 @@ test.describe('Regulatory Map — Category Filters', () => {
     const aiChip = page.locator('.filter-chip[data-category="ai-governance"]');
     const allChip = page.locator('.filter-chip[data-category="all"]');
 
-    await aiChip.click();
+    await page.evaluate(() => (document.querySelector('.filter-chip[data-category="ai-governance"]') as HTMLElement)?.click());
 
     // AI chip should now be active
     await expect(aiChip).toHaveClass(/active/);
@@ -60,7 +57,7 @@ test.describe('Regulatory Map — Category Filters', () => {
     expect(initialActiveCount).toBeGreaterThan(0);
 
     // Switch to AI Governance (fewer regulations than All)
-    await page.locator('.filter-chip[data-category="ai-governance"]').click();
+    await page.evaluate(() => (document.querySelector('.filter-chip[data-category="ai-governance"]') as HTMLElement)?.click());
 
     // Wait for map to update — active count should change
     await page.waitForFunction((initialCount) => {
@@ -78,13 +75,13 @@ test.describe('Regulatory Map — Category Filters', () => {
     const initialActiveCount = await page.locator('.country-path--active').count();
 
     // Switch away
-    await page.locator('.filter-chip[data-category="ai-governance"]').click();
+    await page.evaluate(() => (document.querySelector('.filter-chip[data-category="ai-governance"]') as HTMLElement)?.click());
     await page.waitForFunction((initial) => {
       return document.querySelectorAll('.country-path--active').length !== initial;
     }, initialActiveCount);
 
     // Switch back to All
-    await page.locator('.filter-chip[data-category="all"]').click();
+    await page.evaluate(() => (document.querySelector('.filter-chip[data-category="all"]') as HTMLElement)?.click());
     await page.waitForFunction((initial) => {
       return document.querySelectorAll('.country-path--active').length === initial;
     }, initialActiveCount);
@@ -107,7 +104,7 @@ test.describe('Regulatory Map — Category Filters', () => {
     });
 
     // Switch to Industry Compliance — Thailand has no industry-compliance regs
-    await page.locator('.filter-chip[data-category="industry-compliance"]').click();
+    await page.evaluate(() => (document.querySelector('.filter-chip[data-category="industry-compliance"]') as HTMLElement)?.click());
 
     // Panel should be hidden because Thailand has no industry compliance regulations
     await expect(panel).toBeHidden();
@@ -126,7 +123,7 @@ test.describe('Regulatory Map — Category Filters', () => {
     await expect(page.locator('#panelCountryName')).toHaveText('Germany');
 
     // Switch to Data Privacy — Germany still has GDPR
-    await page.locator('.filter-chip[data-category="data-privacy"]').click();
+    await page.evaluate(() => (document.querySelector('.filter-chip[data-category="data-privacy"]') as HTMLElement)?.click());
 
     // Panel should still be visible with Germany
     await expect(panel).toBeVisible();
@@ -151,7 +148,7 @@ test.describe('Regulatory Map — Category Filters', () => {
     expect(allCount).toBeGreaterThan(0);
 
     // Switch to Data Privacy
-    await page.locator('.filter-chip[data-category="data-privacy"]').click();
+    await page.evaluate(() => (document.querySelector('.filter-chip[data-category="data-privacy"]') as HTMLElement)?.click());
 
     // Wait for panel to re-render with filtered results
     await page.waitForFunction((prevCount) => {

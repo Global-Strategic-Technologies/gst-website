@@ -11,8 +11,10 @@ test.use({ ...devices['iPhone 12'] });
  * immediately) AND for `transitionend` to fire or a stable computed position.
  */
 async function openFilterDrawer(page: import('@playwright/test').Page): Promise<void> {
-  const filterToggle = page.locator('[data-testid="portfolio-filter-toggle"]');
-  await filterToggle.click();
+  // Use evaluate to bypass WebKit hit-testing issues on mobile viewport
+  await page.evaluate(() => {
+    (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
+  });
 
   const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
   await expect(drawer).toBeVisible({ timeout: 5000 });
@@ -97,9 +99,16 @@ test.describe('Mobile Navigation Journey', () => {
     const searchInput = page.locator('[data-testid="portfolio-search-input"]');
     await expect(searchInput).toBeVisible();
 
-    // Clear and type
-    await searchInput.fill('');
-    await searchInput.type('fintech', { delay: 50 });
+    // Clear and type — use evaluate to focus + fill for cross-browser reliability
+    await page.evaluate(() => {
+      const input = document.querySelector('[data-testid="portfolio-search-input"]') as HTMLInputElement;
+      if (input) {
+        input.focus();
+        input.value = '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+    await searchInput.fill('fintech');
 
     // Value should update
     const value = await searchInput.inputValue();
@@ -111,8 +120,10 @@ test.describe('Mobile Navigation Journey', () => {
     const card = page.locator('[data-testid="project-card"]').first();
     await expect(card).toBeVisible();
 
-    // Click card
-    await card.click();
+    // Click card — use evaluate to bypass WebKit hit-testing on mobile
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="project-card"]') as HTMLElement)?.click();
+    });
 
     // Modal should open
     const modal = page.locator('[data-testid="project-modal"]');
@@ -120,10 +131,12 @@ test.describe('Mobile Navigation Journey', () => {
   });
 
   test('should display modal full width on mobile', async ({ page }) => {
-    // Open modal
+    // Open modal — use evaluate for WebKit mobile
     const card = page.locator('[data-testid="project-card"]').first();
     await expect(card).toBeVisible();
-    await card.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="project-card"]') as HTMLElement)?.click();
+    });
 
     const modal = page.locator('[data-testid="project-modal"]');
     await expect(modal).toBeVisible({ timeout: 5000 });
@@ -139,10 +152,12 @@ test.describe('Mobile Navigation Journey', () => {
   });
 
   test('should close modal easily on mobile', async ({ page }) => {
-    // Open modal
+    // Open modal — use evaluate for WebKit mobile
     const card = page.locator('[data-testid="project-card"]').first();
     await expect(card).toBeVisible();
-    await card.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="project-card"]') as HTMLElement)?.click();
+    });
 
     const modal = page.locator('[data-testid="project-modal"]');
     await expect(modal).toBeVisible({ timeout: 5000 });
@@ -161,10 +176,12 @@ test.describe('Mobile Navigation Journey', () => {
   });
 
   test('should handle vertical scrolling in modal on mobile', async ({ page }) => {
-    // Open modal
+    // Open modal — use evaluate for WebKit mobile
     const card = page.locator('[data-testid="project-card"]').first();
     await expect(card).toBeVisible();
-    await card.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="project-card"]') as HTMLElement)?.click();
+    });
 
     const modal = page.locator('[data-testid="project-modal"]');
     await expect(modal).toBeVisible({ timeout: 5000 });
@@ -190,8 +207,15 @@ test.describe('Mobile Navigation Journey', () => {
     const card = page.locator('[data-testid="project-card"]').first();
     await expect(card).toBeVisible();
 
-    // Tap card to open modal
-    await card.tap();
+    // Tap card to open modal — use evaluate for WebKit mobile
+    await page.evaluate(() => {
+      const el = document.querySelector('[data-testid="project-card"]') as HTMLElement;
+      if (el) {
+        el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+        el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+        el.click();
+      }
+    });
 
     // Modal should open and be visible
     const modal = page.locator('[data-testid="project-modal"]');
@@ -237,9 +261,17 @@ test.describe('Mobile Navigation Journey', () => {
 
     await openFilterDrawer(page);
 
-    // Click Growth Stage filter
+    // Click Growth Stage filter — use evaluate to bypass hit-testing on mobile
     const growthChip = page.locator('[data-testid="filter-chip-stage-growth"]');
-    await growthChip.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="filter-chip-stage-growth"]') as HTMLElement)?.click();
+    });
+
+    // Wait for async state update before asserting
+    await page.waitForFunction(() => {
+      const chip = document.querySelector('[data-testid="filter-chip-stage-growth"]');
+      return chip?.classList.contains('active');
+    });
 
     // Verify it's now active
     await expect(growthChip).toHaveClass(/active/);
@@ -255,10 +287,18 @@ test.describe('Mobile Navigation Journey', () => {
 
     await openFilterDrawer(page);
 
-    // Click a theme filter
+    // Click a theme filter — use evaluate to bypass hit-testing on mobile
     const themeChip = page.locator('[data-testid="filter-chip-theme-finance"]');
     await expect(themeChip).toBeVisible();
-    await themeChip.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="filter-chip-theme-finance"]') as HTMLElement)?.click();
+    });
+
+    // Wait for async state update before asserting
+    await page.waitForFunction(() => {
+      const chip = document.querySelector('[data-testid="filter-chip-theme-finance"]');
+      return chip?.classList.contains('active');
+    });
 
     // Verify it's now active
     await expect(themeChip).toHaveClass(/active/);
@@ -274,10 +314,18 @@ test.describe('Mobile Navigation Journey', () => {
 
     await openFilterDrawer(page);
 
-    // Click a year filter
+    // Click a year filter — use evaluate to bypass hit-testing on mobile
     const yearChip = page.locator('[data-testid="filter-chip-year-2024"]');
     await expect(yearChip).toBeVisible();
-    await yearChip.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="filter-chip-year-2024"]') as HTMLElement)?.click();
+    });
+
+    // Wait for async state update before asserting
+    await page.waitForFunction(() => {
+      const chip = document.querySelector('[data-testid="filter-chip-year-2024"]');
+      return chip?.classList.contains('active');
+    });
 
     // Verify it's now active
     await expect(yearChip).toHaveClass(/active/);
@@ -293,10 +341,12 @@ test.describe('Mobile Navigation Journey', () => {
 
     await openFilterDrawer(page);
 
-    // Click an engagement filter
+    // Click an engagement filter — use evaluate for WebKit mobile
     const engagementChip = page.locator('[data-testid="filter-chip-engagement-value-creation"]');
     await expect(engagementChip).toBeVisible();
-    await engagementChip.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="filter-chip-engagement-value-creation"]') as HTMLElement)?.click();
+    });
 
     // Verify it's now active
     await expect(engagementChip).toHaveClass(/active/);
@@ -317,13 +367,16 @@ test.describe('Mobile Navigation Journey', () => {
 
     await openFilterDrawer(page);
 
-    // Apply a filter
+    // Apply a filter — use evaluate for WebKit mobile
     const growthChip = page.locator('[data-testid="filter-chip-stage-growth"]');
-    await growthChip.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="filter-chip-stage-growth"]') as HTMLElement)?.click();
+    });
 
-    // Close drawer (click overlay or close button)
-    const closeButton = page.locator('[data-testid="portfolio-drawer-close"]');
-    await closeButton.click();
+    // Close drawer — use evaluate for WebKit mobile
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="portfolio-drawer-close"]') as HTMLElement)?.click();
+    });
 
     // Wait for drawer slide-out transition to complete
     await page.waitForFunction(() => {
@@ -349,20 +402,24 @@ test.describe('Mobile Navigation Journey', () => {
 
     await openFilterDrawer(page);
 
-    // Apply multiple filters
+    // Apply multiple filters — use evaluate for WebKit mobile
     const growthChip = page.locator('[data-testid="filter-chip-stage-growth"]');
     const financeChip = page.locator('[data-testid="filter-chip-theme-finance"]');
 
-    await growthChip.click();
-    await financeChip.click();
-
-    // Both should be active
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="filter-chip-stage-growth"]') as HTMLElement)?.click();
+    });
     await expect(growthChip).toHaveClass(/active/);
+
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="filter-chip-theme-finance"]') as HTMLElement)?.click();
+    });
     await expect(financeChip).toHaveClass(/active/);
 
-    // Click Clear All Filters
-    const clearButton = page.locator('[data-testid="clear-filters-button"]');
-    await clearButton.click();
+    // Click Clear All Filters — use evaluate for WebKit mobile
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="clear-filters-button"]') as HTMLElement)?.click();
+    });
 
     // Wait for filters to reset — "All Stages" chip should become active
     await page.waitForFunction(() => {
