@@ -112,6 +112,37 @@
   --about-image-bg: var(--bg-dark-tertiary);
   --about-image-border: var(--bg-dark-secondary);
   --about-image-text: #404040;
+
+  /* TechPar — Zone Colors */
+  --techpar-zone-underinvest: #CC8800;
+  --techpar-zone-underinvest-bg: rgba(204, 136, 0, 0.08);
+  --techpar-zone-ahead: #2ea84e;
+  --techpar-zone-ahead-bg: rgba(46, 168, 78, 0.08);
+  --techpar-zone-healthy: var(--color-primary);
+  --techpar-zone-healthy-bg: var(--accent-light-bg);
+  --techpar-zone-above: #CC8800;
+  --techpar-zone-above-bg: rgba(204, 136, 0, 0.08);
+  --techpar-zone-elevated: #d93636;
+  --techpar-zone-elevated-bg: rgba(217, 54, 54, 0.08);
+  --techpar-zone-critical: #b82e2e;
+  --techpar-zone-critical-bg: rgba(184, 46, 46, 0.08);
+
+  /* TechPar — Category Colors */
+  --techpar-category-infra: var(--color-primary);
+  --techpar-category-personnel: #3b82f6;
+  --techpar-category-rd-opex: #8b5cf6;
+  --techpar-category-rd-capex: var(--color-secondary);
+
+  /* TechPar — Chart Colors */
+  --techpar-chart-band-fill: rgba(5, 205, 153, 0.12);
+  --techpar-chart-band-border: rgba(5, 205, 153, 0.35);
+  --techpar-chart-under-fill: rgba(204, 136, 0, 0.07);
+  --techpar-chart-revenue-line: rgba(26, 26, 26, 0.25);
+
+  /* TechPar — KPI Colors */
+  --techpar-kpi-positive: var(--color-primary);
+  --techpar-kpi-warn: #CC8800;
+  --techpar-kpi-negative: #d93636;
 }
 
 /* Dark Theme Overrides */
@@ -164,6 +195,26 @@ html.dark-theme {
   --about-image-bg: var(--bg-dark-secondary);
   --about-image-border: #2a2a2a;
   --about-image-text: #808080;
+
+  /* TechPar — Zone Colors (dark theme) */
+  --techpar-zone-underinvest: #FFAA33;
+  --techpar-zone-underinvest-bg: rgba(255, 170, 51, 0.09);
+  --techpar-zone-ahead: #2ea84e;
+  --techpar-zone-ahead-bg: rgba(46, 168, 78, 0.09);
+  --techpar-zone-above: #FFAA33;
+  --techpar-zone-above-bg: rgba(255, 170, 51, 0.09);
+  --techpar-zone-elevated: #e05050;
+  --techpar-zone-elevated-bg: rgba(224, 80, 80, 0.09);
+  --techpar-zone-critical: #e05050;
+  --techpar-zone-critical-bg: rgba(224, 80, 80, 0.09);
+
+  /* TechPar — Chart Colors (dark theme) */
+  --techpar-chart-under-fill: rgba(255, 170, 51, 0.07);
+  --techpar-chart-revenue-line: rgba(200, 200, 200, 0.25);
+
+  /* TechPar — KPI Colors (dark theme) */
+  --techpar-kpi-warn: #FFAA33;
+  --techpar-kpi-negative: #e05050;
 }
 
 /* Utility Classes for Common Patterns */

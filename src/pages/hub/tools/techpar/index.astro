@@ -1,0 +1,1773 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../../components/hub/HubHeader.astro';
+import { trackPageView } from '../../../../utils/analytics';
+
+trackPageView('techpar', 'TechPar | GST');
+---
+
+<BaseLayout
+    title="TechPar | Strategic Intelligence Hub"
+    description="A technology cost structure analysis tool for PE diligence and portfolio company benchmarking. Enter spend across infrastructure, personnel, and R&D to compute a blended technology cost ratio benchmarked against stage-adjusted ranges."
+    ogTitle="TechPar | GST"
+    ogDescription="Technology cost structure analysis tool. Enter spend across infrastructure, personnel, and R&D to compute a blended cost ratio benchmarked against stage-adjusted ranges."
+    ogImage="/og-image.png"
+    ogUrl="https://globalstrategic.tech/hub/tools/techpar"
+>
+    <section class="techpar-section">
+        <div class="container">
+            <HubHeader
+                title="TechPar"
+                subtitle="A technology cost structure analysis tool for PE diligence and portfolio company benchmarking. Enter spend across infrastructure, personnel, and R&D to compute a blended technology cost ratio benchmarked against stage-adjusted ranges. Purpose-built for IC packages, board reporting, and sell-side preparation."
+            />
+
+            <div data-techpar class="techpar-shell">
+
+                <!-- Tab bar -->
+                <div class="tp-tab-bar" data-tab-bar>
+                    <button class="tp-tab tp-tab--active" data-tab="profile" type="button">
+                        <span class="tp-tab__icon" aria-hidden="true">&#9632;</span>
+                        <span class="tp-tab__label">Profile</span>
+                        <span class="tp-tab__check" data-check="profile" aria-label="Complete">&#10003;</span>
+                    </button>
+                    <button class="tp-tab" data-tab="costs" type="button">
+                        <span class="tp-tab__icon" aria-hidden="true">&#9889;</span>
+                        <span class="tp-tab__label">Costs</span>
+                        <span class="tp-tab__check" data-check="costs" aria-label="Complete">&#10003;</span>
+                    </button>
+                    <button class="tp-tab" data-tab="analysis" type="button">
+                        <span class="tp-tab__icon" aria-hidden="true">&#9670;</span>
+                        <span class="tp-tab__label">Analysis</span>
+                        <span class="tp-tab__badge" data-badge="analysis"></span>
+                    </button>
+                    <button class="tp-tab" data-tab="trajectory" type="button">
+                        <span class="tp-tab__icon" aria-hidden="true">&#8599;</span>
+                        <span class="tp-tab__label">Trajectory</span>
+                    </button>
+                </div>
+
+                <!-- ── TAB: PROFILE ──────────────────────────────────── -->
+                <div class="tp-panel tp-panel--active" data-panel="profile">
+                    <div class="tp-panel__header">
+                        <span class="tp-step label-small">Step 1 of 4</span>
+                        <h2 class="tp-panel__title heading-md">Company profile</h2>
+                        <p class="tp-panel__sub text-small">Stage and revenue drive all benchmark ranges. Everything else adapts to what you enter here.</p>
+                    </div>
+
+                    <div class="tp-section">
+                        <span class="tp-sec-label label">Company stage</span>
+                        <div class="tp-stage-grid" data-stage-grid>
+                            <button class="tp-stage-card" data-stage="seed" type="button">
+                                <span class="tp-stage-card__name">Seed / Pre-A</span>
+                                <span class="tp-stage-card__range">60&ndash;100%</span>
+                            </button>
+                            <button class="tp-stage-card" data-stage="series_a" type="button">
+                                <span class="tp-stage-card__name">Series A</span>
+                                <span class="tp-stage-card__range">45&ndash;75%</span>
+                            </button>
+                            <button class="tp-stage-card tp-stage-card--active" data-stage="series_bc" type="button">
+                                <span class="tp-stage-card__name">Series B&ndash;C</span>
+                                <span class="tp-stage-card__range">35&ndash;55%</span>
+                            </button>
+                            <button class="tp-stage-card" data-stage="pe" type="button">
+                                <span class="tp-stage-card__name">PE-backed</span>
+                                <span class="tp-stage-card__range">25&ndash;40%</span>
+                            </button>
+                            <button class="tp-stage-card" data-stage="enterprise" type="button">
+                                <span class="tp-stage-card__name">Enterprise</span>
+                                <span class="tp-stage-card__range">18&ndash;32%</span>
+                            </button>
+                        </div>
+                        <div class="tp-hint text-tiny">Ranges shown are total technology cost as % of revenue</div>
+                    </div>
+
+                    <div class="tp-section">
+                        <span class="tp-sec-label label">Revenue</span>
+                        <div class="tp-field">
+                            <label class="tp-field__label text-small" for="tp-arr">ARR or TTM Revenue <span class="tp-field__req">(required)</span></label>
+                            <div class="tp-input-wrap">
+                                <span class="tp-input-pre">$</span>
+                                <input type="number" id="tp-arr" data-input="arr" min="0" step="1000000" placeholder="0" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tp-section">
+                        <span class="tp-sec-label label">Revenue growth assumption</span>
+                        <div class="tp-seg-row">
+                            <div class="tp-seg" data-seg="growth">
+                                <button class="tp-seg__btn" data-growth="10" type="button">10%</button>
+                                <button class="tp-seg__btn tp-seg__btn--active" data-growth="20" type="button">20%</button>
+                                <button class="tp-seg__btn" data-growth="30" type="button">30%</button>
+                                <button class="tp-seg__btn" data-growth="50" type="button">50%</button>
+                            </div>
+                        </div>
+                        <div class="tp-hint text-tiny">Used in trajectory projections. Does not affect current-period KPIs.</div>
+                    </div>
+
+                    <div class="tp-field tp-exit-field" data-exit-field>
+                        <label class="tp-field__label text-small" for="tp-exit-mult">Exit multiple assumption</label>
+                        <div class="tp-input-wrap">
+                            <input type="number" id="tp-exit-mult" data-input="exitMult" class="tp-input--no-pre tp-input--has-suf" min="1" max="30" value="12" />
+                            <span class="tp-input-suf">&times;</span>
+                        </div>
+                        <div class="tp-hint text-tiny">Revenue multiple at exit. Used in exit value calculations.</div>
+                    </div>
+
+                    <div class="tp-nav-row">
+                        <button class="tp-btn-next" data-action="go-costs" type="button">Enter technology costs &rarr;</button>
+                    </div>
+                </div>
+
+                <!-- ── TAB: COSTS ────────────────────────────────────── -->
+                <div class="tp-panel" data-panel="costs">
+                    <div class="tp-panel__header">
+                        <span class="tp-step label-small">Step 2 of 4</span>
+                        <h2 class="tp-panel__title heading-md">Technology costs</h2>
+                        <p class="tp-panel__sub text-small">Enter annual spend across each cost category. Infrastructure hosting is required. All others are optional and unlock additional KPIs.</p>
+                    </div>
+
+                    <!-- Mode toggle -->
+                    <div class="tp-section">
+                        <span class="tp-sec-label label">Input mode</span>
+                        <div class="tp-seg" data-seg="mode">
+                            <button class="tp-seg__btn tp-seg__btn--active" data-mode="quick" type="button">Quick</button>
+                            <button class="tp-seg__btn" data-mode="deepdive" type="button">Deep Dive</button>
+                        </div>
+                        <div class="tp-hint text-tiny">Deep Dive breaks R&D into sub-categories and unlocks the revenue-per-engineer KPI.</div>
+                    </div>
+
+                    <!-- CapEx toggle -->
+                    <label class="tp-capex-row" data-capex-row>
+                        <input type="checkbox" data-input="gaapChk" />
+                        <span class="tp-capex-row__label text-small">GAAP view: remove R&D CapEx from total (as capitalized on income statement)</span>
+                    </label>
+
+                    <!-- Infrastructure hosting -->
+                    <div class="tp-section">
+                        <span class="tp-sec-label label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--infra"></span>Infrastructure and hosting</span>
+                        <div class="tp-field">
+                            <label class="tp-field__label text-small" for="tp-infra">Monthly cloud spend <span class="tp-field__req">(required)</span></label>
+                            <div class="tp-input-wrap">
+                                <span class="tp-input-pre">$</span>
+                                <input type="number" id="tp-infra" data-input="infra" min="0" step="1000" placeholder="0" />
+                                <span class="tp-input-suf">/ mo</span>
+                            </div>
+                            <div class="tp-hint text-tiny">Cloud, data center, CDN, observability, managed services. Auto-converted to annual.</div>
+                        </div>
+                    </div>
+
+                    <!-- Infrastructure personnel -->
+                    <div class="tp-section">
+                        <span class="tp-sec-label label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--pers"></span>Infrastructure personnel</span>
+                        <div class="tp-field">
+                            <label class="tp-field__label text-small" for="tp-infra-pers">Annual fully-loaded cost</label>
+                            <div class="tp-input-wrap">
+                                <span class="tp-input-pre">$</span>
+                                <input type="number" id="tp-infra-pers" data-input="infraPers" min="0" step="10000" placeholder="&#8212;" />
+                            </div>
+                            <div class="tp-hint text-tiny">DevOps, SRE, platform engineering, cloud architecture headcount.</div>
+                        </div>
+                    </div>
+
+                    <!-- R&D OpEx -->
+                    <div class="tp-section">
+                        <span class="tp-sec-label label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--rd"></span>R&D OpEx</span>
+
+                        <!-- Quick mode -->
+                        <div data-rd-quick>
+                            <div class="tp-field">
+                                <label class="tp-field__label text-small" for="tp-rd-opex">Annual fully-loaded cost <span class="tp-field__req">(required)</span></label>
+                                <div class="tp-input-wrap">
+                                    <span class="tp-input-pre">$</span>
+                                    <input type="number" id="tp-rd-opex" data-input="rdOpEx" min="0" step="100000" placeholder="0" />
+                                </div>
+                                <div class="tp-hint text-tiny">Engineering and product headcount plus tooling subscriptions. Annual fully-loaded.</div>
+                            </div>
+                        </div>
+
+                        <!-- Deep Dive mode -->
+                        <div class="tp-deep-wrap" data-rd-deep>
+                            <div class="tp-deep-head label-small">R&D OpEx breakdown</div>
+                            <div class="tp-field">
+                                <label class="tp-field__label text-tiny" for="tp-rd-eng">Engineering headcount</label>
+                                <div class="tp-input-wrap">
+                                    <span class="tp-input-pre">$</span>
+                                    <input type="number" id="tp-rd-eng" data-input="rdEng" min="0" step="100000" placeholder="&#8212;" />
+                                </div>
+                            </div>
+                            <div class="tp-field">
+                                <label class="tp-field__label text-tiny" for="tp-rd-prod">Product headcount</label>
+                                <div class="tp-input-wrap">
+                                    <span class="tp-input-pre">$</span>
+                                    <input type="number" id="tp-rd-prod" data-input="rdProd" min="0" step="100000" placeholder="&#8212;" />
+                                </div>
+                            </div>
+                            <div class="tp-field">
+                                <label class="tp-field__label text-tiny" for="tp-rd-tool">Tooling and subscriptions</label>
+                                <div class="tp-input-wrap">
+                                    <span class="tp-input-pre">$</span>
+                                    <input type="number" id="tp-rd-tool" data-input="rdTool" min="0" step="10000" placeholder="&#8212;" />
+                                </div>
+                            </div>
+                            <div class="tp-deep-sum text-small">R&D OpEx total: <span data-deep-total>&#8212;</span></div>
+                        </div>
+
+                        <div class="tp-field" data-fte-field>
+                            <label class="tp-field__label text-tiny" for="tp-eng-fte">Engineering headcount (FTEs)</label>
+                            <div class="tp-input-wrap">
+                                <input type="number" id="tp-eng-fte" data-input="engFTE" class="tp-input--no-pre" min="0" step="1" placeholder="&#8212;" />
+                            </div>
+                            <div class="tp-hint text-tiny">Unlocks revenue-per-engineer KPI.</div>
+                        </div>
+                    </div>
+
+                    <!-- R&D CapEx -->
+                    <div class="tp-section">
+                        <span class="tp-sec-label label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--capex"></span>R&D CapEx</span>
+                        <div class="tp-field">
+                            <label class="tp-field__label text-small" for="tp-rd-capex">Annual capitalized software development</label>
+                            <div class="tp-input-wrap">
+                                <span class="tp-input-pre">$</span>
+                                <input type="number" id="tp-rd-capex" data-input="rdCapEx" min="0" step="100000" placeholder="&#8212;" />
+                            </div>
+                            <div class="tp-hint text-tiny">Enables GAAP view toggle above and CapEx-of-R&D benchmark.</div>
+                        </div>
+                    </div>
+
+                    <div class="tp-nav-row">
+                        <button class="tp-btn-back" data-action="go-profile" type="button">&larr; Profile</button>
+                        <button class="tp-btn-next" data-action="go-analysis" data-btn-analysis type="button" disabled>View analysis &rarr;</button>
+                    </div>
+                </div>
+
+                <!-- ── TAB: ANALYSIS ─────────────────────────────────── -->
+                <div class="tp-panel" data-panel="analysis">
+                    <div class="tp-panel__header">
+                        <span class="tp-step label-small">Step 3 of 4</span>
+                        <h2 class="tp-panel__title heading-md">Analysis</h2>
+                        <p class="tp-panel__sub text-small" data-analysis-sub>Technology cost structure benchmarked against stage-adjusted ranges.</p>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div class="tp-empty" data-analysis-empty>
+                        <div class="tp-empty__sym">&Delta;</div>
+                        <div class="tp-empty__msg text-small">Enter ARR and infrastructure spend<br/>on the Costs tab to compute TechPar.</div>
+                        <button class="tp-empty__cta" data-action="go-costs" type="button">Go to costs &rarr;</button>
+                    </div>
+
+                    <!-- Content -->
+                    <div data-analysis-content class="tp-analysis-content">
+                        <!-- Primary KPI -->
+                        <div class="tp-kpi-hero" data-kpi-hero>
+                            <div class="tp-kpi-hero__num" data-hero-num>&#8212;</div>
+                            <div class="tp-kpi-hero__lbl text-small">total technology cost as % of revenue</div>
+                            <div class="tp-kpi-hero__basis text-tiny" data-hero-basis></div>
+                            <div data-hero-zone-pill></div>
+                            <div class="tp-bench-wrap">
+                                <div class="tp-bench-track"><div class="tp-bench-fill" data-bench-fill></div></div>
+                                <div class="tp-bench-lbls">
+                                    <span class="tp-bench-lbl text-tiny">0%</span>
+                                    <span class="tp-bench-lbl tp-bench-mid text-tiny" data-bench-mid>&#9660; midpoint</span>
+                                    <span class="tp-bench-lbl text-tiny" data-bench-max>150%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Signal card -->
+                        <div class="tp-signal" data-signal-card>
+                            <div class="tp-signal__stage label-small" data-sig-stage></div>
+                            <div class="tp-signal__zone label-small" data-sig-zone></div>
+                            <div class="tp-signal__head heading-sm" data-sig-head></div>
+                            <div class="tp-signal__body text-base" data-sig-body></div>
+                            <div class="tp-signal__div"></div>
+                            <div data-sig-mets></div>
+                        </div>
+
+                        <!-- KPI grid -->
+                        <div class="tp-kpi-grid" data-kpi-grid></div>
+
+                        <!-- Category breakdown -->
+                        <div class="tp-cat-section" data-cat-section>
+                            <div class="tp-cat-head label">Cost category vs benchmark</div>
+                            <div data-cat-bars></div>
+                        </div>
+
+                        <!-- Benchmark reference table -->
+                        <div class="tp-bench-table-wrap">
+                            <div class="tp-bench-table-head label">Stage benchmarks: total technology cost</div>
+                            <table class="tp-btbl">
+                                <tbody data-bench-tbl>
+                                    <tr data-bench-row="seed"><td>Seed / Pre-A</td><td>60&ndash;100%</td></tr>
+                                    <tr data-bench-row="series_a"><td>Series A</td><td>45&ndash;75%</td></tr>
+                                    <tr data-bench-row="series_bc"><td>Series B&ndash;C</td><td>35&ndash;55%</td></tr>
+                                    <tr data-bench-row="pe"><td>PE-backed</td><td>25&ndash;40%</td></tr>
+                                    <tr data-bench-row="enterprise"><td>Enterprise</td><td>18&ndash;32%</td></tr>
+                                </tbody>
+                            </table>
+                            <div class="tp-bench-disc text-tiny">Ranges informed by KeyBanc SaaS Survey, OpenView Partners, Bessemer State of the Cloud, and GST engagement experience. Individual results vary based on business model and organizational structure.</div>
+                        </div>
+
+                        <!-- Context callout -->
+                        <div class="tp-ctx" data-ctx-block></div>
+
+                        <div class="tp-nav-row">
+                            <button class="tp-btn-back" data-action="go-costs" type="button">&larr; Costs</button>
+                            <button class="tp-btn-next" data-action="go-trajectory" type="button">View trajectory &rarr;</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── TAB: TRAJECTORY ───────────────────────────────── -->
+                <div class="tp-panel" data-panel="trajectory">
+                    <div class="tp-panel__header">
+                        <span class="tp-step label-small">Step 4 of 4</span>
+                        <h2 class="tp-panel__title heading-md">Trajectory</h2>
+                        <p class="tp-panel__sub text-small" data-traj-sub>36-month projection of total technology cost against the stage-adjusted healthy range.</p>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div class="tp-empty" data-traj-empty>
+                        <div class="tp-empty__sym">&uarr;</div>
+                        <div class="tp-empty__msg text-small">Enter costs on the Costs tab<br/>to generate trajectory.</div>
+                        <button class="tp-empty__cta" data-action="go-costs" type="button">Go to costs &rarr;</button>
+                    </div>
+
+                    <!-- Content -->
+                    <div data-traj-content class="tp-traj-content">
+                        <div class="tp-traj-note" data-traj-note></div>
+
+                        <div class="tp-traj-chart-wrap">
+                            <canvas data-traj-canvas></canvas>
+                            <div class="tp-traj-dot" data-traj-dot></div>
+                        </div>
+                        <div class="tp-traj-legend" data-traj-legend></div>
+
+                        <!-- Trajectory signal card -->
+                        <div class="tp-signal" data-traj-signal>
+                            <div class="tp-signal__stage label-small" data-ts-stage></div>
+                            <div class="tp-signal__zone label-small" data-ts-zone></div>
+                            <div class="tp-signal__head heading-sm" data-ts-head></div>
+                            <div class="tp-signal__body text-base" data-ts-body></div>
+                            <div class="tp-signal__div"></div>
+                            <div data-ts-mets></div>
+                        </div>
+
+                        <div class="tp-nav-row">
+                            <button class="tp-btn-back" data-action="go-analysis" type="button">&larr; Analysis</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+</BaseLayout>
+
+<style>
+    /* ── Shell ────────────────────────────────────────────────── */
+    .techpar-section {
+        padding-bottom: var(--spacing-3xl);
+    }
+
+    .techpar-shell {
+        max-width: 100%;
+    }
+
+    /* ── Tab bar ──────────────────────────────────────────────── */
+    .tp-tab-bar {
+        display: flex;
+        align-items: stretch;
+        position: sticky;
+        top: 44px;
+        z-index: 9;
+        background: var(--bg-light);
+        border-bottom: 1px solid var(--border-light);
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .tp-tab-bar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .tp-tab {
+        flex: 1;
+        min-width: 80px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-sm) var(--spacing-sm);
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        color: var(--text-light-muted);
+        border-bottom: 2px solid transparent;
+        transition: all var(--transition-fast);
+        white-space: nowrap;
+        position: relative;
+        font-family: var(--font-family);
+    }
+
+    .tp-tab--active {
+        color: var(--color-primary);
+        border-bottom-color: var(--color-primary);
+        background: var(--accent-light-bg);
+    }
+
+    .tp-tab:hover:not(.tp-tab--active) {
+        color: var(--text-light-secondary);
+    }
+
+    .tp-tab__icon {
+        font-size: var(--text-sm);
+        line-height: 1;
+    }
+
+    .tp-tab__label {
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .tp-tab__check {
+        display: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--color-primary);
+        color: var(--bg-light);
+        font-size: 8px;
+        align-items: center;
+        justify-content: center;
+        margin-left: var(--spacing-xs);
+        flex-shrink: 0;
+        position: absolute;
+        top: 4px;
+        right: 8px;
+    }
+
+    .tp-tab__check--on {
+        display: flex;
+    }
+
+    .tp-tab__badge {
+        display: none;
+        position: absolute;
+        top: 6px;
+        right: 12px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--techpar-zone-above);
+    }
+
+    .tp-tab__badge--on {
+        display: block;
+    }
+
+    /* ── Panels ───────────────────────────────────────────────── */
+    .tp-panel {
+        display: none;
+        max-width: 680px;
+        margin: 0 auto;
+        padding: var(--spacing-xl) var(--spacing-lg);
+    }
+
+    .tp-panel--active {
+        display: block;
+    }
+
+    .tp-panel__header {
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .tp-step {
+        color: var(--color-primary);
+        display: block;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-panel__title {
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-panel__sub {
+        color: var(--text-light-secondary);
+        line-height: 1.65;
+    }
+
+    /* ── Sections & fields ────────────────────────────────────── */
+    .tp-section {
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .tp-sec-label {
+        display: block;
+        border-bottom: 1px solid var(--border-light);
+        padding-bottom: var(--spacing-sm);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .tp-sec-label--cat {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .tp-cat-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .tp-cat-dot--infra { background: var(--techpar-category-infra); }
+    .tp-cat-dot--pers { background: var(--techpar-category-personnel); }
+    .tp-cat-dot--rd { background: var(--techpar-category-rd-opex); }
+    .tp-cat-dot--capex { background: var(--techpar-category-rd-capex); }
+
+    .tp-field {
+        margin-bottom: var(--spacing-md);
+    }
+
+    .tp-field__label {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-xs);
+        line-height: 1.4;
+        color: var(--text-light-secondary);
+    }
+
+    .tp-field__req {
+        color: var(--text-light-muted);
+    }
+
+    .tp-hint {
+        color: var(--text-light-muted);
+        margin-top: var(--spacing-xs);
+        line-height: 1.5;
+    }
+
+    .tp-input-wrap {
+        position: relative;
+    }
+
+    .tp-input-pre {
+        position: absolute;
+        left: var(--spacing-sm);
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: var(--text-sm);
+        color: var(--text-light-muted);
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .tp-input-suf {
+        position: absolute;
+        right: var(--spacing-sm);
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: var(--text-sm);
+        color: var(--text-light-muted);
+        pointer-events: none;
+    }
+
+    .techpar-shell input[type=number] {
+        width: 100%;
+        background: var(--bg-light-alt);
+        border: 1px solid var(--border-light);
+        color: var(--text-light-primary);
+        font-family: var(--font-family);
+        font-size: var(--text-sm);
+        padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-xl);
+        outline: none;
+        transition: border-color var(--transition-fast);
+        -moz-appearance: textfield;
+        border-radius: 0;
+    }
+
+    .techpar-shell input[type=number]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+    }
+
+    .techpar-shell input[type=number]:focus {
+        border-color: var(--color-primary);
+    }
+
+    .techpar-shell input[type=number].tp-input--no-pre {
+        padding-left: var(--spacing-sm);
+    }
+
+    .techpar-shell input[type=number].tp-input--has-suf {
+        padding-right: var(--spacing-2xl);
+    }
+
+    /* ── Stage grid ───────────────────────────────────────────── */
+    .tp-stage-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .tp-stage-card {
+        padding: var(--spacing-sm) var(--spacing-sm);
+        border: 1px solid var(--border-light);
+        background: var(--bg-light-alt);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        text-align: center;
+        font-family: var(--font-family);
+    }
+
+    .tp-stage-card__name {
+        font-size: var(--text-xs);
+        color: var(--text-light-secondary);
+        display: block;
+        margin-bottom: 2px;
+    }
+
+    .tp-stage-card__range {
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+    }
+
+    .tp-stage-card--active {
+        border-color: var(--color-primary);
+        background: var(--accent-light-bg);
+    }
+
+    .tp-stage-card--active .tp-stage-card__name {
+        color: var(--color-primary);
+    }
+
+    .tp-stage-card--active .tp-stage-card__range {
+        color: var(--color-primary);
+    }
+
+    .tp-stage-card:hover:not(.tp-stage-card--active) {
+        border-color: var(--text-light-muted);
+    }
+
+    /* ── Segmented controls ───────────────────────────────────── */
+    .tp-seg-row {
+        display: flex;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-seg {
+        display: flex;
+        border: 1px solid var(--text-light-muted);
+        overflow: hidden;
+    }
+
+    .tp-seg__btn {
+        padding: var(--spacing-sm) var(--spacing-lg);
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+        background: transparent;
+        border: none;
+        border-right: 1px solid var(--text-light-muted);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+
+    .tp-seg__btn:last-child {
+        border-right: none;
+    }
+
+    .tp-seg__btn--active {
+        background: var(--accent-light-bg);
+        color: var(--color-primary);
+    }
+
+    .tp-seg__btn:hover:not(.tp-seg__btn--active) {
+        color: var(--text-light-secondary);
+    }
+
+    /* ── Deep dive wrap ───────────────────────────────────────── */
+    .tp-deep-wrap {
+        display: none;
+        background: var(--bg-light-alt);
+        border: 1px solid var(--border-light);
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-deep-wrap--on {
+        display: block;
+    }
+
+    .tp-deep-head {
+        color: var(--text-light-muted);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-deep-sum {
+        color: var(--text-light-secondary);
+        margin-top: var(--spacing-sm);
+        padding-top: var(--spacing-sm);
+        border-top: 1px solid var(--border-light);
+    }
+
+    .tp-deep-sum span {
+        color: var(--color-primary);
+    }
+
+    /* ── CapEx toggle ─────────────────────────────────────────── */
+    .tp-capex-row {
+        display: none;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) var(--spacing-sm);
+        background: var(--bg-light-alt);
+        border: 1px solid var(--border-light);
+        margin-bottom: var(--spacing-lg);
+        cursor: pointer;
+    }
+
+    .tp-capex-row--vis {
+        display: flex;
+    }
+
+    .tp-capex-row input[type=checkbox] {
+        accent-color: var(--color-primary);
+        width: 14px;
+        height: 14px;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    /* ── Exit field visibility ────────────────────────────────── */
+    .tp-exit-field {
+        display: none;
+    }
+
+    .tp-exit-field--vis {
+        display: block;
+    }
+
+    /* ── Navigation buttons ───────────────────────────────────── */
+    .tp-nav-row {
+        display: flex;
+        gap: var(--spacing-sm);
+        margin-top: var(--spacing-xl);
+    }
+
+    .tp-btn-next {
+        flex: 1;
+        padding: var(--spacing-md);
+        background: var(--color-primary);
+        color: var(--bg-dark);
+        border: none;
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        cursor: pointer;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        transition: background var(--transition-fast);
+    }
+
+    .tp-btn-next:hover {
+        background: var(--color-primary-dark);
+    }
+
+    .tp-btn-next:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .tp-btn-back {
+        padding: var(--spacing-md) var(--spacing-xl);
+        background: transparent;
+        color: var(--text-light-secondary);
+        border: 1px solid var(--border-light);
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        cursor: pointer;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        transition: all var(--transition-fast);
+    }
+
+    .tp-btn-back:hover {
+        color: var(--text-light-primary);
+        border-color: var(--text-light-muted);
+    }
+
+    /* ── Empty state ──────────────────────────────────────────── */
+    .tp-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 40vh;
+        gap: var(--spacing-sm);
+        text-align: center;
+    }
+
+    .tp-empty--hidden {
+        display: none;
+    }
+
+    .tp-empty__sym {
+        font-size: 4rem;
+        color: var(--text-light-muted);
+        line-height: 1;
+    }
+
+    .tp-empty__msg {
+        color: var(--text-light-muted);
+        line-height: 1.6;
+    }
+
+    .tp-empty__cta {
+        margin-top: var(--spacing-sm);
+        padding: var(--spacing-sm) var(--spacing-xl);
+        border: 1px solid var(--color-primary);
+        background: transparent;
+        color: var(--color-primary);
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        cursor: pointer;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        transition: all var(--transition-fast);
+    }
+
+    .tp-empty__cta:hover {
+        background: var(--accent-light-bg);
+    }
+
+    /* ── Analysis content ─────────────────────────────────────── */
+    .tp-analysis-content {
+        display: none;
+    }
+
+    .tp-analysis-content--on {
+        display: block;
+    }
+
+    /* ── Primary KPI hero ─────────────────────────────────────── */
+    .tp-kpi-hero {
+        padding: var(--spacing-xl);
+        background: var(--bg-light-alt);
+        border: 1px solid var(--border-light);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .tp-kpi-hero__num {
+        font-size: 4.5rem;
+        font-weight: var(--font-weight-bold);
+        line-height: 1;
+        transition: color var(--transition-fast);
+    }
+
+    .tp-kpi-hero__lbl {
+        color: var(--text-light-secondary);
+        margin-top: var(--spacing-xs);
+    }
+
+    .tp-kpi-hero__basis {
+        margin-top: 2px;
+    }
+
+    /* Zone pill */
+    .tp-zone-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-xs) var(--spacing-md);
+        font-size: var(--text-xs);
+        letter-spacing: 0.05em;
+        border: 1px solid;
+        margin-top: var(--spacing-sm);
+    }
+
+    .tp-zone-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+    }
+
+    /* Benchmark bar */
+    .tp-bench-wrap {
+        margin-top: var(--spacing-lg);
+    }
+
+    .tp-bench-track {
+        height: 3px;
+        background: var(--bg-light-alt);
+        position: relative;
+        border-radius: 2px;
+    }
+
+    .tp-bench-fill {
+        position: absolute;
+        height: 100%;
+        top: 0;
+        left: 0;
+        transition: width var(--transition-slow), background var(--transition-fast);
+        border-radius: 2px;
+    }
+
+    .tp-bench-lbls {
+        display: flex;
+        justify-content: space-between;
+        margin-top: var(--spacing-xs);
+    }
+
+    .tp-bench-lbl {
+        color: var(--text-light-muted);
+    }
+
+    .tp-bench-mid {
+        color: var(--color-primary);
+    }
+
+    /* ── Signal card ──────────────────────────────────────────── */
+    .tp-signal {
+        padding: var(--spacing-lg);
+        border: 1px solid var(--border-light);
+        background: var(--bg-light-alt);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .tp-signal__stage {
+        color: var(--text-light-muted);
+        margin-bottom: 2px;
+    }
+
+    .tp-signal__zone {
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-signal__head {
+        line-height: 1.3;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-signal__body {
+        color: var(--text-light-secondary);
+        line-height: 1.7;
+    }
+
+    .tp-signal__div {
+        height: 1px;
+        background: var(--border-light);
+        margin: var(--spacing-md) 0;
+    }
+
+    .tp-sig-met {
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-sig-met:last-child {
+        margin-bottom: 0;
+    }
+
+    .tp-sig-mlbl {
+        font-size: var(--text-xs);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--text-light-muted);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .tp-sig-mval {
+        font-size: var(--text-2xl);
+        font-weight: var(--font-weight-semibold);
+        line-height: 1;
+    }
+
+    .tp-sig-msub {
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+        margin-top: var(--spacing-xs);
+    }
+
+    .tp-sig-note {
+        font-size: var(--text-xs);
+        color: var(--text-light-secondary);
+        line-height: 1.7;
+    }
+
+    /* ── KPI grid ─────────────────────────────────────────────── */
+    .tp-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1px;
+        background: var(--border-light);
+        border: 1px solid var(--border-light);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .tp-kpi-cell {
+        background: var(--bg-light);
+        padding: var(--spacing-md) var(--spacing-lg);
+    }
+
+    .tp-kpi-cell--highlight {
+        background: var(--bg-light-alt);
+    }
+
+    .tp-kpi-lbl {
+        font-size: var(--text-xs);
+        color: var(--text-light-secondary);
+        margin-bottom: var(--spacing-sm);
+        line-height: 1.4;
+        letter-spacing: 0.02em;
+    }
+
+    .tp-kpi-val {
+        font-size: var(--text-lg);
+        font-weight: var(--font-weight-semibold);
+        line-height: 1;
+    }
+
+    .tp-kpi-val--pos { color: var(--techpar-kpi-positive); }
+    .tp-kpi-val--warn { color: var(--techpar-kpi-warn); }
+    .tp-kpi-val--bad { color: var(--techpar-kpi-negative); }
+
+    .tp-kpi-sub {
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+        margin-top: var(--spacing-xs);
+    }
+
+    /* ── Category bars ────────────────────────────────────────── */
+    .tp-cat-section {
+        display: none;
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .tp-cat-section--on {
+        display: block;
+    }
+
+    .tp-cat-head {
+        margin-bottom: var(--spacing-md);
+    }
+
+    .tp-cat-row {
+        margin-bottom: var(--spacing-md);
+    }
+
+    .tp-cat-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .tp-cat-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .tp-cat-name {
+        font-size: var(--text-xs);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .tp-cat-pct {
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .tp-cat-bench {
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+    }
+
+    .tp-cat-track {
+        height: 5px;
+        background: var(--bg-light-alt);
+        position: relative;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .tp-cat-band {
+        position: absolute;
+        height: 100%;
+        background: var(--techpar-chart-band-fill);
+    }
+
+    .tp-cat-fill {
+        position: absolute;
+        height: 100%;
+        top: 0;
+        left: 0;
+        border-radius: 3px;
+        transition: width var(--transition-slow);
+    }
+
+    /* ── Benchmark table ──────────────────────────────────────── */
+    .tp-bench-table-wrap {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .tp-bench-table-head {
+        color: var(--color-primary);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-btbl {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .tp-btbl td {
+        padding: var(--spacing-sm);
+        font-size: var(--text-xs);
+        border-bottom: 1px solid var(--border-light);
+        color: var(--text-light-secondary);
+    }
+
+    .tp-btbl td:last-child {
+        text-align: right;
+    }
+
+    .tp-btbl tr.tp-btbl--active td {
+        background: var(--accent-light-bg);
+    }
+
+    .tp-btbl tr.tp-btbl--active td:last-child {
+        color: var(--color-primary);
+    }
+
+    .tp-bench-disc {
+        color: var(--text-light-muted);
+        margin-top: var(--spacing-sm);
+        line-height: 1.5;
+    }
+
+    /* ── Context callout ──────────────────────────────────────── */
+    .tp-ctx {
+        border-left: 2px solid var(--color-primary);
+        background: var(--accent-light-bg);
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: var(--text-xs);
+        color: var(--text-light-secondary);
+        line-height: 1.7;
+        margin-bottom: 0;
+    }
+
+    /* ── Trajectory ───────────────────────────────────────────── */
+    .tp-traj-content {
+        display: none;
+    }
+
+    .tp-traj-content--on {
+        display: block;
+    }
+
+    .tp-traj-note {
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+        line-height: 1.6;
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: var(--bg-light-alt);
+        border-left: 2px solid var(--text-light-muted);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .tp-traj-note--convergence {
+        border-color: var(--color-primary);
+        color: var(--text-light-secondary);
+    }
+
+    .tp-traj-chart-wrap {
+        position: relative;
+        height: min(42vh, 320px);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-traj-dot {
+        position: absolute;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        border: 2px solid var(--bg-light);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 5;
+        display: none;
+        transition: left var(--transition-slow), top var(--transition-slow);
+    }
+
+    .tp-traj-legend {
+        display: flex;
+        gap: var(--spacing-md);
+        flex-wrap: wrap;
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .tp-tleg {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        font-size: var(--text-xs);
+        color: var(--text-light-secondary);
+    }
+
+    .tp-tleg__sw {
+        width: 14px;
+        height: 8px;
+        border-radius: 1px;
+        flex-shrink: 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────────── */
+    @media (min-width: 640px) {
+        .tp-kpi-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .tp-stage-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .tp-stage-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .tp-kpi-hero__num {
+            font-size: 3rem;
+        }
+
+        .tp-traj-chart-wrap {
+            height: min(42vh, 280px);
+        }
+
+        .tp-nav-row {
+            flex-direction: column;
+        }
+
+        .tp-btn-back {
+            order: 2;
+        }
+
+        .tp-btn-next {
+            order: 1;
+        }
+
+        .tp-tab__label {
+            font-size: 0.6rem;
+        }
+    }
+</style>
+
+<script>
+    import { Chart, registerables } from 'chart.js';
+    import { compute, buildTrajectory, getZone, zoneColorVar, zoneBgVar, zoneLabel, kpiClass, formatDollars, formatPercent, DEFAULT_INPUTS } from '../../../../utils/techpar-engine';
+    import type { TechParInputs, TechParResult, StageConfig, Zone, Frame } from '../../../../utils/techpar-engine';
+    import { STAGES, STAGE_KEYS } from '../../../../data/techpar/stages';
+    import { SIGNAL_COPY } from '../../../../data/techpar/signal-copy';
+
+    Chart.register(...registerables);
+
+    // ─── State ─────────────────────────────────────────────────
+    let stageKey = 'series_bc';
+    let growthRate = 20;
+    let mode: 'quick' | 'deepdive' = 'quick';
+    let trajChart: Chart | null = null;
+
+    // ─── DOM helpers ───────────────────────────────────────────
+    const $ = (sel: string) => document.querySelector(sel) as HTMLElement | null;
+    const $$ = (sel: string) => document.querySelectorAll(sel);
+    const g = (attr: string) => document.querySelector(`[data-${attr}]`) as HTMLElement | null;
+
+    function getInput(name: string): number {
+        const el = document.querySelector(`[data-input="${name}"]`) as HTMLInputElement | null;
+        return parseFloat(el?.value || '') || 0;
+    }
+
+    function getStyle(varName: string): string {
+        return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    }
+
+    // ─── Tab navigation ────────────────────────────────────────
+    function goTab(tab: string) {
+        $$('.tp-tab').forEach(t => t.classList.remove('tp-tab--active'));
+        $$('.tp-panel').forEach(p => p.classList.remove('tp-panel--active'));
+        document.querySelector(`.tp-tab[data-tab="${tab}"]`)?.classList.add('tp-tab--active');
+        document.querySelector(`[data-panel="${tab}"]`)?.classList.add('tp-panel--active');
+        window.scrollTo(0, 0);
+        if (tab === 'trajectory') {
+            const result = runCompute();
+            if (result) renderTrajectory(result);
+        }
+    }
+
+    // Tab button clicks
+    $$('.tp-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            goTab((btn as HTMLElement).dataset.tab || 'profile');
+        });
+    });
+
+    // Navigation action buttons
+    document.querySelectorAll('[data-action]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const action = (btn as HTMLElement).dataset.action;
+            if (action === 'go-costs') goTab('costs');
+            else if (action === 'go-profile') goTab('profile');
+            else if (action === 'go-analysis') goTab('analysis');
+            else if (action === 'go-trajectory') goTab('trajectory');
+        });
+    });
+
+    // ─── Stage selector ────────────────────────────────────────
+    $$('.tp-stage-card').forEach(card => {
+        card.addEventListener('click', () => {
+            $$('.tp-stage-card').forEach(c => c.classList.remove('tp-stage-card--active'));
+            card.classList.add('tp-stage-card--active');
+            stageKey = (card as HTMLElement).dataset.stage || 'series_bc';
+            if (trajChart) { trajChart.destroy(); trajChart = null; }
+            updateAll();
+        });
+    });
+
+    // ─── Growth rate selector ──────────────────────────────────
+    $$('[data-growth]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            $$('[data-growth]').forEach(b => b.classList.remove('tp-seg__btn--active'));
+            btn.classList.add('tp-seg__btn--active');
+            growthRate = parseInt((btn as HTMLElement).dataset.growth || '20', 10);
+            updateAll();
+        });
+    });
+
+    // ─── Mode toggle ───────────────────────────────────────────
+    $$('[data-mode]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            $$('[data-mode]').forEach(b => b.classList.remove('tp-seg__btn--active'));
+            btn.classList.add('tp-seg__btn--active');
+            mode = ((btn as HTMLElement).dataset.mode || 'quick') as 'quick' | 'deepdive';
+            const rdQuick = g('rd-quick');
+            const rdDeep = g('rd-deep');
+            if (rdQuick) rdQuick.style.display = mode === 'quick' ? 'block' : 'none';
+            if (rdDeep) rdDeep.classList.toggle('tp-deep-wrap--on', mode === 'deepdive');
+            updateAll();
+        });
+    });
+
+    // ─── Deep Dive sum ─────────────────────────────────────────
+    function sumDeep() {
+        const sum = getInput('rdEng') + getInput('rdProd') + getInput('rdTool');
+        const el = g('deep-total');
+        if (el) el.innerHTML = sum > 0 ? `<span>${formatDollars(sum)}</span>` : '\u2014';
+        updateAll();
+    }
+
+    ['rdEng', 'rdProd', 'rdTool'].forEach(name => {
+        document.querySelector(`[data-input="${name}"]`)?.addEventListener('input', sumDeep);
+    });
+
+    // ─── All other inputs ──────────────────────────────────────
+    ['arr', 'infra', 'infraPers', 'rdOpEx', 'rdCapEx', 'engFTE', 'exitMult', 'gaapChk'].forEach(name => {
+        const el = document.querySelector(`[data-input="${name}"]`);
+        if (el) el.addEventListener(el.getAttribute('type') === 'checkbox' ? 'change' : 'input', updateAll);
+    });
+
+    // ─── Build inputs from DOM ─────────────────────────────────
+    function buildInputs(): TechParInputs {
+        const gaapEl = document.querySelector('[data-input="gaapChk"]') as HTMLInputElement | null;
+        return {
+            arr: getInput('arr'),
+            stage: stageKey as TechParInputs['stage'],
+            mode,
+            capexView: gaapEl?.checked ? 'gaap' : 'cash',
+            growthRate,
+            exitMultiple: getInput('exitMult') || 12,
+            infraHosting: getInput('infra'),
+            infraPersonnel: getInput('infraPers'),
+            rdOpEx: getInput('rdOpEx'),
+            rdCapEx: getInput('rdCapEx'),
+            engFTE: getInput('engFTE'),
+            engCost: getInput('rdEng'),
+            prodCost: getInput('rdProd'),
+            toolingCost: getInput('rdTool'),
+        };
+    }
+
+    function runCompute() {
+        return compute(buildInputs());
+    }
+
+    // ─── Main update ───────────────────────────────────────────
+    function updateAll() {
+        const inputs = buildInputs();
+        const r = compute(inputs);
+
+        // Exit field visibility
+        const showExit = stageKey === 'pe' || stageKey === 'enterprise';
+        g('exit-field')?.classList.toggle('tp-exit-field--vis', showExit);
+
+        // CapEx toggle visibility
+        const hasCapEx = getInput('rdCapEx') > 0;
+        g('capex-row')?.classList.toggle('tp-capex-row--vis', hasCapEx);
+        if (!hasCapEx) {
+            const chk = document.querySelector('[data-input="gaapChk"]') as HTMLInputElement;
+            if (chk) chk.checked = false;
+        }
+
+        // Analysis button
+        const btnAnalysis = document.querySelector('[data-btn-analysis]') as HTMLButtonElement;
+        if (btnAnalysis) btnAnalysis.disabled = !r;
+
+        // Tab completion checks
+        const profileDone = inputs.arr > 0;
+        const costsDone = r !== null;
+        g('check="profile"')
+        document.querySelector('[data-check="profile"]')?.classList.toggle('tp-tab__check--on', profileDone);
+        document.querySelector('[data-check="costs"]')?.classList.toggle('tp-tab__check--on', costsDone);
+
+        // Analysis badge
+        const analysisAlert = r && (r.zone === 'above' || r.zone === 'elevated' || r.zone === 'critical');
+        document.querySelector('[data-badge="analysis"]')?.classList.toggle('tp-tab__badge--on', !!analysisAlert);
+
+        if (!r) {
+            // Show empty states
+            g('analysis-empty')?.classList.remove('tp-empty--hidden');
+            g('analysis-content')?.classList.remove('tp-analysis-content--on');
+            g('traj-empty')?.classList.remove('tp-empty--hidden');
+            g('traj-content')?.classList.remove('tp-traj-content--on');
+            if (trajChart) { trajChart.destroy(); trajChart = null; }
+            return;
+        }
+
+        // Show content
+        g('analysis-empty')?.classList.add('tp-empty--hidden');
+        g('analysis-content')?.classList.add('tp-analysis-content--on');
+        g('traj-empty')?.classList.add('tp-empty--hidden');
+        g('traj-content')?.classList.add('tp-traj-content--on');
+
+        renderAnalysis(r);
+        // Only render trajectory if that tab is active
+        if (document.querySelector('[data-panel="trajectory"]')?.classList.contains('tp-panel--active')) {
+            renderTrajectory(r);
+        }
+    }
+
+    // ─── Analysis render ───────────────────────────────────────
+    function renderAnalysis(r: TechParResult) {
+        const zoneCol = getStyle(zoneColorVar(r.zone));
+        const zoneBg = getStyle(zoneBgVar(r.zone));
+        const s = r.stageConfig;
+        const gaapEl = document.querySelector('[data-input="gaapChk"]') as HTMLInputElement;
+        const isGAAP = gaapEl?.checked ?? false;
+
+        // Hero number
+        const heroNum = g('hero-num');
+        if (heroNum) {
+            heroNum.textContent = formatPercent(r.totalTechPct);
+            heroNum.style.color = zoneCol;
+        }
+
+        // Basis label
+        const heroBasis = g('hero-basis');
+        if (heroBasis) {
+            heroBasis.textContent = isGAAP ? 'GAAP basis: R&D CapEx excluded' : 'Cash basis';
+            heroBasis.style.color = isGAAP ? getStyle('--techpar-zone-above') : '';
+        }
+
+        // Zone pill
+        const pillContainer = g('hero-zone-pill');
+        if (pillContainer) {
+            pillContainer.innerHTML = `<div class="tp-zone-pill" style="border-color:${zoneCol};background:${zoneBg};color:${zoneCol}"><span class="tp-zone-dot" style="background:${zoneCol}"></span>${zoneLabel(r.zone)}</div>`;
+        }
+
+        // Benchmark bar
+        const maxB = s.zones.critical * 1.2;
+        const bw = Math.min(r.totalTechPct / maxB * 100, 100);
+        const benchFill = g('bench-fill');
+        if (benchFill) {
+            benchFill.style.width = `${bw}%`;
+            benchFill.style.background = zoneCol;
+        }
+        const mid = (s.zones.lo + s.zones.hi) / 2;
+        const benchMid = g('bench-mid');
+        if (benchMid) benchMid.textContent = `\u25BC ${mid.toFixed(0)}% midpoint`;
+        const benchMax = g('bench-max');
+        if (benchMax) benchMax.textContent = maxB.toFixed(0) + '%';
+
+        // Benchmark table active row
+        $$('[data-bench-row]').forEach(tr => {
+            tr.classList.toggle('tp-btbl--active', (tr as HTMLElement).dataset.benchRow === stageKey);
+        });
+
+        // Signal card
+        const copy = SIGNAL_COPY[stageKey as TechParInputs['stage']]?.[r.zone];
+        const sigStage = g('sig-stage');
+        if (sigStage) sigStage.textContent = s.label;
+        const sigZone = g('sig-zone');
+        if (sigZone) { sigZone.textContent = zoneLabel(r.zone); sigZone.style.color = zoneCol; }
+        const sigHead = g('sig-head');
+        if (sigHead) { sigHead.textContent = copy?.headline || ''; sigHead.style.color = zoneCol; }
+        const sigBody = g('sig-body');
+        if (sigBody) sigBody.textContent = copy?.body || '';
+        const sigMets = g('sig-mets');
+        if (sigMets) sigMets.innerHTML = buildMetrics(r, zoneCol, s);
+
+        // KPI grid
+        const kpiGrid = g('kpi-grid');
+        if (kpiGrid) {
+            let cells = '';
+            const kc = (l: string, v: string, sub: string, cls: string = '') =>
+                `<div class="tp-kpi-cell"><div class="tp-kpi-lbl">${l}</div><div class="tp-kpi-val${cls ? ' tp-kpi-val--' + cls : ''}">${v}</div>${sub ? `<div class="tp-kpi-sub">${sub}</div>` : ''}</div>`;
+
+            cells += `<div class="tp-kpi-cell tp-kpi-cell--highlight"><div class="tp-kpi-lbl">Annual tech cost</div><div class="tp-kpi-val">${formatDollars(r.total)}</div><div class="tp-kpi-sub">${isGAAP ? 'GAAP' : 'cash basis'}</div></div>`;
+            cells += kc('Infra hosting', formatPercent(r.kpis.infraHostingPct), `bench ${s.benchmarks.infraHosting[0]}\u2013${s.benchmarks.infraHosting[1]}%`, kpiClass(r.kpis.infraHostingPct, s.benchmarks.infraHosting[0], s.benchmarks.infraHosting[1]));
+            if (r.kpis.infraPersonnelPct !== null) cells += kc('Infra personnel', formatPercent(r.kpis.infraPersonnelPct), `bench ${s.benchmarks.infraPersonnel[0]}\u2013${s.benchmarks.infraPersonnel[1]}%`, kpiClass(r.kpis.infraPersonnelPct, s.benchmarks.infraPersonnel[0], s.benchmarks.infraPersonnel[1]));
+            if (r.kpis.rdOpExPct !== null) cells += kc('R&D OpEx', formatPercent(r.kpis.rdOpExPct), `bench ${s.benchmarks.rdOpEx[0]}\u2013${s.benchmarks.rdOpEx[1]}%`, kpiClass(r.kpis.rdOpExPct, s.benchmarks.rdOpEx[0], s.benchmarks.rdOpEx[1]));
+            if (r.kpis.rdCapExPct !== null) cells += kc('R&D CapEx % rev', formatPercent(r.kpis.rdCapExPct), 'capitalized dev');
+            if (r.kpis.rdCapExOfRD !== null) cells += kc('CapEx of total R&D', formatPercent(r.kpis.rdCapExOfRD), `bench ${s.benchmarks.rdCapExOfRD[0]}\u2013${s.benchmarks.rdCapExOfRD[1]}%`);
+            cells += kc('Blended infra', formatPercent(r.kpis.blendedInfra), 'hosting + personnel');
+            if (r.kpis.revenuePerEngineer !== null) cells += kc('Revenue / engineer', formatDollars(r.kpis.revenuePerEngineer), 'ARR per engineering FTE');
+            if (r.kpis.engPctOfRD !== null) cells += kc('Engineering % R&D', formatPercent(r.kpis.engPctOfRD), '');
+            if (r.kpis.prodPctOfRD !== null) cells += kc('Product % R&D', formatPercent(r.kpis.prodPctOfRD), '');
+            kpiGrid.innerHTML = cells;
+        }
+
+        // Category bars
+        const catSection = g('cat-section');
+        const catBars = g('cat-bars');
+        if (catSection && catBars) {
+            if (r.categories.length >= 2) {
+                catSection.classList.add('tp-cat-section--on');
+                let bHtml = '';
+                r.categories.forEach(cat => {
+                    const catCol = getStyle(cat.colorVar);
+                    const pct = cat.pctArr;
+                    const benchHi = cat.benchmarkHi > 0 ? cat.benchmarkHi : pct * 1.5;
+                    const maxV = Math.max(pct, benchHi) * 1.2;
+                    const fw = Math.min(pct / maxV * 100, 100);
+                    const bx = cat.benchmarkLo > 0 ? cat.benchmarkLo / maxV * 100 : 0;
+                    const bw = cat.benchmarkHi > 0 ? (cat.benchmarkHi - cat.benchmarkLo) / maxV * 100 : 0;
+                    bHtml += `<div class="tp-cat-row">
+                        <div class="tp-cat-meta">
+                            <div class="tp-cat-name"><span class="tp-cat-dot" style="width:7px;height:7px;border-radius:50%;background:${catCol}"></span>${cat.label}</div>
+                            <div style="display:flex;align-items:baseline;gap:var(--spacing-sm)">
+                                <span class="tp-cat-pct" style="color:${catCol}">${formatPercent(pct)}</span>
+                                ${cat.benchmarkHi > 0 ? `<span class="tp-cat-bench">bench ${cat.benchmarkLo}\u2013${cat.benchmarkHi}%</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="tp-cat-track">
+                            ${cat.benchmarkHi > 0 ? `<div class="tp-cat-band" style="left:${bx}%;width:${bw}%"></div>` : ''}
+                            <div class="tp-cat-fill" style="width:${fw}%;background:${catCol}"></div>
+                        </div>
+                    </div>`;
+                });
+                catBars.innerHTML = bHtml;
+            } else {
+                catSection.classList.remove('tp-cat-section--on');
+            }
+        }
+
+        // Context block
+        const exitMult = getInput('exitMult') || 12;
+        const annualImpact = r.stageConfig.key === 'seed' ? 0 : buildInputs().arr * 0.01 * exitMult;
+        const ctxBlock = g('ctx-block');
+        if (ctxBlock) {
+            ctxBlock.innerHTML = `For PE-backed and enterprise companies, total technology cost above the healthy ceiling translates directly to EBITDA compression and exit value. At a <strong style="color:var(--text-light-primary)">${exitMult}&times;</strong> revenue multiple, each 1% of ARR in excess technology spend represents <strong style="color:var(--color-primary)">${formatDollars(annualImpact)}</strong> in exit value per year.`;
+        }
+    }
+
+    function buildMetrics(r: TechParResult, col: string, s: StageConfig): string {
+        let h = '';
+        if (r.zone === 'underinvest') {
+            h = `<div class="tp-sig-met"><div class="tp-sig-mlbl">Investment to healthy floor: 36 months</div>
+                <div class="tp-sig-mval" style="color:${col}">${formatDollars(r.gap.underinvestGap)}</div></div>`;
+        } else if (r.zone === 'ahead') {
+            h = `<div class="tp-sig-met"><div class="tp-sig-mlbl">Annual advantage vs ${s.zones.hi}% ceiling</div>
+                <div class="tp-sig-mval" style="color:${col}">${formatDollars(r.gap.annualAdvantage)}</div></div>`;
+        } else if (r.zone !== 'healthy') {
+            h = `<div class="tp-sig-met"><div class="tp-sig-mlbl">Excess above ${s.zones.hi}% ceiling: 36 months</div>
+                <div class="tp-sig-mval" style="color:${col}">${formatDollars(r.gap.cumulative36)}</div></div>`;
+            if (s.frame === 'dollars') {
+                const exitMult = getInput('exitMult') || 12;
+                h += `<div class="tp-sig-met" style="margin-top:var(--spacing-sm)"><div class="tp-sig-mlbl">Exit value at ${exitMult}&times;</div>
+                    <div class="tp-sig-mval" style="color:var(--color-primary)">${formatDollars(r.gap.exitValue)}</div>
+                    <div class="tp-sig-msub">recoverable through optimization</div></div>`;
+            } else {
+                h += `<div class="tp-sig-met" style="margin-top:var(--spacing-sm);padding-top:var(--spacing-sm);border-top:1px solid var(--border-light)">
+                    <div class="tp-sig-note">At ${s.label}, trajectory matters more than the current number. The key question is whether this ratio declines as revenue scales.</div></div>`;
+            }
+        }
+        return h;
+    }
+
+    // ─── Trajectory render ─────────────────────────────────────
+    function renderTrajectory(r: TechParResult) {
+        const s = r.stageConfig;
+        const zoneCol = getStyle(zoneColorVar(r.zone));
+
+        // Note banner
+        const note = g('traj-note');
+        if (note) {
+            note.className = 'tp-traj-note' + (s.frame === 'convergence' ? ' tp-traj-note--convergence' : '');
+            note.textContent = s.note;
+        }
+
+        // Trajectory signal card
+        const copy = SIGNAL_COPY[stageKey as TechParInputs['stage']]?.[r.zone];
+        const tsStage = g('ts-stage');
+        if (tsStage) tsStage.textContent = s.label;
+        const tsZone = g('ts-zone');
+        if (tsZone) { tsZone.textContent = zoneLabel(r.zone); tsZone.style.color = zoneCol; }
+        const tsHead = g('ts-head');
+        if (tsHead) { tsHead.textContent = copy?.headline || ''; tsHead.style.color = zoneCol; }
+        const tsBody = g('ts-body');
+        if (tsBody) tsBody.textContent = copy?.body || '';
+        const tsMets = g('ts-mets');
+        if (tsMets) tsMets.innerHTML = buildMetrics(r, zoneCol, s);
+
+        // Build chart data
+        const inputs = buildInputs();
+        const traj = buildTrajectory(inputs, s);
+
+        if (trajChart) { trajChart.destroy(); trajChart = null; }
+
+        const canvas = document.querySelector('[data-traj-canvas]') as HTMLCanvasElement;
+        if (!canvas) return;
+
+        const bandFill = getStyle('--techpar-chart-band-fill');
+        const bandBorder = getStyle('--techpar-chart-band-border');
+        const underFill = getStyle('--techpar-chart-under-fill');
+        const revLineCol = getStyle('--techpar-chart-revenue-line');
+        const txtMuted = getStyle('--text-light-muted');
+        const borderLight = getStyle('--border-light');
+        const bgLight = getStyle('--bg-light-alt');
+
+        const datasets: any[] = [
+            { label: '_z', data: Array(37).fill(0), borderColor: 'transparent', borderWidth: 0, pointRadius: 0, fill: false },
+            { label: '_uf', data: traj.underFloor, borderColor: `${getStyle('--techpar-zone-underinvest')}4d`, borderWidth: 1, borderDash: [3, 3], pointRadius: 0, fill: { target: '-1', above: underFill, below: 'transparent' }, tension: 0.3 },
+            { label: '_blo', data: traj.bandLo, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, fill: false, tension: 0.3 },
+            { label: 'Healthy range', data: traj.bandHi, borderColor: bandBorder, borderWidth: 1, borderDash: [4, 3], pointRadius: 0, fill: { target: '-1', above: bandFill, below: 'transparent' }, tension: 0.3 },
+            { label: 'Total tech cost', data: traj.spend, borderColor: zoneCol, borderWidth: 2, pointRadius: 0, fill: false, tension: 0.3 },
+        ];
+
+        if (s.frame === 'convergence') {
+            datasets.push({
+                label: 'Monthly revenue',
+                data: traj.revenue,
+                borderColor: revLineCol,
+                borderWidth: 1,
+                borderDash: [2, 4],
+                pointRadius: 0,
+                fill: false,
+                tension: 0.3,
+            });
+        }
+
+        const maxY = Math.max(...traj.spend, ...traj.bandHi, ...(s.frame === 'convergence' ? traj.revenue : [])) * 1.12;
+
+        trajChart = new Chart(canvas.getContext('2d')!, {
+            type: 'line',
+            data: { labels: traj.labels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 320, easing: 'easeInOutCubic' },
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: {
+                            color: txtMuted,
+                            font: { family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif", size: 9 },
+                            boxWidth: 8,
+                            padding: 10,
+                            filter: (item: any) => !item.text.startsWith('_'),
+                        },
+                    },
+                    tooltip: {
+                        backgroundColor: bgLight,
+                        titleColor: getStyle('--text-light-primary'),
+                        bodyColor: txtMuted,
+                        borderColor: borderLight,
+                        borderWidth: 1,
+                        padding: 8,
+                        titleFont: { family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif", size: 9 },
+                        bodyFont: { family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif", size: 9 },
+                        filter: (item: any) => !item.dataset.label.startsWith('_'),
+                        callbacks: {
+                            title: (c: any) => `Month ${c[0].dataIndex}`,
+                            label: (c: any) => `${c.dataset.label}: ${formatDollars(c.parsed.y)}/mo`,
+                        },
+                    },
+                },
+                scales: {
+                    x: {
+                        grid: { color: borderLight + '33', lineWidth: 0.5 },
+                        ticks: { color: txtMuted, font: { family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif", size: 9 }, maxTicksLimit: 7 },
+                    },
+                    y: {
+                        min: 0,
+                        max: maxY,
+                        grid: { color: borderLight + '33', lineWidth: 0.5 },
+                        ticks: {
+                            color: txtMuted,
+                            font: { family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif", size: 9 },
+                            callback: (v: any) => formatDollars(v as number),
+                        },
+                    },
+                },
+            },
+        });
+
+        // User position dot
+        setTimeout(() => {
+            if (!trajChart) return;
+            const meta = trajChart.getDatasetMeta(4);
+            if (meta?.data?.[0]) {
+                const pt = meta.data[0];
+                const dot = document.querySelector('[data-traj-dot]') as HTMLElement;
+                if (dot) {
+                    dot.style.background = zoneCol;
+                    dot.style.boxShadow = `0 0 0 5px ${zoneCol}33`;
+                    dot.style.left = pt.x + 'px';
+                    dot.style.top = pt.y + 'px';
+                    dot.style.display = 'block';
+                }
+            }
+        }, 60);
+
+        // Legend
+        const legItems = [
+            { sw: `background:${underFill};border:1px solid ${getStyle('--techpar-zone-underinvest')}66`, l: 'Underinvestment zone' },
+            { sw: `background:${bandFill};border:1px solid ${bandBorder}`, l: `Healthy range (${s.zones.lo}\u2013${s.zones.hi}%)` },
+            { sw: `background:transparent;border:2px solid ${zoneCol};border-radius:50%;width:9px;height:9px`, l: 'Your position today' },
+        ];
+        if (s.frame === 'convergence') {
+            legItems.push({ sw: `background:transparent;border-top:1px dashed ${revLineCol}`, l: 'Monthly revenue' });
+        }
+        const legend = g('traj-legend');
+        if (legend) {
+            legend.innerHTML = legItems.map(x =>
+                `<div class="tp-tleg"><div class="tp-tleg__sw" style="${x.sw}"></div>${x.l}</div>`
+            ).join('');
+        }
+    }
+
+    // ─── Init ──────────────────────────────────────────────────
+    updateAll();
+</script>
+</BaseLayout>
