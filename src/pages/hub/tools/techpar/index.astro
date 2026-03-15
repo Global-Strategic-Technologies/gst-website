@@ -1266,15 +1266,21 @@ trackPageView('techpar', 'TechPar | GST');
         }
 
         .tp-nav-row {
-            flex-direction: column;
+            position: sticky;
+            bottom: 0;
+            z-index: 8;
+            background: var(--bg-light);
+            padding: var(--spacing-sm) 0 var(--spacing-md);
+            border-top: 1px solid var(--border-light);
+            flex-direction: column-reverse;
+            gap: var(--spacing-sm);
         }
 
+        .tp-btn-next,
         .tp-btn-back {
-            order: 2;
-        }
-
-        .tp-btn-next {
-            order: 1;
+            width: 100%;
+            justify-content: center;
+            min-height: 48px;
         }
 
         .tp-tab__label {
