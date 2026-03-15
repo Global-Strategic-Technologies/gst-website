@@ -140,11 +140,10 @@ const domainCount = DOMAINS.length;
                         <!-- Actions row -->
                         <div class="icg-actions">
                             <button data-action="copy" type="button" class="icg-btn-secondary" title="Copy a shareable link that preserves your answers and dismissed recommendations">Copy link</button>
-                            <button data-action="print" type="button" class="icg-btn-secondary">Print / Save as PDF</button>
+                            <button data-action="print" type="button" class="icg-btn-secondary" title="Your browser will open a print dialog. Select Save as PDF to download.">Print / Save as PDF</button>
                             <a data-action="email" href="#" class="icg-btn-secondary icg-btn-secondary--link" title="Open a pre-filled email with your results link. The recipient can complete the assessment independently.">Send to engineering lead</a>
                             <button data-action="reset" type="button" class="icg-btn-secondary">Start over</button>
                         </div>
-                        <div class="icg-actions-note text-tiny">Your browser will open a print dialog. Select Save as PDF to download.</div>
                     </div>
                 </div>
 
@@ -832,11 +831,6 @@ const domainCount = DOMAINS.length;
         border-top-color: rgba(5, 205, 153, 0.1);
     }
 
-    .icg-actions-note {
-        color: var(--text-light-muted);
-        margin-top: var(--spacing-sm);
-    }
-
     /* ── Landing: Actions ─────────────────────────────────────────────────── */
     .landing-actions {
         display: flex;
@@ -983,7 +977,6 @@ const domainCount = DOMAINS.length;
         .icg-section :global(footer),
         .icg-back-link,
         .icg-actions,
-        .icg-actions-note,
         [data-view="landing"],
         [data-view="wizard"] {
             display: none !important;
@@ -1120,7 +1113,7 @@ function emailHref(context: 'landing' | 'results', score?: number): string {
   if (context === 'landing') {
     return `mailto:?subject=${encodeURIComponent('Infrastructure Cost Governance Assessment')}&body=${encodeURIComponent('Use this tool to identify useful opportunities for cloud cost optimization:\n\n' + baseUrl)}`;
   }
-  return `mailto:?subject=${encodeURIComponent('Cloud Cost Assessment - ' + score + '/100')}&body=${encodeURIComponent('Here are potential opportunities for improvement that were identified for your consideration:\n\n' + window.location.href)}`;
+  return `mailto:?subject=${encodeURIComponent('Infrastructure Cost Governance - ' + score + '/100')}&body=${encodeURIComponent('Here are potential opportunities for improvement that were identified for your consideration:\n\n' + window.location.href)}`;
 }
 
 // ─── Render ─────────────────────────────────────────────────────────────────
