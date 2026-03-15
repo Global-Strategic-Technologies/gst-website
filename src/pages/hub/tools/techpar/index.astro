@@ -26,22 +26,34 @@ trackPageView('techpar', 'TechPar | GST');
                 <!-- Tab bar -->
                 <div class="tp-tab-bar" data-tab-bar>
                     <button class="tp-tab tp-tab--active" data-tab="profile" type="button">
-                        <span class="tp-tab__icon" aria-hidden="true">&#9632;</span>
+                        <svg class="tp-tab__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
                         <span class="tp-tab__label">Profile</span>
                         <span class="tp-tab__check" data-check="profile" aria-label="Complete">&#10003;</span>
                     </button>
                     <button class="tp-tab" data-tab="costs" type="button">
-                        <span class="tp-tab__icon" aria-hidden="true">&#9889;</span>
+                        <svg class="tp-tab__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
                         <span class="tp-tab__label">Costs</span>
                         <span class="tp-tab__check" data-check="costs" aria-label="Complete">&#10003;</span>
                     </button>
                     <button class="tp-tab" data-tab="analysis" type="button">
-                        <span class="tp-tab__icon" aria-hidden="true">&#9670;</span>
+                        <svg class="tp-tab__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
                         <span class="tp-tab__label">Analysis</span>
                         <span class="tp-tab__badge" data-badge="analysis"></span>
                     </button>
                     <button class="tp-tab" data-tab="trajectory" type="button">
-                        <span class="tp-tab__icon" aria-hidden="true">&#8599;</span>
+                        <svg class="tp-tab__icon" width="16" height="16" viewBox="9 9 46 46" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="miter" aria-hidden="true">
+                            <path d="M32 12 L52 52 L12 52 Z"></path>
+                        </svg>
                         <span class="tp-tab__label">Trajectory</span>
                     </button>
                 </div>
@@ -422,8 +434,9 @@ trackPageView('techpar', 'TechPar | GST');
     }
 
     .tp-tab__icon {
-        font-size: var(--text-sm);
-        line-height: 1;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
     }
 
     .tp-tab__label {
@@ -1276,9 +1289,9 @@ trackPageView('techpar', 'TechPar | GST');
 
 <script>
     import { Chart, registerables } from 'chart.js';
-    import { compute, buildTrajectory, getZone, zoneColorVar, zoneBgVar, zoneLabel, kpiClass, formatDollars, formatPercent, DEFAULT_INPUTS } from '../../../../utils/techpar-engine';
-    import type { TechParInputs, TechParResult, StageConfig, Zone, Frame } from '../../../../utils/techpar-engine';
-    import { STAGES, STAGE_KEYS } from '../../../../data/techpar/stages';
+    import { compute, buildTrajectory, zoneColorVar, zoneBgVar, zoneLabel, kpiClass, formatDollars, formatPercent } from '../../../../utils/techpar-engine';
+    import type { TechParInputs, TechParResult, StageConfig } from '../../../../utils/techpar-engine';
+    import { STAGES } from '../../../../data/techpar/stages';
     import { SIGNAL_COPY } from '../../../../data/techpar/signal-copy';
 
     Chart.register(...registerables);
@@ -1290,7 +1303,6 @@ trackPageView('techpar', 'TechPar | GST');
     let trajChart: Chart | null = null;
 
     // ─── DOM helpers ───────────────────────────────────────────
-    const $ = (sel: string) => document.querySelector(sel) as HTMLElement | null;
     const $$ = (sel: string) => document.querySelectorAll(sel);
     const g = (attr: string) => document.querySelector(`[data-${attr}]`) as HTMLElement | null;
 
