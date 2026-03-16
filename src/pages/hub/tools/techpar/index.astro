@@ -757,9 +757,11 @@ trackPageView('techpar', 'TechPar | GST');
         display: flex;
         border: 1px solid var(--text-light-muted);
         overflow: hidden;
+        max-width: 280px;
     }
 
     .tp-seg__btn {
+        flex: 1;
         padding: var(--spacing-sm) var(--spacing-lg);
         font-family: var(--font-family);
         font-size: var(--text-xs);
@@ -769,6 +771,7 @@ trackPageView('techpar', 'TechPar | GST');
         border-right: 1px solid var(--text-light-muted);
         cursor: pointer;
         transition: all var(--transition-fast);
+        text-align: center;
     }
 
     .tp-seg__btn:last-child {
@@ -1332,7 +1335,8 @@ trackPageView('techpar', 'TechPar | GST');
             grid-template-columns: repeat(3, 1fr);
         }
 
-        .tp-input-wrap {
+        .tp-input-wrap,
+        .tp-seg {
             max-width: 100%;
         }
     }
