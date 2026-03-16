@@ -50,6 +50,7 @@ trackPageView('techpar', 'TechPar | GST');
                         </svg>
                         <span class="tp-tab__label">Trajectory</span>
                     </button>
+                    <button class="tp-tab-reset" data-action="reset" type="button" title="Reset all inputs">Reset</button>
                 </div>
 
                 <!-- ── TAB: PROFILE ──────────────────────────────────── -->
@@ -403,6 +404,29 @@ trackPageView('techpar', 'TechPar | GST');
 
     .tp-tab-bar::-webkit-scrollbar {
         display: none;
+    }
+
+    .tp-tab-reset {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        background: transparent;
+        border: none;
+        color: var(--text-light-muted);
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: color var(--transition-fast);
+        white-space: nowrap;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    .tp-tab-reset:hover {
+        color: var(--text-light-primary);
     }
 
     .tp-tab {
@@ -1381,8 +1405,54 @@ trackPageView('techpar', 'TechPar | GST');
             else if (action === 'go-profile') goTab('profile');
             else if (action === 'go-analysis') goTab('analysis');
             else if (action === 'go-trajectory') goTab('trajectory');
+            else if (action === 'reset') resetAll();
         });
     });
+
+    // ─── Reset ──────────────────────────────────────────────────
+    function resetAll() {
+        // Clear all inputs
+        document.querySelectorAll<HTMLInputElement>('.techpar-shell input').forEach(el => {
+            if (el.type === 'checkbox') el.checked = false;
+            else if (el.dataset.input === 'exitMult') el.value = '12';
+            else el.value = '';
+        });
+
+        // Reset JS state to defaults
+        stageKey = 'series_bc';
+        growthRate = 20;
+        mode = 'quick';
+
+        // Reset stage cards
+        $$('.tp-stage-card').forEach(c => c.classList.remove('tp-stage-card--active'));
+        document.querySelector('[data-stage="series_bc"]')?.classList.add('tp-stage-card--active');
+
+        // Reset growth buttons
+        $$('[data-growth]').forEach(b => b.classList.remove('tp-seg__btn--active'));
+        document.querySelector('[data-growth="20"]')?.classList.add('tp-seg__btn--active');
+
+        // Reset mode toggle
+        $$('[data-mode]').forEach(b => b.classList.remove('tp-seg__btn--active'));
+        document.querySelector('[data-mode="quick"]')?.classList.add('tp-seg__btn--active');
+        const rdQuick = g('rd-quick');
+        const rdDeep = g('rd-deep');
+        if (rdQuick) rdQuick.style.display = 'block';
+        if (rdDeep) rdDeep.classList.remove('tp-deep-wrap--on');
+
+        // Reset deep-dive sum
+        const deepTotal = g('deep-total');
+        if (deepTotal) deepTotal.innerHTML = '\u2014';
+
+        // Clear ARR chip highlights
+        document.querySelectorAll('.tp-arr-chip').forEach(c => c.classList.remove('tp-arr-chip--active'));
+
+        // Destroy trajectory chart
+        if (trajChart) { trajChart.destroy(); trajChart = null; }
+
+        // Re-run update and go to profile tab
+        updateAll();
+        goTab('profile');
+    }
 
     // ─── Stage selector ────────────────────────────────────────
     $$('.tp-stage-card').forEach(card => {
