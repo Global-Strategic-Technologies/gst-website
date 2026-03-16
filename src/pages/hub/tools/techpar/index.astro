@@ -163,6 +163,13 @@ trackPageView('techpar', 'TechPar | GST');
                         <span class="tp-sec-label label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--infra"></span>Infrastructure and hosting</span>
                         <div class="tp-field">
                             <label class="tp-field__label text-small" for="tp-infra">Monthly cloud spend <span class="tp-field__req">(required)</span></label>
+                            <div class="tp-arr-quick">
+                                <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="5000" type="button">$5K</button>
+                                <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="15000" type="button">$15K</button>
+                                <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="50000" type="button">$50K</button>
+                                <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="150000" type="button">$150K</button>
+                                <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="500000" type="button">$500K</button>
+                            </div>
                             <div class="tp-input-wrap">
                                 <span class="tp-input-pre">$</span>
                                 <input type="number" id="tp-infra" data-input="infra" min="0" step="1000" placeholder="0" />
@@ -177,6 +184,13 @@ trackPageView('techpar', 'TechPar | GST');
                         <span class="tp-sec-label label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--pers"></span>Infrastructure personnel</span>
                         <div class="tp-field">
                             <label class="tp-field__label text-small" for="tp-infra-pers">Annual fully-loaded cost</label>
+                            <div class="tp-arr-quick">
+                                <button class="tp-arr-chip" data-preset-for="infraPers" data-preset-val="250000" type="button">$250K</button>
+                                <button class="tp-arr-chip" data-preset-for="infraPers" data-preset-val="500000" type="button">$500K</button>
+                                <button class="tp-arr-chip" data-preset-for="infraPers" data-preset-val="1000000" type="button">$1M</button>
+                                <button class="tp-arr-chip" data-preset-for="infraPers" data-preset-val="2000000" type="button">$2M</button>
+                                <button class="tp-arr-chip" data-preset-for="infraPers" data-preset-val="5000000" type="button">$5M</button>
+                            </div>
                             <div class="tp-input-wrap">
                                 <span class="tp-input-pre">$</span>
                                 <input type="number" id="tp-infra-pers" data-input="infraPers" min="0" step="10000" placeholder="&#8212;" />
@@ -193,6 +207,13 @@ trackPageView('techpar', 'TechPar | GST');
                         <div data-rd-quick>
                             <div class="tp-field">
                                 <label class="tp-field__label text-small" for="tp-rd-opex">Annual fully-loaded cost <span class="tp-field__req">(required)</span></label>
+                                <div class="tp-arr-quick">
+                                    <button class="tp-arr-chip" data-preset-for="rdOpEx" data-preset-val="1000000" type="button">$1M</button>
+                                    <button class="tp-arr-chip" data-preset-for="rdOpEx" data-preset-val="3000000" type="button">$3M</button>
+                                    <button class="tp-arr-chip" data-preset-for="rdOpEx" data-preset-val="5000000" type="button">$5M</button>
+                                    <button class="tp-arr-chip" data-preset-for="rdOpEx" data-preset-val="10000000" type="button">$10M</button>
+                                    <button class="tp-arr-chip" data-preset-for="rdOpEx" data-preset-val="25000000" type="button">$25M</button>
+                                </div>
                                 <div class="tp-input-wrap">
                                     <span class="tp-input-pre">$</span>
                                     <input type="number" id="tp-rd-opex" data-input="rdOpEx" min="0" step="100000" placeholder="0" />
@@ -1556,6 +1577,23 @@ trackPageView('techpar', 'TechPar | GST');
             updateAll();
         });
     }
+
+    // ─── Cost preset chips ────────────────────────────────────
+    document.querySelectorAll<HTMLButtonElement>('[data-preset-for]').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const inputName = chip.dataset.presetFor!;
+            const val = Number(chip.dataset.presetVal);
+            const input = document.querySelector(`[data-input="${inputName}"]`) as HTMLInputElement | null;
+            if (!input) return;
+            const current = parseFloat(input.value) || 0;
+            input.value = val === current ? '' : String(val);
+            // Sync chip highlights for this input group
+            document.querySelectorAll<HTMLButtonElement>(`[data-preset-for="${inputName}"]`).forEach(c => {
+                c.classList.toggle('tp-arr-chip--active', Number(c.dataset.presetVal) === (val === current ? 0 : val));
+            });
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+    });
 
     // ─── Build inputs from DOM ─────────────────────────────────
     function buildInputs(): TechParInputs {
