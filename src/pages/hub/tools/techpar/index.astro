@@ -93,9 +93,17 @@ trackPageView('techpar', 'TechPar | GST');
                         <span class="tp-sec-label label">Revenue</span>
                         <div class="tp-field">
                             <label class="tp-field__label text-small" for="tp-arr">ARR or TTM Revenue <span class="tp-field__req">(required)</span></label>
+                            <div class="tp-arr-quick" data-arr-quick>
+                                <button class="tp-arr-chip" data-arr-val="5000000" type="button">$5M</button>
+                                <button class="tp-arr-chip" data-arr-val="10000000" type="button">$10M</button>
+                                <button class="tp-arr-chip" data-arr-val="25000000" type="button">$25M</button>
+                                <button class="tp-arr-chip" data-arr-val="50000000" type="button">$50M</button>
+                                <button class="tp-arr-chip" data-arr-val="100000000" type="button">$100M</button>
+                                <button class="tp-arr-chip" data-arr-val="250000000" type="button">$250M</button>
+                            </div>
                             <div class="tp-input-wrap">
                                 <span class="tp-input-pre">$</span>
-                                <input type="number" id="tp-arr" data-input="arr" min="0" step="1000000" placeholder="0" />
+                                <input type="text" id="tp-arr" data-input="arr" data-arr-display inputmode="numeric" placeholder="e.g. 12,500,000" autocomplete="off" />
                             </div>
                         </div>
                     </div>
@@ -587,7 +595,8 @@ trackPageView('techpar', 'TechPar | GST');
         pointer-events: none;
     }
 
-    .techpar-shell input[type=number] {
+    .techpar-shell input[type=number],
+    .techpar-shell input[data-arr-display] {
         width: 100%;
         background: var(--bg-light-alt);
         border: 1px solid var(--border-light);
@@ -605,7 +614,8 @@ trackPageView('techpar', 'TechPar | GST');
         -webkit-appearance: none;
     }
 
-    .techpar-shell input[type=number]:focus {
+    .techpar-shell input[type=number]:focus,
+    .techpar-shell input[data-arr-display]:focus {
         border-color: var(--color-primary);
     }
 
@@ -615,6 +625,43 @@ trackPageView('techpar', 'TechPar | GST');
 
     .techpar-shell input[type=number].tp-input--has-suf {
         padding-right: var(--spacing-2xl);
+    }
+
+    /* ── ARR quick-pick chips ──────────────────────────────────── */
+    .tp-arr-quick {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-arr-chip {
+        background: var(--bg-light-alt);
+        border: 1px solid var(--border-light);
+        color: var(--text-light-secondary);
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        white-space: nowrap;
+    }
+
+    .tp-arr-chip:hover {
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+    }
+
+    .tp-arr-chip--active {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: var(--bg-dark);
+    }
+
+    .tp-arr-chip--active:hover {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: var(--bg-dark);
     }
 
     /* ── Stage grid ───────────────────────────────────────────── */
@@ -1310,7 +1357,8 @@ trackPageView('techpar', 'TechPar | GST');
 
     function getInput(name: string): number {
         const el = document.querySelector(`[data-input="${name}"]`) as HTMLInputElement | null;
-        return parseFloat(el?.value || '') || 0;
+        const raw = el?.value?.replace(/,/g, '') || '';
+        return parseFloat(raw) || 0;
     }
 
     function getStyle(varName: string): string {
@@ -1396,10 +1444,60 @@ trackPageView('techpar', 'TechPar | GST');
     });
 
     // ─── All other inputs ──────────────────────────────────────
-    ['arr', 'infra', 'infraPers', 'rdOpEx', 'rdCapEx', 'engFTE', 'exitMult', 'gaapChk'].forEach(name => {
+    ['infra', 'infraPers', 'rdOpEx', 'rdCapEx', 'engFTE', 'exitMult', 'gaapChk'].forEach(name => {
         const el = document.querySelector(`[data-input="${name}"]`);
         if (el) el.addEventListener(el.getAttribute('type') === 'checkbox' ? 'change' : 'input', updateAll);
     });
+
+    // ─── ARR: comma formatting + quick-pick chips ─────────────
+    const arrInput = document.getElementById('tp-arr') as HTMLInputElement | null;
+    const arrChips = document.querySelectorAll<HTMLButtonElement>('[data-arr-val]');
+
+    function formatWithCommas(n: number): string {
+        return n.toLocaleString('en-US');
+    }
+
+    function setArrValue(val: number) {
+        if (!arrInput) return;
+        arrInput.value = val > 0 ? formatWithCommas(val) : '';
+        arrInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function syncArrChips() {
+        const current = getInput('arr');
+        arrChips.forEach(chip => {
+            const chipVal = Number(chip.dataset.arrVal);
+            chip.classList.toggle('tp-arr-chip--active', chipVal === current && current > 0);
+        });
+    }
+
+    arrChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            const val = Number(chip.dataset.arrVal);
+            const current = getInput('arr');
+            // Toggle off if same value clicked again
+            setArrValue(val === current ? 0 : val);
+            syncArrChips();
+        });
+    });
+
+    if (arrInput) {
+        arrInput.addEventListener('input', () => {
+            const raw = arrInput.value.replace(/[^0-9]/g, '');
+            const num = parseInt(raw, 10);
+            if (raw && !isNaN(num)) {
+                // Preserve cursor position relative to end
+                const distFromEnd = arrInput.value.length - (arrInput.selectionStart || 0);
+                arrInput.value = formatWithCommas(num);
+                const newPos = Math.max(0, arrInput.value.length - distFromEnd);
+                arrInput.setSelectionRange(newPos, newPos);
+            } else if (!raw) {
+                arrInput.value = '';
+            }
+            syncArrChips();
+            updateAll();
+        });
+    }
 
     // ─── Build inputs from DOM ─────────────────────────────────
     function buildInputs(): TechParInputs {
