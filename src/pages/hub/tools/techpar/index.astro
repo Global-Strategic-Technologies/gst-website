@@ -415,9 +415,9 @@ trackPageView('techpar', 'TechPar | GST');
         display: flex;
         align-items: stretch;
         position: sticky;
-        top: 44px;
-        z-index: 9;
-        background: var(--bg-light);
+        top: 0;
+        z-index: 11;
+        background-color: var(--bg-light);
         border-bottom: 1px solid var(--border-light);
         overflow-x: auto;
         scrollbar-width: none;
@@ -605,6 +605,7 @@ trackPageView('techpar', 'TechPar | GST');
 
     .tp-input-wrap {
         position: relative;
+        max-width: 280px;
     }
 
     .tp-input-pre {
@@ -1329,6 +1330,10 @@ trackPageView('techpar', 'TechPar | GST');
     @media (max-width: 768px) {
         .tp-stage-grid {
             grid-template-columns: repeat(3, 1fr);
+        }
+
+        .tp-input-wrap {
+            max-width: 100%;
         }
     }
 
