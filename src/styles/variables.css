@@ -137,7 +137,7 @@
   --techpar-chart-band-fill: rgba(5, 205, 153, 0.12);
   --techpar-chart-band-border: rgba(5, 205, 153, 0.35);
   --techpar-chart-under-fill: rgba(204, 136, 0, 0.07);
-  --techpar-chart-revenue-line: rgba(26, 26, 26, 0.25);
+  --techpar-chart-revenue-line: rgba(26, 26, 26, 0.55);
 
   /* TechPar — KPI Colors */
   --techpar-kpi-positive: var(--color-primary);
@@ -210,7 +210,7 @@ html.dark-theme {
 
   /* TechPar — Chart Colors (dark theme) */
   --techpar-chart-under-fill: rgba(255, 170, 51, 0.07);
-  --techpar-chart-revenue-line: rgba(200, 200, 200, 0.25);
+  --techpar-chart-revenue-line: rgba(200, 200, 200, 0.6);
 
   /* TechPar — KPI Colors (dark theme) */
   --techpar-kpi-warn: #FFAA33;

@@ -1997,8 +1997,8 @@ trackPageView('techpar', 'TechPar | GST');
                 label: 'Monthly revenue',
                 data: traj.revenue,
                 borderColor: revLineCol,
-                borderWidth: 1,
-                borderDash: [2, 4],
+                borderWidth: 2,
+                borderDash: [6, 4],
                 pointRadius: 0,
                 fill: false,
                 tension: 0.3,
@@ -2084,7 +2084,7 @@ trackPageView('techpar', 'TechPar | GST');
             { sw: `background:transparent;border:2px solid ${zoneCol};border-radius:50%;width:9px;height:9px`, l: 'Your position today' },
         ];
         if (s.frame === 'convergence') {
-            legItems.push({ sw: `background:transparent;border-top:1px dashed ${revLineCol}`, l: 'Monthly revenue' });
+            legItems.push({ sw: `background:transparent;border-top:2px dashed ${revLineCol}`, l: 'Monthly revenue' });
         }
         const legend = g('traj-legend');
         if (legend) {
