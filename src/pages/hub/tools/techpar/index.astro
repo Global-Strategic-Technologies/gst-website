@@ -327,8 +327,8 @@ trackPageView('techpar', 'TechPar | GST');
                     <!-- Empty state -->
                     <div class="tp-empty" data-analysis-empty>
                         <svg class="tp-empty__sym" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="miter" aria-hidden="true"><path d="M12 52 L32 12 L52 52" fill="none"></path></svg>
-                        <div class="tp-empty__msg text-small">Enter ARR and infrastructure spend<br/>on the Costs tab to compute TechPar.</div>
-                        <button class="tp-empty__cta" data-action="go-costs" type="button">Go to costs &rarr;</button>
+                        <div class="tp-empty__msg text-small" data-analysis-empty-msg>Enter ARR on the Profile tab<br/>to compute TechPar.</div>
+                        <button class="tp-empty__cta" data-action="go-profile" data-analysis-empty-cta type="button">Go to profile &rarr;</button>
                     </div>
 
                     <!-- Content -->
@@ -1763,6 +1763,17 @@ trackPageView('techpar', 'TechPar | GST');
         document.querySelector('[data-badge="analysis"]')?.classList.toggle('tp-tab__badge--on', !!analysisAlert);
 
         if (!r) {
+            // Update analysis empty state to point at the missing required field
+            const missingArr = !inputs.arr;
+            const emptyMsg = document.querySelector('[data-analysis-empty-msg]');
+            const emptyCta = document.querySelector('[data-analysis-empty-cta]') as HTMLButtonElement | null;
+            if (emptyMsg) emptyMsg.textContent = missingArr
+                ? 'Enter your ARR on the Profile tab\nto compute TechPar.'
+                : 'Enter infrastructure spend on the\nCosts tab to compute TechPar.';
+            if (emptyCta) {
+                emptyCta.dataset.action = missingArr ? 'go-profile' : 'go-costs';
+                emptyCta.textContent = missingArr ? 'Go to profile →' : 'Go to costs →';
+            }
             // Show empty states
             g('analysis-empty')?.classList.remove('tp-empty--hidden');
             g('analysis-content')?.classList.remove('tp-analysis-content--on');
