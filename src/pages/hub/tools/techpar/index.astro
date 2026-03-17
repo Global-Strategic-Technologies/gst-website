@@ -418,16 +418,6 @@ trackPageView('techpar', 'TechPar | GST');
                         </div>
                         <div class="tp-traj-legend" data-traj-legend></div>
 
-                        <!-- Trajectory signal card -->
-                        <div class="tp-signal" data-traj-signal>
-                            <div class="tp-signal__stage label-small" data-ts-stage></div>
-                            <div class="tp-signal__zone label-small" data-ts-zone></div>
-                            <div class="tp-signal__head heading-sm" data-ts-head></div>
-                            <div class="tp-signal__body text-base" data-ts-body></div>
-                            <div class="tp-signal__div"></div>
-                            <div data-ts-mets></div>
-                        </div>
-
                         <div class="tp-nav-row">
                             <button class="tp-btn-back" data-action="go-analysis" type="button">&larr; Analysis</button>
                         </div>
@@ -1976,19 +1966,6 @@ trackPageView('techpar', 'TechPar | GST');
             note.className = 'tp-traj-note' + (s.frame === 'convergence' ? ' tp-traj-note--convergence' : '');
             note.textContent = (isUnder && s.noteUnder) ? s.noteUnder : s.note;
         }
-
-        // Trajectory signal card
-        const copy = SIGNAL_COPY[stageKey as TechParInputs['stage']]?.[r.zone];
-        const tsStage = g('ts-stage');
-        if (tsStage) tsStage.textContent = s.label;
-        const tsZone = g('ts-zone');
-        if (tsZone) { tsZone.textContent = zoneLabel(r.zone); tsZone.style.color = zoneCol; }
-        const tsHead = g('ts-head');
-        if (tsHead) { tsHead.textContent = copy?.headline || ''; tsHead.style.color = zoneCol; }
-        const tsBody = g('ts-body');
-        if (tsBody) tsBody.textContent = copy?.body || '';
-        const tsMets = g('ts-mets');
-        if (tsMets) tsMets.innerHTML = buildMetrics(r, zoneCol, s);
 
         // Build chart data
         const inputs = buildInputs();
