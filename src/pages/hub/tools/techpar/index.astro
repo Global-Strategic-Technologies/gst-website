@@ -593,6 +593,16 @@ trackPageView('techpar', 'TechPar | GST');
         gap: var(--spacing-sm);
     }
 
+    .tp-section:has(.tp-sec-label--cat) > .tp-field,
+    .tp-section:has(.tp-sec-label--cat) > [data-rd-quick],
+    .tp-section:has(.tp-sec-label--cat) > [data-rd-deep],
+    .tp-section:has(.tp-sec-label--cat) > .tp-deep-wrap,
+    .tp-section:has(.tp-sec-label--cat) > .tp-hint {
+        padding-left: var(--spacing-lg);
+        border-left: 2px solid var(--border-light);
+        margin-left: var(--spacing-xs);
+    }
+
     .tp-cat-dot {
         width: 7px;
         height: 7px;
