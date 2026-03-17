@@ -250,11 +250,18 @@ test.describe('Tech Debt Calculator', () => {
       await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
       await jsClick(page, '[data-advanced-toggle]');
+      await page.waitForFunction(() =>
+        document.querySelector('[data-advanced-toggle]')?.getAttribute('aria-expanded') === 'true'
+      );
       await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
       await jsClick(page, '[data-advanced-toggle]');
+      await page.waitForFunction(() =>
+        document.querySelector('[data-advanced-toggle]')?.getAttribute('aria-expanded') === 'false'
+      );
       await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     });
+
 
     test('toggle label text updates when opened and closed', async ({ page }) => {
       await gotoCalc(page);
