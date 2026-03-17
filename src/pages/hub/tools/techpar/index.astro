@@ -1918,8 +1918,10 @@ trackPageView('techpar', 'TechPar | GST');
             const isUnder = r.zone === 'underinvest';
             if (isOver && r.stageConfig.key !== 'seed') {
                 const exitMult = getInput('exitMult') || 12;
-                const annualImpact = buildInputs().arr * 0.01 * exitMult;
-                ctxBlock.innerHTML = `For PE-backed and enterprise companies, total technology cost above the healthy ceiling translates directly to EBITDA compression and exit value. At a <strong style="color:var(--text-light-primary)">${exitMult}&times;</strong> revenue multiple, each 1% of ARR in excess technology spend represents <strong style="color:var(--color-primary)">${formatDollars(annualImpact)}</strong> in exit value per year.`;
+                const excessPct = (r.totalTechPct - s.zones.hi).toFixed(1);
+                const annualDrag = buildInputs().arr * (r.totalTechPct - s.zones.hi) / 100;
+                const exitDrag = annualDrag * exitMult;
+                ctxBlock.innerHTML = `You are <strong style="color:var(--text-light-primary)">${excessPct}%</strong> above the ${s.zones.hi}% ceiling — <strong style="color:var(--color-primary)">${formatDollars(annualDrag)}</strong> in annual excess spend. At a ${exitMult}&times; revenue multiple that represents <strong style="color:var(--color-primary)">${formatDollars(exitDrag)}</strong> in recoverable exit value. Identify the highest-cost categories above and prioritise optimisation there first.`;
             } else if (isUnder) {
                 const floorPct = s.zones.lo;
                 const annualGap = buildInputs().arr * (floorPct - r.totalTechPct) / 100;
