@@ -276,6 +276,13 @@ trackPageView('techpar', 'TechPar | GST');
 
                         <div class="tp-field" data-fte-field>
                             <label class="tp-field__label text-tiny" for="tp-eng-fte">Engineering headcount (FTEs)</label>
+                            <div class="tp-arr-quick">
+                                <button class="tp-arr-chip" data-preset-for="engFTE" data-preset-val="5" type="button">5</button>
+                                <button class="tp-arr-chip" data-preset-for="engFTE" data-preset-val="10" type="button">10</button>
+                                <button class="tp-arr-chip" data-preset-for="engFTE" data-preset-val="25" type="button">25</button>
+                                <button class="tp-arr-chip" data-preset-for="engFTE" data-preset-val="50" type="button">50</button>
+                                <button class="tp-arr-chip" data-preset-for="engFTE" data-preset-val="100" type="button">100</button>
+                            </div>
                             <div class="tp-input-wrap">
                                 <input type="number" id="tp-eng-fte" data-input="engFTE" class="tp-input--no-pre" min="0" step="1" placeholder="&#8212;" />
                             </div>
@@ -288,6 +295,13 @@ trackPageView('techpar', 'TechPar | GST');
                         <span class="tp-sec-label label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--capex"></span>R&D CapEx</span>
                         <div class="tp-field">
                             <label class="tp-field__label text-small" for="tp-rd-capex">Annual capitalized software development</label>
+                            <div class="tp-arr-quick">
+                                <button class="tp-arr-chip" data-preset-for="rdCapEx" data-preset-val="500000" type="button">$500K</button>
+                                <button class="tp-arr-chip" data-preset-for="rdCapEx" data-preset-val="1000000" type="button">$1M</button>
+                                <button class="tp-arr-chip" data-preset-for="rdCapEx" data-preset-val="2000000" type="button">$2M</button>
+                                <button class="tp-arr-chip" data-preset-for="rdCapEx" data-preset-val="5000000" type="button">$5M</button>
+                                <button class="tp-arr-chip" data-preset-for="rdCapEx" data-preset-val="10000000" type="button">$10M</button>
+                            </div>
                             <div class="tp-input-wrap">
                                 <span class="tp-input-pre">$</span>
                                 <input type="number" id="tp-rd-capex" data-input="rdCapEx" min="0" step="100000" placeholder="&#8212;" />
