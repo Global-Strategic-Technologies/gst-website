@@ -36,9 +36,10 @@ test.describe('Terms Page', () => {
       await expect(container).toBeVisible();
     });
 
-    test('should have correct page title containing "Terms and Conditions"', async ({ page }) => {
+    test('should have correct page title', async ({ page }) => {
       const title = await page.title();
-      expect(title).toContain('Terms and Conditions');
+      expect(title).toContain('Terms');
+      expect(title).toContain('GST');
     });
 
     test('should display h1 heading "Terms and Conditions"', async ({ page }) => {
