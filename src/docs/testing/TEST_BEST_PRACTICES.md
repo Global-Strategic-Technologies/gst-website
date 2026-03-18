@@ -557,6 +557,7 @@ If your test has any of these, it's likely a false positive:
 22. ✗ Source code uses `setTimeout` for navigation/state changes without saving and clearing the timer ID
 23. ✗ Assumes `page.evaluate()` mocks survive `page.goto()` — mocks are lost on navigation, must be re-applied
 24. ✗ Dispatches mouse events to test CSS `:hover` styles — pseudo-class state cannot be activated via JS
+25. ✗ Relies on implicit UI defaults (pre-selected stage, pre-filled growth rate) instead of explicitly setting required state — breaks when defaults are removed or changed
 
 ## E2E Cross-Browser Pitfalls
 
@@ -941,6 +942,41 @@ test('should track events across pages', async ({ page }) => {
 
 **Key principle:** Any `page.evaluate()`-based mock must be re-applied after every `page.goto()`. If your test navigates between pages, call the mock setup function again. Route-based mocks (`page.route()`) persist across navigations because they operate at the network layer, not the page context.
 
+### 21. ❌ Relying on Implicit UI Defaults Instead of Explicit Setup
+
+Tests that depend on a page's default selections (e.g., "Series B-C is pre-selected on load") are brittle. When the UX is improved to require explicit user choices — or when defaults are changed — every test that skipped the setup step breaks simultaneously.
+
+This was discovered in the TechPar tool: 13 E2E tests relied on `series_bc` being the default company stage. When the default was removed (forcing users to make an intentional choice), all 13 tests failed because `buildInputs()` returned `null` without a stage selection.
+
+**Bad:**
+```typescript
+// ❌ Assumes series_bc is pre-selected — breaks when default is removed
+test('should enable analysis button', async ({ page }) => {
+  await gotoTool(page);
+  await fillInput(page, 'arr', '10000000');
+  await clickTab(page, 'costs');
+  await fillInput(page, 'infra', '50000');
+  const btn = page.locator('[data-btn-analysis]');
+  await expect(btn).toBeEnabled(); // Fails: no stage selected → compute returns null
+});
+```
+
+**Good:**
+```typescript
+// ✅ Explicitly sets all required state — survives default changes
+test('should enable analysis button', async ({ page }) => {
+  await gotoTool(page);
+  await selectStage(page, 'series_bc');  // Explicit — no implicit dependency
+  await fillInput(page, 'arr', '10000000');
+  await clickTab(page, 'costs');
+  await fillInput(page, 'infra', '50000');
+  const btn = page.locator('[data-btn-analysis]');
+  await expect(btn).toBeEnabled();
+});
+```
+
+**Key principle:** Every test should explicitly set up its own required state. Never rely on what happens to be selected when the page loads — those defaults are a UX decision that can change. Extract a helper (e.g., `selectStage()`) so the setup is clean and consistent across tests.
+
 ### 20. ❌ Simulating CSS `:hover` with JavaScript Events in Headless Browsers
 
 CSS `:hover` is a browser-internal pseudo-class state. Dispatching `mouseenter`, `mouseover`, or `pointerover` events via JavaScript does **not** activate `:hover` styles in headless browsers (and often not in headed mode either). Tests that dispatch mouse events and then assert on `:hover` CSS properties always fail.
@@ -1042,3 +1078,4 @@ The key principle: **Test what users experience, not implementation details.**
 - ✗ Don't use meaningless assertions
 - ✗ Don't use arbitrary timeouts
 - ✗ Don't assume CSS classes mean functionality works
+- ✗ Don't rely on implicit UI defaults — explicitly set all required state in each test
