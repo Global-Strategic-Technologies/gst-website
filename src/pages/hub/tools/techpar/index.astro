@@ -93,7 +93,6 @@ trackPageView('techpar', 'TechPar | GST');
                         <div class="tp-field">
                             <label class="tp-field__label text-small" for="tp-arr">ARR or TTM Revenue <span class="tp-field__req">(required)</span></label>
                             <div class="tp-arr-quick" data-arr-quick>
-                                <button class="tp-arr-chip" data-arr-val="5000000" type="button">$5M</button>
                                 <button class="tp-arr-chip" data-arr-val="10000000" type="button">$10M</button>
                                 <button class="tp-arr-chip" data-arr-val="25000000" type="button">$25M</button>
                                 <button class="tp-arr-chip" data-arr-val="50000000" type="button">$50M</button>
@@ -715,7 +714,6 @@ trackPageView('techpar', 'TechPar | GST');
         margin-bottom: var(--spacing-sm);
         border: 1px solid var(--text-light-muted);
         overflow: hidden;
-        max-width: 280px;
     }
 
     .tp-arr-chip {
@@ -897,6 +895,11 @@ trackPageView('techpar', 'TechPar | GST');
     /* ── Exit field visibility ────────────────────────────────── */
     .tp-exit-field {
         display: none;
+    }
+
+    .tp-exit-field .tp-arr-quick,
+    .tp-exit-field .tp-input-wrap {
+        max-width: 280px;
     }
 
     .tp-exit-field--vis {
