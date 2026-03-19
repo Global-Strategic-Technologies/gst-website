@@ -1,0 +1,327 @@
+# TechPar — Improvement Roadmap
+
+**Tool**: [/hub/tools/techpar](/hub/tools/techpar)
+**Source**: [src/pages/hub/tools/techpar/index.astro](../../pages/hub/tools/techpar/index.astro)
+**Engine**: [src/utils/techpar-engine.ts](../../utils/techpar-engine.ts)
+**Stages**: [src/data/techpar/stages.ts](../../data/techpar/stages.ts)
+**Signal Copy**: [src/data/techpar/signal-copy.ts](../../data/techpar/signal-copy.ts)
+**Tests**: [tests/unit/techpar-engine.test.ts](../../../tests/unit/techpar-engine.test.ts), [tests/e2e/techpar.test.ts](../../../tests/e2e/techpar.test.ts)
+**Last Assessed**: March 2026
+
+---
+
+## Current State Summary
+
+TechPar is a technology cost structure benchmarking tool that computes a blended technology cost ratio against stage-adjusted ranges. It serves PE diligence, IC packages, board reporting, and sell-side preparation workflows. The tool is built on a pure, stateless TypeScript engine with full unit and E2E test coverage.
+
+### Strengths
+
+- **Stage-aware benchmarking** — 5 stages (Seed → Enterprise) with distinct zone thresholds; most generic calculators miss this entirely
+- **Signal copy quality** — 30 stage×zone combinations produce contextual guidance that reads like it was written by a technology diligence partner
+- **36-month gap analysis** — translates excess spend into cumulative dollar impact and exit value multiples; the most persuasive output for IC memos
+- **Progressive disclosure** — Quick vs Deep Dive modes serve different audience depths without cluttering the default experience
+- **Quick-pick chips** — preset buttons calibrated per input range reduce time-to-result to ~30 seconds
+- **Pure engine architecture** — all functions are stateless and side-effect free; directly testable without DOM dependencies
+- **Good test coverage** — dedicated unit tests for all engine functions plus E2E tests for all 4 tabs and interaction flows
+
+### Known Issues
+
+| Category | Issue | Severity |
+|---|---|---|
+| UX | No URL state persistence — refresh resets all inputs; results cannot be shared or bookmarked | High |
+| UX | No export path — no way to carry results into a slide deck, memo, or IC package | High |
+| UX | No scenario comparison — cannot contrast current vs. post-optimization in one view | High |
+| UX | No data persistence (localStorage or URL) — multi-hour diligence sessions lose state on refresh | High |
+| Calculation | R&D CapEx has no benchmark range — always classified as `zone: 'healthy'` with `benchmarkLo: 0, benchmarkHi: 0` | Medium |
+| Calculation | Growth rate accepts 1–500% with no reasonableness guard — extreme values produce unreadable trajectory charts | Low |
+| Labeling | Trajectory chart "Total tech cost" dataset label is ambiguous — plotted as monthly dollars but label doesn't say "monthly" | Medium |
+| Labeling | Benchmark sources are undated — disclaimer cites surveys without edition years | Low |
+| Localization | Currency is USD-only — no support for EUR, GBP, or other currencies used by international PE firms | Medium |
+| Responsiveness | Trajectory chart cramped on tablet/mobile — labels overlap at `height: min(42vh, 280px)` | Low |
+| Architecture | 2,187-line single file (`index.astro`) — all markup, styles, and client script in one file | Low |
+
+---
+
+## Roadmap
+
+### Priority 1 — Shareable State & Export
+
+**Effort: S–XS each | Impact: High**
+
+The primary audience takes TechPar outputs into diligence conversations, IC memos, and board decks. Results currently evaporate on refresh — the single highest-friction gap for every stated use case.
+
+**Initiatives:**
+
+1. **URL-encoded state persistence**
+   - Serialize all `TechParInputs` fields plus `stageKey`, `growthRate`, and `mode` into URL search params on every `updateAll()` call
+   - Deserialize on mount before initial `updateAll()` — restore stage card selection, growth button highlight, mode toggle, and all input values
+   - Use `URLSearchParams` + compact key names (e.g., `a` for ARR, `s` for stage, `ih` for infraHosting) to keep URLs shareable
+   - Zero backend required; works with Astro SSG
+   - Enables browser back/forward navigation through input states
+
+2. **Copy link button**
+   - Single button in the Analysis tab footer copies the current URL (with encoded state) to clipboard
+   - Visual confirmation: button text changes to "Copied" for 2 seconds
+   - Uses `navigator.clipboard.writeText()` with fallback for older browsers
+
+3. **Plain-text export (Copy Summary)**
+   - "Copy Summary" button on the Analysis tab formats a structured text block:
+     ```
+     TechPar Analysis — [Stage Label]
+     ARR: $25.0M | Growth: 20% | Basis: Cash
+
+     Total technology cost: 42.3% of revenue ($10.6M/yr)
+     Zone: Above par
+
+     Infra hosting:    12.8% (bench 8–18%)
+     Infra personnel:   4.2% (bench 2–6%)
+     R&D OpEx:         22.1% (bench 25–40%)
+     R&D CapEx:         3.2%
+
+     36-month excess above 55% ceiling: $2.1M
+     Exit value at 12×: $25.2M
+
+     Generated by TechPar | globalstrategic.tech/hub/tools/techpar
+     ```
+   - Suitable for pasting into email, Slack, or memo documents
+
+4. **Print stylesheet**
+   - `@media print` CSS that:
+     - Hides tab bar and navigation buttons
+     - Expands Analysis panel to full width regardless of active tab
+     - Shows trajectory chart below analysis (both visible on print)
+     - Adds page header with "TechPar Analysis — [Date]"
+   - Enables browser Print → Save as PDF workflow
+
+---
+
+### Priority 2 — Data Persistence
+
+**Effort: S | Impact: High**
+
+URL state (P1-1) handles shareability. localStorage handles the "I refreshed by accident" case and session continuity.
+
+**Initiative:**
+
+5. **localStorage session persistence**
+   - Save all input state to `localStorage.setItem('techpar-state', JSON.stringify(state))` on every `updateAll()` call
+   - On mount, check for saved state before URL params (URL params take precedence when present)
+   - Wrap in try-catch for private browsing / quota-exceeded scenarios (consistent with ThemeToggle pattern)
+   - "Reset" button clears localStorage alongside DOM state
+   - No expiry — state persists until explicit reset or manual clear
+
+---
+
+### Priority 3 — Scenario Comparison Mode
+
+**Effort: M | Impact: High**
+
+The engine is already stateless and pure — `compute()` returns a full `TechParResult` for any `TechParInputs`. Comparison is a UI-only addition.
+
+**Initiative:**
+
+6. **Baseline snapshot & comparison overlay**
+   - "Set as Baseline" button on the Analysis tab freezes current `TechParResult` in memory
+   - KPI grid gains delta indicators: each KPI cell shows `↓ 3.2%` or `↑ $1.2M` change from baseline
+   - Primary hero number shows both current and baseline values (e.g., `42.3% ← 51.7%`)
+   - Signal card shows both zone pills when zone has changed
+   - Trajectory chart overlays baseline spend line as a dashed secondary series
+   - "Clear Baseline" button restores single-result view
+   - Baseline is stored in memory only (not persisted) — intentionally ephemeral for "what if" workflows
+   - Use case: "What if we cut infra spend by 30%?" — set baseline, reduce infra input, see delta
+
+---
+
+### Priority 4 — Labeling & Benchmark Accuracy
+
+**Effort: XS each | Impact: Medium**
+
+Quick fixes that improve trust and clarity without touching the calculation model.
+
+**Initiatives:**
+
+7. **Rename trajectory chart dataset label**
+   - Change `label: 'Total tech cost'` to `label: 'Monthly tech spend'` in the chart dataset (line 2076 of index.astro)
+   - Tooltip already shows `/mo` suffix — this aligns the legend with the tooltip
+   - Update corresponding legend item text
+
+8. **Date benchmark sources**
+   - Update the disclaimer text to include edition years:
+     ```
+     Ranges informed by KeyBanc 2024 SaaS Survey, OpenView 2024 Benchmarks,
+     Bessemer State of the Cloud 2024, and GST engagement experience (2023–2025).
+     Individual results vary based on business model and organizational structure.
+     ```
+   - Add a note: "Benchmarks are reviewed annually."
+
+9. **Add R&D CapEx benchmark range**
+   - Currently hardcoded to `benchmarkLo: 0, benchmarkHi: 0` in `compute()` (line 296)
+   - The `rdCapExOfRD` benchmark exists per stage in `stages.ts` — derive an absolute CapEx-as-%-of-revenue range from the R&D OpEx and CapEx-of-R&D benchmarks
+   - Alternative: display the existing CapEx-of-R&D benchmark inline instead of leaving the category bar without a benchmark band
+   - Requires adding a `rdCapEx` benchmark tuple to `StageConfig.benchmarks` in `stages.ts`
+
+10. **Growth rate reasonableness warning**
+    - When `growthRate > 100`, show an inline hint below the custom input: "Growth above 100% produces a compressed trajectory. Verify this matches your planning model."
+    - No hard cap — users should be able to enter what they want, but informed
+
+---
+
+### Priority 5 — Currency Support
+
+**Effort: S | Impact: Medium**
+
+PE firms operate globally. International portfolio companies report in EUR, GBP, or other currencies.
+
+**Initiative:**
+
+11. **Currency selector**
+    - Dropdown on the Profile tab: USD / EUR / GBP / CAD / AUD (5 currencies covers >90% of PE deal flow)
+    - Applies a display-only prefix change to all formatted outputs — no new math
+    - `formatDollars()` in `techpar-engine.ts` gains an optional `currency` param that changes the symbol (`$`, `€`, `£`, `C$`, `A$`)
+    - Quick-pick chip labels update to match selected currency
+    - All calculations remain currency-agnostic (user enters values in their local currency; benchmarks are percentages)
+    - Persisted in URL state and localStorage alongside other inputs
+    - Default remains USD
+
+---
+
+### Priority 6 — Trajectory Chart Improvements
+
+**Effort: S | Impact: Medium**
+
+Improves readability of the most visual output, especially on smaller screens and at extreme growth rates.
+
+**Initiatives:**
+
+12. **Y-axis label clarity**
+    - Add axis title "Monthly spend ($)" to the y-axis via Chart.js `scales.y.title`
+    - Ensures the chart is self-documenting even when screenshotted without surrounding context
+
+13. **Responsive chart height**
+    - Increase mobile chart height from `min(42vh, 280px)` to `min(50vh, 340px)`
+    - Add `maxTicksLimit: 5` to y-axis ticks on mobile to reduce label overlap
+    - Consider `devicePixelRatio: 1` on Chart.js for crisper rendering on high-DPI mobile screens
+
+14. **Growth rate chart guard**
+    - When growth rate > 100%, auto-scale y-axis max to prevent the revenue line from compressing all other series to the baseline
+    - Cap displayed revenue line at 2× the above-ceiling band if revenue grows beyond that; show a "Revenue exceeds chart scale" annotation
+
+---
+
+### Priority 7 — Workbench Integration
+
+**Effort: S | Impact: High**
+
+Surfaces TechPar in context where PE users are already working within the GST Hub.
+
+**Initiative:**
+
+15. **Diligence Machine cross-link**
+    - When the Diligence Machine output flags technology cost risk signals, render a CTA card linking to TechPar
+    - Pre-populate URL state based on inputs already collected (ARR, team size, stage)
+    - Navigation/UX change only — no new data infrastructure
+
+16. **Tech Debt Calculator cross-link**
+    - When TechPar identifies elevated or critical R&D spend, add a contextual link to the Tech Debt Calculator
+    - Pre-populate team size and salary range from TechPar's engineering FTE and R&D cost inputs
+    - Appears in the signal card metrics area, only when R&D OpEx zone is elevated or critical
+
+---
+
+### Priority 8 — Architecture & Maintainability
+
+**Effort: M | Impact: Low (quality/maintainability)**
+
+The 2,187-line single file works but creates maintenance friction as features are added.
+
+**Initiatives:**
+
+17. **Extract client script to dedicated module**
+    - Move the `<script>` block (lines 1513–2186) to `src/scripts/techpar-ui.ts`
+    - Import into the Astro page via `<script src="...">` or inline import
+    - Keeps markup, styles, and behavior in separate files
+    - No behavioral change — purely organizational
+
+18. **DOM integration tests**
+    - Add Vitest + JSDOM tests covering:
+      - Tab navigation: clicking each tab shows correct panel
+      - Stage selection: clicking a stage card updates state and triggers recalculation
+      - Mode toggle: Quick → Deep Dive shows/hides correct input sections
+      - URL state round-trip: encode state → parse URL → verify inputs restored correctly
+      - Reset: all inputs cleared, state restored to defaults
+    - Complements existing engine unit tests and E2E tests
+
+19. **JSON-LD structured data**
+    - Add `SoftwareApplication` schema to the page `<head>`:
+      ```json
+      {
+        "@type": "SoftwareApplication",
+        "name": "TechPar",
+        "description": "Technology cost structure analysis tool for PE diligence and portfolio company benchmarking",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "offers": { "@type": "Offer", "price": "0" }
+      }
+      ```
+    - Low discoverability value but zero runtime cost
+
+---
+
+## Effort / Impact Summary
+
+| # | Initiative | Effort | Impact | Priority |
+|---|---|---|---|---|
+| 1 | URL-encoded state persistence | S | High | P1 |
+| 2 | Copy link button | XS | High | P1 |
+| 3 | Plain-text export (Copy Summary) | XS | High | P1 |
+| 4 | Print stylesheet | XS | Medium | P1 |
+| 5 | localStorage session persistence | S | High | P2 |
+| 6 | Baseline snapshot & comparison | M | High | P3 |
+| 7 | Rename trajectory chart label | XS | Medium | P4 |
+| 8 | Date benchmark sources | XS | Medium | P4 |
+| 9 | Add R&D CapEx benchmark range | S | Medium | P4 |
+| 10 | Growth rate reasonableness warning | XS | Low | P4 |
+| 11 | Currency selector | S | Medium | P5 |
+| 12 | Y-axis label clarity | XS | Medium | P6 |
+| 13 | Responsive chart height | XS | Medium | P6 |
+| 14 | Growth rate chart guard | S | Low | P6 |
+| 15 | Diligence Machine cross-link | S | High | P7 |
+| 16 | Tech Debt Calculator cross-link | S | Medium | P7 |
+| 17 | Extract client script to module | S | Low | P8 |
+| 18 | DOM integration tests | M | Low | P8 |
+| 19 | JSON-LD structured data | XS | Low | P8 |
+
+**Highest-ROI cluster**: P1 (initiatives 1–4) — minimal code changes, maximum impact for the PE diligence workflow. All four can be implemented entirely within `index.astro` with no new dependencies.
+
+---
+
+## Implementation Notes
+
+- **P1 URL encoding** should use compact single-letter keys to keep URLs under 2,000 characters (safe for all browsers and messaging platforms). Example: `?s=pe&a=25000000&ih=50000&ip=500000&ro=3000000&rc=1000000&g=20&em=12&m=q&cv=cash`
+- **P1 Copy Summary** reuses existing `formatDollars()` and `formatPercent()` — no new formatting logic needed
+- **P2 localStorage** must wrap in try-catch consistent with the project's existing ThemeToggle pattern
+- **P3 Baseline comparison** stores a second `TechParResult` in module scope — the engine is already pure, so calling `compute()` twice is trivial
+- **P5 Currency selector** requires only a symbol change in `formatDollars()` — the engine math is currency-agnostic since all benchmarks are percentages
+- **P8 Script extraction** is a prerequisite for P3 and P6 if the file length becomes unwieldy; can be deferred if P1–P2 changes are small
+- All CSS changes must be verified in both light and dark theme before committing
+- All new features should include corresponding E2E test coverage
+
+---
+
+## Dependencies Between Initiatives
+
+```
+P1-1 (URL state) ──► P2-5 (localStorage — URL takes precedence)
+                 ──► P7-15 (Diligence Machine pre-population uses URL params)
+                 ──► P7-16 (Tech Debt Calculator pre-population uses URL params)
+
+P3-6 (Baseline)  ──► P4-7 (chart label clarity helps interpretation of comparison overlay)
+
+P4-9 (CapEx bench) ──► requires new field in StageConfig interface in techpar-engine.ts
+```
+
+No circular dependencies. P1 is the foundational layer that unlocks P2, P7.
+
+---
+
+*Last updated: March 2026*
