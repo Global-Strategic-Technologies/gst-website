@@ -11,13 +11,27 @@ Strategic roadmap of development initiatives focused on:
 - **Test automation** (E2E and unit tests)
 - **Code quality** (Error handling validation)
 
-Each initiative includes:
-- Clear problem statement
-- Implementation cost and expected ROI
-- Code examples and implementation checklist
-- Success metrics
+### [TECHPAR_ROADMAP.md](./TECHPAR_ROADMAP.md)
+
+Improvement roadmap for the TechPar technology cost benchmarking tool (19 initiatives across 8 priority tiers):
+- **Shareable state & export** (URL encoding, copy summary, print stylesheet)
+- **Data persistence** (localStorage session continuity)
+- **Scenario comparison** (baseline snapshot & delta overlay)
+- **Labeling & benchmark accuracy** (chart labels, dated sources, CapEx benchmarks)
+- **Currency support, chart improvements, workbench integration, architecture**
+
+### [TECH_DEBT_CALC_ROADMAP.md](./TECH_DEBT_CALC_ROADMAP.md)
+
+Improvement roadmap for the Tech Debt Cost Calculator (17 initiatives across 7 priority tiers).
+
+Each roadmap includes:
+- Current state assessment with strengths and known issues
+- Prioritized initiatives with effort/impact ratings
+- Implementation notes and dependency maps
 
 ## Quick Summary
+
+### Platform Initiatives
 
 | Initiative | Priority | Effort | Start |
 |-----------|----------|--------|-------|
@@ -25,6 +39,17 @@ Each initiative includes:
 | E2E Image Tests | High | 30m | Next |
 | Unit Error Tests | Medium | 1-2h | Soon |
 | Perf Dashboard | Low | 1-2h | Later |
+
+### TechPar (Highest-ROI Cluster)
+
+| Initiative | Priority | Effort | Impact |
+|-----------|----------|--------|--------|
+| URL-encoded state | P1 | S | High |
+| Copy link button | P1 | XS | High |
+| Plain-text export | P1 | XS | High |
+| Print stylesheet | P1 | XS | Medium |
+| localStorage persistence | P2 | S | High |
+| Scenario comparison | P3 | M | High |
 
 ## Recent Performance Improvements
 
@@ -52,4 +77,4 @@ When adding new initiatives:
 
 ---
 
-*Last Updated: February 1, 2026*
+*Last Updated: March 19, 2026*
