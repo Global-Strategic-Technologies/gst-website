@@ -1383,9 +1383,21 @@ trackPageView('techpar', 'TechPar | GST');
 
     .tp-traj-legend {
         display: flex;
-        gap: var(--spacing-md);
-        flex-wrap: wrap;
+        flex-direction: column;
+        gap: var(--spacing-sm);
         margin-bottom: var(--spacing-lg);
+    }
+
+    /* Legend groups */
+    .tp-traj-legend :global(.tp-tleg-group) {
+        display: flex;
+        gap: var(--spacing-sm) var(--spacing-md);
+        flex-wrap: wrap;
+    }
+
+    .tp-traj-legend :global(.tp-tleg-group--series) {
+        padding-top: var(--spacing-xs);
+        border-top: 1px solid var(--border-light);
     }
 
     /* Trajectory legend items are injected via innerHTML */
@@ -1397,11 +1409,36 @@ trackPageView('techpar', 'TechPar | GST');
         color: var(--text-light-secondary);
     }
 
+    /* Default swatch — zone fill rectangles */
     .tp-traj-legend :global(.tp-tleg__sw) {
         width: 14px;
         height: 8px;
         border-radius: 1px;
         flex-shrink: 0;
+    }
+
+    /* Line swatch — centered horizontal line */
+    .tp-traj-legend :global(.tp-tleg--line .tp-tleg__sw) {
+        height: 0;
+        border-top-width: 2px;
+        border-top-style: solid;
+        background: transparent;
+        border-radius: 0;
+        align-self: center;
+    }
+
+    .tp-traj-legend :global(.tp-tleg--dashed .tp-tleg__sw) {
+        border-top-style: dashed;
+    }
+
+    /* Dot swatch — centered circle */
+    .tp-traj-legend :global(.tp-tleg--dot .tp-tleg__sw) {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        border-width: 2px;
+        border-style: solid;
+        background: transparent;
     }
 
     /* ── Responsive ───────────────────────────────────────────── */
@@ -1437,6 +1474,11 @@ trackPageView('techpar', 'TechPar | GST');
 
         .tp-traj-chart-wrap {
             height: min(42vh, 280px);
+        }
+
+        .tp-traj-legend :global(.tp-tleg-group--zones) {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
         }
 
         .tp-nav-row {
@@ -2050,7 +2092,7 @@ trackPageView('techpar', 'TechPar | GST');
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: { duration: 320, easing: 'easeInOutCubic' },
+                animation: false as const,
                 plugins: {
                     legend: { display: false },
                     tooltip: {
@@ -2088,40 +2130,41 @@ trackPageView('techpar', 'TechPar | GST');
             },
         });
 
-        // User position dot
-        setTimeout(() => {
-            if (!trajChart) return;
-            const meta = trajChart.getDatasetMeta(5);
-            if (meta?.data?.[0]) {
-                const pt = meta.data[0];
-                const dot = document.querySelector('[data-traj-dot]') as HTMLElement;
-                if (dot) {
-                    dot.style.background = zoneCol;
-                    dot.style.boxShadow = `0 0 0 5px ${zoneCol}33`;
-                    dot.style.left = pt.x + 'px';
-                    dot.style.top = pt.y + 'px';
-                    dot.style.display = 'block';
-                }
+        // User position dot — animation is off so coordinates are immediately available
+        const meta = trajChart.getDatasetMeta(5);
+        if (meta?.data?.[0]) {
+            const pt = meta.data[0];
+            const dot = document.querySelector('[data-traj-dot]') as HTMLElement;
+            if (dot) {
+                dot.style.background = zoneCol;
+                dot.style.boxShadow = `0 0 0 5px ${zoneCol}33`;
+                dot.style.left = pt.x + 'px';
+                dot.style.top = pt.y + 'px';
+                dot.style.display = 'block';
             }
-        }, 60);
+        }
 
-        // Legend
-        const legItems = [
+        // Legend — zones (fill swatches) + series (line/point swatches)
+        const zoneItems = [
             { sw: `background:${underFill};border:1px solid ${underBorder}`, l: `Underinvestment zone (<${s.zones.underinvest}%)` },
             { sw: `background:${aheadFill};border:1px solid ${aheadBorder}`, l: `Ahead of benchmark (${s.zones.underinvest}\u2013${s.zones.lo}%)` },
             { sw: `background:${bandFill};border:1px solid ${bandBorder}`, l: `Healthy range (${s.zones.lo}\u2013${s.zones.hi}%)` },
             { sw: `background:${aboveFill};border:1px solid ${aboveBorder}`, l: `Caution zone (>${s.zones.hi}%)` },
-            { sw: `background:transparent;border-top:2px solid ${zoneCol}`, l: 'Total tech cost' },
-            { sw: `background:transparent;border:2px solid ${zoneCol};border-radius:50%;width:9px;height:9px`, l: 'Your position today' },
+        ];
+        const seriesItems: { cls: string; sw: string; l: string }[] = [
+            { cls: 'tp-tleg--line', sw: `border-color:${zoneCol}`, l: 'Total tech cost' },
+            { cls: 'tp-tleg--dot', sw: `border-color:${zoneCol}`, l: 'Your position today' },
         ];
         if (s.frame === 'convergence') {
-            legItems.push({ sw: `background:transparent;border-top:2px dashed ${revLineCol}`, l: 'Monthly revenue' });
+            seriesItems.push({ cls: 'tp-tleg--line tp-tleg--dashed', sw: `border-color:${revLineCol}`, l: 'Monthly revenue' });
         }
+        const renderItem = (x: { cls?: string; sw: string; l: string }) =>
+            `<div class="tp-tleg ${x.cls || ''}"><div class="tp-tleg__sw" style="${x.sw}"></div>${x.l}</div>`;
         const legend = g('traj-legend');
         if (legend) {
-            legend.innerHTML = legItems.map(x =>
-                `<div class="tp-tleg"><div class="tp-tleg__sw" style="${x.sw}"></div>${x.l}</div>`
-            ).join('');
+            legend.innerHTML =
+                `<div class="tp-tleg-group tp-tleg-group--zones">${zoneItems.map(renderItem).join('')}</div>` +
+                `<div class="tp-tleg-group tp-tleg-group--series">${seriesItems.map(renderItem).join('')}</div>`;
         }
     }
 
