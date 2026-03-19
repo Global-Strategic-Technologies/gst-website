@@ -2012,6 +2012,8 @@ trackPageView('techpar', 'TechPar | GST');
         const aheadBorder = getStyle('--techpar-chart-ahead-border');
         const underFill = getStyle('--techpar-chart-under-fill');
         const underBorder = getStyle('--techpar-chart-under-border');
+        const aboveFill = getStyle('--techpar-chart-above-fill');
+        const aboveBorder = getStyle('--techpar-chart-above-border');
         const revLineCol = getStyle('--techpar-chart-revenue-line');
         const txtMuted = getStyle('--text-light-muted');
         const borderLight = getStyle('--border-light');
@@ -2022,6 +2024,7 @@ trackPageView('techpar', 'TechPar | GST');
             { label: '_uf', data: traj.underFloor, borderColor: underBorder, borderWidth: 1, borderDash: [3, 3], pointRadius: 0, fill: { target: '-1', above: underFill, below: 'transparent' }, tension: 0.3 },
             { label: '_blo', data: traj.bandLo, borderColor: aheadBorder, borderWidth: 1, borderDash: [3, 3], pointRadius: 0, fill: { target: '-1', above: aheadFill, below: 'transparent' }, tension: 0.3 },
             { label: 'Healthy range', data: traj.bandHi, borderColor: bandBorder, borderWidth: 1, borderDash: [4, 3], pointRadius: 0, fill: { target: '-1', above: bandFill, below: 'transparent' }, tension: 0.3 },
+            { label: '_ac', data: traj.aboveCeiling, borderColor: aboveBorder, borderWidth: 1, borderDash: [3, 3], pointRadius: 0, fill: { target: '-1', above: aboveFill, below: 'transparent' }, tension: 0.3 },
             { label: 'Total tech cost', data: traj.spend, borderColor: zoneCol, borderWidth: 2, pointRadius: 0, fill: false, tension: 0.3 },
         ];
 
@@ -2038,7 +2041,7 @@ trackPageView('techpar', 'TechPar | GST');
             });
         }
 
-        const maxY = Math.max(...traj.spend, ...traj.bandHi, ...(s.frame === 'convergence' ? traj.revenue : [])) * 1.12;
+        const maxY = Math.max(...traj.spend, ...traj.aboveCeiling, ...(s.frame === 'convergence' ? traj.revenue : [])) * 1.12;
 
         trajChart = new Chart(canvas.getContext('2d')!, {
             type: 'line',
@@ -2096,7 +2099,7 @@ trackPageView('techpar', 'TechPar | GST');
         // User position dot
         setTimeout(() => {
             if (!trajChart) return;
-            const meta = trajChart.getDatasetMeta(4);
+            const meta = trajChart.getDatasetMeta(5);
             if (meta?.data?.[0]) {
                 const pt = meta.data[0];
                 const dot = document.querySelector('[data-traj-dot]') as HTMLElement;
@@ -2115,6 +2118,7 @@ trackPageView('techpar', 'TechPar | GST');
             { sw: `background:${underFill};border:1px solid ${underBorder}`, l: `Underinvestment zone (<${s.zones.underinvest}%)` },
             { sw: `background:${aheadFill};border:1px solid ${aheadBorder}`, l: `Ahead of benchmark (${s.zones.underinvest}\u2013${s.zones.lo}%)` },
             { sw: `background:${bandFill};border:1px solid ${bandBorder}`, l: `Healthy range (${s.zones.lo}\u2013${s.zones.hi}%)` },
+            { sw: `background:${aboveFill};border:1px solid ${aboveBorder}`, l: `Caution zone (>${s.zones.hi}%)` },
             { sw: `background:transparent;border:2px solid ${zoneCol};border-radius:50%;width:9px;height:9px`, l: 'Your position today' },
         ];
         if (s.frame === 'convergence') {

@@ -355,6 +355,7 @@ export interface TrajectoryData {
   bandLo: number[];
   bandHi: number[];
   underFloor: number[];
+  aboveCeiling: number[];
   revenue: number[];
   frame: Frame;
 }
@@ -378,6 +379,7 @@ export function buildTrajectory(inputs: TechParInputs, config: StageConfig): Tra
   const bandLo: number[] = [];
   const bandHi: number[] = [];
   const underFloor: number[] = [];
+  const aboveCeiling: number[] = [];
   const revenue: number[] = [];
 
   for (let m = 0; m < 37; m++) {
@@ -387,8 +389,9 @@ export function buildTrajectory(inputs: TechParInputs, config: StageConfig): Tra
     bandLo.push(Math.round(rev * config.zones.lo / 100));
     bandHi.push(Math.round(rev * config.zones.hi / 100));
     underFloor.push(Math.round(rev * config.zones.underinvest / 100));
+    aboveCeiling.push(Math.round(rev * config.zones.above / 100));
     revenue.push(Math.round(rev));
   }
 
-  return { labels, spend, bandLo, bandHi, underFloor, revenue, frame: config.frame };
+  return { labels, spend, bandLo, bandHi, underFloor, aboveCeiling, revenue, frame: config.frame };
 }

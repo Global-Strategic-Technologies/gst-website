@@ -140,6 +140,8 @@
   --techpar-chart-ahead-border: rgba(33, 118, 174, 0.5);
   --techpar-chart-under-fill: rgba(224, 123, 0, 0.12);    /* amber-orange — distinct from blue/teal */
   --techpar-chart-under-border: rgba(224, 123, 0, 0.55);
+  --techpar-chart-above-fill: rgba(217, 54, 54, 0.10);   /* red — caution/overspend zone */
+  --techpar-chart-above-border: rgba(217, 54, 54, 0.45);
   --techpar-chart-revenue-line: rgba(26, 26, 26, 0.55);
 
   /* TechPar — KPI Colors */
@@ -218,6 +220,8 @@ html.dark-theme {
   --techpar-chart-ahead-border: rgba(56, 152, 214, 0.5);
   --techpar-chart-under-fill: rgba(255, 140, 0, 0.12);    /* amber-orange */
   --techpar-chart-under-border: rgba(255, 140, 0, 0.55);
+  --techpar-chart-above-fill: rgba(240, 70, 70, 0.12);   /* red — caution/overspend zone */
+  --techpar-chart-above-border: rgba(240, 70, 70, 0.50);
   --techpar-chart-revenue-line: rgba(200, 200, 200, 0.6);
 
   /* TechPar — KPI Colors (dark theme) */
