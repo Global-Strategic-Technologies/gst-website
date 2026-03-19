@@ -166,14 +166,14 @@ export function kpiClass(pct: number, lo: number, hi: number): 'pos' | 'warn' | 
 
 // ─── Formatters ──────────────────────────────────────────────────────────────
 
-export function formatDollars(n: number): string {
+export function formatDollars(n: number, symbol: string = '$'): string {
   if (!isFinite(n) || n === null) return '\u2014';
   const abs = Math.abs(n);
   const sign = n < 0 ? '-' : '';
-  if (abs >= 1e9) return sign + '$' + (abs / 1e9).toFixed(1) + 'B';
-  if (abs >= 1e6) return sign + '$' + (abs / 1e6).toFixed(1) + 'M';
-  if (abs >= 1e3) return sign + '$' + Math.round(abs / 1e3) + 'K';
-  return sign + '$' + Math.round(abs);
+  if (abs >= 1e9) return sign + symbol + (abs / 1e9).toFixed(1) + 'B';
+  if (abs >= 1e6) return sign + symbol + (abs / 1e6).toFixed(1) + 'M';
+  if (abs >= 1e3) return sign + symbol + Math.round(abs / 1e3) + 'K';
+  return sign + symbol + Math.round(abs);
 }
 
 export function formatPercent(n: number, decimals: number = 1): string {
@@ -288,13 +288,19 @@ export function compute(inputs: TechParInputs): TechParResult | null {
   }
   if (rdCapEx > 0) {
     const pct = (rdCapEx / arr) * 100;
+    // Derive CapEx-as-%-of-revenue benchmark from rdCapExOfRD (CapEx as % of total R&D)
+    const totalRD = rdOpEx + rdCapEx;
+    const rdCapExBenchLo = totalRD > 0
+      ? (totalRD * stageConfig.benchmarks.rdCapExOfRD[0] / 100) / arr * 100 : 0;
+    const rdCapExBenchHi = totalRD > 0
+      ? (totalRD * stageConfig.benchmarks.rdCapExOfRD[1] / 100) / arr * 100 : 0;
     categories.push({
       label: 'R&D CapEx',
       value: rdCapEx,
       pctArr: pct,
-      benchmarkLo: 0,
-      benchmarkHi: 0,
-      zone: 'healthy',
+      benchmarkLo: Math.round(rdCapExBenchLo * 10) / 10,
+      benchmarkHi: Math.round(rdCapExBenchHi * 10) / 10,
+      zone: categoryZone(pct, rdCapExBenchLo, rdCapExBenchHi),
       colorVar: '--techpar-category-rd-capex',
     });
   }
@@ -394,4 +400,154 @@ export function buildTrajectory(inputs: TechParInputs, config: StageConfig): Tra
   }
 
   return { labels, spend, bandLo, bandHi, underFloor, aboveCeiling, revenue, frame: config.frame };
+}
+
+// ─── URL State Serialization ──────────────────────────────────────────────────
+
+/** Compact single-letter key mapping for URL params */
+const PARAM_KEYS: Record<string, keyof TechParInputs | 'stage' | 'mode' | 'capexView'> = {
+  s: 'stage',
+  a: 'arr',
+  g: 'growthRate',
+  m: 'mode',
+  c: 'capexView',
+  e: 'exitMultiple',
+  h: 'infraHosting',
+  p: 'infraPersonnel',
+  r: 'rdOpEx',
+  x: 'rdCapEx',
+  f: 'engFTE',
+  k: 'engCost',
+  q: 'prodCost',
+  t: 'toolingCost',
+};
+
+const REVERSE_KEYS: Record<string, string> = Object.fromEntries(
+  Object.entries(PARAM_KEYS).map(([short, long]) => [long, short]),
+);
+
+const VALID_STAGES: Stage[] = ['seed', 'series_a', 'series_bc', 'pe', 'enterprise'];
+const VALID_MODES: Mode[] = ['quick', 'deepdive'];
+const VALID_CAPEX: CapExView[] = ['cash', 'gaap'];
+
+/** Serialize TechParInputs into compact URL search params. Only non-default values are included. */
+export function serializeToParams(inputs: TechParInputs): URLSearchParams {
+  const params = new URLSearchParams();
+  const set = (field: string, val: string) => {
+    const key = REVERSE_KEYS[field];
+    if (key && val) params.set(key, val);
+  };
+
+  set('stage', inputs.stage);
+  if (inputs.arr) set('arr', String(inputs.arr));
+  if (inputs.growthRate) set('growthRate', String(inputs.growthRate));
+  if (inputs.mode !== 'quick') set('mode', inputs.mode);
+  if (inputs.capexView !== 'cash') set('capexView', inputs.capexView);
+  if (inputs.exitMultiple !== 12) set('exitMultiple', String(inputs.exitMultiple));
+  if (inputs.infraHosting) set('infraHosting', String(inputs.infraHosting));
+  if (inputs.infraPersonnel) set('infraPersonnel', String(inputs.infraPersonnel));
+  if (inputs.rdOpEx) set('rdOpEx', String(inputs.rdOpEx));
+  if (inputs.rdCapEx) set('rdCapEx', String(inputs.rdCapEx));
+  if (inputs.engFTE) set('engFTE', String(inputs.engFTE));
+  if (inputs.engCost) set('engCost', String(inputs.engCost));
+  if (inputs.prodCost) set('prodCost', String(inputs.prodCost));
+  if (inputs.toolingCost) set('toolingCost', String(inputs.toolingCost));
+
+  return params;
+}
+
+/** Partial state recovered from URL params. Missing fields should use defaults. */
+export interface DeserializedState {
+  stage?: Stage;
+  arr?: number;
+  growthRate?: number;
+  mode?: Mode;
+  capexView?: CapExView;
+  exitMultiple?: number;
+  infraHosting?: number;
+  infraPersonnel?: number;
+  rdOpEx?: number;
+  rdCapEx?: number;
+  engFTE?: number;
+  engCost?: number;
+  prodCost?: number;
+  toolingCost?: number;
+}
+
+/** Deserialize URL search params into partial state. Invalid values are silently ignored. */
+export function deserializeFromParams(params: URLSearchParams): DeserializedState {
+  const state: DeserializedState = {};
+
+  const str = (key: string): string | null => params.get(key) || null;
+  const num = (key: string): number | undefined => {
+    const v = params.get(key);
+    if (!v) return undefined;
+    const n = parseFloat(v);
+    return isNaN(n) ? undefined : n;
+  };
+
+  const s = str('s');
+  if (s && VALID_STAGES.includes(s as Stage)) state.stage = s as Stage;
+
+  state.arr = num('a');
+  state.growthRate = num('g');
+
+  const m = str('m');
+  if (m && VALID_MODES.includes(m as Mode)) state.mode = m as Mode;
+
+  const c = str('c');
+  if (c && VALID_CAPEX.includes(c as CapExView)) state.capexView = c as CapExView;
+
+  state.exitMultiple = num('e');
+  state.infraHosting = num('h');
+  state.infraPersonnel = num('p');
+  state.rdOpEx = num('r');
+  state.rdCapEx = num('x');
+  state.engFTE = num('f');
+  state.engCost = num('k');
+  state.prodCost = num('q');
+  state.toolingCost = num('t');
+
+  return state;
+}
+
+// ─── Plain-text Summary ───────────────────────────────────────────────────────
+
+/** Build a structured plain-text summary suitable for clipboard / email / Slack. */
+export function buildSummaryText(inputs: TechParInputs, result: TechParResult, url?: string): string {
+  const s = result.stageConfig;
+  const lines: string[] = [];
+
+  lines.push('TechPar Summary');
+  lines.push('\u2500'.repeat(40));
+  lines.push(`Stage: ${s.label}`);
+  lines.push(`ARR: ${formatDollars(inputs.arr)} | Growth: ${inputs.growthRate}% | Basis: ${inputs.capexView === 'gaap' ? 'GAAP' : 'Cash'}`);
+  lines.push('');
+  lines.push(`Total technology cost: ${formatPercent(result.totalTechPct)} of revenue (${formatDollars(result.total)}/yr)`);
+  lines.push(`Zone: ${zoneLabel(result.zone)}`);
+  lines.push(`Benchmark range: ${s.benchmarks.total[0]}\u2013${s.benchmarks.total[1]}%`);
+  lines.push('');
+
+  for (const cat of result.categories) {
+    const bench = cat.benchmarkHi > 0 ? ` (bench ${cat.benchmarkLo}\u2013${cat.benchmarkHi}%)` : '';
+    lines.push(`${cat.label}: ${formatPercent(cat.pctArr)}${bench}`);
+  }
+
+  if (result.gap.cumulative36 > 0 && result.zone !== 'healthy' && result.zone !== 'ahead' && result.zone !== 'underinvest') {
+    lines.push('');
+    lines.push(`36-month excess above ${s.zones.hi}% ceiling: ${formatDollars(result.gap.cumulative36)}`);
+    lines.push(`Exit value at ${inputs.exitMultiple}\u00d7: ${formatDollars(result.gap.exitValue)}`);
+  } else if (result.gap.underinvestGap > 0) {
+    lines.push('');
+    lines.push(`36-month gap below ${s.zones.lo}% floor: ${formatDollars(result.gap.underinvestGap)}`);
+  }
+
+  lines.push('');
+  if (url) {
+    lines.push(`Generated by TechPar | ${url}`);
+  } else {
+    lines.push('Generated by TechPar | globalstrategic.tech/hub/tools/techpar');
+  }
+
+  return lines.join('\n');
 }
