@@ -2052,16 +2052,7 @@ trackPageView('techpar', 'TechPar | GST');
                 maintainAspectRatio: false,
                 animation: { duration: 320, easing: 'easeInOutCubic' },
                 plugins: {
-                    legend: {
-                        display: true,
-                        labels: {
-                            color: txtMuted,
-                            font: { family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif", size: 9 },
-                            boxWidth: 8,
-                            padding: 10,
-                            filter: (item: any) => !item.text.startsWith('_'),
-                        },
-                    },
+                    legend: { display: false },
                     tooltip: {
                         backgroundColor: bgLight,
                         titleColor: getStyle('--text-light-primary'),
@@ -2120,6 +2111,7 @@ trackPageView('techpar', 'TechPar | GST');
             { sw: `background:${aheadFill};border:1px solid ${aheadBorder}`, l: `Ahead of benchmark (${s.zones.underinvest}\u2013${s.zones.lo}%)` },
             { sw: `background:${bandFill};border:1px solid ${bandBorder}`, l: `Healthy range (${s.zones.lo}\u2013${s.zones.hi}%)` },
             { sw: `background:${aboveFill};border:1px solid ${aboveBorder}`, l: `Caution zone (>${s.zones.hi}%)` },
+            { sw: `background:transparent;border-top:2px solid ${zoneCol}`, l: 'Total tech cost' },
             { sw: `background:transparent;border:2px solid ${zoneCol};border-radius:50%;width:9px;height:9px`, l: 'Your position today' },
         ];
         if (s.frame === 'convergence') {
