@@ -15,6 +15,11 @@ let baselineResult: TechParResult | null = null;
 let baselineInputs: TechParInputs | null = null;
 let currencySymbol = '$';
 
+// ─── Scenarios ────────────────────────────────────────────
+interface SavedScenario { name: string; inputs: TechParInputs; result: TechParResult; }
+let scenarios: SavedScenario[] = [];
+const MAX_SCENARIOS = 3;
+
 // ─── DOM helpers ───────────────────────────────────────────
 const $$ = (sel: string) => document.querySelectorAll(sel);
 const g = (attr: string) => document.querySelector(`[data-${attr}]`) as HTMLElement | null;
@@ -65,8 +70,10 @@ document.querySelectorAll('[data-action]').forEach(btn => {
         else if (action === 'reset') resetAll();
         else if (action === 'copy-link') copyLink(btn as HTMLButtonElement);
         else if (action === 'copy-summary') copySummary(btn as HTMLButtonElement);
+        else if (action === 'export-pdf') exportPdf();
         else if (action === 'set-baseline') setBaseline();
         else if (action === 'clear-baseline') clearBaseline();
+        else if (action === 'save-scenario') saveScenario();
     });
 });
 
@@ -93,6 +100,35 @@ function copySummary(btn: HTMLButtonElement) {
         btn.classList.add('tp-btn-share--copied');
         setTimeout(() => { btn.textContent = orig; btn.classList.remove('tp-btn-share--copied'); }, 2000);
     }).catch(() => {});
+}
+
+// ─── Export PDF ─────────────────────────────────────────────
+function exportPdf() {
+    const result = runCompute();
+
+    // Temporarily show trajectory panel so Chart.js can measure the canvas
+    const trajPanel = document.querySelector('[data-panel="trajectory"]') as HTMLElement | null;
+    const trajContent = g('traj-content');
+    if (trajPanel) trajPanel.style.display = 'block';
+    if (trajContent) trajContent.style.display = 'block';
+
+    // Render chart into the now-visible canvas
+    if (result) renderTrajectory(result);
+
+    // Force methodology <details> open for print
+    const methodology = document.querySelector('[data-methodology]') as HTMLDetailsElement | null;
+    const wasOpen = methodology?.open ?? false;
+    if (methodology) methodology.open = true;
+
+    // Let the browser complete the layout pass before printing
+    requestAnimationFrame(() => {
+        window.print();
+
+        // Restore state after print dialog closes
+        if (trajPanel) trajPanel.style.display = '';
+        if (trajContent) trajContent.style.display = '';
+        if (methodology && !wasOpen) methodology.open = false;
+    });
 }
 
 // ─── Baseline ───────────────────────────────────────────────
@@ -122,6 +158,73 @@ function clearBaseline() {
     updateAll();
 }
 
+// ─── Scenarios ──────────────────────────────────────────────
+function saveScenario() {
+    const inputs = buildInputs();
+    if (!inputs) return;
+    const result = compute(inputs);
+    if (!result) return;
+    if (scenarios.length >= MAX_SCENARIOS) scenarios.shift();
+    scenarios.push({ name: `Scenario ${scenarios.length + 1}`, inputs, result });
+    updateAll();
+}
+
+function removeScenario(index: number) {
+    scenarios.splice(index, 1);
+    // Rename remaining scenarios sequentially
+    scenarios.forEach((s, i) => { s.name = `Scenario ${i + 1}`; });
+    updateAll();
+}
+
+function renderScenarios(r: TechParResult) {
+    const list = g('scenario-list');
+    const chips = g('scenario-chips');
+    const compare = g('scenario-compare');
+    const table = g('scenario-table');
+    const saveBtn = document.querySelector('[data-action="save-scenario"]') as HTMLButtonElement | null;
+
+    if (saveBtn) saveBtn.disabled = scenarios.length >= MAX_SCENARIOS;
+
+    if (!list || !chips || !compare || !table) return;
+
+    if (scenarios.length === 0) {
+        list.style.display = 'none';
+        compare.style.display = 'none';
+        return;
+    }
+
+    list.style.display = 'block';
+    chips.innerHTML = scenarios.map((s, i) => {
+        const col = getStyle(zoneColorVar(s.result.zone));
+        return `<span class="tp-scenario-chip" style="border-left:3px solid ${col}"><span class="tp-zone-dot" style="background:${col}"></span>${s.name}: ${formatPercent(s.result.totalTechPct)} <span class="tp-scenario-chip__zone" style="color:${col}">${zoneLabel(s.result.zone)}</span><button class="tp-scenario-chip__remove" data-remove-scenario="${i}" type="button">&times;</button></span>`;
+    }).join('');
+
+    chips.querySelectorAll('[data-remove-scenario]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            removeScenario(parseInt((btn as HTMLElement).dataset.removeScenario!, 10));
+        });
+    });
+
+    compare.style.display = 'block';
+    const rows = [
+        { label: 'Total %', current: formatPercent(r.totalTechPct), values: scenarios.map(s => formatPercent(s.result.totalTechPct)) },
+        { label: 'Zone', current: zoneLabel(r.zone), values: scenarios.map(s => zoneLabel(s.result.zone)) },
+        { label: 'Annual cost', current: fmtD(r.total), values: scenarios.map(s => fmtD(s.result.total)) },
+        { label: '36-mo gap', current: fmtD(r.gap.cumulative36), values: scenarios.map(s => fmtD(s.result.gap.cumulative36)) },
+    ];
+
+    let html = '<table><thead><tr><th></th><th>Current</th>';
+    scenarios.forEach(s => { html += `<th>${s.name}</th>`; });
+    html += '</tr></thead><tbody>';
+    rows.forEach(row => {
+        html += `<tr><td>${row.label}</td><td>${row.current}</td>`;
+        row.values.forEach(v => { html += `<td>${v}</td>`; });
+        html += '</tr>';
+    });
+    html += '</tbody></table>';
+    table.innerHTML = html;
+}
+
 // ─── Reset ──────────────────────────────────────────────────
 function resetAll() {
     // Clear all inputs
@@ -137,6 +240,7 @@ function resetAll() {
     mode = 'quick';
     baselineResult = null;
     baselineInputs = null;
+    scenarios = [];
     currencySymbol = '$';
     const baseBar = g('baseline-bar');
     if (baseBar) baseBar.style.display = 'none';
@@ -723,6 +827,8 @@ function renderAnalysis(r: TechParResult) {
             ctxBlock.innerHTML = '';
         }
     }
+
+    renderScenarios(r);
 }
 
 function buildMetrics(r: TechParResult, col: string, s: StageConfig): string {
@@ -813,6 +919,22 @@ function renderTrajectory(r: TechParResult) {
         });
     }
 
+    // Scenario overlays
+    for (const scenario of scenarios) {
+        const scenTraj = buildTrajectory(scenario.inputs, scenario.result.stageConfig);
+        const scenCol = getStyle(zoneColorVar(scenario.result.zone));
+        datasets.push({
+            label: scenario.name,
+            data: scenTraj.spend,
+            borderColor: scenCol + '80',
+            borderWidth: 1.5,
+            borderDash: [4, 4],
+            pointRadius: 0,
+            fill: false,
+            tension: 0.3,
+        });
+    }
+
     if (s.frame === 'convergence') {
         datasets.push({
             label: 'Monthly revenue',
@@ -830,6 +952,10 @@ function renderTrajectory(r: TechParResult) {
     if (baselineInputs && baselineResult) {
         const baseTraj = buildTrajectory(baselineInputs, baselineResult.stageConfig);
         allSpend.push(...baseTraj.spend);
+    }
+    for (const scenario of scenarios) {
+        const scenTraj = buildTrajectory(scenario.inputs, scenario.result.stageConfig);
+        allSpend.push(...scenTraj.spend);
     }
     // Growth rate chart guard: cap revenue line display at 2x the above-ceiling band
     if (s.frame === 'convergence') {
@@ -930,6 +1056,10 @@ function renderTrajectory(r: TechParResult) {
     if (baselineResult) {
         const baseZoneCol = getStyle(zoneColorVar(baselineResult.zone));
         seriesItems.push({ cls: 'tp-tleg--line tp-tleg--dashed', sw: `border-color:${baseZoneCol}80`, l: 'Baseline spend' });
+    }
+    for (const scenario of scenarios) {
+        const scenCol = getStyle(zoneColorVar(scenario.result.zone));
+        seriesItems.push({ cls: 'tp-tleg--line tp-tleg--dashed', sw: `border-color:${scenCol}80`, l: scenario.name });
     }
     if (s.frame === 'convergence') {
         seriesItems.push({ cls: 'tp-tleg--line tp-tleg--dashed', sw: `border-color:${revLineCol}`, l: 'Monthly revenue' });

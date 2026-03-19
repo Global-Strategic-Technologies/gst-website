@@ -312,8 +312,13 @@ trackPageView('techpar', 'TechPar | GST');
                             <div class="tp-deep-sum text-small">R&D OpEx total: <span data-deep-total>&#8212;</span></div>
                         </div>
 
+                    </div>
+
+                    <!-- Engineering headcount -->
+                    <div class="tp-section">
+                        <span class="tp-sec-label label">Engineering headcount</span>
                         <div class="tp-field" data-fte-field>
-                            <label class="tp-field__label text-tiny" for="tp-eng-fte">Engineering headcount (FTEs)</label>
+                            <label class="tp-field__label text-small" for="tp-eng-fte">Engineering FTEs</label>
                             <div class="tp-arr-quick">
                                 <button class="tp-arr-chip" data-preset-for="engFTE" data-preset-val="5" type="button">5</button>
                                 <button class="tp-arr-chip" data-preset-for="engFTE" data-preset-val="10" type="button">10</button>
@@ -324,7 +329,7 @@ trackPageView('techpar', 'TechPar | GST');
                             <div class="tp-input-wrap">
                                 <input type="number" id="tp-eng-fte" data-input="engFTE" class="tp-input--no-pre" min="0" step="1" placeholder="&#8212;" />
                             </div>
-                            <div class="tp-hint text-tiny">Unlocks revenue-per-engineer KPI.</div>
+                            <div class="tp-hint text-tiny">Number of full-time-equivalent engineers. Unlocks the revenue-per-engineer KPI on the Analysis tab.</div>
                         </div>
                     </div>
 
@@ -381,6 +386,7 @@ trackPageView('techpar', 'TechPar | GST');
                                 <div data-hero-zone-pill></div>
                                 <div class="tp-baseline-controls">
                                     <button class="tp-baseline-btn" data-action="set-baseline" type="button">Set as baseline</button>
+                                    <button class="tp-baseline-btn" data-action="save-scenario" type="button">Save scenario</button>
                                     <div class="tp-baseline-bar" data-baseline-bar style="display:none">
                                         <span class="tp-baseline-bar__label label-small">Baseline</span>
                                         <button class="tp-baseline-bar__clear" data-action="clear-baseline" type="button">&times;</button>
@@ -397,6 +403,12 @@ trackPageView('techpar', 'TechPar | GST');
                             </div>
                         </div>
 
+                        <!-- Saved scenarios -->
+                        <div class="tp-scenario-list" data-scenario-list style="display:none">
+                            <div class="tp-scenario-list__head label-small">Saved scenarios</div>
+                            <div data-scenario-chips></div>
+                        </div>
+
                         <!-- Signal card -->
                         <div class="tp-signal" data-signal-card>
                             <div class="tp-signal__stage label-small" data-sig-stage></div>
@@ -409,6 +421,12 @@ trackPageView('techpar', 'TechPar | GST');
 
                         <!-- KPI grid -->
                         <div class="tp-kpi-grid" data-kpi-grid></div>
+
+                        <!-- Scenario comparison -->
+                        <div class="tp-scenario-compare" data-scenario-compare style="display:none">
+                            <div class="tp-scenario-compare__head label">Scenario comparison</div>
+                            <div data-scenario-table></div>
+                        </div>
 
                         <!-- Category breakdown -->
                         <div class="tp-cat-section" data-cat-section>
@@ -428,8 +446,30 @@ trackPageView('techpar', 'TechPar | GST');
                                     <tr data-bench-row="enterprise"><td>Enterprise</td><td>18&ndash;32%</td></tr>
                                 </tbody>
                             </table>
-                            <div class="tp-bench-disc text-tiny">Ranges informed by KeyBanc SaaS Survey (2024), OpenView Benchmarks (2024), Bessemer State of the Cloud (2024), and GST engagement experience (2023–2025). Benchmarks are reviewed annually. Individual results vary based on business model and organizational structure.</div>
+                            <div class="tp-bench-disc text-tiny">Ranges informed by KeyBanc SaaS Survey (2024), OpenView Benchmarks (2024), Bessemer State of the Cloud (2024), and GST engagement experience (2023&ndash;2025). Benchmarks are reviewed annually. Individual results vary based on business model and organizational structure.</div>
+                            <div class="tp-bench-disc tp-bench-disc--context text-tiny">These benchmarks are derived primarily from SaaS company data. Companies operating marketplace, fintech, infrastructure, or hardware-intensive models may observe materially different cost structures. Apply professional judgment when benchmarking outside a pure-SaaS context.</div>
                         </div>
+
+                        <!-- Methodology -->
+                        <details class="tp-methodology" data-methodology>
+                            <summary class="tp-methodology__trigger label-small">How TechPar works</summary>
+                            <div class="tp-methodology__body text-tiny">
+                                <h4 class="tp-methodology__heading">Benchmark sources</h4>
+                                <p>Ranges are informed by KeyBanc SaaS Survey (2024), OpenView Benchmarks (2024), Bessemer State of the Cloud (2024), and calibrated against GST engagement experience (2023&ndash;2025). Benchmarks are reviewed annually and represent the interquartile range of technology cost as a percentage of revenue at each growth stage.</p>
+
+                                <h4 class="tp-methodology__heading">Zone threshold derivation</h4>
+                                <p>Each company stage defines five thresholds that partition spend into six zones. The healthy range (low/high) represents the benchmark interquartile range. Below that, an underinvestment floor flags spend levels that may constrain engineering velocity or platform reliability. Above the healthy ceiling, the above-par, elevated, and critical thresholds flag increasingly significant cost drag. Thresholds are stage-specific: early-stage companies carry higher healthy ranges (60&ndash;100% at Seed) than mature companies (18&ndash;32% at Enterprise).</p>
+
+                                <h4 class="tp-methodology__heading">Gap calculation</h4>
+                                <p>The 36-month cumulative excess is computed by projecting monthly revenue forward at your stated growth rate, then summing the difference between your technology cost ratio and the stage ceiling in each month where spend exceeds the ceiling. For PE-backed and Enterprise stages, this excess is multiplied by the exit multiple to estimate the implied impact on recoverable exit value.</p>
+
+                                <h4 class="tp-methodology__heading">Trajectory projections</h4>
+                                <p>The trajectory chart projects a constant technology cost ratio against growing revenue over 36 months. It assumes costs scale linearly with revenue at the current ratio. Actual trajectory depends on optimization decisions, scaling dynamics, and organizational changes not captured in this model.</p>
+
+                                <h4 class="tp-methodology__heading">Limitations</h4>
+                                <p>TechPar provides a directional benchmark, not a precise diagnostic. It does not account for one-time costs, migration expenses, or business-model-specific factors. Category benchmarks assume a SaaS-oriented cost structure. Results should be interpreted alongside qualitative context and validated against company-specific circumstances.</p>
+                            </div>
+                        </details>
 
                         <!-- Context callout -->
                         <div class="tp-ctx" data-ctx-block></div>
@@ -440,6 +480,7 @@ trackPageView('techpar', 'TechPar | GST');
                         <div class="tp-nav-row">
                             <button class="tp-btn-back" data-action="go-costs" type="button">&larr; Costs</button>
                             <div class="tp-nav-row__actions">
+                                <button class="tp-btn-share" data-action="export-pdf" type="button">Export PDF</button>
                                 <button class="tp-btn-share" data-action="copy-summary" type="button">Copy summary</button>
                                 <button class="tp-btn-share" data-action="copy-link" type="button">Copy link</button>
                             </div>
@@ -477,6 +518,7 @@ trackPageView('techpar', 'TechPar | GST');
                         <div class="tp-nav-row">
                             <button class="tp-btn-back" data-action="go-analysis" type="button">&larr; Analysis</button>
                             <div class="tp-nav-row__actions">
+                                <button class="tp-btn-share" data-action="export-pdf" type="button">Export PDF</button>
                                 <button class="tp-btn-share" data-action="copy-summary" type="button">Copy summary</button>
                                 <button class="tp-btn-share" data-action="copy-link" type="button">Copy link</button>
                             </div>
@@ -1510,6 +1552,147 @@ trackPageView('techpar', 'TechPar | GST');
         line-height: 1.5;
     }
 
+    .tp-bench-disc + .tp-bench-disc {
+        margin-top: var(--spacing-xs);
+        padding-top: var(--spacing-xs);
+        border-top: 1px dashed var(--border-light);
+    }
+
+    /* ── Methodology section ─────────────────────────────────── */
+    .tp-methodology {
+        margin-bottom: var(--spacing-lg);
+        border: 1px solid var(--border-light);
+    }
+
+    .tp-methodology__trigger {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) var(--spacing-md);
+        cursor: pointer;
+        color: var(--text-light-muted);
+        transition: color var(--transition-fast);
+        list-style: none;
+    }
+
+    .tp-methodology__trigger::-webkit-details-marker {
+        display: none;
+    }
+
+    .tp-methodology__trigger::before {
+        content: '\25B6';
+        font-size: 0.6em;
+        transition: transform var(--transition-fast);
+    }
+
+    .tp-methodology[open] > .tp-methodology__trigger::before {
+        transform: rotate(90deg);
+    }
+
+    .tp-methodology__trigger:hover {
+        color: var(--text-light-secondary);
+    }
+
+    .tp-methodology__body {
+        padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
+        color: var(--text-light-secondary);
+        line-height: 1.7;
+        border-top: 1px solid var(--border-light);
+    }
+
+    .tp-methodology__heading {
+        font-size: var(--text-xs);
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--text-light-muted);
+        margin-top: var(--spacing-md);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .tp-methodology__heading:first-child {
+        margin-top: 0;
+    }
+
+    .tp-methodology__body p {
+        margin-bottom: var(--spacing-sm);
+    }
+
+    /* ── Scenario comparison ─────────────────────────────────── */
+    .tp-scenario-list {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .tp-scenario-list__head {
+        color: var(--text-light-muted);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-scenario-list :global(.tp-scenario-chip) {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border: 1px solid var(--border-light);
+        background: var(--bg-light-alt);
+        font-size: var(--text-xs);
+        color: var(--text-light-secondary);
+        margin-right: var(--spacing-xs);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .tp-scenario-list :global(.tp-scenario-chip__zone) {
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        margin-left: var(--spacing-xs);
+    }
+
+    .tp-scenario-list :global(.tp-scenario-chip__remove) {
+        padding: 0 2px;
+        background: transparent;
+        border: none;
+        color: var(--text-light-muted);
+        font-size: 0.85rem;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .tp-scenario-compare {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .tp-scenario-compare__head {
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-scenario-compare :global(table) {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: var(--text-xs);
+    }
+
+    .tp-scenario-compare :global(th),
+    .tp-scenario-compare :global(td) {
+        padding: var(--spacing-sm);
+        border-bottom: 1px solid var(--border-light);
+        text-align: right;
+    }
+
+    .tp-scenario-compare :global(th:first-child),
+    .tp-scenario-compare :global(td:first-child) {
+        text-align: left;
+        color: var(--text-light-muted);
+    }
+
+    .tp-scenario-compare :global(th) {
+        color: var(--text-light-muted);
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
     /* ── Context callout ──────────────────────────────────────── */
     .tp-ctx {
         border-left: 2px solid var(--color-primary);
@@ -1702,6 +1885,7 @@ trackPageView('techpar', 'TechPar | GST');
 
     /* ─── Print stylesheet ─────────────────────────────────── */
     @media print {
+        /* ── Hide interactive chrome ─────────────────────────────── */
         .site-header,
         .tp-tab-bar,
         .tp-nav-row,
@@ -1711,19 +1895,59 @@ trackPageView('techpar', 'TechPar | GST');
         .tp-btn-next,
         .tp-btn-back,
         .tp-btn-share,
+        .tp-baseline-controls,
+        .tp-scenario-list,
+        .tp-cross-link,
+        .tp-bench-wrap,
         .hub-header__back,
+        .hub-header__sub,
         footer {
             display: none !important;
         }
 
+        /* ── Layout ──────────────────────────────────────────────── */
         .tp-panel {
             display: block !important;
             max-width: none !important;
         }
 
         .tp-panel[data-panel="profile"],
-        .tp-panel[data-panel="costs"],
+        .tp-panel[data-panel="costs"] {
+            display: none !important;
+        }
+
+        /* ── Trajectory: include on its own page ─────────────────── */
         .tp-panel[data-panel="trajectory"] {
+            display: block !important;
+            break-before: page;
+        }
+
+        .tp-panel[data-panel="trajectory"] .tp-panel__header {
+            display: block !important;
+        }
+
+        .tp-panel[data-panel="trajectory"] .tp-panel__header .tp-step {
+            display: none !important;
+        }
+
+        .tp-traj-content {
+            display: block !important;
+        }
+
+        [data-traj-empty] {
+            display: none !important;
+        }
+
+        .tp-traj-chart-wrap {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .tp-traj-dot {
+            display: none !important;
+        }
+
+        .tp-panel__header {
             display: none !important;
         }
 
@@ -1731,30 +1955,98 @@ trackPageView('techpar', 'TechPar | GST');
             display: block !important;
         }
 
-        .tp-kpi-grid {
-            break-inside: avoid;
+        .techpar-section {
+            padding: 0 !important;
         }
 
-        .tp-sig-card {
-            break-inside: avoid;
-        }
-
+        /* ── Header / footer ─────────────────────────────────────── */
         .techpar-shell::before {
             content: 'TechPar Analysis';
             display: block;
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: var(--spacing-md);
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-xs);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 2px solid var(--color-primary);
         }
 
         .techpar-shell::after {
-            content: 'globalstrategic.tech/hub/tools/techpar';
+            content: 'Generated by TechPar  |  globalstrategic.tech/hub/tools/techpar';
             display: block;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             color: var(--text-light-muted);
             margin-top: var(--spacing-lg);
             border-top: 1px solid var(--border-light);
             padding-top: var(--spacing-sm);
+        }
+
+        /* ── Hero KPI ────────────────────────────────────────────── */
+        .tp-kpi-hero {
+            text-align: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .tp-kpi-hero__num {
+            font-size: 3rem !important;
+        }
+
+        /* ── Signal card ─────────────────────────────────────────── */
+        .tp-signal {
+            break-inside: avoid;
+            border: 1px solid var(--border-light) !important;
+            page-break-inside: avoid;
+        }
+
+        /* ── KPI grid ────────────────────────────────────────────── */
+        .tp-kpi-grid {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        /* ── Category bars ───────────────────────────────────────── */
+        .tp-cat-section {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        /* ── Scenario comparison ─────────────────────────────────── */
+        .tp-scenario-compare {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        /* ── Benchmark table ─────────────────────────────────────── */
+        .tp-bench-table-wrap {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        /* ── Methodology: force open ─────────────────────────────── */
+        .tp-methodology {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .tp-methodology > .tp-methodology__body {
+            display: block !important;
+        }
+
+        .tp-methodology__trigger::before {
+            display: none !important;
+        }
+
+        /* ── Context callout ─────────────────────────────────────── */
+        .tp-ctx {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        /* ── Typography: force black for readability ─────────────── */
+        .tp-kpi-hero__lbl,
+        .tp-kpi-hero__basis {
+            color: #333 !important;
         }
     }
 </style>
