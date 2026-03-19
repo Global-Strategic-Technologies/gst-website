@@ -2086,9 +2086,29 @@ trackPageView('techpar', 'TechPar | GST');
 
         const maxY = Math.max(...traj.spend, ...traj.aboveCeiling, ...(s.frame === 'convergence' ? traj.revenue : [])) * 1.12;
 
+        function syncDot(chart: any) {
+            const m = chart.getDatasetMeta(5);
+            if (!m?.data?.[0]) return;
+            const pt = m.data[0];
+            const dot = document.querySelector('[data-traj-dot]') as HTMLElement;
+            if (!dot) return;
+            dot.style.background = zoneCol;
+            dot.style.boxShadow = `0 0 0 5px ${zoneCol}33`;
+            dot.style.left = pt.x + 'px';
+            dot.style.top = pt.y + 'px';
+            dot.style.display = 'block';
+        }
+
+        const dotPlugin = {
+            id: 'positionDot',
+            resize(chart: any) { syncDot(chart); },
+            afterRender(chart: any) { syncDot(chart); },
+        };
+
         trajChart = new Chart(canvas.getContext('2d')!, {
             type: 'line',
             data: { labels: traj.labels, datasets },
+            plugins: [dotPlugin],
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -2130,19 +2150,7 @@ trackPageView('techpar', 'TechPar | GST');
             },
         });
 
-        // User position dot — animation is off so coordinates are immediately available
-        const meta = trajChart.getDatasetMeta(5);
-        if (meta?.data?.[0]) {
-            const pt = meta.data[0];
-            const dot = document.querySelector('[data-traj-dot]') as HTMLElement;
-            if (dot) {
-                dot.style.background = zoneCol;
-                dot.style.boxShadow = `0 0 0 5px ${zoneCol}33`;
-                dot.style.left = pt.x + 'px';
-                dot.style.top = pt.y + 'px';
-                dot.style.display = 'block';
-            }
-        }
+        // User position dot is handled by the dotPlugin afterRender hook
 
         // Legend — zones (fill swatches) + series (line/point swatches)
         const zoneItems = [
