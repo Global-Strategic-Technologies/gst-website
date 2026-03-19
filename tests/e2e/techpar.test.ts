@@ -361,3 +361,120 @@ test.describe('TechPar - Audit fixes', () => {
     await expect(barLabel).toContainText('%');
   });
 });
+
+// ─── EEAT enhancements ─────────────────────────────────────────────────────
+
+test.describe('TechPar - EEAT enhancements', () => {
+  test('industry context disclaimer is visible on analysis tab', async ({ page }) => {
+    await gotoTool(page);
+    await selectStage(page);
+    await fillInput(page, 'arr', '10000000');
+    await clickTab(page, 'costs');
+    await fillInput(page, 'infra', '50000');
+    await clickTab(page, 'analysis');
+    const disc = page.locator('.tp-bench-disc--context');
+    await expect(disc).toBeVisible();
+    await expect(disc).toContainText('SaaS');
+  });
+
+  test('methodology section is collapsed by default', async ({ page }) => {
+    await gotoTool(page);
+    await selectStage(page);
+    await fillInput(page, 'arr', '10000000');
+    await clickTab(page, 'costs');
+    await fillInput(page, 'infra', '50000');
+    await clickTab(page, 'analysis');
+    const details = page.locator('[data-methodology]');
+    await expect(details).toBeVisible();
+    await expect(details).not.toHaveAttribute('open', '');
+  });
+
+  test('methodology section opens on click and shows content', async ({ page }) => {
+    await gotoTool(page);
+    await selectStage(page);
+    await fillInput(page, 'arr', '10000000');
+    await clickTab(page, 'costs');
+    await fillInput(page, 'infra', '50000');
+    await clickTab(page, 'analysis');
+    await page.click('.tp-methodology__trigger');
+    const body = page.locator('.tp-methodology__body');
+    await expect(body).toBeVisible();
+    await expect(body).toContainText('KeyBanc');
+    await expect(body).toContainText('36-month');
+  });
+
+  test('Engineering FTE field is visible in Quick mode on Costs tab', async ({ page }) => {
+    await gotoTool(page);
+    await clickTab(page, 'costs');
+    await expect(page.locator('[data-fte-field]')).toBeVisible();
+    // Verify Quick mode is active (default)
+    await expect(page.locator('[data-mode="quick"]')).toHaveClass(/tp-seg__btn--active/);
+  });
+
+  test('Export PDF button exists on analysis tab', async ({ page }) => {
+    await gotoTool(page);
+    await selectStage(page);
+    await fillInput(page, 'arr', '10000000');
+    await clickTab(page, 'costs');
+    await fillInput(page, 'infra', '50000');
+    await clickTab(page, 'analysis');
+    const btn = page.locator('[data-action="export-pdf"]').first();
+    await expect(btn).toBeVisible();
+    await expect(btn).toContainText('Export PDF');
+  });
+
+  test('save scenario button exists on analysis tab', async ({ page }) => {
+    await gotoTool(page);
+    await selectStage(page);
+    await fillInput(page, 'arr', '10000000');
+    await clickTab(page, 'costs');
+    await fillInput(page, 'infra', '50000');
+    await clickTab(page, 'analysis');
+    const btn = page.locator('[data-action="save-scenario"]');
+    await expect(btn).toBeVisible();
+  });
+
+  test('saving a scenario shows chip in list and comparison table', async ({ page }) => {
+    await gotoTool(page);
+    await selectStage(page);
+    await fillInput(page, 'arr', '10000000');
+    await clickTab(page, 'costs');
+    await fillInput(page, 'infra', '50000');
+    await clickTab(page, 'analysis');
+    await page.click('[data-action="save-scenario"]');
+    const list = page.locator('[data-scenario-list]');
+    await expect(list).toBeVisible();
+    await expect(list).toContainText('Scenario 1');
+    const table = page.locator('[data-scenario-compare]');
+    await expect(table).toBeVisible();
+    await expect(table).toContainText('Current');
+    await expect(table).toContainText('Scenario 1');
+  });
+
+  test('removing a scenario updates the list', async ({ page }) => {
+    await gotoTool(page);
+    await selectStage(page);
+    await fillInput(page, 'arr', '10000000');
+    await clickTab(page, 'costs');
+    await fillInput(page, 'infra', '50000');
+    await clickTab(page, 'analysis');
+    await page.click('[data-action="save-scenario"]');
+    await expect(page.locator('[data-scenario-list]')).toContainText('Scenario 1');
+    await page.click('[data-remove-scenario="0"]');
+    await expect(page.locator('[data-scenario-list]')).not.toBeVisible();
+  });
+
+  test('maximum 3 scenarios enforced', async ({ page }) => {
+    await gotoTool(page);
+    await selectStage(page);
+    await fillInput(page, 'arr', '10000000');
+    await clickTab(page, 'costs');
+    await fillInput(page, 'infra', '50000');
+    await clickTab(page, 'analysis');
+    await page.click('[data-action="save-scenario"]');
+    await page.click('[data-action="save-scenario"]');
+    await page.click('[data-action="save-scenario"]');
+    const saveBtn = page.locator('[data-action="save-scenario"]');
+    await expect(saveBtn).toBeDisabled();
+  });
+});
