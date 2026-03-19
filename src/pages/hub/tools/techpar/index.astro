@@ -1947,12 +1947,12 @@ trackPageView('techpar', 'TechPar | GST');
             if (isOver && r.stageConfig.key !== 'seed') {
                 const exitMult = getInput('exitMult') || 12;
                 const excessPct = (r.totalTechPct - s.zones.hi).toFixed(1);
-                const annualDrag = buildInputs().arr * (r.totalTechPct - s.zones.hi) / 100;
+                const annualDrag = buildInputs()!.arr * (r.totalTechPct - s.zones.hi) / 100;
                 const exitDrag = annualDrag * exitMult;
                 ctxBlock.innerHTML = `You are <strong style="color:var(--text-light-primary)">${excessPct}%</strong> above the ${s.zones.hi}% ceiling — <strong style="color:var(--color-primary)">${formatDollars(annualDrag)}</strong> in annual excess spend. At a ${exitMult}&times; revenue multiple that represents <strong style="color:var(--color-primary)">${formatDollars(exitDrag)}</strong> in recoverable exit value. Identify the highest-cost categories above and prioritise optimisation there first.`;
             } else if (isUnder) {
                 const floorPct = s.zones.lo;
-                const annualGap = buildInputs().arr * (floorPct - r.totalTechPct) / 100;
+                const annualGap = buildInputs()!.arr * (floorPct - r.totalTechPct) / 100;
                 ctxBlock.innerHTML = `Spend is <strong style="color:var(--text-light-primary)">${formatDollars(annualGap)}</strong> per year below the ${floorPct}% benchmark floor. This gap often reflects deferred investment in engineering capacity or infrastructure that surfaces later as reliability issues, slower product velocity, or a higher cost to remediate at scale.`;
             } else {
                 ctxBlock.innerHTML = '';
@@ -1999,6 +1999,7 @@ trackPageView('techpar', 'TechPar | GST');
 
         // Build chart data
         const inputs = buildInputs();
+        if (!inputs) return;
         const traj = buildTrajectory(inputs, s);
 
         if (trajChart) { trajChart.destroy(); trajChart = null; }
