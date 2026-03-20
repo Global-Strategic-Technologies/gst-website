@@ -25,7 +25,7 @@ Complete reference for Reid Peryam's professional credentials and how they're do
 
 | Category | Count | Status |
 |----------|-------|--------|
-| Microsoft Certifications | 5 | 4 Active, 0 Expired |
+| Microsoft Certifications | 5 | 5 Active, 0 Expired |
 | UC Berkeley Haas Education | 11 | 11 Permanent |
 | Infrastructure Certs | 2 | 0 Active, 2 Expired |
 | Agile Certification | 1 | 0 Active, 1 Expired |
@@ -47,14 +47,12 @@ Complete reference for Reid Peryam's professional credentials and how they're do
 
 2024: Kubernetes Certs Expire (Jan-Feb)
 
-2026: Azure Developer Expires (May)
-
-2027: DevOps & Solutions Architect Expire (Apr-Jun)
+2027: DevOps & Solutions Architect Expire (Apr-Jun), Azure Developer Expires (May)
 ```
 
 ## Active Credentials
 
-### Microsoft Certifications (4 Active)
+### Microsoft Certifications (5 Active)
 
 #### 1. Azure Solutions Architect Expert
 - **Issue Date**: April 2021
@@ -74,7 +72,7 @@ Complete reference for Reid Peryam's professional credentials and how they're do
 
 #### 3. Azure Developer Associate
 - **Issue Date**: May 2021
-- **Expiration**: May 2026
+- **Expiration**: May 2027
 - **Credential ID**: AD895CD745DD2DD8
 - **Category**: Professional Certification
 - **Skills**: Software Development, Microsoft Azure, Azure Solutions, Azure DevOps, Cloud-Native Applications
@@ -118,7 +116,7 @@ All credentials from UC Berkeley Haas are permanent (no expiration).
 - **Issue Date**: January 2023
 - **Credential ID**: 66187273
 - **Category**: Executive Education
-- **Skills**: Organizational Leadership, Digital Transformation, Product Management, Technology Strategy, Data Strategy, Stakeholder Management, Customer Engagement, Enterprise Architecture, Design Thinking
+- **Skills**: Organizational Leadership, Digital Transformation, Product Management, Technology Strategy, Data Strategy, Enterprise Architecture
 - **Relevance**: Platform modernization, transformation roadmaps
 
 #### 4. Artificial Intelligence: Business Strategies and Applications
@@ -139,39 +137,36 @@ All credentials from UC Berkeley Haas are permanent (no expiration).
 - **Issue Date**: April 2022
 - **Credential ID**: 49757257
 - **Category**: Executive Education
-- **Skills**: Organizational Leadership, Agile Methodologies, Digital Transformation, Product Management, Systems Thinking, Project Management, Culture Change, Technology Strategy, Software Project Management, Business Strategy, Stakeholder Management, Customer Engagement, Enterprise Architecture, Design Thinking
+- **Skills**: Organizational Leadership, Digital Transformation, Product Management, Technology Strategy, Business Strategy, Enterprise Architecture
 - **Relevance**: Technology roadmap planning, strategic architecture decisions
 
 #### 7. Data Strategy: Leveraging Data as a Competitive Advantage
 - **Issue Date**: June 2022
 - **Credential ID**: 52691267
 - **Category**: Executive Education
-- **Skills**: Product Management, Culture Change, Technology Strategy, Data Strategy, Business Strategy, Neural Networks, Enterprise Architecture
+- **Skills**: Product Management, Technology Strategy, Data Strategy, Business Strategy, Enterprise Architecture
 - **Relevance**: Data-driven decision making, analytics strategy assessment
 
 #### 8. Product Management Studio: June 6-August 11, 2022
 - **Issue Date**: August 2022
 - **Credential ID**: 56795945
 - **Category**: Executive Education
-- **Skills**: Organizational Leadership, Product Management, Systems Thinking, Culture Change, Technology Strategy, Stakeholder Management, Customer Engagement, Design Thinking
+- **Skills**: Organizational Leadership, Product Management, Systems Thinking, Technology Strategy, Design Thinking
 - **Relevance**: Product strategy evaluation, go-to-market assessment
 
 #### 9. Business Analytics for Leaders: From Data to Decisions
 - **Issue Date**: April 2022
 - **Credential ID**: 49371816
 - **Category**: Executive Education
-- **Skills**: Artificial Intelligence (AI), Product Management, Machine Learning, Culture Change, Technology Strategy, Data Strategy, Business Strategy, Neural Networks, Design Thinking, Microsoft Azure Machine Learning
+- **Skills**: Artificial Intelligence (AI), Product Management, Machine Learning, Technology Strategy, Data Strategy, Business Strategy
 - **Relevance**: Analytics capability assessment, data platform evaluation
 
 #### 10. Leading Complex Projects
 - **Issue Date**: January 2022
 - **Credential ID**: 45714456
 - **Category**: Executive Education
-- **Skills**: Organizational Leadership, Agile Methodologies, Digital Transformation, Product Management, Systems Thinking, Project Management, Culture Change, Software Project Management, Stakeholder Management
+- **Skills**: Organizational Leadership, Digital Transformation, Product Management, Project Management, Stakeholder Management
 - **Relevance**: Integration project planning, execution oversight
-
-#### 11. [Additional UC Berkeley Programs]
-Various other courses and executive education programs reflecting comprehensive business training.
 
 ## Expired Credentials
 
@@ -430,6 +425,6 @@ All credentials are also listed on Reid's LinkedIn profile:
 
 ---
 
-**Last Updated**: February 4, 2026
+**Last Updated**: March 20, 2026
 **Total Credentials**: 18 (15 active, 3 expired)
 **Status**: Current and Accurate ✓

@@ -28,6 +28,8 @@ Provides a reusable, composable component that injects comprehensive SEO metadat
 - Site-level metadata (site name, locale)
 - Standard meta tags (title, description, keywords, author, robots)
 - Canonical URL support with automatic generation
+- BreadcrumbList schema (auto-generated from URL pathname)
+- FAQPage schema (conditional, via faqItems prop)
 - Props-based customization
 - Sensible defaults for homepage
 
@@ -63,7 +65,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout
-  title="About Reid Peryam | Global Strategic Technology"
+  title="About Reid Peryam | GST"
   description="Learn about Reid Peryam's background in technology strategy..."
   ogTitle="Meet Reid Peryam"
   ogDescription="20+ year veteran in M&A technical advisory"
@@ -96,6 +98,7 @@ interface Props {
     ogSiteName?: string;
     ogLocale?: string;
     twitterSite?: string;
+    faqItems?: Array<{ question: string; answer: string }>;
 }
 ```
 
@@ -103,21 +106,22 @@ interface Props {
 
 | Prop | Type | Default | Purpose |
 |------|------|---------|---------|
-| `title` | string | "Global Strategic Technology \| M&A Strategic Technology Advisory" | Page `<title>` tag content |
+| `title` | string | "GST \| M&A Strategic Technology Advisory" | Page `<title>` tag content |
 | `description` | string | Full expert advisory description | Meta description tag |
-| `ogTitle` | string | "Global Strategic Technology \| Strategic Tech Advisory" | og:title for social sharing |
+| `ogTitle` | string | "GST \| Strategic Tech Advisory" | og:title for social sharing |
 | `ogDescription` | string | "Specialized technical diligence..." | og:description for social sharing |
 | `ogImage` | string | "/og-image.png" | og:image URL for social sharing |
 | `ogType` | string | "website" | og:type (website, article, etc.) |
 | `ogUrl` | string | Auto-generated from Astro.url | og:url (page URL) - dynamically generated |
 | `canonicalUrl` | string | Auto-generated from Astro.url | Canonical URL - dynamically generated |
-| **`ogImageAlt`** | string | "Global Strategic Technology - M&A..." | Alt text for social preview image (accessibility) |
+| **`ogImageAlt`** | string | "GST - M&A Strategic Technology Advisory and Technical Due Diligence" | Alt text for social preview image (accessibility) |
 | **`ogImageWidth`** | number | 1200 | Image width in pixels |
 | **`ogImageHeight`** | number | 630 | Image height in pixels |
 | **`ogImageType`** | string | "image/png" | MIME type of image |
-| **`ogSiteName`** | string | "Global Strategic Technology" | Site name for social cards |
+| **`ogSiteName`** | string | "GST" | Site name for social cards |
 | **`ogLocale`** | string | "en_US" | Locale for content |
 | **`twitterSite`** | string | "@globalstrategic" | Twitter/X handle for attribution |
+| **`faqItems`** | Array | undefined | FAQ question/answer pairs for FAQPage schema markup |
 
 ### Props Details
 
@@ -125,7 +129,7 @@ interface Props {
 - Displayed in browser tab and search results
 - Target: 50-60 characters
 - Include primary keyword and brand name
-- Example: "Buy-Side M&A Due Diligence Guide | Global Strategic Technology"
+- Example: "Buy-Side M&A Due Diligence Guide | GST"
 
 #### `description`
 - Displayed in search results below title
@@ -159,7 +163,7 @@ interface Props {
 - **Important for accessibility** and WCAG compliance
 - Target: 125 characters or less
 - Descriptive text for screen readers and when image fails to load
-- Example: "Global Strategic Technology - M&A Strategic Technology Advisory"
+- Example: "GST - M&A Strategic Technology Advisory"
 
 #### `ogImageWidth` / `ogImageHeight` (NEW)
 - Dimensions of social preview image in pixels
@@ -175,7 +179,7 @@ interface Props {
 
 #### `ogSiteName` (NEW)
 - Site name displayed in social cards
-- **Default**: "Global Strategic Technology"
+- **Default**: "GST"
 - Provides brand attribution on social platforms
 - Typically your organization or brand name
 
@@ -224,8 +228,26 @@ The SEO component generates the following HTML:
 {
   "@context": "https://schema.org",
   "@type": "ProfessionalService",
-  "name": "Global Strategic Technology",
+  "name": "GST",
   ...
+}
+</script>
+
+<!-- BreadcrumbList Structured Data (non-homepage pages only) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [...]
+}
+</script>
+
+<!-- FAQPage Structured Data (when faqItems provided) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [...]
 }
 </script>
 
@@ -239,7 +261,7 @@ The SEO component generates the following HTML:
 <meta property="og:image:height" content="630" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:alt" content="..." />
-<meta property="og:site_name" content="Global Strategic Technology" />
+<meta property="og:site_name" content="GST" />
 <meta property="og:locale" content="en_US" />
 
 <!-- Twitter Card Tags (6 tags) -->
@@ -293,7 +315,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout
-  title="Global Strategic Technology | M&A Strategic Technology Advisory"
+  title="GST | M&A Strategic Technology Advisory"
   description="Expert strategic technology advisory for M&A buy-side and sell-side technical due diligence..."
 >
   <!-- Content -->
@@ -301,7 +323,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ```
 
 **Output**:
-- Title: "Global Strategic Technology | M&A Strategic Technology Advisory"
+- Title: "GST | M&A Strategic Technology Advisory"
 - OG Image: Default og-image.png (1200x630px)
 - OG URL: Auto-generated from current page
 - Canonical: Auto-generated from current page
@@ -315,19 +337,19 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout
-  title="Our Services | M&A Technical Advisory | Global Strategic Technology"
+  title="Our Services | M&A Technical Advisory | GST"
   description="Comprehensive M&A technical advisory services including buy-side and sell-side due diligence, platform assessments, and integration planning."
   ogTitle="M&A Technical Advisory Services"
   ogDescription="Buy-side & sell-side diligence, platform assessments, integration planning"
   ogImage="/og-image.png"
-  ogImageAlt="Global Strategic Technology Services - M&A Advisory and Technical Leadership"
+  ogImageAlt="GST Services - M&A Advisory and Technical Leadership"
 >
   <!-- Services content -->
 </BaseLayout>
 ```
 
 **Output**:
-- Title: "Our Services | M&A Technical Advisory | Global Strategic Technology"
+- Title: "Our Services | M&A Technical Advisory | GST"
 - Description: Full services description
 - OG Title: "M&A Technical Advisory Services"
 - OG Image: /og-image.png with alt text
@@ -343,7 +365,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout
-  title="Platform Modernization in M&A | Global Strategic Technology"
+  title="Platform Modernization in M&A | GST"
   description="How to assess platform modernization opportunities during technical due diligence. Real-world case studies and frameworks."
   ogTitle="Platform Modernization in M&A"
   ogDescription="Assessment frameworks and case studies for M&A platform modernization"
@@ -567,6 +589,6 @@ All social platforms now receive comprehensive image metadata:
 
 ---
 
-**Last Updated**: February 5, 2026
+**Last Updated**: March 20, 2026
 **Component Version**: 2.0 (Enhanced Social Media)
 **Status**: Production Ready ✓
