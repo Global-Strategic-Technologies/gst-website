@@ -625,14 +625,15 @@ trackPageView('techpar', 'TechPar | GST');
     }
 
     .tp-toolbar__reset {
-        padding: var(--spacing-xs) 0;
+        padding: var(--spacing-xs) var(--spacing-sm);
         background: none;
         border: none;
+        border-left: 2px solid transparent;
         color: var(--text-light-muted);
         font-family: var(--font-family);
         font-size: var(--text-xs);
         cursor: pointer;
-        transition: color var(--transition-fast);
+        transition: all var(--transition-fast);
     }
 
     .tp-toolbar__reset:hover {
@@ -641,6 +642,17 @@ trackPageView('techpar', 'TechPar | GST');
 
     .tp-toolbar__reset--confirming {
         color: var(--techpar-zone-elevated);
+        border-left-color: var(--techpar-zone-elevated);
+        background: color-mix(in srgb, var(--techpar-zone-elevated) 8%, transparent);
+        animation: tp-confirm-pulse 0.3s ease-out;
+    }
+
+    @keyframes tp-confirm-pulse {
+        0% { transform: translateX(0); }
+        25% { transform: translateX(-3px); }
+        50% { transform: translateX(3px); }
+        75% { transform: translateX(-2px); }
+        100% { transform: translateX(0); }
     }
 
     .tp-tab {

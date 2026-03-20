@@ -240,14 +240,17 @@ function renderScenarios(r: TechParResult) {
 function handleReset(btn: HTMLButtonElement) {
     if (btn.dataset.confirming) {
         if (resetTimeout) { clearTimeout(resetTimeout); resetTimeout = null; }
+        btn.textContent = 'Reset all inputs';
         btn.classList.remove('tp-toolbar__reset--confirming');
         delete btn.dataset.confirming;
         resetAll();
         return;
     }
     btn.dataset.confirming = '1';
+    btn.textContent = 'Click again to reset';
     btn.classList.add('tp-toolbar__reset--confirming');
     resetTimeout = setTimeout(() => {
+        btn.textContent = 'Reset all inputs';
         btn.classList.remove('tp-toolbar__reset--confirming');
         delete btn.dataset.confirming;
         resetTimeout = null;
