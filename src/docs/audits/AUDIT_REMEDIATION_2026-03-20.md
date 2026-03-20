@@ -11,7 +11,7 @@
 
 All critical, high, and medium findings from the March 20 audit have been addressed. Several items flagged in the audit were already resolved prior to the audit report being delivered. The remaining items were remediated same-day. Low-priority items have been addressed where impactful.
 
-**Disposition**: 13 findings evaluated — 11 resolved, 2 deferred (low-priority content additions).
+**Disposition**: 13 findings evaluated — 12 resolved, 1 deferred (low-priority content addition).
 
 ---
 
@@ -29,7 +29,7 @@ All critical, high, and medium findings from the March 20 audit have been addres
 | 8 | MEDIUM | Inconsistent Calendly link attributes | **Resolved** | Hero CTA now conditionally applies `target="_blank"` and `rel="noopener noreferrer"` for all external (`http`) hrefs, matching the footer CTA behavior. Commit `6682036`. |
 | 9 | MEDIUM | 1 image missing alt text | **Already in place** | The delta icon in `Header.astro` has `alt="Global Strategic Technology logo"` with `aria-hidden="true"`. The delta icon in `ThemeToggle.astro` has `alt=""` with `aria-hidden="true"` (correct pattern for decorative images per WCAG). All About page images have descriptive alt text. |
 | 10 | MEDIUM | FAQPage schema markup missing | **Already in place** | `FAQPage` JSON-LD schema is implemented in `SEO.astro` and wired to the Services page FAQ section via the `faqItems` prop. Schema is rendered as a separate `<script type="application/ld+json">` block. |
-| 11 | LOW | No lazy loading on images | **Resolved** | Added `loading="lazy"` to below-fold signature images on the About page. Hero/founder images intentionally retain `fetchpriority="high"` as they are LCP elements. Small decorative SVG icons are excluded — they are cached as a single file and lazy loading would add overhead. Commit `86416fd`. |
+| 11 | LOW | No lazy loading on images | **Resolved** | Added `loading="lazy"` to all 93 below-fold images site-wide (homepage, services, hub tools, library articles, diligence machine, TechPar, about page). 2 LCP founder photos retain `fetchpriority="high"` per Core Web Vitals best practice. 0 images remain without an explicit loading strategy. Commits `86416fd`, `1d7ed4b`. |
 | 12 | LOW | No responsive images (srcset) | **Deferred** | Current image set is minimal (founder photos, signatures, SVG icons). The site's sub-250ms load time and small resource count make this low-impact. Will evaluate if additional raster imagery is added. |
 | 13 | LOW | Content depth / thought leadership | **Deferred** | Content strategy item. The Hub section is actively being expanded with tools (TechPar, Diligence Machine, Regulatory Map, etc.) that serve as substantive thought leadership. Blog/article content is on the roadmap. |
 
@@ -55,6 +55,7 @@ ae1b83b fix(seo): set site URL to fix canonical URLs pointing to localhost
 659b1b5 fix(a11y): add explicit ARIA landmark roles to header, nav, and footer
 6682036 fix(ux): add target=_blank and rel=noopener noreferrer to external Hero CTAs
 86416fd perf: add lazy loading to below-fold signature images on About page
+1d7ed4b perf: add loading=lazy to all below-fold images site-wide
 ```
 
 ---
@@ -72,6 +73,16 @@ ae1b83b fix(seo): set site URL to fix canonical URLs pointing to localhost
 | `src/components/Footer.astro` | Added `role="contentinfo"` |
 | `src/components/Hero.astro` | Conditional `target="_blank"` / `rel="noopener noreferrer"` for external CTAs |
 | `src/pages/about.astro` | Added `loading="lazy"` to signature images |
+| `src/components/ThemeToggle.astro` | Added `loading="lazy"` to theme toggle icon |
+| `src/components/WhoWeSupport.astro` | Added `loading="lazy"` to 4 bullet icons |
+| `src/components/WhatWeDo.astro` | Added `loading="lazy"` to 5 bullet icons |
+| `src/pages/services.astro` | Added `loading="lazy"` to 12 bullet icons |
+| `src/pages/hub/tools/index.astro` | Added `loading="lazy"` to all bullet icons |
+| `src/pages/hub/library/index.astro` | Added `loading="lazy"` to all bullet icons |
+| `src/pages/hub/library/business-architectures/index.astro` | Added `loading="lazy"` to all icons |
+| `src/pages/hub/library/vdr-structure/index.astro` | Added `loading="lazy"` to all icons |
+| `src/pages/hub/tools/diligence-machine/index.astro` | Added `loading="lazy"` to all icons |
+| `src/pages/hub/tools/techpar/index.astro` | Added `loading="lazy"` to empty state icon |
 
 ---
 
