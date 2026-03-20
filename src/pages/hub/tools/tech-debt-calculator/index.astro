@@ -278,6 +278,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
                             <option value="CAD">CAD</option>
                             <option value="AUD">AUD</option>
                         </select>
+                        <button id="export-pdf-btn" type="button" class="copy-link-btn" aria-label="Export as PDF via print dialog">Export PDF</button>
                         <button id="copy-summary-btn" type="button" class="copy-link-btn" aria-label="Copy results summary to clipboard">Copy Summary</button>
                         <button id="copy-link-btn" type="button" class="copy-link-btn" aria-label="Copy shareable link to clipboard">Copy Link</button>
                     </div>
@@ -1201,6 +1202,14 @@ document.addEventListener('DOMContentLoaded', () => {
       currency = currencySelect.value;
       trackEvent({ event: 'tdc_currency_change', category: 'engagement', currency });
       render();
+    });
+  }
+
+  const pdfBtn = document.getElementById('export-pdf-btn') as HTMLButtonElement | null;
+  if (pdfBtn) {
+    pdfBtn.addEventListener('click', () => {
+      trackEvent({ event: 'tdc_export_pdf', category: 'engagement' });
+      window.print();
     });
   }
 
