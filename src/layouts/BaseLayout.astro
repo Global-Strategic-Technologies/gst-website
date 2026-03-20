@@ -92,8 +92,9 @@ const isHubSubPage = currentPath.startsWith('/hub/') && currentPath !== '/hub/';
         <GoogleAnalytics />
     </head>
     <body>
+        <a href="#main-content" class="skip-nav">Skip to main content</a>
         <Header currentPath={currentPath} staticHeader={isHubSubPage} />
-        <main>
+        <main id="main-content" role="main">
             <slot />
         </main>
         <Footer />
