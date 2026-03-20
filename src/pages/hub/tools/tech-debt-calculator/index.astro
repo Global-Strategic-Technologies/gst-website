@@ -247,6 +247,27 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
                     <p class="result-note" id="ctx-note"></p>
                 </div>
 
+                <!-- ── Methodology ─────────────────────────────────────────── -->
+                <details class="tdc-methodology">
+                    <summary class="tdc-methodology__trigger">How the calculator works</summary>
+                    <div class="tdc-methodology__body">
+                        <h4 class="tdc-methodology__heading">Cost model</h4>
+                        <p>The calculator estimates the annual carrying cost of technical debt by multiplying engineering labor cost by the maintenance burden percentage. Direct monthly cost = team size &times; (salary / 12) &times; (maintenance burden %) &times; velocity multiplier. When advanced mode is enabled, incident response cost (incidents &times; mean time to resolve &times; hourly rate) is added.</p>
+
+                        <h4 class="tdc-methodology__heading">DORA velocity multiplier</h4>
+                        <p>Deployment frequency serves as a proxy for delivery friction. The multiplier (0.8&times;&ndash;2.4&times;) is applied to direct labor cost to reflect the productivity overhead associated with slower release cycles. Tiers follow the DORA State of DevOps classification: Elite (multiple/day&ndash;daily), High (weekly&ndash;biweekly), Medium (3-week&ndash;monthly), Low (quarterly&ndash;annually). Source: Forsgren, N., Humble, J., &amp; Kim, G., <em>Accelerate</em> (2018); DORA State of DevOps Reports (2019&ndash;2023).</p>
+
+                        <h4 class="tdc-methodology__heading">Maintenance burden benchmarks</h4>
+                        <p>The 20&ndash;30% &ldquo;healthy&rdquo; range and 40%+ &ldquo;material debt&rdquo; threshold are informed by industry surveys of engineering time allocation and GST&rsquo;s direct experience across 100+ technology diligence engagements. Teams below 20% are well-managed; 35&ndash;50% indicates compounding velocity loss; above 50% suggests debt is the primary drag on throughput.</p>
+
+                        <h4 class="tdc-methodology__heading">Payback analysis</h4>
+                        <p>The break-even period divides the remediation budget by monthly savings (equal to total monthly debt cost). This assumes full resolution of identified debt, which is a simplification. Real remediation programs typically achieve 50&ndash;80% efficiency. The estimate should be treated as a lower bound.</p>
+
+                        <h4 class="tdc-methodology__heading">Limitations</h4>
+                        <p>This model produces order-of-magnitude estimates, not precise valuations. It does not account for context-switching overhead, team ramp-up time, partial remediation efficiency, or revenue impact of incidents. Salary inputs are all-in (base + benefits + equity) and should reflect loaded cost. Results are most useful for framing diligence conversations and scoping remediation budgets, not for formal valuation adjustments.</p>
+                    </div>
+                </details>
+
                 <!-- ── Footer ──────────────────────────────────────────────── -->
                 <div class="calc-footer">
                     <div class="calc-footer__controls">
@@ -257,6 +278,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
                             <option value="CAD">CAD</option>
                             <option value="AUD">AUD</option>
                         </select>
+                        <button id="copy-summary-btn" type="button" class="copy-link-btn" aria-label="Copy results summary to clipboard">Copy Summary</button>
                         <button id="copy-link-btn" type="button" class="copy-link-btn" aria-label="Copy shareable link to clipboard">Copy Link</button>
                     </div>
                 </div>
@@ -708,6 +730,70 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
         margin-top: var(--spacing-2xl);
     }
 
+    /* ── Methodology collapsible ───────────────────────────────────────────── */
+    .tdc-methodology {
+        margin-top: 0;
+        border-top: 1px solid color-mix(in srgb, var(--color-primary) 6%, transparent);
+    }
+
+    .tdc-methodology__trigger {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) var(--spacing-2xl);
+        cursor: pointer;
+        color: var(--text-light-muted);
+        transition: color var(--transition-fast);
+        list-style: none;
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .tdc-methodology__trigger::-webkit-details-marker {
+        display: none;
+    }
+
+    .tdc-methodology__trigger::before {
+        content: '\25B6';
+        font-size: 0.6em;
+        transition: transform var(--transition-fast);
+    }
+
+    .tdc-methodology[open] > .tdc-methodology__trigger::before {
+        transform: rotate(90deg);
+    }
+
+    .tdc-methodology__trigger:hover {
+        color: var(--text-light-secondary);
+    }
+
+    .tdc-methodology__body {
+        padding: var(--spacing-sm) var(--spacing-2xl) var(--spacing-md);
+        color: var(--text-light-secondary);
+        line-height: 1.7;
+        border-top: 1px solid color-mix(in srgb, var(--color-primary) 6%, transparent);
+    }
+
+    .tdc-methodology__heading {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--text-light-primary);
+        margin-top: var(--spacing-md);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .tdc-methodology__heading:first-child {
+        margin-top: 0;
+    }
+
+    .tdc-methodology__body p {
+        margin-bottom: var(--spacing-sm);
+    }
+
     /* ════════════════════════════════════════════════════════════════════════
        RESPONSIVE — tablet (≤ 768px)
     ════════════════════════════════════════════════════════════════════════ */
@@ -794,6 +880,69 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
             height: 24px;
         }
     }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       PRINT — clean output for PDF export
+    ════════════════════════════════════════════════════════════════════════ */
+    @media print {
+        .site-header,
+        .breadcrumb,
+        .hub-header,
+        .calc-footer,
+        .calc-slider,
+        .slider-hints,
+        .slider-benchmark,
+        .advanced-toggle,
+        .advanced-section,
+        .back-link,
+        footer {
+            display: none !important;
+        }
+
+        [data-calc] {
+            max-width: 100%;
+            border: none;
+            box-shadow: none;
+            overflow: visible;
+        }
+
+        .inputs-section {
+            border-bottom: 1px solid #ccc;
+        }
+
+        .slider-row {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .slider-label {
+            font-size: 10pt;
+        }
+
+        .slider-value {
+            font-size: 10pt;
+        }
+
+        .results-section {
+            background: none;
+            border-top: 1px solid #ccc;
+        }
+
+        .tdc-methodology > .tdc-methodology__body {
+            display: block !important;
+        }
+
+        .tdc-methodology__trigger::before {
+            display: none !important;
+        }
+
+        .tdc-methodology {
+            border-top: 1px solid #ccc;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+    }
 </style>
 
 <script>
@@ -808,6 +957,7 @@ import {
   fmtPayback,
   encodeState,
   decodeState,
+  buildSummaryText,
 } from '../../../../utils/tech-debt-engine';
 
 import type { CalcState } from '../../../../utils/tech-debt-engine';
@@ -956,10 +1106,10 @@ function render(): void {
   // ── DORA message ──
   const doraEl = document.querySelector('[data-dora-message]') as HTMLElement;
   if (state.deployIdx >= 6) {
-    doraEl.textContent = 'DORA Low tier — constrained velocity signals debt is likely the rate-limiting factor';
+    doraEl.textContent = 'DORA Low tier: constrained velocity signals debt is likely the rate-limiting factor';
     doraEl.style.color = 'var(--color-secondary)';
   } else if (state.deployIdx >= 4) {
-    doraEl.textContent = 'DORA Medium tier — deployment lag suggests debt friction is dampening throughput';
+    doraEl.textContent = 'DORA Medium tier: deployment lag suggests debt friction is dampening throughput';
     doraEl.style.color = 'var(--color-secondary)';
   } else {
     doraEl.textContent = '';
@@ -1063,6 +1213,21 @@ document.addEventListener('DOMContentLoaded', () => {
       navigator.clipboard.writeText(url).then(
         () => { copyBtn.textContent = 'Copied!'; setTimeout(reset, 2000); },
         () => { copyBtn.textContent = 'Copied!'; setTimeout(reset, 2000); },
+      );
+    });
+  }
+
+  const summaryBtn = document.getElementById('copy-summary-btn') as HTMLButtonElement | null;
+  if (summaryBtn) {
+    summaryBtn.addEventListener('click', () => {
+      trackEvent({ event: 'tdc_copy_summary', category: 'engagement' });
+      const result = calculate(state);
+      const { symbol, multiplier } = CURRENCIES[currency];
+      const text = buildSummaryText(state, result, symbol, multiplier, window.location.href);
+      const reset = () => { summaryBtn.textContent = 'Copy Summary'; };
+      navigator.clipboard.writeText(text).then(
+        () => { summaryBtn.textContent = 'Copied!'; setTimeout(reset, 2000); },
+        () => { summaryBtn.textContent = 'Copied!'; setTimeout(reset, 2000); },
       );
     });
   }
