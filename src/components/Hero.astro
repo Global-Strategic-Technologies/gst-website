@@ -53,6 +53,7 @@ const {
                                     href={primaryCTA.href}
                                     class="cta-button primary"
                                     onclick="trackCTA('calendly', 'hero')"
+                                    {...(primaryCTA.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                                 >
                                     {primaryCTA.text}
                                 </a>

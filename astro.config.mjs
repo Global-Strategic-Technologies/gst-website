@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import vercel from '@astrojs/vercel';
 
 export default defineConfig({
+  site: 'https://globalstrategic.tech',
   adapter: vercel({
     webAnalytics: { enabled: false },
     isr: {
