@@ -1,8 +1,11 @@
 import { Chart, registerables } from 'chart.js';
-import { compute, buildTrajectory, zoneColorVar, zoneBgVar, zoneLabel, kpiClass, formatDollars, formatPercent, serializeToParams, deserializeFromParams, buildSummaryText } from './techpar-engine';
-import type { TechParInputs, TechParResult, StageConfig } from './techpar-engine';
+import { compute, buildTrajectory, buildHistoricalTrajectory, zoneColorVar, zoneBgVar, zoneLabel, kpiClass, formatDollars, formatPercent, serializeToParams, deserializeFromParams, buildSummaryText } from './techpar-engine';
+import type { TechParInputs, TechParResult, StageConfig, HistoricalPoint } from './techpar-engine';
 import { STAGES } from '../data/techpar/stages';
 import { SIGNAL_COPY } from '../data/techpar/signal-copy';
+import { INDUSTRY_NOTES } from '../data/techpar/industry-notes';
+import type { Industry } from '../data/techpar/industry-notes';
+import { RECOMMENDATIONS } from '../data/techpar/recommendations';
 
 Chart.register(...registerables);
 
@@ -14,6 +17,13 @@ let trajChart: Chart | null = null;
 let baselineResult: TechParResult | null = null;
 let baselineInputs: TechParInputs | null = null;
 let currencySymbol = '$';
+let infraPeriod: 'monthly' | 'annual' = 'monthly';
+let industry: Industry = 'saas';
+let historicalPoints: HistoricalPoint[] = [];
+const MAX_HISTORICAL = 2;
+
+// ─── Reset confirmation ──────────────────────────────────
+let resetTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // ─── Scenarios ────────────────────────────────────────────
 interface SavedScenario { name: string; inputs: TechParInputs; result: TechParResult; }
@@ -67,7 +77,7 @@ document.querySelectorAll('[data-action]').forEach(btn => {
         else if (action === 'go-profile') goTab('profile');
         else if (action === 'go-analysis') goTab('analysis');
         else if (action === 'go-trajectory') goTab('trajectory');
-        else if (action === 'reset') resetAll();
+        else if (action === 'reset') handleReset(btn as HTMLButtonElement);
         else if (action === 'copy-link') copyLink(btn as HTMLButtonElement);
         else if (action === 'copy-summary') copySummary(btn as HTMLButtonElement);
         else if (action === 'export-pdf') exportPdf();
@@ -93,7 +103,8 @@ function copySummary(btn: HTMLButtonElement) {
     if (!inputs) return;
     const result = compute(inputs);
     if (!result) return;
-    const text = buildSummaryText(inputs, result, window.location.href);
+    const validHist = historicalPoints.filter(p => p.arr > 0 && p.totalTechSpend > 0);
+    const text = buildSummaryText(inputs, result, window.location.href, validHist.length ? validHist : undefined);
     navigator.clipboard.writeText(text).then(() => {
         const orig = btn.textContent;
         btn.textContent = 'Copied!';
@@ -226,6 +237,23 @@ function renderScenarios(r: TechParResult) {
 }
 
 // ─── Reset ──────────────────────────────────────────────────
+function handleReset(btn: HTMLButtonElement) {
+    if (btn.dataset.confirming) {
+        if (resetTimeout) { clearTimeout(resetTimeout); resetTimeout = null; }
+        btn.classList.remove('tp-tab-reset--confirming');
+        delete btn.dataset.confirming;
+        resetAll();
+        return;
+    }
+    btn.dataset.confirming = '1';
+    btn.classList.add('tp-tab-reset--confirming');
+    resetTimeout = setTimeout(() => {
+        btn.classList.remove('tp-tab-reset--confirming');
+        delete btn.dataset.confirming;
+        resetTimeout = null;
+    }, 3000);
+}
+
 function resetAll() {
     // Clear all inputs
     document.querySelectorAll<HTMLInputElement>('.techpar-shell input').forEach(el => {
@@ -252,6 +280,20 @@ function resetAll() {
     });
     document.querySelectorAll('.tp-input-pre').forEach(pre => {
         pre.textContent = '$';
+    });
+
+    // Reset historical data
+    historicalPoints = [];
+    renderHistRows();
+
+    // Reset infra period toggle
+    infraPeriod = 'monthly';
+    syncInfraPeriodUI();
+
+    // Reset industry selector
+    industry = 'saas';
+    $$('[data-industry]').forEach(b => {
+        b.classList.toggle('tp-seg__btn--active', (b as HTMLElement).dataset.industry === 'saas');
     });
 
     // Reset stage cards — clear all selections
@@ -370,6 +412,116 @@ $$('[data-currency]').forEach(btn => {
     });
 });
 
+// ─── Infrastructure period toggle ─────────────────────────
+function syncInfraPeriodUI() {
+    const label = document.querySelector('[data-infra-label]');
+    const suf = document.querySelector('[data-infra-suf]');
+    const hint = document.querySelector('[data-infra-hint]');
+    const monthlyChips = document.querySelector('[data-infra-chips-monthly]') as HTMLElement | null;
+    const annualChips = document.querySelector('[data-infra-chips-annual]') as HTMLElement | null;
+    if (label) label.textContent = infraPeriod === 'monthly' ? 'Monthly cloud spend' : 'Annual cloud spend';
+    if (suf) suf.textContent = infraPeriod === 'monthly' ? '/ mo' : '/ yr';
+    if (hint) hint.textContent = infraPeriod === 'monthly'
+        ? 'Cloud, data center, CDN, observability, managed services. Auto-converted to annual.'
+        : 'Cloud, data center, CDN, observability, managed services. Auto-converted to monthly.';
+    if (monthlyChips) monthlyChips.style.display = infraPeriod === 'monthly' ? 'flex' : 'none';
+    if (annualChips) annualChips.style.display = infraPeriod === 'annual' ? 'flex' : 'none';
+    $$('[data-infra-period]').forEach(b => {
+        b.classList.toggle('tp-seg__btn--active', (b as HTMLElement).dataset.infraPeriod === infraPeriod);
+    });
+}
+
+$$('[data-infra-period]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        infraPeriod = ((btn as HTMLElement).dataset.infraPeriod || 'monthly') as 'monthly' | 'annual';
+        syncInfraPeriodUI();
+        updateAll();
+    });
+});
+
+// ─── Industry selector ──────────────────────────────────────
+$$('[data-industry]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        $$('[data-industry]').forEach(b => b.classList.remove('tp-seg__btn--active'));
+        btn.classList.add('tp-seg__btn--active');
+        industry = ((btn as HTMLElement).dataset.industry || 'saas') as Industry;
+        updateAll();
+    });
+});
+
+// ─── Historical data ─────────────────────────────────────
+function renderHistRows() {
+    const container = g('hist-rows');
+    const addBtn = document.querySelector('[data-hist-add]') as HTMLButtonElement | null;
+    if (!container) return;
+
+    // Rows are ordered oldest-first visually (row 0 = furthest back)
+    container.innerHTML = historicalPoints.map((pt, i) => {
+        const yearHint = `FY${new Date().getFullYear() - (historicalPoints.length - i)}`;
+        return `
+        <div class="tp-hist-row" data-hist-row="${i}">
+            <div class="tp-hist-field tp-hist-field--label">
+                <span class="tp-hist-field__lbl">Year</span>
+                <input data-hist-label="${i}" value="${pt.label}" placeholder="${yearHint}" class="tp-input--no-pre" />
+            </div>
+            <div class="tp-hist-field">
+                <span class="tp-hist-field__lbl">ARR / Revenue</span>
+                <div class="tp-input-wrap">
+                    <span class="tp-input-pre">${currencySymbol}</span>
+                    <input type="number" data-hist-arr="${i}" value="${pt.arr || ''}" placeholder="0" min="0" inputmode="numeric" />
+                </div>
+            </div>
+            <div class="tp-hist-field">
+                <span class="tp-hist-field__lbl">Total annual tech spend</span>
+                <div class="tp-input-wrap">
+                    <span class="tp-input-pre">${currencySymbol}</span>
+                    <input type="number" data-hist-tech="${i}" value="${pt.totalTechSpend || ''}" placeholder="0" min="0" inputmode="numeric" />
+                </div>
+            </div>
+            <button class="tp-hist-remove" data-hist-remove="${i}" type="button" title="Remove year">&times;</button>
+        </div>`;
+    }).join('');
+
+    if (addBtn) addBtn.disabled = historicalPoints.length >= MAX_HISTORICAL;
+
+    // Bind input events
+    container.querySelectorAll('input').forEach(inp => {
+        inp.addEventListener('input', () => {
+            syncHistFromDOM();
+            updateAll();
+        });
+    });
+
+    // Bind remove buttons
+    container.querySelectorAll('[data-hist-remove]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = parseInt((btn as HTMLElement).dataset.histRemove!, 10);
+            historicalPoints.splice(idx, 1);
+            renderHistRows();
+            updateAll();
+        });
+    });
+}
+
+function syncHistFromDOM() {
+    historicalPoints.forEach((pt, i) => {
+        const labelEl = document.querySelector(`[data-hist-label="${i}"]`) as HTMLInputElement | null;
+        const arrEl = document.querySelector(`[data-hist-arr="${i}"]`) as HTMLInputElement | null;
+        const techEl = document.querySelector(`[data-hist-tech="${i}"]`) as HTMLInputElement | null;
+        if (labelEl) pt.label = labelEl.value;
+        if (arrEl) pt.arr = parseFloat(arrEl.value) || 0;
+        if (techEl) pt.totalTechSpend = parseFloat(techEl.value) || 0;
+    });
+}
+
+document.querySelector('[data-hist-add]')?.addEventListener('click', () => {
+    if (historicalPoints.length >= MAX_HISTORICAL) return;
+    // Insert oldest year first: if 0 rows exist, add Y-1; if 1 row exists, add Y-2 before it
+    const nextYearBack = historicalPoints.length + 1;
+    historicalPoints.unshift({ label: `FY${new Date().getFullYear() - nextYearBack}`, arr: 0, totalTechSpend: 0 });
+    renderHistRows();
+});
+
 // ─── Deep Dive sum ─────────────────────────────────────────
 function sumDeep() {
     const sum = getInput('rdEng') + getInput('rdProd') + getInput('rdTool');
@@ -466,7 +618,7 @@ function buildInputs(): TechParInputs | null {
         capexView: gaapEl?.checked ? 'gaap' : 'cash',
         growthRate: growthRate || 0,
         exitMultiple: getInput('exitMult') || 12,
-        infraHosting: getInput('infra'),
+        infraHosting: infraPeriod === 'annual' ? getInput('infra') / 12 : getInput('infra'),
         infraPersonnel: getInput('infraPers'),
         rdOpEx: getInput('rdOpEx'),
         rdCapEx: getInput('rdCapEx'),
@@ -489,8 +641,11 @@ let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 function syncUrlState() {
     const inputs = buildInputs();
     if (inputs) {
-        const params = serializeToParams(inputs);
+        const validHist = historicalPoints.filter(p => p.arr > 0 || p.totalTechSpend > 0);
+        const params = serializeToParams(inputs, validHist.length ? validHist : undefined);
         if (currencySymbol !== '$') params.set('u', currencySymbol);
+        if (infraPeriod !== 'monthly') params.set('b', infraPeriod);
+        if (industry !== 'saas') params.set('n', industry);
         const url = `${window.location.pathname}?${params.toString()}`;
         history.replaceState(null, '', url);
         // Debounced localStorage save
@@ -510,7 +665,11 @@ function updateInfraAnnotation() {
     const warnEl = g('infra-warn');
     if (annualEl) {
         if (infra > 0) {
-            annualEl.textContent = `= ${fmtD(infra * 12)}/yr`;
+            if (infraPeriod === 'monthly') {
+                annualEl.textContent = `= ${fmtD(infra * 12)}/yr`;
+            } else {
+                annualEl.textContent = `= ${fmtD(infra / 12)}/mo`;
+            }
             annualEl.style.display = 'block';
         } else {
             annualEl.style.display = 'none';
@@ -518,8 +677,11 @@ function updateInfraAnnotation() {
     }
     if (warnEl) {
         const arr = getInput('arr');
-        if (arr > 0 && infra > 0 && (infra * 12) > arr * 0.5) {
-            warnEl.textContent = 'This value is monthly. If you entered an annual figure, divide by 12.';
+        const annualInfra = infraPeriod === 'monthly' ? infra * 12 : infra;
+        if (arr > 0 && infra > 0 && annualInfra > arr * 0.5) {
+            warnEl.textContent = infraPeriod === 'monthly'
+                ? 'This value is monthly. If you entered an annual figure, switch to Annual above.'
+                : 'This value is annual. If you entered a monthly figure, switch to Monthly above.';
             warnEl.style.display = 'block';
         } else {
             warnEl.style.display = 'none';
@@ -584,9 +746,21 @@ function updateAll() {
         if (chk) chk.checked = false;
     }
 
-    // Analysis button
+    // Analysis button + hint
     const btnAnalysis = document.querySelector('[data-btn-analysis]') as HTMLButtonElement;
     if (btnAnalysis) btnAnalysis.disabled = !r;
+    const analysisHint = g('analysis-hint');
+    if (analysisHint) {
+        if (r) {
+            analysisHint.textContent = '';
+        } else if (!stageKey) {
+            analysisHint.textContent = 'Select a company stage on the Profile tab';
+        } else if (!inputs || !inputs.arr) {
+            analysisHint.textContent = 'Enter ARR on the Profile tab';
+        } else {
+            analysisHint.textContent = 'Enter infrastructure spend above';
+        }
+    }
 
     // Tab completion — teal bottom border on done tabs
     const profileDone = !!inputs && inputs.arr > 0 && !!stageKey;
@@ -717,6 +891,20 @@ function renderAnalysis(r: TechParResult) {
         tr.classList.toggle('tp-btbl--active', (tr as HTMLElement).dataset.benchRow === stageKey);
     });
 
+    // Industry context
+    const industryData = INDUSTRY_NOTES[industry];
+    const industryDisc = g('industry-disc');
+    if (industryDisc) industryDisc.textContent = industryData.disclaimer;
+    const industryNote = g('industry-note');
+    if (industryNote) {
+        if (industry !== 'saas' && industryData.note) {
+            industryNote.textContent = industryData.note;
+            industryNote.style.display = 'block';
+        } else {
+            industryNote.style.display = 'none';
+        }
+    }
+
     // Signal card
     const copy = SIGNAL_COPY[stageKey as TechParInputs['stage']]?.[r.zone];
     const sigStage = g('sig-stage');
@@ -728,7 +916,24 @@ function renderAnalysis(r: TechParResult) {
     const sigBody = g('sig-body');
     if (sigBody) sigBody.textContent = copy?.body || '';
     const sigMets = g('sig-mets');
-    if (sigMets) sigMets.innerHTML = buildMetrics(r, zoneCol, s);
+    const sigDiv = g('sig-div');
+    const metricsHtml = buildMetrics(r, zoneCol, s);
+    if (sigMets) sigMets.innerHTML = metricsHtml;
+    if (sigDiv) sigDiv.style.display = metricsHtml ? '' : 'none';
+
+    // Recommendations — only shown for zones that warrant action (not healthy/ahead)
+    const recsContainer = g('recommendations');
+    const recsList = g('recs-list');
+    if (recsContainer && recsList) {
+        const actionableZone = r.zone !== 'healthy' && r.zone !== 'ahead';
+        const recs = actionableZone ? RECOMMENDATIONS[stageKey as TechParInputs['stage']]?.[r.zone] : null;
+        if (recs?.length) {
+            recsList.innerHTML = recs.map(rec => `<li>${rec}</li>`).join('');
+            recsContainer.style.display = 'block';
+        } else {
+            recsContainer.style.display = 'none';
+        }
+    }
 
     // KPI grid
     const kpiGrid = g('kpi-grid');
@@ -758,6 +963,24 @@ function renderAnalysis(r: TechParResult) {
         if (r.kpis.engPctOfRD !== null) cells += kc('Engineering % R&D', formatPercent(r.kpis.engPctOfRD), '', '', deltaHtml(r.kpis.engPctOfRD, br?.kpis.engPctOfRD));
         if (r.kpis.prodPctOfRD !== null) cells += kc('Product % R&D', formatPercent(r.kpis.prodPctOfRD), '', '', deltaHtml(r.kpis.prodPctOfRD, br?.kpis.prodPctOfRD));
         kpiGrid.innerHTML = cells;
+    }
+
+    // Deep Dive prompt
+    const ddPrompt = g('deepdive-prompt');
+    if (ddPrompt) {
+        const rdCat = r.categories.find(c => c.label === 'R&D OpEx');
+        const showPrompt = mode === 'quick' && rdCat && (rdCat.zone === 'elevated' || rdCat.zone === 'critical');
+        if (showPrompt) {
+            ddPrompt.style.display = 'block';
+            ddPrompt.innerHTML = `R&D spend is ${zoneLabel(rdCat.zone).toLowerCase()}. <button class="tp-deepdive-prompt__btn" type="button">Switch to Deep Dive mode</button> to break down engineering, product, and tooling costs.`;
+            ddPrompt.querySelector('.tp-deepdive-prompt__btn')?.addEventListener('click', () => {
+                const deepBtn = document.querySelector('[data-mode="deepdive"]') as HTMLElement | null;
+                if (deepBtn) deepBtn.click();
+                goTab('costs');
+            });
+        } else {
+            ddPrompt.style.display = 'none';
+        }
     }
 
     // Category bars
@@ -876,6 +1099,23 @@ function renderTrajectory(r: TechParResult) {
     if (!inputs) return;
     const traj = buildTrajectory(inputs, s);
 
+    // Build historical prefix (if any valid points exist)
+    const validHist = historicalPoints.filter(p => p.arr > 0 && p.totalTechSpend > 0);
+    const hist = validHist.length ? buildHistoricalTrajectory(validHist, s, inputs.arr, r.total) : null;
+    const histLen = hist ? hist.labels.length : 0;
+
+    // Prepend historical data to all arrays
+    const labels = hist ? [...hist.labels, ...traj.labels] : traj.labels;
+    const spend = hist ? [...hist.spend, ...traj.spend] : traj.spend;
+    const bandLoData = hist ? [...hist.bandLo, ...traj.bandLo] : traj.bandLo;
+    const bandHiData = hist ? [...hist.bandHi, ...traj.bandHi] : traj.bandHi;
+    const underFloorData = hist ? [...hist.underFloor, ...traj.underFloor] : traj.underFloor;
+    const aboveCeilingData = hist ? [...hist.aboveCeiling, ...traj.aboveCeiling] : traj.aboveCeiling;
+    const revenueData = hist ? [...hist.revenue, ...traj.revenue] : traj.revenue;
+    const totalLen = labels.length;
+    // Index of "Now" in combined arrays
+    const nowIdx = histLen;
+
     if (trajChart) { trajChart.destroy(); trajChart = null; }
 
     const canvas = document.querySelector('[data-traj-canvas]') as HTMLCanvasElement;
@@ -894,14 +1134,24 @@ function renderTrajectory(r: TechParResult) {
     const borderLight = getStyle('--border-light');
     const bgLight = getStyle('--bg-light-alt');
 
+    // Point radius: show dots at the start of each historical year (every 12th point), hide elsewhere
+    const spendPointRadius = spend.map((_: number, i: number) => {
+        if (i >= histLen) return 0;                 // forward projection: no dots
+        if (i % 12 === 0) return 4;                 // start of each historical year
+        return 0;
+    });
+
     const datasets: any[] = [
-        { label: '_z', data: Array(37).fill(0), borderColor: 'transparent', borderWidth: 0, pointRadius: 0, fill: false },
-        { label: 'Underinvestment floor', data: traj.underFloor, borderColor: underBorder, borderWidth: 1, borderDash: [3, 3], pointRadius: 0, fill: { target: '-1', above: underFill, below: 'transparent' }, tension: 0.3 },
-        { label: 'Efficiency band', data: traj.bandLo, borderColor: aheadBorder, borderWidth: 1, borderDash: [3, 3], pointRadius: 0, fill: { target: '-1', above: aheadFill, below: 'transparent' }, tension: 0.3 },
-        { label: 'Healthy range', data: traj.bandHi, borderColor: bandBorder, borderWidth: 1, borderDash: [4, 3], pointRadius: 0, fill: { target: '-1', above: bandFill, below: 'transparent' }, tension: 0.3 },
-        { label: 'Caution ceiling', data: traj.aboveCeiling, borderColor: aboveBorder, borderWidth: 1, borderDash: [3, 3], pointRadius: 0, fill: { target: '-1', above: aboveFill, below: 'transparent' }, tension: 0.3 },
-        { label: 'Monthly tech spend', data: traj.spend, borderColor: zoneCol, borderWidth: 2, pointRadius: 0, fill: false, tension: 0.3 },
+        { label: '_z', data: Array(totalLen).fill(0), borderColor: 'transparent', borderWidth: 0, pointRadius: 0, fill: false },
+        { label: 'Underinvestment floor', data: underFloorData, borderColor: underBorder, borderWidth: 1, borderDash: [3, 3], pointRadius: 0, fill: { target: '-1', above: underFill, below: 'transparent' }, tension: 0.3 },
+        { label: 'Efficiency band', data: bandLoData, borderColor: aheadBorder, borderWidth: 1, borderDash: [3, 3], pointRadius: 0, fill: { target: '-1', above: aheadFill, below: 'transparent' }, tension: 0.3 },
+        { label: 'Healthy range', data: bandHiData, borderColor: bandBorder, borderWidth: 1, borderDash: [4, 3], pointRadius: 0, fill: { target: '-1', above: bandFill, below: 'transparent' }, tension: 0.3 },
+        { label: 'Caution ceiling', data: aboveCeilingData, borderColor: aboveBorder, borderWidth: 1, borderDash: [3, 3], pointRadius: 0, fill: { target: '-1', above: aboveFill, below: 'transparent' }, tension: 0.3 },
+        { label: 'Monthly tech spend', data: spend, borderColor: zoneCol, borderWidth: 2, pointRadius: spendPointRadius, pointBackgroundColor: zoneCol, fill: false, tension: 0.3 },
     ];
+
+    // Helper to pad overlay datasets: NaN for historical portion so line starts at "Now"
+    const padForward = (data: number[]) => histLen > 0 ? [...Array(histLen).fill(NaN), ...data] : data;
 
     // Baseline overlay (dashed spend line)
     if (baselineInputs && baselineResult) {
@@ -909,13 +1159,14 @@ function renderTrajectory(r: TechParResult) {
         const baseZoneCol = getStyle(zoneColorVar(baselineResult.zone));
         datasets.push({
             label: 'Baseline spend',
-            data: baseTraj.spend,
+            data: padForward(baseTraj.spend),
             borderColor: baseZoneCol + '80',
             borderWidth: 2,
             borderDash: [6, 4],
             pointRadius: 0,
             fill: false,
             tension: 0.3,
+            spanGaps: false,
         });
     }
 
@@ -925,20 +1176,21 @@ function renderTrajectory(r: TechParResult) {
         const scenCol = getStyle(zoneColorVar(scenario.result.zone));
         datasets.push({
             label: scenario.name,
-            data: scenTraj.spend,
+            data: padForward(scenTraj.spend),
             borderColor: scenCol + '80',
             borderWidth: 1.5,
             borderDash: [4, 4],
             pointRadius: 0,
             fill: false,
             tension: 0.3,
+            spanGaps: false,
         });
     }
 
     if (s.frame === 'convergence') {
         datasets.push({
             label: 'Monthly revenue',
-            data: traj.revenue,
+            data: revenueData,
             borderColor: revLineCol,
             borderWidth: 2,
             borderDash: [6, 4],
@@ -948,7 +1200,7 @@ function renderTrajectory(r: TechParResult) {
         });
     }
 
-    const allSpend = [...traj.spend, ...traj.aboveCeiling];
+    const allSpend = [...spend, ...aboveCeilingData];
     if (baselineInputs && baselineResult) {
         const baseTraj = buildTrajectory(baselineInputs, baselineResult.stageConfig);
         allSpend.push(...baseTraj.spend);
@@ -959,25 +1211,23 @@ function renderTrajectory(r: TechParResult) {
     }
     // Growth rate chart guard: cap revenue line display at 2x the above-ceiling band
     if (s.frame === 'convergence') {
-        const maxAbove = Math.max(...traj.aboveCeiling);
+        const maxAbove = Math.max(...aboveCeilingData);
         const revCap = maxAbove * 2;
         if (inputs.growthRate > 100) {
-            // Cap revenue data for display; store originals for tooltips
-            const cappedRevenue = traj.revenue.map(v => Math.min(v, revCap));
-            // Replace dataset revenue data with capped values
+            const cappedRevenue = revenueData.map(v => Math.min(v, revCap));
             const revDs = datasets[datasets.length - 1];
             revDs.data = cappedRevenue;
             allSpend.push(...cappedRevenue);
         } else {
-            allSpend.push(...traj.revenue);
+            allSpend.push(...revenueData);
         }
     }
-    const maxY = Math.max(...allSpend) * 1.12;
+    const maxY = Math.max(...allSpend.filter(v => !isNaN(v))) * 1.12;
 
     function syncDot(chart: any) {
         const m = chart.getDatasetMeta(5);
-        if (!m?.data?.[0]) return;
-        const pt = m.data[0];
+        if (!m?.data?.[nowIdx]) return;
+        const pt = m.data[nowIdx];
         const dot = document.querySelector('[data-traj-dot]') as HTMLElement;
         if (!dot) return;
         dot.style.background = zoneCol;
@@ -995,7 +1245,7 @@ function renderTrajectory(r: TechParResult) {
 
     trajChart = new Chart(canvas.getContext('2d')!, {
         type: 'line',
-        data: { labels: traj.labels, datasets },
+        data: { labels, datasets },
         plugins: [dotPlugin],
         options: {
             responsive: true,
@@ -1053,6 +1303,9 @@ function renderTrajectory(r: TechParResult) {
         { cls: 'tp-tleg--line', sw: `border-color:${zoneCol}`, l: 'Monthly tech spend' },
         { cls: 'tp-tleg--dot', sw: `border-color:${zoneCol}`, l: 'Your position today' },
     ];
+    if (histLen > 0) {
+        seriesItems.push({ cls: 'tp-tleg--dot', sw: `border-color:${zoneCol}`, l: 'Historical actuals' });
+    }
     if (baselineResult) {
         const baseZoneCol = getStyle(zoneColorVar(baselineResult.zone));
         seriesItems.push({ cls: 'tp-tleg--line tp-tleg--dashed', sw: `border-color:${baseZoneCol}80`, l: 'Baseline spend' });
@@ -1101,6 +1354,22 @@ function hydrateFromUrl() {
             pre.textContent = currencySymbol;
         });
         updateChipCurrencies();
+    }
+
+    // Infra period
+    const b = params.get('b');
+    if (b === 'annual') {
+        infraPeriod = 'annual';
+        syncInfraPeriodUI();
+    }
+
+    // Industry
+    const n = params.get('n');
+    if (n && ['saas', 'fintech', 'marketplace', 'infra_hw', 'other'].includes(n)) {
+        industry = n as Industry;
+        $$('[data-industry]').forEach(btn => {
+            btn.classList.toggle('tp-seg__btn--active', (btn as HTMLElement).dataset.industry === industry);
+        });
     }
 
     // Stage
@@ -1162,7 +1431,26 @@ function hydrateFromUrl() {
     setInput('rdEng', state.engCost);
     setInput('rdProd', state.prodCost);
     setInput('rdTool', state.toolingCost);
+
+    // Historical data
+    if (state.historical?.length) {
+        historicalPoints = state.historical;
+        renderHistRows();
+        // Open the historical section if data exists
+        const histDetails = document.querySelector('[data-historical]') as HTMLDetailsElement | null;
+        if (histDetails) histDetails.open = true;
+    }
 }
+
+// ─── Onboarding ─────────────────────────────────────────────
+const VISITED_KEY = 'techpar-visited';
+try {
+    const onboarding = document.querySelector('[data-onboarding]') as HTMLDetailsElement | null;
+    if (onboarding && localStorage.getItem(VISITED_KEY)) {
+        onboarding.open = false;
+    }
+    localStorage.setItem(VISITED_KEY, '1');
+} catch {}
 
 // ─── Init ──────────────────────────────────────────────────
 hydrateFromUrl();
