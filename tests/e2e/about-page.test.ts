@@ -126,8 +126,8 @@ test.describe('About Page - Founder Section', () => {
   test.describe('Founder Photo Theme Variants', () => {
     test('should show light theme photo by default', async ({ page }) => {
       // Ensure light theme is active
-      const body = page.locator('body');
-      const isDarkMode = await body.evaluate(el => el.classList.contains('dark-theme'));
+
+      const isDarkMode = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
 
       if (isDarkMode) {
         // Toggle to light theme
@@ -144,10 +144,10 @@ test.describe('About Page - Founder Section', () => {
     });
 
     test('should switch to dark theme photo when dark mode is enabled', async ({ page }) => {
-      const body = page.locator('body');
+
 
       // Get initial theme
-      const initialIsDark = await body.evaluate(el => el.classList.contains('dark-theme'));
+      const initialIsDark = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
 
       // Toggle to dark mode if not already there
       if (!initialIsDark) {
@@ -192,8 +192,8 @@ test.describe('About Page - Founder Section', () => {
 
     test('should show light signature by default', async ({ page }) => {
       // Ensure light theme
-      const body = page.locator('body');
-      const isDarkMode = await body.evaluate(el => el.classList.contains('dark-theme'));
+
+      const isDarkMode = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
 
       if (isDarkMode) {
         await clickThemeToggle(page);
@@ -207,10 +207,10 @@ test.describe('About Page - Founder Section', () => {
     });
 
     test('should switch to dark signature in dark theme', async ({ page }) => {
-      const body = page.locator('body');
+
 
       // Ensure dark theme
-      const initialIsDark = await body.evaluate(el => el.classList.contains('dark-theme'));
+      const initialIsDark = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
       if (!initialIsDark) {
         await clickThemeToggle(page);
         await page.waitForTimeout(100);

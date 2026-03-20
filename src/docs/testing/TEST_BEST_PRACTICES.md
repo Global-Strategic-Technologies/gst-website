@@ -558,6 +558,7 @@ If your test has any of these, it's likely a false positive:
 23. ✗ Assumes `page.evaluate()` mocks survive `page.goto()` — mocks are lost on navigation, must be re-applied
 24. ✗ Dispatches mouse events to test CSS `:hover` styles — pseudo-class state cannot be activated via JS
 25. ✗ Relies on implicit UI defaults (pre-selected stage, pre-filled growth rate) instead of explicitly setting required state — breaks when defaults are removed or changed
+26. ✗ Queries `body` for a class that lives on `document.documentElement` (or vice versa) — silently returns `false`, making conditional setup fire incorrectly
 
 ## E2E Cross-Browser Pitfalls
 
@@ -976,6 +977,37 @@ test('should enable analysis button', async ({ page }) => {
 ```
 
 **Key principle:** Every test should explicitly set up its own required state. Never rely on what happens to be selected when the page loads — those defaults are a UX decision that can change. Extract a helper (e.g., `selectStage()`) so the setup is clean and consistent across tests.
+
+### 22. ❌ Querying DOM State on the Wrong Element (Latent False-Pass)
+
+When testing theme state, modal state, or any class/attribute toggle, the query must target the element that actually holds the state. Checking the wrong element silently returns `false`, causing conditional setup logic (e.g., "if not dark, toggle to dark") to fire incorrectly. The test appears to pass because prior tests in the suite happen to leave the state in the right position — until an unrelated DOM change (adding a component, reordering elements) shifts browser timing and breaks the coincidental alignment.
+
+This is especially insidious because the test passes for months, across hundreds of CI runs, until an unrelated change exposes the latent bug.
+
+**Bad:**
+```typescript
+// ❌ dark-theme class is on <html>, not <body> — always returns false
+const body = page.locator('body');
+const isDark = await body.evaluate(el => el.classList.contains('dark-theme'));
+if (!isDark) {
+  await clickThemeToggle(page); // Always fires — toggles theme unpredictably
+}
+```
+
+**Good:**
+```typescript
+// ✅ Query the element that actually holds the class
+const isDark = await page.evaluate(() =>
+  document.documentElement.classList.contains('dark-theme')
+);
+if (!isDark) {
+  await clickThemeToggle(page);
+}
+```
+
+**How to detect:** If a test fails only on one browser (often Firefox) after an unrelated DOM change, check whether state queries target the correct element. Search for `body.evaluate(el => el.classList` and verify the class actually lives on `<body>`, not `<html>` or another ancestor.
+
+**Key principle:** A state check that always returns the same value is a tautology — it makes the conditional branch deterministic in a way that depends on external test ordering, not on actual page state. Always verify your query returns different values in different states before trusting it as a conditional guard.
 
 ### 20. ❌ Simulating CSS `:hover` with JavaScript Events in Headless Browsers
 
