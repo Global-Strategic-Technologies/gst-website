@@ -14,6 +14,17 @@ trackPageView('techpar', 'TechPar | GST');
     ogImage="/og-image.png"
     ogUrl="https://globalstrategic.tech/hub/tools/techpar"
 >
+    <script is:inline type="application/ld+json" set:html={JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "TechPar",
+        "description": "Technology cost structure analysis tool for PE diligence and portfolio company benchmarking",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" }
+    })} />
+
     <section class="techpar-section">
         <div class="container">
             <HubHeader
@@ -50,11 +61,23 @@ trackPageView('techpar', 'TechPar | GST');
                         </svg>
                         <span class="tp-tab__label">Trajectory</span>
                     </button>
-                    <button class="tp-tab-reset" data-action="reset" type="button" title="Reset all inputs">Reset</button>
+                </div>
+                <div class="tp-toolbar">
+                    <button class="tp-toolbar__reset" data-action="reset" type="button">Reset all inputs</button>
                 </div>
 
                 <!-- ── TAB: PROFILE ──────────────────────────────────── -->
                 <div class="tp-panel tp-panel--active" data-panel="profile">
+                    <details class="tp-onboarding" data-onboarding open>
+                        <summary class="tp-onboarding__trigger label-small">How to use TechPar</summary>
+                        <div class="tp-onboarding__body text-tiny">
+                            <p><strong>TechPar</strong> benchmarks your total technology cost against stage-adjusted ranges derived from KeyBanc, OpenView, Bessemer, and GST engagement data.</p>
+                            <p><strong>Who it's for:</strong> PE deal teams, portfolio company CTOs and CFOs, and board-level reporting.</p>
+                            <p><strong>What you'll need:</strong> Annual recurring revenue (ARR) and monthly infrastructure spend at minimum. Additional cost categories (personnel, R&D, CapEx) unlock deeper analysis.</p>
+                            <p><strong>How it works:</strong> Select your company stage, enter revenue and costs, and TechPar computes a blended technology cost ratio with zone classification, gap analysis, and 36-month trajectory projection.</p>
+                        </div>
+                    </details>
+
                     <div class="tp-panel__header">
                         <span class="tp-step label-small">Step 1 of 4</span>
                         <h2 class="tp-panel__title heading-md">Company profile</h2>
@@ -62,7 +85,7 @@ trackPageView('techpar', 'TechPar | GST');
                     </div>
 
                     <div class="tp-section">
-                        <span class="tp-sec-label label">Company stage</span>
+                        <span class="tp-sec-label label">Company stage <span class="tp-field__req">(required)</span></span>
                         <div class="tp-stage-grid" data-stage-grid>
                             <button class="tp-stage-card" data-stage="seed" type="button">
                                 <span class="tp-stage-card__name">Seed / Pre-A</span>
@@ -85,7 +108,31 @@ trackPageView('techpar', 'TechPar | GST');
                                 <span class="tp-stage-card__range">18&ndash;32%</span>
                             </button>
                         </div>
-                        <div class="tp-hint text-tiny">Ranges shown are total technology cost as % of revenue</div>
+                        <div class="tp-hint text-tiny">Sets benchmark ranges and zone thresholds for your growth stage.</div>
+                    </div>
+
+                    <div class="tp-section">
+                        <span class="tp-sec-label label">Industry</span>
+                        <div class="tp-seg tp-seg--wide" data-seg="industry">
+                            <button class="tp-seg__btn tp-seg__btn--active" data-industry="saas" type="button">SaaS</button>
+                            <button class="tp-seg__btn" data-industry="fintech" type="button">Fintech</button>
+                            <button class="tp-seg__btn" data-industry="marketplace" type="button">Marketplace</button>
+                            <button class="tp-seg__btn" data-industry="infra_hw" type="button">Infra / HW</button>
+                            <button class="tp-seg__btn" data-industry="other" type="button">Other</button>
+                        </div>
+                        <div class="tp-hint text-tiny">Adds industry-specific context to the analysis. Benchmark ranges remain the same across industries.</div>
+                    </div>
+
+                    <div class="tp-section">
+                        <span class="tp-sec-label label">Display currency</span>
+                        <div class="tp-seg" data-seg="currency">
+                            <button class="tp-seg__btn tp-seg__btn--active" data-currency="$" type="button">USD</button>
+                            <button class="tp-seg__btn" data-currency="€" type="button">EUR</button>
+                            <button class="tp-seg__btn" data-currency="£" type="button">GBP</button>
+                            <button class="tp-seg__btn" data-currency="C$" type="button">CAD</button>
+                            <button class="tp-seg__btn" data-currency="A$" type="button">AUD</button>
+                        </div>
+                        <div class="tp-hint text-tiny">Display only. All values remain in your local currency.</div>
                     </div>
 
                     <div class="tp-section">
@@ -93,7 +140,6 @@ trackPageView('techpar', 'TechPar | GST');
                         <div class="tp-field">
                             <label class="tp-field__label text-small" for="tp-arr">ARR or TTM Revenue <span class="tp-field__req">(required)</span></label>
                             <div class="tp-arr-quick" data-arr-quick>
-                                <button class="tp-arr-chip" data-arr-val="5000000" type="button">$5M</button>
                                 <button class="tp-arr-chip" data-arr-val="10000000" type="button">$10M</button>
                                 <button class="tp-arr-chip" data-arr-val="25000000" type="button">$25M</button>
                                 <button class="tp-arr-chip" data-arr-val="50000000" type="button">$50M</button>
@@ -104,6 +150,7 @@ trackPageView('techpar', 'TechPar | GST');
                                 <span class="tp-input-pre">$</span>
                                 <input type="text" id="tp-arr" data-input="arr" data-arr-display inputmode="numeric" placeholder="e.g. 12,500,000" autocomplete="off" />
                             </div>
+                            <div class="tp-hint text-tiny">Annual recurring revenue or trailing twelve months. All benchmarks are expressed relative to this figure.</div>
                         </div>
                     </div>
 
@@ -122,16 +169,33 @@ trackPageView('techpar', 'TechPar | GST');
                             <span class="tp-input-suf">%</span>
                         </div>
                         <div class="tp-hint text-tiny">Used in trajectory projections. Does not affect current-period KPIs.</div>
+                        <div class="tp-hint tp-hint--warn text-tiny" data-growth-warn style="display:none">Growth above 100% produces extreme trajectory projections. Verify this reflects your planning model.</div>
                     </div>
 
                     <div class="tp-field tp-exit-field" data-exit-field>
                         <label class="tp-field__label text-small" for="tp-exit-mult">Exit multiple assumption</label>
+                        <div class="tp-arr-quick">
+                            <button class="tp-arr-chip" data-preset-for="exitMult" data-preset-val="6" type="button">6×</button>
+                            <button class="tp-arr-chip" data-preset-for="exitMult" data-preset-val="10" type="button">10×</button>
+                            <button class="tp-arr-chip" data-preset-for="exitMult" data-preset-val="12" type="button">12×</button>
+                            <button class="tp-arr-chip" data-preset-for="exitMult" data-preset-val="15" type="button">15×</button>
+                            <button class="tp-arr-chip" data-preset-for="exitMult" data-preset-val="20" type="button">20×</button>
+                        </div>
                         <div class="tp-input-wrap">
                             <input type="number" id="tp-exit-mult" data-input="exitMult" class="tp-input--no-pre tp-input--has-suf" min="1" max="30" value="12" />
                             <span class="tp-input-suf">&times;</span>
                         </div>
                         <div class="tp-hint text-tiny">Revenue multiple at exit. Used in exit value calculations.</div>
                     </div>
+
+                    <details class="tp-historical" data-historical>
+                        <summary class="tp-historical__trigger label-small">Historical data (optional)</summary>
+                        <div class="tp-historical__body">
+                            <p class="tp-hint text-tiny">Add 1-2 prior fiscal years to show actual trajectory on the chart. Enter the annual ARR and total technology spend for each year.</p>
+                            <div data-hist-rows></div>
+                            <button class="tp-hist-add" data-hist-add type="button">+ Add year</button>
+                        </div>
+                    </details>
 
                     <div class="tp-nav-row">
                         <button class="tp-btn-next" data-action="go-costs" type="button">Enter technology costs &rarr;</button>
@@ -166,20 +230,33 @@ trackPageView('techpar', 'TechPar | GST');
                     <div class="tp-section">
                         <span class="tp-sec-label label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--infra"></span>Infrastructure and hosting</span>
                         <div class="tp-field">
-                            <label class="tp-field__label text-small" for="tp-infra">Monthly cloud spend <span class="tp-field__req">(required)</span></label>
-                            <div class="tp-arr-quick">
+                            <label class="tp-field__label text-small" for="tp-infra"><span data-infra-label>Monthly cloud spend</span> <span class="tp-field__req">(required)</span></label>
+                            <div class="tp-seg tp-seg--sm" data-seg="infra-period">
+                                <button class="tp-seg__btn tp-seg__btn--active" data-infra-period="monthly" type="button">Monthly</button>
+                                <button class="tp-seg__btn" data-infra-period="annual" type="button">Annual</button>
+                            </div>
+                            <div class="tp-arr-quick" data-infra-chips-monthly>
                                 <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="5000" type="button">$5K</button>
                                 <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="15000" type="button">$15K</button>
                                 <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="50000" type="button">$50K</button>
                                 <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="150000" type="button">$150K</button>
                                 <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="500000" type="button">$500K</button>
                             </div>
+                            <div class="tp-arr-quick" data-infra-chips-annual style="display:none">
+                                <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="50000" type="button">$50K</button>
+                                <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="200000" type="button">$200K</button>
+                                <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="500000" type="button">$500K</button>
+                                <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="2000000" type="button">$2M</button>
+                                <button class="tp-arr-chip" data-preset-for="infra" data-preset-val="5000000" type="button">$5M</button>
+                            </div>
                             <div class="tp-input-wrap">
                                 <span class="tp-input-pre">$</span>
                                 <input type="number" id="tp-infra" data-input="infra" min="0" step="1000" placeholder="0" />
-                                <span class="tp-input-suf">/ mo</span>
+                                <span class="tp-input-suf" data-infra-suf>/ mo</span>
                             </div>
-                            <div class="tp-hint text-tiny">Cloud, data center, CDN, observability, managed services. Auto-converted to annual.</div>
+                            <div class="tp-hint text-tiny" data-infra-hint>Cloud, data center, CDN, observability, managed services. Auto-converted to annual.</div>
+                            <div class="tp-infra-annual text-tiny" data-infra-annual style="display:none"></div>
+                            <div class="tp-hint tp-hint--warn text-tiny" data-infra-warn style="display:none"></div>
                         </div>
                     </div>
 
@@ -200,6 +277,7 @@ trackPageView('techpar', 'TechPar | GST');
                                 <input type="number" id="tp-infra-pers" data-input="infraPers" min="0" step="10000" placeholder="&#8212;" />
                             </div>
                             <div class="tp-hint text-tiny">DevOps, SRE, platform engineering, cloud architecture headcount.</div>
+                            <div class="tp-hint tp-hint--warn text-tiny" data-sanity-warn="infraPers" style="display:none"></div>
                         </div>
                     </div>
 
@@ -210,7 +288,7 @@ trackPageView('techpar', 'TechPar | GST');
                         <!-- Quick mode -->
                         <div data-rd-quick>
                             <div class="tp-field">
-                                <label class="tp-field__label text-small" for="tp-rd-opex">Annual fully-loaded cost <span class="tp-field__req">(required)</span></label>
+                                <label class="tp-field__label text-small" for="tp-rd-opex">Annual fully-loaded cost</label>
                                 <div class="tp-arr-quick">
                                     <button class="tp-arr-chip" data-preset-for="rdOpEx" data-preset-val="1000000" type="button">$1M</button>
                                     <button class="tp-arr-chip" data-preset-for="rdOpEx" data-preset-val="3000000" type="button">$3M</button>
@@ -223,6 +301,7 @@ trackPageView('techpar', 'TechPar | GST');
                                     <input type="number" id="tp-rd-opex" data-input="rdOpEx" min="0" step="100000" placeholder="0" />
                                 </div>
                                 <div class="tp-hint text-tiny">Engineering and product headcount plus tooling subscriptions. Annual fully-loaded.</div>
+                                <div class="tp-hint tp-hint--warn text-tiny" data-sanity-warn="rdOpEx" style="display:none"></div>
                             </div>
                         </div>
 
@@ -242,6 +321,7 @@ trackPageView('techpar', 'TechPar | GST');
                                     <span class="tp-input-pre">$</span>
                                     <input type="number" id="tp-rd-eng" data-input="rdEng" min="0" step="100000" placeholder="&#8212;" />
                                 </div>
+                                <div class="tp-hint text-tiny">Salaries, benefits, and contractor costs for software engineers. Annual fully-loaded.</div>
                             </div>
                             <div class="tp-field">
                                 <label class="tp-field__label text-tiny" for="tp-rd-prod">Product headcount</label>
@@ -256,6 +336,7 @@ trackPageView('techpar', 'TechPar | GST');
                                     <span class="tp-input-pre">$</span>
                                     <input type="number" id="tp-rd-prod" data-input="rdProd" min="0" step="100000" placeholder="&#8212;" />
                                 </div>
+                                <div class="tp-hint text-tiny">Product managers, designers, and QA. Annual fully-loaded.</div>
                             </div>
                             <div class="tp-field">
                                 <label class="tp-field__label text-tiny" for="tp-rd-tool">Tooling and subscriptions</label>
@@ -270,12 +351,18 @@ trackPageView('techpar', 'TechPar | GST');
                                     <span class="tp-input-pre">$</span>
                                     <input type="number" id="tp-rd-tool" data-input="rdTool" min="0" step="10000" placeholder="&#8212;" />
                                 </div>
+                                <div class="tp-hint text-tiny">IDEs, CI/CD, monitoring, SaaS dev tools, and license fees. Annual cost.</div>
                             </div>
                             <div class="tp-deep-sum text-small">R&D OpEx total: <span data-deep-total>&#8212;</span></div>
                         </div>
 
+                    </div>
+
+                    <!-- Engineering headcount -->
+                    <div class="tp-section">
+                        <span class="tp-sec-label label">Engineering headcount</span>
                         <div class="tp-field" data-fte-field>
-                            <label class="tp-field__label text-tiny" for="tp-eng-fte">Engineering headcount (FTEs)</label>
+                            <label class="tp-field__label text-small" for="tp-eng-fte">Engineering FTEs</label>
                             <div class="tp-arr-quick">
                                 <button class="tp-arr-chip" data-preset-for="engFTE" data-preset-val="5" type="button">5</button>
                                 <button class="tp-arr-chip" data-preset-for="engFTE" data-preset-val="10" type="button">10</button>
@@ -286,7 +373,7 @@ trackPageView('techpar', 'TechPar | GST');
                             <div class="tp-input-wrap">
                                 <input type="number" id="tp-eng-fte" data-input="engFTE" class="tp-input--no-pre" min="0" step="1" placeholder="&#8212;" />
                             </div>
-                            <div class="tp-hint text-tiny">Unlocks revenue-per-engineer KPI.</div>
+                            <div class="tp-hint text-tiny">Number of full-time-equivalent engineers. Unlocks the revenue-per-engineer KPI on the Analysis tab.</div>
                         </div>
                     </div>
 
@@ -307,12 +394,16 @@ trackPageView('techpar', 'TechPar | GST');
                                 <input type="number" id="tp-rd-capex" data-input="rdCapEx" min="0" step="100000" placeholder="&#8212;" />
                             </div>
                             <div class="tp-hint text-tiny">Enables GAAP view toggle above and CapEx-of-R&D benchmark.</div>
+                            <div class="tp-hint tp-hint--warn text-tiny" data-sanity-warn="rdCapEx" style="display:none"></div>
                         </div>
                     </div>
 
                     <div class="tp-nav-row">
                         <button class="tp-btn-back" data-action="go-profile" type="button">&larr; Profile</button>
-                        <button class="tp-btn-next" data-action="go-analysis" data-btn-analysis type="button" disabled>View analysis &rarr;</button>
+                        <div class="tp-nav-row__next">
+                            <button class="tp-btn-next" data-action="go-analysis" data-btn-analysis type="button" disabled>View analysis &rarr;</button>
+                            <span class="tp-nav-row__hint text-tiny" data-analysis-hint></span>
+                        </div>
                     </div>
                 </div>
 
@@ -338,7 +429,17 @@ trackPageView('techpar', 'TechPar | GST');
                             <div class="tp-kpi-hero__num" data-hero-num>&#8212;</div>
                             <div class="tp-kpi-hero__lbl text-small">total technology cost as % of revenue</div>
                             <div class="tp-kpi-hero__basis text-tiny" data-hero-basis></div>
-                            <div data-hero-zone-pill></div>
+                            <div class="tp-kpi-hero__zone-row">
+                                <div data-hero-zone-pill></div>
+                                <div class="tp-baseline-controls">
+                                    <button class="tp-baseline-btn" data-action="set-baseline" type="button">Set as baseline</button>
+                                    <button class="tp-baseline-btn" data-action="save-scenario" type="button">Save scenario</button>
+                                    <div class="tp-baseline-bar" data-baseline-bar style="display:none">
+                                        <span class="tp-baseline-bar__label label-small">Baseline</span>
+                                        <button class="tp-baseline-bar__clear" data-action="clear-baseline" type="button">&times;</button>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="tp-bench-wrap">
                                 <div class="tp-bench-track"><div class="tp-bench-fill" data-bench-fill></div></div>
                                 <div class="tp-bench-lbls">
@@ -349,18 +450,39 @@ trackPageView('techpar', 'TechPar | GST');
                             </div>
                         </div>
 
+                        <!-- Saved scenarios -->
+                        <div class="tp-scenario-list" data-scenario-list style="display:none">
+                            <div class="tp-scenario-list__head label-small">Saved scenarios</div>
+                            <div data-scenario-chips></div>
+                        </div>
+
                         <!-- Signal card -->
                         <div class="tp-signal" data-signal-card>
                             <div class="tp-signal__stage label-small" data-sig-stage></div>
                             <div class="tp-signal__zone label-small" data-sig-zone></div>
                             <div class="tp-signal__head heading-sm" data-sig-head></div>
                             <div class="tp-signal__body text-base" data-sig-body></div>
-                            <div class="tp-signal__div"></div>
+                            <div class="tp-signal__div" data-sig-div></div>
                             <div data-sig-mets></div>
+                        </div>
+
+                        <!-- Recommendations -->
+                        <div class="tp-recs" data-recommendations style="display:none">
+                            <div class="tp-recs__title label-small">Recommended actions</div>
+                            <ol class="tp-recs__list" data-recs-list></ol>
                         </div>
 
                         <!-- KPI grid -->
                         <div class="tp-kpi-grid" data-kpi-grid></div>
+
+                        <!-- Deep Dive prompt -->
+                        <div class="tp-deepdive-prompt" data-deepdive-prompt style="display:none"></div>
+
+                        <!-- Scenario comparison -->
+                        <div class="tp-scenario-compare" data-scenario-compare style="display:none">
+                            <div class="tp-scenario-compare__head label">Scenario comparison</div>
+                            <div data-scenario-table></div>
+                        </div>
 
                         <!-- Category breakdown -->
                         <div class="tp-cat-section" data-cat-section>
@@ -380,14 +502,47 @@ trackPageView('techpar', 'TechPar | GST');
                                     <tr data-bench-row="enterprise"><td>Enterprise</td><td>18&ndash;32%</td></tr>
                                 </tbody>
                             </table>
-                            <div class="tp-bench-disc text-tiny">Ranges informed by KeyBanc SaaS Survey, OpenView Partners, Bessemer State of the Cloud, and GST engagement experience. Individual results vary based on business model and organizational structure.</div>
+                            <div class="tp-bench-disc text-tiny">Ranges informed by KeyBanc SaaS Survey (2024), OpenView Benchmarks (2024), Bessemer State of the Cloud (2024), and GST engagement experience (2023&ndash;2025). Benchmarks are reviewed annually. Individual results vary based on business model and organizational structure.</div>
+                            <div class="tp-bench-disc tp-bench-disc--context text-tiny" data-industry-disc>These benchmarks are derived primarily from SaaS company data. Companies operating marketplace, fintech, infrastructure, or hardware-intensive models may observe materially different cost structures. Apply professional judgment when benchmarking outside a pure-SaaS context.</div>
                         </div>
+
+                        <!-- Industry context note -->
+                        <div class="tp-industry-note" data-industry-note style="display:none"></div>
+
+                        <!-- Methodology -->
+                        <details class="tp-methodology" data-methodology>
+                            <summary class="tp-methodology__trigger label-small">How TechPar works</summary>
+                            <div class="tp-methodology__body text-tiny">
+                                <h4 class="tp-methodology__heading">Benchmark sources</h4>
+                                <p>Ranges are informed by KeyBanc SaaS Survey (2024), OpenView Benchmarks (2024), Bessemer State of the Cloud (2024), and calibrated against GST engagement experience (2023&ndash;2025). Benchmarks are reviewed annually and represent the interquartile range of technology cost as a percentage of revenue at each growth stage.</p>
+
+                                <h4 class="tp-methodology__heading">Zone threshold derivation</h4>
+                                <p>Each company stage defines five thresholds that partition spend into six zones. The healthy range (low/high) represents the benchmark interquartile range. Below that, an underinvestment floor flags spend levels that may constrain engineering velocity or platform reliability. Above the healthy ceiling, the above-par, elevated, and critical thresholds flag increasingly significant cost drag. Thresholds are stage-specific: early-stage companies carry higher healthy ranges (60&ndash;100% at Seed) than mature companies (18&ndash;32% at Enterprise).</p>
+
+                                <h4 class="tp-methodology__heading">Gap calculation</h4>
+                                <p>The 36-month cumulative excess is computed by projecting monthly revenue forward at your stated growth rate, then summing the difference between your technology cost ratio and the stage ceiling in each month where spend exceeds the ceiling. For PE-backed and Enterprise stages, this excess is multiplied by the exit multiple to estimate the implied impact on recoverable exit value.</p>
+
+                                <h4 class="tp-methodology__heading">Trajectory projections</h4>
+                                <p>The trajectory chart projects a constant technology cost ratio against growing revenue over 36 months. It assumes costs scale linearly with revenue at the current ratio. Actual trajectory depends on optimization decisions, scaling dynamics, and organizational changes not captured in this model.</p>
+
+                                <h4 class="tp-methodology__heading">Limitations</h4>
+                                <p>TechPar provides a directional benchmark, not a precise diagnostic. It does not account for one-time costs, migration expenses, or business-model-specific factors. Category benchmarks assume a SaaS-oriented cost structure. Results should be interpreted alongside qualitative context and validated against company-specific circumstances.</p>
+                            </div>
+                        </details>
 
                         <!-- Context callout -->
                         <div class="tp-ctx" data-ctx-block></div>
 
+                        <!-- Cross-link: Tech Debt Calculator -->
+                        <div class="tp-cross-link" data-cross-link style="display:none"></div>
+
                         <div class="tp-nav-row">
                             <button class="tp-btn-back" data-action="go-costs" type="button">&larr; Costs</button>
+                            <div class="tp-nav-row__actions">
+                                <button class="tp-btn-share" data-action="export-pdf" type="button">Export PDF</button>
+                                <button class="tp-btn-share" data-action="copy-summary" type="button">Copy summary</button>
+                                <button class="tp-btn-share" data-action="copy-link" type="button">Copy link</button>
+                            </div>
                             <button class="tp-btn-next" data-action="go-trajectory" type="button">View trajectory &rarr;</button>
                         </div>
                     </div>
@@ -417,9 +572,15 @@ trackPageView('techpar', 'TechPar | GST');
                             <div class="tp-traj-dot" data-traj-dot></div>
                         </div>
                         <div class="tp-traj-legend" data-traj-legend></div>
+                        <div class="tp-hint text-tiny" style="text-align:center">Ranges shown are total technology cost as % of revenue</div>
 
                         <div class="tp-nav-row">
                             <button class="tp-btn-back" data-action="go-analysis" type="button">&larr; Analysis</button>
+                            <div class="tp-nav-row__actions">
+                                <button class="tp-btn-share" data-action="export-pdf" type="button">Export PDF</button>
+                                <button class="tp-btn-share" data-action="copy-summary" type="button">Copy summary</button>
+                                <button class="tp-btn-share" data-action="copy-link" type="button">Copy link</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -456,27 +617,42 @@ trackPageView('techpar', 'TechPar | GST');
         display: none;
     }
 
-    .tp-tab-reset {
+    /* ── Toolbar (below tab bar) ──────────────────────────────── */
+    .tp-toolbar {
         display: flex;
-        align-items: center;
-        justify-content: center;
+        justify-content: flex-end;
+        padding: var(--spacing-xs) 0;
+    }
+
+    .tp-toolbar__reset {
         padding: var(--spacing-xs) var(--spacing-sm);
-        background: transparent;
+        background: none;
         border: none;
+        border-left: 2px solid transparent;
         color: var(--text-light-muted);
         font-family: var(--font-family);
         font-size: var(--text-xs);
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
         cursor: pointer;
-        transition: color var(--transition-fast);
-        white-space: nowrap;
-        margin-left: auto;
-        flex-shrink: 0;
+        transition: all var(--transition-fast);
     }
 
-    .tp-tab-reset:hover {
+    .tp-toolbar__reset:hover {
         color: var(--text-light-primary);
+    }
+
+    .tp-toolbar__reset--confirming {
+        color: var(--techpar-zone-elevated);
+        border-left-color: var(--techpar-zone-elevated);
+        background: color-mix(in srgb, var(--techpar-zone-elevated) 8%, transparent);
+        animation: tp-confirm-pulse 0.3s ease-out;
+    }
+
+    @keyframes tp-confirm-pulse {
+        0% { transform: translateX(0); }
+        25% { transform: translateX(-3px); }
+        50% { transform: translateX(3px); }
+        75% { transform: translateX(-2px); }
+        100% { transform: translateX(0); }
     }
 
     .tp-tab {
@@ -642,6 +818,111 @@ trackPageView('techpar', 'TechPar | GST');
         line-height: 1.5;
     }
 
+    .tp-hint--warn {
+        color: var(--techpar-zone-above);
+    }
+
+    .tp-infra-annual {
+        color: var(--color-primary);
+        margin-top: var(--spacing-xs);
+    }
+
+    /* ─── Baseline comparison ─────────────────────────────── */
+    .tp-kpi-hero__zone-row {
+        display: flex;
+        align-items: stretch;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+        margin-top: var(--spacing-sm);
+    }
+
+    .tp-baseline-controls {
+        display: flex;
+        align-items: center;
+    }
+
+    .tp-baseline-btn {
+        padding: var(--spacing-xs) var(--spacing-md);
+        background: transparent;
+        color: var(--text-light-muted);
+        border: 1px solid var(--border-light);
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+
+    .tp-baseline-btn:hover {
+        color: var(--color-primary);
+        border-color: var(--color-primary);
+    }
+
+    .tp-baseline-bar {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-xs) var(--spacing-md);
+        background: var(--techpar-zone-healthy-bg);
+        border: 1px solid var(--color-primary);
+    }
+
+    .tp-baseline-bar__label {
+        color: var(--color-primary);
+        font-size: var(--text-xs);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .tp-baseline-bar__clear {
+        padding: 0 4px;
+        background: transparent;
+        color: var(--text-light-muted);
+        border: none;
+        font-family: var(--font-family);
+        font-size: 0.85rem;
+        line-height: 1;
+        cursor: pointer;
+        transition: color var(--transition-fast);
+    }
+
+    .tp-baseline-bar__clear:hover {
+        color: var(--techpar-zone-above);
+    }
+
+    .tp-delta {
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        margin-left: var(--spacing-xs);
+    }
+
+    .tp-delta--improve {
+        color: var(--techpar-zone-healthy);
+    }
+
+    .tp-delta--worsen {
+        color: var(--techpar-zone-above);
+    }
+
+    .tp-cross-link {
+        margin-top: var(--spacing-md);
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: var(--bg-light-alt);
+        border-left: 3px solid var(--color-primary);
+        font-size: var(--text-sm);
+    }
+
+    .tp-cross-link a {
+        color: var(--color-primary);
+        text-decoration: none;
+        font-weight: var(--font-weight-bold);
+    }
+
+    .tp-cross-link a:hover {
+        text-decoration: underline;
+    }
+
     .tp-input-wrap {
         position: relative;
         width: 100%;
@@ -708,6 +989,7 @@ trackPageView('techpar', 'TechPar | GST');
         margin-bottom: var(--spacing-sm);
         border: 1px solid var(--text-light-muted);
         overflow: hidden;
+        max-width: 280px;
     }
 
     .tp-arr-chip {
@@ -829,6 +1111,19 @@ trackPageView('techpar', 'TechPar | GST');
         color: var(--color-primary);
     }
 
+    .tp-seg--sm {
+        max-width: 180px;
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .tp-seg--sm .tp-seg__btn {
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    .tp-seg--wide {
+        max-width: 440px;
+    }
+
     .tp-seg__btn:hover:not(.tp-seg__btn--active) {
         color: var(--text-light-secondary);
     }
@@ -898,8 +1193,48 @@ trackPageView('techpar', 'TechPar | GST');
     /* ── Navigation buttons ───────────────────────────────────── */
     .tp-nav-row {
         display: flex;
+        align-items: center;
         gap: var(--spacing-sm);
         margin-top: var(--spacing-xl);
+    }
+
+    .tp-nav-row__next {
+        margin-left: auto;
+        text-align: right;
+    }
+
+    .tp-nav-row__hint {
+        display: block;
+        margin-top: 4px;
+        color: var(--text-light-muted);
+    }
+
+    .tp-nav-row__actions {
+        display: flex;
+        gap: var(--spacing-xs);
+        margin-left: auto;
+    }
+
+    .tp-btn-share {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        background: transparent;
+        color: var(--text-light-muted);
+        border: 1px solid var(--border-light);
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        cursor: pointer;
+        letter-spacing: 0.03em;
+        transition: all var(--transition-fast);
+    }
+
+    .tp-btn-share:hover {
+        color: var(--color-primary);
+        border-color: var(--color-primary);
+    }
+
+    .tp-btn-share--copied {
+        color: var(--color-primary);
+        border-color: var(--color-primary);
     }
 
     .tp-btn-next {
@@ -928,7 +1263,7 @@ trackPageView('techpar', 'TechPar | GST');
 
     .tp-btn-back {
         padding: var(--spacing-md) var(--spacing-xl);
-        background: transparent;
+        background: var(--bg-light-alt);
         color: var(--text-light-secondary);
         border: 1px solid var(--border-light);
         font-family: var(--font-family);
@@ -1031,7 +1366,6 @@ trackPageView('techpar', 'TechPar | GST');
         font-size: var(--text-xs);
         letter-spacing: 0.05em;
         border: 1px solid;
-        margin-top: var(--spacing-sm);
     }
 
     .tp-kpi-hero :global(.tp-zone-dot) {
@@ -1316,6 +1650,394 @@ trackPageView('techpar', 'TechPar | GST');
         line-height: 1.5;
     }
 
+    .tp-bench-disc + .tp-bench-disc {
+        margin-top: var(--spacing-xs);
+        padding-top: var(--spacing-xs);
+        border-top: 1px dashed var(--border-light);
+    }
+
+    /* ── Historical data section ────────────────────────────── */
+    .tp-historical {
+        margin-bottom: var(--spacing-md);
+        border: 1px solid var(--border-light);
+    }
+
+    .tp-historical__trigger {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) var(--spacing-md);
+        cursor: pointer;
+        color: var(--text-light-muted);
+        transition: color var(--transition-fast);
+        list-style: none;
+    }
+
+    .tp-historical__trigger::-webkit-details-marker {
+        display: none;
+    }
+
+    .tp-historical__trigger::before {
+        content: '\25B6';
+        font-size: 0.6em;
+        transition: transform var(--transition-fast);
+    }
+
+    .tp-historical[open] > .tp-historical__trigger::before {
+        transform: rotate(90deg);
+    }
+
+    .tp-historical__trigger:hover {
+        color: var(--text-light-secondary);
+    }
+
+    .tp-historical__body {
+        padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
+        border-top: 1px solid var(--border-light);
+    }
+
+    .tp-historical__body :global(.tp-hist-row) {
+        display: flex;
+        align-items: flex-end;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
+        padding-bottom: var(--spacing-md);
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .tp-historical__body :global(.tp-hist-row:last-child) {
+        border-bottom: none;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-historical__body :global(.tp-hist-field) {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .tp-historical__body :global(.tp-hist-field--label) {
+        flex: 0 0 80px;
+    }
+
+    .tp-historical__body :global(.tp-hist-field__lbl) {
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+        letter-spacing: 0.02em;
+    }
+
+    .tp-historical__body :global(.tp-hist-field input) {
+        width: 100%;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        background: var(--bg-light);
+        border: 1px solid var(--border-light);
+        color: var(--text-light-primary);
+    }
+
+    .tp-historical__body :global(.tp-input-wrap) {
+        width: 100%;
+    }
+
+    .tp-historical__body :global(.tp-hist-remove) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        margin-bottom: 1px;
+        background: none;
+        border: 1px solid var(--border-light);
+        color: var(--text-light-muted);
+        cursor: pointer;
+        font-size: var(--text-sm);
+        flex-shrink: 0;
+    }
+
+    .tp-historical__body :global(.tp-hist-remove:hover) {
+        color: var(--techpar-zone-elevated);
+        border-color: var(--techpar-zone-elevated);
+    }
+
+    .tp-hist-add {
+        display: inline-flex;
+        align-items: center;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        background: none;
+        border: 1px dashed var(--border-light);
+        color: var(--text-light-muted);
+        font-family: var(--font-family);
+        font-size: var(--text-xs);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+
+    .tp-hist-add:hover {
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+    }
+
+    .tp-hist-add:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    /* ── Deep Dive prompt ─────────────────────────────────────── */
+    .tp-deepdive-prompt {
+        padding: var(--spacing-sm) var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+        border-left: 3px solid var(--techpar-zone-elevated);
+        background: var(--bg-light-alt);
+        color: var(--text-light-secondary);
+        font-size: var(--text-xs);
+        line-height: 1.7;
+    }
+
+    .tp-deepdive-prompt :global(.tp-deepdive-prompt__btn) {
+        display: inline;
+        padding: 0;
+        background: none;
+        border: none;
+        color: var(--color-primary);
+        font-family: var(--font-family);
+        font-size: inherit;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
+    .tp-deepdive-prompt :global(.tp-deepdive-prompt__btn:hover) {
+        color: var(--text-light-primary);
+    }
+
+    /* ── Recommendations ─────────────────────────────────────── */
+    .tp-recs {
+        margin-bottom: var(--spacing-lg);
+        padding: var(--spacing-md);
+        border: 1px solid var(--border-light);
+        background: var(--bg-light-alt);
+    }
+
+    .tp-recs__title {
+        color: var(--text-light-muted);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-recs__list {
+        margin: 0;
+        padding-left: var(--spacing-lg);
+        color: var(--text-light-secondary);
+        font-size: var(--text-sm);
+        line-height: 1.7;
+    }
+
+    .tp-recs__list :global(li) {
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .tp-recs__list :global(li:last-child) {
+        margin-bottom: 0;
+    }
+
+    /* ── Industry note ───────────────────────────────────────── */
+    .tp-industry-note {
+        padding: var(--spacing-sm) var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+        border-left: 3px solid var(--color-primary);
+        background: var(--bg-light-alt);
+        color: var(--text-light-secondary);
+        font-size: var(--text-xs);
+        line-height: 1.7;
+    }
+
+    /* ── Onboarding section ──────────────────────────────────── */
+    .tp-onboarding {
+        margin-bottom: var(--spacing-md);
+        border: 1px solid var(--border-light);
+    }
+
+    .tp-onboarding__trigger {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) var(--spacing-md);
+        cursor: pointer;
+        color: var(--text-light-muted);
+        transition: color var(--transition-fast);
+        list-style: none;
+    }
+
+    .tp-onboarding__trigger::-webkit-details-marker {
+        display: none;
+    }
+
+    .tp-onboarding__trigger::before {
+        content: '\25B6';
+        font-size: 0.6em;
+        transition: transform var(--transition-fast);
+    }
+
+    .tp-onboarding[open] > .tp-onboarding__trigger::before {
+        transform: rotate(90deg);
+    }
+
+    .tp-onboarding__trigger:hover {
+        color: var(--text-light-secondary);
+    }
+
+    .tp-onboarding__body {
+        padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
+        color: var(--text-light-secondary);
+        line-height: 1.7;
+        border-top: 1px solid var(--border-light);
+    }
+
+    .tp-onboarding__body p {
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .tp-onboarding__body p:last-child {
+        margin-bottom: 0;
+    }
+
+    /* ── Methodology section ─────────────────────────────────── */
+    .tp-methodology {
+        margin-bottom: var(--spacing-lg);
+        border: 1px solid var(--border-light);
+    }
+
+    .tp-methodology__trigger {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) var(--spacing-md);
+        cursor: pointer;
+        color: var(--text-light-muted);
+        transition: color var(--transition-fast);
+        list-style: none;
+    }
+
+    .tp-methodology__trigger::-webkit-details-marker {
+        display: none;
+    }
+
+    .tp-methodology__trigger::before {
+        content: '\25B6';
+        font-size: 0.6em;
+        transition: transform var(--transition-fast);
+    }
+
+    .tp-methodology[open] > .tp-methodology__trigger::before {
+        transform: rotate(90deg);
+    }
+
+    .tp-methodology__trigger:hover {
+        color: var(--text-light-secondary);
+    }
+
+    .tp-methodology__body {
+        padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
+        color: var(--text-light-secondary);
+        line-height: 1.7;
+        border-top: 1px solid var(--border-light);
+    }
+
+    .tp-methodology__heading {
+        font-size: var(--text-xs);
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--text-light-muted);
+        margin-top: var(--spacing-md);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .tp-methodology__heading:first-child {
+        margin-top: 0;
+    }
+
+    .tp-methodology__body p {
+        margin-bottom: var(--spacing-sm);
+    }
+
+    /* ── Scenario comparison ─────────────────────────────────── */
+    .tp-scenario-list {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .tp-scenario-list__head {
+        color: var(--text-light-muted);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-scenario-list :global(.tp-scenario-chip) {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border: 1px solid var(--border-light);
+        background: var(--bg-light-alt);
+        font-size: var(--text-xs);
+        color: var(--text-light-secondary);
+        margin-right: var(--spacing-xs);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .tp-scenario-list :global(.tp-scenario-chip__zone) {
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        margin-left: var(--spacing-xs);
+    }
+
+    .tp-scenario-list :global(.tp-scenario-chip__remove) {
+        padding: 0 2px;
+        background: transparent;
+        border: none;
+        color: var(--text-light-muted);
+        font-size: 0.85rem;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .tp-scenario-compare {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .tp-scenario-compare__head {
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .tp-scenario-compare :global(table) {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: var(--text-xs);
+    }
+
+    .tp-scenario-compare :global(th),
+    .tp-scenario-compare :global(td) {
+        padding: var(--spacing-sm);
+        border-bottom: 1px solid var(--border-light);
+        text-align: right;
+    }
+
+    .tp-scenario-compare :global(th:first-child),
+    .tp-scenario-compare :global(td:first-child) {
+        text-align: left;
+        color: var(--text-light-muted);
+    }
+
+    .tp-scenario-compare :global(th) {
+        color: var(--text-light-muted);
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
     /* ── Context callout ──────────────────────────────────────── */
     .tp-ctx {
         border-left: 2px solid var(--color-primary);
@@ -1376,9 +2098,22 @@ trackPageView('techpar', 'TechPar | GST');
 
     .tp-traj-legend {
         display: flex;
-        gap: var(--spacing-md);
-        flex-wrap: wrap;
+        flex-direction: column;
+        gap: var(--spacing-sm);
         margin-bottom: var(--spacing-lg);
+    }
+
+    /* Legend groups */
+    .tp-traj-legend :global(.tp-tleg-group) {
+        display: flex;
+        justify-content: center;
+        gap: var(--spacing-sm) var(--spacing-md);
+        flex-wrap: wrap;
+    }
+
+    .tp-traj-legend :global(.tp-tleg-group--series) {
+        padding-top: var(--spacing-xs);
+        border-top: 1px solid var(--border-light);
     }
 
     /* Trajectory legend items are injected via innerHTML */
@@ -1390,11 +2125,36 @@ trackPageView('techpar', 'TechPar | GST');
         color: var(--text-light-secondary);
     }
 
+    /* Default swatch — zone fill rectangles */
     .tp-traj-legend :global(.tp-tleg__sw) {
         width: 14px;
         height: 8px;
         border-radius: 1px;
         flex-shrink: 0;
+    }
+
+    /* Line swatch — centered horizontal line */
+    .tp-traj-legend :global(.tp-tleg--line .tp-tleg__sw) {
+        height: 0;
+        border-top-width: 2px;
+        border-top-style: solid;
+        background: transparent;
+        border-radius: 0;
+        align-self: center;
+    }
+
+    .tp-traj-legend :global(.tp-tleg--dashed .tp-tleg__sw) {
+        border-top-style: dashed;
+    }
+
+    /* Dot swatch — centered circle */
+    .tp-traj-legend :global(.tp-tleg--dot .tp-tleg__sw) {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        border-width: 2px;
+        border-style: solid;
+        background: transparent;
     }
 
     /* ── Responsive ───────────────────────────────────────────── */
@@ -1429,7 +2189,12 @@ trackPageView('techpar', 'TechPar | GST');
         }
 
         .tp-traj-chart-wrap {
-            height: min(42vh, 280px);
+            height: min(50vh, 340px);
+        }
+
+        .tp-traj-legend :global(.tp-tleg-group--zones) {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
         }
 
         .tp-nav-row {
@@ -1453,675 +2218,185 @@ trackPageView('techpar', 'TechPar | GST');
         .tp-tab__label {
             font-size: 0.6rem;
         }
+
+        .tp-nav-row__actions {
+            flex-wrap: wrap;
+        }
+
+        .tp-btn-share {
+            min-height: 40px;
+        }
+    }
+
+    /* ─── Print stylesheet ─────────────────────────────────── */
+    @media print {
+        /* ── Hide interactive chrome ─────────────────────────────── */
+        .site-header,
+        .tp-tab-bar,
+        .tp-nav-row,
+        .tp-arr-chip,
+        [data-preset-for],
+        .tp-empty,
+        .tp-btn-next,
+        .tp-btn-back,
+        .tp-btn-share,
+        .tp-baseline-controls,
+        .tp-scenario-list,
+        .tp-cross-link,
+        .tp-bench-wrap,
+        .hub-header__back,
+        .hub-header__sub,
+        footer {
+            display: none !important;
+        }
+
+        /* ── Layout ──────────────────────────────────────────────── */
+        .tp-panel {
+            display: block !important;
+            max-width: none !important;
+        }
+
+        .tp-panel[data-panel="profile"],
+        .tp-panel[data-panel="costs"] {
+            display: none !important;
+        }
+
+        /* ── Trajectory: include on its own page ─────────────────── */
+        .tp-panel[data-panel="trajectory"] {
+            display: block !important;
+            break-before: page;
+        }
+
+        .tp-panel[data-panel="trajectory"] .tp-panel__header {
+            display: block !important;
+        }
+
+        .tp-panel[data-panel="trajectory"] .tp-panel__header .tp-step {
+            display: none !important;
+        }
+
+        .tp-traj-content {
+            display: block !important;
+        }
+
+        [data-traj-empty] {
+            display: none !important;
+        }
+
+        .tp-traj-chart-wrap {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .tp-traj-dot {
+            display: none !important;
+        }
+
+        .tp-panel__header {
+            display: none !important;
+        }
+
+        .tp-analysis-content {
+            display: block !important;
+        }
+
+        .techpar-section {
+            padding: 0 !important;
+        }
+
+        /* ── Header / footer ─────────────────────────────────────── */
+        .techpar-shell::before {
+            content: 'TechPar Analysis';
+            display: block;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-xs);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 2px solid var(--color-primary);
+        }
+
+        .techpar-shell::after {
+            content: 'Generated by TechPar  |  globalstrategic.tech/hub/tools/techpar';
+            display: block;
+            font-size: 0.65rem;
+            color: var(--text-light-muted);
+            margin-top: var(--spacing-lg);
+            border-top: 1px solid var(--border-light);
+            padding-top: var(--spacing-sm);
+        }
+
+        /* ── Hero KPI ────────────────────────────────────────────── */
+        .tp-kpi-hero {
+            text-align: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .tp-kpi-hero__num {
+            font-size: 3rem !important;
+        }
+
+        /* ── Signal card ─────────────────────────────────────────── */
+        .tp-signal {
+            break-inside: avoid;
+            border: 1px solid var(--border-light) !important;
+            page-break-inside: avoid;
+        }
+
+        /* ── KPI grid ────────────────────────────────────────────── */
+        .tp-kpi-grid {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        /* ── Category bars ───────────────────────────────────────── */
+        .tp-cat-section {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        /* ── Scenario comparison ─────────────────────────────────── */
+        .tp-scenario-compare {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        /* ── Benchmark table ─────────────────────────────────────── */
+        .tp-bench-table-wrap {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        /* ── Methodology: force open ─────────────────────────────── */
+        .tp-methodology {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .tp-methodology > .tp-methodology__body {
+            display: block !important;
+        }
+
+        .tp-methodology__trigger::before {
+            display: none !important;
+        }
+
+        /* ── Context callout ─────────────────────────────────────── */
+        .tp-ctx {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        /* ── Typography: force black for readability ─────────────── */
+        .tp-kpi-hero__lbl,
+        .tp-kpi-hero__basis {
+            color: #333 !important;
+        }
     }
 </style>
 
 <script>
-    import { Chart, registerables } from 'chart.js';
-    import { compute, buildTrajectory, zoneColorVar, zoneBgVar, zoneLabel, kpiClass, formatDollars, formatPercent } from '../../../../utils/techpar-engine';
-    import type { TechParInputs, TechParResult, StageConfig } from '../../../../utils/techpar-engine';
-    import { STAGES } from '../../../../data/techpar/stages';
-    import { SIGNAL_COPY } from '../../../../data/techpar/signal-copy';
-
-    Chart.register(...registerables);
-
-    // ─── State ─────────────────────────────────────────────────
-    let stageKey: string | null = null;
-    let growthRate: number | null = null;
-    let mode: 'quick' | 'deepdive' = 'quick';
-    let trajChart: Chart | null = null;
-
-    // ─── DOM helpers ───────────────────────────────────────────
-    const $$ = (sel: string) => document.querySelectorAll(sel);
-    const g = (attr: string) => document.querySelector(`[data-${attr}]`) as HTMLElement | null;
-
-    function getInput(name: string): number {
-        const el = document.querySelector(`[data-input="${name}"]`) as HTMLInputElement | null;
-        const raw = el?.value?.replace(/,/g, '') || '';
-        return parseFloat(raw) || 0;
-    }
-
-    function getStyle(varName: string): string {
-        return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-    }
-
-    // ─── Tab navigation ────────────────────────────────────────
-    function goTab(tab: string) {
-        $$('.tp-tab').forEach(t => t.classList.remove('tp-tab--active'));
-        $$('.tp-panel').forEach(p => p.classList.remove('tp-panel--active'));
-        document.querySelector(`.tp-tab[data-tab="${tab}"]`)?.classList.add('tp-tab--active');
-        document.querySelector(`[data-panel="${tab}"]`)?.classList.add('tp-panel--active');
-        document.querySelector('[data-tab-bar]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        if (tab === 'trajectory') {
-            const result = runCompute();
-            if (result) renderTrajectory(result);
-        }
-    }
-
-    // Tab button clicks
-    $$('.tp-tab').forEach(btn => {
-        btn.addEventListener('click', () => {
-            goTab((btn as HTMLElement).dataset.tab || 'profile');
-        });
-    });
-
-    // Navigation action buttons
-    document.querySelectorAll('[data-action]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const action = (btn as HTMLElement).dataset.action;
-            if (action === 'go-costs') goTab('costs');
-            else if (action === 'go-profile') goTab('profile');
-            else if (action === 'go-analysis') goTab('analysis');
-            else if (action === 'go-trajectory') goTab('trajectory');
-            else if (action === 'reset') resetAll();
-        });
-    });
-
-    // ─── Reset ──────────────────────────────────────────────────
-    function resetAll() {
-        // Clear all inputs
-        document.querySelectorAll<HTMLInputElement>('.techpar-shell input').forEach(el => {
-            if (el.type === 'checkbox') el.checked = false;
-            else if (el.dataset.input === 'exitMult') el.value = '12';
-            else el.value = '';
-        });
-
-        // Reset JS state
-        stageKey = null;
-        growthRate = null;
-        mode = 'quick';
-
-        // Reset stage cards — clear all selections
-        $$('.tp-stage-card').forEach(c => c.classList.remove('tp-stage-card--active'));
-
-        // Reset growth buttons and custom input — clear all selections
-        $$('[data-growth]').forEach(b => b.classList.remove('tp-seg__btn--active'));
-        const growthCustomEl = document.getElementById('tp-growth-custom') as HTMLInputElement | null;
-        if (growthCustomEl) growthCustomEl.value = '';
-
-        // Reset mode toggle
-        $$('[data-mode]').forEach(b => b.classList.remove('tp-seg__btn--active'));
-        document.querySelector('[data-mode="quick"]')?.classList.add('tp-seg__btn--active');
-        const rdQuick = g('rd-quick');
-        const rdDeep = g('rd-deep');
-        if (rdQuick) rdQuick.style.display = 'block';
-        if (rdDeep) rdDeep.classList.remove('tp-deep-wrap--on');
-
-        // Reset deep-dive sum
-        const deepTotal = g('deep-total');
-        if (deepTotal) deepTotal.innerHTML = '\u2014';
-
-        // Clear ARR chip highlights
-        document.querySelectorAll('.tp-arr-chip').forEach(c => c.classList.remove('tp-arr-chip--active'));
-
-        // Destroy trajectory chart
-        if (trajChart) { trajChart.destroy(); trajChart = null; }
-
-        // Re-run update and go to profile tab
-        updateAll();
-        goTab('profile');
-    }
-
-    // ─── Stage selector ────────────────────────────────────────
-    $$('.tp-stage-card').forEach(card => {
-        card.addEventListener('click', () => {
-            $$('.tp-stage-card').forEach(c => c.classList.remove('tp-stage-card--active'));
-            card.classList.add('tp-stage-card--active');
-            stageKey = (card as HTMLElement).dataset.stage || 'series_bc';
-            if (trajChart) { trajChart.destroy(); trajChart = null; }
-            updateAll();
-        });
-    });
-
-    // ─── Growth rate selector ──────────────────────────────────
-    const growthCustomInput = document.getElementById('tp-growth-custom') as HTMLInputElement | null;
-    if (growthCustomInput) growthCustomInput.value = growthRate !== null ? String(growthRate) : '';
-
-    $$('[data-growth]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            $$('[data-growth]').forEach(b => b.classList.remove('tp-seg__btn--active'));
-            btn.classList.add('tp-seg__btn--active');
-            growthRate = parseInt((btn as HTMLElement).dataset.growth || '20', 10);
-            if (growthCustomInput) growthCustomInput.value = String(growthRate);
-            updateAll();
-        });
-    });
-
-    // ─── Growth rate custom input ──────────────────────────────
-    growthCustomInput?.addEventListener('input', () => {
-        const val = parseFloat(growthCustomInput.value);
-        if (!isNaN(val) && val > 0) {
-            $$('[data-growth]').forEach(b => b.classList.remove('tp-seg__btn--active'));
-            growthRate = val;
-            updateAll();
-        }
-    });
-
-    // ─── Mode toggle ───────────────────────────────────────────
-    $$('[data-mode]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            $$('[data-mode]').forEach(b => b.classList.remove('tp-seg__btn--active'));
-            btn.classList.add('tp-seg__btn--active');
-            mode = ((btn as HTMLElement).dataset.mode || 'quick') as 'quick' | 'deepdive';
-            const rdQuick = g('rd-quick');
-            const rdDeep = g('rd-deep');
-            if (rdQuick) rdQuick.style.display = mode === 'quick' ? 'block' : 'none';
-            if (rdDeep) rdDeep.classList.toggle('tp-deep-wrap--on', mode === 'deepdive');
-            updateAll();
-        });
-    });
-
-    // ─── Deep Dive sum ─────────────────────────────────────────
-    function sumDeep() {
-        const sum = getInput('rdEng') + getInput('rdProd') + getInput('rdTool');
-        const el = g('deep-total');
-        if (el) el.innerHTML = sum > 0 ? `<span>${formatDollars(sum)}</span>` : '\u2014';
-        updateAll();
-    }
-
-    ['rdEng', 'rdProd', 'rdTool'].forEach(name => {
-        document.querySelector(`[data-input="${name}"]`)?.addEventListener('input', sumDeep);
-    });
-
-    // ─── All other inputs ──────────────────────────────────────
-    ['infra', 'infraPers', 'rdOpEx', 'rdCapEx', 'engFTE', 'exitMult', 'gaapChk'].forEach(name => {
-        const el = document.querySelector(`[data-input="${name}"]`);
-        if (el) el.addEventListener(el.getAttribute('type') === 'checkbox' ? 'change' : 'input', updateAll);
-    });
-
-    // ─── ARR: comma formatting + quick-pick chips ─────────────
-    const arrInput = document.getElementById('tp-arr') as HTMLInputElement | null;
-    const arrChips = document.querySelectorAll<HTMLButtonElement>('[data-arr-val]');
-
-    function formatWithCommas(n: number): string {
-        return n.toLocaleString('en-US');
-    }
-
-    function setArrValue(val: number) {
-        if (!arrInput) return;
-        arrInput.value = val > 0 ? formatWithCommas(val) : '';
-        arrInput.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-
-    function syncArrChips() {
-        const current = getInput('arr');
-        arrChips.forEach(chip => {
-            const chipVal = Number(chip.dataset.arrVal);
-            chip.classList.toggle('tp-arr-chip--active', chipVal === current && current > 0);
-        });
-    }
-
-    arrChips.forEach(chip => {
-        chip.addEventListener('click', () => {
-            const val = Number(chip.dataset.arrVal);
-            const current = getInput('arr');
-            // Toggle off if same value clicked again
-            setArrValue(val === current ? 0 : val);
-            syncArrChips();
-        });
-    });
-
-    if (arrInput) {
-        arrInput.addEventListener('input', () => {
-            const raw = arrInput.value.replace(/[^0-9]/g, '');
-            const num = parseInt(raw, 10);
-            if (raw && !isNaN(num)) {
-                // Preserve cursor position relative to end
-                const distFromEnd = arrInput.value.length - (arrInput.selectionStart || 0);
-                arrInput.value = formatWithCommas(num);
-                const newPos = Math.max(0, arrInput.value.length - distFromEnd);
-                arrInput.setSelectionRange(newPos, newPos);
-            } else if (!raw) {
-                arrInput.value = '';
-            }
-            syncArrChips();
-            updateAll();
-        });
-    }
-
-    // ─── Cost preset chips ────────────────────────────────────
-    document.querySelectorAll<HTMLButtonElement>('[data-preset-for]').forEach(chip => {
-        chip.addEventListener('click', () => {
-            const inputName = chip.dataset.presetFor!;
-            const val = Number(chip.dataset.presetVal);
-            const input = document.querySelector(`[data-input="${inputName}"]`) as HTMLInputElement | null;
-            if (!input) return;
-            const current = parseFloat(input.value) || 0;
-            input.value = val === current ? '' : String(val);
-            // Sync chip highlights for this input group
-            document.querySelectorAll<HTMLButtonElement>(`[data-preset-for="${inputName}"]`).forEach(c => {
-                c.classList.toggle('tp-arr-chip--active', Number(c.dataset.presetVal) === (val === current ? 0 : val));
-            });
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-        });
-    });
-
-    // ─── Build inputs from DOM ─────────────────────────────────
-    function buildInputs(): TechParInputs | null {
-        if (!stageKey) return null;
-        const gaapEl = document.querySelector('[data-input="gaapChk"]') as HTMLInputElement | null;
-        return {
-            arr: getInput('arr'),
-            stage: stageKey as TechParInputs['stage'],
-            mode,
-            capexView: gaapEl?.checked ? 'gaap' : 'cash',
-            growthRate: growthRate || 0,
-            exitMultiple: getInput('exitMult') || 12,
-            infraHosting: getInput('infra'),
-            infraPersonnel: getInput('infraPers'),
-            rdOpEx: getInput('rdOpEx'),
-            rdCapEx: getInput('rdCapEx'),
-            engFTE: getInput('engFTE'),
-            engCost: getInput('rdEng'),
-            prodCost: getInput('rdProd'),
-            toolingCost: getInput('rdTool'),
-        };
-    }
-
-    function runCompute() {
-        const inputs = buildInputs();
-        return inputs ? compute(inputs) : null;
-    }
-
-    // ─── Main update ───────────────────────────────────────────
-    function updateAll() {
-        const inputs = buildInputs();
-        const r = inputs ? compute(inputs) : null;
-
-        // Exit field visibility
-        const showExit = stageKey === 'pe' || stageKey === 'enterprise';
-        g('exit-field')?.classList.toggle('tp-exit-field--vis', showExit);
-
-        // CapEx toggle visibility
-        const hasCapEx = getInput('rdCapEx') > 0;
-        g('capex-row')?.classList.toggle('tp-capex-row--vis', hasCapEx);
-        if (!hasCapEx) {
-            const chk = document.querySelector('[data-input="gaapChk"]') as HTMLInputElement;
-            if (chk) chk.checked = false;
-        }
-
-        // Analysis button
-        const btnAnalysis = document.querySelector('[data-btn-analysis]') as HTMLButtonElement;
-        if (btnAnalysis) btnAnalysis.disabled = !r;
-
-        // Tab completion — teal bottom border on done tabs
-        const profileDone = !!inputs && inputs.arr > 0 && !!stageKey;
-        const costsDone = r !== null;
-        document.querySelector('[data-tab="profile"]')?.classList.toggle('tp-tab--done', profileDone);
-        document.querySelector('[data-tab="costs"]')?.classList.toggle('tp-tab--done', costsDone);
-
-        // Analysis badge
-        const analysisAlert = r && (r.zone === 'above' || r.zone === 'elevated' || r.zone === 'critical');
-        document.querySelector('[data-badge="analysis"]')?.classList.toggle('tp-tab__badge--on', !!analysisAlert);
-
-        if (!r) {
-            // Determine what's missing to show targeted guidance
-            const missingStage = !stageKey;
-            const missingArr = !inputs || !inputs.arr;
-            const emptyMsg = document.querySelector('[data-analysis-empty-msg]');
-            const emptyCta = document.querySelector('[data-analysis-empty-cta]') as HTMLButtonElement | null;
-            if (missingStage || missingArr) {
-                const msg = missingStage
-                    ? 'Select a company stage on the Profile\ntab to compute TechPar.'
-                    : 'Enter your ARR on the Profile tab\nto compute TechPar.';
-                if (emptyMsg) emptyMsg.textContent = msg;
-                if (emptyCta) {
-                    emptyCta.dataset.action = 'go-profile';
-                    emptyCta.textContent = 'Go to profile →';
-                }
-            } else {
-                if (emptyMsg) emptyMsg.textContent = 'Enter infrastructure spend on the\nCosts tab to compute TechPar.';
-                if (emptyCta) {
-                    emptyCta.dataset.action = 'go-costs';
-                    emptyCta.textContent = 'Go to costs →';
-                }
-            }
-            // Trajectory empty state
-            const trajMsg = document.querySelector('[data-traj-empty-msg]');
-            const trajCta = document.querySelector('[data-traj-empty-cta]') as HTMLButtonElement | null;
-            if (missingStage || missingArr) {
-                const msg = missingStage
-                    ? 'Select a company stage on the Profile\ntab to generate trajectory.'
-                    : 'Enter your ARR on the Profile tab\nto generate trajectory.';
-                if (trajMsg) trajMsg.textContent = msg;
-                if (trajCta) {
-                    trajCta.dataset.action = 'go-profile';
-                    trajCta.textContent = 'Go to profile →';
-                }
-            } else {
-                if (trajMsg) trajMsg.textContent = 'Enter infrastructure spend on the\nCosts tab to generate trajectory.';
-                if (trajCta) {
-                    trajCta.dataset.action = 'go-costs';
-                    trajCta.textContent = 'Go to costs →';
-                }
-            }
-            // Show empty states
-            g('analysis-empty')?.classList.remove('tp-empty--hidden');
-            g('analysis-content')?.classList.remove('tp-analysis-content--on');
-            g('traj-empty')?.classList.remove('tp-empty--hidden');
-            g('traj-content')?.classList.remove('tp-traj-content--on');
-            if (trajChart) { trajChart.destroy(); trajChart = null; }
-            return;
-        }
-
-        // Show content
-        g('analysis-empty')?.classList.add('tp-empty--hidden');
-        g('analysis-content')?.classList.add('tp-analysis-content--on');
-        g('traj-empty')?.classList.add('tp-empty--hidden');
-        g('traj-content')?.classList.add('tp-traj-content--on');
-
-        renderAnalysis(r);
-        // Only render trajectory if that tab is active
-        if (document.querySelector('[data-panel="trajectory"]')?.classList.contains('tp-panel--active')) {
-            renderTrajectory(r);
-        }
-    }
-
-    // ─── Analysis render ───────────────────────────────────────
-    function renderAnalysis(r: TechParResult) {
-        const zoneCol = getStyle(zoneColorVar(r.zone));
-        const zoneBg = getStyle(zoneBgVar(r.zone));
-        const s = r.stageConfig;
-        const gaapEl = document.querySelector('[data-input="gaapChk"]') as HTMLInputElement;
-        const isGAAP = gaapEl?.checked ?? false;
-
-        // Hero number
-        const heroNum = g('hero-num');
-        if (heroNum) {
-            heroNum.textContent = formatPercent(r.totalTechPct);
-            heroNum.style.color = zoneCol;
-        }
-
-        // Basis label
-        const heroBasis = g('hero-basis');
-        if (heroBasis) {
-            heroBasis.textContent = isGAAP ? 'GAAP basis: R&D CapEx excluded' : 'Cash basis';
-            heroBasis.style.color = isGAAP ? getStyle('--techpar-zone-above') : '';
-        }
-
-        // Zone pill
-        const pillContainer = g('hero-zone-pill');
-        if (pillContainer) {
-            pillContainer.innerHTML = `<div class="tp-zone-pill" style="border-color:${zoneCol};background:${zoneBg};color:${zoneCol}"><span class="tp-zone-dot" style="background:${zoneCol}"></span>${zoneLabel(r.zone)}</div>`;
-        }
-
-        // Benchmark bar
-        const maxB = s.zones.critical * 1.2;
-        const bw = Math.min(r.totalTechPct / maxB * 100, 100);
-        const benchFill = g('bench-fill');
-        if (benchFill) {
-            benchFill.style.width = `${bw}%`;
-            benchFill.style.background = zoneCol;
-        }
-        const mid = (s.zones.lo + s.zones.hi) / 2;
-        const benchMid = g('bench-mid');
-        if (benchMid) benchMid.textContent = `\u25BC ${mid.toFixed(0)}% midpoint`;
-        const benchMax = g('bench-max');
-        if (benchMax) benchMax.textContent = maxB.toFixed(0) + '%';
-
-        // Benchmark table active row
-        $$('[data-bench-row]').forEach(tr => {
-            tr.classList.toggle('tp-btbl--active', (tr as HTMLElement).dataset.benchRow === stageKey);
-        });
-
-        // Signal card
-        const copy = SIGNAL_COPY[stageKey as TechParInputs['stage']]?.[r.zone];
-        const sigStage = g('sig-stage');
-        if (sigStage) sigStage.textContent = s.label;
-        const sigZone = g('sig-zone');
-        if (sigZone) { sigZone.textContent = zoneLabel(r.zone); sigZone.style.color = zoneCol; }
-        const sigHead = g('sig-head');
-        if (sigHead) { sigHead.textContent = copy?.headline || ''; sigHead.style.color = zoneCol; }
-        const sigBody = g('sig-body');
-        if (sigBody) sigBody.textContent = copy?.body || '';
-        const sigMets = g('sig-mets');
-        if (sigMets) sigMets.innerHTML = buildMetrics(r, zoneCol, s);
-
-        // KPI grid
-        const kpiGrid = g('kpi-grid');
-        if (kpiGrid) {
-            let cells = '';
-            const kc = (l: string, v: string, sub: string, cls: string = '') =>
-                `<div class="tp-kpi-cell"><div class="tp-kpi-lbl">${l}</div><div class="tp-kpi-val${cls ? ' tp-kpi-val--' + cls : ''}">${v}</div>${sub ? `<div class="tp-kpi-sub">${sub}</div>` : ''}</div>`;
-
-            cells += `<div class="tp-kpi-cell tp-kpi-cell--highlight"><div class="tp-kpi-lbl">Annual tech cost</div><div class="tp-kpi-val">${formatDollars(r.total)}</div><div class="tp-kpi-sub">${isGAAP ? 'GAAP' : 'cash basis'}</div></div>`;
-            cells += kc('Infra hosting', formatPercent(r.kpis.infraHostingPct), `bench ${s.benchmarks.infraHosting[0]}\u2013${s.benchmarks.infraHosting[1]}%`, kpiClass(r.kpis.infraHostingPct, s.benchmarks.infraHosting[0], s.benchmarks.infraHosting[1]));
-            if (r.kpis.infraPersonnelPct !== null) cells += kc('Infra personnel', formatPercent(r.kpis.infraPersonnelPct), `bench ${s.benchmarks.infraPersonnel[0]}\u2013${s.benchmarks.infraPersonnel[1]}%`, kpiClass(r.kpis.infraPersonnelPct, s.benchmarks.infraPersonnel[0], s.benchmarks.infraPersonnel[1]));
-            if (r.kpis.rdOpExPct !== null) cells += kc('R&D OpEx', formatPercent(r.kpis.rdOpExPct), `bench ${s.benchmarks.rdOpEx[0]}\u2013${s.benchmarks.rdOpEx[1]}%`, kpiClass(r.kpis.rdOpExPct, s.benchmarks.rdOpEx[0], s.benchmarks.rdOpEx[1]));
-            if (r.kpis.rdCapExPct !== null) cells += kc('R&D CapEx % rev', formatPercent(r.kpis.rdCapExPct), 'capitalized dev');
-            if (r.kpis.rdCapExOfRD !== null) cells += kc('CapEx of total R&D', formatPercent(r.kpis.rdCapExOfRD), `bench ${s.benchmarks.rdCapExOfRD[0]}\u2013${s.benchmarks.rdCapExOfRD[1]}%`);
-            cells += kc('Blended infra', formatPercent(r.kpis.blendedInfra), 'hosting + personnel');
-            if (r.kpis.revenuePerEngineer !== null) cells += kc('Revenue / engineer', formatDollars(r.kpis.revenuePerEngineer), 'ARR per engineering FTE');
-            if (r.kpis.engPctOfRD !== null) cells += kc('Engineering % R&D', formatPercent(r.kpis.engPctOfRD), '');
-            if (r.kpis.prodPctOfRD !== null) cells += kc('Product % R&D', formatPercent(r.kpis.prodPctOfRD), '');
-            kpiGrid.innerHTML = cells;
-        }
-
-        // Category bars
-        const catSection = g('cat-section');
-        const catBars = g('cat-bars');
-        if (catSection && catBars) {
-            if (r.categories.length >= 2) {
-                catSection.classList.add('tp-cat-section--on');
-                let bHtml = '';
-                r.categories.forEach(cat => {
-                    const catCol = getStyle(cat.colorVar);
-                    const pct = cat.pctArr;
-                    const benchHi = cat.benchmarkHi > 0 ? cat.benchmarkHi : pct * 1.5;
-                    const maxV = Math.max(pct, benchHi) * 1.2;
-                    const fw = Math.min(pct / maxV * 100, 100);
-                    const bx = cat.benchmarkLo > 0 ? cat.benchmarkLo / maxV * 100 : 0;
-                    const bw = cat.benchmarkHi > 0 ? (cat.benchmarkHi - cat.benchmarkLo) / maxV * 100 : 0;
-                    bHtml += `<div class="tp-cat-row">
-                        <div class="tp-cat-meta">
-                            <div class="tp-cat-name"><span class="tp-cat-dot" style="width:7px;height:7px;border-radius:50%;background:${catCol}"></span>${cat.label}</div>
-                            <div style="display:flex;align-items:baseline;gap:var(--spacing-sm)">
-                                <span class="tp-cat-pct" style="color:${catCol}">${formatPercent(pct)}</span>
-                                ${cat.benchmarkHi > 0 ? `<span class="tp-cat-bench">bench ${cat.benchmarkLo}\u2013${cat.benchmarkHi}%</span>` : ''}
-                            </div>
-                        </div>
-                        <div class="tp-cat-track">
-                            ${cat.benchmarkHi > 0 ? `<div class="tp-cat-band" style="left:${bx}%;width:${bw}%"></div>` : ''}
-                            <div class="tp-cat-fill" style="width:${fw}%;background:${catCol}"></div>
-                        </div>
-                    </div>`;
-                });
-                catBars.innerHTML = bHtml;
-            } else {
-                catSection.classList.remove('tp-cat-section--on');
-            }
-        }
-
-        // Context block
-        const ctxBlock = g('ctx-block');
-        if (ctxBlock) {
-            const isOver = r.zone === 'above' || r.zone === 'elevated' || r.zone === 'critical';
-            const isUnder = r.zone === 'underinvest';
-            if (isOver && r.stageConfig.key !== 'seed') {
-                const exitMult = getInput('exitMult') || 12;
-                const excessPct = (r.totalTechPct - s.zones.hi).toFixed(1);
-                const annualDrag = buildInputs().arr * (r.totalTechPct - s.zones.hi) / 100;
-                const exitDrag = annualDrag * exitMult;
-                ctxBlock.innerHTML = `You are <strong style="color:var(--text-light-primary)">${excessPct}%</strong> above the ${s.zones.hi}% ceiling — <strong style="color:var(--color-primary)">${formatDollars(annualDrag)}</strong> in annual excess spend. At a ${exitMult}&times; revenue multiple that represents <strong style="color:var(--color-primary)">${formatDollars(exitDrag)}</strong> in recoverable exit value. Identify the highest-cost categories above and prioritise optimisation there first.`;
-            } else if (isUnder) {
-                const floorPct = s.zones.lo;
-                const annualGap = buildInputs().arr * (floorPct - r.totalTechPct) / 100;
-                ctxBlock.innerHTML = `Spend is <strong style="color:var(--text-light-primary)">${formatDollars(annualGap)}</strong> per year below the ${floorPct}% benchmark floor. This gap often reflects deferred investment in engineering capacity or infrastructure that surfaces later as reliability issues, slower product velocity, or a higher cost to remediate at scale.`;
-            } else {
-                ctxBlock.innerHTML = '';
-            }
-        }
-    }
-
-    function buildMetrics(r: TechParResult, col: string, s: StageConfig): string {
-        let h = '';
-        if (r.zone === 'underinvest') {
-            h = `<div class="tp-sig-met"><div class="tp-sig-mlbl">Investment to healthy floor: 36 months</div>
-                <div class="tp-sig-mval" style="color:${col}">${formatDollars(r.gap.underinvestGap)}</div></div>`;
-        } else if (r.zone === 'ahead') {
-            h = `<div class="tp-sig-met"><div class="tp-sig-mlbl">Annual advantage vs ${s.zones.hi}% ceiling</div>
-                <div class="tp-sig-mval" style="color:${col}">${formatDollars(r.gap.annualAdvantage)}</div></div>`;
-        } else if (r.zone !== 'healthy') {
-            h = `<div class="tp-sig-met"><div class="tp-sig-mlbl">Excess above ${s.zones.hi}% ceiling: 36 months</div>
-                <div class="tp-sig-mval" style="color:${col}">${formatDollars(r.gap.cumulative36)}</div></div>`;
-            if (s.frame === 'dollars') {
-                const exitMult = getInput('exitMult') || 12;
-                h += `<div class="tp-sig-met" style="margin-top:var(--spacing-sm)"><div class="tp-sig-mlbl">Exit value at ${exitMult}&times;</div>
-                    <div class="tp-sig-mval" style="color:var(--color-primary)">${formatDollars(r.gap.exitValue)}</div>
-                    <div class="tp-sig-msub">recoverable through optimization</div></div>`;
-            } else {
-                h += `<div class="tp-sig-met" style="margin-top:var(--spacing-sm);padding-top:var(--spacing-sm);border-top:1px solid var(--border-light)">
-                    <div class="tp-sig-note">At ${s.label}, trajectory matters more than the current number. The key question is whether this ratio declines as revenue scales.</div></div>`;
-            }
-        }
-        return h;
-    }
-
-    // ─── Trajectory render ─────────────────────────────────────
-    function renderTrajectory(r: TechParResult) {
-        const s = r.stageConfig;
-        const zoneCol = getStyle(zoneColorVar(r.zone));
-
-        // Note banner
-        const note = g('traj-note');
-        if (note) {
-            const isUnder = r.zone === 'underinvest' || r.zone === 'ahead';
-            note.className = 'tp-traj-note' + (s.frame === 'convergence' ? ' tp-traj-note--convergence' : '');
-            note.textContent = (isUnder && s.noteUnder) ? s.noteUnder : s.note;
-        }
-
-        // Build chart data
-        const inputs = buildInputs();
-        const traj = buildTrajectory(inputs, s);
-
-        if (trajChart) { trajChart.destroy(); trajChart = null; }
-
-        const canvas = document.querySelector('[data-traj-canvas]') as HTMLCanvasElement;
-        if (!canvas) return;
-
-        const bandFill = getStyle('--techpar-chart-band-fill');
-        const bandBorder = getStyle('--techpar-chart-band-border');
-        const aheadFill = getStyle('--techpar-chart-ahead-fill');
-        const aheadBorder = getStyle('--techpar-chart-ahead-border');
-        const underFill = getStyle('--techpar-chart-under-fill');
-        const underBorder = getStyle('--techpar-chart-under-border');
-        const revLineCol = getStyle('--techpar-chart-revenue-line');
-        const txtMuted = getStyle('--text-light-muted');
-        const borderLight = getStyle('--border-light');
-        const bgLight = getStyle('--bg-light-alt');
-
-        const datasets: any[] = [
-            { label: '_z', data: Array(37).fill(0), borderColor: 'transparent', borderWidth: 0, pointRadius: 0, fill: false },
-            { label: '_uf', data: traj.underFloor, borderColor: underBorder, borderWidth: 1, borderDash: [3, 3], pointRadius: 0, fill: { target: '-1', above: underFill, below: 'transparent' }, tension: 0.3 },
-            { label: '_blo', data: traj.bandLo, borderColor: aheadBorder, borderWidth: 1, borderDash: [3, 3], pointRadius: 0, fill: { target: '-1', above: aheadFill, below: 'transparent' }, tension: 0.3 },
-            { label: 'Healthy range', data: traj.bandHi, borderColor: bandBorder, borderWidth: 1, borderDash: [4, 3], pointRadius: 0, fill: { target: '-1', above: bandFill, below: 'transparent' }, tension: 0.3 },
-            { label: 'Total tech cost', data: traj.spend, borderColor: zoneCol, borderWidth: 2, pointRadius: 0, fill: false, tension: 0.3 },
-        ];
-
-        if (s.frame === 'convergence') {
-            datasets.push({
-                label: 'Monthly revenue',
-                data: traj.revenue,
-                borderColor: revLineCol,
-                borderWidth: 2,
-                borderDash: [6, 4],
-                pointRadius: 0,
-                fill: false,
-                tension: 0.3,
-            });
-        }
-
-        const maxY = Math.max(...traj.spend, ...traj.bandHi, ...(s.frame === 'convergence' ? traj.revenue : [])) * 1.12;
-
-        trajChart = new Chart(canvas.getContext('2d')!, {
-            type: 'line',
-            data: { labels: traj.labels, datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: { duration: 320, easing: 'easeInOutCubic' },
-                plugins: {
-                    legend: {
-                        display: true,
-                        labels: {
-                            color: txtMuted,
-                            font: { family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif", size: 9 },
-                            boxWidth: 8,
-                            padding: 10,
-                            filter: (item: any) => !item.text.startsWith('_'),
-                        },
-                    },
-                    tooltip: {
-                        backgroundColor: bgLight,
-                        titleColor: getStyle('--text-light-primary'),
-                        bodyColor: txtMuted,
-                        borderColor: borderLight,
-                        borderWidth: 1,
-                        padding: 8,
-                        titleFont: { family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif", size: 9 },
-                        bodyFont: { family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif", size: 9 },
-                        filter: (item: any) => !item.dataset.label.startsWith('_'),
-                        callbacks: {
-                            title: (c: any) => `Month ${c[0].dataIndex}`,
-                            label: (c: any) => `${c.dataset.label}: ${formatDollars(c.parsed.y)}/mo`,
-                        },
-                    },
-                },
-                scales: {
-                    x: {
-                        grid: { color: borderLight + '33', lineWidth: 0.5 },
-                        ticks: { color: txtMuted, font: { family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif", size: 9 }, maxTicksLimit: 7 },
-                    },
-                    y: {
-                        min: 0,
-                        max: maxY,
-                        grid: { color: borderLight + '33', lineWidth: 0.5 },
-                        ticks: {
-                            color: txtMuted,
-                            font: { family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif", size: 9 },
-                            callback: (v: any) => formatDollars(v as number),
-                        },
-                    },
-                },
-            },
-        });
-
-        // User position dot
-        setTimeout(() => {
-            if (!trajChart) return;
-            const meta = trajChart.getDatasetMeta(4);
-            if (meta?.data?.[0]) {
-                const pt = meta.data[0];
-                const dot = document.querySelector('[data-traj-dot]') as HTMLElement;
-                if (dot) {
-                    dot.style.background = zoneCol;
-                    dot.style.boxShadow = `0 0 0 5px ${zoneCol}33`;
-                    dot.style.left = pt.x + 'px';
-                    dot.style.top = pt.y + 'px';
-                    dot.style.display = 'block';
-                }
-            }
-        }, 60);
-
-        // Legend
-        const legItems = [
-            { sw: `background:${underFill};border:1px solid ${underBorder}`, l: `Underinvestment zone (<${s.zones.underinvest}%)` },
-            { sw: `background:${aheadFill};border:1px solid ${aheadBorder}`, l: `Ahead of benchmark (${s.zones.underinvest}\u2013${s.zones.lo}%)` },
-            { sw: `background:${bandFill};border:1px solid ${bandBorder}`, l: `Healthy range (${s.zones.lo}\u2013${s.zones.hi}%)` },
-            { sw: `background:transparent;border:2px solid ${zoneCol};border-radius:50%;width:9px;height:9px`, l: 'Your position today' },
-        ];
-        if (s.frame === 'convergence') {
-            legItems.push({ sw: `background:transparent;border-top:2px dashed ${revLineCol}`, l: 'Monthly revenue' });
-        }
-        const legend = g('traj-legend');
-        if (legend) {
-            legend.innerHTML = legItems.map(x =>
-                `<div class="tp-tleg"><div class="tp-tleg__sw" style="${x.sw}"></div>${x.l}</div>`
-            ).join('');
-        }
-    }
-
-    // ─── Init ──────────────────────────────────────────────────
-    updateAll();
+    import '../../../../utils/techpar-ui';
 </script>
 </BaseLayout>
