@@ -61,7 +61,9 @@ trackPageView('techpar', 'TechPar | GST');
                         </svg>
                         <span class="tp-tab__label">Trajectory</span>
                     </button>
-                    <button class="tp-tab-reset" data-action="reset" type="button" title="Reset all inputs">Reset</button>
+                </div>
+                <div class="tp-toolbar">
+                    <button class="tp-toolbar__reset" data-action="reset" type="button">Reset all inputs</button>
                 </div>
 
                 <!-- ── TAB: PROFILE ──────────────────────────────────── -->
@@ -615,32 +617,30 @@ trackPageView('techpar', 'TechPar | GST');
         display: none;
     }
 
-    .tp-tab-reset {
+    /* ── Toolbar (below tab bar) ──────────────────────────────── */
+    .tp-toolbar {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: var(--spacing-xs) var(--spacing-sm);
-        background: transparent;
+        justify-content: flex-end;
+        padding: var(--spacing-xs) 0;
+    }
+
+    .tp-toolbar__reset {
+        padding: var(--spacing-xs) 0;
+        background: none;
         border: none;
         color: var(--text-light-muted);
         font-family: var(--font-family);
         font-size: var(--text-xs);
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
         cursor: pointer;
         transition: color var(--transition-fast);
-        white-space: nowrap;
-        margin-left: auto;
-        flex-shrink: 0;
     }
 
-    .tp-tab-reset:hover {
+    .tp-toolbar__reset:hover {
         color: var(--text-light-primary);
     }
 
-    .tp-tab-reset--confirming {
+    .tp-toolbar__reset--confirming {
         color: var(--techpar-zone-elevated);
-        background: color-mix(in srgb, var(--techpar-zone-elevated) 12%, transparent);
     }
 
     .tp-tab {
