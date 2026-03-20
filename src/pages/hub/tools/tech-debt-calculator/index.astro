@@ -26,7 +26,10 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" }
+        "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" },
+        "datePublished": "2025-06-01",
+        "dateModified": "2026-03-20",
+        "author": { "@type": "Person", "name": "Reid Peryam", "jobTitle": "Strategic Technology Advisor", "sameAs": ["https://www.linkedin.com/in/reidperyam/"] }
     })} />
 
     <section class="tdc-section">
@@ -38,6 +41,8 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
             />
 
             <div data-calc>
+
+                <p class="tdc-authority">Methodology built from 100+ PE technology diligence engagements</p>
 
                 <!-- ── Core inputs ─────────────────────────────────────────── -->
                 <div class="inputs-section">
@@ -73,13 +78,13 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
                         <div class="slider-row">
                             <div class="slider-header">
                                 <label class="slider-label" for="input-maint-pct">Maintenance Burden</label>
-                                <span class="slider-value" data-display="maint-pct">40%</span>
+                                <span class="slider-value" data-display="maint-pct">25%</span>
                             </div>
-                            <input id="input-maint-pct" type="range" min="5" max="100" step="1"
+                            <input id="input-maint-pct" type="range" min="0" max="100" step="1"
                                 class="calc-slider" data-input="maint-pct" />
                             <div class="slider-hints">
                                 <input type="number" class="hint-input" data-direct="maint-pct"
-                                    min="5" max="100" step="1" value="40" aria-label="Maintenance burden percentage" />
+                                    min="0" max="100" step="1" value="25" aria-label="Maintenance burden percentage" />
                             </div>
                             <div class="slider-benchmark">&lt; 10% well-managed &nbsp;·&nbsp; 15%+ yellow flag &nbsp;·&nbsp; 25%+ red flag</div>
                         </div>
@@ -265,6 +270,12 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
 
                         <h4 class="tdc-methodology__heading">Limitations</h4>
                         <p>This model produces order-of-magnitude estimates, not precise valuations. It does not account for context-switching overhead, team ramp-up time, partial remediation efficiency, or revenue impact of incidents. Salary inputs are all-in (base + benefits + equity) and should reflect loaded cost. Results are most useful for framing diligence conversations and scoping remediation budgets, not for formal valuation adjustments.</p>
+
+                        <h4 class="tdc-methodology__heading">Currency</h4>
+                        <p>Non-USD currencies use static mid-market approximations fixed at tool release (EUR 0.92, GBP 0.79, CAD 1.36, AUD 1.53). For valuation work, apply current exchange rates to the USD figure.</p>
+
+                        <h4 class="tdc-methodology__heading">Privacy</h4>
+                        <p>All calculations run entirely in your browser&mdash;no inputs are sent to our servers. Anonymous page-view and interaction analytics (Google Analytics 4) help us improve the tool. See our <a href="/privacy">privacy policy</a> for details.</p>
                     </div>
                 </details>
 
@@ -278,6 +289,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
                             <option value="CAD">CAD</option>
                             <option value="AUD">AUD</option>
                         </select>
+                        <span class="currency-disclaimer" id="currency-disclaimer"></span>
                         <button id="export-pdf-btn" type="button" class="copy-link-btn" aria-label="Export as PDF via print dialog">Export PDF</button>
                         <button id="copy-summary-btn" type="button" class="copy-link-btn" aria-label="Copy results summary to clipboard">Copy Summary</button>
                         <button id="copy-link-btn" type="button" class="copy-link-btn" aria-label="Copy shareable link to clipboard">Copy Link</button>
@@ -306,6 +318,18 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
         border: 1px solid var(--accent-light-bg-hover);
         border-radius: 10px;
         overflow: hidden;
+    }
+
+    /* ── Authority line ────────────────────────────────────────────────────── */
+    .tdc-authority {
+        padding: var(--spacing-sm) var(--spacing-2xl);
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-light-faded);
+        border-bottom: 1px solid var(--accent-light-bg);
+        margin: 0;
     }
 
     /* ── Shared section padding ───────────────────────────────────────────── */
@@ -745,6 +769,14 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
     .copy-link-btn:hover {
         opacity: 0.75;
         border-color: var(--color-primary);
+    }
+
+    /* ── Currency disclaimer ────────────────────────────────────────────── */
+    .currency-disclaimer {
+        font-size: var(--text-xs);
+        color: var(--text-light-faded);
+        font-style: italic;
+        white-space: nowrap;
     }
 
     /* ── Visibility ───────────────────────────────────────────────────────── */
@@ -1251,7 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const mpInput = getDirect('maint-pct');
   if (mpInput) {
     mpInput.addEventListener('change', () => {
-      const v = Math.max(5, Math.min(100, Number(mpInput.value) || 5));
+      const v = Math.max(0, Math.min(100, Number(mpInput.value) || 0));
       state.maintPct = v;
       getInput('maint-pct').value = String(v);
       render();
@@ -1331,6 +1363,10 @@ document.addEventListener('DOMContentLoaded', () => {
     currencySelect.addEventListener('change', () => {
       currency = currencySelect.value;
       trackEvent({ event: 'tdc_currency_change', category: 'engagement', currency });
+      const disclaimerEl = document.getElementById('currency-disclaimer');
+      if (disclaimerEl) {
+        disclaimerEl.textContent = currency === 'USD' ? '' : 'Approx. rate \u00b7 not live';
+      }
       render();
     });
   }
@@ -1351,7 +1387,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const reset = () => { copyBtn.textContent = 'Copy Link'; };
       navigator.clipboard.writeText(url).then(
         () => { copyBtn.textContent = 'Copied!'; setTimeout(reset, 2000); },
-        () => { copyBtn.textContent = 'Copied!'; setTimeout(reset, 2000); },
+        () => { copyBtn.textContent = 'Failed'; setTimeout(reset, 2000); },
       );
     });
   }
@@ -1366,7 +1402,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const reset = () => { summaryBtn.textContent = 'Copy Summary'; };
       navigator.clipboard.writeText(text).then(
         () => { summaryBtn.textContent = 'Copied!'; setTimeout(reset, 2000); },
-        () => { summaryBtn.textContent = 'Copied!'; setTimeout(reset, 2000); },
+        () => { summaryBtn.textContent = 'Failed'; setTimeout(reset, 2000); },
       );
     });
   }

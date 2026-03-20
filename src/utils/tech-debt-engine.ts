@@ -89,9 +89,7 @@ export function calculate(state: CalcState): CalcResult {
   const directMonthly   = teamSize * (salary / 12) * (state.maintPct / 100) * V;
   const incidentMonthly = state.incidents * state.mttr * hourlyRate;
   const hoursLostPerEng = 40 * (state.maintPct / 100);
-  const totalMonthly    = state.advancedOpen
-    ? directMonthly + incidentMonthly
-    : directMonthly;
+  const totalMonthly    = directMonthly + incidentMonthly;
   const annualCost      = totalMonthly * 12;
   const debtPctArr      = arrVal > 0 ? (annualCost / arrVal) * 100 : 0;
   const monthlySavings  = totalMonthly;
@@ -166,7 +164,7 @@ export function decodeState(encoded: string): Partial<CalcState> | null {
       out.teamSizePos = raw.ts;
     if (Number.isInteger(raw.sp) && raw.sp >= 0 && raw.sp <= 100)
       out.salaryPos = raw.sp;
-    if (Number.isInteger(raw.mp) && raw.mp >= 5 && raw.mp <= 100)
+    if (Number.isInteger(raw.mp) && raw.mp >= 0 && raw.mp <= 100)
       out.maintPct = raw.mp;
     if (Number.isInteger(raw.di) && raw.di >= 0 && raw.di <= 8)
       out.deployIdx = raw.di;
@@ -266,7 +264,7 @@ export const DEFAULT_STATE: CalcState = {
   advancedOpen: false,
   teamSizePos: teamSizeToPos(8),
   salaryPos:   salaryToPos(150000),
-  maintPct:    40,
+  maintPct:    25,
   deployIdx:   3,
   incidents:   3,
   mttr:        4,
