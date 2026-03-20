@@ -1055,7 +1055,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-deploy-btn]').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = Number((btn as HTMLElement).dataset.deployBtn);
-      trackEvent({ event: 'tdc_deploy_frequency', category: 'engagement', value: DEPLOY_OPTIONS[idx] ?? idx });
+      trackEvent({ event: 'tdc_deploy_frequency', category: 'engagement', value: DEPLOY_OPTIONS[idx]?.label ?? idx });
       state.deployIdx = idx;
       render();
     });
