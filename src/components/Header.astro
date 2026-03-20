@@ -10,9 +10,9 @@ interface Props {
 const { currentPath = '/', staticHeader = false } = Astro.props;
 ---
 
-<header class={`site-header${staticHeader ? ' site-header--static' : ''}`}>
+<header class={`site-header${staticHeader ? ' site-header--static' : ''}`} role="banner">
     <div class="container">
-        <nav>
+        <nav role="navigation" aria-label="Main navigation">
             <div class="logo-wrapper">
                 <img
                     src="/images/logo/gst-delta-icon-teal-stroke-thick.svg"
