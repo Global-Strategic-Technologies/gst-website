@@ -185,7 +185,7 @@ a:hover {
 /* Hero */
 .hero {
     padding: 2rem 0;
-    background: linear-gradient(180deg, var(--bg-light-alt) 0%, var(--bg-light-alt) 85%, rgba(245, 245, 245, 0) 100%);
+    background: linear-gradient(180deg, rgba(245, 245, 245, 0) 0%, var(--bg-light-alt) 15%, var(--bg-light-alt) 85%, rgba(245, 245, 245, 0) 100%);
     position: relative;
 }
 
@@ -737,7 +737,7 @@ html.dark-theme body::before {
 
 /* Dark Theme - Hero */
 html.dark-theme .hero {
-    background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-dark) 85%, rgba(10, 10, 10, 0) 100%);
+    background: linear-gradient(180deg, rgba(10, 10, 10, 0) 0%, var(--bg-dark) 15%, var(--bg-dark) 85%, rgba(10, 10, 10, 0) 100%);
 }
 
 html.dark-theme .hero h1 {
