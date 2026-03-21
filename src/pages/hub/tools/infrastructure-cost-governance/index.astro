@@ -179,6 +179,7 @@ const domainCount = DOMAINS.length;
                             <a data-action="email" href="#" class="icg-btn-secondary icg-btn-secondary--link" title="Open a pre-filled email with your results link. The recipient can complete the assessment independently.">Send to engineering lead</a>
                             <button data-action="save-snapshot" type="button" class="icg-btn-secondary" title="Save this assessment as a snapshot for later comparison">Save snapshot</button>
                             <button data-action="compare" type="button" class="icg-btn-secondary is-hidden" title="Compare saved snapshots side by side">Compare</button>
+                            <button data-action="review" type="button" class="icg-btn-secondary" title="Review your answers across all six domains">Review answers</button>
                             <button data-action="reset" type="button" class="icg-btn-secondary">Start over</button>
                         </div>
                     </div>
@@ -1503,6 +1504,7 @@ function readUrlState(): Partial<ICGState> | null {
 // ─── State ──────────────────────────────────────────────────────────────────
 
 const state: ICGState = { ...DEFAULT_STATE, dismissed: [] };
+let reviewMode = false;
 
 // ─── localStorage persistence ──────────────────────────────────────────────
 
@@ -1738,9 +1740,15 @@ function renderWizard(): void {
   const backBtn = qs<HTMLButtonElement>('[data-action="back"]');
   const nextBtn = qs<HTMLButtonElement>('[data-action="next"]');
 
-  backBtn.textContent = state.currentStep === 1 ? 'Back to intro' : 'Previous';
-  nextBtn.textContent = state.currentStep === 6 ? 'View results' : 'Next domain';
-  nextBtn.disabled = !canNext;
+  if (reviewMode) {
+    backBtn.textContent = state.currentStep === 1 ? 'Back to results' : 'Previous';
+    nextBtn.textContent = state.currentStep === 6 ? 'Back to results' : 'Next domain';
+    nextBtn.disabled = false;
+  } else {
+    backBtn.textContent = state.currentStep === 1 ? 'Back to intro' : 'Previous';
+    nextBtn.textContent = state.currentStep === 6 ? 'View results' : 'Next domain';
+    nextBtn.disabled = !canNext;
+  }
 }
 
 function renderResults(): void {
@@ -1927,19 +1935,39 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   qs<HTMLElement>('[data-action="back"]').addEventListener('click', () => {
-    state.currentStep = state.currentStep > 1 ? state.currentStep - 1 : 0;
+    if (reviewMode && state.currentStep === 1) {
+      reviewMode = false;
+      state.currentStep = 7;
+    } else {
+      state.currentStep = state.currentStep > 1 ? state.currentStep - 1 : 0;
+    }
     render();
   });
 
   qs<HTMLElement>('[data-action="next"]').addEventListener('click', () => {
+    if (reviewMode && state.currentStep === 6) {
+      reviewMode = false;
+      state.currentStep = 7;
+      render();
+      return;
+    }
     const nextStep = state.currentStep < 6 ? state.currentStep + 1 : 7;
-    if (nextStep <= 6) {
-      trackEvent({ event: 'icg_domain_advance', category: 'engagement', domain: DOMAINS[nextStep - 1].name, step: nextStep });
-    } else {
-      const result = calculateResults(state, DOMAINS);
-      trackEvent({ event: 'icg_assessment_complete', category: 'engagement', score: result.overallScore, maturity_level: result.maturityLevel });
+    if (!reviewMode) {
+      if (nextStep <= 6) {
+        trackEvent({ event: 'icg_domain_advance', category: 'engagement', domain: DOMAINS[nextStep - 1].name, step: nextStep });
+      } else {
+        const result = calculateResults(state, DOMAINS);
+        trackEvent({ event: 'icg_assessment_complete', category: 'engagement', score: result.overallScore, maturity_level: result.maturityLevel });
+      }
     }
     state.currentStep = nextStep;
+    render();
+  });
+
+  qs<HTMLElement>('[data-action="review"]').addEventListener('click', () => {
+    trackEvent({ event: 'icg_review_answers', category: 'engagement' });
+    reviewMode = true;
+    state.currentStep = 1;
     render();
   });
 
