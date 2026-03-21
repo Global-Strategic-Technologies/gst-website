@@ -17,6 +17,17 @@ const domainCount = DOMAINS.length;
     ogImage="/og-image.png"
     ogUrl="https://globalstrategic.tech/hub/tools/infrastructure-cost-governance"
 >
+    <script is:inline type="application/ld+json" set:html={JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Infrastructure Cost Governance",
+        "description": "Cloud cost maturity assessment across six operational domains for PE diligence, board reviews, and 100-day planning",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" }
+    })} />
+
     <section class="icg-section">
         <div class="container">
 

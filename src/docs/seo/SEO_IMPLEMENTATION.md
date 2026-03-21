@@ -35,7 +35,9 @@ The GST website implements a comprehensive SEO foundation designed to maximize s
 ```
 BaseLayout (src/layouts/BaseLayout.astro)
 ├── SEO Component (src/components/SEO.astro)
-│   ├── JSON-LD structured data
+│   ├── JSON-LD structured data (ProfessionalService + Person)
+│   ├── BreadcrumbList schema (auto-generated from URL)
+│   ├── FAQPage schema (conditional, via faqItems prop)
 │   ├── Meta tags
 │   ├── Open Graph tags
 │   └── Twitter Card tags
@@ -70,21 +72,22 @@ interface Props {
 ```
 
 **Default Values:**
-- `title`: "Global Strategic Technology | M&A Strategic Technology Advisory"
-- `description`: "Expert strategic technology advisory for M&A buy-side and sell-side technical due diligence..."
-- `ogTitle`: "Global Strategic Technology | Strategic Tech Advisory"
+- `title`: "GST | M&A Strategic Technology Advisory"
+- `description`: "M&A technical due diligence, post-acquisition integration, and platform modernization. Led by Reid Peryam, 20-year technology strategy veteran."
+- `ogTitle`: "GST | Strategic Technology Advisory"
 - `ogDescription`: "Specialized technical diligence and AI strategy for organizations navigating complex product transitions."
 - `ogImage`: "/og-image.png" (auto-converted to absolute URL)
 - `ogType`: "website"
 - `ogUrl`: Auto-generated from Astro.url
 - `canonicalUrl`: Auto-generated from Astro.url
-- **`ogImageAlt`**: "Global Strategic Technology - M&A Strategic Technology Advisory and Technical Due Diligence"
+- **`ogImageAlt`**: "GST - M&A Strategic Technology Advisory and Technical Due Diligence"
 - **`ogImageWidth`**: 1200 (pixels)
 - **`ogImageHeight`**: 630 (pixels)
 - **`ogImageType`**: "image/png"
-- **`ogSiteName`**: "Global Strategic Technology"
+- **`ogSiteName`**: "GST"
 - **`ogLocale`**: "en_US"
 - **`twitterSite`**: "@globalstrategic"
+- `faqItems`: undefined (optional array of `{question, answer}` for FAQPage schema)
 
 ## JSON-LD Structured Data
 
@@ -96,7 +99,7 @@ interface Props {
 ```json
 {
   "@type": "ProfessionalService",
-  "name": "Global Strategic Technology",
+  "name": "GST",
   "url": "https://globalstrategic.tech",
   "logo": "https://globalstrategic.tech/icon.svg",
   "sameAs": ["https://www.linkedin.com/company/global-strategic-technologies/"]
@@ -134,14 +137,14 @@ interface Props {
   "@type": "EducationalOccupationalCredential",
   "name": "Microsoft Certified: DevOps Engineer Expert",
   "credentialCategory": "Professional Certification",
-  "issuedBy": {
+  "publisher": {
     "@type": "Organization",
     "name": "Microsoft"
   },
-  "dateIssued": "2021-06",
-  "dateExpires": "2027-06",
-  "credentialId": "6C14577815D1D876",
-  "skills": ["Azure DevOps", "Software Development Life Cycle (SDLC)", "Software Development", "Azure Solutions"]
+  "datePublished": "2021-06",
+  "expires": "2027-06",
+  "identifier": "6C14577815D1D876",
+  "competencyRequired": "Azure DevOps, Software Development Life Cycle (SDLC), Software Development, Azure Solutions"
 }
 ```
 
@@ -152,7 +155,7 @@ interface Props {
 **Microsoft Certifications (5):**
 1. DevOps Engineer Expert (2021-06 → 2027-06)
 2. Azure Solutions Architect Expert (2021-04 → 2027-04)
-3. Azure Developer Associate (2021-05 → 2026-05)
+3. Azure Developer Associate (2021-05 → 2027-05)
 4. Azure AI Engineer Associate (2021-09 → 2026-09)
 5. Azure AI Fundamentals (2021-08)
 
@@ -200,11 +203,11 @@ The following expertise areas are indexed for semantic search:
 
 **Title Tag** (in `<title>`)
 ```html
-<title>Global Strategic Technology | M&A Strategic Technology Advisory</title>
+<title>GST | M&A Strategic Technology Advisory</title>
 ```
-- **Length**: 66 characters (optimal for SERPs)
+- **Length**: 43 characters (optimal for SERPs)
 - **Contains**: Primary keyword "M&A Strategic Technology Advisory"
-- **Brand**: "Global Strategic Technology"
+- **Brand**: "GST"
 
 **Meta Description**
 ```html
@@ -247,7 +250,7 @@ Open Graph tags control how the site appears when shared on social platforms. Es
 
 ```html
 <!-- Open Graph Tags (11 tags) -->
-<meta property="og:title" content="Global Strategic Technology | Strategic Tech Advisory" />
+<meta property="og:title" content="GST | Strategic Technology Advisory" />
 <meta property="og:description" content="Specialized technical diligence and AI strategy for organizations navigating complex product transitions." />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://globalstrategic.tech/" />
@@ -255,17 +258,17 @@ Open Graph tags control how the site appears when shared on social platforms. Es
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:type" content="image/png" />
-<meta property="og:image:alt" content="Global Strategic Technology - M&A Strategic Technology Advisory and Technical Due Diligence" />
-<meta property="og:site_name" content="Global Strategic Technology" />
+<meta property="og:image:alt" content="GST - M&A Strategic Technology Advisory and Technical Due Diligence" />
+<meta property="og:site_name" content="GST" />
 <meta property="og:locale" content="en_US" />
 
 <!-- Twitter Card Tags (6 tags) -->
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:site" content="@globalstrategic" />
-<meta name="twitter:title" content="Global Strategic Technology | Strategic Tech Advisory" />
+<meta name="twitter:title" content="GST | Strategic Technology Advisory" />
 <meta name="twitter:description" content="Specialized technical diligence and AI strategy for organizations navigating complex product transitions." />
 <meta name="twitter:image" content="https://globalstrategic.tech/og-image.png" />
-<meta name="twitter:image:alt" content="Global Strategic Technology - M&A Strategic Technology Advisory and Technical Due Diligence" />
+<meta name="twitter:image:alt" content="GST - M&A Strategic Technology Advisory and Technical Due Diligence" />
 ```
 
 **Total**: 17 meta tags (up from 9 before February 2026 enhancement)
@@ -370,7 +373,7 @@ All images must have descriptive alt text that:
 <img src="/logo.svg" alt="Audience segment - Private equity and investment teams" />
 
 <!-- Logo (decorative with aria-hidden) -->
-<img src="/logo.svg" alt="Global Strategic Technology logo" aria-hidden="true" />
+<img src="/logo.svg" alt="Global Strategic Technology logo" loading="lazy" aria-hidden="true" />
 ```
 
 ### Main Content Tag
@@ -398,7 +401,7 @@ Pass custom props to the SEO component:
 **In `src/pages/about.astro`:**
 ```astro
 <BaseLayout
-    title="About Reid Peryam | Global Strategic Technology"
+    title="About Reid Peryam | GST"
     description="Learn about Reid Peryam's 20+ year background in technology strategy..."
     ogTitle="Meet Reid Peryam | Strategic Technology Advisor"
     ogDescription="Reid Peryam brings 20+ years of technology strategy execution..."
@@ -415,14 +418,14 @@ Edit `src/components/SEO.astro` and add to the `hasCredential` array:
     "@type": "EducationalOccupationalCredential",
     "name": "Your Certification Name",
     "credentialCategory": "Professional Certification",
-    "issuedBy": {
+    "publisher": {
         "@type": "Organization",
         "name": "Issuing Organization"
     },
-    "dateIssued": "YYYY-MM",
-    "dateExpires": "YYYY-MM",  // Optional for non-expiring credentials
-    "credentialId": "YOUR_ID",
-    "skills": ["Skill 1", "Skill 2", "Skill 3"]
+    "datePublished": "YYYY-MM",
+    "expires": "YYYY-MM",  // Optional for non-expiring credentials
+    "identifier": "YOUR_ID",
+    "competencyRequired": "Skill 1, Skill 2, Skill 3"
 }
 ```
 
@@ -600,6 +603,6 @@ Test your social media previews:
 
 ---
 
-**Last Updated**: February 5, 2026
+**Last Updated**: March 20, 2026
 **Component Version**: 2.0 (Enhanced Social Media)
 **Implementation Status**: Production Ready ✓

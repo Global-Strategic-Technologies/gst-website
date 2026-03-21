@@ -126,38 +126,42 @@ test.describe('About Page - Founder Section', () => {
   test.describe('Founder Photo Theme Variants', () => {
     test('should show light theme photo by default', async ({ page }) => {
       // Ensure light theme is active
-      const body = page.locator('body');
-      const isDarkMode = await body.evaluate(el => el.classList.contains('dark-theme'));
+
+      const isDarkMode = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
 
       if (isDarkMode) {
         // Toggle to light theme
         await clickThemeToggle(page);
-        await page.waitForTimeout(100);
+        await page.waitForFunction(() =>
+          !document.documentElement.classList.contains('dark-theme')
+        );
       }
 
       // Verify light photo is displayed
       const lightPhoto = page.locator('.founder-portrait-light');
-      await expect(lightPhoto).toBeVisible();
+      await expect(lightPhoto).toBeVisible({ timeout: 5000 });
 
       const darkPhoto = page.locator('.founder-portrait-dark');
       await expect(darkPhoto).not.toBeVisible();
     });
 
     test('should switch to dark theme photo when dark mode is enabled', async ({ page }) => {
-      const body = page.locator('body');
+
 
       // Get initial theme
-      const initialIsDark = await body.evaluate(el => el.classList.contains('dark-theme'));
+      const initialIsDark = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
 
       // Toggle to dark mode if not already there
       if (!initialIsDark) {
         await clickThemeToggle(page);
-        await page.waitForTimeout(100);
+        await page.waitForFunction(() =>
+          document.documentElement.classList.contains('dark-theme')
+        );
       }
 
       // Verify dark photo is displayed
       const darkPhoto = page.locator('.founder-portrait-dark');
-      await expect(darkPhoto).toBeVisible();
+      await expect(darkPhoto).toBeVisible({ timeout: 5000 });
 
       const lightPhoto = page.locator('.founder-portrait-light');
       await expect(lightPhoto).not.toBeVisible();
@@ -166,8 +170,11 @@ test.describe('About Page - Founder Section', () => {
     test('should switch photos when toggling between light and dark themes', async ({ page }) => {
       // Toggle theme 3 times and verify correct photo displays each time
       for (let i = 0; i < 3; i++) {
+        const wasDarkBefore = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
         await clickThemeToggle(page);
-        await page.waitForTimeout(150);
+        await page.waitForFunction((prev) =>
+          document.documentElement.classList.contains('dark-theme') !== prev
+        , wasDarkBefore);
 
         // Check which theme is active
         const isDark = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
@@ -192,12 +199,14 @@ test.describe('About Page - Founder Section', () => {
 
     test('should show light signature by default', async ({ page }) => {
       // Ensure light theme
-      const body = page.locator('body');
-      const isDarkMode = await body.evaluate(el => el.classList.contains('dark-theme'));
+
+      const isDarkMode = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
 
       if (isDarkMode) {
         await clickThemeToggle(page);
-        await page.waitForTimeout(100);
+        await page.waitForFunction(() =>
+          !document.documentElement.classList.contains('dark-theme')
+        );
       }
 
       // Verify light signature container exists
@@ -207,60 +216,83 @@ test.describe('About Page - Founder Section', () => {
     });
 
     test('should switch to dark signature in dark theme', async ({ page }) => {
-      const body = page.locator('body');
-
       // Ensure dark theme
-      const initialIsDark = await body.evaluate(el => el.classList.contains('dark-theme'));
+      const initialIsDark = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
       if (!initialIsDark) {
         await clickThemeToggle(page);
-        await page.waitForTimeout(100);
+        await page.waitForFunction(() =>
+          document.documentElement.classList.contains('dark-theme')
+        );
       }
 
-      // Verify dark signature is visible
-      const darkSig = page.locator('.founder-signature-dark');
-      await expect(darkSig).toBeVisible();
+      // Verify via computed style — toBeVisible() is unreliable here because
+      // lazy-loaded signature images may have zero dimensions in Firefox/WebKit
+      const darkDisplay = await page.evaluate(() => {
+        const el = document.querySelector('.founder-signature-dark');
+        return el ? window.getComputedStyle(el).display : 'missing';
+      });
+      expect(darkDisplay).not.toBe('none');
 
-      const lightSig = page.locator('.founder-signature-light');
-      await expect(lightSig).not.toBeVisible();
+      const lightDisplay = await page.evaluate(() => {
+        const el = document.querySelector('.founder-signature-light');
+        return el ? window.getComputedStyle(el).display : 'missing';
+      });
+      expect(lightDisplay).toBe('none');
     });
 
     test('should maintain signature aspect ratio across themes', async ({ page }) => {
-      // Get signature containers
-      const sigContainers = page.locator('.founder-signature');
-      const count = await sigContainers.count();
+      // Determine which signature is currently visible via computed style
+      const getVisibleSigClass = () => page.evaluate(() => {
+        const light = document.querySelector('.founder-signature-light');
+        const dark = document.querySelector('.founder-signature-dark');
+        if (light && window.getComputedStyle(light).display !== 'none') return '.founder-signature-light';
+        if (dark && window.getComputedStyle(dark).display !== 'none') return '.founder-signature-dark';
+        return null;
+      });
 
-      if (count > 0) {
-        // Get initial visible signature and its dimensions
-        const visibleSig = page.locator('.founder-signature-light:visible, .founder-signature-dark:visible').first();
-        await expect(visibleSig).toBeVisible();
+      const initialClass = await getVisibleSigClass();
+      if (!initialClass) return; // no signature visible, skip
 
-        const initialBox = await visibleSig.boundingBox();
-        expect(initialBox).toBeTruthy();
+      // Scroll signature into view and wait for the lazy-loaded image to render
+      const visibleSig = page.locator(`${initialClass} img`);
+      await visibleSig.scrollIntoViewIfNeeded();
+      await visibleSig.waitFor({ state: 'visible', timeout: 5000 });
 
-        if (initialBox) {
-          const initialWidth = initialBox.width;
-          const initialHeight = initialBox.height;
-          const initialRatio = initialWidth / initialHeight;
+      const initialBox = await visibleSig.boundingBox();
+      expect(initialBox).toBeTruthy();
 
-          // Toggle theme
-          await clickThemeToggle(page);
-          await page.waitForTimeout(150);
+      if (initialBox) {
+        const initialRatio = initialBox.width / initialBox.height;
 
-          // Get new visible signature and its dimensions
-          const newVisibleSig = page.locator('.founder-signature-light:visible, .founder-signature-dark:visible').first();
-          await expect(newVisibleSig).toBeVisible();
+        // Toggle theme and wait for the OTHER signature to become visible
+        const wasDark = initialClass === '.founder-signature-dark';
+        await clickThemeToggle(page);
+        await page.waitForFunction((prev) =>
+          document.documentElement.classList.contains('dark-theme') !== prev
+        , wasDark);
 
-          const newBox = await newVisibleSig.boundingBox();
-          expect(newBox).toBeTruthy();
+        const expectedClass = initialClass === '.founder-signature-light'
+          ? '.founder-signature-dark'
+          : '.founder-signature-light';
 
-          if (newBox) {
-            const newWidth = newBox.width;
-            const newHeight = newBox.height;
-            const newRatio = newWidth / newHeight;
+        await page.waitForFunction((cls) => {
+          const el = document.querySelector(cls);
+          return el && window.getComputedStyle(el).display !== 'none';
+        }, expectedClass, { timeout: 5000 });
 
-            // Aspect ratio should be maintained (allow 10% tolerance)
-            expect(Math.abs(newRatio - initialRatio)).toBeLessThan(initialRatio * 0.1);
-          }
+        // Wait for the new signature image to load and render
+        const newVisibleSig = page.locator(`${expectedClass} img`);
+        await newVisibleSig.scrollIntoViewIfNeeded();
+        await newVisibleSig.waitFor({ state: 'visible', timeout: 5000 });
+
+        const newBox = await newVisibleSig.boundingBox();
+        expect(newBox).toBeTruthy();
+
+        if (newBox) {
+          const newRatio = newBox.width / newBox.height;
+
+          // Aspect ratio should be maintained (allow 10% tolerance)
+          expect(Math.abs(newRatio - initialRatio)).toBeLessThan(initialRatio * 0.1);
         }
       }
     });

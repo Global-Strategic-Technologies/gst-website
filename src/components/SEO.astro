@@ -45,6 +45,8 @@ const {
     faqItems,
 } = Astro.props;
 
+import { slugToName } from '../utils/breadcrumbs';
+
 // Dynamic URL generation using Astro.url
 const currentUrl = Astro.url.href;
 const baseUrl = `${Astro.url.protocol}//${Astro.url.host}`;
@@ -57,22 +59,6 @@ const finalOgUrl = ogUrl || currentUrl;
 const absoluteOgImage = ogImage.startsWith('http')
     ? ogImage
     : `${baseUrl}${ogImage.startsWith('/') ? ogImage : '/' + ogImage}`;
-
-// Breadcrumb slug-to-name lookup
-const breadcrumbNames: Record<string, string> = {
-    'services': 'Services',
-    'about': 'About',
-    'ma-portfolio': 'M&A Portfolio',
-    'privacy': 'Privacy Policy',
-    'terms': 'Terms of Service',
-    'hub': 'The GST Hub',
-    'tools': 'The Workbench',
-    'diligence-machine': 'Diligence Machine',
-    'library': 'The Library',
-    'business-architectures': 'Business Architectures',
-    'vdr-structure': 'VDR Structure',
-    'radar': 'The Radar',
-};
 
 // Build BreadcrumbList from pathname
 const pathname = Astro.url.pathname.replace(/\/$/, '');
@@ -91,7 +77,7 @@ const breadcrumbJsonLd = !isHomepage ? {
         },
         ...segments.map((slug, index) => {
             const position = index + 2;
-            const name = breadcrumbNames[slug] || slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            const name = slugToName(slug);
             const isLast = index === segments.length - 1;
             const path = '/' + segments.slice(0, index + 1).join('/') + '/';
 
@@ -119,7 +105,7 @@ const faqJsonLd = faqItems && faqItems.length > 0 ? {
 const jsonLdData = {
     '@context': 'https://schema.org',
     '@type': 'ProfessionalService',
-    'name': 'GST',
+    'name': 'Global Strategic Technologies',
     'url': 'https://globalstrategic.tech',
     'logo': 'https://globalstrategic.tech/icon.svg',
     'sameAs': [

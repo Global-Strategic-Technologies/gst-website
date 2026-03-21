@@ -28,10 +28,10 @@ test.describe('Radar Page', () => {
     });
 
     test('should display breadcrumb linking back to Hub', async ({ page }) => {
-      const hubLink = page.locator('.hub-header__breadcrumb a[href="/hub"]');
+      const hubLink = page.locator('nav[aria-label="Breadcrumb"] a[href="/hub"]');
       await expect(hubLink).toBeVisible();
       const linkText = await hubLink.textContent();
-      expect(linkText).toContain('Hub');
+      expect(linkText).toContain('The GST Hub');
     });
 
     test('should display exactly 5 category filter buttons (All + 4 categories)', async ({ page }) => {

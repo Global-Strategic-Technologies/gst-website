@@ -40,6 +40,26 @@ Changed `Global Strategic Technologies` → `GST` in diligence machine source bu
 
 ---
 
+### Lesson: Config-level changes must be checked for externalities across all test files
+**Date Identified**: 2026-03-20
+**Severity**: Critical
+
+#### Pattern
+Added `permissions: ['clipboard-read', 'clipboard-write']` to the Chromium project config in `playwright.config.ts`. This fixed clipboard tests for desktop but broke all 32 mobile E2E tests that use `test.use({ ...devices['iPhone 12'] })`, because mobile device contexts don't support desktop-only permissions.
+
+#### Root Cause
+The fix was validated only against the tests it was meant to fix (desktop clipboard tests). No check was done for other test files that run under the same Chromium project but override the device — the permissions leaked into those contexts and caused `"Unknown permission"` crashes.
+
+#### Rule for Future
+1. **Never add `permissions` to project-level Playwright config** — grant them per-test with `context.grantPermissions()` guarded by `browserName`.
+2. **Before committing any shared config change**, grep for `test.use` calls that might interact: `grep -r "test.use" tests/e2e/`.
+3. **General principle**: any change to a shared config file (playwright.config, vitest.config, astro.config) must consider all consumers, not just the immediate fix target.
+
+#### Example
+Commit `7b05bad` added clipboard permissions to the Chromium project in `playwright.config.ts`. This broke 19 tests in `mobile-navigation.test.ts` and 13 in `regulatory-map-mobile.test.ts` — both use `test.use({ ...devices['iPhone 12'] })`. Fix: removed project-level permissions; clipboard grants already existed per-test in `diligence-machine.test.ts`.
+
+---
+
 ## How to Add a Lesson
 
 When a correction is made or improvement identified:

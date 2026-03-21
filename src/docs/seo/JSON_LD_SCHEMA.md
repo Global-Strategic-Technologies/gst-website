@@ -8,9 +8,11 @@ Complete reference guide for the JSON-LD structured data implementation on globa
 2. [Root Schema: ProfessionalService](#root-schema-professionalservice)
 3. [Nested Schema: Person (Founder)](#nested-schema-person-founder)
 4. [Credential Objects](#credential-objects)
-5. [Skills Association](#skills-association)
-6. [Validation](#validation)
-7. [Update Guidelines](#update-guidelines)
+5. [BreadcrumbList Schema](#breadcrumblist-schema)
+6. [FAQPage Schema](#faqpage-schema)
+7. [Skills Association](#skills-association)
+8. [Validation](#validation)
+9. [Update Guidelines](#update-guidelines)
 
 ## Schema Overview
 
@@ -18,7 +20,7 @@ The site implements a hierarchical JSON-LD schema with the following structure:
 
 ```
 ProfessionalService (Organization)
-├── name: Global Strategic Technology
+├── name: GST
 ├── url: https://globalstrategic.tech
 ├── logo: https://globalstrategic.tech/icon.svg
 ├── sameAs: [LinkedIn company profile]
@@ -31,6 +33,14 @@ ProfessionalService (Organization)
 ├── description: Company mission statement
 ├── knowsAbout: [10 expertise areas]
 └── address: PostalAddress
+
+BreadcrumbList (per-page, non-homepage only)
+├── itemListElement: [ListItem, ...]
+└── Generated from URL pathname
+
+FAQPage (conditional, per-page)
+├── mainEntity: [Question/Answer pairs]
+└── Only rendered when faqItems provided
 ```
 
 ## Root Schema: ProfessionalService
@@ -45,7 +55,7 @@ Identifies Global Strategic Technology as a professional services organization s
 {
   "@context": "https://schema.org",
   "@type": "ProfessionalService",
-  "name": "Global Strategic Technology",
+  "name": "GST",
   "url": "https://globalstrategic.tech",
   "logo": "https://globalstrategic.tech/icon.svg",
   "sameAs": [
@@ -200,11 +210,11 @@ All credentials follow the `EducationalOccupationalCredential` schema:
   "@type": "EducationalOccupationalCredential",
   "name": "Microsoft Certified: DevOps Engineer Expert",
   "credentialCategory": "Professional Certification",
-  "issuedBy": {"@type": "Organization", "name": "Microsoft"},
-  "dateIssued": "2021-06",
-  "dateExpires": "2027-06",
-  "credentialId": "6C14577815D1D876",
-  "skills": ["Azure DevOps", "Software Development Life Cycle (SDLC)", "Software Development", "Azure Solutions"]
+  "publisher": {"@type": "Organization", "name": "Microsoft"},
+  "datePublished": "2021-06",
+  "expires": "2027-06",
+  "identifier": "6C14577815D1D876",
+  "competencyRequired": "Azure DevOps, Software Development Life Cycle (SDLC), Software Development, Azure Solutions"
 }
 ```
 **Status**: Active (expires Jun 2027)
@@ -215,11 +225,11 @@ All credentials follow the `EducationalOccupationalCredential` schema:
   "@type": "EducationalOccupationalCredential",
   "name": "Microsoft Certified: Azure Solutions Architect Expert",
   "credentialCategory": "Professional Certification",
-  "issuedBy": {"@type": "Organization", "name": "Microsoft"},
-  "dateIssued": "2021-04",
-  "dateExpires": "2027-04",
-  "credentialId": "AD20FA63C42592C5",
-  "skills": ["Software Solution Development", "Cloud-Native Architecture", "Azure Solutions", "Microsoft Azure"]
+  "publisher": {"@type": "Organization", "name": "Microsoft"},
+  "datePublished": "2021-04",
+  "expires": "2027-04",
+  "identifier": "AD20FA63C42592C5",
+  "competencyRequired": "Software Solution Development, Cloud-Native Architecture, Azure Solutions, Microsoft Azure"
 }
 ```
 **Status**: Active (expires Apr 2027)
@@ -230,14 +240,14 @@ All credentials follow the `EducationalOccupationalCredential` schema:
   "@type": "EducationalOccupationalCredential",
   "name": "Microsoft Certified: Azure Developer Associate",
   "credentialCategory": "Professional Certification",
-  "issuedBy": {"@type": "Organization", "name": "Microsoft"},
-  "dateIssued": "2021-05",
-  "dateExpires": "2026-05",
-  "credentialId": "AD895CD745DD2DD8",
-  "skills": ["Software Development", "Microsoft Azure", "Azure Solutions", "Azure DevOps", "Cloud-Native Applications"]
+  "publisher": {"@type": "Organization", "name": "Microsoft"},
+  "datePublished": "2021-05",
+  "expires": "2027-05",
+  "identifier": "AD895CD745DD2DD8",
+  "competencyRequired": "Software Development, Microsoft Azure, Azure Solutions, Azure DevOps, Cloud-Native Applications"
 }
 ```
-**Status**: Active (expires May 2026)
+**Status**: Active (expires May 2027)
 
 **4. Azure AI Engineer Associate**
 ```json
@@ -245,11 +255,10 @@ All credentials follow the `EducationalOccupationalCredential` schema:
   "@type": "EducationalOccupationalCredential",
   "name": "Microsoft Certified: Azure AI Engineer Associate",
   "credentialCategory": "Professional Certification",
-  "issuedBy": {"@type": "Organization", "name": "Microsoft"},
-  "dateIssued": "2021-09",
-  "dateExpires": "2026-09",
-  "credentialId": "Not specified",
-  "skills": ["Artificial Intelligence (AI)", "Machine Learning", "Cloud-Native Architecture", "Microsoft Azure"]
+  "publisher": {"@type": "Organization", "name": "Microsoft"},
+  "datePublished": "2021-09",
+  "expires": "2026-09",
+  "competencyRequired": "Artificial Intelligence (AI), Machine Learning, Cloud-Native Architecture, Microsoft Azure"
 }
 ```
 **Status**: Active (expires Sep 2026)
@@ -260,10 +269,10 @@ All credentials follow the `EducationalOccupationalCredential` schema:
   "@type": "EducationalOccupationalCredential",
   "name": "Microsoft Certified: Azure AI Fundamentals",
   "credentialCategory": "Professional Certification",
-  "issuedBy": {"@type": "Organization", "name": "Microsoft"},
-  "dateIssued": "2021-08",
-  "credentialId": "H943-8317",
-  "skills": ["Artificial Intelligence (AI)", "Machine Learning", "Software Development", "Neural Networks", "Microsoft Azure"]
+  "publisher": {"@type": "Organization", "name": "Microsoft"},
+  "datePublished": "2021-08",
+  "identifier": "H943-8317",
+  "competencyRequired": "Artificial Intelligence (AI), Machine Learning, Software Development, Neural Networks, Microsoft Azure"
 }
 ```
 **Status**: Active (no expiration)
@@ -320,11 +329,11 @@ All issued by: `University of California, Berkeley, Haas School of Business`
   "@type": "EducationalOccupationalCredential",
   "name": "CKAD: Certified Kubernetes Application Developer",
   "credentialCategory": "Professional Certification",
-  "issuedBy": {"@type": "Organization", "name": "The Linux Foundation"},
-  "dateIssued": "2021-02",
-  "dateExpires": "2024-02",
-  "credentialId": "LF-nk1u2e8ck!",
-  "skills": ["Software Development", "Kubernetes", "DevOps"]
+  "publisher": {"@type": "Organization", "name": "The Linux Foundation"},
+  "datePublished": "2021-02",
+  "expires": "2024-02",
+  "identifier": "LF-nk1u2e8ck!",
+  "competencyRequired": "Software Development, Kubernetes, DevOps"
 }
 ```
 **Status**: Expired (Feb 2024)
@@ -335,31 +344,131 @@ All issued by: `University of California, Berkeley, Haas School of Business`
   "@type": "EducationalOccupationalCredential",
   "name": "CKA: Certified Kubernetes Administrator",
   "credentialCategory": "Professional Certification",
-  "issuedBy": {"@type": "Organization", "name": "The Linux Foundation"},
-  "dateIssued": "2021-01",
-  "dateExpires": "2024-01",
-  "credentialId": "LF-rg3vj38yvx",
-  "skills": ["Software Development", "Kubernetes", "DevOps"]
+  "publisher": {"@type": "Organization", "name": "The Linux Foundation"},
+  "datePublished": "2021-01",
+  "expires": "2024-01",
+  "identifier": "LF-rg3vj38yvx",
+  "competencyRequired": "Software Development, Kubernetes, DevOps"
 }
 ```
 **Status**: Expired (Jan 2024)
 
 #### Agile Certification (1)
 
-**18. Certified SAFe® 5 Agilist**
+**18. Certified SAFe 5 Agilist**
 ```json
 {
   "@type": "EducationalOccupationalCredential",
-  "name": "Certified SAFe® 5 Agilist",
+  "name": "Certified SAFe 5 Agilist",
   "credentialCategory": "Professional Certification",
-  "issuedBy": {"@type": "Organization", "name": "SAFe by Scaled Agile, Inc."},
-  "dateIssued": "2021-07",
-  "dateExpires": "2022-07",
-  "credentialId": "77243988-6382",
-  "skills": ["Agile Methodologies", "Agile Project Management", "Scrum"]
+  "publisher": {"@type": "Organization", "name": "SAFe by Scaled Agile, Inc."},
+  "datePublished": "2021-07",
+  "expires": "2022-07",
+  "identifier": "77243988-6382",
+  "competencyRequired": "Agile Methodologies, Agile Project Management, Scrum"
 }
 ```
 **Status**: Expired (Jul 2022)
+
+## BreadcrumbList Schema
+
+### Purpose
+
+Provides structured breadcrumb navigation data to search engines, enabling breadcrumb-style display in SERPs. Automatically generated from the page's URL pathname on all non-homepage pages.
+
+### Schema Definition
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://globalstrategic.tech/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "The GST Hub",
+      "item": "https://globalstrategic.tech/hub/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "The Workbench"
+    }
+  ]
+}
+```
+
+### How It Works
+
+- Automatically generated from `Astro.url.pathname` — no props needed
+- Only rendered on non-homepage pages
+- The last breadcrumb item omits the `item` URL (Google best practice for current page)
+- Slug-to-name mapping is defined in `SEO.astro` for clean display names
+
+### Slug-to-Name Mapping
+
+| Slug | Display Name |
+|------|-------------|
+| `services` | Services |
+| `about` | About |
+| `ma-portfolio` | M&A Portfolio |
+| `privacy` | Privacy Policy |
+| `terms` | Terms of Service |
+| `hub` | The GST Hub |
+| `tools` | The Workbench |
+| `diligence-machine` | Diligence Machine |
+| `library` | The Library |
+| `business-architectures` | Business Architectures |
+| `vdr-structure` | VDR Structure |
+| `radar` | The Radar |
+
+Unmapped slugs are auto-formatted: hyphens replaced with spaces, words capitalized.
+
+## FAQPage Schema
+
+### Purpose
+
+Enables FAQ rich results in Google SERPs when a page contains structured question/answer content. Currently active on the Services page.
+
+### Schema Definition
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What's the difference between buy-side and sell-side diligence?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Buy-side diligence evaluates a target company..."
+      }
+    }
+  ]
+}
+```
+
+### Usage
+
+Pass `faqItems` to the SEO component via `BaseLayout`:
+
+```astro
+<BaseLayout
+  title="Services | GST"
+  faqItems={[
+    { question: "Your question?", answer: "Your answer." },
+  ]}
+>
+```
+
+The schema is only rendered when `faqItems` is provided and non-empty.
 
 ## Skills Association
 
@@ -422,7 +531,7 @@ When adding a new credential:
 
 Example:
 ```json
-"skills": ["Artificial Intelligence (AI)", "Machine Learning", "Cloud-Native Architecture"]
+"competencyRequired": "Artificial Intelligence (AI), Machine Learning, Cloud-Native Architecture"
 ```
 
 ## Validation
@@ -462,7 +571,7 @@ Example:
 - [ ] Skills are properly capitalized
 - [ ] No duplicate skills within single credential
 - [ ] Organization names match official names
-- [ ] issuedBy organizations have proper @type
+- [ ] publisher organizations have proper @type
 
 ### Production Validation
 
@@ -490,7 +599,7 @@ npm run test:all
 - Industry certifications are renewed
 
 **Update Existing Credentials When**:
-- Credential expires (update or remove `dateExpires`)
+- Credential expires (update or remove `expires`)
 - Skills associated with credential change
 - Organization name changes
 - Credential ID changes
@@ -545,7 +654,7 @@ For expired certifications, you have two options:
 ```json
 {
   "name": "Certified Kubernetes Administrator",
-  "dateExpires": "2024-01",
+  "expires": "2024-01",
   // This transparently shows it has expired
 }
 ```
@@ -558,6 +667,6 @@ Recommendation: Keep important credentials even if expired (shows comprehensive 
 
 ---
 
-**Last Updated**: February 4, 2026
-**Schema Version**: 1.0
+**Last Updated**: March 20, 2026
+**Schema Version**: 2.0
 **Validation Status**: ✓ Compliant

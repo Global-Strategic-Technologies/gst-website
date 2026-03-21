@@ -216,13 +216,13 @@ test.describe('Tech Debt Calculator', () => {
     test('burden label reflects maintenance level', async ({ page }) => {
       await gotoCalc(page);
 
-      // Healthy
-      await setSlider(page, 'input-maint-pct', 10);
-      expect(await getById(page, 'ctx-burden-label')).toContain('Healthy');
+      // Well-managed (< 10%)
+      await setSlider(page, 'input-maint-pct', 5);
+      expect(await getById(page, 'ctx-burden-label')).toContain('Well-managed');
 
-      // Critical
+      // Deal risk (40%+)
       await setSlider(page, 'input-maint-pct', 80);
-      expect(await getById(page, 'ctx-burden-label')).toContain('Critical');
+      expect(await getById(page, 'ctx-burden-label')).toContain('Deal risk');
     });
   });
 
@@ -469,8 +469,12 @@ test.describe('Tech Debt Calculator', () => {
     });
 
     test.describe('clipboard', () => {
-      test('Copy Link button changes text to Copied! on click', async ({ page }) => {
+      test('Copy Link button changes text to Copied! on click', async ({ page, context, browserName }) => {
         await gotoCalc(page);
+
+        if (browserName === 'chromium') {
+          await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+        }
 
         await jsClick(page, '#copy-link-btn');
 
@@ -545,15 +549,15 @@ test.describe('Tech Debt Calculator', () => {
       expect(salary).toContain('£');
     });
 
-    test('salary slider hint labels update on currency change', async ({ page }) => {
+    test('salary and ARR display values update on currency change', async ({ page }) => {
       await gotoCalc(page);
 
       await page.locator('#currency-select').selectOption('EUR');
 
-      const minHint = await page.locator('[data-hint="salary-min"]').textContent();
-      const maxHint = await page.locator('[data-hint="salary-max"]').textContent();
-      expect(minHint).toContain('€');
-      expect(maxHint).toContain('€');
+      const salaryDisplay = await page.locator('[data-display="salary"]').textContent();
+      const arrDisplay = await page.locator('[data-display="arr"]').textContent();
+      expect(salaryDisplay).toContain('€');
+      expect(arrDisplay).toContain('€');
     });
 
     test('EUR annual cost is less than USD annual cost (multiplier < 1)', async ({ page }) => {

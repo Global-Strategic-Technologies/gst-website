@@ -128,12 +128,11 @@ describe('inverse transforms round-trip', () => {
 // ─── calculate() — collapsed mode (advancedOpen: false) ───────────────────────
 
 describe('calculate() — collapsed mode (advancedOpen: false)', () => {
-  it('excludes incident labor from totalMonthly', () => {
-    // Use non-zero incidents to prove they are actively excluded, not just absent
+  it('always includes incident labor in totalMonthly regardless of advancedOpen', () => {
     const state = makeState({ advancedOpen: false, incidents: 10, mttr: 8 });
     const result = calculate(state);
-    expect(result.totalMonthly).toBe(result.directMonthly);
-    expect(result.incidentMonthly).toBeGreaterThan(0); // incidents were computed but excluded
+    expect(result.totalMonthly).toBeCloseTo(result.directMonthly + result.incidentMonthly, 5);
+    expect(result.incidentMonthly).toBeGreaterThan(0);
   });
 
   it('annualCost is exactly 12× totalMonthly', () => {
@@ -343,8 +342,8 @@ describe('DEFAULT_STATE', () => {
     expect(posToSalary(DEFAULT_STATE.salaryPos)).toBe(150000);
   });
 
-  it('initialises to maintenance burden of 40%', () => {
-    expect(DEFAULT_STATE.maintPct).toBe(40);
+  it('initialises to maintenance burden of 25%', () => {
+    expect(DEFAULT_STATE.maintPct).toBe(25);
   });
 
   // deployIdx is the single authoritative check — see also DEPLOY_OPTIONS tests above
@@ -461,8 +460,12 @@ describe('decodeState', () => {
     expect(decodeState(btoa(JSON.stringify({ di: -1 })))!.deployIdx).toBeUndefined();
   });
 
-  it('rejects maintPct < 5', () => {
-    expect(decodeState(btoa(JSON.stringify({ mp: 4 })))!.maintPct).toBeUndefined();
+  it('rejects maintPct < 0', () => {
+    expect(decodeState(btoa(JSON.stringify({ mp: -1 })))!.maintPct).toBeUndefined();
+  });
+
+  it('accepts maintPct of 0', () => {
+    expect(decodeState(btoa(JSON.stringify({ mp: 0 })))!.maintPct).toBe(0);
   });
 
   it('rejects maintPct > 100', () => {

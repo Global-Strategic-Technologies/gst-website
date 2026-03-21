@@ -49,6 +49,17 @@ import caData from '../../../../data/canada-provinces.json';
     ogUrl="https://globalstrategic.tech/hub/tools/regulatory-map"
     faqItems={faqItems}
 >
+    <script is:inline type="application/ld+json" set:html={JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Regulatory Map",
+        "description": "Interactive map of 120+ global data privacy, AI governance, cybersecurity, and compliance regulations across jurisdictions",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" }
+    })} />
+
     <section class="regulatory-map-section">
         <div class="container">
             <HubHeader

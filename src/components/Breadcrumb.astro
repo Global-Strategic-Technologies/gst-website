@@ -1,0 +1,91 @@
+---
+/**
+ * Site-wide breadcrumb navigation component.
+ * Auto-generates from URL pathname using the shared slug-to-name mapping.
+ * Renders accessible markup with proper ARIA attributes.
+ *
+ * Placed in BaseLayout.astro — every non-homepage page gets breadcrumbs automatically.
+ */
+import { slugToName } from '../utils/breadcrumbs';
+
+const pathname = Astro.url.pathname.replace(/\/$/, '');
+const segments = pathname.split('/').filter(Boolean);
+
+// Build crumb objects: all segments get a name, parents get links
+const crumbs = segments.map((slug, index) => ({
+  name: slugToName(slug),
+  href: '/' + segments.slice(0, index + 1).join('/'),
+  isLast: index === segments.length - 1,
+}));
+---
+
+<nav aria-label="Breadcrumb" class="breadcrumb">
+  <ol class="breadcrumb__list">
+    <li class="breadcrumb__item">
+      <a href="/">Home</a>
+      <span class="breadcrumb__separator" aria-hidden="true">/</span>
+    </li>
+    {crumbs.map((crumb) => (
+      <li class="breadcrumb__item">
+        {crumb.isLast ? (
+          <span aria-current="page">{crumb.name}</span>
+        ) : (
+          <>
+            <a href={crumb.href}>{crumb.name}</a>
+            <span class="breadcrumb__separator" aria-hidden="true">/</span>
+          </>
+        )}
+      </li>
+    ))}
+  </ol>
+</nav>
+
+<style>
+  .breadcrumb {
+    padding: var(--spacing-lg) 0 0;
+    margin-bottom: var(--spacing-lg);
+    font-size: var(--text-sm);
+    color: var(--text-light-muted);
+  }
+
+  .breadcrumb__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    font-size: var(--text-sm);
+    color: var(--text-light-muted);
+  }
+
+  .breadcrumb__item {
+    display: flex;
+    align-items: center;
+  }
+
+  .breadcrumb__item a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: normal;
+    text-transform: none;
+    letter-spacing: normal;
+    border-bottom: none;
+    transition: opacity var(--transition-fast);
+  }
+
+  .breadcrumb__item a:hover {
+    opacity: 0.8;
+  }
+
+  .breadcrumb__separator {
+    margin: 0 var(--spacing-sm);
+  }
+
+  @media (max-width: 480px) {
+    .breadcrumb {
+      padding: var(--spacing-sm) 0 0;
+      margin-bottom: var(--spacing-md);
+    }
+  }
+</style>

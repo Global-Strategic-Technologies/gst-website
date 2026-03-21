@@ -1,10 +1,11 @@
 ---
 /**
  * Shared header for Hub section pages (Radar, Library, Workbench).
- * Breadcrumb, title, subtitle, optional timestamp — matches GST design language.
+ * Title, subtitle, optional timestamp — matches GST design language.
+ * Breadcrumb navigation is handled site-wide by Breadcrumb.astro in BaseLayout.
  */
 interface Props {
-  /** Display name shown in breadcrumb and as page title */
+  /** Display name shown as page title */
   title: string;
   /** Brief description shown below the title */
   subtitle: string;
@@ -26,11 +27,6 @@ if (showTimestamp) {
 ---
 
 <header class="hub-header">
-  <div class="hub-header__breadcrumb">
-    <a href="/hub">Hub</a>
-    <span class="separator">/</span>
-    <span>{title}</span>
-  </div>
   <h1 class="hub-header__title heading-xl">{title}</h1>
   <p class="hub-header__subtitle">{subtitle}</p>
   {showTimestamp && <p class="hub-header__updated">Updated {dateStr}</p>}
@@ -40,26 +36,6 @@ if (showTimestamp) {
   .hub-header {
     padding: var(--spacing-3xl) 0 var(--spacing-2xl);
     margin-bottom: var(--spacing-2xl);
-  }
-
-  .hub-header__breadcrumb {
-    font-size: var(--text-sm);
-    color: var(--text-light-muted);
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .hub-header__breadcrumb a {
-    color: var(--color-primary);
-    text-decoration: none;
-    transition: opacity var(--transition-fast);
-  }
-
-  .hub-header__breadcrumb a:hover {
-    opacity: 0.8;
-  }
-
-  .hub-header__breadcrumb .separator {
-    margin: 0 var(--spacing-sm);
   }
 
   .hub-header__title {

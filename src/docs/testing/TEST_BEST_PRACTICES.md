@@ -558,6 +558,8 @@ If your test has any of these, it's likely a false positive:
 23. ✗ Assumes `page.evaluate()` mocks survive `page.goto()` — mocks are lost on navigation, must be re-applied
 24. ✗ Dispatches mouse events to test CSS `:hover` styles — pseudo-class state cannot be activated via JS
 25. ✗ Relies on implicit UI defaults (pre-selected stage, pre-filled growth rate) instead of explicitly setting required state — breaks when defaults are removed or changed
+26. ✗ Queries `body` for a class that lives on `document.documentElement` (or vice versa) — silently returns `false`, making conditional setup fire incorrectly
+27. ✗ Waits for a CSS class change but asserts on a computed style property (`display`, `visibility`) that lags behind in the rendering pipeline — passes in Chromium, fails in Firefox
 
 ## E2E Cross-Browser Pitfalls
 
@@ -976,6 +978,121 @@ test('should enable analysis button', async ({ page }) => {
 ```
 
 **Key principle:** Every test should explicitly set up its own required state. Never rely on what happens to be selected when the page loads — those defaults are a UX decision that can change. Extract a helper (e.g., `selectStage()`) so the setup is clean and consistent across tests.
+
+### 22. ❌ Querying DOM State on the Wrong Element (Latent False-Pass)
+
+When testing theme state, modal state, or any class/attribute toggle, the query must target the element that actually holds the state. Checking the wrong element silently returns `false`, causing conditional setup logic (e.g., "if not dark, toggle to dark") to fire incorrectly. The test appears to pass because prior tests in the suite happen to leave the state in the right position — until an unrelated DOM change (adding a component, reordering elements) shifts browser timing and breaks the coincidental alignment.
+
+This is especially insidious because the test passes for months, across hundreds of CI runs, until an unrelated change exposes the latent bug.
+
+**Bad:**
+```typescript
+// ❌ dark-theme class is on <html>, not <body> — always returns false
+const body = page.locator('body');
+const isDark = await body.evaluate(el => el.classList.contains('dark-theme'));
+if (!isDark) {
+  await clickThemeToggle(page); // Always fires — toggles theme unpredictably
+}
+```
+
+**Good:**
+```typescript
+// ✅ Query the element that actually holds the class
+const isDark = await page.evaluate(() =>
+  document.documentElement.classList.contains('dark-theme')
+);
+if (!isDark) {
+  await clickThemeToggle(page);
+}
+```
+
+**How to detect:** If a test fails only on one browser (often Firefox) after an unrelated DOM change, check whether state queries target the correct element. Search for `body.evaluate(el => el.classList` and verify the class actually lives on `<body>`, not `<html>` or another ancestor.
+
+**Key principle:** A state check that always returns the same value is a tautology — it makes the conditional branch deterministic in a way that depends on external test ordering, not on actual page state. Always verify your query returns different values in different states before trusting it as a conditional guard.
+
+### 23. ❌ Waiting on a Class Change but Asserting on a Lagging Computed Style
+
+CSS class changes are synchronous in JavaScript, but the browser's style recalculation and layout (the "rendering pipeline") is asynchronous. When a class toggle triggers a `display: none → block` change via a CSS rule like `:global(html.dark-theme) .element { display: block }`, the class is applied instantly but `getComputedStyle().display` may still return `none` for several frames — especially in Firefox under CI load.
+
+This manifests as: `waitForFunction` confirms the class is present, but the immediately following `toBeVisible()` fails because the element's computed display hasn't updated yet.
+
+**Bad:**
+```typescript
+// ❌ Class is applied, but CSS cascade hasn't recalculated display property yet
+await clickThemeToggle(page);
+await page.waitForFunction(() =>
+  document.documentElement.classList.contains('dark-theme')
+);
+
+// Fails in Firefox — display is still 'none' despite class being present
+const darkEl = page.locator('.dark-variant');
+await expect(darkEl).toBeVisible(); // Flaky
+```
+
+**Good:**
+```typescript
+// ✅ Wait for the actual computed style, not the class
+await clickThemeToggle(page);
+await page.waitForFunction(() => {
+  const el = document.querySelector('.dark-variant');
+  return el && window.getComputedStyle(el).display !== 'none';
+}, { timeout: 5000 });
+
+const darkEl = page.locator('.dark-variant');
+await expect(darkEl).toBeVisible({ timeout: 5000 });
+```
+
+**Why this differs from anti-pattern #4:** Anti-pattern #4 says "don't *assert* on classes, assert on computed styles." This pattern says "don't *wait* on classes when you're about to *assert* on computed styles." The wait and the assertion must target the same layer — if you're asserting on visibility, wait for visibility, not for the class that eventually causes visibility.
+
+**When this bites you:** Any CSS rule that uses a parent class to toggle `display`, `visibility`, or `opacity` on a child element — especially theme toggles (`html.dark-theme`), accordion panels, and tab content switches. Firefox's rendering pipeline is measurably slower than Chromium's under parallel CI load.
+
+### 24. ❌ Adding Browser Permissions to Global/Project Playwright Config
+
+Setting `permissions` (e.g., `clipboard-read`, `clipboard-write`) in the Playwright **project config** silently breaks every test file that overrides the device via `test.use()`. When a mobile test spreads a different device, the project-level `use` object is merged and the permission array propagates — but mobile device contexts don't support desktop-only permissions, causing `"Unknown permission"` errors across the entire file.
+
+This is an **externality bug**: the config change works for the tests the author ran, but breaks unrelated tests that the author never checked.
+
+**Bad:**
+```typescript
+// playwright.config.ts — ❌ breaks ALL mobile test files
+projects: [
+  {
+    name: 'chromium',
+    use: {
+      ...devices['Desktop Chrome'],
+      permissions: ['clipboard-read', 'clipboard-write'], // ← bleeds into mobile tests
+    },
+  },
+]
+
+// mobile-navigation.test.ts — inherits clipboard permissions → crash
+test.use({ ...devices['iPhone 12'] });
+// Error: browserContext.newPage: Unknown permission: clipboard-write
+```
+
+**Good:**
+```typescript
+// playwright.config.ts — ✅ no permissions at project level
+projects: [
+  {
+    name: 'chromium',
+    use: { ...devices['Desktop Chrome'] },
+  },
+]
+
+// diligence-machine.test.ts — ✅ grant per-test, guarded by browser
+test('should copy output to clipboard', async ({ page, context, browserName }) => {
+  if (browserName === 'chromium') {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  }
+  // ...test clipboard behavior
+});
+```
+
+**Key principles:**
+1. **Never add permissions to project-level config** — they leak into every test that runs under that project, including mobile device overrides.
+2. **Grant permissions per-test** using `context.grantPermissions()` with a `browserName` guard.
+3. **Check externalities** — before committing a config-level change, grep for `test.use` calls that might interact with it: `grep -r "test.use" tests/e2e/`.
 
 ### 20. ❌ Simulating CSS `:hover` with JavaScript Events in Headless Browsers
 
