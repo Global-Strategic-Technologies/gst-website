@@ -1590,6 +1590,12 @@ function radarChartSVG(domainScores: Array<{ name: string; score: number }>): st
   const cx = 150, cy = 150, r = 110;
   const n = domainScores.length;
 
+  // Use explicit colors so the SVG is print-safe (currentColor fails
+  // when dark-mode text color meets white print paper)
+  const gridColor = '#999';
+  const labelColor = '#666';
+  const primaryColor = '#05cd99';
+
   // Grid rings at 25%, 50%, 75%, 100%
   const rings = [25, 50, 75, 100].map(pct => {
     const ringR = (pct / 100) * r;
@@ -1597,7 +1603,7 @@ function radarChartSVG(domainScores: Array<{ name: string; score: number }>): st
       const a = (Math.PI * 2 * i) / n - Math.PI / 2;
       return `${(cx + ringR * Math.cos(a)).toFixed(1)},${(cy + ringR * Math.sin(a)).toFixed(1)}`;
     }).join(' ');
-    return `<polygon points="${pts}" fill="none" stroke="currentColor" opacity="${pct === 100 ? 0.2 : 0.1}" stroke-width="1"/>`;
+    return `<polygon points="${pts}" fill="none" stroke="${gridColor}" opacity="${pct === 100 ? 0.4 : 0.2}" stroke-width="1"/>`;
   }).join('');
 
   // Axis lines
@@ -1605,7 +1611,7 @@ function radarChartSVG(domainScores: Array<{ name: string; score: number }>): st
     const a = (Math.PI * 2 * i) / n - Math.PI / 2;
     const ex = (cx + r * Math.cos(a)).toFixed(1);
     const ey = (cy + r * Math.sin(a)).toFixed(1);
-    return `<line x1="${cx}" y1="${cy}" x2="${ex}" y2="${ey}" stroke="currentColor" opacity="0.1" stroke-width="1"/>`;
+    return `<line x1="${cx}" y1="${cy}" x2="${ex}" y2="${ey}" stroke="${gridColor}" opacity="0.2" stroke-width="1"/>`;
   }).join('');
 
   // Labels
@@ -1617,22 +1623,21 @@ function radarChartSVG(domainScores: Array<{ name: string; score: number }>): st
     const anchor = Math.abs(lx - cx) < 5 ? 'middle' : lx > cx ? 'start' : 'end';
     // Abbreviate long names
     const short = ds.name.replace('and ', '& ').split(' ').slice(0, 2).join(' ');
-    return `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="${anchor}" style="font-size:10px;font-family:var(--font-family);fill:currentColor;opacity:0.6">${short}</text>`;
+    return `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="${anchor}" style="font-size:10px;font-family:var(--font-family);fill:${labelColor}">${short}</text>`;
   }).join('');
 
   // Data polygon
   const dataPoints = buildRadarPoints(domainScores as any, cx, cy, r);
-  const resolvedPrimary = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#05cd99';
 
   return `<svg viewBox="0 0 300 300" role="img" aria-label="Radar chart showing domain scores" style="width:100%;max-width:300px;display:block;margin:0 auto">
     ${rings}${axes}${labels}
-    <polygon points="${dataPoints}" fill="${resolvedPrimary}" fill-opacity="0.15" stroke="${resolvedPrimary}" stroke-width="2"/>
+    <polygon points="${dataPoints}" fill="${primaryColor}" fill-opacity="0.15" stroke="${primaryColor}" stroke-width="2"/>
     ${domainScores.map((ds, i) => {
       const a = (Math.PI * 2 * i) / n - Math.PI / 2;
       const dr = (ds.score / 100) * r;
       const dx = cx + dr * Math.cos(a);
       const dy = cy + dr * Math.sin(a);
-      return `<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="4" fill="${resolvedPrimary}"/>`;
+      return `<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="4" fill="${primaryColor}"/>`;
     }).join('')}
   </svg>`;
 }
