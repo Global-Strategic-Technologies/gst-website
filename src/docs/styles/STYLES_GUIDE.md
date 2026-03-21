@@ -10,10 +10,12 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 2. [Design System Architecture](#design-system-architecture)
 3. [File Organization](#file-organization)
 4. [Component Styling](#component-styling)
-5. [Dark Theme Implementation](#dark-theme-implementation)
-6. [Responsive Design](#responsive-design)
-7. [Anti-Patterns](#anti-patterns)
-8. [New Component Checklist](#new-component-checklist)
+5. [Brand Assets in CSS](#brand-assets-in-css)
+6. [Dark Theme Implementation](#dark-theme-implementation)
+7. [Responsive Design](#responsive-design)
+8. [Hub Tool Patterns](#hub-tool-patterns)
+9. [Anti-Patterns](#anti-patterns)
+10. [New Component Checklist](#new-component-checklist)
 
 ---
 
@@ -159,6 +161,38 @@ import '../../styles/my-component.css';
 **From `global.css`:**
 - `.sr-only` — screen reader only (visually hidden)
 
+### Brand Assets in CSS
+
+The GST delta icon (`/images/logo/gst-delta-icon-teal-stroke-thick.svg`) can be used as a CSS pseudo-element via the `mask-image` technique. This renders the SVG in any color without embedding an `<img>` tag, making it suitable for `::before`/`::after` decorators, list markers, and toggle indicators.
+
+**Pattern: CSS mask with brand color**
+
+```css
+.my-element::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background-color: var(--color-primary);
+  mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  -webkit-mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+}
+```
+
+**Guidelines:**
+- Use `var(--color-primary)` as `background-color` to keep the icon on-brand
+- Include `-webkit-` prefixes for Safari/iOS compatibility
+- Use `mask-size: contain` so the icon scales to the element dimensions
+- Adjust `width`/`height` to suit context (10px for inline text, 12-16px for standalone markers)
+
+**Current usage:** ICG rationale "Why this matters" toggle trigger
+
+**When to use instead of `<img>`:** When the icon appears in a CSS pseudo-element, needs to inherit or use CSS color values, or appears as a decorative detail rather than standalone content.
+
 ---
 
 ## Dark Theme Implementation
@@ -246,6 +280,122 @@ Additional breakpoints used sparingly:
 
 ---
 
+## Hub Tool Patterns
+
+Recurring patterns used across hub tools (ICG, TechPar, Tech Debt Calculator, Diligence Machine).
+
+### Print Stylesheets
+
+All hub tools include a `@media print` block in their scoped styles with a consistent structure:
+
+```css
+@media print {
+  /* Hide interactive elements */
+  .site-header, footer, .actions, [data-view="landing"], [data-view="wizard"] {
+    display: none !important;
+  }
+
+  /* Show results */
+  [data-view="results"] {
+    display: block !important;
+  }
+
+  /* Prevent card breaks */
+  .card {
+    break-inside: avoid;
+    border: 1px solid #ddd;
+  }
+
+  /* Auto-expand collapsibles */
+  .collapsed .desc {
+    max-height: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Shell goes full-width */
+  .tool-shell {
+    max-width: 100%;
+  }
+}
+```
+
+**Convention**: Hardcoded colors (e.g., `#ddd`, `#333`) are acceptable in print styles since print always renders on white paper. CSS variables that resolve to dark theme values would produce invisible content in print.
+
+### `:global()` for Dynamically Injected Content
+
+Hub tools render content via `innerHTML` at runtime (questions, recommendations, chart elements). Astro scopes `<style>` selectors to statically-rendered elements, so dynamically injected HTML requires `:global()`:
+
+```css
+/* Static element — scoped selector works */
+.wizard-content {
+  padding: var(--spacing-xl) var(--spacing-lg);
+}
+
+/* Dynamic element — must use :global() */
+:global(.question-card) {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px solid var(--border-light);
+}
+
+/* Dark theme override for dynamic element */
+:global(html.dark-theme .question-card) {
+  border-color: rgba(5, 205, 153, 0.12);
+}
+```
+
+**When to use**: Any CSS targeting elements created via `innerHTML`, `insertAdjacentHTML`, or similar DOM APIs in a `<script>` block.
+
+### Tool Shell Container
+
+Hub tools use a centered container shell. The pattern is not yet standardized (see [STYLES_REMEDIATION_ROADMAP.md](./STYLES_REMEDIATION_ROADMAP.md#7-standardized-tool-shell-container)), but the current convention is:
+
+```css
+.tool-shell {
+  max-width: 660px;         /* Range: 660-760px across tools */
+  margin: 0 auto;
+  background: var(--bg-light-alt);
+  border: 1px solid var(--accent-light-bg-hover);
+  border-radius: 10px;
+  overflow: hidden;
+}
+```
+
+Content wrappers inside the shell use consistent padding:
+```css
+.content-wrapper {
+  padding: var(--spacing-xl) var(--spacing-lg);   /* Desktop */
+}
+
+@media (max-width: 480px) {
+  .content-wrapper {
+    padding: var(--spacing-lg) var(--spacing-md);  /* Mobile */
+  }
+}
+```
+
+### Skeleton Loading Placeholders
+
+For components that load content asynchronously (API calls, server islands), use the skeleton loading pattern. The `@keyframes pulse` animation is already defined in `global.css`.
+
+```css
+.skeleton-bar {
+  height: 0.875rem;
+  background: rgba(5, 205, 153, 0.15);
+  border-radius: 4px;
+  animation: pulse 2s ease-in-out infinite;
+}
+```
+
+**Convention**:
+- Use `rgba(5, 205, 153, 0.15)` (primary teal at 15% opacity) for all skeleton elements
+- Vary bar widths to suggest natural content variation (e.g., `width: 70%`, `width: 80%`)
+- Add `aria-hidden="true"` to the skeleton container
+- Stagger animation delays on consecutive elements (e.g., `animation-delay: 0.3s`)
+
+**Current usage**: `src/components/radar/RadarFeedSkeleton.astro`
+
+---
+
 ## Anti-Patterns
 
 ### 1. Hardcoded Colors
@@ -274,6 +424,8 @@ html.dark-theme { --button-color: #05cd99; --text-color: #f5f5f5; }
 /* BAD */  .card { padding: 14px; margin: 23px; }
 /* GOOD */ .card { padding: var(--spacing-lg); margin: var(--spacing-md); }
 ```
+
+**Micro-spacing exception**: Values below `--spacing-xs` (4px) are acceptable for badge padding, border-radius fine-tuning, and optical alignment. Use `1px` or `2px` directly since the spacing scale does not cover sub-4px values. Example: `padding: 2px var(--spacing-sm)` is acceptable for compact badges.
 
 ### 4. Hardcoded Font Sizes
 
@@ -324,8 +476,9 @@ Delete dead styles. Version control has the history.
 
 - [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md) — Complete design token catalog
 - [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) — Typography utility classes
+- [STYLES_REMEDIATION_ROADMAP.md](./STYLES_REMEDIATION_ROADMAP.md) — Tracked initiatives for closing convention gaps
 - [FAVICON_AND_ICONS.md](../development/FAVICON_AND_ICONS.md) — PWA icon system
 
 ---
 
-**Last Updated**: March 13, 2026
+**Last Updated**: March 21, 2026

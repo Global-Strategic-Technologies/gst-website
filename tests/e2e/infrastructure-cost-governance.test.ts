@@ -262,6 +262,64 @@ test.describe('ICG - Results view', () => {
   });
 });
 
+// ─── Authority & Methodology ─────────────────────────────────────────────────
+
+test.describe('ICG - Authority & Methodology', () => {
+  test('authority line is visible on landing', async ({ page }) => {
+    await gotoTool(page);
+    const authority = page.locator('.icg-authority');
+    await expect(authority).toBeVisible();
+    await expect(authority).toContainText('PE portfolio companies');
+  });
+
+  test('methodology section is collapsed by default', async ({ page }) => {
+    await gotoTool(page);
+    const details = page.locator('.icg-methodology');
+    await expect(details).toBeVisible();
+    // The body should not be visible when collapsed
+    const body = page.locator('.icg-methodology__body');
+    await expect(body).not.toBeVisible();
+  });
+
+  test('methodology section expands on click', async ({ page }) => {
+    await gotoTool(page);
+    await page.click('.icg-methodology__trigger');
+    const body = page.locator('.icg-methodology__body');
+    await expect(body).toBeVisible();
+    await expect(body).toContainText('Scoring model');
+  });
+});
+
+// ─── Copy Summary ────────────────────────────────────────────────────────────
+
+test.describe('ICG - Copy Summary', () => {
+  test('copy summary button exists in results', async ({ page }) => {
+    await gotoTool(page);
+    await completeWizard(page, 2);
+    const btn = page.locator('[data-action="copy-summary"]');
+    await expect(btn).toBeVisible();
+    await expect(btn).toHaveText('Copy summary');
+  });
+
+  test('copy summary shows feedback text', async ({ page, context, browserName }) => {
+    if (browserName === 'chromium') {
+      await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    }
+    await gotoTool(page);
+    await completeWizard(page, 2);
+
+    await jsClick(page, '[data-action="copy-summary"]');
+
+    await page.waitForFunction(() => {
+      const btn = document.querySelector('[data-action="copy-summary"]');
+      return btn && btn.textContent === 'Copied!';
+    }, { timeout: 3000 });
+
+    const btnText = await page.textContent('[data-action="copy-summary"]');
+    expect(btnText).toBe('Copied!');
+  });
+});
+
 // ─── Shareable URL ──────────────────────────────────────────────────────────
 
 test.describe('ICG - Shareable URL', () => {

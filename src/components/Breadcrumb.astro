@@ -11,20 +11,24 @@ import { slugToName } from '../utils/breadcrumbs';
 const pathname = Astro.url.pathname.replace(/\/$/, '');
 const segments = pathname.split('/').filter(Boolean);
 
-// Build crumb objects: all segments get a name, parents get links
-const crumbs = segments.map((slug, index) => ({
-  name: slugToName(slug),
-  href: '/' + segments.slice(0, index + 1).join('/'),
-  isLast: index === segments.length - 1,
-}));
+// Build full crumb list including Home, then FIFO-truncate to 3 max
+const allCrumbs = [
+  { name: 'Home', href: '/', isLast: false },
+  ...segments.map((slug, index) => ({
+    name: slugToName(slug),
+    href: '/' + segments.slice(0, index + 1).join('/'),
+    isLast: index === segments.length - 1,
+  })),
+];
+
+const MAX_BREADCRUMBS = 3;
+const crumbs = allCrumbs.length > MAX_BREADCRUMBS
+  ? allCrumbs.slice(allCrumbs.length - MAX_BREADCRUMBS)
+  : allCrumbs;
 ---
 
 <nav aria-label="Breadcrumb" class="breadcrumb">
   <ol class="breadcrumb__list">
-    <li class="breadcrumb__item">
-      <a href="/">Home</a>
-      <span class="breadcrumb__separator" aria-hidden="true">/</span>
-    </li>
     {crumbs.map((crumb) => (
       <li class="breadcrumb__item">
         {crumb.isLast ? (
@@ -53,21 +57,39 @@ const crumbs = segments.map((slug, index) => ({
     padding: 0;
     margin: 0;
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    flex-wrap: nowrap;
+    align-items: baseline;
     font-size: var(--text-sm);
     color: var(--text-light-muted);
+    overflow: hidden;
   }
 
   .breadcrumb__item {
     display: flex;
-    align-items: center;
+    align-items: baseline;
+    white-space: nowrap;
+    line-height: 1.4;
+  }
+
+  .breadcrumb__item:last-child {
+    overflow: hidden;
+  }
+
+  .breadcrumb__item a,
+  .breadcrumb__item [aria-current="page"] {
+    font-size: var(--text-sm);
+    font-weight: normal;
+    line-height: 1.4;
+  }
+
+  .breadcrumb__item [aria-current="page"] {
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .breadcrumb__item a {
     color: var(--color-primary);
     text-decoration: none;
-    font-weight: normal;
     text-transform: none;
     letter-spacing: normal;
     border-bottom: none;

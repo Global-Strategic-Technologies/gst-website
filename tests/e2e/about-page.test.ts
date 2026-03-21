@@ -530,8 +530,9 @@ test.describe('About Page - Founder Section', () => {
       const founderPhoto = page.locator('.founder-portrait-light, .founder-portrait-dark');
       await expect(founderPhoto.first()).toBeVisible();
 
-      const signature = page.locator('.founder-signature-light, .founder-signature-dark');
-      await expect(signature.first()).toBeVisible();
+      const signature = page.locator('.founder-signature-light, .founder-signature-dark').first();
+      await signature.scrollIntoViewIfNeeded();
+      await expect(signature).toBeVisible();
     });
 
     test('should display correctly on desktop viewport', async ({ page }) => {

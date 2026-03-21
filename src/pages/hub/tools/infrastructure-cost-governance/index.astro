@@ -2,7 +2,7 @@
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
 import { trackPageView } from '../../../../utils/analytics';
-import { DOMAINS, ANSWER_OPTIONS, TOTAL_QUESTIONS } from '../../../../data/infrastructure-cost-governance/domains';
+import { DOMAINS, TOTAL_QUESTIONS } from '../../../../data/infrastructure-cost-governance/domains';
 
 trackPageView('infrastructure-cost-governance', 'Infrastructure Cost Governance | GST');
 
@@ -25,7 +25,10 @@ const domainCount = DOMAINS.length;
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" }
+        "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" },
+        "datePublished": "2026-03-01",
+        "dateModified": "2026-03-21",
+        "author": { "@type": "Person", "name": "Reid Peryam", "jobTitle": "Strategic Technology Advisor", "sameAs": ["https://www.linkedin.com/in/reidperyam/"], "description": "Technology advisor with experience across 100+ PE technology diligence engagements", "knowsAbout": ["Cloud Cost Optimization", "Infrastructure Governance", "FinOps", "Technical Due Diligence", "M&A Tech Strategy"] }
     })} />
 
     <section class="icg-section">
@@ -37,6 +40,8 @@ const domainCount = DOMAINS.length;
             />
 
             <div data-icg class="icg-shell">
+
+                <p class="icg-authority">Scoring model informed by cloud cost governance patterns across PE portfolio companies</p>
 
                 <!-- ── Landing view (step 0) ─────────────────────────────── -->
                 <div data-view="landing" class="icg-view">
@@ -58,6 +63,37 @@ const domainCount = DOMAINS.length;
                             <div class="stat-tile">
                                 <div class="stat-tile__value">5-7 min</div>
                                 <div class="stat-tile__label">to complete</div>
+                            </div>
+                        </div>
+
+                        <div class="icg-stage-selector">
+                            <span class="icg-stage-selector__label label">Company stage <span class="icg-stage-optional text-tiny">(optional)</span></span>
+                            <div class="icg-stage-grid" data-stage-grid>
+                                <button class="icg-stage-card" data-stage="pre-series-b" type="button">
+                                    <span class="icg-stage-card__name">Pre-Series B</span>
+                                    <span class="icg-stage-card__range">15&ndash;35</span>
+                                </button>
+                                <button class="icg-stage-card" data-stage="series-bc" type="button">
+                                    <span class="icg-stage-card__name">Series B-C</span>
+                                    <span class="icg-stage-card__range">30&ndash;55</span>
+                                </button>
+                                <button class="icg-stage-card" data-stage="pe-backed" type="button">
+                                    <span class="icg-stage-card__name">PE-backed 2+ yr</span>
+                                    <span class="icg-stage-card__range">45&ndash;70</span>
+                                </button>
+                                <button class="icg-stage-card" data-stage="enterprise" type="button">
+                                    <span class="icg-stage-card__name">Enterprise</span>
+                                    <span class="icg-stage-card__range">65&ndash;90</span>
+                                </button>
+                            </div>
+                            <div class="icg-stage-hint text-tiny">Sets benchmark context for your results. You can skip this.</div>
+                        </div>
+
+                        <div data-resume-prompt class="icg-resume-prompt is-hidden">
+                            <p class="text-small icg-resume-prompt__text">You have an incomplete assessment saved from a previous session.</p>
+                            <div class="icg-resume-actions">
+                                <button data-action="resume" type="button" class="icg-btn-primary">Resume</button>
+                                <button data-action="discard" type="button" class="icg-btn-secondary">Start fresh</button>
                             </div>
                         </div>
 
@@ -112,12 +148,23 @@ const domainCount = DOMAINS.length;
                             <div data-gauge-container class="icg-gauge"></div>
                             <div class="icg-score-level heading-md" data-score-level></div>
                             <div class="icg-score-desc text-small" data-score-desc></div>
+                            <div class="icg-stage-context text-small is-hidden" data-stage-context></div>
+                            <div class="icg-skipped-note text-tiny is-hidden" data-skipped-note></div>
                         </div>
 
                         <!-- Foundational flag (conditional) -->
                         <div class="icg-foundational-warning is-hidden" data-foundational-warning>
                             <div class="icg-foundational-warning__title" data-foundational-warning-title></div>
                             <div class="icg-foundational-warning__text text-small" data-foundational-warning-text></div>
+                        </div>
+
+                        <!-- Quick wins -->
+                        <div data-quick-wins class="icg-quick-wins is-hidden"></div>
+
+                        <!-- Radar chart -->
+                        <div class="icg-card">
+                            <div class="icg-section-label">Domain profile</div>
+                            <div data-radar-chart class="icg-radar"></div>
                         </div>
 
                         <!-- Domain breakdown -->
@@ -131,10 +178,10 @@ const domainCount = DOMAINS.length;
                             <div class="icg-section-label">Benchmark reference</div>
                             <table class="icg-benchmark-table">
                                 <tbody data-benchmark-body>
-                                    <tr><td>Pre-Series B / high-growth startup</td><td data-bench="15-35">15-35</td></tr>
-                                    <tr><td>Series B-C SaaS, scaling team</td><td data-bench="30-55">30-55</td></tr>
-                                    <tr><td>PE-backed portco, 2+ years post-acquisition</td><td data-bench="45-70">45-70</td></tr>
-                                    <tr><td>Enterprise with established FinOps practice</td><td data-bench="65-90">65-90</td></tr>
+                                    <tr data-stage-row="pre-series-b"><td>Pre-Series B / high-growth startup</td><td data-bench="15-35">15-35</td></tr>
+                                    <tr data-stage-row="series-bc"><td>Series B-C SaaS, scaling team</td><td data-bench="30-55">30-55</td></tr>
+                                    <tr data-stage-row="pe-backed"><td>PE-backed portco, 2+ years post-acquisition</td><td data-bench="45-70">45-70</td></tr>
+                                    <tr data-stage-row="enterprise"><td>Enterprise with established FinOps practice</td><td data-bench="65-90">65-90</td></tr>
                                 </tbody>
                             </table>
                             <div class="icg-benchmark-note text-tiny">Ranges reflect illustrative patterns from GST diligence and value creation engagements. Individual results vary based on team maturity and infrastructure complexity.</div>
@@ -150,17 +197,90 @@ const domainCount = DOMAINS.length;
 
                         <!-- Actions row -->
                         <div class="icg-actions">
+                            <button data-action="copy-summary" type="button" class="icg-btn-secondary" title="Copy a plain-text summary of your results to clipboard">Copy summary</button>
                             <button data-action="copy" type="button" class="icg-btn-secondary" title="Copy a shareable link that preserves your answers and dismissed recommendations">Copy link</button>
+                            <button data-action="export-json" type="button" class="icg-btn-secondary" title="Download your results as a structured JSON file for portfolio aggregation">Download JSON</button>
                             <button data-action="print" type="button" class="icg-btn-secondary" title="Your browser will open a print dialog. Select Save as PDF to download.">Print / Save as PDF</button>
                             <a data-action="email" href="#" class="icg-btn-secondary icg-btn-secondary--link" title="Open a pre-filled email with your results link. The recipient can complete the assessment independently.">Send to engineering lead</a>
+                            <button data-action="compare" type="button" class="icg-btn-secondary is-hidden" title="Compare saved snapshots side by side">Compare</button>
+                            <button data-action="review" type="button" class="icg-btn-secondary" title="Review your answers across all six domains">Review answers</button>
                             <button data-action="reset" type="button" class="icg-btn-secondary">Start over</button>
+                        </div>
+
+                        <!-- Snapshot save -->
+                        <div class="icg-snapshot-save-row">
+                            <input data-snapshot-label type="text" class="icg-snapshot-label-input" placeholder="Label (e.g., 90-day review)" maxlength="60" />
+                            <button data-action="save-snapshot" type="button" class="icg-btn-secondary">Save snapshot</button>
+                        </div>
+
+                        <!-- Snapshot manager -->
+                        <div data-snapshot-manager class="icg-snapshot-manager is-hidden">
+                            <div class="icg-section-label">Saved snapshots</div>
+                            <div data-snapshot-list class="icg-snapshot-list-items"></div>
+                            <button data-action="clear-snapshots" type="button" class="icg-btn-secondary icg-snapshot-clear">Clear all snapshots</button>
                         </div>
                     </div>
                 </div>
 
+                <!-- ── Comparison view ────────────────────────────────────── -->
+                <div data-view="comparison" class="icg-view is-hidden">
+                    <div class="comparison-content">
+                        <div class="icg-section-label">Snapshot comparison</div>
+                        <div data-comparison-body class="icg-comparison-body"></div>
+                        <div class="icg-comparison-actions">
+                            <button data-action="back-to-results" type="button" class="icg-btn-secondary">Back to results</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Methodology ─────────────────────────────────────────── -->
+                <details class="icg-methodology">
+                    <summary class="icg-methodology__trigger">How the assessment works</summary>
+                    <div class="icg-methodology__body">
+                        <h4 class="icg-methodology__heading">Scoring model</h4>
+                        <p>Each of the 20 questions is scored on a four-point scale: Not in place (0), Ad hoc (1), Established (2), Optimized (3). Domain scores are the percentage of points earned out of the maximum possible for that domain.</p>
+
+                        <h4 class="icg-methodology__heading">Domain weighting</h4>
+                        <p>Foundational domains (Visibility and Tagging, Account Structure and Attribution) carry 1.5&times; weight in the overall score. The remaining four domains carry 1.0&times; weight. This reflects the principle that visibility and attribution are prerequisites for effective optimization.</p>
+
+                        <h4 class="icg-methodology__heading">Maturity levels</h4>
+                        <p>The overall score maps to four maturity levels: Reactive (0&ndash;25), Aware (26&ndash;50), Optimizing (51&ndash;75), and Strategic (76&ndash;100).</p>
+
+                        <h4 class="icg-methodology__heading">FinOps Foundation alignment</h4>
+                        <p>The maturity levels map loosely to the FinOps Foundation&rsquo;s Crawl-Walk-Run framework. Reactive and Aware correspond to the Crawl phase, where organizations are building foundational visibility. Optimizing aligns with Walk, where active management is in place. Strategic maps to Run, where cost governance is embedded in engineering culture. For more on the framework, see <a href="https://www.finops.org/framework/" target="_blank" rel="noopener noreferrer">finops.org/framework</a>.</p>
+
+                        <h4 class="icg-methodology__heading">Foundational flag</h4>
+                        <p>If either foundational domain scores at or below 33%, a warning is surfaced. Low foundational scores indicate that higher-level optimization practices may be unreliable because the organization cannot see or attribute its spend.</p>
+
+                        <h4 class="icg-methodology__heading">Recommendations</h4>
+                        <p>Recommendations are triggered when a question scores at or below a defined threshold. They are sorted by impact tier (high, medium, low) and can be dismissed as not applicable. Dismissed items are excluded from the printed report.</p>
+
+                        <h4 class="icg-methodology__heading">Benchmarks</h4>
+                        <p>The benchmark ranges reflect illustrative patterns from GST diligence and value creation engagements. Individual results depend on company stage, team maturity, and infrastructure complexity.</p>
+
+                        <h4 class="icg-methodology__heading">Snapshots and comparison</h4>
+                        <p>After completing an assessment, click Save snapshot to store your results in your browser. Up to three snapshots are kept; saving a fourth removes the oldest. Once you have two or more snapshots, a Compare button appears. It shows the two most recent snapshots side by side with per-domain score deltas. Use this to track governance improvements over time, for example between initial diligence and a 90-day post-acquisition review. Snapshots are stored in your browser only and can be cleared from the snapshot manager below the action buttons.</p>
+
+                        <h4 class="icg-methodology__heading">Privacy</h4>
+                        <p>All calculations run entirely in your browser&mdash;no inputs are sent to our servers. Anonymous page-view and interaction analytics (Google Analytics 4) help us improve the tool. See our <a href="/privacy">privacy policy</a> for details.</p>
+
+                        <p class="icg-methodology__updated">Methodology last updated March 2026</p>
+
+                        <div class="icg-methodology__author">
+                            <span class="icg-methodology__author-name">Reid Peryam</span>
+                            <span class="icg-methodology__author-sep">&middot;</span>
+                            <span>Strategic Technology Advisor</span>
+                            <span class="icg-methodology__author-sep">&middot;</span>
+                            <span>100+ PE technology diligence engagements</span>
+                            <span class="icg-methodology__author-sep">&middot;</span>
+                            <a href="https://www.linkedin.com/in/reidperyam/" target="_blank" rel="noopener noreferrer" class="icg-methodology__author-link">LinkedIn</a>
+                        </div>
+                    </div>
+                </details>
+
             </div>
 
-            <a href="/hub/tools" class="cta-button secondary icg-back-link">Return to Workbench</a>
+            <a href="/hub/tools" class="cta-button secondary icg-back-link">Return to Tools</a>
 
         </div>
     </section>
@@ -176,6 +296,22 @@ const domainCount = DOMAINS.length;
     .icg-shell {
         max-width: 660px;
         margin: 0 auto;
+        background: var(--bg-light-alt);
+        border: 1px solid var(--accent-light-bg-hover);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    /* ── Authority line ────────────────────────────────────────────────────── */
+    .icg-authority {
+        padding: var(--spacing-sm) var(--spacing-lg);
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-light-faded);
+        border-bottom: 1px solid var(--accent-light-bg);
+        margin: 0;
     }
 
     /* ── View toggling ────────────────────────────────────────────────────── */
@@ -187,11 +323,24 @@ const domainCount = DOMAINS.length;
     .landing-content {
         max-width: 560px;
         margin: 0 auto;
+        padding: var(--spacing-xl) var(--spacing-lg);
+    }
+
+    .wizard-content {
+        padding: var(--spacing-xl) var(--spacing-lg);
+    }
+
+    .results-content {
+        padding: var(--spacing-xl) var(--spacing-lg);
+    }
+
+    .comparison-content {
+        padding: var(--spacing-xl) var(--spacing-lg);
     }
 
     .landing-callout {
         padding: var(--spacing-md) var(--spacing-lg);
-        background: var(--bg-light-alt);
+        background: var(--bg-light);
         border-radius: 8px;
         font-size: var(--text-sm);
         color: var(--text-light-secondary);
@@ -212,6 +361,34 @@ const domainCount = DOMAINS.length;
         margin-bottom: var(--spacing-xs);
     }
 
+    /* ── Resume prompt ──────────────────────────────────────────────────── */
+    .icg-resume-prompt {
+        padding: var(--spacing-md) var(--spacing-lg);
+        border: 1px solid var(--color-primary);
+        border-radius: 8px;
+        background: rgba(5, 205, 153, 0.04);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    :global(html.dark-theme) .icg-resume-prompt {
+        background: rgba(5, 205, 153, 0.06);
+    }
+
+    .icg-resume-prompt__text {
+        color: var(--text-light-secondary);
+        margin-bottom: var(--spacing-md);
+    }
+
+    .icg-resume-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+    }
+
+    .icg-resume-actions .icg-btn-primary,
+    .icg-resume-actions .icg-btn-secondary {
+        flex: 1;
+    }
+
     .stats-row {
         display: flex;
         gap: var(--gap-normal);
@@ -221,7 +398,7 @@ const domainCount = DOMAINS.length;
     .stat-tile {
         flex: 1;
         padding: var(--spacing-md);
-        background: var(--bg-light-alt);
+        background: var(--bg-light);
         border-radius: 8px;
         text-align: center;
     }
@@ -252,6 +429,7 @@ const domainCount = DOMAINS.length;
         font-family: var(--font-family);
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        text-align: center;
         background: var(--color-primary);
         color: #fff;
         border: none;
@@ -417,14 +595,12 @@ const domainCount = DOMAINS.length;
     }
 
     :global(.icg-options-row) {
-        display: flex;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: var(--spacing-xs);
-        flex-wrap: wrap;
     }
 
     :global(.icg-opt-btn) {
-        flex: 1;
-        min-width: 112px;
         padding: var(--spacing-sm) var(--spacing-sm);
         border: 2px solid var(--border-light);
         border-radius: 8px;
@@ -438,6 +614,7 @@ const domainCount = DOMAINS.length;
         letter-spacing: 0.05em;
         transition: border-color var(--transition-fast), color var(--transition-fast);
         text-align: center;
+        min-height: 44px;
     }
 
     :global(html.dark-theme .icg-opt-btn) {
@@ -450,15 +627,84 @@ const domainCount = DOMAINS.length;
         color: var(--text-light-primary);
     }
 
+    /* ── Question rationale ────────────────────────────────────────────────── */
+    :global(.icg-rationale) {
+        margin-top: var(--spacing-sm);
+    }
+
+    :global(.icg-rationale__trigger) {
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+        cursor: pointer;
+        list-style: none;
+        transition: color var(--transition-fast);
+    }
+
+    :global(.icg-rationale__trigger::-webkit-details-marker) {
+        display: none;
+    }
+
+    :global(.icg-rationale__trigger::before) {
+        content: '';
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        margin-right: var(--spacing-xs);
+        background-color: var(--color-primary);
+        mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
+        mask-size: contain;
+        mask-repeat: no-repeat;
+        -webkit-mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
+        -webkit-mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        transition: transform var(--transition-fast);
+    }
+
+    :global(.icg-rationale[open] > .icg-rationale__trigger::before) {
+        transform: rotate(180deg);
+    }
+
+    :global(.icg-rationale__trigger:hover) {
+        color: var(--text-light-secondary);
+    }
+
+    :global(.icg-rationale__text) {
+        font-size: var(--text-xs);
+        color: var(--text-light-secondary);
+        line-height: 1.6;
+        margin-top: var(--spacing-xs);
+        padding-left: var(--spacing-sm);
+        border-left: 2px solid var(--border-light);
+    }
+
+    :global(html.dark-theme .icg-rationale__text) {
+        border-left-color: rgba(5, 205, 153, 0.15);
+    }
+
     :global(.icg-opt-btn.selected) {
         border: 2px solid var(--color-primary);
         color: var(--text-light-primary);
         font-weight: var(--font-weight-bold);
         background: var(--bg-light);
+        box-shadow: inset 0 0 0 1px var(--color-primary);
     }
 
     :global(html.dark-theme .icg-opt-btn.selected) {
-        background: rgba(5, 205, 153, 0.05);
+        background: var(--accent-light-bg-hover);
+    }
+
+    :global(.icg-opt-btn--unsure) {
+        grid-column: 1 / -1;
+        border-style: dashed;
+        font-style: italic;
+        min-height: 36px;
+    }
+
+    :global(.icg-opt-btn--unsure.selected) {
+        border: 2px dashed var(--color-primary);
+        color: var(--text-light-primary);
+        font-weight: var(--font-weight-bold);
+        box-shadow: none;
     }
 
     /* ── Wizard navigation ────────────────────────────────────────────────── */
@@ -466,16 +712,19 @@ const domainCount = DOMAINS.length;
         display: flex;
         gap: var(--gap-normal);
         margin-top: var(--spacing-xl);
+        margin-left: calc(-1 * var(--spacing-lg));
+        margin-right: calc(-1 * var(--spacing-lg));
+        margin-bottom: calc(-1 * var(--spacing-xl));
         position: sticky;
         bottom: 0;
-        background: var(--bg-light);
-        padding: var(--spacing-md) 0;
+        background: var(--bg-light-alt);
+        padding: var(--spacing-md) var(--spacing-lg);
         border-top: 1px solid var(--border-light);
         z-index: 10;
     }
 
     :global(html.dark-theme) .icg-wizard-nav {
-        background: var(--bg-dark);
+        background: var(--bg-light-alt);
         border-top-color: rgba(5, 205, 153, 0.1);
     }
 
@@ -501,6 +750,38 @@ const domainCount = DOMAINS.length;
     .icg-score-desc {
         color: var(--text-light-secondary);
         margin-top: var(--spacing-xs);
+    }
+
+    /* ── Results: Radar chart ───────────────────────────────────────────── */
+    .icg-radar {
+        text-align: center;
+    }
+
+    /* ── Results: Quick wins ────────────────────────────────────────────── */
+    .icg-quick-wins {
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-left: 3px solid var(--color-primary);
+        background: rgba(5, 205, 153, 0.04);
+        border-radius: 0 8px 8px 0;
+        margin-bottom: var(--spacing-xl);
+    }
+
+    :global(html.dark-theme) .icg-quick-wins {
+        background: rgba(5, 205, 153, 0.06);
+    }
+
+    :global(.icg-quick-win-item) {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-xs) 0;
+        flex-wrap: wrap;
+    }
+
+    :global(.icg-quick-win-item__title) {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-light-primary);
     }
 
     /* ── Results: Cards ───────────────────────────────────────────────────── */
@@ -699,46 +980,50 @@ const domainCount = DOMAINS.length;
 
     :global(.icg-rec-badge) {
         flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
         font-size: 0.65rem;
         font-weight: var(--font-weight-bold);
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        padding: 2px var(--spacing-sm);
+        padding: var(--spacing-xs) var(--spacing-sm);
         border-radius: 4px;
+        line-height: 1;
     }
 
-    :global(.icg-rec-badge--high) {
-        background: rgba(226, 75, 74, 0.1);
-        color: #E24B4A;
-    }
-
-    :global(html.dark-theme .icg-rec-badge--high) {
-        background: rgba(226, 75, 74, 0.15);
-    }
-
-    :global(.icg-rec-badge--medium) {
-        background: rgba(204, 136, 0, 0.1);
-        color: var(--color-secondary);
-    }
-
-    :global(html.dark-theme .icg-rec-badge--medium) {
-        background: rgba(255, 170, 51, 0.1);
-    }
-
+    :global(.icg-rec-badge--high),
+    :global(.icg-rec-badge--medium),
     :global(.icg-rec-badge--low) {
         background: var(--bg-light-alt);
         color: var(--text-light-muted);
     }
 
+    :global(html.dark-theme .icg-rec-badge--high),
+    :global(html.dark-theme .icg-rec-badge--medium),
     :global(html.dark-theme .icg-rec-badge--low) {
         background: rgba(200, 200, 200, 0.05);
+    }
+
+    :global(.icg-rec-badge--effort) {
+        background: var(--bg-light-alt);
+        color: var(--text-light-muted);
+        font-style: normal;
+    }
+
+    :global(html.dark-theme .icg-rec-badge--effort) {
+        background: rgba(200, 200, 200, 0.05);
+    }
+
+    :global(.icg-rec-body) {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
     }
 
     :global(.icg-rec-body__title) {
         font-size: var(--text-sm);
         font-weight: var(--font-weight-semibold);
         color: var(--text-light-primary);
-        margin-bottom: var(--spacing-xs);
         display: flex;
         align-items: center;
         gap: var(--spacing-xs);
@@ -783,10 +1068,9 @@ const domainCount = DOMAINS.length;
         font-size: var(--text-sm);
     }
 
-    /* ── N/A dismiss button ──────────────────────────────────────────────── */
+    /* ── N/A dismiss button (inline with badges) ────────────────────────── */
     :global(.icg-rec-na) {
         flex-shrink: 0;
-        align-self: flex-start;
         padding: 2px var(--spacing-sm);
         font-size: 0.65rem;
         font-weight: var(--font-weight-bold);
@@ -794,24 +1078,27 @@ const domainCount = DOMAINS.length;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: var(--text-light-muted);
-        background: transparent;
-        border: 1px solid var(--border-light);
+        background: rgba(200, 200, 200, 0.08);
+        border: 1px dashed var(--border-light);
         border-radius: 4px;
         cursor: pointer;
-        transition: color var(--transition-fast), border-color var(--transition-fast);
+        transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
     }
 
     :global(.icg-rec-na:hover) {
         color: var(--text-light-primary);
         border-color: var(--text-light-secondary);
+        background: rgba(200, 200, 200, 0.15);
     }
 
     :global(html.dark-theme .icg-rec-na) {
+        background: rgba(200, 200, 200, 0.04);
         border-color: rgba(5, 205, 153, 0.12);
     }
 
     :global(html.dark-theme .icg-rec-na:hover) {
         border-color: rgba(5, 205, 153, 0.3);
+        background: rgba(5, 205, 153, 0.08);
     }
 
     /* ── Dismissed recommendation ─────────────────────────────────────────── */
@@ -820,13 +1107,8 @@ const domainCount = DOMAINS.length;
         border-style: dashed;
     }
 
-    :global(.icg-rec-card.is-dismissed .icg-rec-body__title) {
-        text-decoration: line-through;
-    }
-
     :global(.icg-rec-card.is-dismissed .icg-rec-na) {
-        color: var(--color-primary);
-        border-color: var(--color-primary);
+        border-style: solid;
     }
 
     /* ── Results: Actions ──────────────────────────────────────────────────── */
@@ -834,6 +1116,7 @@ const domainCount = DOMAINS.length;
         display: flex;
         gap: var(--spacing-sm);
         flex-wrap: wrap;
+        justify-content: center;
         padding-top: var(--spacing-lg);
         border-top: 1px solid var(--border-light);
     }
@@ -850,10 +1133,431 @@ const domainCount = DOMAINS.length;
         margin-top: var(--spacing-md);
     }
 
+    /* ── Snapshot manager ─────────────────────────────────────────────────── */
+    .icg-snapshot-manager {
+        margin-top: var(--spacing-lg);
+        padding-top: var(--spacing-lg);
+        border-top: 1px solid var(--border-light);
+    }
+
+    :global(html.dark-theme) .icg-snapshot-manager {
+        border-top-color: rgba(5, 205, 153, 0.1);
+    }
+
+    :global(.icg-snapshot-list-items) {
+        margin-bottom: var(--spacing-md);
+    }
+
+    :global(.icg-snapshot-row) {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--spacing-xs) 0;
+        border-bottom: 1px solid var(--border-light);
+        font-size: var(--text-sm);
+        color: var(--text-light-secondary);
+    }
+
+    :global(html.dark-theme .icg-snapshot-row) {
+        border-bottom-color: rgba(5, 205, 153, 0.08);
+    }
+
+    :global(.icg-snapshot-row__info) {
+        display: flex;
+        align-items: baseline;
+        gap: var(--spacing-sm);
+    }
+
+    :global(.icg-snapshot-row__score) {
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-light-primary);
+    }
+
+    :global(.icg-snapshot-row__delete) {
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: var(--font-family);
+        padding: var(--spacing-xs);
+        transition: color var(--transition-fast);
+    }
+
+    :global(.icg-snapshot-row__delete:hover) {
+        color: #E24B4A;
+    }
+
+    .icg-snapshot-clear {
+        font-size: var(--text-xs);
+    }
+
+    /* ── Comparison view ──────────────────────────────────────────────────── */
+    :global(.icg-comparison-row) {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) 0;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    :global(html.dark-theme .icg-comparison-row) {
+        border-bottom-color: rgba(5, 205, 153, 0.08);
+    }
+
+    :global(.icg-comparison-row__name) {
+        flex: 1;
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-light-primary);
+    }
+
+    :global(.icg-comparison-row__scores) {
+        display: flex;
+        gap: var(--spacing-md);
+        align-items: baseline;
+        font-size: var(--text-sm);
+    }
+
+    :global(.icg-comparison-row__score) {
+        color: var(--text-light-secondary);
+        min-width: 32px;
+        text-align: right;
+    }
+
+    :global(.icg-delta) {
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        min-width: 40px;
+        text-align: right;
+    }
+
+    :global(.icg-delta--positive) {
+        color: var(--color-primary);
+    }
+
+    :global(.icg-delta--negative) {
+        color: #E24B4A;
+    }
+
+    :global(.icg-delta--neutral) {
+        color: var(--text-light-muted);
+    }
+
+    :global(.icg-comparison-overall) {
+        padding: var(--spacing-md) 0;
+        margin-bottom: var(--spacing-md);
+        border-bottom: 2px solid var(--border-light);
+        font-size: var(--text-md);
+        font-weight: var(--font-weight-bold);
+    }
+
+    :global(html.dark-theme .icg-comparison-overall) {
+        border-bottom-color: rgba(5, 205, 153, 0.15);
+    }
+
+    .icg-comparison-actions {
+        margin-top: var(--spacing-xl);
+    }
+
+    :global(.icg-snapshot-select) {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    :global(.icg-snapshot-item) {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-xs) 0;
+    }
+
+    :global(.icg-snapshot-item label) {
+        font-size: var(--text-sm);
+        color: var(--text-light-secondary);
+        cursor: pointer;
+    }
+
+    :global(.icg-snapshot-item__date) {
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+    }
+
     /* ── Back link ────────────────────────────────────────────────────────── */
     .icg-back-link {
         display: inline-block;
         margin-top: var(--spacing-2xl);
+    }
+
+    /* ── Methodology collapsible ───────────────────────────────────────────── */
+    .icg-methodology {
+        margin-top: 0;
+        border-top: 1px solid color-mix(in srgb, var(--color-primary) 6%, transparent);
+    }
+
+    .icg-methodology__trigger {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) var(--spacing-2xl);
+        cursor: pointer;
+        color: var(--text-light-muted);
+        transition: color var(--transition-fast);
+        list-style: none;
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .icg-methodology__trigger::-webkit-details-marker {
+        display: none;
+    }
+
+    .icg-methodology__trigger::before {
+        content: '';
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        background-color: var(--color-primary);
+        mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
+        mask-size: contain;
+        mask-repeat: no-repeat;
+        -webkit-mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
+        -webkit-mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        transition: transform var(--transition-fast);
+    }
+
+    .icg-methodology[open] > .icg-methodology__trigger::before {
+        transform: rotate(180deg);
+    }
+
+    .icg-methodology__trigger:hover {
+        color: var(--text-light-secondary);
+    }
+
+    .icg-methodology__body {
+        padding: var(--spacing-sm) var(--spacing-2xl) var(--spacing-md);
+        color: var(--text-light-secondary);
+        line-height: 1.7;
+        border-top: 1px solid color-mix(in srgb, var(--color-primary) 6%, transparent);
+    }
+
+    .icg-methodology__heading {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--text-light-primary);
+        margin-top: var(--spacing-md);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .icg-methodology__heading:first-child {
+        margin-top: 0;
+    }
+
+    .icg-methodology__body p {
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .icg-methodology__updated {
+        font-size: var(--text-xs);
+        color: var(--text-light-faded);
+        font-style: italic;
+        margin-top: var(--spacing-sm);
+    }
+
+    /* ── Author attribution ──────────────────────────────────────────────── */
+    .icg-methodology__author {
+        display: flex;
+        align-items: baseline;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+        padding-top: var(--spacing-md);
+        margin-top: var(--spacing-md);
+        border-top: 1px solid color-mix(in srgb, var(--color-primary) 6%, transparent);
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+    }
+
+    .icg-methodology__author-name {
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-light-secondary);
+    }
+
+    .icg-methodology__author-sep {
+        color: var(--text-light-faded);
+    }
+
+    .icg-methodology__author-link {
+        color: var(--color-primary);
+        text-decoration: none;
+    }
+
+    .icg-methodology__author-link:hover {
+        text-decoration: underline;
+    }
+
+    /* ── Company stage selector ───────────────────────────────────────────── */
+    .icg-stage-selector {
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .icg-stage-selector__label {
+        display: block;
+        margin-bottom: var(--spacing-sm);
+        color: var(--color-primary);
+    }
+
+    .icg-stage-optional {
+        color: var(--text-light-muted);
+        font-weight: var(--font-weight-normal);
+        text-transform: none;
+        letter-spacing: 0;
+    }
+
+    .icg-stage-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .icg-stage-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: var(--bg-light);
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: var(--font-family);
+        transition: border-color var(--transition-fast), background var(--transition-fast);
+    }
+
+    :global(html.dark-theme) .icg-stage-card {
+        background: rgba(5, 205, 153, 0.02);
+        border-color: rgba(5, 205, 153, 0.1);
+    }
+
+    .icg-stage-card:hover {
+        border-color: var(--color-primary);
+    }
+
+    .icg-stage-card--active {
+        border-color: var(--color-primary);
+        background: rgba(5, 205, 153, 0.06);
+    }
+
+    :global(html.dark-theme) .icg-stage-card--active {
+        background: rgba(5, 205, 153, 0.1);
+    }
+
+    .icg-stage-card__name {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-light-primary);
+    }
+
+    .icg-stage-card__range {
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+    }
+
+    .icg-stage-hint {
+        color: var(--text-light-faded);
+    }
+
+    /* ── Stage context in results ─────────────────────────────────────────── */
+    .icg-stage-context {
+        color: var(--text-light-secondary);
+        text-align: center;
+        margin-top: var(--spacing-xs);
+    }
+
+    /* ── Skipped questions note ───────────────────────────────────────────── */
+    .icg-skipped-note {
+        color: var(--text-light-muted);
+        font-style: italic;
+        text-align: center;
+        margin-top: var(--spacing-xs);
+    }
+
+    /* ── Benchmark stage highlight ────────────────────────────────────────── */
+    :global(.icg-bench-active) {
+        border-left: 3px solid var(--color-primary);
+        background: rgba(5, 205, 153, 0.04);
+    }
+
+    :global(html.dark-theme .icg-bench-active) {
+        background: rgba(5, 205, 153, 0.08);
+    }
+
+    /* ── Domain bar rec count badge ───────────────────────────────────────── */
+    :global(.icg-domain-bar__rec-count) {
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-normal);
+        color: var(--color-primary);
+        margin-left: var(--spacing-sm);
+    }
+
+    :global(.icg-domain-bar__skipped) {
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-normal);
+        color: var(--text-light-muted);
+        font-style: italic;
+        margin-left: var(--spacing-sm);
+    }
+
+    :global(.icg-domain-bar[data-domain-link]) {
+        cursor: pointer;
+    }
+
+    :global(.icg-domain-bar[data-domain-link]:hover .icg-domain-bar__name) {
+        color: var(--color-primary);
+    }
+
+    /* ── Snapshot save row ────────────────────────────────────────────────── */
+    .icg-snapshot-save-row {
+        display: flex;
+        gap: var(--spacing-sm);
+        align-items: center;
+        margin-top: var(--spacing-lg);
+        padding-top: var(--spacing-lg);
+        border-top: 1px solid var(--border-light);
+    }
+
+    :global(html.dark-theme) .icg-snapshot-save-row {
+        border-top-color: rgba(5, 205, 153, 0.1);
+    }
+
+    .icg-snapshot-label-input {
+        flex: 1;
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: 0.75rem;
+        font-family: var(--font-family);
+        color: var(--text-light-secondary);
+        background: transparent;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        transition: border-color var(--transition-fast);
+    }
+
+    :global(html.dark-theme) .icg-snapshot-label-input {
+        border-color: rgba(5, 205, 153, 0.15);
+        color: var(--text-light-secondary);
+    }
+
+    .icg-snapshot-label-input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+    }
+
+    .icg-snapshot-label-input::placeholder {
+        color: var(--text-light-faded);
     }
 
     /* ════════════════════════════════════════════════════════════════════════
@@ -886,7 +1590,16 @@ const domainCount = DOMAINS.length;
             justify-content: center;
         }
 
-        /* Hide "Return to Workbench" during wizard/results to reduce clutter */
+        .icg-snapshot-save-row {
+            flex-direction: column;
+        }
+
+        .icg-snapshot-save-row .icg-btn-secondary {
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* Hide "Return to Tools" during wizard/results to reduce clutter */
         .icg-view:not(.is-hidden) ~ .icg-view ~ .icg-view ~ .icg-back-link {
             /* Handled via JS class toggle instead */
         }
@@ -896,17 +1609,28 @@ const domainCount = DOMAINS.length;
        RESPONSIVE — mobile (<=480px)
     ════════════════════════════════════════════════════════════════════════ */
     @media (max-width: 480px) {
-        /* Options: 2-column grid with bigger tap targets */
+        .landing-content,
+        .wizard-content,
+        .results-content,
+        .comparison-content {
+            padding: var(--spacing-lg) var(--spacing-md);
+        }
+
+        .icg-stage-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .icg-snapshot-save-row {
+            flex-direction: column;
+        }
+
+        /* Options: slightly more gap on mobile */
         :global(.icg-options-row) {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
             gap: var(--spacing-sm);
         }
 
         :global(.icg-opt-btn) {
-            min-width: 0;
             padding: var(--spacing-md) var(--spacing-sm);
-            min-height: 44px;
         }
 
         /* Question cards: more breathing room */
@@ -942,7 +1666,10 @@ const domainCount = DOMAINS.length;
         .icg-wizard-nav {
             flex-direction: column-reverse;
             gap: var(--spacing-sm);
-            padding: var(--spacing-sm) 0 var(--spacing-md);
+            margin-left: calc(-1 * var(--spacing-md));
+            margin-right: calc(-1 * var(--spacing-md));
+            margin-bottom: calc(-1 * var(--spacing-lg));
+            padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
         }
 
         .icg-wizard-nav .icg-btn-primary,
@@ -969,8 +1696,8 @@ const domainCount = DOMAINS.length;
             font-size: var(--text-xs);
         }
 
-        :global(.icg-rec-na) {
-            align-self: flex-end;
+        :global(.icg-rec-body__title) {
+            flex-wrap: wrap;
         }
 
         /* Hide back link on mobile when in wizard or results */
@@ -988,8 +1715,12 @@ const domainCount = DOMAINS.length;
         .icg-section :global(footer),
         .icg-back-link,
         .icg-actions,
+        .icg-snapshot-save-row,
+        .icg-snapshot-manager,
+        .icg-authority,
         [data-view="landing"],
-        [data-view="wizard"] {
+        [data-view="wizard"],
+        [data-view="comparison"] {
             display: none !important;
         }
 
@@ -1000,6 +1731,7 @@ const domainCount = DOMAINS.length;
 
         .icg-shell {
             max-width: 100%;
+            border: 1px solid #ddd;
         }
 
         .results-content::before {
@@ -1040,6 +1772,19 @@ const domainCount = DOMAINS.length;
         .icg-foundational-warning {
             break-inside: avoid;
         }
+
+        /* Auto-expand methodology in print */
+        .icg-methodology {
+            border: none;
+        }
+
+        .icg-methodology__trigger {
+            display: none;
+        }
+
+        .icg-methodology__body {
+            padding: var(--spacing-md) 0;
+        }
     }
 </style>
 
@@ -1049,14 +1794,20 @@ import {
   calculateResults,
   getMaturityLevel,
   getRecommendations,
+  getQuickWins,
   encodeState,
   decodeState,
+  buildSummaryText,
+  buildExportPayload,
+  compareSnapshots,
+  buildRadarPoints,
+  contextualizeScore,
 } from '../../../../utils/icg-engine';
 
-import type { ICGState } from '../../../../utils/icg-engine';
+import type { ICGState, ICGSnapshot, CompanyStage } from '../../../../utils/icg-engine';
 import { trackEvent } from '../../../../utils/analytics';
 
-import { DOMAINS, ANSWER_OPTIONS, TOTAL_QUESTIONS } from '../../../../data/infrastructure-cost-governance/domains';
+import { DOMAINS, ANSWER_OPTIONS } from '../../../../data/infrastructure-cost-governance/domains';
 import { RECOMMENDATIONS } from '../../../../data/infrastructure-cost-governance/recommendations';
 
 // ─── DOM helpers ────────────────────────────────────────────────────────────
@@ -1065,8 +1816,9 @@ function qs<T extends HTMLElement>(sel: string): T {
   return document.querySelector(sel) as T;
 }
 
-function qsa(sel: string): NodeListOf<HTMLElement> {
-  return document.querySelectorAll(sel);
+const ESC_MAP: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function escHtml(s: string): string {
+  return s.replace(/[&<>"']/g, c => ESC_MAP[c]);
 }
 
 // ─── URL state ──────────────────────────────────────────────────────────────
@@ -1084,6 +1836,67 @@ function readUrlState(): Partial<ICGState> | null {
 // ─── State ──────────────────────────────────────────────────────────────────
 
 const state: ICGState = { ...DEFAULT_STATE, dismissed: [] };
+let reviewMode = false;
+let hasPendingResume = false;
+
+// ─── localStorage persistence ──────────────────────────────────────────────
+
+const ICG_STORAGE_KEY = 'icg-assessment-state';
+
+function saveToStorage(s: ICGState): void {
+  try {
+    localStorage.setItem(ICG_STORAGE_KEY, JSON.stringify(s));
+  } catch { /* private browsing */ }
+}
+
+function loadFromStorage(): ICGState | null {
+  try {
+    const raw = localStorage.getItem(ICG_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    if (typeof parsed.currentStep !== 'number') return null;
+    return parsed as ICGState;
+  } catch { return null; }
+}
+
+function clearStorage(): void {
+  try { localStorage.removeItem(ICG_STORAGE_KEY); } catch { /* noop */ }
+}
+
+// ─── Snapshot storage ───────────────────────────────────────────────────────
+
+const ICG_SNAPSHOTS_KEY = 'icg-snapshots';
+const MAX_SNAPSHOTS = 3;
+
+function loadSnapshots(): ICGSnapshot[] {
+  try {
+    const raw = localStorage.getItem(ICG_SNAPSHOTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+
+function saveSnapshot(snap: ICGSnapshot): void {
+  try {
+    const all = loadSnapshots();
+    all.push(snap);
+    if (all.length > MAX_SNAPSHOTS) all.shift();
+    localStorage.setItem(ICG_SNAPSHOTS_KEY, JSON.stringify(all));
+  } catch { /* noop */ }
+}
+
+function deleteSnapshot(id: string): void {
+  try {
+    const all = loadSnapshots().filter(s => s.id !== id);
+    localStorage.setItem(ICG_SNAPSHOTS_KEY, JSON.stringify(all));
+  } catch { /* noop */ }
+}
+
+function clearAllSnapshots(): void {
+  try { localStorage.removeItem(ICG_SNAPSHOTS_KEY); } catch { /* noop */ }
+}
 
 // ─── Gauge SVG ──────────────────────────────────────────────────────────────
 
@@ -1098,7 +1911,7 @@ function gaugeArcSVG(score: number, color: string): string {
   const resolvedColor = color.startsWith('var(')
     ? getComputedStyle(document.documentElement).getPropertyValue(color.slice(4, -1)).trim() || '#05cd99'
     : color;
-  return `<svg viewBox="0 0 220 112" style="width:100%;max-width:220px;display:block;margin:0 auto" aria-label="Maturity score: ${score} out of 100">
+  return `<svg viewBox="0 0 220 112" role="img" style="width:100%;max-width:220px;display:block;margin:0 auto" aria-label="Maturity score: ${score} out of 100">
     <path d="${track}" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" opacity="0.15"/>
     ${fill ? `<path d="${fill}" fill="none" stroke="${resolvedColor}" stroke-width="14" stroke-linecap="round"/>` : ''}
     <text x="${cx}" y="84" text-anchor="middle"
@@ -1117,6 +1930,64 @@ function maturityDescription(score: number): string {
   return 'Cloud spend is a managed, optimized discipline.';
 }
 
+// ─── Radar chart SVG ────────────────────────────────────────────────────────
+
+function radarChartSVG(domainScores: Array<{ name: string; score: number }>): string {
+  const cx = 150, cy = 150, r = 110;
+  const n = domainScores.length;
+
+  // Use explicit colors so the SVG is print-safe (currentColor fails
+  // when dark-mode text color meets white print paper)
+  const gridColor = '#999';
+  const labelColor = '#666';
+  const primaryColor = '#05cd99';
+
+  // Grid rings at 25%, 50%, 75%, 100%
+  const rings = [25, 50, 75, 100].map(pct => {
+    const ringR = (pct / 100) * r;
+    const pts = Array.from({ length: n }, (_, i) => {
+      const a = (Math.PI * 2 * i) / n - Math.PI / 2;
+      return `${(cx + ringR * Math.cos(a)).toFixed(1)},${(cy + ringR * Math.sin(a)).toFixed(1)}`;
+    }).join(' ');
+    return `<polygon points="${pts}" fill="none" stroke="${gridColor}" opacity="${pct === 100 ? 0.4 : 0.2}" stroke-width="1"/>`;
+  }).join('');
+
+  // Axis lines
+  const axes = Array.from({ length: n }, (_, i) => {
+    const a = (Math.PI * 2 * i) / n - Math.PI / 2;
+    const ex = (cx + r * Math.cos(a)).toFixed(1);
+    const ey = (cy + r * Math.sin(a)).toFixed(1);
+    return `<line x1="${cx}" y1="${cy}" x2="${ex}" y2="${ey}" stroke="${gridColor}" opacity="0.2" stroke-width="1"/>`;
+  }).join('');
+
+  // Labels
+  const labelOffset = 18;
+  const labels = domainScores.map((ds, i) => {
+    const a = (Math.PI * 2 * i) / n - Math.PI / 2;
+    const lx = cx + (r + labelOffset) * Math.cos(a);
+    const ly = cy + (r + labelOffset) * Math.sin(a);
+    const anchor = Math.abs(lx - cx) < 5 ? 'middle' : lx > cx ? 'start' : 'end';
+    // Abbreviate long names
+    const short = ds.name.replace('and ', '& ').split(' ').slice(0, 2).join(' ');
+    return `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="${anchor}" style="font-size:10px;font-family:var(--font-family);fill:${labelColor}">${short}</text>`;
+  }).join('');
+
+  // Data polygon
+  const dataPoints = buildRadarPoints(domainScores as any, cx, cy, r);
+
+  return `<svg viewBox="0 0 300 300" role="img" aria-label="Radar chart showing domain scores" style="width:100%;max-width:300px;display:block;margin:0 auto">
+    ${rings}${axes}${labels}
+    <polygon points="${dataPoints}" fill="${primaryColor}" fill-opacity="0.15" stroke="${primaryColor}" stroke-width="2"/>
+    ${domainScores.map((ds, i) => {
+      const a = (Math.PI * 2 * i) / n - Math.PI / 2;
+      const dr = (ds.score / 100) * r;
+      const dx = cx + dr * Math.cos(a);
+      const dy = cy + dr * Math.sin(a);
+      return `<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="4" fill="${primaryColor}"/>`;
+    }).join('')}
+  </svg>`;
+}
+
 // ─── Email helper ────────────────────────────────────────────────────────────
 
 function emailHref(context: 'landing' | 'results', score?: number): string {
@@ -1133,11 +2004,13 @@ function render(): void {
   const landingView = qs<HTMLElement>('[data-view="landing"]');
   const wizardView = qs<HTMLElement>('[data-view="wizard"]');
   const resultsView = qs<HTMLElement>('[data-view="results"]');
+  const comparisonView = qs<HTMLElement>('[data-view="comparison"]');
 
   // Toggle views
   landingView.classList.toggle('is-hidden', state.currentStep !== 0);
   wizardView.classList.toggle('is-hidden', state.currentStep < 1 || state.currentStep > 6);
   resultsView.classList.toggle('is-hidden', state.currentStep !== 7);
+  comparisonView.classList.add('is-hidden');
 
   // Hide back link during wizard/results to reduce mobile clutter
   const backLink = document.querySelector('.icg-back-link') as HTMLElement | null;
@@ -1150,6 +2023,9 @@ function render(): void {
   }
 
   pushUrlState(state);
+  if (!hasPendingResume) {
+    saveToStorage(state);
+  }
 }
 
 function renderWizard(): void {
@@ -1172,19 +2048,24 @@ function renderWizard(): void {
   badge.classList.toggle('is-hidden', !domain.foundational);
   note.classList.toggle('is-hidden', !domain.foundational);
 
-  // Questions
+  // Questions — use global numbering (1–20) instead of per-domain
+  const globalOffset = DOMAINS.slice(0, state.currentStep - 1)
+    .reduce((sum, d) => sum + d.questions.length, 0);
   const container = qs<HTMLElement>('[data-questions-container]');
   container.innerHTML = domain.questions.map((q, qi) => {
+    const unsureSel = state.answers[q.id] === -1;
     const optBtns = ANSWER_OPTIONS.map(opt => {
       const sel = state.answers[q.id] === opt.score;
-      return `<button class="icg-opt-btn${sel ? ' selected' : ''}" data-answer="${q.id}" data-score="${opt.score}" type="button">${opt.label}</button>`;
-    }).join('');
+      return `<button class="icg-opt-btn${sel ? ' selected' : ''}" data-answer="${q.id}" data-score="${opt.score}" type="button" aria-pressed="${sel}">${opt.label}</button>`;
+    }).join('')
+      + `<button class="icg-opt-btn icg-opt-btn--unsure${unsureSel ? ' selected' : ''}" data-answer="${q.id}" data-score="-1" type="button" aria-pressed="${unsureSel}">Not sure</button>`;
     return `
       <div class="icg-question-card">
         <p class="icg-question-text">
-          <span class="icg-question-num">${qi + 1}.</span>${q.text}
+          <span class="icg-question-num">${globalOffset + qi + 1}.</span>${q.text}
         </p>
         <div class="icg-options-row">${optBtns}</div>
+        ${q.rationale ? `<details class="icg-rationale"><summary class="icg-rationale__trigger">Why this matters</summary><p class="icg-rationale__text">${q.rationale}</p></details>` : ''}
       </div>`;
   }).join('');
 
@@ -1205,9 +2086,15 @@ function renderWizard(): void {
   const backBtn = qs<HTMLButtonElement>('[data-action="back"]');
   const nextBtn = qs<HTMLButtonElement>('[data-action="next"]');
 
-  backBtn.textContent = state.currentStep === 1 ? 'Back to intro' : 'Previous';
-  nextBtn.textContent = state.currentStep === 6 ? 'View results' : 'Next domain';
-  nextBtn.disabled = !canNext;
+  if (reviewMode) {
+    backBtn.textContent = state.currentStep === 1 ? 'Back to results' : 'Previous';
+    nextBtn.textContent = state.currentStep === 6 ? 'Back to results' : 'Next domain';
+    nextBtn.disabled = false;
+  } else {
+    backBtn.textContent = state.currentStep === 1 ? 'Back to intro' : 'Previous';
+    nextBtn.textContent = state.currentStep === 6 ? 'View results' : 'Next domain';
+    nextBtn.disabled = !canNext;
+  }
 }
 
 function renderResults(): void {
@@ -1223,6 +2110,19 @@ function renderResults(): void {
   levelEl.style.color = result.maturityColor;
   qs<HTMLElement>('[data-score-desc]').textContent = maturityDescription(result.overallScore);
 
+  // Stage context
+  const stageCtxEl = qs<HTMLElement>('[data-stage-context]');
+  const stageCtx = contextualizeScore(result.overallScore, state.companyStage);
+  stageCtxEl.classList.toggle('is-hidden', !stageCtx);
+  if (stageCtx) stageCtxEl.textContent = stageCtx;
+
+  // Skipped questions note
+  const skippedEl = qs<HTMLElement>('[data-skipped-note]');
+  skippedEl.classList.toggle('is-hidden', result.skippedCount === 0);
+  if (result.skippedCount > 0) {
+    skippedEl.textContent = `${result.skippedCount} of ${result.totalQuestions} questions marked "Not sure" \u2014 these score as zero and may indicate governance blind spots`;
+  }
+
   // Foundational warning
   const warningEl = qs<HTMLElement>('[data-foundational-warning]');
   warningEl.classList.toggle('is-hidden', !result.showFoundationalFlag);
@@ -1237,21 +2137,45 @@ function renderResults(): void {
   }
 
   // Domain bars
+  // Radar chart
+  qs<HTMLElement>('[data-radar-chart]').innerHTML = radarChartSVG(result.domainScores);
+
+  // Rec counts by domain (for domain bar badges)
+  const dismissed = new Set(state.dismissed);
+  const recCountByDomain: Record<string, number> = {};
+  recs.filter(r => !dismissed.has(r.id)).forEach(r => {
+    recCountByDomain[r.domain] = (recCountByDomain[r.domain] || 0) + 1;
+  });
+
+  // Domain bars
   const barsContainer = qs<HTMLElement>('[data-domain-bars]');
   barsContainer.innerHTML = result.domainScores.map(ds => {
     const { color } = getMaturityLevel(ds.score);
     const { level } = getMaturityLevel(ds.score);
+    const recCount = recCountByDomain[ds.domainId] || 0;
+    const recBadge = recCount > 0 ? `<span class="icg-domain-bar__rec-count">${recCount} rec${recCount > 1 ? 's' : ''}</span>` : '';
+    const skippedBadge = ds.skippedCount > 0 ? `<span class="icg-domain-bar__skipped">${ds.skippedCount} skipped</span>` : '';
+    const hasLink = recCount > 0;
     return `
-      <div class="icg-domain-bar">
+      <div class="icg-domain-bar"${hasLink ? ` data-domain-link="${ds.domainId}"` : ''}>
         <div class="icg-domain-bar__header">
           <span class="icg-domain-bar__name">${ds.name}</span>
-          <span class="icg-domain-bar__score" style="color:${color}">${ds.score} <span class="icg-domain-bar__maturity">${level}</span></span>
+          <span class="icg-domain-bar__score" style="color:${color}">${ds.score} <span class="icg-domain-bar__maturity">${level}</span>${recBadge}${skippedBadge}</span>
         </div>
         <div class="icg-domain-bar__track">
           <div class="icg-domain-bar__fill" style="width:${ds.score}%;background:${color}"></div>
         </div>
       </div>`;
   }).join('');
+
+  // Wire domain bar click-to-scroll
+  barsContainer.querySelectorAll('[data-domain-link]').forEach(bar => {
+    bar.addEventListener('click', () => {
+      const domainId = (bar as HTMLElement).dataset.domainLink;
+      const target = document.querySelector(`[data-rec-domain="${domainId}"]`);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
 
   // Benchmark highlighting
   const benchCells = document.querySelectorAll<HTMLElement>('[data-bench]');
@@ -1263,6 +2187,11 @@ function renderResults(): void {
     td.textContent = range + (inRange ? ' \u25C0' : '');
   });
 
+  // Benchmark stage row highlighting
+  document.querySelectorAll<HTMLElement>('[data-stage-row]').forEach(tr => {
+    tr.classList.toggle('icg-bench-active', tr.dataset.stageRow === state.companyStage);
+  });
+
   // Email link
   const emailLink = qs<HTMLAnchorElement>('[data-action="email"]');
   emailLink.href = emailHref('results', result.overallScore);
@@ -1270,18 +2199,36 @@ function renderResults(): void {
     trackEvent({ event: 'icg_send_email', category: 'engagement', location: 'results', score: result.overallScore });
   };
 
+  // Quick wins
+  const quickWinsContainer = qs<HTMLElement>('[data-quick-wins]');
+  const quickWins = getQuickWins(recs);
+  if (quickWins.length > 0) {
+    quickWinsContainer.classList.remove('is-hidden');
+    quickWinsContainer.innerHTML = `
+      <div class="icg-section-label">Start here</div>
+      ${quickWins.map(qw => `
+        <div class="icg-quick-win-item">
+          <span class="icg-rec-badge icg-rec-badge--${qw.impact}">${qw.impact}</span>
+          <span class="icg-rec-badge icg-rec-badge--effort">${qw.effort.replace('-', ' ')}</span>
+          <span class="icg-quick-win-item__title">${qw.title}</span>
+        </div>
+      `).join('')}
+    `;
+  } else {
+    quickWinsContainer.classList.add('is-hidden');
+  }
+
   // Recommendations
   const recsContainer = qs<HTMLElement>('[data-recs-container]');
   if (recs.length === 0) {
     recsContainer.innerHTML = '<div class="icg-recs-empty">No recommendations triggered. All domains scored above threshold.</div>';
   } else {
-    const dismissed = new Set(state.dismissed);
     const activeCount = recs.filter(r => !dismissed.has(r.id)).length;
     const high = recs.filter(r => r.impact === 'high');
     const med = recs.filter(r => r.impact === 'medium');
     const low = recs.filter(r => r.impact === 'low');
 
-    const renderGroup = (items: typeof recs, label: string, colorClass: string, labelColor: string) => {
+    const renderGroup = (items: typeof recs, label: string, labelColor: string) => {
       if (items.length === 0) return '';
       return `
         <div class="icg-recs-group">
@@ -1289,12 +2236,11 @@ function renderResults(): void {
           ${items.map(rec => {
             const isDismissed = dismissed.has(rec.id);
             return `
-            <div class="icg-rec-card is-collapsed${isDismissed ? ' is-dismissed' : ''}" data-rec-id="${rec.id}" data-rec-toggle>
+            <div class="icg-rec-card is-collapsed${isDismissed ? ' is-dismissed' : ''}" data-rec-id="${rec.id}" data-rec-domain="${rec.domain}" data-rec-toggle>
               <div class="icg-rec-body">
-                <div class="icg-rec-body__title"><span class="icg-rec-badge icg-rec-badge--${rec.impact}">${rec.impact}</span>${rec.title}<span class="icg-rec-chevron"></span></div>
+                <div class="icg-rec-body__title"><span class="icg-rec-badge icg-rec-badge--${rec.impact}">${rec.impact}</span><span class="icg-rec-badge icg-rec-badge--effort">${rec.effort.replace('-', ' ')}</span><button class="icg-rec-na" data-dismiss="${rec.id}" type="button" title="${isDismissed ? 'Restore this recommendation to the active list' : 'Mark as not applicable. Dismissed items are excluded from the printed report.'}">${isDismissed ? 'Restore' : 'N/A'}</button>${rec.title}<span class="icg-rec-chevron"></span></div>
                 <div class="icg-rec-body__desc">${rec.description}</div>
               </div>
-              <button class="icg-rec-na" data-dismiss="${rec.id}" type="button" title="${isDismissed ? 'Restore this recommendation to the active list' : 'Mark as not applicable. Dismissed items are excluded from the printed report.'}">${isDismissed ? 'Restore' : 'N/A'}</button>
             </div>`;
           }).join('')}
         </div>`;
@@ -1302,9 +2248,9 @@ function renderResults(): void {
 
     recsContainer.innerHTML = `
       <div class="icg-section-label">Prioritized recommendations (${activeCount} of ${recs.length})</div>
-      ${renderGroup(high, 'High', 'high', '#E24B4A')}
-      ${renderGroup(med, 'Medium', 'medium', 'var(--color-secondary)')}
-      ${renderGroup(low, 'Low', 'low', 'var(--text-light-muted)')}
+      ${renderGroup(high, 'High', '#E24B4A')}
+      ${renderGroup(med, 'Medium', 'var(--color-secondary)')}
+      ${renderGroup(low, 'Low', 'var(--text-light-muted)')}
     `;
 
     // Wire expand/collapse toggle on the entire card
@@ -1337,11 +2283,51 @@ function renderResults(): void {
 // ─── Init ───────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Restore URL state
+  // Restore state: URL params take priority, then localStorage fallback
   const urlState = readUrlState();
-  if (urlState) Object.assign(state, urlState);
+  if (urlState && (urlState.currentStep ?? 0) > 0) {
+    // URL has in-progress state — restore directly
+    Object.assign(state, urlState);
+  } else {
+    const saved = loadFromStorage();
+    if (saved && saved.currentStep > 0) {
+      // localStorage has in-progress state — show resume prompt
+      hasPendingResume = true;
+      const prompt = qs<HTMLElement>('[data-resume-prompt]');
+      prompt.classList.remove('is-hidden');
+
+      qs<HTMLElement>('[data-action="resume"]').addEventListener('click', () => {
+        Object.assign(state, saved);
+        prompt.classList.add('is-hidden');
+        hasPendingResume = false;
+        render();
+      });
+
+      qs<HTMLElement>('[data-action="discard"]').addEventListener('click', () => {
+        clearStorage();
+        prompt.classList.add('is-hidden');
+        hasPendingResume = false;
+      });
+    }
+  }
 
   render();
+
+  // ── Stage selector ──
+  function syncStageCards(): void {
+    document.querySelectorAll('[data-stage]').forEach(b =>
+      b.classList.toggle('icg-stage-card--active', (b as HTMLElement).dataset.stage === state.companyStage)
+    );
+  }
+  syncStageCards();
+
+  document.querySelectorAll('[data-stage]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const stage = (btn as HTMLElement).dataset.stage as CompanyStage;
+      state.companyStage = state.companyStage === stage ? undefined : stage;
+      syncStageCards();
+    });
+  });
 
   // ── Global actions ──
   qs<HTMLElement>('[data-action="start"]').addEventListener('click', () => {
@@ -1351,19 +2337,43 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   qs<HTMLElement>('[data-action="back"]').addEventListener('click', () => {
-    state.currentStep = state.currentStep > 1 ? state.currentStep - 1 : 0;
+    if (reviewMode && state.currentStep === 1) {
+      reviewMode = false;
+      state.currentStep = 7;
+    } else {
+      state.currentStep = state.currentStep > 1 ? state.currentStep - 1 : 0;
+    }
     render();
   });
 
   qs<HTMLElement>('[data-action="next"]').addEventListener('click', () => {
+    if (reviewMode && state.currentStep === 6) {
+      reviewMode = false;
+      state.currentStep = 7;
+      render();
+      qs<HTMLElement>('[data-icg]').scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
     const nextStep = state.currentStep < 6 ? state.currentStep + 1 : 7;
-    if (nextStep <= 6) {
-      trackEvent({ event: 'icg_domain_advance', category: 'engagement', domain: DOMAINS[nextStep - 1].name, step: nextStep });
-    } else {
-      const result = calculateResults(state, DOMAINS);
-      trackEvent({ event: 'icg_assessment_complete', category: 'engagement', score: result.overallScore, maturity_level: result.maturityLevel });
+    if (!reviewMode) {
+      if (nextStep <= 6) {
+        trackEvent({ event: 'icg_domain_advance', category: 'engagement', domain: DOMAINS[nextStep - 1].name, step: nextStep });
+      } else {
+        const result = calculateResults(state, DOMAINS);
+        trackEvent({ event: 'icg_assessment_complete', category: 'engagement', score: result.overallScore, maturity_level: result.maturityLevel });
+      }
     }
     state.currentStep = nextStep;
+    render();
+    if (nextStep === 7) {
+      qs<HTMLElement>('[data-icg]').scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+
+  qs<HTMLElement>('[data-action="review"]').addEventListener('click', () => {
+    trackEvent({ event: 'icg_review_answers', category: 'engagement' });
+    reviewMode = true;
+    state.currentStep = 1;
     render();
   });
 
@@ -1372,12 +2382,46 @@ document.addEventListener('DOMContentLoaded', () => {
     state.currentStep = 0;
     state.answers = {};
     state.dismissed = [];
+    state.companyStage = undefined;
+    clearStorage();
     render();
+    syncStageCards();
   });
 
   qs<HTMLElement>('[data-action="print"]').addEventListener('click', () => {
     trackEvent({ event: 'icg_print', category: 'engagement' });
     window.print();
+  });
+
+  qs<HTMLElement>('[data-action="export-json"]').addEventListener('click', () => {
+    trackEvent({ event: 'icg_export_json', category: 'engagement' });
+    const result = calculateResults(state, DOMAINS);
+    const recs = getRecommendations(state, RECOMMENDATIONS)
+      .filter(r => !state.dismissed.includes(r.id));
+    const payload = buildExportPayload(state, result, recs);
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `icg-assessment-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  qs<HTMLElement>('[data-action="copy-summary"]').addEventListener('click', () => {
+    trackEvent({ event: 'icg_copy_summary', category: 'engagement' });
+    const btn = qs<HTMLButtonElement>('[data-action="copy-summary"]');
+    const result = calculateResults(state, DOMAINS);
+    const recs = getRecommendations(state, RECOMMENDATIONS)
+      .filter(r => !state.dismissed.includes(r.id));
+    const text = buildSummaryText(state, result, DOMAINS, recs, window.location.href);
+    const reset = () => { btn.textContent = 'Copy summary'; };
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(
+        () => { btn.textContent = 'Copied!'; setTimeout(reset, 2000); },
+        () => { btn.textContent = 'Failed'; setTimeout(reset, 2000); },
+      );
+    }
   });
 
   qs<HTMLElement>('[data-action="copy"]').addEventListener('click', () => {
@@ -1410,5 +2454,167 @@ document.addEventListener('DOMContentLoaded', () => {
   landingEmail.addEventListener('click', () => {
     trackEvent({ event: 'icg_send_email', category: 'engagement', location: 'landing' });
   });
+
+  // ── Snapshot & comparison ──
+  const saveSnapshotBtn = qs<HTMLButtonElement>('[data-action="save-snapshot"]');
+  const compareBtn = qs<HTMLButtonElement>('[data-action="compare"]');
+
+  function renderSnapshotManager(): void {
+    const snaps = loadSnapshots();
+    const manager = qs<HTMLElement>('[data-snapshot-manager]');
+    const list = qs<HTMLElement>('[data-snapshot-list]');
+
+    compareBtn.classList.toggle('is-hidden', snaps.length < 2);
+    manager.classList.toggle('is-hidden', snaps.length === 0);
+
+    if (snaps.length === 0) return;
+
+    list.innerHTML = snaps.map(s => {
+      const decoded = decodeState(s.encodedState);
+      const score = decoded?.answers
+        ? calculateResults({ ...DEFAULT_STATE, ...decoded }, DOMAINS).overallScore
+        : '?';
+      return `
+        <div class="icg-snapshot-row">
+          <span class="icg-snapshot-row__info">
+            <span>${escHtml(s.label)}</span>
+            <span class="icg-snapshot-row__score">${score}/100</span>
+          </span>
+          <button class="icg-snapshot-row__delete" data-delete-snapshot="${s.id}" type="button" title="Delete this snapshot">&times;</button>
+        </div>`;
+    }).join('');
+
+    // Wire delete buttons
+    list.querySelectorAll('[data-delete-snapshot]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = (btn as HTMLElement).dataset.deleteSnapshot!;
+        deleteSnapshot(id);
+        renderSnapshotManager();
+      });
+    });
+  }
+
+  saveSnapshotBtn.addEventListener('click', () => {
+    trackEvent({ event: 'icg_save_snapshot', category: 'engagement' });
+    const labelInput = qs<HTMLInputElement>('[data-snapshot-label]');
+    const customLabel = labelInput.value.trim();
+    const defaultLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const snap: ICGSnapshot = {
+      id: crypto.randomUUID?.() ?? Date.now().toString(36),
+      label: customLabel || defaultLabel,
+      timestamp: new Date().toISOString(),
+      encodedState: encodeState(state),
+    };
+    saveSnapshot(snap);
+    labelInput.value = '';
+    saveSnapshotBtn.textContent = 'Saved!';
+    setTimeout(() => { saveSnapshotBtn.textContent = 'Save snapshot'; }, 2000);
+    renderSnapshotManager();
+  });
+
+  function showComparison(snapA: ICGSnapshot, snapB: ICGSnapshot): void {
+    const comparison = compareSnapshots(snapA, snapB, DOMAINS);
+    if (!comparison) return;
+
+    const compBody = qs<HTMLElement>('[data-comparison-body]');
+    const deltaClass = (d: number) => d > 0 ? 'icg-delta--positive' : d < 0 ? 'icg-delta--negative' : 'icg-delta--neutral';
+    const deltaText = (d: number) => d > 0 ? `+${d}` : `${d}`;
+
+    compBody.innerHTML = `
+      <div class="icg-comparison-overall icg-comparison-row">
+        <span class="icg-comparison-row__name">Overall score</span>
+        <span class="icg-comparison-row__scores">
+          <span class="icg-comparison-row__score">${comparison.a.overallScore}</span>
+          <span class="icg-comparison-row__score">&rarr;</span>
+          <span class="icg-comparison-row__score">${comparison.b.overallScore}</span>
+          <span class="icg-delta ${deltaClass(comparison.overallDelta)}">${deltaText(comparison.overallDelta)}</span>
+        </span>
+      </div>
+      <div class="icg-section-label" style="margin-top:var(--spacing-md)">${escHtml(comparison.a.label)} &rarr; ${escHtml(comparison.b.label)}</div>
+      ${comparison.domainDeltas.map(dd => `
+        <div class="icg-comparison-row">
+          <span class="icg-comparison-row__name">${dd.name}</span>
+          <span class="icg-comparison-row__scores">
+            <span class="icg-comparison-row__score">${dd.scoreA}</span>
+            <span class="icg-comparison-row__score">&rarr;</span>
+            <span class="icg-comparison-row__score">${dd.scoreB}</span>
+            <span class="icg-delta ${deltaClass(dd.delta)}">${deltaText(dd.delta)}</span>
+          </span>
+        </div>
+      `).join('')}
+    `;
+
+    qs<HTMLElement>('[data-view="results"]').classList.add('is-hidden');
+    qs<HTMLElement>('[data-view="comparison"]').classList.remove('is-hidden');
+    qs<HTMLElement>('[data-icg]').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  compareBtn.addEventListener('click', () => {
+    trackEvent({ event: 'icg_compare', category: 'engagement' });
+    const snaps = loadSnapshots();
+    if (snaps.length < 2) return;
+
+    // Auto-compare when exactly 2 snapshots
+    if (snaps.length === 2) {
+      showComparison(snaps[0], snaps[1]);
+      return;
+    }
+
+    // Show selection UI for 3+ snapshots
+    const compBody = qs<HTMLElement>('[data-comparison-body]');
+    compBody.innerHTML = `
+      <div class="icg-snapshot-select">
+        <p class="text-small" style="margin-bottom:var(--spacing-md)">Select two snapshots to compare:</p>
+        ${snaps.map((s, i) => {
+          const decoded = decodeState(s.encodedState);
+          const score = decoded?.answers
+            ? calculateResults({ ...DEFAULT_STATE, ...decoded }, DOMAINS).overallScore
+            : '?';
+          return `
+            <div class="icg-snapshot-item">
+              <input type="checkbox" id="snap-sel-${i}" data-snap-select="${i}" />
+              <label for="snap-sel-${i}">${escHtml(s.label)} <span class="icg-snapshot-item__date">${score}/100</span></label>
+            </div>`;
+        }).join('')}
+        <button data-action="compare-selected" type="button" class="icg-btn-primary" disabled style="margin-top:var(--spacing-md);width:100%">Compare selected</button>
+      </div>`;
+
+    const checkboxes = compBody.querySelectorAll<HTMLInputElement>('[data-snap-select]');
+    const compareSelBtn = compBody.querySelector<HTMLButtonElement>('[data-action="compare-selected"]')!;
+
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        const checked = Array.from(checkboxes).filter(c => c.checked);
+        if (checked.length > 2) { cb.checked = false; return; }
+        compareSelBtn.disabled = checked.length !== 2;
+      });
+    });
+
+    compareSelBtn.addEventListener('click', () => {
+      const checked = Array.from(checkboxes).filter(c => c.checked);
+      if (checked.length !== 2) return;
+      const idxA = Number(checked[0].dataset.snapSelect);
+      const idxB = Number(checked[1].dataset.snapSelect);
+      showComparison(snaps[idxA], snaps[idxB]);
+    });
+
+    qs<HTMLElement>('[data-view="results"]').classList.add('is-hidden');
+    qs<HTMLElement>('[data-view="comparison"]').classList.remove('is-hidden');
+    qs<HTMLElement>('[data-icg]').scrollIntoView({ behavior: 'smooth' });
+  });
+
+  qs<HTMLElement>('[data-action="back-to-results"]').addEventListener('click', () => {
+    qs<HTMLElement>('[data-view="comparison"]').classList.add('is-hidden');
+    qs<HTMLElement>('[data-view="results"]').classList.remove('is-hidden');
+    qs<HTMLElement>('[data-icg]').scrollIntoView({ behavior: 'smooth' });
+  });
+
+  qs<HTMLElement>('[data-action="clear-snapshots"]').addEventListener('click', () => {
+    clearAllSnapshots();
+    renderSnapshotManager();
+  });
+
+  // Initial render of snapshot manager
+  renderSnapshotManager();
 });
 </script>

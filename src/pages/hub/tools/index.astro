@@ -3,23 +3,23 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../components/hub/HubHeader.astro';
 import { trackPageView } from '../../../utils/analytics';
 
-trackPageView('hub-tools', 'The Workbench - Tools | GST');
+trackPageView('hub-tools', 'Tools | GST');
 
 const isDev = import.meta.env.DEV;
 ---
 
 <BaseLayout
-    title="The Workbench | GST"
+    title="Tools | GST"
     description="Interactive calculators and generators to quantify risk and value in technology investments."
-    ogTitle="The Workbench - Tools | GST"
+    ogTitle="Tools | GST"
     ogDescription="Interactive tools for technology investment analysis and risk quantification."
     ogImage="/og-image.png"
     ogUrl="https://globalstrategic.tech/hub/tools"
 >
-    <section class="workbench-section">
+    <section class="tools-section">
         <div class="container">
             <HubHeader
-                title="The Workbench"
+                title="Tools"
                 subtitle="Strategic tools for quantifying risk and value in technology investments."
             />
 
@@ -165,7 +165,7 @@ const isDev = import.meta.env.DEV;
 </BaseLayout>
 
 <style>
-    .workbench-section {
+    .tools-section {
         padding-bottom: var(--spacing-3xl);
     }
 
