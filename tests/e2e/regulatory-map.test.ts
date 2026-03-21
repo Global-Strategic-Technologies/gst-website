@@ -51,10 +51,10 @@ test.describe('Regulatory Map E2E', () => {
       await expect(legend).toContainText('No data');
     });
 
-    test('should have Back to The Workbench link', async ({ page }) => {
+    test('should have Back to Tools link', async ({ page }) => {
       const backLink = page.locator('a.back-link');
       await expect(backLink).toBeVisible();
-      await expect(backLink).toContainText('Back to The Workbench');
+      await expect(backLink).toContainText('Back to Tools');
       expect(await backLink.getAttribute('href')).toBe('/hub/tools');
     });
 
@@ -197,13 +197,13 @@ test.describe('Regulatory Map E2E', () => {
   });
 
   test.describe('5. Navigation', () => {
-    test('should navigate back to The Workbench', async ({ page }) => {
+    test('should navigate back to Tools', async ({ page }) => {
       await page.evaluate(() => (document.querySelector('a.back-link') as HTMLElement)?.click());
       await page.waitForURL('**/hub/tools', { timeout: 10000 });
       await expect(page).toHaveURL(/\/hub\/tools$/);
     });
 
-    test('should have Regulatory Map card on Workbench page', async ({ page }) => {
+    test('should have Regulatory Map card on Tools page', async ({ page }) => {
       await page.goto('/hub/tools', { waitUntil: 'domcontentloaded' });
       const regMapLink = page.locator('a[href="/hub/tools/regulatory-map"]');
       await expect(regMapLink).toBeVisible();

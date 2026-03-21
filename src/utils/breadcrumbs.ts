@@ -12,7 +12,7 @@ export const BREADCRUMB_NAMES: Record<string, string> = {
   'privacy': 'Privacy Policy',
   'terms': 'Terms of Service',
   'hub': 'The GST Hub',
-  'tools': 'The Workbench',
+  'tools': 'Tools',
   'diligence-machine': 'Diligence Machine',
   'library': 'The Library',
   'business-architectures': 'Business Architectures',
