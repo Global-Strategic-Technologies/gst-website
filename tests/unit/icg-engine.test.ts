@@ -22,10 +22,12 @@ import {
   getQuickWins,
   compareSnapshots,
   buildRadarPoints,
+  contextualizeScore,
+  BENCHMARK_RANGES,
   DEFAULT_STATE,
 } from '../../src/utils/icg-engine';
 
-import type { ICGState, DomainScore, ICGSnapshot } from '../../src/utils/icg-engine';
+import type { ICGState, DomainScore, ICGSnapshot, CompanyStage } from '../../src/utils/icg-engine';
 
 import { DOMAINS, ANSWER_OPTIONS, TOTAL_QUESTIONS } from '../../src/data/infrastructure-cost-governance/domains';
 import { RECOMMENDATIONS } from '../../src/data/infrastructure-cost-governance/recommendations';
@@ -104,44 +106,44 @@ describe('getMaturityLevel', () => {
 describe('checkFoundationalFlag', () => {
   it('returns true when foundational domain score is exactly 33', () => {
     const scores: DomainScore[] = [
-      { domainId: 'd1', name: 'Test', score: 33, rawScore: 3, maxScore: 9, isFoundational: true, belowFoundationalThreshold: true },
+      { domainId: 'd1', name: 'Test', score: 33, rawScore: 3, maxScore: 9, isFoundational: true, belowFoundationalThreshold: true, skippedCount: 0 },
     ];
     expect(checkFoundationalFlag(scores)).toBe(true);
   });
 
   it('returns false when foundational domain score is 34', () => {
     const scores: DomainScore[] = [
-      { domainId: 'd1', name: 'Test', score: 34, rawScore: 3, maxScore: 9, isFoundational: true, belowFoundationalThreshold: false },
+      { domainId: 'd1', name: 'Test', score: 34, rawScore: 3, maxScore: 9, isFoundational: true, belowFoundationalThreshold: false, skippedCount: 0 },
     ];
     expect(checkFoundationalFlag(scores)).toBe(false);
   });
 
   it('returns false when no foundational domain exists', () => {
     const scores: DomainScore[] = [
-      { domainId: 'd3', name: 'Test', score: 10, rawScore: 1, maxScore: 9, isFoundational: false, belowFoundationalThreshold: false },
+      { domainId: 'd3', name: 'Test', score: 10, rawScore: 1, maxScore: 9, isFoundational: false, belowFoundationalThreshold: false, skippedCount: 0 },
     ];
     expect(checkFoundationalFlag(scores)).toBe(false);
   });
 
   it('returns true when foundational domain score is 0', () => {
     const scores: DomainScore[] = [
-      { domainId: 'd1', name: 'Test', score: 0, rawScore: 0, maxScore: 9, isFoundational: true, belowFoundationalThreshold: true },
+      { domainId: 'd1', name: 'Test', score: 0, rawScore: 0, maxScore: 9, isFoundational: true, belowFoundationalThreshold: true, skippedCount: 0 },
     ];
     expect(checkFoundationalFlag(scores)).toBe(true);
   });
 
   it('returns true when second foundational domain is below threshold', () => {
     const scores: DomainScore[] = [
-      { domainId: 'd1', name: 'Visibility', score: 67, rawScore: 6, maxScore: 9, isFoundational: true, belowFoundationalThreshold: false },
-      { domainId: 'd2', name: 'Account Structure', score: 25, rawScore: 3, maxScore: 12, isFoundational: true, belowFoundationalThreshold: true },
+      { domainId: 'd1', name: 'Visibility', score: 67, rawScore: 6, maxScore: 9, isFoundational: true, belowFoundationalThreshold: false, skippedCount: 0 },
+      { domainId: 'd2', name: 'Account Structure', score: 25, rawScore: 3, maxScore: 12, isFoundational: true, belowFoundationalThreshold: true, skippedCount: 0 },
     ];
     expect(checkFoundationalFlag(scores)).toBe(true);
   });
 
   it('returns true when both foundational domains are below threshold', () => {
     const scores: DomainScore[] = [
-      { domainId: 'd1', name: 'Visibility', score: 33, rawScore: 3, maxScore: 9, isFoundational: true, belowFoundationalThreshold: true },
-      { domainId: 'd2', name: 'Account Structure', score: 25, rawScore: 3, maxScore: 12, isFoundational: true, belowFoundationalThreshold: true },
+      { domainId: 'd1', name: 'Visibility', score: 33, rawScore: 3, maxScore: 9, isFoundational: true, belowFoundationalThreshold: true, skippedCount: 0 },
+      { domainId: 'd2', name: 'Account Structure', score: 25, rawScore: 3, maxScore: 12, isFoundational: true, belowFoundationalThreshold: true, skippedCount: 0 },
     ];
     expect(checkFoundationalFlag(scores)).toBe(true);
   });
@@ -221,11 +223,12 @@ describe('calculateResults', () => {
     expect(result2.showFoundationalFlag).toBe(false);
   });
 
-  it('reports correct answeredCount', () => {
-    const answers = { q1_1: 2, q1_2: 1, q1_3: 3 };
+  it('reports correct answeredCount (includes -1 entries)', () => {
+    const answers = { q1_1: 2, q1_2: 1, q1_3: -1 };
     const state = makeState({ answers, currentStep: 2 });
     const result = calculateResults(state, DOMAINS);
     expect(result.answeredCount).toBe(3);
+    expect(result.skippedCount).toBe(1); // only q1_3 is -1
   });
 
   it('reports correct totalQuestions', () => {
@@ -280,11 +283,17 @@ describe('getRecommendations', () => {
     expect(recs).toHaveLength(0);
   });
 
-  it('treats unanswered questions as score 0', () => {
-    // Empty answers means every question defaults to 0
+  it('treats unanswered questions as score 0 for triggering', () => {
     const state = makeState({ answers: {} });
     const recs = getRecommendations(state, RECOMMENDATIONS);
     expect(recs.length).toBeGreaterThan(0);
+  });
+
+  it('treats -1 ("Not sure") as score 0 for triggering', () => {
+    const state = makeState({ answers: { q1_1: -1 } });
+    const recs = getRecommendations(state, RECOMMENDATIONS);
+    const q1_1recs = recs.filter(r => r.triggerQuestionId === 'q1_1');
+    expect(q1_1recs.length).toBeGreaterThan(0);
   });
 });
 
@@ -558,15 +567,50 @@ describe('buildSummaryText', () => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('Not sure (-1) answers', () => {
-  it('treats -1 answers as 0 in calculateResults', () => {
-    const answersNeg = allAnswers(-1);
-    const answersZero = allAnswers(0);
+  it('scores -1 worse than "Not in place" (0)', () => {
+    // D1 has 3 questions. All at 0 = 0/9 = 0%. All at -1 = -3/9 = clamped to 0%.
+    // But mix shows the penalty: two 2s + one -1 vs two 2s + one 0
+    const withZero = { ...domainAnswers('d1', 2), q1_3: 0 };
+    const withNotSure = { ...domainAnswers('d1', 2), q1_3: -1 };
 
-    const resultNeg = calculateResults(makeState({ answers: answersNeg }), DOMAINS);
-    const resultZero = calculateResults(makeState({ answers: answersZero }), DOMAINS);
+    const resultZero = calculateResults(makeState({ answers: withZero }), DOMAINS);
+    const resultNotSure = calculateResults(makeState({ answers: withNotSure }), DOMAINS);
 
-    expect(resultNeg.overallScore).toBe(resultZero.overallScore);
-    expect(resultNeg.overallScore).toBe(0);
+    const d1Zero = resultZero.domainScores.find(d => d.domainId === 'd1')!;
+    const d1NotSure = resultNotSure.domainScores.find(d => d.domainId === 'd1')!;
+
+    // Two 2s + one 0 = 4/9 = 44%
+    expect(d1Zero.score).toBe(44);
+    // Two 2s + one -1 = 3/9 = 33%
+    expect(d1NotSure.score).toBe(33);
+    expect(d1NotSure.score).toBeLessThan(d1Zero.score);
+  });
+
+  it('clamps domain score at 0% (never negative)', () => {
+    const state = makeState({ answers: allAnswers(-1), currentStep: 7 });
+    const result = calculateResults(state, DOMAINS);
+
+    expect(result.overallScore).toBe(0);
+    result.domainScores.forEach(ds => {
+      expect(ds.score).toBe(0);
+      expect(ds.score).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  it('tracks skippedCount for diagnostic visibility', () => {
+    const answers: Record<string, number> = {
+      ...domainAnswers('d1', 2),   // D1: all answered at 2
+      ...domainAnswers('d2', -1),  // D2: all "Not sure"
+    };
+    const state = makeState({ answers, currentStep: 7 });
+    const result = calculateResults(state, DOMAINS);
+
+    const d1 = result.domainScores.find(d => d.domainId === 'd1')!;
+    const d2 = result.domainScores.find(d => d.domainId === 'd2')!;
+
+    expect(d1.skippedCount).toBe(0);
+    expect(d2.skippedCount).toBe(4);
+    expect(result.skippedCount).toBe(4);
   });
 
   it('decodeState accepts -1 values', () => {
@@ -579,12 +623,23 @@ describe('Not sure (-1) answers', () => {
     expect(decoded!.answers!.q1_2).toBe(2);
   });
 
-  it('triggers recommendations on -1 answers', () => {
+  it('triggers recommendations for -1 answers (ignorance is actionable)', () => {
     const state = makeState({ answers: { q1_1: -1 } });
     const recs = getRecommendations(state, RECOMMENDATIONS);
     const q1_1recs = recs.filter(r => r.triggerQuestionId === 'q1_1');
-
     expect(q1_1recs.length).toBeGreaterThan(0);
+  });
+
+  it('summary text includes "Not sure" count when present', () => {
+    const answers: Record<string, number> = { ...allAnswers(2) };
+    answers.q1_1 = -1;
+    answers.q3_2 = -1;
+    const state = makeState({ answers, currentStep: 7 });
+    const result = calculateResults(state, DOMAINS);
+    const text = buildSummaryText(state, result, DOMAINS, []);
+
+    expect(result.skippedCount).toBe(2);
+    expect(text).toContain('"Not sure" responses: 2');
   });
 });
 
@@ -599,7 +654,7 @@ describe('buildExportPayload', () => {
     const recs = getRecommendations(state, RECOMMENDATIONS);
     const payload = buildExportPayload(state, result, recs);
 
-    expect(payload.toolVersion).toBe('1.0');
+    expect(payload.toolVersion).toBe('1.1');
     expect(payload.exportedAt).toBeTruthy();
     expect(payload.overallScore).toBe(result.overallScore);
     expect(payload.maturityLevel).toBe(result.maturityLevel);
@@ -630,21 +685,36 @@ describe('buildExportPayload', () => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('getQuickWins', () => {
-  it('returns high-impact recs for worst-case answers', () => {
+  it('returns high-impact quick-win recs for worst-case answers', () => {
     const state = makeState({ answers: allAnswers(0) });
     const recs = getRecommendations(state, RECOMMENDATIONS);
-    const quickWins = getQuickWins(state, recs);
+    const quickWins = getQuickWins(recs);
 
     expect(quickWins.length).toBeLessThanOrEqual(3);
+    expect(quickWins.length).toBeGreaterThan(0);
     quickWins.forEach(qw => {
       expect(qw.impact).toBe('high');
+      expect(qw.effort).toBe('quick-win');
+    });
+  });
+
+  it('returns quick wins for all-Ad-hoc (1) answers', () => {
+    const state = makeState({ answers: allAnswers(1) });
+    const recs = getRecommendations(state, RECOMMENDATIONS);
+    const quickWins = getQuickWins(recs);
+
+    // Previously returned empty — this is the fix
+    expect(quickWins.length).toBeGreaterThan(0);
+    quickWins.forEach(qw => {
+      expect(qw.impact).toBe('high');
+      expect(qw.effort).toBe('quick-win');
     });
   });
 
   it('returns empty for all-optimized answers', () => {
     const state = makeState({ answers: allAnswers(3) });
     const recs = getRecommendations(state, RECOMMENDATIONS);
-    const quickWins = getQuickWins(state, recs);
+    const quickWins = getQuickWins(recs);
 
     expect(quickWins).toHaveLength(0);
   });
@@ -652,7 +722,7 @@ describe('getQuickWins', () => {
   it('respects limit parameter', () => {
     const state = makeState({ answers: allAnswers(0) });
     const recs = getRecommendations(state, RECOMMENDATIONS);
-    const quickWins = getQuickWins(state, recs, 1);
+    const quickWins = getQuickWins(recs, 1);
 
     expect(quickWins).toHaveLength(1);
   });
@@ -720,7 +790,7 @@ describe('buildRadarPoints', () => {
   it('returns 6 coordinate pairs for 6 domains', () => {
     const scores: DomainScore[] = DOMAINS.map(d => ({
       domainId: d.id, name: d.name, score: 50, rawScore: 0, maxScore: 0,
-      isFoundational: false, belowFoundationalThreshold: false,
+      isFoundational: false, belowFoundationalThreshold: false, skippedCount: 0,
     }));
 
     const points = buildRadarPoints(scores, 150, 150, 110);
@@ -737,7 +807,7 @@ describe('buildRadarPoints', () => {
   it('returns center point for zero scores', () => {
     const scores: DomainScore[] = DOMAINS.map(d => ({
       domainId: d.id, name: d.name, score: 0, rawScore: 0, maxScore: 0,
-      isFoundational: false, belowFoundationalThreshold: false,
+      isFoundational: false, belowFoundationalThreshold: false, skippedCount: 0,
     }));
 
     const points = buildRadarPoints(scores, 150, 150, 110);
@@ -772,6 +842,102 @@ describe('Data integrity — rationale field', () => {
         expect(q.rationale).toBeTruthy();
         expect(q.rationale.length).toBeGreaterThan(20);
       }
+    }
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// contextualizeScore
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('contextualizeScore', () => {
+  it('returns null when no stage is provided', () => {
+    expect(contextualizeScore(50)).toBeNull();
+    expect(contextualizeScore(50, undefined)).toBeNull();
+  });
+
+  it('returns "below" for score under range', () => {
+    const msg = contextualizeScore(10, 'pre-series-b');
+    expect(msg).toContain('below');
+    expect(msg).toContain('Pre-Series B');
+  });
+
+  it('returns "within" for score inside range', () => {
+    const msg = contextualizeScore(25, 'pre-series-b');
+    expect(msg).toContain('within');
+  });
+
+  it('returns "above" for score over range', () => {
+    const msg = contextualizeScore(40, 'pre-series-b');
+    expect(msg).toContain('above');
+  });
+
+  it('returns correct message for PE-backed stage', () => {
+    const msg = contextualizeScore(55, 'pe-backed');
+    expect(msg).toContain('within');
+    expect(msg).toContain('PE-backed');
+  });
+
+  it('includes score in message', () => {
+    const msg = contextualizeScore(42, 'series-bc');
+    expect(msg).toContain('42');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Company stage encoding
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('encodeState / decodeState with companyStage', () => {
+  it('round-trips companyStage', () => {
+    const state: ICGState = {
+      currentStep: 1,
+      answers: { q1_1: 2 },
+      dismissed: [],
+      companyStage: 'pe-backed',
+    };
+    const encoded = encodeState(state);
+    const decoded = decodeState(encoded);
+
+    expect(decoded?.companyStage).toBe('pe-backed');
+  });
+
+  it('omits stage key when not set', () => {
+    const state: ICGState = {
+      currentStep: 1,
+      answers: {},
+      dismissed: [],
+    };
+    const encoded = encodeState(state);
+    const raw = JSON.parse(atob(encoded));
+    expect(raw.g).toBeUndefined();
+  });
+
+  it('decodes old URLs without stage gracefully', () => {
+    const encoded = btoa(JSON.stringify({ s: 7, a: { q1_1: 2 } }));
+    const decoded = decodeState(encoded);
+    expect(decoded?.companyStage).toBeUndefined();
+  });
+
+  it('rejects invalid stage values', () => {
+    const encoded = btoa(JSON.stringify({ s: 1, a: {}, g: 'invalid-stage' }));
+    const decoded = decodeState(encoded);
+    expect(decoded?.companyStage).toBeUndefined();
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// BENCHMARK_RANGES
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('BENCHMARK_RANGES', () => {
+  it('has 4 ranges', () => {
+    expect(BENCHMARK_RANGES).toHaveLength(4);
+  });
+
+  it('each range has valid low < high', () => {
+    for (const r of BENCHMARK_RANGES) {
+      expect(r.low).toBeLessThan(r.high);
     }
   });
 });

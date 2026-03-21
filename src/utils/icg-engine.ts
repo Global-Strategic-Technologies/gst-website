@@ -10,10 +10,13 @@ import type { Recommendation } from '../data/infrastructure-cost-governance/reco
 
 // ─── State & result types ────────────────────────────────────────────────────
 
+export type CompanyStage = 'pre-series-b' | 'series-bc' | 'pe-backed' | 'enterprise';
+
 export interface ICGState {
   answers: Record<string, number>;
   currentStep: number;
   dismissed: string[];
+  companyStage?: CompanyStage;
 }
 
 export interface DomainScore {
@@ -24,6 +27,7 @@ export interface DomainScore {
   maxScore: number;
   isFoundational: boolean;
   belowFoundationalThreshold: boolean;
+  skippedCount: number;
 }
 
 export interface ICGResult {
@@ -35,6 +39,7 @@ export interface ICGResult {
   recommendations: Recommendation[];
   answeredCount: number;
   totalQuestions: number;
+  skippedCount: number;
 }
 
 // ─── Maturity level ──────────────────────────────────────────────────────────
@@ -63,7 +68,12 @@ export function getRecommendations(
   allRecs: readonly Recommendation[],
 ): Recommendation[] {
   return allRecs
-    .filter(r => (state.answers[r.triggerQuestionId] ?? 0) <= r.triggerThreshold)
+    .filter(r => {
+      const answer = state.answers[r.triggerQuestionId];
+      // -1 ("Not sure") and undefined both treated as 0 for triggering
+      const effective = (answer === undefined || answer === -1) ? 0 : answer;
+      return effective <= r.triggerThreshold;
+    })
     .sort((a, b) => {
       const impactDiff = IMPACT_ORDER[a.impact] - IMPACT_ORDER[b.impact];
       if (impactDiff !== 0) return impactDiff;
@@ -77,12 +87,17 @@ export function getRecommendations(
 
 export function calculateResults(state: ICGState, domains: readonly Domain[]): ICGResult {
   const totalQuestions = domains.reduce((sum, d) => sum + d.questions.length, 0);
-  const answeredCount = Object.keys(state.answers).length;
 
   const domainScores: DomainScore[] = domains.map(d => {
     const maxScore = d.questions.length * 3;
-    const rawScore = d.questions.reduce((sum, q) => sum + Math.max(0, state.answers[q.id] ?? 0), 0);
-    const score = Math.round((rawScore / maxScore) * 100);
+    const skippedCount = d.questions.filter(q => state.answers[q.id] === -1).length;
+    // -1 ("Not sure") scores as -1 — ignorance is worse than known absence (0)
+    // Unanswered questions default to 0; "Not sure" actively penalizes
+    const rawScore = d.questions.reduce((sum, q) => {
+      const a = state.answers[q.id];
+      return sum + (a === undefined ? 0 : a);
+    }, 0);
+    const score = Math.max(0, Math.round((rawScore / maxScore) * 100));
     return {
       domainId: d.id,
       name: d.name,
@@ -91,8 +106,12 @@ export function calculateResults(state: ICGState, domains: readonly Domain[]): I
       maxScore,
       isFoundational: d.foundational,
       belowFoundationalThreshold: d.foundational && score <= 33,
+      skippedCount,
     };
   });
+
+  const answeredCount = Object.keys(state.answers).length;
+  const skippedCount = Object.values(state.answers).filter(v => v === -1).length;
 
   const totalWeight = domains.reduce((sum, d) => sum + d.weight, 0);
   const weightedSum = domainScores.reduce((sum, ds, i) => {
@@ -112,6 +131,7 @@ export function calculateResults(state: ICGState, domains: readonly Domain[]): I
     recommendations: [], // populated separately via getRecommendations
     answeredCount,
     totalQuestions,
+    skippedCount,
   };
 }
 
@@ -126,6 +146,9 @@ export function encodeState(state: ICGState): string {
   };
   if (state.dismissed.length > 0) {
     compact.d = state.dismissed;
+  }
+  if (state.companyStage) {
+    compact.g = state.companyStage;
   }
   return btoa(JSON.stringify(compact));
 }
@@ -156,6 +179,11 @@ export function decodeState(encoded: string): Partial<ICGState> | null {
       out.dismissed = raw.d.filter((v: unknown) => typeof v === 'string');
     }
 
+    const VALID_STAGES: CompanyStage[] = ['pre-series-b', 'series-bc', 'pe-backed', 'enterprise'];
+    if (typeof raw.g === 'string' && VALID_STAGES.includes(raw.g as CompanyStage)) {
+      out.companyStage = raw.g as CompanyStage;
+    }
+
     return out;
   } catch {
     return null;
@@ -181,6 +209,10 @@ export function buildSummaryText(
     `Overall score: ${result.overallScore}/100 (${level})`,
     `Questions answered: ${result.answeredCount} of ${result.totalQuestions}`,
   ];
+
+  if (result.skippedCount > 0) {
+    lines.push(`"Not sure" responses: ${result.skippedCount} (scored as zero)`);
+  }
 
   if (result.showFoundationalFlag) {
     const belowNames = result.domainScores
@@ -220,6 +252,7 @@ export interface ICGExport {
   showFoundationalFlag: boolean;
   answeredCount: number;
   totalQuestions: number;
+  skippedCount: number;
   answers: Record<string, number>;
   recommendations: Array<{ id: string; title: string; impact: string; effort: string; domain: string }>;
 }
@@ -231,13 +264,14 @@ export function buildExportPayload(
 ): ICGExport {
   return {
     exportedAt: new Date().toISOString(),
-    toolVersion: '1.0',
+    toolVersion: '1.1',
     overallScore: result.overallScore,
     maturityLevel: result.maturityLevel,
     domainScores: result.domainScores,
     showFoundationalFlag: result.showFoundationalFlag,
     answeredCount: result.answeredCount,
     totalQuestions: result.totalQuestions,
+    skippedCount: result.skippedCount,
     answers: { ...state.answers },
     recommendations: recs.map(r => ({
       id: r.id,
@@ -252,13 +286,37 @@ export function buildExportPayload(
 // ─── Quick wins ─────────────────────────────────────────────────────────────
 
 export function getQuickWins(
-  state: ICGState,
   recs: readonly Recommendation[],
   limit = 3,
 ): Recommendation[] {
   return recs
-    .filter(r => r.impact === 'high' && (state.answers[r.triggerQuestionId] ?? 0) <= 0)
+    .filter(r => r.impact === 'high' && r.effort === 'quick-win')
     .slice(0, limit);
+}
+
+// ─── Benchmark contextualization ────────────────────────────────────────────
+
+export interface BenchmarkRange {
+  label: string;
+  low: number;
+  high: number;
+  stageKey: CompanyStage;
+}
+
+export const BENCHMARK_RANGES: readonly BenchmarkRange[] = [
+  { label: 'Pre-Series B', low: 15, high: 35, stageKey: 'pre-series-b' },
+  { label: 'Series B-C', low: 30, high: 55, stageKey: 'series-bc' },
+  { label: 'PE-backed 2+ yr', low: 45, high: 70, stageKey: 'pe-backed' },
+  { label: 'Enterprise', low: 65, high: 90, stageKey: 'enterprise' },
+];
+
+export function contextualizeScore(score: number, stage?: CompanyStage): string | null {
+  if (!stage) return null;
+  const range = BENCHMARK_RANGES.find(r => r.stageKey === stage);
+  if (!range) return null;
+  if (score < range.low) return `Your score of ${score} is below the typical range for ${range.label} companies (${range.low}\u2013${range.high})`;
+  if (score > range.high) return `Your score of ${score} is above the typical range for ${range.label} companies (${range.low}\u2013${range.high})`;
+  return `Your score of ${score} is within the typical range for ${range.label} companies (${range.low}\u2013${range.high})`;
 }
 
 // ─── Comparison / snapshots ─────────────────────────────────────────────────
