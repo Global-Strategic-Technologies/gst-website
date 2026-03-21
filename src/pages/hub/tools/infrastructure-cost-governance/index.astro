@@ -1506,6 +1506,7 @@ function readUrlState(): Partial<ICGState> | null {
 
 const state: ICGState = { ...DEFAULT_STATE, dismissed: [] };
 let reviewMode = false;
+let hasPendingResume = false;
 
 // ─── localStorage persistence ──────────────────────────────────────────────
 
@@ -1680,7 +1681,9 @@ function render(): void {
   }
 
   pushUrlState(state);
-  saveToStorage(state);
+  if (!hasPendingResume) {
+    saveToStorage(state);
+  }
 }
 
 function renderWizard(): void {
@@ -1902,26 +1905,30 @@ function renderResults(): void {
 // ─── Init ───────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Restore URL state first, then localStorage fallback
+  // Restore state: URL params take priority, then localStorage fallback
   const urlState = readUrlState();
-  if (urlState) {
+  if (urlState && (urlState.currentStep ?? 0) > 0) {
+    // URL has in-progress state — restore directly
     Object.assign(state, urlState);
   } else {
     const saved = loadFromStorage();
     if (saved && saved.currentStep > 0) {
-      // Show resume prompt instead of auto-restoring
+      // localStorage has in-progress state — show resume prompt
+      hasPendingResume = true;
       const prompt = qs<HTMLElement>('[data-resume-prompt]');
       prompt.classList.remove('is-hidden');
 
       qs<HTMLElement>('[data-action="resume"]').addEventListener('click', () => {
         Object.assign(state, saved);
         prompt.classList.add('is-hidden');
+        hasPendingResume = false;
         render();
       });
 
       qs<HTMLElement>('[data-action="discard"]').addEventListener('click', () => {
         clearStorage();
         prompt.classList.add('is-hidden');
+        hasPendingResume = false;
       });
     }
   }
