@@ -967,11 +967,16 @@ const domainCount = DOMAINS.length;
         background: rgba(200, 200, 200, 0.05);
     }
 
+    :global(.icg-rec-body) {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+
     :global(.icg-rec-body__title) {
         font-size: var(--text-sm);
         font-weight: var(--font-weight-semibold);
         color: var(--text-light-primary);
-        margin-bottom: var(--spacing-xs);
         display: flex;
         align-items: center;
         gap: var(--spacing-xs);
