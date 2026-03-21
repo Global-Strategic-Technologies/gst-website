@@ -922,12 +922,15 @@ const domainCount = DOMAINS.length;
 
     :global(.icg-rec-badge) {
         flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
         font-size: 0.65rem;
         font-weight: var(--font-weight-bold);
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        padding: 2px var(--spacing-sm);
+        padding: var(--spacing-xs) var(--spacing-sm);
         border-radius: 4px;
+        line-height: 1;
     }
 
     :global(.icg-rec-badge--high) {
