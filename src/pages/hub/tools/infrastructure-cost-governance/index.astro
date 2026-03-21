@@ -605,15 +605,23 @@ const domainCount = DOMAINS.length;
     }
 
     :global(.icg-rationale__trigger::before) {
-        content: '\25B6';
-        font-size: 0.55em;
-        margin-right: var(--spacing-xs);
+        content: '';
         display: inline-block;
+        width: 10px;
+        height: 10px;
+        margin-right: var(--spacing-xs);
+        background-color: currentColor;
+        mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
+        mask-size: contain;
+        mask-repeat: no-repeat;
+        -webkit-mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
+        -webkit-mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
         transition: transform var(--transition-fast);
     }
 
     :global(.icg-rationale[open] > .icg-rationale__trigger::before) {
-        transform: rotate(90deg);
+        transform: rotate(180deg);
     }
 
     :global(.icg-rationale__trigger:hover) {
