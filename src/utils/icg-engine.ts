@@ -78,7 +78,7 @@ export function calculateResults(state: ICGState, domains: readonly Domain[]): I
 
   const domainScores: DomainScore[] = domains.map(d => {
     const maxScore = d.questions.length * 3;
-    const rawScore = d.questions.reduce((sum, q) => sum + (state.answers[q.id] ?? 0), 0);
+    const rawScore = d.questions.reduce((sum, q) => sum + Math.max(0, state.answers[q.id] ?? 0), 0);
     const score = Math.round((rawScore / maxScore) * 100);
     return {
       domainId: d.id,
@@ -142,7 +142,7 @@ export function decodeState(encoded: string): Partial<ICGState> | null {
     if (typeof raw.a === 'object' && raw.a !== null && !Array.isArray(raw.a)) {
       const answers: Record<string, number> = {};
       for (const [key, val] of Object.entries(raw.a)) {
-        if (typeof val === 'number' && Number.isInteger(val) && val >= 0 && val <= 3) {
+        if (typeof val === 'number' && Number.isInteger(val) && val >= -1 && val <= 3) {
           answers[key] = val;
         }
       }
@@ -204,6 +204,120 @@ export function buildSummaryText(
   }
 
   return lines.join('\n');
+}
+
+// ─── JSON export ────────────────────────────────────────────────────────────
+
+export interface ICGExport {
+  exportedAt: string;
+  toolVersion: string;
+  overallScore: number;
+  maturityLevel: string;
+  domainScores: DomainScore[];
+  showFoundationalFlag: boolean;
+  answeredCount: number;
+  totalQuestions: number;
+  answers: Record<string, number>;
+  recommendations: Array<{ id: string; title: string; impact: string; effort: string; domain: string }>;
+}
+
+export function buildExportPayload(
+  state: ICGState,
+  result: ICGResult,
+  recs: readonly Recommendation[],
+): ICGExport {
+  return {
+    exportedAt: new Date().toISOString(),
+    toolVersion: '1.0',
+    overallScore: result.overallScore,
+    maturityLevel: result.maturityLevel,
+    domainScores: result.domainScores,
+    showFoundationalFlag: result.showFoundationalFlag,
+    answeredCount: result.answeredCount,
+    totalQuestions: result.totalQuestions,
+    answers: { ...state.answers },
+    recommendations: recs.map(r => ({
+      id: r.id,
+      title: r.title,
+      impact: r.impact,
+      effort: r.effort,
+      domain: r.domain,
+    })),
+  };
+}
+
+// ─── Quick wins ─────────────────────────────────────────────────────────────
+
+export function getQuickWins(
+  state: ICGState,
+  recs: readonly Recommendation[],
+  limit = 3,
+): Recommendation[] {
+  return recs
+    .filter(r => r.impact === 'high' && (state.answers[r.triggerQuestionId] ?? 0) <= 0)
+    .slice(0, limit);
+}
+
+// ─── Comparison / snapshots ─────────────────────────────────────────────────
+
+export interface ICGSnapshot {
+  id: string;
+  label: string;
+  timestamp: string;
+  encodedState: string;
+}
+
+export interface ICGComparison {
+  a: { label: string; overallScore: number; maturityLevel: string };
+  b: { label: string; overallScore: number; maturityLevel: string };
+  overallDelta: number;
+  domainDeltas: Array<{ domainId: string; name: string; scoreA: number; scoreB: number; delta: number }>;
+}
+
+export function compareSnapshots(
+  snapshotA: ICGSnapshot,
+  snapshotB: ICGSnapshot,
+  domains: readonly Domain[],
+): ICGComparison | null {
+  const stateA = decodeState(snapshotA.encodedState);
+  const stateB = decodeState(snapshotB.encodedState);
+  if (!stateA?.answers || !stateB?.answers) return null;
+
+  const fullA: ICGState = { ...DEFAULT_STATE, ...stateA };
+  const fullB: ICGState = { ...DEFAULT_STATE, ...stateB };
+
+  const resultA = calculateResults(fullA, domains);
+  const resultB = calculateResults(fullB, domains);
+
+  return {
+    a: { label: snapshotA.label, overallScore: resultA.overallScore, maturityLevel: resultA.maturityLevel },
+    b: { label: snapshotB.label, overallScore: resultB.overallScore, maturityLevel: resultB.maturityLevel },
+    overallDelta: resultB.overallScore - resultA.overallScore,
+    domainDeltas: resultA.domainScores.map((dsA, i) => ({
+      domainId: dsA.domainId,
+      name: dsA.name,
+      scoreA: dsA.score,
+      scoreB: resultB.domainScores[i].score,
+      delta: resultB.domainScores[i].score - dsA.score,
+    })),
+  };
+}
+
+// ─── Radar chart ────────────────────────────────────────────────────────────
+
+export function buildRadarPoints(
+  domainScores: DomainScore[],
+  cx: number,
+  cy: number,
+  radius: number,
+): string {
+  return domainScores.map((ds, i) => {
+    const angle = (Math.PI * 2 * i) / domainScores.length - Math.PI / 2;
+    const r = (ds.score / 100) * radius;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
 }
 
 // ─── Default initial state ──────────────────────────────────────────────────
