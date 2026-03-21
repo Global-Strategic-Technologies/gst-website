@@ -18,10 +18,14 @@ import {
   encodeState,
   decodeState,
   buildSummaryText,
+  buildExportPayload,
+  getQuickWins,
+  compareSnapshots,
+  buildRadarPoints,
   DEFAULT_STATE,
 } from '../../src/utils/icg-engine';
 
-import type { ICGState, DomainScore } from '../../src/utils/icg-engine';
+import type { ICGState, DomainScore, ICGSnapshot } from '../../src/utils/icg-engine';
 
 import { DOMAINS, ANSWER_OPTIONS, TOTAL_QUESTIONS } from '../../src/data/infrastructure-cost-governance/domains';
 import { RECOMMENDATIONS } from '../../src/data/infrastructure-cost-governance/recommendations';
@@ -546,5 +550,228 @@ describe('buildSummaryText', () => {
     const text = buildSummaryText(state, result, DOMAINS, []);
 
     expect(text).not.toContain('Active recommendations');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// "Not sure" (-1) answer handling
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('Not sure (-1) answers', () => {
+  it('treats -1 answers as 0 in calculateResults', () => {
+    const answersNeg = allAnswers(-1);
+    const answersZero = allAnswers(0);
+
+    const resultNeg = calculateResults(makeState({ answers: answersNeg }), DOMAINS);
+    const resultZero = calculateResults(makeState({ answers: answersZero }), DOMAINS);
+
+    expect(resultNeg.overallScore).toBe(resultZero.overallScore);
+    expect(resultNeg.overallScore).toBe(0);
+  });
+
+  it('decodeState accepts -1 values', () => {
+    const state = makeState({ answers: { q1_1: -1, q1_2: 2 }, currentStep: 3 });
+    const encoded = encodeState(state);
+    const decoded = decodeState(encoded);
+
+    expect(decoded).not.toBeNull();
+    expect(decoded!.answers!.q1_1).toBe(-1);
+    expect(decoded!.answers!.q1_2).toBe(2);
+  });
+
+  it('triggers recommendations on -1 answers', () => {
+    const state = makeState({ answers: { q1_1: -1 } });
+    const recs = getRecommendations(state, RECOMMENDATIONS);
+    const q1_1recs = recs.filter(r => r.triggerQuestionId === 'q1_1');
+
+    expect(q1_1recs.length).toBeGreaterThan(0);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// buildExportPayload
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('buildExportPayload', () => {
+  it('returns correct structure', () => {
+    const state = makeState({ answers: allAnswers(2) });
+    const result = calculateResults(state, DOMAINS);
+    const recs = getRecommendations(state, RECOMMENDATIONS);
+    const payload = buildExportPayload(state, result, recs);
+
+    expect(payload.toolVersion).toBe('1.0');
+    expect(payload.exportedAt).toBeTruthy();
+    expect(payload.overallScore).toBe(result.overallScore);
+    expect(payload.maturityLevel).toBe(result.maturityLevel);
+    expect(payload.domainScores).toHaveLength(6);
+    expect(payload.answeredCount).toBe(TOTAL_QUESTIONS);
+    expect(typeof payload.answers).toBe('object');
+  });
+
+  it('includes only active recommendations', () => {
+    const state = makeState({ answers: allAnswers(0) });
+    const result = calculateResults(state, DOMAINS);
+    const recs = getRecommendations(state, RECOMMENDATIONS);
+    const payload = buildExportPayload(state, result, recs);
+
+    expect(payload.recommendations.length).toBe(recs.length);
+    payload.recommendations.forEach(r => {
+      expect(r).toHaveProperty('id');
+      expect(r).toHaveProperty('title');
+      expect(r).toHaveProperty('impact');
+      expect(r).toHaveProperty('effort');
+      expect(r).toHaveProperty('domain');
+    });
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// getQuickWins
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('getQuickWins', () => {
+  it('returns high-impact recs for worst-case answers', () => {
+    const state = makeState({ answers: allAnswers(0) });
+    const recs = getRecommendations(state, RECOMMENDATIONS);
+    const quickWins = getQuickWins(state, recs);
+
+    expect(quickWins.length).toBeLessThanOrEqual(3);
+    quickWins.forEach(qw => {
+      expect(qw.impact).toBe('high');
+    });
+  });
+
+  it('returns empty for all-optimized answers', () => {
+    const state = makeState({ answers: allAnswers(3) });
+    const recs = getRecommendations(state, RECOMMENDATIONS);
+    const quickWins = getQuickWins(state, recs);
+
+    expect(quickWins).toHaveLength(0);
+  });
+
+  it('respects limit parameter', () => {
+    const state = makeState({ answers: allAnswers(0) });
+    const recs = getRecommendations(state, RECOMMENDATIONS);
+    const quickWins = getQuickWins(state, recs, 1);
+
+    expect(quickWins).toHaveLength(1);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// compareSnapshots
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('compareSnapshots', () => {
+  it('calculates correct deltas between two snapshots', () => {
+    const stateA = makeState({ answers: allAnswers(1), currentStep: 7 });
+    const stateB = makeState({ answers: allAnswers(2), currentStep: 7 });
+
+    const snapA: ICGSnapshot = {
+      id: 'a', label: 'Before', timestamp: '2026-01-01', encodedState: encodeState(stateA),
+    };
+    const snapB: ICGSnapshot = {
+      id: 'b', label: 'After', timestamp: '2026-03-01', encodedState: encodeState(stateB),
+    };
+
+    const comparison = compareSnapshots(snapA, snapB, DOMAINS);
+
+    expect(comparison).not.toBeNull();
+    expect(comparison!.a.label).toBe('Before');
+    expect(comparison!.b.label).toBe('After');
+    expect(comparison!.overallDelta).toBeGreaterThan(0);
+    expect(comparison!.domainDeltas).toHaveLength(6);
+    comparison!.domainDeltas.forEach(dd => {
+      expect(dd.delta).toBeGreaterThan(0);
+      expect(dd.scoreB).toBeGreaterThan(dd.scoreA);
+    });
+  });
+
+  it('returns null for invalid encoded state', () => {
+    const snapA: ICGSnapshot = { id: 'a', label: 'A', timestamp: '', encodedState: 'invalid' };
+    const snapB: ICGSnapshot = { id: 'b', label: 'B', timestamp: '', encodedState: 'alsoInvalid' };
+
+    const comparison = compareSnapshots(snapA, snapB, DOMAINS);
+    expect(comparison).toBeNull();
+  });
+
+  it('returns zero deltas for identical snapshots', () => {
+    const stateA = makeState({ answers: allAnswers(2), currentStep: 7 });
+    const encoded = encodeState(stateA);
+
+    const snapA: ICGSnapshot = { id: 'a', label: 'A', timestamp: '', encodedState: encoded };
+    const snapB: ICGSnapshot = { id: 'b', label: 'B', timestamp: '', encodedState: encoded };
+
+    const comparison = compareSnapshots(snapA, snapB, DOMAINS);
+
+    expect(comparison).not.toBeNull();
+    expect(comparison!.overallDelta).toBe(0);
+    comparison!.domainDeltas.forEach(dd => {
+      expect(dd.delta).toBe(0);
+    });
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// buildRadarPoints
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('buildRadarPoints', () => {
+  it('returns 6 coordinate pairs for 6 domains', () => {
+    const scores: DomainScore[] = DOMAINS.map(d => ({
+      domainId: d.id, name: d.name, score: 50, rawScore: 0, maxScore: 0,
+      isFoundational: false, belowFoundationalThreshold: false,
+    }));
+
+    const points = buildRadarPoints(scores, 150, 150, 110);
+    const pairs = points.split(' ');
+
+    expect(pairs).toHaveLength(6);
+    pairs.forEach(p => {
+      const [x, y] = p.split(',');
+      expect(parseFloat(x)).not.toBeNaN();
+      expect(parseFloat(y)).not.toBeNaN();
+    });
+  });
+
+  it('returns center point for zero scores', () => {
+    const scores: DomainScore[] = DOMAINS.map(d => ({
+      domainId: d.id, name: d.name, score: 0, rawScore: 0, maxScore: 0,
+      isFoundational: false, belowFoundationalThreshold: false,
+    }));
+
+    const points = buildRadarPoints(scores, 150, 150, 110);
+    const pairs = points.split(' ');
+
+    pairs.forEach(p => {
+      const [x, y] = p.split(',');
+      expect(parseFloat(x)).toBeCloseTo(150, 0);
+      expect(parseFloat(y)).toBeCloseTo(150, 0);
+    });
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Data integrity — new fields
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('Data integrity — effort field', () => {
+  const VALID_EFFORTS = ['quick-win', 'project', 'initiative'];
+
+  it('every recommendation has a valid effort value', () => {
+    RECOMMENDATIONS.forEach(r => {
+      expect(VALID_EFFORTS).toContain(r.effort);
+    });
+  });
+});
+
+describe('Data integrity — rationale field', () => {
+  it('every question has a non-empty rationale', () => {
+    for (const domain of DOMAINS) {
+      for (const q of domain.questions) {
+        expect(q.rationale).toBeTruthy();
+        expect(q.rationale.length).toBeGreaterThan(20);
+      }
+    }
   });
 });
