@@ -157,6 +157,7 @@ import '../../styles/my-component.css';
 - `.control-hover` / `.control-active` — button state classes
 - `.accent-light-bg` / `.accent-light-bg-hover` — accent backgrounds
 - `.focus-outline` / `.focus-outline-sm` — focus ring utilities
+- `.delta-chevron` — collapse/expand toggle indicator using the brand delta triangle
 
 **From `global.css`:**
 - `.sr-only` — screen reader only (visually hidden)
@@ -393,6 +394,29 @@ For components that load content asynchronously (API calls, server islands), use
 - Stagger animation delays on consecutive elements (e.g., `animation-delay: 0.3s`)
 
 **Current usage**: `src/components/radar/RadarFeedSkeleton.astro`
+
+### Delta Chevron — Collapse/Expand Indicator
+
+The `.delta-chevron` utility (defined in `interactions.css`) provides a collapse/expand toggle indicator using the brand delta triangle SVG. It points down when expanded and up when collapsed, rotating via CSS transition.
+
+**HTML:**
+```html
+<svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/>
+</svg>
+```
+
+**Behavior:**
+- Default state (expanded): triangle points down (`rotate(180deg)`)
+- When a parent has `.is-collapsed`: triangle points up (`rotate(0deg)`)
+- Dark theme color handled automatically via `var(--text-dark-muted)`
+
+**Convention:**
+- Place the SVG as the last child inside the collapsible header/title row
+- Toggle `.is-collapsed` on the card/container element, not the chevron itself
+- In print styles, hide with `:global(.delta-chevron) { display: none !important; }`
+
+**Current usage**: ICG recommendations (`infrastructure-cost-governance`), Diligence Machine attention cards and questions (`diligence-machine`)
 
 ---
 
