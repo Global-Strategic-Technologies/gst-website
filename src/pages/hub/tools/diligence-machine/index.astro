@@ -1840,10 +1840,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         white-space: nowrap;
     }
 
-    .doc-meta :global(.doc-meta-cta-button:not(.doc-meta-cta-button--secondary)) {
-        flex: 1;
-    }
-
     /* ─── TABLE OF CONTENTS ────────────────────────────────────────────── */
 
     .doc-toc :global(.doc-toc-list) {
@@ -2449,10 +2445,14 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             flex-direction: column;
             padding-left: var(--spacing-md);
             gap: var(--spacing-sm);
+            align-items: stretch;
         }
 
         .doc-meta :global(.doc-meta-cta-button) {
             white-space: normal;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .doc-toc :global(.doc-toc-list) {
