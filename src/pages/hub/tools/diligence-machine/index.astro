@@ -624,7 +624,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                         <div class="doc-attention-header">
                             <h3 class="doc-attention-title">${escapeHtml(area.title)}</h3>
                             <button class="dm-na-btn" data-dismiss-attention="${escapeHtml(area.id)}" type="button" title="${dismissedAttention.has(area.id) ? 'Restore this item' : 'Mark as not applicable'}">${dismissedAttention.has(area.id) ? 'Restore' : 'N/A'}</button>
-                            <svg class="dm-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
+                            <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
                         </div>
                         <div class="doc-attention-divider"></div>
                         <p class="doc-attention-desc">${escapeHtml(area.description)}${area.id === 'attention-tech-debt' ? ' <a href="/hub/tools/tech-debt-calculator" target="_blank" rel="noopener noreferrer" style="color:var(--color-secondary);text-decoration:underline;">Quantify it with the Tech Debt Cost Calculator →</a>' : ''}</p>
@@ -657,7 +657,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                                         <span class="doc-q-priority">${escapeHtml(q.priority)}</span>
                                         <button class="dm-na-btn" data-dismiss-question="${escapeHtml(q.id)}" type="button" title="${dismissedQuestions.has(q.id) ? 'Restore this item' : 'Mark as not applicable'}">${dismissedQuestions.has(q.id) ? 'Restore' : 'N/A'}</button>
                                     </div>
-                                    <svg class="dm-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
+                                    <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
                                 </div>
                                 <div class="dm-card-body">
                                     <p class="doc-q-text">${escapeHtml(q.text)}</p>
@@ -2081,21 +2081,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         cursor: pointer;
     }
 
-    :global(.dm-chevron) {
-        width: 14px;
-        height: 14px;
-        display: inline-block;
-        color: var(--text-light-muted);
-        transform: rotate(180deg);
-        transition: transform var(--transition-fast);
-        margin-left: auto;
-        flex-shrink: 0;
-    }
-
-    :global(.is-collapsed .dm-chevron) {
-        transform: rotate(0deg);
-    }
-
     :global(.dm-na-btn) {
         flex-shrink: 0;
         padding: 2px var(--spacing-sm);
@@ -2128,9 +2113,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         background: rgba(5, 205, 153, 0.08);
     }
 
-    :global(html.dark-theme .dm-chevron) {
-        color: var(--text-dark-muted);
-    }
 
     :global(.doc-attention-card.is-dismissed),
     :global(.doc-question.is-dismissed) {
@@ -3084,7 +3066,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             opacity: 1 !important;
         }
 
-        :global(.dm-chevron),
+        :global(.delta-chevron),
         :global(.dm-na-btn) {
             display: none !important;
         }
