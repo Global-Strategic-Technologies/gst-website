@@ -1030,20 +1030,6 @@ const domainCount = DOMAINS.length;
         gap: var(--spacing-xs);
     }
 
-    :global(.icg-rec-chevron) {
-        flex-shrink: 0;
-        width: 14px;
-        height: 14px;
-        display: inline-block;
-        color: var(--text-light-muted);
-        transform: rotate(180deg);
-        transition: transform var(--transition-fast);
-        margin-left: auto;
-    }
-
-    :global(.icg-rec-card.is-collapsed .icg-rec-chevron) {
-        transform: rotate(0deg);
-    }
 
     :global(.icg-rec-body__desc) {
         font-size: var(--text-sm);
@@ -1760,7 +1746,7 @@ const domainCount = DOMAINS.length;
             opacity: 1 !important;
         }
 
-        :global(.icg-rec-chevron) {
+        :global(.delta-chevron) {
             display: none !important;
         }
 
@@ -2238,7 +2224,7 @@ function renderResults(): void {
             return `
             <div class="icg-rec-card is-collapsed${isDismissed ? ' is-dismissed' : ''}" data-rec-id="${rec.id}" data-rec-domain="${rec.domain}" data-rec-toggle>
               <div class="icg-rec-body">
-                <div class="icg-rec-body__title"><span class="icg-rec-badge icg-rec-badge--${rec.impact}">${rec.impact}</span><span class="icg-rec-badge icg-rec-badge--effort">${rec.effort.replace('-', ' ')}</span><button class="icg-rec-na" data-dismiss="${rec.id}" type="button" title="${isDismissed ? 'Restore this recommendation to the active list' : 'Mark as not applicable. Dismissed items are excluded from the printed report.'}">${isDismissed ? 'Restore' : 'N/A'}</button>${rec.title}<svg class="icg-rec-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg></div>
+                <div class="icg-rec-body__title"><span class="icg-rec-badge icg-rec-badge--${rec.impact}">${rec.impact}</span><span class="icg-rec-badge icg-rec-badge--effort">${rec.effort.replace('-', ' ')}</span><button class="icg-rec-na" data-dismiss="${rec.id}" type="button" title="${isDismissed ? 'Restore this recommendation to the active list' : 'Mark as not applicable. Dismissed items are excluded from the printed report.'}">${isDismissed ? 'Restore' : 'N/A'}</button>${rec.title}<svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg></div>
                 <div class="icg-rec-body__desc">${rec.description}</div>
               </div>
             </div>`;
