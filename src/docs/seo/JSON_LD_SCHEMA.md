@@ -8,11 +8,13 @@ Complete reference guide for the JSON-LD structured data implementation on globa
 2. [Root Schema: ProfessionalService](#root-schema-professionalservice)
 3. [Nested Schema: Person (Founder)](#nested-schema-person-founder)
 4. [Credential Objects](#credential-objects)
-5. [BreadcrumbList Schema](#breadcrumblist-schema)
-6. [FAQPage Schema](#faqpage-schema)
-7. [Skills Association](#skills-association)
-8. [Validation](#validation)
-9. [Update Guidelines](#update-guidelines)
+5. [Hub Tools: WebApplication Schema](#hub-tools-webapplication-schema)
+6. [Hub Tools Landing: ItemList Schema](#hub-tools-landing-itemlist-schema)
+7. [BreadcrumbList Schema](#breadcrumblist-schema)
+8. [FAQPage Schema](#faqpage-schema)
+9. [Skills Association](#skills-association)
+10. [Validation](#validation)
+11. [Update Guidelines](#update-guidelines)
 
 ## Schema Overview
 
@@ -33,6 +35,20 @@ ProfessionalService (Organization)
 ├── description: Company mission statement
 ├── knowsAbout: [10 expertise areas]
 └── address: PostalAddress
+
+WebApplication (per hub tool — 5 tools)
+├── name, description, applicationCategory
+├── operatingSystem: "Web"
+├── offers: Free
+├── publisher: Global Strategic Technologies
+├── datePublished, dateModified
+├── featureList: [tool-specific capabilities]
+└── author: Person (Reid Peryam with tool-specific knowsAbout)
+
+ItemList (hub tools landing page)
+├── name: GST Strategic Intelligence Tools
+├── numberOfItems: 5
+└── itemListElement: [ListItem with position, name, url]
 
 BreadcrumbList (per-page, non-homepage only)
 ├── itemListElement: [ListItem, ...]
@@ -370,6 +386,199 @@ All issued by: `University of California, Berkeley, Haas School of Business`
 ```
 **Status**: Expired (Jul 2022)
 
+## Hub Tools: WebApplication Schema
+
+### Purpose
+
+Describes each hub tool as a free, browser-based web application with author expertise signaling. Uses `WebApplication` (a subtype of `SoftwareApplication`) because these tools run entirely in the browser with no installation required.
+
+### Why WebApplication over SoftwareApplication
+
+`WebApplication` is a Schema.org subtype of `SoftwareApplication` specifically designed for browser-based applications. It inherits all `SoftwareApplication` properties and is more semantically precise for tools that:
+- Run entirely in the browser (client-side processing)
+- Require no download or installation
+- Are accessed via URL
+
+Google supports both types for rich results (price, ratings). `WebApplication` additionally supports `browserRequirements` if needed in the future.
+
+### Schema Template
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Tool Name",
+  "description": "Brief description of the tool's purpose",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Global Strategic Technologies"
+  },
+  "datePublished": "YYYY-MM-DD",
+  "dateModified": "YYYY-MM-DD",
+  "featureList": ["Feature 1", "Feature 2", "Feature 3"],
+  "author": {
+    "@type": "Person",
+    "name": "Reid Peryam",
+    "jobTitle": "Strategic Technology Advisor",
+    "sameAs": ["https://www.linkedin.com/in/reidperyam/"],
+    "description": "Technology advisor with experience across 100+ PE technology diligence engagements",
+    "knowsAbout": ["Tool-Specific Expertise 1", "Tool-Specific Expertise 2"]
+  }
+}
+```
+
+### Field Descriptions
+
+| Field | Type | Purpose | Required |
+|-------|------|---------|----------|
+| `@type` | String | Always `WebApplication` for hub tools | Yes |
+| `name` | String | Tool display name | Yes |
+| `description` | String | Brief tool description for search results | Yes |
+| `applicationCategory` | String | Always `BusinessApplication` | Yes |
+| `operatingSystem` | String | Always `Web` for browser-based tools | Yes |
+| `offers` | Offer | Pricing info — all tools are free (`"price": "0"`) | Yes |
+| `publisher` | Organization | GST as the publishing organization | Yes |
+| `datePublished` | Date | Initial publication date (YYYY-MM-DD) | Yes |
+| `dateModified` | Date | Last significant update (YYYY-MM-DD) | Yes |
+| `featureList` | Array[String] | Key capabilities of the tool | Recommended |
+| `author` | Person | Reid Peryam with tool-specific `knowsAbout` | Yes |
+
+### Current Tool Schemas (5 Tools)
+
+#### 1. The Diligence Machine
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/pages/hub/tools/diligence-machine/index.astro` |
+| **datePublished** | 2025-06-01 |
+| **featureList** | 14-dimension conditional matching, 15-20 prioritized questions per agenda, Client-side processing, Attention area risk flagging, PDF export and clipboard copy |
+| **knowsAbout** | Technical Due Diligence, M&A Tech Strategy, Technology Risk Assessment, PE Portfolio Technology, Software Architecture Evaluation |
+
+#### 2. TechPar
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/pages/hub/tools/techpar/index.astro` |
+| **datePublished** | 2026-02-01 |
+| **featureList** | Blended technology cost ratio, Stage-adjusted benchmarking, 36-month trajectory projection, Infrastructure/personnel/R&D breakdown |
+| **knowsAbout** | Technology Cost Benchmarking, SaaS Metrics, Technical Due Diligence, M&A Tech Strategy, Infrastructure Cost Analysis |
+
+#### 3. Technical Debt Cost Calculator
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/pages/hub/tools/tech-debt-calculator/index.astro` |
+| **datePublished** | 2025-06-01 |
+| **featureList** | Annual carrying cost quantification, Team size and salary inputs, Maintenance burden and delivery metrics, Defensible estimates for PE conversations |
+| **knowsAbout** | Technical Due Diligence, Technical Debt Assessment, M&A Tech Strategy, DORA Metrics, Software Engineering Economics |
+
+#### 4. Infrastructure Cost Governance
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/pages/hub/tools/infrastructure-cost-governance/index.astro` |
+| **datePublished** | 2026-03-01 |
+| **featureList** | 20 questions across 6 cloud cost domains, Scored diagnostic with benchmarks, Prioritized improvement checklist, Shareable results for board reviews |
+| **knowsAbout** | Cloud Cost Optimization, Infrastructure Governance, FinOps, Technical Due Diligence, M&A Tech Strategy |
+
+#### 5. Regulatory Map
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/pages/hub/tools/regulatory-map/index.astro` |
+| **datePublished** | 2026-01-15 |
+| **featureList** | 120+ regulations across 4 categories, Interactive D3 world map, Jurisdiction-specific compliance details, Data privacy/AI governance/cybersecurity/industry compliance |
+| **knowsAbout** | Regulatory Compliance, Data Privacy, AI Governance, Technical Due Diligence, M&A Tech Strategy |
+
+### Adding a New Tool
+
+When creating a new hub tool:
+
+1. Copy the WebApplication JSON-LD template into the tool's `index.astro`
+2. Set tool-specific `name`, `description`, and `featureList`
+3. Set `datePublished` to the launch date, `dateModified` to today
+4. Customize the `knowsAbout` array for the tool's domain (keep 5 items, always include "Technical Due Diligence" and "M&A Tech Strategy")
+5. Add the tool to the `ItemList` on the tools landing page
+6. Update this document with the new tool's details
+7. Validate with Google Structured Data Testing Tool
+
+### Updating dateModified
+
+Update `dateModified` on a tool's schema when:
+- Question banks or scoring models are updated
+- New features are added
+- Significant UI/UX changes are made
+- Do **not** update for minor bug fixes or style tweaks
+
+## Hub Tools Landing: ItemList Schema
+
+### Purpose
+
+Describes the tools collection page as an ordered list of web applications, enabling potential list-style rich results in search.
+
+### Schema Definition
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "GST Strategic Intelligence Tools",
+  "description": "Interactive calculators and generators to quantify risk and value in technology investments",
+  "numberOfItems": 5,
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Regulatory Map",
+      "url": "https://globalstrategic.tech/hub/tools/regulatory-map"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "The Diligence Machine",
+      "url": "https://globalstrategic.tech/hub/tools/diligence-machine"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Technical Debt Cost Calculator",
+      "url": "https://globalstrategic.tech/hub/tools/tech-debt-calculator"
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "name": "Infrastructure Cost Governance",
+      "url": "https://globalstrategic.tech/hub/tools/infrastructure-cost-governance"
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "name": "TechPar",
+      "url": "https://globalstrategic.tech/hub/tools/techpar"
+    }
+  ]
+}
+```
+
+### File Location
+
+`src/pages/hub/tools/index.astro`
+
+### Maintenance
+
+When adding or removing tools from the landing page:
+1. Update the `itemListElement` array (maintain position order)
+2. Update `numberOfItems` to match the array length
+3. Ensure each tool's `url` matches its actual route
+4. Position order should match the visual order on the page
+
 ## BreadcrumbList Schema
 
 ### Purpose
@@ -434,7 +643,7 @@ Unmapped slugs are auto-formatted: hyphens replaced with spaces, words capitaliz
 
 ### Purpose
 
-Enables FAQ rich results in Google SERPs when a page contains structured question/answer content. Currently active on the Services page.
+Enables FAQ rich results in Google SERPs when a page contains structured question/answer content. Currently active on the Services page and Regulatory Map.
 
 ### Schema Definition
 
@@ -566,12 +775,16 @@ Example:
 
 - [ ] All required fields present (@context, @type, name)
 - [ ] All URLs are absolute (not relative)
-- [ ] All dates are YYYY-MM format
+- [ ] All dates are YYYY-MM or YYYY-MM-DD format
 - [ ] Credential IDs are unique per credential
 - [ ] Skills are properly capitalized
 - [ ] No duplicate skills within single credential
 - [ ] Organization names match official names
 - [ ] publisher organizations have proper @type
+- [ ] Hub tools use `WebApplication` (not `SoftwareApplication`)
+- [ ] Hub tools have `author`, `datePublished`, `dateModified`, and `featureList`
+- [ ] ItemList `numberOfItems` matches actual tool count
+- [ ] ItemList positions match visual page order
 
 ### Production Validation
 
@@ -609,25 +822,17 @@ npm run test:all
 - Business focus shifts
 - Service offerings expand
 
+**Update Hub Tool Schemas When**:
+- A new tool is launched (add WebApplication + update ItemList)
+- A tool receives significant feature updates (update `dateModified`, `featureList`)
+- A tool is retired (remove from ItemList, consider removing schema)
+
 ### How to Update Schema
 
-#### Step 1: Edit SEO Component
-Location: `src/components/SEO.astro`
-
-```javascript
-// For new credential, add to hasCredential array:
-{
-  "@type": "EducationalOccupationalCredential",
-  "name": "New Certification Name",
-  // ... complete object
-}
-
-// For new expertise, add to knowsAbout:
-"knowsAbout": [
-  "Existing Expertise",
-  "New Expertise Area"
-]
-```
+#### Step 1: Edit the Appropriate File
+- **Organization/Person**: `src/components/SEO.astro`
+- **Hub Tools**: `src/pages/hub/tools/[tool-name]/index.astro`
+- **Tools Landing**: `src/pages/hub/tools/index.astro`
 
 #### Step 2: Validate
 1. Run schema validator
@@ -639,10 +844,13 @@ Location: `src/components/SEO.astro`
 npm run test:all
 ```
 
-#### Step 4: Commit & Deploy
+#### Step 4: Update Documentation
+Update this file (`src/docs/seo/JSON_LD_SCHEMA.md`) with any changes.
+
+#### Step 5: Commit & Deploy
 ```bash
-git add src/components/SEO.astro
-git commit -m "Add new credential: [credential name]"
+git add src/components/SEO.astro  # or relevant tool file
+git commit -m "Update JSON-LD schema: [description of change]"
 git push
 ```
 
@@ -667,6 +875,6 @@ Recommendation: Keep important credentials even if expired (shows comprehensive 
 
 ---
 
-**Last Updated**: March 20, 2026
-**Schema Version**: 2.0
+**Last Updated**: March 22, 2026
+**Schema Version**: 3.0
 **Validation Status**: ✓ Compliant
