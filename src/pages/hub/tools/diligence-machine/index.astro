@@ -665,8 +665,8 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                                     </div>
                                     <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
                                 </div>
+                                <p class="doc-q-text">${escapeHtml(q.text)}</p>
                                 <div class="dm-card-body">
-                                    <p class="doc-q-text">${escapeHtml(q.text)}</p>
                                     ${q.lookoutSignal ? `<p class="doc-q-red-flag">${escapeHtml(q.lookoutSignal)}</p>` : ''}
                                     <p class="doc-q-rationale">${escapeHtml(q.rationale)}</p>
                                 </div>
@@ -2024,6 +2024,8 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         border-left: 3px solid var(--color-primary);
         background: rgba(5, 205, 153, 0.03);
         border-radius: 4px;
+        min-width: 0;
+        overflow: hidden;
     }
 
     .doc-attention-grid :global(.doc-attention-card.relevance-high) {
@@ -2060,6 +2062,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         font-weight: var(--font-weight-bold);
         color: var(--text-light-primary);
         line-height: 1.4;
+        min-width: 0;
         margin: 0;
     }
 
@@ -2144,17 +2147,24 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     /* Attention card collapse */
-    .doc-attention-grid :global(.doc-attention-desc) {
-        transition: max-height var(--transition-normal), opacity var(--transition-normal);
-        max-height: 500px;
-        overflow: hidden;
-    }
 
-    .doc-attention-grid :global(.is-collapsed .doc-attention-desc),
     .doc-attention-grid :global(.is-collapsed .doc-attention-divider) {
         max-height: 0;
         opacity: 0;
         margin: 0;
+    }
+
+    .doc-attention-grid :global(.is-collapsed .doc-attention-desc) {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: var(--spacing-xs) 0 0;
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+    }
+
+    :global(html.dark-theme) .doc-attention-grid :global(.is-collapsed .doc-attention-desc) {
+        color: var(--text-dark-muted);
     }
 
     /* Question card collapse */
@@ -2169,6 +2179,21 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         max-height: 0;
         opacity: 0;
         margin: 0;
+    }
+
+    /* Truncate question text to one line when collapsed */
+    :global(.doc-question.is-collapsed .doc-q-text) {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 0;
+        font-weight: var(--font-weight-normal);
+        font-size: var(--text-sm);
+        color: var(--text-light-muted);
+    }
+
+    :global(html.dark-theme .doc-question.is-collapsed .doc-q-text) {
+        color: var(--text-dark-muted);
     }
 
     /* ─── TOPIC SECTIONS ───────────────────────────────────────────────── */
@@ -2234,6 +2259,8 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         border: 1px solid var(--border-light);
         border-radius: 2px;
         border-left: 3px solid var(--border-light);
+        min-width: 0;
+        overflow: hidden;
     }
 
     .doc-topics :global(.doc-question.priority-high) {
@@ -2663,6 +2690,21 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             flex-wrap: wrap;
             justify-content: center;
         }
+
+        /* Collapsed cards: title-only on mobile */
+        .doc-attention-grid :global(.is-collapsed .doc-attention-desc) {
+            display: none;
+        }
+
+        .doc-attention-grid :global(.is-collapsed .doc-attention-title) {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        :global(.doc-question.is-collapsed .doc-q-text) {
+            font-size: var(--text-xs);
+        }
     }
 
     /* ─── PRINT ────────────────────────────────────────────────────────── */
@@ -3078,11 +3120,17 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             display: none !important;
         }
 
-        :global(.is-collapsed .doc-attention-desc),
         :global(.is-collapsed .doc-attention-divider),
         :global(.is-collapsed .dm-card-body) {
             max-height: none !important;
             opacity: 1 !important;
+        }
+
+        :global(.doc-question.is-collapsed .doc-q-text),
+        :global(.is-collapsed .doc-attention-desc) {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
         }
 
         :global(.delta-chevron),
