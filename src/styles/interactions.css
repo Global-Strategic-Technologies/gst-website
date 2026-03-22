@@ -125,17 +125,19 @@ html.dark-theme .accent-light-bg-hover {
   width: 14px;
   height: 14px;
   display: inline-block;
-  color: var(--text-light-muted);
+  color: var(--color-primary);
   transform: rotate(180deg);
-  transition: transform var(--transition-fast);
+  transition: transform var(--transition-fast), color var(--transition-fast);
   margin-left: auto;
 }
 
 .is-collapsed > .delta-chevron,
 .is-collapsed .delta-chevron {
   transform: rotate(0deg);
+  color: var(--text-light-muted);
 }
 
-html.dark-theme .delta-chevron {
+html.dark-theme .is-collapsed > .delta-chevron,
+html.dark-theme .is-collapsed .delta-chevron {
   color: var(--text-dark-muted);
 }
