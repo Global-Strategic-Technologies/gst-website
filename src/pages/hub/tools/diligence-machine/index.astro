@@ -280,7 +280,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     import type { UserInputs, GeneratedScript } from '../../../../utils/diligence-engine';
 
     const STORAGE_KEY = 'diligence-machine-state';
-    const STORAGE_VERSION = 2;
+    const STORAGE_VERSION = 3;
 
     interface SavedState {
         version: number;
@@ -288,6 +288,8 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         highestStepReached: number;
         inputs: Partial<UserInputs>;
         targetIdentifier?: string;
+        dismissedAttention?: string[];
+        dismissedQuestions?: string[];
     }
 
     // ─── STATE ────────────────────────────────────────────────────────────
@@ -301,6 +303,8 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     let targetIdentifier = 'Target';
     let lastGeneratedScript: GeneratedScript | null = null;
     let autoAdvanceTimer: ReturnType<typeof setTimeout> | null = null;
+    let dismissedAttention = new Set<string>();
+    let dismissedQuestions = new Set<string>();
 
     // ─── DOM REFERENCES ──────────────────────────────────────────────────
 
@@ -327,6 +331,8 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                 highestStepReached,
                 inputs: { ...inputs },
                 targetIdentifier,
+                dismissedAttention: [...dismissedAttention],
+                dismissedQuestions: [...dismissedQuestions],
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         } catch {
@@ -614,9 +620,11 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             attentionAreasSection.style.display = '';
             attentionAreasGrid.innerHTML = script.attentionAreas
                 .map((area) => `
-                    <div class="doc-attention-card relevance-${escapeHtml(area.relevance)}">
+                    <div class="doc-attention-card relevance-${escapeHtml(area.relevance)}${dismissedAttention.has(area.id) ? ' is-dismissed' : ''}" data-attention-id="${escapeHtml(area.id)}" data-card-toggle>
                         <div class="doc-attention-header">
                             <h3 class="doc-attention-title">${escapeHtml(area.title)}</h3>
+                            <button class="dm-na-btn" data-dismiss-attention="${escapeHtml(area.id)}" type="button" title="${dismissedAttention.has(area.id) ? 'Restore this item' : 'Mark as not applicable'}">${dismissedAttention.has(area.id) ? 'Restore' : 'N/A'}</button>
+                            <span class="dm-chevron"></span>
                         </div>
                         <div class="doc-attention-divider"></div>
                         <p class="doc-attention-desc">${escapeHtml(area.description)}${area.id === 'attention-tech-debt' ? ' <a href="/hub/tools/tech-debt-calculator" target="_blank" rel="noopener noreferrer" style="color:var(--color-secondary);text-decoration:underline;">Quantify it with the Tech Debt Cost Calculator →</a>' : ''}</p>
@@ -641,17 +649,21 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                     </div>
                     <ol class="doc-questions">
                         ${topic.questions.map((q, qIndex) => `
-                            <li class="doc-question priority-${escapeHtml(q.priority)}">
+                            <li class="doc-question priority-${escapeHtml(q.priority)}${dismissedQuestions.has(q.id) ? ' is-dismissed' : ''}" data-question-id="${escapeHtml(q.id)}" data-card-toggle>
                                 <div class="doc-q-header">
                                     <span class="doc-q-number">${topicIndex + 1}.${qIndex + 1}</span>
                                     <div class="doc-q-badges">
                                         ${q.exitImpact ? `<span class="doc-q-exit-impact exit-impact-${escapeHtml(q.exitImpact.toLowerCase().replace(/\\s+/g, '-'))}">${escapeHtml(q.exitImpact)}</span>` : ''}
                                         <span class="doc-q-priority">${escapeHtml(q.priority)}</span>
+                                        <button class="dm-na-btn" data-dismiss-question="${escapeHtml(q.id)}" type="button" title="${dismissedQuestions.has(q.id) ? 'Restore this item' : 'Mark as not applicable'}">${dismissedQuestions.has(q.id) ? 'Restore' : 'N/A'}</button>
                                     </div>
+                                    <span class="dm-chevron"></span>
                                 </div>
-                                <p class="doc-q-text">${escapeHtml(q.text)}</p>
-                                ${q.lookoutSignal ? `<p class="doc-q-red-flag">${escapeHtml(q.lookoutSignal)}</p>` : ''}
-                                <p class="doc-q-rationale">${escapeHtml(q.rationale)}</p>
+                                <div class="dm-card-body">
+                                    <p class="doc-q-text">${escapeHtml(q.text)}</p>
+                                    ${q.lookoutSignal ? `<p class="doc-q-red-flag">${escapeHtml(q.lookoutSignal)}</p>` : ''}
+                                    <p class="doc-q-rationale">${escapeHtml(q.rationale)}</p>
+                                </div>
                             </li>
                         `).join('')}
                     </ol>
@@ -659,9 +671,64 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             `)
             .join('');
 
+        // Wire collapse/expand and dismiss interactions
+        wireCardInteractions();
+
         // Scroll to top of output
         outputContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
         saveState();
+    }
+
+    function wireCardInteractions(): void {
+        // Collapse/expand toggle on card click
+        document.querySelectorAll('[data-card-toggle]').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if ((e.target as HTMLElement).closest('a, button')) return;
+                card.classList.toggle('is-collapsed');
+            });
+        });
+
+        // Attention area N/A dismiss
+        document.querySelectorAll('[data-dismiss-attention]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = (btn as HTMLElement).dataset.dismissAttention!;
+                const card = (btn as HTMLElement).closest('.doc-attention-card')!;
+                if (dismissedAttention.has(id)) {
+                    dismissedAttention.delete(id);
+                    card.classList.remove('is-dismissed');
+                    (btn as HTMLElement).textContent = 'N/A';
+                    (btn as HTMLElement).title = 'Mark as not applicable';
+                } else {
+                    dismissedAttention.add(id);
+                    card.classList.add('is-dismissed');
+                    (btn as HTMLElement).textContent = 'Restore';
+                    (btn as HTMLElement).title = 'Restore this item';
+                }
+                saveState();
+            });
+        });
+
+        // Question N/A dismiss
+        document.querySelectorAll('[data-dismiss-question]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = (btn as HTMLElement).dataset.dismissQuestion!;
+                const card = (btn as HTMLElement).closest('.doc-question')!;
+                if (dismissedQuestions.has(id)) {
+                    dismissedQuestions.delete(id);
+                    card.classList.remove('is-dismissed');
+                    (btn as HTMLElement).textContent = 'N/A';
+                    (btn as HTMLElement).title = 'Mark as not applicable';
+                } else {
+                    dismissedQuestions.add(id);
+                    card.classList.add('is-dismissed');
+                    (btn as HTMLElement).textContent = 'Restore';
+                    (btn as HTMLElement).title = 'Restore this item';
+                }
+                saveState();
+            });
+        });
     }
 
     function renderMetaBlock(): void {
@@ -859,28 +926,32 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         if (inputs.operatingModel) lines.push(`Operating Model:   ${getOptionLabel('operating-model', inputs.operatingModel)}`);
         lines.push('');
 
-        // Attention areas
-        if (script.attentionAreas.length > 0) {
+        // Attention areas (exclude dismissed)
+        const activeAreas = script.attentionAreas.filter(a => !dismissedAttention.has(a.id));
+        if (activeAreas.length > 0) {
             lines.push('\u2550'.repeat(60));
             lines.push('ATTENTION AREAS');
             lines.push('\u2550'.repeat(60));
             lines.push('');
-            for (const area of script.attentionAreas) {
+            for (const area of activeAreas) {
                 lines.push(`[${area.relevance.toUpperCase()}] ${area.title}`);
                 lines.push(`  ${area.description}`);
                 lines.push('');
             }
         }
 
-        // Topics
+        // Topics (exclude dismissed questions, skip empty topics)
         for (const [topicIndex, topic] of script.topics.entries()) {
+            const activeQuestions = topic.questions.filter(q => !dismissedQuestions.has(q.id));
+            if (activeQuestions.length === 0) continue;
+
             lines.push('\u2550'.repeat(60));
             lines.push(`TOPIC ${topicIndex + 1}: ${topic.topicLabel.toUpperCase()}`);
             lines.push(`Audience: ${topic.audienceLevel}`);
             lines.push('\u2550'.repeat(60));
             lines.push('');
 
-            for (const [qIndex, q] of topic.questions.entries()) {
+            for (const [qIndex, q] of activeQuestions.entries()) {
                 const impactTag = q.exitImpact ? ` [${q.exitImpact}]` : '';
                 lines.push(`${topicIndex + 1}.${qIndex + 1} [${q.priority.toUpperCase()}]${impactTag} ${q.text}`);
                 if (q.lookoutSignal) lines.push(`    ${q.lookoutSignal}`);
@@ -905,6 +976,8 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     function restart(): void {
         inputs = { geographies: [] };
         targetIdentifier = 'Target';
+        dismissedAttention.clear();
+        dismissedQuestions.clear();
         clearState();
 
         // Reset all option cards
@@ -943,6 +1016,8 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         inputs = { geographies: [], ...saved.inputs };
         if (saved.targetIdentifier) targetIdentifier = saved.targetIdentifier;
         highestStepReached = saved.highestStepReached ?? saved.currentStep;
+        dismissedAttention = new Set(saved.dismissedAttention ?? []);
+        dismissedQuestions = new Set(saved.dismissedQuestions ?? []);
 
         // Restore single-select options
         for (const [stepId, key] of Object.entries({
@@ -1992,6 +2067,102 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         margin: 0;
     }
 
+    /* ─── COLLAPSE / DISMISS CONTROLS ────────────────────────────────── */
+
+    :global([data-card-toggle]) {
+        cursor: pointer;
+    }
+
+    :global(.dm-chevron) {
+        width: 10px;
+        height: 10px;
+        display: inline-block;
+        border-right: 2px solid var(--text-light-muted);
+        border-bottom: 2px solid var(--text-light-muted);
+        transform: rotate(45deg);
+        transition: transform var(--transition-fast);
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    :global(.is-collapsed .dm-chevron) {
+        transform: rotate(-45deg);
+    }
+
+    :global(.dm-na-btn) {
+        flex-shrink: 0;
+        padding: 2px var(--spacing-sm);
+        font-size: 0.65rem;
+        font-weight: var(--font-weight-bold);
+        font-family: var(--font-family);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-light-muted);
+        background: rgba(200, 200, 200, 0.08);
+        border: 1px dashed var(--border-light);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+    }
+
+    :global(.dm-na-btn:hover) {
+        color: var(--text-light-primary);
+        border-color: var(--text-light-secondary);
+        background: rgba(200, 200, 200, 0.15);
+    }
+
+    :global(html.dark-theme .dm-na-btn) {
+        background: rgba(200, 200, 200, 0.04);
+        border-color: rgba(5, 205, 153, 0.12);
+    }
+
+    :global(html.dark-theme .dm-na-btn:hover) {
+        border-color: rgba(5, 205, 153, 0.3);
+        background: rgba(5, 205, 153, 0.08);
+    }
+
+    :global(html.dark-theme .dm-chevron) {
+        border-color: var(--text-dark-muted);
+    }
+
+    :global(.doc-attention-card.is-dismissed),
+    :global(.doc-question.is-dismissed) {
+        opacity: 0.45;
+        border-style: dashed;
+    }
+
+    :global(.is-dismissed .dm-na-btn) {
+        border-style: solid;
+    }
+
+    /* Attention card collapse */
+    .doc-attention-grid :global(.doc-attention-desc) {
+        transition: max-height var(--transition-normal), opacity var(--transition-normal);
+        max-height: 500px;
+        overflow: hidden;
+    }
+
+    .doc-attention-grid :global(.is-collapsed .doc-attention-desc),
+    .doc-attention-grid :global(.is-collapsed .doc-attention-divider) {
+        max-height: 0;
+        opacity: 0;
+        margin: 0;
+    }
+
+    /* Question card collapse */
+    :global(.dm-card-body) {
+        transition: max-height var(--transition-normal), opacity var(--transition-normal);
+        max-height: 1000px;
+        overflow: hidden;
+        opacity: 1;
+    }
+
+    :global(.is-collapsed .dm-card-body) {
+        max-height: 0;
+        opacity: 0;
+        margin: 0;
+    }
+
     /* ─── TOPIC SECTIONS ───────────────────────────────────────────────── */
     /* All topic/question elements are dynamically injected via innerHTML,
        so they need :global() wrappers anchored on the static .doc-topics parent */
@@ -2889,6 +3060,24 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
         /* v2: Hide analyze overlay in print */
         .analyze-overlay {
+            display: none !important;
+        }
+
+        /* Dismiss/collapse: print overrides */
+        :global(.doc-attention-card.is-dismissed),
+        :global(.doc-question.is-dismissed) {
+            display: none !important;
+        }
+
+        :global(.is-collapsed .doc-attention-desc),
+        :global(.is-collapsed .doc-attention-divider),
+        :global(.is-collapsed .dm-card-body) {
+            max-height: none !important;
+            opacity: 1 !important;
+        }
+
+        :global(.dm-chevron),
+        :global(.dm-na-btn) {
             display: none !important;
         }
     }
