@@ -12,6 +12,7 @@
 import { QUESTIONS, TOPIC_META } from '../../src/data/diligence-machine/questions';
 import { ATTENTION_AREAS } from '../../src/data/diligence-machine/attention-areas';
 import { WIZARD_STEPS, BRACKET_ORDER } from '../../src/data/diligence-machine/wizard-config';
+import { generateScript } from '../../src/utils/diligence-engine';
 
 // ─── DATA VALIDATION: QUESTION BANK ────────────────────────────────────────
 
@@ -520,6 +521,76 @@ describe('Attention Areas Data Integrity', () => {
       const kebabCasePattern = /^attention-[a-z0-9-]+$/;
       for (const r of ATTENTION_AREAS) {
         expect(r.id, `Anchor ${r.id} is not in kebab-case`).toMatch(kebabCasePattern);
+      }
+    });
+  });
+});
+
+// ─── GENERATED SCRIPT: DISMISS/COLLAPSE INTEGRITY ───────────────────────────
+
+describe('Generated Script Dismiss/Collapse Support', () => {
+  // Minimal valid inputs for generating a script
+  const validInputs = {
+    transactionType: 'majority-stake',
+    productType: 'b2c-marketplace',
+    techArchetype: 'hybrid-legacy',
+    headcount: '51-200',
+    revenueRange: '25m-100m',
+    growthStage: 'scaling',
+    companyAge: '10-20',
+    geographies: ['european-union'],
+    businessModel: 'productized-platform',
+    scaleIntensity: 'moderate',
+    transformationState: 'mid-migration',
+    dataSensitivity: 'low',
+    operatingModel: 'product-aligned',
+  };
+
+  describe('attention area IDs in generated output', () => {
+    it('should only contain IDs from the source ATTENTION_AREAS data', () => {
+      const script = generateScript(validInputs);
+      const sourceIds = new Set(ATTENTION_AREAS.map(a => a.id));
+      for (const area of script.attentionAreas) {
+        expect(sourceIds.has(area.id), `Generated attention area ID "${area.id}" not found in source data`).toBe(true);
+      }
+    });
+
+    it('should have unique IDs in generated output', () => {
+      const script = generateScript(validInputs);
+      const ids = script.attentionAreas.map((a: { id: string }) => a.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+  });
+
+  describe('question IDs in generated output', () => {
+    it('should only contain IDs from the source QUESTIONS data', () => {
+      const script = generateScript(validInputs);
+      const sourceIds = new Set(QUESTIONS.map(q => q.id));
+      for (const topic of script.topics) {
+        for (const q of topic.questions) {
+          expect(sourceIds.has(q.id), `Generated question ID "${q.id}" not found in source data`).toBe(true);
+        }
+      }
+    });
+
+    it('should have unique question IDs across all topics', () => {
+      const script = generateScript(validInputs);
+      const ids: string[] = [];
+      for (const topic of script.topics) {
+        for (const q of topic.questions) {
+          ids.push(q.id);
+        }
+      }
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it('should have an id field on every generated question', () => {
+      const script = generateScript(validInputs);
+      for (const topic of script.topics) {
+        for (const q of topic.questions) {
+          expect(typeof q.id).toBe('string');
+          expect(q.id.length).toBeGreaterThan(0);
+        }
       }
     });
   });
