@@ -49,6 +49,26 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                     ))}
                 </div>
 
+                <!-- Mobile Compact Progress -->
+                <div class="wizard-progress-mobile" aria-hidden="true">
+                    <span class="progress-mobile-label">
+                        Step <span class="progress-mobile-current">1</span> of {WIZARD_STEPS.length} — <span class="progress-mobile-name">{WIZARD_STEPS[0].navLabel}</span>
+                    </span>
+                    <div class="progress-mobile-dots">
+                        {WIZARD_STEPS.map((_, index) => (
+                            <button
+                                class={`progress-dot ${index === 0 ? 'active' : ''}`}
+                                data-dot-step={index + 1}
+                                aria-label={`Go to step ${index + 1}`}
+                            >
+                                <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="miter" />
+                                </svg>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 <!-- Steps -->
                 <div class="wizard-steps">
                     {WIZARD_STEPS.map((step, index) => (
@@ -364,6 +384,21 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         // Update progress bar aria
         const progressBar = document.querySelector('.wizard-progress') as HTMLElement;
         if (progressBar) progressBar.setAttribute('aria-valuenow', String(step));
+
+        // Update mobile compact progress
+        const mobileCurrent = document.querySelector('.progress-mobile-current');
+        const mobileName = document.querySelector('.progress-mobile-name');
+        if (mobileCurrent) mobileCurrent.textContent = String(step);
+        if (mobileName) {
+            const activeLabel = document.querySelector(`.progress-segment[data-step-indicator="${step}"] .progress-label`);
+            if (activeLabel) mobileName.textContent = activeLabel.textContent ?? '';
+        }
+        document.querySelectorAll('.progress-dot').forEach((dot) => {
+            const dotStep = Number((dot as HTMLElement).dataset.dotStep);
+            dot.classList.toggle('active', dotStep === step);
+            dot.classList.toggle('completed', dotStep < step);
+            dot.classList.toggle('reachable', dotStep > step && dotStep <= highestStepReached);
+        });
 
         // Update navigation buttons
         btnBack.disabled = step === 1;
@@ -993,6 +1028,16 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         });
     });
 
+    // Mobile dot navigation
+    document.querySelectorAll('.progress-dot').forEach((dot) => {
+        dot.addEventListener('click', () => {
+            const dotStep = Number((dot as HTMLElement).dataset.dotStep);
+            if (dotStep !== currentStep && dotStep <= highestStepReached) {
+                showStep(dotStep);
+            }
+        });
+    });
+
     // Navigation
     btnBack.addEventListener('click', () => {
         if (currentStep > 1) showStep(currentStep - 1);
@@ -1177,6 +1222,99 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     :global(html.dark-theme) .progress-segment.completed .progress-number-text {
         fill: var(--bg-dark);
+    }
+
+    /* ─── MOBILE COMPACT PROGRESS ────────────────────────────────────── */
+
+    .wizard-progress-mobile {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-2xl);
+    }
+
+    .progress-mobile-label {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-light-secondary);
+        letter-spacing: 0.02em;
+    }
+
+    .progress-mobile-current {
+        color: var(--color-primary);
+        font-weight: var(--font-weight-bold);
+    }
+
+    .progress-mobile-name {
+        color: var(--text-light-primary);
+    }
+
+    .progress-mobile-dots {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        max-width: 420px;
+    }
+
+    .progress-dot {
+        width: 2.75rem;
+        height: 2.75rem;
+        background: none;
+        border: none;
+        padding: 0.375rem;
+        color: var(--border-light);
+        opacity: 0.4;
+        cursor: default;
+        transition: color var(--transition-normal), opacity var(--transition-normal), transform var(--transition-normal);
+    }
+
+    .progress-dot svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    .progress-dot:nth-child(even) svg path {
+        transform: rotate(180deg);
+        transform-origin: 32px 32px;
+    }
+
+    .progress-dot.active,
+    .progress-dot.completed,
+    .progress-dot.reachable {
+        opacity: 1;
+    }
+
+    .progress-dot.completed,
+    .progress-dot.reachable {
+        cursor: pointer;
+    }
+
+    .progress-dot.active {
+        color: var(--color-primary);
+        transform: scale(1.2);
+    }
+
+    .progress-dot.completed svg path {
+        fill: var(--color-primary);
+        stroke: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .progress-mobile-label {
+        color: var(--text-dark-secondary);
+    }
+
+    :global(html.dark-theme) .progress-mobile-name {
+        color: var(--text-dark-primary);
+    }
+
+    :global(html.dark-theme) .progress-dot {
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    :global(html.dark-theme) .progress-dot.active {
+        color: var(--color-primary);
     }
 
     /* ─── WIZARD STEPS ─────────────────────────────────────────────────── */
@@ -2231,11 +2369,11 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         }
 
         .wizard-progress {
-            gap: var(--spacing-xs);
+            display: none;
         }
 
-        .progress-label {
-            display: none;
+        .wizard-progress-mobile {
+            display: flex;
         }
 
         .option-card {
