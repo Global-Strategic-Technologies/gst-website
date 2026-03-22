@@ -39,20 +39,20 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## 2. Hardcoded Color Remediation
 
-**Status**: 78+ violations across 14 files
+**Status**: 90+ violations across 14 files
 
 **Problem**: The styles guide prohibits hardcoded colors, but the codebase uses them extensively. This breaks dark theme support and creates maintenance burden.
 
 **Affected files** (sorted by severity):
 | File | Violations | Notes |
 |------|-----------|-------|
-| `diligence-machine/index.astro` | 50+ | Domain-specific colors, status indicators |
+| `diligence-machine/index.astro` | 75 | 46 rgba + 29 hex; domain-specific colors, status indicators, floating action bar |
 | `regulatory-map/index.astro` | 30+ | Industry/cyber colors, map fills |
+| `infrastructure-cost-governance/index.astro` | 22+ | Maturity colors, radar chart, benchmark badge colors added in recent commits |
 | `StickyControls.astro` | 20+ | Portfolio filter UI |
 | `PortfolioHeader.astro` | 13+ | Portfolio header and controls |
 | `PortfolioGrid.astro` | 13+ | Grid layout and cards |
 | `ProjectModal.astro` | 11+ | Modal dialog |
-| `infrastructure-cost-governance/index.astro` | 10+ | Maturity colors, radar chart |
 | `MapVisualizer.astro` | 6 | Map visualization |
 | `FyiItem.astro` | 4 | Radar FYI items |
 | `privacy.astro` | 2 | Legal page accents |
@@ -73,7 +73,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## 3. Hardcoded Spacing Remediation
 
-**Status**: 40+ violations, concentrated in older components
+**Status**: 70+ violations, concentrated in older components
 
 **Problem**: The spacing scale (`--spacing-xs` through `--spacing-3xl`) covers 4px to 48px, but some components use hardcoded pixel values, often mixing hardcoded and variable spacing in the same rule.
 
@@ -81,11 +81,12 @@ Tracked initiatives to close the gap between documented conventions and actual i
 - `padding: 2px var(--spacing-sm)` - Mixed hardcoded and variable
 - `padding: 40px` - Should be `var(--spacing-3xl)` (48px) or composition
 - `margin: 16px 0` - Should be `var(--spacing-lg) 0`
+- `max-width: 420px` / `640px` / `700px` - Layout container widths (see also Init. 7)
 
 **Affected files**:
 | File | Violations | Notes |
 |------|-----------|-------|
-| `diligence-machine/index.astro` | 10+ | Worst offender |
+| `diligence-machine/index.astro` | 58 | Worst offender — hardcoded px/rem/em for padding, margin, gap, widths, min/max-height |
 | `vdr-structure/index.astro` | 3 | Mixed patterns |
 | `business-architectures/index.astro` | 3 | Mixed patterns |
 | `regulatory-map/index.astro` | 2 | Mixed patterns |
@@ -97,19 +98,30 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## 4. Diligence Machine Remediation
 
-**Status**: Largest single source of style violations
+**Status**: Largest single source of style violations — scope increased by recent feature work
 
-**Problem**: The Diligence Machine was built before the current design system was fully established. It contains 50+ hardcoded colors, 10+ hardcoded spacing values, and domain-specific color schemes that are not part of the design system.
+**Problem**: The Diligence Machine was built before the current design system was fully established. Recent commits (EEAT signaling, collapse/expand cards, floating action bar, cross-linking CTAs) added significant new CSS that continued the hardcoded pattern. It now contains 75 hardcoded colors and 58 hardcoded spacing values.
 
 **Domain-specific colors** (currently hardcoded):
-- Authority Blue: `#5b7a9d`
-- Methodology Brown: `#8c7a6b`
-- Results Blue: `#7a9dbd`
-- Results Tan: `#a89888`
-- Positive indicator: `#4cba7a`
-- Negative indicator: `#e06060`
-- Warning: `#d4923a`
-- Success: `#2e8b57`
+- Authority Blue: `#5b7a9d` (6 instances)
+- Methodology Brown: `#8c7a6b` (4 instances)
+- Results Blue: `#7a9dbd` (1 instance)
+- Results Tan: `#a89888` (1 instance)
+- Positive indicator: `#4cba7a` (1 instance)
+- Negative indicator: `#e06060` (3 instances)
+- Negative dark: `#b22222` (4 instances)
+- Warning: `#d4923a` (1 instance)
+- Warning dark: `#b26622` (2 instances)
+- Success: `#2e8b57` (2 instances)
+- Brand teal rgba: 22 instances of `rgba(5, 205, 153, ...)` at varying opacities
+
+**Recent additions** (unpushed commits):
+- Floating action bar dark mode styles with hardcoded rgba backgrounds
+- Collapse/expand card styles with hardcoded border colors and backgrounds
+- N/A dismiss button states with hardcoded indicator colors
+- Question numbering and card preview styles
+
+**Positive pattern**: The `.delta-chevron` utility (extracted to `interactions.css`) was implemented correctly using CSS variables throughout — this is the target pattern for remediation.
 
 **Approach**:
 1. Define Diligence Machine domain colors as CSS variables in `variables.css`
@@ -118,7 +130,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 4. Replace hardcoded spacing with scale variables
 5. Test in both themes at all breakpoints
 
-**Estimated scope**: Large - 60+ individual replacements across ~2,800 lines of CSS
+**Estimated scope**: Large - 133 individual replacements across ~3,500 lines of CSS
 
 ---
 
@@ -148,9 +160,9 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## 6. ICG Color Standardization
 
-**Status**: Functional but not integrated into design system
+**Status**: Functional but not integrated into design system — scope increased by recent commits
 
-**Problem**: The Infrastructure Cost Governance tool uses hardcoded colors for maturity levels and data visualization that should eventually become semantic design system variables.
+**Problem**: The Infrastructure Cost Governance tool uses hardcoded colors for maturity levels and data visualization that should eventually become semantic design system variables. Recent commits (benchmark table redesign, recommendation badge borders) introduced additional hardcoded colors.
 
 **Colors used** (currently hardcoded in `icg-engine.ts`):
 - Reactive: `#E24B4A` (red)
@@ -163,15 +175,25 @@ Tracked initiatives to close the gap between documented conventions and actual i
 - Labels: `#666`
 - Data fill/stroke: `#05cd99`
 
+**Colors added in recent commits** (benchmark table and badges):
+- Score badge: `rgba(5, 205, 153, 0.12)` background
+- Stage badge text: `#5b7a9d` (light), `#7a9dbd` (dark) — same blue family as Diligence Machine
+- Stage badge background: `rgba(91, 122, 157, 0.1)`
+- Active row highlight: `rgba(5, 205, 153, 0.04)` and `0.08`
+- Badge border dark theme: `rgba(200, 200, 200, 0.1)`
+
+**Note**: The stage badge blue (`#5b7a9d` / `#7a9dbd`) is the same "Authority Blue" used in the Diligence Machine, suggesting this should be a shared semantic variable rather than tool-specific.
+
 **Approach**:
 1. Define maturity level colors as CSS variables (e.g., `--icg-maturity-reactive`, `--icg-maturity-aware`)
 2. Add dark theme overrides
 3. Update `icg-engine.ts` to return variable names instead of hex values
 4. Update `radarChartSVG()` to use resolved CSS variables (with print-safe fallbacks)
+5. Evaluate shared semantic colors with Diligence Machine (Authority Blue, badge backgrounds)
 
 **Depends on**: Initiative 1 (brand guidelines) to determine if these should be generic semantic colors (reusable across tools) or ICG-specific
 
-**Estimated scope**: Medium - engine changes + CSS variable definitions + template updates
+**Estimated scope**: Medium-Large - engine changes + CSS variable definitions + template updates + shared color evaluation
 
 ---
 
@@ -259,7 +281,21 @@ Tracked initiatives to close the gap between documented conventions and actual i
 | 5 | Dynamic Loading Pattern (Init. 8) | Medium | Small |
 | 6 | TechPar Documentation (Init. 5) | Medium | Small |
 | 7 | Hardcoded Spacing (Init. 3) | Medium | Medium |
-| 8 | ICG Color Standardization (Init. 6) | Low | Medium |
+| 8 | ICG Color Standardization (Init. 6) | Medium | Medium-Large |
+
+**Note on Init. 4 + Init. 6**: The Diligence Machine and ICG now share the same "Authority Blue" color family (`#5b7a9d` / `#7a9dbd`). Remediating these together would allow defining shared semantic variables once rather than duplicating across tools.
+
+---
+
+## Positive Patterns in Recent Commits
+
+The following patterns from recent work demonstrate the target approach for remediation:
+
+- **`.delta-chevron` utility** (`interactions.css`): Extracted as a shared component using only CSS variables (`--color-primary`, `--text-light-muted`, `--text-dark-muted`, `--transition-fast`). No hardcoded colors. This is the reference pattern for new interactive components.
+- **ICG benchmark table spacing**: New cell padding uses `var(--spacing-sm) var(--spacing-md)` and row gap uses `var(--spacing-xs)` — correct variable usage throughout.
+- **ICG recommendation badge borders**: Uses `var(--border-light)` for light theme — correct semantic variable usage.
+
+These demonstrate that the conventions are being followed in new utility code even while legacy patterns persist in existing component styles.
 
 ---
 
@@ -272,3 +308,4 @@ Tracked initiatives to close the gap between documented conventions and actual i
 ---
 
 **Created**: March 21, 2026
+**Last Updated**: March 22, 2026
