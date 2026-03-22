@@ -40,6 +40,7 @@ export interface TopicOutput {
 export interface GeneratedScript {
   topics: TopicOutput[];
   attentionAreas: AttentionArea[];
+  triggerMap: Record<string, string[]>;
   metadata: {
     totalQuestions: number;
     generatedAt: string;
@@ -348,6 +349,40 @@ export function applyMaturityOverrides(
   ];
 }
 
+/** Human-readable labels for condition dimensions */
+const CONDITION_LABELS: Record<string, string> = {
+  transactionTypes: 'Transaction Type',
+  excludeTransactionTypes: 'Transaction Type',
+  productTypes: 'Product Type',
+  techArchetypes: 'Tech Stack',
+  growthStages: 'Growth Stage',
+  geographies: 'Geography',
+  headcountMin: 'Company Size',
+  revenueMin: 'Revenue',
+  companyAgeMin: 'Company Age',
+  businessModels: 'Business Model',
+  scaleIntensity: 'Scale Intensity',
+  transformationStates: 'Transformation',
+  dataSensitivity: 'Data Sensitivity',
+  operatingModels: 'Operating Model',
+};
+
+/**
+ * Compute the human-readable trigger labels for a question based on which
+ * condition fields are non-wildcard (i.e., actually constrain the match).
+ */
+export function computeTriggers(conditions: QuestionCondition): string[] {
+  const triggers: string[] = [];
+  for (const [key, label] of Object.entries(CONDITION_LABELS)) {
+    const value = conditions[key as keyof QuestionCondition];
+    if (value !== undefined && value !== null) {
+      if (Array.isArray(value) && value.length === 0) continue;
+      if (!triggers.includes(label)) triggers.push(label);
+    }
+  }
+  return triggers;
+}
+
 /**
  * Main engine function: takes user inputs, returns the generated script.
  * Pure function, no side effects, fully testable.
@@ -365,17 +400,24 @@ export function generateScript(inputs: UserInputs): GeneratedScript {
   const selected = balanceAcrossTopics(pivotedQuestions, 15, 20);
   const topics = groupByTopic(selected);
 
-  // 4. Filter attention areas by conditions
+  // 4. Build trigger map for input-to-output traceability
+  const triggerMap: Record<string, string[]> = {};
+  for (const q of selected) {
+    triggerMap[q.id] = computeTriggers(q.conditions);
+  }
+
+  // 5. Filter attention areas by conditions
   const matchedAreas = ATTENTION_AREAS.filter((a) =>
     matchesConditions(a.conditions, inputs)
   );
 
-  // 5. Apply maturity overrides (inject computed attention areas)
+  // 6. Apply maturity overrides (inject computed attention areas)
   const enrichedAreas = applyMaturityOverrides(matchedAreas, inputs);
 
   return {
     topics,
-    // 6. Sort attention areas by relevance
+    triggerMap,
+    // 7. Sort attention areas by relevance
     attentionAreas: [...enrichedAreas].sort(
       (a, b) => (RELEVANCE_ORDER[a.relevance] ?? 2) - (RELEVANCE_ORDER[b.relevance] ?? 2)
     ),

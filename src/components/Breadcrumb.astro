@@ -94,10 +94,16 @@ const crumbs = allCrumbs.length > MAX_BREADCRUMBS
     letter-spacing: normal;
     border-bottom: none;
     transition: opacity var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
   }
 
   .breadcrumb__item a:hover {
     opacity: 0.8;
+  }
+
+  .breadcrumb__item a:active {
+    opacity: 0.6;
   }
 
   .breadcrumb__separator {

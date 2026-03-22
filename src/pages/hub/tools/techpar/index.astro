@@ -16,13 +16,17 @@ trackPageView('techpar', 'TechPar | GST');
 >
     <script is:inline type="application/ld+json" set:html={JSON.stringify({
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
+        "@type": "WebApplication",
         "name": "TechPar",
         "description": "Technology cost structure analysis tool for PE diligence and portfolio company benchmarking",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" }
+        "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" },
+        "datePublished": "2026-02-01",
+        "dateModified": "2026-03-22",
+        "featureList": ["Blended technology cost ratio", "Stage-adjusted benchmarking", "36-month trajectory projection", "Infrastructure, personnel, and R&D breakdown"],
+        "author": { "@type": "Person", "name": "Reid Peryam", "jobTitle": "Strategic Technology Advisor", "sameAs": ["https://www.linkedin.com/in/reidperyam/"], "description": "Technology advisor with experience across 100+ PE technology diligence engagements", "knowsAbout": ["Technology Cost Benchmarking", "SaaS Metrics", "Technical Due Diligence", "M&A Tech Strategy", "Infrastructure Cost Analysis"] }
     })} />
 
     <section class="techpar-section">
@@ -1085,7 +1089,7 @@ trackPageView('techpar', 'TechPar | GST');
         width: 100%;
         border: 1px solid var(--text-light-muted);
         overflow: hidden;
-        max-width: 280px;
+        max-width: 320px;
     }
 
     .tp-seg__btn {

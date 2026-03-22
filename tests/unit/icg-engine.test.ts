@@ -377,6 +377,60 @@ describe('encodeState / decodeState', () => {
     const decoded = decodeState(encoded);
     expect(decoded?.dismissed).toEqual(['r01', 'r03']);
   });
+
+  it('round-trips expanded recommendation IDs', () => {
+    const state: ICGState = {
+      currentStep: 7,
+      answers: { q1_1: 2 },
+      dismissed: [],
+      expanded: ['r02', 'r07'],
+    };
+    const encoded = encodeState(state);
+    const decoded = decodeState(encoded);
+    expect(decoded?.expanded).toEqual(['r02', 'r07']);
+  });
+
+  it('omits expanded key when empty', () => {
+    const state: ICGState = {
+      currentStep: 1,
+      answers: {},
+      dismissed: [],
+      expanded: [],
+    };
+    const encoded = encodeState(state);
+    const raw = JSON.parse(atob(encoded));
+    expect(raw.e).toBeUndefined();
+  });
+
+  it('omits expanded key when undefined', () => {
+    const state: ICGState = {
+      currentStep: 1,
+      answers: {},
+      dismissed: [],
+    };
+    const encoded = encodeState(state);
+    const raw = JSON.parse(atob(encoded));
+    expect(raw.e).toBeUndefined();
+  });
+
+  it('filters non-string values from expanded array', () => {
+    const encoded = btoa(JSON.stringify({ s: 7, a: {}, e: ['r01', 99, false, 'r04'] }));
+    const decoded = decodeState(encoded);
+    expect(decoded?.expanded).toEqual(['r01', 'r04']);
+  });
+
+  it('round-trips both dismissed and expanded together', () => {
+    const state: ICGState = {
+      currentStep: 7,
+      answers: { q1_1: 1 },
+      dismissed: ['r03'],
+      expanded: ['r01', 'r05'],
+    };
+    const encoded = encodeState(state);
+    const decoded = decodeState(encoded);
+    expect(decoded?.dismissed).toEqual(['r03']);
+    expect(decoded?.expanded).toEqual(['r01', 'r05']);
+  });
 });
 
 // ─── DEFAULT_STATE ───────────────────────────────────────────────────────────

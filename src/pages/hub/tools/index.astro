@@ -16,6 +16,46 @@ const isDev = import.meta.env.DEV;
     ogImage="/og-image.png"
     ogUrl="https://globalstrategic.tech/hub/tools"
 >
+    <script is:inline type="application/ld+json" set:html={JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "GST Strategic Intelligence Tools",
+        "description": "Interactive calculators and generators to quantify risk and value in technology investments",
+        "numberOfItems": 5,
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Regulatory Map",
+                "url": "https://globalstrategic.tech/hub/tools/regulatory-map"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "The Diligence Machine",
+                "url": "https://globalstrategic.tech/hub/tools/diligence-machine"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Technical Debt Cost Calculator",
+                "url": "https://globalstrategic.tech/hub/tools/tech-debt-calculator"
+            },
+            {
+                "@type": "ListItem",
+                "position": 4,
+                "name": "Infrastructure Cost Governance",
+                "url": "https://globalstrategic.tech/hub/tools/infrastructure-cost-governance"
+            },
+            {
+                "@type": "ListItem",
+                "position": 5,
+                "name": "TechPar",
+                "url": "https://globalstrategic.tech/hub/tools/techpar"
+            }
+        ]
+    })} />
+
     <section class="tools-section">
         <div class="container">
             <HubHeader

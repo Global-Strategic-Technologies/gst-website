@@ -110,3 +110,34 @@ html.dark-theme .accent-light-bg {
 html.dark-theme .accent-light-bg-hover {
   background: rgba(5, 205, 153, 0.15);
 }
+
+/* Delta Chevron — Collapse/Expand Toggle Indicator
+   Uses the brand delta triangle SVG inline. Points down when expanded,
+   up when collapsed. Apply to an inline <svg> with the delta path.
+   Toggle .is-collapsed on a parent element to flip direction.
+
+   HTML: <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+           <path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/>
+         </svg>
+*/
+.delta-chevron {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  color: var(--color-primary);
+  transform: rotate(180deg);
+  transition: transform var(--transition-fast), color var(--transition-fast);
+  margin-left: auto;
+}
+
+.is-collapsed > .delta-chevron,
+.is-collapsed .delta-chevron {
+  transform: rotate(0deg);
+  color: var(--text-light-muted);
+}
+
+html.dark-theme .is-collapsed > .delta-chevron,
+html.dark-theme .is-collapsed .delta-chevron {
+  color: var(--text-dark-muted);
+}

@@ -51,13 +51,17 @@ import caData from '../../../../data/canada-provinces.json';
 >
     <script is:inline type="application/ld+json" set:html={JSON.stringify({
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
+        "@type": "WebApplication",
         "name": "Regulatory Map",
         "description": "Interactive map of 120+ global data privacy, AI governance, cybersecurity, and compliance regulations across jurisdictions",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" }
+        "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" },
+        "datePublished": "2026-01-15",
+        "dateModified": "2026-03-22",
+        "featureList": ["120+ regulations across 4 categories", "Interactive D3 world map", "Jurisdiction-specific compliance details", "Data privacy, AI governance, cybersecurity, and industry compliance"],
+        "author": { "@type": "Person", "name": "Reid Peryam", "jobTitle": "Strategic Technology Advisor", "sameAs": ["https://www.linkedin.com/in/reidperyam/"], "description": "Technology advisor with experience across 100+ PE technology diligence engagements", "knowsAbout": ["Regulatory Compliance", "Data Privacy", "AI Governance", "Technical Due Diligence", "M&A Tech Strategy"] }
     })} />
 
     <section class="regulatory-map-section">

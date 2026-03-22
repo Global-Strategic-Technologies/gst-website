@@ -17,13 +17,17 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 >
     <script is:inline type="application/ld+json" set:html={JSON.stringify({
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
+        "@type": "WebApplication",
         "name": "The Diligence Machine",
         "description": "Generate a customized technology due diligence agenda with 15-20 high-impact questions organized by topic",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" }
+        "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" },
+        "datePublished": "2025-06-01",
+        "dateModified": "2026-03-22",
+        "featureList": ["14-dimension conditional matching", "15-20 prioritized questions per agenda", "Client-side processing — no deal data transmitted", "Attention area risk flagging", "PDF export and clipboard copy"],
+        "author": { "@type": "Person", "name": "Reid Peryam", "jobTitle": "Strategic Technology Advisor", "sameAs": ["https://www.linkedin.com/in/reidperyam/"], "description": "Technology advisor with experience across 100+ PE technology diligence engagements", "knowsAbout": ["Technical Due Diligence", "M&A Tech Strategy", "Technology Risk Assessment", "PE Portfolio Technology", "Software Architecture Evaluation"] }
     })} />
 
     <section class="diligence-machine">
@@ -33,6 +37,9 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                 title="The Diligence Machine"
                 subtitle="Generate a customized, prescriptive technology discovery agenda."
             />
+
+            <p class="dm-authority">Question bank built from patterns across 100+ PE technology diligence engagements</p>
+            <p class="dm-privacy-note">Your selections stay in your browser. No deal data is transmitted.</p>
 
             <!-- Wizard Container -->
             <div class="wizard-container" id="wizardContainer" data-testid="wizard-container">
@@ -49,6 +56,26 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                     ))}
                 </div>
 
+                <!-- Mobile Compact Progress -->
+                <div class="wizard-progress-mobile" aria-hidden="true">
+                    <span class="progress-mobile-label">
+                        Step <span class="progress-mobile-current">1</span> of {WIZARD_STEPS.length} — <span class="progress-mobile-name">{WIZARD_STEPS[0].navLabel}</span>
+                    </span>
+                    <div class="progress-mobile-dots">
+                        {WIZARD_STEPS.map((_, index) => (
+                            <button
+                                class={`progress-dot ${index === 0 ? 'active' : ''}`}
+                                data-dot-step={index + 1}
+                                aria-label={`Go to step ${index + 1}`}
+                            >
+                                <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="miter" />
+                                </svg>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 <!-- Steps -->
                 <div class="wizard-steps">
                     {WIZARD_STEPS.map((step, index) => (
@@ -61,6 +88,15 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                         >
                             <h2 class="step-title">{step.title}</h2>
                             <p class="step-subtitle">{step.subtitle}</p>
+                            {step.id === 'tech-archetype' && (
+                                <p class="step-note">Benchmark infrastructure costs against peers with <a href="/hub/tools/techpar" target="_blank" rel="noopener">TechPar</a>.</p>
+                            )}
+                            {step.id === 'scale-intensity' && (
+                                <p class="step-note">Evaluate cloud cost governance practices with the <a href="/hub/tools/infrastructure-cost-governance" target="_blank" rel="noopener">Infrastructure Cost Governance</a> tool.</p>
+                            )}
+                            {step.id === 'transformation-state' && (
+                                <p class="step-note">Estimate technical debt remediation costs with the <a href="/hub/tools/tech-debt-calculator" target="_blank" rel="noopener">Tech Debt Calculator</a>.</p>
+                            )}
                             {step.id === 'data-sensitivity' && (
                                 <p class="step-note">Explore jurisdiction-specific requirements in the <a href="/hub/tools/regulatory-map" target="_blank" rel="noopener">Regulatory Map</a>.</p>
                             )}
@@ -150,15 +186,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                     <button class="cta-button primary" id="btnGenerate" data-testid="btn-generate" type="button" style="display:none;">Generate Agenda</button>
                 </div>
             </div>
-
-            <!-- Analyze Overlay -->
-            <div class="analyze-overlay" id="analyzeOverlay" data-testid="analyze-overlay" style="display:none;">
-                <div class="analyze-content">
-                    <div class="analyze-spinner" data-testid="analyze-spinner"></div>
-                    <p class="analyze-text" data-testid="analyze-text">Analyzing Deal Parameters...</p>
-                </div>
-            </div>
-
             <!-- Output Container -->
             <div class="output-container" id="outputContainer" data-testid="output-container" style="display:none;">
 
@@ -177,12 +204,12 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                         </svg>
                         <span id="btnCopyLabel">Copy</span>
                     </button>
-                    <button class="doc-action-btn" id="btnPrint" data-testid="btn-print" type="button" aria-label="Print document">
+                    <button class="doc-action-btn" id="btnPrint" data-testid="btn-print" type="button" aria-label="Export as PDF via print dialog">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                             <path d="M4 6V1h8v5M4 12H2V7h12v5h-2" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
                             <rect x="4" y="10" width="8" height="4" rx="0.5" stroke="currentColor" stroke-width="1.5"/>
                         </svg>
-                        Print
+                        Export PDF
                     </button>
                     <button class="doc-action-btn" id="btnRestart" data-testid="btn-restart" type="button" aria-label="Start over">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -234,16 +261,52 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                     <!-- Document Footer -->
                     <footer class="doc-footer">
                         <hr class="doc-divider" />
-                        <div class="doc-footer-content">
-                            <div class="doc-footer-brand">
-                                <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="12" height="12" loading="lazy" />
-                                <span>https://globalstrategic.tech</span>
-                            </div>
+                        <div class="doc-footer-brand">
+                            <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="12" height="12" loading="lazy" />
+                            <span>https://globalstrategic.tech</span>
                         </div>
                         <p class="doc-footer-disclaimer">These perspectives are presented from recurrent technology patterns. Extend, revise and replace these with others gathered during your discovery process.</p>
                     </footer>
                 </div>
             </div>
+
+            <details class="dm-methodology">
+                <summary class="dm-methodology__trigger">How the Diligence Machine works</summary>
+                <div class="dm-methodology__body">
+                    <h4 class="dm-methodology__heading">Question bank</h4>
+                    <p>The engine draws from a bank of 68 due diligence questions organized into four topics: Architecture &amp; Scalability, Operations &amp; Delivery, Carve-out / Integration, and Security, Compliance &amp; Governance. Each question carries a priority level (high, medium, or standard), a rationale explaining why it matters, and conditional triggers that determine when it appears.</p>
+
+                    <h4 class="dm-methodology__heading">Conditional matching</h4>
+                    <p>Questions are filtered against your inputs using AND logic across 14 dimensions: transaction type, product type, tech stack archetype, headcount, revenue range, growth stage, company age, geography, business model, scale intensity, transformation state, data sensitivity, and operating model. A condition left undefined acts as a wildcard (matches everything). Ordinal fields&mdash;headcount, revenue, and company age&mdash;use &ldquo;at least&rdquo; comparison so that a threshold set at &ldquo;51&ndash;200 employees&rdquo; also matches larger brackets.</p>
+
+                    <h4 class="dm-methodology__heading">Balancing algorithm</h4>
+                    <p>After filtering, the engine balances questions across topics. It reserves a minimum of three questions per topic (where available), then fills remaining slots by priority until the total reaches 15&ndash;20. This ensures every topic is represented while surfacing the highest-priority items first.</p>
+
+                    <h4 class="dm-methodology__heading">Attention areas</h4>
+                    <p>29 attention areas surface structural risk factors&mdash;such as hardware end-of-life exposure, key-person dependencies, or manual operations masking&mdash;triggered by specific input combinations. They are sorted by relevance (high, medium, low) and displayed before the question agenda.</p>
+
+                    <h4 class="dm-methodology__heading">Archetype pivot</h4>
+                    <p>When the target operates on-premise or self-managed infrastructure, questions that are exclusively relevant to cloud-native architectures are filtered out. Mixed-archetype questions are preserved.</p>
+
+                    <h4 class="dm-methodology__heading">Limitations</h4>
+                    <p>The generated agenda is a starting point, not a complete diligence program. Questions reflect common technology patterns and should be extended, revised, or replaced based on target-specific discovery. The tool does not assess financial, legal, or commercial diligence dimensions.</p>
+
+                    <h4 class="dm-methodology__heading">Privacy</h4>
+                    <p>All processing runs entirely in your browser&mdash;no deal data is transmitted to or stored on our servers. Anonymous page-view and interaction analytics (Google Analytics 4) help us improve the tool. See our <a href="/privacy">privacy policy</a> for details.</p>
+
+                    <p class="dm-methodology__updated">Methodology last updated March 2026</p>
+
+                    <div class="dm-methodology__author">
+                        <span class="dm-methodology__author-name">Reid Peryam</span>
+                        <span class="dm-methodology__author-sep">&middot;</span>
+                        <span>Strategic Technology Advisor</span>
+                        <span class="dm-methodology__author-sep">&middot;</span>
+                        <span>100+ PE technology diligence engagements</span>
+                        <span class="dm-methodology__author-sep">&middot;</span>
+                        <a href="https://www.linkedin.com/in/reidperyam/" target="_blank" rel="noopener noreferrer" class="dm-methodology__author-link">LinkedIn</a>
+                    </div>
+                </div>
+            </details>
 
             <a href="/hub/tools" class="back-link" id="backToTools">
                 <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="10" height="10" loading="lazy" />
@@ -260,7 +323,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     import type { UserInputs, GeneratedScript } from '../../../../utils/diligence-engine';
 
     const STORAGE_KEY = 'diligence-machine-state';
-    const STORAGE_VERSION = 2;
+    const STORAGE_VERSION = 3;
 
     interface SavedState {
         version: number;
@@ -268,6 +331,10 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         highestStepReached: number;
         inputs: Partial<UserInputs>;
         targetIdentifier?: string;
+        dismissedAttention?: string[];
+        dismissedQuestions?: string[];
+        collapsedAttention?: string[];
+        collapsedQuestions?: string[];
     }
 
     // ─── STATE ────────────────────────────────────────────────────────────
@@ -281,6 +348,10 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     let targetIdentifier = 'Target';
     let lastGeneratedScript: GeneratedScript | null = null;
     let autoAdvanceTimer: ReturnType<typeof setTimeout> | null = null;
+    let dismissedAttention = new Set<string>();
+    let dismissedQuestions = new Set<string>();
+    let collapsedAttention = new Set<string>();
+    let collapsedQuestions = new Set<string>();
 
     // ─── DOM REFERENCES ──────────────────────────────────────────────────
 
@@ -307,6 +378,10 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                 highestStepReached,
                 inputs: { ...inputs },
                 targetIdentifier,
+                dismissedAttention: [...dismissedAttention],
+                dismissedQuestions: [...dismissedQuestions],
+                collapsedAttention: [...collapsedAttention],
+                collapsedQuestions: [...collapsedQuestions],
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         } catch {
@@ -364,6 +439,21 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         // Update progress bar aria
         const progressBar = document.querySelector('.wizard-progress') as HTMLElement;
         if (progressBar) progressBar.setAttribute('aria-valuenow', String(step));
+
+        // Update mobile compact progress
+        const mobileCurrent = document.querySelector('.progress-mobile-current');
+        const mobileName = document.querySelector('.progress-mobile-name');
+        if (mobileCurrent) mobileCurrent.textContent = String(step);
+        if (mobileName) {
+            const activeLabel = document.querySelector(`.progress-segment[data-step-indicator="${step}"] .progress-label`);
+            if (activeLabel) mobileName.textContent = activeLabel.textContent ?? '';
+        }
+        document.querySelectorAll('.progress-dot').forEach((dot) => {
+            const dotStep = Number((dot as HTMLElement).dataset.dotStep);
+            dot.classList.toggle('active', dotStep === step);
+            dot.classList.toggle('completed', dotStep < step);
+            dot.classList.toggle('reachable', dotStep > step && dotStep <= highestStepReached);
+        });
 
         // Update navigation buttons
         btnBack.disabled = step === 1;
@@ -541,7 +631,15 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         updateNextButtonState();
         saveState();
 
-        // Do not auto-advance for compound steps - user may want to review all selections
+        // Auto-advance once all compound fields are filled
+        if (inputs.headcount && inputs.revenueRange && inputs.growthStage && inputs.companyAge) {
+            autoAdvanceTimer = setTimeout(() => {
+                autoAdvanceTimer = null;
+                if (currentStep < totalSteps) {
+                    showStep(currentStep + 1);
+                }
+            }, 300);
+        }
     }
 
     // ─── OUTPUT RENDERING ─────────────────────────────────────────────────
@@ -579,12 +677,14 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             attentionAreasSection.style.display = '';
             attentionAreasGrid.innerHTML = script.attentionAreas
                 .map((area) => `
-                    <div class="doc-attention-card relevance-${escapeHtml(area.relevance)}">
+                    <div class="doc-attention-card relevance-${escapeHtml(area.relevance)}${collapsedAttention.has(area.id) ? ' is-collapsed' : ''}${dismissedAttention.has(area.id) ? ' is-dismissed' : ''}" data-attention-id="${escapeHtml(area.id)}" data-card-toggle>
                         <div class="doc-attention-header">
                             <h3 class="doc-attention-title">${escapeHtml(area.title)}</h3>
+                            <button class="dm-na-btn" data-dismiss-attention="${escapeHtml(area.id)}" type="button" title="${dismissedAttention.has(area.id) ? 'Restore this item' : 'Mark as not applicable'}">${dismissedAttention.has(area.id) ? 'Restore' : 'N/A'}</button>
+                            <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
                         </div>
                         <div class="doc-attention-divider"></div>
-                        <p class="doc-attention-desc">${escapeHtml(area.description)}${area.id === 'attention-tech-debt' ? ' <a href="/hub/tools/tech-debt-calculator" target="_blank" rel="noopener noreferrer" style="color:var(--color-secondary);text-decoration:underline;">Quantify it with the Tech Debt Cost Calculator →</a>' : ''}</p>
+                        <p class="doc-attention-desc">${escapeHtml(area.description)}${area.id === 'attention-tech-debt' ? ' <a href="/hub/tools/tech-debt-calculator" target="_blank" rel="noopener noreferrer" style="color:var(--color-secondary);text-decoration:underline;">Quantify it with the Tech Debt Cost Calculator →</a>' : ''}${['attention-high-scale-architecture', 'attention-multi-infra-cost'].includes(area.id) ? ' <a href="/hub/tools/infrastructure-cost-governance" target="_blank" rel="noopener noreferrer" style="color:var(--color-secondary);text-decoration:underline;">Assess cost governance maturity with ICG →</a>' : ''}</p>
                     </div>
                 `)
                 .join('');
@@ -606,17 +706,22 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                     </div>
                     <ol class="doc-questions">
                         ${topic.questions.map((q, qIndex) => `
-                            <li class="doc-question priority-${escapeHtml(q.priority)}">
+                            <li class="doc-question priority-${escapeHtml(q.priority)}${collapsedQuestions.has(q.id) ? ' is-collapsed' : ''}${dismissedQuestions.has(q.id) ? ' is-dismissed' : ''}" data-question-id="${escapeHtml(q.id)}" data-card-toggle>
                                 <div class="doc-q-header">
                                     <span class="doc-q-number">${topicIndex + 1}.${qIndex + 1}</span>
                                     <div class="doc-q-badges">
                                         ${q.exitImpact ? `<span class="doc-q-exit-impact exit-impact-${escapeHtml(q.exitImpact.toLowerCase().replace(/\\s+/g, '-'))}">${escapeHtml(q.exitImpact)}</span>` : ''}
                                         <span class="doc-q-priority">${escapeHtml(q.priority)}</span>
+                                        <button class="dm-na-btn" data-dismiss-question="${escapeHtml(q.id)}" type="button" title="${dismissedQuestions.has(q.id) ? 'Restore this item' : 'Mark as not applicable'}">${dismissedQuestions.has(q.id) ? 'Restore' : 'N/A'}</button>
                                     </div>
+                                    <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
                                 </div>
                                 <p class="doc-q-text">${escapeHtml(q.text)}</p>
-                                ${q.lookoutSignal ? `<p class="doc-q-red-flag">${escapeHtml(q.lookoutSignal)}</p>` : ''}
-                                <p class="doc-q-rationale">${escapeHtml(q.rationale)}</p>
+                                <div class="dm-card-body">
+                                    ${q.lookoutSignal ? `<p class="doc-q-red-flag">${escapeHtml(q.lookoutSignal)}</p>` : ''}
+                                    <p class="doc-q-rationale">${escapeHtml(q.rationale)}</p>
+                                    ${(script.triggerMap[q.id] ?? []).length > 0 ? `<div class="doc-q-triggers">Triggered by: ${(script.triggerMap[q.id] ?? []).map(t => `<span class="doc-q-trigger-tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+                                </div>
                             </li>
                         `).join('')}
                     </ol>
@@ -624,9 +729,73 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             `)
             .join('');
 
+        // Wire collapse/expand and dismiss interactions
+        wireCardInteractions();
+
         // Scroll to top of output
         outputContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
         saveState();
+    }
+
+    function wireCardInteractions(): void {
+        // Collapse/expand toggle on card click
+        document.querySelectorAll('[data-card-toggle]').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if ((e.target as HTMLElement).closest('a, button')) return;
+                const el = card as HTMLElement;
+                const isNowCollapsed = el.classList.toggle('is-collapsed');
+                const attentionId = el.dataset.attentionId;
+                const questionId = el.dataset.questionId;
+                if (attentionId) {
+                    isNowCollapsed ? collapsedAttention.add(attentionId) : collapsedAttention.delete(attentionId);
+                } else if (questionId) {
+                    isNowCollapsed ? collapsedQuestions.add(questionId) : collapsedQuestions.delete(questionId);
+                }
+                saveState();
+            });
+        });
+
+        // Attention area N/A dismiss
+        document.querySelectorAll('[data-dismiss-attention]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = (btn as HTMLElement).dataset.dismissAttention!;
+                const card = (btn as HTMLElement).closest('.doc-attention-card')!;
+                if (dismissedAttention.has(id)) {
+                    dismissedAttention.delete(id);
+                    card.classList.remove('is-dismissed');
+                    (btn as HTMLElement).textContent = 'N/A';
+                    (btn as HTMLElement).title = 'Mark as not applicable';
+                } else {
+                    dismissedAttention.add(id);
+                    card.classList.add('is-dismissed');
+                    (btn as HTMLElement).textContent = 'Restore';
+                    (btn as HTMLElement).title = 'Restore this item';
+                }
+                saveState();
+            });
+        });
+
+        // Question N/A dismiss
+        document.querySelectorAll('[data-dismiss-question]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = (btn as HTMLElement).dataset.dismissQuestion!;
+                const card = (btn as HTMLElement).closest('.doc-question')!;
+                if (dismissedQuestions.has(id)) {
+                    dismissedQuestions.delete(id);
+                    card.classList.remove('is-dismissed');
+                    (btn as HTMLElement).textContent = 'N/A';
+                    (btn as HTMLElement).title = 'Mark as not applicable';
+                } else {
+                    dismissedQuestions.add(id);
+                    card.classList.add('is-dismissed');
+                    (btn as HTMLElement).textContent = 'Restore';
+                    (btn as HTMLElement).title = 'Restore this item';
+                }
+                saveState();
+            });
+        });
     }
 
     function renderMetaBlock(): void {
@@ -703,32 +872,30 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                         <span class="doc-meta-value">${escapeHtml(f.value)}</span>
                     </div>
                 `}).join('')}
-                <div class="doc-meta-card doc-meta-card--cta">
-                    <a href="https://calendly.com/globalstrategictech"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       class="cta-button doc-meta-cta-button"
-                       id="metaCtaButton"
-                       data-testid="meta-cta-button">
-                        Schedule a Call to Discuss <span id="metaCtaTarget">${escapeHtml(targetIdentifier)}</span>
-                    </a>
-                </div>
-                <div class="doc-meta-card doc-meta-card--cta">
-                    <a href="/hub/tools/techpar"
-                       class="cta-button doc-meta-cta-button doc-meta-cta-button--secondary"
-                       data-testid="techpar-cross-link">
-                        Already know your costs? Run them through TechPar &rarr;
-                    </a>
-                </div>
+            </div>
+            <div class="doc-meta-actions">
+                <a href="/hub/tools/techpar"
+                   target="_blank"
+                   rel="noopener"
+                   class="cta-button doc-meta-cta-button doc-meta-cta-button--secondary"
+                   data-testid="techpar-cross-link">
+                    Run costs through TechPar &rarr;
+                </a>
+                <a href="https://calendly.com/globalstrategictech"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="cta-button doc-meta-cta-button"
+                   id="metaCtaButton"
+                   data-testid="meta-cta-button">
+                    Schedule a Call to Discuss &rarr;
+                </a>
             </div>
         `;
 
         // Wire up identifier input
         const identifierInput = document.getElementById('targetIdentifierInput') as HTMLInputElement;
-        const metaCtaTarget = document.getElementById('metaCtaTarget');
         identifierInput.addEventListener('input', () => {
             targetIdentifier = identifierInput.value || 'Target';
-            if (metaCtaTarget) metaCtaTarget.textContent = targetIdentifier;
             saveState();
         });
 
@@ -826,32 +993,38 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         if (inputs.operatingModel) lines.push(`Operating Model:   ${getOptionLabel('operating-model', inputs.operatingModel)}`);
         lines.push('');
 
-        // Attention areas
-        if (script.attentionAreas.length > 0) {
+        // Attention areas (exclude dismissed)
+        const activeAreas = script.attentionAreas.filter(a => !dismissedAttention.has(a.id));
+        if (activeAreas.length > 0) {
             lines.push('\u2550'.repeat(60));
             lines.push('ATTENTION AREAS');
             lines.push('\u2550'.repeat(60));
             lines.push('');
-            for (const area of script.attentionAreas) {
+            for (const area of activeAreas) {
                 lines.push(`[${area.relevance.toUpperCase()}] ${area.title}`);
                 lines.push(`  ${area.description}`);
                 lines.push('');
             }
         }
 
-        // Topics
+        // Topics (exclude dismissed questions, skip empty topics)
         for (const [topicIndex, topic] of script.topics.entries()) {
+            const activeQuestions = topic.questions.filter(q => !dismissedQuestions.has(q.id));
+            if (activeQuestions.length === 0) continue;
+
             lines.push('\u2550'.repeat(60));
             lines.push(`TOPIC ${topicIndex + 1}: ${topic.topicLabel.toUpperCase()}`);
             lines.push(`Audience: ${topic.audienceLevel}`);
             lines.push('\u2550'.repeat(60));
             lines.push('');
 
-            for (const [qIndex, q] of topic.questions.entries()) {
+            for (const [qIndex, q] of activeQuestions.entries()) {
                 const impactTag = q.exitImpact ? ` [${q.exitImpact}]` : '';
                 lines.push(`${topicIndex + 1}.${qIndex + 1} [${q.priority.toUpperCase()}]${impactTag} ${q.text}`);
                 if (q.lookoutSignal) lines.push(`    ${q.lookoutSignal}`);
                 lines.push(`    Rationale: ${q.rationale}`);
+                const triggers = script.triggerMap[q.id] ?? [];
+                if (triggers.length > 0) lines.push(`    Triggered by: ${triggers.join(', ')}`);
                 lines.push('');
             }
         }
@@ -872,6 +1045,10 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     function restart(): void {
         inputs = { geographies: [] };
         targetIdentifier = 'Target';
+        dismissedAttention.clear();
+        dismissedQuestions.clear();
+        collapsedAttention.clear();
+        collapsedQuestions.clear();
         clearState();
 
         // Reset all option cards
@@ -910,6 +1087,10 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         inputs = { geographies: [], ...saved.inputs };
         if (saved.targetIdentifier) targetIdentifier = saved.targetIdentifier;
         highestStepReached = saved.highestStepReached ?? saved.currentStep;
+        dismissedAttention = new Set(saved.dismissedAttention ?? []);
+        dismissedQuestions = new Set(saved.dismissedQuestions ?? []);
+        collapsedAttention = new Set(saved.collapsedAttention ?? []);
+        collapsedQuestions = new Set(saved.collapsedQuestions ?? []);
 
         // Restore single-select options
         for (const [stepId, key] of Object.entries({
@@ -993,6 +1174,16 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         });
     });
 
+    // Mobile dot navigation
+    document.querySelectorAll('.progress-dot').forEach((dot) => {
+        dot.addEventListener('click', () => {
+            const dotStep = Number((dot as HTMLElement).dataset.dotStep);
+            if (dotStep !== currentStep && dotStep <= highestStepReached) {
+                showStep(dotStep);
+            }
+        });
+    });
+
     // Navigation
     btnBack.addEventListener('click', () => {
         if (currentStep > 1) showStep(currentStep - 1);
@@ -1066,6 +1257,25 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         min-height: 80vh;
     }
 
+    /* ─── AUTHORITY LINE ───────────────────────────────────────────────── */
+
+    .dm-authority {
+        padding: var(--spacing-sm) var(--spacing-lg);
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-light-faded);
+        border-bottom: 1px solid var(--accent-light-bg);
+        margin: 0;
+    }
+
+    .dm-privacy-note {
+        padding: var(--spacing-xs) var(--spacing-lg);
+        font-size: var(--text-xs);
+        color: var(--text-light-faded);
+        margin: 0;
+    }
 
     /* ─── PROGRESS BAR ─────────────────────────────────────────────────── */
 
@@ -1151,8 +1361,24 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         color: var(--text-light-primary);
     }
 
+    :global(html.dark-theme) .progress-number {
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    :global(html.dark-theme) .progress-label {
+        color: var(--text-dark-muted);
+    }
+
     :global(html.dark-theme) .progress-number-text {
         fill: var(--text-dark-muted);
+    }
+
+    :global(html.dark-theme) .progress-segment.active .progress-number {
+        color: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .progress-segment.active .progress-label {
+        color: var(--text-dark-primary);
     }
 
     :global(html.dark-theme) .progress-segment.active .progress-number-text {
@@ -1161,6 +1387,99 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     :global(html.dark-theme) .progress-segment.completed .progress-number-text {
         fill: var(--bg-dark);
+    }
+
+    /* ─── MOBILE COMPACT PROGRESS ────────────────────────────────────── */
+
+    .wizard-progress-mobile {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-2xl);
+    }
+
+    .progress-mobile-label {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-light-secondary);
+        letter-spacing: 0.02em;
+    }
+
+    .progress-mobile-current {
+        color: var(--color-primary);
+        font-weight: var(--font-weight-bold);
+    }
+
+    .progress-mobile-name {
+        color: var(--text-light-primary);
+    }
+
+    .progress-mobile-dots {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        max-width: 420px;
+    }
+
+    .progress-dot {
+        width: 2.75rem;
+        height: 2.75rem;
+        background: none;
+        border: none;
+        padding: 0.375rem;
+        color: var(--border-light);
+        opacity: 0.4;
+        cursor: default;
+        transition: color var(--transition-normal), opacity var(--transition-normal), transform var(--transition-normal);
+    }
+
+    .progress-dot svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    .progress-dot:nth-child(even) svg path {
+        transform: rotate(180deg);
+        transform-origin: 32px 32px;
+    }
+
+    .progress-dot.active,
+    .progress-dot.completed,
+    .progress-dot.reachable {
+        opacity: 1;
+    }
+
+    .progress-dot.completed,
+    .progress-dot.reachable {
+        cursor: pointer;
+    }
+
+    .progress-dot.active {
+        color: var(--color-primary);
+        transform: scale(1.2);
+    }
+
+    .progress-dot.completed svg path {
+        fill: var(--color-primary);
+        stroke: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .progress-mobile-label {
+        color: var(--text-dark-secondary);
+    }
+
+    :global(html.dark-theme) .progress-mobile-name {
+        color: var(--text-dark-primary);
+    }
+
+    :global(html.dark-theme) .progress-dot {
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    :global(html.dark-theme) .progress-dot.active {
+        color: var(--color-primary);
     }
 
     /* ─── WIZARD STEPS ─────────────────────────────────────────────────── */
@@ -1400,8 +1719,11 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         display: flex;
         justify-content: flex-end;
         gap: var(--spacing-sm);
-        padding: var(--spacing-sm) 0;
+        padding: var(--spacing-sm) var(--spacing-md);
         margin-bottom: var(--spacing-lg);
+        background: var(--bg-light);
+        border-bottom: 1px solid var(--border-light);
+        border-radius: 0 0 4px 4px;
     }
 
     .doc-action-btn {
@@ -1432,8 +1754,13 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         border-color: var(--color-primary);
     }
 
-    :global(html.dark-theme) .doc-action-btn {
+    :global(html.dark-theme) .doc-action-bar {
         background: var(--bg-dark-secondary);
+        border-bottom-color: rgba(5, 205, 153, 0.15);
+    }
+
+    :global(html.dark-theme) .doc-action-btn {
+        background: var(--bg-dark-tertiary);
         border-color: var(--border-dark);
         color: var(--text-dark-secondary);
     }
@@ -1671,19 +1998,19 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         border-bottom-color: var(--color-primary);
     }
 
-    .doc-meta :global(.doc-meta-card--cta) {
+    .doc-meta :global(.doc-meta-actions) {
         display: flex;
-        align-items: flex-end;
-        justify-content: flex-end;
-        padding: var(--spacing-sm) 0;
+        justify-content: center;
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-lg);
     }
 
     .doc-meta :global(.doc-meta-cta-button) {
         font-size: 0.7rem;
-        padding: var(--spacing-sm) var(--spacing-md);
+        padding: var(--spacing-sm) var(--spacing-lg);
         text-align: center;
         line-height: 1.3;
-        white-space: normal;
+        white-space: nowrap;
     }
 
     /* ─── TABLE OF CONTENTS ────────────────────────────────────────────── */
@@ -1770,6 +2097,12 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         border-left: 3px solid var(--color-primary);
         background: rgba(5, 205, 153, 0.03);
         border-radius: 4px;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .doc-attention-grid :global(.doc-attention-card.is-collapsed) {
+        padding: var(--spacing-sm) var(--spacing-xl);
     }
 
     .doc-attention-grid :global(.doc-attention-card.relevance-high) {
@@ -1806,6 +2139,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         font-weight: var(--font-weight-bold);
         color: var(--text-light-primary);
         line-height: 1.4;
+        min-width: 0;
         margin: 0;
     }
 
@@ -1838,6 +2172,105 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         color: var(--text-light-secondary);
         line-height: 1.7;
         margin: 0;
+    }
+
+    /* ─── COLLAPSE / DISMISS CONTROLS ────────────────────────────────── */
+
+    :global([data-card-toggle]) {
+        cursor: pointer;
+    }
+
+    :global(.dm-na-btn) {
+        flex-shrink: 0;
+        padding: 2px var(--spacing-sm);
+        font-size: 0.65rem;
+        font-weight: var(--font-weight-bold);
+        font-family: var(--font-family);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-light-muted);
+        background: rgba(200, 200, 200, 0.08);
+        border: 1px dashed var(--border-light);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+    }
+
+    :global(.dm-na-btn:hover) {
+        color: var(--text-light-primary);
+        border-color: var(--text-light-secondary);
+        background: rgba(200, 200, 200, 0.15);
+    }
+
+    :global(html.dark-theme .dm-na-btn) {
+        background: rgba(200, 200, 200, 0.04);
+        border-color: rgba(5, 205, 153, 0.12);
+    }
+
+    :global(html.dark-theme .dm-na-btn:hover) {
+        border-color: rgba(5, 205, 153, 0.3);
+        background: rgba(5, 205, 153, 0.08);
+    }
+
+
+    :global(.doc-attention-card.is-dismissed),
+    :global(.doc-question.is-dismissed) {
+        opacity: 0.45;
+        border-style: dashed;
+    }
+
+    :global(.is-dismissed .dm-na-btn) {
+        border-style: solid;
+    }
+
+    /* Attention card collapse */
+
+    .doc-attention-grid :global(.is-collapsed .doc-attention-divider) {
+        max-height: 0;
+        opacity: 0;
+        margin: 0;
+    }
+
+    .doc-attention-grid :global(.is-collapsed .doc-attention-desc) {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: var(--spacing-xs) 0 0;
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+    }
+
+    :global(html.dark-theme) .doc-attention-grid :global(.is-collapsed .doc-attention-desc) {
+        color: var(--text-dark-muted);
+    }
+
+    /* Question card collapse */
+    :global(.dm-card-body) {
+        transition: max-height var(--transition-normal), opacity var(--transition-normal);
+        max-height: 1000px;
+        overflow: hidden;
+        opacity: 1;
+    }
+
+    :global(.is-collapsed .dm-card-body) {
+        max-height: 0;
+        opacity: 0;
+        margin: 0;
+    }
+
+    /* Truncate question text to one line when collapsed */
+    :global(.doc-question.is-collapsed .doc-q-text) {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 0;
+        font-weight: var(--font-weight-normal);
+        font-size: var(--text-sm);
+        color: var(--text-light-muted);
+    }
+
+    :global(html.dark-theme .doc-question.is-collapsed .doc-q-text) {
+        color: var(--text-dark-muted);
     }
 
     /* ─── TOPIC SECTIONS ───────────────────────────────────────────────── */
@@ -1895,7 +2328,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         padding: 0;
         margin: 0;
         display: grid;
-        gap: var(--spacing-xl);
+        gap: var(--spacing-md);
     }
 
     .doc-topics :global(.doc-question) {
@@ -1903,6 +2336,12 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         border: 1px solid var(--border-light);
         border-radius: 2px;
         border-left: 3px solid var(--border-light);
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .doc-topics :global(.doc-question.is-collapsed) {
+        padding: var(--spacing-sm) var(--spacing-lg);
     }
 
     .doc-topics :global(.doc-question.priority-high) {
@@ -1950,10 +2389,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         color: #e06060;
     }
 
-    :global(html.dark-theme) .analyze-text {
-        color: var(--text-dark-secondary);
-    }
-
     .doc-topics :global(.doc-q-header) {
         display: flex;
         justify-content: space-between;
@@ -1965,6 +2400,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         font-size: var(--text-sm);
         font-weight: var(--font-weight-bold);
         color: var(--color-primary);
+        margin-right: var(--spacing-sm);
     }
 
     .doc-topics :global(.doc-q-priority) {
@@ -2005,6 +2441,28 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         line-height: 1.6;
         font-style: italic;
         margin: 0;
+    }
+
+    .doc-topics :global(.doc-q-triggers) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--spacing-xs);
+        margin-top: var(--spacing-sm);
+        font-size: var(--text-xs);
+        color: var(--text-light-faded);
+    }
+
+    .doc-topics :global(.doc-q-trigger-tag) {
+        display: inline-block;
+        padding: 1px var(--spacing-xs);
+        font-size: 0.65rem;
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-light-muted);
+        border: 1px solid color-mix(in srgb, var(--color-primary) 15%, transparent);
+        border-radius: 2px;
     }
 
     /* ─── V2: EXIT IMPACT BADGES ──────────────────────────────────────── */
@@ -2050,42 +2508,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         border-radius: 0 2px 2px 0;
     }
 
-    /* ─── V2: ANALYZE OVERLAY ─────────────────────────────────────────── */
-
-    .analyze-overlay {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 300px;
-        padding: var(--spacing-3xl) 0;
-    }
-
-    .analyze-content {
-        text-align: center;
-    }
-
-    .analyze-spinner {
-        width: 40px;
-        height: 40px;
-        margin: 0 auto var(--spacing-lg);
-        border: 3px solid rgba(5, 205, 153, 0.2);
-        border-top-color: var(--color-primary);
-        border-radius: 50%;
-        animation: dm-spin 0.8s linear infinite;
-    }
-
-    @keyframes dm-spin {
-        to { transform: rotate(360deg); }
-    }
-
-    .analyze-text {
-        font-size: var(--text-lg);
-        font-weight: var(--font-weight-semibold);
-        color: var(--text-light-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-
     /* ─── DOCUMENT FOOTER ──────────────────────────────────────────────── */
 
     .doc-footer {
@@ -2098,17 +2520,11 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         margin: 0 0 var(--spacing-xs) 0;
     }
 
-    .doc-footer-content {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-md);
-        margin-bottom: 4px;
-    }
-
     .doc-footer-brand {
         display: flex;
         align-items: center;
         gap: 4px;
+        margin-bottom: 4px;
         font-size: 0.6rem;
         font-weight: var(--font-weight-semibold);
         letter-spacing: 0.02em;
@@ -2134,6 +2550,117 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     :global(html.dark-theme) .doc-footer-disclaimer {
         color: var(--text-dark-muted);
+    }
+
+    /* ─── METHODOLOGY ──────────────────────────────────────────────────── */
+
+    .dm-methodology {
+        margin-top: var(--spacing-2xl);
+        border-top: 1px solid color-mix(in srgb, var(--color-primary) 6%, transparent);
+    }
+
+    .dm-methodology__trigger {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) var(--spacing-lg);
+        cursor: pointer;
+        color: var(--text-light-muted);
+        transition: color var(--transition-fast);
+        list-style: none;
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .dm-methodology__trigger::-webkit-details-marker {
+        display: none;
+    }
+
+    .dm-methodology__trigger::before {
+        content: '';
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        background-color: var(--color-primary);
+        mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
+        mask-size: contain;
+        mask-repeat: no-repeat;
+        -webkit-mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
+        -webkit-mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        transition: transform var(--transition-fast);
+    }
+
+    .dm-methodology[open] > .dm-methodology__trigger::before {
+        transform: rotate(180deg);
+    }
+
+    .dm-methodology__trigger:hover {
+        color: var(--text-light-secondary);
+    }
+
+    .dm-methodology__body {
+        padding: var(--spacing-sm) var(--spacing-2xl) var(--spacing-md);
+        color: var(--text-light-secondary);
+        line-height: 1.7;
+        border-top: 1px solid color-mix(in srgb, var(--color-primary) 6%, transparent);
+    }
+
+    .dm-methodology__heading {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--text-light-primary);
+        margin-top: var(--spacing-md);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .dm-methodology__heading:first-child {
+        margin-top: 0;
+    }
+
+    .dm-methodology__body p {
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .dm-methodology__updated {
+        font-size: var(--text-xs);
+        color: var(--text-light-faded);
+        font-style: italic;
+        margin-top: var(--spacing-sm);
+    }
+
+    .dm-methodology__author {
+        display: flex;
+        align-items: baseline;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+        padding-top: var(--spacing-md);
+        margin-top: var(--spacing-md);
+        border-top: 1px solid color-mix(in srgb, var(--color-primary) 6%, transparent);
+        font-size: var(--text-xs);
+        color: var(--text-light-muted);
+    }
+
+    .dm-methodology__author-name {
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-light-secondary);
+    }
+
+    .dm-methodology__author-sep {
+        color: var(--text-light-faded);
+    }
+
+    .dm-methodology__author-link {
+        color: var(--color-primary);
+        text-decoration: none;
+    }
+
+    .dm-methodology__author-link:hover {
+        text-decoration: underline;
     }
 
     /* ─── BACK LINK ────────────────────────────────────────────────────── */
@@ -2215,11 +2742,11 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         }
 
         .wizard-progress {
-            gap: var(--spacing-xs);
+            display: none;
         }
 
-        .progress-label {
-            display: none;
+        .wizard-progress-mobile {
+            display: flex;
         }
 
         .option-card {
@@ -2243,6 +2770,11 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             padding: var(--spacing-md) var(--spacing-sm);
         }
 
+        .doc-divider {
+            margin-left: var(--spacing-md);
+            margin-right: var(--spacing-md);
+        }
+
         .doc-title {
             font-size: var(--text-xl);
         }
@@ -2254,7 +2786,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
         .doc-meta :global(.doc-meta-grid) {
             grid-template-columns: repeat(2, 1fr);
-            padding-left: var(--spacing-md);
+            padding: 0 var(--spacing-md);
             gap: var(--spacing-xs);
         }
 
@@ -2287,9 +2819,18 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             text-align: right;
         }
 
-        .doc-meta :global(.doc-meta-card--cta) {
-            align-items: flex-end;
-            justify-content: flex-end;
+        .doc-meta :global(.doc-meta-actions) {
+            flex-direction: column;
+            padding: 0 var(--spacing-md);
+            gap: var(--spacing-sm);
+            align-items: stretch;
+        }
+
+        .doc-meta :global(.doc-meta-cta-button) {
+            white-space: normal;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .doc-toc :global(.doc-toc-list) {
@@ -2301,15 +2842,22 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         }
 
         .doc-attention-grid {
-            padding-left: var(--spacing-md);
+            padding: 0 var(--spacing-md);
         }
 
         .doc-action-bar {
             flex-wrap: wrap;
+            margin-left: var(--spacing-sm);
+            margin-right: var(--spacing-sm);
         }
 
         .doc-action-btn {
             flex: 1 1 auto;
+        }
+
+        .doc-topics :global(.doc-topic-header) {
+            margin-left: var(--spacing-md);
+            margin-right: var(--spacing-md);
         }
 
         .doc-topics :global(.doc-topic-label-row) {
@@ -2318,9 +2866,38 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             gap: var(--spacing-xs);
         }
 
-        .doc-footer-content {
-            flex-wrap: wrap;
-            justify-content: center;
+        /* Tighten question list spacing on mobile */
+        .doc-topics :global(.doc-questions) {
+            gap: var(--spacing-sm);
+            margin-left: var(--spacing-sm);
+            margin-right: var(--spacing-sm);
+        }
+
+        .doc-topics :global(.doc-question) {
+            padding: var(--spacing-md);
+        }
+
+        .doc-topics :global(.doc-question.is-collapsed) {
+            padding: var(--spacing-sm) var(--spacing-md);
+        }
+
+        .doc-attention-grid :global(.doc-attention-card.is-collapsed) {
+            padding: var(--spacing-sm) var(--spacing-md);
+        }
+
+        /* Collapsed cards: title-only on mobile */
+        .doc-attention-grid :global(.is-collapsed .doc-attention-desc) {
+            display: none;
+        }
+
+        .doc-attention-grid :global(.is-collapsed .doc-attention-title) {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        :global(.doc-question.is-collapsed .doc-q-text) {
+            font-size: var(--text-xs);
         }
     }
 
@@ -2336,11 +2913,12 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         .wizard-nav,
         .doc-action-bar,
         .back-link,
-        .analyze-overlay {
+        .dm-authority,
+        .dm-methodology {
             display: none;
         }
 
-        .doc-meta :global(.doc-meta-card--cta) {
+        .doc-meta :global(.doc-meta-actions) {
             display: none;
         }
 
@@ -2652,13 +3230,9 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             margin: 0 0 4px 0;
         }
 
-        .doc-footer-content {
-            gap: 8px;
-            margin-bottom: 2px;
-        }
-
         .doc-footer-brand {
             gap: 2px;
+            margin-bottom: 2px;
             font-size: 9px;
         }
 
@@ -2726,8 +3300,27 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             page-break-after: avoid;
         }
 
-        /* v2: Hide analyze overlay in print */
-        .analyze-overlay {
+        /* Dismiss/collapse: print overrides */
+        :global(.doc-attention-card.is-dismissed),
+        :global(.doc-question.is-dismissed) {
+            display: none !important;
+        }
+
+        :global(.is-collapsed .doc-attention-divider),
+        :global(.is-collapsed .dm-card-body) {
+            max-height: none !important;
+            opacity: 1 !important;
+        }
+
+        :global(.doc-question.is-collapsed .doc-q-text),
+        :global(.is-collapsed .doc-attention-desc) {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+        }
+
+        :global(.delta-chevron),
+        :global(.dm-na-btn) {
             display: none !important;
         }
     }

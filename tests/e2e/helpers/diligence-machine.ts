@@ -152,15 +152,12 @@ export async function completeWizardToStep(
         growthStage: inputs.growthStage,
         companyAge: inputs.companyAge
       } as any);
-      // Wait for state updates — btn-next becomes enabled
-      await expect(page.locator('[data-testid="btn-next"]')).toBeEnabled({ timeout: 3000 });
-      await page.locator('[data-testid="btn-next"]').click();
 
-      // Wait for step 5
+      // Wait for auto-advance to step 5 (300ms timer after all 4 fields filled)
       await page.waitForFunction(() => {
         const activeStep = document.querySelector('.wizard-step.active');
         return activeStep?.getAttribute('data-step') === '5';
-      }, { timeout: 2000 });
+      }, { timeout: 5000 });
     }
 
     // Multi-select geography (step 5)

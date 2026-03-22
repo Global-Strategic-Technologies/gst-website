@@ -16,6 +16,7 @@ export interface ICGState {
   answers: Record<string, number>;
   currentStep: number;
   dismissed: string[];
+  expanded?: string[];
   companyStage?: CompanyStage;
 }
 
@@ -147,6 +148,9 @@ export function encodeState(state: ICGState): string {
   if (state.dismissed.length > 0) {
     compact.d = state.dismissed;
   }
+  if (state.expanded && state.expanded.length > 0) {
+    compact.e = state.expanded;
+  }
   if (state.companyStage) {
     compact.g = state.companyStage;
   }
@@ -177,6 +181,10 @@ export function decodeState(encoded: string): Partial<ICGState> | null {
 
     if (Array.isArray(raw.d)) {
       out.dismissed = raw.d.filter((v: unknown) => typeof v === 'string');
+    }
+
+    if (Array.isArray(raw.e)) {
+      out.expanded = raw.e.filter((v: unknown) => typeof v === 'string');
     }
 
     const VALID_STAGES: CompanyStage[] = ['pre-series-b', 'series-bc', 'pe-backed', 'enterprise'];

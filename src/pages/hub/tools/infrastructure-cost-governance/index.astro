@@ -19,7 +19,7 @@ const domainCount = DOMAINS.length;
 >
     <script is:inline type="application/ld+json" set:html={JSON.stringify({
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
+        "@type": "WebApplication",
         "name": "Infrastructure Cost Governance",
         "description": "Cloud cost maturity assessment across six operational domains for PE diligence, board reviews, and 100-day planning",
         "applicationCategory": "BusinessApplication",
@@ -28,6 +28,7 @@ const domainCount = DOMAINS.length;
         "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" },
         "datePublished": "2026-03-01",
         "dateModified": "2026-03-21",
+        "featureList": ["20 questions across 6 cloud cost domains", "Scored diagnostic with benchmarks", "Prioritized improvement checklist", "Shareable results for board reviews"],
         "author": { "@type": "Person", "name": "Reid Peryam", "jobTitle": "Strategic Technology Advisor", "sameAs": ["https://www.linkedin.com/in/reidperyam/"], "description": "Technology advisor with experience across 100+ PE technology diligence engagements", "knowsAbout": ["Cloud Cost Optimization", "Infrastructure Governance", "FinOps", "Technical Due Diligence", "M&A Tech Strategy"] }
     })} />
 
@@ -471,6 +472,7 @@ const domainCount = DOMAINS.length;
         text-decoration: none;
         display: inline-flex;
         align-items: center;
+        justify-content: center;
     }
 
     :global(html.dark-theme) .icg-btn-secondary {
@@ -891,36 +893,73 @@ const domainCount = DOMAINS.length;
     /* ── Results: Benchmark table ──────────────────────────────────────────── */
     .icg-benchmark-table {
         width: 100%;
-        border-collapse: collapse;
-    }
-
-    .icg-benchmark-table tr {
-        border-bottom: 1px solid var(--border-light);
-    }
-
-    :global(html.dark-theme) .icg-benchmark-table tr {
-        border-bottom-color: rgba(5, 205, 153, 0.08);
+        border-collapse: separate;
+        border-spacing: 0 var(--spacing-xs);
     }
 
     .icg-benchmark-table td {
-        padding: var(--spacing-sm) 0;
+        padding: var(--spacing-sm) var(--spacing-md);
         font-size: var(--text-sm);
         color: var(--text-light-secondary);
+    }
+
+    .icg-benchmark-table td:first-child {
+        border-radius: 4px 0 0 4px;
     }
 
     .icg-benchmark-table td:last-child {
         text-align: right;
         white-space: nowrap;
+        font-family: var(--font-family);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: 0.02em;
+        border-radius: 0 4px 4px 0;
     }
 
     :global(.icg-benchmark-table td.in-range) {
-        font-weight: var(--font-weight-semibold);
+        font-weight: var(--font-weight-bold);
         color: var(--color-primary);
+    }
+
+    :global(.icg-bench-label) {
+        display: inline-block;
+        font-size: 0.6rem;
+        font-weight: var(--font-weight-bold);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 1px var(--spacing-xs);
+        border-radius: 3px;
+        vertical-align: middle;
+        margin-left: var(--spacing-xs);
+        line-height: 1.4;
+    }
+
+    :global(.icg-bench-label--score) {
+        background: rgba(5, 205, 153, 0.12);
+        color: var(--color-primary);
+        border: 1px solid rgba(5, 205, 153, 0.25);
+    }
+
+    :global(.icg-bench-label--stage) {
+        background: rgba(91, 122, 157, 0.1);
+        color: #5b7a9d;
+        border: 1px solid rgba(91, 122, 157, 0.2);
+    }
+
+    :global(html.dark-theme .icg-bench-label--score) {
+        background: rgba(5, 205, 153, 0.15);
+        border-color: rgba(5, 205, 153, 0.3);
+    }
+
+    :global(html.dark-theme .icg-bench-label--stage) {
+        background: rgba(91, 122, 157, 0.15);
+        color: #7a9dbd;
+        border-color: rgba(91, 122, 157, 0.25);
     }
 
     .icg-benchmark-note {
         color: var(--text-light-muted);
-        margin-top: var(--gap-normal);
+        margin-top: var(--spacing-sm);
         line-height: 1.5;
         font-style: italic;
     }
@@ -989,6 +1028,11 @@ const domainCount = DOMAINS.length;
         padding: var(--spacing-xs) var(--spacing-sm);
         border-radius: 4px;
         line-height: 1;
+        border: 1px solid var(--border-light);
+    }
+
+    :global(html.dark-theme .icg-rec-badge) {
+        border-color: rgba(200, 200, 200, 0.1);
     }
 
     :global(.icg-rec-badge--high),
@@ -1029,21 +1073,6 @@ const domainCount = DOMAINS.length;
         gap: var(--spacing-xs);
     }
 
-    :global(.icg-rec-chevron) {
-        flex-shrink: 0;
-        width: 12px;
-        height: 12px;
-        display: inline-block;
-        border-right: 2px solid var(--text-light-muted);
-        border-bottom: 2px solid var(--text-light-muted);
-        transform: rotate(45deg);
-        transition: transform var(--transition-fast);
-        margin-left: auto;
-    }
-
-    :global(.icg-rec-card.is-collapsed .icg-rec-chevron) {
-        transform: rotate(-45deg);
-    }
 
     :global(.icg-rec-body__desc) {
         font-size: var(--text-sm);
@@ -1072,6 +1101,7 @@ const domainCount = DOMAINS.length;
     :global(.icg-rec-na) {
         flex-shrink: 0;
         padding: 2px var(--spacing-sm);
+        margin-right: var(--spacing-xs);
         font-size: 0.65rem;
         font-weight: var(--font-weight-bold);
         font-family: var(--font-family);
@@ -1487,12 +1517,15 @@ const domainCount = DOMAINS.length;
     }
 
     /* ── Benchmark stage highlight ────────────────────────────────────────── */
-    :global(.icg-bench-active) {
-        border-left: 3px solid var(--color-primary);
+    :global(.icg-bench-active td) {
         background: rgba(5, 205, 153, 0.04);
     }
 
-    :global(html.dark-theme .icg-bench-active) {
+    :global(.icg-bench-active td:first-child) {
+        border-left: 3px solid var(--color-primary);
+    }
+
+    :global(html.dark-theme .icg-bench-active td) {
         background: rgba(5, 205, 153, 0.08);
     }
 
@@ -1760,7 +1793,7 @@ const domainCount = DOMAINS.length;
             opacity: 1 !important;
         }
 
-        :global(.icg-rec-chevron) {
+        :global(.delta-chevron) {
             display: none !important;
         }
 
@@ -2177,19 +2210,35 @@ function renderResults(): void {
     });
   });
 
-  // Benchmark highlighting
+  // Benchmark highlighting — show "YOUR RANGE" badge on the matching range row
   const benchCells = document.querySelectorAll<HTMLElement>('[data-bench]');
   benchCells.forEach(td => {
     const range = td.dataset.bench!;
     const [lo, hi] = range.split('-').map(Number);
     const inRange = result.overallScore >= lo && result.overallScore <= hi;
     td.classList.toggle('in-range', inRange);
-    td.textContent = range + (inRange ? ' \u25C0' : '');
+    td.textContent = range;
+    // Add label to first td in the same row
+    const firstTd = td.closest('tr')?.querySelector('td');
+    if (firstTd) {
+      const existingScore = firstTd.querySelector('.icg-bench-label--score');
+      if (existingScore) existingScore.remove();
+      if (inRange) {
+        firstTd.insertAdjacentHTML('beforeend', ' <span class="icg-bench-label icg-bench-label--score">Your range</span>');
+      }
+    }
   });
 
-  // Benchmark stage row highlighting
+  // Benchmark stage row highlighting — show "YOUR STAGE" badge
   document.querySelectorAll<HTMLElement>('[data-stage-row]').forEach(tr => {
-    tr.classList.toggle('icg-bench-active', tr.dataset.stageRow === state.companyStage);
+    const isActive = tr.dataset.stageRow === state.companyStage;
+    tr.classList.toggle('icg-bench-active', isActive);
+    const firstTd = tr.querySelector('td')!;
+    const existingLabel = firstTd.querySelector('.icg-bench-label--stage');
+    if (existingLabel) existingLabel.remove();
+    if (isActive) {
+      firstTd.insertAdjacentHTML('beforeend', ' <span class="icg-bench-label icg-bench-label--stage">Your stage</span>');
+    }
   });
 
   // Email link
@@ -2236,9 +2285,9 @@ function renderResults(): void {
           ${items.map(rec => {
             const isDismissed = dismissed.has(rec.id);
             return `
-            <div class="icg-rec-card is-collapsed${isDismissed ? ' is-dismissed' : ''}" data-rec-id="${rec.id}" data-rec-domain="${rec.domain}" data-rec-toggle>
+            <div class="icg-rec-card${state.expanded?.includes(rec.id) ? '' : ' is-collapsed'}${isDismissed ? ' is-dismissed' : ''}" data-rec-id="${rec.id}" data-rec-domain="${rec.domain}" data-rec-toggle>
               <div class="icg-rec-body">
-                <div class="icg-rec-body__title"><span class="icg-rec-badge icg-rec-badge--${rec.impact}">${rec.impact}</span><span class="icg-rec-badge icg-rec-badge--effort">${rec.effort.replace('-', ' ')}</span><button class="icg-rec-na" data-dismiss="${rec.id}" type="button" title="${isDismissed ? 'Restore this recommendation to the active list' : 'Mark as not applicable. Dismissed items are excluded from the printed report.'}">${isDismissed ? 'Restore' : 'N/A'}</button>${rec.title}<span class="icg-rec-chevron"></span></div>
+                <div class="icg-rec-body__title"><span class="icg-rec-badge icg-rec-badge--${rec.impact}">${rec.impact}</span><span class="icg-rec-badge icg-rec-badge--effort">${rec.effort.replace('-', ' ')}</span><button class="icg-rec-na" data-dismiss="${rec.id}" type="button" title="${isDismissed ? 'Restore this recommendation to the active list' : 'Mark as not applicable. Dismissed items are excluded from the printed report.'}">${isDismissed ? 'Restore' : 'N/A'}</button>${rec.title}<svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg></div>
                 <div class="icg-rec-body__desc">${rec.description}</div>
               </div>
             </div>`;
@@ -2256,7 +2305,15 @@ function renderResults(): void {
     // Wire expand/collapse toggle on the entire card
     recsContainer.querySelectorAll('[data-rec-toggle]').forEach(card => {
       card.addEventListener('click', () => {
-        card.classList.toggle('is-collapsed');
+        const recId = (card as HTMLElement).dataset.recId!;
+        const isNowCollapsed = card.classList.toggle('is-collapsed');
+        if (!state.expanded) state.expanded = [];
+        if (isNowCollapsed) {
+          state.expanded = state.expanded.filter(id => id !== recId);
+        } else {
+          if (!state.expanded.includes(recId)) state.expanded.push(recId);
+        }
+        pushUrlState(state);
       });
     });
 
@@ -2382,6 +2439,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.currentStep = 0;
     state.answers = {};
     state.dismissed = [];
+    state.expanded = [];
     state.companyStage = undefined;
     clearStorage();
     render();
