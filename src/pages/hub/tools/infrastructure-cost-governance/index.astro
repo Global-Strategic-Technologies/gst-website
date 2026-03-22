@@ -990,6 +990,11 @@ const domainCount = DOMAINS.length;
         padding: var(--spacing-xs) var(--spacing-sm);
         border-radius: 4px;
         line-height: 1;
+        border: 1px solid var(--border-light);
+    }
+
+    :global(html.dark-theme .icg-rec-badge) {
+        border-color: rgba(200, 200, 200, 0.1);
     }
 
     :global(.icg-rec-badge--high),
