@@ -14,6 +14,8 @@ Tracked initiatives to close the gap between documented conventions and actual i
 6. [ICG Color Standardization](#6-icg-color-standardization)
 7. [Standardized Tool Shell Container](#7-standardized-tool-shell-container)
 8. [Dynamic Content Loading Pattern](#8-dynamic-content-loading-pattern)
+9. [Theme-Agnostic Text Variable Refactor](#9-theme-agnostic-text-variable-refactor) *(planned)*
+10. [Reusable Skeleton CSS Classes](#10-reusable-skeleton-css-classes) *(planned — on trigger)*
 
 ---
 
@@ -289,15 +291,88 @@ All 8 initiatives completed on March 23, 2026.
 
 ---
 
-## Positive Patterns in Recent Commits
+## Future Initiatives
 
-The following patterns from recent work demonstrate the target approach for remediation:
+### 9. Theme-Agnostic Text Variable Refactor
 
-- **`.delta-chevron` utility** (`interactions.css`): Extracted as a shared component using only CSS variables (`--color-primary`, `--text-light-muted`, `--text-dark-muted`, `--transition-fast`). No hardcoded colors. This is the reference pattern for new interactive components.
-- **ICG benchmark table spacing**: New cell padding uses `var(--spacing-sm) var(--spacing-md)` and row gap uses `var(--spacing-xs)` — correct variable usage throughout.
-- **ICG recommendation badge borders**: Uses `var(--border-light)` for light theme — correct semantic variable usage.
+**Status**: Planned
 
-These demonstrate that the conventions are being followed in new utility code even while legacy patterns persist in existing component styles.
+**Problem**: The design system uses paired text variables — `--text-light-primary` for light theme and `--text-dark-primary` for dark theme. Components reference the light variant, then every dark theme context requires a manual `html.dark-theme` override to swap to the dark variant. The Diligence Machine alone has ~25 such overrides; the pattern repeats across portfolio components, regulatory map, and other tools.
+
+**Root cause**: The variable naming convention is theme-specific (`--text-light-*` / `--text-dark-*`) rather than theme-agnostic. The background and accent variables (e.g., `--bg-light`, `--border-light`) already auto-switch via `html.dark-theme` overrides in `variables.css`, but text variables require manual swapping at the component level because components reference the `-light-` variant directly.
+
+**Proposed approach**:
+1. Introduce theme-agnostic aliases in `variables.css`:
+   ```css
+   :root {
+     --text-primary: var(--text-light-primary);
+     --text-secondary: var(--text-light-secondary);
+     --text-muted: var(--text-light-muted);
+     --text-faded: var(--text-light-faded);
+   }
+   html.dark-theme {
+     --text-primary: var(--text-dark-primary);
+     --text-secondary: var(--text-dark-secondary);
+     --text-muted: var(--text-dark-muted);
+     --text-faded: var(--text-dark-faded);
+   }
+   ```
+2. Migrate components from `--text-light-*` → `--text-*`
+3. Remove now-redundant `html.dark-theme` overrides from each component
+4. Keep `--text-light-*` and `--text-dark-*` available for the rare case where a component needs to force a specific theme's value regardless of context
+
+**Impact**: Eliminates an estimated 60-80 dark theme override rules across the codebase. Reduces CSS volume, simplifies new component authoring, and prevents the recurring pattern of forgetting a dark theme text swap.
+
+**Files affected**:
+- `src/styles/variables.css` — Add aliases + dark overrides
+- `src/styles/typography.css` — Update utility class definitions
+- `src/pages/hub/tools/diligence-machine/index.astro` — ~25 dark overrides removable
+- `src/components/portfolio/*.astro` — ~15 dark overrides removable
+- `src/pages/hub/tools/regulatory-map/index.astro` — ~8 dark overrides removable
+- `src/pages/hub/tools/infrastructure-cost-governance/index.astro` — ~5 dark overrides removable
+- All other components that reference `--text-light-*` or `--text-dark-*`
+
+**Documentation to update**: VARIABLES_REFERENCE.md, STYLES_GUIDE.md (dark theme section), TYPOGRAPHY_REFERENCE.md
+
+**Estimated scope**: Large — touches every component, but each replacement is mechanical (find `--text-light-*` → `--text-*`, delete redundant dark override)
+
+---
+
+### 10. Reusable Skeleton CSS Classes
+
+**Status**: Planned — implement when a second consumer needs skeleton loading
+
+**Problem**: The skeleton loading pattern is documented (Init 8) but the CSS lives only inside `RadarFeedSkeleton.astro` as scoped styles. If another component needs skeleton loading (e.g., a hub tool with async data, a server island), the CSS must be duplicated.
+
+**Proposed approach**:
+1. Extract reusable classes into `src/styles/global.css` (or a new `skeleton.css`):
+   ```css
+   .skeleton-bar {
+     height: 0.875rem;
+     background: rgba(5, 205, 153, 0.15);
+     border-radius: 4px;
+     animation: pulse 2s ease-in-out infinite;
+   }
+   .skeleton-dot {
+     width: 8px;
+     height: 8px;
+     border-radius: 50%;
+     background: rgba(5, 205, 153, 0.15);
+     animation: pulse 2s ease-in-out infinite;
+   }
+   .skeleton-text {
+     height: 0.625rem;
+     background: rgba(5, 205, 153, 0.15);
+     border-radius: 4px;
+     animation: pulse 2s ease-in-out infinite;
+   }
+   ```
+2. Refactor `RadarFeedSkeleton.astro` to use the shared classes instead of scoped styles
+3. Document in STYLES_GUIDE.md
+
+**Trigger**: Implement when a second component needs skeleton loading. Until then, the scoped approach in RadarFeedSkeleton is sufficient.
+
+**Estimated scope**: Small
 
 ---
 
