@@ -1598,7 +1598,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     .option-card:hover {
         border-color: var(--color-primary);
         background: rgba(5, 205, 153, 0.06);
-        box-shadow: 0 2px 12px rgba(5, 205, 153, 0.15);
+        box-shadow: 0 2px 12px var(--accent-light-bg-hover);
         transform: translateY(-1px);
     }
 
@@ -1609,8 +1609,8 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     .option-card.selected {
         border-color: var(--color-primary);
-        background: rgba(5, 205, 153, 0.1);
-        box-shadow: 0 0 0 1px var(--color-primary), 0 2px 12px rgba(5, 205, 153, 0.2);
+        background: var(--accent-dark-bg);
+        box-shadow: 0 0 0 1px var(--color-primary), 0 2px 12px var(--border-dark);
     }
 
     :global(html.dark-theme) .option-card {
@@ -1620,12 +1620,12 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     :global(html.dark-theme) .option-card:hover {
-        background: rgba(5, 205, 153, 0.1);
-        box-shadow: 0 2px 12px rgba(5, 205, 153, 0.2);
+        background: var(--accent-dark-bg);
+        box-shadow: 0 2px 12px var(--border-dark);
     }
 
     :global(html.dark-theme) .option-card.selected {
-        background: rgba(5, 205, 153, 0.15);
+        background: var(--accent-light-bg-hover);
     }
 
     .option-label {
@@ -1674,7 +1674,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         letter-spacing: 0.05em;
         margin: 0;
         padding-bottom: var(--spacing-sm);
-        border-bottom: 2px solid rgba(5, 205, 153, 0.2);
+        border-bottom: 2px solid var(--border-dark);
     }
 
     .field-options-grid {
@@ -1756,7 +1756,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     :global(html.dark-theme) .doc-action-bar {
         background: var(--bg-dark-secondary);
-        border-bottom-color: rgba(5, 205, 153, 0.15);
+        border-bottom-color: var(--accent-light-bg-hover);
     }
 
     :global(html.dark-theme) .doc-action-btn {
@@ -1991,7 +1991,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     :global(html.dark-theme) .doc-meta :global(.doc-meta-identifier-input) {
         color: var(--text-dark-primary);
-        border-bottom-color: rgba(5, 205, 153, 0.2);
+        border-bottom-color: var(--border-dark);
     }
 
     :global(html.dark-theme) .doc-meta :global(.doc-meta-identifier-input:focus) {
@@ -2049,12 +2049,12 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     .doc-toc :global(.doc-toc-link:focus-visible) {
         color: var(--color-primary);
-        background-color: rgba(5, 205, 153, 0.08);
+        background-color: var(--accent-light-bg);
     }
 
     .doc-toc :global(.doc-toc-link:active) {
         color: var(--color-primary);
-        background-color: rgba(5, 205, 153, 0.15);
+        background-color: var(--accent-light-bg-hover);
     }
 
     :global(html.dark-theme) .doc-toc :global(.doc-toc-link) {
@@ -2067,12 +2067,12 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     :global(html.dark-theme) .doc-toc :global(.doc-toc-link:focus-visible) {
         color: var(--color-primary);
-        background-color: rgba(5, 205, 153, 0.12);
+        background-color: var(--accent-light-bg-hover);
     }
 
     :global(html.dark-theme) .doc-toc :global(.doc-toc-link:active) {
         color: var(--color-primary);
-        background-color: rgba(5, 205, 153, 0.2);
+        background-color: var(--border-dark);
     }
 
     .doc-toc :global(.doc-toc-topic-name) {
@@ -2106,25 +2106,27 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     .doc-attention-grid :global(.doc-attention-card.relevance-high) {
-        border-left-color: #5b7a9d;
-        background: rgba(91, 122, 157, 0.04);
+        border-left-color: var(--hub-authority-blue);
+        background: var(--hub-authority-blue-bg);
     }
 
     .doc-attention-grid :global(.doc-attention-card.relevance-medium) {
-        border-left-color: #8c7a6b;
-        background: rgba(140, 122, 107, 0.04);
+        border-left-color: var(--dm-methodology-brown);
+        background: var(--dm-methodology-brown-bg);
     }
 
     :global(html.dark-theme) .doc-attention-grid :global(.doc-attention-card) {
         background: rgba(5, 205, 153, 0.06);
     }
 
+    /* Phase 3C: dark-theme overrides for relevance-high/medium backgrounds are now
+       redundant — --hub-authority-blue-bg and --dm-methodology-brown-bg handle dark theme */
     :global(html.dark-theme) .doc-attention-grid :global(.doc-attention-card.relevance-high) {
-        background: rgba(91, 122, 157, 0.08);
+        background: var(--hub-authority-blue-bg);
     }
 
     :global(html.dark-theme) .doc-attention-grid :global(.doc-attention-card.relevance-medium) {
-        background: rgba(140, 122, 107, 0.06);
+        background: var(--dm-methodology-brown-bg);
     }
 
     .doc-attention-grid :global(.doc-attention-header) {
@@ -2160,11 +2162,11 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     .doc-attention-grid :global(.relevance-high .doc-attention-divider) {
-        background: #5b7a9d;
+        background: var(--hub-authority-blue);
     }
 
     .doc-attention-grid :global(.relevance-medium .doc-attention-divider) {
-        background: #8c7a6b;
+        background: var(--dm-methodology-brown);
     }
 
     .doc-attention-grid :global(.doc-attention-desc) {
@@ -2204,12 +2206,12 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     :global(html.dark-theme .dm-na-btn) {
         background: rgba(200, 200, 200, 0.04);
-        border-color: rgba(5, 205, 153, 0.12);
+        border-color: var(--accent-light-bg-hover);
     }
 
     :global(html.dark-theme .dm-na-btn:hover) {
         border-color: rgba(5, 205, 153, 0.3);
-        background: rgba(5, 205, 153, 0.08);
+        background: var(--accent-light-bg);
     }
 
 
@@ -2345,11 +2347,11 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     .doc-topics :global(.doc-question.priority-high) {
-        border-left-color: #5b7a9d;
+        border-left-color: var(--hub-authority-blue);
     }
 
     .doc-topics :global(.doc-question.priority-medium) {
-        border-left-color: #8c7a6b;
+        border-left-color: var(--dm-methodology-brown);
     }
 
     .doc-topics :global(.doc-question.priority-standard) {
@@ -2360,12 +2362,14 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         border-color: var(--border-dark);
     }
 
+    /* Phase 3C: dark-theme overrides for priority-high/medium border colors are now
+       redundant — --hub-authority-blue and --dm-methodology-brown handle dark theme */
     :global(html.dark-theme) .doc-topics :global(.doc-question.priority-high) {
-        border-left-color: #7a9dbd;
+        border-left-color: var(--hub-authority-blue);
     }
 
     :global(html.dark-theme) .doc-topics :global(.doc-question.priority-medium) {
-        border-left-color: #a89888;
+        border-left-color: var(--dm-methodology-brown);
     }
 
     :global(html.dark-theme) .doc-topics :global(.doc-question.priority-standard) {
@@ -2373,20 +2377,20 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     :global(html.dark-theme) .doc-topics :global(.doc-q-red-flag) {
-        background: rgba(178, 34, 34, 0.1);
-        color: #e06060;
+        background: var(--dm-negative-dark-bg);
+        color: var(--dm-negative);
     }
 
     :global(html.dark-theme) .doc-topics :global(.exit-impact-multiple-expander) {
-        color: #4cba7a;
+        color: var(--dm-positive);
     }
 
     :global(html.dark-theme) .doc-topics :global(.exit-impact-valuation-drag) {
-        color: #d4923a;
+        color: var(--dm-warning);
     }
 
     :global(html.dark-theme) .doc-topics :global(.exit-impact-operational-risk) {
-        color: #e06060;
+        color: var(--dm-negative);
     }
 
     .doc-topics :global(.doc-q-header) {
@@ -2413,17 +2417,17 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     .doc-topics :global(.priority-high .doc-q-priority) {
-        background: rgba(91, 122, 157, 0.12);
-        color: #5b7a9d;
+        background: var(--hub-authority-blue-bg);
+        color: var(--hub-authority-blue);
     }
 
     .doc-topics :global(.priority-medium .doc-q-priority) {
-        background: rgba(140, 122, 107, 0.12);
-        color: #8c7a6b;
+        background: var(--dm-methodology-brown-bg);
+        color: var(--dm-methodology-brown);
     }
 
     .doc-topics :global(.priority-standard .doc-q-priority) {
-        background: rgba(5, 205, 153, 0.12);
+        background: var(--accent-light-bg-hover);
         color: var(--color-primary);
     }
 
@@ -2484,26 +2488,26 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     .doc-topics :global(.exit-impact-multiple-expander) {
         background: rgba(46, 139, 87, 0.12);
-        color: #2e8b57;
+        color: var(--dm-success);
     }
 
     .doc-topics :global(.exit-impact-valuation-drag) {
         background: rgba(178, 102, 34, 0.12);
-        color: #b26622;
+        color: var(--dm-warning-dark);
     }
 
     .doc-topics :global(.exit-impact-operational-risk) {
         background: rgba(178, 34, 34, 0.12);
-        color: #b22222;
+        color: var(--dm-negative-dark);
     }
 
     .doc-topics :global(.doc-q-red-flag) {
         font-size: var(--text-sm);
-        color: #b22222;
+        color: var(--dm-negative-dark);
         line-height: 1.6;
         margin: 0 0 var(--spacing-sm) 0;
         padding: var(--spacing-xs) var(--spacing-sm);
-        background: rgba(178, 34, 34, 0.05);
+        background: var(--dm-negative-dark-bg);
         border-left: 2px solid rgba(178, 34, 34, 0.3);
         border-radius: 0 2px 2px 0;
     }
