@@ -165,7 +165,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   .terms-header {
     margin-bottom: 3rem;
     padding-bottom: 2rem;
-    border-bottom: 1px solid rgba(26, 26, 26, 0.1);
+    border-bottom: 1px solid var(--border-light);
     background: transparent;
   }
 
@@ -173,17 +173,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     font-size: 2.5rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
-    color: rgba(26, 26, 26, 0.95);
+    color: var(--text-light-primary);
   }
 
   .last-updated {
     font-size: 0.85rem;
-    color: rgba(26, 26, 26, 0.6);
+    color: var(--text-light-muted);
   }
 
   .terms-body {
     line-height: 1.8;
-    color: rgba(26, 26, 26, 0.85);
+    color: var(--text-light-secondary);
   }
 
   .terms-body h2 {
@@ -191,7 +191,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     font-weight: 600;
     margin-top: 2.5rem;
     margin-bottom: 1rem;
-    color: rgba(26, 26, 26, 0.95);
+    color: var(--text-light-primary);
   }
 
   .terms-body p {
@@ -208,21 +208,21 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   .terms-body a {
-    color: #05cd99;
+    color: var(--color-primary);
     text-decoration: none;
     border-bottom: 1px solid rgba(5, 205, 153, 0.3);
     transition: border-color 0.2s;
   }
 
   .terms-body a:hover {
-    border-bottom-color: #05cd99;
+    border-bottom-color: var(--color-primary);
   }
 
   .contact-section {
     margin-top: 3rem;
     padding: 2rem;
     background: rgba(5, 205, 153, 0.05);
-    border-left: 3px solid #05cd99;
+    border-left: 3px solid var(--color-primary);
   }
 
   .contact-section h2 {
@@ -250,7 +250,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   :global(html.dark-theme) .contact-section {
-    background: rgba(5, 205, 153, 0.08);
+    background: var(--accent-light-bg);
   }
 
   /* Tablet (480px - 768px) */

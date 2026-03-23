@@ -39,7 +39,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## 2. Hardcoded Color Remediation
 
-**Status**: 90+ violations across 14 files
+**Status**: Complete — design system colors standardized across all files (March 23, 2026). Remaining hardcoded colors are domain-specific data visualization values (regulatory map industry/jurisdiction colors, FyiItem editor pick) or accepted exceptions (print styles, shadows/overlays).
 
 **Problem**: The styles guide prohibits hardcoded colors, but the codebase uses them extensively. This breaks dark theme support and creates maintenance burden.
 
