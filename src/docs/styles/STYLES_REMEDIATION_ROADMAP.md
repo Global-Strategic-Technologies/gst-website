@@ -98,7 +98,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## 4. Diligence Machine Remediation
 
-**Status**: Largest single source of style violations — scope increased by recent feature work
+**Status**: Complete — hardcoded colors replaced with CSS variables, spacing remediated, redundant dark theme overrides removed (March 23, 2026)
 
 **Problem**: The Diligence Machine was built before the current design system was fully established. Recent commits (EEAT signaling, collapse/expand cards, floating action bar, cross-linking CTAs) added significant new CSS that continued the hardcoded pattern. It now contains 75 hardcoded colors and 58 hardcoded spacing values.
 

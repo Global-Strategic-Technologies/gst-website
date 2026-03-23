@@ -1866,10 +1866,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         border-top-color: var(--border-dark);
     }
 
-    :global(html.dark-theme) .doc-divider--heavy {
-        border-top-color: var(--color-primary);
-    }
-
     :global(html.dark-theme) .doc-meta-label {
         color: var(--color-primary);
         opacity: 0.6;
@@ -2119,16 +2115,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         background: rgba(5, 205, 153, 0.06);
     }
 
-    /* Phase 3C: dark-theme overrides for relevance-high/medium backgrounds are now
-       redundant — --hub-authority-blue-bg and --dm-methodology-brown-bg handle dark theme */
-    :global(html.dark-theme) .doc-attention-grid :global(.doc-attention-card.relevance-high) {
-        background: var(--hub-authority-blue-bg);
-    }
-
-    :global(html.dark-theme) .doc-attention-grid :global(.doc-attention-card.relevance-medium) {
-        background: var(--dm-methodology-brown-bg);
-    }
-
     .doc-attention-grid :global(.doc-attention-header) {
         display: flex;
         align-items: center;
@@ -2360,20 +2346,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     :global(html.dark-theme) .doc-topics :global(.doc-question) {
         border-color: var(--border-dark);
-    }
-
-    /* Phase 3C: dark-theme overrides for priority-high/medium border colors are now
-       redundant — --hub-authority-blue and --dm-methodology-brown handle dark theme */
-    :global(html.dark-theme) .doc-topics :global(.doc-question.priority-high) {
-        border-left-color: var(--hub-authority-blue);
-    }
-
-    :global(html.dark-theme) .doc-topics :global(.doc-question.priority-medium) {
-        border-left-color: var(--dm-methodology-brown);
-    }
-
-    :global(html.dark-theme) .doc-topics :global(.doc-question.priority-standard) {
-        border-left-color: var(--color-primary);
     }
 
     :global(html.dark-theme) .doc-topics :global(.doc-q-red-flag) {
