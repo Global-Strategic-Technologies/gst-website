@@ -73,7 +73,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## 3. Hardcoded Spacing Remediation
 
-**Status**: 70+ violations, concentrated in older components
+**Status**: Complete — actionable spacing values replaced with variables (March 23, 2026). Remaining hardcoded values are micro-spacing exceptions (1-3px for badge padding, optical alignment) per documented convention.
 
 **Problem**: The spacing scale (`--spacing-xs` through `--spacing-3xl`) covers 4px to 48px, but some components use hardcoded pixel values, often mixing hardcoded and variable spacing in the same rule.
 
