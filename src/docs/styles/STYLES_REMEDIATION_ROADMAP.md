@@ -270,20 +270,22 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ---
 
-## Priority Ranking
+## Completion Summary
 
-| Priority | Initiative | Impact | Effort |
-|----------|-----------|--------|--------|
-| 1 | Brand Guidelines (Init. 1) | High | Medium |
-| 2 | Tool Shell Container (Init. 7) | High | Medium |
-| 3 | Diligence Machine (Init. 4) | High | Large |
-| 4 | Hardcoded Colors (Init. 2) | High | Large |
-| 5 | Dynamic Loading Pattern (Init. 8) | Medium | Small |
-| 6 | TechPar Documentation (Init. 5) | Medium | Small |
-| 7 | Hardcoded Spacing (Init. 3) | Medium | Medium |
-| 8 | ICG Color Standardization (Init. 6) | Medium | Medium-Large |
+All 8 initiatives completed on March 23, 2026.
 
-**Note on Init. 4 + Init. 6**: The Diligence Machine and ICG now share the same "Authority Blue" color family (`#5b7a9d` / `#7a9dbd`). Remediating these together would allow defining shared semantic variables once rather than duplicating across tools.
+| Initiative | Status | Notes |
+|-----------|--------|-------|
+| 1. Brand Guidelines | Partial | Existing palette documented; stakeholder decisions pending |
+| 2. Hardcoded Colors | Complete | Design system colors standardized; data viz colors preserved |
+| 3. Hardcoded Spacing | Complete | Actionable values replaced; micro-spacing exceptions documented |
+| 4. Diligence Machine | Complete | 75+ color + spacing replacements; 6 redundant dark overrides removed |
+| 5. TechPar Docs | Complete | 35 variables documented in VARIABLES_REFERENCE.md |
+| 6. ICG Colors | Complete | Engine, radar chart, and template standardized |
+| 7. Tool Shell | Complete | .tool-shell class created; ICG + Tech Debt migrated |
+| 8. Skeleton Loading | Complete | Pattern documented in STYLES_GUIDE.md |
+
+**Shared variables defined**: `--hub-authority-blue` is shared between DM and ICG as planned. `--spacing-2_5xl` (40px) added to fill the spacing scale gap.
 
 ---
 
