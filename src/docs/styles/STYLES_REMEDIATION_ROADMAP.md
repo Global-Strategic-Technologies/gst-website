@@ -136,7 +136,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## 5. TechPar Style Deviations
 
-**Status**: Partially integrated, partially divergent
+**Status**: Complete — variables documented in VARIABLES_REFERENCE.md (March 23, 2026)
 
 **Problem**: TechPar has its own color palette defined in `variables.css` (lines 116-150) for zone colors, category colors, and chart colors. These are properly implemented as CSS variables with dark theme overrides, but they are not documented in VARIABLES_REFERENCE.md.
 
@@ -240,7 +240,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## 8. Dynamic Content Loading Pattern
 
-**Status**: Implemented in Radar, not standardized
+**Status**: Documented — pattern standardized in STYLES_GUIDE.md (March 23, 2026)
 
 **Problem**: The Radar page uses a skeleton loading pattern (`RadarFeedSkeleton.astro`) while waiting for API content to load. This pattern is not documented or available for reuse by other components that may need async data loading.
 
@@ -308,4 +308,4 @@ These demonstrate that the conventions are being followed in new utility code ev
 ---
 
 **Created**: March 21, 2026
-**Last Updated**: March 22, 2026
+**Last Updated**: March 23, 2026

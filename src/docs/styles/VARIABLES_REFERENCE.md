@@ -170,6 +170,60 @@ These variables exist for page sections and UI components that need distinct lig
 
 ---
 
+## TechPar Variables
+
+Domain-specific variables for the TechPar tool. Defined in `variables.css` lines 116-150 with dark theme overrides at lines 204-229.
+
+### Zone Colors
+
+| Variable | Light | Dark | Usage |
+|----------|-------|------|-------|
+| `--techpar-zone-underinvest` | `#CC8800` | `#FFAA33` | Under-investment zone label/border |
+| `--techpar-zone-underinvest-bg` | `rgba(204, 136, 0, 0.08)` | `rgba(255, 170, 51, 0.09)` | Under-investment zone background |
+| `--techpar-zone-ahead` | `#2ea84e` | `#2ea84e` | Ahead-of-peers zone label/border |
+| `--techpar-zone-ahead-bg` | `rgba(46, 168, 78, 0.08)` | `rgba(46, 168, 78, 0.09)` | Ahead zone background |
+| `--techpar-zone-healthy` | `var(--color-primary)` | _(inherits)_ | Healthy zone label/border |
+| `--techpar-zone-healthy-bg` | `var(--accent-light-bg)` | _(inherits)_ | Healthy zone background |
+| `--techpar-zone-above` | `#CC8800` | `#FFAA33` | Above-average zone label/border |
+| `--techpar-zone-above-bg` | `rgba(204, 136, 0, 0.08)` | `rgba(255, 170, 51, 0.09)` | Above-average zone background |
+| `--techpar-zone-elevated` | `#d93636` | `#e05050` | Elevated risk zone label/border |
+| `--techpar-zone-elevated-bg` | `rgba(217, 54, 54, 0.08)` | `rgba(224, 80, 80, 0.09)` | Elevated risk zone background |
+| `--techpar-zone-critical` | `#b82e2e` | `#e05050` | Critical risk zone label/border |
+| `--techpar-zone-critical-bg` | `rgba(184, 46, 46, 0.08)` | `rgba(224, 80, 80, 0.09)` | Critical risk zone background |
+
+### Category Colors
+
+| Variable | Light | Dark | Usage |
+|----------|-------|------|-------|
+| `--techpar-category-infra` | `var(--color-primary)` | _(inherits)_ | Infrastructure spend category |
+| `--techpar-category-personnel` | `#3b82f6` | _(no override)_ | Personnel spend category |
+| `--techpar-category-rd-opex` | `#8b5cf6` | _(no override)_ | R&D OpEx spend category |
+| `--techpar-category-rd-capex` | `var(--color-secondary)` | _(inherits)_ | R&D CapEx spend category |
+
+### Chart Colors
+
+| Variable | Light | Dark | Usage |
+|----------|-------|------|-------|
+| `--techpar-chart-band-fill` | `rgba(5, 205, 153, 0.15)` | `rgba(5, 205, 153, 0.13)` | Healthy band fill |
+| `--techpar-chart-band-border` | `rgba(5, 205, 153, 0.5)` | `rgba(5, 205, 153, 0.45)` | Healthy band border |
+| `--techpar-chart-ahead-fill` | `rgba(33, 118, 174, 0.10)` | `rgba(56, 152, 214, 0.11)` | Ahead zone chart fill (blue — CVD-safe) |
+| `--techpar-chart-ahead-border` | `rgba(33, 118, 174, 0.5)` | `rgba(56, 152, 214, 0.5)` | Ahead zone chart border |
+| `--techpar-chart-under-fill` | `rgba(224, 123, 0, 0.12)` | `rgba(255, 140, 0, 0.12)` | Under-investment chart fill (amber) |
+| `--techpar-chart-under-border` | `rgba(224, 123, 0, 0.55)` | `rgba(255, 140, 0, 0.55)` | Under-investment chart border |
+| `--techpar-chart-above-fill` | `rgba(217, 54, 54, 0.10)` | `rgba(240, 70, 70, 0.12)` | Above-average chart fill (red) |
+| `--techpar-chart-above-border` | `rgba(217, 54, 54, 0.45)` | `rgba(240, 70, 70, 0.50)` | Above-average chart border |
+| `--techpar-chart-revenue-line` | `rgba(26, 26, 26, 0.55)` | `rgba(200, 200, 200, 0.6)` | Revenue reference line |
+
+### KPI Colors
+
+| Variable | Light | Dark | Usage |
+|----------|-------|------|-------|
+| `--techpar-kpi-positive` | `var(--color-primary)` | _(inherits)_ | Positive KPI indicator |
+| `--techpar-kpi-warn` | `#CC8800` | `#FFAA33` | Warning KPI indicator |
+| `--techpar-kpi-negative` | `#d93636` | `#e05050` | Negative KPI indicator |
+
+---
+
 ## Quick Lookup by Purpose
 
 | I need... | Use |
@@ -198,5 +252,5 @@ These variables exist for page sections and UI components that need distinct lig
 
 ---
 
-**Last Updated**: March 13, 2026
-**Total Variables**: 95 (`:root`) + 43 dark theme overrides
+**Last Updated**: March 23, 2026
+**Total Variables**: 95 (`:root`) + 43 dark theme overrides (includes 35 TechPar domain variables)

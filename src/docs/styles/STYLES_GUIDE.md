@@ -376,7 +376,9 @@ Content wrappers inside the shell use consistent padding:
 
 ### Skeleton Loading Placeholders
 
-For components that load content asynchronously (API calls, server islands), use the skeleton loading pattern. The `@keyframes pulse` animation is already defined in `global.css`.
+For components that load content asynchronously (API calls, server islands), use the skeleton loading pattern. The `@keyframes pulse` animation is already defined in `global.css` (line 137).
+
+**Canonical reference**: `src/components/radar/RadarFeedSkeleton.astro`
 
 ```css
 .skeleton-bar {
@@ -393,7 +395,13 @@ For components that load content asynchronously (API calls, server islands), use
 - Add `aria-hidden="true"` to the skeleton container
 - Stagger animation delays on consecutive elements (e.g., `animation-delay: 0.3s`)
 
-**Current usage**: `src/components/radar/RadarFeedSkeleton.astro`
+**Content swap pattern**:
+1. Render the skeleton as the default visible state
+2. Set `aria-hidden="true"` on the skeleton wrapper so screen readers skip it
+3. When real content loads (via client-side JS), hide the skeleton and show the content
+4. Example: `skeletonEl.style.display = 'none'; contentEl.style.display = 'block';`
+
+**Micro-spacing exception**: Skeleton element heights (`0.875rem`, `0.625rem`, `0.375rem`) approximate text line heights and are not layout spacing — these are acceptable as hardcoded rem values since the spacing scale is not designed for visual approximation of text dimensions.
 
 ### Delta Chevron — Collapse/Expand Indicator
 
@@ -506,4 +514,4 @@ Delete dead styles. Version control has the history.
 
 ---
 
-**Last Updated**: March 21, 2026
+**Last Updated**: March 23, 2026
