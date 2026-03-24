@@ -329,14 +329,15 @@ Expert in identifying and addressing technical debt:
 - **Coverage Target**: 70%+ line coverage minimum
 
 ### CSS Styling Standards
-- **All colors must use CSS variables** - Never hardcode color values
+- **Before writing or modifying any CSS**, read [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) — it is the single entry point for all styling conventions and links to the other style docs when needed
+- **Before choosing any color, spacing, or typography value**, look it up in [src/docs/styles/VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md) — never guess or hardcode
+- **All colors must use CSS variables** — never hardcode color values
 - **All spacing must use the spacing scale** (`--spacing-xs` through `--spacing-3xl`)
 - **All font sizes must use typography utilities** (`.heading-*`, `.text-*`, `.label-*`) or variables
-- **Dark theme must work automatically** - Use variables, no `body.dark-theme` specific colors
-- **Responsive design desktop-first** - Base styles for desktop, `max-width` breakpoints for smaller screens
-- **No hardcoded transitions** - Use `--transition-fast`, `--transition-normal`, or `--transition-slow`
-- **Reference**: [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) for full standards
-- **Reference**: [src/docs/styles/STYLES_GUIDE.md - Anti-Patterns](src/docs/styles/STYLES_GUIDE.md#anti-patterns) to avoid common mistakes
+- **Dark theme must work automatically** — use variables, no `body.dark-theme` specific colors
+- **Responsive design desktop-first** — base styles for desktop, `max-width` breakpoints for smaller screens
+- **No hardcoded transitions** — use `--transition-fast`, `--transition-normal`, or `--transition-slow`
+- **Brand decisions** (color hierarchy, semantic colors, voice, asset rules): [src/docs/styles/BRAND_GUIDELINES.md](src/docs/styles/BRAND_GUIDELINES.md)
 
 ### Performance Standards
 - Core Web Vitals optimization
@@ -372,13 +373,12 @@ Expert in identifying and addressing technical debt:
 4. If user-facing, add E2E tests
 
 ### Adding New Component Styles
-1. Reference: [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) - Component Styling section
-2. Use CSS variables from [src/docs/styles/VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md)
-3. Use typography utilities from [src/docs/styles/TYPOGRAPHY_REFERENCE.md](src/docs/styles/TYPOGRAPHY_REFERENCE.md)
-4. **Never hardcode colors, spacing, or font sizes**
-5. Test in both light and dark themes
-6. Verify responsive behavior at breakpoints
-7. Run: `npm run test:all` to verify no regressions
+1. **Read** [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) first — it covers conventions, patterns, and links to token/typography references
+2. **Look up** every color, spacing, and typography value in [src/docs/styles/VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md) before using it
+3. **Never hardcode colors, spacing, or font sizes**
+4. Test in both light and dark themes
+5. Verify responsive behavior at breakpoints
+6. Run: `npm run test:all` to verify no regressions
 
 ### Updating Portfolio Data
 1. Edit `src/data/ma-portfolio/projects.json`
@@ -418,8 +418,9 @@ npm run test:e2e:ui       # Visual test runner
 
 ### Internal Documentation
 - **Styles**: [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) - CSS conventions, design system, anti-patterns
-  - [VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md) - Design token catalog (95 variables)
+  - [VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md) - Design token catalog (140 variables)
   - [TYPOGRAPHY_REFERENCE.md](src/docs/styles/TYPOGRAPHY_REFERENCE.md) - Typography utilities (11 classes)
+  - [BRAND_GUIDELINES.md](src/docs/styles/BRAND_GUIDELINES.md) - Brand palette, color hierarchy, voice, asset rules
 - Testing: [src/docs/testing/INDEX.md](src/docs/testing/INDEX.md)
 - Development: [src/docs/development/](src/docs/development/)
 - Analytics: [src/docs/analytics/](src/docs/analytics/)
@@ -476,7 +477,7 @@ npm run test:e2e:ui       # Visual test runner
 
 ---
 
-**Last Updated**: February 5, 2026
+**Last Updated**: March 24, 2026
 **Project Status**: All systems operational ✅
 
 ## 📝 Recent Updates
