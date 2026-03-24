@@ -184,13 +184,10 @@ npm run astro                 # Run Astro CLI
 ## 📚 Critical Documentation
 
 ### Testing & CI/CD
-- **Quick Reference**: [src/docs/testing/QUICK_REFERENCE.md](src/docs/testing/QUICK_REFERENCE.md) - One-page cheat sheet
-- **GitHub Actions Setup**: [src/docs/testing/GITHUB_ACTIONS_SETUP.md](src/docs/testing/GITHUB_ACTIONS_SETUP.md) - How the CI/CD pipeline works
-- **Test Strategy**: [src/docs/testing/TEST_STRATEGY.md](src/docs/testing/TEST_STRATEGY.md) - Comprehensive testing approach
-- **CI/CD Architecture**: [src/docs/testing/CI_CD_SUMMARY.md](src/docs/testing/CI_CD_SUMMARY.md) - System architecture
-- **Best Practices**: [src/docs/testing/TEST_BEST_PRACTICES.md](src/docs/testing/TEST_BEST_PRACTICES.md) - E2E testing best practices
-- **Branch Protection**: [src/docs/testing/BRANCH_PROTECTION_CONFIG.md](src/docs/testing/BRANCH_PROTECTION_CONFIG.md) - GitHub rules setup
-- **Testing Index**: [src/docs/testing/INDEX.md](src/docs/testing/INDEX.md) - Complete navigation guide
+- **Start here**: [src/docs/testing/INDEX.md](src/docs/testing/INDEX.md) — use-case-based navigation to all testing docs
+- **Writing or fixing E2E tests**: read [src/docs/testing/TEST_BEST_PRACTICES.md](src/docs/testing/TEST_BEST_PRACTICES.md) first — 25 documented anti-patterns and their fixes
+- **Writing new tests**: read [src/docs/testing/TEST_STRATEGY.md](src/docs/testing/TEST_STRATEGY.md) for test patterns by component type
+- **Tests failing**: check [src/docs/testing/TROUBLESHOOTING.md](src/docs/testing/TROUBLESHOOTING.md) before debugging manually
 
 ### Development Roadmap
 - **Development Opportunities**: [src/docs/development/DEVELOPMENT_OPPORTUNITIES.md](src/docs/development/DEVELOPMENT_OPPORTUNITIES.md) - Strategic initiatives
@@ -323,6 +320,8 @@ Expert in identifying and addressing technical debt:
 - Git hooks for automated checks
 
 ### Testing Standards
+- **Before writing or fixing E2E tests**, read [src/docs/testing/TEST_BEST_PRACTICES.md](src/docs/testing/TEST_BEST_PRACTICES.md) — it documents 25 anti-patterns that cause flaky failures
+- **Before writing new tests**, read [src/docs/testing/TEST_STRATEGY.md](src/docs/testing/TEST_STRATEGY.md) for the correct test type and patterns
 - **Unit Tests**: Fast, isolated, mocked dependencies
 - **Integration Tests**: Real dependencies, isolated data
 - **E2E Tests**: Critical user journeys only
