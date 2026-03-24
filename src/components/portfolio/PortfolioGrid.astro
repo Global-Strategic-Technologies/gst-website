@@ -260,10 +260,6 @@ const { projects } = Astro.props;
   }
 
   /* Dark theme */
-  :global(html.dark-theme) .portfolio-grid-container {
-    background: var(--bg-dark);
-  }
-
   :global(html.dark-theme) .project-card {
     background: var(--bg-dark-secondary);
     border-color: var(--border-dark);
@@ -282,17 +278,8 @@ const { projects } = Astro.props;
     background: var(--accent-dark-bg);
   }
 
-  :global(html.dark-theme) .metrics {
-    background: rgba(5, 205, 153, 0.05);
-    border-left-color: var(--color-primary);
-  }
-
   :global(html.dark-theme) .metric-label {
     color: var(--text-dark-muted);
-  }
-
-  :global(html.dark-theme) .metric-value.arr {
-    color: var(--color-primary);
   }
 
   :global(html.dark-theme) .tag {
