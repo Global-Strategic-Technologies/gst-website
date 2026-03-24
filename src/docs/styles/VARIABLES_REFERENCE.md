@@ -2,7 +2,7 @@
 
 Complete catalog of all CSS custom properties defined in `src/styles/variables.css`. Use this when styling components.
 
-**Source of truth**: `src/styles/variables.css` — 134 variables in `:root`, 78 dark theme overrides in `html.dark-theme`.
+**Source of truth**: `src/styles/variables.css` — 140 variables in `:root`, 82 dark theme overrides in `html.dark-theme`.
 
 ---
 
@@ -14,6 +14,17 @@ Complete catalog of all CSS custom properties defined in `src/styles/variables.c
 | `--color-primary-dark` | `#04a87a` | Darker shade for emphasis |
 | `--color-secondary` | `#CC8800` (light) / `#FFAA33` (dark) | Secondary accent (amber) |
 | `--color-secondary-dark` | `#FFAA33` | Secondary dark variant |
+
+## Semantic Colors
+
+Shared status colors for cross-tool consistency. See [BRAND_GUIDELINES.md — Semantic Color System](./BRAND_GUIDELINES.md#semantic-color-system).
+
+| Variable | Light | Dark | Usage |
+|----------|-------|------|-------|
+| `--color-success` | `#2e8b57` | `#3da868` | Positive outcomes, passing states |
+| `--color-warning` | `#CC8800` | `#FFAA33` | Caution indicators, borderline states |
+| `--color-error` | `#d93636` | `#e05050` | Failures, negative KPIs, critical alerts |
+| `--color-info` | `var(--color-primary)` | `var(--color-primary)` | Informational highlights (alias) |
 
 ## Backgrounds
 
@@ -36,7 +47,7 @@ Use these in all new code. They auto-switch in dark theme.
 | `--text-primary` | `rgba(26,26,26, 0.95)` | `rgba(245,245,245, 0.95)` | Headings, primary text |
 | `--text-secondary` | `rgba(26,26,26, 0.7)` | `rgba(200,200,200, 0.8)` | Body text, descriptions |
 | `--text-muted` | `rgba(26,26,26, 0.6)` | `rgba(200,200,200, 0.6)` | Labels, captions |
-| `--text-faded` | `rgba(26,26,26, 0.5)` | `rgba(200,200,200, 0.5)` | Disabled, placeholders |
+| `--text-faded` | `rgba(26,26,26, 0.6)` | `rgba(200,200,200, 0.6)` | Disabled, placeholders (large text only — see [contrast requirements](./BRAND_GUIDELINES.md#color-contrast-requirements)) |
 
 > Components reference `--text-primary` etc. and get dark values automatically. No dark theme overrides needed for text colors.
 
@@ -47,11 +58,11 @@ Use these in all new code. They auto-switch in dark theme.
 | `--text-light-primary` | `rgba(26,26,26, 0.95)` | Force light-theme text color regardless of active theme |
 | `--text-light-secondary` | `rgba(26,26,26, 0.7)` | Force light-theme text color |
 | `--text-light-muted` | `rgba(26,26,26, 0.6)` | Force light-theme text color |
-| `--text-light-faded` | `rgba(26,26,26, 0.5)` | Force light-theme text color |
+| `--text-light-faded` | `rgba(26,26,26, 0.6)` | Force light-theme text color |
 | `--text-dark-primary` | `rgba(245,245,245, 0.95)` | Force dark-theme text color (e.g., text on dark card) |
 | `--text-dark-secondary` | `rgba(200,200,200, 0.8)` | Force dark-theme text color |
 | `--text-dark-muted` | `rgba(200,200,200, 0.6)` | Force dark-theme text color |
-| `--text-dark-faded` | `rgba(200,200,200, 0.5)` | Force dark-theme text color |
+| `--text-dark-faded` | `rgba(200,200,200, 0.6)` | Force dark-theme text color |
 
 > `--text-light-*` also auto-switch in dark theme (legacy behavior). Prefer `--text-*` for clarity.
 
@@ -270,6 +281,13 @@ Cross-tool semantic colors shared by multiple hub tools.
 | `--icg-maturity-strategic` | `var(--color-primary)` | _(inherits)_ | Strategic maturity level (teal) |
 | `--icg-radar-grid` | `#999` | `#666` | Radar chart grid lines |
 | `--icg-radar-label` | `#666` | `#999` | Radar chart axis labels |
+
+### Regulatory Map Category Colors
+
+| Variable | Light | Dark | Usage |
+|----------|-------|------|-------|
+| `--regmap-category-industry` | `#6c63ff` | `#8078ff` | Industry regulation category (purple-blue) |
+| `--regmap-category-cyber` | `#e74c3c` | `#f06050` | Cybersecurity regulation category (red) |
 
 ---
 

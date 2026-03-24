@@ -170,6 +170,15 @@ Rules enforce: no duplicate selectors, no duplicate properties, no named colors.
 
 ## Component Styling
 
+### Color Selection Quick-Reference
+
+When choosing a color, follow this priority: **Primary teal → Secondary amber → Semantic → Neutrals → Domain**. See [BRAND_GUIDELINES.md — Color Usage Hierarchy](./BRAND_GUIDELINES.md#color-usage-hierarchy) for the full table and rules.
+
+- Interactive elements / brand accents → `--color-primary`
+- Status indicators (success/warning/error/info) → `--color-success`, `--color-warning`, `--color-error`, `--color-info`
+- Body content, backgrounds, borders → `--text-*`, `--bg-*`, `--border-*`
+- Tool-specific only → `--hub-*`, `--dm-*`, `--icg-*`, `--techpar-*`, `--regmap-*`
+
 ### Scoped styles (single-use components)
 
 ```astro
