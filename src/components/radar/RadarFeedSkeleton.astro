@@ -2,16 +2,17 @@
 /**
  * RadarFeedSkeleton — Placeholder shown while RadarFeed server island loads.
  * Mimics the wire-item layout with pulsing bars.
+ * Uses global .skeleton-bar and .skeleton-dot classes from global.css.
  */
 ---
 
 <div class="feed-skeleton" aria-hidden="true">
   {Array.from({ length: 6 }).map((_, i) => (
     <div class="skeleton-item">
-      <div class="skeleton-dot"></div>
+      <div class="skeleton-dot skeleton-item-dot"></div>
       <div class="skeleton-content">
-        <div class="skeleton-title" style={`width: ${70 + (i % 3) * 10}%`}></div>
-        <div class="skeleton-meta" style={`width: ${30 + (i % 3) * 10}%`}></div>
+        <div class="skeleton-bar" style={`width: ${70 + (i % 3) * 10}%`}></div>
+        <div class="skeleton-bar skeleton-bar--sm" style={`width: ${30 + (i % 3) * 10}%; animation-delay: 0.3s`}></div>
       </div>
     </div>
   ))}
@@ -27,17 +28,11 @@
     display: flex;
     gap: var(--spacing-md);
     padding: var(--spacing-md) 0;
-    border-bottom: 1px solid rgba(5, 205, 153, 0.1);
+    border-bottom: 1px solid var(--accent-dark-bg);
   }
 
-  .skeleton-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: rgba(5, 205, 153, 0.15);
-    flex-shrink: 0;
+  .skeleton-item-dot {
     margin-top: 0.375rem;
-    animation: pulse 2s ease-in-out infinite;
   }
 
   .skeleton-content {
@@ -45,20 +40,5 @@
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
-  }
-
-  .skeleton-title {
-    height: 0.875rem;
-    background: rgba(5, 205, 153, 0.15);
-    border-radius: 4px;
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  .skeleton-meta {
-    height: 0.625rem;
-    background: rgba(5, 205, 153, 0.15);
-    border-radius: 4px;
-    animation: pulse 2s ease-in-out infinite;
-    animation-delay: 0.3s;
   }
 </style>

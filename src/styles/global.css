@@ -172,6 +172,27 @@ nav {
     50% { opacity: 0.3; }
 }
 
+/* Skeleton Loading Placeholders */
+.skeleton-bar {
+    height: 0.875rem;
+    background: var(--accent-light-bg-hover);
+    border-radius: 4px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.skeleton-bar--sm {
+    height: 0.625rem;
+}
+
+.skeleton-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-light-bg-hover);
+    flex-shrink: 0;
+    animation: pulse 2s ease-in-out infinite;
+}
+
 nav ul {
     display: flex;
     gap: 3rem;

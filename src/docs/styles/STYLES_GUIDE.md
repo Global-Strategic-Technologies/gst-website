@@ -391,18 +391,24 @@ For components that load content asynchronously (API calls, server islands), use
 
 **Canonical reference**: `src/components/radar/RadarFeedSkeleton.astro`
 
-```css
-.skeleton-bar {
-  height: 0.875rem;
-  background: rgba(5, 205, 153, 0.15);
-  border-radius: 4px;
-  animation: pulse 2s ease-in-out infinite;
-}
+**Global classes** (defined in `global.css`):
+
+| Class | Description |
+|-------|-------------|
+| `.skeleton-bar` | Rectangular placeholder bar (0.875rem height) |
+| `.skeleton-bar--sm` | Smaller bar variant (0.625rem height) |
+| `.skeleton-dot` | Circular placeholder (8px) |
+
+All use `var(--accent-light-bg-hover)` for background color (auto-switches in dark theme) and the `pulse` animation.
+
+```html
+<!-- Example: text block skeleton -->
+<div class="skeleton-bar" style="width: 80%"></div>
+<div class="skeleton-bar skeleton-bar--sm" style="width: 40%; animation-delay: 0.3s"></div>
 ```
 
 **Convention**:
-- Use `rgba(5, 205, 153, 0.15)` (primary teal at 15% opacity) for all skeleton elements
-- Vary bar widths to suggest natural content variation (e.g., `width: 70%`, `width: 80%`)
+- Vary bar widths via inline `style` to suggest natural content variation
 - Add `aria-hidden="true"` to the skeleton container
 - Stagger animation delays on consecutive elements (e.g., `animation-delay: 0.3s`)
 

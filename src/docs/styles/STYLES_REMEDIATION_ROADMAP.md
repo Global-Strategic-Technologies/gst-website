@@ -340,7 +340,7 @@ All 8 initiatives completed on March 23, 2026.
 
 ### 10. Reusable Skeleton CSS Classes
 
-**Status**: Planned — implement when a second consumer needs skeleton loading
+**Status**: Complete — .skeleton-bar, .skeleton-bar--sm, .skeleton-dot extracted to global.css; RadarFeedSkeleton refactored to use shared classes (March 24, 2026)
 
 **Problem**: The skeleton loading pattern is documented (Init 8) but the CSS lives only inside `RadarFeedSkeleton.astro` as scoped styles. If another component needs skeleton loading (e.g., a hub tool with async data, a server island), the CSS must be duplicated.
 
