@@ -109,38 +109,9 @@
   font-family: var(--font-family);
 }
 
-/* Dark Theme Text Overrides */
-html.dark-theme .heading-xl,
-html.dark-theme .heading-lg,
-html.dark-theme .heading-md,
-html.dark-theme .heading-sm {
-  color: var(--text-dark-primary);
-}
-
-html.dark-theme .text-base {
-  color: var(--text-dark-secondary);
-}
-
-html.dark-theme .text-small {
-  color: var(--text-dark-secondary);
-}
-
-html.dark-theme .text-tiny {
-  color: var(--text-dark-muted);
-}
-
-html.dark-theme .label {
-  color: var(--text-dark-muted);
-}
-
-html.dark-theme .label-small {
-  color: var(--text-dark-muted);
-}
-
-html.dark-theme .nav-link {
-  color: var(--text-dark-secondary);
-}
-
+/* Dark Theme — nav-link interactive states only.
+   Text color overrides are unnecessary: --text-light-* variables already
+   resolve to dark values via html.dark-theme overrides in variables.css. */
 html.dark-theme .nav-link:hover {
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);

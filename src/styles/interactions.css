@@ -136,8 +136,3 @@ html.dark-theme .accent-light-bg-hover {
   transform: rotate(0deg);
   color: var(--text-light-muted);
 }
-
-html.dark-theme .is-collapsed > .delta-chevron,
-html.dark-theme .is-collapsed .delta-chevron {
-  color: var(--text-dark-muted);
-}

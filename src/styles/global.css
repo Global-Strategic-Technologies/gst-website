@@ -746,16 +746,8 @@ html.dark-theme .site-header {
     border-bottom-color: var(--color-primary);
 }
 
-html.dark-theme .logo {
-    color: var(--text-dark-primary);
-}
-
 html.dark-theme .logo:hover {
     color: var(--color-primary);
-}
-
-html.dark-theme nav a {
-    color: var(--text-dark-secondary);
 }
 
 /* Dark Theme - Background Grid Pattern */
@@ -866,10 +858,6 @@ html.dark-theme footer p {
 
 html.dark-theme .footer-bottom {
     border-top-color: var(--footer-border);
-}
-
-html.dark-theme .footer-links a {
-    color: var(--text-dark-secondary);
 }
 
 html.dark-theme .footer-links a:hover {
