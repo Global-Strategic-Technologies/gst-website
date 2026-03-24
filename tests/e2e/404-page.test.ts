@@ -15,8 +15,10 @@ test.describe('404 Page', () => {
     // time out when many parallel workers are running against the same dev server
     await page.goto('/this-page-does-not-exist', { waitUntil: 'domcontentloaded' });
 
-    // Wait for the 404 hero to be present before any test interacts with it
-    await page.waitForSelector('.hero', { timeout: 10000 });
+    // Wait for hero content (not just the container) to be fully rendered.
+    // Under Firefox parallel worker load, .hero can exist before its children
+    // are attached. Waiting for the deepest shared element prevents flakes.
+    await page.waitForSelector('.hero p', { timeout: 10000 });
   });
 
   test.describe('Page Load & Structure', () => {
@@ -87,8 +89,7 @@ test.describe('404 Page', () => {
       // Verify the homepage loaded with actual content
       const main = page.locator('main');
       await expect(main).toBeVisible({ timeout: 10000 });
-      const text = await main.textContent();
-      expect(text!.length).toBeGreaterThan(50);
+      await expect(main).toHaveText(/.{50,}/);
     });
 
     test('should navigate to services page when "View Services" is clicked', async ({ page }) => {
@@ -105,8 +106,7 @@ test.describe('404 Page', () => {
       // Verify the services page loaded with actual content
       const main = page.locator('main');
       await expect(main).toBeVisible({ timeout: 10000 });
-      const text = await main.textContent();
-      expect(text!.length).toBeGreaterThan(50);
+      await expect(main).toHaveText(/.{50,}/);
     });
   });
 });
