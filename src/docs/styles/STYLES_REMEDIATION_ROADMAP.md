@@ -7,6 +7,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 ## Table of Contents
 
 1. [Brand Color and Style Guidelines](#1-brand-color-and-style-guidelines)
+1A. [Brand Guidelines Completion](#1a-brand-guidelines-completion) *(awaiting stakeholder review)*
 2. [Hardcoded Color Remediation](#2-hardcoded-color-remediation)
 3. [Hardcoded Spacing Remediation](#3-hardcoded-spacing-remediation)
 4. [Diligence Machine Remediation](#4-diligence-machine-remediation)
@@ -21,7 +22,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## 1. Brand Color and Style Guidelines
 
-**Status**: Partially complete — existing palette documented in BRAND_GUIDELINES.md (March 23, 2026). Stakeholder decisions pending for extended palette.
+**Status**: Requirements defined — existing palette documented, 5 requirement areas with concrete recommendations awaiting stakeholder review (March 24, 2026). See Init 1A.
 
 **Problem**: GST uses `#05cd99` as its primary brand teal, but there is no formal brand color palette, no documented secondary/tertiary colors, and no guidelines for when to use brand colors vs. neutral/semantic colors. The delta icon is used as a brand asset but its usage rules are informal.
 
@@ -36,6 +37,27 @@ Tracked initiatives to close the gap between documented conventions and actual i
 - `src/docs/styles/BRAND_GUIDELINES.md` - Brand color palette, usage rules, and asset guidelines
 
 **Depends on**: Design decision from stakeholder
+
+---
+
+## 1A. Brand Guidelines Completion
+
+**Status**: Requirements defined — awaiting stakeholder review (March 24, 2026)
+
+**Problem**: Init 1 documented the existing palette but left 5 areas as TBD pending stakeholder decisions. These areas now have concrete recommendations based on codebase analysis, ready for review and approval.
+
+**Scope**: Review and approve 5 requirement areas in [BRAND_GUIDELINES.md](./BRAND_GUIDELINES.md#requirements--recommendations--pending-stakeholder-review):
+1. **Semantic color system** — shared `--color-success/warning/error/info` (4 new CSS variables)
+2. **Color usage hierarchy** — when to use brand vs. semantic vs. neutral vs. domain colors
+3. **WCAG contrast audit** — `--text-faded` opacity fix, formal contrast thresholds
+4. **Data visualization standards** — approve existing palettes, formalize regmap variables, CVD-safe sequence
+5. **Brand asset usage rules** — delta icon minimum sizes, clearance, prohibited uses
+
+**After approval**: Implement approved decisions (estimated: 4-6 new CSS variables, possible `--text-faded` opacity adjustment, optional `--regmap-*` variables)
+
+**Depends on**: Stakeholder review of BRAND_GUIDELINES.md recommendations
+
+**Estimated scope**: Small — documentation finalization + small CSS variable additions
 
 ---
 
@@ -278,7 +300,8 @@ All 10 initiatives complete. 9 of 10 fully resolved; Init 1 partial pending stak
 
 | Initiative | Status | Date | Notes |
 |-----------|--------|------|-------|
-| 1. Brand Guidelines | Partial | Mar 23 | Existing palette documented; extended palette requires stakeholder decisions |
+| 1. Brand Guidelines | Requirements Defined | Mar 24 | Palette documented; 5 areas with recommendations awaiting stakeholder review (see Init 1A) |
+| 1A. Guidelines Completion | Awaiting Review | Mar 24 | Semantic colors, usage rules, contrast audit, data viz, brand assets |
 | 2. Hardcoded Colors | Complete | Mar 23 | Design system colors standardized; data viz colors preserved as exceptions |
 | 3. Hardcoded Spacing | Complete | Mar 23 | Actionable values replaced; micro-spacing (1-3px) documented as exceptions |
 | 4. Diligence Machine | Complete | Mar 23 | 75+ color + spacing replacements; 6 redundant dark overrides removed |
