@@ -24,7 +24,7 @@
     .portfolio-summary h2 {
         font-size: 2rem;
         font-weight: 700;
-        color: rgba(26, 26, 26, 0.95);
+        color: var(--text-primary);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         margin-bottom: 1.5rem;
@@ -32,7 +32,7 @@
 
     .portfolio-summary p {
         font-size: 1.1rem;
-        color: rgba(26, 26, 26, 0.75);
+        color: var(--text-secondary);
         line-height: 1.8;
     }
 
@@ -41,13 +41,6 @@
         border-bottom-color: rgba(5, 205, 153, 0.15);
     }
 
-    :global(html.dark-theme) .portfolio-summary h2 {
-        color: rgba(245, 245, 245, 0.95);
-    }
-
-    :global(html.dark-theme) .portfolio-summary p {
-        color: rgba(200, 200, 200, 0.75);
-    }
 
     @media (max-width: 768px) {
         .portfolio-summary {
