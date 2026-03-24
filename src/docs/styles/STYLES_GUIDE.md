@@ -50,17 +50,18 @@ Centralized CSS variable-based design system. Single source of truth in `variabl
 
 | Category | Examples | Count |
 |----------|---------|-------|
-| Colors | `--color-primary`, `--bg-light`, `--text-primary` | 31 |
+| Colors (brand + text) | `--color-primary`, `--bg-light`, `--text-primary` | 35 |
 | Component colors | `--filter-chip-bg`, `--service-card-text`, `--footer-bg` | 31 |
+| Tool-domain colors | `--hub-authority-blue`, `--dm-*`, `--icg-*`, `--techpar-*` | 33 |
 | Misc colors | `--checkerboard-line`, `--theme-toggle-color` | 6 |
-| Spacing | `--spacing-xs` through `--spacing-3xl` | 7 |
+| Spacing | `--spacing-xs` through `--spacing-3xl` + `--spacing-2_5xl` | 8 |
 | Gaps | `--gap-tight` through `--gap-extra-wide` | 4 |
 | Typography | `--font-family`, `--font-weight-*`, `--text-*` | 10 |
 | Transitions | `--transition-fast`, `--transition-normal`, `--transition-slow` | 3 |
 | Shadows | `--shadow-sm`, `--shadow-md`, `--shadow-lg` | 3 |
-| **Total** | | **95** |
+| **Total** | | **134** |
 
-> Note: Dark theme defines 43 variable overrides, not new variables. 13 utility classes are defined across `variables.css`, `typography.css`, and `interactions.css`.
+> Note: Dark theme defines 78 variable overrides, not new variables. 13 utility classes are defined across `variables.css`, `typography.css`, and `interactions.css`.
 
 Full variable catalog: [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)
 
@@ -532,4 +533,4 @@ Delete dead styles. Version control has the history.
 
 ---
 
-**Last Updated**: March 23, 2026
+**Last Updated**: March 24, 2026

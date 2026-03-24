@@ -2,7 +2,7 @@
 
 Complete catalog of all CSS custom properties defined in `src/styles/variables.css`. Use this when styling components.
 
-**Source of truth**: `src/styles/variables.css` — 95 variables in `:root`, 43 dark theme overrides in `html.dark-theme`.
+**Source of truth**: `src/styles/variables.css` — 134 variables in `:root`, 78 dark theme overrides in `html.dark-theme`.
 
 ---
 
@@ -273,16 +273,6 @@ Cross-tool semantic colors shared by multiple hub tools.
 
 ---
 
-## Extended Spacing
-
-| Variable | Value | Pixels (at 16px base) |
-|----------|-------|-----------------------|
-| `--spacing-2_5xl` | `2.5rem` | 40px |
-
-Fills the gap between `--spacing-2xl` (32px) and `--spacing-3xl` (48px). Used in hub tool layouts where 40px padding/margins are common.
-
----
-
 ## Quick Lookup by Purpose
 
 | I need... | Use |
@@ -311,5 +301,5 @@ Fills the gap between `--spacing-2xl` (32px) and `--spacing-3xl` (48px). Used in
 
 ---
 
-**Last Updated**: March 23, 2026
-**Total Variables**: 117 (`:root`) + 57 dark theme overrides
+**Last Updated**: March 24, 2026
+**Total Variables**: 134 (`:root`) + 78 dark theme overrides

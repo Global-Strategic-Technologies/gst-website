@@ -90,5 +90,5 @@ No dark theme overrides needed — the variables handle theme switching automati
 
 ---
 
-**Last Updated**: March 13, 2026
-**Source**: `src/styles/typography.css` (158 lines)
+**Last Updated**: March 24, 2026
+**Source**: `src/styles/typography.css` (128 lines)
