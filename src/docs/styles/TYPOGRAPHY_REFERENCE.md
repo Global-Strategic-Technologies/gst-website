@@ -49,16 +49,16 @@ Both inherit `--font-family`.
 
 ## Dark Theme Behavior
 
-All utilities switch colors automatically in dark theme via overrides in `typography.css`:
+All utilities use theme-agnostic `--text-*` variables that auto-switch in dark theme:
 
-| Class Group | Light | Dark |
-|-------------|-------|------|
-| `.heading-*` | `--text-light-primary` | `--text-dark-primary` |
-| `.text-base`, `.text-small` | `--text-light-secondary` | `--text-dark-secondary` |
-| `.text-tiny`, `.label`, `.label-small` | `--text-light-muted` | `--text-dark-muted` |
-| `.nav-link` | `--text-light-secondary` | `--text-dark-secondary` |
+| Class Group | Variable | Light Value | Dark Value |
+|-------------|----------|-------------|------------|
+| `.heading-*` | `--text-primary` | `rgba(26,26,26, 0.95)` | `rgba(245,245,245, 0.95)` |
+| `.text-base`, `.text-small` | `--text-secondary` | `rgba(26,26,26, 0.7)` | `rgba(200,200,200, 0.8)` |
+| `.text-tiny`, `.label`, `.label-small` | `--text-muted` | `rgba(26,26,26, 0.6)` | `rgba(200,200,200, 0.6)` |
+| `.nav-link` | `--text-secondary` | `rgba(26,26,26, 0.7)` | `rgba(200,200,200, 0.8)` |
 
-No additional CSS needed in components for dark theme text support.
+No dark theme overrides needed — the variables handle theme switching automatically.
 
 ---
 

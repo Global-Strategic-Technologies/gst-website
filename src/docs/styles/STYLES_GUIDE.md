@@ -50,7 +50,7 @@ Centralized CSS variable-based design system. Single source of truth in `variabl
 
 | Category | Examples | Count |
 |----------|---------|-------|
-| Colors | `--color-primary`, `--bg-light`, `--text-light-primary` | 31 |
+| Colors | `--color-primary`, `--bg-light`, `--text-primary` | 31 |
 | Component colors | `--filter-chip-bg`, `--service-card-text`, `--footer-bg` | 31 |
 | Misc colors | `--checkerboard-line`, `--theme-toggle-color` | 6 |
 | Spacing | `--spacing-xs` through `--spacing-3xl` | 7 |
@@ -119,7 +119,7 @@ In stylesheets, always import in cascade order:
 
   .custom-card h2 {
     font-size: var(--text-lg);
-    color: var(--text-light-primary);
+    color: var(--text-primary);
     margin-bottom: var(--spacing-md);
   }
 </style>
@@ -220,7 +220,7 @@ html.dark-theme {
 
 ### Adding Dark Theme Support to New Components
 
-1. Use existing variables wherever possible (`--bg-light-alt`, `--text-light-primary`, `--color-primary`)
+1. Use existing variables wherever possible (`--bg-light-alt`, `--text-primary`, `--color-primary`)
 2. If you need a new component-specific variable, define both light and dark values in `variables.css`:
    ```css
    :root {
@@ -236,9 +236,9 @@ html.dark-theme {
 
 | Use Case | Variable |
 |----------|----------|
-| Primary text | `--text-light-primary` (auto-switches via dark theme override) |
-| Secondary text | `--text-light-secondary` (auto-switches) |
-| Muted text | `--text-light-muted` (auto-switches) |
+| Primary text | `--text-primary` (auto-switches in dark theme) |
+| Secondary text | `--text-secondary` (auto-switches) |
+| Muted text | `--text-muted` (auto-switches) |
 | Page background | `--bg-light` (auto-switches to `#0a0a0a`) |
 | Alt background | `--bg-light-alt` (auto-switches to `#141414`) |
 | Primary accent | `--color-primary` (same in both themes) |
@@ -446,7 +446,7 @@ The `.delta-chevron` utility (defined in `interactions.css`) provides a collapse
 
 ```css
 /* BAD */  .text { color: #1a1a1a; }
-/* GOOD */ .text { color: var(--text-light-primary); }
+/* GOOD */ .text { color: var(--text-primary); }
 ```
 
 Colors must use CSS variables so dark theme works automatically.

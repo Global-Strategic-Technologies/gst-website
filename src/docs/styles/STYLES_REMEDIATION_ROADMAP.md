@@ -295,7 +295,7 @@ All 8 initiatives completed on March 23, 2026.
 
 ### 9. Theme-Agnostic Text Variable Refactor
 
-**Status**: Planned
+**Status**: Complete — --text-* aliases added, 335 references migrated, ~200 lines of redundant dark theme overrides removed (March 24, 2026)
 
 **Problem**: The design system uses paired text variables — `--text-light-primary` for light theme and `--text-dark-primary` for dark theme. Components reference the light variant, then every dark theme context requires a manual `html.dark-theme` override to swap to the dark variant. The Diligence Machine alone has ~25 such overrides; the pattern repeats across portfolio components, regulatory map, and other tools.
 

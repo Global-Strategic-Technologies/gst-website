@@ -27,25 +27,33 @@ Complete catalog of all CSS custom properties defined in `src/styles/variables.c
 
 ## Text Colors
 
-### Light Theme Defaults (auto-switch in dark theme)
+### Theme-Agnostic Aliases (preferred)
 
-| Variable | Light Value | Dark Override | Usage |
-|----------|------------|---------------|-------|
-| `--text-light-primary` | `rgba(26,26,26, 0.95)` | `rgba(245,245,245, 0.95)` | Headings, primary text |
-| `--text-light-secondary` | `rgba(26,26,26, 0.7)` | `rgba(200,200,200, 0.8)` | Body text, descriptions |
-| `--text-light-muted` | `rgba(26,26,26, 0.6)` | `rgba(200,200,200, 0.6)` | Labels, captions |
-| `--text-light-faded` | `rgba(26,26,26, 0.5)` | `rgba(200,200,200, 0.5)` | Disabled, placeholders |
+Use these in all new code. They auto-switch in dark theme.
 
-> In dark theme, `--text-light-*` variables are overridden to point to the dark equivalents. Components only need to reference `--text-light-*` — they get dark values automatically.
+| Variable | Light Value | Dark Value | Usage |
+|----------|------------|------------|-------|
+| `--text-primary` | `rgba(26,26,26, 0.95)` | `rgba(245,245,245, 0.95)` | Headings, primary text |
+| `--text-secondary` | `rgba(26,26,26, 0.7)` | `rgba(200,200,200, 0.8)` | Body text, descriptions |
+| `--text-muted` | `rgba(26,26,26, 0.6)` | `rgba(200,200,200, 0.6)` | Labels, captions |
+| `--text-faded` | `rgba(26,26,26, 0.5)` | `rgba(200,200,200, 0.5)` | Disabled, placeholders |
 
-### Dark Theme Raw Values (used internally by overrides)
+> Components reference `--text-primary` etc. and get dark values automatically. No dark theme overrides needed for text colors.
 
-| Variable | Value | Usage |
-|----------|-------|-------|
-| `--text-dark-primary` | `rgba(245,245,245, 0.95)` | Referenced by dark theme override |
-| `--text-dark-secondary` | `rgba(200,200,200, 0.8)` | Referenced by dark theme override |
-| `--text-dark-muted` | `rgba(200,200,200, 0.6)` | Referenced by dark theme override |
-| `--text-dark-faded` | `rgba(200,200,200, 0.5)` | Referenced by dark theme override |
+### Legacy Theme-Specific Variables (still available)
+
+| Variable | Value | When to use |
+|----------|-------|-------------|
+| `--text-light-primary` | `rgba(26,26,26, 0.95)` | Force light-theme text color regardless of active theme |
+| `--text-light-secondary` | `rgba(26,26,26, 0.7)` | Force light-theme text color |
+| `--text-light-muted` | `rgba(26,26,26, 0.6)` | Force light-theme text color |
+| `--text-light-faded` | `rgba(26,26,26, 0.5)` | Force light-theme text color |
+| `--text-dark-primary` | `rgba(245,245,245, 0.95)` | Force dark-theme text color (e.g., text on dark card) |
+| `--text-dark-secondary` | `rgba(200,200,200, 0.8)` | Force dark-theme text color |
+| `--text-dark-muted` | `rgba(200,200,200, 0.6)` | Force dark-theme text color |
+| `--text-dark-faded` | `rgba(200,200,200, 0.5)` | Force dark-theme text color |
+
+> `--text-light-*` also auto-switch in dark theme (legacy behavior). Prefer `--text-*` for clarity.
 
 ## Borders & Accents
 
@@ -279,9 +287,9 @@ Fills the gap between `--spacing-2xl` (32px) and `--spacing-3xl` (48px). Used in
 
 | I need... | Use |
 |-----------|-----|
-| Primary text color | `--text-light-primary` |
-| Secondary/body text | `--text-light-secondary` |
-| Muted/label text | `--text-light-muted` |
+| Primary text color | `--text-primary` |
+| Secondary/body text | `--text-secondary` |
+| Muted/label text | `--text-muted` |
 | Page background | `--bg-light` |
 | Card/section background | `--bg-light-alt` |
 | Primary accent | `--color-primary` |
