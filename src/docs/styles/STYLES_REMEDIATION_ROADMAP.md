@@ -14,8 +14,8 @@ Tracked initiatives to close the gap between documented conventions and actual i
 6. [ICG Color Standardization](#6-icg-color-standardization)
 7. [Standardized Tool Shell Container](#7-standardized-tool-shell-container)
 8. [Dynamic Content Loading Pattern](#8-dynamic-content-loading-pattern)
-9. [Theme-Agnostic Text Variable Refactor](#9-theme-agnostic-text-variable-refactor) *(planned)*
-10. [Reusable Skeleton CSS Classes](#10-reusable-skeleton-css-classes) *(planned — on trigger)*
+9. [Theme-Agnostic Text Variable Refactor](#9-theme-agnostic-text-variable-refactor)
+10. [Reusable Skeleton CSS Classes](#10-reusable-skeleton-css-classes)
 
 ---
 
@@ -274,24 +274,29 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## Completion Summary
 
-All 8 initiatives completed on March 23, 2026.
+All 10 initiatives complete. 9 of 10 fully resolved; Init 1 partial pending stakeholder decisions.
 
-| Initiative | Status | Notes |
-|-----------|--------|-------|
-| 1. Brand Guidelines | Partial | Existing palette documented; stakeholder decisions pending |
-| 2. Hardcoded Colors | Complete | Design system colors standardized; data viz colors preserved |
-| 3. Hardcoded Spacing | Complete | Actionable values replaced; micro-spacing exceptions documented |
-| 4. Diligence Machine | Complete | 75+ color + spacing replacements; 6 redundant dark overrides removed |
-| 5. TechPar Docs | Complete | 35 variables documented in VARIABLES_REFERENCE.md |
-| 6. ICG Colors | Complete | Engine, radar chart, and template standardized |
-| 7. Tool Shell | Complete | .tool-shell class created; ICG + Tech Debt migrated |
-| 8. Skeleton Loading | Complete | Pattern documented in STYLES_GUIDE.md |
+| Initiative | Status | Date | Notes |
+|-----------|--------|------|-------|
+| 1. Brand Guidelines | Partial | Mar 23 | Existing palette documented; extended palette requires stakeholder decisions |
+| 2. Hardcoded Colors | Complete | Mar 23 | Design system colors standardized; data viz colors preserved as exceptions |
+| 3. Hardcoded Spacing | Complete | Mar 23 | Actionable values replaced; micro-spacing (1-3px) documented as exceptions |
+| 4. Diligence Machine | Complete | Mar 23 | 75+ color + spacing replacements; 6 redundant dark overrides removed |
+| 5. TechPar Docs | Complete | Mar 23 | 35 variables documented in VARIABLES_REFERENCE.md |
+| 6. ICG Colors | Complete | Mar 23 | Engine, radar chart, and template standardized with CSS variables |
+| 7. Tool Shell | Complete | Mar 23 | `.tool-shell` class created; ICG + Tech Debt Calculator migrated |
+| 8. Skeleton Loading | Complete | Mar 23 | Pattern documented; classes extracted in Init 10 |
+| 9. Text Variable Refactor | Complete | Mar 24 | `--text-*` aliases added; 335 refs migrated; ~200 lines of redundant dark overrides removed |
+| 10. Skeleton CSS Classes | Complete | Mar 24 | `.skeleton-bar`, `.skeleton-bar--sm`, `.skeleton-dot` extracted to global.css |
 
-**Shared variables defined**: `--hub-authority-blue` is shared between DM and ICG as planned. `--spacing-2_5xl` (40px) added to fill the spacing scale gap.
+**Key outcomes**:
+- 22 new shared CSS variables defined (`--hub-authority-blue`, `--dm-*`, `--icg-*`, `--text-*` aliases, `--spacing-2_5xl`)
+- ~200 lines of redundant dark theme CSS eliminated via theme-agnostic text variables
+- Standardized `.tool-shell` container with 4 width modifiers
+- Reusable skeleton loading classes with automatic dark theme support
+- All documentation (VARIABLES_REFERENCE, TYPOGRAPHY_REFERENCE, STYLES_GUIDE, BRAND_GUIDELINES) updated
 
 ---
-
-## Future Initiatives
 
 ### 9. Theme-Agnostic Text Variable Refactor
 
@@ -385,4 +390,4 @@ All 8 initiatives completed on March 23, 2026.
 ---
 
 **Created**: March 21, 2026
-**Last Updated**: March 23, 2026
+**Last Updated**: March 24, 2026
