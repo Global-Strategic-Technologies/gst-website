@@ -297,7 +297,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## Completion Summary
 
-11 initiatives tracked. 9 fully complete, 1 awaiting stakeholder review (Init 1A), 1 partially complete (Init 11 — 11C planned).
+11 initiatives tracked. 10 fully complete, 1 awaiting stakeholder review (Init 1A).
 
 | Initiative | Status | Date | Notes |
 |-----------|--------|------|-------|
@@ -312,7 +312,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 | 8. Skeleton Loading | Complete | Mar 23 | Pattern documented; classes extracted in Init 10 |
 | 9. Text Variable Refactor | Complete | Mar 24 | `--text-*` aliases added; 335 refs migrated; ~200 lines of redundant dark overrides removed |
 | 10. Skeleton CSS Classes | Complete | Mar 24 | `.skeleton-bar`, `.skeleton-bar--sm`, `.skeleton-dot` extracted to global.css |
-| 11. Astro CSS Alignment | 11A+11B Complete | Mar 24 | Stylelint added; Astro CSS patterns documented; 11C (`:global()` audit) planned |
+| 11. Astro CSS Alignment | Complete | Mar 24 | Stylelint added; Astro CSS patterns documented; `:global()` reduced 631→577 |
 
 **Key outcomes**:
 - 22 new shared CSS variables defined (`--hub-authority-blue`, `--dm-*`, `--icg-*`, `--text-*` aliases, `--spacing-2_5xl`)
@@ -408,7 +408,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ### 11. Astro CSS Alignment & Tooling
 
-**Status**: 11A complete, 11B complete, 11C planned (March 24, 2026)
+**Status**: Complete — 11A (Stylelint), 11B (Astro CSS docs), 11C (:global() audit) all done (March 24, 2026)
 
 **Problem**: The project had no CSS linting and no documentation of Astro-specific CSS patterns (`class:list`, `define:vars`, `:global()` decision guidance). Style convention violations were only caught during manual review.
 
@@ -422,14 +422,18 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 **Planned**:
 
-**11C. `:global()` Audit & Reduction** — 631 `:global()` instances across 25 files. Most are necessary (dynamic content styling, dark theme parent state). Best done incrementally when components are actively edited, not as a standalone sweep.
+**11C. `:global()` Audit & Reduction** — Audited all 631 instances across 29 files. Categorized as:
+- **Category A** (~500): Dynamic content (innerHTML, set:html, D3) — necessary, kept
+- **Category B** (~75): Dark theme overrides for non-text properties (borders, backgrounds) — necessary, kept
+- **Category E** (1): Unnecessary `:global(header)` in ma-portfolio — removed (known bug)
+- **Redundant dark overrides** (54): Text/bg overrides made unnecessary by CSS variables — removed
+
+Result: 631 → 577 instances (-54). Remaining instances are all justified (dynamic content or non-auto-switching dark theme properties).
 
 **Not pursued** (evaluated and rejected):
 - Tailwind CSS — would create parallel styling paradigm alongside established CSS variables
 - Sass/Less — CSS variables cover the use cases; adds dependency without proportional benefit
 - CSS nesting — would introduce second formatting convention; keep flat selectors for consistency
-
-**Estimated scope for 11C**: Medium — incremental, per-component when editing
 
 ---
 
