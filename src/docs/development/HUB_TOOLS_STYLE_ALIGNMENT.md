@@ -2,7 +2,7 @@
 
 Visual design consistency audit and remediation plan for the five hub tool pages.
 
-**Status**: Phases 1-2 complete, Phase 3 deferred
+**Status**: Complete (Phases 1-2 implemented; Phase 3 items migrated to [HUB_TOOLS_CONTROL_CONSOLIDATION.md](HUB_TOOLS_CONTROL_CONSOLIDATION.md))
 **Last Updated**: March 25, 2026
 
 ---
@@ -212,20 +212,9 @@ Ordered by priority (impact vs effort):
    - Define `.tool-section-label` in `global.css` (uppercase, xs, bold, faded)
    - Replace tool-specific label classes
 
-### Phase 3: Evaluate-then-act
+### Phase 3: Migrated
 
-6. **Container width rationalization**
-   - Evaluate whether RegMap and TechPar can adopt `.tool-shell` variants
-   - RegMap likely cannot (full-width map); TechPar may work with `.tool-shell--fluid`
-   - Consider whether 660/760/800px can converge to fewer widths
-
-7. **ICG dark theme rgba consolidation**
-   - Extract ICG's rgba overrides into CSS variables in `variables.css`
-   - Replace inline rgba values with the new variables
-
-8. **TechPar z-index alignment**
-   - Evaluate whether tab-bar z-index 11 causes issues with sticky header
-   - Align to documented z-index scale if needed
+Items 6-8 (container width rationalization, ICG dark theme rgba consolidation, TechPar z-index alignment) have been migrated to [HUB_TOOLS_CONTROL_CONSOLIDATION.md](HUB_TOOLS_CONTROL_CONSOLIDATION.md) as future candidates and dark theme variable work respectively.
 
 ---
 

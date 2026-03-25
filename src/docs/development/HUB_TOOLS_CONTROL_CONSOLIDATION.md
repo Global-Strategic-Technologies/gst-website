@@ -260,6 +260,14 @@ TDC pairs `<input type="range">` with `<input type="number">` for bidirectional 
 
 DM, ICG, and TechPar all implement multi-view toggling (landing → wizard → results) with `is-hidden` class toggling. The pattern is similar but the view structures differ enough that a shared abstraction may be premature. Monitor for a third tool that needs this before extracting.
 
+### Container Width Rationalization
+
+Four different max-widths (660, 760, 800, 100%) with two tools not using `.tool-shell` at all. Current widths are intentional: RegMap needs full-width for the interactive map, TechPar needs fluid width for data tables, DM at 800px accommodates readable document output, TDC at 760px and ICG at 660px reflect content density differences. Revisit only if design requests convergence or a new tool needs a width not currently offered.
+
+### TechPar Tab-Bar Z-Index
+
+TechPar's tab-bar uses `z-index: 11` while `.site-header` uses `z-index: 10`. The tab-bar is intentionally sticky below the header. No observed conflict in practice, but if the z-index scale is formalized in `STYLES_GUIDE.md`, this should be documented there.
+
 ---
 
 ## Suggested Execution Order
