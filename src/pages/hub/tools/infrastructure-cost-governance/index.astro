@@ -164,19 +164,19 @@ const domainCount = DOMAINS.length;
 
                         <!-- Radar chart -->
                         <div class="icg-card">
-                            <div class="icg-section-label">Domain profile</div>
+                            <div class="tool-section-label">Domain profile</div>
                             <div data-radar-chart class="icg-radar"></div>
                         </div>
 
                         <!-- Domain breakdown -->
                         <div class="icg-card">
-                            <div class="icg-section-label">Domain breakdown</div>
+                            <div class="tool-section-label">Domain breakdown</div>
                             <div data-domain-bars class="icg-domain-bars"></div>
                         </div>
 
                         <!-- Benchmark reference -->
                         <div class="icg-card">
-                            <div class="icg-section-label">Benchmark reference</div>
+                            <div class="tool-section-label">Benchmark reference</div>
                             <table class="icg-benchmark-table">
                                 <tbody data-benchmark-body>
                                     <tr data-stage-row="pre-series-b"><td>Pre-Series B / high-growth startup</td><td data-bench="15-35">15-35</td></tr>
@@ -216,7 +216,7 @@ const domainCount = DOMAINS.length;
 
                         <!-- Snapshot manager -->
                         <div data-snapshot-manager class="icg-snapshot-manager is-hidden">
-                            <div class="icg-section-label">Saved snapshots</div>
+                            <div class="tool-section-label">Saved snapshots</div>
                             <div data-snapshot-list class="icg-snapshot-list-items"></div>
                             <button data-action="clear-snapshots" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary icg-snapshot-clear">Clear all snapshots</button>
                         </div>
@@ -226,7 +226,7 @@ const domainCount = DOMAINS.length;
                 <!-- ── Comparison view ────────────────────────────────────── -->
                 <div data-view="comparison" class="icg-view is-hidden">
                     <div class="comparison-content">
-                        <div class="icg-section-label">Snapshot comparison</div>
+                        <div class="tool-section-label">Snapshot comparison</div>
                         <div data-comparison-body class="icg-comparison-body"></div>
                         <div class="icg-comparison-actions">
                             <button data-action="back-to-results" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary">Back to results</button>
@@ -735,14 +735,7 @@ const domainCount = DOMAINS.length;
         border-color: var(--accent-light-bg-hover);
     }
 
-    :global(.icg-section-label) {
-        font-size: 0.75rem;
-        font-weight: var(--font-weight-bold);
-        color: var(--text-muted);
-        margin-bottom: var(--spacing-md);
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-    }
+    /* Section labels use global .tool-section-label — no scoped override needed */
 
     /* ── Results: Domain bars (injected via innerHTML — must use :global) ── */
     .icg-domain-bars {
@@ -2188,7 +2181,7 @@ function renderResults(): void {
   if (quickWins.length > 0) {
     quickWinsContainer.classList.remove('is-hidden');
     quickWinsContainer.innerHTML = `
-      <div class="icg-section-label">Start here</div>
+      <div class="tool-section-label">Start here</div>
       ${quickWins.map(qw => `
         <div class="icg-quick-win-item">
           <span class="icg-rec-badge icg-rec-badge--${qw.impact}">${qw.impact}</span>
@@ -2230,7 +2223,7 @@ function renderResults(): void {
     };
 
     recsContainer.innerHTML = `
-      <div class="icg-section-label">Prioritized recommendations (${activeCount} of ${recs.length})</div>
+      <div class="tool-section-label">Prioritized recommendations (${activeCount} of ${recs.length})</div>
       ${renderGroup(high, 'High', '#E24B4A')}
       ${renderGroup(med, 'Medium', 'var(--color-secondary)')}
       ${renderGroup(low, 'Low', 'var(--text-muted)')}
@@ -2522,7 +2515,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="icg-delta ${deltaClass(comparison.overallDelta)}">${deltaText(comparison.overallDelta)}</span>
         </span>
       </div>
-      <div class="icg-section-label" style="margin-top:var(--spacing-md)">${escHtml(comparison.a.label)} &rarr; ${escHtml(comparison.b.label)}</div>
+      <div class="tool-section-label" style="margin-top:var(--spacing-md)">${escHtml(comparison.a.label)} &rarr; ${escHtml(comparison.b.label)}</div>
       ${comparison.domainDeltas.map(dd => `
         <div class="icg-comparison-row">
           <span class="icg-comparison-row__name">${dd.name}</span>
