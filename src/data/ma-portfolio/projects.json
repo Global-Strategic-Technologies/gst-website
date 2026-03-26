@@ -173,6 +173,36 @@
     "engagementCategory": "Sell-Side Advisory"
   },
   {
+    "id": "project-colors",
+    "codeName": "Project Colors",
+    "industry": "Healthcare Marketing Technology",
+    "theme": "Healthcare",
+    "summary": "AI-enabled healthcare marketing agency with proprietary omnichannel analytics platform, AI copywriting pipeline, social intelligence tools, and workflow automation for pharma brand commercialization.",
+    "arr": "$186M",
+    "arrNumeric": 186000000,
+    "currency": "USD",
+    "growthStage": "Mature / Growth",
+    "year": 2026,
+    "technologies": [
+      "Snowflake",
+      "AWS",
+      "TypeScript",
+      "Cloudflare Workers",
+      "NeonDB",
+      "Python",
+      "Google Gemini",
+      "Tableau",
+      "Salesforce Marketing Cloud",
+      "Terraform"
+    ],
+    "engagementType": "Technical Assessment",
+    "engagementTypeTag": "technical-assessment",
+    "engagementTypeDescription": "Sell-side AI competitive analysis and technology evaluation",
+    "challenge": "Evaluating AI strategy defensibility, competitive positioning, and disruption risk for a healthcare marketing agency facing multi-front AI threats from in-house pharma capabilities, AI-native competitors, and commoditization of content generation services.",
+    "solution": "Identified fragmented AI infrastructure across four early-stage tools with low defensibility, positioned the proprietary omnichannel analytics platform as the most defensible asset, and delivered a prioritized AI roadmap to strengthen investor narrative ahead of exit.",
+    "engagementCategory": "Sell-Side Advisory"
+  },
+  {
     "id": "fusion",
     "codeName": "Fusion",
     "industry": "Financial Administration",
