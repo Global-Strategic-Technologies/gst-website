@@ -267,9 +267,9 @@ test.describe('ICG - Results view', () => {
 test.describe('ICG - Authority & Methodology', () => {
   test('authority line is visible on landing', async ({ page }) => {
     await gotoTool(page);
-    const authority = page.locator('.icg-authority');
-    await expect(authority).toBeVisible();
-    await expect(authority).toContainText('PE portfolio companies');
+    const subtitle = page.locator('.hub-header__subtitle');
+    await expect(subtitle).toBeVisible();
+    await expect(subtitle).toContainText('PE portfolio companies');
   });
 
   test('methodology section is collapsed by default', async ({ page }) => {
