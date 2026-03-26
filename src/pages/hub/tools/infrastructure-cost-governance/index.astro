@@ -37,12 +37,11 @@ const domainCount = DOMAINS.length;
 
             <HubHeader
                 title="Infrastructure Cost Governance"
-                subtitle="A structured maturity assessment for cloud cost management. Answer 20 questions across six operational domains and receive a scored diagnostic with a prioritized improvement checklist. Purpose-built for PE diligence, board reviews, and 100-day planning."
+                subtitle="A structured maturity assessment for cloud cost management. Answer 20 questions across six operational domains and receive a scored diagnostic with a prioritized improvement checklist. Scoring model informed by cloud cost governance patterns across PE portfolio companies."
             />
 
             <div data-icg class="tool-shell tool-shell--narrow icg-shell">
 
-                <p class="tool-authority icg-authority">Scoring model informed by cloud cost governance patterns across PE portfolio companies</p>
 
                 <!-- ── Landing view (step 0) ─────────────────────────────── -->
                 <div data-view="landing" class="icg-view">
@@ -284,10 +283,6 @@ const domainCount = DOMAINS.length;
     /* ── Tool shell — base styles provided by global .tool-shell + .tool-shell--narrow ── */
     /* .icg-shell retained for ICG-specific overrides only */
 
-    /* ── Authority line ────────────────────────────────────────────────────── */
-    .icg-authority {
-        padding: var(--spacing-sm) var(--spacing-lg);
-    }
 
     /* ── View toggling ────────────────────────────────────────────────────── */
     .is-hidden {
@@ -1655,7 +1650,6 @@ const domainCount = DOMAINS.length;
         .icg-actions,
         .icg-snapshot-save-row,
         .icg-snapshot-manager,
-        .tool-authority,
         [data-view="landing"],
         [data-view="wizard"],
         [data-view="comparison"] {
