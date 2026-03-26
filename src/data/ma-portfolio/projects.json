@@ -1478,5 +1478,35 @@
     "challenge": null,
     "solution": null,
     "engagementCategory": null
+  },
+  {
+    "id": "project-helios",
+    "codeName": "Project Helios",
+    "industry": "Government Services Technology",
+    "theme": "Public Sector",
+    "summary": "Technology-enabled mission services platform providing transportation lifecycle management, workforce coordination, compliance tracking, and government reporting for federal agencies through a proprietary FedRAMP-authorized operational system.",
+    "arr": "$151M",
+    "arrNumeric": 151000000,
+    "currency": "USD",
+    "growthStage": "Mature / Expansion",
+    "year": 2026,
+    "technologies": [
+      ".NET 10",
+      "C#",
+      "React 19",
+      ".NET MAUI",
+      "SQL Server",
+      "TypeScript",
+      "Power BI",
+      "Azure",
+      "Twilio",
+      "Zerto"
+    ],
+    "engagementType": "Technical Assessment",
+    "engagementTypeTag": "technical-assessment",
+    "engagementTypeDescription": "Sell-side technology evaluation for investor readiness",
+    "challenge": "Demonstrating technology maturity, platform defensibility, and scalability of a proprietary transportation operations platform operating within FedRAMP-authorized infrastructure to prospective investors, with a carve-out in progress.",
+    "solution": "Validated mature, vertically integrated technology-enabled services organization with 99.97% uptime, 1,500+ platform enhancements since 2017, FedRAMP Moderate authorization with 150 NIST 800-53 controls, and articulated investment opportunities in data architecture maturation, AI-enabled analytics, and Zero Trust alignment.",
+    "engagementCategory": "Sell-Side Advisory"
   }
 ]
