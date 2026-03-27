@@ -2,9 +2,9 @@
 
 A single, shareable web page at `/brand` that renders the live design system — color palette, typography scale, spacing, component patterns, and brand guidelines — directly from the site's CSS variables and utility classes. Unlisted in navigation but publicly accessible for handoff, auditing, and integration reference.
 
-**Status**: Defined, not started
+**Status**: In progress — design tokens and primitives complete; UI component library in progress
 **Priority**: Medium — governance and handoff enablement
-**Last Updated**: March 25, 2026
+**Last Updated**: March 27, 2026
 
 ---
 
@@ -88,6 +88,52 @@ Live-rendered examples of shared UI elements:
 - `--transition-fast`, `--transition-normal`, `--transition-slow` — animated examples
 - `--shadow-sm`, `--shadow-md`, `--shadow-lg` — box examples
 
+#### 8. UI Component Library
+
+A centralized reference for all shared UI controls and patterns used across the site. Over time this library grows to define the UX platform standards. Each specimen renders live markup using the real CSS classes — no mocks.
+
+##### 8a. Navigation
+- **Breadcrumb** — `.breadcrumb` trail pattern (Home / Section / Page) with link styling and current-page truncation
+- **Nav Link** — `.nav-link` with default, hover, active, and focus states
+
+##### 8a-2. Wizard Progress & Selection
+- **Wizard Progress Bar (Desktop)** — `.wizard-progress` with `.progress-segment` steps showing completed (filled delta), active (scaled, primary stroke), and inactive (faded) states
+- **Wizard Progress Bar (Mobile)** — `.wizard-progress-mobile` with `.progress-dot` delta triangles (even dots flipped 180°), step counter label
+- **Option Card** — `.option-card` selectable button with delta icon, label, description; `.selected` state shows primary border + accent background; single-select behavior via JS
+
+##### 8b. Cards
+- **Trust Card** — accent-wash background, hover lift + shadow, used in credibility sections (`.trust-card`)
+- **Project Card** — header with year badge, metrics box with primary-color left border, 3-line summary clamp, tag row, full-width CTA (`.project-card`)
+- **Teaser Card** — centered card for hub tool/article teasers with feature bullet list, status badge, and launch CTA (`.teaser-card`)
+- **Recommendation Card** — collapsible card with priority/effort badges (`.icg-rec-badge--high`, `--medium`, `--low`, `--effort`), N/A dismiss button, delta chevron toggle, and `is-collapsed`/`is-dismissed` states (`.icg-rec-card`)
+- **Attention Card** — left-border accent colored by relevance level (`relevance-high` = authority blue, `relevance-medium` = methodology brown), collapsible with divider + description, N/A dismiss (`.doc-attention-card`)
+
+##### 8c. Form Controls
+- **Search Input** — `.search-box` with icon overlay and `.search-input` focus states
+- **Range Slider** — `.calc-slider` with synced `.hint-input` for direct numeric entry, cross-browser thumb/track styling, and `.slider-value` display
+- **Filter Chips** — `.filter-chip` with inactive, hover, and `.active` states
+- **Filter Button with Badge** — `.filter-button` with `.filter-badge` count indicator (pulsing animation)
+
+##### 8d. Overlays
+- **Modal Dialog** — HTML5 `<dialog>` with backdrop blur, clip-path beveled corners, close button, scrollable content (`.project-modal`)
+- **Filter Drawer** — slide-out panel (right on desktop, bottom sheet on mobile) with overlay dismiss
+
+##### 8e. Collapsible Content
+- **Methodology Panel** — `.tool-methodology` using `<details>` with unicode triangle trigger (rotates 90°), plus `.tool-methodology--delta` variant using brand delta SVG mask (rotates 180°), expandable body with author attribution
+- **Details/Summary** — native `<details>` pattern with custom +/− toggle indicator
+
+##### 8f. Data Display
+- **Stats Bar** — `.stats-bar` with `.stat-item` grid showing value + label pairs on primary-color background
+- **Bench Table** — `.tool-bench-table` with active row highlighting (`.bench-row--active`) and label badges (`.bench-label--score`, `.bench-label--stage`)
+- **Badges/Tags** — `.year-badge`, `.tech-tag`, `.badge`, `.bench-label` variants with theme-aware colors
+
+##### 8g. Layout Containers
+- **Container** — `.container` (1600px max-width, 3rem horizontal padding)
+- **CTA Box** — `.cta-box` with primary-color border, corner bracket pseudo-elements, heading + description + button
+
+##### 8h. Feedback & Loading
+- **Skeleton loading** — `.skeleton-bar`, `.skeleton-bar--sm`, `.skeleton-dot` with pulse animation (already rendered in design primitives section)
+
 ---
 
 ## Implementation
@@ -125,11 +171,23 @@ Option 1 is simpler and always accurate. Option 2 avoids a flash of empty labels
 
 ## Verification
 
+### Design Tokens
 - All color swatches render with correct computed values
 - Toggle dark theme — all swatches and specimens update
 - Typography specimens match the actual rendered sizes on tool pages
 - Spacing blocks are proportionally correct
 - Button specimens are interactive (hover, focus, disabled states work)
+
+### UI Component Library
+- Card specimens display at realistic sizes with hover lift/shadow effects
+- Modal demo opens and closes via button
+- Filter chips toggle active state on click
+- Collapsible methodology panel expands and collapses
+- Stats bar and bench table render with correct styling
+- Breadcrumb specimen renders static trail with link styling
+- All specimens respond to dark theme toggle
+
+### General
 - Page renders correctly at 768px and 480px
 - Print: page prints cleanly (useful for physical handoff)
 - URL is not linked from any navigation element
