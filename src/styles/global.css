@@ -101,6 +101,320 @@ body::before {
     }
 }
 
+/* Hub Tool Authority Line — small uppercase subtitle below HubHeader */
+.tool-authority {
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faded);
+    border-bottom: 1px solid var(--accent-light-bg);
+    margin: 0;
+}
+
+/* Hub Tool Section Label — shared section heading for tool panels */
+.tool-section-label {
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Hub Tool Benchmark Table — shared two-column reference table with active row */
+.tool-bench-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tool-bench-table td {
+    padding: var(--spacing-sm);
+    font-size: var(--text-xs);
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-secondary);
+}
+
+.tool-bench-table td:last-child {
+    text-align: right;
+}
+
+.tool-bench-table .bench-row--active td {
+    background: var(--accent-light-bg);
+}
+
+.tool-bench-table .bench-row--active td:last-child {
+    color: var(--color-primary);
+}
+
+/* Benchmark label pills — inline badges for stage/score indicators */
+.bench-label {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1px var(--spacing-xs);
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-left: var(--spacing-xs);
+    line-height: 1.4;
+}
+
+.bench-label--score {
+    background: var(--accent-light-bg-hover);
+    color: var(--color-primary);
+    border: 1px solid rgba(5, 205, 153, 0.25);
+}
+
+.bench-label--stage {
+    background: var(--hub-authority-blue-bg);
+    color: var(--hub-authority-blue);
+    border: 1px solid rgba(91, 122, 157, 0.2);
+}
+
+html.dark-theme .bench-label--score {
+    background: rgba(5, 205, 153, 0.15);
+    border-color: rgba(5, 205, 153, 0.3);
+}
+
+html.dark-theme .bench-label--stage {
+    background: rgba(91, 122, 157, 0.15);
+    color: #7a9dbd;
+    border-color: rgba(91, 122, 157, 0.25);
+}
+
+/* Benchmark disclaimer note */
+.tool-bench-note {
+    color: var(--text-muted);
+    margin-top: var(--spacing-sm);
+    line-height: 1.5;
+}
+
+/* Hub Tool Action Bar — shared flex container for export/share button rows */
+.tool-action-bar {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.tool-action-bar--center {
+    justify-content: center;
+}
+
+.tool-action-bar--end {
+    justify-content: flex-end;
+}
+
+.tool-action-bar--bordered {
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--border-light);
+}
+
+html.dark-theme .tool-action-bar--bordered {
+    border-top-color: var(--accent-dark-bg);
+}
+
+@media (max-width: 480px) {
+    .tool-action-bar--stack {
+        flex-direction: column;
+    }
+
+    .tool-action-bar--stack > * {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Hub Tool Methodology — shared collapsible "How it works" panel
+   Default icon: unicode triangle ▶ (rotate 90° on open).
+   Override to delta icon with .tool-methodology--delta modifier. */
+.tool-methodology {
+    border-top: 1px solid color-mix(in srgb, var(--color-primary) 6%, transparent);
+}
+
+.tool-methodology__trigger {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-2xl);
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color var(--transition-fast);
+    list-style: none;
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.tool-methodology__trigger::-webkit-details-marker {
+    display: none;
+}
+
+.tool-methodology__trigger::before {
+    content: '\25B6';
+    font-size: 0.6em;
+    transition: transform var(--transition-fast);
+}
+
+.tool-methodology[open] > .tool-methodology__trigger::before {
+    transform: rotate(90deg);
+}
+
+/* Delta icon variant — uses GST brand delta SVG mask */
+.tool-methodology--delta > .tool-methodology__trigger::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    font-size: unset;
+    background-color: var(--color-primary);
+    mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    -webkit-mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
+    -webkit-mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+}
+
+.tool-methodology--delta[open] > .tool-methodology__trigger::before {
+    transform: rotate(180deg);
+}
+
+.tool-methodology__trigger:hover {
+    color: var(--text-secondary);
+}
+
+.tool-methodology__body {
+    padding: var(--spacing-sm) var(--spacing-2xl) var(--spacing-md);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    border-top: 1px solid color-mix(in srgb, var(--color-primary) 6%, transparent);
+}
+
+.tool-methodology__heading {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-xs);
+}
+
+.tool-methodology__heading:first-child {
+    margin-top: 0;
+}
+
+.tool-methodology__body p {
+    margin-bottom: var(--spacing-sm);
+}
+
+.tool-methodology__updated {
+    font-size: var(--text-xs);
+    color: var(--text-faded);
+    font-style: italic;
+    margin-top: var(--spacing-sm);
+}
+
+.tool-methodology__author {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    padding-top: var(--spacing-md);
+    margin-top: var(--spacing-md);
+    border-top: 1px solid color-mix(in srgb, var(--color-primary) 6%, transparent);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+.tool-methodology__author-name {
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+}
+
+.tool-methodology__author-sep {
+    color: var(--text-faded);
+}
+
+.tool-methodology__author-link {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.tool-methodology__author-link:hover {
+    text-decoration: underline;
+}
+
+@media print {
+    .tool-methodology {
+        border-top: 1px solid #ccc;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .tool-methodology__trigger {
+        display: none;
+    }
+
+    .tool-methodology > .tool-methodology__body {
+        display: block !important;
+        padding: var(--spacing-md) 0;
+    }
+}
+
+/* Hub Tool Buttons — lightweight buttons for tool UIs */
+.hub-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-xl);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-family);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity var(--transition-fast), color var(--transition-fast),
+                border-color var(--transition-fast), background var(--transition-fast);
+    text-decoration: none;
+}
+
+.hub-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.hub-btn--primary {
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+}
+
+.hub-btn--primary:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.hub-btn--secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-light);
+}
+
+.hub-btn--secondary:hover:not(:disabled) {
+    color: var(--text-primary);
+    border-color: var(--color-primary);
+}
+
+.hub-btn--full {
+    width: 100%;
+}
+
 /* Header */
 .site-header {
     padding: 1.275rem 0;

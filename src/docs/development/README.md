@@ -11,14 +11,9 @@ Strategic roadmap of development initiatives focused on:
 - **Test automation** (E2E and unit tests)
 - **Code quality** (Error handling validation)
 
-### [TECHPAR_ROADMAP.md](./TECHPAR_ROADMAP.md)
+### [HUB_TOOLS_CONTROL_CONSOLIDATION.md](./HUB_TOOLS_CONTROL_CONSOLIDATION.md)
 
-Improvement roadmap for the TechPar technology cost benchmarking tool (19 initiatives across 8 priority tiers):
-- **Shareable state & export** (URL encoding, copy summary, print stylesheet)
-- **Data persistence** (localStorage session continuity)
-- **Scenario comparison** (baseline snapshot & delta overlay)
-- **Labeling & benchmark accuracy** (chart labels, dated sources, CapEx benchmarks)
-- **Currency support, chart improvements, workbench integration, architecture**
+Cross-tool control consolidation roadmap — identifies reusable UI patterns (copy feedback, benchmark tables, export bars, collapsibles, dark theme variables) for unification across all five hub tools.
 
 ### [TECH_DEBT_CALC_ROADMAP.md](./TECH_DEBT_CALC_ROADMAP.md)
 
@@ -40,16 +35,16 @@ Each roadmap includes:
 | Unit Error Tests | Medium | 1-2h | Soon |
 | Perf Dashboard | Low | 1-2h | Later |
 
-### TechPar (Highest-ROI Cluster)
+### Hub Tools Control Consolidation
 
-| Initiative | Priority | Effort | Impact |
-|-----------|----------|--------|--------|
-| URL-encoded state | P1 | S | High |
-| Copy link button | P1 | XS | High |
-| Plain-text export | P1 | XS | High |
-| Print stylesheet | P1 | XS | Medium |
-| localStorage persistence | P2 | S | High |
-| Scenario comparison | P3 | M | High |
+| Initiative | Phase | Effort | Impact |
+|-----------|-------|--------|--------|
+| Copy-to-clipboard utility | A | Low | High |
+| Benchmark table CSS | A | Low | Medium |
+| TechPar benchmark markers | B | Small | Low |
+| Export action bar | B | Medium | Medium |
+| Collapsible sections | C | Low | Medium |
+| Dark theme variable migration | C | Medium | Medium |
 
 ## Recent Performance Improvements
 
@@ -77,4 +72,4 @@ When adding new initiatives:
 
 ---
 
-*Last Updated: March 19, 2026*
+*Last Updated: March 25, 2026*

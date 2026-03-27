@@ -251,7 +251,7 @@ test.describe('ICG - Results view', () => {
 
     await jsClick(page, '[data-action="copy"]');
 
-    // Assert on observable UI feedback (cross-browser safe, no grantPermissions needed)
+    // Assert on observable UI feedback
     await page.waitForFunction(() => {
       const btn = document.querySelector('[data-action="copy"]');
       return btn && btn.textContent === 'Link copied';
@@ -267,24 +267,24 @@ test.describe('ICG - Results view', () => {
 test.describe('ICG - Authority & Methodology', () => {
   test('authority line is visible on landing', async ({ page }) => {
     await gotoTool(page);
-    const authority = page.locator('.icg-authority');
-    await expect(authority).toBeVisible();
-    await expect(authority).toContainText('PE portfolio companies');
+    const subtitle = page.locator('.hub-header__subtitle');
+    await expect(subtitle).toBeVisible();
+    await expect(subtitle).toContainText('PE portfolio companies');
   });
 
   test('methodology section is collapsed by default', async ({ page }) => {
     await gotoTool(page);
-    const details = page.locator('.icg-methodology');
+    const details = page.locator('.tool-methodology');
     await expect(details).toBeVisible();
     // The body should not be visible when collapsed
-    const body = page.locator('.icg-methodology__body');
+    const body = page.locator('.tool-methodology__body');
     await expect(body).not.toBeVisible();
   });
 
   test('methodology section expands on click', async ({ page }) => {
     await gotoTool(page);
-    await page.click('.icg-methodology__trigger');
-    const body = page.locator('.icg-methodology__body');
+    await page.click('.tool-methodology__trigger');
+    const body = page.locator('.tool-methodology__body');
     await expect(body).toBeVisible();
     await expect(body).toContainText('Scoring model');
   });

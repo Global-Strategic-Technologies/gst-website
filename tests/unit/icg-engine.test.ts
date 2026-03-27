@@ -23,6 +23,7 @@ import {
   compareSnapshots,
   buildRadarPoints,
   contextualizeScore,
+  findMatchingRange,
   BENCHMARK_RANGES,
   DEFAULT_STATE,
 } from '../../src/utils/icg-engine';
@@ -993,5 +994,33 @@ describe('BENCHMARK_RANGES', () => {
     for (const r of BENCHMARK_RANGES) {
       expect(r.low).toBeLessThan(r.high);
     }
+  });
+});
+
+describe('findMatchingRange', () => {
+  it('returns the first matching range for a score in a single range', () => {
+    const match = findMatchingRange(20);
+    expect(match).not.toBeNull();
+    expect(match!.stageKey).toBe('pre-series-b');
+  });
+
+  it('returns only the first match when score falls in overlapping ranges', () => {
+    // 50 falls in both Series B-C (30-55) and PE-backed (45-70)
+    const match = findMatchingRange(50);
+    expect(match).not.toBeNull();
+    expect(match!.stageKey).toBe('series-bc');
+  });
+
+  it('returns null when score is below all ranges', () => {
+    expect(findMatchingRange(5)).toBeNull();
+  });
+
+  it('returns null when score is above all ranges', () => {
+    expect(findMatchingRange(95)).toBeNull();
+  });
+
+  it('matches at exact boundary values', () => {
+    expect(findMatchingRange(15)!.stageKey).toBe('pre-series-b');
+    expect(findMatchingRange(90)!.stageKey).toBe('enterprise');
   });
 });

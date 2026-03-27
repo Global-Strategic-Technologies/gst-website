@@ -318,6 +318,11 @@ export const BENCHMARK_RANGES: readonly BenchmarkRange[] = [
   { label: 'Enterprise', low: 65, high: 90, stageKey: 'enterprise' },
 ];
 
+/** Return the first benchmark range that contains the given score, or null. */
+export function findMatchingRange(score: number): BenchmarkRange | null {
+  return BENCHMARK_RANGES.find(r => score >= r.low && score <= r.high) ?? null;
+}
+
 export function contextualizeScore(score: number, stage?: CompanyStage): string | null {
   if (!stage) return null;
   const range = BENCHMARK_RANGES.find(r => r.stageKey === stage);

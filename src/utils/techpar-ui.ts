@@ -6,6 +6,7 @@ import { SIGNAL_COPY } from '../data/techpar/signal-copy';
 import { INDUSTRY_NOTES } from '../data/techpar/industry-notes';
 import type { Industry } from '../data/techpar/industry-notes';
 import { RECOMMENDATIONS } from '../data/techpar/recommendations';
+import { copyWithFeedback } from './copy-feedback';
 
 Chart.register(...registerables);
 
@@ -89,12 +90,7 @@ document.querySelectorAll('[data-action]').forEach(btn => {
 
 // ─── Copy link ──────────────────────────────────────────────
 function copyLink(btn: HTMLButtonElement) {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-        const orig = btn.textContent;
-        btn.textContent = 'Copied!';
-        btn.classList.add('tp-btn-share--copied');
-        setTimeout(() => { btn.textContent = orig; btn.classList.remove('tp-btn-share--copied'); }, 2000);
-    }).catch(() => {});
+    copyWithFeedback(window.location.href, btn, { copiedClass: 'tp-btn-share--copied' });
 }
 
 // ─── Copy summary ───────────────────────────────────────────
@@ -105,12 +101,7 @@ function copySummary(btn: HTMLButtonElement) {
     if (!result) return;
     const validHist = historicalPoints.filter(p => p.arr > 0 && p.totalTechSpend > 0);
     const text = buildSummaryText(inputs, result, window.location.href, validHist.length ? validHist : undefined);
-    navigator.clipboard.writeText(text).then(() => {
-        const orig = btn.textContent;
-        btn.textContent = 'Copied!';
-        btn.classList.add('tp-btn-share--copied');
-        setTimeout(() => { btn.textContent = orig; btn.classList.remove('tp-btn-share--copied'); }, 2000);
-    }).catch(() => {});
+    copyWithFeedback(text, btn, { copiedClass: 'tp-btn-share--copied' });
 }
 
 // ─── Export PDF ─────────────────────────────────────────────
@@ -889,9 +880,31 @@ function renderAnalysis(r: TechParResult) {
     const benchMax = g('bench-max');
     if (benchMax) benchMax.textContent = maxB.toFixed(0) + '%';
 
-    // Benchmark table active row
+    // Benchmark table — dual markers: "Your stage" + "Your ratio"
+    const ratio = r.totalTechPct;
+    let ratioMatched = false;
     $$('[data-bench-row]').forEach(tr => {
-        tr.classList.toggle('tp-btbl--active', (tr as HTMLElement).dataset.benchRow === stageKey);
+        const el = tr as HTMLElement;
+        const isStage = el.dataset.benchRow === stageKey;
+        tr.classList.toggle('bench-row--active', isStage);
+
+        // Clear previous badges
+        const firstTd = el.querySelector('td')!;
+        firstTd.querySelectorAll('.bench-label').forEach(b => b.remove());
+
+        // "Your stage" badge
+        if (isStage) {
+            firstTd.insertAdjacentHTML('beforeend', ' <span class="bench-label bench-label--stage">Your stage</span>');
+        }
+
+        // "Your ratio" badge — first matching range wins
+        if (!ratioMatched && el.dataset.bench) {
+            const [lo, hi] = el.dataset.bench.split('-').map(Number);
+            if (ratio >= lo && ratio <= hi) {
+                ratioMatched = true;
+                firstTd.insertAdjacentHTML('beforeend', ' <span class="bench-label bench-label--score">Your ratio</span>');
+            }
+        }
     });
 
     // Industry context

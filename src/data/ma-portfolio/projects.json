@@ -1,7 +1,38 @@
 [
   {
-    "id": "project-ecological-eagle",
-    "codeName": "Project Ecological Eagle",
+    "id": "voss",
+    "codeName": "Voss",
+    "industry": "Cross-Border Payments & FinTech",
+    "theme": "Finance",
+    "summary": "Integrated cross-border payments and spend management platform combining FX risk management, corporate cards, and multi-currency accounts on a modern serverless architecture with AI-driven automation and agentic workflows.",
+    "arr": "$156M",
+    "arrNumeric": 156000000,
+    "currency": "USD",
+    "growthStage": "Mature / Expansion",
+    "year": 2026,
+    "technologies": [
+      "Node.js",
+      "TypeScript",
+      "React",
+      ".NET",
+      "C#",
+      "AWS Lambda",
+      "DynamoDB",
+      "EventBridge",
+      "GCP BigQuery",
+      "Looker",
+      "Okta"
+    ],
+    "engagementType": "Technical Assessment",
+    "engagementTypeTag": "technical-assessment",
+    "engagementTypeDescription": "Sell-side product competitiveness and technical diligence assessment",
+    "challenge": "Evaluating product competitiveness and technology scalability of an integrated cross-border payments and spend management platform undergoing a multi-year migration from legacy architecture to a modern serverless platform.",
+    "solution": "Confirmed a differentiated product outperforming larger competitors with a modern cloud-native architecture supporting scalable growth, elite-level engineering metrics, and production-grade AI capabilities, with technical debt confined to transitional legacy operations.",
+    "engagementCategory": "Sell-Side Advisory"
+  },
+  {
+    "id": "ecological-eagle",
+    "codeName": "Ecological Eagle",
     "industry": "Government Affairs Technology",
     "theme": "Public Sector",
     "summary": "Government affairs SaaS platform unifying legislative tracking, stakeholder engagement, PAC management, and grassroots advocacy with an AI chatbot assistant, proprietary data flywheel moat, and scalable cloud infrastructure.",
@@ -32,9 +63,9 @@
     "solution": "Validated robust cloud-native architecture on AWS EKS with 99.95% uptime and 95%+ net revenue retention, confirmed successful integration of two acquired products, assessed AI chatbot viability with proprietary data flywheel, and identified legacy .NET technical debt requiring prioritised remediation.",
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
-   {
-    "id": "project-atlas",
-    "codeName": "Project Atlas",
+  {
+    "id": "atlas",
+    "codeName": "Atlas",
     "industry": "Healthcare Revenue Cycle Management",
     "theme": "Healthcare",
     "summary": "Cloud-augmented platform providing accounts receivable management, medical revenue recovery, insurance follow-up, and collection services using core collections workflow system with modern peripheral integrations.",
@@ -87,8 +118,8 @@
     "engagementCategory": "Value Creation & Strategy"
   },
   {
-    "id": "project-eclipse",
-    "codeName": "Project Eclipse",
+    "id": "eclipse",
+    "codeName": "Eclipse",
     "industry": "Healthcare Technology",
     "theme": "Healthcare",
     "summary": "Cloud-based suite for surgical centers providing practice management, scheduling, electronic health records, and billing solutions.",
@@ -143,6 +174,66 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
+    "id": "helios",
+    "codeName": "Helios",
+    "industry": "Government Services Technology",
+    "theme": "Public Sector",
+    "summary": "Technology-enabled mission services platform providing transportation lifecycle management, workforce coordination, compliance tracking, and government reporting for federal agencies through a proprietary FedRAMP-authorized operational system.",
+    "arr": "$151M",
+    "arrNumeric": 151000000,
+    "currency": "USD",
+    "growthStage": "Mature / Expansion",
+    "year": 2026,
+    "technologies": [
+      ".NET 10",
+      "C#",
+      "React 19",
+      ".NET MAUI",
+      "SQL Server",
+      "TypeScript",
+      "Power BI",
+      "Azure",
+      "Twilio",
+      "Zerto"
+    ],
+    "engagementType": "Technical Assessment",
+    "engagementTypeTag": "technical-assessment",
+    "engagementTypeDescription": "Sell-side technology evaluation for investor readiness",
+    "challenge": "Demonstrating technology maturity, platform defensibility, and scalability of a proprietary transportation operations platform operating within FedRAMP-authorized infrastructure to prospective investors, with a carve-out in progress.",
+    "solution": "Validated mature, vertically integrated technology-enabled services organization with 99.97% uptime, 1,500+ platform enhancements since 2017, FedRAMP Moderate authorization with 150 NIST 800-53 controls, and articulated investment opportunities in data architecture maturation, AI-enabled analytics, and Zero Trust alignment.",
+    "engagementCategory": "Sell-Side Advisory"
+  },
+  {
+    "id": "colors",
+    "codeName": "Colors",
+    "industry": "Healthcare Marketing Technology",
+    "theme": "Healthcare",
+    "summary": "AI-enabled healthcare marketing agency with proprietary omnichannel analytics platform, AI copywriting pipeline, social intelligence tools, and workflow automation for pharma brand commercialization.",
+    "arr": "$186M",
+    "arrNumeric": 186000000,
+    "currency": "USD",
+    "growthStage": "Mature / Growth",
+    "year": 2026,
+    "technologies": [
+      "Snowflake",
+      "AWS",
+      "TypeScript",
+      "Cloudflare Workers",
+      "NeonDB",
+      "Python",
+      "Google Gemini",
+      "Tableau",
+      "Salesforce Marketing Cloud",
+      "Terraform"
+    ],
+    "engagementType": "Technical Assessment",
+    "engagementTypeTag": "technical-assessment",
+    "engagementTypeDescription": "Sell-side AI competitive analysis and technology evaluation",
+    "challenge": "Evaluating AI strategy defensibility, competitive positioning, and disruption risk for a healthcare marketing agency facing multi-front AI threats from in-house pharma capabilities, AI-native competitors, and commoditization of content generation services.",
+    "solution": "Identified fragmented AI infrastructure across four early-stage tools with low defensibility, positioned the proprietary omnichannel analytics platform as the most defensible asset, and delivered a prioritized AI roadmap to strengthen investor narrative ahead of exit.",
+    "engagementCategory": "Sell-Side Advisory"
+  },
+  {
     "id": "fusion",
     "codeName": "Fusion",
     "industry": "Financial Administration",
@@ -171,8 +262,8 @@
     "engagementCategory": "Value Creation & Strategy"
   },
   {
-    "id": "project-legis",
-    "codeName": "Project Legis",
+    "id": "legis",
+    "codeName": "Legis",
     "industry": "Government Affairs",
     "theme": "Public Sector",
     "summary": "Unified platform for legislative tracking, grassroots advocacy, and PAC management with integrated data scraping and AI capabilities.",
@@ -209,7 +300,7 @@
     "industry": "Intranet Software",
     "theme": "Human Resources",
     "summary": "AI-powered intranet platform designed to engage employees through personalized internal communications, social interaction, and knowledge sharing tools.",
-    "arr": "\u00a345M",
+    "arr": "£45M",
     "arrNumeric": 45000000,
     "currency": "GBP",
     "growthStage": "Growth Stage",
@@ -232,8 +323,8 @@
     "engagementCategory": "Sell-Side Advisory"
   },
   {
-    "id": "project-longhorn",
-    "codeName": "Project Longhorn",
+    "id": "longhorn",
+    "codeName": "Longhorn",
     "industry": "EHS Software",
     "theme": "Security",
     "summary": "Cloud-native SaaS platform for incident management, audits, and compliance tracking utilizing a metadata-driven engine for high configurability.",
@@ -290,8 +381,8 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-shield",
-    "codeName": "Project Shield",
+    "id": "shield",
+    "codeName": "Shield",
     "industry": "Public Safety",
     "theme": "Public Sector",
     "summary": "Comprehensive public safety suite helping police, fire, and dispatch teams manage training, quality assurance, and community engagement.",
@@ -347,8 +438,8 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-titan",
-    "codeName": "Project Titan",
+    "id": "titan",
+    "codeName": "Titan",
     "industry": "FinTech",
     "theme": "Finance",
     "summary": "Multi-asset cloud platform for trading, risk management, and prime brokerage, featuring modular service-oriented architecture and messaging.",
@@ -486,7 +577,7 @@
     "industry": "Information Management",
     "theme": "Software",
     "summary": "Knowledge work automation platform using metadata-centric organization to facilitate document and workflow management for enterprise customers.",
-    "arr": "\u20ac120M",
+    "arr": "€120M",
     "arrNumeric": 120000000,
     "currency": "EUR",
     "growthStage": "Mature Enterprise",
@@ -536,8 +627,8 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-everton",
-    "codeName": "Project Everton",
+    "id": "everton",
+    "codeName": "Everton",
     "industry": "Marketing Services",
     "theme": "Marketing",
     "summary": "Marketing automation platform for multi-channel lead generation and customer acquisition campaigns targeting specialized vertical market segments.",
@@ -565,8 +656,8 @@
     "engagementCategory": "Sell-Side Advisory"
   },
   {
-    "id": "project-volcano",
-    "codeName": "Project Volcano",
+    "id": "volcano",
+    "codeName": "Volcano",
     "industry": "Advertising Technology",
     "theme": "Marketing",
     "summary": "End-to-end programmatic advertising platform including DSP, SSP, and ad server functionality optimized for digital signage and outdoor media.",
@@ -632,7 +723,7 @@
     "industry": "Public Health",
     "theme": "Healthcare",
     "summary": "Software solutions for organ, blood, and plasma management supporting regulatory compliance and process management for health systems.",
-    "arr": "\u20ac36M",
+    "arr": "€36M",
     "arrNumeric": 36000000,
     "currency": "EUR",
     "growthStage": "Mature",
@@ -655,8 +746,8 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-credential",
-    "codeName": "Project Credential",
+    "id": "credential",
+    "codeName": "Credential",
     "industry": "EdTech",
     "theme": "Education",
     "summary": "Platform connecting education with career pathways through industry certifications, aptitude discovery tools, and real-time analytics for students.",
@@ -734,8 +825,8 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-vanguard",
-    "codeName": "PROJECT Vanguard",
+    "id": "vanguard-infra",
+    "codeName": "Vanguard SASE",
     "industry": "IT Infrastructure",
     "theme": "Software",
     "summary": "Innovative networking solutions providing secure access service edge capabilities and business phone systems for managed service providers.",
@@ -809,7 +900,7 @@
     "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Comprehensive technology evaluation",
     "challenge": "Assessing a scheduling solution for complex manufacturing constraints.",
-    "solution": "Recommended developing a new integration platform to facilitate data interchange with the acquirer\u2019s MES offerings.",
+    "solution": "Recommended developing a new integration platform to facilitate data interchange with the acquirer’s MES offerings.",
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
@@ -950,8 +1041,8 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-dynamic",
-    "codeName": "Project Dynamic",
+    "id": "dynamic",
+    "codeName": "Dynamic",
     "industry": "Food Manufacturing",
     "theme": "Food & Beverage",
     "summary": "Manufacturing operation leveraging ERP systems for production, inventory, and logistics, specializing in food ingredient taxonomies and supply chain management.",
@@ -976,8 +1067,8 @@
     "engagementCategory": "Sell-Side Advisory"
   },
   {
-    "id": "project-trident",
-    "codeName": "Project Trident",
+    "id": "trident",
+    "codeName": "Trident",
     "industry": "Telehealth",
     "theme": "Healthcare",
     "summary": "Comprehensive virtual health and well-being platform providing 24/7 medical and mental health care services for college students.",
@@ -1040,8 +1131,8 @@
     "engagementCategory": "Sell-Side Advisory"
   },
   {
-    "id": "project-eagle",
-    "codeName": "Project Eagle",
+    "id": "eagle",
+    "codeName": "Eagle",
     "industry": "FinTech",
     "theme": "Finance",
     "summary": "Cloud-native payment facilitation platform providing engagement and management solutions for government, healthcare, and higher education transactions.",
@@ -1296,8 +1387,8 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-teton",
-    "codeName": "Project Teton",
+    "id": "teton",
+    "codeName": "Teton",
     "industry": "Human Capital Management",
     "theme": "Human Resources",
     "summary": "Talent management platform streamlining location-based hiring and management workflows designed for the needs of the hourly workforce.",
@@ -1321,8 +1412,8 @@
     "engagementCategory": null
   },
   {
-    "id": "project-chariot",
-    "codeName": "Project Chariot",
+    "id": "chariot",
+    "codeName": "Chariot",
     "industry": "Transportation",
     "theme": "Logistics",
     "summary": "On-demand bus charter platform providing applications for fleet managers, drivers, and customers alongside a transport management system.",
@@ -1346,8 +1437,8 @@
     "engagementCategory": null
   },
   {
-    "id": "project-zoolander",
-    "codeName": "Project Zoolander",
+    "id": "zoolander",
+    "codeName": "Zoolander",
     "industry": "Cybersecurity",
     "theme": "Security",
     "summary": "Hybrid-cloud platform for mobile device data analysis to identify malicious activity and post-incident threat signatures.",

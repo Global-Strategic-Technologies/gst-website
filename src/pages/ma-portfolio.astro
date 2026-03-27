@@ -16,12 +16,14 @@ const typedProjects = projects as Project[];
 
 // Calculate statistics
 const uniqueIndustries = new Set(typedProjects.map(p => p.industry)).size;
+const totalARR = typedProjects.reduce((sum, p) => sum + p.arrNumeric, 0);
+const combinedARRLabel = `$${(totalARR / 1e9).toFixed(1)}B+`;
 const minYear = Math.min(...typedProjects.map(p => p.year));
 const maxYear = Math.max(...typedProjects.map(p => p.year));
-const yearSpan = maxYear - minYear;
+const yearSpan = maxYear - minYear + 1;
 
 const stats: Stat[] = [
-  { label: 'Combined ARR', value: '$2B+' },
+  { label: 'Combined ARR', value: combinedARRLabel },
   { label: 'Industries', value: uniqueIndustries.toString() },
   { label: 'Global Markets', value: '12+' },
   { label: 'Year Span', value: yearSpan.toString() },

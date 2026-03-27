@@ -38,7 +38,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                 subtitle="Generate a customized, prescriptive technology discovery agenda."
             />
 
-            <p class="dm-authority">Question bank built from patterns across 100+ PE technology diligence engagements</p>
+            <p class="tool-authority dm-authority">Question bank built from patterns across 100+ PE technology diligence engagements</p>
             <p class="dm-privacy-note">Your selections stay in your browser. No deal data is transmitted.</p>
 
             <!-- Wizard Container -->
@@ -190,28 +190,28 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             <div class="output-container" id="outputContainer" data-testid="output-container" style="display:none;">
 
                 <!-- Floating Action Bar -->
-                <div class="doc-action-bar" id="docActionBar" data-testid="doc-action-bar">
-                    <button class="doc-action-btn" id="btnGoBack" data-testid="btn-go-back" type="button" aria-label="Go back to wizard">
+                <div class="doc-action-bar tool-action-bar tool-action-bar--end" id="docActionBar" data-testid="doc-action-bar">
+                    <button class="hub-btn hub-btn--secondary doc-action-btn" id="btnGoBack" data-testid="btn-go-back" type="button" aria-label="Go back to wizard">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                             <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                         Back
                     </button>
-                    <button class="doc-action-btn" id="btnCopy" data-testid="btn-copy" type="button" aria-label="Copy to clipboard">
+                    <button class="hub-btn hub-btn--secondary doc-action-btn" id="btnCopy" data-testid="btn-copy" type="button" aria-label="Copy to clipboard">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                             <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
                             <path d="M3 11V3a1.5 1.5 0 011.5-1.5H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                         </svg>
                         <span id="btnCopyLabel">Copy</span>
                     </button>
-                    <button class="doc-action-btn" id="btnPrint" data-testid="btn-print" type="button" aria-label="Export as PDF via print dialog">
+                    <button class="hub-btn hub-btn--secondary doc-action-btn" id="btnPrint" data-testid="btn-print" type="button" aria-label="Export as PDF via print dialog">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                             <path d="M4 6V1h8v5M4 12H2V7h12v5h-2" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
                             <rect x="4" y="10" width="8" height="4" rx="0.5" stroke="currentColor" stroke-width="1.5"/>
                         </svg>
                         Export PDF
                     </button>
-                    <button class="doc-action-btn" id="btnRestart" data-testid="btn-restart" type="button" aria-label="Start over">
+                    <button class="hub-btn hub-btn--secondary doc-action-btn" id="btnRestart" data-testid="btn-restart" type="button" aria-label="Start over">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                             <path d="M2.5 2.5v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                             <path d="M2.5 6.5A5.5 5.5 0 1 1 3 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -270,40 +270,40 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                 </div>
             </div>
 
-            <details class="dm-methodology">
-                <summary class="dm-methodology__trigger">How the Diligence Machine works</summary>
-                <div class="dm-methodology__body">
-                    <h4 class="dm-methodology__heading">Question bank</h4>
+            <details class="tool-methodology tool-methodology--delta">
+                <summary class="tool-methodology__trigger">How the Diligence Machine works</summary>
+                <div class="tool-methodology__body">
+                    <h4 class="tool-methodology__heading">Question bank</h4>
                     <p>The engine draws from a bank of 68 due diligence questions organized into four topics: Architecture &amp; Scalability, Operations &amp; Delivery, Carve-out / Integration, and Security, Compliance &amp; Governance. Each question carries a priority level (high, medium, or standard), a rationale explaining why it matters, and conditional triggers that determine when it appears.</p>
 
-                    <h4 class="dm-methodology__heading">Conditional matching</h4>
+                    <h4 class="tool-methodology__heading">Conditional matching</h4>
                     <p>Questions are filtered against your inputs using AND logic across 14 dimensions: transaction type, product type, tech stack archetype, headcount, revenue range, growth stage, company age, geography, business model, scale intensity, transformation state, data sensitivity, and operating model. A condition left undefined acts as a wildcard (matches everything). Ordinal fields&mdash;headcount, revenue, and company age&mdash;use &ldquo;at least&rdquo; comparison so that a threshold set at &ldquo;51&ndash;200 employees&rdquo; also matches larger brackets.</p>
 
-                    <h4 class="dm-methodology__heading">Balancing algorithm</h4>
+                    <h4 class="tool-methodology__heading">Balancing algorithm</h4>
                     <p>After filtering, the engine balances questions across topics. It reserves a minimum of three questions per topic (where available), then fills remaining slots by priority until the total reaches 15&ndash;20. This ensures every topic is represented while surfacing the highest-priority items first.</p>
 
-                    <h4 class="dm-methodology__heading">Attention areas</h4>
+                    <h4 class="tool-methodology__heading">Attention areas</h4>
                     <p>29 attention areas surface structural risk factors&mdash;such as hardware end-of-life exposure, key-person dependencies, or manual operations masking&mdash;triggered by specific input combinations. They are sorted by relevance (high, medium, low) and displayed before the question agenda.</p>
 
-                    <h4 class="dm-methodology__heading">Archetype pivot</h4>
+                    <h4 class="tool-methodology__heading">Archetype pivot</h4>
                     <p>When the target operates on-premise or self-managed infrastructure, questions that are exclusively relevant to cloud-native architectures are filtered out. Mixed-archetype questions are preserved.</p>
 
-                    <h4 class="dm-methodology__heading">Limitations</h4>
+                    <h4 class="tool-methodology__heading">Limitations</h4>
                     <p>The generated agenda is a starting point, not a complete diligence program. Questions reflect common technology patterns and should be extended, revised, or replaced based on target-specific discovery. The tool does not assess financial, legal, or commercial diligence dimensions.</p>
 
-                    <h4 class="dm-methodology__heading">Privacy</h4>
+                    <h4 class="tool-methodology__heading">Privacy</h4>
                     <p>All processing runs entirely in your browser&mdash;no deal data is transmitted to or stored on our servers. Anonymous page-view and interaction analytics (Google Analytics 4) help us improve the tool. See our <a href="/privacy">privacy policy</a> for details.</p>
 
-                    <p class="dm-methodology__updated">Methodology last updated March 2026</p>
+                    <p class="tool-methodology__updated">Methodology last updated March 2026</p>
 
-                    <div class="dm-methodology__author">
-                        <span class="dm-methodology__author-name">Reid Peryam</span>
-                        <span class="dm-methodology__author-sep">&middot;</span>
+                    <div class="tool-methodology__author">
+                        <span class="tool-methodology__author-name">Reid Peryam</span>
+                        <span class="tool-methodology__author-sep">&middot;</span>
                         <span>Strategic Technology Advisor</span>
-                        <span class="dm-methodology__author-sep">&middot;</span>
+                        <span class="tool-methodology__author-sep">&middot;</span>
                         <span>100+ PE technology diligence engagements</span>
-                        <span class="dm-methodology__author-sep">&middot;</span>
-                        <a href="https://www.linkedin.com/in/reidperyam/" target="_blank" rel="noopener noreferrer" class="dm-methodology__author-link">LinkedIn</a>
+                        <span class="tool-methodology__author-sep">&middot;</span>
+                        <a href="https://www.linkedin.com/in/reidperyam/" target="_blank" rel="noopener noreferrer" class="tool-methodology__author-link">LinkedIn</a>
                     </div>
                 </div>
             </details>
@@ -320,6 +320,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     import { generateScript, syncMultiRegion, MULTI_REGION_ID } from '../../../../utils/diligence-engine';
     import { getOptionLabel, WIZARD_STEPS } from '../../../../data/diligence-machine/wizard-config';
     import { trackCTA, trackEvent } from '../../../../utils/analytics';
+    import { copyWithFeedback } from '../../../../utils/copy-feedback';
     import type { UserInputs, GeneratedScript } from '../../../../utils/diligence-engine';
 
     const STORAGE_KEY = 'diligence-machine-state';
@@ -1035,9 +1036,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         const text = lines.join('\n');
 
         const label = document.getElementById('btnCopyLabel')!;
-        label.textContent = 'Copied!';
-        setTimeout(() => { label.textContent = 'Copy'; }, 2000);
-        navigator.clipboard.writeText(text).catch(() => {});
+        copyWithFeedback(text, label);
     }
 
     // ─── RESTART ──────────────────────────────────────────────────────────
@@ -1261,13 +1260,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     .dm-authority {
         padding: var(--spacing-sm) var(--spacing-lg);
-        font-size: var(--text-xs);
-        font-weight: var(--font-weight-semibold);
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--text-faded);
-        border-bottom: 1px solid var(--accent-light-bg);
-        margin: 0;
     }
 
     .dm-privacy-note {
@@ -1683,9 +1675,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         position: sticky;
         top: 0;
         z-index: 5;
-        display: flex;
-        justify-content: flex-end;
-        gap: var(--spacing-sm);
         padding: var(--spacing-sm) var(--spacing-md);
         margin-bottom: var(--spacing-lg);
         background: var(--bg-light);
@@ -1693,22 +1682,12 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         border-radius: 0 0 4px 4px;
     }
 
+    /* Button overrides (base styles from global .hub-btn) */
     .doc-action-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--spacing-xs);
         padding: var(--spacing-sm) var(--spacing-lg);
-        font-size: var(--text-xs);
         font-weight: var(--font-weight-semibold);
-        font-family: var(--font-family);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--text-secondary);
         background: var(--bg-light);
-        border: 1px solid var(--border-light);
         border-radius: 4px;
-        cursor: pointer;
-        transition: all var(--transition-fast);
         box-shadow: var(--shadow-sm);
     }
 
@@ -2465,115 +2444,16 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         text-transform: none;
     }
 
-    /* ─── METHODOLOGY ──────────────────────────────────────────────────── */
-
-    .dm-methodology {
-        margin-top: var(--spacing-2xl);
-        border-top: 1px solid color-mix(in srgb, var(--color-primary) 6%, transparent);
+    /* DM methodology — scoped overrides on shared .tool-methodology */
+    .diligence-machine :global(.tool-methodology) {
+        max-width: 800px;
+        margin: var(--spacing-2xl) auto 0;
     }
 
-    .dm-methodology__trigger {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-sm);
-        padding: var(--spacing-sm) var(--spacing-lg);
-        cursor: pointer;
-        color: var(--text-muted);
-        transition: color var(--transition-fast);
-        list-style: none;
-        font-size: var(--text-xs);
-        font-weight: var(--font-weight-bold);
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-    }
-
-    .dm-methodology__trigger::-webkit-details-marker {
-        display: none;
-    }
-
-    .dm-methodology__trigger::before {
-        content: '';
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        background-color: var(--color-primary);
-        mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
-        mask-size: contain;
-        mask-repeat: no-repeat;
-        -webkit-mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
-        -webkit-mask-size: contain;
-        -webkit-mask-repeat: no-repeat;
-        transition: transform var(--transition-fast);
-    }
-
-    .dm-methodology[open] > .dm-methodology__trigger::before {
-        transform: rotate(180deg);
-    }
-
-    .dm-methodology__trigger:hover {
-        color: var(--text-secondary);
-    }
-
-    .dm-methodology__body {
-        padding: var(--spacing-sm) var(--spacing-2xl) var(--spacing-md);
-        color: var(--text-secondary);
-        line-height: 1.7;
-        border-top: 1px solid color-mix(in srgb, var(--color-primary) 6%, transparent);
-    }
-
-    .dm-methodology__heading {
-        font-size: var(--text-sm);
-        font-weight: var(--font-weight-bold);
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        color: var(--text-primary);
-        margin-top: var(--spacing-md);
-        margin-bottom: var(--spacing-xs);
-    }
-
-    .dm-methodology__heading:first-child {
-        margin-top: 0;
-    }
-
-    .dm-methodology__body p {
-        margin-bottom: var(--spacing-sm);
-    }
-
-    .dm-methodology__updated {
-        font-size: var(--text-xs);
-        color: var(--text-faded);
-        font-style: italic;
-        margin-top: var(--spacing-sm);
-    }
-
-    .dm-methodology__author {
-        display: flex;
-        align-items: baseline;
-        gap: var(--spacing-sm);
-        flex-wrap: wrap;
-        padding-top: var(--spacing-md);
-        margin-top: var(--spacing-md);
-        border-top: 1px solid color-mix(in srgb, var(--color-primary) 6%, transparent);
-        font-size: var(--text-xs);
-        color: var(--text-muted);
-    }
-
-    .dm-methodology__author-name {
-        font-weight: var(--font-weight-semibold);
-        color: var(--text-secondary);
-    }
-
-    .dm-methodology__author-sep {
-        color: var(--text-faded);
-    }
-
-    .dm-methodology__author-link {
-        color: var(--color-primary);
-        text-decoration: none;
-    }
-
-    .dm-methodology__author-link:hover {
-        text-decoration: underline;
+    .diligence-machine :global(.tool-methodology__trigger) {
+        justify-content: center;
+        padding-left: var(--spacing-lg);
+        padding-right: var(--spacing-lg);
     }
 
     /* ─── BACK LINK ────────────────────────────────────────────────────── */
@@ -2759,7 +2639,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         }
 
         .doc-action-bar {
-            flex-wrap: wrap;
             margin-left: var(--spacing-sm);
             margin-right: var(--spacing-sm);
         }
@@ -2826,8 +2705,8 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         .wizard-nav,
         .doc-action-bar,
         .back-link,
-        .dm-authority,
-        .dm-methodology {
+        .tool-authority,
+        .tool-methodology {
             display: none;
         }
 
