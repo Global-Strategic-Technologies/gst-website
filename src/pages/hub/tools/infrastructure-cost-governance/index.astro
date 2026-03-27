@@ -1531,6 +1531,7 @@ import {
   compareSnapshots,
   buildRadarPoints,
   contextualizeScore,
+  findMatchingRange,
 } from '../../../../utils/icg-engine';
 
 import type { ICGState, ICGSnapshot, CompanyStage } from '../../../../utils/icg-engine';
@@ -1908,16 +1909,13 @@ function renderResults(): void {
   });
 
   // Benchmark highlighting — show "YOUR RANGE" badge on the first matching range row
-  const benchCells = document.querySelectorAll<HTMLElement>('[data-bench]');
-  let rangeMatched = false;
-  benchCells.forEach(td => {
+  const matchedRange = findMatchingRange(result.overallScore);
+  document.querySelectorAll<HTMLElement>('[data-bench]').forEach(td => {
     const range = td.dataset.bench!;
     const [lo, hi] = range.split('-').map(Number);
-    const inRange = !rangeMatched && result.overallScore >= lo && result.overallScore <= hi;
-    if (inRange) rangeMatched = true;
+    const inRange = matchedRange !== null && matchedRange.low === lo && matchedRange.high === hi;
     td.classList.toggle('in-range', inRange);
     td.textContent = range;
-    // Add label to first td in the same row
     const firstTd = td.closest('tr')?.querySelector('td');
     if (firstTd) {
       const existingScore = firstTd.querySelector('.bench-label--score');
