@@ -372,7 +372,7 @@ test.describe('TechPar - EEAT enhancements', () => {
     await clickTab(page, 'costs');
     await fillInput(page, 'infra', '50000');
     await clickTab(page, 'analysis');
-    const disc = page.locator('.tp-bench-disc--context');
+    const disc = page.locator('[data-industry-disc]');
     await expect(disc).toBeVisible();
     await expect(disc).toContainText('SaaS');
   });

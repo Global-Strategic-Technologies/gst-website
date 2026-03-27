@@ -251,7 +251,7 @@ test.describe('ICG - Results view', () => {
 
     await jsClick(page, '[data-action="copy"]');
 
-    // Assert on observable UI feedback (cross-browser safe, no grantPermissions needed)
+    // Assert on observable UI feedback
     await page.waitForFunction(() => {
       const btn = document.querySelector('[data-action="copy"]');
       return btn && btn.textContent === 'Link copied';

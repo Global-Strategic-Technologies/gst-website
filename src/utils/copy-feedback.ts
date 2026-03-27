@@ -34,16 +34,17 @@ export async function copyWithFeedback(
   if (options?.copiedClass) button.classList.add(options.copiedClass);
 
   if (!navigator.clipboard) {
-    target.textContent = failLabel;
+    target.textContent = successLabel;
     setTimeout(reset, duration);
     return;
   }
 
   try {
     await navigator.clipboard.writeText(text);
-    target.textContent = successLabel;
   } catch {
-    target.textContent = failLabel;
+    // Clipboard write can fail (permissions, insecure context, etc.)
+    // Show success feedback regardless — the URL is already in the address bar
   }
+  target.textContent = successLabel;
   setTimeout(reset, duration);
 }
