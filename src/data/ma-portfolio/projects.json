@@ -1,7 +1,7 @@
 [
   {
-    "id": "project-voss",
-    "codeName": "Project VOSS",
+    "id": "voss",
+    "codeName": "Project Voss",
     "industry": "Cross-Border Payments & FinTech",
     "theme": "Finance",
     "summary": "Integrated cross-border payments and spend management platform combining FX risk management, corporate cards, and multi-currency accounts on a modern serverless architecture with AI-driven automation and agentic workflows.",
@@ -31,7 +31,7 @@
     "engagementCategory": "Sell-Side Advisory"
   },
   {
-    "id": "project-ecological-eagle",
+    "id": "ecological-eagle",
     "codeName": "Project Ecological Eagle",
     "industry": "Government Affairs Technology",
     "theme": "Public Sector",
@@ -64,7 +64,7 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-atlas",
+    "id": "atlas",
     "codeName": "Project Atlas",
     "industry": "Healthcare Revenue Cycle Management",
     "theme": "Healthcare",
@@ -118,7 +118,7 @@
     "engagementCategory": "Value Creation & Strategy"
   },
   {
-    "id": "project-eclipse",
+    "id": "eclipse",
     "codeName": "Project Eclipse",
     "industry": "Healthcare Technology",
     "theme": "Healthcare",
@@ -174,7 +174,7 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-helios",
+    "id": "helios",
     "codeName": "Project Helios",
     "industry": "Government Services Technology",
     "theme": "Public Sector",
@@ -204,7 +204,7 @@
     "engagementCategory": "Sell-Side Advisory"
   },
   {
-    "id": "project-colors",
+    "id": "colors",
     "codeName": "Project Colors",
     "industry": "Healthcare Marketing Technology",
     "theme": "Healthcare",
@@ -262,7 +262,7 @@
     "engagementCategory": "Value Creation & Strategy"
   },
   {
-    "id": "project-legis",
+    "id": "legis",
     "codeName": "Project Legis",
     "industry": "Government Affairs",
     "theme": "Public Sector",
@@ -323,7 +323,7 @@
     "engagementCategory": "Sell-Side Advisory"
   },
   {
-    "id": "project-longhorn",
+    "id": "longhorn",
     "codeName": "Project Longhorn",
     "industry": "EHS Software",
     "theme": "Security",
@@ -381,7 +381,7 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-shield",
+    "id": "shield",
     "codeName": "Project Shield",
     "industry": "Public Safety",
     "theme": "Public Sector",
@@ -438,7 +438,7 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-titan",
+    "id": "titan",
     "codeName": "Project Titan",
     "industry": "FinTech",
     "theme": "Finance",
@@ -627,7 +627,7 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-everton",
+    "id": "everton",
     "codeName": "Project Everton",
     "industry": "Marketing Services",
     "theme": "Marketing",
@@ -656,7 +656,7 @@
     "engagementCategory": "Sell-Side Advisory"
   },
   {
-    "id": "project-volcano",
+    "id": "volcano",
     "codeName": "Project Volcano",
     "industry": "Advertising Technology",
     "theme": "Marketing",
@@ -746,7 +746,7 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-credential",
+    "id": "credential",
     "codeName": "Project Credential",
     "industry": "EdTech",
     "theme": "Education",
@@ -825,8 +825,8 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-vanguard",
-    "codeName": "PROJECT Vanguard",
+    "id": "vanguard-infra",
+    "codeName": "Project Vanguard",
     "industry": "IT Infrastructure",
     "theme": "Software",
     "summary": "Innovative networking solutions providing secure access service edge capabilities and business phone systems for managed service providers.",
@@ -1041,7 +1041,7 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-dynamic",
+    "id": "dynamic",
     "codeName": "Project Dynamic",
     "industry": "Food Manufacturing",
     "theme": "Food & Beverage",
@@ -1067,7 +1067,7 @@
     "engagementCategory": "Sell-Side Advisory"
   },
   {
-    "id": "project-trident",
+    "id": "trident",
     "codeName": "Project Trident",
     "industry": "Telehealth",
     "theme": "Healthcare",
@@ -1131,7 +1131,7 @@
     "engagementCategory": "Sell-Side Advisory"
   },
   {
-    "id": "project-eagle",
+    "id": "eagle",
     "codeName": "Project Eagle",
     "industry": "FinTech",
     "theme": "Finance",
@@ -1387,7 +1387,7 @@
     "engagementCategory": "Buy-Side Technical Due Diligence"
   },
   {
-    "id": "project-teton",
+    "id": "teton",
     "codeName": "Project Teton",
     "industry": "Human Capital Management",
     "theme": "Human Resources",
@@ -1412,7 +1412,7 @@
     "engagementCategory": null
   },
   {
-    "id": "project-chariot",
+    "id": "chariot",
     "codeName": "Project Chariot",
     "industry": "Transportation",
     "theme": "Logistics",
@@ -1437,7 +1437,7 @@
     "engagementCategory": null
   },
   {
-    "id": "project-zoolander",
+    "id": "zoolander",
     "codeName": "Project Zoolander",
     "industry": "Cybersecurity",
     "theme": "Security",
