@@ -2,7 +2,7 @@
 
 A single, shareable web page at `/brand` that renders the live design system — color palette, typography scale, spacing, component patterns, and brand guidelines — directly from the site's CSS variables and utility classes. Unlisted in navigation but publicly accessible for handoff, auditing, and integration reference.
 
-**Status**: In progress — design tokens and primitives complete; UI component library in progress
+**Status**: Complete
 **Priority**: Medium — governance and handoff enablement
 **Last Updated**: March 27, 2026
 
