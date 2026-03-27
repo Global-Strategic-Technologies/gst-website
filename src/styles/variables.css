@@ -41,9 +41,15 @@
   /* Borders & Accents */
   --border-light: rgba(26, 26, 26, 0.1);
   --border-dark: rgba(5, 205, 153, 0.2);
+  --accent-subtle-bg: rgba(5, 205, 153, 0.02);
+  --accent-wash-bg: rgba(5, 205, 153, 0.03);
+  --accent-faint-bg: rgba(5, 205, 153, 0.04);
+  --accent-tint-bg: rgba(5, 205, 153, 0.06);
   --accent-light-bg: rgba(5, 205, 153, 0.08);
   --accent-light-bg-hover: rgba(5, 205, 153, 0.15);
   --accent-dark-bg: rgba(5, 205, 153, 0.1);
+  --accent-border-light: rgba(5, 205, 153, 0.25);
+  --accent-border-medium: rgba(5, 205, 153, 0.3);
 
   /* Spacing Scale */
   --spacing-xs: 0.25rem;
@@ -207,6 +213,12 @@ html.dark-theme {
   --text-muted: var(--text-dark-muted);
   --text-faded: var(--text-dark-faded);
   --color-secondary: var(--color-secondary-dark);
+
+  /* Accent Opacity Scale (dark theme — slightly higher opacity for visibility) */
+  --accent-subtle-bg: rgba(5, 205, 153, 0.03);
+  --accent-wash-bg: rgba(5, 205, 153, 0.04);
+  --accent-faint-bg: rgba(5, 205, 153, 0.05);
+  --accent-tint-bg: rgba(5, 205, 153, 0.08);
 
   /* Semantic Colors (dark theme) */
   --color-success: #3da868;

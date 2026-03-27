@@ -319,7 +319,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme) .landing-callout {
-        background: rgba(5, 205, 153, 0.03);
+        background: var(--accent-wash-bg);
     }
 
     .landing-callout__title {
@@ -336,12 +336,12 @@ const domainCount = DOMAINS.length;
         padding: var(--spacing-md) var(--spacing-lg);
         border: 1px solid var(--color-primary);
         border-radius: 8px;
-        background: rgba(5, 205, 153, 0.04);
+        background: var(--accent-faint-bg);
         margin-bottom: var(--spacing-lg);
     }
 
     :global(html.dark-theme) .icg-resume-prompt {
-        background: rgba(5, 205, 153, 0.06);
+        background: var(--accent-tint-bg);
     }
 
     .icg-resume-prompt__text {
@@ -374,7 +374,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme) .stat-tile {
-        background: rgba(5, 205, 153, 0.03);
+        background: var(--accent-wash-bg);
     }
 
     .stat-tile__value {
@@ -403,7 +403,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme) .icg-btn-secondary {
-        border-color: rgba(5, 205, 153, 0.15);
+        border-color: var(--accent-light-bg-hover);
     }
 
     /* ── Progress bar ─────────────────────────────────────────────────────── */
@@ -495,7 +495,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme .icg-question-card) {
-        background: rgba(5, 205, 153, 0.02);
+        background: var(--accent-subtle-bg);
         border-color: var(--accent-light-bg-hover);
     }
 
@@ -538,7 +538,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme .icg-opt-btn) {
-        background: rgba(5, 205, 153, 0.02);
+        background: var(--accent-subtle-bg);
         border-color: var(--accent-light-bg-hover);
     }
 
@@ -598,7 +598,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme .icg-rationale__text) {
-        border-left-color: rgba(5, 205, 153, 0.15);
+        border-left-color: var(--accent-light-bg-hover);
     }
 
     :global(.icg-opt-btn.selected) {
@@ -681,13 +681,13 @@ const domainCount = DOMAINS.length;
     .icg-quick-wins {
         padding: var(--spacing-md) var(--spacing-lg);
         border-left: 3px solid var(--color-primary);
-        background: rgba(5, 205, 153, 0.04);
+        background: var(--accent-faint-bg);
         border-radius: 0 8px 8px 0;
         margin-bottom: var(--spacing-xl);
     }
 
     :global(html.dark-theme) .icg-quick-wins {
-        background: rgba(5, 205, 153, 0.06);
+        background: var(--accent-tint-bg);
     }
 
     :global(.icg-quick-win-item) {
@@ -714,7 +714,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme) .icg-card {
-        background: rgba(5, 205, 153, 0.02);
+        background: var(--accent-subtle-bg);
         border-color: var(--accent-light-bg-hover);
     }
 
@@ -843,7 +843,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme) .icg-cost-context {
-        background: rgba(5, 205, 153, 0.03);
+        background: var(--accent-wash-bg);
     }
 
     .icg-cost-context .text-small {
@@ -997,7 +997,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme .icg-rec-na:hover) {
-        border-color: rgba(5, 205, 153, 0.3);
+        border-color: var(--accent-border-medium);
         background: var(--accent-light-bg);
     }
 
@@ -1132,7 +1132,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme .icg-comparison-overall) {
-        border-bottom-color: rgba(5, 205, 153, 0.15);
+        border-bottom-color: var(--accent-light-bg-hover);
     }
 
     .icg-comparison-actions {
@@ -1207,7 +1207,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme) .icg-stage-card {
-        background: rgba(5, 205, 153, 0.02);
+        background: var(--accent-subtle-bg);
         border-color: var(--accent-dark-bg);
     }
 
@@ -1217,7 +1217,7 @@ const domainCount = DOMAINS.length;
 
     .icg-stage-card--active {
         border-color: var(--color-primary);
-        background: rgba(5, 205, 153, 0.06);
+        background: var(--accent-tint-bg);
     }
 
     :global(html.dark-theme) .icg-stage-card--active {
@@ -1299,7 +1299,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme) .icg-snapshot-label-input {
-        border-color: rgba(5, 205, 153, 0.15);
+        border-color: var(--accent-light-bg-hover);
         color: var(--text-secondary);
     }
 
