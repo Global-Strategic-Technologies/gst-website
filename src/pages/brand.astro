@@ -1,0 +1,1108 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { trackPageView } from '../utils/analytics';
+
+trackPageView('brand', 'Brand Style Reference');
+---
+
+<BaseLayout
+  title="Brand Style Reference | GST"
+  description="GST visual identity reference — colors, typography, spacing, and component patterns rendered live from the design system."
+>
+
+<!-- Section 1: Brand Identity -->
+<section class="brand-section" id="identity">
+  <div class="container">
+    <h2 class="heading-md brand-section__title">Brand Identity</h2>
+
+    <div class="brand-identity-grid">
+      <div class="brand-identity-logos">
+        <div class="brand-logo-item">
+          <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="GST delta icon" width="80" height="80" />
+          <span class="text-small">Delta Icon</span>
+        </div>
+        <div class="brand-logo-item">
+          <img src="/images/icon.svg" alt="GST composite logo" width="120" height="120" />
+          <span class="text-small">Composite Logo</span>
+        </div>
+      </div>
+
+      <div class="brand-identity-info">
+        <h3 class="heading-sm">Brand Voice</h3>
+        <p class="text-base">Authoritative, precise, technical. No jargon for jargon's sake — clarity over complexity.</p>
+
+        <h3 class="heading-sm">Wordmark</h3>
+        <p class="text-base"><strong>Global Strategic Technologies</strong> — formal contexts, first mention, legal. <strong>GST</strong> — shorthand, UI labels, repeat references.</p>
+
+        <h3 class="heading-sm">Logo Usage</h3>
+        <p class="text-base">Single teal-stroke delta variant. Works on both light and dark backgrounds without modification. Minimum clear space: the icon's own width on all sides.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 2: Color Palette -->
+<section class="brand-section" id="colors">
+  <div class="container">
+    <h2 class="heading-md brand-section__title">Color Palette</h2>
+    <p class="text-small brand-section__note">Toggle dark mode via the header to see theme-specific values. All hex values are computed live from CSS variables.</p>
+
+    <h3 class="heading-sm brand-group-title">Primary &amp; Secondary</h3>
+    <div class="brand-swatch-grid">
+      <div class="brand-swatch" data-var="--color-primary">
+        <div class="brand-swatch__color" style="background: var(--color-primary);"></div>
+        <div class="brand-swatch__label">--color-primary</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--color-primary-dark">
+        <div class="brand-swatch__color" style="background: var(--color-primary-dark);"></div>
+        <div class="brand-swatch__label">--color-primary-dark</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--color-secondary">
+        <div class="brand-swatch__color" style="background: var(--color-secondary);"></div>
+        <div class="brand-swatch__label">--color-secondary</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--color-secondary-dark">
+        <div class="brand-swatch__color" style="background: var(--color-secondary-dark);"></div>
+        <div class="brand-swatch__label">--color-secondary-dark</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Semantic</h3>
+    <div class="brand-swatch-grid">
+      <div class="brand-swatch" data-var="--color-success">
+        <div class="brand-swatch__color" style="background: var(--color-success);"></div>
+        <div class="brand-swatch__label">--color-success</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--color-warning">
+        <div class="brand-swatch__color" style="background: var(--color-warning);"></div>
+        <div class="brand-swatch__label">--color-warning</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--color-error">
+        <div class="brand-swatch__color" style="background: var(--color-error);"></div>
+        <div class="brand-swatch__label">--color-error</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--color-info">
+        <div class="brand-swatch__color" style="background: var(--color-info);"></div>
+        <div class="brand-swatch__label">--color-info</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Text Hierarchy</h3>
+    <div class="brand-swatch-grid">
+      <div class="brand-swatch" data-var="--text-primary">
+        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-primary);"></div>
+        <div class="brand-swatch__label">--text-primary</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--text-secondary">
+        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-secondary);"></div>
+        <div class="brand-swatch__label">--text-secondary</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--text-muted">
+        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-muted);"></div>
+        <div class="brand-swatch__label">--text-muted</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--text-faded">
+        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-faded);"></div>
+        <div class="brand-swatch__label">--text-faded</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Backgrounds</h3>
+    <div class="brand-swatch-grid">
+      <div class="brand-swatch" data-var="--bg-light">
+        <div class="brand-swatch__color" style="background: var(--bg-light);"></div>
+        <div class="brand-swatch__label">--bg-light</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--bg-light-alt">
+        <div class="brand-swatch__color" style="background: var(--bg-light-alt);"></div>
+        <div class="brand-swatch__label">--bg-light-alt</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--bg-dark">
+        <div class="brand-swatch__color" style="background: var(--bg-dark);"></div>
+        <div class="brand-swatch__label">--bg-dark</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--bg-dark-secondary">
+        <div class="brand-swatch__color" style="background: var(--bg-dark-secondary);"></div>
+        <div class="brand-swatch__label">--bg-dark-secondary</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--bg-dark-tertiary">
+        <div class="brand-swatch__color" style="background: var(--bg-dark-tertiary);"></div>
+        <div class="brand-swatch__label">--bg-dark-tertiary</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Borders &amp; Accents</h3>
+    <div class="brand-swatch-grid">
+      <div class="brand-swatch" data-var="--border-light">
+        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--border-light);"></div>
+        <div class="brand-swatch__label">--border-light</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--accent-light-bg">
+        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-light-bg);"></div>
+        <div class="brand-swatch__label">--accent-light-bg</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--accent-light-bg-hover">
+        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-light-bg-hover);"></div>
+        <div class="brand-swatch__label">--accent-light-bg-hover</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--accent-border-light">
+        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-border-light);"></div>
+        <div class="brand-swatch__label">--accent-border-light</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--accent-border-medium">
+        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-border-medium);"></div>
+        <div class="brand-swatch__label">--accent-border-medium</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Tool-Specific</h3>
+
+    <h4 class="label brand-subgroup-title">Hub Shared</h4>
+    <div class="brand-swatch-grid">
+      <div class="brand-swatch" data-var="--hub-authority-blue">
+        <div class="brand-swatch__color" style="background: var(--hub-authority-blue);"></div>
+        <div class="brand-swatch__label">--hub-authority-blue</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--hub-authority-blue-bg">
+        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--hub-authority-blue-bg);"></div>
+        <div class="brand-swatch__label">--hub-authority-blue-bg</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+    </div>
+
+    <h4 class="label brand-subgroup-title">TechPar Zones</h4>
+    <div class="brand-swatch-grid">
+      <div class="brand-swatch" data-var="--techpar-zone-healthy">
+        <div class="brand-swatch__color" style="background: var(--techpar-zone-healthy);"></div>
+        <div class="brand-swatch__label">--techpar-zone-healthy</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--techpar-zone-ahead">
+        <div class="brand-swatch__color" style="background: var(--techpar-zone-ahead);"></div>
+        <div class="brand-swatch__label">--techpar-zone-ahead</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--techpar-zone-underinvest">
+        <div class="brand-swatch__color" style="background: var(--techpar-zone-underinvest);"></div>
+        <div class="brand-swatch__label">--techpar-zone-underinvest</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--techpar-zone-above">
+        <div class="brand-swatch__color" style="background: var(--techpar-zone-above);"></div>
+        <div class="brand-swatch__label">--techpar-zone-above</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--techpar-zone-elevated">
+        <div class="brand-swatch__color" style="background: var(--techpar-zone-elevated);"></div>
+        <div class="brand-swatch__label">--techpar-zone-elevated</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--techpar-zone-critical">
+        <div class="brand-swatch__color" style="background: var(--techpar-zone-critical);"></div>
+        <div class="brand-swatch__label">--techpar-zone-critical</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+    </div>
+
+    <h4 class="label brand-subgroup-title">Diligence Machine</h4>
+    <div class="brand-swatch-grid">
+      <div class="brand-swatch" data-var="--dm-methodology-brown">
+        <div class="brand-swatch__color" style="background: var(--dm-methodology-brown);"></div>
+        <div class="brand-swatch__label">--dm-methodology-brown</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--dm-results-blue">
+        <div class="brand-swatch__color" style="background: var(--dm-results-blue);"></div>
+        <div class="brand-swatch__label">--dm-results-blue</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--dm-positive">
+        <div class="brand-swatch__color" style="background: var(--dm-positive);"></div>
+        <div class="brand-swatch__label">--dm-positive</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--dm-negative">
+        <div class="brand-swatch__color" style="background: var(--dm-negative);"></div>
+        <div class="brand-swatch__label">--dm-negative</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--dm-warning">
+        <div class="brand-swatch__color" style="background: var(--dm-warning);"></div>
+        <div class="brand-swatch__label">--dm-warning</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--dm-success">
+        <div class="brand-swatch__color" style="background: var(--dm-success);"></div>
+        <div class="brand-swatch__label">--dm-success</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+    </div>
+
+    <h4 class="label brand-subgroup-title">ICG Maturity</h4>
+    <div class="brand-swatch-grid">
+      <div class="brand-swatch" data-var="--icg-maturity-reactive">
+        <div class="brand-swatch__color" style="background: var(--icg-maturity-reactive);"></div>
+        <div class="brand-swatch__label">--icg-maturity-reactive</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--icg-maturity-aware">
+        <div class="brand-swatch__color" style="background: var(--icg-maturity-aware);"></div>
+        <div class="brand-swatch__label">--icg-maturity-aware</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--icg-maturity-optimizing">
+        <div class="brand-swatch__color" style="background: var(--icg-maturity-optimizing);"></div>
+        <div class="brand-swatch__label">--icg-maturity-optimizing</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--icg-maturity-strategic">
+        <div class="brand-swatch__color" style="background: var(--icg-maturity-strategic);"></div>
+        <div class="brand-swatch__label">--icg-maturity-strategic</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+    </div>
+
+    <h4 class="label brand-subgroup-title">Regulatory Map</h4>
+    <div class="brand-swatch-grid">
+      <div class="brand-swatch" data-var="--regmap-category-industry">
+        <div class="brand-swatch__color" style="background: var(--regmap-category-industry);"></div>
+        <div class="brand-swatch__label">--regmap-category-industry</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+      <div class="brand-swatch" data-var="--regmap-category-cyber">
+        <div class="brand-swatch__color" style="background: var(--regmap-category-cyber);"></div>
+        <div class="brand-swatch__label">--regmap-category-cyber</div>
+        <div class="brand-swatch__value"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 3: Typography -->
+<section class="brand-section" id="typography">
+  <div class="container">
+    <h2 class="heading-md brand-section__title">Typography</h2>
+
+    <h3 class="heading-sm brand-group-title">Font Stack</h3>
+    <p class="text-base"><code class="brand-code">--font-family</code>: <span class="brand-font-stack" data-var="--font-family"></span></p>
+
+    <h3 class="heading-sm brand-group-title">Utility Classes</h3>
+    <div class="brand-type-specimens">
+      <div class="brand-type-specimen">
+        <span class="heading-xl" data-specimen>Heading XL</span>
+        <code class="brand-code">.heading-xl</code>
+        <span class="brand-type-meta"></span>
+      </div>
+      <div class="brand-type-specimen">
+        <span class="heading-lg" data-specimen>Heading LG</span>
+        <code class="brand-code">.heading-lg</code>
+        <span class="brand-type-meta"></span>
+      </div>
+      <div class="brand-type-specimen">
+        <span class="heading-md" data-specimen>Heading MD</span>
+        <code class="brand-code">.heading-md</code>
+        <span class="brand-type-meta"></span>
+      </div>
+      <div class="brand-type-specimen">
+        <span class="heading-sm" data-specimen>Heading SM</span>
+        <code class="brand-code">.heading-sm</code>
+        <span class="brand-type-meta"></span>
+      </div>
+      <div class="brand-type-specimen">
+        <span class="text-base" data-specimen>Text Base</span>
+        <code class="brand-code">.text-base</code>
+        <span class="brand-type-meta"></span>
+      </div>
+      <div class="brand-type-specimen">
+        <span class="text-small" data-specimen>Text Small</span>
+        <code class="brand-code">.text-small</code>
+        <span class="brand-type-meta"></span>
+      </div>
+      <div class="brand-type-specimen">
+        <span class="text-tiny" data-specimen>Text Tiny</span>
+        <code class="brand-code">.text-tiny</code>
+        <span class="brand-type-meta"></span>
+      </div>
+      <div class="brand-type-specimen">
+        <span class="label" data-specimen>Label</span>
+        <code class="brand-code">.label</code>
+        <span class="brand-type-meta"></span>
+      </div>
+      <div class="brand-type-specimen">
+        <span class="label-small" data-specimen>Label Small</span>
+        <code class="brand-code">.label-small</code>
+        <span class="brand-type-meta"></span>
+      </div>
+      <div class="brand-type-specimen">
+        <span class="nav-link" data-specimen>Nav Link</span>
+        <code class="brand-code">.nav-link</code>
+        <span class="brand-type-meta"></span>
+      </div>
+      <div class="brand-type-specimen">
+        <span class="button-text" data-specimen>Button Text</span>
+        <code class="brand-code">.button-text</code>
+        <span class="brand-type-meta"></span>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Text Size Scale</h3>
+    <div class="brand-type-specimens">
+      <div class="brand-type-specimen" data-var="--text-xs">
+        <span data-specimen style="font-size: var(--text-xs);">The quick brown fox — text-xs</span>
+        <code class="brand-code">--text-xs</code>
+        <span class="brand-type-value"></span>
+      </div>
+      <div class="brand-type-specimen" data-var="--text-sm">
+        <span data-specimen style="font-size: var(--text-sm);">The quick brown fox — text-sm</span>
+        <code class="brand-code">--text-sm</code>
+        <span class="brand-type-value"></span>
+      </div>
+      <div class="brand-type-specimen" data-var="--text-base">
+        <span data-specimen style="font-size: var(--text-base);">The quick brown fox — text-base</span>
+        <code class="brand-code">--text-base</code>
+        <span class="brand-type-value"></span>
+      </div>
+      <div class="brand-type-specimen" data-var="--text-lg">
+        <span data-specimen style="font-size: var(--text-lg);">The quick brown fox — text-lg</span>
+        <code class="brand-code">--text-lg</code>
+        <span class="brand-type-value"></span>
+      </div>
+      <div class="brand-type-specimen" data-var="--text-xl">
+        <span data-specimen style="font-size: var(--text-xl);">The quick brown fox — text-xl</span>
+        <code class="brand-code">--text-xl</code>
+        <span class="brand-type-value"></span>
+      </div>
+      <div class="brand-type-specimen" data-var="--text-2xl">
+        <span data-specimen style="font-size: var(--text-2xl);">The quick brown fox — text-2xl</span>
+        <code class="brand-code">--text-2xl</code>
+        <span class="brand-type-value"></span>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Font Weights</h3>
+    <div class="brand-type-specimens">
+      <div class="brand-type-specimen">
+        <span data-specimen style="font-weight: var(--font-weight-normal);">Normal (400) — The quick brown fox</span>
+        <code class="brand-code">--font-weight-normal</code>
+      </div>
+      <div class="brand-type-specimen">
+        <span data-specimen style="font-weight: var(--font-weight-semibold);">Semibold (600) — The quick brown fox</span>
+        <code class="brand-code">--font-weight-semibold</code>
+      </div>
+      <div class="brand-type-specimen">
+        <span data-specimen style="font-weight: var(--font-weight-bold);">Bold (700) — The quick brown fox</span>
+        <code class="brand-code">--font-weight-bold</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 4: Spacing Scale -->
+<section class="brand-section" id="spacing">
+  <div class="container">
+    <h2 class="heading-md brand-section__title">Spacing Scale</h2>
+
+    <h3 class="heading-sm brand-group-title">Spacing Tokens</h3>
+    <div class="brand-spacing-list">
+      <div class="brand-spacing-row" data-var="--spacing-xs">
+        <code class="brand-code brand-spacing-name">--spacing-xs</code>
+        <div class="brand-spacing-bar" style="width: var(--spacing-xs);"></div>
+        <span class="brand-spacing-value"></span>
+      </div>
+      <div class="brand-spacing-row" data-var="--spacing-sm">
+        <code class="brand-code brand-spacing-name">--spacing-sm</code>
+        <div class="brand-spacing-bar" style="width: var(--spacing-sm);"></div>
+        <span class="brand-spacing-value"></span>
+      </div>
+      <div class="brand-spacing-row" data-var="--spacing-md">
+        <code class="brand-code brand-spacing-name">--spacing-md</code>
+        <div class="brand-spacing-bar" style="width: var(--spacing-md);"></div>
+        <span class="brand-spacing-value"></span>
+      </div>
+      <div class="brand-spacing-row" data-var="--spacing-lg">
+        <code class="brand-code brand-spacing-name">--spacing-lg</code>
+        <div class="brand-spacing-bar" style="width: var(--spacing-lg);"></div>
+        <span class="brand-spacing-value"></span>
+      </div>
+      <div class="brand-spacing-row" data-var="--spacing-xl">
+        <code class="brand-code brand-spacing-name">--spacing-xl</code>
+        <div class="brand-spacing-bar" style="width: var(--spacing-xl);"></div>
+        <span class="brand-spacing-value"></span>
+      </div>
+      <div class="brand-spacing-row" data-var="--spacing-2xl">
+        <code class="brand-code brand-spacing-name">--spacing-2xl</code>
+        <div class="brand-spacing-bar" style="width: var(--spacing-2xl);"></div>
+        <span class="brand-spacing-value"></span>
+      </div>
+      <div class="brand-spacing-row" data-var="--spacing-2_5xl">
+        <code class="brand-code brand-spacing-name">--spacing-2_5xl</code>
+        <div class="brand-spacing-bar" style="width: var(--spacing-2_5xl);"></div>
+        <span class="brand-spacing-value"></span>
+      </div>
+      <div class="brand-spacing-row" data-var="--spacing-3xl">
+        <code class="brand-code brand-spacing-name">--spacing-3xl</code>
+        <div class="brand-spacing-bar" style="width: var(--spacing-3xl);"></div>
+        <span class="brand-spacing-value"></span>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Gap Tokens</h3>
+    <div class="brand-spacing-list">
+      <div class="brand-spacing-row" data-var="--gap-tight">
+        <code class="brand-code brand-spacing-name">--gap-tight</code>
+        <div class="brand-spacing-bar" style="width: var(--gap-tight);"></div>
+        <span class="brand-spacing-value"></span>
+      </div>
+      <div class="brand-spacing-row" data-var="--gap-normal">
+        <code class="brand-code brand-spacing-name">--gap-normal</code>
+        <div class="brand-spacing-bar" style="width: var(--gap-normal);"></div>
+        <span class="brand-spacing-value"></span>
+      </div>
+      <div class="brand-spacing-row" data-var="--gap-wide">
+        <code class="brand-code brand-spacing-name">--gap-wide</code>
+        <div class="brand-spacing-bar" style="width: var(--gap-wide);"></div>
+        <span class="brand-spacing-value"></span>
+      </div>
+      <div class="brand-spacing-row" data-var="--gap-extra-wide">
+        <code class="brand-code brand-spacing-name">--gap-extra-wide</code>
+        <div class="brand-spacing-bar" style="width: var(--gap-extra-wide);"></div>
+        <span class="brand-spacing-value"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 5: Shadows -->
+<section class="brand-section" id="shadows">
+  <div class="container">
+    <h2 class="heading-md brand-section__title">Shadows</h2>
+    <div class="brand-shadow-grid">
+      <div class="brand-shadow-card" style="box-shadow: var(--shadow-sm);">
+        <code class="brand-code">--shadow-sm</code>
+        <span class="brand-shadow-value" data-var="--shadow-sm"></span>
+      </div>
+      <div class="brand-shadow-card" style="box-shadow: var(--shadow-md);">
+        <code class="brand-code">--shadow-md</code>
+        <span class="brand-shadow-value" data-var="--shadow-md"></span>
+      </div>
+      <div class="brand-shadow-card" style="box-shadow: var(--shadow-lg);">
+        <code class="brand-code">--shadow-lg</code>
+        <span class="brand-shadow-value" data-var="--shadow-lg"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 6: Transitions -->
+<section class="brand-section" id="transitions">
+  <div class="container">
+    <h2 class="heading-md brand-section__title">Transitions</h2>
+    <div class="brand-transition-grid">
+      <div class="brand-transition-demo" style="transition: transform var(--transition-fast), background var(--transition-fast);">
+        <code class="brand-code">--transition-fast</code>
+        <span class="brand-transition-value" data-var="--transition-fast"></span>
+        <span class="brand-transition-hint text-tiny">Hover me</span>
+      </div>
+      <div class="brand-transition-demo" style="transition: transform var(--transition-normal), background var(--transition-normal);">
+        <code class="brand-code">--transition-normal</code>
+        <span class="brand-transition-value" data-var="--transition-normal"></span>
+        <span class="brand-transition-hint text-tiny">Hover me</span>
+      </div>
+      <div class="brand-transition-demo" style="transition: transform var(--transition-slow), background var(--transition-slow);">
+        <code class="brand-code">--transition-slow</code>
+        <span class="brand-transition-value" data-var="--transition-slow"></span>
+        <span class="brand-transition-hint text-tiny">Hover me</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 7: Components -->
+<section class="brand-section" id="components">
+  <div class="container">
+    <h2 class="heading-md brand-section__title">Components</h2>
+
+    <h3 class="heading-sm brand-group-title">Hub Buttons</h3>
+    <div class="brand-component-row">
+      <div class="brand-component-item">
+        <button class="hub-btn hub-btn--primary">Primary</button>
+        <code class="brand-code">.hub-btn--primary</code>
+      </div>
+      <div class="brand-component-item">
+        <button class="hub-btn hub-btn--secondary">Secondary</button>
+        <code class="brand-code">.hub-btn--secondary</code>
+      </div>
+      <div class="brand-component-item">
+        <button class="hub-btn hub-btn--primary" disabled>Disabled</button>
+        <code class="brand-code">:disabled</code>
+      </div>
+    </div>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <button class="hub-btn hub-btn--primary hub-btn--full">Full Width</button>
+        <code class="brand-code">.hub-btn--full</code>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">CTA Buttons</h3>
+    <div class="brand-component-row">
+      <div class="brand-component-item">
+        <a class="cta-button primary" href="#components">CTA Primary</a>
+        <code class="brand-code">.cta-button.primary</code>
+      </div>
+      <div class="brand-component-item">
+        <a class="cta-button secondary" href="#components">CTA Secondary</a>
+        <code class="brand-code">.cta-button.secondary</code>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Tool Patterns</h3>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div class="tool-authority">Authority Line Specimen</div>
+        <code class="brand-code">.tool-authority</code>
+      </div>
+    </div>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div class="tool-section-label">Section Label Specimen</div>
+        <code class="brand-code">.tool-section-label</code>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Interaction States</h3>
+    <div class="brand-component-row">
+      <div class="brand-component-item">
+        <div class="interactive brand-interaction-box" tabindex="0">Hover / Focus</div>
+        <code class="brand-code">.interactive</code>
+      </div>
+      <div class="brand-component-item">
+        <a class="link-interactive" href="#components">Link Interactive</a>
+        <code class="brand-code">.link-interactive</code>
+      </div>
+      <div class="brand-component-item">
+        <div class="focus-outline brand-interaction-box">Focus Outline</div>
+        <code class="brand-code">.focus-outline</code>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Skeleton Loading</h3>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div class="brand-skeleton-demo">
+          <div class="skeleton-bar" style="width: 80%;"></div>
+          <div class="skeleton-bar" style="width: 60%;"></div>
+          <div class="skeleton-bar skeleton-bar--sm" style="width: 40%;"></div>
+          <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
+            <div class="skeleton-dot"></div>
+            <div class="skeleton-dot"></div>
+            <div class="skeleton-dot"></div>
+          </div>
+        </div>
+        <code class="brand-code">.skeleton-bar, .skeleton-bar--sm, .skeleton-dot</code>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Delta Chevron</h3>
+    <div class="brand-component-row">
+      <div class="brand-component-item" id="chevron-demo">
+        <div style="display: flex; align-items: center; gap: var(--spacing-sm); cursor: pointer;" id="chevron-toggle">
+          <span class="text-small">Toggle collapse</span>
+          <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/>
+          </svg>
+        </div>
+        <code class="brand-code">.delta-chevron</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+</BaseLayout>
+
+<style>
+  /* Brand Page Layout */
+  .brand-section {
+    padding: var(--spacing-3xl) 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .brand-section:last-child {
+    border-bottom: none;
+  }
+
+  .brand-section__title {
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 2px solid var(--color-primary);
+  }
+
+  .brand-section__note {
+    margin-bottom: var(--spacing-xl);
+    color: var(--text-muted);
+  }
+
+  .brand-group-title {
+    margin-top: var(--spacing-2xl);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .brand-group-title:first-of-type {
+    margin-top: 0;
+  }
+
+  .brand-subgroup-title {
+    margin-top: var(--spacing-xl);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  /* Brand Identity */
+  .brand-identity-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--spacing-2xl);
+    align-items: start;
+  }
+
+  .brand-identity-logos {
+    display: flex;
+    gap: var(--spacing-xl);
+    align-items: flex-end;
+  }
+
+  .brand-logo-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .brand-logo-item img {
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: var(--spacing-md);
+    background: var(--bg-light-alt);
+  }
+
+  .brand-identity-info h3 {
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .brand-identity-info h3:first-child {
+    margin-top: 0;
+  }
+
+  .brand-identity-info p {
+    margin-bottom: var(--spacing-sm);
+  }
+
+  /* Color Swatches */
+  .brand-swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--gap-normal);
+  }
+
+  .brand-swatch__color {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    border: 1px solid var(--border-light);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .brand-swatch__color--checker {
+    background-image:
+      linear-gradient(45deg, var(--checkerboard-line) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--checkerboard-line) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--checkerboard-line) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--checkerboard-line) 75%);
+    background-size: 10px 10px;
+    background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
+  }
+
+  .brand-swatch__label {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    color: var(--text-secondary);
+    word-break: break-all;
+  }
+
+  .brand-swatch__value {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    color: var(--text-muted);
+    min-height: 1.2em;
+  }
+
+  /* Typography Specimens */
+  .brand-type-specimens {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .brand-type-specimen {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .brand-type-specimen > span:first-child {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .brand-type-meta,
+  .brand-type-value {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .brand-code {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    color: var(--text-muted);
+    background: var(--accent-subtle-bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .brand-font-stack {
+    font-family: monospace;
+    color: var(--text-secondary);
+  }
+
+  /* Spacing Scale */
+  .brand-spacing-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .brand-spacing-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+  }
+
+  .brand-spacing-name {
+    width: 160px;
+    flex-shrink: 0;
+  }
+
+  .brand-spacing-bar {
+    height: 12px;
+    background: var(--color-primary);
+    border-radius: 2px;
+    min-width: 4px;
+  }
+
+  .brand-spacing-value {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* Shadows */
+  .brand-shadow-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--gap-wide);
+  }
+
+  .brand-shadow-card {
+    background: var(--bg-light);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: var(--spacing-2xl);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .brand-shadow-value {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    color: var(--text-muted);
+    text-align: center;
+    word-break: break-all;
+  }
+
+  /* Transitions */
+  .brand-transition-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--gap-wide);
+  }
+
+  .brand-transition-demo {
+    background: var(--bg-light-alt);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: var(--spacing-2xl);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .brand-transition-demo:hover {
+    transform: scale(1.05);
+    background: var(--accent-light-bg);
+  }
+
+  .brand-transition-value {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    color: var(--text-muted);
+  }
+
+  .brand-transition-hint {
+    color: var(--text-faded);
+  }
+
+  /* Components */
+  .brand-component-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap-wide);
+    align-items: flex-start;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .brand-component-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    align-items: flex-start;
+  }
+
+  .brand-component-item--full {
+    width: 100%;
+  }
+
+  .brand-interaction-box {
+    padding: var(--spacing-md) var(--spacing-xl);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+
+  .brand-skeleton-demo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg);
+    background: var(--bg-light-alt);
+    border-radius: 6px;
+    border: 1px solid var(--border-light);
+    max-width: 400px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .brand-section {
+      padding: var(--spacing-2xl) 0;
+    }
+
+    .brand-identity-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .brand-swatch-grid {
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+
+    .brand-type-specimen {
+      flex-direction: column;
+      gap: var(--spacing-xs);
+    }
+
+    .brand-shadow-grid,
+    .brand-transition-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .brand-spacing-name {
+      width: 130px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .brand-section {
+      padding: var(--spacing-xl) 0;
+    }
+
+    .brand-swatch-grid {
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+
+    .brand-shadow-grid,
+    .brand-transition-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .brand-spacing-row {
+      flex-wrap: wrap;
+    }
+
+    .brand-spacing-name {
+      width: 100%;
+    }
+
+    .brand-identity-logos {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+
+  /* Print */
+  @media print {
+    .brand-transition-demo:hover {
+      transform: none;
+    }
+  }
+</style>
+
+<script>
+  function rgbToHex(rgb: string): string {
+    if (rgb === 'transparent' || rgb === 'rgba(0, 0, 0, 0)') return 'transparent';
+
+    const rgbaMatch = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (!rgbaMatch) return rgb;
+
+    const r = parseInt(rgbaMatch[1]);
+    const g = parseInt(rgbaMatch[2]);
+    const b = parseInt(rgbaMatch[3]);
+    const a = rgbaMatch[4] !== undefined ? parseFloat(rgbaMatch[4]) : 1;
+
+    const hex = '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+
+    if (a < 1) {
+      return `${hex} (${Math.round(a * 100)}%)`;
+    }
+    return hex;
+  }
+
+  function readAndPopulate(): void {
+    const root = document.documentElement;
+    const style = getComputedStyle(root);
+
+    // Color swatches: use temp element for resolved values
+    document.querySelectorAll<HTMLElement>('.brand-swatch').forEach(el => {
+      const varName = el.dataset.var;
+      if (!varName) return;
+
+      const temp = document.createElement('div');
+      temp.style.display = 'none';
+      temp.style.backgroundColor = `var(${varName})`;
+      root.appendChild(temp);
+      const resolved = getComputedStyle(temp).backgroundColor;
+      root.removeChild(temp);
+
+      const valueEl = el.querySelector('.brand-swatch__value');
+      if (valueEl) valueEl.textContent = rgbToHex(resolved);
+    });
+
+    // Spacing values
+    document.querySelectorAll<HTMLElement>('.brand-spacing-row').forEach(el => {
+      const varName = el.dataset.var;
+      if (!varName) return;
+      const raw = style.getPropertyValue(varName).trim();
+      const valueEl = el.querySelector('.brand-spacing-value');
+      if (valueEl) valueEl.textContent = raw;
+    });
+
+    // Shadow values
+    document.querySelectorAll<HTMLElement>('.brand-shadow-value').forEach(el => {
+      const varName = el.dataset.var;
+      if (!varName) return;
+      el.textContent = style.getPropertyValue(varName).trim();
+    });
+
+    // Transition values
+    document.querySelectorAll<HTMLElement>('.brand-transition-value').forEach(el => {
+      const varName = el.dataset.var;
+      if (!varName) return;
+      el.textContent = style.getPropertyValue(varName).trim();
+    });
+
+    // Font stack
+    const fontStackEl = document.querySelector<HTMLElement>('.brand-font-stack');
+    if (fontStackEl) {
+      fontStackEl.textContent = style.getPropertyValue('--font-family').trim();
+    }
+
+    // Typography utility class specimens: read computed styles
+    document.querySelectorAll<HTMLElement>('.brand-type-specimen').forEach(el => {
+      const specimen = el.querySelector<HTMLElement>('[data-specimen]');
+      if (!specimen) return;
+
+      const metaEl = el.querySelector('.brand-type-meta');
+      if (metaEl) {
+        const cs = getComputedStyle(specimen);
+        metaEl.textContent = `${cs.fontSize} / wt ${cs.fontWeight}`;
+      }
+
+      // Text size scale values
+      const varName = el.dataset.var;
+      const valueEl = el.querySelector('.brand-type-value');
+      if (varName && valueEl) {
+        valueEl.textContent = style.getPropertyValue(varName).trim();
+      }
+    });
+  }
+
+  // Re-read values on theme toggle (MutationObserver on html class changes)
+  new MutationObserver(() => readAndPopulate()).observe(
+    document.documentElement,
+    { attributes: true, attributeFilter: ['class'] }
+  );
+
+  // Initial population
+  document.addEventListener('DOMContentLoaded', readAndPopulate);
+
+  // Delta chevron toggle demo
+  document.addEventListener('DOMContentLoaded', () => {
+    const toggle = document.getElementById('chevron-toggle');
+    const demo = document.getElementById('chevron-demo');
+    if (toggle && demo) {
+      toggle.addEventListener('click', () => {
+        demo.classList.toggle('is-collapsed');
+      });
+    }
+  });
+</script>
