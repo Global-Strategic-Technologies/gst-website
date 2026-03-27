@@ -87,7 +87,7 @@ const domainCount = DOMAINS.length;
 
                         <button data-action="start" type="button" class="hub-btn hub-btn--primary hub-btn--full icg-btn-primary icg-btn-primary--full">Begin assessment</button>
 
-                        <div class="landing-actions">
+                        <div class="tool-action-bar tool-action-bar--center">
                             <button data-action="landing-copy" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary" title="Copy a shareable link to this assessment">Copy link</button>
                             <a data-action="landing-email" href="#" class="hub-btn hub-btn--secondary icg-btn-secondary" title="Open a pre-filled email inviting your engineering lead to complete the assessment">Send to engineering lead</a>
                         </div>
@@ -184,7 +184,7 @@ const domainCount = DOMAINS.length;
                         <div data-recs-container class="icg-recs"></div>
 
                         <!-- Actions row -->
-                        <div class="icg-actions">
+                        <div class="tool-action-bar tool-action-bar--center tool-action-bar--bordered tool-action-bar--stack">
                             <button data-action="copy-summary" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary" title="Copy a plain-text summary of your results to clipboard">Copy summary</button>
                             <button data-action="copy" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary" title="Copy a shareable link that preserves your answers and dismissed recommendations">Copy link</button>
                             <button data-action="export-json" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary" title="Download your results as a structured JSON file for portfolio aggregation">Download JSON</button>
@@ -1011,27 +1011,6 @@ const domainCount = DOMAINS.length;
         border-style: solid;
     }
 
-    /* ── Results: Actions ──────────────────────────────────────────────────── */
-    .icg-actions {
-        display: flex;
-        gap: var(--spacing-sm);
-        flex-wrap: wrap;
-        justify-content: center;
-        padding-top: var(--spacing-lg);
-        border-top: 1px solid var(--border-light);
-    }
-
-    :global(html.dark-theme) .icg-actions {
-        border-top-color: var(--accent-dark-bg);
-    }
-
-    /* ── Landing: Actions ─────────────────────────────────────────────────── */
-    .landing-actions {
-        display: flex;
-        gap: var(--spacing-sm);
-        justify-content: center;
-        margin-top: var(--spacing-md);
-    }
 
     /* ── Snapshot manager ─────────────────────────────────────────────────── */
     .icg-snapshot-manager {
@@ -1456,21 +1435,7 @@ const domainCount = DOMAINS.length;
             padding: var(--spacing-md);
         }
 
-        .icg-actions {
-            flex-direction: column;
-        }
-
-        .icg-actions .icg-btn-secondary {
-            width: 100%;
-            justify-content: center;
-        }
-
-        .landing-actions {
-            flex-direction: column;
-        }
-
-        .landing-actions .icg-btn-secondary {
-            width: 100%;
+        .tool-action-bar .icg-btn-secondary {
             justify-content: center;
         }
 
@@ -1598,7 +1563,7 @@ const domainCount = DOMAINS.length;
         .icg-section :global(.site-header),
         .icg-section :global(footer),
         .icg-back-link,
-        .icg-actions,
+        .tool-action-bar,
         .icg-snapshot-save-row,
         .icg-snapshot-manager,
         [data-view="landing"],

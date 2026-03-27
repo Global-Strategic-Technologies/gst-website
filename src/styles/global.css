@@ -191,6 +191,42 @@ html.dark-theme .bench-label--stage {
     line-height: 1.5;
 }
 
+/* Hub Tool Action Bar — shared flex container for export/share button rows */
+.tool-action-bar {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.tool-action-bar--center {
+    justify-content: center;
+}
+
+.tool-action-bar--end {
+    justify-content: flex-end;
+}
+
+.tool-action-bar--bordered {
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--border-light);
+}
+
+html.dark-theme .tool-action-bar--bordered {
+    border-top-color: var(--accent-dark-bg);
+}
+
+@media (max-width: 480px) {
+    .tool-action-bar--stack {
+        flex-direction: column;
+    }
+
+    .tool-action-bar--stack > * {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
 /* Hub Tool Buttons — lightweight buttons for tool UIs */
 .hub-btn {
     display: inline-flex;

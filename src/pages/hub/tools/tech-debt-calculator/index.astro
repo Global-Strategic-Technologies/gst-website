@@ -286,7 +286,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
 
                 <!-- ── Footer ──────────────────────────────────────────────── -->
                 <div class="calc-footer">
-                    <div class="calc-footer__controls">
+                    <div class="calc-footer__controls tool-action-bar">
                         <select id="currency-select" class="currency-select" aria-label="Display currency">
                             <option value="USD">USD</option>
                             <option value="EUR">EUR</option>
@@ -708,9 +708,6 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
 
     /* ── Footer controls group (currency + copy link) ─────────────────────── */
     .calc-footer__controls {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-xs);
         flex-shrink: 0;
     }
 

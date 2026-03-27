@@ -542,7 +542,7 @@ trackPageView('techpar', 'TechPar | GST');
 
                         <div class="tp-nav-row">
                             <button class="hub-btn hub-btn--secondary tp-btn-back" data-action="go-costs" type="button">&larr; Costs</button>
-                            <div class="tp-nav-row__actions">
+                            <div class="tool-action-bar">
                                 <button class="tp-btn-share" data-action="export-pdf" type="button">Export PDF</button>
                                 <button class="tp-btn-share" data-action="copy-summary" type="button">Copy summary</button>
                                 <button class="tp-btn-share" data-action="copy-link" type="button">Copy link</button>
@@ -580,7 +580,7 @@ trackPageView('techpar', 'TechPar | GST');
 
                         <div class="tp-nav-row">
                             <button class="hub-btn hub-btn--secondary tp-btn-back" data-action="go-analysis" type="button">&larr; Analysis</button>
-                            <div class="tp-nav-row__actions">
+                            <div class="tool-action-bar">
                                 <button class="tp-btn-share" data-action="export-pdf" type="button">Export PDF</button>
                                 <button class="tp-btn-share" data-action="copy-summary" type="button">Copy summary</button>
                                 <button class="tp-btn-share" data-action="copy-link" type="button">Copy link</button>
@@ -1213,9 +1213,7 @@ trackPageView('techpar', 'TechPar | GST');
         color: var(--text-muted);
     }
 
-    .tp-nav-row__actions {
-        display: flex;
-        gap: var(--spacing-xs);
+    .tp-nav-row .tool-action-bar {
         margin-left: auto;
     }
 
@@ -2177,9 +2175,6 @@ trackPageView('techpar', 'TechPar | GST');
             font-size: 0.6rem;
         }
 
-        .tp-nav-row__actions {
-            flex-wrap: wrap;
-        }
 
         .tp-btn-share {
             min-height: 40px;
