@@ -835,7 +835,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Interaction States</h3>
+    <h3 class="heading-sm brand-group-title">Interaction States (Current)</h3>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="interactive brand-interaction-box" tabindex="0">Hover / Focus</div>
@@ -847,6 +847,22 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
       <div class="brand-component-item">
         <div class="focus-outline brand-interaction-box">Focus Outline</div>
+        <code class="brand-code">.focus-outline</code>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Interaction States (Brutalist)</h3>
+    <div class="brand-component-row">
+      <div class="brand-component-item">
+        <div class="brand-interact-brutal" tabindex="0">Hover / Focus</div>
+        <code class="brand-code">.interactive</code>
+      </div>
+      <div class="brand-component-item">
+        <a class="brand-link-brutal" href="#components">Link Interactive</a>
+        <code class="brand-code">.link-interactive</code>
+      </div>
+      <div class="brand-component-item">
+        <div class="brand-focus-brutal">Focus Outline</div>
         <code class="brand-code">.focus-outline</code>
       </div>
     </div>
@@ -1919,6 +1935,80 @@ trackPageView('brand', 'Brand Style Reference');
     border-radius: 6px;
     color: var(--text-secondary);
     cursor: pointer;
+  }
+
+  /* Interaction states — brutalist variants */
+  .brand-interact-brutal {
+    padding: var(--spacing-md) var(--spacing-xl);
+    border: 2px solid var(--border-light);
+    border-radius: 0;
+    color: var(--text-secondary);
+    font-family: monospace;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .brand-interact-brutal:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .brand-interact-brutal:focus-visible {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: var(--bg-dark);
+    outline: none;
+  }
+
+  :global(html.dark-theme) .brand-interact-brutal {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  :global(html.dark-theme) .brand-interact-brutal:focus-visible {
+    color: var(--bg-dark);
+  }
+
+  .brand-link-brutal {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-family: monospace;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 2px solid transparent;
+    padding-bottom: 2px;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .brand-link-brutal:hover {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+
+  .brand-link-brutal:focus-visible {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    outline: 2px solid var(--color-primary);
+    outline-offset: 4px;
+  }
+
+  .brand-focus-brutal {
+    padding: var(--spacing-md) var(--spacing-xl);
+    border: 2px solid var(--color-primary);
+    border-radius: 0;
+    color: var(--color-primary);
+    font-family: monospace;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
   }
 
   /* Skeleton loading — brutalist variant */
