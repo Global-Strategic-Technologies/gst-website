@@ -642,6 +642,8 @@ trackPageView('brand', 'Brand Style Reference');
 <section class="brand-section" id="transitions">
   <div class="container">
     <h2 class="heading-md brand-section__title">Transitions</h2>
+
+    <h3 class="heading-sm brand-group-title">Current</h3>
     <div class="brand-transition-grid">
       <div class="brand-transition-demo" style="transition: transform var(--transition-fast), background var(--transition-fast);">
         <code class="brand-code">--transition-fast</code>
@@ -657,6 +659,26 @@ trackPageView('brand', 'Brand Style Reference');
         <code class="brand-code">--transition-slow</code>
         <span class="brand-transition-value" data-var="--transition-slow"></span>
         <span class="brand-transition-hint text-tiny">Hover me</span>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Brutalist</h3>
+    <p class="text-small brand-section__note">Border-color and text-color transitions instead of scale transforms. State changes are immediate and structural — no lift, no grow.</p>
+    <div class="brand-transition-grid">
+      <div class="brand-transition-brutal" style="transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);">
+        <code class="brand-code">--transition-fast</code>
+        <span class="brand-transition-value" data-var="--transition-fast"></span>
+        <span class="brand-transition-brutal__hint">Hover me</span>
+      </div>
+      <div class="brand-transition-brutal" style="transition: border-color var(--transition-normal), color var(--transition-normal), background var(--transition-normal);">
+        <code class="brand-code">--transition-normal</code>
+        <span class="brand-transition-value" data-var="--transition-normal"></span>
+        <span class="brand-transition-brutal__hint">Hover me</span>
+      </div>
+      <div class="brand-transition-brutal" style="transition: border-color var(--transition-slow), color var(--transition-slow), background var(--transition-slow);">
+        <code class="brand-code">--transition-slow</code>
+        <span class="brand-transition-value" data-var="--transition-slow"></span>
+        <span class="brand-transition-brutal__hint">Hover me</span>
       </div>
     </div>
   </div>
@@ -829,7 +851,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Skeleton Loading</h3>
+    <h3 class="heading-sm brand-group-title">Skeleton Loading (Current)</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brand-skeleton-demo">
@@ -842,7 +864,24 @@ trackPageView('brand', 'Brand Style Reference');
             <div class="skeleton-dot"></div>
           </div>
         </div>
-        <code class="brand-code">.skeleton-bar, .skeleton-bar--sm, .skeleton-dot</code>
+        <code class="brand-code">.skeleton-bar, .skeleton-bar--sm, .skeleton-dot — rounded, accent tint, pulse animation</code>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Skeleton Loading (Brutalist)</h3>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div class="brand-skeleton-brutal-demo">
+          <div class="brand-skeleton-brutal-bar" style="width: 80%;"></div>
+          <div class="brand-skeleton-brutal-bar" style="width: 60%;"></div>
+          <div class="brand-skeleton-brutal-bar brand-skeleton-brutal-bar--sm" style="width: 40%;"></div>
+          <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
+            <div class="brand-skeleton-brutal-dot"></div>
+            <div class="brand-skeleton-brutal-dot"></div>
+            <div class="brand-skeleton-brutal-dot"></div>
+          </div>
+        </div>
+        <code class="brand-code">skeleton (brutalist) — no radius, border-only, blink animation</code>
       </div>
     </div>
 
@@ -1882,6 +1921,51 @@ trackPageView('brand', 'Brand Style Reference');
     cursor: pointer;
   }
 
+  /* Skeleton loading — brutalist variant */
+  .brand-skeleton-brutal-demo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg);
+    background: var(--bg-light);
+    border: 2px solid var(--border-light);
+    border-left: 3px solid var(--color-primary);
+    border-radius: 0;
+    max-width: 400px;
+  }
+
+  :global(html.dark-theme) .brand-skeleton-brutal-demo {
+    border-color: rgba(255, 255, 255, 0.1);
+    border-left-color: var(--color-primary);
+  }
+
+  .brand-skeleton-brutal-bar {
+    height: 0.875rem;
+    background: transparent;
+    border: 1px solid var(--color-primary);
+    border-radius: 0;
+    animation: brutal-blink 1.5s step-end infinite;
+  }
+
+  .brand-skeleton-brutal-bar--sm {
+    height: 0.625rem;
+  }
+
+  .brand-skeleton-brutal-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 0;
+    background: transparent;
+    border: 1px solid var(--color-primary);
+    flex-shrink: 0;
+    animation: brutal-blink 1.5s step-end infinite;
+  }
+
+  @keyframes brutal-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
   /* Left-align shell specimens (override global margin: 0 auto) */
   .brand-component-item .tool-shell,
   .brand-component-item .brand-shell-brutal {
@@ -1894,10 +1978,50 @@ trackPageView('brand', 'Brand Style Reference');
     flex-direction: column;
     gap: var(--spacing-sm);
     padding: var(--spacing-lg);
-    background: var(--bg-light-alt);
+    background: var(--bg-light);
     border-radius: 6px;
     border: 1px solid var(--border-light);
     max-width: 400px;
+  }
+
+  /* ==============================
+     Brutalist Transitions
+     ============================== */
+
+  .brand-transition-brutal {
+    background: transparent;
+    border: 2px solid var(--border-light);
+    border-radius: 0;
+    padding: var(--spacing-2xl);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    user-select: none;
+    color: var(--text-secondary);
+  }
+
+  .brand-transition-brutal:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: var(--accent-subtle-bg);
+  }
+
+  :global(html.dark-theme) .brand-transition-brutal {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  :global(html.dark-theme) .brand-transition-brutal:hover {
+    border-color: var(--color-primary);
+  }
+
+  .brand-transition-brutal__hint {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faded);
   }
 
   /* ==============================
