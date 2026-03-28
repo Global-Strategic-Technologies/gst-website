@@ -718,7 +718,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Tool Shell</h3>
+    <h3 class="heading-sm brand-group-title">Tool Shell (Current)</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="tool-shell">
@@ -728,37 +728,69 @@ trackPageView('brand', 'Brand Style Reference');
             <p class="text-small">Default shell — <code class="brand-code">700px</code> max-width</p>
           </div>
         </div>
-        <code class="brand-code">.tool-shell</code>
+        <code class="brand-code">.tool-shell — 700px max-width, rounded corners, bg-light-alt fill</code>
       </div>
     </div>
-    <div class="brand-shell-variants">
-      <div class="brand-component-item">
-        <div class="tool-shell tool-shell--narrow brand-shell-mini">
-          <div class="tool-content"><span class="text-tiny">narrow</span></div>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div class="tool-shell tool-shell--narrow">
+          <div class="tool-content"><span class="text-tiny">narrow — 660px</span></div>
         </div>
         <code class="brand-code">.tool-shell--narrow</code>
-        <span class="text-tiny">660px</span>
       </div>
-      <div class="brand-component-item">
-        <div class="tool-shell brand-shell-mini">
-          <div class="tool-content"><span class="text-tiny">default</span></div>
-        </div>
-        <code class="brand-code">.tool-shell</code>
-        <span class="text-tiny">700px</span>
-      </div>
-      <div class="brand-component-item">
-        <div class="tool-shell tool-shell--wide brand-shell-mini">
-          <div class="tool-content"><span class="text-tiny">wide</span></div>
+    </div>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div class="tool-shell tool-shell--wide">
+          <div class="tool-content"><span class="text-tiny">wide — 760px</span></div>
         </div>
         <code class="brand-code">.tool-shell--wide</code>
-        <span class="text-tiny">760px</span>
       </div>
-      <div class="brand-component-item">
-        <div class="tool-shell tool-shell--document brand-shell-mini">
-          <div class="tool-content"><span class="text-tiny">document</span></div>
+    </div>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div class="tool-shell tool-shell--document">
+          <div class="tool-content"><span class="text-tiny">document — 800px</span></div>
         </div>
         <code class="brand-code">.tool-shell--document</code>
-        <span class="text-tiny">800px</span>
+      </div>
+    </div>
+
+    <h3 class="heading-sm brand-group-title">Tool Shell (Brutalist)</h3>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div class="brand-shell-brutal">
+          <div class="brand-shell-brutal__content">
+            <div class="brand-shell-brutal__authority">Tool Authority Line</div>
+            <div class="brand-shell-brutal__section-label">Section Label</div>
+            <p class="brand-brutal-text-small">Default shell — <code class="brand-code">700px</code> max-width</p>
+          </div>
+        </div>
+        <code class="brand-code">.tool-shell (brutalist) — no radius, transparent bg, top-border accent</code>
+      </div>
+    </div>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div class="brand-shell-brutal" style="max-width: 660px;">
+          <div class="brand-shell-brutal__content"><span class="brand-brutal-text-tiny">narrow — 660px</span></div>
+        </div>
+        <code class="brand-code">--narrow</code>
+      </div>
+    </div>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div class="brand-shell-brutal brand-shell-brutal--wide">
+          <div class="brand-shell-brutal__content"><span class="brand-brutal-text-tiny">wide — 760px</span></div>
+        </div>
+        <code class="brand-code">--wide</code>
+      </div>
+    </div>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div class="brand-shell-brutal brand-shell-brutal--document">
+          <div class="brand-shell-brutal__content"><span class="brand-brutal-text-tiny">document — 800px</span></div>
+        </div>
+        <code class="brand-code">--document</code>
       </div>
     </div>
 
@@ -1831,17 +1863,11 @@ trackPageView('brand', 'Brand Style Reference');
     cursor: pointer;
   }
 
-  .brand-shell-variants {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--gap-wide);
-    align-items: flex-start;
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .brand-shell-mini {
-    max-width: 100% !important;
-    width: 160px;
+  /* Left-align shell specimens (override global margin: 0 auto) */
+  .brand-component-item .tool-shell,
+  .brand-component-item .brand-shell-brutal {
+    margin-left: 0;
+    margin-right: auto;
   }
 
   .brand-skeleton-demo {
@@ -1853,6 +1879,58 @@ trackPageView('brand', 'Brand Style Reference');
     border-radius: 6px;
     border: 1px solid var(--border-light);
     max-width: 400px;
+  }
+
+  /* ==============================
+     Brutalist Tool Shell
+     ============================== */
+
+  .brand-shell-brutal {
+    max-width: 700px;
+    margin: 0 auto;
+    background: transparent;
+    border: 2px solid var(--border-light);
+    border-top: 3px solid var(--color-primary);
+    border-radius: 0;
+  }
+
+  :global(html.dark-theme) .brand-shell-brutal {
+    border-color: rgba(255, 255, 255, 0.1);
+    border-top-color: var(--color-primary);
+  }
+
+  .brand-shell-brutal--wide {
+    max-width: 760px;
+  }
+
+  .brand-shell-brutal--document {
+    max-width: 800px;
+  }
+
+  .brand-shell-brutal__content {
+    padding: var(--spacing-xl) var(--spacing-lg);
+  }
+
+  .brand-shell-brutal__authority {
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    font-family: monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faded);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .brand-shell-brutal__section-label {
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    font-family: monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-md);
   }
 
   /* ==============================
