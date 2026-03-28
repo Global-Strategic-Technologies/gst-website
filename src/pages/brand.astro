@@ -1115,7 +1115,7 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
     <code class="brand-code">.icg-rec-card (brutalist) — no radius, left-border accent, outlined badges, monospace title</code>
 
-    <h4 class="label brand-subgroup-title">Attention Card</h4>
+    <h4 class="label brand-subgroup-title">Attention Card (Current)</h4>
     <div class="brand-card-grid brand-card-grid--single" style="max-width: 600px;">
       <div class="brand-attention-card brand-attention-card--high" id="demo-attention-card">
         <div class="brand-attention-header">
@@ -1129,7 +1129,22 @@ trackPageView('brand', 'Brand Style Reference');
         <p class="brand-attention-desc">Small engineering teams in on-premise environments often concentrate critical knowledge in 1–2 individuals. Assess key person dependencies and knowledge gaps before close.</p>
       </div>
     </div>
-    <code class="brand-code">.doc-attention-card — left-border accent by relevance (high=blue, medium=brown), collapsible, N/A dismiss</code>
+    <code class="brand-code">.doc-attention-card — rounded corners, tinted bg by relevance, colored divider</code>
+
+    <h4 class="label brand-subgroup-title">Attention Card (Brutalist)</h4>
+    <div class="brand-card-grid brand-card-grid--single" style="max-width: 600px;">
+      <div class="brand-attention-brutal brand-attention-brutal--high" id="demo-attention-brutal">
+        <div class="brand-attention-brutal__header">
+          <h3 class="brand-attention-brutal__title">Key-Person Technical Dependencies</h3>
+          <button class="brand-attention-brutal__na" id="demo-attention-brutal-na" type="button" title="Mark as not applicable">N/A</button>
+          <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/>
+          </svg>
+        </div>
+        <p class="brand-attention-brutal__desc">Small engineering teams in on-premise environments often concentrate critical knowledge in 1–2 individuals. Assess key person dependencies and knowledge gaps before close.</p>
+      </div>
+    </div>
+    <code class="brand-code">.doc-attention-card (brutalist) — no radius, no bg fill, hard left-border, monospace title, no divider</code>
 
     <!-- 8c. Form Controls -->
     <h3 class="heading-sm brand-group-title">Form Controls</h3>
@@ -1171,7 +1186,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Range Slider</h4>
+    <h4 class="label brand-subgroup-title">Range Slider (Current)</h4>
     <div class="brand-component-row">
       <div class="brand-component-item" style="width: 300px;">
         <div class="brand-slider-row">
@@ -1184,7 +1199,24 @@ trackPageView('brand', 'Brand Style Reference');
             <input type="number" class="brand-hint-input" id="demo-slider-direct" min="1" max="50" step="1" value="8" aria-label="Team size" />
           </div>
         </div>
-        <code class="brand-code">.slider-row, .calc-slider, .hint-input — synced range + number input</code>
+        <code class="brand-code">.calc-slider — circular thumb, rounded track, rounded hint input</code>
+      </div>
+    </div>
+
+    <h4 class="label brand-subgroup-title">Range Slider (Brutalist)</h4>
+    <div class="brand-component-row">
+      <div class="brand-component-item" style="width: 300px;">
+        <div class="brand-slider-brutal">
+          <div class="brand-slider-brutal__header">
+            <label class="brand-slider-brutal__label" for="demo-slider-brutal">Team Size</label>
+            <span class="brand-slider-brutal__value" id="demo-slider-brutal-value">8</span>
+          </div>
+          <input id="demo-slider-brutal" type="range" min="1" max="50" step="1" value="8" class="brand-slider-brutal__input" />
+          <div class="brand-slider-brutal__hints">
+            <input type="number" class="brand-slider-brutal__direct" id="demo-slider-brutal-direct" min="1" max="50" step="1" value="8" aria-label="Team size" />
+          </div>
+        </div>
+        <code class="brand-code">.calc-slider (brutalist) — square thumb, hard track, no-radius direct input, monospace throughout</code>
       </div>
     </div>
 
@@ -2106,19 +2138,136 @@ trackPageView('brand', 'Brand Style Reference');
     color: var(--color-primary);
   }
 
+  /* Range slider — brutalist variant */
+  .brand-slider-brutal {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .brand-slider-brutal__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--gap-tight);
+  }
+
+  .brand-slider-brutal__label {
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    font-family: monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+
+  .brand-slider-brutal__value {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    font-family: monospace;
+    color: var(--color-primary);
+    white-space: nowrap;
+  }
+
+  .brand-slider-brutal__input {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 24px;
+    background: transparent;
+    outline: none;
+    cursor: pointer;
+    display: block;
+    padding: 0;
+    margin: 0;
+  }
+
+  .brand-slider-brutal__input::-webkit-slider-runnable-track {
+    height: 2px;
+    background: var(--border-light);
+    border-radius: 0;
+  }
+
+  .brand-slider-brutal__input::-moz-range-track {
+    height: 2px;
+    background: var(--border-light);
+    border-radius: 0;
+  }
+
+  .brand-slider-brutal__input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--color-primary);
+    border-radius: 0;
+    cursor: pointer;
+    margin-top: -7px;
+    transition: background var(--transition-fast), box-shadow var(--transition-fast);
+    box-shadow: none;
+  }
+
+  .brand-slider-brutal__input::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 0 4px rgba(5, 205, 153, 0.2);
+  }
+
+  .brand-slider-brutal__input::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--color-primary);
+    border-radius: 0;
+    border: none;
+    cursor: pointer;
+  }
+
+  .brand-slider-brutal__hints {
+    display: flex;
+    justify-content: center;
+    margin-top: 2px;
+  }
+
+  .brand-slider-brutal__direct {
+    width: 33%;
+    text-align: center;
+    border: 1px solid var(--border-light);
+    border-radius: 0;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-family: monospace;
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-secondary);
+    background: transparent;
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+    -moz-appearance: textfield;
+  }
+
+  .brand-slider-brutal__direct::-webkit-inner-spin-button,
+  .brand-slider-brutal__direct::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .brand-slider-brutal__direct:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
   /* Recommendation card */
   .brand-rec-card {
     display: flex;
     gap: var(--gap-normal);
-    padding: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-md);
     border: 1px solid var(--border-light);
     border-radius: 8px;
+    background: var(--bg-light-alt);
     cursor: pointer;
     transition: opacity var(--transition-normal), border-style var(--transition-normal);
   }
 
   :global(html.dark-theme) .brand-rec-card {
-    border-color: var(--accent-dark-bg);
+    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--bg-dark-secondary);
   }
 
   .brand-rec-card.is-dismissed {
@@ -2671,6 +2820,101 @@ trackPageView('brand', 'Brand Style Reference');
   .brand-attention-card.is-collapsed .brand-attention-desc {
     max-height: 0;
     opacity: 0;
+  }
+
+  /* Attention card — brutalist variant */
+  .brand-attention-brutal {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border: 2px solid var(--border-light);
+    border-left: 3px solid var(--color-primary);
+    border-radius: 0;
+    background: transparent;
+    cursor: pointer;
+    transition: opacity var(--transition-normal), padding var(--transition-normal);
+  }
+
+  .brand-attention-brutal--high {
+    border-left-color: var(--hub-authority-blue);
+  }
+
+  .brand-attention-brutal--medium {
+    border-left-color: var(--dm-methodology-brown);
+  }
+
+  :global(html.dark-theme) .brand-attention-brutal {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  :global(html.dark-theme) .brand-attention-brutal--high {
+    border-left-color: var(--hub-authority-blue);
+  }
+
+  .brand-attention-brutal.is-dismissed {
+    opacity: 0.45;
+    border-style: dashed;
+  }
+
+  .brand-attention-brutal.is-collapsed {
+    padding-top: var(--spacing-sm);
+    padding-bottom: var(--spacing-sm);
+  }
+
+  .brand-attention-brutal__header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .brand-attention-brutal__title {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    font-family: monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+    line-height: 1.3;
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .brand-attention-brutal__na {
+    flex-shrink: 0;
+    padding: 1px var(--spacing-sm);
+    font-size: 0.6rem;
+    font-weight: var(--font-weight-bold);
+    font-family: monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px dashed var(--border-light);
+    border-radius: 0;
+    cursor: pointer;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .brand-attention-brutal__na:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  .brand-attention-brutal__desc {
+    font-size: var(--text-sm);
+    font-family: monospace;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: var(--spacing-sm) 0 0;
+    transition: max-height var(--transition-normal), opacity var(--transition-normal), margin var(--transition-normal);
+    max-height: 200px;
+    opacity: 1;
+    overflow: hidden;
+  }
+
+  .brand-attention-brutal.is-collapsed .brand-attention-brutal__desc {
+    max-height: 0;
+    opacity: 0;
+    margin: 0;
   }
 
   /* Breadcrumb demo */
@@ -4126,6 +4370,22 @@ trackPageView('brand', 'Brand Style Reference');
       });
     }
 
+    // Brutalist slider demo — sync range, number input, and display value
+    const sliderBrutal = document.getElementById('demo-slider-brutal') as HTMLInputElement;
+    const sliderBrutalDirect = document.getElementById('demo-slider-brutal-direct') as HTMLInputElement;
+    const sliderBrutalValue = document.getElementById('demo-slider-brutal-value');
+    if (sliderBrutal && sliderBrutalDirect && sliderBrutalValue) {
+      sliderBrutal.addEventListener('input', () => {
+        sliderBrutalValue.textContent = sliderBrutal.value;
+        sliderBrutalDirect.value = sliderBrutal.value;
+      });
+      sliderBrutalDirect.addEventListener('input', () => {
+        const v = Math.min(Math.max(parseInt(sliderBrutalDirect.value) || 1, 1), 50);
+        sliderBrutal.value = String(v);
+        sliderBrutalValue.textContent = String(v);
+      });
+    }
+
     // Option card single-select demo (current)
     document.querySelectorAll<HTMLElement>('[data-demo-option]').forEach(card => {
       card.addEventListener('click', () => {
@@ -4201,6 +4461,21 @@ trackPageView('brand', 'Brand Style Reference');
     if (recBrutalNa && recBrutal) {
       recBrutalNa.addEventListener('click', () => {
         recBrutal.classList.toggle('is-dismissed');
+      });
+    }
+
+    // Brutalist attention card — collapse toggle and N/A dismiss
+    const attBrutal = document.getElementById('demo-attention-brutal');
+    const attBrutalNa = document.getElementById('demo-attention-brutal-na');
+    if (attBrutal) {
+      attBrutal.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('.brand-attention-brutal__na')) return;
+        attBrutal.classList.toggle('is-collapsed');
+      });
+    }
+    if (attBrutalNa && attBrutal) {
+      attBrutalNa.addEventListener('click', () => {
+        attBrutal.classList.toggle('is-dismissed');
       });
     }
 
