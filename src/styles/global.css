@@ -3388,7 +3388,7 @@ html.dark-theme .brutal-legend__swatch {
 }
 
 .brutal-map-cta__icon {
-    color: var(--text-muted);
+    color: var(--color-secondary);
     flex-shrink: 0;
 }
 
