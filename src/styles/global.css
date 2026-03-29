@@ -3432,7 +3432,7 @@ html.dark-theme .brutal-map-cta {
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    padding: 3px var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: 0;
     border-left: 3px solid transparent;
     cursor: pointer;
