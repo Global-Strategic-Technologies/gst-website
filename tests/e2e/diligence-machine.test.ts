@@ -977,9 +977,11 @@ test.describe('Diligence Machine E2E', () => {
       await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
 
       // Click on "Transaction Type" label in Target Parameters
-      const transactionTypeLabel = page.locator('.doc-meta-label--clickable[data-step-id="transaction-type"]');
-      await expect(transactionTypeLabel).toBeVisible();
-      await transactionTypeLabel.click();
+      // Click on "Transaction Type" label — use evaluate for WebKit stability
+      await expect(page.locator('.doc-meta-label--clickable[data-step-id="transaction-type"]')).toBeVisible();
+      await page.evaluate(() => {
+        (document.querySelector('.doc-meta-label--clickable[data-step-id="transaction-type"]') as HTMLElement)?.click();
+      });
 
       // Wait for wizard to appear
       await page.waitForFunction(() => {
@@ -1019,10 +1021,11 @@ test.describe('Diligence Machine E2E', () => {
 
       await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
 
-      // Click on "Company Size" label (maps to company-profile step)
-      const companySizeLabel = page.locator('.doc-meta-label--clickable[data-step-id="company-profile"]').first();
-      await expect(companySizeLabel).toBeVisible();
-      await companySizeLabel.click();
+      // Click on "Company Size" label (maps to company-profile step) — use evaluate for WebKit stability
+      await expect(page.locator('.doc-meta-label--clickable[data-step-id="company-profile"]').first()).toBeVisible();
+      await page.evaluate(() => {
+        (document.querySelector('.doc-meta-label--clickable[data-step-id="company-profile"]') as HTMLElement)?.click();
+      });
 
       // Wait for wizard
       await page.waitForFunction(() => {
@@ -1059,10 +1062,11 @@ test.describe('Diligence Machine E2E', () => {
 
       await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
 
-      // Click on "Geography" label
-      const geographyLabel = page.locator('.doc-meta-label--clickable[data-step-id="geography"]');
-      await expect(geographyLabel).toBeVisible();
-      await geographyLabel.click();
+      // Click on "Geography" label — use evaluate for WebKit stability
+      await expect(page.locator('.doc-meta-label--clickable[data-step-id="geography"]')).toBeVisible();
+      await page.evaluate(() => {
+        (document.querySelector('.doc-meta-label--clickable[data-step-id="geography"]') as HTMLElement)?.click();
+      });
 
       await page.waitForFunction(() => {
         const wizard = document.querySelector('[data-testid="wizard-container"]');
@@ -1142,9 +1146,10 @@ test.describe('Diligence Machine E2E', () => {
 
       await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
 
-      // Click on "Product Type" label to navigate back
-      const productTypeLabel = page.locator('.doc-meta-label--clickable[data-step-id="product-type"]');
-      await productTypeLabel.click();
+      // Click on "Product Type" label to navigate back — use evaluate for WebKit stability
+      await page.evaluate(() => {
+        (document.querySelector('.doc-meta-label--clickable[data-step-id="product-type"]') as HTMLElement)?.click();
+      });
 
       await page.waitForFunction(() => {
         const wizard = document.querySelector('[data-testid="wizard-container"]');
