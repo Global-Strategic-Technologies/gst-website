@@ -459,7 +459,7 @@ import caData from '../../../../data/canada-provinces.json';
     };
 
     document.getElementById('mapQuickZoom')?.addEventListener('click', (e) => {
-        const btn = (e.target as HTMLElement).closest('.quick-zoom-btn') as HTMLElement | null;
+        const btn = (e.target as HTMLElement).closest('.brutal-quick-zoom') as HTMLElement | null;
         if (!btn) return;
         const region = btn.dataset.region ?? '';
         const view = REGION_VIEWS[region];
@@ -1353,10 +1353,10 @@ import caData from '../../../../data/canada-provinces.json';
 <script>
     import { trackEvent } from '../../../../utils/analytics';
 
-    document.querySelectorAll('.faq-item').forEach((item) => {
+    document.querySelectorAll('.brutal-faq__item').forEach((item) => {
         item.addEventListener('toggle', () => {
             const details = item as HTMLDetailsElement;
-            const question = details.querySelector('.faq-question')?.textContent?.trim() || '';
+            const question = details.querySelector('.brutal-faq__question')?.textContent?.trim() || '';
             trackEvent({
                 event: 'faq_interaction',
                 category: 'engagement',
