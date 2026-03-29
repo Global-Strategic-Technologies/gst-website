@@ -77,8 +77,8 @@
     }
   }
 
-  /* Hide +/−/reset on phone — quick-zoom buttons provide navigation */
-  @media (max-width: 767px) {
+  /* Hide +/−/reset on mobile — quick-zoom buttons provide navigation */
+  @media (max-width: 1023px) {
     .map-controls {
       display: none;
     }
@@ -253,12 +253,12 @@
     }
   }
 
-  /* Quick-zoom container — mobile only positioning */
+  /* Quick-zoom container — mobile/tablet positioning */
   .map-quick-zoom {
     display: none;
   }
 
-  @media (max-width: 767px) {
+  @media (max-width: 1023px) {
     .map-quick-zoom {
       display: flex;
       gap: var(--spacing-xs);
