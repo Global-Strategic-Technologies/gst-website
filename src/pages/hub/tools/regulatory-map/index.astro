@@ -270,11 +270,12 @@ import caData from '../../../../data/canada-provinces.json';
 
     sheetHandle?.addEventListener('touchend', () => {
         compliancePanel.style.transition = '';
+        compliancePanel.style.transform = '';
         const dy = sheetCurrentY - sheetStartY;
         if (dy > 80) {
             closeBottomSheet();
+            compliancePanel.hidden = true;
         } else {
-            compliancePanel.style.transform = '';
             compliancePanel.classList.add('brutal-panel--sheet-open');
         }
     });
