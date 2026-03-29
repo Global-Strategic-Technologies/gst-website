@@ -763,6 +763,17 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
         outline: none;
     }
 
+    :global(html.dark-theme) .currency-select {
+        background-color: var(--bg-dark-secondary);
+        color: var(--text-secondary);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .currency-select option {
+        background-color: var(--bg-dark-secondary);
+        color: var(--text-secondary);
+    }
+
     /* ── Copy Link button ─────────────────────────────────────────────────── */
     /* Button overrides (base styles from global .hub-btn) */
     .copy-link-btn {
