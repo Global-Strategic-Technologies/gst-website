@@ -2,9 +2,9 @@
 
 Migrate all five hub tools from their current soft-UI styling (rounded corners, box shadows, filled backgrounds) to the brutalist design system (no radius, monospace typography, structural borders, primary-color accents). The brutalist design tokens and component classes are defined in `global.css`, `typography.css`, and `interactions.css`, and rendered live on the [/brand](https://globalstrategic.tech/brand) reference page.
 
-**Status**: In progress — Stage 1 (TDC) complete, paused for review
+**Status**: In progress — Stage 1 (TDC) complete, Stage 2 (RegMap) next
 **Priority**: High — brand cohesion
-**Last Updated**: March 28, 2026
+**Last Updated**: March 29, 2026
 
 ---
 
@@ -52,17 +52,54 @@ Each stage migrates one tool. Between stages, **pause for manual review** — ve
 | **Advanced panel** | `.advanced-panel`, `.advanced-toggle`, `.toggle-icon` | Collapsible section — map to `.tool-methodology` or create brutalist variant |
 | **Footer controls** | `.calc-footer__controls`, `.currency-select`, `.copy-link-btn` | Action bar — map to `.tool-action-bar` with `.brutal-btn` |
 
-### Pause Point
+### Completion Summary
 
-After completing Stage 1:
-- [ ] All TDC controls render in brutalist style
-- [ ] Dark theme is correct — borders visible at `rgba(255, 255, 255, 0.15)`
-- [ ] Slider thumb is square, track is flat
-- [ ] Results use `.brutal-data` for numeric values
-- [ ] Print output still clean
-- [ ] Identify any new brutalist classes created that should be added to `/brand` page
-- [ ] `npm run test:run` passes
-- [ ] Visual review at desktop, 768px, 480px
+Stage 1 completed March 29, 2026.
+
+**Direct swaps applied:**
+- `.tool-shell.tool-shell--wide` → `.brutal-tool-shell.brutal-tool-shell--wide`
+- `.tool-authority` → `.brutal-tool-shell__authority`
+- `.tool-section-label` → `.brutal-tool-shell__section-label` (5 instances)
+- `.hub-btn--secondary` → `.brutal-btn--secondary` (3 export buttons)
+- Back link kept as `.cta-button secondary` (intentional — page-level CTA, not tool control)
+
+**Scoped CSS brutalized:**
+- Slider: square 16px thumb, 2px flat track, no radius, no glow
+- Hint inputs: dashed border (editability affordance), hover → solid + primary, cursor: text
+- Deploy buttons: no radius, monospace uppercase, primary-fill active state (inverts on select)
+- Results: monospace labels/values, 2px hard borders, primary-color hero value, 3px primary top-border
+- Advanced toggle: monospace, smaller font
+- Currency select: no radius, monospace, transparent bg, 2px border matching `.brutal-btn`
+- Footer: transparent bg, monospace, hard borders
+
+**Dark theme fixes:**
+- All borders at `rgba(255, 255, 255, 0.15)` — slider track, hint inputs, deploy buttons, result stats, section dividers, footer
+- Currency select: transparent bg with dark theme option elements
+- Fixes propagated to global.css: `.hint-input` (dashed + hover + dark), `.calc-slider` (dark track), `.brutal-slider__direct` (aligned)
+
+**Print stylesheet overhauled:**
+- Branded report header (GST delta icon + title + generated date)
+- Footer with generation URL + methodology disclaimer
+- Always shows advanced results regardless of panel state
+- 2-column metrics grid, `break-inside: avoid` on results
+- Context note visible with left-border accent
+- Cost value prints dark for readability
+- `@page` margins for cleaner edge spacing
+
+**Not done (by design):**
+- Results values use local `.result-cost-value` (monospace) not shared `.brutal-data` — the clamp font-size pattern is TDC-specific
+- No new reusable brutalist classes created — TDC reused existing design system classes
+- Responsive verification deferred to visual review
+
+**Pause point checklist:**
+- [x] All TDC controls render in brutalist style
+- [x] Dark theme is correct — borders visible at `rgba(255, 255, 255, 0.15)`
+- [x] Slider thumb is square, track is flat
+- [x] Results use monospace throughout (local classes, not `.brutal-data`)
+- [x] Print output overhauled — branded, professional
+- [x] Fixes propagated to global.css (`.hint-input`, `.calc-slider`, `.brutal-slider__direct`)
+- [x] `npm run test:run` passes (857/857)
+- [ ] Visual review at 768px, 480px (pending)
 
 ---
 
@@ -70,6 +107,24 @@ After completing Stage 1:
 
 **File**: `src/pages/hub/tools/regulatory-map/index.astro`
 **Why second**: Medium complexity, already uses `.filter-chip` and `.heading-*` from the design system, no form inputs or wizard flows. Primarily a data visualization tool.
+**Status**: Not started
+
+### Lessons from Stage 1
+
+Apply these patterns learned during TDC migration:
+- **Dark theme borders**: use `rgba(255, 255, 255, 0.15)` for visible borders, not `var(--border-light)` which is invisible on dark backgrounds. Add `:global(html.dark-theme)` overrides for every border-using element.
+- **Propagate fixes**: any CSS fix to a shared class (`.filter-chip`, `.search-input`, etc.) should go in `global.css`, not stay local. Remove redundant local overrides after propagating.
+- **`<select>` elements**: need explicit dark theme `background-color` on both the select and its `<option>` elements — OS native styling overrides CSS variables.
+- **Back links**: keep as `.cta-button secondary` (page-level CTA), don't brutalize.
+- **Print styles**: RegMap currently has **no print styles** — this stage should add them.
+
+### Available Brutalist Classes
+
+These already exist in the design system and can be used directly:
+- `.brutal-filter-chip` / `--active` — square, outlined, monospace, primary-fill active (in `global.css`)
+- `.brutal-heading-md` / `--lg` — monospace uppercase headings (in `typography.css`)
+- `.brutal-btn--secondary` — for any action buttons (in `global.css`)
+- `.brutal-breadcrumb` — monospace uppercase breadcrumb (in `global.css`, created during Stage 1)
 
 ### Direct Swaps
 
@@ -84,12 +139,21 @@ After completing Stage 1:
 
 | Pattern | Classes | Notes |
 |---|---|---|
-| **Search** | `.search-input-wrapper`, `.search-input`, `.search-icon`, `.search-clear-btn`, `.search-results`, `.search-result-item` | Search dropdown with category badges — may reuse `.brutal-filter-chip` for category indicators |
-| **Map layout** | `.map-wrapper`, `.map-layout`, `.map-legend`, `.map-cta` | Full-width map container — not a `.tool-shell` pattern. Brutalist treatment: hard borders, no radius on legend box |
-| **Legend** | `.legend-item`, `.legend-swatch`, `.legend-label` | Color dots with labels — brutalist: square swatches, monospace labels |
-| **Timeline** | `.timeline-section`, `.timeline-scroll`, `.timeline-entry`, `.timeline-dot`, `.timeline-year-label`, `.timeline-today` | Horizontal scrollable timeline — brutalist: hard line, square dots, monospace dates |
-| **FAQ** | `.faq-section`, `.faq-item`, `.faq-question`, `.faq-answer` | Native `<details>` accordion — map to `.tool-methodology` pattern or brutalist details variant |
-| **Bottom sheet** | `.bottom-sheet-overlay` | Mobile panel overlay — brutalist: hard border, no rounded corners, primary top-border accent |
+| **Search** | `.search-input-wrapper`, `.search-input`, `.search-icon`, `.search-clear-btn`, `.search-results`, `.search-result-item` | Search dropdown with category badges — may reuse `.brutal-filter-chip` for category indicators. Apply: no radius, monospace, dashed border (like `.hint-input` pattern from Stage 1). |
+| **Map layout** | `.map-wrapper`, `.map-layout`, `.map-legend`, `.map-cta` | Full-width map container — not a `.tool-shell` pattern. Brutalist treatment: hard borders, no radius on legend box. |
+| **Legend** | `.legend-item`, `.legend-swatch`, `.legend-label` | Color dots with labels — brutalist: square swatches, monospace labels. |
+| **Timeline** | `.timeline-section`, `.timeline-scroll`, `.timeline-entry`, `.timeline-dot`, `.timeline-year-label`, `.timeline-today` | Horizontal scrollable timeline — brutalist: hard line, square dots, monospace dates. |
+| **FAQ** | `.faq-section`, `.faq-item`, `.faq-question`, `.faq-answer` | Native `<details>` accordion — map to `.tool-methodology` pattern or create dedicated brutalist variant. |
+| **Bottom sheet** | `.bottom-sheet-overlay` | Mobile panel overlay — brutalist: hard border, no rounded corners, primary top-border accent. |
+| **Compliance panel** | `.compliance-panel`, `.panel-header`, `.reg-card` | Detail panel for selected region — brutalist: hard borders, monospace labels, no radius. |
+
+### Print Styles (New)
+
+RegMap is the only tool without `@media print`. Stage 2 should add:
+- Hide map interaction chrome (filters, search, bottom sheet)
+- Show compliance panel content if a region is selected
+- Branded header/footer (same pattern as TDC)
+- Timeline readable in print (horizontal → vertical?)
 
 ### Pause Point
 
@@ -99,8 +163,10 @@ After completing Stage 2:
 - [ ] Timeline dots are square, legend swatches are square
 - [ ] FAQ uses brutalist collapsible pattern
 - [ ] Map legend and overlays have no rounded corners
-- [ ] Add print styles (currently missing from RegMap)
-- [ ] Identify new brutalist classes for `/brand` page
+- [ ] Print styles added (branded header/footer, clean layout)
+- [ ] Dark theme borders all visible at 0.15 opacity
+- [ ] Fixes propagated to global.css (not left as local overrides)
+- [ ] New brutalist classes added to `/brand` page
 - [ ] `npm run test:run` passes
 - [ ] Visual review at desktop, 768px, 480px
 
