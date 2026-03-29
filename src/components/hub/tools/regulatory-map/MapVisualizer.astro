@@ -197,6 +197,50 @@
     stroke-width: 0.8;
   }
 
+  /* Tap bar — mobile only */
+  .brutal-map-tap-bar {
+    display: none;
+  }
+
+  @media (max-width: 1023px) {
+    .brutal-map-tap-bar {
+      display: flex;
+    }
+
+    .brutal-map-tap-bar[hidden] {
+      display: none;
+    }
+  }
+
+  /* Pinch hint — mobile only positioning */
+  .brutal-map-hint {
+    display: none;
+  }
+
+  @media (max-width: 1023px) {
+    .brutal-map-hint {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      z-index: 15;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity var(--transition-normal);
+    }
+
+    .brutal-map-hint.visible {
+      opacity: 1;
+    }
+
+    .brutal-map-hint[hidden] {
+      display: none;
+    }
+  }
+
   /* Quick-zoom container — mobile only positioning */
   .map-quick-zoom {
     display: none;
@@ -211,5 +255,28 @@
       right: var(--spacing-sm);
       z-index: 5;
     }
+  }
+
+  /* Mobile zoom button touch targets */
+  @media (max-width: 767px) {
+    .brutal-map-control {
+      width: 44px;
+      height: 44px;
+    }
+
+    .brutal-map-control svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  /* Tooltip visibility */
+  .brutal-map-tooltip {
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+  }
+
+  .brutal-map-tooltip.visible {
+    opacity: 1;
   }
 </style>
