@@ -167,7 +167,7 @@ html.dark-theme .accent-light-bg-hover {
 }
 
 html.dark-theme .brutal-interactive {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 html.dark-theme .brutal-interactive:focus-visible {

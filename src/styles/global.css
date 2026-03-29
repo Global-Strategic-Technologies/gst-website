@@ -1873,7 +1873,7 @@ html.dark-theme .filter-drawer {
 }
 
 html.dark-theme .brutal-btn--secondary {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 html.dark-theme .brutal-btn--secondary:hover {
@@ -1899,7 +1899,7 @@ html.dark-theme .brutal-btn--secondary:hover {
 }
 
 html.dark-theme .brutal-tool-shell {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
     border-top-color: var(--color-primary);
 }
 
@@ -2018,7 +2018,7 @@ html.dark-theme .brutal-tool-shell {
 }
 
 html.dark-theme .brutal-skeleton-demo {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
     border-left-color: var(--color-primary);
 }
 
@@ -2078,16 +2078,16 @@ html.dark-theme .brutal-skeleton-demo {
 }
 
 html.dark-theme .brutal-shadow--sm {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 html.dark-theme .brutal-shadow--md {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
     border-bottom-color: var(--color-primary);
 }
 
 html.dark-theme .brutal-shadow--lg {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
     border-left-color: var(--color-primary);
 }
 
@@ -2123,7 +2123,7 @@ html.dark-theme .brutal-shadow--lg {
 }
 
 html.dark-theme .brutal-transition {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 html.dark-theme .brutal-transition:hover {
@@ -2186,7 +2186,7 @@ html.dark-theme .brutal-transition:hover {
 }
 
 html.dark-theme .brutal-option-card {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 html.dark-theme .brutal-option-card:hover {
@@ -2257,7 +2257,7 @@ html.dark-theme .brutal-option-card--selected .brutal-option-card__description {
 }
 
 html.dark-theme .brutal-filter-chip {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 html.dark-theme .brutal-filter-chip:hover {
@@ -2281,7 +2281,7 @@ html.dark-theme .brutal-filter-chip--active {
 }
 
 html.dark-theme .brutal-filter-drawer {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
     border-left-color: var(--color-primary);
 }
 
@@ -2476,6 +2476,19 @@ html.dark-theme .brutal-filter-drawer {
     color: var(--color-primary);
 }
 
+/* Brutalist Slider — Dark Theme */
+html.dark-theme .brutal-slider__input::-webkit-slider-runnable-track {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+html.dark-theme .brutal-slider__input::-moz-range-track {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+html.dark-theme .brutal-slider__direct {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
 /* ==============================
    Brutalist Trust Card
    ============================== */
@@ -2497,7 +2510,7 @@ html.dark-theme .brutal-filter-drawer {
 }
 
 html.dark-theme .brutal-trust-card {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
     border-left-color: var(--color-primary);
 }
 
@@ -2541,7 +2554,7 @@ html.dark-theme .brutal-trust-card:hover {
 }
 
 html.dark-theme .brutal-project-card {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 html.dark-theme .brutal-project-card:hover {
@@ -2678,7 +2691,7 @@ html.dark-theme .brutal-project-card:hover {
 }
 
 html.dark-theme .brutal-teaser-card {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
     border-top-color: var(--color-primary);
 }
 
@@ -2750,7 +2763,7 @@ html.dark-theme .brutal-teaser-card {
 }
 
 html.dark-theme .brutal-rec-card {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
     border-left-color: var(--color-primary);
 }
 
@@ -2865,7 +2878,7 @@ html.dark-theme .brutal-rec-card {
 }
 
 html.dark-theme .brutal-attention-card {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 html.dark-theme .brutal-attention-card--high {
