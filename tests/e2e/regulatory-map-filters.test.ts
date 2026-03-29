@@ -100,7 +100,7 @@ test.describe('Regulatory Map — Category Filters', () => {
 
     // Verify Thailand has regulation cards
     await page.waitForFunction(() => {
-      return document.querySelectorAll('.reg-card').length > 0;
+      return document.querySelectorAll('.brutal-reg-card').length > 0;
     });
 
     // Switch to Industry Compliance — Thailand has no industry-compliance regs
@@ -130,7 +130,7 @@ test.describe('Regulatory Map — Category Filters', () => {
     await expect(page.locator('#panelCountryName')).toHaveText('Germany');
 
     // Should still have regulation cards
-    const cardCount = await page.locator('.reg-card').count();
+    const cardCount = await page.locator('.brutal-reg-card').count();
     expect(cardCount).toBeGreaterThan(0);
   });
 
@@ -144,7 +144,7 @@ test.describe('Regulatory Map — Category Filters', () => {
     });
 
     // Get card count with "All" filter
-    const allCount = await page.locator('.reg-card').count();
+    const allCount = await page.locator('.brutal-reg-card').count();
     expect(allCount).toBeGreaterThan(0);
 
     // Switch to Data Privacy
@@ -152,11 +152,11 @@ test.describe('Regulatory Map — Category Filters', () => {
 
     // Wait for panel to re-render with filtered results
     await page.waitForFunction((prevCount) => {
-      return document.querySelectorAll('.reg-card').length !== prevCount;
+      return document.querySelectorAll('.brutal-reg-card').length !== prevCount;
     }, allCount);
 
     // Data Privacy subset should have fewer cards than "All"
-    const privacyCount = await page.locator('.reg-card').count();
+    const privacyCount = await page.locator('.brutal-reg-card').count();
     expect(privacyCount).toBeGreaterThan(0);
     expect(privacyCount).toBeLessThanOrEqual(allCount);
   });

@@ -160,7 +160,7 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
       await expect(page.locator('#panelCountryName')).toHaveText('Germany');
 
       // Should have regulation cards
-      const cardCount = await page.locator('.reg-card').count();
+      const cardCount = await page.locator('.brutal-reg-card').count();
       expect(cardCount).toBeGreaterThan(0);
     });
 
@@ -218,7 +218,7 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
       // Button should show "copied" state
       await page.waitForFunction(() => {
         const btn = document.getElementById('panelCopyLink');
-        return btn && btn.classList.contains('panel-copy-link--copied');
+        return btn && btn.classList.contains('brutal-panel__copy--copied');
       });
 
       // Aria label should update
@@ -227,7 +227,7 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
       // Should revert after 2 seconds
       await page.waitForFunction(() => {
         const btn = document.getElementById('panelCopyLink');
-        return btn && !btn.classList.contains('panel-copy-link--copied');
+        return btn && !btn.classList.contains('brutal-panel__copy--copied');
       }, undefined, { timeout: 5000 });
 
       await expect(copyBtn).toHaveAttribute('aria-label', 'Copy link to this view');

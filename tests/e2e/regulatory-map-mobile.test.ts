@@ -34,7 +34,7 @@ async function dismissBottomSheet(page: import('@playwright/test').Page): Promis
   });
   await page.waitForFunction(() => {
     const el = document.getElementById('compliancePanel');
-    return el && !el.classList.contains('bottom-sheet--open');
+    return el && !el.classList.contains('brutal-panel--sheet-open');
   });
 }
 
@@ -56,7 +56,7 @@ async function openBottomSheetFor(page: import('@playwright/test').Page, alpha3:
   // Wait for both the class AND the CSS transform to reach final value
   await page.waitForFunction(() => {
     const el = document.getElementById('compliancePanel');
-    if (!el || !el.classList.contains('bottom-sheet--open')) return false;
+    if (!el || !el.classList.contains('brutal-panel--sheet-open')) return false;
     const transform = window.getComputedStyle(el).transform;
     // translateY(0) computes to 'none' or identity matrix
     return transform === 'none' || transform === 'matrix(1, 0, 0, 1, 0, 0)';
@@ -77,7 +77,7 @@ test.describe('Regulatory Map — Mobile UX', () => {
 
       // Panel should be visible and contain regulation content
       await expect(panel).toBeVisible();
-      const cards = await page.locator('.reg-card').count();
+      const cards = await page.locator('.brutal-reg-card').count();
       expect(cards).toBeGreaterThan(0);
     });
 
@@ -153,7 +153,7 @@ test.describe('Regulatory Map — Mobile UX', () => {
     });
 
     test('should have all four region buttons', async ({ page }) => {
-      const buttons = page.locator('.quick-zoom-btn');
+      const buttons = page.locator('.brutal-quick-zoom');
       const count = await buttons.count();
       expect(count).toBe(4);
 
@@ -170,7 +170,7 @@ test.describe('Regulatory Map — Mobile UX', () => {
 
       // Click "Europe" quick-zoom — use evaluate for WebKit mobile
       await page.evaluate(() => {
-        (document.querySelector('.quick-zoom-btn[data-region="europe"]') as HTMLElement)?.click();
+        (document.querySelector('.brutal-quick-zoom[data-region="europe"]') as HTMLElement)?.click();
       });
 
       // Wait for D3 zoom transition to change the transform
@@ -197,7 +197,7 @@ test.describe('Regulatory Map — Mobile UX', () => {
 
   test.describe('5. Legend Positioning', () => {
     test('should render legend inline (not overlapping map) on mobile', async ({ page }) => {
-      const legend = page.locator('.map-legend');
+      const legend = page.locator('.brutal-legend');
       const position = await legend.evaluate(el => window.getComputedStyle(el).position);
 
       // On mobile, legend should be static (inline) not absolute/fixed
@@ -227,7 +227,7 @@ test.describe('Regulatory Map — Mobile UX', () => {
       // Bottom sheet should not reopen — panel must not have the open class
       await page.waitForFunction(() => {
         const el = document.getElementById('compliancePanel');
-        return el && !el.classList.contains('bottom-sheet--open');
+        return el && !el.classList.contains('brutal-panel--sheet-open');
       });
 
       // Selected path highlight should be cleared (region deselected)

@@ -5,21 +5,21 @@
  */
 ---
 
-<div class="map-container" id="mapContainer" data-testid="map-container">
+<div class="brutal-map-container" id="mapContainer" data-testid="map-container">
   <div class="map-controls">
-    <button id="zoomIn" class="map-control-btn" aria-label="Zoom in" title="Zoom in">
+    <button id="zoomIn" class="brutal-map-control" aria-label="Zoom in" title="Zoom in">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
-    <button id="zoomOut" class="map-control-btn" aria-label="Zoom out" title="Zoom out">
+    <button id="zoomOut" class="brutal-map-control" aria-label="Zoom out" title="Zoom out">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
-    <button id="zoomReset" class="map-control-btn" aria-label="Reset zoom" title="Reset zoom">
+    <button id="zoomReset" class="brutal-map-control" aria-label="Reset zoom" title="Reset zoom">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="3" width="10" height="10" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
     </button>
   </div>
-  <div class="map-tap-bar" id="mapTapBar" hidden>
-    <span class="map-tap-bar__name" id="tapBarName"></span>
-    <button class="map-tap-bar__action" id="tapBarAction">View details</button>
+  <div class="brutal-map-tap-bar" id="mapTapBar" hidden>
+    <span class="brutal-map-tap-bar__name" id="tapBarName"></span>
+    <button class="brutal-map-tap-bar__action" id="tapBarAction">View details</button>
   </div>
   <svg
     id="mapSvg"
@@ -28,14 +28,14 @@
     aria-label="Interactive world map showing countries with regulatory data highlighted. Use scroll wheel or pinch to zoom, drag to pan."
     preserveAspectRatio="xMidYMid meet"
   ></svg>
-  <div class="map-tooltip" id="mapTooltip" role="tooltip" aria-hidden="true"></div>
+  <div class="brutal-map-tooltip" id="mapTooltip" role="tooltip" aria-hidden="true"></div>
   <div class="map-quick-zoom" id="mapQuickZoom">
-    <button class="quick-zoom-btn" data-region="americas" aria-label="Zoom to Americas">AMR</button>
-    <button class="quick-zoom-btn" data-region="europe" aria-label="Zoom to Europe">EUR</button>
-    <button class="quick-zoom-btn" data-region="asia-pacific" aria-label="Zoom to Asia-Pacific">APAC</button>
-    <button class="quick-zoom-btn" data-region="africa-mideast" aria-label="Zoom to Africa & Middle East">MEA</button>
+    <button class="brutal-quick-zoom" data-region="americas" aria-label="Zoom to Americas">AMR</button>
+    <button class="brutal-quick-zoom" data-region="europe" aria-label="Zoom to Europe">EUR</button>
+    <button class="brutal-quick-zoom" data-region="asia-pacific" aria-label="Zoom to Asia-Pacific">APAC</button>
+    <button class="brutal-quick-zoom" data-region="africa-mideast" aria-label="Zoom to Africa & Middle East">MEA</button>
   </div>
-  <div class="map-pinch-hint" id="mapPinchHint" hidden aria-hidden="true">
+  <div class="brutal-map-hint" id="mapPinchHint" hidden aria-hidden="true">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
       <path d="M6 12L2 8M6 12L2 16M18 12L22 8M18 12L22 16"/>
     </svg>
@@ -44,15 +44,6 @@
 </div>
 
 <style>
-  .map-container {
-    position: relative;
-    width: 100%;
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
-    overflow: hidden;
-    background: var(--bg-light-alt);
-  }
-
   .map-svg {
     display: block;
     width: 100%;
@@ -74,76 +65,11 @@
     z-index: 5;
   }
 
-  .map-control-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border: 1px solid var(--border-light);
-    border-radius: 4px;
-    background: var(--bg-light);
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: background var(--transition-fast), color var(--transition-fast);
-    padding: 0;
-  }
-
-  .map-control-btn:hover {
-    background: var(--bg-light-alt);
-    color: var(--color-primary);
-  }
-
-  .map-control-btn:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
-  }
-
-  :global(html.dark-theme) .map-control-btn {
-    background: var(--bg-dark-tertiary);
-    border-color: rgba(245, 245, 245, 0.1);
-  }
-
-  :global(html.dark-theme) .map-control-btn:hover {
-    background: var(--bg-dark-secondary);
-  }
-
   @media (max-width: 1023px) {
     .map-controls {
       right: auto;
       left: var(--spacing-sm);
     }
-  }
-
-  @media (max-width: 767px) {
-    .map-control-btn {
-      width: 44px;
-      height: 44px;
-    }
-    .map-control-btn svg {
-      width: 20px;
-      height: 20px;
-    }
-  }
-
-  .map-tooltip {
-    position: absolute;
-    pointer-events: none;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    background: var(--bg-light);
-    border: 1px solid var(--border-light);
-    border-radius: 4px;
-    font-size: var(--text-xs);
-    color: var(--text-primary);
-    opacity: 0;
-    transition: opacity var(--transition-fast);
-    white-space: nowrap;
-    box-shadow: var(--shadow-sm);
-    z-index: 10;
-  }
-
-  .map-tooltip.visible {
-    opacity: 1;
   }
 
   /* Remove browser default focus outline on SVG paths; selection is shown via fill/stroke */
@@ -180,14 +106,10 @@
     stroke-width: 1.5;
   }
 
-  /* Dark theme overrides */
-  :global(html.dark-theme) .map-container {
-    background: var(--bg-dark-secondary);
-  }
-
+  /* Dark theme SVG overrides */
   :global(html.dark-theme .country-path) {
     fill: rgba(245, 245, 245, 0.06);
-    stroke: rgba(245, 245, 245, 0.1);
+    stroke: rgba(255, 255, 255, 0.15);
   }
 
   :global(html.dark-theme .country-path--active) {
@@ -275,65 +197,7 @@
     stroke-width: 0.8;
   }
 
-  /* Mobile tap bar */
-  .map-tap-bar {
-    display: none;
-  }
-
-  @media (max-width: 1023px) {
-    .map-tap-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: var(--spacing-xs) var(--spacing-sm);
-      background: var(--bg-light);
-      border-bottom: 1px solid var(--border-light);
-      min-height: 40px;
-    }
-
-    .map-tap-bar[hidden] {
-      display: none;
-    }
-
-    .map-tap-bar__name {
-      font-size: var(--text-sm);
-      font-weight: var(--font-weight-semibold);
-      color: var(--text-primary);
-    }
-
-    .map-tap-bar__action {
-      padding: var(--spacing-xs) var(--spacing-md);
-      font-size: var(--text-xs);
-      font-weight: 600;
-      background: var(--color-primary);
-      color: var(--bg-light);
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-family: inherit;
-      min-height: 32px;
-      transition: opacity var(--transition-fast);
-    }
-
-    .map-tap-bar__action:active {
-      opacity: 0.8;
-    }
-
-    :global(html.dark-theme) .map-tap-bar {
-      background: var(--bg-dark-secondary);
-      border-bottom-color: rgba(245, 245, 245, 0.1);
-    }
-
-    :global(html.dark-theme) .map-tap-bar__name {
-      color: rgba(245, 245, 245, 0.9);
-    }
-
-    :global(html.dark-theme) .map-tap-bar__action {
-      color: var(--bg-dark);
-    }
-  }
-
-  /* Quick-zoom buttons — mobile only */
+  /* Quick-zoom container — mobile only positioning */
   .map-quick-zoom {
     display: none;
   }
@@ -346,74 +210,6 @@
       bottom: var(--spacing-sm);
       right: var(--spacing-sm);
       z-index: 5;
-    }
-
-    .quick-zoom-btn {
-      padding: var(--spacing-xs) var(--spacing-sm);
-      font-size: 0.625rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(4px);
-      color: var(--text-primary);
-      border: 1px solid var(--border-light);
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background var(--transition-fast), color var(--transition-fast);
-      font-family: inherit;
-      min-height: 32px;
-    }
-
-    .quick-zoom-btn:active {
-      background: var(--color-primary);
-      color: var(--bg-light);
-      border-color: var(--color-primary);
-    }
-
-    :global(html.dark-theme) .quick-zoom-btn {
-      background: rgba(10, 10, 10, 0.85);
-      border-color: rgba(245, 245, 245, 0.1);
-      color: var(--text-dark-secondary);
-    }
-
-    :global(html.dark-theme) .quick-zoom-btn:active {
-      background: var(--color-primary);
-      color: var(--bg-dark);
-    }
-  }
-
-  /* Pinch-to-zoom hint — mobile only */
-  .map-pinch-hint {
-    display: none;
-  }
-
-  @media (max-width: 1023px) {
-    .map-pinch-hint {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-xs);
-      padding: var(--spacing-sm) var(--spacing-md);
-      background: rgba(0, 0, 0, 0.7);
-      color: var(--bg-light);
-      border-radius: 8px;
-      font-size: var(--text-sm);
-      z-index: 15;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity var(--transition-normal);
-    }
-
-    .map-pinch-hint.visible {
-      opacity: 1;
-    }
-
-    .map-pinch-hint[hidden] {
-      display: none;
     }
   }
 </style>

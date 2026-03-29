@@ -45,7 +45,7 @@ test.describe('Regulatory Map E2E', () => {
     });
 
     test('should display map legend', async ({ page }) => {
-      const legend = page.locator('.map-legend');
+      const legend = page.locator('.brutal-legend');
       await expect(legend).toBeVisible();
       await expect(legend).toContainText('Regulation coverage');
       await expect(legend).toContainText('No data');
@@ -92,11 +92,11 @@ test.describe('Regulatory Map E2E', () => {
       await expect(regCount).toContainText('regulation');
 
       // Verify regulation cards rendered with actual content
-      const cards = page.locator('.reg-card');
+      const cards = page.locator('.brutal-reg-card');
       const cardCount = await cards.count();
       expect(cardCount).toBeGreaterThan(0);
 
-      const firstName = await cards.first().locator('.reg-card__name').textContent();
+      const firstName = await cards.first().locator('.brutal-reg-card__name').textContent();
       expect(firstName).toBeTruthy();
       expect(firstName!.length).toBeGreaterThan(0);
     });

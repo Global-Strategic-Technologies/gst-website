@@ -5,185 +5,42 @@
  */
 ---
 
-<aside class="compliance-panel" id="compliancePanel" data-testid="compliance-panel" aria-live="polite" hidden>
-  <div class="bottom-sheet-handle" id="bottomSheetHandle" aria-hidden="true">
-    <span class="bottom-sheet-handle__bar"></span>
+<aside class="brutal-panel" id="compliancePanel" data-testid="compliance-panel" aria-live="polite" hidden>
+  <div class="brutal-bottom-sheet__handle" id="bottomSheetHandle" aria-hidden="true">
+    <span class="brutal-bottom-sheet__handle-bar"></span>
   </div>
-  <div class="panel-header">
-    <h2 class="panel-country-name" id="panelCountryName"></h2>
-    <div class="panel-header__actions">
-      <button class="panel-copy-link" id="panelCopyLink" aria-label="Copy link to this view" title="Copy link">
+  <div class="brutal-panel__header">
+    <h2 class="brutal-panel__title" id="panelCountryName"></h2>
+    <div class="brutal-panel__actions">
+      <button class="brutal-panel__copy" id="panelCopyLink" aria-label="Copy link to this view" title="Copy link">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M6.5 9.5l3-3M5.5 7L4 8.5a2.12 2.12 0 003 3L8.5 10m-1-3.5L9 5l1.5-1.5a2.12 2.12 0 013 3L12 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
       </button>
-      <span class="panel-regulation-count" id="panelRegCount"></span>
+      <span class="brutal-panel__count" id="panelRegCount"></span>
     </div>
   </div>
-  <div class="panel-regulations" id="panelRegulations"></div>
+  <div class="brutal-panel__regulations" id="panelRegulations"></div>
 </aside>
 
 <style>
-  .compliance-panel {
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
-    background: var(--bg-light);
-    padding: var(--spacing-lg);
-    max-height: 520px;
-    overflow-y: auto;
-  }
-
-  .panel-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-lg);
-    padding-bottom: var(--spacing-md);
-    border-bottom: 1px solid var(--border-light);
-  }
-
-  .panel-country-name {
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-secondary);
-    margin: 0;
-  }
-
-  .panel-header__actions {
-    display: flex;
-    align-items: baseline;
-    gap: var(--spacing-sm);
-  }
-
-  .panel-copy-link {
-    background: none;
-    border: 1px solid var(--border-light);
-    border-radius: 4px;
-    padding: var(--spacing-xs);
-    cursor: pointer;
-    color: var(--text-muted);
-    transition: color var(--transition-fast), border-color var(--transition-fast);
-    line-height: 0;
-  }
-
-  .panel-copy-link:hover {
-    color: var(--color-primary);
-    border-color: var(--color-primary);
-  }
-
-  .panel-copy-link--copied {
-    color: var(--color-primary);
-    border-color: var(--color-primary);
-  }
-
-  .panel-regulation-count {
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    white-space: nowrap;
-  }
-
-  .panel-regulations {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-lg);
-  }
-
-  /* Regulation card (rendered by client JS) */
-  :global(.reg-card) {
-    padding: var(--spacing-md);
-    background: var(--bg-light-alt);
-    border: 1px solid var(--border-light);
-    border-left: 3px solid var(--color-primary);
-    border-radius: 6px;
-  }
-
-  :global(.reg-card__name) {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-primary);
-    margin: 0 0 var(--spacing-xs);
-  }
-
-  :global(.reg-card__date) {
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    margin-bottom: var(--spacing-sm);
-  }
-
-  :global(.reg-card__summary) {
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    line-height: 1.6;
-    margin: 0;
-  }
-
-  :global(.reg-card__scope) {
-    font-size: var(--text-xs);
-    color: var(--text-secondary);
-    margin: var(--spacing-xs) 0 var(--spacing-sm);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    background: rgba(5, 205, 153, 0.06);
-    border-left: 2px solid var(--color-primary);
-    border-radius: 0 4px 4px 0;
-    line-height: 1.5;
-  }
-
-  :global(.reg-card__requirements) {
-    list-style: none;
-    padding: 0;
-    margin: var(--spacing-sm) 0 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-
-  :global(.reg-card__requirements li) {
-    font-size: var(--text-xs);
-    color: var(--text-secondary);
-    line-height: 1.5;
-    padding-left: var(--spacing-md);
-    position: relative;
-  }
-
-  :global(.reg-card__requirements li::before) {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0.5em;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--color-primary);
-    opacity: 0.6;
-  }
-
-  :global(.reg-card__penalties) {
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    margin-top: var(--spacing-sm);
-    padding-top: var(--spacing-sm);
-    border-top: 1px solid var(--border-light);
-    font-style: italic;
-  }
-
   /* Bottom sheet handle — hidden on desktop */
-  .bottom-sheet-handle {
+  .brutal-bottom-sheet__handle {
     display: none;
   }
 
   /* Dark theme */
-  :global(html.dark-theme) .compliance-panel {
+  :global(html.dark-theme) .brutal-panel {
     background: var(--bg-dark-secondary);
   }
 
-  :global(html.dark-theme .reg-card) {
+  :global(html.dark-theme .brutal-reg-card) {
     background: var(--bg-dark-tertiary);
   }
 
   /* Desktop */
   @media (min-width: 1024px) {
-    .compliance-panel {
+    .brutal-panel {
       max-height: calc(100vh - 280px);
       position: sticky;
       top: var(--spacing-lg);
@@ -192,30 +49,28 @@
 
   /* Mobile bottom sheet */
   @media (max-width: 1023px) {
-    .compliance-panel {
+    .brutal-panel {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
       max-height: 60vh;
-      border-radius: 16px 16px 0 0;
       border-bottom: none;
       transform: translateY(100%);
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       z-index: 60;
-      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
     }
 
-    .compliance-panel[hidden] {
+    .brutal-panel[hidden] {
       display: block;
       transform: translateY(100%);
     }
 
-    .compliance-panel.bottom-sheet--open {
+    .brutal-panel.brutal-panel--sheet-open {
       transform: translateY(0);
     }
 
-    .bottom-sheet-handle {
+    .brutal-bottom-sheet__handle {
       display: flex;
       justify-content: center;
       padding: var(--spacing-sm) 0 var(--spacing-xs);
@@ -223,15 +78,14 @@
       touch-action: none;
     }
 
-    .bottom-sheet-handle__bar {
+    .brutal-bottom-sheet__handle-bar {
       width: 40px;
       height: 4px;
-      border-radius: 2px;
       background: rgba(128, 128, 128, 0.4);
     }
   }
 
-  :global(html.dark-theme) .compliance-panel {
+  :global(html.dark-theme) .brutal-panel {
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
   }
 </style>

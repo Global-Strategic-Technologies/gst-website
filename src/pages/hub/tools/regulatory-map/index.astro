@@ -74,49 +74,49 @@ import caData from '../../../../data/canada-provinces.json';
             <div class="map-layout" id="mapLayout">
                 <div class="map-wrapper">
                     <MapVisualizer />
-                    <div class="map-legend">
-                        <div class="legend-item">
-                            <span class="legend-swatch legend-swatch--active" aria-hidden="true"></span>
-                            <span class="legend-label">Regulation coverage</span>
+                    <div class="brutal-legend map-legend-positioned">
+                        <div class="brutal-legend__item">
+                            <span class="brutal-legend__swatch brutal-legend__swatch--active" aria-hidden="true"></span>
+                            <span class="brutal-legend__label">Regulation coverage</span>
                         </div>
-                        <div class="legend-item">
-                            <span class="legend-swatch legend-swatch--neutral" aria-hidden="true"></span>
-                            <span class="legend-label">No data</span>
+                        <div class="brutal-legend__item">
+                            <span class="brutal-legend__swatch brutal-legend__swatch--neutral" aria-hidden="true"></span>
+                            <span class="brutal-legend__label">No data</span>
                         </div>
                     </div>
-                    <div class="map-cta" id="mapCta">
-                        <svg class="map-cta__cursor" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <div class="brutal-map-cta" id="mapCta">
+                        <svg class="brutal-map-cta__icon" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path d="M4 1l16 12.5H11l-2.5 9z"/>
                         </svg>
-                        <span class="map-cta__text">Select a highlighted region to view regulatory details</span>
+                        <span class="brutal-map-cta__text">Select a highlighted region to view regulatory details</span>
                     </div>
                 </div>
                 <CompliancePanel />
-                <div class="bottom-sheet-overlay" id="bottomSheetOverlay" hidden></div>
+                <div class="brutal-bottom-sheet__overlay" id="bottomSheetOverlay" hidden></div>
             </div>
 
             <div class="regulation-filters" role="toolbar" aria-label="Filter regulations by category">
                 <div class="regulation-search" id="regulationSearch">
-                    <div class="search-input-wrapper">
-                        <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <div class="brutal-search">
+                        <svg class="brutal-search__icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                             <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/>
                             <path d="M10.5 10.5L14.5 14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                         </svg>
                         <input
                             type="search"
                             id="regulationSearchInput"
-                            class="search-input"
+                            class="brutal-search__input"
                             placeholder="Search regulations..."
                             aria-label="Search regulations by name, summary, or requirements"
                             autocomplete="off"
                         />
-                        <button id="searchClearBtn" class="search-clear-btn" aria-label="Clear search" hidden>
+                        <button id="searchClearBtn" class="brutal-search__clear" aria-label="Clear search" hidden>
                             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                                 <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                             </svg>
                         </button>
                     </div>
-                    <div class="search-results" id="searchResults" role="listbox" aria-label="Search results" hidden></div>
+                    <div class="brutal-search__results" id="searchResults" role="listbox" aria-label="Search results" hidden></div>
                 </div>
                 <div class="brutal-filter-chips" id="regulation-filter-chips">
                     <button class="brutal-filter-chip brutal-filter-chip--all brutal-filter-chip--active" data-category="all">All</button>
@@ -130,10 +130,10 @@ import caData from '../../../../data/canada-provinces.json';
             <div class="timeline-section" id="timelineSection">
                 <h2 class="timeline-heading brutal-heading-md">Regulation Timeline</h2>
                 <div class="timeline-legend">
-                    <span class="timeline-legend__item"><span class="timeline-dot timeline-dot--privacy" aria-hidden="true"></span> Data Privacy</span>
-                    <span class="timeline-legend__item"><span class="timeline-dot timeline-dot--ai" aria-hidden="true"></span> AI Governance</span>
-                    <span class="timeline-legend__item"><span class="timeline-dot timeline-dot--industry" aria-hidden="true"></span> Industry Compliance</span>
-                    <span class="timeline-legend__item"><span class="timeline-dot timeline-dot--cyber" aria-hidden="true"></span> Cybersecurity</span>
+                    <span class="timeline-legend__item"><span class="brutal-timeline-dot brutal-timeline-dot--privacy" aria-hidden="true"></span> Data Privacy</span>
+                    <span class="timeline-legend__item"><span class="brutal-timeline-dot brutal-timeline-dot--ai" aria-hidden="true"></span> AI Governance</span>
+                    <span class="timeline-legend__item"><span class="brutal-timeline-dot brutal-timeline-dot--industry" aria-hidden="true"></span> Industry Compliance</span>
+                    <span class="timeline-legend__item"><span class="brutal-timeline-dot brutal-timeline-dot--cyber" aria-hidden="true"></span> Cybersecurity</span>
                 </div>
                 <div class="timeline-scroll" id="timelineScroll">
                     <div class="timeline-track" id="timelineTrack">
@@ -148,11 +148,11 @@ import caData from '../../../../data/canada-provinces.json';
     <section class="faq-section">
         <div class="container">
             <h2 class="brutal-heading-lg">Frequently Asked Questions</h2>
-            <div class="faq-list">
+            <div class="brutal-faq">
                 {faqItems.map((item) => (
-                    <details class="faq-item">
-                        <summary class="faq-question">{item.question}</summary>
-                        <div class="faq-answer" set:html={item.answer} />
+                    <details class="brutal-faq__item">
+                        <summary class="brutal-faq__question">{item.question}</summary>
+                        <div class="brutal-faq__answer" set:html={item.answer} />
                     </details>
                 ))}
             </div>
@@ -218,7 +218,7 @@ import caData from '../../../../data/canada-provinces.json';
         compliancePanel.hidden = false;
         // Force reflow before adding class for transition
         void compliancePanel.offsetHeight;
-        compliancePanel.classList.add('bottom-sheet--open');
+        compliancePanel.classList.add('brutal-panel--sheet-open');
         if (overlay) {
             overlay.hidden = false;
             void overlay.offsetHeight;
@@ -227,7 +227,7 @@ import caData from '../../../../data/canada-provinces.json';
     }
 
     function closeBottomSheet(): void {
-        compliancePanel.classList.remove('bottom-sheet--open');
+        compliancePanel.classList.remove('brutal-panel--sheet-open');
         overlay?.classList.remove('visible');
         setTimeout(() => {
             if (overlay) overlay.hidden = true;
@@ -260,7 +260,7 @@ import caData from '../../../../data/canada-provinces.json';
             closeBottomSheet();
         } else {
             compliancePanel.style.transform = '';
-            compliancePanel.classList.add('bottom-sheet--open');
+            compliancePanel.classList.add('brutal-panel--sheet-open');
         }
     });
 
@@ -293,10 +293,10 @@ import caData from '../../../../data/canada-provinces.json';
     document.getElementById('panelCopyLink')?.addEventListener('click', () => {
         const btn = document.getElementById('panelCopyLink')!;
         const showCopied = () => {
-            btn.classList.add('panel-copy-link--copied');
+            btn.classList.add('brutal-panel__copy--copied');
             btn.setAttribute('aria-label', 'Link copied!');
             setTimeout(() => {
-                btn.classList.remove('panel-copy-link--copied');
+                btn.classList.remove('brutal-panel__copy--copied');
                 btn.setAttribute('aria-label', 'Copy link to this view');
             }, 2000);
         };
@@ -627,7 +627,7 @@ import caData from '../../../../data/canada-provinces.json';
         // Clear any timeline-driven highlights
         clearRegionHighlights();
         if (activeTimelineEntry) {
-            activeTimelineEntry.classList.remove('timeline-entry--active');
+            activeTimelineEntry.classList.remove('brutal-timeline-entry--active');
             activeTimelineEntry = null;
         }
 
@@ -749,17 +749,17 @@ import caData from '../../../../data/canada-provinces.json';
         });
 
         let html = `
-            <div class="reg-card">
-                <h3 class="reg-card__name">${escapeHtml(reg.name)}</h3>
-                <p class="reg-card__date">Effective: ${escapeHtml(date)}</p>
-                <p class="reg-card__summary">${escapeHtml(reg.summary)}</p>`;
+            <div class="brutal-reg-card">
+                <h3 class="brutal-reg-card__name">${escapeHtml(reg.name)}</h3>
+                <p class="brutal-reg-card__date">Effective: ${escapeHtml(date)}</p>
+                <p class="brutal-reg-card__summary">${escapeHtml(reg.summary)}</p>`;
 
         if (reg.scope) {
-            html += `<p class="reg-card__scope">Applies to: ${escapeHtml(reg.scope)}</p>`;
+            html += `<p class="brutal-reg-card__scope">Applies to: ${escapeHtml(reg.scope)}</p>`;
         }
 
         if (reg.keyRequirements && reg.keyRequirements.length > 0) {
-            html += '<ul class="reg-card__requirements">';
+            html += '<ul class="brutal-reg-card__requirements">';
             for (const req of reg.keyRequirements) {
                 html += `<li>${escapeHtml(req)}</li>`;
             }
@@ -767,7 +767,7 @@ import caData from '../../../../data/canada-provinces.json';
         }
 
         if (reg.penalties) {
-            html += `<p class="reg-card__penalties">Penalties: ${escapeHtml(reg.penalties)}</p>`;
+            html += `<p class="brutal-reg-card__penalties">Penalties: ${escapeHtml(reg.penalties)}</p>`;
         }
 
         html += '</div>';
@@ -900,7 +900,7 @@ import caData from '../../../../data/canada-provinces.json';
         }
 
         if (results.length === 0) {
-            container.innerHTML = '<div class="search-no-results">No regulations found</div>';
+            container.innerHTML = '<div class="brutal-search__no-results">No regulations found</div>';
             container.hidden = false;
             return;
         }
@@ -910,21 +910,21 @@ import caData from '../../../../data/canada-provinces.json';
             const catLabel = categoryLabelMap[reg.category] ?? reg.category;
             const regionCount = reg.regions.length;
             return `
-                <div class="search-result-item"
+                <div class="brutal-search__result"
                      role="option"
                      id="search-result-${i}"
                      data-reg-id="${escapeHtml(reg.id)}"
                      tabindex="-1">
-                    <span class="search-result-name">${escapeHtml(reg.name)}</span>
-                    <span class="search-result-meta">
-                        <span class="search-result-category search-result-category--${catColor}">${catLabel}</span>
-                        <span class="search-result-regions">${regionCount} region${regionCount !== 1 ? 's' : ''}</span>
+                    <span class="brutal-search__result-name">${escapeHtml(reg.name)}</span>
+                    <span class="brutal-search__result-meta">
+                        <span class="brutal-search__category brutal-search__category--${catColor}">${catLabel}</span>
+                        <span class="brutal-search__result-regions">${regionCount} region${regionCount !== 1 ? 's' : ''}</span>
                     </span>
                 </div>`;
         }).join('');
 
         if (results.length > 15) {
-            container.innerHTML += `<div class="search-result-overflow">${results.length - 15} more results\u2026</div>`;
+            container.innerHTML += `<div class="brutal-search__overflow">${results.length - 15} more results\u2026</div>`;
         }
 
         container.hidden = false;
@@ -1029,7 +1029,7 @@ import caData from '../../../../data/canada-provinces.json';
     // Keyboard navigation
     searchInput.addEventListener('keydown', (e) => {
         const resultsEl = document.getElementById('searchResults')!;
-        const items = resultsEl.querySelectorAll('.search-result-item');
+        const items = resultsEl.querySelectorAll('.brutal-search__result');
 
         if (e.key === 'ArrowDown') {
             e.preventDefault();
@@ -1063,7 +1063,7 @@ import caData from '../../../../data/canada-provinces.json';
 
     // Click on search result
     document.getElementById('searchResults')?.addEventListener('click', (e) => {
-        const item = (e.target as HTMLElement).closest('.search-result-item') as HTMLElement | null;
+        const item = (e.target as HTMLElement).closest('.brutal-search__result') as HTMLElement | null;
         if (!item) return;
         selectSearchResult(item.dataset.regId ?? '');
     });
@@ -1114,7 +1114,7 @@ import caData from '../../../../data/canada-provinces.json';
         if (!marker) return;
 
         const currentYear = new Date().getFullYear();
-        const yearGroups = Array.from(track.querySelectorAll('.timeline-year-group'));
+        const yearGroups = Array.from(track.querySelectorAll('.brutal-timeline-year-group'));
         if (yearGroups.length === 0) return;
 
         // Find the year group for the current year
@@ -1122,7 +1122,7 @@ import caData from '../../../../data/canada-provinces.json';
         let found = false;
 
         for (const group of yearGroups) {
-            const label = group.querySelector('.timeline-year-label');
+            const label = group.querySelector('.brutal-timeline-year');
             const year = parseInt(label?.textContent ?? '0');
             if (year === currentYear) {
                 // Center on the current year group
@@ -1176,9 +1176,9 @@ import caData from '../../../../data/canada-provinces.json';
         let html = '';
 
         for (const [year, regs] of byYear) {
-            html += `<div class="timeline-year-group">`;
-            html += `<span class="timeline-year-label">${year}</span>`;
-            html += `<div class="timeline-year-entries">`;
+            html += `<div class="brutal-timeline-year-group">`;
+            html += `<span class="brutal-timeline-year">${year}</span>`;
+            html += `<div class="brutal-timeline-year-entries">`;
             for (const reg of regs) {
                 const isUpcoming = reg.effectiveDate > today;
                 const catClass = categoryColorMap[reg.category] ?? 'privacy';
@@ -1187,12 +1187,12 @@ import caData from '../../../../data/canada-provinces.json';
                 const shortDate = `${monthNames[parseInt(m, 10) - 1]} ${y}`;
                 const truncName = reg.name.length > 35 ? reg.name.slice(0, 33) + '\u2026' : reg.name;
                 html += `
-                    <div class="timeline-entry timeline-entry--${catClass}${isUpcoming ? ' timeline-entry--upcoming' : ''}"
+                    <div class="brutal-timeline-entry brutal-timeline-entry--${catClass}${isUpcoming ? ' brutal-timeline-entry--upcoming' : ''}"
                          data-reg-id="${escapeHtml(reg.id)}"
                          title="${escapeHtml(reg.name)} \u2014 ${shortDate}">
-                        <span class="timeline-dot timeline-dot--${catClass}${isUpcoming ? ' timeline-dot--upcoming' : ''}"></span>
-                        <span class="timeline-entry__name">${escapeHtml(truncName)}</span>
-                        <span class="timeline-entry__date">${shortDate}</span>
+                        <span class="brutal-timeline-dot brutal-timeline-dot--${catClass}${isUpcoming ? ' brutal-timeline-dot--upcoming' : ''}"></span>
+                        <span class="brutal-timeline-entry__name">${escapeHtml(truncName)}</span>
+                        <span class="brutal-timeline-entry__date">${shortDate}</span>
                     </div>`;
             }
             html += `</div></div>`;
@@ -1200,7 +1200,7 @@ import caData from '../../../../data/canada-provinces.json';
 
         // Today marker — absolutely positioned based on chronological position
         // among the rendered year groups. This is filter-independent.
-        html += `<div class="timeline-today" id="timelineTodayMarker"><span class="timeline-today__label">Today</span></div>`;
+        html += `<div class="brutal-timeline-today" id="timelineTodayMarker"><span class="brutal-timeline-today__label">Today</span></div>`;
 
         track.innerHTML = html;
 
@@ -1217,7 +1217,7 @@ import caData from '../../../../data/canada-provinces.json';
 
     // Timeline click handler
     document.getElementById('timelineTrack')?.addEventListener('click', (e) => {
-        const entry = (e.target as HTMLElement).closest('.timeline-entry') as HTMLElement | null;
+        const entry = (e.target as HTMLElement).closest('.brutal-timeline-entry') as HTMLElement | null;
         if (!entry) return;
 
         const regId = entry.dataset.regId ?? '';
@@ -1226,7 +1226,7 @@ import caData from '../../../../data/canada-provinces.json';
 
         // Toggle active state on timeline entry
         if (activeTimelineEntry) {
-            activeTimelineEntry.classList.remove('timeline-entry--active');
+            activeTimelineEntry.classList.remove('brutal-timeline-entry--active');
         }
 
         if (activeTimelineEntry === entry) {
@@ -1238,7 +1238,7 @@ import caData from '../../../../data/canada-provinces.json';
                 renderPanel(currentRegionId);
             }
         } else {
-            entry.classList.add('timeline-entry--active');
+            entry.classList.add('brutal-timeline-entry--active');
             activeTimelineEntry = entry;
 
             // Highlight regions on map
@@ -1361,12 +1361,12 @@ import caData from '../../../../data/canada-provinces.json';
     }
 
     /* Bottom sheet overlay (mobile) */
-    .bottom-sheet-overlay {
+    .brutal-bottom-sheet__overlay {
         display: none;
     }
 
     @media (max-width: 1023px) {
-        .bottom-sheet-overlay {
+        .brutal-bottom-sheet__overlay {
             display: block;
             position: fixed;
             inset: 0;
@@ -1377,7 +1377,7 @@ import caData from '../../../../data/canada-provinces.json';
             transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .bottom-sheet-overlay.visible {
+        .brutal-bottom-sheet__overlay.visible {
             opacity: 1;
             pointer-events: auto;
         }
@@ -1414,176 +1414,17 @@ import caData from '../../../../data/canada-provinces.json';
         position: relative;
     }
 
-    .search-input-wrapper {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-xs);
-        padding: var(--spacing-sm) var(--spacing-md);
-        background: var(--bg-light);
-        border: 1px solid var(--border-light);
-        border-radius: 6px;
-        transition: border-color var(--transition-fast);
-    }
-
-    .search-input-wrapper:focus-within {
-        border-color: var(--color-primary);
-    }
-
-    .search-icon {
-        flex-shrink: 0;
-        color: var(--text-muted);
-    }
-
-    .search-input {
-        flex: 1;
-        border: none;
-        background: transparent;
-        font-size: var(--text-sm);
-        font-family: inherit;
-        color: var(--text-primary);
-        outline: none;
-        min-width: 0;
-    }
-
-    .search-input::placeholder {
-        color: var(--text-muted);
-    }
-
-    /* Remove default search cancel button in WebKit */
-    .search-input::-webkit-search-cancel-button {
+    /* Search — uses global .brutal-search classes; scoped overrides only */
+    .brutal-search__input::-webkit-search-cancel-button {
         -webkit-appearance: none;
     }
 
-    .search-clear-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-        padding: 0;
-        border: none;
-        background: transparent;
-        color: var(--text-muted);
-        cursor: pointer;
-        border-radius: 50%;
-        transition: background var(--transition-fast), color var(--transition-fast);
-    }
+    /* Category badge colors for search results */
+    :global(.brutal-search__category--privacy) { background: var(--accent-light-bg-hover); color: var(--color-primary); border-color: var(--color-primary); }
+    :global(.brutal-search__category--ai) { background: var(--accent-light-bg); color: var(--color-secondary); border-color: var(--color-secondary); }
+    :global(.brutal-search__category--industry) { background: transparent; color: var(--regmap-category-industry); border-color: var(--regmap-category-industry); }
+    :global(.brutal-search__category--cyber) { background: transparent; color: var(--regmap-category-cyber); border-color: var(--regmap-category-cyber); }
 
-    .search-clear-btn:hover {
-        background: var(--accent-light-bg);
-        color: var(--text-primary);
-    }
-
-    /* Search results dropdown */
-    .search-results {
-        position: absolute;
-        top: calc(100% + 4px);
-        left: 0;
-        right: 0;
-        background: var(--bg-light);
-        border: 1px solid var(--border-light);
-        border-radius: 6px;
-        box-shadow: var(--shadow-md);
-        max-height: 320px;
-        overflow-y: auto;
-        z-index: 30;
-    }
-
-    .search-result-item {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        padding: var(--spacing-sm) var(--spacing-md);
-        cursor: pointer;
-        transition: background var(--transition-fast);
-        border-bottom: 1px solid var(--border-light);
-    }
-
-    .search-result-item:last-child {
-        border-bottom: none;
-    }
-
-    .search-result-item:hover,
-    .search-result-item--active {
-        background: var(--accent-light-bg);
-    }
-
-    .search-result-name {
-        font-size: var(--text-sm);
-        font-weight: var(--font-weight-semibold);
-        color: var(--text-primary);
-    }
-
-    .search-result-meta {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-sm);
-    }
-
-    .search-result-category {
-        font-size: 0.625rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        padding: 1px var(--spacing-xs);
-        border-radius: 3px;
-    }
-
-    .search-result-category--privacy { background: var(--accent-light-bg-hover); color: var(--color-primary); }
-    .search-result-category--ai { background: var(--accent-light-bg); color: var(--color-secondary); }
-    .search-result-category--industry { background: color-mix(in srgb, var(--regmap-category-industry) 12%, transparent); color: var(--regmap-category-industry); }
-    .search-result-category--cyber { background: color-mix(in srgb, var(--regmap-category-cyber) 12%, transparent); color: var(--regmap-category-cyber); }
-
-    .search-result-regions {
-        font-size: var(--text-xs);
-        color: var(--text-muted);
-    }
-
-    .search-no-results {
-        padding: var(--spacing-lg);
-        text-align: center;
-        font-size: var(--text-sm);
-        color: var(--text-muted);
-    }
-
-    .search-result-overflow {
-        padding: var(--spacing-sm) var(--spacing-md);
-        text-align: center;
-        font-size: var(--text-xs);
-        color: var(--text-muted);
-        font-style: italic;
-    }
-
-    /* Search dark theme */
-    :global(html.dark-theme) .search-input-wrapper {
-        background: var(--bg-dark-secondary);
-        border-color: rgba(245, 245, 245, 0.1);
-    }
-
-    :global(html.dark-theme) .search-clear-btn:hover {
-        background: rgba(245, 245, 245, 0.1);
-    }
-
-    :global(html.dark-theme) .search-results {
-        background: var(--bg-dark-secondary);
-        border-color: rgba(245, 245, 245, 0.1);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    }
-
-    :global(html.dark-theme) .search-result-item {
-        border-bottom-color: rgba(245, 245, 245, 0.06);
-    }
-
-    :global(html.dark-theme) .search-result-item:hover,
-    :global(html.dark-theme) .search-result-item--active {
-        background: var(--accent-light-bg-hover);
-    }
-
-    :global(html.dark-theme) .search-result-category--ai {
-        background: rgba(245, 245, 245, 0.08);
-    }
-
-    /* Search responsive */
     @media (max-width: 1023px) {
         .regulation-search {
             max-width: none;
@@ -1591,7 +1432,7 @@ import caData from '../../../../data/canada-provinces.json';
     }
 
     @media (max-width: 767px) {
-        .search-results {
+        :global(.brutal-search__results) {
             max-height: 50vh;
         }
     }
@@ -1629,71 +1470,31 @@ import caData from '../../../../data/canada-provinces.json';
         z-index: 5;
     }
 
-    .legend-item {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-sm);
-    }
-
-    .legend-swatch {
-        display: inline-block;
-        width: 16px;
-        height: 16px;
-        border-radius: 3px;
-        border: 1px solid var(--border-light);
-    }
-
-    .legend-swatch--active {
+    /* Legend & CTA — uses global .brutal-legend / .brutal-map-cta; scoped positioning only */
+    .brutal-legend__swatch--active {
         background: var(--accent-border-medium);
         border-color: rgba(5, 205, 153, 0.5);
     }
 
-    .legend-swatch--neutral {
+    .brutal-legend__swatch--neutral {
         background: rgba(26, 26, 26, 0.08);
     }
 
-    .legend-label {
-        font-size: var(--text-xs);
-        color: var(--text-secondary);
+    :global(html.dark-theme) .brutal-legend__swatch--neutral {
+        background: rgba(255, 255, 255, 0.06);
     }
 
-    .map-cta {
+    .brutal-map-cta {
         position: absolute;
         bottom: calc(var(--spacing-sm) + 36px);
         left: var(--spacing-sm);
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-xs);
-        padding: var(--spacing-xs) var(--spacing-sm);
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(4px);
-        border-radius: 4px;
-        border: 1px solid var(--border-light);
         z-index: 5;
         pointer-events: none;
-        animation: ctaPulse 2.5s ease-in-out infinite;
     }
 
-    .map-cta__cursor {
+    .brutal-map-cta__icon {
         color: var(--color-secondary);
-        flex-shrink: 0;
         transform: rotate(45deg);
-    }
-
-    .map-cta__text {
-        font-size: var(--text-xs);
-        color: var(--text-secondary);
-        white-space: nowrap;
-    }
-
-    :global(html.dark-theme) .map-cta {
-        background: rgba(10, 10, 10, 0.85);
-        border-color: rgba(245, 245, 245, 0.1);
-    }
-
-    @keyframes ctaPulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.6; }
     }
 
     .back-link {
@@ -1701,21 +1502,10 @@ import caData from '../../../../data/canada-provinces.json';
         margin-top: var(--spacing-2xl);
     }
 
-    /* Dark theme */
-    :global(html.dark-theme) .map-legend {
-        background: rgba(10, 10, 10, 0.85);
-        border-color: rgba(245, 245, 245, 0.1);
-    }
-
-    :global(html.dark-theme) .legend-swatch--neutral {
-        background: rgba(245, 245, 245, 0.06);
-    }
-
     @media (max-width: 767px) {
-        .map-legend {
+        .map-legend-positioned {
             position: static;
             background: transparent;
-            backdrop-filter: none;
             border: none;
             justify-content: center;
             padding: var(--spacing-sm) 0;
@@ -1725,7 +1515,7 @@ import caData from '../../../../data/canada-provinces.json';
 
     /* Responsive */
     @media (min-width: 1024px) {
-        .map-layout:has(.compliance-panel:not([hidden])) {
+        .map-layout:has(.brutal-panel:not([hidden])) {
             grid-template-columns: 1fr 380px;
             gap: var(--spacing-xl);
             max-width: none;
@@ -1737,135 +1527,29 @@ import caData from '../../../../data/canada-provinces.json';
         padding: var(--spacing-3xl) 0;
     }
 
+    /* FAQ — uses global .brutal-faq classes; scoped layout only */
     .faq-section .brutal-heading-lg {
         margin-bottom: var(--spacing-2xl);
         text-align: center;
     }
 
-    .faq-list {
+    .brutal-faq {
         max-width: 800px;
         margin: 0 auto;
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-md);
-    }
-
-    .faq-item {
-        background: var(--accent-wash-bg);
-        border: 1px solid var(--accent-dark-bg);
-        border-radius: 8px;
-        transition: background var(--transition-normal), border-color var(--transition-normal);
-    }
-
-    .faq-item[open] {
-        background: var(--accent-tint-bg);
-        border-color: var(--border-dark);
-    }
-
-    .faq-question {
-        padding: var(--spacing-xl);
-        font-size: var(--text-lg);
-        font-weight: var(--font-weight-semibold);
-        color: var(--text-primary);
-        cursor: pointer;
-        list-style: none;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: var(--spacing-md);
-        transition: color var(--transition-fast);
-    }
-
-    .faq-question::-webkit-details-marker {
-        display: none;
-    }
-
-    .faq-question::after {
-        content: '+';
-        font-size: var(--text-2xl);
-        font-weight: var(--font-weight-bold);
-        color: var(--color-primary);
-        flex-shrink: 0;
-        transition: transform var(--transition-fast);
-    }
-
-    .faq-item[open] .faq-question::after {
-        content: '\2212';
-    }
-
-    .faq-question:hover {
-        color: var(--color-primary);
-    }
-
-    .faq-answer {
-        padding: 0 var(--spacing-xl) var(--spacing-xl);
-        font-size: var(--text-base);
-        color: var(--text-secondary);
-        line-height: 1.7;
-    }
-
-    .faq-answer :global(p) {
-        margin: 0 0 var(--spacing-md) 0;
-    }
-
-    .faq-answer :global(p:last-child) {
-        margin-bottom: 0;
-    }
-
-    .faq-answer :global(a) {
-        color: var(--color-primary);
-        text-decoration: none;
-        transition: opacity var(--transition-fast);
-    }
-
-    .faq-answer :global(a:hover) {
-        opacity: 0.8;
-    }
-
-    :global(html.dark-theme) .faq-item {
-        background: var(--accent-faint-bg);
-        border-color: var(--accent-light-bg-hover);
-    }
-
-    :global(html.dark-theme) .faq-item[open] {
-        border-color: var(--accent-border-light);
-    }
-
-    :global(html.dark-theme) .faq-answer {
-        color: var(--text-dark-muted);
     }
 
     @media (max-width: 768px) {
         .faq-section {
             padding: var(--spacing-2xl) 0;
         }
-
-        .faq-question {
-            padding: var(--spacing-lg);
-            font-size: var(--text-base);
-        }
-
-        .faq-answer {
-            padding: 0 var(--spacing-lg) var(--spacing-lg);
-            font-size: var(--text-sm);
-        }
     }
 
     @media (max-width: 480px) {
-        .faq-question {
-            padding: var(--spacing-md);
-        }
-
-        .faq-answer {
-            padding: 0 var(--spacing-md) var(--spacing-md);
-            font-size: var(--text-sm);
-        }
-
-        .map-cta__text {
+        .brutal-map-cta .brutal-map-cta__text {
             white-space: normal;
         }
 
-        .map-cta {
+        .brutal-map-cta {
             max-width: calc(100% - var(--spacing-lg));
             bottom: auto;
             top: var(--spacing-sm);
@@ -1873,16 +1557,16 @@ import caData from '../../../../data/canada-provinces.json';
             transform: translateX(-50%);
         }
 
-        .map-cta__cursor {
+        .brutal-map-cta__icon {
             transform: rotate(225deg);
         }
     }
 
-    /* Timeline */
+    /* Timeline — uses global .brutal-timeline-* classes; scoped layout for horizontal scroll */
     .timeline-section {
         margin-top: var(--spacing-3xl);
         padding-top: var(--spacing-2xl);
-        border-top: 1px solid var(--border-light);
+        border-top: 2px solid var(--border-light);
     }
 
     .timeline-heading {
@@ -1895,6 +1579,7 @@ import caData from '../../../../data/canada-provinces.json';
         justify-content: center;
         gap: var(--spacing-lg);
         margin-bottom: var(--spacing-xl);
+        font-family: monospace;
         font-size: var(--text-xs);
         color: var(--text-secondary);
     }
@@ -1904,30 +1589,6 @@ import caData from '../../../../data/canada-provinces.json';
         flex-direction: column;
         align-items: center;
         gap: var(--spacing-xs);
-    }
-
-    .timeline-dot {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        flex-shrink: 0;
-    }
-
-    .timeline-dot--privacy {
-        background: var(--color-primary);
-    }
-
-    .timeline-dot--ai {
-        background: var(--color-secondary);
-    }
-
-    .timeline-dot--industry {
-        background: var(--regmap-category-industry);
-    }
-
-    .timeline-dot--cyber {
-        background: var(--regmap-category-cyber);
     }
 
     .timeline-scroll {
@@ -1944,12 +1605,12 @@ import caData from '../../../../data/canada-provinces.json';
 
     .timeline-scroll::-webkit-scrollbar-track {
         background: rgba(26, 26, 26, 0.05);
-        border-radius: 3px;
+        border-radius: 0;
     }
 
     .timeline-scroll::-webkit-scrollbar-thumb {
         background: rgba(26, 26, 26, 0.15);
-        border-radius: 3px;
+        border-radius: 0;
     }
 
     :global(.timeline-track) {
@@ -1972,7 +1633,7 @@ import caData from '../../../../data/canada-provinces.json';
         z-index: 0;
     }
 
-    :global(.timeline-year-group) {
+    :global(.brutal-timeline-year-group) {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -1981,82 +1642,27 @@ import caData from '../../../../data/canada-provinces.json';
         padding: 0 var(--spacing-xs);
     }
 
-    :global(.timeline-year-label) {
-        font-size: var(--text-xs);
-        font-weight: var(--font-weight-bold);
-        color: var(--text-primary);
-        margin-bottom: var(--spacing-sm);
-        position: relative;
-        z-index: 1;
-        white-space: nowrap;
-    }
-
-    :global(.timeline-year-entries) {
+    :global(.brutal-timeline-year-entries) {
         display: flex;
         flex-direction: column;
         gap: var(--spacing-xs);
         align-items: flex-start;
     }
 
-    :global(.timeline-entry) {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-xs);
-        padding: 3px var(--spacing-sm);
-        border-radius: 4px;
-        border-left: 3px solid transparent;
-        cursor: pointer;
-        transition: background var(--transition-fast), border-color var(--transition-fast);
-        white-space: nowrap;
+    /* Scoped overrides for timeline entries in horizontal scroll context */
+    :global(.brutal-timeline-entry) {
         position: relative;
         z-index: 1;
     }
 
-    :global(.timeline-entry--privacy) { border-left-color: var(--color-primary); }
-    :global(.timeline-entry--ai) { border-left-color: var(--color-secondary); }
-    :global(.timeline-entry--industry) { border-left-color: var(--regmap-category-industry); }
-    :global(.timeline-entry--cyber) { border-left-color: var(--regmap-category-cyber); }
-
-    :global(.timeline-entry:hover) {
-        background: rgba(26, 26, 26, 0.05);
-    }
-
-    :global(.timeline-entry--active) {
-        background: var(--accent-dark-bg);
-        border-left-color: var(--color-primary) !important;
-    }
-
-    :global(.timeline-entry--upcoming) {
-        font-weight: var(--font-weight-semibold);
-    }
-
-    :global(.timeline-entry__name) {
-        font-size: 0.6875rem;
-        color: var(--text-secondary);
+    :global(.brutal-timeline-entry__name) {
         max-width: 180px;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
-    :global(.timeline-entry--upcoming .timeline-entry__name) {
-        color: var(--text-primary);
-    }
-
-    :global(.timeline-entry__date) {
-        font-size: 0.625rem;
-        color: var(--text-muted);
-    }
-
-    :global(.timeline-dot--upcoming) {
-        animation: dotPulse 2s ease-in-out infinite;
-    }
-
-    @keyframes dotPulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.6; transform: scale(1.3); }
-    }
-
-    :global(.timeline-today) {
+    /* Today marker — absolute positioned in horizontal timeline */
+    :global(.brutal-timeline-today) {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -2067,7 +1673,7 @@ import caData from '../../../../data/canada-provinces.json';
         pointer-events: none;
     }
 
-    :global(.timeline-today::after) {
+    :global(.brutal-timeline-today::after) {
         content: '';
         width: 2px;
         flex: 1;
@@ -2076,36 +1682,14 @@ import caData from '../../../../data/canada-provinces.json';
         opacity: 0.6;
     }
 
-    :global(.timeline-today__label) {
-        font-size: 0.625rem;
-        font-weight: var(--font-weight-bold);
-        color: var(--color-primary);
-        background: var(--bg-light-alt);
-        padding: 1px var(--spacing-xs);
-        border-radius: 3px;
+    :global(.brutal-timeline-today__label) {
         white-space: nowrap;
         margin-bottom: 2px;
     }
 
-    :global(html.dark-theme .timeline-today__label) {
-        background: var(--bg-dark-secondary);
-    }
-
     /* Timeline dark theme */
     :global(html.dark-theme) .timeline-section {
-        border-top-color: var(--border-dark);
-    }
-
-    :global(html.dark-theme .timeline-entry:hover) {
-        background: rgba(245, 245, 245, 0.05);
-    }
-
-    :global(html.dark-theme .timeline-entry--active) {
-        background: var(--accent-light-bg-hover);
-    }
-
-    :global(html.dark-theme .timeline-entry__name) {
-        color: var(--text-dark-muted);
+        border-top-color: rgba(255, 255, 255, 0.15);
     }
 
     :global(html.dark-theme) .timeline-legend {
@@ -2113,14 +1697,14 @@ import caData from '../../../../data/canada-provinces.json';
     }
 
     :global(html.dark-theme) .timeline-scroll::-webkit-scrollbar-track {
-        background: rgba(245, 245, 245, 0.05);
+        background: rgba(255, 255, 255, 0.05);
     }
 
     :global(html.dark-theme) .timeline-scroll::-webkit-scrollbar-thumb {
-        background: rgba(245, 245, 245, 0.15);
+        background: rgba(255, 255, 255, 0.15);
     }
 
     :global(html.dark-theme .timeline-track::before) {
-        background: var(--border-dark);
+        background: rgba(255, 255, 255, 0.15);
     }
 </style>
