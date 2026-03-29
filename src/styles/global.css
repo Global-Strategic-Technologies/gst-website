@@ -3539,6 +3539,9 @@ html.dark-theme .brutal-timeline-today__label {
     border: 2px solid var(--border-light);
     border-radius: 0;
     overflow: hidden;
+    background: rgba(0, 0, 0, 0.005);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
 }
 
 .brutal-faq__item[open] {
@@ -3597,6 +3600,7 @@ html.dark-theme .brutal-timeline-today__label {
 
 html.dark-theme .brutal-faq__item {
     border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.005);
 }
 
 html.dark-theme .brutal-faq__item[open] {
