@@ -2,7 +2,7 @@
 
 Migrate all five hub tools from their current soft-UI styling (rounded corners, box shadows, filled backgrounds) to the brutalist design system (no radius, monospace typography, structural borders, primary-color accents). The brutalist design tokens and component classes are defined in `global.css`, `typography.css`, and `interactions.css`, and rendered live on the [/brand](https://globalstrategic.tech/brand) reference page.
 
-**Status**: Defined, not started
+**Status**: In progress — Stage 1 (TDC) complete, paused for review
 **Priority**: High — brand cohesion
 **Last Updated**: March 28, 2026
 
