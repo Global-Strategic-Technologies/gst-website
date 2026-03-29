@@ -184,14 +184,20 @@ test.describe('Regulatory Map — Mobile UX', () => {
     });
   });
 
-  test.describe('4. Zoom Button Touch Targets', () => {
-    test('should have 44px minimum zoom button size for touch accessibility', async ({ page }) => {
-      const zoomIn = page.locator('#zoomIn');
-      const box = await zoomIn.boundingBox();
+  test.describe('4. Zoom Controls on Mobile', () => {
+    test('should hide +/−/reset zoom controls on mobile (quick-zoom provides navigation)', async ({ page }) => {
+      const controls = page.locator('.map-controls');
+      const display = await controls.evaluate(el => window.getComputedStyle(el).display);
+      expect(display).toBe('none');
+    });
+
+    test('should have 32px minimum quick-zoom button size for touch accessibility', async ({ page }) => {
+      const btn = page.locator('.brutal-quick-zoom').first();
+      const box = await btn.boundingBox();
 
       expect(box).not.toBeNull();
-      expect(box!.width).toBeGreaterThanOrEqual(44);
-      expect(box!.height).toBeGreaterThanOrEqual(44);
+      expect(box!.width).toBeGreaterThanOrEqual(32);
+      expect(box!.height).toBeGreaterThanOrEqual(32);
     });
   });
 

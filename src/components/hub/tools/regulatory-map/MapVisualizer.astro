@@ -70,6 +70,18 @@
       right: auto;
       left: var(--spacing-sm);
     }
+
+    /* Thinner map border on tablet/mobile */
+    .brutal-map-container {
+      border-width: 1px;
+    }
+  }
+
+  /* Hide +/−/reset on phone — quick-zoom buttons provide navigation */
+  @media (max-width: 767px) {
+    .map-controls {
+      display: none;
+    }
   }
 
   /* Remove browser default focus outline on SVG paths; selection is shown via fill/stroke */

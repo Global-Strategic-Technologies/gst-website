@@ -1517,7 +1517,8 @@ import caData from '../../../../data/canada-provinces.json';
         margin-top: var(--spacing-2xl);
     }
 
-    @media (max-width: 767px) {
+    /* Mobile: legend static below map, hide CTA (tap bar covers this UX) */
+    @media (max-width: 1023px) {
         .map-legend-positioned {
             position: static;
             background: transparent;
@@ -1525,6 +1526,10 @@ import caData from '../../../../data/canada-provinces.json';
             justify-content: center;
             padding: var(--spacing-sm) 0;
             z-index: auto;
+        }
+
+        .brutal-map-cta {
+            display: none;
         }
     }
 
@@ -1559,15 +1564,6 @@ import caData from '../../../../data/canada-provinces.json';
         }
     }
 
-    @media (max-width: 480px) {
-        .brutal-map-cta .brutal-map-cta__text {
-            white-space: normal;
-        }
-
-        .brutal-map-cta {
-            max-width: calc(100% - var(--spacing-lg));
-        }
-    }
 
     /* Timeline — uses global .brutal-timeline-* classes; scoped layout for horizontal scroll */
     .timeline-section {
