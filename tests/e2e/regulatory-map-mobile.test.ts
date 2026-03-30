@@ -131,16 +131,9 @@ test.describe('Regulatory Map — Mobile UX', () => {
       await expect(actionBtn).toHaveText('View details');
     });
 
-    test('should remove CTA prompt after first tap interaction', async ({ page }) => {
-      // CTA should exist initially
+    test('should not show CTA on mobile (tap bar provides guidance instead)', async ({ page }) => {
+      // CTA is hidden on mobile via CSS — tap bar covers this UX
       const cta = page.locator('#mapCta');
-      await expect(cta).toBeVisible();
-
-      // First tap on a region
-      await clickSvgPath(page, '[data-alpha3="BRA"].country-path--active');
-
-      // CTA should be removed from the DOM
-      await page.waitForFunction(() => !document.getElementById('mapCta'));
       await expect(cta).toBeHidden();
     });
   });
