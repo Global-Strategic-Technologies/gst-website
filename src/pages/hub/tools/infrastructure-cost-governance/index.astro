@@ -40,56 +40,56 @@ const domainCount = DOMAINS.length;
                 subtitle="A structured maturity assessment for cloud cost management. Answer 20 questions across six operational domains and receive a scored diagnostic with a prioritized improvement checklist. Scoring model informed by cloud cost governance patterns across PE portfolio companies."
             />
 
-            <div data-icg class="tool-shell tool-shell--narrow icg-shell">
+            <div data-icg class="brutal-tool-shell brutal-tool-shell--narrow icg-shell">
 
 
                 <!-- ── Landing view (step 0) ─────────────────────────────── -->
                 <div data-view="landing" class="icg-view">
                     <div class="landing-content">
-                        <div class="landing-callout">
-                            <span class="landing-callout__title">Who should complete this assessment.</span>
+                        <div class="brutal-callout landing-callout">
+                            <span class="brutal-callout__title landing-callout__title">Who should complete this assessment.</span>
                             This tool takes 5 to 7 minutes. Domains 3 through 6 require familiarity with cloud infrastructure. PE investors and executives should complete this alongside their engineering lead, or send them the link directly.
                         </div>
 
                         <div class="stats-row">
-                            <div class="stat-tile">
-                                <div class="stat-tile__value">{domainCount}</div>
-                                <div class="stat-tile__label">domains</div>
+                            <div class="brutal-stat-tile">
+                                <div class="brutal-stat-tile__value">{domainCount}</div>
+                                <div class="brutal-stat-tile__label">domains</div>
                             </div>
-                            <div class="stat-tile">
-                                <div class="stat-tile__value">{TOTAL_QUESTIONS}</div>
-                                <div class="stat-tile__label">questions</div>
+                            <div class="brutal-stat-tile">
+                                <div class="brutal-stat-tile__value">{TOTAL_QUESTIONS}</div>
+                                <div class="brutal-stat-tile__label">questions</div>
                             </div>
-                            <div class="stat-tile">
-                                <div class="stat-tile__value">5-7 min</div>
-                                <div class="stat-tile__label">to complete</div>
+                            <div class="brutal-stat-tile">
+                                <div class="brutal-stat-tile__value">5-7 min</div>
+                                <div class="brutal-stat-tile__label">to complete</div>
                             </div>
                         </div>
 
                         <div class="icg-stage-selector">
-                            <span class="icg-stage-selector__label label">Company stage <span class="icg-stage-optional text-tiny">(optional)</span></span>
+                            <span class="icg-stage-selector__label brutal-label">Company stage <span class="icg-stage-optional brutal-text-tiny">(optional)</span></span>
                             <div class="icg-stage-grid" data-stage-grid>
                                 <button class="icg-stage-card" data-stage="pre-series-b" type="button">Pre-Series B</button>
                                 <button class="icg-stage-card" data-stage="series-bc" type="button">Series B-C</button>
                                 <button class="icg-stage-card" data-stage="pe-backed" type="button">PE-backed 2+ yr</button>
                                 <button class="icg-stage-card" data-stage="enterprise" type="button">Enterprise</button>
                             </div>
-                            <div class="icg-stage-hint text-tiny">Sets benchmark context for your results. You can skip this.</div>
+                            <div class="icg-stage-hint brutal-text-tiny">Sets benchmark context for your results. You can skip this.</div>
                         </div>
 
-                        <div data-resume-prompt class="icg-resume-prompt is-hidden">
-                            <p class="text-small icg-resume-prompt__text">You have an incomplete assessment saved from a previous session.</p>
+                        <div data-resume-prompt class="brutal-callout icg-resume-prompt is-hidden">
+                            <p class="brutal-text-small icg-resume-prompt__text">You have an incomplete assessment saved from a previous session.</p>
                             <div class="icg-resume-actions">
-                                <button data-action="resume" type="button" class="hub-btn hub-btn--primary icg-btn-primary">Resume</button>
-                                <button data-action="discard" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary">Start fresh</button>
+                                <button data-action="resume" type="button" class="brutal-btn brutal-btn--primary">Resume</button>
+                                <button data-action="discard" type="button" class="brutal-btn brutal-btn--secondary">Start fresh</button>
                             </div>
                         </div>
 
-                        <button data-action="start" type="button" class="hub-btn hub-btn--primary hub-btn--full icg-btn-primary icg-btn-primary--full">Begin assessment</button>
+                        <button data-action="start" type="button" class="brutal-btn brutal-btn--primary brutal-btn--full icg-btn-primary--full">Begin assessment</button>
 
                         <div class="tool-action-bar tool-action-bar--center">
-                            <button data-action="landing-copy" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary" title="Copy a shareable link to this assessment">Copy link</button>
-                            <a data-action="landing-email" href="#" class="hub-btn hub-btn--secondary icg-btn-secondary" title="Open a pre-filled email inviting your engineering lead to complete the assessment">Send to engineering lead</a>
+                            <button data-action="landing-copy" type="button" class="brutal-btn brutal-btn--secondary" title="Copy a shareable link to this assessment">Copy link</button>
+                            <a data-action="landing-email" href="#" class="brutal-btn brutal-btn--secondary" title="Open a pre-filled email inviting your engineering lead to complete the assessment">Send to engineering lead</a>
                         </div>
                     </div>
                 </div>
@@ -98,22 +98,22 @@ const domainCount = DOMAINS.length;
                 <div data-view="wizard" class="icg-view is-hidden">
                     <div class="wizard-content">
                         <!-- Progress bar -->
-                        <div class="icg-progress">
-                            <div class="icg-progress__track">
-                                <div class="icg-progress__fill" data-progress-fill></div>
+                        <div class="brutal-progress-bar icg-progress">
+                            <div class="brutal-progress-bar__track icg-progress__track">
+                                <div class="brutal-progress-bar__fill icg-progress__fill" data-progress-fill></div>
                             </div>
-                            <span class="icg-progress__label text-tiny" data-progress-label></span>
+                            <span class="brutal-progress-bar__label icg-progress__label" data-progress-label></span>
                         </div>
 
                         <!-- Domain header -->
                         <div class="icg-domain-header">
                             <div class="icg-domain-header__meta">
-                                <span class="label icg-domain-label" data-domain-label></span>
+                                <span class="brutal-label icg-domain-label" data-domain-label></span>
                                 <span class="icg-foundational-badge is-hidden" data-foundational-badge>foundational</span>
                             </div>
-                            <h2 class="heading-md icg-domain-name" data-domain-name></h2>
-                            <p class="text-small icg-domain-desc" data-domain-desc></p>
-                            <p class="text-small icg-foundational-note is-hidden" data-foundational-note>This is a foundational domain. Scores here affect how results in later sections should be interpreted.</p>
+                            <h2 class="brutal-heading-md icg-domain-name" data-domain-name></h2>
+                            <p class="brutal-text-small icg-domain-desc" data-domain-desc></p>
+                            <p class="brutal-text-small icg-foundational-note is-hidden" data-foundational-note>This is a foundational domain. Scores here affect how results in later sections should be interpreted.</p>
                         </div>
 
                         <!-- Questions container -->
@@ -121,8 +121,8 @@ const domainCount = DOMAINS.length;
 
                         <!-- Navigation -->
                         <div class="icg-wizard-nav">
-                            <button data-action="back" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary">Back to intro</button>
-                            <button data-action="next" type="button" class="hub-btn hub-btn--primary icg-btn-primary" disabled>Next domain</button>
+                            <button data-action="back" type="button" class="brutal-btn brutal-btn--secondary">Back to intro</button>
+                            <button data-action="next" type="button" class="brutal-btn brutal-btn--primary" disabled>Next domain</button>
                         </div>
                     </div>
                 </div>
@@ -134,37 +134,37 @@ const domainCount = DOMAINS.length;
                         <!-- Maturity score -->
                         <div class="icg-score-display" data-score-display>
                             <div data-gauge-container class="icg-gauge"></div>
-                            <div class="icg-score-level heading-md" data-score-level></div>
-                            <div class="icg-score-desc text-small" data-score-desc></div>
-                            <div class="icg-stage-context text-small is-hidden" data-stage-context></div>
-                            <div class="icg-skipped-note text-tiny is-hidden" data-skipped-note></div>
+                            <div class="icg-score-level brutal-heading-md" data-score-level></div>
+                            <div class="icg-score-desc brutal-text-small" data-score-desc></div>
+                            <div class="icg-stage-context brutal-text-small is-hidden" data-stage-context></div>
+                            <div class="icg-skipped-note brutal-text-tiny is-hidden" data-skipped-note></div>
                         </div>
 
                         <!-- Foundational flag (conditional) -->
-                        <div class="icg-foundational-warning is-hidden" data-foundational-warning>
-                            <div class="icg-foundational-warning__title" data-foundational-warning-title></div>
-                            <div class="icg-foundational-warning__text text-small" data-foundational-warning-text></div>
+                        <div class="brutal-callout brutal-callout--warning icg-foundational-warning is-hidden" data-foundational-warning>
+                            <div class="brutal-callout__title icg-foundational-warning__title" data-foundational-warning-title></div>
+                            <div class="icg-foundational-warning__text brutal-text-small" data-foundational-warning-text></div>
                         </div>
 
                         <!-- Quick wins -->
-                        <div data-quick-wins class="icg-quick-wins is-hidden"></div>
+                        <div data-quick-wins class="brutal-callout icg-quick-wins is-hidden"></div>
 
                         <!-- Radar chart -->
                         <div class="icg-card">
-                            <div class="tool-section-label">Domain profile</div>
+                            <div class="brutal-tool-shell__section-label">Domain profile</div>
                             <div data-radar-chart class="icg-radar"></div>
                         </div>
 
                         <!-- Domain breakdown -->
                         <div class="icg-card">
-                            <div class="tool-section-label">Domain breakdown</div>
+                            <div class="brutal-tool-shell__section-label">Domain breakdown</div>
                             <div data-domain-bars class="icg-domain-bars"></div>
                         </div>
 
                         <!-- Benchmark reference -->
                         <div class="icg-card">
-                            <div class="tool-section-label">Benchmark reference</div>
-                            <table class="tool-bench-table">
+                            <div class="brutal-tool-shell__section-label">Benchmark reference</div>
+                            <table class="brutal-bench-table">
                                 <tbody data-benchmark-body>
                                     <tr data-stage-row="pre-series-b"><td>Pre-Series B / high-growth startup</td><td data-bench="15-35">15-35</td></tr>
                                     <tr data-stage-row="series-bc"><td>Series B-C SaaS, scaling team</td><td data-bench="30-55">30-55</td></tr>
@@ -172,12 +172,12 @@ const domainCount = DOMAINS.length;
                                     <tr data-stage-row="enterprise"><td>Enterprise with established FinOps practice</td><td data-bench="65-90">65-90</td></tr>
                                 </tbody>
                             </table>
-                            <div class="tool-bench-note text-tiny">Ranges reflect illustrative patterns from GST diligence and value creation engagements. Individual results vary based on team maturity and infrastructure complexity.</div>
+                            <div class="tool-bench-note brutal-text-tiny">Ranges reflect illustrative patterns from GST diligence and value creation engagements. Individual results vary based on team maturity and infrastructure complexity.</div>
                         </div>
 
                         <!-- Cost context -->
-                        <div class="icg-cost-context">
-                            <div class="text-small">Cloud infrastructure as a percentage of revenue varies widely by company stage, business model, and architecture. Early-stage companies often run above 30 percent while scaling ahead of revenue. Mature SaaS businesses may converge below 10 percent. <strong>The trend matters more than the number</strong> - assess whether spend is moving in the right direction relative to revenue growth and whether the governance practices above are in place to sustain that trajectory.</div>
+                        <div class="brutal-callout icg-cost-context">
+                            <div class="brutal-text-small">Cloud infrastructure as a percentage of revenue varies widely by company stage, business model, and architecture. Early-stage companies often run above 30 percent while scaling ahead of revenue. Mature SaaS businesses may converge below 10 percent. <strong>The trend matters more than the number</strong> - assess whether spend is moving in the right direction relative to revenue growth and whether the governance practices above are in place to sustain that trajectory.</div>
                         </div>
 
                         <!-- Recommendations -->
@@ -185,27 +185,27 @@ const domainCount = DOMAINS.length;
 
                         <!-- Actions row -->
                         <div class="tool-action-bar tool-action-bar--center tool-action-bar--bordered tool-action-bar--stack">
-                            <button data-action="copy-summary" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary" title="Copy a plain-text summary of your results to clipboard">Copy summary</button>
-                            <button data-action="copy" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary" title="Copy a shareable link that preserves your answers and dismissed recommendations">Copy link</button>
-                            <button data-action="export-json" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary" title="Download your results as a structured JSON file for portfolio aggregation">Download JSON</button>
-                            <button data-action="print" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary" title="Your browser will open a print dialog. Select Save as PDF to download.">Print / Save as PDF</button>
-                            <a data-action="email" href="#" class="hub-btn hub-btn--secondary icg-btn-secondary" title="Open a pre-filled email with your results link. The recipient can complete the assessment independently.">Send to engineering lead</a>
-                            <button data-action="compare" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary is-hidden" title="Compare saved snapshots side by side">Compare</button>
-                            <button data-action="review" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary" title="Review your answers across all six domains">Review answers</button>
-                            <button data-action="reset" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary">Start over</button>
+                            <button data-action="copy-summary" type="button" class="brutal-btn brutal-btn--secondary" title="Copy a plain-text summary of your results to clipboard">Copy summary</button>
+                            <button data-action="copy" type="button" class="brutal-btn brutal-btn--secondary" title="Copy a shareable link that preserves your answers and dismissed recommendations">Copy link</button>
+                            <button data-action="export-json" type="button" class="brutal-btn brutal-btn--secondary" title="Download your results as a structured JSON file for portfolio aggregation">Download JSON</button>
+                            <button data-action="print" type="button" class="brutal-btn brutal-btn--secondary" title="Your browser will open a print dialog. Select Save as PDF to download.">Print / Save as PDF</button>
+                            <a data-action="email" href="#" class="brutal-btn brutal-btn--secondary" title="Open a pre-filled email with your results link. The recipient can complete the assessment independently.">Send to engineering lead</a>
+                            <button data-action="compare" type="button" class="brutal-btn brutal-btn--secondary is-hidden" title="Compare saved snapshots side by side">Compare</button>
+                            <button data-action="review" type="button" class="brutal-btn brutal-btn--secondary" title="Review your answers across all six domains">Review answers</button>
+                            <button data-action="reset" type="button" class="brutal-btn brutal-btn--secondary">Start over</button>
                         </div>
 
                         <!-- Snapshot save -->
                         <div class="icg-snapshot-save-row">
                             <input data-snapshot-label type="text" class="icg-snapshot-label-input" placeholder="Label (e.g., 90-day review)" maxlength="60" />
-                            <button data-action="save-snapshot" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary">Save snapshot</button>
+                            <button data-action="save-snapshot" type="button" class="brutal-btn brutal-btn--secondary">Save snapshot</button>
                         </div>
 
                         <!-- Snapshot manager -->
                         <div data-snapshot-manager class="icg-snapshot-manager is-hidden">
-                            <div class="tool-section-label">Saved snapshots</div>
+                            <div class="brutal-tool-shell__section-label">Saved snapshots</div>
                             <div data-snapshot-list class="icg-snapshot-list-items"></div>
-                            <button data-action="clear-snapshots" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary icg-snapshot-clear">Clear all snapshots</button>
+                            <button data-action="clear-snapshots" type="button" class="brutal-btn brutal-btn--secondary icg-snapshot-clear">Clear all snapshots</button>
                         </div>
                     </div>
                 </div>
@@ -213,10 +213,10 @@ const domainCount = DOMAINS.length;
                 <!-- ── Comparison view ────────────────────────────────────── -->
                 <div data-view="comparison" class="icg-view is-hidden">
                     <div class="comparison-content">
-                        <div class="tool-section-label">Snapshot comparison</div>
+                        <div class="brutal-tool-shell__section-label">Snapshot comparison</div>
                         <div data-comparison-body class="icg-comparison-body"></div>
                         <div class="icg-comparison-actions">
-                            <button data-action="back-to-results" type="button" class="hub-btn hub-btn--secondary icg-btn-secondary">Back to results</button>
+                            <button data-action="back-to-results" type="button" class="brutal-btn brutal-btn--secondary">Back to results</button>
                         </div>
                     </div>
                 </div>
@@ -308,27 +308,9 @@ const domainCount = DOMAINS.length;
         padding: var(--spacing-xl) var(--spacing-lg);
     }
 
+    /* .landing-callout — layout overrides only; visual treatment from .brutal-callout */
     .landing-callout {
-        padding: var(--spacing-md) var(--spacing-lg);
-        background: var(--bg-light);
-        border-radius: 8px;
-        font-size: var(--text-sm);
-        color: var(--text-secondary);
-        line-height: 1.65;
         margin-bottom: var(--spacing-xl);
-    }
-
-    :global(html.dark-theme) .landing-callout {
-        background: var(--accent-wash-bg);
-    }
-
-    .landing-callout__title {
-        display: block;
-        color: var(--text-primary);
-        font-weight: var(--font-weight-bold);
-        font-size: var(--text-sm);
-        letter-spacing: 0.02em;
-        margin-bottom: var(--spacing-xs);
     }
 
     .landing-content > .tool-action-bar {
@@ -336,21 +318,12 @@ const domainCount = DOMAINS.length;
         gap: var(--spacing-md);
     }
 
-    /* ── Resume prompt ──────────────────────────────────────────────────── */
+    /* ── Resume prompt — layout overrides only; visual treatment from .brutal-callout ── */
     .icg-resume-prompt {
-        padding: var(--spacing-md) var(--spacing-lg);
-        border: 1px solid var(--color-primary);
-        border-radius: 8px;
-        background: var(--accent-faint-bg);
         margin-bottom: var(--spacing-lg);
     }
 
-    :global(html.dark-theme) .icg-resume-prompt {
-        background: var(--accent-tint-bg);
-    }
-
     .icg-resume-prompt__text {
-        color: var(--text-secondary);
         margin-bottom: var(--spacing-md);
     }
 
@@ -359,8 +332,7 @@ const domainCount = DOMAINS.length;
         gap: var(--spacing-sm);
     }
 
-    .icg-resume-actions .icg-btn-primary,
-    .icg-resume-actions .icg-btn-secondary {
+    .icg-resume-actions .brutal-btn {
         flex: 1;
     }
 
@@ -370,78 +342,16 @@ const domainCount = DOMAINS.length;
         margin-bottom: var(--spacing-xl);
     }
 
-    .stat-tile {
-        flex: 1;
-        padding: var(--spacing-md);
-        background: var(--bg-light);
-        border-radius: 8px;
-        text-align: center;
-    }
+    /* stat-tile — visual treatment from global .brutal-stat-tile; no scoped overrides needed */
 
-    :global(html.dark-theme) .stat-tile {
-        background: var(--accent-wash-bg);
-    }
-
-    .stat-tile__value {
-        font-size: var(--text-xl);
-        font-weight: var(--font-weight-semibold);
-        color: var(--text-primary);
-    }
-
-    .stat-tile__label {
-        font-size: var(--text-xs);
-        font-weight: var(--font-weight-bold);
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--text-muted);
-    }
-
-    /* ── Button overrides (base styles from global .hub-btn) ────────────── */
+    /* ── Button overrides (base styles from global .brutal-btn) ────────── */
     .icg-btn-primary--full {
         padding: var(--spacing-md) 0;
-        font-size: 0.95rem;
-        letter-spacing: 0.08em;
     }
 
-    .icg-btn-secondary {
-        padding: var(--spacing-sm) var(--spacing-lg);
-    }
-
-    :global(html.dark-theme) .icg-btn-secondary {
-        border-color: var(--accent-light-bg-hover);
-    }
-
-    /* ── Progress bar ─────────────────────────────────────────────────────── */
+    /* ── Progress bar — layout overrides only; visual treatment from .brutal-progress-bar ── */
     .icg-progress {
-        display: flex;
-        align-items: center;
-        gap: var(--gap-normal);
         margin-bottom: var(--spacing-xl);
-    }
-
-    .icg-progress__track {
-        flex: 1;
-        height: 4px;
-        background: var(--border-light);
-        border-radius: 4px;
-        overflow: hidden;
-    }
-
-    :global(html.dark-theme) .icg-progress__track {
-        background: var(--accent-light-bg-hover);
-    }
-
-    .icg-progress__fill {
-        height: 100%;
-        width: 0;
-        background: var(--color-primary);
-        border-radius: 4px;
-        transition: width var(--transition-normal);
-    }
-
-    .icg-progress__label {
-        white-space: nowrap;
-        color: var(--text-muted);
     }
 
     /* ── Domain header ────────────────────────────────────────────────────── */
@@ -461,13 +371,14 @@ const domainCount = DOMAINS.length;
     }
 
     .icg-foundational-badge {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
         font-weight: var(--font-weight-bold);
+        font-family: monospace;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
-        padding: 2px var(--spacing-sm);
-        border-radius: 4px;
-        background: var(--accent-dark-bg);
+        letter-spacing: 0.06em;
+        padding: 1px var(--spacing-sm);
+        border: 1px solid var(--color-primary);
+        background: transparent;
         color: var(--color-primary);
     }
 
@@ -494,18 +405,17 @@ const domainCount = DOMAINS.length;
 
     :global(.icg-question-card) {
         padding: var(--spacing-md) var(--spacing-lg);
-        border: 1px solid var(--border-light);
-        border-radius: 8px;
-        background: var(--bg-light);
+        border: 2px solid var(--border-light);
+        background: transparent;
     }
 
     :global(html.dark-theme .icg-question-card) {
-        background: var(--accent-subtle-bg);
-        border-color: var(--accent-light-bg-hover);
+        border-color: rgba(255, 255, 255, 0.15);
     }
 
     :global(.icg-question-text) {
         font-size: var(--text-sm);
+        font-family: monospace;
         font-weight: var(--font-weight-normal);
         color: var(--text-primary);
         margin-bottom: var(--spacing-md);
@@ -515,6 +425,7 @@ const domainCount = DOMAINS.length;
     :global(.icg-question-num) {
         color: var(--text-muted);
         font-size: var(--text-xs);
+        font-family: monospace;
         font-weight: var(--font-weight-bold);
         margin-right: var(--spacing-xs);
     }
@@ -528,23 +439,21 @@ const domainCount = DOMAINS.length;
     :global(.icg-opt-btn) {
         padding: var(--spacing-sm) var(--spacing-sm);
         border: 2px solid var(--border-light);
-        border-radius: 8px;
-        background: var(--bg-light-alt);
+        background: transparent;
         color: var(--text-secondary);
         cursor: pointer;
         font-size: var(--text-xs);
         font-weight: var(--font-weight-bold);
-        font-family: var(--font-family);
+        font-family: monospace;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
-        transition: border-color var(--transition-fast), color var(--transition-fast);
+        letter-spacing: 0.06em;
+        transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
         text-align: center;
         min-height: 44px;
     }
 
     :global(html.dark-theme .icg-opt-btn) {
-        background: var(--accent-subtle-bg);
-        border-color: var(--accent-light-bg-hover);
+        border-color: rgba(255, 255, 255, 0.15);
     }
 
     :global(.icg-opt-btn:hover) {
@@ -603,19 +512,20 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme .icg-rationale__text) {
-        border-left-color: var(--accent-light-bg-hover);
+        border-left-color: rgba(255, 255, 255, 0.15);
     }
 
     :global(.icg-opt-btn.selected) {
         border: 2px solid var(--color-primary);
-        color: var(--text-primary);
+        background: var(--color-primary);
+        color: var(--bg-dark);
         font-weight: var(--font-weight-bold);
-        background: var(--bg-light);
-        box-shadow: inset 0 0 0 1px var(--color-primary);
     }
 
     :global(html.dark-theme .icg-opt-btn.selected) {
-        background: var(--accent-light-bg-hover);
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: var(--bg-dark);
     }
 
     :global(.icg-opt-btn--unsure) {
@@ -627,9 +537,9 @@ const domainCount = DOMAINS.length;
 
     :global(.icg-opt-btn--unsure.selected) {
         border: 2px dashed var(--color-primary);
-        color: var(--text-primary);
+        background: transparent;
+        color: var(--color-primary);
         font-weight: var(--font-weight-bold);
-        box-shadow: none;
     }
 
     /* ── Wizard navigation ────────────────────────────────────────────────── */
@@ -650,10 +560,10 @@ const domainCount = DOMAINS.length;
 
     :global(html.dark-theme) .icg-wizard-nav {
         background: var(--bg-light-alt);
-        border-top-color: var(--accent-dark-bg);
+        border-top-color: rgba(255, 255, 255, 0.15);
     }
 
-    .icg-wizard-nav .icg-btn-primary {
+    .icg-wizard-nav .brutal-btn--primary {
         flex: 1;
     }
 
@@ -683,16 +593,9 @@ const domainCount = DOMAINS.length;
     }
 
     /* ── Results: Quick wins ────────────────────────────────────────────── */
+    /* .icg-quick-wins — layout override; visual treatment from .brutal-callout */
     .icg-quick-wins {
-        padding: var(--spacing-md) var(--spacing-lg);
-        border-left: 3px solid var(--color-primary);
-        background: var(--accent-faint-bg);
-        border-radius: 0 8px 8px 0;
         margin-bottom: var(--spacing-xl);
-    }
-
-    :global(html.dark-theme) .icg-quick-wins {
-        background: var(--accent-tint-bg);
     }
 
     :global(.icg-quick-win-item) {
@@ -713,18 +616,16 @@ const domainCount = DOMAINS.length;
     /* ── Results: Cards ───────────────────────────────────────────────────── */
     .icg-card {
         padding: var(--spacing-lg) var(--spacing-xl);
-        border: 1px solid var(--border-light);
-        border-radius: 8px;
-        background: var(--bg-light);
+        border: 2px solid var(--border-light);
+        background: transparent;
         margin-bottom: var(--spacing-xl);
     }
 
     :global(html.dark-theme) .icg-card {
-        background: var(--accent-subtle-bg);
-        border-color: var(--accent-light-bg-hover);
+        border-color: rgba(255, 255, 255, 0.15);
     }
 
-    /* Section labels use global .tool-section-label — no scoped override needed */
+    /* Section labels use global .brutal-tool-shell__section-label — no scoped override needed */
 
     /* ── Results: Domain bars (injected via innerHTML — must use :global) ── */
     .icg-domain-bars {
@@ -766,40 +667,21 @@ const domainCount = DOMAINS.length;
     :global(.icg-domain-bar__track) {
         height: 6px;
         background: var(--border-light);
-        border-radius: 4px;
         overflow: hidden;
     }
 
     :global(html.dark-theme .icg-domain-bar__track) {
-        background: var(--accent-dark-bg);
+        background: rgba(255, 255, 255, 0.15);
     }
 
     :global(.icg-domain-bar__fill) {
         height: 100%;
-        border-radius: 4px;
         transition: width var(--transition-normal);
     }
 
-    /* ── Results: Foundational warning ─────────────────────────────────────── */
+    /* ── Results: Foundational warning — layout only; visual from .brutal-callout--warning ── */
     .icg-foundational-warning {
-        padding: var(--spacing-md) var(--spacing-lg);
         margin-bottom: var(--spacing-xl);
-        border: 1px solid var(--color-secondary);
-        border-radius: 8px;
-        background: rgba(204, 136, 0, 0.06);
-    }
-
-    :global(html.dark-theme) .icg-foundational-warning {
-        background: rgba(255, 170, 51, 0.06);
-        border-color: rgba(255, 170, 51, 0.3);
-    }
-
-    .icg-foundational-warning__title {
-        font-size: var(--text-sm);
-        font-weight: var(--font-weight-bold);
-        color: var(--color-secondary);
-        margin-bottom: var(--spacing-xs);
-        letter-spacing: 0.02em;
     }
 
     .icg-foundational-warning__text {
@@ -807,62 +689,20 @@ const domainCount = DOMAINS.length;
         line-height: 1.55;
     }
 
-    /* ── Results: Benchmark table — overrides on shared .tool-bench-table ─── */
-    .tool-bench-table {
-        border-collapse: separate;
-        border-spacing: 0 var(--spacing-xs);
-    }
+    /* ── Results: Benchmark table — visual treatment from global .brutal-bench-table ── */
+    /* No scoped overrides needed — global styles handle this */
 
-    .tool-bench-table td {
-        padding: var(--spacing-sm) var(--spacing-md);
-        font-size: var(--text-sm);
-        border-bottom: none;
-    }
-
-    .tool-bench-table td:first-child {
-        border-radius: 4px 0 0 4px;
-    }
-
-    .tool-bench-table td:last-child {
-        white-space: nowrap;
-        font-family: var(--font-family);
-        font-weight: var(--font-weight-semibold);
-        letter-spacing: 0.02em;
-        border-radius: 0 4px 4px 0;
-    }
-
-    :global(.tool-bench-table td.in-range) {
-        font-weight: var(--font-weight-bold);
-        color: var(--color-primary);
-    }
-
-    .tool-bench-note {
-        font-style: italic;
-    }
-
-    /* ── Results: Cost context ─────────────────────────────────────────────── */
+    /* ── Results: Cost context — layout only; visual from .brutal-callout ── */
     .icg-cost-context {
-        padding: var(--spacing-md) var(--spacing-lg);
-        border-left: 3px solid var(--color-primary);
-        background: var(--bg-light-alt);
         margin-bottom: var(--spacing-xl);
-    }
-
-    :global(html.dark-theme) .icg-cost-context {
-        background: var(--accent-wash-bg);
-    }
-
-    .icg-cost-context .text-small {
-        color: var(--text-secondary);
-        line-height: 1.65;
     }
 
     .icg-cost-context strong {
         color: var(--text-primary);
-        font-weight: var(--font-weight-semibold);
+        font-weight: var(--font-weight-bold);
     }
 
-    /* ── Results: Recommendations (injected via innerHTML — must use :global) */
+    /* ── Results: Recommendations — visual treatment from global .brutal-rec-card ── */
     .icg-recs {
         margin-bottom: var(--spacing-xl);
     }
@@ -872,98 +712,12 @@ const domainCount = DOMAINS.length;
     }
 
     :global(.icg-recs-group__label) {
-        font-size: 0.75rem;
+        font-size: 0.65rem;
         font-weight: var(--font-weight-bold);
+        font-family: monospace;
         margin-bottom: var(--spacing-sm);
         letter-spacing: 0.1em;
         text-transform: uppercase;
-    }
-
-    :global(.icg-rec-card) {
-        display: flex;
-        gap: var(--gap-normal);
-        padding: var(--spacing-md) var(--spacing-md);
-        border: 1px solid var(--border-light);
-        border-radius: 8px;
-        margin-bottom: var(--spacing-sm);
-        cursor: pointer;
-    }
-
-    :global(html.dark-theme .icg-rec-card) {
-        border-color: var(--accent-dark-bg);
-    }
-
-    :global(.icg-rec-badge) {
-        flex-shrink: 0;
-        display: inline-flex;
-        align-items: center;
-        font-size: 0.65rem;
-        font-weight: var(--font-weight-bold);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        padding: var(--spacing-xs) var(--spacing-sm);
-        border-radius: 4px;
-        line-height: 1;
-        border: 1px solid var(--border-light);
-    }
-
-    :global(html.dark-theme .icg-rec-badge) {
-        border-color: rgba(200, 200, 200, 0.1);
-    }
-
-    :global(.icg-rec-badge--high),
-    :global(.icg-rec-badge--medium),
-    :global(.icg-rec-badge--low) {
-        background: var(--bg-light-alt);
-        color: var(--text-muted);
-    }
-
-    :global(html.dark-theme .icg-rec-badge--high),
-    :global(html.dark-theme .icg-rec-badge--medium),
-    :global(html.dark-theme .icg-rec-badge--low) {
-        background: rgba(200, 200, 200, 0.05);
-    }
-
-    :global(.icg-rec-badge--effort) {
-        background: var(--bg-light-alt);
-        color: var(--text-muted);
-        font-style: normal;
-    }
-
-    :global(html.dark-theme .icg-rec-badge--effort) {
-        background: rgba(200, 200, 200, 0.05);
-    }
-
-    :global(.icg-rec-body) {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-xs);
-    }
-
-    :global(.icg-rec-body__title) {
-        font-size: var(--text-sm);
-        font-weight: var(--font-weight-semibold);
-        color: var(--text-primary);
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-xs);
-    }
-
-
-    :global(.icg-rec-body__desc) {
-        font-size: var(--text-sm);
-        color: var(--text-secondary);
-        line-height: 1.55;
-        transition: max-height var(--transition-normal), opacity var(--transition-normal);
-        max-height: 200px;
-        opacity: 1;
-        overflow: hidden;
-    }
-
-    :global(.icg-rec-card.is-collapsed .icg-rec-body__desc) {
-        max-height: 0;
-        opacity: 0;
-        margin: 0;
     }
 
     :global(.icg-recs-empty) {
@@ -971,50 +725,12 @@ const domainCount = DOMAINS.length;
         padding: var(--spacing-xl) 0;
         color: var(--text-muted);
         font-size: var(--text-sm);
+        font-family: monospace;
     }
 
-    /* ── N/A dismiss button (inline with badges) ────────────────────────── */
-    :global(.icg-rec-na) {
-        flex-shrink: 0;
-        padding: 2px var(--spacing-sm);
-        margin-right: var(--spacing-xs);
-        font-size: 0.65rem;
-        font-weight: var(--font-weight-bold);
-        font-family: var(--font-family);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--text-muted);
-        background: rgba(200, 200, 200, 0.08);
-        border: 1px dashed var(--border-light);
-        border-radius: 4px;
-        cursor: pointer;
-        transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
-    }
-
-    :global(.icg-rec-na:hover) {
-        color: var(--text-primary);
-        border-color: var(--text-secondary);
-        background: rgba(200, 200, 200, 0.15);
-    }
-
-    :global(html.dark-theme .icg-rec-na) {
-        background: rgba(200, 200, 200, 0.04);
-        border-color: var(--accent-light-bg-hover);
-    }
-
-    :global(html.dark-theme .icg-rec-na:hover) {
-        border-color: var(--accent-border-medium);
-        background: var(--accent-light-bg);
-    }
-
-    /* ── Dismissed recommendation ─────────────────────────────────────────── */
-    :global(.icg-rec-card.is-dismissed) {
-        opacity: 0.45;
-        border-style: dashed;
-    }
-
-    :global(.icg-rec-card.is-dismissed .icg-rec-na) {
-        border-style: solid;
+    /* brutal-rec-card margin between cards */
+    :global(.brutal-rec-card) {
+        margin-bottom: var(--spacing-sm);
     }
 
 
@@ -1026,7 +742,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme) .icg-snapshot-manager {
-        border-top-color: var(--accent-dark-bg);
+        border-top-color: rgba(255, 255, 255, 0.15);
     }
 
     :global(.icg-snapshot-list-items) {
@@ -1044,7 +760,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme .icg-snapshot-row) {
-        border-bottom-color: var(--accent-light-bg);
+        border-bottom-color: rgba(255, 255, 255, 0.15);
     }
 
     :global(.icg-snapshot-row__info) {
@@ -1087,7 +803,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme .icg-comparison-row) {
-        border-bottom-color: var(--accent-light-bg);
+        border-bottom-color: rgba(255, 255, 255, 0.15);
     }
 
     :global(.icg-comparison-row__name) {
@@ -1138,7 +854,7 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme .icg-comparison-overall) {
-        border-bottom-color: var(--accent-light-bg-hover);
+        border-bottom-color: rgba(255, 255, 255, 0.15);
     }
 
     .icg-comparison-actions {
@@ -1200,34 +916,38 @@ const domainCount = DOMAINS.length;
 
     .icg-stage-card {
         padding: var(--spacing-sm) var(--spacing-md);
-        background: var(--bg-light);
-        border: 1px solid var(--border-light);
-        border-radius: 8px;
+        background: transparent;
+        border: 2px solid var(--border-light);
         cursor: pointer;
-        font-family: var(--font-family);
-        font-size: var(--text-sm);
-        font-weight: var(--font-weight-semibold);
-        color: var(--text-primary);
+        font-family: monospace;
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-secondary);
         text-align: center;
-        transition: border-color var(--transition-fast), background var(--transition-fast);
+        transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
     }
 
     :global(html.dark-theme) .icg-stage-card {
-        background: var(--accent-subtle-bg);
-        border-color: var(--accent-dark-bg);
+        border-color: rgba(255, 255, 255, 0.15);
     }
 
     .icg-stage-card:hover {
         border-color: var(--color-primary);
+        color: var(--text-primary);
     }
 
     .icg-stage-card--active {
         border-color: var(--color-primary);
-        background: var(--accent-tint-bg);
+        background: var(--color-primary);
+        color: var(--bg-dark);
     }
 
     :global(html.dark-theme) .icg-stage-card--active {
-        background: var(--accent-dark-bg);
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: var(--bg-dark);
     }
 
     .icg-stage-hint {
@@ -1289,24 +1009,22 @@ const domainCount = DOMAINS.length;
     }
 
     :global(html.dark-theme) .icg-snapshot-save-row {
-        border-top-color: var(--accent-dark-bg);
+        border-top-color: rgba(255, 255, 255, 0.15);
     }
 
     .icg-snapshot-label-input {
         flex: 1;
         padding: var(--spacing-sm) var(--spacing-md);
-        font-size: 0.75rem;
-        font-family: var(--font-family);
+        font-size: 0.7rem;
+        font-family: monospace;
         color: var(--text-secondary);
         background: transparent;
-        border: 1px solid var(--border-light);
-        border-radius: 8px;
+        border: 2px solid var(--border-light);
         transition: border-color var(--transition-fast);
     }
 
     :global(html.dark-theme) .icg-snapshot-label-input {
-        border-color: var(--accent-light-bg-hover);
-        color: var(--text-secondary);
+        border-color: rgba(255, 255, 255, 0.15);
     }
 
     .icg-snapshot-label-input:focus {
@@ -1330,7 +1048,7 @@ const domainCount = DOMAINS.length;
             padding: var(--spacing-md);
         }
 
-        .tool-action-bar .icg-btn-secondary {
+        .tool-action-bar .brutal-btn {
             justify-content: center;
         }
 
@@ -1338,7 +1056,7 @@ const domainCount = DOMAINS.length;
             flex-direction: column;
         }
 
-        .icg-snapshot-save-row .icg-btn-secondary {
+        .icg-snapshot-save-row .brutal-btn {
             width: 100%;
             justify-content: center;
         }
@@ -1386,7 +1104,6 @@ const domainCount = DOMAINS.length;
             padding: var(--spacing-md) var(--spacing-sm);
             border-left: none;
             border-right: none;
-            border-radius: 0;
         }
 
         /* Stats row */
@@ -1394,11 +1111,11 @@ const domainCount = DOMAINS.length;
             gap: var(--spacing-sm);
         }
 
-        .stat-tile {
+        .brutal-stat-tile {
             padding: var(--spacing-sm);
         }
 
-        .stat-tile__value {
+        .brutal-stat-tile__value {
             font-size: var(--text-lg);
         }
 
@@ -1416,8 +1133,7 @@ const domainCount = DOMAINS.length;
             padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
         }
 
-        .icg-wizard-nav .icg-btn-primary,
-        .icg-wizard-nav .icg-btn-secondary {
+        .icg-wizard-nav .brutal-btn {
             width: 100%;
             justify-content: center;
             min-height: 48px;
@@ -1440,7 +1156,7 @@ const domainCount = DOMAINS.length;
             font-size: var(--text-xs);
         }
 
-        :global(.icg-rec-body__title) {
+        :global(.brutal-rec-card__title) {
             flex-wrap: wrap;
         }
 
@@ -1481,7 +1197,9 @@ const domainCount = DOMAINS.length;
             display: block;
             font-size: 14px;
             font-weight: 600;
+            font-family: monospace;
             color: #05cd99;
+            text-transform: uppercase;
             letter-spacing: 0.08em;
             margin-bottom: 1.5rem;
             padding-bottom: 0.75rem;
@@ -1493,11 +1211,11 @@ const domainCount = DOMAINS.length;
             border: 1px solid #ddd;
         }
 
-        :global(.icg-rec-card) {
+        :global(.brutal-rec-card) {
             break-inside: avoid;
         }
 
-        :global(.icg-rec-card.is-collapsed .icg-rec-body__desc) {
+        :global(.brutal-rec-card.is-collapsed .brutal-rec-card__desc) {
             max-height: none !important;
             opacity: 1 !important;
         }
@@ -1506,8 +1224,8 @@ const domainCount = DOMAINS.length;
             display: none !important;
         }
 
-        :global(.icg-rec-card.is-dismissed),
-        :global(.icg-rec-na) {
+        :global(.brutal-rec-card.is-dismissed),
+        :global(.brutal-rec-card__na) {
             display: none !important;
         }
 
@@ -1919,10 +1637,10 @@ function renderResults(): void {
     td.textContent = range;
     const firstTd = td.closest('tr')?.querySelector('td');
     if (firstTd) {
-      const existingScore = firstTd.querySelector('.bench-label--score');
+      const existingScore = firstTd.querySelector('.brutal-bench-table__label--score');
       if (existingScore) existingScore.remove();
       if (inRange) {
-        firstTd.insertAdjacentHTML('beforeend', ' <span class="bench-label bench-label--score">Your range</span>');
+        firstTd.insertAdjacentHTML('beforeend', ' <span class="brutal-bench-table__label brutal-bench-table__label--score">Your range</span>');
       }
     }
   });
@@ -1932,10 +1650,10 @@ function renderResults(): void {
     const isActive = tr.dataset.stageRow === state.companyStage;
     tr.classList.toggle('bench-row--active', isActive);
     const firstTd = tr.querySelector('td')!;
-    const existingLabel = firstTd.querySelector('.bench-label--stage');
+    const existingLabel = firstTd.querySelector('.brutal-bench-table__label--stage');
     if (existingLabel) existingLabel.remove();
     if (isActive) {
-      firstTd.insertAdjacentHTML('beforeend', ' <span class="bench-label bench-label--stage">Your stage</span>');
+      firstTd.insertAdjacentHTML('beforeend', ' <span class="brutal-bench-table__label brutal-bench-table__label--stage">Your stage</span>');
     }
   });
 
@@ -1952,11 +1670,11 @@ function renderResults(): void {
   if (quickWins.length > 0) {
     quickWinsContainer.classList.remove('is-hidden');
     quickWinsContainer.innerHTML = `
-      <div class="tool-section-label">Start here</div>
+      <div class="brutal-tool-shell__section-label">Start here</div>
       ${quickWins.map(qw => `
         <div class="icg-quick-win-item">
-          <span class="icg-rec-badge icg-rec-badge--${qw.impact}">${qw.impact}</span>
-          <span class="icg-rec-badge icg-rec-badge--effort">${qw.effort.replace('-', ' ')}</span>
+          <span class="brutal-rec-card__badge brutal-rec-card__badge--${qw.impact}">${qw.impact}</span>
+          <span class="brutal-rec-card__badge brutal-rec-card__badge--effort">${qw.effort.replace('-', ' ')}</span>
           <span class="icg-quick-win-item__title">${qw.title}</span>
         </div>
       `).join('')}
@@ -1983,10 +1701,10 @@ function renderResults(): void {
           ${items.map(rec => {
             const isDismissed = dismissed.has(rec.id);
             return `
-            <div class="icg-rec-card${state.expanded?.includes(rec.id) ? '' : ' is-collapsed'}${isDismissed ? ' is-dismissed' : ''}" data-rec-id="${rec.id}" data-rec-domain="${rec.domain}" data-rec-toggle>
-              <div class="icg-rec-body">
-                <div class="icg-rec-body__title"><span class="icg-rec-badge icg-rec-badge--${rec.impact}">${rec.impact}</span><span class="icg-rec-badge icg-rec-badge--effort">${rec.effort.replace('-', ' ')}</span><button class="icg-rec-na" data-dismiss="${rec.id}" type="button" title="${isDismissed ? 'Restore this recommendation to the active list' : 'Mark as not applicable. Dismissed items are excluded from the printed report.'}">${isDismissed ? 'Restore' : 'N/A'}</button>${rec.title}<svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg></div>
-                <div class="icg-rec-body__desc">${rec.description}</div>
+            <div class="brutal-rec-card${state.expanded?.includes(rec.id) ? '' : ' is-collapsed'}${isDismissed ? ' is-dismissed' : ''}" data-rec-id="${rec.id}" data-rec-domain="${rec.domain}" data-rec-toggle>
+              <div class="brutal-rec-card__body">
+                <div class="brutal-rec-card__title"><span class="brutal-rec-card__badge brutal-rec-card__badge--${rec.impact}">${rec.impact}</span><span class="brutal-rec-card__badge brutal-rec-card__badge--effort">${rec.effort.replace('-', ' ')}</span><button class="brutal-rec-card__na" data-dismiss="${rec.id}" type="button" title="${isDismissed ? 'Restore this recommendation to the active list' : 'Mark as not applicable. Dismissed items are excluded from the printed report.'}">${isDismissed ? 'Restore' : 'N/A'}</button>${rec.title}<svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg></div>
+                <div class="brutal-rec-card__desc">${rec.description}</div>
               </div>
             </div>`;
           }).join('')}
@@ -1994,7 +1712,7 @@ function renderResults(): void {
     };
 
     recsContainer.innerHTML = `
-      <div class="tool-section-label">Prioritized recommendations (${activeCount} of ${recs.length})</div>
+      <div class="brutal-tool-shell__section-label">Prioritized recommendations (${activeCount} of ${recs.length})</div>
       ${renderGroup(high, 'High', '#E24B4A')}
       ${renderGroup(med, 'Medium', 'var(--color-secondary)')}
       ${renderGroup(low, 'Low', 'var(--text-muted)')}
@@ -2268,7 +1986,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="icg-delta ${deltaClass(comparison.overallDelta)}">${deltaText(comparison.overallDelta)}</span>
         </span>
       </div>
-      <div class="tool-section-label" style="margin-top:var(--spacing-md)">${escHtml(comparison.a.label)} &rarr; ${escHtml(comparison.b.label)}</div>
+      <div class="brutal-tool-shell__section-label" style="margin-top:var(--spacing-md)">${escHtml(comparison.a.label)} &rarr; ${escHtml(comparison.b.label)}</div>
       ${comparison.domainDeltas.map(dd => `
         <div class="icg-comparison-row">
           <span class="icg-comparison-row__name">${dd.name}</span>
@@ -2302,7 +2020,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const compBody = qs<HTMLElement>('[data-comparison-body]');
     compBody.innerHTML = `
       <div class="icg-snapshot-select">
-        <p class="text-small" style="margin-bottom:var(--spacing-md)">Select two snapshots to compare:</p>
+        <p class="brutal-text-small" style="margin-bottom:var(--spacing-md)">Select two snapshots to compare:</p>
         ${snaps.map((s, i) => {
           const decoded = decodeState(s.encodedState);
           const score = decoded?.answers
@@ -2314,7 +2032,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <label for="snap-sel-${i}">${escHtml(s.label)} <span class="icg-snapshot-item__date">${score}/100</span></label>
             </div>`;
         }).join('')}
-        <button data-action="compare-selected" type="button" class="hub-btn hub-btn--primary icg-btn-primary" disabled style="margin-top:var(--spacing-md);width:100%">Compare selected</button>
+        <button data-action="compare-selected" type="button" class="brutal-btn brutal-btn--primary brutal-btn--full" disabled style="margin-top:var(--spacing-md)">Compare selected</button>
       </div>`;
 
     const checkboxes = compBody.querySelectorAll<HTMLInputElement>('[data-snap-select]');
