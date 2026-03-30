@@ -142,17 +142,17 @@ test.describe('Regulatory Map — Timeline', () => {
       await jsClick(page, '.brutal-timeline-entry');
       await page.waitForFunction(() => {
         const el = document.querySelector('.brutal-timeline-entry');
-        return el?.classList.contains('timeline-entry--active');
+        return el?.classList.contains('brutal-timeline-entry--active');
       });
-      await expect(firstEntry).toHaveClass(/timeline-entry--active/);
+      await expect(firstEntry).toHaveClass(/brutal-timeline-entry--active/);
 
       // Click same entry again to deactivate
       await jsClick(page, '.brutal-timeline-entry');
       await page.waitForFunction(() => {
         const el = document.querySelector('.brutal-timeline-entry');
-        return !el?.classList.contains('timeline-entry--active');
+        return !el?.classList.contains('brutal-timeline-entry--active');
       });
-      await expect(firstEntry).not.toHaveClass(/timeline-entry--active/);
+      await expect(firstEntry).not.toHaveClass(/brutal-timeline-entry--active/);
     });
 
     test('should clear previous active entry when clicking a different entry', async ({ page }) => {
@@ -165,15 +165,15 @@ test.describe('Regulatory Map — Timeline', () => {
         const entries = document.querySelectorAll('.brutal-timeline-entry');
         if (entries[0]) (entries[0] as HTMLElement).click();
       });
-      await expect(first).toHaveClass(/timeline-entry--active/);
+      await expect(first).toHaveClass(/brutal-timeline-entry--active/);
 
       // Click second — first should deactivate
       await page.evaluate(() => {
         const entries = document.querySelectorAll('.brutal-timeline-entry');
         if (entries[1]) (entries[1] as HTMLElement).click();
       });
-      await expect(second).toHaveClass(/timeline-entry--active/);
-      await expect(first).not.toHaveClass(/timeline-entry--active/);
+      await expect(second).toHaveClass(/brutal-timeline-entry--active/);
+      await expect(first).not.toHaveClass(/brutal-timeline-entry--active/);
     });
 
     test('should clear map highlights when deactivating a timeline entry', async ({ page }) => {
