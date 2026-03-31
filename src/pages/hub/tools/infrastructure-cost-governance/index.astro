@@ -80,7 +80,7 @@ const domainCount = DOMAINS.length;
                         <div data-resume-prompt class="brutal-callout icg-resume-prompt is-hidden">
                             <p class="brutal-text-small icg-resume-prompt__text">You have an incomplete assessment saved from a previous session.</p>
                             <div class="icg-resume-actions">
-                                <button data-action="resume" type="button" class="brutal-btn brutal-btn--primary">Resume</button>
+                                <button data-action="resume" type="button" class="brutal-btn brutal-btn--secondary">Resume</button>
                                 <button data-action="discard" type="button" class="brutal-btn brutal-btn--secondary">Start fresh</button>
                             </div>
                         </div>
@@ -268,7 +268,7 @@ const domainCount = DOMAINS.length;
 
             </div>
 
-            <a href="/hub/tools" class="cta-button secondary icg-back-link">Return to Tools</a>
+            <a href="/hub/tools" class="brutal-btn brutal-btn--secondary icg-back-link">Return to Tools</a>
 
         </div>
     </section>
@@ -932,14 +932,14 @@ const domainCount = DOMAINS.length;
 
     .icg-stage-card--active {
         border-color: var(--color-primary);
-        background: var(--color-primary);
-        color: var(--bg-dark);
+        background: transparent;
+        color: var(--color-primary);
     }
 
     :global(html.dark-theme) .icg-stage-card--active {
-        background: var(--color-primary);
+        background: transparent;
         border-color: var(--color-primary);
-        color: var(--bg-dark);
+        color: var(--color-primary);
     }
 
     .icg-stage-hint {
