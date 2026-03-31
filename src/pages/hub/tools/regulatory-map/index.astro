@@ -1437,15 +1437,6 @@ import caData from '../../../../data/canada-provinces.json';
     }
 
     /* Search — uses global .brutal-search classes; scoped overrides only */
-    .brutal-search__input::-webkit-search-cancel-button {
-        -webkit-appearance: none;
-    }
-
-    /* Category badge colors for search results */
-    :global(.brutal-search__category--privacy) { background: var(--accent-light-bg-hover); color: var(--color-primary); border-color: var(--color-primary); }
-    :global(.brutal-search__category--ai) { background: var(--accent-light-bg); color: var(--color-secondary); border-color: var(--color-secondary); }
-    :global(.brutal-search__category--industry) { background: transparent; color: var(--regmap-category-industry); border-color: var(--regmap-category-industry); }
-    :global(.brutal-search__category--cyber) { background: transparent; color: var(--regmap-category-cyber); border-color: var(--regmap-category-cyber); }
 
     @media (max-width: 1023px) {
         .regulation-search {
@@ -1488,29 +1479,12 @@ import caData from '../../../../data/canada-provinces.json';
         gap: var(--spacing-md);
         z-index: 5;
     }
-    .brutal-legend__swatch--active {
-        background: var(--accent-border-medium);
-        border-color: rgba(5, 205, 153, 0.5);
-    }
-
-    .brutal-legend__swatch--neutral {
-        background: rgba(26, 26, 26, 0.08);
-    }
-
-    :global(html.dark-theme) .brutal-legend__swatch--neutral {
-        background: rgba(255, 255, 255, 0.06);
-    }
-
     .brutal-map-cta {
         position: absolute;
         bottom: var(--spacing-sm);
         right: var(--spacing-sm);
         z-index: 5;
         pointer-events: none;
-    }
-
-    .brutal-map-cta__icon {
-        color: var(--color-secondary);
     }
 
     .back-link {
@@ -1635,23 +1609,6 @@ import caData from '../../../../data/canada-provinces.json';
         height: 2px;
         background: var(--border-light);
         z-index: 0;
-    }
-
-    :global(.brutal-timeline-year-group) {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        position: relative;
-        min-width: 60px;
-        padding: 0 var(--spacing-xs);
-    }
-
-    :global(.brutal-timeline-year-entries) {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-sm);
-        align-items: flex-start;
-        padding-top: var(--spacing-xs);
     }
 
     /* Scoped overrides for timeline entries in horizontal scroll context */

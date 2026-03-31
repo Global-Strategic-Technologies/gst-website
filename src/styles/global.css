@@ -3454,6 +3454,11 @@ html.dark-theme .brutal-attention-card--high {
     font-size: 0.75rem;
 }
 
+.brutal-search__input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
 .brutal-search__clear {
     display: flex;
     align-items: center;
@@ -3537,6 +3542,11 @@ html.dark-theme .brutal-attention-card--high {
     flex-shrink: 0;
 }
 
+.brutal-search__category--privacy { background: var(--accent-light-bg-hover); color: var(--color-primary); border-color: var(--color-primary); }
+.brutal-search__category--ai { background: var(--accent-light-bg); color: var(--color-secondary); border-color: var(--color-secondary); }
+.brutal-search__category--industry { background: transparent; color: var(--regmap-category-industry); border-color: var(--regmap-category-industry); }
+.brutal-search__category--cyber { background: transparent; color: var(--regmap-category-cyber); border-color: var(--regmap-category-cyber); }
+
 .brutal-search__no-results {
     padding: var(--spacing-md);
     font-family: monospace;
@@ -3603,6 +3613,19 @@ html.dark-theme .brutal-legend {
 
 html.dark-theme .brutal-legend__swatch {
     border-color: rgba(255, 255, 255, 0.15);
+}
+
+.brutal-legend__swatch--active {
+    background: var(--accent-border-medium);
+    border-color: rgba(5, 205, 153, 0.5);
+}
+
+.brutal-legend__swatch--neutral {
+    background: rgba(26, 26, 26, 0.08);
+}
+
+html.dark-theme .brutal-legend__swatch--neutral {
+    background: rgba(255, 255, 255, 0.06);
 }
 
 /* ==============================
@@ -3718,6 +3741,23 @@ html.dark-theme .brutal-map-cta {
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--text-primary);
+}
+
+.brutal-timeline-year-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    min-width: 60px;
+    padding: 0 var(--spacing-xs);
+}
+
+.brutal-timeline-year-entries {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+    padding-top: var(--spacing-xs);
 }
 
 .brutal-timeline-today {
