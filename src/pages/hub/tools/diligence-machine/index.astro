@@ -1326,6 +1326,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     .progress-number-text {
+        font-family: monospace;
         font-size: 1.1rem;
         font-weight: var(--font-weight-bold);
         fill: var(--text-muted);
@@ -1341,8 +1342,9 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     .progress-label {
+        font-family: monospace;
         font-size: var(--text-xs);
-        font-weight: var(--font-weight-semibold);
+        font-weight: var(--font-weight-bold);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: var(--text-muted);
@@ -1354,7 +1356,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     :global(html.dark-theme) .progress-number {
-        color: rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.15);
     }
 
     :global(html.dark-theme) .progress-segment.completed .progress-number-text {
@@ -1439,7 +1441,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     :global(html.dark-theme) .progress-dot {
-        color: rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.15);
     }
 
     /* ─── WIZARD STEPS ─────────────────────────────────────────────────── */
@@ -1455,8 +1457,11 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     .step-title {
+        font-family: monospace;
         font-size: var(--text-xl);
         font-weight: var(--font-weight-bold);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
         color: var(--text-primary);
         text-align: center;
         margin: 0 0 var(--spacing-sm) 0;
@@ -1539,80 +1544,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         }
     }
 
-    .option-card {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-xs);
-        padding: var(--spacing-md) var(--spacing-lg);
-        background: var(--bg-light);
-        border: 2px solid var(--border-light);
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all var(--transition-normal);
-        text-align: left;
-        font-family: var(--font-family);
-        color: var(--text-primary);
-        box-shadow: var(--shadow-sm);
-    }
-
-    .option-card:hover {
-        border-color: var(--color-primary);
-        background: rgba(5, 205, 153, 0.06);
-        box-shadow: 0 2px 12px var(--accent-light-bg-hover);
-        transform: translateY(-1px);
-    }
-
-    .option-card:focus-visible {
-        outline: 2px solid var(--color-primary);
-        outline-offset: 2px;
-    }
-
-    .option-card.selected {
-        border-color: var(--color-primary);
-        background: var(--accent-dark-bg);
-        box-shadow: 0 0 0 1px var(--color-primary), 0 2px 12px var(--border-dark);
-    }
-
-    :global(html.dark-theme) .option-card {
-        background: var(--bg-dark-secondary);
-        border-color: rgba(255, 255, 255, 0.1);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    :global(html.dark-theme) .option-card:hover {
-        background: var(--accent-dark-bg);
-        box-shadow: 0 2px 12px var(--border-dark);
-    }
-
-    :global(html.dark-theme) .option-card.selected {
-        background: var(--accent-light-bg-hover);
-    }
-
-    .option-label {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-sm);
-        font-size: var(--text-base);
-        font-weight: var(--font-weight-semibold);
-        color: var(--text-primary);
-    }
-
-    .option-icon {
-        flex-shrink: 0;
-        opacity: 0.7;
-    }
-
-    .option-card.selected .option-icon {
-        opacity: 1;
-    }
-
-    .option-description {
-        font-size: var(--text-sm);
-        color: var(--text-muted);
-        line-height: 1.5;
-        margin-left: calc(10px + var(--spacing-sm));
-    }
-
     /* ─── COMPOUND FIELD SECTIONS ────────────────────────────────────────── */
 
     .compound-fields-grid {
@@ -1627,8 +1558,9 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     .field-section-label {
+        font-family: monospace;
         font-size: var(--text-sm);
-        font-weight: var(--font-weight-semibold);
+        font-weight: var(--font-weight-bold);
         color: var(--text-primary);
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -1643,7 +1575,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         grid-template-columns: 1fr; /* Mobile-first: 1 column */
     }
 
-    .option-card.compound-option {
+    .compound-option {
         min-height: 52px; /* Ensure WCAG touch target */
         justify-content: center;
     }
@@ -1664,11 +1596,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         margin-right: auto;
     }
 
-    .wizard-nav .cta-button:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-    }
-
     /* ─── DOCUMENT ACTION BAR ──────────────────────────────────────────── */
 
     .doc-action-bar {
@@ -1678,17 +1605,13 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         padding: var(--spacing-sm) var(--spacing-md);
         margin-bottom: var(--spacing-lg);
         background: var(--bg-light);
-        border-bottom: 1px solid var(--border-light);
-        border-radius: 0 0 4px 4px;
+        border-bottom: 2px solid var(--border-light);
     }
 
-    /* Button overrides (base styles from global .hub-btn) */
+    /* Button overrides (layout only — base styles from global .brutal-btn) */
     .doc-action-btn {
         padding: var(--spacing-sm) var(--spacing-lg);
-        font-weight: var(--font-weight-semibold);
-        background: var(--bg-light);
-        border-radius: 4px;
-        box-shadow: var(--shadow-sm);
+        font-family: monospace;
     }
 
     #btnGoBack {
@@ -1705,14 +1628,9 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         border-bottom-color: var(--accent-light-bg-hover);
     }
 
-    :global(html.dark-theme) .doc-action-btn {
-        background: var(--bg-dark-tertiary);
-        border-color: var(--border-dark);
-    }
-
-    :global(html.dark-theme) .doc-action-btn:hover {
-        color: var(--color-primary);
-        border-color: var(--color-primary);
+    :global(html.dark-theme) .doc-action-bar {
+        background: var(--bg-dark);
+        border-bottom-color: rgba(255, 255, 255, 0.15);
     }
 
     /* ─── DOCUMENT PAGE ────────────────────────────────────────────────── */
@@ -2542,7 +2460,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             display: flex;
         }
 
-        .option-card {
+        :global(.brutal-option-card) {
             padding: var(--spacing-lg);
         }
 
