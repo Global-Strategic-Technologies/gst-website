@@ -190,7 +190,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             <div class="output-container" id="outputContainer" data-testid="output-container" style="display:none;">
 
                 <!-- Floating Action Bar -->
-                <div class="doc-action-bar tool-action-bar tool-action-bar--end" id="docActionBar" data-testid="doc-action-bar">
+                <div class="doc-action-bar tool-action-bar tool-action-bar--end tool-action-bar--frosted" id="docActionBar" data-testid="doc-action-bar">
                     <button class="brutal-btn brutal-btn--secondary doc-action-btn" id="btnGoBack" data-testid="btn-go-back" type="button" aria-label="Go back to wizard">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                             <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -681,7 +681,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                     <div class="doc-attention-card relevance-${escapeHtml(area.relevance)}${collapsedAttention.has(area.id) ? ' is-collapsed' : ''}${dismissedAttention.has(area.id) ? ' is-dismissed' : ''}" data-attention-id="${escapeHtml(area.id)}" data-card-toggle>
                         <div class="doc-attention-header">
                             <h3 class="doc-attention-title">${escapeHtml(area.title)}</h3>
-                            <button class="dm-na-btn" data-dismiss-attention="${escapeHtml(area.id)}" type="button" title="${dismissedAttention.has(area.id) ? 'Restore this item' : 'Mark as not applicable'}">${dismissedAttention.has(area.id) ? 'Restore' : 'N/A'}</button>
+                            <button class="brutal-na-btn" data-dismiss-attention="${escapeHtml(area.id)}" type="button" title="${dismissedAttention.has(area.id) ? 'Restore this item' : 'Mark as not applicable'}">${dismissedAttention.has(area.id) ? 'Restore' : 'N/A'}</button>
                             <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
                         </div>
                         <div class="doc-attention-divider"></div>
@@ -713,7 +713,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                                     <div class="doc-q-badges">
                                         ${q.exitImpact ? `<span class="doc-q-exit-impact exit-impact-${escapeHtml(q.exitImpact.toLowerCase().replace(/\\s+/g, '-'))}">${escapeHtml(q.exitImpact)}</span>` : ''}
                                         <span class="doc-q-priority">${escapeHtml(q.priority)}</span>
-                                        <button class="dm-na-btn" data-dismiss-question="${escapeHtml(q.id)}" type="button" title="${dismissedQuestions.has(q.id) ? 'Restore this item' : 'Mark as not applicable'}">${dismissedQuestions.has(q.id) ? 'Restore' : 'N/A'}</button>
+                                        <button class="brutal-na-btn" data-dismiss-question="${escapeHtml(q.id)}" type="button" title="${dismissedQuestions.has(q.id) ? 'Restore this item' : 'Mark as not applicable'}">${dismissedQuestions.has(q.id) ? 'Restore' : 'N/A'}</button>
                                     </div>
                                     <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
                                 </div>
@@ -1604,9 +1604,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         z-index: 5;
         padding: var(--spacing-sm) var(--spacing-md);
         margin-bottom: var(--spacing-lg);
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(3px);
-        -webkit-backdrop-filter: blur(3px);
         border-bottom: 2px solid var(--border-light);
     }
 
@@ -1626,7 +1623,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     :global(html.dark-theme) .doc-action-bar {
-        background: rgba(10, 10, 10, 0.85);
         border-bottom-color: rgba(255, 255, 255, 0.15);
     }
 
@@ -2023,46 +2019,13 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         cursor: pointer;
     }
 
-    :global(.dm-na-btn) {
-        flex-shrink: 0;
-        padding: 2px var(--spacing-sm);
-        font-size: 0.65rem;
-        font-weight: var(--font-weight-bold);
-        font-family: monospace;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--text-muted);
-        background: transparent;
-        border: 1px dashed var(--border-light);
-        border-radius: 0;
-        cursor: pointer;
-        transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
-    }
-
-    :global(.dm-na-btn:hover) {
-        color: var(--text-primary);
-        border-color: var(--text-secondary);
-        background: rgba(255, 255, 255, 0.06);
-    }
-
-    :global(html.dark-theme .dm-na-btn) {
-        background: transparent;
-        border-color: var(--accent-light-bg-hover);
-    }
-
-    :global(html.dark-theme .dm-na-btn:hover) {
-        border-color: rgba(5, 205, 153, 0.3);
-        background: var(--accent-light-bg);
-    }
-
-
     :global(.doc-attention-card.is-dismissed),
     :global(.doc-question.is-dismissed) {
         opacity: 0.45;
         border-style: dashed;
     }
 
-    :global(.is-dismissed .dm-na-btn) {
+    :global(.is-dismissed .brutal-na-btn) {
         border-style: solid;
     }
 
@@ -3044,7 +3007,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         }
 
         :global(.delta-chevron),
-        :global(.dm-na-btn) {
+        :global(.brutal-na-btn) {
             display: none !important;
         }
     }

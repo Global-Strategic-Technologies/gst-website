@@ -216,6 +216,16 @@ html.dark-theme .tool-action-bar--bordered {
     border-top-color: var(--accent-dark-bg);
 }
 
+.tool-action-bar--frosted {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+
+html.dark-theme .tool-action-bar--frosted {
+    background: rgba(10, 10, 10, 0.85);
+}
+
 @media (max-width: 480px) {
     .tool-action-bar--stack {
         flex-direction: column;
@@ -3369,26 +3379,38 @@ html.dark-theme .brutal-attention-card--high {
     min-width: 0;
 }
 
-.brutal-attention-card__na {
+.brutal-na-btn {
     flex-shrink: 0;
-    padding: 1px var(--spacing-sm);
-    font-size: 0.6rem;
+    padding: 2px var(--spacing-sm);
+    font-size: 0.65rem;
     font-weight: var(--font-weight-bold);
     font-family: monospace;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     color: var(--text-muted);
     background: transparent;
     border: 1px dashed var(--border-light);
     border-radius: 0;
     cursor: pointer;
-    transition: color var(--transition-fast), border-color var(--transition-fast);
+    transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
 }
 
-.brutal-attention-card__na:hover {
-    color: var(--color-primary);
-    border-color: var(--color-primary);
+.brutal-na-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.06);
 }
+
+html.dark-theme .brutal-na-btn {
+    background: transparent;
+    border-color: var(--accent-light-bg-hover);
+}
+
+html.dark-theme .brutal-na-btn:hover {
+    border-color: rgba(5, 205, 153, 0.3);
+    background: var(--accent-light-bg);
+}
+
 
 .brutal-attention-card__desc {
     font-size: var(--text-sm);
