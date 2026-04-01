@@ -411,10 +411,13 @@ None — TechPar uses zero shared design system classes. Every control is custom
 | **Stage cards** | `.tp-stage-card`, `.tp-stage-card--active` | Map to `.brutal-option-card` |
 | **ARR chips** | `.tp-arr-chip`, `.tp-arr-chip--active` | Quick-select chips — map to `.brutal-filter-chip` |
 | **Segmented controls** | `.tp-seg`, `.tp-seg__btn`, `.tp-seg__btn--active` | Toggle buttons — create `.brutal-segmented` with hard borders, primary-fill active |
-| **KPI display** | `.tp-kpi-hero`, `.tp-kpi-hero__num`, `.tp-kpi-hero__lbl`, `.tp-kpi-grid` | Use `.brutal-data` for hero value, `.brutal-label` for labels |
+| **KPI hero** | `.tp-kpi-hero`, `.tp-kpi-hero__num`, `.tp-kpi-hero__lbl`, `.tp-kpi-hero__basis`, `.tp-kpi-hero__zone-row` | Use `.brutal-data` for hero value, `.brutal-label` for labels. **Apply frosted glass** (`.brutal-tool-shell` pattern) — this is a prominent data panel that sits over page content |
+| **KPI grid** | `.tp-kpi-grid`, `.tp-kpi-cell`, `.tp-kpi-cell--highlight`, `.tp-kpi-lbl`, `.tp-kpi-val`, `.tp-kpi-sub` | Secondary metrics grid — **apply frosted glass** to cells. Monospace values, hard borders, no radius |
+| **Signal card** | `.tp-signal`, `.tp-signal__stage`, `.tp-signal__zone`, `.tp-signal__head`, `.tp-signal__body`, `.tp-signal__div`, `.tp-sig-met` | Advisory card with zone-colored header — **apply frosted glass**. Map to `.brutal-attention-card` pattern |
+| **Recommendations** | `.tp-recs`, `.tp-recs__title`, `.tp-recs__list` | Action items panel — **apply frosted glass**. Monospace title, hard borders |
+| **Benchmark table** | `.tp-bench-table-wrap`, `.tool-bench-table`, `.bench-row--active`, `.tool-bench-note` | Stage comparison table — **apply frosted glass** to wrapper. Map to `.brutal-bench-table` |
 | **Benchmark visuals** | `.tp-bench-wrap`, `.tp-bench-track`, `.tp-bench-fill`, `.tp-bench-lbls` | Zone indicator bar — brutalist: hard edges on fill, monospace labels, no rounded track |
 | **Delta indicators** | `.tp-delta`, `.tp-delta--improve`, `.tp-delta--worsen` | Change direction — brutalist: monospace with hard color (no soft tints) |
-| **Signal cards** | `.tp-signal`, `.tp-signal__stage`, `.tp-signal__zone`, `.tp-signal__head`, `.tp-signal__body` | Advisory cards — map to `.brutal-attention-card` pattern |
 | **Category sections** | `.tp-cat-section`, `.tp-cat-head`, `.tp-cat-dot`, `.tp-cat-row` | Expandable cost categories — map to `.tool-methodology` or `.brutal-rec-card` |
 | **Charts** | `.tp-traj-chart-wrap`, `.tp-traj-legend`, `.tp-traj-dot` | Chart.js container — brutalist: hard border container, monospace legend, square dots |
 | **Scenarios** | `.tp-scenario-list`, `.tp-scenario-compare`, `.tp-scenario-chip` | Comparison UI — map to `.brutal-filter-chip` for chips, hard border containers |
@@ -429,7 +432,7 @@ After completing Stage 5:
 - [ ] Tab bar has monospace labels, hard underline, no rounded corners
 - [ ] All input fields have no radius, monospace labels
 - [ ] Stage cards match `.brutal-option-card`
-- [ ] KPI hero uses `.brutal-data` for the primary number
+- [ ] KPI hero, KPI grid, signal card, recommendations, and benchmark table use frosted glass (`.brutal-tool-shell` pattern or `.tool-action-bar--frosted`)
 - [ ] Benchmark bar has hard edges
 - [ ] Delta indicators use hard colors (no soft tints)
 - [ ] All `.tp-btn-*` replaced with `.brutal-btn`
