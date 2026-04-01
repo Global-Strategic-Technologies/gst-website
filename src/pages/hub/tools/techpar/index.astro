@@ -73,8 +73,8 @@ trackPageView('techpar', 'TechPar | GST');
                 <!-- ── TAB: PROFILE ──────────────────────────────────── -->
                 <div class="tp-panel tp-panel--active" data-panel="profile">
                     <details class="tp-onboarding" data-onboarding open>
-                        <summary class="tp-onboarding__trigger label-small">How to use TechPar</summary>
-                        <div class="tp-onboarding__body text-tiny">
+                        <summary class="tp-onboarding__trigger brutal-label-small">How to use TechPar</summary>
+                        <div class="tp-onboarding__body brutal-text-tiny">
                             <p><strong>TechPar</strong> benchmarks your total technology cost against stage-adjusted ranges derived from KeyBanc, OpenView, Bessemer, and GST engagement data.</p>
                             <p><strong>Who it's for:</strong> PE deal teams, portfolio company CTOs and CFOs, and board-level reporting.</p>
                             <p><strong>What you'll need:</strong> Annual recurring revenue (ARR) and monthly infrastructure spend at minimum. Additional cost categories (personnel, R&D, CapEx) unlock deeper analysis.</p>
@@ -83,13 +83,13 @@ trackPageView('techpar', 'TechPar | GST');
                     </details>
 
                     <div class="tp-panel__header">
-                        <span class="tp-step label-small">Step 1 of 4</span>
-                        <h2 class="tp-panel__title heading-md">Company profile</h2>
-                        <p class="tp-panel__sub text-small">Stage and revenue drive all benchmark ranges. Everything else adapts to what you enter here.</p>
+                        <span class="tp-step brutal-label-small">Step 1 of 4</span>
+                        <h2 class="tp-panel__title brutal-heading-md">Company profile</h2>
+                        <p class="tp-panel__sub brutal-text-small">Stage and revenue drive all benchmark ranges. Everything else adapts to what you enter here.</p>
                     </div>
 
                     <div class="tp-section">
-                        <span class="tool-section-label tp-sec-label">Company stage <span class="tp-field__req">(required)</span></span>
+                        <span class="brutal-tool-shell__section-label tp-sec-label">Company stage <span class="tp-field__req">(required)</span></span>
                         <div class="tp-stage-grid" data-stage-grid>
                             <button class="tp-stage-card" data-stage="seed" type="button">
                                 <span class="tp-stage-card__name">Seed / Pre-A</span>
@@ -112,11 +112,11 @@ trackPageView('techpar', 'TechPar | GST');
                                 <span class="tp-stage-card__range">18&ndash;32%</span>
                             </button>
                         </div>
-                        <div class="tp-hint text-tiny">Sets benchmark ranges and zone thresholds for your growth stage.</div>
+                        <div class="tp-hint brutal-text-tiny">Sets benchmark ranges and zone thresholds for your growth stage.</div>
                     </div>
 
                     <div class="tp-section">
-                        <span class="tool-section-label tp-sec-label">Industry</span>
+                        <span class="brutal-tool-shell__section-label tp-sec-label">Industry</span>
                         <div class="tp-seg tp-seg--wide" data-seg="industry">
                             <button class="tp-seg__btn tp-seg__btn--active" data-industry="saas" type="button">SaaS</button>
                             <button class="tp-seg__btn" data-industry="fintech" type="button">Fintech</button>
@@ -124,11 +124,11 @@ trackPageView('techpar', 'TechPar | GST');
                             <button class="tp-seg__btn" data-industry="infra_hw" type="button">Infra / HW</button>
                             <button class="tp-seg__btn" data-industry="other" type="button">Other</button>
                         </div>
-                        <div class="tp-hint text-tiny">Adds industry-specific context to the analysis. Benchmark ranges remain the same across industries.</div>
+                        <div class="tp-hint brutal-text-tiny">Adds industry-specific context to the analysis. Benchmark ranges remain the same across industries.</div>
                     </div>
 
                     <div class="tp-section">
-                        <span class="tool-section-label tp-sec-label">Display currency</span>
+                        <span class="brutal-tool-shell__section-label tp-sec-label">Display currency</span>
                         <div class="tp-seg" data-seg="currency">
                             <button class="tp-seg__btn tp-seg__btn--active" data-currency="$" type="button">USD</button>
                             <button class="tp-seg__btn" data-currency="€" type="button">EUR</button>
@@ -136,13 +136,13 @@ trackPageView('techpar', 'TechPar | GST');
                             <button class="tp-seg__btn" data-currency="C$" type="button">CAD</button>
                             <button class="tp-seg__btn" data-currency="A$" type="button">AUD</button>
                         </div>
-                        <div class="tp-hint text-tiny">Display only. All values remain in your local currency.</div>
+                        <div class="tp-hint brutal-text-tiny">Display only. All values remain in your local currency.</div>
                     </div>
 
                     <div class="tp-section">
-                        <span class="tool-section-label tp-sec-label">Revenue</span>
+                        <span class="brutal-tool-shell__section-label tp-sec-label">Revenue</span>
                         <div class="tp-field">
-                            <label class="tp-field__label text-small" for="tp-arr">ARR or TTM Revenue <span class="tp-field__req">(required)</span></label>
+                            <label class="tp-field__label brutal-text-small" for="tp-arr">ARR or TTM Revenue <span class="tp-field__req">(required)</span></label>
                             <div class="tp-arr-quick" data-arr-quick>
                                 <button class="tp-arr-chip" data-arr-val="10000000" type="button">$10M</button>
                                 <button class="tp-arr-chip" data-arr-val="25000000" type="button">$25M</button>
@@ -154,12 +154,12 @@ trackPageView('techpar', 'TechPar | GST');
                                 <span class="tp-input-pre">$</span>
                                 <input type="text" id="tp-arr" data-input="arr" data-arr-display inputmode="numeric" placeholder="e.g. 12,500,000" autocomplete="off" />
                             </div>
-                            <div class="tp-hint text-tiny">Annual recurring revenue or trailing twelve months. All benchmarks are expressed relative to this figure.</div>
+                            <div class="tp-hint brutal-text-tiny">Annual recurring revenue or trailing twelve months. All benchmarks are expressed relative to this figure.</div>
                         </div>
                     </div>
 
                     <div class="tp-section">
-                        <span class="tool-section-label tp-sec-label">Revenue growth assumption</span>
+                        <span class="brutal-tool-shell__section-label tp-sec-label">Revenue growth assumption</span>
                         <div class="tp-seg-row">
                             <div class="tp-seg" data-seg="growth">
                                 <button class="tp-seg__btn" data-growth="10" type="button">10%</button>
@@ -172,12 +172,12 @@ trackPageView('techpar', 'TechPar | GST');
                             <input type="number" id="tp-growth-custom" data-input="growthCustom" min="1" max="500" placeholder="Custom" class="tp-input--no-pre tp-input--has-suf" />
                             <span class="tp-input-suf">%</span>
                         </div>
-                        <div class="tp-hint text-tiny">Used in trajectory projections. Does not affect current-period KPIs.</div>
+                        <div class="tp-hint brutal-text-tiny">Used in trajectory projections. Does not affect current-period KPIs.</div>
                         <div class="tp-hint tp-hint--warn text-tiny" data-growth-warn style="display:none">Growth above 100% produces extreme trajectory projections. Verify this reflects your planning model.</div>
                     </div>
 
                     <div class="tp-field tp-exit-field" data-exit-field>
-                        <label class="tp-field__label text-small" for="tp-exit-mult">Exit multiple assumption</label>
+                        <label class="tp-field__label brutal-text-small" for="tp-exit-mult">Exit multiple assumption</label>
                         <div class="tp-arr-quick">
                             <button class="tp-arr-chip" data-preset-for="exitMult" data-preset-val="6" type="button">6×</button>
                             <button class="tp-arr-chip" data-preset-for="exitMult" data-preset-val="10" type="button">10×</button>
@@ -189,52 +189,52 @@ trackPageView('techpar', 'TechPar | GST');
                             <input type="number" id="tp-exit-mult" data-input="exitMult" class="tp-input--no-pre tp-input--has-suf" min="1" max="30" value="12" />
                             <span class="tp-input-suf">&times;</span>
                         </div>
-                        <div class="tp-hint text-tiny">Revenue multiple at exit. Used in exit value calculations.</div>
+                        <div class="tp-hint brutal-text-tiny">Revenue multiple at exit. Used in exit value calculations.</div>
                     </div>
 
                     <details class="tp-historical" data-historical>
-                        <summary class="tp-historical__trigger label-small">Historical data (optional)</summary>
+                        <summary class="tp-historical__trigger brutal-label-small">Historical data (optional)</summary>
                         <div class="tp-historical__body">
-                            <p class="tp-hint text-tiny">Add 1-2 prior fiscal years to show actual trajectory on the chart. Enter the annual ARR and total technology spend for each year.</p>
+                            <p class="tp-hint brutal-text-tiny">Add 1-2 prior fiscal years to show actual trajectory on the chart. Enter the annual ARR and total technology spend for each year.</p>
                             <div data-hist-rows></div>
                             <button class="tp-hist-add" data-hist-add type="button">+ Add year</button>
                         </div>
                     </details>
 
                     <div class="tp-nav-row">
-                        <button class="cta-button primary tp-btn-next" data-action="go-costs" type="button">Enter technology costs &rarr;</button>
+                        <button class="brutal-btn brutal-btn--primary tp-btn-next" data-action="go-costs" type="button">Enter technology costs &rarr;</button>
                     </div>
                 </div>
 
                 <!-- ── TAB: COSTS ────────────────────────────────────── -->
                 <div class="tp-panel" data-panel="costs">
                     <div class="tp-panel__header">
-                        <span class="tp-step label-small">Step 2 of 4</span>
-                        <h2 class="tp-panel__title heading-md">Technology costs</h2>
-                        <p class="tp-panel__sub text-small">Enter annual spend across each cost category. Infrastructure hosting is required. All others are optional and unlock additional KPIs.</p>
+                        <span class="tp-step brutal-label-small">Step 2 of 4</span>
+                        <h2 class="tp-panel__title brutal-heading-md">Technology costs</h2>
+                        <p class="tp-panel__sub brutal-text-small">Enter annual spend across each cost category. Infrastructure hosting is required. All others are optional and unlock additional KPIs.</p>
                     </div>
 
                     <!-- Mode toggle -->
                     <div class="tp-section">
-                        <span class="tool-section-label tp-sec-label">Input mode</span>
+                        <span class="brutal-tool-shell__section-label tp-sec-label">Input mode</span>
                         <div class="tp-seg" data-seg="mode">
                             <button class="tp-seg__btn tp-seg__btn--active" data-mode="quick" type="button">Quick</button>
                             <button class="tp-seg__btn" data-mode="deepdive" type="button">Deep Dive</button>
                         </div>
-                        <div class="tp-hint text-tiny">Deep Dive breaks R&D into sub-categories and unlocks the revenue-per-engineer KPI.</div>
+                        <div class="tp-hint brutal-text-tiny">Deep Dive breaks R&D into sub-categories and unlocks the revenue-per-engineer KPI.</div>
                     </div>
 
                     <!-- CapEx toggle -->
                     <label class="tp-capex-row" data-capex-row>
                         <input type="checkbox" data-input="gaapChk" />
-                        <span class="tp-capex-row__label text-small">GAAP view: remove R&D CapEx from total (as capitalized on income statement)</span>
+                        <span class="tp-capex-row__label brutal-text-small">GAAP view: remove R&D CapEx from total (as capitalized on income statement)</span>
                     </label>
 
                     <!-- Infrastructure hosting -->
                     <div class="tp-section">
-                        <span class="tool-section-label tp-sec-label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--infra"></span>Infrastructure and hosting</span>
+                        <span class="brutal-tool-shell__section-label tp-sec-label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--infra"></span>Infrastructure and hosting</span>
                         <div class="tp-field">
-                            <label class="tp-field__label text-small" for="tp-infra"><span data-infra-label>Monthly cloud spend</span> <span class="tp-field__req">(required)</span></label>
+                            <label class="tp-field__label brutal-text-small" for="tp-infra"><span data-infra-label>Monthly cloud spend</span> <span class="tp-field__req">(required)</span></label>
                             <div class="tp-seg tp-seg--sm" data-seg="infra-period">
                                 <button class="tp-seg__btn tp-seg__btn--active" data-infra-period="monthly" type="button">Monthly</button>
                                 <button class="tp-seg__btn" data-infra-period="annual" type="button">Annual</button>
@@ -258,17 +258,17 @@ trackPageView('techpar', 'TechPar | GST');
                                 <input type="number" id="tp-infra" data-input="infra" min="0" step="1000" placeholder="0" />
                                 <span class="tp-input-suf" data-infra-suf>/ mo</span>
                             </div>
-                            <div class="tp-hint text-tiny" data-infra-hint>Cloud, data center, CDN, observability, managed services. Auto-converted to annual.</div>
-                            <div class="tp-infra-annual text-tiny" data-infra-annual style="display:none"></div>
+                            <div class="tp-hint brutal-text-tiny" data-infra-hint>Cloud, data center, CDN, observability, managed services. Auto-converted to annual.</div>
+                            <div class="tp-infra-annual brutal-text-tiny" data-infra-annual style="display:none"></div>
                             <div class="tp-hint tp-hint--warn text-tiny" data-infra-warn style="display:none"></div>
                         </div>
                     </div>
 
                     <!-- Infrastructure personnel -->
                     <div class="tp-section">
-                        <span class="tool-section-label tp-sec-label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--pers"></span>Infrastructure personnel</span>
+                        <span class="brutal-tool-shell__section-label tp-sec-label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--pers"></span>Infrastructure personnel</span>
                         <div class="tp-field">
-                            <label class="tp-field__label text-small" for="tp-infra-pers">Annual fully-loaded cost</label>
+                            <label class="tp-field__label brutal-text-small" for="tp-infra-pers">Annual fully-loaded cost</label>
                             <div class="tp-arr-quick">
                                 <button class="tp-arr-chip" data-preset-for="infraPers" data-preset-val="250000" type="button">$250K</button>
                                 <button class="tp-arr-chip" data-preset-for="infraPers" data-preset-val="500000" type="button">$500K</button>
@@ -280,19 +280,19 @@ trackPageView('techpar', 'TechPar | GST');
                                 <span class="tp-input-pre">$</span>
                                 <input type="number" id="tp-infra-pers" data-input="infraPers" min="0" step="10000" placeholder="&#8212;" />
                             </div>
-                            <div class="tp-hint text-tiny">DevOps, SRE, platform engineering, cloud architecture headcount.</div>
+                            <div class="tp-hint brutal-text-tiny">DevOps, SRE, platform engineering, cloud architecture headcount.</div>
                             <div class="tp-hint tp-hint--warn text-tiny" data-sanity-warn="infraPers" style="display:none"></div>
                         </div>
                     </div>
 
                     <!-- R&D OpEx -->
                     <div class="tp-section">
-                        <span class="tool-section-label tp-sec-label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--rd"></span>R&D OpEx</span>
+                        <span class="brutal-tool-shell__section-label tp-sec-label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--rd"></span>R&D OpEx</span>
 
                         <!-- Quick mode -->
                         <div data-rd-quick>
                             <div class="tp-field">
-                                <label class="tp-field__label text-small" for="tp-rd-opex">Annual fully-loaded cost</label>
+                                <label class="tp-field__label brutal-text-small" for="tp-rd-opex">Annual fully-loaded cost</label>
                                 <div class="tp-arr-quick">
                                     <button class="tp-arr-chip" data-preset-for="rdOpEx" data-preset-val="1000000" type="button">$1M</button>
                                     <button class="tp-arr-chip" data-preset-for="rdOpEx" data-preset-val="3000000" type="button">$3M</button>
@@ -304,16 +304,16 @@ trackPageView('techpar', 'TechPar | GST');
                                     <span class="tp-input-pre">$</span>
                                     <input type="number" id="tp-rd-opex" data-input="rdOpEx" min="0" step="100000" placeholder="0" />
                                 </div>
-                                <div class="tp-hint text-tiny">Engineering and product headcount plus tooling subscriptions. Annual fully-loaded.</div>
+                                <div class="tp-hint brutal-text-tiny">Engineering and product headcount plus tooling subscriptions. Annual fully-loaded.</div>
                                 <div class="tp-hint tp-hint--warn text-tiny" data-sanity-warn="rdOpEx" style="display:none"></div>
                             </div>
                         </div>
 
                         <!-- Deep Dive mode -->
                         <div class="tp-deep-wrap" data-rd-deep>
-                            <div class="tp-deep-head label-small">R&D OpEx breakdown</div>
+                            <div class="tp-deep-head brutal-label-small">R&D OpEx breakdown</div>
                             <div class="tp-field">
-                                <label class="tp-field__label text-tiny" for="tp-rd-eng">Engineering headcount</label>
+                                <label class="tp-field__label brutal-text-tiny" for="tp-rd-eng">Engineering headcount</label>
                                 <div class="tp-arr-quick">
                                     <button class="tp-arr-chip" data-preset-for="rdEng" data-preset-val="500000" type="button">$500K</button>
                                     <button class="tp-arr-chip" data-preset-for="rdEng" data-preset-val="1000000" type="button">$1M</button>
@@ -325,10 +325,10 @@ trackPageView('techpar', 'TechPar | GST');
                                     <span class="tp-input-pre">$</span>
                                     <input type="number" id="tp-rd-eng" data-input="rdEng" min="0" step="100000" placeholder="&#8212;" />
                                 </div>
-                                <div class="tp-hint text-tiny">Salaries, benefits, and contractor costs for software engineers. Annual fully-loaded.</div>
+                                <div class="tp-hint brutal-text-tiny">Salaries, benefits, and contractor costs for software engineers. Annual fully-loaded.</div>
                             </div>
                             <div class="tp-field">
-                                <label class="tp-field__label text-tiny" for="tp-rd-prod">Product headcount</label>
+                                <label class="tp-field__label brutal-text-tiny" for="tp-rd-prod">Product headcount</label>
                                 <div class="tp-arr-quick">
                                     <button class="tp-arr-chip" data-preset-for="rdProd" data-preset-val="250000" type="button">$250K</button>
                                     <button class="tp-arr-chip" data-preset-for="rdProd" data-preset-val="500000" type="button">$500K</button>
@@ -340,10 +340,10 @@ trackPageView('techpar', 'TechPar | GST');
                                     <span class="tp-input-pre">$</span>
                                     <input type="number" id="tp-rd-prod" data-input="rdProd" min="0" step="100000" placeholder="&#8212;" />
                                 </div>
-                                <div class="tp-hint text-tiny">Product managers, designers, and QA. Annual fully-loaded.</div>
+                                <div class="tp-hint brutal-text-tiny">Product managers, designers, and QA. Annual fully-loaded.</div>
                             </div>
                             <div class="tp-field">
-                                <label class="tp-field__label text-tiny" for="tp-rd-tool">Tooling and subscriptions</label>
+                                <label class="tp-field__label brutal-text-tiny" for="tp-rd-tool">Tooling and subscriptions</label>
                                 <div class="tp-arr-quick">
                                     <button class="tp-arr-chip" data-preset-for="rdTool" data-preset-val="50000" type="button">$50K</button>
                                     <button class="tp-arr-chip" data-preset-for="rdTool" data-preset-val="100000" type="button">$100K</button>
@@ -355,18 +355,18 @@ trackPageView('techpar', 'TechPar | GST');
                                     <span class="tp-input-pre">$</span>
                                     <input type="number" id="tp-rd-tool" data-input="rdTool" min="0" step="10000" placeholder="&#8212;" />
                                 </div>
-                                <div class="tp-hint text-tiny">IDEs, CI/CD, monitoring, SaaS dev tools, and license fees. Annual cost.</div>
+                                <div class="tp-hint brutal-text-tiny">IDEs, CI/CD, monitoring, SaaS dev tools, and license fees. Annual cost.</div>
                             </div>
-                            <div class="tp-deep-sum text-small">R&D OpEx total: <span data-deep-total>&#8212;</span></div>
+                            <div class="tp-deep-sum brutal-text-small">R&D OpEx total: <span data-deep-total>&#8212;</span></div>
                         </div>
 
                     </div>
 
                     <!-- Engineering headcount -->
                     <div class="tp-section">
-                        <span class="tool-section-label tp-sec-label">Engineering headcount</span>
+                        <span class="brutal-tool-shell__section-label tp-sec-label">Engineering headcount</span>
                         <div class="tp-field" data-fte-field>
-                            <label class="tp-field__label text-small" for="tp-eng-fte">Engineering FTEs</label>
+                            <label class="tp-field__label brutal-text-small" for="tp-eng-fte">Engineering FTEs</label>
                             <div class="tp-arr-quick">
                                 <button class="tp-arr-chip" data-preset-for="engFTE" data-preset-val="5" type="button">5</button>
                                 <button class="tp-arr-chip" data-preset-for="engFTE" data-preset-val="10" type="button">10</button>
@@ -377,15 +377,15 @@ trackPageView('techpar', 'TechPar | GST');
                             <div class="tp-input-wrap">
                                 <input type="number" id="tp-eng-fte" data-input="engFTE" class="tp-input--no-pre" min="0" step="1" placeholder="&#8212;" />
                             </div>
-                            <div class="tp-hint text-tiny">Number of full-time-equivalent engineers. Unlocks the revenue-per-engineer KPI on the Analysis tab.</div>
+                            <div class="tp-hint brutal-text-tiny">Number of full-time-equivalent engineers. Unlocks the revenue-per-engineer KPI on the Analysis tab.</div>
                         </div>
                     </div>
 
                     <!-- R&D CapEx -->
                     <div class="tp-section">
-                        <span class="tool-section-label tp-sec-label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--capex"></span>R&D CapEx</span>
+                        <span class="brutal-tool-shell__section-label tp-sec-label tp-sec-label--cat"><span class="tp-cat-dot tp-cat-dot--capex"></span>R&D CapEx</span>
                         <div class="tp-field">
-                            <label class="tp-field__label text-small" for="tp-rd-capex">Annual capitalized software development</label>
+                            <label class="tp-field__label brutal-text-small" for="tp-rd-capex">Annual capitalized software development</label>
                             <div class="tp-arr-quick">
                                 <button class="tp-arr-chip" data-preset-for="rdCapEx" data-preset-val="500000" type="button">$500K</button>
                                 <button class="tp-arr-chip" data-preset-for="rdCapEx" data-preset-val="1000000" type="button">$1M</button>
@@ -397,16 +397,16 @@ trackPageView('techpar', 'TechPar | GST');
                                 <span class="tp-input-pre">$</span>
                                 <input type="number" id="tp-rd-capex" data-input="rdCapEx" min="0" step="100000" placeholder="&#8212;" />
                             </div>
-                            <div class="tp-hint text-tiny">Enables GAAP view toggle above and CapEx-of-R&D benchmark.</div>
+                            <div class="tp-hint brutal-text-tiny">Enables GAAP view toggle above and CapEx-of-R&D benchmark.</div>
                             <div class="tp-hint tp-hint--warn text-tiny" data-sanity-warn="rdCapEx" style="display:none"></div>
                         </div>
                     </div>
 
                     <div class="tp-nav-row">
-                        <button class="cta-button secondary tp-btn-back" data-action="go-profile" type="button">&larr; Profile</button>
+                        <button class="brutal-btn brutal-btn--secondary tp-btn-back" data-action="go-profile" type="button">&larr; Profile</button>
                         <div class="tp-nav-row__next">
-                            <button class="cta-button primary tp-btn-next" data-action="go-analysis" data-btn-analysis type="button" disabled>View analysis &rarr;</button>
-                            <span class="tp-nav-row__hint text-tiny" data-analysis-hint></span>
+                            <button class="brutal-btn brutal-btn--primary tp-btn-next" data-action="go-analysis" data-btn-analysis type="button" disabled>View analysis &rarr;</button>
+                            <span class="tp-nav-row__hint brutal-text-tiny" data-analysis-hint></span>
                         </div>
                     </div>
                 </div>
@@ -414,15 +414,15 @@ trackPageView('techpar', 'TechPar | GST');
                 <!-- ── TAB: ANALYSIS ─────────────────────────────────── -->
                 <div class="tp-panel" data-panel="analysis">
                     <div class="tp-panel__header">
-                        <span class="tp-step label-small">Step 3 of 4</span>
-                        <h2 class="tp-panel__title heading-md">Analysis</h2>
-                        <p class="tp-panel__sub text-small" data-analysis-sub>Technology cost structure benchmarked against stage-adjusted ranges.</p>
+                        <span class="tp-step brutal-label-small">Step 3 of 4</span>
+                        <h2 class="tp-panel__title brutal-heading-md">Analysis</h2>
+                        <p class="tp-panel__sub brutal-text-small" data-analysis-sub>Technology cost structure benchmarked against stage-adjusted ranges.</p>
                     </div>
 
                     <!-- Empty state -->
                     <div class="tp-empty" data-analysis-empty>
                         <svg class="tp-empty__sym" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="miter" aria-hidden="true"><path d="M12 52 L32 12 L52 52" fill="none"></path></svg>
-                        <div class="tp-empty__msg text-small" data-analysis-empty-msg>Enter ARR on the Profile tab<br/>to compute TechPar.</div>
+                        <div class="tp-empty__msg brutal-text-small" data-analysis-empty-msg>Enter ARR on the Profile tab<br/>to compute TechPar.</div>
                         <button class="tp-empty__cta" data-action="go-profile" data-analysis-empty-cta type="button">Go to profile &rarr;</button>
                     </div>
 
@@ -431,15 +431,15 @@ trackPageView('techpar', 'TechPar | GST');
                         <!-- Primary KPI -->
                         <div class="tp-kpi-hero" data-kpi-hero>
                             <div class="tp-kpi-hero__num" data-hero-num>&#8212;</div>
-                            <div class="tp-kpi-hero__lbl text-small">total technology cost as % of revenue</div>
-                            <div class="tp-kpi-hero__basis text-tiny" data-hero-basis></div>
+                            <div class="tp-kpi-hero__lbl brutal-text-small">total technology cost as % of revenue</div>
+                            <div class="tp-kpi-hero__basis brutal-text-tiny" data-hero-basis></div>
                             <div class="tp-kpi-hero__zone-row">
                                 <div data-hero-zone-pill></div>
                                 <div class="tp-baseline-controls">
                                     <button class="tp-baseline-btn" data-action="set-baseline" type="button">Set as baseline</button>
                                     <button class="tp-baseline-btn" data-action="save-scenario" type="button">Save scenario</button>
                                     <div class="tp-baseline-bar" data-baseline-bar style="display:none">
-                                        <span class="tp-baseline-bar__label label-small">Baseline</span>
+                                        <span class="tp-baseline-bar__label brutal-label-small">Baseline</span>
                                         <button class="tp-baseline-bar__clear" data-action="clear-baseline" type="button">&times;</button>
                                     </div>
                                 </div>
@@ -447,32 +447,32 @@ trackPageView('techpar', 'TechPar | GST');
                             <div class="tp-bench-wrap">
                                 <div class="tp-bench-track"><div class="tp-bench-fill" data-bench-fill></div></div>
                                 <div class="tp-bench-lbls">
-                                    <span class="tp-bench-lbl text-tiny">0%</span>
+                                    <span class="tp-bench-lbl brutal-text-tiny">0%</span>
                                     <span class="tp-bench-lbl tp-bench-mid text-tiny" data-bench-mid>&#9660; midpoint</span>
-                                    <span class="tp-bench-lbl text-tiny" data-bench-max>150%</span>
+                                    <span class="tp-bench-lbl brutal-text-tiny" data-bench-max>150%</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Saved scenarios -->
                         <div class="tp-scenario-list" data-scenario-list style="display:none">
-                            <div class="tp-scenario-list__head label-small">Saved scenarios</div>
+                            <div class="tp-scenario-list__head brutal-label-small">Saved scenarios</div>
                             <div data-scenario-chips></div>
                         </div>
 
                         <!-- Signal card -->
                         <div class="tp-signal" data-signal-card>
-                            <div class="tp-signal__stage label-small" data-sig-stage></div>
-                            <div class="tp-signal__zone label-small" data-sig-zone></div>
-                            <div class="tp-signal__head heading-sm" data-sig-head></div>
-                            <div class="tp-signal__body text-base" data-sig-body></div>
+                            <div class="tp-signal__stage brutal-label-small" data-sig-stage></div>
+                            <div class="tp-signal__zone brutal-label-small" data-sig-zone></div>
+                            <div class="tp-signal__head brutal-heading-sm" data-sig-head></div>
+                            <div class="tp-signal__body brutal-text-base" data-sig-body></div>
                             <div class="tp-signal__div" data-sig-div></div>
                             <div data-sig-mets></div>
                         </div>
 
                         <!-- Recommendations -->
                         <div class="tp-recs" data-recommendations style="display:none">
-                            <div class="tp-recs__title label-small">Recommended actions</div>
+                            <div class="tp-recs__title brutal-label-small">Recommended actions</div>
                             <ol class="tp-recs__list" data-recs-list></ol>
                         </div>
 
@@ -484,20 +484,20 @@ trackPageView('techpar', 'TechPar | GST');
 
                         <!-- Scenario comparison -->
                         <div class="tp-scenario-compare" data-scenario-compare style="display:none">
-                            <div class="tp-scenario-compare__head label">Scenario comparison</div>
+                            <div class="tp-scenario-compare__head brutal-label">Scenario comparison</div>
                             <div data-scenario-table></div>
                         </div>
 
                         <!-- Category breakdown -->
                         <div class="tp-cat-section" data-cat-section>
-                            <div class="tp-cat-head label">Cost category vs benchmark</div>
+                            <div class="tp-cat-head brutal-label">Cost category vs benchmark</div>
                             <div data-cat-bars></div>
                         </div>
 
                         <!-- Benchmark reference table -->
                         <div class="tp-bench-table-wrap">
-                            <div class="tp-bench-table-head label">Stage benchmarks: total technology cost</div>
-                            <table class="tool-bench-table">
+                            <div class="tp-bench-table-head brutal-label">Stage benchmarks: total technology cost</div>
+                            <table class="brutal-bench-table">
                                 <tbody data-bench-tbl>
                                     <tr data-bench-row="seed" data-bench="60-100"><td>Seed / Pre-A</td><td>60&ndash;100%</td></tr>
                                     <tr data-bench-row="series_a" data-bench="45-75"><td>Series A</td><td>45&ndash;75%</td></tr>
@@ -506,8 +506,8 @@ trackPageView('techpar', 'TechPar | GST');
                                     <tr data-bench-row="enterprise" data-bench="18-32"><td>Enterprise</td><td>18&ndash;32%</td></tr>
                                 </tbody>
                             </table>
-                            <div class="tool-bench-note text-tiny">Ranges informed by KeyBanc SaaS Survey (2024), OpenView Benchmarks (2024), Bessemer State of the Cloud (2024), and GST engagement experience (2023&ndash;2025). Benchmarks are reviewed annually. Individual results vary based on business model and organizational structure.</div>
-                            <div class="tool-bench-note text-tiny" data-industry-disc>These benchmarks are derived primarily from SaaS company data. Companies operating marketplace, fintech, infrastructure, or hardware-intensive models may observe materially different cost structures. Apply professional judgment when benchmarking outside a pure-SaaS context.</div>
+                            <div class="tool-bench-note brutal-text-tiny">Ranges informed by KeyBanc SaaS Survey (2024), OpenView Benchmarks (2024), Bessemer State of the Cloud (2024), and GST engagement experience (2023&ndash;2025). Benchmarks are reviewed annually. Individual results vary based on business model and organizational structure.</div>
+                            <div class="tool-bench-note brutal-text-tiny" data-industry-disc>These benchmarks are derived primarily from SaaS company data. Companies operating marketplace, fintech, infrastructure, or hardware-intensive models may observe materially different cost structures. Apply professional judgment when benchmarking outside a pure-SaaS context.</div>
                         </div>
 
                         <!-- Industry context note -->
@@ -515,8 +515,8 @@ trackPageView('techpar', 'TechPar | GST');
 
                         <!-- Methodology -->
                         <details class="tool-methodology" data-methodology>
-                            <summary class="tool-methodology__trigger label-small">How TechPar works</summary>
-                            <div class="tool-methodology__body text-tiny">
+                            <summary class="tool-methodology__trigger brutal-label-small">How TechPar works</summary>
+                            <div class="tool-methodology__body brutal-text-tiny">
                                 <h4 class="tool-methodology__heading">Benchmark sources</h4>
                                 <p>Ranges are informed by KeyBanc SaaS Survey (2024), OpenView Benchmarks (2024), Bessemer State of the Cloud (2024), and calibrated against GST engagement experience (2023&ndash;2025). Benchmarks are reviewed annually and represent the interquartile range of technology cost as a percentage of revenue at each growth stage.</p>
 
@@ -541,13 +541,13 @@ trackPageView('techpar', 'TechPar | GST');
                         <div class="tp-cross-link" data-cross-link style="display:none"></div>
 
                         <div class="tp-nav-row">
-                            <button class="cta-button secondary tp-btn-back" data-action="go-costs" type="button">&larr; Costs</button>
+                            <button class="brutal-btn brutal-btn--secondary tp-btn-back" data-action="go-costs" type="button">&larr; Costs</button>
                             <div class="tool-action-bar">
                                 <button class="tp-btn-share" data-action="export-pdf" type="button">Export PDF</button>
                                 <button class="tp-btn-share" data-action="copy-summary" type="button">Copy summary</button>
                                 <button class="tp-btn-share" data-action="copy-link" type="button">Copy link</button>
                             </div>
-                            <button class="cta-button primary tp-btn-next" data-action="go-trajectory" type="button">View trajectory &rarr;</button>
+                            <button class="brutal-btn brutal-btn--primary tp-btn-next" data-action="go-trajectory" type="button">View trajectory &rarr;</button>
                         </div>
                     </div>
                 </div>
@@ -555,15 +555,15 @@ trackPageView('techpar', 'TechPar | GST');
                 <!-- ── TAB: TRAJECTORY ───────────────────────────────── -->
                 <div class="tp-panel" data-panel="trajectory">
                     <div class="tp-panel__header">
-                        <span class="tp-step label-small">Step 4 of 4</span>
-                        <h2 class="tp-panel__title heading-md">Trajectory</h2>
-                        <p class="tp-panel__sub text-small" data-traj-sub>36-month projection of total technology cost against the stage-adjusted healthy range.</p>
+                        <span class="tp-step brutal-label-small">Step 4 of 4</span>
+                        <h2 class="tp-panel__title brutal-heading-md">Trajectory</h2>
+                        <p class="tp-panel__sub brutal-text-small" data-traj-sub>36-month projection of total technology cost against the stage-adjusted healthy range.</p>
                     </div>
 
                     <!-- Empty state -->
                     <div class="tp-empty" data-traj-empty>
                         <img class="tp-empty__sym" src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" loading="lazy" />
-                        <div class="tp-empty__msg text-small" data-traj-empty-msg>Enter your ARR on the Profile tab<br/>to generate trajectory.</div>
+                        <div class="tp-empty__msg brutal-text-small" data-traj-empty-msg>Enter your ARR on the Profile tab<br/>to generate trajectory.</div>
                         <button class="tp-empty__cta" data-action="go-profile" data-traj-empty-cta type="button">Go to profile &rarr;</button>
                     </div>
 
@@ -576,10 +576,10 @@ trackPageView('techpar', 'TechPar | GST');
                             <div class="tp-traj-dot" data-traj-dot></div>
                         </div>
                         <div class="tp-traj-legend" data-traj-legend></div>
-                        <div class="tp-hint text-tiny" style="text-align:center">Ranges shown are total technology cost as % of revenue</div>
+                        <div class="brutal-text-tiny" style="text-align:center">Ranges shown are total technology cost as % of revenue</div>
 
                         <div class="tp-nav-row">
-                            <button class="cta-button secondary tp-btn-back" data-action="go-analysis" type="button">&larr; Analysis</button>
+                            <button class="brutal-btn brutal-btn--secondary tp-btn-back" data-action="go-analysis" type="button">&larr; Analysis</button>
                             <div class="tool-action-bar">
                                 <button class="tp-btn-share" data-action="export-pdf" type="button">Export PDF</button>
                                 <button class="tp-btn-share" data-action="copy-summary" type="button">Copy summary</button>
