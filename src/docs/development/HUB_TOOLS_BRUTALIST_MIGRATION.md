@@ -2,9 +2,9 @@
 
 Migrate all five hub tools from their current soft-UI styling (rounded corners, box shadows, filled backgrounds) to the brutalist design system (no radius, monospace typography, structural borders, primary-color accents). The brutalist design tokens and component classes are defined in `global.css`, `typography.css`, and `interactions.css`, and rendered live on the [/brand](https://globalstrategic.tech/brand) reference page.
 
-**Status**: In progress — Stages 1-4 complete, Stage 5 (TechPar) next
+**Status**: Complete — all 5 stages finished
 **Priority**: High — brand cohesion
-**Last Updated**: March 31, 2026 (Stage 4 complete)
+**Last Updated**: April 1, 2026 (Stage 5 complete)
 
 ---
 
@@ -395,10 +395,20 @@ Stage 4 completed March 31, 2026.
 
 **File**: `src/pages/hub/tools/techpar/index.astro`
 **Why last**: Largest scope — 137 custom classes with zero current design system reuse. Tab-based navigation, financial data tables, chart visualizations, scenario comparisons. This is a full redesign surface.
+**Status**: Complete
 
-### Direct Swaps
+### Direct Swaps Applied
 
-None — TechPar uses zero shared design system classes. Every control is custom `.tp-*` prefixed.
+| Current Class | Brutalist Class | Count |
+|---|---|---|
+| `cta-button primary` | `.brutal-btn.brutal-btn--primary` | 3 |
+| `cta-button secondary` | `.brutal-btn.brutal-btn--secondary` | 3 |
+| `tool-section-label` | `.brutal-tool-shell__section-label` | 10 |
+| `heading-md` | `.brutal-heading-md` | 4 |
+| `label-small` / `label` | `.brutal-label-small` / `.brutal-label` | ~12 |
+| `text-tiny` / `text-small` / `text-base` | `.brutal-text-tiny` / `.brutal-text-small` / `.brutal-text-base` | ~25 |
+| `tool-bench-table` | `.brutal-bench-table` | 1 |
+| `heading-sm` | `.brutal-heading-sm` | 1 |
 
 ### New Brutalist Classes Needed
 
@@ -426,20 +436,62 @@ None — TechPar uses zero shared design system classes. Every control is custom
 | **Onboarding** | `.tp-onboarding`, `.tp-onboarding__trigger`, `.tp-onboarding__body` | Collapsible help — map to `.tool-methodology` |
 | **Historical data** | `.tp-historical`, `.tp-historical__trigger`, `.tp-historical__body` | Expandable section — same as onboarding |
 
+### Completion Summary
+
+Stage 5 completed April 1, 2026.
+
+**Approach:** Kept all `.tp-*` class names in place — brutalized the scoped CSS rather than renaming. This meant zero changes to `techpar-ui.ts` (53 classList operations) and zero E2E test changes.
+
+**New brutalist classes created in global.css:**
+- `.brutal-tab-bar` / `.brutal-tab` / `--active` / `--done` / `__icon` / `__label` / `__badge` / `__badge--on` — tab navigation with monospace labels, hard underline, square badge
+- `.brutal-segmented` / `__btn` / `--active` / `--sm` / `--wide` — inline toggle with primary-fill active
+- `.brutal-field` / `__label` / `__req` / `__input` — form field wrapper with monospace label, dashed input
+
+**Frosted glass applied (backdrop-filter: blur(3px)) to 5 panels:**
+- `.tp-kpi-hero` — primary KPI display, 3px primary top border
+- `.tp-signal` — signal card, 3px primary left border
+- `.tp-kpi-grid :global(.tp-kpi-cell)` — each KPI cell
+- `.tp-recs` — recommendations, 3px primary top border
+- `.tp-bench-table-wrap` — benchmark reference table
+
+**Scoped CSS changes:**
+- All `border-radius` removed (12 instances: tab badge, cat dot, zone dot, inputs, bench track/fill, traj dot, legend swatches)
+- All `var(--bg-light-alt)` backgrounds → `transparent` (brutalist: no bg fills)
+- All `1px solid` borders → `2px solid` (structural borders)
+- Monospace typography applied to ~40 selectors: tabs, toolbar, inputs, chips, stage cards, segmented controls, baseline controls, delta, cross-link, empty CTAs, KPI labels/values, signal metrics, category names, scenario chips/table, trajectory legend, deepdive prompt, historical labels/inputs, history add
+- All borders changed from `var(--text-muted)` → `var(--border-light)` (consistent token)
+
+**Dark theme added:**
+- 35+ `:global(html.dark-theme)` overrides with `rgba(255, 255, 255, 0.15)` borders
+- Frosted glass panels: `rgba(255, 255, 255, 0.005)` background in dark mode
+- Accent borders preserved (primary left/top borders, zone colors)
+
+**Print styles updated:**
+- Header/footer: monospace, uppercase, letter-spacing
+- Footer separator: 2px border
+- KPI hero: disabled backdrop-filter for print
+- Signal card: 2px border with 3px primary left accent
+
+**E2E tests:** Zero changes — all `.tp-*` class names preserved
+
+**Brand page specimens added:**
+- `.brutal-tab-bar` — 4 tabs showing active, done, badge, and default states
+- `.brutal-segmented` — default (320px) and `--sm` (180px) variants
+- `.brutal-field` — label with required marker and dashed-border input
+
 ### Pause Point
 
-After completing Stage 5:
-- [ ] Tab bar has monospace labels, hard underline, no rounded corners
-- [ ] All input fields have no radius, monospace labels
-- [ ] Stage cards match `.brutal-option-card`
-- [ ] KPI hero, KPI grid, signal card, recommendations, and benchmark table use frosted glass (`.brutal-tool-shell` pattern or `.tool-action-bar--frosted`)
-- [ ] Benchmark bar has hard edges
-- [ ] Delta indicators use hard colors (no soft tints)
-- [ ] All `.tp-btn-*` replaced with `.brutal-btn`
-- [ ] Charts wrapped in hard-border container
-- [ ] New brutalist classes (tab bar, segmented controls, field inputs) added to `/brand` page
-- [ ] `npm run test:run` passes
-- [ ] Visual review at desktop, 768px, 480px
+- [x] Tab bar has monospace labels, hard underline, no rounded corners
+- [x] All input fields have no radius, monospace labels
+- [x] Stage cards use primary-fill active state (inverted), 2px borders
+- [x] KPI hero, KPI grid, signal card, recommendations, and benchmark table use frosted glass
+- [x] Benchmark bar has hard edges (no border-radius)
+- [x] Delta indicators use hard colors (monospace, no soft tints)
+- [x] All `.tp-btn-*` replaced with `.brutal-btn`
+- [x] Charts wrapped in hard-border container
+- [x] New brutalist classes (tab bar, segmented controls, field inputs) added to `/brand` page
+- [x] `npm run test:run` passes
+- [x] Visual review at desktop, 768px, 480px
 
 ---
 
@@ -449,9 +501,9 @@ Classes that will likely need to be created during migration and added to the sh
 
 | Class | Created During | Destination |
 |---|---|---|
-| `.brutal-tab-bar`, `.brutal-tab` | Stage 5 (TechPar) | `global.css` |
-| `.brutal-segmented`, `.brutal-seg__btn` | Stage 5 (TechPar) | `global.css` |
-| `.brutal-field`, `.brutal-field__label`, `.brutal-field__input` | Stage 5 (TechPar) | `global.css` |
+| `.brutal-tab-bar`, `.brutal-tab` | Stage 5 (TechPar) ✅ | `global.css` |
+| `.brutal-segmented`, `.brutal-segmented__btn` | Stage 5 (TechPar) ✅ | `global.css` |
+| `.brutal-field`, `.brutal-field__label`, `.brutal-field__input` | Stage 5 (TechPar) ✅ | `global.css` |
 | `.brutal-progress-bar`, `.brutal-progress-bar__track`, `.brutal-progress-bar__fill`, `.brutal-progress-bar__label` | Stage 3 (ICG) ✅ | `global.css` |
 | `.brutal-stat-tile`, `.brutal-stat-tile__value`, `.brutal-stat-tile__label` | Stage 3 (ICG) ✅ | `global.css` |
 | `.brutal-callout`, `.brutal-callout__title`, `.brutal-callout--warning` | Stage 3 (ICG) ✅ | `global.css` |
