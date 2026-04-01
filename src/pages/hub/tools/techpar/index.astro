@@ -611,7 +611,9 @@ trackPageView('techpar', 'TechPar | GST');
         position: sticky;
         top: 0;
         z-index: 11;
-        background-color: var(--bg-light);
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border-bottom: 2px solid var(--border-light);
         overflow-x: auto;
         scrollbar-width: none;
@@ -2133,7 +2135,7 @@ trackPageView('techpar', 'TechPar | GST');
     /* ── Dark theme ───────────────────────────────────────────── */
     :global(html.dark-theme) .tp-tab-bar {
         border-color: rgba(255, 255, 255, 0.15);
-        background-color: var(--bg-dark);
+        background: rgba(10, 10, 10, 0.85);
     }
 
     :global(html.dark-theme) .tp-sec-label {
