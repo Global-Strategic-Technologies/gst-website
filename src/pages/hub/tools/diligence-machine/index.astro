@@ -493,7 +493,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     /** Deselect all geography cards in the DOM */
     function clearAllGeographyCards(): void {
         document.querySelectorAll('.brutal-option-card[data-step-id="geography"]').forEach((el) => {
-            el.classList.remove('brutal-option-card--selected');
+            el.classList.remove('brutal-option-card--selected-outline');
             el.setAttribute('aria-pressed', 'false');
         });
     }
@@ -554,10 +554,10 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         if (inputType === 'single-select') {
             // Deselect siblings
             stepEl.querySelectorAll('.brutal-option-card').forEach((el) => {
-                el.classList.remove('brutal-option-card--selected');
+                el.classList.remove('brutal-option-card--selected-outline');
                 el.setAttribute('aria-pressed', 'false');
             });
-            card.classList.add('brutal-option-card--selected');
+            card.classList.add('brutal-option-card--selected-outline');
             card.setAttribute('aria-pressed', 'true');
 
             const key = stepIdToInputKey(stepId);
@@ -576,7 +576,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                 }
             }, 300);
         } else if (inputType === 'multi-select') {
-            const isSelected = card.classList.toggle('brutal-option-card--selected');
+            const isSelected = card.classList.toggle('brutal-option-card--selected-outline');
             card.setAttribute('aria-pressed', String(isSelected));
 
             if (!inputs.geographies) inputs.geographies = [];
@@ -608,12 +608,12 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
         // Deselect all cards in this field's grid (single-select)
         fieldGrid.querySelectorAll('.brutal-option-card').forEach((el) => {
-            el.classList.remove('brutal-option-card--selected');
+            el.classList.remove('brutal-option-card--selected-outline');
             el.setAttribute('aria-pressed', 'false');
         });
 
         // Select clicked card
-        card.classList.add('brutal-option-card--selected');
+        card.classList.add('brutal-option-card--selected-outline');
         card.setAttribute('aria-pressed', 'true');
 
         // Update state (same field mapping as handleFieldChange)
@@ -1052,7 +1052,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
         // Reset all option cards
         document.querySelectorAll('.brutal-option-card').forEach((el) => {
-            el.classList.remove('brutal-option-card--selected');
+            el.classList.remove('brutal-option-card--selected-outline');
             el.setAttribute('aria-pressed', 'false');
         });
 
@@ -1108,7 +1108,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                     `.brutal-option-card[data-step-id="${stepId}"][data-option-id="${value}"]`
                 );
                 if (card) {
-                    card.classList.add('brutal-option-card--selected');
+                    card.classList.add('brutal-option-card--selected-outline');
                     card.setAttribute('aria-pressed', 'true');
                 }
             }
@@ -1121,7 +1121,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                     `.brutal-option-card[data-step-id="geography"][data-option-id="${geo}"]`
                 );
                 if (card) {
-                    card.classList.add('brutal-option-card--selected');
+                    card.classList.add('brutal-option-card--selected-outline');
                     card.setAttribute('aria-pressed', 'true');
                 }
             }
@@ -1142,7 +1142,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                     `.brutal-option-card.compound-option[data-field-id="${fieldId}"][data-option-id="${value}"]`
                 );
                 if (card) {
-                    card.classList.add('brutal-option-card--selected');
+                    card.classList.add('brutal-option-card--selected-outline');
                     card.setAttribute('aria-pressed', 'true');
                 }
             }

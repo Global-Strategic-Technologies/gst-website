@@ -205,7 +205,7 @@ test.describe('Diligence Machine E2E', () => {
       await expectWizardOnStep(page, 1);
 
       // No selections should be present
-      const selectedCards = page.locator('.brutal-option-card.brutal-option-card--selected');
+      const selectedCards = page.locator('.brutal-option-card.brutal-option-card--selected-outline');
       expect(await selectedCards.count()).toBe(0);
     });
   });
@@ -896,7 +896,7 @@ test.describe('Diligence Machine E2E', () => {
       await expectWizardOnStep(page, 1);
 
       // No selections should be present
-      const selectedCards = page.locator('.brutal-option-card.brutal-option-card--selected');
+      const selectedCards = page.locator('.brutal-option-card.brutal-option-card--selected-outline');
       expect(await selectedCards.count()).toBe(0);
 
       // localStorage should be reset to initial state (not null, but step 1)
