@@ -1647,7 +1647,7 @@ trackPageView('techpar', 'TechPar | GST');
     /* ── Historical data section ────────────────────────────── */
     .tp-historical {
         margin-bottom: var(--spacing-md);
-        border: 1px solid var(--border-light);
+        border: 2px solid var(--border-light);
     }
 
     .tp-historical__trigger {
@@ -1681,7 +1681,7 @@ trackPageView('techpar', 'TechPar | GST');
 
     .tp-historical__body {
         padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
-        border-top: 1px solid var(--border-light);
+        border-top: 2px solid var(--border-light);
     }
 
     .tp-historical__body :global(.tp-hist-row) {
@@ -1690,7 +1690,7 @@ trackPageView('techpar', 'TechPar | GST');
         gap: var(--spacing-sm);
         margin-bottom: var(--spacing-md);
         padding-bottom: var(--spacing-md);
-        border-bottom: 1px solid var(--border-light);
+        border-bottom: 2px solid var(--border-light);
     }
 
     .tp-historical__body :global(.tp-hist-row:last-child) {
@@ -1710,18 +1710,21 @@ trackPageView('techpar', 'TechPar | GST');
     }
 
     .tp-historical__body :global(.tp-hist-field__lbl) {
+        font-family: monospace;
         font-size: var(--text-xs);
         color: var(--text-muted);
-        letter-spacing: 0.02em;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
     }
 
     .tp-historical__body :global(.tp-hist-field input) {
         width: 100%;
         padding: var(--spacing-xs) var(--spacing-sm);
-        font-family: var(--font-family);
+        font-family: monospace;
         font-size: var(--text-xs);
-        background: var(--bg-light);
-        border: 1px solid var(--border-light);
+        background: transparent;
+        border: 2px dashed var(--border-light);
+        border-radius: 0;
         color: var(--text-primary);
     }
 
@@ -1738,9 +1741,10 @@ trackPageView('techpar', 'TechPar | GST');
         padding: 0;
         margin-bottom: 1px;
         background: none;
-        border: 1px solid var(--border-light);
+        border: 2px solid var(--border-light);
         color: var(--text-muted);
         cursor: pointer;
+        font-family: monospace;
         font-size: var(--text-sm);
         flex-shrink: 0;
     }
@@ -1755,10 +1759,12 @@ trackPageView('techpar', 'TechPar | GST');
         align-items: center;
         padding: var(--spacing-xs) var(--spacing-sm);
         background: none;
-        border: 1px dashed var(--border-light);
+        border: 2px dashed var(--border-light);
         color: var(--text-muted);
-        font-family: var(--font-family);
+        font-family: monospace;
         font-size: var(--text-xs);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
         cursor: pointer;
         transition: all var(--transition-fast);
     }
@@ -1852,7 +1858,7 @@ trackPageView('techpar', 'TechPar | GST');
     /* ── Onboarding section ──────────────────────────────────── */
     .tp-onboarding {
         margin-bottom: var(--spacing-md);
-        border: 1px solid var(--border-light);
+        border: 2px solid var(--border-light);
     }
 
     .tp-onboarding__trigger {
@@ -1888,7 +1894,7 @@ trackPageView('techpar', 'TechPar | GST');
         padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
         color: var(--text-secondary);
         line-height: 1.7;
-        border-top: 1px solid var(--border-light);
+        border-top: 2px solid var(--border-light);
     }
 
     .tp-onboarding__body p {
@@ -1902,8 +1908,7 @@ trackPageView('techpar', 'TechPar | GST');
     /* TechPar methodology — scoped overrides on shared .tool-methodology */
     .tool-methodology {
         margin-bottom: var(--spacing-lg);
-        border: 1px solid var(--border-light);
-        border-top: 1px solid var(--border-light);
+        border: 2px solid var(--border-light);
     }
 
     .tool-methodology__trigger {
@@ -1912,7 +1917,7 @@ trackPageView('techpar', 'TechPar | GST');
 
     .tool-methodology__body {
         padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
-        border-top: 1px solid var(--border-light);
+        border-top: 2px solid var(--border-light);
     }
 
     .tool-methodology__heading {
@@ -2026,12 +2031,14 @@ trackPageView('techpar', 'TechPar | GST');
     }
 
     .tp-traj-note {
+        font-family: monospace;
         font-size: var(--text-xs);
         color: var(--text-muted);
         line-height: 1.6;
         padding: var(--spacing-sm) var(--spacing-md);
-        background: var(--bg-light-alt);
-        border-left: 2px solid var(--text-muted);
+        background: transparent;
+        border: 2px solid var(--border-light);
+        border-left: 3px solid var(--text-muted);
         margin-bottom: var(--spacing-lg);
     }
 
@@ -2044,13 +2051,13 @@ trackPageView('techpar', 'TechPar | GST');
         position: relative;
         height: min(42vh, 320px);
         margin-bottom: var(--spacing-sm);
+        border: 2px solid var(--border-light);
     }
 
     .tp-traj-dot {
         position: absolute;
         width: 13px;
         height: 13px;
-        border-radius: 50%;
         border: 2px solid var(--bg-light);
         transform: translate(-50%, -50%);
         pointer-events: none;
@@ -2076,7 +2083,7 @@ trackPageView('techpar', 'TechPar | GST');
 
     .tp-traj-legend :global(.tp-tleg-group--series) {
         padding-top: var(--spacing-xs);
-        border-top: 1px solid var(--border-light);
+        border-top: 2px solid var(--border-light);
     }
 
     /* Trajectory legend items are injected via innerHTML */
@@ -2084,6 +2091,7 @@ trackPageView('techpar', 'TechPar | GST');
         display: flex;
         align-items: center;
         gap: var(--spacing-sm);
+        font-family: monospace;
         font-size: var(--text-xs);
         color: var(--text-secondary);
     }
@@ -2092,7 +2100,6 @@ trackPageView('techpar', 'TechPar | GST');
     .tp-traj-legend :global(.tp-tleg__sw) {
         width: 14px;
         height: 8px;
-        border-radius: 1px;
         flex-shrink: 0;
     }
 
@@ -2110,14 +2117,211 @@ trackPageView('techpar', 'TechPar | GST');
         border-top-style: dashed;
     }
 
-    /* Dot swatch — centered circle */
+    /* Dot swatch — square indicator */
     .tp-traj-legend :global(.tp-tleg--dot .tp-tleg__sw) {
         width: 9px;
         height: 9px;
-        border-radius: 50%;
         border-width: 2px;
         border-style: solid;
         background: transparent;
+    }
+
+    /* ── Dark theme ───────────────────────────────────────────── */
+    :global(html.dark-theme) .tp-tab-bar {
+        border-color: rgba(255, 255, 255, 0.15);
+        background-color: var(--bg-dark);
+    }
+
+    :global(html.dark-theme) .tp-sec-label {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-section:has(.tp-sec-label--cat) > .tp-field,
+    :global(html.dark-theme) .tp-section:has(.tp-sec-label--cat) > [data-rd-quick],
+    :global(html.dark-theme) .tp-section:has(.tp-sec-label--cat) > [data-rd-deep],
+    :global(html.dark-theme) .tp-section:has(.tp-sec-label--cat) > .tp-deep-wrap,
+    :global(html.dark-theme) .tp-section:has(.tp-sec-label--cat) > .tp-hint {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .techpar-shell input[type=number],
+    :global(html.dark-theme) .techpar-shell input[data-arr-display] {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-arr-quick {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-arr-chip {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-stage-card {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-seg {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-seg__btn {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-deep-wrap {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-deep-sum {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-capex-row {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-baseline-btn {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-cross-link {
+        border-color: rgba(255, 255, 255, 0.15);
+        border-left-color: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .tp-empty__cta {
+        border-color: var(--color-primary);
+    }
+
+    /* Frosted glass dark theme */
+    :global(html.dark-theme) .tp-kpi-hero {
+        background: rgba(255, 255, 255, 0.005);
+        border-color: rgba(255, 255, 255, 0.15);
+        border-top-color: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .tp-kpi-hero :global(.tp-zone-pill) {
+        border-width: 2px;
+    }
+
+    :global(html.dark-theme) .tp-signal {
+        background: rgba(255, 255, 255, 0.005);
+        border-color: rgba(255, 255, 255, 0.15);
+        border-left-color: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .tp-signal__div {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-kpi-grid :global(.tp-kpi-cell) {
+        background: rgba(255, 255, 255, 0.005);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-kpi-grid :global(.tp-kpi-sub) {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-recs {
+        background: rgba(255, 255, 255, 0.005);
+        border-color: rgba(255, 255, 255, 0.15);
+        border-top-color: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .tp-bench-table-wrap {
+        background: rgba(255, 255, 255, 0.005);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-cat-section :global(.tp-cat-track) {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-bench-track {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-scenario-list :global(.tp-scenario-chip) {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-scenario-compare :global(th),
+    :global(html.dark-theme) .tp-scenario-compare :global(td) {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-ctx {
+        border-color: rgba(255, 255, 255, 0.15);
+        border-left-color: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .tp-industry-note {
+        border-color: rgba(255, 255, 255, 0.15);
+        border-left-color: var(--color-primary);
+    }
+
+    :global(html.dark-theme) .tp-deepdive-prompt {
+        border-color: rgba(255, 255, 255, 0.15);
+        border-left-color: var(--techpar-zone-elevated);
+    }
+
+    :global(html.dark-theme) .tp-onboarding {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-onboarding__body {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-historical {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-historical__body {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-historical__body :global(.tp-hist-row) {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-historical__body :global(.tp-hist-field input) {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-historical__body :global(.tp-hist-remove) {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-hist-add {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tool-methodology {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tool-methodology__body {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tool-bench-note + .tool-bench-note {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-traj-note {
+        border-color: rgba(255, 255, 255, 0.15);
+        border-left-color: var(--text-muted);
+    }
+
+    :global(html.dark-theme) .tp-traj-chart-wrap {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    :global(html.dark-theme) .tp-traj-legend :global(.tp-tleg-group--series) {
+        border-color: rgba(255, 255, 255, 0.15);
     }
 
     /* ── Responsive ───────────────────────────────────────────── */
