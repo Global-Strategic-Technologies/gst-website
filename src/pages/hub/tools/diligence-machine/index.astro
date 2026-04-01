@@ -1637,7 +1637,9 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         display: flex;
         flex-direction: column;
         min-height: 100vh;
-        background: var(--bg-light);
+        background: rgba(0, 0, 0, 0.005);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
         border: 2px solid var(--border-light);
         padding: var(--spacing-xl);
     }
@@ -1651,7 +1653,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     :global(html.dark-theme) .doc-page {
-        background: var(--bg-dark-secondary);
+        background: rgba(255, 255, 255, 0.005);
         border-color: rgba(255, 255, 255, 0.15);
     }
 
