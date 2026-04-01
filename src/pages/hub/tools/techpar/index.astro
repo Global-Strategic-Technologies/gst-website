@@ -612,7 +612,7 @@ trackPageView('techpar', 'TechPar | GST');
         top: 0;
         z-index: 11;
         background-color: var(--bg-light);
-        border-bottom: 1px solid var(--border-light);
+        border-bottom: 2px solid var(--border-light);
         overflow-x: auto;
         scrollbar-width: none;
     }
@@ -634,8 +634,10 @@ trackPageView('techpar', 'TechPar | GST');
         border: none;
         border-left: 2px solid transparent;
         color: var(--text-muted);
-        font-family: var(--font-family);
+        font-family: monospace;
         font-size: var(--text-xs);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
         cursor: pointer;
         transition: all var(--transition-fast);
     }
@@ -676,7 +678,7 @@ trackPageView('techpar', 'TechPar | GST');
         transition: all var(--transition-fast);
         white-space: nowrap;
         position: relative;
-        font-family: var(--font-family);
+        font-family: monospace;
     }
 
     .tp-tab--active {
@@ -714,7 +716,6 @@ trackPageView('techpar', 'TechPar | GST');
         right: 12px;
         width: 6px;
         height: 6px;
-        border-radius: 50%;
         background: var(--techpar-zone-above);
     }
 
@@ -766,7 +767,7 @@ trackPageView('techpar', 'TechPar | GST');
 
     .tp-sec-label {
         display: block;
-        border-bottom: 1px solid var(--border-light);
+        border-bottom: 2px solid var(--border-light);
         padding-bottom: var(--spacing-sm);
         margin-bottom: var(--spacing-lg);
     }
@@ -790,7 +791,6 @@ trackPageView('techpar', 'TechPar | GST');
     .tp-cat-dot {
         width: 7px;
         height: 7px;
-        border-radius: 50%;
         flex-shrink: 0;
     }
 
@@ -849,10 +849,11 @@ trackPageView('techpar', 'TechPar | GST');
         padding: var(--spacing-xs) var(--spacing-md);
         background: transparent;
         color: var(--text-muted);
-        border: 1px solid var(--border-light);
-        font-family: var(--font-family);
+        border: 2px solid var(--border-light);
+        font-family: monospace;
         font-size: var(--text-xs);
-        letter-spacing: 0.05em;
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.06em;
         text-transform: uppercase;
         cursor: pointer;
         transition: all var(--transition-fast);
@@ -868,8 +869,8 @@ trackPageView('techpar', 'TechPar | GST');
         align-items: center;
         gap: var(--spacing-xs);
         padding: var(--spacing-xs) var(--spacing-md);
-        background: var(--techpar-zone-healthy-bg);
-        border: 1px solid var(--color-primary);
+        background: transparent;
+        border: 2px solid var(--color-primary);
     }
 
     .tp-baseline-bar__label {
@@ -884,7 +885,7 @@ trackPageView('techpar', 'TechPar | GST');
         background: transparent;
         color: var(--text-muted);
         border: none;
-        font-family: var(--font-family);
+        font-family: monospace;
         font-size: 0.85rem;
         line-height: 1;
         cursor: pointer;
@@ -896,6 +897,7 @@ trackPageView('techpar', 'TechPar | GST');
     }
 
     .tp-delta {
+        font-family: monospace;
         font-size: var(--text-xs);
         font-weight: var(--font-weight-bold);
         margin-left: var(--spacing-xs);
@@ -912,8 +914,10 @@ trackPageView('techpar', 'TechPar | GST');
     .tp-cross-link {
         margin-top: var(--spacing-md);
         padding: var(--spacing-sm) var(--spacing-md);
-        background: var(--bg-light-alt);
+        background: transparent;
+        border: 2px solid var(--border-light);
         border-left: 3px solid var(--color-primary);
+        font-family: monospace;
         font-size: var(--text-sm);
     }
 
@@ -938,6 +942,7 @@ trackPageView('techpar', 'TechPar | GST');
         left: var(--spacing-sm);
         top: 50%;
         transform: translateY(-50%);
+        font-family: monospace;
         font-size: var(--text-sm);
         color: var(--text-muted);
         pointer-events: none;
@@ -949,6 +954,7 @@ trackPageView('techpar', 'TechPar | GST');
         right: var(--spacing-sm);
         top: 50%;
         transform: translateY(-50%);
+        font-family: monospace;
         font-size: var(--text-sm);
         color: var(--text-muted);
         pointer-events: none;
@@ -957,16 +963,16 @@ trackPageView('techpar', 'TechPar | GST');
     .techpar-shell input[type=number],
     .techpar-shell input[data-arr-display] {
         width: 100%;
-        background: var(--bg-light-alt);
-        border: 1px solid var(--border-light);
+        background: transparent;
+        border: 2px dashed var(--border-light);
         color: var(--text-primary);
-        font-family: var(--font-family);
+        font-family: monospace;
         font-size: var(--text-sm);
         padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-xl);
         outline: none;
-        transition: border-color var(--transition-fast);
+        transition: border-color var(--transition-fast), border-style var(--transition-fast);
         -moz-appearance: textfield;
-        border-radius: 8px;
+        border-radius: 0;
     }
 
     .techpar-shell input[type=number]::-webkit-inner-spin-button {
@@ -976,6 +982,7 @@ trackPageView('techpar', 'TechPar | GST');
     .techpar-shell input[type=number]:focus,
     .techpar-shell input[data-arr-display]:focus {
         border-color: var(--color-primary);
+        border-style: solid;
     }
 
     .techpar-shell input[type=number].tp-input--no-pre {
@@ -991,7 +998,7 @@ trackPageView('techpar', 'TechPar | GST');
         display: flex;
         flex-wrap: wrap;
         margin-bottom: var(--spacing-sm);
-        border: 1px solid var(--text-muted);
+        border: 2px solid var(--border-light);
         overflow: hidden;
         max-width: 280px;
     }
@@ -1000,10 +1007,13 @@ trackPageView('techpar', 'TechPar | GST');
         flex: 1;
         background: transparent;
         border: none;
-        border-right: 1px solid var(--text-muted);
+        border-right: 1px solid var(--border-light);
         color: var(--text-muted);
-        font-family: var(--font-family);
+        font-family: monospace;
         font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
         padding: var(--spacing-sm) var(--spacing-sm);
         cursor: pointer;
         transition: all var(--transition-fast);
@@ -1021,13 +1031,13 @@ trackPageView('techpar', 'TechPar | GST');
     }
 
     .tp-arr-chip--active {
-        background: var(--accent-light-bg);
-        color: var(--color-primary);
+        background: var(--color-primary);
+        color: var(--bg-dark);
     }
 
     .tp-arr-chip--active:hover {
-        background: var(--accent-light-bg);
-        color: var(--color-primary);
+        background: var(--color-primary);
+        color: var(--bg-dark);
     }
 
     /* ── Stage grid ───────────────────────────────────────────── */
@@ -1040,16 +1050,19 @@ trackPageView('techpar', 'TechPar | GST');
 
     .tp-stage-card {
         padding: var(--spacing-sm) var(--spacing-sm);
-        border: 1px solid var(--border-light);
-        background: var(--bg-light-alt);
+        border: 2px solid var(--border-light);
+        background: transparent;
         cursor: pointer;
         transition: all var(--transition-fast);
         text-align: center;
-        font-family: var(--font-family);
+        font-family: monospace;
     }
 
     .tp-stage-card__name {
         font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
         color: var(--text-secondary);
         display: block;
         margin-bottom: 2px;
@@ -1062,19 +1075,19 @@ trackPageView('techpar', 'TechPar | GST');
 
     .tp-stage-card--active {
         border-color: var(--color-primary);
-        background: var(--accent-light-bg);
+        background: var(--color-primary);
     }
 
     .tp-stage-card--active .tp-stage-card__name {
-        color: var(--color-primary);
+        color: var(--bg-dark);
     }
 
     .tp-stage-card--active .tp-stage-card__range {
-        color: var(--color-primary);
+        color: var(--bg-dark);
     }
 
     .tp-stage-card:hover:not(.tp-stage-card--active) {
-        border-color: var(--text-muted);
+        border-color: var(--color-primary);
     }
 
     /* ── Segmented controls ───────────────────────────────────── */
@@ -1088,7 +1101,7 @@ trackPageView('techpar', 'TechPar | GST');
     .tp-seg {
         display: flex;
         width: 100%;
-        border: 1px solid var(--text-muted);
+        border: 2px solid var(--border-light);
         overflow: hidden;
         max-width: 320px;
     }
@@ -1096,12 +1109,15 @@ trackPageView('techpar', 'TechPar | GST');
     .tp-seg__btn {
         flex: 1;
         padding: var(--spacing-sm) var(--spacing-lg);
-        font-family: var(--font-family);
+        font-family: monospace;
         font-size: var(--text-xs);
-        color: var(--text-muted);
+        font-weight: var(--font-weight-bold);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-secondary);
         background: transparent;
         border: none;
-        border-right: 1px solid var(--text-muted);
+        border-right: 1px solid var(--border-light);
         cursor: pointer;
         transition: all var(--transition-fast);
         text-align: center;
@@ -1112,8 +1128,8 @@ trackPageView('techpar', 'TechPar | GST');
     }
 
     .tp-seg__btn--active {
-        background: var(--accent-light-bg);
-        color: var(--color-primary);
+        background: var(--color-primary);
+        color: var(--bg-dark);
     }
 
     .tp-seg--sm {
@@ -1136,8 +1152,8 @@ trackPageView('techpar', 'TechPar | GST');
     /* ── Deep dive wrap ───────────────────────────────────────── */
     .tp-deep-wrap {
         display: none;
-        background: var(--bg-light-alt);
-        border: 1px solid var(--border-light);
+        background: transparent;
+        border: 2px solid var(--border-light);
         padding: var(--spacing-md);
         margin-bottom: var(--spacing-sm);
     }
@@ -1155,7 +1171,7 @@ trackPageView('techpar', 'TechPar | GST');
         color: var(--text-secondary);
         margin-top: var(--spacing-sm);
         padding-top: var(--spacing-sm);
-        border-top: 1px solid var(--border-light);
+        border-top: 2px solid var(--border-light);
     }
 
     .tp-deep-sum span {
@@ -1168,10 +1184,11 @@ trackPageView('techpar', 'TechPar | GST');
         align-items: center;
         gap: var(--spacing-sm);
         padding: var(--spacing-sm) var(--spacing-sm);
-        background: var(--bg-light-alt);
-        border: 1px solid var(--border-light);
+        background: transparent;
+        border: 2px solid var(--border-light);
         margin-bottom: var(--spacing-lg);
         cursor: pointer;
+        font-family: monospace;
     }
 
     .tp-capex-row--vis {
@@ -1242,7 +1259,7 @@ trackPageView('techpar', 'TechPar | GST');
         border-color: var(--color-primary);
     }
 
-    /* Button overrides (base styles from global .cta-button) */
+    /* Button overrides (base styles from global .brutal-btn) */
     .tp-btn-next {
         flex: 1;
     }
@@ -1280,11 +1297,12 @@ trackPageView('techpar', 'TechPar | GST');
     .tp-empty__cta {
         margin-top: var(--spacing-sm);
         padding: var(--spacing-sm) var(--spacing-xl);
-        border: 1px solid var(--color-primary);
+        border: 2px solid var(--color-primary);
         background: transparent;
         color: var(--color-primary);
-        font-family: var(--font-family);
+        font-family: monospace;
         font-size: var(--text-xs);
+        font-weight: var(--font-weight-bold);
         cursor: pointer;
         letter-spacing: 0.06em;
         text-transform: uppercase;
@@ -1292,7 +1310,8 @@ trackPageView('techpar', 'TechPar | GST');
     }
 
     .tp-empty__cta:hover {
-        background: var(--accent-light-bg);
+        background: var(--color-primary);
+        color: var(--bg-dark);
     }
 
     /* ── Analysis content ─────────────────────────────────────── */
