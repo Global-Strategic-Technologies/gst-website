@@ -771,6 +771,7 @@ html.dark-theme .trust-line {
 .stat-value {
     font-size: 3.5rem;
     font-weight: 900;
+    font-family: monospace;
     color: var(--bg-dark);
     line-height: 1;
     margin-bottom: 0.5rem;
@@ -778,6 +779,7 @@ html.dark-theme .trust-line {
 
 .stat-label {
     font-size: 0.85rem;
+    font-family: monospace;
     color: var(--bg-dark);
     font-weight: 700;
     text-transform: uppercase;
