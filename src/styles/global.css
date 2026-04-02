@@ -1239,13 +1239,16 @@ html.dark-theme .footer-links a:hover {
 
 .cta-box h2 {
     font-size: 2.5rem;
-    color: rgba(26, 26, 26, 0.95);
+    font-family: monospace;
+    color: var(--text-primary);
+    text-transform: uppercase;
     margin-bottom: 1.5rem;
     font-weight: 600;
 }
 
 .cta-box p {
-    color: rgba(26, 26, 26, 0.85);
+    font-family: monospace;
+    color: var(--text-secondary);
     font-size: 1.15rem;
     margin-bottom: 2.5rem;
 }
