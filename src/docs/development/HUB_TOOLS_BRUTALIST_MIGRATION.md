@@ -19,6 +19,18 @@ Each stage migrates one tool. Between stages, **pause for manual review** — ve
 3. **Back links**: keep as `.cta-button secondary` (page-level CTA, not tool control)
 4. **`<select>` elements**: need explicit dark theme `background-color` on both select and `<option>` elements
 5. **Brand page specimens**: every brutalized control — whether a new `.brutal-*` class or an existing selector modified with brutalist properties — gets a rendered specimen on `/brand` (`src/pages/brand.astro`). This applies retroactively to completed stages
+6. **Shared over scoped**: brutalist typography and interaction patterns should be promoted to reusable `.brutal-*` classes in `global.css` rather than applied inline to scoped selectors. Page-specific patterns (e.g., TDC's clamp-sized result values, DM's document output section) may remain scoped when they have a single consumer — but should be promoted to shared classes if a second consumer emerges
+
+### Intentionally Scoped Patterns
+
+These stages applied brutalist properties directly to scoped selectors rather than creating shared classes. This was a deliberate design decision — the patterns are page-specific with no current reuse path:
+
+| Stage | Tool | Scoped Selectors | Reason |
+|---|---|---|---|
+| 1 | Tech Debt Calculator | 17 (`.result-cost-value`, `.deploy-btn`, `.slider-value`, etc.) | TDC-specific clamp font-size, deploy grid layout |
+| 4 | Diligence Machine | 23 (`.doc-title`, `.doc-meta-label`, `.progress-label`, etc.) | Document output section is highly specialized |
+
+If any of these patterns gain a second consumer, promote them to `.brutal-*` classes in `global.css` and add brand page specimens.
 
 **Migration order** (simplest → most complex):
 

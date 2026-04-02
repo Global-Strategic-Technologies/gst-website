@@ -160,8 +160,9 @@ None — site chrome should reuse existing `.brutal-label`, `.brutal-link-intera
 - 4 hardcoded `rgba(26,26,26,...)` values replaced with `var(--text-primary)` / `var(--text-secondary)`
 - `rgba(26,26,26,0.85)` → `var(--text-secondary)` shifts opacity from 0.85 to 0.7 — intentional alignment to the standard text hierarchy
 - `.cta-button` already had `font-family: monospace` — no change needed
-- No new classes created; no class renames; no test selectors changed
-- No scoped CSS in any of the 3 components (Hero, CTA, StatsBar) — all styles in global.css
+- Reusable classes created in global.css: `.brutal-hero__title`, `.brutal-hero__description`, `.brutal-hero__trustline`, `.brutal-stat__value`, `.brutal-stat__label`, `.brutal-cta__title`, `.brutal-cta__description`
+- Classes applied in component markup (Hero.astro, StatsBar.astro, CTASection.astro); monospace removed from element selectors
+- No scoped CSS in any of the 3 components — all styles in global.css
 
 ---
 
