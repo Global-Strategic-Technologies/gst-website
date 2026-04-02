@@ -4,13 +4,21 @@ Migrate all five hub tools from their current soft-UI styling (rounded corners, 
 
 **Status**: Complete — all 5 stages finished
 **Priority**: High — brand cohesion
-**Last Updated**: April 1, 2026 (Stage 5 complete)
+**Last Updated**: April 2, 2026
 
 ---
 
 ## Approach
 
 Each stage migrates one tool. Between stages, **pause for manual review** — verify visual quality, identify gaps where new brutalist classes are needed, and create those classes before proceeding.
+
+### Principles
+
+1. **Dark theme borders**: `rgba(255, 255, 255, 0.15)` everywhere — not `var(--border-light)` which is invisible on dark backgrounds
+2. **Propagate to global.css**: new reusable classes go in `global.css`, not in scoped `<style>` blocks
+3. **Back links**: keep as `.cta-button secondary` (page-level CTA, not tool control)
+4. **`<select>` elements**: need explicit dark theme `background-color` on both select and `<option>` elements
+5. **Brand page specimens**: every brutalized control — whether a new `.brutal-*` class or an existing selector modified with brutalist properties — gets a rendered specimen on `/brand` (`src/pages/brand.astro`). This applies retroactively to completed stages
 
 **Migration order** (simplest → most complex):
 
@@ -517,7 +525,7 @@ Classes that will likely need to be created during migration and added to the sh
 | `.brutal-panel`, `.brutal-panel__*`, `.brutal-reg-card`, `.brutal-reg-card__*`, `.brutal-bottom-sheet*` | Stage 2 (RegMap) ✅ | `global.css` |
 | `.brutal-result-display`, `.brutal-result-value` | Stage 1 (TDC) | `global.css` |
 
-Each new class should be added to the `/brand` page as a specimen after creation.
+Each new class — and every existing selector that received brutalist properties — should be added to the `/brand` page as a specimen.
 
 ---
 
@@ -528,7 +536,7 @@ Each new class should be added to the `/brand` page as a specimen after creation
 3. Visual review at desktop, 768px, and 480px in both themes
 4. Print output check (where applicable)
 5. E2E spot-check for the migrated tool
-6. New brutalist classes documented on `/brand` page
+6. All brutalized controls — new classes and modified existing selectors — added to `/brand` page as specimens
 
 ---
 
