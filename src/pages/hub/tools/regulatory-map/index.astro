@@ -1611,20 +1611,22 @@ import caData from '../../../../data/canada-provinces.json';
         z-index: 0;
     }
 
-    /* Scoped overrides for timeline entries in horizontal scroll context */
-    :global(.brutal-timeline-entry) {
+    /* Horizontal scroll overrides for .brutal-timeline-* base classes.
+       Use .timeline-track parent to beat global.css specificity
+       regardless of Astro's production CSS chunk load order. */
+    :global(.timeline-track .brutal-timeline-entry) {
         position: relative;
         z-index: 1;
     }
 
-    :global(.brutal-timeline-entry__name) {
+    :global(.timeline-track .brutal-timeline-entry__name) {
         max-width: 180px;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
     /* Today marker — absolute positioned in horizontal timeline */
-    :global(.brutal-timeline-today) {
+    :global(.timeline-track .brutal-timeline-today) {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -1635,7 +1637,7 @@ import caData from '../../../../data/canada-provinces.json';
         pointer-events: none;
     }
 
-    :global(.brutal-timeline-today::after) {
+    :global(.timeline-track .brutal-timeline-today::after) {
         content: '';
         width: 2px;
         flex: 1;
@@ -1644,7 +1646,7 @@ import caData from '../../../../data/canada-provinces.json';
         opacity: 0.6;
     }
 
-    :global(.brutal-timeline-today__label) {
+    :global(.timeline-track .brutal-timeline-today__label) {
         white-space: nowrap;
         margin-bottom: 2px;
     }
@@ -1777,7 +1779,7 @@ import caData from '../../../../data/canada-provinces.json';
             max-width: 100%;
         }
 
-        :global(.brutal-timeline-entry) {
+        :global(.timeline-track .brutal-timeline-entry) {
             color: #333;
         }
 
