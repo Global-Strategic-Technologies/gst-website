@@ -96,7 +96,7 @@ None — site chrome should reuse existing `.brutal-label`, `.brutal-link-intera
 - [x] `npm run test:run` passes
 - [x] E2E tests checked for class selector changes
 - [x] Visual review at desktop, 768px, 480px in both themes
-- [ ] Brutalized controls added to `/brand` page as specimens (nav links, footer links, breadcrumb, theme toggle)
+- [x] Brutalized controls added to `/brand` page as specimens (nav links, footer links, breadcrumb, theme toggle)
 
 ### Additional Notes
 
