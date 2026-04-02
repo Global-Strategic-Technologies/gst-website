@@ -968,8 +968,8 @@ html.dark-theme .trust-line {
 /* Footer */
 footer {
     padding: 1.25rem 0 0 0;
-    background: #eeeeee;
-    border-top: 4px solid var(--color-primary);
+    background: var(--bg-light-alt);
+    border-top: 2px solid var(--color-primary);
     position: relative;
     z-index: 0;
 }
@@ -981,8 +981,9 @@ footer {
 }
 
 footer p {
-    color: rgba(26, 26, 26, 0.85);
+    color: var(--text-secondary);
     font-size: 0.85rem;
+    font-family: monospace;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -1006,12 +1007,13 @@ footer p {
     display: flex;
     justify-content: flex-start;
     padding-top: 1rem;
-    border-top: 1px solid rgba(26, 26, 26, 0.1);
+    border-top: 1px solid var(--border-light);
 }
 
 .footer-links a {
     color: var(--text-secondary);
     text-decoration: none;
+    font-family: monospace;
     font-size: 0.85rem;
     font-weight: var(--font-weight-bold);
     text-transform: uppercase;
@@ -1061,10 +1063,10 @@ footer p {
 .theme-toggle {
     background: transparent;
     border: none;
-    color: rgba(74, 74, 74, 0.8);
+    color: var(--text-muted);
     cursor: pointer;
     font-size: 5rem;
-    transition: color 0.2s;
+    transition: color var(--transition-fast);
     padding: 0;
     line-height: 1;
     display: flex;
@@ -1207,7 +1209,7 @@ html.dark-theme footer p {
 }
 
 html.dark-theme .footer-bottom {
-    border-top-color: var(--footer-border);
+    border-top-color: rgba(255, 255, 255, 0.15);
 }
 
 html.dark-theme .footer-links a:hover {
