@@ -2,7 +2,7 @@
 
 Extend the brutalist design system — established during the [Hub Tools migration](./HUB_TOOLS_BRUTALIST_MIGRATION.md) — to all remaining marketing pages, site chrome, shared components, and content pages. The brutalist tokens and component classes live in `global.css`, `typography.css`, and `interactions.css`, rendered live on the [/brand](https://globalstrategic.tech/brand) reference page.
 
-**Status**: In Progress (Stage 1 Complete)
+**Status**: In Progress (Stages 1-2 Complete)
 **Priority**: High — brand cohesion + technical debt reduction
 **Prerequisite**: Hub Tools Brutalist Migration (Complete)
 **Last Updated**: April 2, 2026
@@ -48,7 +48,7 @@ Each stage migrates a logical group of related pages/components. Between stages,
 | Stage | Scope | Scoped CSS | border-radius | box-shadow | Hardcoded Colors | Effort |
 |-------|-------|-----------|--------------|-----------|-----------------|--------|
 | 1 | ~~Site Chrome (Header, Footer, Breadcrumb, ThemeToggle)~~ | ~~48 lines~~ | ~~0~~ | ~~0~~ | ~~0~~ | ~~Complete~~ |
-| 2 | Shared Components (Hero, CTASection, StatsBar) + global.css marketing sections | ~0 scoped + ~200 global | 0 | 0 | 3 (hero text) | Medium |
+| 2 | ~~Shared Components (Hero, CTASection, StatsBar) + global.css marketing sections~~ | ~~0 scoped + ~200 global~~ | ~~0~~ | ~~0~~ | ~~3 (hero text)~~ | ~~Complete~~ |
 | 3 | Legal & Error (Privacy, Terms, 404) | ~90 lines | 0 | 0 | 2 | Low |
 | 4 | Homepage Sections (WhoWeSupport, WhatWeDo, WhyClientsTrustUs, EngagementFlow) | ~297 lines | 6 | 6 | 3 | Medium |
 | 5 | About & Services Pages | ~344 lines | 6 | 3 | 4 | Medium-High |
@@ -142,18 +142,26 @@ None — site chrome should reuse existing `.brutal-label`, `.brutal-link-intera
 
 ### Pause Point Checklist
 
-- [ ] Hero title renders in monospace uppercase
-- [ ] Hero text colors use variables (no hardcoded rgba)
-- [ ] Hero CTA buttons use `.brutal-btn` family
-- [ ] Stats bar values use monospace (`.brutal-data` or equivalent)
-- [ ] CTA section heading is monospace, buttons are brutalist
-- [ ] Dark theme fully functional with no hardcoded colors
-- [ ] All pages using Hero/CTA/StatsBar still render correctly
-- [ ] `npm run build` passes
-- [ ] `npm run test:run` passes
-- [ ] E2E tests checked for class/text selector changes
-- [ ] Visual review at desktop, 768px, 480px
-- [ ] Brutalized controls added to `/brand` page as specimens (hero title, hero description, trust line, stat values, stat labels, CTA heading, CTA description)
+- [x] Hero title renders in monospace uppercase
+- [x] Hero text colors use variables (no hardcoded rgba)
+- [x] Hero CTA buttons use `.brutal-btn` family (already monospace — no change needed)
+- [x] Stats bar values use monospace
+- [x] CTA section heading is monospace uppercase, buttons are brutalist
+- [x] Dark theme fully functional with no hardcoded colors
+- [x] All pages using Hero/CTA/StatsBar still render correctly
+- [x] `npm run build` passes
+- [x] `npm run test:run` passes
+- [x] E2E tests checked for class/text selector changes
+- [x] Visual review at desktop, 768px, 480px
+- [x] Brutalized controls added to `/brand` page as specimens (hero title, hero description, trust line, stat values, stat labels, CTA heading, CTA description)
+
+### Additional Notes
+
+- 4 hardcoded `rgba(26,26,26,...)` values replaced with `var(--text-primary)` / `var(--text-secondary)`
+- `rgba(26,26,26,0.85)` → `var(--text-secondary)` shifts opacity from 0.85 to 0.7 — intentional alignment to the standard text hierarchy
+- `.cta-button` already had `font-family: monospace` — no change needed
+- No new classes created; no class renames; no test selectors changed
+- No scoped CSS in any of the 3 components (Hero, CTA, StatsBar) — all styles in global.css
 
 ---
 
