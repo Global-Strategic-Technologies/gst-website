@@ -40,7 +40,7 @@ Each stage migrates a logical group of related pages/components. Between stages,
 3. **Back links**: keep as `.cta-button secondary` (page-level CTA, not tool control)
 4. **`<select>` elements**: need explicit dark theme `background-color` on both select and `<option>` elements
 5. **Print styles**: add branded header/footer (GST delta icon + title + generated date) to every content page
-6. **Brand page specimens**: every new `.brutal-*` class gets a rendered specimen on `/brand`
+6. **Brand page specimens**: every brutalized control — whether a new `.brutal-*` class or an existing selector that received brutalist properties (monospace, structural borders, variable colors) — gets a rendered specimen on `/brand` (`src/pages/brand.astro`). This applies retroactively to completed stages
 7. **Test updates**: grep `tests/` for every changed class name before committing
 
 ### Migration Order (simplest -> most complex)
@@ -96,6 +96,7 @@ None — site chrome should reuse existing `.brutal-label`, `.brutal-link-intera
 - [x] `npm run test:run` passes
 - [x] E2E tests checked for class selector changes
 - [x] Visual review at desktop, 768px, 480px in both themes
+- [ ] Brutalized controls added to `/brand` page as specimens (nav links, footer links, breadcrumb, theme toggle)
 
 ### Additional Notes
 
@@ -152,6 +153,7 @@ None — site chrome should reuse existing `.brutal-label`, `.brutal-link-intera
 - [ ] `npm run test:run` passes
 - [ ] E2E tests checked for class/text selector changes
 - [ ] Visual review at desktop, 768px, 480px
+- [ ] Brutalized controls added to `/brand` page as specimens (hero title, hero description, trust line, stat values, stat labels, CTA heading, CTA description)
 
 ---
 
@@ -192,6 +194,7 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 - [ ] `npm run build` passes
 - [ ] `npm run test:run` passes
 - [ ] Visual review at desktop, 768px, 480px
+- [ ] Brutalized controls added to `/brand` page as specimens (legal headings, legal body text, legal section dividers)
 
 ---
 
@@ -313,6 +316,7 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 - [ ] `npm run build` passes
 - [ ] `npm run test:run` passes
 - [ ] Visual review at desktop, 768px, 480px
+- [ ] Brutalized controls added to `/brand` page as specimens (founder bio card, service cards, FAQ accordion)
 
 ---
 
@@ -413,6 +417,7 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 - [ ] `npm run test:run` passes
 - [ ] E2E tests checked for class selector changes
 - [ ] Visual review at desktop, 768px, 480px
+- [ ] Brutalized controls added to `/brand` page as specimens (feed item cards, Editor's Pick badge, category filter chips)
 
 ---
 
@@ -515,7 +520,7 @@ Each new class should be added to the `/brand` page as a specimen after creation
 3. Visual review at desktop, 768px, and 480px in both themes
 4. Print output check (where applicable)
 5. E2E spot-check for migrated pages
-6. New brutalist classes documented on `/brand` page
+6. All brutalized controls — new classes and modified existing selectors — added to `/brand` page as specimens
 7. `grep tests/ OLD_CLASS_NAME` — no stale selectors in test files
 
 ---
