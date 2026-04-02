@@ -3,6 +3,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout title="Privacy Policy | GST" description="How Global Strategic Technologies collects, uses, and safeguards your information when you visit our website or engage with our advisory services.">
+  <!-- Print-only report header (hidden on screen) -->
+  <div class="print-report-header" aria-hidden="true">
+    <div class="print-report-header__brand">
+      <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" width="24" height="24" />
+      <span>GST</span>
+    </div>
+    <div class="print-report-header__title">Privacy Policy</div>
+    <div class="print-report-header__date">Generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+  </div>
+
   <main class="privacy-container">
     <div class="privacy-content">
       <header class="privacy-header">
@@ -118,6 +128,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 </BaseLayout>
 
 <style>
+  .print-report-header {
+    display: none;
+  }
+
   .privacy-header {
     position: static !important;
     top: auto;
@@ -233,6 +247,58 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     .privacy-body h2 {
       font-size: 1.75rem;
+    }
+  }
+
+  /* Print */
+  @media print {
+    .print-report-header {
+      display: flex !important;
+      align-items: center;
+      gap: 1rem;
+      padding-bottom: 1rem;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #000;
+      font-family: monospace;
+    }
+
+    .print-report-header__brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 900;
+      font-size: 1.25rem;
+      text-transform: uppercase;
+    }
+
+    .print-report-header__title {
+      font-weight: 700;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .print-report-header__date {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: #666;
+    }
+
+    .privacy-container {
+      padding: 0;
+      max-width: 100%;
+    }
+
+    .privacy-header {
+      border-bottom: 2px solid #000;
+    }
+
+    .contact-section {
+      border-left: 3px solid #000;
+    }
+
+    @page {
+      margin: 1.5cm;
     }
   }
 </style>
