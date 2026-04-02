@@ -485,7 +485,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         ) as HTMLElement | null;
         if (mrCard) {
             const shouldBeSelected = synced.includes(MULTI_REGION_ID);
-            mrCard.classList.toggle('selected', shouldBeSelected);
+            mrCard.classList.toggle('brutal-option-card--selected-outline', shouldBeSelected);
             mrCard.setAttribute('aria-pressed', String(shouldBeSelected));
         }
     }
