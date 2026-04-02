@@ -139,23 +139,29 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   .privacy-header h1 {
     font-size: 2.5rem;
     font-weight: 700;
+    font-family: monospace;
+    text-transform: uppercase;
     margin-bottom: 0.5rem;
     color: var(--text-primary);
   }
 
   .last-updated {
     font-size: 0.85rem;
+    font-family: monospace;
     color: var(--text-muted);
   }
 
   .privacy-body {
     line-height: 1.8;
+    font-family: monospace;
     color: var(--text-secondary);
   }
 
   .privacy-body h2 {
     font-size: 1.5rem;
     font-weight: 600;
+    font-family: monospace;
+    text-transform: uppercase;
     margin-top: 2.5rem;
     margin-bottom: 1rem;
     color: var(--text-primary);
@@ -177,8 +183,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   .privacy-body a {
     color: var(--color-primary);
     text-decoration: none;
-    border-bottom: 1px solid rgba(5, 205, 153, 0.3);
-    transition: border-color 0.2s;
+    border-bottom: 2px solid transparent;
+    transition: border-color var(--transition-fast);
   }
 
   .privacy-body a:hover {
@@ -188,7 +194,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   .contact-section {
     margin-top: 3rem;
     padding: 2rem;
-    background: rgba(5, 205, 153, 0.05);
+    background: transparent;
     border-left: 3px solid var(--color-primary);
   }
 
@@ -197,11 +203,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   :global(html.dark-theme) .privacy-header {
-    border-bottom-color: rgba(245, 245, 245, 0.1);
+    border-bottom-color: rgba(255, 255, 255, 0.15);
   }
 
   :global(html.dark-theme) .contact-section {
-    background: var(--accent-light-bg);
+    background: transparent;
   }
 
   /* Tablet (480px - 768px) */
