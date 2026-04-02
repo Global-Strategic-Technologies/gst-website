@@ -2,7 +2,7 @@
 
 Extend the brutalist design system — established during the [Hub Tools migration](./HUB_TOOLS_BRUTALIST_MIGRATION.md) — to all remaining marketing pages, site chrome, shared components, and content pages. The brutalist tokens and component classes live in `global.css`, `typography.css`, and `interactions.css`, rendered live on the [/brand](https://globalstrategic.tech/brand) reference page.
 
-**Status**: Not Started
+**Status**: In Progress (Stage 1 Complete)
 **Priority**: High — brand cohesion + technical debt reduction
 **Prerequisite**: Hub Tools Brutalist Migration (Complete)
 **Last Updated**: April 2, 2026
@@ -47,7 +47,7 @@ Each stage migrates a logical group of related pages/components. Between stages,
 
 | Stage | Scope | Scoped CSS | border-radius | box-shadow | Hardcoded Colors | Effort |
 |-------|-------|-----------|--------------|-----------|-----------------|--------|
-| 1 | Site Chrome (Header, Footer, Breadcrumb, ThemeToggle) | ~48 lines | 0 | 0 | 0 | Low |
+| 1 | ~~Site Chrome (Header, Footer, Breadcrumb, ThemeToggle)~~ | ~~48 lines~~ | ~~0~~ | ~~0~~ | ~~0~~ | ~~Complete~~ |
 | 2 | Shared Components (Hero, CTASection, StatsBar) + global.css marketing sections | ~0 scoped + ~200 global | 0 | 0 | 3 (hero text) | Medium |
 | 3 | Legal & Error (Privacy, Terms, 404) | ~90 lines | 0 | 0 | 2 | Low |
 | 4 | Homepage Sections (WhoWeSupport, WhatWeDo, WhyClientsTrustUs, EngagementFlow) | ~297 lines | 6 | 6 | 3 | Medium |
@@ -86,16 +86,22 @@ None — site chrome should reuse existing `.brutal-label`, `.brutal-link-intera
 
 ### Pause Point Checklist
 
-- [ ] Header nav links render in monospace uppercase
-- [ ] Header active link uses hard underline (no gradient)
-- [ ] Footer text is monospace, links use primary-color underline reveal
-- [ ] Footer dark theme border at `rgba(255, 255, 255, 0.15)`
-- [ ] Breadcrumb text is monospace
-- [ ] Theme toggle has no border-radius
-- [ ] `npm run build` passes
-- [ ] `npm run test:run` passes
-- [ ] E2E tests checked for class selector changes
-- [ ] Visual review at desktop, 768px, 480px in both themes
+- [x] Header nav links render in monospace uppercase
+- [x] Header active link uses hard underline (no gradient)
+- [x] Footer text is monospace, links use primary-color underline reveal
+- [x] Footer dark theme border at `rgba(255, 255, 255, 0.15)`
+- [x] Breadcrumb text is monospace
+- [x] Theme toggle has no border-radius
+- [x] `npm run build` passes
+- [x] `npm run test:run` passes
+- [x] E2E tests checked for class selector changes
+- [x] Visual review at desktop, 768px, 480px in both themes
+
+### Additional Notes
+
+- Logo (`a.logo`) explicitly preserved with `font-family: var(--font-family)` to shield from `nav a` monospace rule — logo styling deferred to a future decision
+- 5 hardcoded color values replaced with CSS variables in footer/theme-toggle
+- No new classes created; no test selectors changed
 
 ---
 
