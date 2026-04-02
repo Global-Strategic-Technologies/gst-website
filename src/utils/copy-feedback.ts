@@ -27,13 +27,23 @@ export async function copyWithFeedback(
 
   // Use stored original to survive rapid re-clicks while feedback is showing
   const DATA_KEY = 'data-copy-original';
+  const WIDTH_KEY = 'data-copy-width';
   const original = button.getAttribute(DATA_KEY) ?? target.textContent;
   button.setAttribute(DATA_KEY, original ?? '');
+
+  // Lock the button width so shorter feedback text doesn't shrink it
+  if (!button.getAttribute(WIDTH_KEY)) {
+    const w = button.offsetWidth;
+    button.style.minWidth = `${w}px`;
+    button.setAttribute(WIDTH_KEY, `${w}`);
+  }
 
   const reset = () => {
     target.textContent = original;
     if (options?.copiedClass) button.classList.remove(options.copiedClass);
     button.removeAttribute(DATA_KEY);
+    button.style.minWidth = '';
+    button.removeAttribute(WIDTH_KEY);
   };
 
   if (options?.copiedClass) button.classList.add(options.copiedClass);
