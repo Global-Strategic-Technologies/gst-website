@@ -56,6 +56,7 @@ Each stage migrates a logical group of related pages/components. Between stages,
 | 6 | Hub Gateways & Library (hub/index, library/index, tools/index, VDR Structure, Business Architectures) | ~232 lines | 7 | 3 | 4 | Medium |
 | 7 | Radar Feed (CategoryFilter, FyiItem, WireItem, RadarFeed, RadarHeader) | ~140+ lines | 2 | 0 | 4 | Medium |
 | 8 | M&A Portfolio (PortfolioGrid, PortfolioHeader, PortfolioSummary, StickyControls, ProjectModal) | ~500+ lines | 0 | 3+ | 4+ | High |
+| 9 | Hub Tools Carryover Audit | 0 | 0 | 0 | 0 | Low |
 
 ---
 
@@ -495,6 +496,39 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 - [ ] `npm run test:run` passes
 - [ ] E2E tests checked for all class selector changes
 - [ ] Visual review at desktop, 768px, 480px
+
+---
+
+## Stage 9: Hub Tools Carryover Audit
+
+**Files**: Hub tool pages brutalized during [Hub Tools Brutalist Migration](./HUB_TOOLS_BRUTALIST_MIGRATION.md)
+**Why last**: The Hub Tools migration (5 stages) was the predecessor initiative. Two stages applied brutalist properties directly to scoped selectors without creating shared classes — a pattern now superseded by principle #8 (shared over scoped). This audit stage reviews those decisions against the completed site-wide design system and promotes patterns that now have reuse potential.
+
+### Carryover from Hub Tools Migration
+
+| Tool | Stage | Scoped Selectors | Examples |
+|---|---|---|---|
+| Tech Debt Calculator | HT-1 | 17 | `.result-cost-value` (clamp font-size), `.deploy-btn`, `.slider-value`, `.currency-select` |
+| Diligence Machine | HT-4 | 23 | `.doc-title`, `.doc-meta-label`, `.progress-label`, `.doc-toc a`, `.doc-attention-title` |
+
+### Audit Tasks
+
+| Task | Details |
+|---|---|
+| **Review TDC scoped selectors** | Determine if any of the 17 scoped monospace selectors now overlap with classes created during Stages 1–8. If so, replace scoped CSS with shared class and apply in markup |
+| **Review DM scoped selectors** | Same review for the 23 DM document output selectors. The document generation section is highly specialized — most will likely remain scoped |
+| **Brand page gap check** | Verify all brutalized Hub Tool controls have brand page specimens. Stages HT-2, HT-3, HT-5 confirmed clean; HT-1 and HT-4 may have gaps |
+| **`.cta-button` vs `.brutal-btn` audit** | `.cta-button` in global.css already has `font-family: monospace` but coexists with `.brutal-btn`. Determine if `.cta-button` should be aliased, consolidated, or left as the marketing-page variant |
+
+### Pause Point Checklist
+
+- [ ] TDC scoped selectors reviewed — promoted or confirmed as single-consumer
+- [ ] DM scoped selectors reviewed — promoted or confirmed as single-consumer
+- [ ] Brand page specimens verified for all 5 Hub Tools
+- [ ] `.cta-button` / `.brutal-btn` relationship documented or consolidated
+- [ ] `npm run build` passes
+- [ ] `npm run test:run` passes
+- [ ] Visual review of all 5 Hub Tools at desktop, 768px, 480px
 
 ---
 
