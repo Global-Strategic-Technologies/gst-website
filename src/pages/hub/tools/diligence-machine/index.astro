@@ -1035,8 +1035,9 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
         const text = lines.join('\n');
 
+        const btn = document.getElementById('btnCopy')!;
         const label = document.getElementById('btnCopyLabel')!;
-        copyWithFeedback(text, label);
+        copyWithFeedback(text, btn, { feedbackTarget: label });
     }
 
     // ─── RESTART ──────────────────────────────────────────────────────────
