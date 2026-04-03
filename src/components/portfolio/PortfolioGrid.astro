@@ -9,7 +9,7 @@ interface Props {
 const { projects } = Astro.props;
 ---
 
-<div class="portfolio-grid-container">
+<div class="portfolio-grid-container brutal-frosted--blur-only">
   <div class="container">
     <div class="grid" data-testid="portfolio-grid">
       {projects.map((project) => (
@@ -56,8 +56,6 @@ const { projects } = Astro.props;
 <style>
   .portfolio-grid-container {
     padding: 2rem 0 4rem 0;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
   }
 
   .container {

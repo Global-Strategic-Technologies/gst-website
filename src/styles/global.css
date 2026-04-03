@@ -3071,6 +3071,14 @@ html.dark-theme .brutal-frosted--heavy {
     background: rgba(20, 20, 20, 0.6);
 }
 
+/* Blur-only variant — backdrop blur with no background color.
+   Use for containers where the page grid should show through
+   with soft blur but no tint. */
+.brutal-frosted--blur-only {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
 /* Overlay variant — drawers/panels that slide over content.
    Higher opacity than heavy for readability. */
 .brutal-frosted--overlay {
