@@ -470,7 +470,7 @@ nav {
 .logo {
     font-size: 2rem;
     font-weight: 900;
-    font-family: var(--font-family);
+    font-family: monospace;
     color: var(--text-primary);
     letter-spacing: -0.05em;
     text-transform: uppercase;

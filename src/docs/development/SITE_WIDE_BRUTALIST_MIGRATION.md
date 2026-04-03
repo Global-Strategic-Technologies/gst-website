@@ -102,7 +102,7 @@ None — site chrome should reuse existing `.brutal-label`, `.brutal-link-intera
 
 ### Additional Notes
 
-- Logo (`a.logo`) explicitly preserved with `font-family: var(--font-family)` to shield from `nav a` monospace rule — logo styling deferred to a future decision
+- Logo (`a.logo`) now monospace per original migration spec — `font-family: monospace` applied directly (inherits from `nav a` but also set explicitly for clarity)
 - 5 hardcoded color values replaced with CSS variables in footer/theme-toggle
 - No new classes created; no test selectors changed
 
