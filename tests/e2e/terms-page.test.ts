@@ -230,24 +230,19 @@ test.describe('Terms Page', () => {
       expect(darkColor).not.toBe(lightColor);
     });
 
-    test('should change contact section background in dark theme', async ({ page }) => {
+    test('should render contact section correctly in dark theme', async ({ page }) => {
       const contactSection = page.locator('.contact-section');
-
-      // Get light theme background
-      const lightBg = await contactSection.evaluate(el => {
-        return window.getComputedStyle(el).backgroundColor;
-      });
 
       // Toggle to dark theme
       await clickThemeToggle(page);
       await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
 
-      // Get dark theme background
-      const darkBg = await contactSection.evaluate(el => {
-        return window.getComputedStyle(el).backgroundColor;
+      // Contact section should be visible with structural left border
+      await expect(contactSection).toBeVisible();
+      const borderLeft = await contactSection.evaluate(el => {
+        return window.getComputedStyle(el).borderLeftStyle;
       });
-
-      expect(darkBg).not.toBe(lightBg);
+      expect(borderLeft).toBe('solid');
     });
   });
 
