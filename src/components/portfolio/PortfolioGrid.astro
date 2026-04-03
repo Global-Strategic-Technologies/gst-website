@@ -83,7 +83,7 @@ const { projects } = Astro.props;
   }
 
   .project-card {
-    background: rgba(0, 0, 0, 0.0025);
+    background: var(--bg-light);
     border: 1px solid var(--border-light);
     padding: 1.5rem;
     cursor: pointer;
@@ -264,8 +264,8 @@ const { projects } = Astro.props;
 
   /* Dark theme */
   :global(html.dark-theme) .project-card {
-    background: rgba(255, 255, 255, 0.0025);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: var(--bg-dark-secondary);
+    border-color: var(--border-dark);
   }
 
   :global(html.dark-theme) .project-card:hover {
