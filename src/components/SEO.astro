@@ -28,7 +28,7 @@ interface Props {
 const {
     title = 'GST | M&A Strategic Technology Advisory',
     description = 'M&A technical due diligence, post-acquisition integration, and platform modernization. Led by Reid Peryam, 20-year technology strategy veteran.',
-    ogTitle = 'GST | Strategic Technology Advisory',
+    ogTitle,
     ogDescription = 'Specialized technical diligence and AI strategy for organizations navigating complex product transitions.',
     ogImage = '/og-image.png',
     ogType = 'website',
@@ -45,11 +45,16 @@ const {
     faqItems,
 } = Astro.props;
 
+// Derive og:title from page title when not explicitly provided
+const finalOgTitle = ogTitle || title;
+
 import { slugToName } from '../utils/breadcrumbs';
 
-// Dynamic URL generation using Astro.url
-const currentUrl = Astro.url.href;
-const baseUrl = `${Astro.url.protocol}//${Astro.url.host}`;
+// Use Astro.site (from astro.config.mjs) for stable URLs across environments
+const siteBase = Astro.site?.origin || `${Astro.url.protocol}//${Astro.url.host}`;
+const currentPath = Astro.url.pathname;
+const currentUrl = `${siteBase}${currentPath}`;
+const baseUrl = siteBase;
 
 // Use provided URLs or auto-generate from current page
 const finalCanonicalUrl = canonicalUrl || currentUrl;
@@ -387,7 +392,7 @@ const jsonLdData = {
 )}
 
 <!-- Open Graph Meta Tags -->
-<meta property="og:title" content={ogTitle} />
+<meta property="og:title" content={finalOgTitle} />
 <meta property="og:description" content={ogDescription} />
 <meta property="og:type" content={ogType} />
 <meta property="og:url" content={finalOgUrl} />
@@ -402,7 +407,7 @@ const jsonLdData = {
 <!-- Twitter Card Meta Tags -->
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:site" content={twitterSite} />
-<meta name="twitter:title" content={ogTitle} />
+<meta name="twitter:title" content={finalOgTitle} />
 <meta name="twitter:description" content={ogDescription} />
 <meta name="twitter:image" content={absoluteOgImage} />
 <meta name="twitter:image:alt" content={ogImageAlt} />
