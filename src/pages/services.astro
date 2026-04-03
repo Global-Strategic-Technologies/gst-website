@@ -126,7 +126,7 @@ const faqItems = [
                     <details class="faq-item brutal-frosted">
                         <summary class="faq-question">
                             <span>{item.question}</span>
-                            <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" class="faq-delta" aria-hidden="true" />
+                            <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" class="delta-chevron" aria-hidden="true" />
                         </summary>
                         <div class="faq-answer" set:html={item.answer} />
                     </details>
@@ -483,18 +483,6 @@ const faqItems = [
 
     .faq-question::-webkit-details-marker {
         display: none;
-    }
-
-    .faq-delta {
-        width: 14px;
-        height: 14px;
-        flex-shrink: 0;
-        transform: rotate(0deg);
-        transition: transform var(--transition-fast);
-    }
-
-    .faq-item[open] .faq-delta {
-        transform: rotate(180deg);
     }
 
     .faq-question:hover {
