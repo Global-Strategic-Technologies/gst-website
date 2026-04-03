@@ -4097,18 +4097,21 @@ html.dark-theme .brutal-timeline-today__label {
 }
 
 .brutal-faq__question::after {
-    content: '+';
-    font-family: monospace;
-    font-size: 1.2rem;
-    color: var(--text-muted);
+    content: '';
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 10px solid var(--text-muted);
     flex-shrink: 0;
     margin-left: var(--spacing-md);
-    transition: color var(--transition-fast);
+    transform: rotate(0deg);
+    transition: transform var(--transition-fast), border-bottom-color var(--transition-fast);
 }
 
 .brutal-faq__item[open] .brutal-faq__question::after {
-    content: '−';
-    color: var(--color-primary);
+    transform: rotate(180deg);
+    border-bottom-color: var(--color-primary);
 }
 
 .brutal-faq__question:hover {
