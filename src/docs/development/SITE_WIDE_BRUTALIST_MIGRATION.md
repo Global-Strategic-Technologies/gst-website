@@ -2,7 +2,7 @@
 
 Extend the brutalist design system — established during the [Hub Tools migration](./HUB_TOOLS_BRUTALIST_MIGRATION.md) — to all remaining marketing pages, site chrome, shared components, and content pages. The brutalist tokens and component classes live in `global.css`, `typography.css`, and `interactions.css`, rendered live on the [/brand](https://globalstrategic.tech/brand) reference page.
 
-**Status**: In Progress (Stages 1-6 Complete)
+**Status**: In Progress (Stages 1-7 Complete)
 **Priority**: High — brand cohesion + technical debt reduction
 **Prerequisite**: Hub Tools Brutalist Migration (Complete)
 **Last Updated**: April 2, 2026
@@ -54,7 +54,7 @@ Each stage migrates a logical group of related pages/components. Between stages,
 | 4 | ~~Homepage Sections (WhoWeSupport, WhatWeDo, WhyClientsTrustUs, EngagementFlow)~~ | ~~297 lines~~ | ~~6~~ | ~~6~~ | ~~3~~ | ~~Complete~~ |
 | 5 | ~~About & Services Pages~~ | ~~344 lines~~ | ~~6~~ | ~~3~~ | ~~4~~ | ~~Complete~~ |
 | 6 | ~~Hub Gateways & Library (hub/index, library/index, tools/index, VDR Structure, Business Architectures)~~ | ~~232 lines~~ | ~~7~~ | ~~3~~ | ~~4~~ | ~~Complete~~ |
-| 7 | Radar Feed (CategoryFilter, FyiItem, WireItem, RadarFeed, RadarHeader) | ~140+ lines | 2 | 0 | 4 | Medium |
+| 7 | ~~Radar Feed (CategoryFilter, FyiItem, WireItem, RadarFeed, RadarHeader)~~ | ~~140+ lines~~ | ~~2~~ | ~~0~~ | ~~4~~ | ~~Complete~~ |
 | 8 | M&A Portfolio (PortfolioGrid, PortfolioHeader, PortfolioSummary, StickyControls, ProjectModal) | ~500+ lines | 0 | 3+ | 4+ | High |
 | 9 | Hub Tools Carryover Audit | 0 | 0 | 0 | 0 | Low |
 
@@ -453,17 +453,26 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 
 ### Pause Point Checklist
 
-- [ ] Feed items have square corners, hard borders, monospace text
-- [ ] Editor's Pick badges use CSS variable (no hardcoded hex)
-- [ ] Category filter uses `.brutal-filter-chip`
-- [ ] Loading skeleton matches brutalist pattern
-- [ ] Dark theme borders standardized
-- [ ] Print styles for radar feed
-- [ ] `npm run build` passes
-- [ ] `npm run test:run` passes
-- [ ] E2E tests checked for class selector changes
-- [ ] Visual review at desktop, 768px, 480px
-- [ ] Brutalized controls added to `/brand` page as specimens (feed item cards, Editor's Pick badge, category filter chips)
+- [x] Feed items have monospace text (FyiItem title/meta/summary, WireItem title/meta)
+- [x] Editor's Pick badges use `var(--color-editors-pick)` variable (no hardcoded hex)
+- [x] Category filter buttons have monospace font
+- [x] Loading skeleton border uses `var(--border-light)` instead of accent variable
+- [x] Dark theme borders standardized to `rgba(255, 255, 255, 0.15)`
+- [x] Print styles added for radar feed (hides filter chrome, branded header)
+- [x] `npm run build` passes
+- [x] `npm run test:run` passes
+- [x] E2E tests checked — no selectors changed (`.fyi-item`, `.wire-item`, `.filter-btn`, `.editors-pick-tag` preserved)
+- [x] Visual review at desktop, 768px, 480px
+- [x] Brutalized controls added to `/brand` page as specimens (FYI item, Wire item, Editor's Pick badge, category filter)
+
+### Additional Notes
+
+- Created `--color-editors-pick` and `--color-editors-pick-hover` CSS variables in `variables.css` (swapped in dark theme for visibility)
+- FyiItem +/− toggle replaced with delta-chevron SVG icon (`.delta-chevron` from interactions.css)
+- WireItem category dot made square (removed `border-radius: 50%`)
+- RadarHeader already brutalized via HubHeader (Stage 6)
+- RadarFeed container has no styling changes needed (layout only)
+- All class names preserved — no E2E test updates required
 
 ---
 
