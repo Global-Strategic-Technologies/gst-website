@@ -37,6 +37,16 @@ const portfolioType = 'ma';
   title="M&A | GST"
   description="Explore GST's track record of 51 M&A advisory and implementation projects across healthcare, logistics, software, finance, and more."
 >
+  <!-- Print-only report header (hidden on screen) -->
+  <div class="print-report-header" aria-hidden="true">
+    <div class="print-report-header__brand">
+      <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" width="24" height="24" />
+      <span>GST</span>
+    </div>
+    <div class="print-report-header__title">M&A Portfolio</div>
+    <div class="print-report-header__date">Generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+  </div>
+
   <StickyControls projects={typedProjects} />
   <main>
     <PortfolioHeader portfolioType={portfolioType} projects={typedProjects} />

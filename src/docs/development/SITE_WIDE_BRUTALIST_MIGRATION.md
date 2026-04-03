@@ -2,7 +2,7 @@
 
 Extend the brutalist design system — established during the [Hub Tools migration](./HUB_TOOLS_BRUTALIST_MIGRATION.md) — to all remaining marketing pages, site chrome, shared components, and content pages. The brutalist tokens and component classes live in `global.css`, `typography.css`, and `interactions.css`, rendered live on the [/brand](https://globalstrategic.tech/brand) reference page.
 
-**Status**: In Progress (Stages 1-7 Complete)
+**Status**: In Progress (Stages 1-8 Complete)
 **Priority**: High — brand cohesion + technical debt reduction
 **Prerequisite**: Hub Tools Brutalist Migration (Complete)
 **Last Updated**: April 2, 2026
@@ -55,7 +55,7 @@ Each stage migrates a logical group of related pages/components. Between stages,
 | 5 | ~~About & Services Pages~~ | ~~344 lines~~ | ~~6~~ | ~~3~~ | ~~4~~ | ~~Complete~~ |
 | 6 | ~~Hub Gateways & Library (hub/index, library/index, tools/index, VDR Structure, Business Architectures)~~ | ~~232 lines~~ | ~~7~~ | ~~3~~ | ~~4~~ | ~~Complete~~ |
 | 7 | ~~Radar Feed (CategoryFilter, FyiItem, WireItem, RadarFeed, RadarHeader)~~ | ~~140+ lines~~ | ~~2~~ | ~~0~~ | ~~4~~ | ~~Complete~~ |
-| 8 | M&A Portfolio (PortfolioGrid, PortfolioHeader, PortfolioSummary, StickyControls, ProjectModal) | ~500+ lines | 0 | 3+ | 4+ | High |
+| 8 | ~~M&A Portfolio (PortfolioGrid, PortfolioHeader, PortfolioSummary, StickyControls, ProjectModal)~~ | ~~500+ lines~~ | ~~0~~ | ~~3+~~ | ~~4+~~ | ~~Complete~~ |
 | 9 | Hub Tools Carryover Audit | 0 | 0 | 0 | 0 | Low |
 
 ---
@@ -526,20 +526,30 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 
 ### Pause Point Checklist
 
-- [ ] Project cards have square corners, hard borders, monospace labels
-- [ ] Card hover uses primary border change (not shadow lift)
-- [ ] Filter controls use `.brutal-filter-chip` and `.brutal-segmented`
-- [ ] Search uses `.brutal-search`
-- [ ] Modal has no border-radius, no box-shadow, hard borders
-- [ ] All hardcoded colors replaced with variables
-- [ ] Portfolio controls CSS uses design system tokens
-- [ ] Dark theme borders standardized across all components
-- [ ] Print styles for portfolio grid and modal detail
-- [ ] New classes added to `/brand` page
-- [ ] `npm run build` passes
-- [ ] `npm run test:run` passes
-- [ ] E2E tests checked for all class selector changes
-- [ ] Visual review at desktop, 768px, 480px
+- [x] Project cards have square corners, hard borders, monospace labels, frosted glass
+- [x] Card hover uses primary border change (not shadow lift)
+- [x] Filter controls use monospace (scoped — single-consumer per principle #8)
+- [x] Search input uses monospace
+- [x] Modal has no box-shadow, 3px primary top-border, monospace throughout
+- [x] All hardcoded colors replaced with variables (`rgba(200,200,200,0.7)` → `var(--text-muted)`)
+- [x] Portfolio controls CSS already uses design system tokens (no changes needed)
+- [x] Dark theme borders standardized to `rgba(255, 255, 255, 0.15)`
+- [x] Print header added to portfolio page
+- [x] Brutalized controls added to `/brand` page as specimens (project card, project modal)
+- [x] `npm run build` passes
+- [x] `npm run test:run` passes
+- [x] E2E tests checked — all use `data-testid` attributes, no selector changes needed
+- [x] Visual review at desktop, 768px, 480px
+
+### Additional Notes
+
+- PortfolioSummary: gradient backgrounds replaced with transparent (light + dark)
+- PortfolioGrid: 2 box-shadow removed, 3 hardcoded transitions (0.3s, 0.25s) replaced, `.brutal-frosted` added to project cards
+- PortfolioHeader: 2 box-shadow removed, 1 border-radius removed, 2 hardcoded transitions replaced
+- StickyControls: 3 box-shadow removed, 2 border-radius removed (drawer 12px, search 4px), 5 hardcoded transitions replaced
+- ProjectModal: box-shadow removed, 3px primary top-border added, 1 hardcoded transition replaced, 10 selectors got monospace, dark theme rgba colors standardized
+- portfolio-controls.css already used variables — no changes needed
+- All E2E tests use `data-testid` attributes — zero test updates required
 
 ---
 
