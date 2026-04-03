@@ -2,7 +2,7 @@
 
 Extend the brutalist design system — established during the [Hub Tools migration](./HUB_TOOLS_BRUTALIST_MIGRATION.md) — to all remaining marketing pages, site chrome, shared components, and content pages. The brutalist tokens and component classes live in `global.css`, `typography.css`, and `interactions.css`, rendered live on the [/brand](https://globalstrategic.tech/brand) reference page.
 
-**Status**: In Progress (Stages 1-5 Complete)
+**Status**: In Progress (Stages 1-6 Complete)
 **Priority**: High — brand cohesion + technical debt reduction
 **Prerequisite**: Hub Tools Brutalist Migration (Complete)
 **Last Updated**: April 2, 2026
@@ -53,7 +53,7 @@ Each stage migrates a logical group of related pages/components. Between stages,
 | 3 | ~~Legal & Error (Privacy, Terms, 404)~~ | ~~90 lines~~ | ~~0~~ | ~~0~~ | ~~2~~ | ~~Complete~~ |
 | 4 | ~~Homepage Sections (WhoWeSupport, WhatWeDo, WhyClientsTrustUs, EngagementFlow)~~ | ~~297 lines~~ | ~~6~~ | ~~6~~ | ~~3~~ | ~~Complete~~ |
 | 5 | ~~About & Services Pages~~ | ~~344 lines~~ | ~~6~~ | ~~3~~ | ~~4~~ | ~~Complete~~ |
-| 6 | Hub Gateways & Library (hub/index, library/index, tools/index, VDR Structure, Business Architectures) | ~232 lines | 7 | 3 | 4 | Medium |
+| 6 | ~~Hub Gateways & Library (hub/index, library/index, tools/index, VDR Structure, Business Architectures)~~ | ~~232 lines~~ | ~~7~~ | ~~3~~ | ~~4~~ | ~~Complete~~ |
 | 7 | Radar Feed (CategoryFilter, FyiItem, WireItem, RadarFeed, RadarHeader) | ~140+ lines | 2 | 0 | 4 | Medium |
 | 8 | M&A Portfolio (PortfolioGrid, PortfolioHeader, PortfolioSummary, StickyControls, ProjectModal) | ~500+ lines | 0 | 3+ | 4+ | High |
 | 9 | Hub Tools Carryover Audit | 0 | 0 | 0 | 0 | Low |
@@ -393,18 +393,27 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 
 ### Pause Point Checklist
 
-- [ ] Hub landing cards are square with hard borders
-- [ ] Library and Tools index cards match brutalist pattern
-- [ ] VDR Structure and Business Architectures use monospace headings
-- [ ] HubHeader renders in monospace
-- [ ] All border-radius removed
-- [ ] All box-shadow removed
-- [ ] Dark theme borders standardized
-- [ ] Print styles for library content pages
-- [ ] New classes added to `/brand` page
-- [ ] `npm run build` passes
-- [ ] `npm run test:run` passes
-- [ ] Visual review at desktop, 768px, 480px
+- [x] Hub landing cards are square with hard borders, frosted glass, 3px primary top-border
+- [x] Library and Tools index teaser cards match brutalist pattern (2px border, monospace, frosted glass)
+- [x] VDR Structure and Business Architectures use monospace headings, all border-radius/box-shadow removed
+- [x] HubHeader renders in monospace with uppercase title
+- [x] All border-radius removed (~28 total across all files)
+- [x] All box-shadow removed (~6 total)
+- [x] Dark theme borders standardized to `rgba(255, 255, 255, 0.15)`
+- [x] Print styles added for VDR Structure and Business Architectures content pages
+- [x] Brutalized controls added to `/brand` page as specimens (hub gateway card, teaser card, hub header)
+- [x] `npm run build` passes
+- [x] `npm run test:run` passes
+- [x] Visual review at desktop, 768px, 480px
+
+### Additional Notes
+
+- Hub landing page: 3 hub cards brutalized with frosted glass + 3px primary top-border, FAQ uses CSS delta triangle, ~10 hardcoded `rgba(5,205,153,...)` replaced
+- Library/Tools indexes: teaser cards and badges brutalized, badges use transparent bg with 2px primary border
+- VDR Structure: ~35 hardcoded rgba replaced, 12 border-radius removed, 4 box-shadow removed, hover simplified to border-color
+- Business Architectures: ~46 hardcoded rgba replaced, 16 border-radius removed, 2 box-shadow removed, square reading list bullets
+- HubHeader: shared component used by Radar, Library, Tools — monospace propagates to all hub sub-pages
+- No test selectors changed (tests use `.hub-header__title`, `.hub-header__subtitle` — preserved)
 
 ---
 
