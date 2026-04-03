@@ -99,14 +99,14 @@ const faqItems = [
     <section class="faq-section">
         <div class="container">
             <h2 class="heading-lg">Frequently Asked Questions</h2>
-            <div class="faq-list">
+            <div class="brutal-faq brutal-faq--lg">
                 {faqItems.map((item) => (
-                    <details class="faq-item brutal-frosted">
-                        <summary class="faq-question">
+                    <details class="brutal-faq__item brutal-frosted">
+                        <summary class="brutal-faq__question">
                             <span>{item.question}</span>
                             <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" class="delta-chevron" aria-hidden="true" />
                         </summary>
-                        <div class="faq-answer" set:html={item.answer} />
+                        <div class="brutal-faq__answer" set:html={item.answer} />
                     </details>
                 ))}
             </div>
@@ -361,94 +361,14 @@ const faqItems = [
         text-align: center;
     }
 
-    .faq-list {
+    .brutal-faq {
         max-width: 800px;
         margin: 0 auto;
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-md);
-    }
-
-    .faq-item {
-        border: 2px solid var(--border-light);
-        transition: border-color var(--transition-normal);
-    }
-
-    .faq-item[open] {
-        border-color: var(--color-primary);
-    }
-
-    .faq-question {
-        padding: var(--spacing-xl);
-        font-size: var(--text-lg);
-        font-family: monospace;
-        font-weight: var(--font-weight-semibold);
-        color: var(--text-primary);
-        cursor: pointer;
-        list-style: none;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: var(--spacing-md);
-        transition: color var(--transition-fast);
-    }
-
-    .faq-question::-webkit-details-marker {
-        display: none;
-    }
-
-    .faq-question:hover {
-        color: var(--color-primary);
-    }
-
-    .faq-answer {
-        padding: 0 var(--spacing-xl) var(--spacing-xl);
-        font-size: var(--text-base);
-        font-family: monospace;
-        color: var(--text-secondary);
-        line-height: 1.7;
-    }
-
-    .faq-answer :global(p) {
-        margin: 0 0 var(--spacing-md) 0;
-    }
-
-    .faq-answer :global(p:last-child) {
-        margin-bottom: 0;
-    }
-
-    :global(html.dark-theme) .faq-item {
-        border-color: rgba(255, 255, 255, 0.15);
-    }
-
-    :global(html.dark-theme) .faq-item[open] {
-        border-color: var(--color-primary);
     }
 
     @media (max-width: 768px) {
         .faq-section {
             padding: var(--spacing-2xl) 0;
-        }
-
-        .faq-question {
-            padding: var(--spacing-lg);
-            font-size: var(--text-base);
-        }
-
-        .faq-answer {
-            padding: 0 var(--spacing-lg) var(--spacing-lg);
-            font-size: var(--text-sm);
-        }
-    }
-
-    @media (max-width: 480px) {
-        .faq-question {
-            padding: var(--spacing-md);
-        }
-
-        .faq-answer {
-            padding: 0 var(--spacing-md) var(--spacing-md);
-            font-size: var(--text-sm);
         }
     }
 </style>
@@ -456,10 +376,10 @@ const faqItems = [
 <script>
     import { trackEvent } from '../../utils/analytics';
 
-    document.querySelectorAll('.faq-item').forEach((item) => {
+    document.querySelectorAll('.brutal-faq__item').forEach((item) => {
         item.addEventListener('toggle', () => {
             const details = item as HTMLDetailsElement;
-            const question = details.querySelector('.faq-question')?.textContent?.trim() || '';
+            const question = details.querySelector('.brutal-faq__question')?.textContent?.trim() || '';
             trackEvent({
                 event: 'faq_interaction',
                 category: 'engagement',
