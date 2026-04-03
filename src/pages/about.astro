@@ -12,6 +12,16 @@ trackPageView('about', 'About | GST Leadership & Experience');
     title="About | GST"
     description="Learn about the founder and leadership team at GST, bringing decades of experience in technology, M&A, and product development."
 >
+    <!-- Print-only report header (hidden on screen) -->
+    <div class="print-report-header" aria-hidden="true">
+        <div class="print-report-header__brand">
+            <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" width="24" height="24" />
+            <span>GST</span>
+        </div>
+        <div class="print-report-header__title">About</div>
+        <div class="print-report-header__date">Generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+    </div>
+
     <Hero
         title="Technology Leadership"
         subtitle="For Your Challenges & Opportunities"
@@ -90,6 +100,10 @@ trackPageView('about', 'About | GST Leadership & Experience');
 </BaseLayout>
 
 <style>
+    .print-report-header {
+        display: none;
+    }
+
     .about-section {
         padding: 3rem 0;
         background: transparent;
@@ -453,6 +467,45 @@ trackPageView('about', 'About | GST Leadership & Experience');
 
         .founder-bio p:last-child {
             margin-bottom: 0;
+        }
+    }
+
+    /* Print */
+    @media print {
+        .print-report-header {
+            display: flex !important;
+            align-items: center;
+            gap: 1rem;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #000;
+            font-family: monospace;
+        }
+
+        .print-report-header__brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 900;
+            font-size: 1.25rem;
+            text-transform: uppercase;
+        }
+
+        .print-report-header__title {
+            font-weight: 700;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .print-report-header__date {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        @page {
+            margin: 1.5cm;
         }
     }
 </style>
