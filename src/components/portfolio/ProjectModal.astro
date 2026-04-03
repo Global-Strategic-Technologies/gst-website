@@ -91,7 +91,7 @@
       0% 97.5%, 0% 2.5%
     );
     z-index: 1000;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    border-top: 3px solid var(--color-primary);
     overflow-y: auto;
   }
 
@@ -115,7 +115,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all var(--transition-fast);
     min-width: 44px;
     min-height: 44px;
   }
@@ -145,6 +145,7 @@
 
   .modal-title {
     font-size: 1.75rem;
+    font-family: monospace;
     font-weight: 900;
     color: var(--text-primary);
     margin: 0 0 0.25rem 0;
@@ -153,6 +154,7 @@
 
   .modal-industry {
     font-size: 0.875rem;
+    font-family: monospace;
     color: var(--text-muted);
     margin: 0;
     font-weight: 500;
@@ -174,6 +176,7 @@
 
   .metric-label {
     font-size: 0.875rem;
+    font-family: monospace;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -183,6 +186,7 @@
 
   .metric-value {
     font-size: 0.9375rem;
+    font-family: monospace;
     color: var(--text-secondary);
     line-height: 1.6;
     margin: 0;
@@ -194,6 +198,7 @@
 
   .modal-section-title {
     font-size: 0.875rem;
+    font-family: monospace;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -203,6 +208,7 @@
 
   .modal-text {
     font-size: 0.9375rem;
+    font-family: monospace;
     color: var(--text-secondary);
     line-height: 1.6;
     margin: 0;
@@ -218,7 +224,7 @@
     background: var(--filter-chip-bg-hover);
     color: var(--text-secondary);
     padding: 0.35rem 0.65rem;
-    border-radius: 0;
+    font-family: monospace;
     font-size: 0.7rem;
     font-weight: 500;
     text-transform: uppercase;
@@ -227,6 +233,7 @@
 
   .modal-engagement-type {
     font-size: 1rem;
+    font-family: monospace;
     font-weight: 600;
     color: var(--color-primary);
     margin: 0 0 0.5rem 0;
@@ -243,32 +250,33 @@
   /* Dark theme modal */
   :global(html.dark-theme) .project-modal {
     background: var(--bg-dark-secondary);
-    border-color: var(--border-dark);
+    border-color: rgba(255, 255, 255, 0.15);
+    border-top-color: var(--color-primary);
   }
 
   :global(html.dark-theme) .modal-close:hover {
     color: var(--color-primary);
-    background: rgba(5, 205, 153, 0.12);
+    background: transparent;
   }
 
   :global(html.dark-theme) .modal-close:focus-visible {
-    background: rgba(5, 205, 153, 0.12);
+    background: transparent;
   }
 
   :global(html.dark-theme) .modal-industry {
-    color: rgba(200, 200, 200, 0.7);
+    color: var(--text-muted);
   }
 
   :global(html.dark-theme) .modal-metrics {
-    border-bottom-color: var(--border-dark);
+    border-bottom-color: rgba(255, 255, 255, 0.15);
   }
 
   :global(html.dark-theme) .metric-label {
-    color: rgba(200, 200, 200, 0.7);
+    color: var(--text-muted);
   }
 
   :global(html.dark-theme) .modal-section-title {
-    color: rgba(200, 200, 200, 0.7);
+    color: var(--text-muted);
   }
 
   :global(html.dark-theme) :global(.modal-tech-tags .tech-tag) {
