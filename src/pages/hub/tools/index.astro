@@ -63,7 +63,7 @@ const isDev = import.meta.env.DEV;
                 subtitle="Strategic tools for quantifying risk and value in technology investments."
             />
 
-            <article class="teaser-card teaser-card--live">
+            <article class="teaser-card teaser-card--live brutal-frosted">
                 <div class="teaser-header">
                     <h2>Regulatory Map</h2>
                 </div>
@@ -75,7 +75,7 @@ const isDev = import.meta.env.DEV;
                 <a href="/hub/tools/regulatory-map" class="cta-button primary tool-launch-button">Launch Tool</a>
             </article>
 
-            <article class="teaser-card teaser-card--live">
+            <article class="teaser-card teaser-card--live brutal-frosted">
                 <div class="teaser-header">
                     <h2>The Diligence Machine</h2>
                 </div>
@@ -87,7 +87,7 @@ const isDev = import.meta.env.DEV;
                 <a href="/hub/tools/diligence-machine" class="cta-button primary tool-launch-button">Launch Tool</a>
             </article>
 
-            <article class="teaser-card teaser-card--live">
+            <article class="teaser-card teaser-card--live brutal-frosted">
                 <div class="teaser-header">
                     <h2>Technical Debt Cost Calculator</h2>
                 </div>
@@ -99,7 +99,7 @@ const isDev = import.meta.env.DEV;
                 <a href="/hub/tools/tech-debt-calculator" class="cta-button primary tool-launch-button">Launch Tool</a>
             </article>
 
-            <article class="teaser-card teaser-card--live">
+            <article class="teaser-card teaser-card--live brutal-frosted">
                 <div class="teaser-header">
                     <h2>Infrastructure Cost Governance</h2>
                 </div>
@@ -111,7 +111,7 @@ const isDev = import.meta.env.DEV;
                 <a href="/hub/tools/infrastructure-cost-governance" class="cta-button primary tool-launch-button">Launch Tool</a>
             </article>
 
-            <article class="teaser-card teaser-card--live">
+            <article class="teaser-card teaser-card--live brutal-frosted">
                 <div class="teaser-header">
                     <h2>TechPar</h2>
                 </div>
@@ -213,15 +213,14 @@ const isDev = import.meta.env.DEV;
         max-width: 600px;
         margin: 0 auto var(--spacing-3xl);
         padding: 2rem;
-        background: rgba(5, 205, 153, 0.03);
-        border: 1px solid rgba(5, 205, 153, 0.15);
-        border-radius: 8px;
+        border: 2px solid var(--border-light);
+        border-top: 3px solid var(--color-primary);
         text-align: center;
     }
 
     :global(html.dark-theme) .teaser-card {
-        background: rgba(5, 205, 153, 0.05);
-        border-color: rgba(5, 205, 153, 0.2);
+        border-color: rgba(255, 255, 255, 0.15);
+        border-top-color: var(--color-primary);
     }
 
     .teaser-header {
@@ -230,25 +229,22 @@ const isDev = import.meta.env.DEV;
 
     .teaser-card h2 {
         font-size: 1.3rem;
+        font-family: monospace;
         font-weight: 700;
-        color: rgba(26, 26, 26, 0.95);
+        color: var(--text-primary);
         margin: 0;
-    }
-
-    :global(html.dark-theme) .teaser-card h2 {
-        color: rgba(245, 245, 245, 0.95);
     }
 
     .badge {
         font-size: 0.7rem;
+        font-family: monospace;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         padding: var(--spacing-xs) var(--spacing-sm);
-        background: rgba(5, 205, 153, 0.1);
+        background: transparent;
         color: var(--color-primary);
-        border-radius: 4px;
-        border: 1px solid rgba(5, 205, 153, 0.2);
+        border: 2px solid var(--color-primary);
         display: inline-block;
         margin-top: var(--spacing-md);
     }
@@ -272,6 +268,7 @@ const isDev = import.meta.env.DEV;
 
     .tool-features li {
         font-size: var(--text-base);
+        font-family: monospace;
         color: var(--text-secondary);
         line-height: 1.7;
         display: flex;
@@ -287,7 +284,8 @@ const isDev = import.meta.env.DEV;
     }
 
     .teaser-card--live {
-        border-color: rgba(5, 205, 153, 0.3);
+        border-color: var(--border-light);
+        border-top-color: var(--color-primary);
     }
 
     .tool-launch-button {
