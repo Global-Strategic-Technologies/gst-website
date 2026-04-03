@@ -161,10 +161,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 </BaseLayout>
 
 <style>
-  .print-report-header {
-    display: none;
-  }
-
   .terms-header {
     position: static !important;
     top: auto;
@@ -285,38 +281,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   /* Print */
   @media print {
-    .print-report-header {
-      display: flex !important;
-      align-items: center;
-      gap: 1rem;
-      padding-bottom: 1rem;
-      margin-bottom: 2rem;
-      border-bottom: 2px solid #000;
-      font-family: monospace;
-    }
-
-    .print-report-header__brand {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: 900;
-      font-size: 1.25rem;
-      text-transform: uppercase;
-    }
-
-    .print-report-header__title {
-      font-weight: 700;
-      font-size: 1rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .print-report-header__date {
-      margin-left: auto;
-      font-size: 0.75rem;
-      color: #666;
-    }
-
     .terms-container {
       padding: 0;
       max-width: 100%;

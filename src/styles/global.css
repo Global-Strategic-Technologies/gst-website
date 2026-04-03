@@ -5389,3 +5389,49 @@ html.dark-theme .cta-box {
         display: none !important;
     }
 }
+
+/* Print Report Header — branded header for printed pages.
+   Hidden on screen, visible in print. Use identical HTML structure:
+   <div class="print-report-header" aria-hidden="true">
+     <div class="print-report-header__brand"><img .../><span>GST</span></div>
+     <div class="print-report-header__title">Page Title</div>
+     <div class="print-report-header__date">Generated ...</div>
+   </div>
+*/
+.print-report-header {
+    display: none;
+}
+
+@media print {
+    .print-report-header {
+        display: flex !important;
+        align-items: center;
+        gap: 1rem;
+        padding-bottom: 1rem;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid #000;
+        font-family: monospace;
+    }
+
+    .print-report-header__brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 900;
+        font-size: 1.25rem;
+        text-transform: uppercase;
+    }
+
+    .print-report-header__title {
+        font-weight: 700;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .print-report-header__date {
+        margin-left: auto;
+        font-size: 0.75rem;
+        color: #666;
+    }
+}
