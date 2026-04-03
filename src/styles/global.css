@@ -3011,6 +3011,36 @@ html.dark-theme .brutal-slider__direct {
 }
 
 /* ==============================
+   Brutalist Editor's Pick Tag
+   ============================== */
+
+.editors-pick-tag {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-editors-pick);
+    border: 2px solid var(--color-editors-pick);
+    padding: 0.125rem var(--spacing-sm);
+}
+
+/* ==============================
+   Brutalist Content Label
+   ============================== */
+
+.brutal-content-label {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--color-primary);
+}
+
+/* ==============================
    Brutalist Frosted Glass Utility
    ============================== */
 

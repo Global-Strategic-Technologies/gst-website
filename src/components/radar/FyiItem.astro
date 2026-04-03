@@ -42,21 +42,21 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
 
       {item.highlightedText && (
         <div class="fyi-item__highlight">
-          <span class="highlight-label">Highlighted</span>
+          <span class="brutal-content-label" style="color: var(--cat-color);">Highlighted</span>
           <blockquote>{item.highlightedText}</blockquote>
         </div>
       )}
 
       {item.highlightedText && item.gstTake && (
         <div class="fyi-item__nested-take">
-          <span class="take-label">Δ GST Take</span>
+          <span class="brutal-content-label">Δ GST Take</span>
           <p>{item.gstTake}</p>
         </div>
       )}
 
       {!item.highlightedText && item.gstTake && (
         <div class="fyi-item__take">
-          <span class="take-label">Δ GST Take</span>
+          <span class="brutal-content-label">Δ GST Take</span>
           <p>{item.gstTake}</p>
         </div>
       )}
@@ -92,17 +92,6 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     font-family: monospace;
     color: var(--text-muted);
     margin-bottom: var(--spacing-xs);
-  }
-
-  .editors-pick-tag {
-    font-size: var(--text-xs);
-    font-family: monospace;
-    font-weight: var(--font-weight-semibold);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-editors-pick);
-    border: 2px solid var(--color-editors-pick);
-    padding: 0.125rem var(--spacing-sm);
   }
 
   .fyi-item__headline {
@@ -154,16 +143,6 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     margin: var(--spacing-sm) 0;
   }
 
-  .highlight-label {
-    font-size: var(--text-xs);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--cat-color);
-    display: block;
-    margin-bottom: 0.25rem;
-  }
-
   .fyi-item__highlight blockquote {
     font-size: var(--text-sm);
     color: var(--text-primary);
@@ -186,10 +165,6 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     border-top: 1px solid var(--border-light);
   }
 
-  .fyi-item__nested-take .take-label {
-    color: var(--color-primary);
-  }
-
   .fyi-item__nested-take p {
     font-size: var(--text-sm);
     color: var(--text-primary);
@@ -199,16 +174,6 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
 
   :global(html.dark-theme) .fyi-item__nested-take {
     border-top-color: rgba(255, 255, 255, 0.15);
-  }
-
-  .take-label {
-    font-size: var(--text-xs);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-primary);
-    display: block;
-    margin-bottom: 0.25rem;
   }
 
   .fyi-item__take p {
