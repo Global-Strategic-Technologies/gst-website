@@ -2,7 +2,7 @@
 
 Extend the brutalist design system — established during the [Hub Tools migration](./HUB_TOOLS_BRUTALIST_MIGRATION.md) — to all remaining marketing pages, site chrome, shared components, and content pages. The brutalist tokens and component classes live in `global.css`, `typography.css`, and `interactions.css`, rendered live on the [/brand](https://globalstrategic.tech/brand) reference page.
 
-**Status**: In Progress (Stages 1-3 Complete)
+**Status**: In Progress (Stages 1-4 Complete)
 **Priority**: High — brand cohesion + technical debt reduction
 **Prerequisite**: Hub Tools Brutalist Migration (Complete)
 **Last Updated**: April 2, 2026
@@ -51,7 +51,7 @@ Each stage migrates a logical group of related pages/components. Between stages,
 | 1 | ~~Site Chrome (Header, Footer, Breadcrumb, ThemeToggle)~~ | ~~48 lines~~ | ~~0~~ | ~~0~~ | ~~0~~ | ~~Complete~~ |
 | 2 | ~~Shared Components (Hero, CTASection, StatsBar) + global.css marketing sections~~ | ~~0 scoped + ~200 global~~ | ~~0~~ | ~~0~~ | ~~3 (hero text)~~ | ~~Complete~~ |
 | 3 | ~~Legal & Error (Privacy, Terms, 404)~~ | ~~90 lines~~ | ~~0~~ | ~~0~~ | ~~2~~ | ~~Complete~~ |
-| 4 | Homepage Sections (WhoWeSupport, WhatWeDo, WhyClientsTrustUs, EngagementFlow) | ~297 lines | 6 | 6 | 3 | Medium |
+| 4 | ~~Homepage Sections (WhoWeSupport, WhatWeDo, WhyClientsTrustUs, EngagementFlow)~~ | ~~297 lines~~ | ~~6~~ | ~~6~~ | ~~3~~ | ~~Complete~~ |
 | 5 | About & Services Pages | ~344 lines | 6 | 3 | 4 | Medium-High |
 | 6 | Hub Gateways & Library (hub/index, library/index, tools/index, VDR Structure, Business Architectures) | ~232 lines | 7 | 3 | 4 | Medium |
 | 7 | Radar Feed (CategoryFilter, FyiItem, WireItem, RadarFeed, RadarHeader) | ~140+ lines | 2 | 0 | 4 | Medium |
@@ -257,18 +257,28 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 
 ### Pause Point Checklist
 
-- [ ] All homepage sections use monospace typography
-- [ ] All cards have square corners, hard borders, no shadows
-- [ ] Hover states use border-color change (not shadow lift)
-- [ ] Section backgrounds are flat (no gradients)
-- [ ] Delta bullet icons render correctly alongside monospace text
-- [ ] Dark theme borders at `rgba(255, 255, 255, 0.15)`
-- [ ] Trust indicator values use `.brutal-data` styling
-- [ ] New classes added to `/brand` page as specimens
-- [ ] `npm run build` passes
-- [ ] `npm run test:run` passes
-- [ ] E2E tests checked for class/text selector changes
-- [ ] Visual review at desktop, 768px, 480px
+- [x] All homepage sections use monospace typography
+- [x] All cards have square corners, hard borders, no shadows
+- [x] Hover states use border-color change (not shadow lift)
+- [x] Section backgrounds are flat (no gradients)
+- [x] Delta bullet icons render correctly alongside monospace text
+- [x] Dark theme borders at `rgba(255, 255, 255, 0.15)`
+- [x] Trust indicator values use monospace styling (scoped, per principle #8)
+- [x] Brutalized controls added to `/brand` page as specimens (trust card, step card, section heading, delta bullet list)
+- [x] `npm run build` passes
+- [x] `npm run test:run` passes
+- [x] E2E tests checked — no selectors reference these components
+- [x] Visual review at desktop, 768px, 480px
+
+### Additional Notes
+
+- `.brutal-section`, `.brutal-card` classes deferred per principle #8 — these are single-consumer homepage components. Will promote to shared classes when Stage 6 (Hub Gateways) or Stage 8 (Portfolio) creates a second consumer
+- 4 gradient backgrounds removed (light + dark theme variants for each section)
+- 2 `border-radius: 8px` removed (WhyClientsTrustUs, EngagementFlow)
+- 3 `box-shadow` removed (WhyClientsTrustUs hover, EngagementFlow hover + dark hover)
+- 8 hardcoded `rgba(5,205,153,...)` values replaced with transparent/variables
+- 2 hardcoded transitions replaced with `var(--transition-normal)`
+- No test selectors reference any of these 4 components
 
 ---
 
