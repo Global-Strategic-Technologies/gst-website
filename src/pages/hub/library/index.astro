@@ -23,41 +23,41 @@ const isDev = import.meta.env.DEV;
                 subtitle="Useful information for technical due diligence frameworks and value creation blueprints."
             />
 
-            <article class="teaser-card teaser-card--live brutal-frosted">
-                <div class="teaser-header">
+            <article class="brutal-gateway-card brutal-frosted">
+                <div class="brutal-gateway-card__header">
                     <h2>Business &amp; Technology Architectures</h2>
                 </div>
-                <ul class="tool-features">
+                <ul class="brutal-gateway-card__features">
                     <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" />How architecture choices cascade into business outcomes</li>
                     <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" />Five layers from software foundations to industry forces</li>
                     <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" />Diligence focus areas for investors, executives &amp; founders</li>
                 </ul>
-                <a href="/hub/library/business-architectures" class="cta-button primary resource-launch-button" onclick="trackCTA('resource-article', 'library')">Read Article</a>
+                <a href="/hub/library/business-architectures" class="cta-button primary brutal-gateway-card__cta" onclick="trackCTA('resource-article', 'library')">Read Article</a>
             </article>
 
-            <article class="teaser-card teaser-card--live brutal-frosted">
-                <div class="teaser-header">
+            <article class="brutal-gateway-card brutal-frosted">
+                <div class="brutal-gateway-card__header">
                     <h2>Virtual Data Room (VDR) Structure Guide</h2>
                 </div>
-                <ul class="tool-features">
+                <ul class="brutal-gateway-card__features">
                     <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" />Organize a technology-focused virtual data room</li>
                     <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" />Folder taxonomy &amp; content recommendations</li>
                     <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" />Best practices from 100+ buy-side and sell-side deals</li>
                 </ul>
-                <a href="/hub/library/vdr-structure" class="cta-button primary resource-launch-button" onclick="trackCTA('resource-guide', 'library')">Read Guide</a>
+                <a href="/hub/library/vdr-structure" class="cta-button primary brutal-gateway-card__cta" onclick="trackCTA('resource-guide', 'library')">Read Guide</a>
             </article>
 
             {isDev && (
-                <article class="teaser-card">
-                    <div class="teaser-header">
+                <article class="brutal-gateway-card">
+                    <div class="brutal-gateway-card__header">
                         <h2>Technology Strategy 101</h2>
                     </div>
-                    <ul class="tool-features">
+                    <ul class="brutal-gateway-card__features">
                         <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" />Foundational frameworks for aligning technology decisions with business objectives</li>
                         <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" />Build vs. buy analysis, platform selection, and roadmap prioritization</li>
                         <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" />Translating technical trade-offs into board-ready language for investors and executives</li>
                     </ul>
-                    <span class="badge">Planned</span>
+                    <span class="brutal-gateway-card__badge">Planned</span>
                 </article>
             )}
 
@@ -75,98 +75,5 @@ const isDev = import.meta.env.DEV;
 <style>
     .library-section {
         padding-bottom: var(--spacing-3xl);
-    }
-
-    .teaser-card {
-        max-width: 600px;
-        margin: 0 auto var(--spacing-3xl);
-        padding: 2rem;
-        border: 2px solid var(--border-light);
-        border-top: 3px solid var(--color-primary);
-        text-align: center;
-    }
-
-    :global(html.dark-theme) .teaser-card {
-        border-color: rgba(255, 255, 255, 0.15);
-        border-top-color: var(--color-primary);
-    }
-
-    .teaser-card--live {
-        border-color: var(--border-light);
-        border-top-color: var(--color-primary);
-    }
-
-    .badge {
-        font-size: 0.7rem;
-        font-family: monospace;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        padding: var(--spacing-xs) var(--spacing-sm);
-        background: transparent;
-        color: var(--color-primary);
-        border: 2px solid var(--color-primary);
-        display: inline-block;
-        margin-top: var(--spacing-md);
-    }
-
-    .teaser-header {
-        margin-bottom: var(--spacing-md);
-    }
-
-    .teaser-card h2 {
-        font-size: 1.3rem;
-        font-family: monospace;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin: 0;
-    }
-
-    .tool-features {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        text-align: left;
-        gap: var(--spacing-sm);
-    }
-
-    .tool-features li {
-        font-size: var(--text-base);
-        font-family: monospace;
-        color: var(--text-secondary);
-        line-height: 1.7;
-        display: flex;
-        align-items: flex-start;
-        gap: var(--spacing-sm);
-    }
-
-    .bullet-icon {
-        flex-shrink: 0;
-        margin-top: 0.35em;
-        opacity: 0.8;
-    }
-
-    .resource-launch-button {
-        margin-top: var(--spacing-lg);
-        display: inline-block;
-    }
-
-    @media (max-width: 768px) {
-        .teaser-card {
-            padding: 1.5rem;
-        }
-
-        .teaser-card h2 {
-            font-size: 1.15rem;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .teaser-card {
-            padding: 1.25rem;
-        }
     }
 </style>
