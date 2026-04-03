@@ -3011,6 +3011,20 @@ html.dark-theme .brutal-slider__direct {
 }
 
 /* ==============================
+   Brutalist Frosted Glass Utility
+   ============================== */
+
+.brutal-frosted {
+    background: rgba(0, 0, 0, 0.005);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+
+html.dark-theme .brutal-frosted {
+    background: rgba(255, 255, 255, 0.005);
+}
+
+/* ==============================
    Brutalist Hero
    ============================== */
 

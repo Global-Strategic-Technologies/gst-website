@@ -60,7 +60,7 @@ const faqItems = [
     <section class="services-section">
         <div class="container">
             <div class="services-cards">
-                <div class="service-card">
+                <div class="service-card brutal-frosted">
                     <h3>M&A Advisory</h3>
                     <span class="service-subtitle">Buy Side, Sell Side, Value Creation</span>
                     <ul class="service-list">
@@ -70,7 +70,7 @@ const faqItems = [
                         <li><img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" class="bullet-icon" aria-hidden="true" loading="lazy" /><span>Buy-side & Sell-side: Flag architecture challenges and opportunities, and harden security posture pre-transaction</span></li>
                     </ul>
                 </div>
-                <div class="service-card">
+                <div class="service-card brutal-frosted">
                     <h3>Product Development</h3>
                     <span class="service-subtitle">Engineering Excellence</span>
                     <ul class="service-list">
@@ -80,7 +80,7 @@ const faqItems = [
                         <li><img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" class="bullet-icon" aria-hidden="true" loading="lazy" /><span>Compress release cycles from quarters to weeks</span></li>
                     </ul>
                 </div>
-                <div class="service-card">
+                <div class="service-card brutal-frosted">
                     <h3>Technical Leadership</h3>
                     <span class="service-subtitle">Strategic Partnership</span>
                     <ul class="service-list">
@@ -99,15 +99,15 @@ const faqItems = [
             <div class="audience-content">
                 <h2 class="heading-lg">Who Is GST For?</h2>
                 <div class="audience-cards">
-                    <div class="audience-card">
+                    <div class="audience-card brutal-frosted">
                         <h3>Private Equity & Investment Teams</h3>
                         <p>Evaluating targets with complex legacy systems or scaling potential. GST quantifies what's under the hood so you can price risk accurately and build a credible value creation plan before close.</p>
                     </div>
-                    <div class="audience-card">
+                    <div class="audience-card brutal-frosted">
                         <h3>SaaS Founders & Executives</h3>
                         <p>Navigating the Series B scaling plateau or the build vs. buy crossroads. GST helps you make the architectural and organizational calls that determine whether growth compounds or stalls.</p>
                     </div>
-                    <div class="audience-card">
+                    <div class="audience-card brutal-frosted">
                         <h3>Performance-Conscious Organizations</h3>
                         <p>Needing an independent, vendor-neutral audit of their technical posture. GST tells you what your internal teams and existing vendors won't: where the real exposure is and what to do about it.</p>
                     </div>
@@ -123,7 +123,7 @@ const faqItems = [
             <h2 class="heading-lg">Frequently Asked Questions</h2>
             <div class="faq-list">
                 {faqItems.map((item) => (
-                    <details class="faq-item">
+                    <details class="faq-item brutal-frosted">
                         <summary class="faq-question">
                             <span>{item.question}</span>
                             <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" class="faq-delta" aria-hidden="true" />
@@ -190,9 +190,6 @@ const faqItems = [
 
     .service-card {
         padding: 2.5rem;
-        background: rgba(0, 0, 0, 0.005);
-        backdrop-filter: blur(3px);
-        -webkit-backdrop-filter: blur(3px);
         border: 2px solid var(--border-light);
         border-top: 3px solid var(--color-primary);
         transition: all var(--transition-normal);
@@ -253,7 +250,6 @@ const faqItems = [
     }
 
     :global(html.dark-theme) .service-card {
-        background: rgba(255, 255, 255, 0.005);
         border-color: rgba(255, 255, 255, 0.15);
         border-top-color: var(--color-primary);
     }
@@ -286,9 +282,6 @@ const faqItems = [
 
     .audience-card {
         padding: 2rem;
-        background: rgba(0, 0, 0, 0.005);
-        backdrop-filter: blur(3px);
-        -webkit-backdrop-filter: blur(3px);
         border-left: 3px solid var(--color-primary);
     }
 
@@ -307,10 +300,6 @@ const faqItems = [
         color: var(--text-secondary);
         line-height: 1.7;
         margin: 0;
-    }
-
-    :global(html.dark-theme) .audience-card {
-        background: rgba(255, 255, 255, 0.005);
     }
 
     @media (max-width: 1024px) {
@@ -473,9 +462,6 @@ const faqItems = [
     }
 
     .faq-item {
-        background: rgba(0, 0, 0, 0.005);
-        backdrop-filter: blur(3px);
-        -webkit-backdrop-filter: blur(3px);
         border: 2px solid var(--border-light);
         transition: background var(--transition-normal), border-color var(--transition-normal);
     }
@@ -536,7 +522,6 @@ const faqItems = [
     }
 
     :global(html.dark-theme) .faq-item {
-        background: rgba(255, 255, 255, 0.005);
         border-color: rgba(255, 255, 255, 0.15);
     }
 
