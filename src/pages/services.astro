@@ -124,7 +124,10 @@ const faqItems = [
             <div class="faq-list">
                 {faqItems.map((item) => (
                     <details class="faq-item">
-                        <summary class="faq-question">{item.question}</summary>
+                        <summary class="faq-question">
+                            <span>{item.question}</span>
+                            <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" class="faq-delta" aria-hidden="true" />
+                        </summary>
                         <div class="faq-answer" set:html={item.answer} />
                     </details>
                 ))}
@@ -500,17 +503,16 @@ const faqItems = [
         display: none;
     }
 
-    .faq-question::after {
-        content: '+';
-        font-size: var(--text-2xl);
-        font-weight: var(--font-weight-bold);
-        color: var(--color-primary);
+    .faq-delta {
+        width: 1rem;
+        height: 1rem;
         flex-shrink: 0;
+        transform: rotate(-90deg);
         transition: transform var(--transition-fast);
     }
 
-    .faq-item[open] .faq-question::after {
-        content: '\2212';
+    .faq-item[open] .faq-delta {
+        transform: rotate(0deg);
     }
 
     .faq-question:hover {
