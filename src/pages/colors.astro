@@ -45,6 +45,7 @@ const palettes = [
         ))}
       </div>
     </div>
+    <div class="palette-panel__resize" id="panel-resize" title="Drag to resize"></div>
     <div class="palette-panel__body" id="panel-body">
       <div class="palette-panel__header">
         <span class="brutal-label" id="panel-palette-name">0. Current</span>
@@ -389,10 +390,8 @@ const palettes = [
     border: none;
     border-bottom: 1px solid var(--border-light);
     color: var(--text-muted);
-    cursor: ew-resize;
+    cursor: pointer;
     transition: color var(--transition-fast);
-    user-select: none;
-    -webkit-user-select: none;
   }
 
   .palette-panel__toggle:hover {
@@ -406,6 +405,27 @@ const palettes = [
   .palette-panel__icon {
     width: 16px;
     height: 16px;
+  }
+
+  /* Resize handle — vertical bar between edge and body */
+  .palette-panel__resize {
+    display: none;
+    width: 8px;
+    cursor: ew-resize;
+    background: var(--border-light);
+    transition: background var(--transition-fast);
+    flex-shrink: 0;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .palette-panel.is-open .palette-panel__resize {
+    display: block;
+  }
+
+  .palette-panel__resize:hover,
+  .palette-panel__resize.is-dragging {
+    background: var(--color-primary);
   }
 
   .palette-panel__body {
@@ -1430,25 +1450,34 @@ const palettes = [
     const resetBtn = document.getElementById('reset-all');
     if (resetBtn) resetBtn.addEventListener('click', resetAllOverrides);
 
-    // Panel toggle + drag-to-resize
+    // Panel toggle (click to open/close)
     const panelToggle = document.getElementById('panel-toggle');
     const panel = document.getElementById('palette-panel');
     const panelBody = document.getElementById('panel-body');
+    const panelResize = document.getElementById('panel-resize');
 
     if (panelToggle && panel && panelBody) {
+      panelToggle.addEventListener('click', () => {
+        panel.classList.toggle('is-open');
+        if (panel.classList.contains('is-open')) {
+          requestAnimationFrame(() => readAndPopulate());
+        }
+      });
+    }
+
+    // Resize handle (drag to resize)
+    if (panelResize && panelBody && panel) {
       const MIN_WIDTH = 280;
-      const MAX_WIDTH = 800;
+      const MAX_WIDTH = 900;
       let isDragging = false;
       let dragStartX = 0;
       let dragStartWidth = 0;
-      let hasDragged = false;
 
-      panelToggle.addEventListener('mousedown', (e: MouseEvent) => {
-        if (!panel.classList.contains('is-open')) return;
+      panelResize.addEventListener('mousedown', (e: MouseEvent) => {
         isDragging = true;
-        hasDragged = false;
         dragStartX = e.clientX;
         dragStartWidth = panelBody.offsetWidth;
+        panelResize.classList.add('is-dragging');
         document.body.style.cursor = 'ew-resize';
         document.body.style.userSelect = 'none';
         e.preventDefault();
@@ -1457,7 +1486,6 @@ const palettes = [
       document.addEventListener('mousemove', (e: MouseEvent) => {
         if (!isDragging) return;
         const dx = dragStartX - e.clientX;
-        if (Math.abs(dx) > 3) hasDragged = true;
         const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, dragStartWidth + dx));
         panelBody.style.width = `${newWidth}px`;
       });
@@ -1465,16 +1493,9 @@ const palettes = [
       document.addEventListener('mouseup', () => {
         if (!isDragging) return;
         isDragging = false;
+        panelResize.classList.remove('is-dragging');
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
-      });
-
-      panelToggle.addEventListener('click', () => {
-        if (hasDragged) return;
-        panel.classList.toggle('is-open');
-        if (panel.classList.contains('is-open')) {
-          requestAnimationFrame(() => readAndPopulate());
-        }
       });
     }
   });
