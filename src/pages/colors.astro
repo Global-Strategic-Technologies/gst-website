@@ -1,0 +1,1333 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const palettes = [
+  { id: 0, name: 'Current', concept: 'The production palette \u2014 teal primary with amber secondary. This is the baseline for comparison.' },
+  { id: 1, name: 'Steel Authority', concept: 'Deep cobalt blue anchored by hot magenta secondary. PE gravitas with an unexpected edge.' },
+  { id: 2, name: 'Indigo Signal', concept: 'Vivid violet primary paired with electric lime. Breaks every finance-blue convention.' },
+  { id: 3, name: 'Copper Forge', concept: 'Dark rust and electric cyan \u2014 industrial heat meets cold precision.' },
+  { id: 4, name: 'Jade Edge', concept: 'Vivid emerald with hot rose contrast. The current teal pushed to its boldest form.' },
+  { id: 5, name: 'Shadow Garden', concept: 'Deep forest green rooted in near-black, lit by electric violet. Terminal in an old-growth forest.' },
+];
+---
+
+<BaseLayout
+  title="Color Palette Alternatives | GST"
+  description="Experimental color palette alternatives for GST brand exploration. Not linked from main navigation."
+>
+
+<div class="container">
+  <h1 class="brutal-heading-lg colors-page__title">Color Palette Alternatives</h1>
+  <p class="brutal-text-small colors-page__note">Open the palette panel to switch themes and edit colors. All specimens update live. Toggle dark mode via the header.</p>
+</div>
+
+<!-- Single Content Area — palette class swapped by JS -->
+<div class="palette-scope palette-0" id="palette-scope">
+
+  <!-- ════════════════════════════════════════════
+       STICKY PALETTE PANEL (right side pop-out)
+       ════════════════════════════════════════════ -->
+  <div class="palette-panel" id="palette-panel">
+    <div class="palette-panel__edge">
+      <button class="palette-panel__toggle" id="panel-toggle" type="button" title="Toggle palette editor">
+        <svg viewBox="0 0 64 64" fill="none" class="palette-panel__icon"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
+      </button>
+      <div class="palette-panel__tabs" id="palette-tabs">
+        {palettes.map((p, i) => (
+          <button
+            class={`palette-panel__tab${i === 0 ? ' palette-panel__tab--active' : ''}`}
+            type="button"
+            data-palette={p.id}
+            title={p.name}
+          >
+            {p.id}
+          </button>
+        ))}
+      </div>
+    </div>
+    <div class="palette-panel__body" id="panel-body">
+      <div class="palette-panel__header">
+        <span class="brutal-label" id="panel-palette-name">0. Current</span>
+        <button class="brutal-btn brutal-btn--secondary colors-reset-btn" type="button" id="reset-all">Reset</button>
+      </div>
+
+      <div class="palette-panel__section">
+        <div class="palette-panel__swatch-grid">
+          <div class="brand-swatch" data-var="--color-primary">
+            <div class="brand-swatch__color" style="background: var(--color-primary);"></div>
+            <div class="brand-swatch__label">primary</div>
+            <div class="brand-swatch__value"></div>
+          </div>
+          <div class="brand-swatch" data-var="--color-primary-dark">
+            <div class="brand-swatch__color" style="background: var(--color-primary-dark);"></div>
+            <div class="brand-swatch__label">primary-dark</div>
+            <div class="brand-swatch__value"></div>
+          </div>
+          <div class="brand-swatch" data-var="--color-secondary">
+            <div class="brand-swatch__color" style="background: var(--color-secondary);"></div>
+            <div class="brand-swatch__label">secondary</div>
+            <div class="brand-swatch__value"></div>
+          </div>
+          <div class="brand-swatch" data-var="--color-success">
+            <div class="brand-swatch__color" style="background: var(--color-success);"></div>
+            <div class="brand-swatch__label">success</div>
+            <div class="brand-swatch__value"></div>
+          </div>
+          <div class="brand-swatch" data-var="--color-warning">
+            <div class="brand-swatch__color" style="background: var(--color-warning);"></div>
+            <div class="brand-swatch__label">warning</div>
+            <div class="brand-swatch__value"></div>
+          </div>
+          <div class="brand-swatch" data-var="--color-error">
+            <div class="brand-swatch__color" style="background: var(--color-error);"></div>
+            <div class="brand-swatch__label">error</div>
+            <div class="brand-swatch__value"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="palette-panel__section">
+        <span class="brutal-label-small">Expanded</span>
+        <div class="palette-panel__swatch-grid">
+          <div class="brand-swatch" data-var="--color-authority">
+            <div class="brand-swatch__color" style="background: var(--color-authority);"></div>
+            <div class="brand-swatch__label">authority</div>
+            <div class="brand-swatch__value"></div>
+          </div>
+          <div class="brand-swatch" data-var="--color-distinguish">
+            <div class="brand-swatch__color" style="background: var(--color-distinguish);"></div>
+            <div class="brand-swatch__label">distinguish</div>
+            <div class="brand-swatch__value"></div>
+          </div>
+          <div class="brand-swatch" data-var="--color-subdued">
+            <div class="brand-swatch__color" style="background: var(--color-subdued);"></div>
+            <div class="brand-swatch__label">subdued</div>
+            <div class="brand-swatch__value"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       MAIN CONTENT (scrollable)
+       ════════════════════════════════════════════ -->
+  <div class="container">
+
+    <!-- Palette description -->
+    <p class="brutal-text-base colors-palette-concept" id="palette-concept">{palettes[0].concept}</p>
+
+    <!-- ════════════════════════════════════════════
+         COMPONENT SPECIMENS — all 9 tokens represented
+         ════════════════════════════════════════════ -->
+    <h3 class="brutal-heading-sm colors-group-title">Component Specimens</h3>
+
+    <!-- Primary + Primary Dark + Secondary -->
+    <h4 class="brutal-label colors-subgroup-title">Buttons &amp; CTAs</h4>
+    <div class="colors-specimens">
+      <div class="colors-specimen-row">
+        <button class="brutal-btn brutal-btn--primary">Primary</button>
+        <button class="brutal-btn brutal-btn--secondary">Secondary</button>
+        <button class="brutal-btn brutal-btn--primary" disabled>Disabled</button>
+      </div>
+      <div class="colors-specimen-row">
+        <a class="cta-button primary" href="#palette-scope">CTA Primary</a>
+        <a class="cta-button secondary" href="#palette-scope">CTA Secondary</a>
+      </div>
+    </div>
+
+    <!-- Success + Warning + Error -->
+    <h4 class="brutal-label colors-subgroup-title">Status Indicators</h4>
+    <div class="colors-specimen-row colors-status-row">
+      <div class="colors-status-chip colors-status-chip--success">
+        <span class="colors-status-dot" style="background: var(--color-success);"></span>
+        <span>Success / Passing</span>
+      </div>
+      <div class="colors-status-chip colors-status-chip--warning">
+        <span class="colors-status-dot" style="background: var(--color-warning);"></span>
+        <span>Warning / Caution</span>
+      </div>
+      <div class="colors-status-chip colors-status-chip--error">
+        <span class="colors-status-dot" style="background: var(--color-error);"></span>
+        <span>Error / Critical</span>
+      </div>
+    </div>
+
+    <!-- Authority + Subdued -->
+    <h4 class="brutal-label colors-subgroup-title">Tool Shell</h4>
+    <div class="colors-specimen-shell">
+      <div class="brutal-tool-shell">
+        <div class="brutal-tool-shell__content">
+          <div class="brutal-tool-shell__authority">Tool Authority Line</div>
+          <div class="brutal-tool-shell__section-label">Section Label</div>
+          <p class="brutal-text-small">Content area with subdued methodology accent</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trust Card (primary border hover) -->
+    <h4 class="brutal-label colors-subgroup-title">Trust Card</h4>
+    <div class="colors-specimen-card">
+      <div class="brutal-trust-card">
+        <h3>Vendor-Neutral Analysis</h3>
+        <p>Independent assessment without platform bias. Recommendations based solely on organizational fit and strategic alignment.</p>
+      </div>
+    </div>
+
+    <!-- Authority + Distinguish + Subdued in a side-by-side -->
+    <h4 class="brutal-label colors-subgroup-title">Expanded Token Specimens</h4>
+    <div class="colors-expanded-specimens">
+      <div class="colors-expanded-card" style="border-left: 3px solid var(--color-authority);">
+        <div class="colors-expanded-label">Authority</div>
+        <div class="colors-expanded-text">Hub authority line, DM results, TechPar personnel category</div>
+      </div>
+      <div class="colors-expanded-card" style="border-left: 3px solid var(--color-distinguish);">
+        <div class="colors-expanded-label">Distinguish</div>
+        <div class="colors-expanded-text">RegMap industry, TechPar R&amp;D OpEx, chart differentiation</div>
+      </div>
+      <div class="colors-expanded-card" style="border-left: 3px solid var(--color-subdued);">
+        <div class="colors-expanded-label">Subdued</div>
+        <div class="colors-expanded-text">DM methodology sections, process context, background accent</div>
+      </div>
+    </div>
+
+    <!-- Stats bar (primary bg) -->
+    <h4 class="brutal-label colors-subgroup-title">Stats Bar</h4>
+    <div class="colors-specimen-row">
+      <div style="background:var(--color-primary);padding:1.25rem 1.75rem;display:flex;gap:2.5rem;">
+        <div style="text-align:center;">
+          <div style="font-size:2rem;font-weight:900;font-family:monospace;color:var(--bg-dark);line-height:1;margin-bottom:0.25rem;">51</div>
+          <div style="font-size:0.75rem;font-family:monospace;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--bg-dark);">Projects</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:2rem;font-weight:900;font-family:monospace;color:var(--bg-dark);line-height:1;margin-bottom:0.25rem;">$2.4B+</div>
+          <div style="font-size:0.75rem;font-family:monospace;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--bg-dark);">ARR Evaluated</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ICG maturity scale (error → warning → success → primary) -->
+    <h4 class="brutal-label colors-subgroup-title">Maturity Scale (4 levels)</h4>
+    <div class="colors-maturity-scale">
+      <div class="colors-maturity-level" style="border-bottom: 3px solid var(--color-error); color: var(--color-error);">Reactive</div>
+      <div class="colors-maturity-level" style="border-bottom: 3px solid var(--color-warning); color: var(--color-warning);">Aware</div>
+      <div class="colors-maturity-level" style="border-bottom: 3px solid var(--color-success); color: var(--color-success);">Optimizing</div>
+      <div class="colors-maturity-level" style="border-bottom: 3px solid var(--color-primary); color: var(--color-primary);">Strategic</div>
+    </div>
+
+    <!-- Category dots (all 9 tokens) -->
+    <h4 class="brutal-label colors-subgroup-title">Full Token Dot Grid</h4>
+    <div class="colors-dot-grid">
+      <div class="colors-dot-item"><span class="colors-dot" style="background:var(--color-primary);"></span><span>primary</span></div>
+      <div class="colors-dot-item"><span class="colors-dot" style="background:var(--color-primary-dark);"></span><span>primary-dark</span></div>
+      <div class="colors-dot-item"><span class="colors-dot" style="background:var(--color-secondary);"></span><span>secondary</span></div>
+      <div class="colors-dot-item"><span class="colors-dot" style="background:var(--color-success);"></span><span>success</span></div>
+      <div class="colors-dot-item"><span class="colors-dot" style="background:var(--color-warning);"></span><span>warning</span></div>
+      <div class="colors-dot-item"><span class="colors-dot" style="background:var(--color-error);"></span><span>error</span></div>
+      <div class="colors-dot-item"><span class="colors-dot" style="background:var(--color-authority);"></span><span>authority</span></div>
+      <div class="colors-dot-item"><span class="colors-dot" style="background:var(--color-distinguish);"></span><span>distinguish</span></div>
+      <div class="colors-dot-item"><span class="colors-dot" style="background:var(--color-subdued);"></span><span>subdued</span></div>
+    </div>
+
+    <!-- ════════════════════════════════════════════
+         DERIVED TOOL COLORS
+         ════════════════════════════════════════════ -->
+    <h3 class="brutal-heading-sm colors-group-title">Derived Tool Colors</h3>
+
+    <h4 class="brutal-label colors-subgroup-title">TechPar</h4>
+    <div class="brand-swatch-grid">
+      <div class="brand-swatch" data-var="--techpar-zone-healthy"><div class="brand-swatch__color" style="background: var(--techpar-zone-healthy);"></div><div class="brand-swatch__label">zone-healthy</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Within benchmark (primary)</div></div>
+      <div class="brand-swatch" data-var="--techpar-zone-ahead"><div class="brand-swatch__color" style="background: var(--techpar-zone-ahead);"></div><div class="brand-swatch__label">zone-ahead</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Below benchmark (success)</div></div>
+      <div class="brand-swatch" data-var="--techpar-zone-underinvest"><div class="brand-swatch__color" style="background: var(--techpar-zone-underinvest);"></div><div class="brand-swatch__label">zone-underinvest</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Potential underinvestment (warning)</div></div>
+      <div class="brand-swatch" data-var="--techpar-zone-elevated"><div class="brand-swatch__color" style="background: var(--techpar-zone-elevated);"></div><div class="brand-swatch__label">zone-elevated</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Elevated overspend (error)</div></div>
+      <div class="brand-swatch" data-var="--techpar-category-personnel"><div class="brand-swatch__color" style="background: var(--techpar-category-personnel);"></div><div class="brand-swatch__label">cat-personnel</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Personnel spend (authority)</div></div>
+      <div class="brand-swatch" data-var="--techpar-category-rd-opex"><div class="brand-swatch__color" style="background: var(--techpar-category-rd-opex);"></div><div class="brand-swatch__label">cat-rd-opex</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">R&amp;D OpEx spend (distinguish)</div></div>
+    </div>
+
+    <h4 class="brutal-label colors-subgroup-title">Diligence Machine</h4>
+    <div class="brand-swatch-grid">
+      <div class="brand-swatch" data-var="--dm-methodology-brown"><div class="brand-swatch__color" style="background: var(--dm-methodology-brown);"></div><div class="brand-swatch__label">methodology</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Methodology sections (subdued)</div></div>
+      <div class="brand-swatch" data-var="--dm-results-blue"><div class="brand-swatch__color" style="background: var(--dm-results-blue);"></div><div class="brand-swatch__label">results</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Results/output accent (authority)</div></div>
+      <div class="brand-swatch" data-var="--dm-positive"><div class="brand-swatch__color" style="background: var(--dm-positive);"></div><div class="brand-swatch__label">positive</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Positive findings (success)</div></div>
+      <div class="brand-swatch" data-var="--dm-negative"><div class="brand-swatch__color" style="background: var(--dm-negative);"></div><div class="brand-swatch__label">negative</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Negative/risk findings (error)</div></div>
+      <div class="brand-swatch" data-var="--dm-warning"><div class="brand-swatch__color" style="background: var(--dm-warning);"></div><div class="brand-swatch__label">warning</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Caution findings (warning)</div></div>
+    </div>
+
+    <h4 class="brutal-label colors-subgroup-title">ICG Maturity</h4>
+    <div class="brand-swatch-grid">
+      <div class="brand-swatch" data-var="--icg-maturity-reactive"><div class="brand-swatch__color" style="background: var(--icg-maturity-reactive);"></div><div class="brand-swatch__label">reactive</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Lowest maturity (error)</div></div>
+      <div class="brand-swatch" data-var="--icg-maturity-aware"><div class="brand-swatch__color" style="background: var(--icg-maturity-aware);"></div><div class="brand-swatch__label">aware</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Early-stage maturity (warning)</div></div>
+      <div class="brand-swatch" data-var="--icg-maturity-optimizing"><div class="brand-swatch__color" style="background: var(--icg-maturity-optimizing);"></div><div class="brand-swatch__label">optimizing</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Active optimization (success)</div></div>
+      <div class="brand-swatch" data-var="--icg-maturity-strategic"><div class="brand-swatch__color" style="background: var(--icg-maturity-strategic);"></div><div class="brand-swatch__label">strategic</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Highest maturity (primary)</div></div>
+    </div>
+
+    <h4 class="brutal-label colors-subgroup-title">Regulatory Map</h4>
+    <div class="brand-swatch-grid">
+      <div class="brand-swatch" data-var="--regmap-category-industry"><div class="brand-swatch__color" style="background: var(--regmap-category-industry);"></div><div class="brand-swatch__label">industry</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Industry regulations (distinguish)</div></div>
+      <div class="brand-swatch" data-var="--regmap-category-cyber"><div class="brand-swatch__color" style="background: var(--regmap-category-cyber);"></div><div class="brand-swatch__label">cybersecurity</div><div class="brand-swatch__value"></div><div class="brand-swatch__usage">Cybersecurity regulations (error)</div></div>
+    </div>
+
+  </div><!-- /.container -->
+</div><!-- /#palette-scope -->
+
+</BaseLayout>
+
+<style>
+  /* ── Page Layout ─────────────────────────────────────────── */
+  .colors-page__title {
+    padding-top: var(--spacing-2xl);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .colors-page__note {
+    margin-bottom: var(--spacing-lg);
+    color: var(--text-muted);
+  }
+
+  /* (tab bar removed — tabs are in the panel now) */
+
+  .colors-palette-concept {
+    color: var(--text-secondary);
+    max-width: 680px;
+    height: 3.2em;
+    overflow: hidden;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .colors-reset-btn {
+    flex-shrink: 0;
+    font-size: var(--text-xs) !important;
+    padding: var(--spacing-xs) var(--spacing-md) !important;
+  }
+
+  /* ── Sticky Palette Panel ────────────────────────────────── */
+  .palette-panel {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    z-index: 30;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .palette-panel__edge {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    background: var(--bg-light);
+    border: 2px solid var(--border-light);
+    border-right: none;
+  }
+
+  .palette-panel.is-open .palette-panel__edge {
+    border-color: var(--color-primary);
+  }
+
+  .palette-panel__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-sm);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-muted);
+    cursor: ew-resize;
+    transition: color var(--transition-fast);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .palette-panel__toggle:hover {
+    color: var(--color-primary);
+  }
+
+  .palette-panel.is-open .palette-panel__toggle {
+    color: var(--color-primary);
+  }
+
+  .palette-panel__icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .palette-panel__body {
+    width: 520px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: var(--bg-light);
+    border: 2px solid var(--color-primary);
+    border-right: none;
+    padding: var(--spacing-lg);
+    display: none;
+    scrollbar-width: thin;
+  }
+
+  .palette-panel.is-open .palette-panel__body {
+    display: block;
+  }
+
+  .palette-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .palette-panel__tabs {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .palette-panel__tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xs);
+    font-family: monospace;
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-right: 2px solid transparent;
+    cursor: pointer;
+    transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .palette-panel__tab:hover:not(.palette-panel__tab--active) {
+    color: var(--text-secondary);
+    background: var(--accent-light-bg);
+  }
+
+  .palette-panel__tab--active {
+    color: var(--color-primary);
+    border-right-color: var(--color-primary);
+    background: var(--accent-light-bg);
+  }
+
+  .palette-panel__section {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .palette-panel__section .brutal-label-small {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .palette-panel__swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-sm);
+  }
+
+  /* Panel swatches — compact but readable */
+  .palette-panel .brand-swatch__color {
+    aspect-ratio: 1.6;
+  }
+
+  .palette-panel .brand-swatch__usage {
+    display: none;
+  }
+
+  .colors-group-title {
+    margin-top: var(--spacing-2xl);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .colors-group-title:first-of-type {
+    margin-top: var(--spacing-lg);
+  }
+
+  .colors-subgroup-title {
+    margin-top: var(--spacing-xl);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .colors-code {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    color: var(--text-muted);
+    background: var(--accent-subtle-bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  /* ── Swatch Grid ─────────────────────────────────────────── */
+  .brand-swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--gap-normal);
+  }
+
+  .brand-swatch__color {
+    aspect-ratio: 1;
+    border: 1px solid var(--border-light);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .brand-swatch__label {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    color: var(--text-secondary);
+    word-break: break-all;
+  }
+
+  .brand-swatch__value {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    color: var(--text-muted);
+    min-height: 1.2em;
+  }
+
+  .brand-swatch__usage {
+    font-size: 0.65rem;
+    color: var(--text-faded);
+    line-height: 1.3;
+  }
+
+  /* ── Swatch Controls (color picker + sliders) ─────────────── */
+  .swatch-controls {
+    margin-top: var(--spacing-xs);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .swatch-controls__row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .swatch-picker {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--border-light);
+    background: none;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .swatch-picker::-webkit-color-swatch-wrapper { padding: 1px; }
+  .swatch-picker::-webkit-color-swatch { border: none; }
+
+  .swatch-hex {
+    flex: 1;
+    min-width: 0;
+    font-family: monospace;
+    font-size: var(--text-xs);
+    padding: 3px 5px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-light);
+    color: var(--text-primary);
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
+  }
+
+  .swatch-hex:focus {
+    border-color: var(--color-primary);
+    outline: none;
+  }
+
+  .swatch-reset {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid var(--border-light);
+    background: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-family: monospace;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .swatch-reset:hover {
+    color: var(--color-error, #c44040);
+    border-color: var(--color-error, #c44040);
+  }
+
+  .swatch-sliders {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .swatch-slider-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: monospace;
+    font-size: 9px;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: default;
+  }
+
+  .swatch-slider-label--r { color: #c44040; }
+  .swatch-slider-label--g { color: #16a34a; }
+  .swatch-slider-label--b { color: #3b82f6; }
+
+  .swatch-slider {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--border-light);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .swatch-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 14px;
+    background: var(--text-secondary);
+    border: none;
+    cursor: grab;
+  }
+
+  .swatch-slider::-moz-range-thumb {
+    width: 10px;
+    height: 14px;
+    background: var(--text-secondary);
+    border: none;
+    border-radius: 0;
+    cursor: grab;
+  }
+
+  .swatch-slider::-webkit-slider-thumb:active { cursor: grabbing; }
+  .swatch-slider::-moz-range-thumb:active { cursor: grabbing; }
+
+  .swatch-slider-label--r .swatch-slider::-webkit-slider-thumb { background: #c44040; }
+  .swatch-slider-label--g .swatch-slider::-webkit-slider-thumb { background: #16a34a; }
+  .swatch-slider-label--b .swatch-slider::-webkit-slider-thumb { background: #3b82f6; }
+  .swatch-slider-label--r .swatch-slider::-moz-range-thumb { background: #c44040; }
+  .swatch-slider-label--g .swatch-slider::-moz-range-thumb { background: #16a34a; }
+  .swatch-slider-label--b .swatch-slider::-moz-range-thumb { background: #3b82f6; }
+
+  /* ── Component Specimens ─────────────────────────────────── */
+  .colors-specimens {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+  }
+
+  .colors-specimen-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-lg);
+    align-items: center;
+  }
+
+  .colors-specimen-card {
+    max-width: 420px;
+  }
+
+  .colors-specimen-shell {
+    max-width: 500px;
+  }
+
+  /* Status chips */
+  .colors-status-row {
+    gap: var(--spacing-md);
+  }
+
+  .colors-status-chip {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: 1px solid var(--border-light);
+    font-family: monospace;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+  }
+
+  .colors-status-dot {
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+  }
+
+  /* Expanded token cards */
+  .colors-expanded-specimens {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--gap-normal);
+  }
+
+  .colors-expanded-card {
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: transparent;
+  }
+
+  .colors-expanded-label {
+    font-family: monospace;
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .colors-expanded-text {
+    font-family: monospace;
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* Maturity scale */
+  .colors-maturity-scale {
+    display: flex;
+    gap: 0;
+  }
+
+  .colors-maturity-level {
+    flex: 1;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-family: monospace;
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-align: center;
+  }
+
+  /* Dot grid */
+  .colors-dot-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-lg);
+  }
+
+  .colors-dot-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-family: monospace;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+  }
+
+  .colors-dot {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     PALETTE VARIABLE DEFINITIONS
+     ═══════════════════════════════════════════════════════════ */
+
+  :root {
+    /* 1: Steel Authority — deep cobalt + hot magenta */
+    --alt1-color-primary: #1e40af;
+    --alt1-color-primary-dark: #1a3590;
+    --alt1-color-secondary: #db2777;
+    --alt1-color-success: #16a34a;
+    --alt1-color-warning: #ca8a04;
+    --alt1-color-error: #b91c1c;
+
+    /* 2: Indigo Signal — vivid violet + electric lime */
+    --alt2-color-primary: #7c3aed;
+    --alt2-color-primary-dark: #6d28d9;
+    --alt2-color-secondary: #84cc16;
+    --alt2-color-success: #10b981;
+    --alt2-color-warning: #e67e22;
+    --alt2-color-error: #dc2626;
+
+    /* 3: Copper Forge — dark rust + electric cyan */
+    --alt3-color-primary: #b45309;
+    --alt3-color-primary-dark: #92400e;
+    --alt3-color-secondary: #0891b2;
+    --alt3-color-success: #16a34a;
+    --alt3-color-warning: #eab308;
+    --alt3-color-error: #c0392b;
+
+    /* 4: Jade Edge — vivid emerald + hot rose */
+    --alt4-color-primary: #059669;
+    --alt4-color-primary-dark: #047857;
+    --alt4-color-secondary: #f43f5e;
+    --alt4-color-success: #15803d;
+    --alt4-color-warning: #d97706;
+    --alt4-color-error: #9f1239;
+
+    /* 5: Shadow Garden — deep forest + electric violet */
+    --alt5-color-primary: #166534;
+    --alt5-color-primary-dark: #14532d;
+    --alt5-color-secondary: #a855f7;
+    --alt5-color-success: #22c55e;
+    --alt5-color-warning: #ca8a04;
+    --alt5-color-error: #991b1b;
+    --alt5-black: #060606;
+    --alt5-black-soft: #101010;
+    --alt5-purple-muted: rgba(168, 85, 247, 0.3);
+    --alt5-forest-light: rgba(22, 101, 52, 0.18);
+
+    /* ── Expanded tokens: authority / distinguish / subdued ── */
+    --alt0-color-authority: #5b7a9d;
+    --alt0-color-distinguish: #8b5cf6;
+    --alt0-color-subdued: #8c7a6b;
+
+    --alt1-color-authority: #4a6fa5;
+    --alt1-color-distinguish: #9b59b6;
+    --alt1-color-subdued: #7a8a9a;
+
+    --alt2-color-authority: #3b82f6;
+    --alt2-color-distinguish: #06b6d4;
+    --alt2-color-subdued: #6b7280;
+
+    --alt3-color-authority: #2563eb;
+    --alt3-color-distinguish: #7c3aed;
+    --alt3-color-subdued: #78593f;
+
+    --alt4-color-authority: #6366f1;
+    --alt4-color-distinguish: #d946ef;
+    --alt4-color-subdued: #5a7a5a;
+
+    --alt5-color-authority: #1e6b45;
+    --alt5-color-distinguish: #7c3aed;
+    --alt5-color-subdued: #3d4f3d;
+  }
+
+  html.dark-theme {
+    /* 1: Steel Authority */
+    --alt1-color-primary: #3b82f6;
+    --alt1-color-primary-dark: #2563eb;
+    --alt1-color-secondary: #f472b6;
+    --alt1-color-success: #4ade80;
+    --alt1-color-warning: #facc15;
+    --alt1-color-error: #ef4444;
+
+    /* 2: Indigo Signal */
+    --alt2-color-primary: #a78bfa;
+    --alt2-color-primary-dark: #8b5cf6;
+    --alt2-color-secondary: #a3e635;
+    --alt2-color-success: #34d399;
+    --alt2-color-warning: #f59e0b;
+    --alt2-color-error: #f87171;
+
+    /* 3: Copper Forge */
+    --alt3-color-primary: #d97706;
+    --alt3-color-primary-dark: #b45309;
+    --alt3-color-secondary: #22d3ee;
+    --alt3-color-success: #4ade80;
+    --alt3-color-warning: #fbbf24;
+    --alt3-color-error: #ef4444;
+
+    /* 4: Jade Edge */
+    --alt4-color-primary: #10b981;
+    --alt4-color-primary-dark: #059669;
+    --alt4-color-secondary: #fb7185;
+    --alt4-color-success: #4ade80;
+    --alt4-color-warning: #f59e0b;
+    --alt4-color-error: #e11d48;
+
+    /* 5: Shadow Garden */
+    --alt5-color-primary: #22c55e;
+    --alt5-color-primary-dark: #16a34a;
+    --alt5-color-secondary: #c084fc;
+    --alt5-color-success: #4ade80;
+    --alt5-color-warning: #eab308;
+    --alt5-color-error: #ef4444;
+    --alt5-black: #040404;
+    --alt5-black-soft: #0a0a0a;
+    --alt5-purple-muted: rgba(192, 132, 252, 0.25);
+    --alt5-forest-light: rgba(34, 197, 94, 0.1);
+
+    /* ── Expanded tokens (dark theme) ── */
+    --alt0-color-authority: #7a9dbd;
+    --alt0-color-distinguish: #a78bfa;
+    --alt0-color-subdued: #a89888;
+
+    --alt1-color-authority: #60a5fa;
+    --alt1-color-distinguish: #c084fc;
+    --alt1-color-subdued: #94a3b8;
+
+    --alt2-color-authority: #60a5fa;
+    --alt2-color-distinguish: #22d3ee;
+    --alt2-color-subdued: #9ca3af;
+
+    --alt3-color-authority: #60a5fa;
+    --alt3-color-distinguish: #a78bfa;
+    --alt3-color-subdued: #a08060;
+
+    --alt4-color-authority: #818cf8;
+    --alt4-color-distinguish: #e879f9;
+    --alt4-color-subdued: #7a9a7a;
+
+    --alt5-color-authority: #34d399;
+    --alt5-color-distinguish: #a78bfa;
+    --alt5-color-subdued: #5a6f5a;
+  }
+
+  /* ── Shared tool derivation ──────────────────────────────── */
+  .palette-scope {
+    --hub-authority-blue: var(--color-authority);
+    --techpar-zone-ahead: var(--color-success);
+    --techpar-zone-underinvest: var(--color-warning);
+    --techpar-zone-above: var(--color-warning);
+    --techpar-zone-elevated: var(--color-error);
+    --techpar-zone-critical: var(--color-error);
+    --techpar-zone-healthy: var(--color-primary);
+    --techpar-category-infra: var(--color-primary);
+    --techpar-category-personnel: var(--color-authority);
+    --techpar-category-rd-opex: var(--color-distinguish);
+    --techpar-category-rd-capex: var(--color-secondary);
+    --techpar-kpi-positive: var(--color-primary);
+    --techpar-kpi-warn: var(--color-warning);
+    --techpar-kpi-negative: var(--color-error);
+    --dm-methodology-brown: var(--color-subdued);
+    --dm-results-blue: var(--color-authority);
+    --dm-results-tan: var(--color-subdued);
+    --dm-positive: var(--color-success);
+    --dm-negative: var(--color-error);
+    --dm-warning: var(--color-warning);
+    --dm-success: var(--color-success);
+    --icg-maturity-reactive: var(--color-error);
+    --icg-maturity-aware: var(--color-warning);
+    --icg-maturity-optimizing: var(--color-success);
+    --icg-maturity-strategic: var(--color-primary);
+    --regmap-category-industry: var(--color-distinguish);
+    --regmap-category-cyber: var(--color-error);
+    padding-bottom: var(--spacing-3xl);
+  }
+
+  /* ── Per-palette scoped overrides ────────────────────────── */
+  .palette-0 {
+    --color-authority: var(--alt0-color-authority);
+    --color-distinguish: var(--alt0-color-distinguish);
+    --color-subdued: var(--alt0-color-subdued);
+  }
+
+  .palette-1 {
+    --color-primary: var(--alt1-color-primary);
+    --color-primary-dark: var(--alt1-color-primary-dark);
+    --color-primary-rgb: 30, 64, 175;
+    --color-secondary: var(--alt1-color-secondary);
+    --color-success: var(--alt1-color-success);
+    --color-warning: var(--alt1-color-warning);
+    --color-error: var(--alt1-color-error);
+    --color-authority: var(--alt1-color-authority);
+    --color-distinguish: var(--alt1-color-distinguish);
+    --color-subdued: var(--alt1-color-subdued);
+    --border-dark: rgba(30, 64, 175, 0.2);
+    --accent-light-bg: rgba(30, 64, 175, 0.08);
+    --accent-light-bg-hover: rgba(30, 64, 175, 0.15);
+    --accent-border-light: rgba(30, 64, 175, 0.25);
+    --accent-border-medium: rgba(30, 64, 175, 0.3);
+    --stat-item-border: var(--alt1-color-primary);
+  }
+
+  .palette-2 {
+    --color-primary: var(--alt2-color-primary);
+    --color-primary-dark: var(--alt2-color-primary-dark);
+    --color-primary-rgb: 124, 58, 237;
+    --color-secondary: var(--alt2-color-secondary);
+    --color-success: var(--alt2-color-success);
+    --color-warning: var(--alt2-color-warning);
+    --color-error: var(--alt2-color-error);
+    --color-authority: var(--alt2-color-authority);
+    --color-distinguish: var(--alt2-color-distinguish);
+    --color-subdued: var(--alt2-color-subdued);
+    --border-dark: rgba(124, 58, 237, 0.2);
+    --accent-light-bg: rgba(124, 58, 237, 0.08);
+    --accent-light-bg-hover: rgba(124, 58, 237, 0.15);
+    --accent-border-light: rgba(124, 58, 237, 0.25);
+    --accent-border-medium: rgba(124, 58, 237, 0.3);
+    --stat-item-border: var(--alt2-color-primary);
+  }
+
+  .palette-3 {
+    --color-primary: var(--alt3-color-primary);
+    --color-primary-dark: var(--alt3-color-primary-dark);
+    --color-primary-rgb: 180, 83, 9;
+    --color-secondary: var(--alt3-color-secondary);
+    --color-success: var(--alt3-color-success);
+    --color-warning: var(--alt3-color-warning);
+    --color-error: var(--alt3-color-error);
+    --color-authority: var(--alt3-color-authority);
+    --color-distinguish: var(--alt3-color-distinguish);
+    --color-subdued: var(--alt3-color-subdued);
+    --border-dark: rgba(180, 83, 9, 0.2);
+    --accent-light-bg: rgba(180, 83, 9, 0.08);
+    --accent-light-bg-hover: rgba(180, 83, 9, 0.15);
+    --accent-border-light: rgba(180, 83, 9, 0.25);
+    --accent-border-medium: rgba(180, 83, 9, 0.3);
+    --stat-item-border: var(--alt3-color-primary);
+  }
+
+  .palette-4 {
+    --color-primary: var(--alt4-color-primary);
+    --color-primary-dark: var(--alt4-color-primary-dark);
+    --color-primary-rgb: 5, 150, 105;
+    --color-secondary: var(--alt4-color-secondary);
+    --color-success: var(--alt4-color-success);
+    --color-warning: var(--alt4-color-warning);
+    --color-error: var(--alt4-color-error);
+    --color-authority: var(--alt4-color-authority);
+    --color-distinguish: var(--alt4-color-distinguish);
+    --color-subdued: var(--alt4-color-subdued);
+    --border-dark: rgba(5, 150, 105, 0.2);
+    --accent-light-bg: rgba(5, 150, 105, 0.08);
+    --accent-light-bg-hover: rgba(5, 150, 105, 0.15);
+    --accent-border-light: rgba(5, 150, 105, 0.25);
+    --accent-border-medium: rgba(5, 150, 105, 0.3);
+    --stat-item-border: var(--alt4-color-primary);
+  }
+
+  .palette-5 {
+    --color-primary: var(--alt5-color-primary);
+    --color-primary-dark: var(--alt5-color-primary-dark);
+    --color-primary-rgb: 22, 101, 52;
+    --color-secondary: var(--alt5-color-secondary);
+    --color-success: var(--alt5-color-success);
+    --color-warning: var(--alt5-color-warning);
+    --color-error: var(--alt5-color-error);
+    --color-authority: var(--alt5-color-authority);
+    --color-distinguish: var(--alt5-color-distinguish);
+    --color-subdued: var(--alt5-color-subdued);
+    --border-dark: rgba(22, 101, 52, 0.2);
+    --accent-light-bg: rgba(22, 101, 52, 0.08);
+    --accent-light-bg-hover: rgba(22, 101, 52, 0.15);
+    --accent-border-light: rgba(22, 101, 52, 0.25);
+    --accent-border-medium: rgba(22, 101, 52, 0.3);
+    --stat-item-border: var(--alt5-color-primary);
+  }
+
+  /* ── Responsive ──────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .brand-swatch-grid {
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    }
+
+    .colors-expanded-specimens {
+      grid-template-columns: 1fr;
+    }
+
+    .colors-maturity-scale {
+      flex-wrap: wrap;
+    }
+
+    .colors-maturity-level {
+      flex: none;
+      width: 50%;
+    }
+  }
+</style>
+
+<script>
+  const PALETTE_NAMES: Record<number, string> = {
+    0: '0. Current',
+    1: '1. Steel Authority',
+    2: '2. Indigo Signal',
+    3: '3. Copper Forge',
+    4: '4. Jade Edge',
+    5: '5. Shadow Garden',
+  };
+
+  const PALETTE_CONCEPTS: Record<number, string> = {
+    0: 'The production palette \u2014 teal primary with amber secondary. This is the baseline for comparison.',
+    1: 'Deep cobalt blue anchored by hot magenta secondary. PE gravitas with an unexpected edge.',
+    2: 'Vivid violet primary paired with electric lime. Breaks every finance-blue convention.',
+    3: 'Dark rust and electric cyan \u2014 industrial heat meets cold precision.',
+    4: 'Vivid emerald with hot rose contrast. The current teal pushed to its boldest form.',
+    5: 'Deep forest green rooted in near-black, lit by electric violet. Terminal in an old-growth forest.',
+  };
+
+  function rgbToHex(rgb: string): string {
+    const match = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (!match) return rgb;
+    const r = parseInt(match[1]).toString(16).padStart(2, '0');
+    const g = parseInt(match[2]).toString(16).padStart(2, '0');
+    const b = parseInt(match[3]).toString(16).padStart(2, '0');
+    return `#${r}${g}${b}`;
+  }
+
+  function hexToRgb(hex: string): [number, number, number] | null {
+    const m = hex.replace('#', '').match(/^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+    if (!m) return null;
+    return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
+  }
+
+  function readAndPopulate() {
+    document.querySelectorAll<HTMLElement>('.brand-swatch').forEach(el => {
+      const varName = el.dataset.var;
+      if (!varName) return;
+      if (el.dataset.userOverride === 'true') return;
+
+      const colorEl = el.querySelector<HTMLElement>('.brand-swatch__color');
+      if (!colorEl) return;
+
+      const resolved = getComputedStyle(colorEl).backgroundColor;
+      const hex = rgbToHex(resolved);
+      const valueEl = el.querySelector('.brand-swatch__value');
+      if (valueEl) valueEl.textContent = hex;
+
+      const picker = el.querySelector<HTMLInputElement>('.swatch-picker');
+      const hexInput = el.querySelector<HTMLInputElement>('.swatch-hex');
+      const sliderR = el.querySelector<HTMLInputElement>('.swatch-slider-r');
+      const sliderG = el.querySelector<HTMLInputElement>('.swatch-slider-g');
+      const sliderB = el.querySelector<HTMLInputElement>('.swatch-slider-b');
+      if (picker) picker.value = hex;
+      if (hexInput) hexInput.value = hex;
+      const rgb = hexToRgb(hex);
+      if (rgb && sliderR && sliderG && sliderB) {
+        sliderR.value = String(rgb[0]);
+        sliderG.value = String(rgb[1]);
+        sliderB.value = String(rgb[2]);
+      }
+    });
+  }
+
+  function applyColor(swatch: HTMLElement, hex: string) {
+    const colorEl = swatch.querySelector<HTMLElement>('.brand-swatch__color');
+    const valueEl = swatch.querySelector('.brand-swatch__value');
+    const picker = swatch.querySelector<HTMLInputElement>('.swatch-picker');
+    const hexInput = swatch.querySelector<HTMLInputElement>('.swatch-hex');
+    const sliderR = swatch.querySelector<HTMLInputElement>('.swatch-slider-r');
+    const sliderG = swatch.querySelector<HTMLInputElement>('.swatch-slider-g');
+    const sliderB = swatch.querySelector<HTMLInputElement>('.swatch-slider-b');
+
+    if (colorEl) colorEl.style.background = hex;
+    if (valueEl) valueEl.textContent = hex;
+    if (picker) picker.value = hex;
+    if (hexInput) hexInput.value = hex;
+
+    const rgb = hexToRgb(hex);
+    if (rgb && sliderR && sliderG && sliderB) {
+      sliderR.value = String(rgb[0]);
+      sliderG.value = String(rgb[1]);
+      sliderB.value = String(rgb[2]);
+    }
+
+    swatch.dataset.userOverride = 'true';
+
+    const varName = swatch.dataset.var;
+    const scope = swatch.closest<HTMLElement>('.palette-scope');
+    if (varName && scope) {
+      scope.style.setProperty(varName, hex);
+    }
+  }
+
+  function injectControls() {
+    document.querySelectorAll<HTMLElement>('.brand-swatch').forEach(el => {
+      if (el.querySelector('.swatch-controls')) return;
+
+      const colorEl = el.querySelector<HTMLElement>('.brand-swatch__color');
+      if (!colorEl) return;
+      const resolved = getComputedStyle(colorEl).backgroundColor;
+      const initialHex = rgbToHex(resolved);
+      const rgb = hexToRgb(initialHex) || [0, 0, 0];
+
+      const controls = document.createElement('div');
+      controls.className = 'swatch-controls';
+      controls.innerHTML = `
+        <div class="swatch-controls__row">
+          <input type="color" class="swatch-picker" value="${initialHex}" />
+          <input type="text" class="swatch-hex" value="${initialHex}" maxlength="7" spellcheck="false" />
+          <button class="swatch-reset" title="Reset to palette default" type="button">&times;</button>
+        </div>
+        <div class="swatch-sliders">
+          <label class="swatch-slider-label swatch-slider-label--r">R<input type="range" class="swatch-slider swatch-slider-r" min="0" max="255" value="${rgb[0]}" /></label>
+          <label class="swatch-slider-label swatch-slider-label--g">G<input type="range" class="swatch-slider swatch-slider-g" min="0" max="255" value="${rgb[1]}" /></label>
+          <label class="swatch-slider-label swatch-slider-label--b">B<input type="range" class="swatch-slider swatch-slider-b" min="0" max="255" value="${rgb[2]}" /></label>
+        </div>
+      `;
+      el.appendChild(controls);
+
+      const picker = controls.querySelector<HTMLInputElement>('.swatch-picker')!;
+      const hexInput = controls.querySelector<HTMLInputElement>('.swatch-hex')!;
+      const sliderR = controls.querySelector<HTMLInputElement>('.swatch-slider-r')!;
+      const sliderG = controls.querySelector<HTMLInputElement>('.swatch-slider-g')!;
+      const sliderB = controls.querySelector<HTMLInputElement>('.swatch-slider-b')!;
+      const resetBtn = controls.querySelector<HTMLButtonElement>('.swatch-reset')!;
+
+      picker.addEventListener('input', () => applyColor(el, picker.value));
+
+      hexInput.addEventListener('input', () => {
+        let v = hexInput.value.trim();
+        if (!v.startsWith('#')) v = '#' + v;
+        if (/^#[0-9a-f]{6}$/i.test(v)) applyColor(el, v);
+      });
+
+      const onSlider = () => {
+        const r = parseInt(sliderR.value).toString(16).padStart(2, '0');
+        const g = parseInt(sliderG.value).toString(16).padStart(2, '0');
+        const b = parseInt(sliderB.value).toString(16).padStart(2, '0');
+        const hex = `#${r}${g}${b}`;
+        if (colorEl) colorEl.style.background = hex;
+        const valueEl = el.querySelector('.brand-swatch__value');
+        if (valueEl) valueEl.textContent = hex;
+        if (picker) picker.value = hex;
+        if (hexInput) hexInput.value = hex;
+        el.dataset.userOverride = 'true';
+        const varName = el.dataset.var;
+        const scope = el.closest<HTMLElement>('.palette-scope');
+        if (varName && scope) scope.style.setProperty(varName, hex);
+      };
+
+      sliderR.addEventListener('input', onSlider);
+      sliderG.addEventListener('input', onSlider);
+      sliderB.addEventListener('input', onSlider);
+
+      resetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const varName = el.dataset.var;
+        // Restore the swatch preview to its CSS variable reference
+        if (colorEl && varName) colorEl.style.background = `var(${varName})`;
+        // Remove the CSS variable override from the palette scope
+        const scope = el.closest<HTMLElement>('.palette-scope');
+        if (varName && scope) scope.style.removeProperty(varName);
+        delete el.dataset.userOverride;
+        // Defer read so the browser recomputes the cascade from the palette class
+        requestAnimationFrame(() => {
+          const fresh = getComputedStyle(colorEl!).backgroundColor;
+          const freshHex = rgbToHex(fresh);
+          const valueEl = el.querySelector('.brand-swatch__value');
+          if (valueEl) valueEl.textContent = freshHex;
+          if (picker) picker.value = freshHex;
+          if (hexInput) hexInput.value = freshHex;
+          const freshRgb = hexToRgb(freshHex);
+          if (freshRgb) {
+            sliderR.value = String(freshRgb[0]);
+            sliderG.value = String(freshRgb[1]);
+            sliderB.value = String(freshRgb[2]);
+          }
+        });
+      });
+    });
+  }
+
+  function switchPalette(id: number) {
+    const scope = document.getElementById('palette-scope');
+    if (!scope) return;
+
+    // Swap palette class — preserve user overrides (inline styles on swatches + scope)
+    scope.className = `palette-scope palette-${id}`;
+
+    // Update concept text + panel header name
+    const conceptEl = document.getElementById('palette-concept');
+    if (conceptEl) conceptEl.textContent = PALETTE_CONCEPTS[id] || '';
+    const nameEl = document.getElementById('panel-palette-name');
+    if (nameEl) nameEl.textContent = PALETTE_NAMES[id] || '';
+
+    // Update tabs
+    document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach(tab => {
+      const tabId = parseInt(tab.dataset.palette || '0');
+      tab.classList.toggle('palette-panel__tab--active', tabId === id);
+    });
+
+    // Re-read non-overridden swatch values (overridden ones keep their user color)
+    requestAnimationFrame(() => readAndPopulate());
+  }
+
+  function resetAllOverrides() {
+    const scope = document.getElementById('palette-scope');
+    if (!scope) return;
+
+    // Clear inline style overrides on the scope element
+    scope.removeAttribute('style');
+
+    // Restore all swatches to their CSS variable references
+    scope.querySelectorAll<HTMLElement>('.brand-swatch').forEach(el => {
+      delete el.dataset.userOverride;
+      const varName = el.dataset.var;
+      const colorEl = el.querySelector<HTMLElement>('.brand-swatch__color');
+      if (colorEl && varName) colorEl.style.background = `var(${varName})`;
+    });
+
+    // Re-read all computed values
+    requestAnimationFrame(() => readAndPopulate());
+  }
+
+  // Theme toggle observer — reset overrides since dark/light values differ
+  new MutationObserver(() => {
+    resetAllOverrides();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    injectControls();
+    readAndPopulate();
+
+    // Tab switching
+    document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const id = parseInt(tab.dataset.palette || '0');
+        switchPalette(id);
+      });
+    });
+
+    // Reset all button
+    const resetBtn = document.getElementById('reset-all');
+    if (resetBtn) resetBtn.addEventListener('click', resetAllOverrides);
+
+    // Panel toggle + drag-to-resize
+    const panelToggle = document.getElementById('panel-toggle');
+    const panel = document.getElementById('palette-panel');
+    const panelBody = document.getElementById('panel-body');
+
+    if (panelToggle && panel && panelBody) {
+      const MIN_WIDTH = 280;
+      const MAX_WIDTH = 800;
+      let isDragging = false;
+      let dragStartX = 0;
+      let dragStartWidth = 0;
+      let hasDragged = false;
+
+      panelToggle.addEventListener('mousedown', (e: MouseEvent) => {
+        if (!panel.classList.contains('is-open')) return;
+        isDragging = true;
+        hasDragged = false;
+        dragStartX = e.clientX;
+        dragStartWidth = panelBody.offsetWidth;
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', (e: MouseEvent) => {
+        if (!isDragging) return;
+        const dx = dragStartX - e.clientX;
+        if (Math.abs(dx) > 3) hasDragged = true;
+        const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, dragStartWidth + dx));
+        panelBody.style.width = `${newWidth}px`;
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      });
+
+      panelToggle.addEventListener('click', () => {
+        if (hasDragged) return;
+        panel.classList.toggle('is-open');
+        if (panel.classList.contains('is-open')) {
+          requestAnimationFrame(() => readAndPopulate());
+        }
+      });
+    }
+  });
+</script>
