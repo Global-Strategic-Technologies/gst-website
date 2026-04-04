@@ -155,10 +155,13 @@ import caData from '../../../../data/canada-provinces.json';
     <section class="faq-section">
         <div class="container">
             <h2 class="brutal-heading-lg">Frequently Asked Questions</h2>
-            <div class="brutal-faq">
+            <div class="brutal-faq brutal-faq--lg">
                 {faqItems.map((item) => (
-                    <details class="brutal-faq__item">
-                        <summary class="brutal-faq__question">{item.question}</summary>
+                    <details class="brutal-faq__item brutal-frosted">
+                        <summary class="brutal-faq__question">
+                            <span>{item.question}</span>
+                            <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" class="delta-chevron" aria-hidden="true" />
+                        </summary>
                         <div class="brutal-faq__answer" set:html={item.answer} />
                     </details>
                 ))}
