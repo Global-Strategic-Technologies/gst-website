@@ -48,11 +48,11 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     display: block;
     width: 8px;
     height: 8px;
-    border-radius: 50%;
   }
 
   .wire-item__title {
     font-size: var(--text-sm);
+    font-family: monospace;
     font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
     text-decoration: none;
@@ -68,6 +68,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
 
   .wire-item__meta {
     font-size: var(--text-xs);
+    font-family: monospace;
     color: var(--text-muted);
   }
 
@@ -77,6 +78,6 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
   }
 
   :global(html.dark-theme) .wire-item {
-    border-bottom-color: rgba(255, 255, 255, 0.05);
+    border-bottom-color: rgba(255, 255, 255, 0.15);
   }
 </style>

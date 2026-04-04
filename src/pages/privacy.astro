@@ -3,14 +3,24 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout title="Privacy Policy | GST" description="How Global Strategic Technologies collects, uses, and safeguards your information when you visit our website or engage with our advisory services.">
-  <main class="privacy-container">
-    <div class="privacy-content">
-      <header class="privacy-header">
+  <!-- Print-only report header (hidden on screen) -->
+  <div class="print-report-header" aria-hidden="true">
+    <div class="print-report-header__brand">
+      <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" width="24" height="24" />
+      <span>GST</span>
+    </div>
+    <div class="print-report-header__title">Privacy Policy</div>
+    <div class="print-report-header__date">Generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+  </div>
+
+  <div class="legal-page-container">
+    <div>
+      <header class="legal-page-header">
         <h1>Privacy Policy</h1>
-        <p class="last-updated">Last Updated: February 2026</p>
+        <p class="legal-page-updated">Last Updated: February 2026</p>
       </header>
 
-      <section class="privacy-body">
+      <section class="legal-page-body">
         <p>
           Global Strategic Technologies LLC ("GST," "we," "us," or "our") is committed to protecting your privacy.
           This Privacy Policy explains how we collect, use, and safeguard information when you visit our website
@@ -101,7 +111,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           information, and the right to opt out of the sale of personal information. We do not sell personal information.
         </p>
 
-        <section class="contact-section">
+        <section class="legal-contact-section">
           <h2>Contact Us</h2>
           <p>
             If you have questions or concerns about this Privacy Policy or our data practices, please contact us:
@@ -114,119 +124,26 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </section>
       </section>
     </div>
-  </main>
+  </div>
 </BaseLayout>
 
 <style>
-  .privacy-header {
-    position: static !important;
-    top: auto;
-  }
-
-  .privacy-container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 4rem 1.5rem;
-  }
-
-  .privacy-header {
-    margin-bottom: 3rem;
-    padding-bottom: 2rem;
-    border-bottom: 1px solid var(--border-light);
-    background: transparent;
-  }
-
-  .privacy-header h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    color: var(--text-primary);
-  }
-
-  .last-updated {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-  }
-
-  .privacy-body {
-    line-height: 1.8;
-    color: var(--text-secondary);
-  }
-
-  .privacy-body h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-top: 2.5rem;
-    margin-bottom: 1rem;
-    color: var(--text-primary);
-  }
-
-  .privacy-body p {
-    margin-bottom: 1rem;
-  }
-
-  .privacy-body ul {
-    margin-left: 1.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .privacy-body li {
-    margin-bottom: 0.75rem;
-  }
-
-  .privacy-body a {
-    color: var(--color-primary);
-    text-decoration: none;
-    border-bottom: 1px solid rgba(5, 205, 153, 0.3);
-    transition: border-color 0.2s;
-  }
-
-  .privacy-body a:hover {
-    border-bottom-color: var(--color-primary);
-  }
-
-  .contact-section {
-    margin-top: 3rem;
-    padding: 2rem;
-    background: rgba(5, 205, 153, 0.05);
-    border-left: 3px solid var(--color-primary);
-  }
-
-  .contact-section h2 {
-    margin-top: 0;
-  }
-
-  :global(html.dark-theme) .privacy-header {
-    border-bottom-color: rgba(245, 245, 245, 0.1);
-  }
-
-  :global(html.dark-theme) .contact-section {
-    background: var(--accent-light-bg);
-  }
-
-  /* Tablet (480px - 768px) */
-  @media (min-width: 480px) {
-    .privacy-container {
-      padding: 4rem 2rem;
+  @media print {
+    .legal-page-container {
+      padding: 0;
+      max-width: 100%;
     }
 
-    .privacy-header h1 {
-      font-size: 2.75rem;
-    }
-  }
-
-  /* Desktop (768px+) */
-  @media (min-width: 768px) {
-    .privacy-container {
-      padding: 5rem 2rem;
+    .legal-page-header {
+      border-bottom: 2px solid #000;
     }
 
-    .privacy-header h1 {
-      font-size: 3rem;
+    .legal-contact-section {
+      border-left: 3px solid #000;
     }
 
-    .privacy-body h2 {
-      font-size: 1.75rem;
+    @page {
+      margin: 1.5cm;
     }
   }
 </style>

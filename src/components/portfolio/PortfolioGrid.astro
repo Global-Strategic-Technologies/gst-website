@@ -9,7 +9,7 @@ interface Props {
 const { projects } = Astro.props;
 ---
 
-<div class="portfolio-grid-container">
+<div class="portfolio-grid-container brutal-frosted--blur-only">
   <div class="container">
     <div class="grid" data-testid="portfolio-grid">
       {projects.map((project) => (
@@ -55,7 +55,6 @@ const { projects } = Astro.props;
 
 <style>
   .portfolio-grid-container {
-    background: var(--bg-light);
     padding: 2rem 0 4rem 0;
   }
 
@@ -88,7 +87,7 @@ const { projects } = Astro.props;
     border: 1px solid var(--border-light);
     padding: 1.5rem;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all var(--transition-normal);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -96,8 +95,6 @@ const { projects } = Astro.props;
   }
 
   .project-card:hover {
-    box-shadow: 0 10px 30px rgba(5, 205, 153, 0.15);
-    transform: translateY(-4px);
     border-color: var(--color-primary);
   }
 
@@ -115,6 +112,7 @@ const { projects } = Astro.props;
   }
 
   .project-title {
+    font-family: monospace;
     font-weight: 900;
     font-size: 1.25rem;
     color: var(--text-primary);
@@ -124,6 +122,7 @@ const { projects } = Astro.props;
   }
 
   .project-industry {
+    font-family: monospace;
     font-size: 0.8125rem;
     color: var(--text-muted);
     margin: 0;
@@ -131,6 +130,7 @@ const { projects } = Astro.props;
   }
 
   .year-badge {
+    font-family: monospace;
     background: var(--filter-chip-bg);
     color: var(--text-secondary);
     padding: 0.35rem 0.75rem;
@@ -158,6 +158,7 @@ const { projects } = Astro.props;
   }
 
   .metric-label {
+    font-family: monospace;
     font-size: 0.65rem;
     color: var(--text-faded);
     text-transform: uppercase;
@@ -167,6 +168,7 @@ const { projects } = Astro.props;
   }
 
   .metric-value {
+    font-family: monospace;
     font-size: 1rem;
     font-weight: 700;
     color: var(--text-primary);
@@ -197,6 +199,7 @@ const { projects } = Astro.props;
   }
 
   .tag {
+    font-family: monospace;
     background: var(--accent-dark-bg);
     color: var(--color-primary);
     padding: 0.35rem 0.75rem;
@@ -224,7 +227,7 @@ const { projects } = Astro.props;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all var(--transition-fast);
     position: relative;
     overflow: hidden;
     margin-top: auto;
@@ -238,7 +241,7 @@ const { projects } = Astro.props;
     width: 100%;
     height: 100%;
     background: var(--color-primary);
-    transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: left var(--transition-fast);
     z-index: -1;
   }
 
@@ -267,11 +270,10 @@ const { projects } = Astro.props;
 
   :global(html.dark-theme) .project-card:hover {
     border-color: var(--color-primary);
-    box-shadow: 0 10px 30px rgba(5, 205, 153, 0.2);
   }
 
   :global(html.dark-theme) .project-industry {
-    color: rgba(200, 200, 200, 0.7);
+    color: var(--text-muted);
   }
 
   :global(html.dark-theme) .year-badge {

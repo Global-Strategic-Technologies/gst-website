@@ -46,8 +46,8 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => technica
       </div>
 
       <!-- Search and Filter Controls (Fixed) -->
-      <div class="portfolio-controls-fixed">
-        <div class="controls-wrapper">
+      <div class="portfolio-controls-fixed brutal-frosted--heavy">
+        <div class="controls-wrapper brutal-frosted">
           <div class="search-box">
             <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"></circle>
@@ -78,7 +78,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => technica
   </div>
 
   <!-- Filter Drawer (Slide-out) -->
-  <div id="filter-drawer" class="filter-drawer portfolio-filter-drawer" data-testid="portfolio-filter-drawer">
+  <div id="filter-drawer" class="filter-drawer portfolio-filter-drawer brutal-frosted--overlay" data-testid="portfolio-filter-drawer">
     <div class="drawer-header">
       <h2 class="drawer-title">FILTERS</h2>
       <button id="drawer-close" class="drawer-close" aria-label="Close filters" data-testid="portfolio-drawer-close">
@@ -157,6 +157,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => technica
   }
 
   .portfolio-title {
+    font-family: monospace;
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--text-primary);
@@ -167,14 +168,13 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => technica
   }
 
   .portfolio-controls-fixed {
-    background: var(--bg-light);
     border-bottom: none;
     padding: 0;
     height: auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: position 0.2s ease-out, top 0.2s ease-out;
+    transition: position var(--transition-fast) ease-out, top var(--transition-fast) ease-out;
   }
 
   .portfolio-controls-fixed.sticky-active {
@@ -193,7 +193,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => technica
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    background: var(--bg-light);
+    background: transparent;
   }
 
 
@@ -252,6 +252,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => technica
   }
 
   .drawer-title {
+    font-family: monospace;
     font-size: 1.25rem;
     font-weight: 700;
     color: var(--text-primary);
@@ -268,7 +269,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => technica
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: all var(--transition-fast);
   }
 
   .drawer-close:hover {
@@ -295,6 +296,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => technica
   }
 
   .filter-label {
+    font-family: monospace;
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -315,22 +317,19 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => technica
   }
 
   /* Dark Theme Component Overrides */
-  :global(html.dark-theme) .portfolio-controls-fixed {
-    background: var(--bg-dark-secondary);
-  }
+  /* dark theme frosted glass handled by .brutal-frosted--heavy */
 
   :global(html.dark-theme) .portfolio-controls-fixed .container {
-    background: var(--bg-dark-secondary);
+    background: transparent;
   }
 
   :global(html.dark-theme) .controls-wrapper {
     border-bottom-color: var(--color-primary);
   }
 
+  /* dark theme frosted glass handled by .brutal-frosted--overlay */
   :global(html.dark-theme) .portfolio-filter-drawer {
-    background: var(--bg-dark-secondary);
     border-left-color: var(--color-primary);
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.4);
   }
 
   :global(html.dark-theme) .drawer-header {
@@ -338,7 +337,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => technica
   }
 
   :global(html.dark-theme) .filter-label {
-    color: rgba(200, 200, 200, 0.7);
+    color: var(--text-muted);
   }
 
   /* Responsive */
@@ -472,8 +471,6 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => technica
       max-height: 85vh;
       border-left: none;
       border-top: 2px solid var(--color-primary);
-      border-radius: 12px 12px 0 0;
-      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
     }
 
     .drawer-header {

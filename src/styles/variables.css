@@ -7,6 +7,10 @@
   --color-secondary: #CC8800;
   --color-secondary-dark: #FFAA33;
 
+  /* Editor's Pick */
+  --color-editors-pick: #b26622;
+  --color-editors-pick-hover: #d4923a;
+
   /* Semantic Colors */
   --color-success: #2e8b57;
   --color-warning: #CC8800;
@@ -213,6 +217,8 @@ html.dark-theme {
   --text-muted: var(--text-dark-muted);
   --text-faded: var(--text-dark-faded);
   --color-secondary: var(--color-secondary-dark);
+  --color-editors-pick: #d4923a;
+  --color-editors-pick-hover: #b26622;
 
   /* Accent Opacity Scale (dark theme — slightly higher opacity for visibility) */
   --accent-subtle-bg: rgba(5, 205, 153, 0.03);

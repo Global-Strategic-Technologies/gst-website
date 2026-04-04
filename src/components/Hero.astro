@@ -29,7 +29,7 @@ const {
 <section class="hero">
     <div class="container">
         <div class="hero-layout">
-            <h1>
+            <h1 class="brutal-hero__title">
                 {title ? (
                     <span class="line">{title}</span>
                 ) : (
@@ -43,7 +43,7 @@ const {
 
             <div class="hero-content">
                 <div>
-                    <p>{description}</p>
+                    <p class="brutal-hero__description">{description}</p>
                 </div>
                 <div class="hero-action">
                     {(primaryCTA || secondaryCTA) && (
@@ -70,7 +70,7 @@ const {
                         </div>
                     )}
                     {trustLine && (
-                        <p class="trust-line">{trustLine}</p>
+                        <p class="trust-line brutal-hero__trustline">{trustLine}</p>
                     )}
                 </div>
             </div>

@@ -16,8 +16,8 @@ const { stats } = Astro.props;
         <div class="stats-grid">
             {stats.map((stat) => (
                 <div class="stat-item">
-                    <div class="stat-value">{stat.value}</div>
-                    <div class="stat-label">{stat.label}</div>
+                    <div class="stat-value brutal-stat__value">{stat.value}</div>
+                    <div class="stat-label brutal-stat__label">{stat.label}</div>
                 </div>
             ))}
         </div>

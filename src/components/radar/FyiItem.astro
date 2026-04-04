@@ -26,7 +26,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
         <span class="date">{dateStr}</span>
       </div>
       <div class="fyi-item__headline">
-        <span class="fyi-item__toggle" aria-hidden="true"></span>
+        <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" class="fyi-item__toggle delta-chevron" aria-hidden="true" />
         <h3 class="fyi-item__title">
           <a href={item.url} target="_blank" rel="noopener noreferrer"
              onclick="event.stopPropagation();">
@@ -42,21 +42,21 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
 
       {item.highlightedText && (
         <div class="fyi-item__highlight">
-          <span class="highlight-label">Highlighted</span>
+          <span class="brutal-content-label" style="color: var(--cat-color);">Highlighted</span>
           <blockquote>{item.highlightedText}</blockquote>
         </div>
       )}
 
       {item.highlightedText && item.gstTake && (
         <div class="fyi-item__nested-take">
-          <span class="take-label">Δ GST Take</span>
+          <span class="brutal-content-label">Δ GST Take</span>
           <p>{item.gstTake}</p>
         </div>
       )}
 
       {!item.highlightedText && item.gstTake && (
         <div class="fyi-item__take">
-          <span class="take-label">Δ GST Take</span>
+          <span class="brutal-content-label">Δ GST Take</span>
           <p>{item.gstTake}</p>
         </div>
       )}
@@ -89,23 +89,9 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     align-items: center;
     gap: var(--spacing-md);
     font-size: var(--text-xs);
+    font-family: monospace;
     color: var(--text-muted);
     margin-bottom: var(--spacing-xs);
-  }
-
-  .editors-pick-tag {
-    font-size: var(--text-xs);
-    font-weight: var(--font-weight-semibold);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #b26622;
-    border: 1px solid #b26622;
-    padding: 0.125rem var(--spacing-sm);
-  }
-
-  :global(html.dark-theme) .editors-pick-tag {
-    color: #d4923a;
-    border-color: #d4923a;
   }
 
   .fyi-item__headline {
@@ -116,6 +102,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
 
   .fyi-item__title {
     font-size: var(--text-base);
+    font-family: monospace;
     font-weight: var(--font-weight-semibold);
     line-height: 1.4;
     margin: 0;
@@ -133,28 +120,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
   }
 
   .fyi-item__toggle {
-    flex-shrink: 0;
-    width: 1.5rem;
-    text-align: center;
-    line-height: 1;
     margin-top: -0.125rem;
-  }
-
-  .fyi-item__toggle::before {
-    content: "+";
-    font-family: monospace;
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--text-muted);
-    transition: color var(--transition-fast);
-  }
-
-  .fyi-item__details[open] .fyi-item__toggle::before {
-    content: "\2212";
-  }
-
-  .fyi-item__header:hover .fyi-item__toggle::before {
-    color: var(--color-primary);
   }
 
   /* Expanded body */
@@ -165,6 +131,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
 
   .fyi-item__summary {
     font-size: var(--text-sm);
+    font-family: monospace;
     color: var(--text-secondary);
     line-height: 1.5;
     margin-bottom: var(--spacing-sm);
@@ -174,16 +141,6 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     border-left: 3px solid var(--cat-color);
     padding: var(--spacing-sm) var(--spacing-md);
     margin: var(--spacing-sm) 0;
-  }
-
-  .highlight-label {
-    font-size: var(--text-xs);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--cat-color);
-    display: block;
-    margin-bottom: 0.25rem;
   }
 
   .fyi-item__highlight blockquote {
@@ -208,10 +165,6 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     border-top: 1px solid var(--border-light);
   }
 
-  .fyi-item__nested-take .take-label {
-    color: var(--color-primary);
-  }
-
   .fyi-item__nested-take p {
     font-size: var(--text-sm);
     color: var(--text-primary);
@@ -220,17 +173,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
   }
 
   :global(html.dark-theme) .fyi-item__nested-take {
-    border-top-color: var(--border-dark);
-  }
-
-  .take-label {
-    font-size: var(--text-xs);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-primary);
-    display: block;
-    margin-bottom: 0.25rem;
+    border-top-color: rgba(255, 255, 255, 0.15);
   }
 
   .fyi-item__take p {
@@ -241,7 +184,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
   }
 
   :global(html.dark-theme) .fyi-item {
-    border-bottom-color: var(--border-dark);
+    border-bottom-color: rgba(255, 255, 255, 0.15);
   }
 
   @media (max-width: 480px) {

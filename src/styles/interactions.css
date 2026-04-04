@@ -112,13 +112,21 @@ html.dark-theme .accent-light-bg-hover {
 }
 
 /* Delta Chevron — Collapse/Expand Toggle Indicator
-   Uses the brand delta triangle SVG inline. Points down when expanded,
-   up when collapsed. Apply to an inline <svg> with the delta path.
-   Toggle .is-collapsed on a parent element to flip direction.
+   Uses the brand delta triangle SVG or <img>. Points up when collapsed,
+   rotates 180deg to point down when expanded.
 
-   HTML: <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-           <path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/>
-         </svg>
+   Two usage patterns:
+
+   1. JS-toggled (default expanded): parent toggles .is-collapsed class
+      <div><svg class="delta-chevron" ...></div>
+
+   2. <details> element (default collapsed): auto-detects [open] attribute
+      <details><summary>...<img class="delta-chevron" ...></summary></details>
+
+   HTML (SVG): <svg class="delta-chevron" viewBox="0 0 64 64" fill="none">
+                 <path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/>
+               </svg>
+   HTML (IMG): <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" class="delta-chevron" alt="" aria-hidden="true" />
 */
 .delta-chevron {
   flex-shrink: 0;
@@ -131,10 +139,20 @@ html.dark-theme .accent-light-bg-hover {
   margin-left: auto;
 }
 
+/* JS-toggled collapsed state */
 .is-collapsed > .delta-chevron,
 .is-collapsed .delta-chevron {
   transform: rotate(0deg);
   color: var(--text-muted);
+}
+
+/* <details> element: default closed = up, [open] = down */
+details:not([open]) > summary .delta-chevron {
+  transform: rotate(0deg);
+}
+
+details[open] > summary .delta-chevron {
+  transform: rotate(180deg);
 }
 
 /* Brutalist Interaction States — monospace, no radius, structural state changes */

@@ -25,8 +25,8 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
 
 <!-- Fixed Controls - Positioned independently at viewport level -->
 <div class="sticky-controls-overlay">
-  <div class="portfolio-controls-fixed">
-    <div class="controls-wrapper">
+  <div class="portfolio-controls-fixed brutal-frosted--heavy">
+    <div class="controls-wrapper brutal-frosted">
       <div class="search-box">
         <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"></circle>
@@ -69,14 +69,13 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
 
   /* Fixed Search/Filter Controls */
   .portfolio-controls-fixed {
-    background: var(--bg-light);
     border-bottom: none;
     padding: 0;
     height: auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+    transition: transform var(--transition-fast) ease-out, opacity var(--transition-fast) ease-out;
     position: fixed;
     left: 50%;
     width: fit-content;
@@ -104,6 +103,11 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
     margin-left: 0.75rem;
   }
 
+  .search-input {
+    font-family: monospace;
+    background: transparent;
+  }
+
   .search-icon {
     position: absolute;
     left: 0.875rem;
@@ -119,6 +123,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
     min-height: 44px;
     pointer-events: auto;
     padding: 0.75rem 1rem;
+    background: transparent;
   }
 
   .filter-button svg {
@@ -156,10 +161,8 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
     top: 80px;
     width: 350px;
     height: calc(100vh - 80px);
-    background: var(--bg-light);
     border-left: 2px solid var(--color-primary);
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
-    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: right var(--transition-normal) cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 10001;
     overflow-y: auto;
     display: flex;
@@ -181,6 +184,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
   }
 
   .drawer-title {
+    font-family: monospace;
     font-size: 1.25rem;
     font-weight: 700;
     color: var(--text-primary);
@@ -197,7 +201,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: all var(--transition-fast);
   }
 
   .drawer-close:hover {
@@ -224,6 +228,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
   }
 
   .filter-label {
+    font-family: monospace;
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -244,11 +249,12 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
     color: var(--text-secondary);
     border: 1px solid var(--border-light);
     cursor: pointer;
+    font-family: monospace;
     font-size: 0.8125rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all var(--transition-fast) cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
   }
 
@@ -276,9 +282,8 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    border-radius: 0;
+    font-family: monospace;
+    transition: all var(--transition-fast) cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .clear-filters-btn:hover {
@@ -300,7 +305,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
     background: rgba(0, 0, 0, 0);
     z-index: 10000;
     display: none;
-    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background var(--transition-normal) cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
   }
 
@@ -317,18 +322,15 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
   }
 
   /* Dark Theme */
-  :global(html.dark-theme) .portfolio-controls-fixed {
-    background: var(--bg-dark-secondary);
-  }
+  /* dark theme frosted glass handled by .brutal-frosted--heavy */
 
   :global(html.dark-theme) .controls-wrapper {
     border-bottom-color: var(--color-primary);
   }
 
+  /* dark theme frosted glass handled by .brutal-frosted--overlay */
   :global(html.dark-theme) .portfolio-filter-drawer {
-    background: var(--bg-dark-secondary);
     border-left-color: var(--color-primary);
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.4);
   }
 
   :global(html.dark-theme) .drawer-header {
@@ -336,7 +338,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
   }
 
   :global(html.dark-theme) .filter-label {
-    color: rgba(200, 200, 200, 0.7);
+    color: var(--text-muted);
   }
 
   :global(html.dark-theme) .clear-filters-btn {
@@ -384,7 +386,6 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
       padding: 0.625rem 0.75rem 0.625rem 2.25rem;
       font-size: 0.75rem;
       min-height: 38px;
-      border-radius: 4px;
     }
 
     .search-icon {
@@ -422,8 +423,6 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => ENGAGEME
       max-height: 85vh;
       border-left: none;
       border-top: 2px solid var(--color-primary);
-      border-radius: 12px 12px 0 0;
-      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
     }
 
     .portfolio-filter-drawer.open {

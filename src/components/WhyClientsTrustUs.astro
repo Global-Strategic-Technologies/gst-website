@@ -33,7 +33,7 @@
     /* Component styles following design system patterns */
     .why-clients-trust-us {
         padding: var(--spacing-3xl) 0;
-        background: linear-gradient(180deg, rgba(245, 245, 245, 0) 0%, var(--bg-light-alt) 15%, var(--bg-light-alt) 85%, rgba(245, 245, 245, 0) 100%);
+        background: transparent;
         position: relative;
     }
 
@@ -43,6 +43,8 @@
     }
 
     .heading-lg {
+        font-family: monospace;
+        text-transform: uppercase;
         margin-bottom: var(--spacing-2xl);
         text-align: center;
     }
@@ -55,24 +57,22 @@
 
     .trust-card {
         padding: var(--spacing-2xl);
-        background: rgba(5, 205, 153, 0.03);
-        border: 1px solid rgba(5, 205, 153, 0.1);
-        border-radius: 8px;
-        transition: all var(--transition-normal);
+        background: transparent;
+        border: 2px solid var(--border-light);
+        border-radius: 0;
+        transition: border-color var(--transition-normal);
         display: flex;
         flex-direction: column;
         height: 100%;
     }
 
     .trust-card:hover {
-        background: rgba(5, 205, 153, 0.08);
-        border-color: rgba(5, 205, 153, 0.2);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(5, 205, 153, 0.1);
+        border-color: var(--color-primary);
     }
 
     .trust-card h3 {
         font-size: var(--text-lg);
+        font-family: monospace;
         font-weight: var(--font-weight-bold);
         color: var(--text-primary);
         margin-bottom: var(--spacing-md);
@@ -81,6 +81,7 @@
 
     .trust-card p {
         font-size: var(--text-base);
+        font-family: monospace;
         color: var(--text-secondary);
         line-height: 1.7;
         flex-grow: 1;
@@ -88,17 +89,17 @@
 
     /* Dark theme support */
     :global(html.dark-theme) .why-clients-trust-us {
-        background: linear-gradient(180deg, rgba(10, 10, 10, 0) 0%, var(--bg-dark) 15%, var(--bg-dark) 85%, rgba(10, 10, 10, 0) 100%);
+        background: transparent;
     }
 
     :global(html.dark-theme) .trust-card {
-        background: rgba(5, 205, 153, 0.05);
-        border-color: rgba(5, 205, 153, 0.15);
+        background: transparent;
+        border-color: rgba(255, 255, 255, 0.15);
     }
 
     :global(html.dark-theme) .trust-card:hover {
-        background: rgba(5, 205, 153, 0.12);
-        border-color: rgba(5, 205, 153, 0.25);
+        background: transparent;
+        border-color: var(--color-primary);
     }
 
 

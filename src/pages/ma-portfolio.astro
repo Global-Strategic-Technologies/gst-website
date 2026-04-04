@@ -37,17 +37,69 @@ const portfolioType = 'ma';
   title="M&A | GST"
   description="Explore GST's track record of 51 M&A advisory and implementation projects across healthcare, logistics, software, finance, and more."
 >
+  <!-- Print-only report header (hidden on screen) -->
+  <div class="print-report-header" aria-hidden="true">
+    <div class="print-report-header__brand">
+      <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" width="24" height="24" />
+      <span>GST</span>
+    </div>
+    <div class="print-report-header__title">M&A Portfolio</div>
+    <div class="print-report-header__date">Generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+  </div>
+
   <StickyControls projects={typedProjects} />
-  <main>
+  <div class="portfolio-content">
     <PortfolioHeader portfolioType={portfolioType} projects={typedProjects} />
     <PortfolioSummary />
     <StatsBar stats={stats} />
     <PortfolioGrid projects={typedProjects} />
-  </main>
+  </div>
 </BaseLayout>
 
 <style>
-  main {
+  .portfolio-content {
     min-height: 100vh;
+  }
+
+  @media print {
+    /* Hide interactive chrome */
+    :global(.sticky-controls-overlay),
+    :global(.portfolio-filter-drawer),
+    :global(.portfolio-filter-overlay),
+    :global(.portfolio-controls-fixed),
+    :global(.controls-wrapper),
+    :global(.cta-button) {
+      display: none !important;
+    }
+
+    /* Reset frosted glass (backdrop-filter breaks print in some browsers) */
+    :global(.brutal-frosted),
+    :global(.portfolio-grid-container) {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: transparent !important;
+    }
+
+    /* Ensure grid is visible and flows naturally */
+    :global(.portfolio-grid-container) {
+      padding: 0 !important;
+    }
+
+    :global(.project-card) {
+      break-inside: avoid;
+      border: 1px solid #ccc !important;
+      background: #fff !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      margin-bottom: 1rem;
+    }
+
+    :global(.project-card .cta-button) {
+      display: none !important;
+    }
+
+    @page {
+      margin: 1.5cm;
+    }
   }
 </style>

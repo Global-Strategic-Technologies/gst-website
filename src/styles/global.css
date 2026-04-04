@@ -57,7 +57,7 @@ body::before {
     background-size: 50px 50px;
     background-position: 0 0, 25px 25px;
     pointer-events: none;
-    z-index: 0;
+    z-index: -1;
 }
 
 .container {
@@ -437,7 +437,7 @@ html.dark-theme .tool-action-bar--frosted {
 .site-header {
     padding: 1.275rem 0;
     background: var(--bg-light-alt);
-    border-bottom: 4px solid var(--color-primary);
+    border-bottom: 2px solid var(--color-primary);
     position: sticky;
     top: 0;
     z-index: 10;
@@ -470,6 +470,7 @@ nav {
 .logo {
     font-size: 2rem;
     font-weight: 900;
+    font-family: monospace;
     color: var(--text-primary);
     letter-spacing: -0.05em;
     text-transform: uppercase;
@@ -535,6 +536,7 @@ nav a {
     color: var(--text-secondary);
     text-decoration: none;
     font-weight: var(--font-weight-bold);
+    font-family: monospace;
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -595,7 +597,7 @@ a:hover {
     font-size: 6rem;
     font-weight: 900;
     line-height: 0.95;
-    color: rgba(26, 26, 26, 0.95);
+    color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: -0.04em;
     margin-bottom: 0.5rem;
@@ -626,7 +628,7 @@ html.dark-theme .hero h1 .highlight {
 
 .hero p {
     font-size: 1.5rem;
-    color: rgba(26, 26, 26, 0.85);
+    color: var(--text-secondary);
     line-height: 1.6;
     font-weight: 400;
 }
@@ -676,10 +678,9 @@ html.dark-theme .hero p .highlight {
     letter-spacing: 0.05em;
 }
 
-html.dark-theme .trust-line {
-    color: var(--text-dark-muted);
-}
-
+/* CTA Button — hero/primary call-to-action for marketing pages.
+   Spacious padding, larger text, translateX hover motion.
+   Distinct from .brutal-btn (compact utility button for tool UIs). */
 .cta-button {
     display: inline-block;
     background: var(--color-primary);
@@ -966,8 +967,8 @@ html.dark-theme .trust-line {
 /* Footer */
 footer {
     padding: 1.25rem 0 0 0;
-    background: #eeeeee;
-    border-top: 4px solid var(--color-primary);
+    background: var(--bg-light-alt);
+    border-top: 2px solid var(--color-primary);
     position: relative;
     z-index: 0;
 }
@@ -979,8 +980,9 @@ footer {
 }
 
 footer p {
-    color: rgba(26, 26, 26, 0.85);
+    color: var(--text-secondary);
     font-size: 0.85rem;
+    font-family: monospace;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -1004,12 +1006,13 @@ footer p {
     display: flex;
     justify-content: flex-start;
     padding-top: 1rem;
-    border-top: 1px solid rgba(26, 26, 26, 0.1);
+    border-top: 1px solid var(--border-light);
 }
 
 .footer-links a {
     color: var(--text-secondary);
     text-decoration: none;
+    font-family: monospace;
     font-size: 0.85rem;
     font-weight: var(--font-weight-bold);
     text-transform: uppercase;
@@ -1059,10 +1062,10 @@ footer p {
 .theme-toggle {
     background: transparent;
     border: none;
-    color: rgba(74, 74, 74, 0.8);
+    color: var(--text-muted);
     cursor: pointer;
     font-size: 5rem;
-    transition: color 0.2s;
+    transition: color var(--transition-fast);
     padding: 0;
     line-height: 1;
     display: flex;
@@ -1205,7 +1208,7 @@ html.dark-theme footer p {
 }
 
 html.dark-theme .footer-bottom {
-    border-top-color: var(--footer-border);
+    border-top-color: rgba(255, 255, 255, 0.15);
 }
 
 html.dark-theme .footer-links a:hover {
@@ -1230,13 +1233,13 @@ html.dark-theme .footer-links a:hover {
 
 .cta-box h2 {
     font-size: 2.5rem;
-    color: rgba(26, 26, 26, 0.95);
+    color: var(--text-primary);
     margin-bottom: 1.5rem;
     font-weight: 600;
 }
 
 .cta-box p {
-    color: rgba(26, 26, 26, 0.85);
+    color: var(--text-secondary);
     font-size: 1.15rem;
     margin-bottom: 2.5rem;
 }
@@ -1613,23 +1616,24 @@ main {
 
 /* Shared Filter Control Styles */
 
-/* Filter Chip - Base Styles */
+/* Filter Chip - Base Styles (canonical definition — see also .brutal-filter-chip) */
 .filter-chip {
     padding: 0.5rem 1rem;
-    background: rgba(26, 26, 26, 0.05);
-    color: rgba(26, 26, 26, 0.7);
-    border: 1px solid rgba(26, 26, 26, 0.1);
+    background: var(--filter-chip-bg, rgba(26, 26, 26, 0.05));
+    color: var(--text-secondary);
+    border: 1px solid var(--border-light);
     cursor: pointer;
-    font-size: 0.8125rem;
+    font-family: monospace;
+    font-size: 0.8rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all var(--transition-fast);
     user-select: none;
 }
 
 .filter-chip:hover {
-    background: rgba(26, 26, 26, 0.08);
+    background: var(--filter-chip-bg-hover, rgba(26, 26, 26, 0.08));
     border-color: var(--color-primary);
     color: var(--color-primary);
 }
@@ -1638,7 +1642,6 @@ main {
     background: var(--color-primary);
     color: var(--bg-light);
     border-color: var(--color-primary);
-    transition: all var(--transition-normal);
 }
 
 /* Search Input - Base Styles */
@@ -1829,7 +1832,9 @@ html.dark-theme .filter-drawer {
 }
 
 /* ==============================
-   Brutalist Button Variants
+   Brutalist Button Variants — compact utility buttons for tool UIs.
+   Smaller text, uppercase, tight padding. Distinct from .cta-button
+   (spacious hero/primary CTA for marketing pages).
    ============================== */
 
 .brutal-btn {
@@ -3011,6 +3016,127 @@ html.dark-theme .brutal-slider__direct {
 }
 
 /* ==============================
+   Brutalist Editor's Pick Tag
+   ============================== */
+
+.editors-pick-tag {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-editors-pick);
+    border: 2px solid var(--color-editors-pick);
+    padding: 0.125rem var(--spacing-sm);
+}
+
+/* ==============================
+   Brutalist Content Label
+   ============================== */
+
+.brutal-content-label {
+    font-size: var(--text-xs);
+    font-family: monospace;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--color-primary);
+}
+
+/* ==============================
+   Brutalist Frosted Glass Utility
+   ============================== */
+
+.brutal-frosted {
+    background: rgba(0, 0, 0, 0.005);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+
+html.dark-theme .brutal-frosted {
+    background: rgba(255, 255, 255, 0.005);
+}
+
+/* Heavy variant — controls, drawers, sticky bars that need readable
+   content over blurred background. Higher opacity + stronger blur. */
+.brutal-frosted--heavy {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+html.dark-theme .brutal-frosted--heavy {
+    background: rgba(20, 20, 20, 0.6);
+}
+
+/* Blur-only variant — backdrop blur with no background color.
+   Use for containers where the page grid should show through
+   with soft blur but no tint. */
+.brutal-frosted--blur-only {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Overlay variant — drawers/panels that slide over content.
+   Higher opacity than heavy for readability. */
+.brutal-frosted--overlay {
+    background: rgba(245, 245, 245, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+html.dark-theme .brutal-frosted--overlay {
+    background: rgba(20, 20, 20, 0.92);
+}
+
+/* ==============================
+   Brutalist Hero
+   ============================== */
+
+.brutal-hero__title {
+    font-family: monospace;
+}
+
+.brutal-hero__description {
+    font-family: monospace;
+}
+
+.brutal-hero__trustline {
+    font-family: monospace;
+}
+
+html.dark-theme .brutal-hero__trustline {
+    color: var(--text-dark-muted);
+}
+
+/* ==============================
+   Brutalist Stat
+   ============================== */
+
+.brutal-stat__value {
+    font-family: monospace;
+}
+
+.brutal-stat__label {
+    font-family: monospace;
+}
+
+/* ==============================
+   Brutalist CTA
+   ============================== */
+
+.brutal-cta__title {
+    font-family: monospace;
+    text-transform: uppercase;
+}
+
+.brutal-cta__description {
+    font-family: monospace;
+}
+
+/* ==============================
    Brutalist Trust Card
    ============================== */
 
@@ -4023,13 +4149,11 @@ html.dark-theme .brutal-timeline-today__label {
     border: 2px solid var(--border-light);
     border-radius: 0;
     overflow: hidden;
-    background: rgba(0, 0, 0, 0.005);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
+    transition: border-color var(--transition-normal);
 }
 
 .brutal-faq__item[open] {
-    border-top: 3px solid var(--color-primary);
+    border-color: var(--color-primary);
 }
 
 .brutal-faq__question {
@@ -4051,21 +4175,6 @@ html.dark-theme .brutal-timeline-today__label {
     display: none;
 }
 
-.brutal-faq__question::after {
-    content: '+';
-    font-family: monospace;
-    font-size: 1.2rem;
-    color: var(--text-muted);
-    flex-shrink: 0;
-    margin-left: var(--spacing-md);
-    transition: color var(--transition-fast);
-}
-
-.brutal-faq__item[open] .brutal-faq__question::after {
-    content: '−';
-    color: var(--color-primary);
-}
-
 .brutal-faq__question:hover {
     color: var(--color-primary);
 }
@@ -4075,6 +4184,7 @@ html.dark-theme .brutal-timeline-today__label {
     font-size: var(--text-sm);
     color: var(--text-secondary);
     line-height: 1.7;
+    font-family: monospace;
 }
 
 .brutal-faq__answer :global(a) {
@@ -4082,13 +4192,56 @@ html.dark-theme .brutal-timeline-today__label {
     text-decoration: underline;
 }
 
+.brutal-faq__answer :global(p) {
+    margin: 0 0 var(--spacing-md) 0;
+}
+
+.brutal-faq__answer :global(p:last-child) {
+    margin-bottom: 0;
+}
+
 html.dark-theme .brutal-faq__item {
     border-color: rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.005);
 }
 
 html.dark-theme .brutal-faq__item[open] {
-    border-top-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+/* Large variant — marketing/gateway pages (larger padding and font sizes) */
+.brutal-faq--lg .brutal-faq__question {
+    padding: var(--spacing-xl);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+    gap: var(--spacing-md);
+}
+
+.brutal-faq--lg .brutal-faq__answer {
+    padding: 0 var(--spacing-xl) var(--spacing-xl);
+    font-size: var(--text-base);
+}
+
+@media (max-width: 768px) {
+    .brutal-faq--lg .brutal-faq__question {
+        padding: var(--spacing-lg);
+        font-size: var(--text-base);
+    }
+
+    .brutal-faq--lg .brutal-faq__answer {
+        padding: 0 var(--spacing-lg) var(--spacing-lg);
+        font-size: var(--text-sm);
+    }
+}
+
+@media (max-width: 480px) {
+    .brutal-faq--lg .brutal-faq__question {
+        padding: var(--spacing-md);
+    }
+
+    .brutal-faq--lg .brutal-faq__answer {
+        padding: 0 var(--spacing-md) var(--spacing-md);
+        font-size: var(--text-sm);
+    }
 }
 
 /* ==============================
@@ -4756,48 +4909,6 @@ html.dark-theme .option-card--selected {
     margin-left: calc(10px + var(--spacing-sm));
 }
 
-/* ── Trust Card (current specimen) ────────────────── */
-.trust-card {
-    padding: var(--spacing-2xl);
-    background: rgba(5, 205, 153, 0.03);
-    border: 1px solid rgba(5, 205, 153, 0.1);
-    border-radius: 8px;
-    transition: all var(--transition-normal);
-    display: flex;
-    flex-direction: column;
-}
-
-.trust-card:hover {
-    background: rgba(5, 205, 153, 0.08);
-    border-color: rgba(5, 205, 153, 0.2);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(5, 205, 153, 0.1);
-}
-
-.trust-card h3 {
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-bold);
-    color: var(--text-primary);
-    margin-bottom: var(--spacing-md);
-    line-height: 1.4;
-}
-
-.trust-card p {
-    font-size: var(--text-base);
-    color: var(--text-secondary);
-    line-height: 1.7;
-}
-
-html.dark-theme .trust-card {
-    background: rgba(5, 205, 153, 0.05);
-    border-color: rgba(5, 205, 153, 0.15);
-}
-
-html.dark-theme .trust-card:hover {
-    background: rgba(5, 205, 153, 0.12);
-    border-color: rgba(5, 205, 153, 0.25);
-}
-
 /* ── Project Card (current specimen) ──────────────── */
 .project-card {
     background: var(--bg-light);
@@ -4989,31 +5100,14 @@ html.dark-theme .teaser-card {
     color: var(--text-faded);
 }
 
-/* ── Filter Chips (current specimen) ──────────────── */
+/* ── Filter Chips (layout container) ──────────────── */
 .filter-chips {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
 }
 
-.filter-chip {
-    padding: 0.5rem 1rem;
-    background: var(--filter-chip-bg, rgba(26, 26, 26, 0.05));
-    color: var(--text-secondary);
-    border: 1px solid transparent;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    transition: all 0.2s;
-    user-select: none;
-}
-
-.filter-chip:hover {
-    background: var(--filter-chip-bg-hover, rgba(26, 26, 26, 0.08));
-    border-color: var(--color-primary);
-}
+/* .filter-chip base defined above in "Shared Filter Control Styles" */
 
 .filter-chip--active {
     background: var(--color-primary);
@@ -5325,5 +5419,260 @@ html.dark-theme .cta-box {
 @media print {
     .site-header {
         display: none !important;
+    }
+}
+
+/* ==============================
+   Legal Page Layout (Privacy, Terms)
+   ============================== */
+
+.legal-page-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 4rem 1.5rem;
+}
+
+.legal-page-header {
+    position: static !important;
+    top: auto;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border-light);
+    background: transparent;
+}
+
+.legal-page-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    font-family: monospace;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.legal-page-updated {
+    font-size: 0.85rem;
+    font-family: monospace;
+    color: var(--text-muted);
+}
+
+.legal-page-body {
+    line-height: 1.8;
+    font-family: monospace;
+    color: var(--text-secondary);
+}
+
+.legal-page-body h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    font-family: monospace;
+    text-transform: uppercase;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.legal-page-body p {
+    margin-bottom: 1rem;
+}
+
+.legal-page-body ul {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.legal-page-body li {
+    margin-bottom: 0.75rem;
+}
+
+.legal-page-body a {
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: border-color var(--transition-fast);
+}
+
+.legal-page-body a:hover {
+    border-bottom-color: var(--color-primary);
+}
+
+.legal-contact-section {
+    margin-top: 3rem;
+    padding: 2rem;
+    background: transparent;
+    border-left: 3px solid var(--color-primary);
+}
+
+.legal-contact-section h2 {
+    margin-top: 0;
+}
+
+html.dark-theme .legal-page-header {
+    border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+
+html.dark-theme .legal-contact-section {
+    background: transparent;
+}
+
+@media (min-width: 480px) {
+    .legal-page-container {
+        padding: 4rem 2rem;
+    }
+
+    .legal-page-header h1 {
+        font-size: 2.75rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .legal-page-container {
+        padding: 5rem 2rem;
+    }
+
+    .legal-page-header h1 {
+        font-size: 3rem;
+    }
+
+    .legal-page-body h2 {
+        font-size: 1.75rem;
+    }
+}
+
+/* ==============================
+   Brutalist Gateway Card (Library/Tools index pages)
+   ============================== */
+
+.brutal-gateway-card {
+    max-width: 600px;
+    margin: 0 auto var(--spacing-3xl);
+    padding: 2rem;
+    border: 2px solid var(--border-light);
+    border-top: 3px solid var(--color-primary);
+    text-align: center;
+}
+
+html.dark-theme .brutal-gateway-card {
+    border-color: rgba(255, 255, 255, 0.15);
+    border-top-color: var(--color-primary);
+}
+
+.brutal-gateway-card__header {
+    margin-bottom: var(--spacing-md);
+}
+
+.brutal-gateway-card h2 {
+    font-size: 1.3rem;
+    font-family: monospace;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.brutal-gateway-card__features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: var(--spacing-sm);
+}
+
+.brutal-gateway-card__features li {
+    font-size: var(--text-base);
+    font-family: monospace;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+}
+
+.brutal-gateway-card__features .bullet-icon {
+    flex-shrink: 0;
+    margin-top: 0.35em;
+    opacity: 0.8;
+}
+
+.brutal-gateway-card__badge {
+    font-size: 0.7rem;
+    font-family: monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: transparent;
+    color: var(--color-primary);
+    border: 2px solid var(--color-primary);
+    display: inline-block;
+    margin-top: var(--spacing-md);
+}
+
+.brutal-gateway-card__cta {
+    margin-top: var(--spacing-lg);
+    display: inline-block;
+}
+
+@media (max-width: 768px) {
+    .brutal-gateway-card {
+        padding: 1.5rem;
+    }
+
+    .brutal-gateway-card h2 {
+        font-size: 1.15rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .brutal-gateway-card {
+        padding: 1.25rem;
+    }
+}
+
+/* Print Report Header — branded header for printed pages.
+   Hidden on screen, visible in print. Use identical HTML structure:
+   <div class="print-report-header" aria-hidden="true">
+     <div class="print-report-header__brand"><img .../><span>GST</span></div>
+     <div class="print-report-header__title">Page Title</div>
+     <div class="print-report-header__date">Generated ...</div>
+   </div>
+*/
+.print-report-header {
+    display: none;
+}
+
+@media print {
+    .print-report-header {
+        display: flex !important;
+        align-items: center;
+        gap: 1rem;
+        padding-bottom: 1rem;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid #000;
+        font-family: monospace;
+    }
+
+    .print-report-header__brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 900;
+        font-size: 1.25rem;
+        text-transform: uppercase;
+    }
+
+    .print-report-header__title {
+        font-weight: 700;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .print-report-header__date {
+        margin-left: auto;
+        font-size: 0.75rem;
+        color: #666;
     }
 }
