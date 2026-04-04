@@ -97,8 +97,8 @@ describe('getMaturityLevel', () => {
     expect(getMaturityLevel(100).level).toBe('Strategic');
   });
 
-  it('uses var(--icg-maturity-strategic) for Strategic', () => {
-    expect(getMaturityLevel(100).color).toBe('var(--icg-maturity-strategic)');
+  it('uses var(--color-primary) for Strategic', () => {
+    expect(getMaturityLevel(100).color).toBe('var(--color-primary)');
   });
 });
 

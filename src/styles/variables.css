@@ -145,7 +145,7 @@
 
   /* Tool Color Derivations — all derive from the 9 core tokens above */
   --hub-authority-blue: var(--color-authority);
-  --hub-authority-blue-bg: rgba(var(--color-authority-rgb), 0.1);
+  --color-authority-bg: rgba(var(--color-authority-rgb), 0.1);
   --techpar-zone-healthy: var(--color-primary);
   --techpar-zone-healthy-bg: var(--accent-light-bg);
   --techpar-zone-ahead: var(--color-success);
@@ -161,7 +161,7 @@
   --techpar-kpi-warn: var(--color-warning);
   --techpar-kpi-negative: var(--color-error);
   --dm-methodology-brown: var(--color-subdued);
-  --dm-methodology-brown-bg: rgba(var(--color-subdued-rgb), 0.04);
+  --color-subdued-bg: rgba(var(--color-subdued-rgb), 0.04);
   --dm-results-blue: var(--color-authority);
   --dm-results-tan: var(--color-subdued);
   --dm-positive: var(--color-success);
@@ -279,8 +279,8 @@ html.dark-theme {
 
   /* Tool derivations auto-resolve from updated core tokens above */
   /* Only override opacity variants that need dark-theme tuning */
-  --dm-methodology-brown-bg: rgba(var(--color-subdued-rgb), 0.06);
-  --hub-authority-blue-bg: rgba(var(--color-authority-rgb), 0.1);
+  --color-subdued-bg: rgba(var(--color-subdued-rgb), 0.06);
+  --color-authority-bg: rgba(var(--color-authority-rgb), 0.1);
   --dm-negative-dark-bg: rgba(178, 34, 34, 0.1);
 
   /* TechPar — Zone Backgrounds (dark theme opacity) */

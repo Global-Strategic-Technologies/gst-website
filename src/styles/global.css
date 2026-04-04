@@ -2027,8 +2027,8 @@ html.dark-theme .brutal-callout--warning {
 
 .brutal-bench-table__label--stage {
     background: transparent;
-    color: var(--hub-authority-blue);
-    border: 1px solid var(--hub-authority-blue);
+    color: var(--color-authority);
+    border: 1px solid var(--color-authority);
 }
 
 /* ==============================
@@ -2359,8 +2359,8 @@ html.dark-theme .brutal-filter-chip--active {
 .brutal-filter-chip--all:hover,
 .brutal-filter-chip--privacy:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .brutal-filter-chip--ai:hover { border-color: var(--color-secondary); color: var(--color-secondary); }
-.brutal-filter-chip--industry:hover { border-color: var(--regmap-category-industry); color: var(--regmap-category-industry); }
-.brutal-filter-chip--cyber:hover { border-color: var(--regmap-category-cyber); color: var(--regmap-category-cyber); }
+.brutal-filter-chip--industry:hover { border-color: var(--color-distinguish); color: var(--color-distinguish); }
+.brutal-filter-chip--cyber:hover { border-color: var(--color-error); color: var(--color-error); }
 
 .brutal-filter-chip--all.brutal-filter-chip--active,
 .brutal-filter-chip--privacy.brutal-filter-chip--active {
@@ -2377,14 +2377,14 @@ html.dark-theme .brutal-filter-chip--active {
 
 .brutal-filter-chip--industry.brutal-filter-chip--active {
     background: transparent;
-    color: var(--regmap-category-industry);
-    border-color: var(--regmap-category-industry);
+    color: var(--color-distinguish);
+    border-color: var(--color-distinguish);
 }
 
 .brutal-filter-chip--cyber.brutal-filter-chip--active {
     background: transparent;
-    color: var(--regmap-category-cyber);
-    border-color: var(--regmap-category-cyber);
+    color: var(--color-error);
+    border-color: var(--color-error);
 }
 
 /* ==============================
@@ -2530,7 +2530,7 @@ html.dark-theme .brutal-tab-bar {
     right: 6px;
     width: 6px;
     height: 6px;
-    background: var(--techpar-zone-above);
+    background: var(--color-warning);
 }
 
 .brutal-tab__badge--on {
@@ -3338,8 +3338,8 @@ html.dark-theme .brutal-rec-card {
 }
 
 .brutal-rec-card__badge--effort {
-    color: var(--hub-authority-blue);
-    border-color: var(--hub-authority-blue);
+    color: var(--color-authority);
+    border-color: var(--color-authority);
 }
 
 .brutal-rec-card__na {
@@ -3378,13 +3378,13 @@ html.dark-theme .brutal-rec-card {
 }
 
 .attention-card--high {
-    border-left-color: var(--hub-authority-blue);
-    background: var(--hub-authority-blue-bg);
+    border-left-color: var(--color-authority);
+    background: var(--color-authority-bg);
 }
 
 .attention-card--medium {
-    border-left-color: var(--dm-methodology-brown);
-    background: var(--dm-methodology-brown-bg);
+    border-left-color: var(--color-subdued);
+    background: var(--color-subdued-bg);
 }
 
 html.dark-theme .attention-card {
@@ -3467,11 +3467,11 @@ html.dark-theme .attention-na:hover {
 }
 
 .attention-card--high .attention-divider {
-    background: var(--hub-authority-blue);
+    background: var(--color-authority);
 }
 
 .attention-card--medium .attention-divider {
-    background: var(--dm-methodology-brown);
+    background: var(--color-subdued);
 }
 
 .attention-desc {
@@ -3511,11 +3511,11 @@ html.dark-theme .attention-na:hover {
 }
 
 .brutal-attention-card--high {
-    border-left-color: var(--hub-authority-blue);
+    border-left-color: var(--color-authority);
 }
 
 .brutal-attention-card--medium {
-    border-left-color: var(--dm-methodology-brown);
+    border-left-color: var(--color-subdued);
 }
 
 html.dark-theme .brutal-attention-card {
@@ -3523,7 +3523,7 @@ html.dark-theme .brutal-attention-card {
 }
 
 html.dark-theme .brutal-attention-card--high {
-    border-left-color: var(--hub-authority-blue);
+    border-left-color: var(--color-authority);
 }
 
 .brutal-attention-card.is-dismissed {
@@ -3742,8 +3742,8 @@ html.dark-theme .brutal-na-btn:hover {
 
 .brutal-search__category--privacy { background: var(--accent-light-bg-hover); color: var(--color-primary); border-color: var(--color-primary); }
 .brutal-search__category--ai { background: var(--accent-light-bg); color: var(--color-secondary); border-color: var(--color-secondary); }
-.brutal-search__category--industry { background: transparent; color: var(--regmap-category-industry); border-color: var(--regmap-category-industry); }
-.brutal-search__category--cyber { background: transparent; color: var(--regmap-category-cyber); border-color: var(--regmap-category-cyber); }
+.brutal-search__category--industry { background: transparent; color: var(--color-distinguish); border-color: var(--color-distinguish); }
+.brutal-search__category--cyber { background: transparent; color: var(--color-error); border-color: var(--color-error); }
 
 .brutal-search__no-results {
     padding: var(--spacing-md);
@@ -3874,8 +3874,8 @@ html.dark-theme .brutal-map-cta {
 
 .brutal-timeline-dot--privacy { background: var(--color-primary); }
 .brutal-timeline-dot--ai { background: var(--color-secondary); }
-.brutal-timeline-dot--industry { background: var(--regmap-category-industry); }
-.brutal-timeline-dot--cyber { background: var(--regmap-category-cyber); }
+.brutal-timeline-dot--industry { background: var(--color-distinguish); }
+.brutal-timeline-dot--cyber { background: var(--color-error); }
 
 .brutal-timeline-dot--upcoming {
     background: transparent;
@@ -3906,8 +3906,8 @@ html.dark-theme .brutal-map-cta {
 
 .brutal-timeline-entry--privacy:hover { border-left-color: var(--color-primary); }
 .brutal-timeline-entry--ai:hover { border-left-color: var(--color-secondary); }
-.brutal-timeline-entry--industry:hover { border-left-color: var(--regmap-category-industry); }
-.brutal-timeline-entry--cyber:hover { border-left-color: var(--regmap-category-cyber); }
+.brutal-timeline-entry--industry:hover { border-left-color: var(--color-distinguish); }
+.brutal-timeline-entry--cyber:hover { border-left-color: var(--color-error); }
 
 .brutal-timeline-entry--upcoming {
     opacity: 0.7;

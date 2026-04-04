@@ -649,9 +649,9 @@ trackPageView('techpar', 'TechPar | GST');
     }
 
     .tp-toolbar__reset--confirming {
-        color: var(--techpar-zone-elevated);
-        border-left-color: var(--techpar-zone-elevated);
-        background: color-mix(in srgb, var(--techpar-zone-elevated) 8%, transparent);
+        color: var(--color-error);
+        border-left-color: var(--color-error);
+        background: color-mix(in srgb, var(--color-error) 8%, transparent);
         animation: tp-confirm-pulse 0.3s ease-out;
     }
 
@@ -718,7 +718,7 @@ trackPageView('techpar', 'TechPar | GST');
         right: 12px;
         width: 6px;
         height: 6px;
-        background: var(--techpar-zone-above);
+        background: var(--color-warning);
     }
 
     .tp-tab__badge--on {
@@ -796,10 +796,10 @@ trackPageView('techpar', 'TechPar | GST');
         flex-shrink: 0;
     }
 
-    .tp-cat-dot--infra { background: var(--techpar-category-infra); }
-    .tp-cat-dot--pers { background: var(--techpar-category-personnel); }
-    .tp-cat-dot--rd { background: var(--techpar-category-rd-opex); }
-    .tp-cat-dot--capex { background: var(--techpar-category-rd-capex); }
+    .tp-cat-dot--infra { background: var(--color-primary); }
+    .tp-cat-dot--pers { background: var(--color-authority); }
+    .tp-cat-dot--rd { background: var(--color-distinguish); }
+    .tp-cat-dot--capex { background: var(--color-secondary); }
 
     .tp-field {
         margin-bottom: var(--spacing-md);
@@ -825,7 +825,7 @@ trackPageView('techpar', 'TechPar | GST');
     }
 
     .tp-hint--warn {
-        color: var(--techpar-zone-above);
+        color: var(--color-warning);
     }
 
     .tp-infra-annual {
@@ -895,7 +895,7 @@ trackPageView('techpar', 'TechPar | GST');
     }
 
     .tp-baseline-bar__clear:hover {
-        color: var(--techpar-zone-above);
+        color: var(--color-warning);
     }
 
     .tp-delta {
@@ -906,11 +906,11 @@ trackPageView('techpar', 'TechPar | GST');
     }
 
     .tp-delta--improve {
-        color: var(--techpar-zone-healthy);
+        color: var(--color-primary);
     }
 
     .tp-delta--worsen {
-        color: var(--techpar-zone-above);
+        color: var(--color-warning);
     }
 
     .tp-cross-link {
@@ -1535,9 +1535,9 @@ trackPageView('techpar', 'TechPar | GST');
         margin-bottom: var(--spacing-xs);
     }
 
-    .tp-kpi-grid :global(.tp-kpi-val--pos) { color: var(--techpar-kpi-positive); }
-    .tp-kpi-grid :global(.tp-kpi-val--warn) { color: var(--techpar-kpi-warn); }
-    .tp-kpi-grid :global(.tp-kpi-val--bad) { color: var(--techpar-kpi-negative); }
+    .tp-kpi-grid :global(.tp-kpi-val--pos) { color: var(--color-primary); }
+    .tp-kpi-grid :global(.tp-kpi-val--warn) { color: var(--color-warning); }
+    .tp-kpi-grid :global(.tp-kpi-val--bad) { color: var(--color-error); }
 
     .tp-kpi-grid :global(.tp-kpi-sub) {
         font-family: monospace;
@@ -1756,8 +1756,8 @@ trackPageView('techpar', 'TechPar | GST');
     }
 
     .tp-historical__body :global(.tp-hist-remove:hover) {
-        color: var(--techpar-zone-elevated);
-        border-color: var(--techpar-zone-elevated);
+        color: var(--color-error);
+        border-color: var(--color-error);
     }
 
     .tp-hist-add {
@@ -1790,7 +1790,7 @@ trackPageView('techpar', 'TechPar | GST');
         padding: var(--spacing-sm) var(--spacing-md);
         margin-bottom: var(--spacing-lg);
         border: 2px solid var(--border-light);
-        border-left: 3px solid var(--techpar-zone-elevated);
+        border-left: 3px solid var(--color-error);
         background: transparent;
         color: var(--text-secondary);
         font-family: monospace;
@@ -2270,7 +2270,7 @@ trackPageView('techpar', 'TechPar | GST');
 
     :global(html.dark-theme) .tp-deepdive-prompt {
         border-color: rgba(255, 255, 255, 0.15);
-        border-left-color: var(--techpar-zone-elevated);
+        border-left-color: var(--color-error);
     }
 
     :global(html.dark-theme) .tp-onboarding {

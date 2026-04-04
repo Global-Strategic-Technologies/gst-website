@@ -857,7 +857,7 @@ function renderAnalysis(r: TechParResult) {
     const heroBasis = g('hero-basis');
     if (heroBasis) {
         heroBasis.textContent = isGAAP ? 'GAAP basis: R&D CapEx excluded' : 'Cash basis';
-        heroBasis.style.color = isGAAP ? getStyle('--techpar-zone-above') : '';
+        heroBasis.style.color = isGAAP ? getStyle('--color-warning') : '';
     }
 
     // Zone pill

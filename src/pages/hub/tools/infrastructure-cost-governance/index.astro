@@ -1277,8 +1277,8 @@ function radarChartSVG(domainScores: Array<{ name: string; score: number }>): st
 
   // Use explicit colors so the SVG is print-safe (currentColor fails
   // when dark-mode text color meets white print paper)
-  const gridColor = 'var(--icg-radar-grid)';
-  const labelColor = 'var(--icg-radar-label)';
+  const gridColor = 'var(--text-muted)';
+  const labelColor = 'var(--text-faded)';
   const primaryColor = 'var(--color-primary)';
 
   // Grid rings at 25%, 50%, 75%, 100%
