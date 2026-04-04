@@ -620,7 +620,7 @@ html.dark-theme .hero p .highlight {
 /* Services */
 .services {
     padding: 8rem 0;
-    background: #eeeeee;
+    background: var(--bg-light-alt);
 }
 
 .section-title {
@@ -704,7 +704,7 @@ html.dark-theme .hero p .highlight {
 }
 
 .service-card p {
-    color: #b0b0b0;
+    color: var(--text-muted);
     line-height: 1.7;
     font-size: 0.95rem;
 }
@@ -795,7 +795,7 @@ html.dark-theme .hero p .highlight {
     align-items: center;
     justify-content: center;
     font-size: 1rem;
-    color: #404040;
+    color: var(--text-primary);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.2em;
@@ -1430,6 +1430,29 @@ html.dark-theme .cta-box p {
     footer {
         padding: 2rem 0 0.5rem 0;
     }
+}
+
+/* Portfolio Controls — shared between StickyControls and PortfolioHeader */
+.controls-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-normal);
+    border-bottom: 2px solid var(--color-primary);
+    padding: var(--spacing-md) 0;
+    width: fit-content;
+    pointer-events: auto;
+}
+
+@media (max-width: 480px) {
+    .controls-wrapper {
+        width: 100%;
+        padding: var(--spacing-md) 0;
+        gap: var(--gap-tight);
+    }
+}
+
+html.dark-theme .controls-wrapper {
+    border-bottom-color: var(--color-primary);
 }
 
 /* Portfolio Page Styles */

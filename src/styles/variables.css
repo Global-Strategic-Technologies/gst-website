@@ -3,6 +3,7 @@
 :root {
   /* Primary Colors */
   --color-primary: #05cd99;
+  --color-primary-rgb: 5, 205, 153;
   --color-primary-dark: #04a87a;
   --color-secondary: #CC8800;
   --color-secondary-dark: #FFAA33;
