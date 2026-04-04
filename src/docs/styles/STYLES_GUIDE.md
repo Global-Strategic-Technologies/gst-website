@@ -27,7 +27,7 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 3. Test in both light and dark themes
 4. Check responsive behavior at 768px and 480px breakpoints
 
-**Styling text:** Pick a utility class from [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) (`.heading-lg`, `.text-base`, `.label`, etc.). Dark theme colors switch automatically.
+**Styling text:** Pick a utility class from [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) (`.brutal-heading-lg`, `.brutal-text-base`, `.brutal-label`, etc.). Dark theme colors switch automatically.
 
 **Need a specific color/spacing value:** Look it up in [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md). Use the variable, never a hardcoded value.
 
@@ -72,9 +72,8 @@ Full variable catalog: [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)
 ```
 src/styles/
 ├── variables.css           # Design tokens + utility classes (flex-center, text-label, etc.)
-├── typography.css          # 11 semantic text utilities (.heading-*, .text-*, .label-*, .nav-link, .button-text-*)
+├── typography.css          # 11 semantic text utilities (.brutal-heading-*, .brutal-text-*, .brutal-label-*, .nav-link, .button-text-*)
 ├── interactions.css        # Interactive state patterns (.interactive, .link-interactive, .control-*, .focus-outline-*)
-├── portfolio-controls.css  # Portfolio UI controls (.controls-wrapper)
 └── global.css             # Page layout, component styles, responsive rules, dark theme overrides
 ```
 
@@ -95,7 +94,6 @@ In stylesheets, always import in cascade order:
 | `variables.css` | Adding/updating design tokens or utility classes |
 | `typography.css` | Adding reusable text styles |
 | `interactions.css` | Adding focus/hover/active patterns |
-| `portfolio-controls.css` | Updating portfolio-specific controls |
 | `global.css` | Page layout, responsive rules, dark theme overrides for page-level components |
 | Component `.astro` `<style>` | Single-use component-specific styling |
 
@@ -215,7 +213,7 @@ import '../../styles/my-component.css';
 ### Variable Usage Priority
 
 1. **Design system variables** for colors, spacing, typography, transitions
-2. **Typography utility classes** (`.heading-lg`, `.text-base`, `.label`) for text
+2. **Typography utility classes** (`.brutal-heading-lg`, `.brutal-text-base`, `.brutal-label`) for text
 3. **Interaction utility classes** (`.interactive`, `.focus-outline`) for hover/focus states
 
 ### Available Utility Classes
@@ -391,7 +389,7 @@ All hub tools include a `@media print` block in their scoped styles with a consi
   }
 
   /* Shell goes full-width */
-  .tool-shell {
+  .brutal-tool-shell {
     max-width: 100%;
   }
 }
@@ -425,22 +423,21 @@ Hub tools render content via `innerHTML` at runtime (questions, recommendations,
 
 ### Tool Shell Container
 
-Hub tools use the standardized `.tool-shell` class defined in `global.css`. This provides a centered, themed container with consistent border-radius, background, and responsive padding.
+Hub tools use the standardized `.brutal-tool-shell` class defined in `global.css`. This provides a centered, themed container with consistent border-radius, background, and responsive padding.
 
 ```css
 /* Base: 700px centered container */
-.tool-shell { max-width: 700px; margin: 0 auto; ... }
+.brutal-tool-shell { max-width: 700px; margin: 0 auto; ... }
 
 /* Width modifiers */
-.tool-shell--narrow   { max-width: 660px; }  /* ICG */
-.tool-shell--wide     { max-width: 760px; }  /* Tech Debt Calculator */
-.tool-shell--fluid    { max-width: 100%; }   /* TechPar */
-.tool-shell--document { max-width: 800px; }  /* Diligence Machine */
+.brutal-tool-shell--narrow   { max-width: 660px; }  /* ICG */
+.brutal-tool-shell--wide     { max-width: 760px; }  /* Tech Debt Calculator */
+.brutal-tool-shell--document { max-width: 800px; }  /* Diligence Machine */
 ```
 
-**Content wrapper**: Use `.tool-content` inside the shell for automatic responsive padding:
+**Content wrapper**: Use `.brutal-tool-shell__content` inside the shell for automatic responsive padding:
 ```css
-.tool-shell .tool-content {
+.brutal-tool-shell__content {
   padding: var(--spacing-xl) var(--spacing-lg);   /* Desktop */
 }
 /* Automatically reduces to var(--spacing-lg) var(--spacing-md) at 480px */
@@ -451,8 +448,8 @@ Hub tools use the standardized `.tool-shell` class defined in `global.css`. This
 <section class="tool-section">
   <div class="container">
     <HubHeader title="..." subtitle="..." />
-    <div class="tool-shell tool-shell--narrow">
-      <div class="tool-content">
+    <div class="brutal-tool-shell brutal-tool-shell--narrow">
+      <div class="brutal-tool-shell__content">
         <!-- Tool-specific content -->
       </div>
     </div>
@@ -558,7 +555,7 @@ html.dark-theme { --button-color: #05cd99; --text-color: #f5f5f5; }
 
 ```css
 /* BAD */  .title { font-size: 32px; }
-/* GOOD */ <h1 class="heading-lg">Title</h1>
+/* GOOD */ <h1 class="brutal-heading-lg">Title</h1>
 /* or */   .title { font-size: var(--text-xl); }
 ```
 
@@ -610,4 +607,4 @@ Delete dead styles. Version control has the history.
 
 ---
 
-**Last Updated**: March 24, 2026
+**Last Updated**: April 4, 2026

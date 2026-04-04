@@ -2,7 +2,7 @@
 
 Complete catalog of all CSS custom properties defined in `src/styles/variables.css`. Use this when styling components.
 
-**Source of truth**: `src/styles/variables.css` — 140 variables in `:root`, 82 dark theme overrides in `html.dark-theme`.
+**Source of truth**: `src/styles/variables.css` — 141 variables in `:root`, 82 dark theme overrides in `html.dark-theme`.
 
 ---
 
@@ -11,6 +11,7 @@ Complete catalog of all CSS custom properties defined in `src/styles/variables.c
 | Variable | Value | Usage |
 |----------|-------|-------|
 | `--color-primary` | `#05cd99` | Primary accent — links, borders, buttons, active states |
+| `--color-primary-rgb` | `5, 205, 153` | For `rgba()` opacity patterns (e.g., `rgba(var(--color-primary-rgb), 0.15)`) |
 | `--color-primary-dark` | `#04a87a` | Darker shade for emphasis |
 | `--color-secondary` | `#CC8800` (light) / `#FFAA33` (dark) | Secondary accent (amber) |
 | `--color-secondary-dark` | `#FFAA33` | Secondary dark variant |
@@ -328,5 +329,5 @@ Cross-tool semantic colors shared by multiple hub tools.
 
 ---
 
-**Last Updated**: March 24, 2026
-**Total Variables**: 134 (`:root`) + 78 dark theme overrides
+**Last Updated**: April 4, 2026
+**Total Variables**: 135 (`:root`) + 78 dark theme overrides

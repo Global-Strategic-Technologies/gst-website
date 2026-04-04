@@ -1,5 +1,7 @@
 # Hub Tools — Brutalist Design Migration
 
+> **Archive Status**: This migration is complete and legacy classes have been removed (April 4, 2026). This document is retained for historical reference. The go-forward design system is documented on the [/brand](https://globalstrategic.tech/brand) reference page.
+
 Migrate all five hub tools from their current soft-UI styling (rounded corners, box shadows, filled backgrounds) to the brutalist design system (no radius, monospace typography, structural borders, primary-color accents). The brutalist design tokens and component classes are defined in `global.css`, `typography.css`, and `interactions.css`, and rendered live on the [/brand](https://globalstrategic.tech/brand) reference page.
 
 **Status**: Complete — all 5 stages finished
