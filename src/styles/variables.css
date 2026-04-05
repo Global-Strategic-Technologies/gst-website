@@ -43,18 +43,39 @@
   --text-muted: var(--text-light-muted);
   --text-faded: var(--text-light-faded);
 
+  /* Primary Color Opacity Scale */
+  --color-primary-02: rgba(var(--color-primary-rgb), 0.02);
+  --color-primary-03: rgba(var(--color-primary-rgb), 0.03);
+  --color-primary-04: rgba(var(--color-primary-rgb), 0.04);
+  --color-primary-05: rgba(var(--color-primary-rgb), 0.05);
+  --color-primary-06: rgba(var(--color-primary-rgb), 0.06);
+  --color-primary-08: rgba(var(--color-primary-rgb), 0.08);
+  --color-primary-10: rgba(var(--color-primary-rgb), 0.10);
+  --color-primary-12: rgba(var(--color-primary-rgb), 0.12);
+  --color-primary-13: rgba(var(--color-primary-rgb), 0.13);
+  --color-primary-15: rgba(var(--color-primary-rgb), 0.15);
+  --color-primary-18: rgba(var(--color-primary-rgb), 0.18);
+  --color-primary-20: rgba(var(--color-primary-rgb), 0.20);
+  --color-primary-25: rgba(var(--color-primary-rgb), 0.25);
+  --color-primary-30: rgba(var(--color-primary-rgb), 0.30);
+  --color-primary-45: rgba(var(--color-primary-rgb), 0.45);
+  --color-primary-50: rgba(var(--color-primary-rgb), 0.50);
+  --color-primary-55: rgba(var(--color-primary-rgb), 0.55);
+  --color-primary-60: rgba(var(--color-primary-rgb), 0.60);
+  --color-primary-65: rgba(var(--color-primary-rgb), 0.65);
+
   /* Borders & Accents */
   --border-light: rgba(26, 26, 26, 0.1);
-  --border-dark: rgba(5, 205, 153, 0.2);
-  --accent-subtle-bg: rgba(5, 205, 153, 0.02);
-  --accent-wash-bg: rgba(5, 205, 153, 0.03);
-  --accent-faint-bg: rgba(5, 205, 153, 0.04);
-  --accent-tint-bg: rgba(5, 205, 153, 0.06);
-  --accent-light-bg: rgba(5, 205, 153, 0.08);
-  --accent-light-bg-hover: rgba(5, 205, 153, 0.15);
-  --accent-dark-bg: rgba(5, 205, 153, 0.1);
-  --accent-border-light: rgba(5, 205, 153, 0.25);
-  --accent-border-medium: rgba(5, 205, 153, 0.3);
+  --border-dark: var(--color-primary-20);
+  --accent-subtle-bg: var(--color-primary-02);
+  --accent-wash-bg: var(--color-primary-03);
+  --accent-faint-bg: var(--color-primary-04);
+  --accent-tint-bg: var(--color-primary-06);
+  --accent-light-bg: var(--color-primary-08);
+  --accent-light-bg-hover: var(--color-primary-15);
+  --accent-dark-bg: var(--color-primary-10);
+  --accent-border-light: var(--color-primary-25);
+  --accent-border-medium: var(--color-primary-30);
 
   /* Spacing Scale */
   --spacing-xs: 0.25rem;
@@ -114,7 +135,7 @@
   --search-input-bg: rgba(26, 26, 26, 0.02);
   --search-input-border: rgba(26, 26, 26, 0.1);
   --search-input-focus-bg: var(--bg-light);
-  --search-input-focus-shadow: rgba(5, 205, 153, 0.1);
+  --search-input-focus-shadow: var(--color-primary-10);
   --clear-filters-border: rgba(26, 26, 26, 0.1);
 
   /* Text Colors (Light Theme) */
@@ -190,8 +211,8 @@
   --techpar-zone-critical-bg: rgba(184, 46, 46, 0.08);
 
   /* TechPar — Chart Colors (opacity-tuned, kept independently) */
-  --techpar-chart-band-fill: rgba(5, 205, 153, 0.15);
-  --techpar-chart-band-border: rgba(5, 205, 153, 0.5);
+  --techpar-chart-band-fill: var(--color-primary-15);
+  --techpar-chart-band-border: var(--color-primary-50);
   --techpar-chart-ahead-fill: rgba(33, 118, 174, 0.10);
   --techpar-chart-ahead-border: rgba(33, 118, 174, 0.5);
   --techpar-chart-under-fill: rgba(224, 123, 0, 0.12);
@@ -221,10 +242,10 @@ html.dark-theme {
   --color-editors-pick-hover: #b26622;
 
   /* Accent Opacity Scale (dark theme — slightly higher opacity for visibility) */
-  --accent-subtle-bg: rgba(5, 205, 153, 0.03);
-  --accent-wash-bg: rgba(5, 205, 153, 0.04);
-  --accent-faint-bg: rgba(5, 205, 153, 0.05);
-  --accent-tint-bg: rgba(5, 205, 153, 0.08);
+  --accent-subtle-bg: var(--color-primary-03);
+  --accent-wash-bg: var(--color-primary-04);
+  --accent-faint-bg: var(--color-primary-05);
+  --accent-tint-bg: var(--color-primary-08);
 
   /* Semantic Colors (dark theme) */
   --color-success: #3da868;
@@ -239,17 +260,17 @@ html.dark-theme {
   --filter-drawer-bg: var(--bg-dark-secondary);
 
   /* Accent & UI Elements */
-  --filter-chip-bg: rgba(5, 205, 153, 0.1);
-  --filter-chip-bg-hover: rgba(5, 205, 153, 0.15);
-  --filter-chip-border: rgba(5, 205, 153, 0.2);
-  --filter-button-bg: rgba(5, 205, 153, 0.1);
-  --filter-button-bg-hover: rgba(5, 205, 153, 0.15);
-  --filter-button-border: rgba(5, 205, 153, 0.2);
-  --search-input-bg: rgba(5, 205, 153, 0.05);
-  --search-input-border: rgba(5, 205, 153, 0.2);
+  --filter-chip-bg: var(--color-primary-10);
+  --filter-chip-bg-hover: var(--color-primary-15);
+  --filter-chip-border: var(--color-primary-20);
+  --filter-button-bg: var(--color-primary-10);
+  --filter-button-bg-hover: var(--color-primary-15);
+  --filter-button-border: var(--color-primary-20);
+  --search-input-bg: var(--color-primary-05);
+  --search-input-border: var(--color-primary-20);
   --search-input-focus-bg: var(--bg-dark-secondary);
-  --search-input-focus-shadow: rgba(5, 205, 153, 0.15);
-  --clear-filters-border: rgba(5, 205, 153, 0.2);
+  --search-input-focus-shadow: var(--color-primary-15);
+  --clear-filters-border: var(--color-primary-20);
 
   /* Text Colors */
   --filter-chip-text: rgba(200, 200, 200, 0.8);
@@ -262,7 +283,7 @@ html.dark-theme {
   --footer-text: rgba(153, 153, 153, 0.85);
   --footer-border: rgba(153, 153, 153, 0.15);
   --cta-box-text: rgba(200, 200, 200, 0.8);
-  --stat-item-border: rgba(5, 205, 153, 0.2);
+  --stat-item-border: var(--color-primary-20);
 
   /* Misc */
   --checkerboard-line: rgba(255, 255, 255, 0.08);
@@ -293,8 +314,8 @@ html.dark-theme {
   --techpar-zone-critical-bg: rgba(224, 80, 80, 0.09);
 
   /* TechPar — Chart Colors (dark theme) */
-  --techpar-chart-band-fill: rgba(5, 205, 153, 0.13);
-  --techpar-chart-band-border: rgba(5, 205, 153, 0.45);
+  --techpar-chart-band-fill: var(--color-primary-13);
+  --techpar-chart-band-border: var(--color-primary-45);
   --techpar-chart-ahead-fill: rgba(56, 152, 214, 0.11);
   --techpar-chart-ahead-border: rgba(56, 152, 214, 0.5);
   --techpar-chart-under-fill: rgba(255, 140, 0, 0.12);

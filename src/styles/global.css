@@ -685,8 +685,8 @@ html.dark-theme .hero p .highlight {
 .service-icon {
     width: 50px;
     height: 50px;
-    background: rgba(5, 205, 153, 0.1);
-    border: 1px solid rgba(5, 205, 153, 0.3);
+    background: var(--color-primary-10);
+    border: 1px solid var(--color-primary-30);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -717,11 +717,11 @@ html.dark-theme .hero p .highlight {
 }
 
 .tag {
-    background: rgba(5, 205, 153, 0.1);
+    background: var(--color-primary-10);
     color: var(--color-primary);
     padding: 0.25rem 0.75rem;
     font-size: 0.75rem;
-    border: 1px solid rgba(5, 205, 153, 0.2);
+    border: 1px solid var(--color-primary-20);
     font-family: monospace;
 }
 
@@ -1522,7 +1522,7 @@ main {
     outline: none;
     border-color: var(--color-primary);
     background: var(--bg-light);
-    box-shadow: 0 0 0 3px rgba(5, 205, 153, 0.1);
+    box-shadow: 0 0 0 3px var(--color-primary-10);
 }
 
 .search-input::placeholder {
@@ -2808,7 +2808,7 @@ html.dark-theme .brutal-filter-drawer {
 }
 
 .brutal-slider__input::-webkit-slider-thumb:hover {
-    box-shadow: 0 0 0 4px rgba(5, 205, 153, 0.2);
+    box-shadow: 0 0 0 4px var(--color-primary-20);
 }
 
 .brutal-slider__input::-moz-range-thumb {
@@ -3383,7 +3383,7 @@ html.dark-theme .brutal-rec-card {
 .attention-card {
     padding: calc(var(--spacing-xl) * 0.5) var(--spacing-xl);
     border-left: 3px solid var(--color-primary);
-    background: rgba(5, 205, 153, 0.03);
+    background: var(--accent-wash-bg);
     border-radius: 4px;
     cursor: pointer;
     transition: padding var(--transition-normal), opacity var(--transition-normal);
@@ -3400,7 +3400,7 @@ html.dark-theme .brutal-rec-card {
 }
 
 html.dark-theme .attention-card {
-    background: rgba(5, 205, 153, 0.06);
+    background: var(--accent-tint-bg);
 }
 
 html.dark-theme .attention-card--high {
@@ -3595,7 +3595,7 @@ html.dark-theme .brutal-na-btn {
 }
 
 html.dark-theme .brutal-na-btn:hover {
-    border-color: rgba(5, 205, 153, 0.3);
+    border-color: var(--color-primary-30);
     background: var(--accent-light-bg);
 }
 
@@ -3827,7 +3827,7 @@ html.dark-theme .brutal-legend__swatch {
 
 .brutal-legend__swatch--active {
     background: var(--accent-border-medium);
-    border-color: rgba(5, 205, 153, 0.5);
+    border-color: var(--color-primary-50);
 }
 
 .brutal-legend__swatch--neutral {
@@ -4521,12 +4521,12 @@ html.dark-theme .brutal-bottom-sheet__handle-bar {
     cursor: pointer;
     margin-top: -8.5px;
     transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-    box-shadow: 0 0 0 3px rgba(5, 205, 153, 0.12);
+    box-shadow: 0 0 0 3px var(--color-primary-12);
 }
 
 .calc-slider::-webkit-slider-thumb:hover {
     transform: scale(1.2);
-    box-shadow: 0 0 0 6px rgba(5, 205, 153, 0.18);
+    box-shadow: 0 0 0 6px var(--color-primary-18);
 }
 
 .calc-slider::-moz-range-thumb {
@@ -4720,7 +4720,7 @@ html.dark-theme .rec-na:hover {
 }
 
 .project-card:hover {
-    box-shadow: 0 10px 30px rgba(5, 205, 153, 0.15);
+    box-shadow: 0 10px 30px var(--color-primary-15);
     transform: translateY(-4px);
     border-color: var(--color-primary);
 }
@@ -4810,15 +4810,15 @@ html.dark-theme .rec-na:hover {
 .teaser-card {
     max-width: 600px;
     padding: 2rem;
-    background: rgba(5, 205, 153, 0.03);
-    border: 1px solid rgba(5, 205, 153, 0.3);
+    background: var(--accent-wash-bg);
+    border: 1px solid var(--color-primary-30);
     border-radius: 8px;
     text-align: center;
 }
 
 html.dark-theme .teaser-card {
-    background: rgba(5, 205, 153, 0.05);
-    border-color: rgba(5, 205, 153, 0.3);
+    background: var(--color-primary-05);
+    border-color: var(--color-primary-30);
 }
 
 .teaser-card__header {
@@ -4892,7 +4892,7 @@ html.dark-theme .teaser-card {
     outline: none;
     background: var(--bg-light);
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px var(--search-input-focus-shadow, rgba(5, 205, 153, 0.1));
+    box-shadow: 0 0 0 3px var(--search-input-focus-shadow, var(--color-primary-10));
 }
 
 .search-input::placeholder {

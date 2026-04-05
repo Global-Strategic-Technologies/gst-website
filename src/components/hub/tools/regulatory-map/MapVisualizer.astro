@@ -103,17 +103,17 @@
 
   /* Country with regulation data */
   :global(.country-path--active) {
-    fill: rgba(5, 205, 153, 0.25);
+    fill: var(--color-primary-25);
     cursor: pointer;
   }
 
   :global(.country-path--active:hover) {
-    fill: rgba(5, 205, 153, 0.45);
+    fill: var(--color-primary-45);
   }
 
   /* Selected country */
   :global(.country-path--selected) {
-    fill: rgba(5, 205, 153, 0.6);
+    fill: var(--color-primary-60);
     stroke: var(--color-secondary);
     stroke-width: 1.5;
   }
@@ -125,15 +125,15 @@
   }
 
   :global(html.dark-theme .country-path--active) {
-    fill: rgba(5, 205, 153, 0.3);
+    fill: var(--color-primary-30);
   }
 
   :global(html.dark-theme .country-path--active:hover) {
-    fill: rgba(5, 205, 153, 0.5);
+    fill: var(--color-primary-50);
   }
 
   :global(html.dark-theme .country-path--selected) {
-    fill: rgba(5, 205, 153, 0.65);
+    fill: var(--color-primary-65);
     stroke: var(--color-secondary);
     stroke-width: 1.5;
   }
@@ -149,17 +149,17 @@
 
   /* State with regulation data */
   :global(.state-path--active) {
-    fill: rgba(5, 205, 153, 0.25);
+    fill: var(--color-primary-25);
     cursor: pointer;
   }
 
   :global(.state-path--active:hover) {
-    fill: rgba(5, 205, 153, 0.45);
+    fill: var(--color-primary-45);
   }
 
   /* Selected state */
   :global(.state-path--selected) {
-    fill: rgba(5, 205, 153, 0.6);
+    fill: var(--color-primary-60);
     stroke: var(--color-secondary);
     stroke-width: 1;
   }
@@ -171,40 +171,40 @@
   }
 
   :global(html.dark-theme .state-path--active) {
-    fill: rgba(5, 205, 153, 0.3);
+    fill: var(--color-primary-30);
   }
 
   :global(html.dark-theme .state-path--active:hover) {
-    fill: rgba(5, 205, 153, 0.5);
+    fill: var(--color-primary-50);
   }
 
   :global(html.dark-theme .state-path--selected) {
-    fill: rgba(5, 205, 153, 0.65);
+    fill: var(--color-primary-65);
     stroke: var(--color-secondary);
     stroke-width: 1;
   }
 
   /* Timeline-highlighted regions (multi-region highlight) */
   :global(.country-path--highlighted) {
-    fill: rgba(5, 205, 153, 0.5);
+    fill: var(--color-primary-50);
     stroke: var(--color-secondary);
     stroke-width: 1.2;
   }
 
   :global(.state-path--highlighted) {
-    fill: rgba(5, 205, 153, 0.5);
+    fill: var(--color-primary-50);
     stroke: var(--color-secondary);
     stroke-width: 0.8;
   }
 
   :global(html.dark-theme .country-path--highlighted) {
-    fill: rgba(5, 205, 153, 0.55);
+    fill: var(--color-primary-55);
     stroke: var(--color-secondary);
     stroke-width: 1.2;
   }
 
   :global(html.dark-theme .state-path--highlighted) {
-    fill: rgba(5, 205, 153, 0.55);
+    fill: var(--color-primary-55);
     stroke: var(--color-secondary);
     stroke-width: 0.8;
   }
