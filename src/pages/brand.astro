@@ -32,19 +32,19 @@ const palettes = [
       Contents
     </h2>
     <ul class="brand-toc__list">
-      <li><a href="#identity">Brand Identity</a></li>
-      <li><a href="#colors">Color Palette</a></li>
-      <li><a href="#typography">Typography</a></li>
-      <li><a href="#spacing">Spacing Scale</a></li>
+      <li class="brand-toc__layer" data-section="identity"><a href="#identity">Brand Identity</a></li>
+      <li class="brand-toc__layer" data-section="colors"><a href="#colors">Color Palette</a></li>
+      <li class="brand-toc__layer" data-section="typography"><a href="#typography">Typography</a></li>
+      <li class="brand-toc__layer" data-section="spacing"><a href="#spacing">Spacing Scale</a></li>
       <li><a href="#shadows">Shadows</a></li>
       <li><a href="#transitions">Transitions</a></li>
       <li class="brand-toc__separator" aria-hidden="true"></li>
-      <li><a href="#components">Components</a></li>
-      <li><a href="#component-states">Component States</a></li>
-      <li><a href="#accessibility">Accessibility</a></li>
-      <li><a href="#responsive-demos">Responsive Behavior</a></li>
+      <li class="brand-toc__layer" data-section="components"><a href="#components">Components</a></li>
+      <li class="brand-toc__layer" data-section="component-states"><a href="#component-states">Component States</a></li>
+      <li class="brand-toc__layer" data-section="accessibility"><a href="#accessibility">Accessibility</a></li>
+      <li class="brand-toc__layer" data-section="responsive-demos"><a href="#responsive-demos">Responsive Behavior</a></li>
       <li class="brand-toc__separator" aria-hidden="true"></li>
-      <li><a href="#ui-library">UI Component Library</a></li>
+      <li class="brand-toc__layer" data-section="ui-library"><a href="#ui-library">UI Component Library</a></li>
     </ul>
   </nav>
 
@@ -68,13 +68,13 @@ const palettes = [
       </div>
 
       <div class="brand-identity-info">
-        <h3 class="brutal-heading-sm">Brand Voice</h3>
+        <h3 class="brutal-heading-sm" id="brand-voice">Brand Voice</h3>
         <p class="brutal-text-base">Authoritative, precise, technical. No jargon for jargon's sake — clarity over complexity.</p>
 
-        <h3 class="brutal-heading-sm">Wordmark</h3>
+        <h3 class="brutal-heading-sm" id="wordmark">Wordmark</h3>
         <p class="brutal-text-base"><strong>Global Strategic Technologies</strong> — formal contexts, first mention, legal. <strong>GST</strong> — shorthand, UI labels, repeat references.</p>
 
-        <h3 class="brutal-heading-sm">Logo Usage</h3>
+        <h3 class="brutal-heading-sm" id="logo-usage">Logo Usage</h3>
         <p class="brutal-text-base">Single teal-stroke delta variant. Works on both light and dark backgrounds without modification. Minimum clear space: the icon's own width on all sides.</p>
       </div>
     </div>
@@ -90,7 +90,7 @@ const palettes = [
       <p class="brutal-text-small brand-section__note">Toggle dark mode via the header to see theme-specific values. Open the palette panel (right edge) to switch palettes and edit colors live.</p>
       <p class="brutal-text-base colors-palette-concept" id="palette-concept">{palettes[0].concept}</p>
 
-      <h3 class="brutal-heading-sm brand-group-title">Primary &amp; Secondary</h3>
+      <h3 class="brutal-heading-sm brand-group-title" id="colors-primary">Primary &amp; Secondary</h3>
       <div class="brand-swatch-grid">
         <div class="brand-swatch" data-var="--color-primary">
           <div class="brand-swatch__color" style="background: var(--color-primary);"></div>
@@ -118,7 +118,7 @@ const palettes = [
         </div>
       </div>
 
-      <h3 class="brutal-heading-sm brand-group-title">Semantic</h3>
+      <h3 class="brutal-heading-sm brand-group-title" id="colors-semantic">Semantic</h3>
       <div class="brand-swatch-grid">
         <div class="brand-swatch" data-var="--color-success">
           <div class="brand-swatch__color" style="background: var(--color-success);"></div>
@@ -146,7 +146,7 @@ const palettes = [
         </div>
       </div>
 
-      <h3 class="brutal-heading-sm brand-group-title">Text Hierarchy</h3>
+      <h3 class="brutal-heading-sm brand-group-title" id="colors-text">Text Hierarchy</h3>
       <div class="brand-swatch-grid">
         <div class="brand-swatch" data-var="--text-primary">
           <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-primary);"></div>
@@ -174,7 +174,7 @@ const palettes = [
         </div>
       </div>
 
-      <h3 class="brutal-heading-sm brand-group-title">Backgrounds</h3>
+      <h3 class="brutal-heading-sm brand-group-title" id="colors-backgrounds">Backgrounds</h3>
       <div class="brand-swatch-grid">
         <div class="brand-swatch" data-var="--bg-light">
           <div class="brand-swatch__color" style="background: var(--bg-light);"></div>
@@ -208,7 +208,7 @@ const palettes = [
         </div>
       </div>
 
-      <h3 class="brutal-heading-sm brand-group-title">Borders &amp; Accents</h3>
+      <h3 class="brutal-heading-sm brand-group-title" id="colors-borders">Borders &amp; Accents</h3>
       <div class="brand-swatch-grid">
         <div class="brand-swatch" data-var="--border-light">
           <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--border-light);"></div>
@@ -242,7 +242,7 @@ const palettes = [
         </div>
       </div>
 
-      <h3 class="brutal-heading-sm brand-group-title">Expanded Palette</h3>
+      <h3 class="brutal-heading-sm brand-group-title" id="colors-expanded">Expanded Palette</h3>
       <p class="brutal-text-small brand-section__note">Purpose-named tokens shared across all tools. Tool-specific variables (TechPar zones, ICG maturity, DM domain, RegMap categories) derive from these.</p>
       <div class="brand-swatch-grid">
         <div class="brand-swatch" data-var="--color-authority">
@@ -276,10 +276,10 @@ const palettes = [
   <div class="container">
     <h2 class="brutal-heading-md brand-section__title">Typography</h2>
 
-    <h3 class="brutal-heading-sm brand-group-title">Font Stack</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="type-font-stack">Font Stack</h3>
     <p class="brutal-text-base"><code class="brand-code">--font-family</code>: <span class="brand-font-stack" data-var="--font-family"></span></p>
 
-    <h3 class="brutal-heading-sm brand-group-title">Text Size Scale</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="type-sizes">Text Size Scale</h3>
     <div class="brand-type-specimens">
       <div class="brand-type-specimen" data-var="--text-xs">
         <span data-specimen style="font-size: var(--text-xs);">The quick brown fox — text-xs</span>
@@ -313,7 +313,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Font Weights</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="type-weights">Font Weights</h3>
     <div class="brand-type-specimens">
       <div class="brand-type-specimen">
         <span data-specimen style="font-weight: var(--font-weight-normal);">Normal (400) — The quick brown fox</span>
@@ -329,7 +329,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Typography</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="type-utilities">Typography Utilities</h3>
     <p class="brutal-text-small brand-section__note">Monospace-first variants for controls, data display, and tool interfaces. Designed to complement the existing Helvetica Neue system typography.</p>
 
     <div class="brand-type-specimens">
@@ -397,7 +397,7 @@ const palettes = [
   <div class="container">
     <h2 class="brutal-heading-md brand-section__title">Spacing Scale</h2>
 
-    <h3 class="brutal-heading-sm brand-group-title">Spacing Tokens</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="spacing-tokens">Spacing Tokens</h3>
     <div class="brand-spacing-list">
       <div class="brand-spacing-row" data-var="--spacing-xs">
         <code class="brand-code brand-spacing-name">--spacing-xs</code>
@@ -441,7 +441,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Gap Tokens</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="spacing-gaps">Gap Tokens</h3>
     <div class="brand-spacing-list">
       <div class="brand-spacing-row" data-var="--gap-tight">
         <code class="brand-code brand-spacing-name">--gap-tight</code>
@@ -521,7 +521,7 @@ const palettes = [
   <div class="container">
     <h2 class="brutal-heading-md brand-section__title">Components</h2>
 
-    <h3 class="brutal-heading-sm brand-group-title">Hub Buttons</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-hub-buttons">Hub Buttons</h3>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <button class="brutal-btn brutal-btn--primary">Primary</button>
@@ -543,7 +543,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">CTA Buttons</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-cta-buttons">CTA Buttons</h3>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <a class="cta-button primary" href="#components">CTA Primary</a>
@@ -555,7 +555,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Tool Patterns</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-tool-patterns">Tool Patterns</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brutal-tool-shell__authority">Authority Line Specimen</div>
@@ -569,7 +569,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Tool Shell</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-tool-shell">Tool Shell</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brutal-tool-shell">
@@ -607,7 +607,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Interaction States</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-interactions">Interaction States</h3>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brutal-interactive" tabindex="0">Hover / Focus</div>
@@ -623,7 +623,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Skeleton Loading (Current)</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-skeleton-current">Skeleton Loading (Current)</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brand-skeleton-demo">
@@ -640,7 +640,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Skeleton Loading</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-skeleton-next">Skeleton Loading</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brutal-skeleton-demo">
@@ -657,7 +657,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Tab Bar</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-tab-bar">Tab Bar</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brutal-tab-bar" style="position: static;">
@@ -679,7 +679,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Segmented Control</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-segmented-control">Segmented Control</h3>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brutal-segmented">
@@ -710,7 +710,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Form Field</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-form-field">Form Field</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brutal-field">
@@ -721,7 +721,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Delta Chevron</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-delta-chevron">Delta Chevron</h3>
     <div class="brand-component-row">
       <div class="brand-component-item" id="chevron-demo">
         <div style="display: flex; align-items: center; gap: var(--spacing-sm); cursor: pointer;" id="chevron-toggle">
@@ -744,7 +744,7 @@ const palettes = [
       Interactive components rendered in each visual state. Forced via <code class="brand-code">data-demo-state</code> attributes.
     </p>
 
-    <h3 class="brutal-heading-sm brand-group-title">Button States</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="states-button">Button States</h3>
     <div class="brand-state-row">
       <div class="brand-state-item">
         <button class="brutal-btn brutal-btn--primary">Default</button>
@@ -782,7 +782,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Form Field States</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="states-form-field">Form Field States</h3>
     <div class="brand-state-grid">
       <div class="brand-state-item brand-state-item--wide">
         <div class="brutal-field">
@@ -821,7 +821,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Option Card States</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="states-option-card">Option Card States</h3>
     <div class="brand-state-row">
       <div class="brand-state-item">
         <div class="brutal-option-card">
@@ -853,7 +853,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Choice Button States</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="states-choice-button">Choice Button States</h3>
     <div class="brand-state-row">
       <div class="brand-state-item">
         <button class="brutal-choice-btn" type="button">Default</button>
@@ -892,7 +892,7 @@ const palettes = [
     </p>
 
     <!-- A: Focus States -->
-    <h3 class="brutal-heading-sm brand-group-title">Focus States</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-focus">Focus States</h3>
     <p class="brutal-text-small" style="margin-bottom: var(--spacing-md); color: var(--text-muted);">
       All interactive components use a <code class="brand-code">2px solid var(--color-primary)</code> outline with <code class="brand-code">2px offset</code> on <code class="brand-code">:focus-visible</code>.
     </p>
@@ -924,7 +924,7 @@ const palettes = [
     </div>
 
     <!-- A: Contrast Ratio Table -->
-    <h3 class="brutal-heading-sm brand-group-title">Color Contrast Ratios</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-contrast">Color Contrast Ratios</h3>
     <p class="brutal-text-small" style="margin-bottom: var(--spacing-md); color: var(--text-muted);">
       Text hierarchy on page backgrounds. WCAG 2.1 AA requires 4.5:1 for normal text, 3:1 for large text (&ge;18px or &ge;14px bold).
     </p>
@@ -992,7 +992,7 @@ const palettes = [
     </div>
 
     <!-- B: Touch Targets -->
-    <h3 class="brutal-heading-sm brand-group-title">Touch Targets</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-touch">Touch Targets</h3>
     <p class="brutal-text-small" style="margin-bottom: var(--spacing-md); color: var(--text-muted);">
       WCAG 2.5.5 requires 44&times;44px minimum touch target size. All interactive components meet this requirement.
     </p>
@@ -1014,7 +1014,7 @@ const palettes = [
     </div>
 
     <!-- B: Keyboard Navigation -->
-    <h3 class="brutal-heading-sm brand-group-title">Keyboard Navigation</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-keyboard">Keyboard Navigation</h3>
     <div class="a11y-kb-table">
       <div class="a11y-kb-row a11y-kb-row--header">
         <span>Pattern</span>
@@ -1054,7 +1054,7 @@ const palettes = [
     </div>
 
     <!-- B: ARIA Patterns -->
-    <h3 class="brutal-heading-sm brand-group-title">ARIA Patterns</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-aria">ARIA Patterns</h3>
     <div class="a11y-code-block">
       <pre><code>&lt;!-- Live region for dynamic results --&gt;
 &lt;div aria-live="polite" aria-atomic="true"&gt;
@@ -1078,7 +1078,7 @@ const palettes = [
     </div>
 
     <!-- B: Semantic HTML -->
-    <h3 class="brutal-heading-sm brand-group-title">Semantic HTML Structure</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-semantic">Semantic HTML Structure</h3>
     <p class="brutal-text-small" style="margin-bottom: var(--spacing-md); color: var(--text-muted);">
       Heading hierarchy and landmark roles used across the site.
     </p>
@@ -1110,7 +1110,7 @@ const palettes = [
       Components rendered at desktop (1200px), tablet (768px), and mobile (480px) widths. Each frame is a live embed showing how layouts collapse and reflow.
     </p>
 
-    <h3 class="brutal-heading-sm brand-group-title">Option Card Grid</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="resp-option-card">Option Card Grid</h3>
     <div class="responsive-demo-row">
       <div class="responsive-demo-frame responsive-demo-frame--desktop">
         <span class="responsive-demo-label">1200px</span>
@@ -1126,7 +1126,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Tab Bar</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="resp-tab-bar">Tab Bar</h3>
     <div class="responsive-demo-row">
       <div class="responsive-demo-frame responsive-demo-frame--desktop">
         <span class="responsive-demo-label">1200px</span>
@@ -1142,7 +1142,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Form Controls</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="resp-form-controls">Form Controls</h3>
     <div class="responsive-demo-row">
       <div class="responsive-demo-frame responsive-demo-frame--desktop">
         <span class="responsive-demo-label">1200px</span>
@@ -1158,7 +1158,7 @@ const palettes = [
       </div>
     </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Tool Shell</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="resp-tool-shell">Tool Shell</h3>
     <div class="responsive-demo-row">
       <div class="responsive-demo-frame responsive-demo-frame--desktop">
         <span class="responsive-demo-label">1200px</span>
@@ -1183,7 +1183,7 @@ const palettes = [
     <p class="brutal-text-small brand-section__note">Shared controls and patterns used across the site. Each specimen renders live markup with the real CSS classes. This library defines UX platform standards.</p>
 
     <!-- 8a. Navigation -->
-    <h3 class="brutal-heading-sm brand-group-title">Navigation</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-navigation">Navigation</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Breadcrumb</h4>
     <div class="brand-component-row">
@@ -1220,7 +1220,7 @@ const palettes = [
     </div>
 
     <!-- 8a-1b. Site Chrome -->
-    <h3 class="brutal-heading-sm brand-group-title">Site Chrome</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-site-chrome">Site Chrome</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Logo</h4>
     <div class="brand-component-row">
@@ -1290,7 +1290,7 @@ const palettes = [
     </div>
 
     <!-- 8a-1c. Marketing Components -->
-    <h3 class="brutal-heading-sm brand-group-title">Marketing Components</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-marketing">Marketing Components</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Hero Title</h4>
     <div class="brand-component-row">
@@ -1346,7 +1346,7 @@ const palettes = [
     </div>
 
     <!-- 8a-1d. Legal Page Typography -->
-    <h3 class="brutal-heading-sm brand-group-title">Legal Page Typography</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-legal">Legal Page Typography</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Legal Page Heading</h4>
     <div class="brand-component-row">
@@ -1384,7 +1384,7 @@ const palettes = [
     </div>
 
     <!-- 8a-1e. Homepage Sections -->
-    <h3 class="brutal-heading-sm brand-group-title">Homepage Sections</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-homepage">Homepage Sections</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Trust Card</h4>
     <div class="brand-component-row">
@@ -1437,7 +1437,7 @@ const palettes = [
     </div>
 
     <!-- 8a-1f. About & Services -->
-    <h3 class="brutal-heading-sm brand-group-title">About & Services</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-about-services">About & Services</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Service Card</h4>
     <div class="brand-component-row">
@@ -1484,7 +1484,7 @@ const palettes = [
     </div>
 
     <!-- 8a-1g. Hub Gateways & Library -->
-    <h3 class="brutal-heading-sm brand-group-title">Hub Gateways & Library</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-hub-gateways">Hub Gateways & Library</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Hub Gateway Card</h4>
     <div class="brand-component-row">
@@ -1544,7 +1544,7 @@ const palettes = [
     </div>
 
     <!-- 8a-1h. Radar Feed -->
-    <h3 class="brutal-heading-sm brand-group-title">Radar Feed</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-radar">Radar Feed</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Editor's Pick Badge</h4>
     <div class="brand-component-row">
@@ -1599,7 +1599,7 @@ const palettes = [
     </div>
 
     <!-- 8a-1i. M&A Portfolio -->
-    <h3 class="brutal-heading-sm brand-group-title">M&A Portfolio</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-portfolio">M&A Portfolio</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Project Card</h4>
     <div class="brand-component-row">
@@ -1678,7 +1678,7 @@ const palettes = [
     </div>
 
     <!-- 8a-2. Wizard Progress -->
-    <h3 class="brutal-heading-sm brand-group-title">Wizard Progress</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-wizard">Wizard Progress</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Desktop Progress Bar</h4>
     <div class="brand-component-row">
@@ -1764,7 +1764,7 @@ const palettes = [
     </div>
 
     <!-- 8b. Cards -->
-    <h3 class="brutal-heading-sm brand-group-title">Cards</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-cards">Cards</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Trust Card</h4>
     <div class="brand-card-grid">
@@ -2009,7 +2009,7 @@ const palettes = [
     <code class="brand-code">.brutal-callout--warning — gold left-border accent for warnings</code>
 
     <!-- 8c. Form Controls -->
-    <h3 class="brutal-heading-sm brand-group-title">Form Controls</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-form-controls">Form Controls</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Search Input</h4>
     <div class="brand-component-row">
@@ -2221,7 +2221,7 @@ const palettes = [
     </div>
 
     <!-- 8d. Overlays -->
-    <h3 class="brutal-heading-sm brand-group-title">Overlays</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-overlays">Overlays</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Modal Dialog</h4>
     <div class="brand-component-row">
@@ -2341,7 +2341,7 @@ const palettes = [
     </div>
 
     <!-- 8e. Collapsible Content -->
-    <h3 class="brutal-heading-sm brand-group-title">Collapsible Content</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-collapsible">Collapsible Content</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Methodology Panel</h4>
     <div class="brand-component-row">
@@ -2398,7 +2398,7 @@ const palettes = [
     </div>
 
     <!-- 8f. Data Display -->
-    <h3 class="brutal-heading-sm brand-group-title">Data Display</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-data-display">Data Display</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Stats Bar</h4>
     <div class="brand-component-row">
@@ -2479,7 +2479,7 @@ const palettes = [
     </div>
 
     <!-- 8g. Layout Containers -->
-    <h3 class="brutal-heading-sm brand-group-title">Layout Containers</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-layout">Layout Containers</h3>
 
     <h4 class="brutal-label brand-subgroup-title">Container</h4>
     <div class="brand-component-row">
@@ -3142,7 +3142,7 @@ const palettes = [
     .brand-card-grid {
       grid-template-columns: 1fr;
     }
-
+  }
 
   @media (max-width: 480px) {
     .brand-section {
@@ -3764,17 +3764,24 @@ const palettes = [
 
   /* ── Brand TOC (matches Hub Library article pattern) ── */
   .brand-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: var(--spacing-2xl);
     max-width: 1200px;
     margin: 0 auto;
+    align-items: start;
   }
 
   .brand-toc {
-    display: block;
-    max-width: 800px;
-    margin: 0 auto var(--spacing-3xl);
-    padding: var(--spacing-xl);
+    position: sticky;
+    top: var(--spacing-xl);
+    max-height: calc(100vh - var(--spacing-2xl));
+    overflow-y: auto;
+    padding: var(--spacing-lg);
     background: transparent;
     border: 2px solid var(--border-light);
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-primary) transparent;
   }
 
   html.dark-theme .brand-toc {
@@ -3786,14 +3793,15 @@ const palettes = [
     align-items: center;
     gap: var(--spacing-sm);
     font-family: monospace;
-    font-size: var(--text-lg);
+    font-size: 1rem;
     font-weight: var(--font-weight-bold);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.05em;
     color: var(--text-primary);
-    margin: 0 0 var(--spacing-lg);
+    margin: 0 0 var(--spacing-md);
     padding: var(--spacing-xs) var(--spacing-md);
-    border-bottom: 2px solid var(--color-primary);
+    background: transparent;
+    border-left: 3px solid var(--color-primary);
   }
 
   .brand-toc__heading img {
@@ -3802,7 +3810,7 @@ const palettes = [
 
   .brand-toc__list {
     list-style: none;
-    padding-left: var(--spacing-xl);
+    padding-left: var(--spacing-md);
     margin: 0;
     display: flex;
     flex-direction: column;
@@ -3819,18 +3827,19 @@ const palettes = [
     padding: 0;
     border: 0;
     list-style: none;
+    display: none;
   }
 
   .brand-toc__list a {
     font-family: monospace;
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
     color: var(--text-secondary);
     text-decoration: none;
     text-transform: none;
     letter-spacing: normal;
     transition: color var(--transition-fast), border-color var(--transition-fast);
     display: block;
-    padding: var(--spacing-xs) var(--spacing-sm);
+    padding: 3px var(--spacing-sm);
     border-left: 2px solid transparent;
   }
 
@@ -3845,51 +3854,74 @@ const palettes = [
     font-weight: var(--font-weight-semibold);
   }
 
-  @media (min-width: 1025px) {
+  /* Layer items — bold parent links matching arch-toc pattern */
+  .brand-toc__layer > a {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* Runtime-generated sublists (needs :global because elements created by script) */
+  .brand-toc__layer :global(.brand-toc__sublist) {
+    list-style: none;
+    padding-left: var(--spacing-md);
+    margin-top: var(--spacing-xs);
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .brand-toc__layer :global(.brand-toc__sublist li) {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-xs);
+  }
+
+  .brand-toc__layer :global(.brand-toc__sublist .bullet-icon) {
+    flex-shrink: 0;
+    margin-top: 0;
+    opacity: 0.5;
+  }
+
+  .brand-toc__layer :global(.brand-toc__sublist a) {
+    font-family: monospace;
+    font-size: 0.8rem;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: block;
+    padding: 2px var(--spacing-xs);
+    border-left: 2px solid transparent;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+    font-weight: 400;
+  }
+
+  .brand-toc__layer :global(.brand-toc__sublist a:hover) {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  .brand-toc__layer :global(.brand-toc__sublist a.is-active) {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .brand-toc::-webkit-scrollbar { width: 4px; }
+  .brand-toc::-webkit-scrollbar-track { background: transparent; }
+  .brand-toc::-webkit-scrollbar-thumb { background: var(--color-primary); }
+
+  /* Responsive: stack layout on narrow screens */
+  @media (max-width: 768px) {
     .brand-layout {
-      display: grid;
-      grid-template-columns: 260px 1fr;
-      gap: var(--spacing-2xl);
-      align-items: start;
+      display: block;
     }
 
     .brand-toc {
-      position: sticky;
-      top: var(--spacing-xl);
-      max-width: none;
-      margin: 0;
-      max-height: calc(100vh - var(--spacing-2xl));
-      overflow-y: auto;
-      padding: var(--spacing-lg);
-      scrollbar-width: thin;
-      scrollbar-color: var(--color-primary) transparent;
-    }
-
-    .brand-toc::-webkit-scrollbar { width: 4px; }
-    .brand-toc::-webkit-scrollbar-track { background: transparent; }
-    .brand-toc::-webkit-scrollbar-thumb { background: var(--color-primary); }
-
-    .brand-toc__heading {
-      font-size: 1rem;
-      padding: var(--spacing-xs) var(--spacing-md);
-      margin-bottom: var(--spacing-md);
-    }
-
-    .brand-toc__list {
-      padding-left: var(--spacing-md);
-    }
-
-    .brand-toc__list a {
-      font-size: var(--text-sm);
-      padding: 3px var(--spacing-sm);
-    }
-
-    .brand-toc__separator { display: none; }
-
-    .brand-content {
-      max-width: none;
-      margin: 0;
-      min-width: 0;
+      position: static;
+      max-height: none;
+      overflow-y: visible;
+      margin-bottom: var(--spacing-2xl);
     }
   }
 
@@ -4442,7 +4474,41 @@ const palettes = [
       });
     }
 
-    // TOC scroll-spy: highlight active section
+    // Build TOC sublists from actual h3[id] headings (DRY: heading text defined once)
+    document.querySelectorAll<HTMLElement>('.brand-toc__layer').forEach(tocLayer => {
+      const sectionId = tocLayer.dataset.section;
+      const section = document.getElementById(sectionId!);
+      if (!section) return;
+
+      const headings = section.querySelectorAll('h3[id]');
+      if (headings.length === 0) return;
+
+      const sublist = document.createElement('ul');
+      sublist.className = 'brand-toc__sublist';
+
+      headings.forEach(h3 => {
+        const li = document.createElement('li');
+        const icon = document.createElement('img');
+        icon.src = '/images/gst-delta-icon-teal-stroke-thick.svg';
+        icon.alt = '';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.className = 'bullet-icon';
+        icon.width = 10;
+        icon.height = 10;
+
+        const link = document.createElement('a');
+        link.href = `#${h3.id}`;
+        link.textContent = h3.textContent;
+
+        li.appendChild(icon);
+        li.appendChild(link);
+        sublist.appendChild(li);
+      });
+
+      tocLayer.appendChild(sublist);
+    });
+
+    // TOC scroll-spy: highlight active section (includes sublists)
     const tocLinks = document.querySelectorAll<HTMLAnchorElement>('.brand-toc__list a');
     const sectionIds = Array.from(tocLinks).map(a => a.getAttribute('href')!.slice(1));
     const onScroll = () => {
