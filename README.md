@@ -9,12 +9,20 @@ A modern, high-performance static site for GST built with Astro and deployed to 
 ├── public/              # Static assets (favicons, etc.)
 ├── src/
 │   ├── components/      # Reusable Astro components
-│   │   ├── Header.astro
-│   │   ├── Footer.astro
-│   │   ├── Hero.astro
-│   │   ├── StatsBar.astro
+│   │   ├── Breadcrumb.astro
 │   │   ├── CTASection.astro
-│   │   └── ThemeToggle.astro
+│   │   ├── EngagementFlow.astro
+│   │   ├── Footer.astro
+│   │   ├── GoogleAnalytics.astro
+│   │   ├── Header.astro
+│   │   ├── Hero.astro
+│   │   ├── PortfolioSummary.astro
+│   │   ├── SEO.astro
+│   │   ├── StatsBar.astro
+│   │   ├── ThemeToggle.astro
+│   │   ├── WhatWeDo.astro
+│   │   ├── WhoWeSupport.astro
+│   │   └── WhyClientsTrustUs.astro
 │   ├── layouts/         # Page layouts
 │   │   └── BaseLayout.astro
 │   ├── pages/           # Page routes (auto-routed)
@@ -117,12 +125,10 @@ Page content is hardcoded in Astro components. To make it dynamic, consider:
 The project includes comprehensive automated tests to ensure code quality and data integrity:
 
 ### Test Coverage
-- **Unit Tests** (68 tests, 100% coverage):
-  - Data validation: 20 tests verifying schema, integrity, and uniqueness
-  - Utility functions: 48 tests covering abbreviation, sorting, and data transformations
-
-- **Integration Tests** (in development): Component interactions and user workflows
-- **E2E Tests** (in development): Critical user journeys across browsers
+- **Unit & Integration Tests** (857 tests via Vitest):
+  - Data validation, utility functions, component logic, engine calculations
+- **E2E Tests** (393 test cases via Playwright, across 3 browsers):
+  - Critical user journeys, portfolio discovery, hub tools, mobile navigation
 
 ### Running Tests
 ```bash
@@ -146,7 +152,7 @@ npm run test:all
 - Tests run automatically on every push and pull request
 - Coverage reports uploaded to Codecov
 - Test failures block PR merges (branch protection)
-- See [TESTING_AND_CI_CD_README.md](./TESTING_AND_CI_CD_README.md) for detailed testing strategy
+- See [Testing Documentation](./src/docs/testing/INDEX.md) for detailed testing strategy
 
 ## 🎨 Design System
 

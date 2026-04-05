@@ -60,7 +60,7 @@ Centralized CSS variable-based design system. Single source of truth in `variabl
 | Typography | `--font-family`, `--font-weight-*`, `--text-*` | 10 |
 | Transitions | `--transition-fast`, `--transition-normal`, `--transition-slow` | 3 |
 | Shadows | `--shadow-sm`, `--shadow-md`, `--shadow-lg` | 3 |
-| **Total** | | **153** |
+| **Total** | | **160** |
 
 > Note: Dark theme defines 85 variable overrides (including `--border-dark-subtle/default/prominent`), not new variables. 13 utility classes are defined across `variables.css`, `typography.css`, and `interactions.css`.
 

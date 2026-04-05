@@ -11,9 +11,9 @@ Strategic roadmap of development initiatives focused on:
 - **Test automation** (E2E and unit tests)
 - **Code quality** (Error handling validation)
 
-### [HUB_TOOLS_CONTROL_CONSOLIDATION.md](./HUB_TOOLS_CONTROL_CONSOLIDATION.md)
+### [HUB_TOOLS_UX_UNIFICATION.md](./HUB_TOOLS_UX_UNIFICATION.md)
 
-Cross-tool control consolidation roadmap — identifies reusable UI patterns (copy feedback, benchmark tables, export bars, collapsibles, dark theme variables) for unification across all five hub tools.
+Cross-tool UX unification roadmap — identifies reusable UI patterns (copy feedback, benchmark tables, export bars, collapsibles, dark theme variables) for unification across all five hub tools.
 
 ### [TECH_DEBT_CALC_ROADMAP.md](./TECH_DEBT_CALC_ROADMAP.md)
 

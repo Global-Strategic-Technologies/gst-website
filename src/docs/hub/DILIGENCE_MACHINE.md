@@ -36,7 +36,7 @@ v2 expands the wizard from 5 steps to 10, adds strategic metadata to questions, 
 |------|----|----|
 | Wizard steps | 5 | 10 (+5 context dimensions) |
 | Question bank | ~45 questions | ~68 questions (+15 v2 questions) |
-| Attention areas | 18 areas | 29 areas (+10 v2 + 1 injected) |
+| Attention areas | 18 areas | 28 areas (+10 v2) |
 | Condition dimensions | 9 fields | 14 fields (+5 new) |
 | Question metadata | id, text, rationale, priority | + exitImpact, lookoutSignal, track |
 | Engine rules | Filter → Balance → Group | + Archetype Pivot, Maturity Override |
@@ -305,7 +305,7 @@ Questions are grouped by topic (Architecture → Operations → Carve-out → Se
 
 ## Attention Areas
 
-29 attention areas are filtered independently using the same condition system. They surface structural concerns that complement the question topics.
+28 attention areas are filtered independently using the same condition system. They surface structural concerns that complement the question topics.
 
 ### Categories
 

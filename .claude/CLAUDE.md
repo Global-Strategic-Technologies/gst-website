@@ -90,12 +90,20 @@ gst-website/
 ├── public/                    # Static assets
 ├── src/
 │   ├── components/           # Astro components
-│   │   ├── Header.astro
-│   │   ├── Footer.astro
-│   │   ├── Hero.astro
-│   │   ├── StatsBar.astro
+│   │   ├── Breadcrumb.astro
 │   │   ├── CTASection.astro
-│   │   └── ThemeToggle.astro
+│   │   ├── EngagementFlow.astro
+│   │   ├── Footer.astro
+│   │   ├── GoogleAnalytics.astro
+│   │   ├── Header.astro
+│   │   ├── Hero.astro
+│   │   ├── PortfolioSummary.astro
+│   │   ├── SEO.astro
+│   │   ├── StatsBar.astro
+│   │   ├── ThemeToggle.astro
+│   │   ├── WhatWeDo.astro
+│   │   ├── WhoWeSupport.astro
+│   │   └── WhyClientsTrustUs.astro
 │   ├── data/                 # Project/portfolio data
 │   │   └── ma-portfolio/
 │   │       └── projects.json # 51 validated projects
