@@ -30,6 +30,7 @@ const palettes = [
     <h2 class="brand-toc__heading">
       <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
       Contents
+      <svg class="delta-chevron brand-toc__chevron" viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
     </h2>
     <ul class="brand-toc__list">
       <li class="brand-toc__layer" data-section="identity"><a href="#identity">Brand Identity</a></li>
@@ -87,7 +88,8 @@ const palettes = [
     <PalettePanel palettes={palettes} />
     <div class="container">
       <h2 class="brutal-heading-md brand-section__title">Color Palette</h2>
-      <p class="brutal-text-small brand-section__note">Toggle dark mode via the header to see theme-specific values. Open the palette panel (right edge) to switch palettes and edit colors live.</p>
+      <p class="brutal-text-small brand-section__note brand-section__note--desktop">Toggle dark mode via the header to see theme-specific values. Open the palette panel (right edge) to switch palettes and edit colors live.</p>
+      <p class="brutal-text-small brand-section__note brand-section__note--mobile">Toggle dark mode via the header to see theme-specific values. Color swatches are read-only on mobile. Use a desktop browser for the interactive palette explorer.</p>
       <p class="brutal-text-base colors-palette-concept" id="palette-concept">{palettes[0].concept}</p>
 
       <h3 class="brutal-heading-sm brand-group-title" id="colors-primary">Primary &amp; Secondary</h3>
@@ -2605,6 +2607,10 @@ const palettes = [
     border-bottom: 2px solid var(--color-primary);
   }
 
+  .brand-section__note--mobile {
+    display: none;
+  }
+
   .brand-section__note {
     margin-bottom: var(--spacing-xl);
     color: var(--text-muted);
@@ -3113,6 +3119,14 @@ const palettes = [
 
   /* Responsive */
   @media (max-width: 768px) {
+    .brand-section__note--desktop {
+      display: none;
+    }
+
+    .brand-section__note--mobile {
+      display: block;
+    }
+
     .brand-section {
       padding: var(--spacing-2xl) 0;
     }
@@ -3142,6 +3156,21 @@ const palettes = [
     .brand-card-grid {
       grid-template-columns: 1fr;
     }
+
+    .brand-type-specimen > span:first-child {
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    .brand-component-item {
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    .a11y-contrast-table,
+    .a11y-kb-table {
+      overflow-x: auto;
+    }
   }
 
   @media (max-width: 480px) {
@@ -3151,6 +3180,10 @@ const palettes = [
 
     .brand-swatch-grid {
       grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+
+    .brand-swatch__usage {
+      display: none;
     }
 
     .brand-shadow-grid,
@@ -3757,8 +3790,8 @@ const palettes = [
     .responsive-demo-row {
       flex-direction: column;
     }
-    .responsive-demo-frame--desktop iframe { width: 100%; min-width: 300px; }
-    .responsive-demo-frame--tablet iframe { width: 100%; min-width: 300px; }
+    .responsive-demo-frame--desktop iframe { width: 100%; min-width: 0; }
+    .responsive-demo-frame--tablet iframe { width: 100%; min-width: 0; }
     .responsive-demo-frame--mobile iframe { width: 240px; }
   }
 
@@ -3806,6 +3839,10 @@ const palettes = [
 
   .brand-toc__heading img {
     flex-shrink: 0;
+  }
+
+  .brand-toc__chevron {
+    display: none;
   }
 
   .brand-toc__list {
@@ -3921,7 +3958,34 @@ const palettes = [
       position: static;
       max-height: none;
       overflow-y: visible;
-      margin-bottom: var(--spacing-2xl);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .brand-toc__heading {
+      cursor: pointer;
+      user-select: none;
+      margin-bottom: 0;
+    }
+
+    .brand-toc__chevron {
+      display: block;
+      margin-left: auto;
+    }
+
+    /* Collapsed state: hide list */
+    .brand-toc.is-collapsed .brand-toc__list {
+      display: none;
+    }
+
+    /* Expanded state: show top-level only, hide sublists, constrain height */
+    .brand-toc__list {
+      max-height: 50vh;
+      overflow-y: auto;
+      margin-top: var(--spacing-sm);
+    }
+
+    .brand-toc__layer :global(.brand-toc__sublist) {
+      display: none;
     }
   }
 
@@ -4506,6 +4570,28 @@ const palettes = [
       });
 
       tocLayer.appendChild(sublist);
+    });
+
+    // Mobile TOC collapse: default collapsed, click heading to toggle
+    const brandToc = document.querySelector<HTMLElement>('.brand-toc');
+    const tocHeading = document.querySelector<HTMLElement>('.brand-toc__heading');
+    const mobileQuery = window.matchMedia('(max-width: 768px)');
+
+    const applyMobileState = (isMobile: boolean) => {
+      if (isMobile) {
+        brandToc?.classList.add('is-collapsed');
+      } else {
+        brandToc?.classList.remove('is-collapsed');
+      }
+    };
+
+    applyMobileState(mobileQuery.matches);
+    mobileQuery.addEventListener('change', (e) => applyMobileState(e.matches));
+
+    tocHeading?.addEventListener('click', () => {
+      if (mobileQuery.matches) {
+        brandToc?.classList.toggle('is-collapsed');
+      }
     });
 
     // TOC scroll-spy: highlight active section (includes sublists)
