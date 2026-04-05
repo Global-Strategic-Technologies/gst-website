@@ -1077,6 +1077,80 @@ const palettes = [
   </div>
 </section>
 
+<!-- Section 7d: Responsive Behavior -->
+<section class="brand-section" id="responsive-demos">
+  <div class="container">
+    <h2 class="brutal-heading-md brand-section__title">Responsive Behavior</h2>
+    <p class="brutal-text-small" style="margin-bottom: var(--spacing-xl); color: var(--text-muted);">
+      Components rendered at desktop (1200px), tablet (768px), and mobile (480px) widths. Each frame is a live embed showing how layouts collapse and reflow.
+    </p>
+
+    <h3 class="brutal-heading-sm brand-group-title">Option Card Grid</h3>
+    <div class="responsive-demo-row">
+      <div class="responsive-demo-frame responsive-demo-frame--desktop">
+        <span class="responsive-demo-label">1200px</span>
+        <iframe src="/brand/responsive-frame?group=cards" title="Cards at 1200px" loading="lazy"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--tablet">
+        <span class="responsive-demo-label">768px</span>
+        <iframe src="/brand/responsive-frame?group=cards" title="Cards at 768px" loading="lazy"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--mobile">
+        <span class="responsive-demo-label">480px</span>
+        <iframe src="/brand/responsive-frame?group=cards" title="Cards at 480px" loading="lazy"></iframe>
+      </div>
+    </div>
+
+    <h3 class="brutal-heading-sm brand-group-title">Tab Bar</h3>
+    <div class="responsive-demo-row">
+      <div class="responsive-demo-frame responsive-demo-frame--desktop">
+        <span class="responsive-demo-label">1200px</span>
+        <iframe src="/brand/responsive-frame?group=tabs" title="Tabs at 1200px" loading="lazy"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--tablet">
+        <span class="responsive-demo-label">768px</span>
+        <iframe src="/brand/responsive-frame?group=tabs" title="Tabs at 768px" loading="lazy"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--mobile">
+        <span class="responsive-demo-label">480px</span>
+        <iframe src="/brand/responsive-frame?group=tabs" title="Tabs at 480px" loading="lazy"></iframe>
+      </div>
+    </div>
+
+    <h3 class="brutal-heading-sm brand-group-title">Form Controls</h3>
+    <div class="responsive-demo-row">
+      <div class="responsive-demo-frame responsive-demo-frame--desktop">
+        <span class="responsive-demo-label">1200px</span>
+        <iframe src="/brand/responsive-frame?group=form" title="Form at 1200px" loading="lazy"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--tablet">
+        <span class="responsive-demo-label">768px</span>
+        <iframe src="/brand/responsive-frame?group=form" title="Form at 768px" loading="lazy"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--mobile">
+        <span class="responsive-demo-label">480px</span>
+        <iframe src="/brand/responsive-frame?group=form" title="Form at 480px" loading="lazy"></iframe>
+      </div>
+    </div>
+
+    <h3 class="brutal-heading-sm brand-group-title">Tool Shell</h3>
+    <div class="responsive-demo-row">
+      <div class="responsive-demo-frame responsive-demo-frame--desktop">
+        <span class="responsive-demo-label">1200px</span>
+        <iframe src="/brand/responsive-frame?group=shell" title="Shell at 1200px" loading="lazy"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--tablet">
+        <span class="responsive-demo-label">768px</span>
+        <iframe src="/brand/responsive-frame?group=shell" title="Shell at 768px" loading="lazy"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--mobile">
+        <span class="responsive-demo-label">480px</span>
+        <iframe src="/brand/responsive-frame?group=shell" title="Shell at 480px" loading="lazy"></iframe>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- Section 8: UI Component Library -->
 <section class="brand-section" id="ui-library">
   <div class="container">
@@ -3604,6 +3678,62 @@ const palettes = [
     border-color: var(--border-dark-default);
   }
 
+  /* ── Responsive Demo Frames ── */
+  .responsive-demo-row {
+    display: flex;
+    gap: var(--gap-wide);
+    align-items: flex-start;
+    margin-bottom: var(--spacing-2xl);
+    overflow-x: auto;
+  }
+
+  .responsive-demo-frame {
+    flex-shrink: 0;
+    position: relative;
+    border: 1px solid var(--border-light);
+  }
+
+  html.dark-theme .responsive-demo-frame {
+    border-color: var(--border-dark-default);
+  }
+
+  .responsive-demo-frame iframe {
+    display: block;
+    border: none;
+    height: 200px;
+    background: var(--bg-light);
+  }
+
+  .responsive-demo-frame--desktop iframe { width: 600px; }
+  .responsive-demo-frame--tablet iframe { width: 384px; }
+  .responsive-demo-frame--mobile iframe { width: 240px; }
+
+  .responsive-demo-label {
+    display: block;
+    font-family: monospace;
+    font-size: 0.6rem;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 2px var(--spacing-xs);
+    border-bottom: 1px solid var(--border-light);
+    background: var(--bg-light-alt);
+  }
+
+  html.dark-theme .responsive-demo-label {
+    border-bottom-color: var(--border-dark-default);
+  }
+
+  @media (max-width: 768px) {
+    .responsive-demo-row {
+      flex-direction: column;
+    }
+    .responsive-demo-frame--desktop iframe { width: 100%; min-width: 300px; }
+    .responsive-demo-frame--tablet iframe { width: 100%; min-width: 300px; }
+    .responsive-demo-frame--mobile iframe { width: 240px; }
+  }
+
 </style>
 
 <script>
@@ -4152,5 +4282,20 @@ const palettes = [
         attCard.classList.toggle('is-dismissed');
       });
     }
+
+    // Responsive demo: sync theme to iframes
+    const syncThemeToFrames = () => {
+      const isDark = document.documentElement.classList.contains('dark-theme');
+      document.querySelectorAll<HTMLIFrameElement>('.responsive-demo-frame iframe').forEach(f => {
+        f.contentWindow?.postMessage({ type: 'theme-sync', dark: isDark }, '*');
+      });
+    };
+    // Observe theme class changes on <html>
+    const themeObserver = new MutationObserver(syncThemeToFrames);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    // Initial sync after iframes load
+    document.querySelectorAll<HTMLIFrameElement>('.responsive-demo-frame iframe').forEach(f => {
+      f.addEventListener('load', syncThemeToFrames);
+    });
   });
 </script>
