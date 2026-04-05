@@ -1116,15 +1116,15 @@ const palettes = [
     <div class="responsive-demo-row">
       <div class="responsive-demo-frame responsive-demo-frame--desktop">
         <span class="responsive-demo-label">1200px</span>
-        <iframe src="/brand/responsive-frame?group=cards" title="Cards at 1200px" loading="lazy"></iframe>
+        <iframe src="/brand/responsive-frame?group=cards" title="Cards at 1200px" loading="lazy" scrolling="no"></iframe>
       </div>
       <div class="responsive-demo-frame responsive-demo-frame--tablet">
         <span class="responsive-demo-label">768px</span>
-        <iframe src="/brand/responsive-frame?group=cards" title="Cards at 768px" loading="lazy"></iframe>
+        <iframe src="/brand/responsive-frame?group=cards" title="Cards at 768px" loading="lazy" scrolling="no"></iframe>
       </div>
       <div class="responsive-demo-frame responsive-demo-frame--mobile">
         <span class="responsive-demo-label">480px</span>
-        <iframe src="/brand/responsive-frame?group=cards" title="Cards at 480px" loading="lazy"></iframe>
+        <iframe src="/brand/responsive-frame?group=cards" title="Cards at 480px" loading="lazy" scrolling="no"></iframe>
       </div>
     </div>
 
@@ -1132,15 +1132,15 @@ const palettes = [
     <div class="responsive-demo-row">
       <div class="responsive-demo-frame responsive-demo-frame--desktop">
         <span class="responsive-demo-label">1200px</span>
-        <iframe src="/brand/responsive-frame?group=tabs" title="Tabs at 1200px" loading="lazy"></iframe>
+        <iframe src="/brand/responsive-frame?group=tabs" title="Tabs at 1200px" loading="lazy" scrolling="no"></iframe>
       </div>
       <div class="responsive-demo-frame responsive-demo-frame--tablet">
         <span class="responsive-demo-label">768px</span>
-        <iframe src="/brand/responsive-frame?group=tabs" title="Tabs at 768px" loading="lazy"></iframe>
+        <iframe src="/brand/responsive-frame?group=tabs" title="Tabs at 768px" loading="lazy" scrolling="no"></iframe>
       </div>
       <div class="responsive-demo-frame responsive-demo-frame--mobile">
         <span class="responsive-demo-label">480px</span>
-        <iframe src="/brand/responsive-frame?group=tabs" title="Tabs at 480px" loading="lazy"></iframe>
+        <iframe src="/brand/responsive-frame?group=tabs" title="Tabs at 480px" loading="lazy" scrolling="no"></iframe>
       </div>
     </div>
 
@@ -1148,15 +1148,15 @@ const palettes = [
     <div class="responsive-demo-row">
       <div class="responsive-demo-frame responsive-demo-frame--desktop">
         <span class="responsive-demo-label">1200px</span>
-        <iframe src="/brand/responsive-frame?group=form" title="Form at 1200px" loading="lazy"></iframe>
+        <iframe src="/brand/responsive-frame?group=form" title="Form at 1200px" loading="lazy" scrolling="no"></iframe>
       </div>
       <div class="responsive-demo-frame responsive-demo-frame--tablet">
         <span class="responsive-demo-label">768px</span>
-        <iframe src="/brand/responsive-frame?group=form" title="Form at 768px" loading="lazy"></iframe>
+        <iframe src="/brand/responsive-frame?group=form" title="Form at 768px" loading="lazy" scrolling="no"></iframe>
       </div>
       <div class="responsive-demo-frame responsive-demo-frame--mobile">
         <span class="responsive-demo-label">480px</span>
-        <iframe src="/brand/responsive-frame?group=form" title="Form at 480px" loading="lazy"></iframe>
+        <iframe src="/brand/responsive-frame?group=form" title="Form at 480px" loading="lazy" scrolling="no"></iframe>
       </div>
     </div>
 
@@ -1164,15 +1164,15 @@ const palettes = [
     <div class="responsive-demo-row">
       <div class="responsive-demo-frame responsive-demo-frame--desktop">
         <span class="responsive-demo-label">1200px</span>
-        <iframe src="/brand/responsive-frame?group=shell" title="Shell at 1200px" loading="lazy"></iframe>
+        <iframe src="/brand/responsive-frame?group=shell" title="Shell at 1200px" loading="lazy" scrolling="no"></iframe>
       </div>
       <div class="responsive-demo-frame responsive-demo-frame--tablet">
         <span class="responsive-demo-label">768px</span>
-        <iframe src="/brand/responsive-frame?group=shell" title="Shell at 768px" loading="lazy"></iframe>
+        <iframe src="/brand/responsive-frame?group=shell" title="Shell at 768px" loading="lazy" scrolling="no"></iframe>
       </div>
       <div class="responsive-demo-frame responsive-demo-frame--mobile">
         <span class="responsive-demo-label">480px</span>
-        <iframe src="/brand/responsive-frame?group=shell" title="Shell at 480px" loading="lazy"></iframe>
+        <iframe src="/brand/responsive-frame?group=shell" title="Shell at 480px" loading="lazy" scrolling="no"></iframe>
       </div>
     </div>
   </div>
@@ -3763,7 +3763,11 @@ const palettes = [
     border: none;
     height: 200px;
     background: var(--bg-light);
+    overflow: hidden;
   }
+
+  .responsive-demo-frame--tablet iframe { height: 350px; }
+  .responsive-demo-frame--mobile iframe { height: 400px; }
 
   .responsive-demo-frame--desktop iframe { width: 600px; }
   .responsive-demo-frame--tablet iframe { width: 384px; }
