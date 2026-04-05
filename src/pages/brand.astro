@@ -25,6 +25,31 @@ const palettes = [
   <h1 class="brutal-heading-lg brand-page__title">Brand Style Reference</h1>
 </div>
 
+<div class="brand-layout">
+  <nav class="brand-toc" aria-label="Table of contents">
+    <h2 class="brand-toc__heading">
+      <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
+      Contents
+    </h2>
+    <ul class="brand-toc__list">
+      <li><a href="#identity">Brand Identity</a></li>
+      <li><a href="#colors">Color Palette</a></li>
+      <li><a href="#typography">Typography</a></li>
+      <li><a href="#spacing">Spacing Scale</a></li>
+      <li><a href="#shadows">Shadows</a></li>
+      <li><a href="#transitions">Transitions</a></li>
+      <li class="brand-toc__separator" aria-hidden="true"></li>
+      <li><a href="#components">Components</a></li>
+      <li><a href="#component-states">Component States</a></li>
+      <li><a href="#accessibility">Accessibility</a></li>
+      <li><a href="#responsive-demos">Responsive Behavior</a></li>
+      <li class="brand-toc__separator" aria-hidden="true"></li>
+      <li><a href="#ui-library">UI Component Library</a></li>
+    </ul>
+  </nav>
+
+  <div class="brand-content">
+
 <!-- Section 1: Brand Identity -->
 <section class="brand-section" id="identity">
   <div class="container">
@@ -2552,6 +2577,9 @@ const palettes = [
   </div>
 </section>
 
+  </div><!-- .brand-content -->
+</div><!-- .brand-layout -->
+
 </BaseLayout>
 
 <style>
@@ -3734,6 +3762,137 @@ const palettes = [
     .responsive-demo-frame--mobile iframe { width: 240px; }
   }
 
+  /* ── Brand TOC (matches Hub Library article pattern) ── */
+  .brand-layout {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .brand-toc {
+    display: block;
+    max-width: 800px;
+    margin: 0 auto var(--spacing-3xl);
+    padding: var(--spacing-xl);
+    background: transparent;
+    border: 2px solid var(--border-light);
+  }
+
+  html.dark-theme .brand-toc {
+    border-color: var(--border-light);
+  }
+
+  .brand-toc__heading {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-family: monospace;
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-lg);
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-bottom: 2px solid var(--color-primary);
+  }
+
+  .brand-toc__heading img {
+    flex-shrink: 0;
+  }
+
+  .brand-toc__list {
+    list-style: none;
+    padding-left: var(--spacing-xl);
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .brand-toc__list > li {
+    margin-bottom: 0;
+  }
+
+  .brand-toc__separator {
+    height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    list-style: none;
+  }
+
+  .brand-toc__list a {
+    font-family: monospace;
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    text-decoration: none;
+    text-transform: none;
+    letter-spacing: normal;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+    display: block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-left: 2px solid transparent;
+  }
+
+  .brand-toc__list a:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  .brand-toc__list a.is-active {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  @media (min-width: 1025px) {
+    .brand-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: var(--spacing-2xl);
+      align-items: start;
+    }
+
+    .brand-toc {
+      position: sticky;
+      top: var(--spacing-xl);
+      max-width: none;
+      margin: 0;
+      max-height: calc(100vh - var(--spacing-2xl));
+      overflow-y: auto;
+      padding: var(--spacing-lg);
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-primary) transparent;
+    }
+
+    .brand-toc::-webkit-scrollbar { width: 4px; }
+    .brand-toc::-webkit-scrollbar-track { background: transparent; }
+    .brand-toc::-webkit-scrollbar-thumb { background: var(--color-primary); }
+
+    .brand-toc__heading {
+      font-size: 1rem;
+      padding: var(--spacing-xs) var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .brand-toc__list {
+      padding-left: var(--spacing-md);
+    }
+
+    .brand-toc__list a {
+      font-size: var(--text-sm);
+      padding: 3px var(--spacing-sm);
+    }
+
+    .brand-toc__separator { display: none; }
+
+    .brand-content {
+      max-width: none;
+      margin: 0;
+      min-width: 0;
+    }
+  }
+
 </style>
 
 <script>
@@ -4282,6 +4441,22 @@ const palettes = [
         attCard.classList.toggle('is-dismissed');
       });
     }
+
+    // TOC scroll-spy: highlight active section
+    const tocLinks = document.querySelectorAll<HTMLAnchorElement>('.brand-toc__list a');
+    const sectionIds = Array.from(tocLinks).map(a => a.getAttribute('href')!.slice(1));
+    const onScroll = () => {
+      let activeId = sectionIds[0];
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= 80) activeId = id;
+      }
+      tocLinks.forEach(a => {
+        a.classList.toggle('is-active', a.getAttribute('href') === `#${activeId}`);
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
 
     // Responsive demo: sync theme to iframes
     const syncThemeToFrames = () => {
