@@ -284,7 +284,7 @@ html.dark-theme .tool-action-bar--frosted {
     position: static;
 }
 
-nav {
+.site-header nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -363,13 +363,13 @@ nav {
     animation: pulse 2s ease-in-out infinite;
 }
 
-nav ul {
+.site-header nav ul {
     display: flex;
     gap: 3rem;
     list-style: none;
 }
 
-nav a {
+.site-header nav a {
     color: var(--text-secondary);
     text-decoration: none;
     font-weight: var(--font-weight-bold);
@@ -383,17 +383,17 @@ nav a {
     border-bottom: 2px solid transparent;
 }
 
-nav a:hover {
+.site-header nav a:hover {
     color: var(--color-primary);
     border-bottom-color: var(--color-primary);
 }
 
-nav a:focus {
+.site-header nav a:focus {
     outline: 2px solid var(--color-primary);
     outline-offset: 0.25rem;
 }
 
-nav a.active {
+.site-header nav a.active {
     color: var(--color-primary);
     border-bottom-color: var(--color-primary);
 }
