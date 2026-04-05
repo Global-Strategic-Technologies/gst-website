@@ -51,6 +51,7 @@ Centralized CSS variable-based design system. Single source of truth in `variabl
 | Category | Examples | Count |
 |----------|---------|-------|
 | Colors (brand + text) | `--color-primary`, `--bg-light`, `--text-primary` | 35 |
+| Primary opacity scale | `--color-primary-02` through `--color-primary-65` | 19 |
 | Component colors | `--filter-chip-bg`, `--service-card-text`, `--footer-bg` | 31 |
 | Tool-domain colors | `--hub-authority-blue`, `--dm-*`, `--icg-*`, `--techpar-*` | 33 |
 | Misc colors | `--checkerboard-line`, `--theme-toggle-color` | 6 |
@@ -59,9 +60,9 @@ Centralized CSS variable-based design system. Single source of truth in `variabl
 | Typography | `--font-family`, `--font-weight-*`, `--text-*` | 10 |
 | Transitions | `--transition-fast`, `--transition-normal`, `--transition-slow` | 3 |
 | Shadows | `--shadow-sm`, `--shadow-md`, `--shadow-lg` | 3 |
-| **Total** | | **134** |
+| **Total** | | **153** |
 
-> Note: Dark theme defines 78 variable overrides, not new variables. 13 utility classes are defined across `variables.css`, `typography.css`, and `interactions.css`.
+> Note: Dark theme defines 85 variable overrides (including `--border-dark-subtle/default/prominent`), not new variables. 13 utility classes are defined across `variables.css`, `typography.css`, and `interactions.css`.
 
 Full variable catalog: [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)
 
@@ -577,6 +578,25 @@ Check existing variables first. Don't create `--my-special-bg: #f5f5f5` when `--
 ### 8. Unused CSS
 
 Delete dead styles. Version control has the history.
+
+### 9. Hardcoded Primary Opacity
+
+```css
+/* BAD */  .tag { background: rgba(5, 205, 153, 0.1); }
+/* GOOD */ .tag { background: var(--color-primary-10); }
+/* BEST */ .tag { background: var(--accent-dark-bg); }  /* when a semantic alias exists */
+```
+
+Use `--color-primary-XX` opacity tokens (see [VARIABLES_REFERENCE — Opacity Scale](./VARIABLES_REFERENCE.md#primary-color-opacity-scale)). Prefer the semantic alias (`--accent-*-bg`, `--accent-border-*`) when one matches your intent.
+
+### 10. Hardcoded Dark-Theme Borders
+
+```css
+/* BAD */  html.dark-theme .card { border: 1px solid rgba(255, 255, 255, 0.15); }
+/* GOOD */ html.dark-theme .card { border: 1px solid var(--border-dark-default); }
+```
+
+Three tiers: `--border-dark-subtle` (0.10), `--border-dark-default` (0.15), `--border-dark-prominent` (0.20).
 
 ---
 
