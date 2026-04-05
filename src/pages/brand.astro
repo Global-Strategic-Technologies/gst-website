@@ -1,8 +1,19 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PalettePanel from '../components/brand/PalettePanel.astro';
+import ColorSpecimens from '../components/brand/ColorSpecimens.astro';
 import { trackPageView } from '../utils/analytics';
 
 trackPageView('brand', 'Brand Style Reference');
+
+const palettes = [
+  { id: 0, name: 'Current', concept: 'The production palette \u2014 teal primary with amber secondary. This is the baseline for comparison.' },
+  { id: 1, name: 'Steel Authority', concept: 'Deep cobalt blue anchored by hot magenta secondary. PE gravitas with an unexpected edge.' },
+  { id: 2, name: 'Indigo Signal', concept: 'Vivid violet primary paired with electric lime. Breaks every finance-blue convention.' },
+  { id: 3, name: 'Copper Forge', concept: 'Dark rust and electric cyan \u2014 industrial heat meets cold precision.' },
+  { id: 4, name: 'Jade Edge', concept: 'Vivid emerald with hot rose contrast. The current teal pushed to its boldest form.' },
+  { id: 5, name: 'Shadow Garden', concept: 'Deep forest green rooted in near-black, lit by electric violet. Terminal in an old-growth forest.' },
+];
 ---
 
 <BaseLayout
@@ -45,185 +56,192 @@ trackPageView('brand', 'Brand Style Reference');
   </div>
 </section>
 
-<!-- Section 2: Color Palette -->
+<!-- Section 2: Color Palette (includes palette explorer migrated from /colors) -->
 <section class="brand-section" id="colors">
-  <div class="container">
-    <h2 class="brutal-heading-md brand-section__title">Color Palette</h2>
-    <p class="brutal-text-small brand-section__note">Toggle dark mode via the header to see theme-specific values. All hex values are computed live from CSS variables.</p>
+  <div class="palette-scope palette-0" id="palette-scope">
+    <PalettePanel palettes={palettes} />
+    <div class="container">
+      <h2 class="brutal-heading-md brand-section__title">Color Palette</h2>
+      <p class="brutal-text-small brand-section__note">Toggle dark mode via the header to see theme-specific values. Open the palette panel (right edge) to switch palettes and edit colors live.</p>
+      <p class="brutal-text-base colors-palette-concept" id="palette-concept">{palettes[0].concept}</p>
 
-    <h3 class="brutal-heading-sm brand-group-title">Primary &amp; Secondary</h3>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--color-primary">
-        <div class="brand-swatch__color" style="background: var(--color-primary);"></div>
-        <div class="brand-swatch__label">--color-primary</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Primary actions, active states, accents</div>
+      <h3 class="brutal-heading-sm brand-group-title">Primary &amp; Secondary</h3>
+      <div class="brand-swatch-grid">
+        <div class="brand-swatch" data-var="--color-primary">
+          <div class="brand-swatch__color" style="background: var(--color-primary);"></div>
+          <div class="brand-swatch__label">--color-primary</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Primary actions, active states, accents</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-primary-dark">
+          <div class="brand-swatch__color" style="background: var(--color-primary-dark);"></div>
+          <div class="brand-swatch__label">--color-primary-dark</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Hover/pressed state for primary</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-secondary">
+          <div class="brand-swatch__color" style="background: var(--color-secondary);"></div>
+          <div class="brand-swatch__label">--color-secondary</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Secondary emphasis, amber highlights</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-secondary-dark">
+          <div class="brand-swatch__color" style="background: var(--color-secondary-dark);"></div>
+          <div class="brand-swatch__label">--color-secondary-dark</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Dark-theme secondary variant</div>
+        </div>
       </div>
-      <div class="brand-swatch" data-var="--color-primary-dark">
-        <div class="brand-swatch__color" style="background: var(--color-primary-dark);"></div>
-        <div class="brand-swatch__label">--color-primary-dark</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Hover/pressed state for primary</div>
-      </div>
-      <div class="brand-swatch" data-var="--color-secondary">
-        <div class="brand-swatch__color" style="background: var(--color-secondary);"></div>
-        <div class="brand-swatch__label">--color-secondary</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Secondary emphasis, amber highlights</div>
-      </div>
-      <div class="brand-swatch" data-var="--color-secondary-dark">
-        <div class="brand-swatch__color" style="background: var(--color-secondary-dark);"></div>
-        <div class="brand-swatch__label">--color-secondary-dark</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Dark-theme secondary variant</div>
-      </div>
-    </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Semantic</h3>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--color-success">
-        <div class="brand-swatch__color" style="background: var(--color-success);"></div>
-        <div class="brand-swatch__label">--color-success</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Positive outcomes, passing states</div>
+      <h3 class="brutal-heading-sm brand-group-title">Semantic</h3>
+      <div class="brand-swatch-grid">
+        <div class="brand-swatch" data-var="--color-success">
+          <div class="brand-swatch__color" style="background: var(--color-success);"></div>
+          <div class="brand-swatch__label">--color-success</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Positive outcomes, passing states</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-warning">
+          <div class="brand-swatch__color" style="background: var(--color-warning);"></div>
+          <div class="brand-swatch__label">--color-warning</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Caution indicators, attention-needed</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-error">
+          <div class="brand-swatch__color" style="background: var(--color-error);"></div>
+          <div class="brand-swatch__label">--color-error</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Errors, critical states, negative deltas</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-info">
+          <div class="brand-swatch__color" style="background: var(--color-info);"></div>
+          <div class="brand-swatch__label">--color-info</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Informational highlights (alias of primary)</div>
+        </div>
       </div>
-      <div class="brand-swatch" data-var="--color-warning">
-        <div class="brand-swatch__color" style="background: var(--color-warning);"></div>
-        <div class="brand-swatch__label">--color-warning</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Caution indicators, attention-needed</div>
-      </div>
-      <div class="brand-swatch" data-var="--color-error">
-        <div class="brand-swatch__color" style="background: var(--color-error);"></div>
-        <div class="brand-swatch__label">--color-error</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Errors, critical states, negative deltas</div>
-      </div>
-      <div class="brand-swatch" data-var="--color-info">
-        <div class="brand-swatch__color" style="background: var(--color-info);"></div>
-        <div class="brand-swatch__label">--color-info</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Informational highlights (alias of primary)</div>
-      </div>
-    </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Text Hierarchy</h3>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--text-primary">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-primary);"></div>
-        <div class="brand-swatch__label">--text-primary</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Headings, high-emphasis body text</div>
+      <h3 class="brutal-heading-sm brand-group-title">Text Hierarchy</h3>
+      <div class="brand-swatch-grid">
+        <div class="brand-swatch" data-var="--text-primary">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-primary);"></div>
+          <div class="brand-swatch__label">--text-primary</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Headings, high-emphasis body text</div>
+        </div>
+        <div class="brand-swatch" data-var="--text-secondary">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-secondary);"></div>
+          <div class="brand-swatch__label">--text-secondary</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Body text, descriptions</div>
+        </div>
+        <div class="brand-swatch" data-var="--text-muted">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-muted);"></div>
+          <div class="brand-swatch__label">--text-muted</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Labels, captions, supporting text</div>
+        </div>
+        <div class="brand-swatch" data-var="--text-faded">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-faded);"></div>
+          <div class="brand-swatch__label">--text-faded</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Placeholders, disabled text, timestamps</div>
+        </div>
       </div>
-      <div class="brand-swatch" data-var="--text-secondary">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-secondary);"></div>
-        <div class="brand-swatch__label">--text-secondary</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Body text, descriptions</div>
-      </div>
-      <div class="brand-swatch" data-var="--text-muted">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-muted);"></div>
-        <div class="brand-swatch__label">--text-muted</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Labels, captions, supporting text</div>
-      </div>
-      <div class="brand-swatch" data-var="--text-faded">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-faded);"></div>
-        <div class="brand-swatch__label">--text-faded</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Placeholders, disabled text, timestamps</div>
-      </div>
-    </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Backgrounds</h3>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--bg-light">
-        <div class="brand-swatch__color" style="background: var(--bg-light);"></div>
-        <div class="brand-swatch__label">--bg-light</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Page background, card surfaces</div>
+      <h3 class="brutal-heading-sm brand-group-title">Backgrounds</h3>
+      <div class="brand-swatch-grid">
+        <div class="brand-swatch" data-var="--bg-light">
+          <div class="brand-swatch__color" style="background: var(--bg-light);"></div>
+          <div class="brand-swatch__label">--bg-light</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Page background, card surfaces</div>
+        </div>
+        <div class="brand-swatch" data-var="--bg-light-alt">
+          <div class="brand-swatch__color" style="background: var(--bg-light-alt);"></div>
+          <div class="brand-swatch__label">--bg-light-alt</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Alternate sections, tool shells</div>
+        </div>
+        <div class="brand-swatch" data-var="--bg-dark">
+          <div class="brand-swatch__color" style="background: var(--bg-dark);"></div>
+          <div class="brand-swatch__label">--bg-dark</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Dark-theme page bg, service cards</div>
+        </div>
+        <div class="brand-swatch" data-var="--bg-dark-secondary">
+          <div class="brand-swatch__color" style="background: var(--bg-dark-secondary);"></div>
+          <div class="brand-swatch__label">--bg-dark-secondary</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Elevated dark surfaces, modals</div>
+        </div>
+        <div class="brand-swatch" data-var="--bg-dark-tertiary">
+          <div class="brand-swatch__color" style="background: var(--bg-dark-tertiary);"></div>
+          <div class="brand-swatch__label">--bg-dark-tertiary</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Footer, section backgrounds (dark)</div>
+        </div>
       </div>
-      <div class="brand-swatch" data-var="--bg-light-alt">
-        <div class="brand-swatch__color" style="background: var(--bg-light-alt);"></div>
-        <div class="brand-swatch__label">--bg-light-alt</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Alternate sections, tool shells</div>
-      </div>
-      <div class="brand-swatch" data-var="--bg-dark">
-        <div class="brand-swatch__color" style="background: var(--bg-dark);"></div>
-        <div class="brand-swatch__label">--bg-dark</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Dark-theme page bg, service cards</div>
-      </div>
-      <div class="brand-swatch" data-var="--bg-dark-secondary">
-        <div class="brand-swatch__color" style="background: var(--bg-dark-secondary);"></div>
-        <div class="brand-swatch__label">--bg-dark-secondary</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Elevated dark surfaces, modals</div>
-      </div>
-      <div class="brand-swatch" data-var="--bg-dark-tertiary">
-        <div class="brand-swatch__color" style="background: var(--bg-dark-tertiary);"></div>
-        <div class="brand-swatch__label">--bg-dark-tertiary</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Footer, section backgrounds (dark)</div>
-      </div>
-    </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Borders &amp; Accents</h3>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--border-light">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--border-light);"></div>
-        <div class="brand-swatch__label">--border-light</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Dividers, card borders, table lines</div>
+      <h3 class="brutal-heading-sm brand-group-title">Borders &amp; Accents</h3>
+      <div class="brand-swatch-grid">
+        <div class="brand-swatch" data-var="--border-light">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--border-light);"></div>
+          <div class="brand-swatch__label">--border-light</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Dividers, card borders, table lines</div>
+        </div>
+        <div class="brand-swatch" data-var="--accent-light-bg">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-light-bg);"></div>
+          <div class="brand-swatch__label">--accent-light-bg</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Active row highlights, accent fills</div>
+        </div>
+        <div class="brand-swatch" data-var="--accent-light-bg-hover">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-light-bg-hover);"></div>
+          <div class="brand-swatch__label">--accent-light-bg-hover</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Hover state for accent backgrounds</div>
+        </div>
+        <div class="brand-swatch" data-var="--accent-border-light">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-border-light);"></div>
+          <div class="brand-swatch__label">--accent-border-light</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Subtle accent borders, badge outlines</div>
+        </div>
+        <div class="brand-swatch" data-var="--accent-border-medium">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-border-medium);"></div>
+          <div class="brand-swatch__label">--accent-border-medium</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Stronger accent borders, focus rings</div>
+        </div>
       </div>
-      <div class="brand-swatch" data-var="--accent-light-bg">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-light-bg);"></div>
-        <div class="brand-swatch__label">--accent-light-bg</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Active row highlights, accent fills</div>
-      </div>
-      <div class="brand-swatch" data-var="--accent-light-bg-hover">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-light-bg-hover);"></div>
-        <div class="brand-swatch__label">--accent-light-bg-hover</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Hover state for accent backgrounds</div>
-      </div>
-      <div class="brand-swatch" data-var="--accent-border-light">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-border-light);"></div>
-        <div class="brand-swatch__label">--accent-border-light</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Subtle accent borders, badge outlines</div>
-      </div>
-      <div class="brand-swatch" data-var="--accent-border-medium">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-border-medium);"></div>
-        <div class="brand-swatch__label">--accent-border-medium</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Stronger accent borders, focus rings</div>
-      </div>
-    </div>
 
-    <h3 class="brutal-heading-sm brand-group-title">Expanded Palette</h3>
-    <p class="brutal-text-small brand-section__note">Purpose-named tokens shared across all tools. Tool-specific variables (TechPar zones, ICG maturity, DM domain, RegMap categories) derive from these.</p>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--color-authority">
-        <div class="brand-swatch__color" style="background: var(--color-authority);"></div>
-        <div class="brand-swatch__label">--color-authority</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Institutional credibility — hub authority line, DM results, TechPar personnel</div>
+      <h3 class="brutal-heading-sm brand-group-title">Expanded Palette</h3>
+      <p class="brutal-text-small brand-section__note">Purpose-named tokens shared across all tools. Tool-specific variables (TechPar zones, ICG maturity, DM domain, RegMap categories) derive from these.</p>
+      <div class="brand-swatch-grid">
+        <div class="brand-swatch" data-var="--color-authority">
+          <div class="brand-swatch__color" style="background: var(--color-authority);"></div>
+          <div class="brand-swatch__label">--color-authority</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Institutional credibility — hub authority line, DM results, TechPar personnel</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-distinguish">
+          <div class="brand-swatch__color" style="background: var(--color-distinguish);"></div>
+          <div class="brand-swatch__label">--color-distinguish</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Differentiation accent — RegMap industry, TechPar R&amp;D OpEx, chart series</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-subdued">
+          <div class="brand-swatch__color" style="background: var(--color-subdued);"></div>
+          <div class="brand-swatch__label">--color-subdued</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Muted neutral — DM methodology, process/background contexts</div>
+        </div>
       </div>
-      <div class="brand-swatch" data-var="--color-distinguish">
-        <div class="brand-swatch__color" style="background: var(--color-distinguish);"></div>
-        <div class="brand-swatch__label">--color-distinguish</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Differentiation accent — RegMap industry, TechPar R&amp;D OpEx, chart series</div>
-      </div>
-      <div class="brand-swatch" data-var="--color-subdued">
-        <div class="brand-swatch__color" style="background: var(--color-subdued);"></div>
-        <div class="brand-swatch__label">--color-subdued</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Muted neutral — DM methodology, process/background contexts</div>
-      </div>
+
+      <!-- Palette specimens and derived tool colors -->
+      <ColorSpecimens />
     </div>
   </div>
 </section>
@@ -2550,11 +2568,355 @@ trackPageView('brand', 'Brand Style Reference');
       flex-direction: column;
       align-items: flex-start;
     }
+  }
 
+  /* ═══════════════════════════════════════════════════════════
+     PALETTE EXPLORER — variables and scope overrides
+     (migrated from colors.astro)
+     ═══════════════════════════════════════════════════════════ */
+
+  .colors-palette-concept {
+    color: var(--text-secondary);
+    max-width: 680px;
+    height: 3.2em;
+    overflow: hidden;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  :root {
+    /* 1: Steel Authority — deep cobalt + hot magenta */
+    --alt1-color-primary: #1e40af;
+    --alt1-color-primary-dark: #1a3590;
+    --alt1-color-secondary: #db2777;
+    --alt1-color-success: #16a34a;
+    --alt1-color-warning: #ca8a04;
+    --alt1-color-error: #b91c1c;
+
+    /* 2: Indigo Signal — vivid violet + electric lime */
+    --alt2-color-primary: #7c3aed;
+    --alt2-color-primary-dark: #6d28d9;
+    --alt2-color-secondary: #84cc16;
+    --alt2-color-success: #10b981;
+    --alt2-color-warning: #e67e22;
+    --alt2-color-error: #dc2626;
+
+    /* 3: Copper Forge — dark rust + electric cyan */
+    --alt3-color-primary: #b45309;
+    --alt3-color-primary-dark: #92400e;
+    --alt3-color-secondary: #0891b2;
+    --alt3-color-success: #16a34a;
+    --alt3-color-warning: #eab308;
+    --alt3-color-error: #c0392b;
+
+    /* 4: Jade Edge — vivid emerald + hot rose */
+    --alt4-color-primary: #059669;
+    --alt4-color-primary-dark: #047857;
+    --alt4-color-secondary: #f43f5e;
+    --alt4-color-success: #15803d;
+    --alt4-color-warning: #d97706;
+    --alt4-color-error: #9f1239;
+
+    /* 5: Shadow Garden — deep forest + electric violet */
+    --alt5-color-primary: #166534;
+    --alt5-color-primary-dark: #14532d;
+    --alt5-color-secondary: #a855f7;
+    --alt5-color-success: #22c55e;
+    --alt5-color-warning: #ca8a04;
+    --alt5-color-error: #991b1b;
+    --alt5-black: #060606;
+    --alt5-black-soft: #101010;
+    --alt5-purple-muted: rgba(168, 85, 247, 0.3);
+    --alt5-forest-light: rgba(22, 101, 52, 0.18);
+
+    /* ── Expanded tokens: authority / distinguish / subdued ── */
+    --alt0-color-authority: #5b7a9d;
+    --alt0-color-distinguish: #8b5cf6;
+    --alt0-color-subdued: #8c7a6b;
+
+    --alt1-color-authority: #4a6fa5;
+    --alt1-color-distinguish: #9b59b6;
+    --alt1-color-subdued: #7a8a9a;
+
+    --alt2-color-authority: #3b82f6;
+    --alt2-color-distinguish: #06b6d4;
+    --alt2-color-subdued: #6b7280;
+
+    --alt3-color-authority: #2563eb;
+    --alt3-color-distinguish: #7c3aed;
+    --alt3-color-subdued: #78593f;
+
+    --alt4-color-authority: #6366f1;
+    --alt4-color-distinguish: #d946ef;
+    --alt4-color-subdued: #5a7a5a;
+
+    --alt5-color-authority: #1e6b45;
+    --alt5-color-distinguish: #7c3aed;
+    --alt5-color-subdued: #3d4f3d;
+  }
+
+  :global(html.dark-theme) {
+    /* 1: Steel Authority */
+    --alt1-color-primary: #3b82f6;
+    --alt1-color-primary-dark: #2563eb;
+    --alt1-color-secondary: #f472b6;
+    --alt1-color-success: #4ade80;
+    --alt1-color-warning: #facc15;
+    --alt1-color-error: #ef4444;
+
+    /* 2: Indigo Signal */
+    --alt2-color-primary: #a78bfa;
+    --alt2-color-primary-dark: #8b5cf6;
+    --alt2-color-secondary: #a3e635;
+    --alt2-color-success: #34d399;
+    --alt2-color-warning: #f59e0b;
+    --alt2-color-error: #f87171;
+
+    /* 3: Copper Forge */
+    --alt3-color-primary: #d97706;
+    --alt3-color-primary-dark: #b45309;
+    --alt3-color-secondary: #22d3ee;
+    --alt3-color-success: #4ade80;
+    --alt3-color-warning: #fbbf24;
+    --alt3-color-error: #ef4444;
+
+    /* 4: Jade Edge */
+    --alt4-color-primary: #10b981;
+    --alt4-color-primary-dark: #059669;
+    --alt4-color-secondary: #fb7185;
+    --alt4-color-success: #4ade80;
+    --alt4-color-warning: #f59e0b;
+    --alt4-color-error: #e11d48;
+
+    /* 5: Shadow Garden */
+    --alt5-color-primary: #22c55e;
+    --alt5-color-primary-dark: #16a34a;
+    --alt5-color-secondary: #c084fc;
+    --alt5-color-success: #4ade80;
+    --alt5-color-warning: #eab308;
+    --alt5-color-error: #ef4444;
+    --alt5-black: #040404;
+    --alt5-black-soft: #0a0a0a;
+    --alt5-purple-muted: rgba(192, 132, 252, 0.25);
+    --alt5-forest-light: rgba(34, 197, 94, 0.1);
+
+    /* ── Expanded tokens (dark theme) ── */
+    --alt0-color-authority: #7a9dbd;
+    --alt0-color-distinguish: #a78bfa;
+    --alt0-color-subdued: #a89888;
+
+    --alt1-color-authority: #60a5fa;
+    --alt1-color-distinguish: #c084fc;
+    --alt1-color-subdued: #94a3b8;
+
+    --alt2-color-authority: #60a5fa;
+    --alt2-color-distinguish: #22d3ee;
+    --alt2-color-subdued: #9ca3af;
+
+    --alt3-color-authority: #60a5fa;
+    --alt3-color-distinguish: #a78bfa;
+    --alt3-color-subdued: #a08060;
+
+    --alt4-color-authority: #818cf8;
+    --alt4-color-distinguish: #e879f9;
+    --alt4-color-subdued: #7a9a7a;
+
+    --alt5-color-authority: #34d399;
+    --alt5-color-distinguish: #a78bfa;
+    --alt5-color-subdued: #5a6f5a;
+  }
+
+  /* ── Shared tool derivation ──────────────────────────────── */
+  .palette-scope {
+    --hub-authority-blue: var(--color-authority);
+    --techpar-zone-ahead: var(--color-success);
+    --techpar-zone-underinvest: var(--color-warning);
+    --techpar-zone-above: var(--color-warning);
+    --techpar-zone-elevated: var(--color-error);
+    --techpar-zone-critical: var(--color-error);
+    --techpar-zone-healthy: var(--color-primary);
+    --techpar-category-infra: var(--color-primary);
+    --techpar-category-personnel: var(--color-authority);
+    --techpar-category-rd-opex: var(--color-distinguish);
+    --techpar-category-rd-capex: var(--color-secondary);
+    --techpar-kpi-positive: var(--color-primary);
+    --techpar-kpi-warn: var(--color-warning);
+    --techpar-kpi-negative: var(--color-error);
+    --dm-methodology-brown: var(--color-subdued);
+    --dm-results-blue: var(--color-authority);
+    --dm-results-tan: var(--color-subdued);
+    --dm-positive: var(--color-success);
+    --dm-negative: var(--color-error);
+    --dm-warning: var(--color-warning);
+    --dm-success: var(--color-success);
+    --icg-maturity-reactive: var(--color-error);
+    --icg-maturity-aware: var(--color-warning);
+    --icg-maturity-optimizing: var(--color-success);
+    --icg-maturity-strategic: var(--color-primary);
+    --regmap-category-industry: var(--color-distinguish);
+    --regmap-category-cyber: var(--color-error);
+    padding-bottom: var(--spacing-3xl);
+  }
+
+  /* ── Per-palette scoped overrides ────────────────────────── */
+  .palette-0 {
+    --color-authority: var(--alt0-color-authority);
+    --color-distinguish: var(--alt0-color-distinguish);
+    --color-subdued: var(--alt0-color-subdued);
+  }
+
+  .palette-1 {
+    --color-primary: var(--alt1-color-primary);
+    --color-primary-dark: var(--alt1-color-primary-dark);
+    --color-primary-rgb: 30, 64, 175;
+    --color-secondary: var(--alt1-color-secondary);
+    --color-success: var(--alt1-color-success);
+    --color-warning: var(--alt1-color-warning);
+    --color-error: var(--alt1-color-error);
+    --color-authority: var(--alt1-color-authority);
+    --color-distinguish: var(--alt1-color-distinguish);
+    --color-subdued: var(--alt1-color-subdued);
+    --border-dark: rgba(30, 64, 175, 0.2);
+    --accent-light-bg: rgba(30, 64, 175, 0.08);
+    --accent-light-bg-hover: rgba(30, 64, 175, 0.15);
+    --accent-border-light: rgba(30, 64, 175, 0.25);
+    --accent-border-medium: rgba(30, 64, 175, 0.3);
+    --stat-item-border: var(--alt1-color-primary);
+  }
+
+  .palette-2 {
+    --color-primary: var(--alt2-color-primary);
+    --color-primary-dark: var(--alt2-color-primary-dark);
+    --color-primary-rgb: 124, 58, 237;
+    --color-secondary: var(--alt2-color-secondary);
+    --color-success: var(--alt2-color-success);
+    --color-warning: var(--alt2-color-warning);
+    --color-error: var(--alt2-color-error);
+    --color-authority: var(--alt2-color-authority);
+    --color-distinguish: var(--alt2-color-distinguish);
+    --color-subdued: var(--alt2-color-subdued);
+    --border-dark: rgba(124, 58, 237, 0.2);
+    --accent-light-bg: rgba(124, 58, 237, 0.08);
+    --accent-light-bg-hover: rgba(124, 58, 237, 0.15);
+    --accent-border-light: rgba(124, 58, 237, 0.25);
+    --accent-border-medium: rgba(124, 58, 237, 0.3);
+    --stat-item-border: var(--alt2-color-primary);
+  }
+
+  .palette-3 {
+    --color-primary: var(--alt3-color-primary);
+    --color-primary-dark: var(--alt3-color-primary-dark);
+    --color-primary-rgb: 180, 83, 9;
+    --color-secondary: var(--alt3-color-secondary);
+    --color-success: var(--alt3-color-success);
+    --color-warning: var(--alt3-color-warning);
+    --color-error: var(--alt3-color-error);
+    --color-authority: var(--alt3-color-authority);
+    --color-distinguish: var(--alt3-color-distinguish);
+    --color-subdued: var(--alt3-color-subdued);
+    --border-dark: rgba(180, 83, 9, 0.2);
+    --accent-light-bg: rgba(180, 83, 9, 0.08);
+    --accent-light-bg-hover: rgba(180, 83, 9, 0.15);
+    --accent-border-light: rgba(180, 83, 9, 0.25);
+    --accent-border-medium: rgba(180, 83, 9, 0.3);
+    --stat-item-border: var(--alt3-color-primary);
+  }
+
+  .palette-4 {
+    --color-primary: var(--alt4-color-primary);
+    --color-primary-dark: var(--alt4-color-primary-dark);
+    --color-primary-rgb: 5, 150, 105;
+    --color-secondary: var(--alt4-color-secondary);
+    --color-success: var(--alt4-color-success);
+    --color-warning: var(--alt4-color-warning);
+    --color-error: var(--alt4-color-error);
+    --color-authority: var(--alt4-color-authority);
+    --color-distinguish: var(--alt4-color-distinguish);
+    --color-subdued: var(--alt4-color-subdued);
+    --border-dark: rgba(5, 150, 105, 0.2);
+    --accent-light-bg: rgba(5, 150, 105, 0.08);
+    --accent-light-bg-hover: rgba(5, 150, 105, 0.15);
+    --accent-border-light: rgba(5, 150, 105, 0.25);
+    --accent-border-medium: rgba(5, 150, 105, 0.3);
+    --stat-item-border: var(--alt4-color-primary);
+  }
+
+  .palette-5 {
+    --color-primary: var(--alt5-color-primary);
+    --color-primary-dark: var(--alt5-color-primary-dark);
+    --color-primary-rgb: 22, 101, 52;
+    --color-secondary: var(--alt5-color-secondary);
+    --color-success: var(--alt5-color-success);
+    --color-warning: var(--alt5-color-warning);
+    --color-error: var(--alt5-color-error);
+    --color-authority: var(--alt5-color-authority);
+    --color-distinguish: var(--alt5-color-distinguish);
+    --color-subdued: var(--alt5-color-subdued);
+    --border-dark: rgba(22, 101, 52, 0.2);
+    --accent-light-bg: rgba(22, 101, 52, 0.08);
+    --accent-light-bg-hover: rgba(22, 101, 52, 0.15);
+    --accent-border-light: rgba(22, 101, 52, 0.25);
+    --accent-border-medium: rgba(22, 101, 52, 0.3);
+    --stat-item-border: var(--alt5-color-primary);
+  }
 
 </style>
 
 <script>
+  /* ═══════════════════════════════════════════════════════════
+     PALETTE EXPLORER — data and helpers
+     (migrated from colors.astro)
+     ═══════════════════════════════════════════════════════════ */
+  const PALETTE_NAMES: Record<number, string> = {
+    0: '0. Current',
+    1: '1. Steel Authority',
+    2: '2. Indigo Signal',
+    3: '3. Copper Forge',
+    4: '4. Jade Edge',
+    5: '5. Shadow Garden',
+  };
+
+  const PALETTE_CONCEPTS: Record<number, string> = {
+    0: 'The production palette \u2014 teal primary with amber secondary. This is the baseline for comparison.',
+    1: 'Deep cobalt blue anchored by hot magenta secondary. PE gravitas with an unexpected edge.',
+    2: 'Vivid violet primary paired with electric lime. Breaks every finance-blue convention.',
+    3: 'Dark rust and electric cyan \u2014 industrial heat meets cold precision.',
+    4: 'Vivid emerald with hot rose contrast. The current teal pushed to its boldest form.',
+    5: 'Deep forest green rooted in near-black, lit by electric violet. Terminal in an old-growth forest.',
+  };
+
+  const TOKEN_TIPS: Record<string, string> = {
+    '--color-primary': 'Brand accent — links, buttons, active states, hub cards',
+    '--color-primary-dark': 'Hover/pressed variant of primary',
+    '--color-secondary': 'Secondary emphasis — alternative CTAs, TechPar R&D CapEx',
+    '--color-success': 'Positive outcomes — DM positive, ICG optimizing, TechPar ahead',
+    '--color-warning': 'Caution — DM warning, ICG aware, TechPar underinvest/above',
+    '--color-error': 'Errors/critical — DM negative, ICG reactive, TechPar elevated, RegMap cyber',
+    '--color-authority': 'Institutional credibility — hub authority line, DM results, TechPar personnel',
+    '--color-distinguish': 'Differentiation accent — RegMap industry, TechPar R&D OpEx',
+    '--color-subdued': 'Muted neutral — DM methodology, process/background contexts',
+    '--techpar-zone-healthy': 'TechPar: within benchmark range. Derives from --color-primary',
+    '--techpar-zone-ahead': 'TechPar: spending below benchmark. Derives from --color-success',
+    '--techpar-zone-underinvest': 'TechPar: potential underinvestment. Derives from --color-warning',
+    '--techpar-zone-elevated': 'TechPar: elevated overspend. Derives from --color-error',
+    '--techpar-category-personnel': 'TechPar: personnel spend category. Derives from --color-authority',
+    '--techpar-category-rd-opex': 'TechPar: R&D OpEx spend category. Derives from --color-distinguish',
+    '--dm-methodology-brown': 'Diligence Machine: methodology section accent. Derives from --color-subdued',
+    '--dm-results-blue': 'Diligence Machine: results/output accent. Derives from --color-authority',
+    '--dm-positive': 'Diligence Machine: positive findings. Derives from --color-success',
+    '--dm-negative': 'Diligence Machine: negative/risk findings. Derives from --color-error',
+    '--dm-warning': 'Diligence Machine: caution-level findings. Derives from --color-warning',
+    '--icg-maturity-reactive': 'ICG: lowest maturity level (0–25). Derives from --color-error',
+    '--icg-maturity-aware': 'ICG: early-stage maturity (26–50). Derives from --color-warning',
+    '--icg-maturity-optimizing': 'ICG: active optimization (51–75). Derives from --color-success',
+    '--icg-maturity-strategic': 'ICG: highest maturity (76–100). Derives from --color-primary',
+    '--regmap-category-industry': 'Regulatory Map: industry compliance category. Derives from --color-distinguish',
+    '--regmap-category-cyber': 'Regulatory Map: cybersecurity category. Derives from --color-error',
+  };
+
+  /* ═══════════════════════════════════════════════════════════
+     SHARED UTILITIES
+     ═══════════════════════════════════════════════════════════ */
+
   function rgbToHex(rgb: string): string {
     if (rgb === 'transparent' || rgb === 'rgba(0, 0, 0, 0)') return 'transparent';
 
@@ -2574,24 +2936,48 @@ trackPageView('brand', 'Brand Style Reference');
     return hex;
   }
 
+  function hexToRgb(hex: string): [number, number, number] | null {
+    const m = hex.replace('#', '').match(/^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+    if (!m) return null;
+    return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     READ & POPULATE — merged from brand + colors pages
+     ═══════════════════════════════════════════════════════════ */
+
   function readAndPopulate(): void {
     const root = document.documentElement;
     const style = getComputedStyle(root);
 
-    // Color swatches: use temp element for resolved values
+    // Color swatches: read from actual element (respects palette-scope overrides)
     document.querySelectorAll<HTMLElement>('.brand-swatch').forEach(el => {
       const varName = el.dataset.var;
       if (!varName) return;
+      if (el.dataset.userOverride === 'true') return;
 
-      const temp = document.createElement('div');
-      temp.style.display = 'none';
-      temp.style.backgroundColor = `var(${varName})`;
-      root.appendChild(temp);
-      const resolved = getComputedStyle(temp).backgroundColor;
-      root.removeChild(temp);
+      const colorEl = el.querySelector<HTMLElement>('.brand-swatch__color');
+      if (!colorEl) return;
 
+      const resolved = getComputedStyle(colorEl).backgroundColor;
+      const hex = rgbToHex(resolved);
       const valueEl = el.querySelector('.brand-swatch__value');
-      if (valueEl) valueEl.textContent = rgbToHex(resolved);
+      if (valueEl) valueEl.textContent = hex;
+
+      // Sync picker/sliders if present (injected by injectControls)
+      const picker = el.querySelector<HTMLInputElement>('.swatch-picker');
+      const hexInput = el.querySelector<HTMLInputElement>('.swatch-hex');
+      const sliderR = el.querySelector<HTMLInputElement>('.swatch-slider-r');
+      const sliderG = el.querySelector<HTMLInputElement>('.swatch-slider-g');
+      const sliderB = el.querySelector<HTMLInputElement>('.swatch-slider-b');
+      if (picker && hex !== 'transparent' && !hex.includes('(')) picker.value = hex;
+      if (hexInput) hexInput.value = hex;
+      const rgb = hexToRgb(hex);
+      if (rgb && sliderR && sliderG && sliderB) {
+        sliderR.value = String(rgb[0]);
+        sliderG.value = String(rgb[1]);
+        sliderB.value = String(rgb[2]);
+      }
     });
 
     // Spacing values
@@ -2643,17 +3029,248 @@ trackPageView('brand', 'Brand Style Reference');
     });
   }
 
-  // Re-read values on theme toggle (MutationObserver on html class changes)
-  new MutationObserver(() => readAndPopulate()).observe(
-    document.documentElement,
-    { attributes: true, attributeFilter: ['class'] }
-  );
+  /* ═══════════════════════════════════════════════════════════
+     PALETTE EXPLORER — color editing and palette switching
+     ═══════════════════════════════════════════════════════════ */
 
-  // Initial population
-  document.addEventListener('DOMContentLoaded', readAndPopulate);
+  function applyColor(swatch: HTMLElement, hex: string) {
+    const colorEl = swatch.querySelector<HTMLElement>('.brand-swatch__color');
+    const valueEl = swatch.querySelector('.brand-swatch__value');
+    const picker = swatch.querySelector<HTMLInputElement>('.swatch-picker');
+    const hexInput = swatch.querySelector<HTMLInputElement>('.swatch-hex');
+    const sliderR = swatch.querySelector<HTMLInputElement>('.swatch-slider-r');
+    const sliderG = swatch.querySelector<HTMLInputElement>('.swatch-slider-g');
+    const sliderB = swatch.querySelector<HTMLInputElement>('.swatch-slider-b');
 
-  // Delta chevron toggle demo
+    if (colorEl) colorEl.style.background = hex;
+    if (valueEl) valueEl.textContent = hex;
+    if (picker) picker.value = hex;
+    if (hexInput) hexInput.value = hex;
+
+    const rgb = hexToRgb(hex);
+    if (rgb && sliderR && sliderG && sliderB) {
+      sliderR.value = String(rgb[0]);
+      sliderG.value = String(rgb[1]);
+      sliderB.value = String(rgb[2]);
+    }
+
+    swatch.dataset.userOverride = 'true';
+
+    const varName = swatch.dataset.var;
+    const scope = swatch.closest<HTMLElement>('.palette-scope');
+    if (varName && scope) {
+      scope.style.setProperty(varName, hex);
+    }
+  }
+
+  function injectControls() {
+    document.querySelectorAll<HTMLElement>('.brand-swatch').forEach(el => {
+      if (el.querySelector('.swatch-controls')) return;
+
+      // Add tooltip
+      const varName = el.dataset.var;
+      if (varName && TOKEN_TIPS[varName]) {
+        el.title = TOKEN_TIPS[varName];
+      }
+
+      const colorEl = el.querySelector<HTMLElement>('.brand-swatch__color');
+      if (!colorEl) return;
+      const resolved = getComputedStyle(colorEl).backgroundColor;
+      const initialHex = rgbToHex(resolved);
+      // Skip swatches with non-standard values (transparent, rgba with opacity)
+      if (initialHex === 'transparent' || initialHex.includes('(')) return;
+      const rgb = hexToRgb(initialHex) || [0, 0, 0];
+
+      const controls = document.createElement('div');
+      controls.className = 'swatch-controls';
+      controls.innerHTML = `
+        <div class="swatch-controls__row">
+          <input type="color" class="swatch-picker" value="${initialHex}" />
+          <input type="text" class="swatch-hex" value="${initialHex}" maxlength="7" spellcheck="false" />
+          <button class="swatch-reset" title="Reset to palette default" type="button">&times;</button>
+        </div>
+        <div class="swatch-sliders">
+          <label class="swatch-slider-label swatch-slider-label--r">R<input type="range" class="swatch-slider swatch-slider-r" min="0" max="255" value="${rgb[0]}" /></label>
+          <label class="swatch-slider-label swatch-slider-label--g">G<input type="range" class="swatch-slider swatch-slider-g" min="0" max="255" value="${rgb[1]}" /></label>
+          <label class="swatch-slider-label swatch-slider-label--b">B<input type="range" class="swatch-slider swatch-slider-b" min="0" max="255" value="${rgb[2]}" /></label>
+        </div>
+      `;
+      el.appendChild(controls);
+
+      const picker = controls.querySelector<HTMLInputElement>('.swatch-picker')!;
+      const hexInput = controls.querySelector<HTMLInputElement>('.swatch-hex')!;
+      const sliderR = controls.querySelector<HTMLInputElement>('.swatch-slider-r')!;
+      const sliderG = controls.querySelector<HTMLInputElement>('.swatch-slider-g')!;
+      const sliderB = controls.querySelector<HTMLInputElement>('.swatch-slider-b')!;
+      const resetBtn = controls.querySelector<HTMLButtonElement>('.swatch-reset')!;
+
+      picker.addEventListener('input', () => applyColor(el, picker.value));
+
+      hexInput.addEventListener('input', () => {
+        let v = hexInput.value.trim();
+        if (!v.startsWith('#')) v = '#' + v;
+        if (/^#[0-9a-f]{6}$/i.test(v)) applyColor(el, v);
+      });
+
+      const onSlider = () => {
+        const r = parseInt(sliderR.value).toString(16).padStart(2, '0');
+        const g = parseInt(sliderG.value).toString(16).padStart(2, '0');
+        const b = parseInt(sliderB.value).toString(16).padStart(2, '0');
+        const hex = `#${r}${g}${b}`;
+        if (colorEl) colorEl.style.background = hex;
+        const valueEl = el.querySelector('.brand-swatch__value');
+        if (valueEl) valueEl.textContent = hex;
+        if (picker) picker.value = hex;
+        if (hexInput) hexInput.value = hex;
+        el.dataset.userOverride = 'true';
+        const varName = el.dataset.var;
+        const scope = el.closest<HTMLElement>('.palette-scope');
+        if (varName && scope) scope.style.setProperty(varName, hex);
+      };
+
+      sliderR.addEventListener('input', onSlider);
+      sliderG.addEventListener('input', onSlider);
+      sliderB.addEventListener('input', onSlider);
+
+      resetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const varName = el.dataset.var;
+        if (colorEl && varName) colorEl.style.background = `var(${varName})`;
+        const scope = el.closest<HTMLElement>('.palette-scope');
+        if (varName && scope) scope.style.removeProperty(varName);
+        delete el.dataset.userOverride;
+        requestAnimationFrame(() => {
+          const fresh = getComputedStyle(colorEl!).backgroundColor;
+          const freshHex = rgbToHex(fresh);
+          const valueEl = el.querySelector('.brand-swatch__value');
+          if (valueEl) valueEl.textContent = freshHex;
+          if (picker) picker.value = freshHex.includes('(') ? '#000000' : freshHex;
+          if (hexInput) hexInput.value = freshHex;
+          const freshRgb = hexToRgb(freshHex);
+          if (freshRgb) {
+            sliderR.value = String(freshRgb[0]);
+            sliderG.value = String(freshRgb[1]);
+            sliderB.value = String(freshRgb[2]);
+          }
+        });
+      });
+    });
+  }
+
+  function switchPalette(id: number) {
+    const scope = document.getElementById('palette-scope');
+    if (!scope) return;
+
+    scope.className = `palette-scope palette-${id}`;
+
+    const conceptEl = document.getElementById('palette-concept');
+    if (conceptEl) conceptEl.textContent = PALETTE_CONCEPTS[id] || '';
+    const nameEl = document.getElementById('panel-palette-name');
+    if (nameEl) nameEl.textContent = PALETTE_NAMES[id] || '';
+
+    document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach(tab => {
+      const tabId = parseInt(tab.dataset.palette || '0');
+      tab.classList.toggle('palette-panel__tab--active', tabId === id);
+    });
+
+    requestAnimationFrame(() => readAndPopulate());
+  }
+
+  function resetAllOverrides() {
+    const scope = document.getElementById('palette-scope');
+    if (!scope) return;
+
+    scope.removeAttribute('style');
+
+    scope.querySelectorAll<HTMLElement>('.brand-swatch').forEach(el => {
+      delete el.dataset.userOverride;
+      const varName = el.dataset.var;
+      const colorEl = el.querySelector<HTMLElement>('.brand-swatch__color');
+      if (colorEl && varName) colorEl.style.background = `var(${varName})`;
+    });
+
+    requestAnimationFrame(() => readAndPopulate());
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     THEME OBSERVER — reset palette overrides on theme toggle
+     ═══════════════════════════════════════════════════════════ */
+
+  new MutationObserver(() => {
+    resetAllOverrides();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+  /* ═══════════════════════════════════════════════════════════
+     DOM READY — initialize everything
+     ═══════════════════════════════════════════════════════════ */
+
   document.addEventListener('DOMContentLoaded', () => {
+    // Palette explorer setup
+    injectControls();
+    readAndPopulate();
+
+    // Palette tab switching
+    document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const id = parseInt(tab.dataset.palette || '0');
+        switchPalette(id);
+      });
+    });
+
+    // Reset all button
+    const resetBtn = document.getElementById('reset-all');
+    if (resetBtn) resetBtn.addEventListener('click', resetAllOverrides);
+
+    // Panel toggle (click to open/close)
+    const panelToggle = document.getElementById('panel-toggle');
+    const panel = document.getElementById('palette-panel');
+    const panelBody = document.getElementById('panel-body');
+    const panelResize = document.getElementById('panel-resize');
+
+    if (panelToggle && panel && panelBody) {
+      panelToggle.addEventListener('click', () => {
+        panel.classList.toggle('is-open');
+        if (panel.classList.contains('is-open')) {
+          requestAnimationFrame(() => readAndPopulate());
+        }
+      });
+    }
+
+    // Resize handle (drag to resize)
+    if (panelResize && panelBody && panel) {
+      const MIN_WIDTH = 280;
+      const MAX_WIDTH = 900;
+      let isDragging = false;
+      let dragStartX = 0;
+      let dragStartWidth = 0;
+
+      panelResize.addEventListener('mousedown', (e: MouseEvent) => {
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartWidth = panelBody.offsetWidth;
+        panelResize.classList.add('is-dragging');
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', (e: MouseEvent) => {
+        if (!isDragging) return;
+        const dx = dragStartX - e.clientX;
+        const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, dragStartWidth + dx));
+        panelBody.style.width = `${newWidth}px`;
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        panelResize.classList.remove('is-dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      });
+    }
+
+    // Delta chevron toggle demo
     const toggle = document.getElementById('chevron-toggle');
     const demo = document.getElementById('chevron-demo');
     if (toggle && demo) {
