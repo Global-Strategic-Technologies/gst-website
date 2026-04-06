@@ -2194,12 +2194,17 @@ html.dark-theme .brutal-transition:hover {
     flex-direction: column;
     gap: var(--spacing-xs);
     padding: var(--spacing-md) var(--spacing-lg);
-    background: transparent;
+    background: rgba(0, 0, 0, 0.02);
     border: 2px solid var(--border-light);
     border-radius: 0;
     cursor: pointer;
     transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
     text-align: left;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 0 0 1px rgba(0, 0, 0, 0.04);
     font-family: var(--font-family);
     color: var(--text-primary);
 }
@@ -2233,7 +2238,11 @@ html.dark-theme .brutal-transition:hover {
 }
 
 html.dark-theme .brutal-option-card {
+    background: rgba(200, 220, 255, 0.03);
     border-color: var(--border-dark-default);
+    box-shadow:
+      inset 0 1px 0 var(--border-dark-subtle),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 html.dark-theme .brutal-option-card:hover {
@@ -2411,7 +2420,7 @@ html.dark-theme .brutal-filter-chip--active {
 .brutal-choice-btn {
     padding: var(--spacing-sm);
     border: 2px solid var(--border-light);
-    background: transparent;
+    background: rgba(0, 0, 0, 0.02);
     color: var(--text-secondary);
     cursor: pointer;
     font-size: var(--text-xs);
@@ -2419,6 +2428,11 @@ html.dark-theme .brutal-filter-chip--active {
     font-family: monospace;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 0 0 1px rgba(0, 0, 0, 0.04);
     transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
     text-align: center;
     min-height: 44px;
@@ -2426,7 +2440,11 @@ html.dark-theme .brutal-filter-chip--active {
 }
 
 html.dark-theme .brutal-choice-btn {
+    background: rgba(200, 220, 255, 0.03);
     border-color: var(--border-dark-default);
+    box-shadow:
+      inset 0 1px 0 var(--border-dark-subtle),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .brutal-choice-btn:hover {
