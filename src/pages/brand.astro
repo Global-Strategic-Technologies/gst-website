@@ -19,13 +19,13 @@ trackPageView('brand', 'Brand Style Reference');
 </div>
 
 <div class="brand-layout">
-  <nav class="brand-toc" aria-label="Table of contents">
-    <h2 class="brand-toc__heading">
+  <nav class="brand-toc" aria-label="Table of contents" data-testid="brand-toc">
+    <h2 class="brand-toc__heading" data-testid="brand-toc-heading">
       <DeltaIcon class="bullet-icon" />
       Contents
       <svg class="delta-chevron brand-toc__chevron" viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
     </h2>
-    <ul class="brand-toc__list">
+    <ul class="brand-toc__list" data-testid="brand-toc-list">
       <li class="brand-toc__layer" data-section="identity"><a href="#identity">Brand Identity</a></li>
       <li class="brand-toc__layer" data-section="colors"><a href="#colors">Color Palette</a></li>
       <li class="brand-toc__layer" data-section="typography"><a href="#typography">Typography</a></li>
