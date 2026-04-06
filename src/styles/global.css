@@ -369,7 +369,7 @@ html.dark-theme .tool-action-bar--frosted {
     list-style: none;
 }
 
-.site-header nav a {
+.site-header nav a:not(.logo) {
     color: var(--text-secondary);
     text-decoration: none;
     font-weight: var(--font-weight-bold);
@@ -383,17 +383,17 @@ html.dark-theme .tool-action-bar--frosted {
     border-bottom: 2px solid transparent;
 }
 
-.site-header nav a:hover {
+.site-header nav a:not(.logo):hover {
     color: var(--color-primary);
     border-bottom-color: var(--color-primary);
 }
 
-.site-header nav a:focus {
+.site-header nav a:not(.logo):focus {
     outline: 2px solid var(--color-primary);
     outline-offset: 0.25rem;
 }
 
-.site-header nav a.active {
+.site-header nav a:not(.logo).active {
     color: var(--color-primary);
     border-bottom-color: var(--color-primary);
 }
@@ -1120,11 +1120,11 @@ html.dark-theme .cta-box p {
         font-size: 1.5rem;
     }
 
-    nav ul {
+    .site-header nav ul {
         gap: 1.5rem;
     }
 
-    nav a {
+    .site-header nav a:not(.logo) {
         font-size: 0.8rem;
     }
 
@@ -1200,11 +1200,11 @@ html.dark-theme .cta-box p {
         font-size: 1.25rem;
     }
 
-    nav ul {
+    .site-header nav ul {
         gap: 1rem;
     }
 
-    nav a {
+    .site-header nav a:not(.logo) {
         font-size: 0.7rem;
         letter-spacing: 0.05em;
     }
