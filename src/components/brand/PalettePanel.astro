@@ -28,6 +28,9 @@ const { palettes } = Astro.props;
         </button>
       ))}
     </div>
+    <button class="palette-panel__theme-toggle" id="panel-theme-toggle" type="button" title="Toggle dark theme" aria-label="Toggle dark theme">
+      <svg viewBox="0 0 64 64" fill="none" class="palette-panel__icon"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
+    </button>
   </div>
   <div class="palette-panel__body" id="panel-body">
     <div class="palette-panel__header">
@@ -148,6 +151,29 @@ const { palettes } = Astro.props;
   .palette-panel__icon {
     width: 16px;
     height: 16px;
+    transition: transform var(--transition-fast);
+  }
+
+  .palette-panel.is-open .palette-panel__toggle .palette-panel__icon {
+    transform: rotate(90deg);
+  }
+
+  .palette-panel__theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-sm);
+    background: transparent;
+    border: none;
+    border-top: 1px solid var(--border-light);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+    margin-top: auto;
+  }
+
+  .palette-panel__theme-toggle:hover {
+    color: var(--color-primary);
   }
 
   /* Resize handle — vertical bar on the outside (left) edge of the panel */

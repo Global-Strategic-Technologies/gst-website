@@ -49,7 +49,7 @@ const palettes = [
     </ul>
   </nav>
 
-  <div class="brand-content">
+  <div class="brand-content palette-scope palette-0" id="palette-scope">
 
 <!-- Section 1: Brand Identity -->
 <section class="brand-section" id="identity">
@@ -84,7 +84,6 @@ const palettes = [
 
 <!-- Section 2: Color Palette (includes palette explorer migrated from /colors) -->
 <section class="brand-section" id="colors">
-  <div class="palette-scope palette-0" id="palette-scope">
     <PalettePanel palettes={palettes} />
     <div class="container">
       <h2 class="brutal-heading-md brand-section__title">Color Palette</h2>
@@ -270,7 +269,6 @@ const palettes = [
       <!-- Palette specimens and derived tool colors -->
       <ColorSpecimens />
     </div>
-  </div>
 </section>
 
 <!-- Section 3: Typography -->
@@ -2579,7 +2577,7 @@ const palettes = [
   </div>
 </section>
 
-  </div><!-- .brand-content -->
+  </div><!-- .brand-content .palette-scope -->
 </div><!-- .brand-layout -->
 
 </BaseLayout>
@@ -4295,7 +4293,7 @@ const palettes = [
     const scope = document.getElementById('palette-scope');
     if (!scope) return;
 
-    scope.className = `palette-scope palette-${id}`;
+    scope.className = `brand-content palette-scope palette-${id}`;
 
     const conceptEl = document.getElementById('palette-concept');
     if (conceptEl) conceptEl.textContent = PALETTE_CONCEPTS[id] || '';
@@ -4367,6 +4365,20 @@ const palettes = [
         if (panel.classList.contains('is-open')) {
           requestAnimationFrame(() => readAndPopulate());
         }
+      });
+    }
+
+    // Panel theme toggle (mirrors footer ThemeToggle behavior)
+    const panelThemeToggle = document.getElementById('panel-theme-toggle');
+    if (panelThemeToggle) {
+      panelThemeToggle.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark-theme');
+        const isDark = document.documentElement.classList.contains('dark-theme');
+        try {
+          localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        } catch (e) { /* ignore */ }
+        // Re-read swatch values after theme change
+        requestAnimationFrame(() => readAndPopulate());
       });
     }
 
