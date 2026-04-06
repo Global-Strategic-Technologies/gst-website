@@ -73,6 +73,7 @@ Full variable catalog: [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)
 ```
 src/styles/
 ├── variables.css           # Design tokens + utility classes (flex-center, text-label, etc.)
+├── palettes.css            # Alternative color palette definitions (6 palettes, light + dark theme)
 ├── typography.css          # 11 semantic text utilities (.brutal-heading-*, .brutal-text-*, .brutal-label-*, .nav-link, .button-text-*)
 ├── interactions.css        # Interactive state patterns (.interactive, .link-interactive, .control-*, .focus-outline-*)
 └── global.css             # Page layout, component styles, responsive rules, dark theme overrides
@@ -86,6 +87,7 @@ In stylesheets, always import in cascade order:
 @import './variables.css';    /* 1. Design tokens */
 @import './typography.css';   /* 2. Typography utilities */
 @import './interactions.css'; /* 3. Interaction utilities */
+@import './palettes.css';    /* 4. Palette overrides (must follow variables.css) */
 ```
 
 ### CSS File Ownership
@@ -93,6 +95,7 @@ In stylesheets, always import in cascade order:
 | File | Modify When |
 |------|-------------|
 | `variables.css` | Adding/updating design tokens or utility classes |
+| `palettes.css` | Adding/updating alternative color palette definitions |
 | `typography.css` | Adding reusable text styles |
 | `interactions.css` | Adding focus/hover/active patterns |
 | `global.css` | Page layout, responsive rules, dark theme overrides for page-level components |
@@ -238,11 +241,22 @@ import '../../styles/my-component.css';
 **From `global.css`:**
 - `.sr-only` — screen reader only (visually hidden)
 
-### Brand Assets in CSS
+### Brand Delta Icon
 
-The GST delta icon (`/images/logo/gst-delta-icon-teal-stroke-thick.svg`) can be used as a CSS pseudo-element via the `mask-image` technique. This renders the SVG in any color without embedding an `<img>` tag, making it suitable for `::before`/`::after` decorators, list markers, and toggle indicators.
+The GST delta icon is available in two forms:
 
-**Pattern: CSS mask with brand color**
+**1. Component (preferred): `DeltaIcon.astro`**
+
+```astro
+---
+import DeltaIcon from '../components/DeltaIcon.astro';
+---
+<DeltaIcon size={14} class="bullet-icon" />
+```
+
+Renders an inline SVG with `stroke="currentColor"`, so the icon inherits color from its parent CSS. Responds automatically to palette switching and dark theme. Used site-wide for bullet points (`.bullet-icon`), the header logo (`.delta-icon`), theme toggle, chevron indicators, and TOC markers.
+
+**2. CSS mask-image (for pseudo-elements only)**
 
 ```css
 .my-element::before {
@@ -260,15 +274,12 @@ The GST delta icon (`/images/logo/gst-delta-icon-teal-stroke-thick.svg`) can be 
 }
 ```
 
+Use this pattern only for `::before`/`::after` pseudo-elements where an Astro component can't be used. Inherits color via `background-color`.
+
 **Guidelines:**
-- Use `var(--color-primary)` as `background-color` to keep the icon on-brand
-- Include `-webkit-` prefixes for Safari/iOS compatibility
-- Use `mask-size: contain` so the icon scales to the element dimensions
-- Adjust `width`/`height` to suit context (10px for inline text, 12-16px for standalone markers)
-
-**Current usage:** ICG rationale "Why this matters" toggle trigger
-
-**When to use instead of `<img>`:** When the icon appears in a CSS pseudo-element, needs to inherit or use CSS color values, or appears as a decorative detail rather than standalone content.
+- Always prefer `DeltaIcon.astro` over `<img>` tags — `<img>` cannot inherit CSS colors
+- `.bullet-icon` and `.delta-icon` classes include `color: var(--color-primary)` for palette awareness
+- The static SVG file (`public/images/logo/gst-delta-icon-teal-stroke-thick.svg`) has hardcoded teal — keep it for favicon, RSS, and external contexts only
 
 ---
 
@@ -354,6 +365,35 @@ Additional breakpoints used sparingly:
 | `10` | Site header (sticky) |
 | `1000` | Filter overlay, mockup labels |
 | `1001` | Filter drawer (above overlay) |
+
+---
+
+## Frosted Glass
+
+All `.brutal-btn` buttons include a frosted-glass aesthetic by default:
+
+```css
+.brutal-btn {
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),  /* wet-glass highlight */
+    0 0 0 1px rgba(0, 0, 0, 0.04);             /* subtle edge */
+}
+```
+
+- **Primary buttons** use semi-transparent `rgba(5, 205, 153, 0.15)` background instead of solid teal
+- **Secondary buttons** use `rgba(0, 0, 0, 0.02)` tint instead of fully transparent
+- Dark theme adjusts opacity and uses `--border-dark-subtle` for the inset highlight
+
+Additional frosted-glass utilities in `global.css`:
+
+| Class | Blur | Use Case |
+|-------|------|----------|
+| `.brutal-frosted` | 3px | Standard containers, action bars |
+| `.brutal-frosted--heavy` | 12px | Drawers, sticky bars over content |
+| `.brutal-frosted--blur-only` | 1.5px | Subtle wet-glass sheen |
+| `.brutal-frosted--overlay` | 12px + 92% opacity | Modal/panel overlays |
 
 ---
 

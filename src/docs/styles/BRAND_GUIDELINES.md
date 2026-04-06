@@ -199,6 +199,27 @@ Tool-specific status variables (e.g. `--dm-success`, `--techpar-kpi-negative`) m
 
 ---
 
+## Alternative Palette System
+
+Six color palettes are defined in `src/styles/palettes.css`, enabling stakeholders to preview the entire site in alternative brand directions. The active palette is applied as a class on `<html>` (e.g., `html.palette-1`), mirroring the dark-theme pattern, and persisted via `localStorage('palette')`.
+
+| ID | Name | Primary | Secondary | Character |
+|----|------|---------|-----------|-----------|
+| 0 | **Current** (production) | Teal `#05cd99` | Amber `#CC8800` | The baseline |
+| 1 | **Steel Authority** | Cobalt `#1e40af` | Magenta `#db2777` | PE gravitas with an unexpected edge |
+| 2 | **Indigo Signal** | Violet `#7c3aed` | Lime `#84cc16` | Breaks every finance-blue convention |
+| 3 | **Copper Forge** | Rust `#b45309` | Cyan `#0891b2` | Industrial heat meets cold precision |
+| 4 | **Jade Edge** | Emerald `#059669` | Rose `#f43f5e` | Current teal pushed to its boldest form |
+| 5 | **Shadow Garden** | Forest `#166534` | Violet `#a855f7` | Terminal in an old-growth forest |
+
+Each palette overrides the 9 core tokens (`--color-primary`, `--color-primary-dark`, `--color-secondary`, `--color-success`, `--color-warning`, `--color-error`, `--color-authority`, `--color-distinguish`, `--color-subdued`) plus derived accent/border/opacity scales. All tool-domain colors cascade automatically.
+
+**How to preview:** Open the PalettePanel on the `/brand` page (right-edge tab bar). Click the middle delta icon to "pop out" the panel to all pages.
+
+**Important:** Palette 0 is the production palette. Alternative palettes are for stakeholder review only — they are not deployed to production.
+
+---
+
 ## Color Usage Hierarchy
 
 When choosing a color, follow this priority order:

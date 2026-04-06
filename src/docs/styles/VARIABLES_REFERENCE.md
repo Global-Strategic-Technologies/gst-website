@@ -355,6 +355,44 @@ Cross-tool semantic colors shared by multiple hub tools.
 
 ---
 
+## Alternative Palette Variables (`palettes.css`)
+
+Six alternative color palettes override the core tokens when applied to `<html>`. Defined in `src/styles/palettes.css`.
+
+### Palette Alt-Color Definitions
+
+Each palette defines light and dark theme variants for 6 core colors + 3 expanded tokens:
+
+| Variable Pattern | Description |
+|-----------------|-------------|
+| `--altN-color-primary` | Primary brand accent for palette N |
+| `--altN-color-primary-dark` | Hover/pressed variant |
+| `--altN-color-secondary` | Secondary emphasis |
+| `--altN-color-success` | Positive outcomes |
+| `--altN-color-warning` | Caution indicators |
+| `--altN-color-error` | Errors/critical states |
+| `--altN-color-authority` | Institutional credibility accent |
+| `--altN-color-distinguish` | Differentiation accent |
+| `--altN-color-subdued` | Muted neutral |
+
+Where N = 0–5. Palette 0 only overrides the 3 expanded tokens (production palette keeps core colors from `variables.css`). Palettes 1–5 override all 9 tokens plus derived accent/border/opacity scales.
+
+### Palette Override Classes
+
+Applied to `<html>` (like `dark-theme`):
+
+```css
+html.palette-1 { --color-primary: var(--alt1-color-primary); /* ... */ }
+```
+
+Also overrides `--color-primary-rgb`, `--border-dark`, `--accent-light-bg`, `--accent-light-bg-hover`, `--accent-border-light`, `--accent-border-medium`, and `--stat-item-border`.
+
+### Tool Derivation
+
+`html[class*="palette-"]` maps expanded tokens to all tool-domain variables (TechPar zones, DM domains, ICG maturity, RegMap categories) so tool pages automatically inherit palette changes.
+
+---
+
 ## Adding New Variables
 
 1. Check if an existing variable already covers your need
