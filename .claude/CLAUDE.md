@@ -28,7 +28,7 @@ This document provides Claude with essential context about the GST Website proje
 - Diff behavior between main and your changes when relevant
 - Ask yourself: "Would a staff engineer approve this?"
 - Run unit and integration tests to verify correctness
-- **Do NOT run E2E tests unless explicitly told to do so**
+- **Do NOT run E2E tests unless explicitly told to do so** — except when the task itself is writing or fixing E2E tests, in which case running them *is* the verification step (use `--project=chromium` for a fast single-browser check)
 
 ### 5. Demand Elegance (Balanced)
 - For non-trivial changes: pause and ask "is there a more elegant way?"

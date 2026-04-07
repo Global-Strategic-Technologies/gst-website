@@ -41,14 +41,35 @@ test.describe('Palette Panel Controls', () => {
       const result = await page.evaluate(() => {
         const swatches = document.querySelectorAll('.brand-swatch');
         const withControls = document.querySelectorAll('.brand-swatch .swatch-controls');
+        // injectControls() skips swatches whose computed background is
+        // transparent or semi-transparent (alpha < 1). Mirror that logic here
+        // so the assertion stays in sync with the production guard condition.
+        function rgbToHex(rgb: string): string {
+          if (rgb === 'transparent' || rgb === 'rgba(0, 0, 0, 0)') return 'transparent';
+          const m = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+          if (!m) return rgb;
+          const r = parseInt(m[1]), g = parseInt(m[2]), b = parseInt(m[3]);
+          const a = m[4] !== undefined ? parseFloat(m[4]) : 1;
+          const hex = '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+          return a < 1 ? `${hex} (${Math.round(a * 100)}%)` : hex;
+        }
+        let eligible = 0;
+        swatches.forEach(el => {
+          const colorEl = el.querySelector<HTMLElement>('.brand-swatch__color');
+          if (!colorEl) return;
+          const resolved = getComputedStyle(colorEl).backgroundColor;
+          const hex = rgbToHex(resolved);
+          if (hex !== 'transparent' && !hex.includes('(')) eligible++;
+        });
         return {
           totalSwatches: swatches.length,
+          eligibleSwatches: eligible,
           swatchesWithControls: withControls.length,
         };
       });
 
       expect(result.totalSwatches).toBeGreaterThan(0);
-      expect(result.swatchesWithControls).toBe(result.totalSwatches);
+      expect(result.swatchesWithControls).toBe(result.eligibleSwatches);
     });
   });
 
