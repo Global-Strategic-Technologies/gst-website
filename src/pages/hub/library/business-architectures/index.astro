@@ -505,7 +505,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
             icon.setAttribute('class', 'bullet-icon');
             icon.style.flexShrink = '0';
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', 'M32 8 L56 56 L8 56 Z');
+            path.setAttribute('d', 'M32 0 L56 48 L8 48 Z');
             path.setAttribute('fill', 'none');
             path.setAttribute('stroke', 'currentColor');
             path.setAttribute('stroke-width', '5');
@@ -637,13 +637,12 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
 
     .arch-toc-layer :global(.arch-toc-sublist li) {
         display: flex;
-        align-items: baseline;
+        align-items: flex-start;
         gap: var(--spacing-xs);
     }
 
     .arch-toc-layer :global(.arch-toc-sublist .bullet-icon) {
         flex-shrink: 0;
-        margin-top: 0;
         opacity: 0.5;
     }
 
@@ -698,6 +697,10 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
         padding: var(--spacing-sm) var(--spacing-lg);
         background: transparent;
         border-left: 3px solid var(--color-primary);
+    }
+
+    .arch-section-heading :global(.bullet-icon) {
+        margin-top: 0;
     }
 
     .arch-section-heading img {
@@ -828,7 +831,6 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
 
     .bullet-icon {
         flex-shrink: 0;
-        margin-top: 0.35em;
         opacity: 0.8;
     }
 
@@ -1206,10 +1208,6 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
 
         .arch-list--labeled li {
             padding: var(--spacing-md);
-        }
-
-        .bullet-icon {
-            margin-top: 0.3em;
         }
 
         .arch-label-group {

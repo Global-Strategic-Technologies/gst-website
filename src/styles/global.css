@@ -4838,8 +4838,7 @@ html.dark-theme .rec-na:hover {
     height: 14px;
     flex-shrink: 0;
     color: var(--color-primary);
-    margin-top: 5px;
-    color: var(--color-primary);
+    margin-top: calc((1lh - 14px) / 2 + 1px);
 }
 
 /* ── Teaser Card (current specimen) ───────────────── */
@@ -5427,7 +5426,6 @@ html.dark-theme .brutal-gateway-card {
 
 .brutal-gateway-card__features .bullet-icon {
     flex-shrink: 0;
-    margin-top: 0.35em;
     opacity: 0.8;
 }
 
