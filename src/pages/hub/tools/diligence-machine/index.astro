@@ -49,7 +49,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                     {WIZARD_STEPS.map((step, index) => (
                         <div class={`progress-segment ${index === 0 ? 'active' : ''}`} data-step-indicator={index + 1} data-testid={`progress-segment-${index + 1}`}>
                             <svg class="progress-number" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M32 0 L56 48 L8 48 Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="miter" />
+                                <path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="miter" />
                                 <text x="32" y="40" text-anchor="middle" dominant-baseline="middle" class="progress-number-text">{index + 1}</text>
                             </svg>
                             <span class="progress-label">{step.navLabel}</span>
@@ -70,7 +70,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                                 aria-label={`Go to step ${index + 1}`}
                             >
                                 <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M32 0 L56 48 L8 48 Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="miter" />
+                                    <path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="miter" />
                                 </svg>
                             </button>
                         ))}
@@ -676,7 +676,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                         <div class="doc-attention-header">
                             <h3 class="doc-attention-title">${escapeHtml(area.title)}</h3>
                             <button class="brutal-na-btn" data-dismiss-attention="${escapeHtml(area.id)}" type="button" title="${dismissedAttention.has(area.id) ? 'Restore this item' : 'Mark as not applicable'}">${dismissedAttention.has(area.id) ? 'Restore' : 'N/A'}</button>
-                            <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 0 L56 48 L8 48 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
+                            <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
                         </div>
                         <div class="doc-attention-divider"></div>
                         <p class="doc-attention-desc">${escapeHtml(area.description)}${area.id === 'attention-tech-debt' ? ' <a href="/hub/tools/tech-debt-calculator" target="_blank" rel="noopener noreferrer" style="color:var(--color-secondary);text-decoration:underline;">Quantify it with the Tech Debt Cost Calculator →</a>' : ''}${['attention-high-scale-architecture', 'attention-multi-infra-cost'].includes(area.id) ? ' <a href="/hub/tools/infrastructure-cost-governance" target="_blank" rel="noopener noreferrer" style="color:var(--color-secondary);text-decoration:underline;">Assess cost governance maturity with ICG →</a>' : ''}</p>
@@ -709,7 +709,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                                         <span class="doc-q-priority">${escapeHtml(q.priority)}</span>
                                         <button class="brutal-na-btn" data-dismiss-question="${escapeHtml(q.id)}" type="button" title="${dismissedQuestions.has(q.id) ? 'Restore this item' : 'Mark as not applicable'}">${dismissedQuestions.has(q.id) ? 'Restore' : 'N/A'}</button>
                                     </div>
-                                    <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 0 L56 48 L8 48 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
+                                    <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/></svg>
                                 </div>
                                 <p class="doc-q-text">${escapeHtml(q.text)}</p>
                                 <div class="dm-card-body">
