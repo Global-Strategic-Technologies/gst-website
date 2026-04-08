@@ -158,7 +158,7 @@ test.describe('Google Analytics Example Tests', () => {
       await clearRecordedEvents(page);
 
       // Click theme toggle
-      const themeToggle = page.locator('button[title="Toggle dark theme"]');
+      const themeToggle = page.getByTestId('theme-toggle');
       if (await themeToggle.isVisible()) {
         await clickThemeToggle(page);
 

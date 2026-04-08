@@ -2,7 +2,7 @@
 
 Complete catalog of all CSS custom properties defined in `src/styles/variables.css`. Use this when styling components.
 
-**Source of truth**: `src/styles/variables.css` — 140 variables in `:root`, 82 dark theme overrides in `html.dark-theme`.
+**Source of truth**: `src/styles/variables.css` — 160 variables in `:root`, 85 dark theme overrides in `html.dark-theme`.
 
 ---
 
@@ -11,9 +11,38 @@ Complete catalog of all CSS custom properties defined in `src/styles/variables.c
 | Variable | Value | Usage |
 |----------|-------|-------|
 | `--color-primary` | `#05cd99` | Primary accent — links, borders, buttons, active states |
+| `--color-primary-rgb` | `5, 205, 153` | Base RGB triplet — used by the opacity scale below |
 | `--color-primary-dark` | `#04a87a` | Darker shade for emphasis |
 | `--color-secondary` | `#CC8800` (light) / `#FFAA33` (dark) | Secondary accent (amber) |
 | `--color-secondary-dark` | `#FFAA33` | Secondary dark variant |
+
+## Primary Color Opacity Scale
+
+Raw opacity tokens built from `--color-primary-rgb`. Use these instead of hardcoded `rgba(5, 205, 153, ...)`.
+
+| Variable | Opacity | Common Use |
+|----------|---------|------------|
+| `--color-primary-02` | 2% | Ultra-subtle backgrounds |
+| `--color-primary-03` | 3% | Wash backgrounds |
+| `--color-primary-04` | 4% | Faint backgrounds |
+| `--color-primary-05` | 5% | Dark-theme input backgrounds |
+| `--color-primary-06` | 6% | Tint backgrounds |
+| `--color-primary-08` | 8% | Light accent backgrounds |
+| `--color-primary-10` | 10% | Tags, chip backgrounds, focus shadows |
+| `--color-primary-12` | 12% | Slider thumb shadows |
+| `--color-primary-13` | 13% | Dark-theme chart fills |
+| `--color-primary-15` | 15% | Hover backgrounds, card shadows |
+| `--color-primary-18` | 18% | Slider hover shadows |
+| `--color-primary-20` | 20% | Borders, chip borders |
+| `--color-primary-25` | 25% | Light accent borders |
+| `--color-primary-30` | 30% | Medium accent borders |
+| `--color-primary-45` | 45% | Map region fills, chart borders |
+| `--color-primary-50` | 50% | Map hover fills, chart borders |
+| `--color-primary-55` | 55% | Dark-theme highlighted regions |
+| `--color-primary-60` | 60% | Selected regions |
+| `--color-primary-65` | 65% | Dark-theme selected regions |
+
+> **Semantic aliases** (`--accent-subtle-bg`, `--accent-light-bg`, etc.) reference these tokens. Prefer the semantic name when it matches your intent; use the raw token when no semantic alias exists.
 
 ## Semantic Colors
 
@@ -68,13 +97,27 @@ Use these in all new code. They auto-switch in dark theme.
 
 ## Borders & Accents
 
-| Variable | Light | Dark | Usage |
-|----------|-------|------|-------|
-| `--border-light` | `rgba(26,26,26, 0.1)` | — | Subtle borders (light theme) |
-| `--border-dark` | `rgba(5,205,153, 0.2)` | — | Teal borders (dark theme) |
-| `--accent-light-bg` | `rgba(5,205,153, 0.08)` | — | Subtle accent background |
-| `--accent-light-bg-hover` | `rgba(5,205,153, 0.15)` | — | Accent background on hover |
-| `--accent-dark-bg` | `rgba(5,205,153, 0.1)` | — | Dark accent background |
+| Variable | Value | Usage |
+|----------|-------|-------|
+| `--border-light` | `rgba(26,26,26, 0.1)` | Subtle borders (light theme) |
+| `--border-dark` | `var(--color-primary-20)` | Teal borders (dark theme) |
+| `--accent-subtle-bg` | `var(--color-primary-02)` / `03` dark | Ultra-subtle accent fill |
+| `--accent-wash-bg` | `var(--color-primary-03)` / `04` dark | Wash-level accent fill |
+| `--accent-faint-bg` | `var(--color-primary-04)` / `05` dark | Faint accent fill |
+| `--accent-tint-bg` | `var(--color-primary-06)` / `08` dark | Tint-level accent fill |
+| `--accent-light-bg` | `var(--color-primary-08)` | Light accent background |
+| `--accent-light-bg-hover` | `var(--color-primary-15)` | Accent background on hover |
+| `--accent-dark-bg` | `var(--color-primary-10)` | Darker accent background |
+| `--accent-border-light` | `var(--color-primary-25)` | Subtle accent borders |
+| `--accent-border-medium` | `var(--color-primary-30)` | Medium accent borders |
+
+### Dark Border Scale (dark theme only)
+
+| Variable | Value | Usage |
+|----------|-------|-------|
+| `--border-dark-subtle` | `rgba(255,255,255, 0.10)` | Subtle separators, inset shadows |
+| `--border-dark-default` | `rgba(255,255,255, 0.15)` | Standard dark-theme borders (most common) |
+| `--border-dark-prominent` | `rgba(255,255,255, 0.20)` | Emphasized borders, hover states |
 
 ## Spacing Scale
 
@@ -149,22 +192,22 @@ These variables exist for page sections and UI components that need distinct lig
 
 | Variable | Light | Dark |
 |----------|-------|------|
-| `--filter-chip-bg` | `rgba(26,26,26, 0.05)` | `rgba(5,205,153, 0.1)` |
-| `--filter-chip-bg-hover` | `rgba(26,26,26, 0.08)` | `rgba(5,205,153, 0.15)` |
-| `--filter-chip-border` | `rgba(26,26,26, 0.1)` | `rgba(5,205,153, 0.2)` |
+| `--filter-chip-bg` | `rgba(26,26,26, 0.05)` | `var(--color-primary-10)` |
+| `--filter-chip-bg-hover` | `rgba(26,26,26, 0.08)` | `var(--color-primary-15)` |
+| `--filter-chip-border` | `rgba(26,26,26, 0.1)` | `var(--color-primary-20)` |
 | `--filter-chip-text` | `rgba(26,26,26, 0.7)` | `rgba(200,200,200, 0.8)` |
-| `--filter-button-bg` | `rgba(26,26,26, 0.05)` | `rgba(5,205,153, 0.1)` |
-| `--filter-button-bg-hover` | `rgba(26,26,26, 0.08)` | `rgba(5,205,153, 0.15)` |
-| `--filter-button-border` | `rgba(26,26,26, 0.1)` | `rgba(5,205,153, 0.2)` |
+| `--filter-button-bg` | `rgba(26,26,26, 0.05)` | `var(--color-primary-10)` |
+| `--filter-button-bg-hover` | `rgba(26,26,26, 0.08)` | `var(--color-primary-15)` |
+| `--filter-button-border` | `rgba(26,26,26, 0.1)` | `var(--color-primary-20)` |
 | `--filter-button-text` | `rgba(26,26,26, 0.7)` | `rgba(200,200,200, 0.8)` |
-| `--search-input-bg` | `rgba(26,26,26, 0.02)` | `rgba(5,205,153, 0.05)` |
-| `--search-input-border` | `rgba(26,26,26, 0.1)` | `rgba(5,205,153, 0.2)` |
+| `--search-input-bg` | `rgba(26,26,26, 0.02)` | `var(--color-primary-05)` |
+| `--search-input-border` | `rgba(26,26,26, 0.1)` | `var(--color-primary-20)` |
 | `--search-input-focus-bg` | `var(--bg-light)` | `var(--bg-dark-secondary)` |
-| `--search-input-focus-shadow` | `rgba(5,205,153, 0.1)` | `rgba(5,205,153, 0.15)` |
+| `--search-input-focus-shadow` | `var(--color-primary-10)` | `var(--color-primary-15)` |
 | `--search-input-text` | `rgba(26,26,26, 0.85)` | `rgba(245,245,245, 0.85)` |
 | `--search-input-placeholder` | `rgba(26,26,26, 0.5)` | `rgba(200,200,200, 0.5)` |
 | `--clear-filters-text` | `rgba(26,26,26, 0.6)` | `rgba(200,200,200, 0.6)` |
-| `--clear-filters-border` | `rgba(26,26,26, 0.1)` | `rgba(5,205,153, 0.2)` |
+| `--clear-filters-border` | `rgba(26,26,26, 0.1)` | `var(--color-primary-20)` |
 
 ### Section Text & Borders
 
@@ -176,7 +219,7 @@ These variables exist for page sections and UI components that need distinct lig
 | `--footer-text` | `rgba(26,26,26, 0.85)` | `rgba(153,153,153, 0.85)` |
 | `--footer-border` | `rgba(26,26,26, 0.1)` | `rgba(153,153,153, 0.15)` |
 | `--cta-box-text` | `rgba(26,26,26, 0.85)` | `rgba(200,200,200, 0.8)` |
-| `--stat-item-border` | `var(--color-primary)` | `rgba(5,205,153, 0.2)` |
+| `--stat-item-border` | `var(--color-primary)` | `var(--color-primary-20)` |
 | `--about-image-bg` | `var(--bg-dark-tertiary)` | `var(--bg-dark-secondary)` |
 | `--about-image-border` | `var(--bg-dark-secondary)` | `#2a2a2a` |
 | `--about-image-text` | `#404040` | `#808080` |
@@ -224,8 +267,8 @@ Domain-specific variables for the TechPar tool. Defined in `variables.css` lines
 
 | Variable | Light | Dark | Usage |
 |----------|-------|------|-------|
-| `--techpar-chart-band-fill` | `rgba(5, 205, 153, 0.15)` | `rgba(5, 205, 153, 0.13)` | Healthy band fill |
-| `--techpar-chart-band-border` | `rgba(5, 205, 153, 0.5)` | `rgba(5, 205, 153, 0.45)` | Healthy band border |
+| `--techpar-chart-band-fill` | `var(--color-primary-15)` | `var(--color-primary-13)` | Healthy band fill |
+| `--techpar-chart-band-border` | `var(--color-primary-50)` | `var(--color-primary-45)` | Healthy band border |
 | `--techpar-chart-ahead-fill` | `rgba(33, 118, 174, 0.10)` | `rgba(56, 152, 214, 0.11)` | Ahead zone chart fill (blue — CVD-safe) |
 | `--techpar-chart-ahead-border` | `rgba(33, 118, 174, 0.5)` | `rgba(56, 152, 214, 0.5)` | Ahead zone chart border |
 | `--techpar-chart-under-fill` | `rgba(224, 123, 0, 0.12)` | `rgba(255, 140, 0, 0.12)` | Under-investment chart fill (amber) |
@@ -301,12 +344,52 @@ Cross-tool semantic colors shared by multiple hub tools.
 | Page background | `--bg-light` |
 | Card/section background | `--bg-light-alt` |
 | Primary accent | `--color-primary` |
-| Borders | `--border-light` or `--color-primary` |
+| Borders (light) | `--border-light` or `--color-primary` |
+| Borders (dark theme) | `--border-dark-default` (standard), `--border-dark-subtle`, `--border-dark-prominent` |
+| Primary tint/glow | `--color-primary-XX` (opacity scale) or `--accent-*-bg` (semantic) |
 | Padding/margin | `--spacing-sm` through `--spacing-3xl` |
 | Flex/grid gaps | `--gap-tight` through `--gap-extra-wide` |
 | Quick interaction | `--transition-fast` |
 | Standard animation | `--transition-normal` |
 | Elevation | `--shadow-sm`, `--shadow-md`, `--shadow-lg` |
+
+---
+
+## Alternative Palette Variables (`palettes.css`)
+
+Six alternative color palettes override the core tokens when applied to `<html>`. Defined in `src/styles/palettes.css`.
+
+### Palette Alt-Color Definitions
+
+Each palette defines light and dark theme variants for 6 core colors + 3 expanded tokens:
+
+| Variable Pattern | Description |
+|-----------------|-------------|
+| `--altN-color-primary` | Primary brand accent for palette N |
+| `--altN-color-primary-dark` | Hover/pressed variant |
+| `--altN-color-secondary` | Secondary emphasis |
+| `--altN-color-success` | Positive outcomes |
+| `--altN-color-warning` | Caution indicators |
+| `--altN-color-error` | Errors/critical states |
+| `--altN-color-authority` | Institutional credibility accent |
+| `--altN-color-distinguish` | Differentiation accent |
+| `--altN-color-subdued` | Muted neutral |
+
+Where N = 0–5. Palette 0 only overrides the 3 expanded tokens (production palette keeps core colors from `variables.css`). Palettes 1–5 override all 9 tokens plus derived accent/border/opacity scales.
+
+### Palette Override Classes
+
+Applied to `<html>` (like `dark-theme`):
+
+```css
+html.palette-1 { --color-primary: var(--alt1-color-primary); /* ... */ }
+```
+
+Also overrides `--color-primary-rgb`, `--border-dark`, `--accent-light-bg`, `--accent-light-bg-hover`, `--accent-border-light`, `--accent-border-medium`, and `--stat-item-border`.
+
+### Tool Derivation
+
+`html[class*="palette-"]` maps expanded tokens to all tool-domain variables (TechPar zones, DM domains, ICG maturity, RegMap categories) so tool pages automatically inherit palette changes.
 
 ---
 
@@ -328,5 +411,5 @@ Cross-tool semantic colors shared by multiple hub tools.
 
 ---
 
-**Last Updated**: March 24, 2026
-**Total Variables**: 134 (`:root`) + 78 dark theme overrides
+**Last Updated**: April 5, 2026
+**Total Variables**: 160 (`:root`) + 85 dark theme overrides

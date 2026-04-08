@@ -1,0 +1,208 @@
+---
+import DeltaIcon from './DeltaIcon.astro';
+import '../styles/toc.css';
+
+interface TocSublistSource {
+  mode: 'query' | 'ids';
+  /** For mode "query": the section ID to scope the heading search */
+  scopeId?: string;
+  /** For mode "query": CSS selector for child headings (default: "h3[id]") */
+  selector?: string;
+  /** For mode "ids": array of element IDs to pull headings from */
+  ids?: string[];
+  /** For mode "ids": heading selector within each ID (default: "h2") */
+  headingSelector?: string;
+}
+
+export interface TocItem {
+  href: string;
+  label: string;
+  /** Render as bold parent link; runtime sublists injected under it */
+  isLayer?: boolean;
+  /** How to find child headings for sublist generation */
+  sublistSource?: TocSublistSource;
+  /** Arbitrary data-* attributes, e.g. { section: "identity" } */
+  dataAttrs?: Record<string, string>;
+}
+
+interface Props {
+  items: TocItem[];
+  /** Insert a visual separator before these 0-based indices */
+  separatorBefore?: number[];
+  /** Heading text (default: "Contents") */
+  heading?: string;
+  /** Icon size for sublist bullet icons in px (default: 14) */
+  sublistIconSize?: number;
+  /** Enable mobile collapse with chevron toggle */
+  collapsible?: boolean;
+  /** Enable scroll-spy active-link highlighting */
+  scrollSpy?: boolean;
+  /** aria-label for the nav (default: "Table of contents") */
+  ariaLabel?: string;
+  /** data-testid on the nav */
+  testId?: string;
+  /** Extra class(es) for page-specific overrides */
+  class?: string;
+}
+
+const {
+  items,
+  separatorBefore = [],
+  heading = 'Contents',
+  sublistIconSize = 14,
+  collapsible = false,
+  scrollSpy = false,
+  ariaLabel = 'Table of contents',
+  testId,
+  class: extraClass = '',
+} = Astro.props;
+
+// Serialize config for the client-side script
+const clientConfig = JSON.stringify({
+  collapsible,
+  scrollSpy,
+  sublistIconSize,
+  items: items
+    .filter((i) => i.isLayer && i.sublistSource)
+    .map((i) => ({ href: i.href, source: i.sublistSource })),
+});
+---
+
+<nav
+  class:list={['toc', extraClass]}
+  aria-label={ariaLabel}
+  data-toc-config={clientConfig}
+  {...(testId ? { 'data-testid': testId } : {})}
+>
+  <h2 class="toc__heading">
+    <DeltaIcon class="bullet-icon" />
+    {heading}
+    {collapsible && (
+      <svg class="delta-chevron toc__chevron" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/>
+      </svg>
+    )}
+  </h2>
+  <ul class="toc__list">
+    {items.map((item, idx) => (
+      <>
+        {separatorBefore.includes(idx) && (
+          <li class="toc__separator" aria-hidden="true"></li>
+        )}
+        <li
+          class:list={[item.isLayer && 'toc__layer']}
+          {...Object.fromEntries(
+            Object.entries(item.dataAttrs ?? {}).map(([k, v]) => [`data-${k}`, v])
+          )}
+        >
+          <a href={item.href}>{item.label}</a>
+        </li>
+      </>
+    ))}
+  </ul>
+</nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll<HTMLElement>('[data-toc-config]').forEach((nav) => {
+    const config = JSON.parse(nav.dataset.tocConfig!);
+
+    // ── Sublist generation ──────────────────────────────
+    config.items.forEach((item: any) => {
+      const anchor = nav.querySelector<HTMLAnchorElement>(`a[href="${item.href}"]`);
+      const layerLi = anchor?.parentElement;
+      if (!layerLi) return;
+
+      let headingEls: Element[] = [];
+
+      if (item.source.mode === 'query') {
+        const scope = document.getElementById(item.source.scopeId);
+        if (!scope) return;
+        const sel = item.source.selector || 'h3[id]';
+        headingEls = Array.from(scope.querySelectorAll(sel));
+      } else if (item.source.mode === 'ids') {
+        const hSel = item.source.headingSelector || 'h2';
+        headingEls = (item.source.ids as string[])
+          .map((id: string) => {
+            const section = document.getElementById(id);
+            return section?.querySelector(hSel);
+          })
+          .filter(Boolean) as Element[];
+      }
+
+      if (headingEls.length === 0) return;
+
+      const sublist = document.createElement('ul');
+      sublist.className = 'toc__sublist';
+
+      headingEls.forEach((heading) => {
+        const li = document.createElement('li');
+
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.setAttribute('viewBox', '0 0 64 64');
+        icon.setAttribute('fill', 'none');
+        icon.setAttribute('aria-hidden', 'true');
+        icon.setAttribute('width', String(config.sublistIconSize));
+        icon.setAttribute('height', String(config.sublistIconSize));
+        icon.setAttribute('class', 'bullet-icon');
+        icon.style.flexShrink = '0';
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M32 8 L56 56 L8 56 Z');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', 'currentColor');
+        path.setAttribute('stroke-width', '5');
+        path.setAttribute('stroke-linejoin', 'miter');
+        icon.appendChild(path);
+
+        const link = document.createElement('a');
+        const targetId = heading.id || heading.closest('[id]')?.id;
+        link.href = `#${targetId}`;
+        link.textContent = heading.textContent?.trim() || '';
+
+        li.appendChild(icon);
+        li.appendChild(link);
+        sublist.appendChild(li);
+      });
+
+      layerLi.appendChild(sublist);
+    });
+
+    // ── Collapsible (mobile) ────────────────────────────
+    if (config.collapsible) {
+      nav.classList.add('toc--collapsible');
+      const heading = nav.querySelector<HTMLElement>('.toc__heading');
+      const mobileQuery = window.matchMedia('(max-width: 768px)');
+
+      const applyMobileState = (isMobile: boolean) => {
+        nav.classList.toggle('is-collapsed', isMobile);
+      };
+      applyMobileState(mobileQuery.matches);
+      mobileQuery.addEventListener('change', (e) => applyMobileState(e.matches));
+
+      heading?.addEventListener('click', () => {
+        if (mobileQuery.matches) nav.classList.toggle('is-collapsed');
+      });
+    }
+
+    // ── Scroll-spy ──────────────────────────────────────
+    if (config.scrollSpy) {
+      const tocLinks = nav.querySelectorAll<HTMLAnchorElement>('.toc__list a');
+      const sectionIds = Array.from(tocLinks).map((a) => a.getAttribute('href')!.slice(1));
+
+      const onScroll = () => {
+        let activeId = sectionIds[0];
+        for (const id of sectionIds) {
+          const el = document.getElementById(id);
+          if (el && el.getBoundingClientRect().top <= 80) activeId = id;
+        }
+        tocLinks.forEach((a) => {
+          a.classList.toggle('is-active', a.getAttribute('href') === `#${activeId}`);
+        });
+      };
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    }
+  });
+});
+</script>

@@ -2,6 +2,8 @@
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
 import { trackPageView } from '../../../../utils/analytics';
+import DeltaIcon from '../../../../components/DeltaIcon.astro';
+import TableOfContents from '../../../../components/TableOfContents.astro';
 
 trackPageView('business-architectures-guide', 'Business & Technology Architectures | GST');
 ---
@@ -24,7 +26,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
             <!-- Print-only report header (hidden on screen) -->
             <div class="print-report-header" aria-hidden="true">
               <div class="print-report-header__brand">
-                <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" width="24" height="24" />
+                <DeltaIcon class="bullet-icon" />
                 <span>GST</span>
               </div>
               <div class="print-report-header__title">Business & Technology Architectures</div>
@@ -36,42 +38,28 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
             </blockquote>
 
             <div class="arch-layout">
-            <nav class="arch-toc" aria-label="Table of contents">
-                <h2 class="arch-section-heading">
-                    <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
-                    Contents
-                </h2>
-                <ul class="arch-toc-list">
-                    <li><a href="#why-architecture-matters">Why Architecture Matters to Business Leaders</a></li>
-                    <li class="arch-toc-separator" aria-hidden="true"></li>
-                    <li class="arch-toc-layer" data-layer="1">
-                        <a href="#layer-1">Software Architecture</a>
-                    </li>
-                    <li class="arch-toc-layer" data-layer="2">
-                        <a href="#layer-2">Operational Architecture</a>
-                    </li>
-                    <li class="arch-toc-layer" data-layer="3">
-                        <a href="#layer-3">Product Architecture</a>
-                    </li>
-                    <li class="arch-toc-layer" data-layer="4">
-                        <a href="#layer-4">Organizational Architecture</a>
-                    </li>
-                    <li class="arch-toc-layer" data-layer="5">
-                        <a href="#layer-5">Industry &amp; Regulatory Architecture (Externalities)</a>
-                    </li>
-                    <li class="arch-toc-separator" aria-hidden="true"></li>
-                    <li><a href="#interactions">How the Layers Interact</a></li>
-                    <li><a href="#applying">Applying This Framework</a></li>
-                    <li><a href="#further-reading">Further Reading</a></li>
-                </ul>
-            </nav>
+            <TableOfContents
+                collapsible={true}
+                separatorBefore={[1, 7]}
+                items={[
+                    { href: "#why-architecture-matters", label: "Why Architecture Matters to Business Leaders" },
+                    { href: "#layer-1", label: "Software Architecture", isLayer: true, sublistSource: { mode: "query", scopeId: "layer-1" }, dataAttrs: { layer: "1" } },
+                    { href: "#layer-2", label: "Operational Architecture", isLayer: true, sublistSource: { mode: "query", scopeId: "layer-2" }, dataAttrs: { layer: "2" } },
+                    { href: "#layer-3", label: "Product Architecture", isLayer: true, sublistSource: { mode: "query", scopeId: "layer-3" }, dataAttrs: { layer: "3" } },
+                    { href: "#layer-4", label: "Organizational Architecture", isLayer: true, sublistSource: { mode: "query", scopeId: "layer-4" }, dataAttrs: { layer: "4" } },
+                    { href: "#layer-5", label: "Industry & Regulatory Architecture (Externalities)", isLayer: true, sublistSource: { mode: "query", scopeId: "layer-5" }, dataAttrs: { layer: "5" } },
+                    { href: "#interactions", label: "How the Layers Interact" },
+                    { href: "#applying", label: "Applying This Framework" },
+                    { href: "#further-reading", label: "Further Reading" },
+                ]}
+            />
 
             <div class="arch-content">
 
                 <!-- Why Architecture Matters -->
                 <section class="arch-section" id="why-architecture-matters">
                     <h2 class="arch-section-heading">
-                        <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
+                        <DeltaIcon class="bullet-icon" />
                         Why Architecture Matters to Business Leaders
                     </h2>
                     <p class="arch-body">For investors evaluating an acquisition, architecture is the difference between a platform that scales with investment and one that collapses under it. For executives navigating their own technology landscape, it's the lens that reveals which strategic initiatives the current architecture can support and which ones it will quietly resist. For executives inheriting a technology stack post-close, it determines whether the first hundred days produce a credible integration plan or reveal the need for a multi-year rebuild. For founders, it's the set of early choices that either preserves optionality or silently forecloses it.</p>
@@ -82,7 +70,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                 <!-- Layer 1: Software Architecture -->
                 <section class="arch-section" id="layer-1">
                     <h2 class="arch-section-heading">
-                        <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
+                        <DeltaIcon class="bullet-icon" />
                         Layer 1: Software Architecture
                     </h2>
                     <p class="arch-layer-label">The Foundation</p>
@@ -101,10 +89,10 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     <p class="arch-body">Design patterns are proven structural solutions to problems that appear again and again across software systems: how components communicate, how data flows between services, how systems handle failure and recovery. Mature engineering organizations recognize these patterns and apply them deliberately. The business implication is significant: pattern-driven architecture is assessable and comparable. Its failure modes are known. Its maintenance costs are predictable. Its quality can be evaluated by any competent technical diligence team. Ad-hoc architecture, built without reference to established patterns, is none of these things.</p>
                     <p class="arch-body">These patterns operate at every level of software architecture, and the ones that matter most to business outcomes shift as you move up through the stack. It is a set of structural decisions organized across multiple levels of abstraction, each one aggregating complexity from the level below. Understanding where you are in this hierarchy changes what you're looking for and who needs to be in the room to address it.</p>
                     <ul class="arch-list arch-list--labeled">
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Code</strong><span class="arch-label-desc">Individual functions, classes, and modules. This is where quality is most visible and most measurable, but also where it matters least in isolation. Clean code inside a poorly designed system is a polished component in a failing machine.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Systems</strong><span class="arch-label-desc">Code gets organized into discrete capabilities: a payment processor, an authentication service, a notification engine. The boundaries between these systems determine how independently teams can work, how safely components can be replaced, and how gracefully failures are contained. This is where Conway's Law (Layer 4) first makes itself felt; system boundaries tend to mirror team boundaries, for better or worse.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Integrations</strong><span class="arch-label-desc">Where systems interact, connect, communicate to others (services, third-party APIs, partner platforms, and data providers). Integration architecture is where vendor lock-in hides, where data sovereignty risk accumulates, and where the true cost of switching providers or absorbing acquisitions becomes apparent. In diligence, this sub-layer frequently reveals liabilities that the code itself won't show you.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>End-to-end experiences</strong><span class="arch-label-desc">The complete user journeys that comprise multiple system integrations. A customer completing a purchase touches authentication, inventory, payment processing, tax calculation, notification, and fulfillment, each a distinct system, several involving external integrations, all of which must coordinate seamlessly. This is where the sub-layers visibly compound: code quality affects system reliability, system boundaries determine failure isolation, and integration design dictates whether a third-party outage degrades one feature or takes down the entire checkout flow. The business impact (churn, support cost, brand damage) concentrates at this level regardless of which sub-layer contains the actual deficiency.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Code</strong><span class="arch-label-desc">Individual functions, classes, and modules. This is where quality is most visible and most measurable, but also where it matters least in isolation. Clean code inside a poorly designed system is a polished component in a failing machine.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Systems</strong><span class="arch-label-desc">Code gets organized into discrete capabilities: a payment processor, an authentication service, a notification engine. The boundaries between these systems determine how independently teams can work, how safely components can be replaced, and how gracefully failures are contained. This is where Conway's Law (Layer 4) first makes itself felt; system boundaries tend to mirror team boundaries, for better or worse.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Integrations</strong><span class="arch-label-desc">Where systems interact, connect, communicate to others (services, third-party APIs, partner platforms, and data providers). Integration architecture is where vendor lock-in hides, where data sovereignty risk accumulates, and where the true cost of switching providers or absorbing acquisitions becomes apparent. In diligence, this sub-layer frequently reveals liabilities that the code itself won't show you.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>End-to-end experiences</strong><span class="arch-label-desc">The complete user journeys that comprise multiple system integrations. A customer completing a purchase touches authentication, inventory, payment processing, tax calculation, notification, and fulfillment, each a distinct system, several involving external integrations, all of which must coordinate seamlessly. This is where the sub-layers visibly compound: code quality affects system reliability, system boundaries determine failure isolation, and integration design dictates whether a third-party outage degrades one feature or takes down the entire checkout flow. The business impact (churn, support cost, brand damage) concentrates at this level regardless of which sub-layer contains the actual deficiency.</span></span></li>
                     </ul>
 
                     <p class="arch-body">The reason this decomposition matters for business leaders: problems at each sub-layer have different cost profiles, different remediation timelines, and different owners. A code quality issue is a team-level fix. A systems boundary problem is an organizational restructuring. An integration liability is a vendor negotiation or a rebuild. Conflating them, treating "the software" as a single thing, leads to transformation plans that underestimate scope and misallocate investment.</p>
@@ -114,9 +102,9 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     <h3 class="arch-subheading" id="layer-1-principles">Three Principles That Signal Architectural Health</h3>
 
                     <ul class="arch-list arch-list--labeled">
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Separation of Responsibilities</strong><span class="arch-label-desc">Good architecture assigns each component a clear, singular purpose. When a single component handles authentication, payment processing, and customer notifications, a change to any one of those capabilities risks breaking the others. The quick test: <em>does one piece of code do ten things?</em> If yes, it's a maintenance nightmare waiting to become an investor's problem. For business leaders, this translates directly to <em>change cost and change risk</em>. Systems with poor separation of responsibilities are expensive to modify, slow to extend, and prone to cascading failures that affect seemingly unrelated capabilities.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Least Knowledge (Information Hiding)</strong><span class="arch-label-desc">Components should know as little as possible about each other's internal workings. When components are tightly coupled, when changing one requires intimate knowledge of another's implementation, development velocity drops and integration complexity increases. During M&amp;A, tight coupling between components is one of the primary drivers of integration difficulty and timeline risk.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Least Privilege</strong><span class="arch-label-desc">Systems and users should have only the minimum access required to perform their function. This is fundamentally a security and compliance principle, but it also signals architectural maturity. Organizations that implement least privilege well tend to have clearer system boundaries, better audit capabilities, and lower regulatory risk.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Separation of Responsibilities</strong><span class="arch-label-desc">Good architecture assigns each component a clear, singular purpose. When a single component handles authentication, payment processing, and customer notifications, a change to any one of those capabilities risks breaking the others. The quick test: <em>does one piece of code do ten things?</em> If yes, it's a maintenance nightmare waiting to become an investor's problem. For business leaders, this translates directly to <em>change cost and change risk</em>. Systems with poor separation of responsibilities are expensive to modify, slow to extend, and prone to cascading failures that affect seemingly unrelated capabilities.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Least Knowledge (Information Hiding)</strong><span class="arch-label-desc">Components should know as little as possible about each other's internal workings. When components are tightly coupled, when changing one requires intimate knowledge of another's implementation, development velocity drops and integration complexity increases. During M&amp;A, tight coupling between components is one of the primary drivers of integration difficulty and timeline risk.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Least Privilege</strong><span class="arch-label-desc">Systems and users should have only the minimum access required to perform their function. This is fundamentally a security and compliance principle, but it also signals architectural maturity. Organizations that implement least privilege well tend to have clearer system boundaries, better audit capabilities, and lower regulatory risk.</span></span></li>
                     </ul>
 
                     <h3 class="arch-subheading" id="layer-1-wellarchitected">Signals of Architectural Health</h3>
@@ -158,7 +146,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                 <!-- Layer 2: Operational Architecture -->
                 <section class="arch-section" id="layer-2">
                     <h2 class="arch-section-heading">
-                        <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
+                        <DeltaIcon class="bullet-icon" />
                         Layer 2: Operational Architecture
                     </h2>
                     <p class="arch-layer-label">Infrastructure</p>
@@ -177,8 +165,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     <p class="arch-body">Technology operations has historically been dominated by two competing approaches to risk management, and the tension between them explains much of what investors encounter during diligence. The distinction maps to a familiar one in finance. Traditional insurance underwriting attempts to eliminate risk before it materializes: exhaustive actuarial modeling, rigorous exclusions, and a deep reluctance to pay claims. A venture portfolio approach accepts that individual bets will fail and instead optimizes for rapid detection, contained losses, and recovery speed across the portfolio. Both manage risk. They differ fundamentally in where they spend their effort.</p>
 
                     <ul class="arch-list arch-list--labeled">
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>"Anticipate and Prevent" (Traditional / Waterfall)</strong><span class="arch-label-desc">This approach assumes that failures are expensive and irreversible, so the correct response is exhaustive upfront planning, comprehensive testing, and rigorous change control. It's the default mindset of traditional enterprise IT, and it's not wrong; it's appropriate for environments where the cost of failure is catastrophic. In practice, however, this philosophy produces heavy approval processes, infrequent releases, long planning cycles, and a cultural resistance to experimentation.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>"Find and Fix" (DevOps / Continuous Delivery)</strong><span class="arch-label-desc">This approach accepts that failures will occur and focuses on making them small, detectable, and quickly recoverable. It's built on the insight that in most software environments, it doesn't matter if there are failures. What matters is whether they can be detected and resolved before a customer is meaningfully affected. DevOps practices push toward more modular architectures because modularity enables faster detection, isolation, and recovery.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>"Anticipate and Prevent" (Traditional / Waterfall)</strong><span class="arch-label-desc">This approach assumes that failures are expensive and irreversible, so the correct response is exhaustive upfront planning, comprehensive testing, and rigorous change control. It's the default mindset of traditional enterprise IT, and it's not wrong; it's appropriate for environments where the cost of failure is catastrophic. In practice, however, this philosophy produces heavy approval processes, infrequent releases, long planning cycles, and a cultural resistance to experimentation.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>"Find and Fix" (DevOps / Continuous Delivery)</strong><span class="arch-label-desc">This approach accepts that failures will occur and focuses on making them small, detectable, and quickly recoverable. It's built on the insight that in most software environments, it doesn't matter if there are failures. What matters is whether they can be detected and resolved before a customer is meaningfully affected. DevOps practices push toward more modular architectures because modularity enables faster detection, isolation, and recovery.</span></span></li>
                     </ul>
 
                     <h3 class="arch-subheading">The Organizational Dimension of Operational Change</h3>
@@ -189,10 +177,10 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     <p class="arch-body">Not every company can or should adopt the same operational approach. Several factors affect the feasibility and appropriateness of modern operational practices:</p>
 
                     <ul class="arch-list arch-list--labeled">
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Cost of iteration</strong><span class="arch-label-desc">Software companies can deploy dozens of times per day because each iteration is essentially free to produce. Companies building physical products face material costs and lead times that constrain iteration speed.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Product lifecycle duration</strong><span class="arch-label-desc">Software can be updated continuously. Hardware deployed in the field has a fixed operational life where updates range from difficult to impossible. Operational architecture must account for this difference.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>External dependencies and externalities</strong><span class="arch-label-desc">Companies that operate platforms or ecosystems must consider how operational changes affect partners, integrators, and customers who have built on their interfaces.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Market position and customer expectations</strong><span class="arch-label-desc">A startup can afford operational practices that accept higher rates of visible failure in exchange for speed. An enterprise serving Fortune 500 customers cannot. Operational architecture must match the company's position and promises.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Cost of iteration</strong><span class="arch-label-desc">Software companies can deploy dozens of times per day because each iteration is essentially free to produce. Companies building physical products face material costs and lead times that constrain iteration speed.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Product lifecycle duration</strong><span class="arch-label-desc">Software can be updated continuously. Hardware deployed in the field has a fixed operational life where updates range from difficult to impossible. Operational architecture must account for this difference.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>External dependencies and externalities</strong><span class="arch-label-desc">Companies that operate platforms or ecosystems must consider how operational changes affect partners, integrators, and customers who have built on their interfaces.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Market position and customer expectations</strong><span class="arch-label-desc">A startup can afford operational practices that accept higher rates of visible failure in exchange for speed. An enterprise serving Fortune 500 customers cannot. Operational architecture must match the company's position and promises.</span></span></li>
                     </ul>
 
                     <div class="arch-diligence-callout">
@@ -215,7 +203,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                 <!-- Layer 3: Product Architecture -->
                 <section class="arch-section" id="layer-3">
                     <h2 class="arch-section-heading">
-                        <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
+                        <DeltaIcon class="bullet-icon" />
                         Layer 3: Product Architecture
                     </h2>
 
@@ -230,9 +218,9 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     <p class="arch-body">Product architecture is not a technical concern that can be delegated entirely to engineering. It's a strategic choice that sits at the intersection of technology capability, organizational structure, and business model.</p>
 
                     <ul class="arch-list arch-list--labeled">
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Vertically integrated architectures</strong><span class="arch-label-desc">Vertically integrated architectures bring the full value chain in-house. Historically, this was the dominant approach: General Motors owning Fisher Body, Kodak integrating film chemistry through camera design. Tesla represents a modern version of this pattern, controlling everything from battery cell manufacturing and chip design to sales channels and charging infrastructure. The advantage is control and speed of iteration across the entire stack. The risk is calcification: when the market shifts, the entire value chain has to shift with it.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Integrated but focused architectures</strong><span class="arch-label-desc">control fewer stages but maintain tight coupling between the ones they own. Apple represents this pattern. They design their own silicon but don't fabricate it. They define the hardware, the OS, and the interface layer so precisely that the product experience is indistinguishable from a fully integrated system, while outsourcing physical manufacturing to partners. This creates competitive moats through the difficulty of replication without the capital burden of owning every stage.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Modular architectures</strong><span class="arch-label-desc">define clear interfaces between components, allowing each to be developed, replaced, or scaled independently. The open-source software ecosystem is modularity at its most extreme: thousands of independently maintained packages, each solving a specific problem, composed together through standardized interfaces. A modern application might depend on hundreds of these modules, gaining enormous development speed and capability without building from scratch. Modularity enables speed, specialization, and ecosystem development, but competitive advantage must come from something other than the modules themselves, because they're available to everyone. The strategic question becomes: what does this company do with the same building blocks that its competitors also have access to? In diligence, modular architectures also surface a distinct risk profile: dependency health, licensing exposure, and supply chain vulnerabilities that don't exist in integrated systems.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Vertically integrated architectures</strong><span class="arch-label-desc">Vertically integrated architectures bring the full value chain in-house. Historically, this was the dominant approach: General Motors owning Fisher Body, Kodak integrating film chemistry through camera design. Tesla represents a modern version of this pattern, controlling everything from battery cell manufacturing and chip design to sales channels and charging infrastructure. The advantage is control and speed of iteration across the entire stack. The risk is calcification: when the market shifts, the entire value chain has to shift with it.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Integrated but focused architectures</strong><span class="arch-label-desc">control fewer stages but maintain tight coupling between the ones they own. Apple represents this pattern. They design their own silicon but don't fabricate it. They define the hardware, the OS, and the interface layer so precisely that the product experience is indistinguishable from a fully integrated system, while outsourcing physical manufacturing to partners. This creates competitive moats through the difficulty of replication without the capital burden of owning every stage.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Modular architectures</strong><span class="arch-label-desc">define clear interfaces between components, allowing each to be developed, replaced, or scaled independently. The open-source software ecosystem is modularity at its most extreme: thousands of independently maintained packages, each solving a specific problem, composed together through standardized interfaces. A modern application might depend on hundreds of these modules, gaining enormous development speed and capability without building from scratch. Modularity enables speed, specialization, and ecosystem development, but competitive advantage must come from something other than the modules themselves, because they're available to everyone. The strategic question becomes: what does this company do with the same building blocks that its competitors also have access to? In diligence, modular architectures also surface a distinct risk profile: dependency health, licensing exposure, and supply chain vulnerabilities that don't exist in integrated systems.</span></span></li>
                     </ul>
 
                     <p class="arch-body">The critical insight for business leaders: <em>When a technology leader decides what to build internally versus what to buy, integrate, or deliberately leave out, they're not making a procurement decision. They're defining the company's core competency and its opportunity costs.</em> Every capability that gets built is a capability that didn't get built instead. That choice has implications for talent strategy, competitive positioning, organizational structure, and long-term defensibility. So does the choice of how the product reaches the customer. Tesla delivers software updates over the air, turning every vehicle into a platform that improves after purchase. Amazon invests in drone delivery to reshape the economics of last-mile logistics. Apple releases new hardware annually, creating an upgrade cycle that drives recurring revenue. These are product architecture decisions with direct business model consequences. It's a board-level conversation disguised as a technical one.</p>
@@ -249,25 +237,25 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     <p class="arch-body">Product architecture doesn't emerge fully formed. It evolves in response to market signals, and the quality of those signals determines whether the architecture converges on real opportunity or drifts toward expensive irrelevance. Two frameworks are particularly useful for keeping that evolution disciplined.</p>
 
                     <ul class="arch-list arch-list--labeled">
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>The Minimal Viable Problem (MVP)</strong><span class="arch-label-desc">The strongest product architectures don't start with a grand vision. They start with the smallest version of a real customer problem that, if solved, justifies further investment. Each iteration expands the problem scope only when the previous solution has been validated in the market. Architecture then grows to match proven demand rather than speculative projections. For PE-backed companies with defined value creation timelines, this discipline is critical: it ensures that engineering investment tracks to revenue opportunity rather than running ahead of it. In diligence, ask whether the target's architecture evolved through validated iterations or was designed around assumptions that were never tested.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Jobs to Be Done</strong><span class="arch-label-desc">Clayton Christensen popularized the idea that customers don't buy products; they "hire" them to accomplish specific jobs. The classic example: a fast-food chain discovered that customers hiring a milkshake in the morning had completely different needs than those buying one in the afternoon. The architectural implication is significant. When a company understands the job its product is hired to do, it can make sharper decisions about what to build, what to integrate, and what to leave out entirely. Architecture that is shaped by a clear job-to-be-done tends to be leaner, more focused, and better positioned to expand into adjacent opportunities. Architecture built without that clarity tends to accumulate features without strategic coherence, creating maintenance burden without corresponding market advantage.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>When the Operational Architecture Is the Product</strong><span class="arch-label-desc">The founding of McDonald's illustrates how value can migrate between architectural layers. The McDonald brothers built what was, in this article's framing, an exceptional operational architecture (Layer 2): a stripped-down menu, a kitchen layout iterated on a tennis court with chalk, every movement optimized for speed and consistency. They had solved the operational throughput problem for a single location. Ray Kroc looked at the same operation and made a product architecture decision: the operational system itself, its standardization, its independence from any individual operator's skill, its predictable economics, was more valuable than anything on the menu. He didn't change the architecture. He recognized that packaging and replicating it was the product. For investors, this is a question worth asking: is the target selling a product, or has it built an operational architecture whose replicability is itself the defensible asset? The answer changes how you value it, how you plan integration, and where the realistic ceiling on post-acquisition growth actually sits. It also changes the diligence focus: when the operations are the product, the operational architecture layer deserves the scrutiny you would normally reserve for the product itself.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>The Minimal Viable Problem (MVP)</strong><span class="arch-label-desc">The strongest product architectures don't start with a grand vision. They start with the smallest version of a real customer problem that, if solved, justifies further investment. Each iteration expands the problem scope only when the previous solution has been validated in the market. Architecture then grows to match proven demand rather than speculative projections. For PE-backed companies with defined value creation timelines, this discipline is critical: it ensures that engineering investment tracks to revenue opportunity rather than running ahead of it. In diligence, ask whether the target's architecture evolved through validated iterations or was designed around assumptions that were never tested.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Jobs to Be Done</strong><span class="arch-label-desc">Clayton Christensen popularized the idea that customers don't buy products; they "hire" them to accomplish specific jobs. The classic example: a fast-food chain discovered that customers hiring a milkshake in the morning had completely different needs than those buying one in the afternoon. The architectural implication is significant. When a company understands the job its product is hired to do, it can make sharper decisions about what to build, what to integrate, and what to leave out entirely. Architecture that is shaped by a clear job-to-be-done tends to be leaner, more focused, and better positioned to expand into adjacent opportunities. Architecture built without that clarity tends to accumulate features without strategic coherence, creating maintenance burden without corresponding market advantage.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>When the Operational Architecture Is the Product</strong><span class="arch-label-desc">The founding of McDonald's illustrates how value can migrate between architectural layers. The McDonald brothers built what was, in this article's framing, an exceptional operational architecture (Layer 2): a stripped-down menu, a kitchen layout iterated on a tennis court with chalk, every movement optimized for speed and consistency. They had solved the operational throughput problem for a single location. Ray Kroc looked at the same operation and made a product architecture decision: the operational system itself, its standardization, its independence from any individual operator's skill, its predictable economics, was more valuable than anything on the menu. He didn't change the architecture. He recognized that packaging and replicating it was the product. For investors, this is a question worth asking: is the target selling a product, or has it built an operational architecture whose replicability is itself the defensible asset? The answer changes how you value it, how you plan integration, and where the realistic ceiling on post-acquisition growth actually sits. It also changes the diligence focus: when the operations are the product, the operational architecture layer deserves the scrutiny you would normally reserve for the product itself.</span></span></li>
                     </ul>
 
                     <h3 class="arch-subheading" id="layer-3-selection">Selection Principles for Evaluating Product Architecture in M&amp;A</h3>
 
                     <ul class="arch-list arch-list--labeled">
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>YAGNI ("You Aren't Gonna Need It")</strong><span class="arch-label-desc">Is the architecture built for actual, demonstrated customer needs, or for hypothetical future requirements that may never materialize? Over-engineered architecture is a cost center disguised as foresight.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>KISS ("Keep It Simple, Stupid")</strong><span class="arch-label-desc">Is the architecture as simple as the problem permits, or has complexity been introduced without corresponding value? Unnecessary complexity is a predictor of future integration difficulty and ongoing maintenance cost.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Two-Way Doors</strong><span class="arch-label-desc">Jeff Bezos distinguished between decisions that are reversible (two-way doors) and decisions that are not (one-way doors). One-way doors deserve deliberation. Two-way doors should be made quickly and adjusted based on what you learn. Choosing which cloud provider hosts your infrastructure is a two-way door: it takes effort to migrate, but it can be done. Rewriting your core platform in a proprietary programming language, or committing your data model to a vendor-specific database that doesn't support standard export formats, is a one-way door: reversing it means rebuilding, not reconfiguring. In product architecture, the question is: how many one-way doors has this company walked through? Architectures with a high ratio of irreversible decisions are harder to integrate, harder to modernize, and more expensive to exit.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>YAGNI ("You Aren't Gonna Need It")</strong><span class="arch-label-desc">Is the architecture built for actual, demonstrated customer needs, or for hypothetical future requirements that may never materialize? Over-engineered architecture is a cost center disguised as foresight.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>KISS ("Keep It Simple, Stupid")</strong><span class="arch-label-desc">Is the architecture as simple as the problem permits, or has complexity been introduced without corresponding value? Unnecessary complexity is a predictor of future integration difficulty and ongoing maintenance cost.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Two-Way Doors</strong><span class="arch-label-desc">Jeff Bezos distinguished between decisions that are reversible (two-way doors) and decisions that are not (one-way doors). One-way doors deserve deliberation. Two-way doors should be made quickly and adjusted based on what you learn. Choosing which cloud provider hosts your infrastructure is a two-way door: it takes effort to migrate, but it can be done. Rewriting your core platform in a proprietary programming language, or committing your data model to a vendor-specific database that doesn't support standard export formats, is a one-way door: reversing it means rebuilding, not reconfiguring. In product architecture, the question is: how many one-way doors has this company walked through? Architectures with a high ratio of irreversible decisions are harder to integrate, harder to modernize, and more expensive to exit.</span></span></li>
                     </ul>
 
                     <p class="arch-body">Agile product management principles offer a useful lens for assessing product maturity:</p>
                     <ul class="arch-list">
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" />Deliver to known, narrowly-defined customer needs rather than speculative requirements. Over-engineering for imaginary use cases is a common and expensive architectural error.</li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" />Ship frequently. Architecture that supports frequent, low-risk releases is fundamentally different from architecture that requires large, coordinated deployments.</li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" />Build around small, empowered, cross-functional teams. Systems built by small teams tend to be more modular, better-defined, and easier to maintain.</li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" />Substitute modularity and flexible decision-making for over-engineering. As Jeff Bezos observed: "If you're good at course correcting, being wrong may be less costly than you think."</li>
+                        <li><DeltaIcon class="bullet-icon" />Deliver to known, narrowly-defined customer needs rather than speculative requirements. Over-engineering for imaginary use cases is a common and expensive architectural error.</li>
+                        <li><DeltaIcon class="bullet-icon" />Ship frequently. Architecture that supports frequent, low-risk releases is fundamentally different from architecture that requires large, coordinated deployments.</li>
+                        <li><DeltaIcon class="bullet-icon" />Build around small, empowered, cross-functional teams. Systems built by small teams tend to be more modular, better-defined, and easier to maintain.</li>
+                        <li><DeltaIcon class="bullet-icon" />Substitute modularity and flexible decision-making for over-engineering. As Jeff Bezos observed: "If you're good at course correcting, being wrong may be less costly than you think."</li>
                     </ul>
 
                     <div class="arch-diligence-callout">
@@ -290,7 +278,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                 <!-- Layer 4: Organizational Architecture -->
                 <section class="arch-section" id="layer-4">
                     <h2 class="arch-section-heading">
-                        <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
+                        <DeltaIcon class="bullet-icon" />
                         Layer 4: Organizational Architecture
                     </h2>
 
@@ -305,10 +293,10 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     <p class="arch-body">The Tushman-Nadler Congruence Model provides a practical framework for understanding how organizational architecture either enables or constrains execution. It applies to any organization, but its implications for technology-driven businesses are particularly acute because of Conway's Law: misalignment between these four components doesn't just slow the organization down, it deforms the technology itself. The model identifies four components that must be aligned for effective execution:</p>
 
                     <ul class="arch-list arch-list--labeled">
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>People</strong><span class="arch-label-desc">Not just headcount and skills, but the distribution of expertise, the depth of institutional knowledge, and the ratio of builders to maintainers. During diligence, the question isn't just "how many engineers?" but "what can this team actually <em>do</em>?"</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Rewards</strong><span class="arch-label-desc">What gets measured, recognized, and compensated. If the incentive structure rewards system stability above all else, don't expect the organization to embrace the calculated risk that modern technology practices require. If it rewards feature velocity without measuring quality, expect technical debt to be accumulating faster than the balance sheet suggests.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Processes</strong><span class="arch-label-desc">The formal and informal workflows that govern how work gets done. Heavyweight processes in technology organizations often signal a history of production failures that created institutional caution, which may be justified or may be a legacy constraint that adds cost without reducing risk.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Structure</strong><span class="arch-label-desc">Reporting lines, team boundaries, and the allocation of decision-making authority. Because of Conway's Law, the architecture of the software will tend to mirror the architecture of the teams that build it. Reorganizing teams without considering the implications for system architecture creates friction that burns time and budget.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>People</strong><span class="arch-label-desc">Not just headcount and skills, but the distribution of expertise, the depth of institutional knowledge, and the ratio of builders to maintainers. During diligence, the question isn't just "how many engineers?" but "what can this team actually <em>do</em>?"</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Rewards</strong><span class="arch-label-desc">What gets measured, recognized, and compensated. If the incentive structure rewards system stability above all else, don't expect the organization to embrace the calculated risk that modern technology practices require. If it rewards feature velocity without measuring quality, expect technical debt to be accumulating faster than the balance sheet suggests.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Processes</strong><span class="arch-label-desc">The formal and informal workflows that govern how work gets done. Heavyweight processes in technology organizations often signal a history of production failures that created institutional caution, which may be justified or may be a legacy constraint that adds cost without reducing risk.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Structure</strong><span class="arch-label-desc">Reporting lines, team boundaries, and the allocation of decision-making authority. Because of Conway's Law, the architecture of the software will tend to mirror the architecture of the teams that build it. Reorganizing teams without considering the implications for system architecture creates friction that burns time and budget.</span></span></li>
                     </ul>
 
                     <p class="arch-body">The Congruence Model's key insight is that these four components are <em>interdependent</em>. Changing one without adjusting the others creates misalignment that shows up as execution failures, cultural resistance, or the quiet departure of key talent. This is why post-acquisition technology transformations that focus only on the technology itself so frequently underdeliver.</p>
@@ -337,7 +325,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                 <!-- Layer 5: Industry & Regulatory Architecture -->
                 <section class="arch-section" id="layer-5">
                     <h2 class="arch-section-heading">
-                        <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
+                        <DeltaIcon class="bullet-icon" />
                         Layer 5: Industry &amp; Regulatory Architecture (Externalities)
                     </h2>
 
@@ -360,9 +348,9 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     <p class="arch-body">How companies respond to industry-level change reveals their strategic maturity, and for acquirers, their future trajectory. There are typically three mechanisms:</p>
 
                     <ul class="arch-list arch-list--labeled">
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Mergers &amp; acquisitions</strong><span class="arch-label-desc">Allow organizations to buy architectural capabilities they can't build fast enough. But the very architectural differences that make a target valuable are often the same ones that make integration difficult.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Corporate venture capital and partnerships</strong><span class="arch-label-desc">Provide exposure to emerging architectural patterns without full commitment. They're a hedge against uncertainty about which industry standards will win.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Organic innovation</strong><span class="arch-label-desc">Works best when the trajectory is clear and internal architecture supports iterative development. It struggles when the required changes cut across too many existing architectural layers.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Mergers &amp; acquisitions</strong><span class="arch-label-desc">Allow organizations to buy architectural capabilities they can't build fast enough. But the very architectural differences that make a target valuable are often the same ones that make integration difficult.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Corporate venture capital and partnerships</strong><span class="arch-label-desc">Provide exposure to emerging architectural patterns without full commitment. They're a hedge against uncertainty about which industry standards will win.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Organic innovation</strong><span class="arch-label-desc">Works best when the trajectory is clear and internal architecture supports iterative development. It struggles when the required changes cut across too many existing architectural layers.</span></span></li>
                     </ul>
 
                     <h3 class="arch-subheading" id="layer-5-disruption">Disruptive Innovation as a Filter</h3>
@@ -389,16 +377,16 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                 <!-- How the Layers Interact -->
                 <section class="arch-section" id="interactions">
                     <h2 class="arch-section-heading">
-                        <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
+                        <DeltaIcon class="bullet-icon" />
                         How the Layers Interact
                     </h2>
                     <p class="arch-body">These five architectural layers don't operate independently. They form a system of mutual constraints and enablements (affordances):</p>
 
                     <ul class="arch-list arch-list--labeled">
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Bottom-up enablement</strong><span class="arch-label-desc">Strong software architecture enables operational agility. Operational agility supports product iteration speed. Product flexibility enables competitive response to industry shifts.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Top-down constraints</strong><span class="arch-label-desc">Industry standards limit product architecture choices. Product architecture dictates operational requirements. Operational requirements shape what software architecture must support.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>Lateral coupling</strong><span class="arch-label-desc">Organizational architecture (the people, incentives, processes, and structure) runs alongside every layer and either amplifies or dampens the effectiveness of choices made at each level.</span></span></li>
-                        <li><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="bullet-icon" width="12" height="12" loading="lazy" /><span class="arch-label-group"><strong>The cross-layer diagnostic</strong><span class="arch-label-desc">A failure at the software architecture layer is usually a symptom of a decision made at the organizational layer. To fix the technology, you must often fix the organization first. Great companies exhibit coherence across all five layers. Technology diligence is about identifying where that coherence exists and where it breaks down.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Bottom-up enablement</strong><span class="arch-label-desc">Strong software architecture enables operational agility. Operational agility supports product iteration speed. Product flexibility enables competitive response to industry shifts.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Top-down constraints</strong><span class="arch-label-desc">Industry standards limit product architecture choices. Product architecture dictates operational requirements. Operational requirements shape what software architecture must support.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>Lateral coupling</strong><span class="arch-label-desc">Organizational architecture (the people, incentives, processes, and structure) runs alongside every layer and either amplifies or dampens the effectiveness of choices made at each level.</span></span></li>
+                        <li><DeltaIcon class="bullet-icon" /><span class="arch-label-group"><strong>The cross-layer diagnostic</strong><span class="arch-label-desc">A failure at the software architecture layer is usually a symptom of a decision made at the organizational layer. To fix the technology, you must often fix the organization first. Great companies exhibit coherence across all five layers. Technology diligence is about identifying where that coherence exists and where it breaks down.</span></span></li>
                     </ul>
 
                     <p class="arch-body">A common failure pattern in technology-driven organizations is attempting to change one layer without addressing the others. A product architecture migration that ignores organizational readiness. An operational transformation that doesn't account for the software architecture's limitations. A software modernization that proceeds without clarity on the product strategy it's meant to enable.</p>
@@ -408,7 +396,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                 <!-- Applying This Framework -->
                 <section class="arch-section" id="applying">
                     <h2 class="arch-section-heading">
-                        <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
+                        <DeltaIcon class="bullet-icon" />
                         Applying This Framework
                     </h2>
 
@@ -440,7 +428,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                 <!-- Further Reading -->
                 <section class="arch-section" id="further-reading">
                     <h2 class="arch-section-heading">
-                        <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
+                        <DeltaIcon class="bullet-icon" />
                         Further Reading
                     </h2>
                     <p class="arch-body">The concepts in this guide draw on established frameworks from both software engineering and business strategy. For readers who want to go deeper:</p>
@@ -480,42 +468,6 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
     </section>
 </BaseLayout>
 
-<script>
-    // Build TOC sublists from actual h3 headings (DRY: heading text defined once)
-    document.querySelectorAll<HTMLElement>('.arch-toc-layer').forEach(tocLayer => {
-        const layerNum = tocLayer.dataset.layer;
-        const section = document.getElementById(`layer-${layerNum}`);
-        if (!section) return;
-
-        const headings = section.querySelectorAll('h3[id]');
-        if (headings.length === 0) return;
-
-        const sublist = document.createElement('ul');
-        sublist.className = 'arch-toc-sublist';
-
-        headings.forEach(h3 => {
-            const li = document.createElement('li');
-            const icon = document.createElement('img');
-            icon.src = '/images/gst-delta-icon-teal-stroke-thick.svg';
-            icon.alt = '';
-            icon.setAttribute('aria-hidden', 'true');
-            icon.className = 'bullet-icon';
-            icon.width = 10;
-            icon.height = 10;
-
-            const link = document.createElement('a');
-            link.href = `#${h3.id}`;
-            link.textContent = h3.textContent;
-
-            li.appendChild(icon);
-            li.appendChild(link);
-            sublist.appendChild(li);
-        });
-
-        tocLayer.appendChild(sublist);
-    });
-</script>
-
 <style>
     .arch-guide {
         padding: var(--spacing-3xl) 0 5rem;
@@ -543,117 +495,11 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
     }
 
     /* Table of Contents */
-    .arch-toc {
+    /* Layout positioning for shared TOC component (non-sidebar default) */
+    .arch-layout :global(.toc) {
         display: block;
         max-width: 800px;
         margin: 0 auto var(--spacing-3xl);
-        padding: var(--spacing-xl);
-        background: transparent;
-        border: 2px solid var(--border-light);
-    }
-
-    :global(html.dark-theme) .arch-toc {
-        background: transparent;
-        border-color: var(--border-light);
-    }
-
-    .arch-toc-list {
-        list-style: none;
-        padding-left: var(--spacing-xl);
-        margin: 0;
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-sm);
-    }
-
-    .arch-toc-list > li {
-        margin-bottom: 0;
-    }
-
-    .arch-toc-separator {
-        height: 0;
-        margin: 0;
-        padding: 0;
-        border: 0;
-        list-style: none;
-    }
-
-    /* Layer items in TOC - plain list style matching VDR */
-    .arch-toc-layer > a {
-        font-weight: 600;
-        color: var(--text-primary);
-    }
-
-    .arch-toc-layer-sub {
-        display: block;
-        font-weight: 400;
-        font-size: 0.85em;
-        color: var(--text-muted);
-        padding-left: calc(2px + var(--spacing-sm));
-    }
-
-    .arch-toc-list a {
-        font-family: monospace;
-        font-size: var(--text-base);
-        color: var(--text-secondary);
-        text-decoration: none;
-        text-transform: none;
-        letter-spacing: normal;
-        transition: color var(--transition-fast), border-color var(--transition-fast);
-        display: block;
-        padding: var(--spacing-xs) var(--spacing-sm);
-        border-left: 2px solid transparent;
-    }
-
-    /* Layer title links inherit base .arch-toc-list a styles */
-
-    .arch-toc-list a:hover {
-        color: var(--color-primary);
-        border-color: var(--color-primary);
-    }
-
-    :global(html.dark-theme) .arch-toc-list a:hover {
-        border-color: var(--color-primary);
-    }
-
-    /* :global() needed because sublist elements are created at runtime by script */
-    .arch-toc-layer :global(.arch-toc-sublist) {
-        list-style: none;
-        padding-left: var(--spacing-xl);
-        margin-top: var(--spacing-sm);
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-xs);
-    }
-
-    .arch-toc-layer :global(.arch-toc-sublist li) {
-        display: flex;
-        align-items: baseline;
-        gap: var(--spacing-xs);
-    }
-
-    .arch-toc-layer :global(.arch-toc-sublist .bullet-icon) {
-        flex-shrink: 0;
-        margin-top: 0;
-        opacity: 0.5;
-    }
-
-    .arch-toc-layer :global(.arch-toc-sublist a) {
-        font-family: monospace;
-        font-size: var(--text-sm);
-        text-transform: none;
-        letter-spacing: normal;
-        color: var(--text-secondary);
-        text-decoration: none;
-        display: block;
-        padding: var(--spacing-xs) var(--spacing-sm);
-        border-left: 2px solid transparent;
-        transition: color var(--transition-fast), border-color var(--transition-fast);
-    }
-
-    .arch-toc-layer :global(.arch-toc-sublist a:hover) {
-        color: var(--color-primary);
-        border-color: var(--color-primary);
     }
 
     /* Content */
@@ -689,6 +535,10 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
         padding: var(--spacing-sm) var(--spacing-lg);
         background: transparent;
         border-left: 3px solid var(--color-primary);
+    }
+
+    .arch-section-heading :global(.bullet-icon) {
+        margin-top: 0;
     }
 
     .arch-section-heading img {
@@ -819,7 +669,6 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
 
     .bullet-icon {
         flex-shrink: 0;
-        margin-top: 0.35em;
         opacity: 0.8;
     }
 
@@ -1027,64 +876,19 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
             align-items: start;
         }
 
-        .arch-toc {
+        .arch-layout :global(.toc) {
             position: sticky;
             top: var(--spacing-xl);
             max-width: none;
             margin: 0;
             max-height: calc(100vh - var(--spacing-2xl));
             overflow-y: auto;
-            padding: var(--spacing-lg);
-            scrollbar-width: thin;
-            scrollbar-color: var(--color-primary) transparent;
         }
 
-        .arch-toc::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .arch-toc::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .arch-toc::-webkit-scrollbar-thumb {
-            background: var(--color-primary);
-        }
-
-        .arch-toc::-webkit-scrollbar-thumb:hover {
-            background: var(--color-primary);
-        }
-
-        .arch-toc .arch-section-heading {
+        .arch-layout :global(.toc .toc__heading) {
             font-size: 1rem;
             padding: var(--spacing-xs) var(--spacing-md);
             margin-bottom: var(--spacing-md);
-        }
-
-        .arch-toc-list {
-            padding-left: var(--spacing-md);
-        }
-
-        .arch-toc-list a {
-            font-size: var(--text-sm);
-            padding: 3px var(--spacing-sm);
-        }
-
-        .arch-toc-separator {
-            display: none;
-        }
-
-        .arch-toc-layer-sub {
-            font-size: 0.75rem;
-        }
-
-        .arch-toc-layer :global(.arch-toc-sublist) {
-            padding-left: var(--spacing-md);
-        }
-
-        .arch-toc-layer :global(.arch-toc-sublist a) {
-            font-size: 0.8rem;
-            padding: 2px var(--spacing-xs);
         }
 
         .arch-content {
@@ -1111,43 +915,6 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
             padding: var(--spacing-lg);
         }
 
-        .arch-toc {
-            padding: var(--spacing-lg);
-        }
-
-        .arch-toc-list {
-            padding-left: var(--spacing-lg);
-        }
-
-        .arch-toc-list li {
-            margin-bottom: 0;
-        }
-
-        .arch-toc-list a {
-            display: block;
-            padding: var(--spacing-xs) var(--spacing-sm);
-            font-size: var(--text-sm);
-        }
-
-        .arch-toc-list a:hover {
-            border-color: var(--color-primary);
-        }
-
-        .arch-toc-layer :global(.arch-toc-sublist) {
-            padding-left: var(--spacing-lg);
-            list-style: none;
-        }
-
-        .arch-toc-layer :global(.arch-toc-sublist a) {
-            display: block;
-            padding: var(--spacing-xs) var(--spacing-sm);
-            font-size: var(--text-sm);
-        }
-
-        .arch-toc-layer :global(.arch-toc-sublist a:hover) {
-            border-color: var(--color-primary);
-        }
-
         .arch-section {
             padding: var(--spacing-lg);
         }
@@ -1168,10 +935,6 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
 
         .arch-epigraph {
             padding: var(--spacing-md) var(--spacing-lg);
-        }
-
-        .arch-toc {
-            padding: var(--spacing-sm);
         }
 
         .arch-section {
@@ -1197,10 +960,6 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
 
         .arch-list--labeled li {
             padding: var(--spacing-md);
-        }
-
-        .bullet-icon {
-            margin-top: 0.3em;
         }
 
         .arch-label-group {
@@ -1239,7 +998,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
             margin-bottom: var(--spacing-lg);
         }
 
-        .arch-toc {
+        .arch-layout :global(.toc) {
             display: none;
         }
 

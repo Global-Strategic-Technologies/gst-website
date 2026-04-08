@@ -39,7 +39,7 @@
 
 /* Button/Control Hover States */
 .control-hover {
-  background: rgba(26, 26, 26, 0.08);
+  background: var(--accent-light-bg-hover, rgba(26, 26, 26, 0.08));
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
@@ -52,11 +52,11 @@
 
 /* Accent Background States */
 .accent-light-bg {
-  background: rgba(5, 205, 153, 0.1);
+  background: rgba(var(--color-primary-rgb), 0.1);
 }
 
 .accent-light-bg-hover {
-  background: rgba(5, 205, 153, 0.15);
+  background: rgba(var(--color-primary-rgb), 0.15);
 }
 
 /* Focus Outline Utility */
@@ -92,7 +92,7 @@ html.dark-theme .link-interactive:focus-visible {
 }
 
 html.dark-theme .control-hover {
-  background: rgba(5, 205, 153, 0.15);
+  background: rgba(var(--color-primary-rgb), 0.15);
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
@@ -104,11 +104,11 @@ html.dark-theme .control-active {
 }
 
 html.dark-theme .accent-light-bg {
-  background: rgba(5, 205, 153, 0.1);
+  background: rgba(var(--color-primary-rgb), 0.1);
 }
 
 html.dark-theme .accent-light-bg-hover {
-  background: rgba(5, 205, 153, 0.15);
+  background: rgba(var(--color-primary-rgb), 0.15);
 }
 
 /* Delta Chevron — Collapse/Expand Toggle Indicator
@@ -185,7 +185,7 @@ details[open] > summary .delta-chevron {
 }
 
 html.dark-theme .brutal-interactive {
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--border-dark-default);
 }
 
 html.dark-theme .brutal-interactive:focus-visible {

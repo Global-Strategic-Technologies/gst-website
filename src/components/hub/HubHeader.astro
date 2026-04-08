@@ -27,7 +27,7 @@ if (showTimestamp) {
 ---
 
 <header class="hub-header">
-  <h1 class="hub-header__title heading-xl">{title}</h1>
+  <h1 class="hub-header__title brutal-heading-xl">{title}</h1>
   <p class="hub-header__subtitle">{subtitle}</p>
   {showTimestamp && <p class="hub-header__updated">Updated {dateStr}</p>}
 </header>
@@ -39,8 +39,6 @@ if (showTimestamp) {
   }
 
   .hub-header__title {
-    font-family: monospace;
-    text-transform: uppercase;
     margin-bottom: var(--spacing-md);
     line-height: 1.2;
   }

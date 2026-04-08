@@ -33,14 +33,14 @@
 ### 🔧 GitHub Actions Workflow Files
 
 1. **.github/workflows/test.yml** (Main Test Workflow) ✅ OPTIMIZED
-   - Runs on every push to main/develop and every PR
+   - Runs on every push to master/dev and every PR
    - Unit & Integration tests (Node 18.x and 20.x)
    - E2E tests with Playwright (optimized timeouts: 4min)
    - Build verification
    - Coverage reporting
    - Test results summary
 
-   **Status:** 552/552 tests passing, fully operational (180 unit/integration + 372 E2E)
+   **Status:** 1,250/1,250 test cases passing, fully operational (857 unit/integration + 393 E2E × 3 browsers)
 
 2. **.github/workflows/deploy-preview.yml** ❌ REMOVED
    - Was redundant - removed to eliminate false status reporting
@@ -58,7 +58,7 @@
 ┌─────────────────────────────────────────────┐
 │           Your GitHub Repo                  │
 │  ┌──────────────────────────────────────┐  │
-│  │  git push main                       │  │
+│  │  git push master                       │  │
 │  └──────────────────────────────────────┘  │
 └─────────────────────────────────────────────┘
                     ↓
@@ -78,7 +78,7 @@
 ┌─────────────────────────────────────────────┐
 │           Your GitHub Repo                  │
 │  ┌──────────────────────────────────────┐  │
-│  │  git push main / Create PR           │  │
+│  │  git push master / Create PR           │  │
 │  └──────────────────────────────────────┘  │
 └─────────────────────────────────────────────┘
            ↓                      ↓
@@ -138,7 +138,7 @@ All Good? → Approve → Merge → Vercel Deploys Main
 
 ### Phase 2: Configuration (Complete ✅)
 - [x] Copy `.github/workflows/*.yml` files to your repo
-- [x] Commit and push to main
+- [x] Commit and push to master
 - [x] Verify workflows appear in GitHub Actions tab
 - [x] Removed redundant workflows (deploy-preview.yml, deployment-status.yml)
 - [x] Setup branch protection rules - Configured to require all test status checks
@@ -174,7 +174,7 @@ All Good? → Approve → Merge → Vercel Deploys Main
 **Tests and deployment are independent and simultaneous**
 
 ```
-Event: git push main
+Event: git push master
 ├─ GitHub Actions triggered immediately
 │  └─ Runs tests in parallel
 ├─ Vercel webhook triggered immediately
@@ -188,18 +188,18 @@ Result: Tests complete in ~10 minutes
 
 ### Why This Design?
 1. **No deployment delays** - Vercel deploys immediately
-2. **Tests are feedback** - Not blockers on main (they still run)
+2. **Tests are feedback** - Not blockers on master (they still run)
 3. **Branch protection** - Tests ARE blockers on PRs (prevents bad merges)
 4. **Best of both** - Speed + Safety
 
 ### You Can Always Rollback
 If tests fail but code deployed:
 ```bash
-# Revert main to previous commit
+# Revert master to previous commit
 git revert HEAD
 
 # Push revert
-git push origin main
+git push origin master
 
 # Vercel redeploys (cleaner than manual rollback)
 ```
@@ -211,20 +211,20 @@ git push origin main
 ### Test.yml Triggers
 
 ✅ **Runs on:**
-- Push to `main` branch
-- Push to `develop` branch
-- Create pull request to `main`
-- Push to any open PR to `main`
+- Push to `master` branch
+- Push to `dev` branch
+- Create pull request to `master`
+- Push to any open PR to `master`
 
 ❌ **Does not run on:**
 - Push to other branches
-- Pushes to `main` from Vercel (avoid feedback loop)
+- Pushes to `master` from Vercel (avoid feedback loop)
 
 ### Deploy-preview.yml Triggers
 
 ✅ **Runs on:**
-- Create pull request to `main`
-- Update existing PR to `main`
+- Create pull request to `master`
+- Update existing PR to `master`
 
 ### Deployment-status.yml Triggers
 
@@ -267,13 +267,13 @@ Shows:
 **A:** No. Vercel deploys simultaneously with tests. Vercel usually finishes BEFORE tests.
 
 ### Q2: What if tests fail but I still want to deploy?
-**A:** You can - tests are feedback on main, not blockers. But PRs must have passing tests.
+**A:** You can - tests are feedback on master, not blockers. But PRs must have passing tests.
 
 ### Q3: Do I have to merge through PRs?
-**A:** Not technically, but with branch protection rules, you should. Direct pushes to main are blocked.
+**A:** Not technically, but with branch protection rules, you should. Direct pushes to master are blocked.
 
 ### Q4: Can tests block production?
-**A:** Only for PRs (branch protection). Tests don't prevent main deployments, only merges to main.
+**A:** Only for PRs (branch protection). Tests don't prevent master deployments, only merges to master.
 
 ### Q5: What's the cost?
 **A:** Free for public repos on GitHub/Vercel. Free tier Codecov for open source.

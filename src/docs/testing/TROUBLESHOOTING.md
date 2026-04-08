@@ -104,7 +104,7 @@ npm run test:all
 ### "GitHub Actions test.yml not running on my branch"
 
 **Possible causes:**
-1. **Workflow not triggered on your branch** - Only runs on main/develop
+1. **Workflow not triggered on your branch** - Only runs on master/dev
 2. **Branch protection requires different branch** - Check repository settings
 3. **Workflow file has syntax error** - YAML parsing failed
 
@@ -168,19 +168,19 @@ node --version  # Your version
 ### "I can't merge my PR even though all checks pass"
 
 **Possible causes:**
-1. **Branch not up to date with main** - Need to rebase/merge
+1. **Branch not up to date with master** - Need to rebase/merge
 2. **Code review required but not completed** - Waiting for approval
 3. **Branch protection rule not satisfied** - Outdated protection settings
 
 **Solution:**
 ```bash
-# Update your branch with latest main
+# Update your branch with latest master
 git fetch origin
-git rebase origin/main
+git rebase origin/master
 git push -f origin your-branch
 
-# Or merge main into your branch
-git pull origin main
+# Or merge master into your branch
+git pull origin master
 git push origin your-branch
 ```
 

@@ -43,15 +43,15 @@ npm run test:e2e:debug # Playwright debug → step through E2E tests
 ```
 1. Make your changes
 2. Run npm run test:all locally
-3. Wait for all 552 tests to pass
+3. Wait for all tests to pass
 4. Only then push to remote
 ```
 
 ### After Pushing to Remote
 ```
-1. Vercel automatically deploys main branch
+1. Vercel automatically deploys master branch
 2. Preview builds created for PRs
-3. Code is live after merge to main
+3. Code is live after merge to master
 ```
 
 ## File Structure to Create
@@ -300,7 +300,7 @@ use: {
 
 ## Vercel Integration
 
-**Deployment:** Vercel auto-deploys main on push
+**Deployment:** Vercel auto-deploys master on push
 **Testing:** Run tests locally before pushing
 
 ```
@@ -310,7 +310,7 @@ Test locally first:
 - Push only when green
 
 Vercel deployment:
-- Automatic on push to main
+- Automatic on push to master
 - Preview builds on PRs
 - No test blocking needed
 - You maintain quality gate locally
@@ -334,7 +334,7 @@ Reviewer:
 4. Merge PR
 
 After Merge:
-1. Code is deployed to main
+1. Code is deployed to master
 2. Vercel handles deployment
 3. All tests passed locally before merge
 4. Done!

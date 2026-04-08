@@ -1,0 +1,279 @@
+/* ═══════════════════════════════════════════════════════════
+   PALETTE SYSTEM — alternative color palette definitions
+   Applied to <html> via class (mirrors dark-theme pattern).
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* 1: Steel Authority — deep cobalt + hot magenta */
+  --alt1-color-primary: #1e40af;
+  --alt1-color-primary-dark: #1a3590;
+  --alt1-color-secondary: #db2777;
+  --alt1-color-success: #16a34a;
+  --alt1-color-warning: #ca8a04;
+  --alt1-color-error: #b91c1c;
+
+  /* 2: Indigo Signal — vivid violet + electric lime */
+  --alt2-color-primary: #7c3aed;
+  --alt2-color-primary-dark: #6d28d9;
+  --alt2-color-secondary: #84cc16;
+  --alt2-color-success: #10b981;
+  --alt2-color-warning: #e67e22;
+  --alt2-color-error: #dc2626;
+
+  /* 3: Copper Forge — dark rust + electric cyan */
+  --alt3-color-primary: #b45309;
+  --alt3-color-primary-dark: #92400e;
+  --alt3-color-secondary: #0891b2;
+  --alt3-color-success: #16a34a;
+  --alt3-color-warning: #eab308;
+  --alt3-color-error: #c0392b;
+
+  /* 4: Jade Edge — vivid emerald + hot rose */
+  --alt4-color-primary: #059669;
+  --alt4-color-primary-dark: #047857;
+  --alt4-color-secondary: #f43f5e;
+  --alt4-color-success: #15803d;
+  --alt4-color-warning: #d97706;
+  --alt4-color-error: #9f1239;
+
+  /* 5: Shadow Garden — deep forest + electric violet */
+  --alt5-color-primary: #166534;
+  --alt5-color-primary-dark: #14532d;
+  --alt5-color-secondary: #a855f7;
+  --alt5-color-success: #22c55e;
+  --alt5-color-warning: #ca8a04;
+  --alt5-color-error: #991b1b;
+  --alt5-black: #060606;
+  --alt5-black-soft: #101010;
+  --alt5-purple-muted: rgba(168, 85, 247, 0.3);
+  --alt5-forest-light: rgba(22, 101, 52, 0.18);
+
+  /* ── Expanded tokens: authority / distinguish / subdued ── */
+  --alt0-color-authority: #5b7a9d;
+  --alt0-color-distinguish: #8b5cf6;
+  --alt0-color-subdued: #8c7a6b;
+
+  --alt1-color-authority: #4a6fa5;
+  --alt1-color-distinguish: #9b59b6;
+  --alt1-color-subdued: #7a8a9a;
+
+  --alt2-color-authority: #3b82f6;
+  --alt2-color-distinguish: #06b6d4;
+  --alt2-color-subdued: #6b7280;
+
+  --alt3-color-authority: #2563eb;
+  --alt3-color-distinguish: #7c3aed;
+  --alt3-color-subdued: #78593f;
+
+  --alt4-color-authority: #6366f1;
+  --alt4-color-distinguish: #d946ef;
+  --alt4-color-subdued: #5a7a5a;
+
+  --alt5-color-authority: #1e6b45;
+  --alt5-color-distinguish: #7c3aed;
+  --alt5-color-subdued: #3d4f3d;
+}
+
+html.dark-theme {
+  /* 1: Steel Authority */
+  --alt1-color-primary: #3b82f6;
+  --alt1-color-primary-dark: #2563eb;
+  --alt1-color-secondary: #f472b6;
+  --alt1-color-success: #4ade80;
+  --alt1-color-warning: #facc15;
+  --alt1-color-error: #ef4444;
+
+  /* 2: Indigo Signal */
+  --alt2-color-primary: #a78bfa;
+  --alt2-color-primary-dark: #8b5cf6;
+  --alt2-color-secondary: #a3e635;
+  --alt2-color-success: #34d399;
+  --alt2-color-warning: #f59e0b;
+  --alt2-color-error: #f87171;
+
+  /* 3: Copper Forge */
+  --alt3-color-primary: #d97706;
+  --alt3-color-primary-dark: #b45309;
+  --alt3-color-secondary: #22d3ee;
+  --alt3-color-success: #4ade80;
+  --alt3-color-warning: #fbbf24;
+  --alt3-color-error: #ef4444;
+
+  /* 4: Jade Edge */
+  --alt4-color-primary: #10b981;
+  --alt4-color-primary-dark: #059669;
+  --alt4-color-secondary: #fb7185;
+  --alt4-color-success: #4ade80;
+  --alt4-color-warning: #f59e0b;
+  --alt4-color-error: #e11d48;
+
+  /* 5: Shadow Garden */
+  --alt5-color-primary: #22c55e;
+  --alt5-color-primary-dark: #16a34a;
+  --alt5-color-secondary: #c084fc;
+  --alt5-color-success: #4ade80;
+  --alt5-color-warning: #eab308;
+  --alt5-color-error: #ef4444;
+  --alt5-black: #040404;
+  --alt5-black-soft: #0a0a0a;
+  --alt5-purple-muted: rgba(192, 132, 252, 0.25);
+  --alt5-forest-light: rgba(34, 197, 94, 0.1);
+
+  /* ── Expanded tokens (dark theme) ── */
+  --alt0-color-authority: #7a9dbd;
+  --alt0-color-distinguish: #a78bfa;
+  --alt0-color-subdued: #a89888;
+
+  --alt1-color-authority: #60a5fa;
+  --alt1-color-distinguish: #c084fc;
+  --alt1-color-subdued: #94a3b8;
+
+  --alt2-color-authority: #60a5fa;
+  --alt2-color-distinguish: #22d3ee;
+  --alt2-color-subdued: #9ca3af;
+
+  --alt3-color-authority: #60a5fa;
+  --alt3-color-distinguish: #a78bfa;
+  --alt3-color-subdued: #a08060;
+
+  --alt4-color-authority: #818cf8;
+  --alt4-color-distinguish: #e879f9;
+  --alt4-color-subdued: #7a9a7a;
+
+  --alt5-color-authority: #34d399;
+  --alt5-color-distinguish: #a78bfa;
+  --alt5-color-subdued: #5a6f5a;
+}
+
+/* ── Tool color derivation (cascades from palette overrides) ── */
+html[class*="palette-"] {
+  --hub-authority-blue: var(--color-authority);
+  --techpar-zone-ahead: var(--color-success);
+  --techpar-zone-underinvest: var(--color-warning);
+  --techpar-zone-above: var(--color-warning);
+  --techpar-zone-elevated: var(--color-error);
+  --techpar-zone-critical: var(--color-error);
+  --techpar-zone-healthy: var(--color-primary);
+  --techpar-category-infra: var(--color-primary);
+  --techpar-category-personnel: var(--color-authority);
+  --techpar-category-rd-opex: var(--color-distinguish);
+  --techpar-category-rd-capex: var(--color-secondary);
+  --techpar-kpi-positive: var(--color-primary);
+  --techpar-kpi-warn: var(--color-warning);
+  --techpar-kpi-negative: var(--color-error);
+  --dm-methodology-brown: var(--color-subdued);
+  --dm-results-blue: var(--color-authority);
+  --dm-results-tan: var(--color-subdued);
+  --dm-positive: var(--color-success);
+  --dm-negative: var(--color-error);
+  --dm-warning: var(--color-warning);
+  --dm-success: var(--color-success);
+  --icg-maturity-reactive: var(--color-error);
+  --icg-maturity-aware: var(--color-warning);
+  --icg-maturity-optimizing: var(--color-success);
+  --icg-maturity-strategic: var(--color-primary);
+  --regmap-category-industry: var(--color-distinguish);
+  --regmap-category-cyber: var(--color-error);
+}
+
+/* ── Per-palette overrides (applied to <html>) ── */
+html.palette-0 {
+  --color-authority: var(--alt0-color-authority);
+  --color-distinguish: var(--alt0-color-distinguish);
+  --color-subdued: var(--alt0-color-subdued);
+}
+
+html.palette-1 {
+  --color-primary: var(--alt1-color-primary);
+  --color-primary-dark: var(--alt1-color-primary-dark);
+  --color-primary-rgb: 30, 64, 175;
+  --color-secondary: var(--alt1-color-secondary);
+  --color-success: var(--alt1-color-success);
+  --color-warning: var(--alt1-color-warning);
+  --color-error: var(--alt1-color-error);
+  --color-authority: var(--alt1-color-authority);
+  --color-distinguish: var(--alt1-color-distinguish);
+  --color-subdued: var(--alt1-color-subdued);
+  --border-dark: rgba(30, 64, 175, 0.2);
+  --accent-light-bg: rgba(30, 64, 175, 0.08);
+  --accent-light-bg-hover: rgba(30, 64, 175, 0.15);
+  --accent-border-light: rgba(30, 64, 175, 0.25);
+  --accent-border-medium: rgba(30, 64, 175, 0.3);
+  --stat-item-border: var(--alt1-color-primary);
+}
+
+html.palette-2 {
+  --color-primary: var(--alt2-color-primary);
+  --color-primary-dark: var(--alt2-color-primary-dark);
+  --color-primary-rgb: 124, 58, 237;
+  --color-secondary: var(--alt2-color-secondary);
+  --color-success: var(--alt2-color-success);
+  --color-warning: var(--alt2-color-warning);
+  --color-error: var(--alt2-color-error);
+  --color-authority: var(--alt2-color-authority);
+  --color-distinguish: var(--alt2-color-distinguish);
+  --color-subdued: var(--alt2-color-subdued);
+  --border-dark: rgba(124, 58, 237, 0.2);
+  --accent-light-bg: rgba(124, 58, 237, 0.08);
+  --accent-light-bg-hover: rgba(124, 58, 237, 0.15);
+  --accent-border-light: rgba(124, 58, 237, 0.25);
+  --accent-border-medium: rgba(124, 58, 237, 0.3);
+  --stat-item-border: var(--alt2-color-primary);
+}
+
+html.palette-3 {
+  --color-primary: var(--alt3-color-primary);
+  --color-primary-dark: var(--alt3-color-primary-dark);
+  --color-primary-rgb: 180, 83, 9;
+  --color-secondary: var(--alt3-color-secondary);
+  --color-success: var(--alt3-color-success);
+  --color-warning: var(--alt3-color-warning);
+  --color-error: var(--alt3-color-error);
+  --color-authority: var(--alt3-color-authority);
+  --color-distinguish: var(--alt3-color-distinguish);
+  --color-subdued: var(--alt3-color-subdued);
+  --border-dark: rgba(180, 83, 9, 0.2);
+  --accent-light-bg: rgba(180, 83, 9, 0.08);
+  --accent-light-bg-hover: rgba(180, 83, 9, 0.15);
+  --accent-border-light: rgba(180, 83, 9, 0.25);
+  --accent-border-medium: rgba(180, 83, 9, 0.3);
+  --stat-item-border: var(--alt3-color-primary);
+}
+
+html.palette-4 {
+  --color-primary: var(--alt4-color-primary);
+  --color-primary-dark: var(--alt4-color-primary-dark);
+  --color-primary-rgb: 5, 150, 105;
+  --color-secondary: var(--alt4-color-secondary);
+  --color-success: var(--alt4-color-success);
+  --color-warning: var(--alt4-color-warning);
+  --color-error: var(--alt4-color-error);
+  --color-authority: var(--alt4-color-authority);
+  --color-distinguish: var(--alt4-color-distinguish);
+  --color-subdued: var(--alt4-color-subdued);
+  --border-dark: rgba(5, 150, 105, 0.2);
+  --accent-light-bg: rgba(5, 150, 105, 0.08);
+  --accent-light-bg-hover: rgba(5, 150, 105, 0.15);
+  --accent-border-light: rgba(5, 150, 105, 0.25);
+  --accent-border-medium: rgba(5, 150, 105, 0.3);
+  --stat-item-border: var(--alt4-color-primary);
+}
+
+html.palette-5 {
+  --color-primary: var(--alt5-color-primary);
+  --color-primary-dark: var(--alt5-color-primary-dark);
+  --color-primary-rgb: 22, 101, 52;
+  --color-secondary: var(--alt5-color-secondary);
+  --color-success: var(--alt5-color-success);
+  --color-warning: var(--alt5-color-warning);
+  --color-error: var(--alt5-color-error);
+  --color-authority: var(--alt5-color-authority);
+  --color-distinguish: var(--alt5-color-distinguish);
+  --color-subdued: var(--alt5-color-subdued);
+  --border-dark: rgba(22, 101, 52, 0.2);
+  --accent-light-bg: rgba(22, 101, 52, 0.08);
+  --accent-light-bg-hover: rgba(22, 101, 52, 0.15);
+  --accent-border-light: rgba(22, 101, 52, 0.25);
+  --accent-border-medium: rgba(22, 101, 52, 0.3);
+  --stat-item-border: var(--alt5-color-primary);
+}

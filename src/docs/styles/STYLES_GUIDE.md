@@ -27,7 +27,7 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 3. Test in both light and dark themes
 4. Check responsive behavior at 768px and 480px breakpoints
 
-**Styling text:** Pick a utility class from [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) (`.heading-lg`, `.text-base`, `.label`, etc.). Dark theme colors switch automatically.
+**Styling text:** Pick a utility class from [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) (`.brutal-heading-lg`, `.brutal-text-base`, `.brutal-label`, etc.). Dark theme colors switch automatically.
 
 **Need a specific color/spacing value:** Look it up in [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md). Use the variable, never a hardcoded value.
 
@@ -51,6 +51,7 @@ Centralized CSS variable-based design system. Single source of truth in `variabl
 | Category | Examples | Count |
 |----------|---------|-------|
 | Colors (brand + text) | `--color-primary`, `--bg-light`, `--text-primary` | 35 |
+| Primary opacity scale | `--color-primary-02` through `--color-primary-65` | 19 |
 | Component colors | `--filter-chip-bg`, `--service-card-text`, `--footer-bg` | 31 |
 | Tool-domain colors | `--hub-authority-blue`, `--dm-*`, `--icg-*`, `--techpar-*` | 33 |
 | Misc colors | `--checkerboard-line`, `--theme-toggle-color` | 6 |
@@ -59,9 +60,9 @@ Centralized CSS variable-based design system. Single source of truth in `variabl
 | Typography | `--font-family`, `--font-weight-*`, `--text-*` | 10 |
 | Transitions | `--transition-fast`, `--transition-normal`, `--transition-slow` | 3 |
 | Shadows | `--shadow-sm`, `--shadow-md`, `--shadow-lg` | 3 |
-| **Total** | | **134** |
+| **Total** | | **160** |
 
-> Note: Dark theme defines 78 variable overrides, not new variables. 13 utility classes are defined across `variables.css`, `typography.css`, and `interactions.css`.
+> Note: Dark theme defines 85 variable overrides (including `--border-dark-subtle/default/prominent`), not new variables. 13 utility classes are defined across `variables.css`, `typography.css`, and `interactions.css`.
 
 Full variable catalog: [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)
 
@@ -72,9 +73,9 @@ Full variable catalog: [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)
 ```
 src/styles/
 ├── variables.css           # Design tokens + utility classes (flex-center, text-label, etc.)
-├── typography.css          # 11 semantic text utilities (.heading-*, .text-*, .label-*, .nav-link, .button-text-*)
+├── palettes.css            # Alternative color palette definitions (6 palettes, light + dark theme)
+├── typography.css          # 11 semantic text utilities (.brutal-heading-*, .brutal-text-*, .brutal-label-*, .nav-link, .button-text-*)
 ├── interactions.css        # Interactive state patterns (.interactive, .link-interactive, .control-*, .focus-outline-*)
-├── portfolio-controls.css  # Portfolio UI controls (.controls-wrapper)
 └── global.css             # Page layout, component styles, responsive rules, dark theme overrides
 ```
 
@@ -86,6 +87,7 @@ In stylesheets, always import in cascade order:
 @import './variables.css';    /* 1. Design tokens */
 @import './typography.css';   /* 2. Typography utilities */
 @import './interactions.css'; /* 3. Interaction utilities */
+@import './palettes.css';    /* 4. Palette overrides (must follow variables.css) */
 ```
 
 ### CSS File Ownership
@@ -93,9 +95,9 @@ In stylesheets, always import in cascade order:
 | File | Modify When |
 |------|-------------|
 | `variables.css` | Adding/updating design tokens or utility classes |
+| `palettes.css` | Adding/updating alternative color palette definitions |
 | `typography.css` | Adding reusable text styles |
 | `interactions.css` | Adding focus/hover/active patterns |
-| `portfolio-controls.css` | Updating portfolio-specific controls |
 | `global.css` | Page layout, responsive rules, dark theme overrides for page-level components |
 | Component `.astro` `<style>` | Single-use component-specific styling |
 
@@ -215,7 +217,7 @@ import '../../styles/my-component.css';
 ### Variable Usage Priority
 
 1. **Design system variables** for colors, spacing, typography, transitions
-2. **Typography utility classes** (`.heading-lg`, `.text-base`, `.label`) for text
+2. **Typography utility classes** (`.brutal-heading-lg`, `.brutal-text-base`, `.brutal-label`) for text
 3. **Interaction utility classes** (`.interactive`, `.focus-outline`) for hover/focus states
 
 ### Available Utility Classes
@@ -239,11 +241,22 @@ import '../../styles/my-component.css';
 **From `global.css`:**
 - `.sr-only` — screen reader only (visually hidden)
 
-### Brand Assets in CSS
+### Brand Delta Icon
 
-The GST delta icon (`/images/logo/gst-delta-icon-teal-stroke-thick.svg`) can be used as a CSS pseudo-element via the `mask-image` technique. This renders the SVG in any color without embedding an `<img>` tag, making it suitable for `::before`/`::after` decorators, list markers, and toggle indicators.
+The GST delta icon is available in two forms:
 
-**Pattern: CSS mask with brand color**
+**1. Component (preferred): `DeltaIcon.astro`**
+
+```astro
+---
+import DeltaIcon from '../components/DeltaIcon.astro';
+---
+<DeltaIcon size={14} class="bullet-icon" />
+```
+
+Renders an inline SVG with `stroke="currentColor"`, so the icon inherits color from its parent CSS. Responds automatically to palette switching and dark theme. Used site-wide for bullet points (`.bullet-icon`), the header logo (`.delta-icon`), theme toggle, chevron indicators, and TOC markers.
+
+**2. CSS mask-image (for pseudo-elements only)**
 
 ```css
 .my-element::before {
@@ -261,15 +274,12 @@ The GST delta icon (`/images/logo/gst-delta-icon-teal-stroke-thick.svg`) can be 
 }
 ```
 
+Use this pattern only for `::before`/`::after` pseudo-elements where an Astro component can't be used. Inherits color via `background-color`.
+
 **Guidelines:**
-- Use `var(--color-primary)` as `background-color` to keep the icon on-brand
-- Include `-webkit-` prefixes for Safari/iOS compatibility
-- Use `mask-size: contain` so the icon scales to the element dimensions
-- Adjust `width`/`height` to suit context (10px for inline text, 12-16px for standalone markers)
-
-**Current usage:** ICG rationale "Why this matters" toggle trigger
-
-**When to use instead of `<img>`:** When the icon appears in a CSS pseudo-element, needs to inherit or use CSS color values, or appears as a decorative detail rather than standalone content.
+- Always prefer `DeltaIcon.astro` over `<img>` tags — `<img>` cannot inherit CSS colors
+- `.bullet-icon` and `.delta-icon` classes include `color: var(--color-primary)` for palette awareness
+- The static SVG file (`public/images/logo/gst-delta-icon-teal-stroke-thick.svg`) has hardcoded teal — keep it for favicon, RSS, and external contexts only
 
 ---
 
@@ -358,6 +368,35 @@ Additional breakpoints used sparingly:
 
 ---
 
+## Frosted Glass
+
+All `.brutal-btn` buttons include a frosted-glass aesthetic by default:
+
+```css
+.brutal-btn {
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),  /* wet-glass highlight */
+    0 0 0 1px rgba(0, 0, 0, 0.04);             /* subtle edge */
+}
+```
+
+- **Primary buttons** use semi-transparent `rgba(5, 205, 153, 0.15)` background instead of solid teal
+- **Secondary buttons** use `rgba(0, 0, 0, 0.02)` tint instead of fully transparent
+- Dark theme adjusts opacity and uses `--border-dark-subtle` for the inset highlight
+
+Additional frosted-glass utilities in `global.css`:
+
+| Class | Blur | Use Case |
+|-------|------|----------|
+| `.brutal-frosted` | 3px | Standard containers, action bars |
+| `.brutal-frosted--heavy` | 12px | Drawers, sticky bars over content |
+| `.brutal-frosted--blur-only` | 1.5px | Subtle wet-glass sheen |
+| `.brutal-frosted--overlay` | 12px + 92% opacity | Modal/panel overlays |
+
+---
+
 ## Hub Tool Patterns
 
 Recurring patterns used across hub tools (ICG, TechPar, Tech Debt Calculator, Diligence Machine).
@@ -391,7 +430,7 @@ All hub tools include a `@media print` block in their scoped styles with a consi
   }
 
   /* Shell goes full-width */
-  .tool-shell {
+  .brutal-tool-shell {
     max-width: 100%;
   }
 }
@@ -425,22 +464,21 @@ Hub tools render content via `innerHTML` at runtime (questions, recommendations,
 
 ### Tool Shell Container
 
-Hub tools use the standardized `.tool-shell` class defined in `global.css`. This provides a centered, themed container with consistent border-radius, background, and responsive padding.
+Hub tools use the standardized `.brutal-tool-shell` class defined in `global.css`. This provides a centered, themed container with consistent border-radius, background, and responsive padding.
 
 ```css
 /* Base: 700px centered container */
-.tool-shell { max-width: 700px; margin: 0 auto; ... }
+.brutal-tool-shell { max-width: 700px; margin: 0 auto; ... }
 
 /* Width modifiers */
-.tool-shell--narrow   { max-width: 660px; }  /* ICG */
-.tool-shell--wide     { max-width: 760px; }  /* Tech Debt Calculator */
-.tool-shell--fluid    { max-width: 100%; }   /* TechPar */
-.tool-shell--document { max-width: 800px; }  /* Diligence Machine */
+.brutal-tool-shell--narrow   { max-width: 660px; }  /* ICG */
+.brutal-tool-shell--wide     { max-width: 760px; }  /* Tech Debt Calculator */
+.brutal-tool-shell--document { max-width: 800px; }  /* Diligence Machine */
 ```
 
-**Content wrapper**: Use `.tool-content` inside the shell for automatic responsive padding:
+**Content wrapper**: Use `.brutal-tool-shell__content` inside the shell for automatic responsive padding:
 ```css
-.tool-shell .tool-content {
+.brutal-tool-shell__content {
   padding: var(--spacing-xl) var(--spacing-lg);   /* Desktop */
 }
 /* Automatically reduces to var(--spacing-lg) var(--spacing-md) at 480px */
@@ -451,8 +489,8 @@ Hub tools use the standardized `.tool-shell` class defined in `global.css`. This
 <section class="tool-section">
   <div class="container">
     <HubHeader title="..." subtitle="..." />
-    <div class="tool-shell tool-shell--narrow">
-      <div class="tool-content">
+    <div class="brutal-tool-shell brutal-tool-shell--narrow">
+      <div class="brutal-tool-shell__content">
         <!-- Tool-specific content -->
       </div>
     </div>
@@ -558,7 +596,7 @@ html.dark-theme { --button-color: #05cd99; --text-color: #f5f5f5; }
 
 ```css
 /* BAD */  .title { font-size: 32px; }
-/* GOOD */ <h1 class="heading-lg">Title</h1>
+/* GOOD */ <h1 class="brutal-heading-lg">Title</h1>
 /* or */   .title { font-size: var(--text-xl); }
 ```
 
@@ -580,6 +618,25 @@ Check existing variables first. Don't create `--my-special-bg: #f5f5f5` when `--
 ### 8. Unused CSS
 
 Delete dead styles. Version control has the history.
+
+### 9. Hardcoded Primary Opacity
+
+```css
+/* BAD */  .tag { background: rgba(5, 205, 153, 0.1); }
+/* GOOD */ .tag { background: var(--color-primary-10); }
+/* BEST */ .tag { background: var(--accent-dark-bg); }  /* when a semantic alias exists */
+```
+
+Use `--color-primary-XX` opacity tokens (see [VARIABLES_REFERENCE — Opacity Scale](./VARIABLES_REFERENCE.md#primary-color-opacity-scale)). Prefer the semantic alias (`--accent-*-bg`, `--accent-border-*`) when one matches your intent.
+
+### 10. Hardcoded Dark-Theme Borders
+
+```css
+/* BAD */  html.dark-theme .card { border: 1px solid rgba(255, 255, 255, 0.15); }
+/* GOOD */ html.dark-theme .card { border: 1px solid var(--border-dark-default); }
+```
+
+Three tiers: `--border-dark-subtle` (0.10), `--border-dark-default` (0.15), `--border-dark-prominent` (0.20).
 
 ---
 
@@ -610,4 +667,4 @@ Delete dead styles. Version control has the history.
 
 ---
 
-**Last Updated**: March 24, 2026
+**Last Updated**: April 4, 2026

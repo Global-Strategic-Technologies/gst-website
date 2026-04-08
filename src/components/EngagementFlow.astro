@@ -5,7 +5,7 @@
 <section class="engagement-flow">
     <div class="container">
         <div class="flow-content">
-            <h2 class="heading-lg">Typical Engagement Model</h2>
+            <h2 class="brutal-heading-lg">Typical Engagement Model</h2>
             <p class="tagline">Engagements are intentionally focused to drive outcomes.</p>
 
             <div class="flow-steps">
@@ -74,9 +74,7 @@
         margin: 0 auto;
     }
 
-    .heading-lg {
-        font-family: monospace;
-        text-transform: uppercase;
+    .brutal-heading-lg {
         margin-bottom: var(--spacing-lg);
         text-align: center;
     }
@@ -130,14 +128,14 @@
     }
 
     .step-number {
-        font-size: 1.28rem;
+        font-size: var(--text-xl);
         font-family: monospace;
         font-weight: 700;
         fill: var(--text-primary);
     }
 
     .step-label {
-        font-size: 0.875rem;
+        font-size: var(--text-sm);
         font-family: monospace;
         font-weight: 600;
         color: var(--text-secondary);
@@ -176,7 +174,7 @@
     }
 
     :global(html.dark-theme) .step {
-        border-color: rgba(255, 255, 255, 0.15);
+        border-color: var(--border-dark-default);
         border-top-color: var(--color-primary);
     }
 
@@ -201,11 +199,11 @@
         }
 
         .step-number {
-            font-size: 1.18rem;
+            font-size: var(--text-lg);
         }
 
         .step-label {
-            font-size: 0.8rem;
+            font-size: var(--text-sm);
         }
     }
 
@@ -219,7 +217,7 @@
             gap: var(--spacing-md);
         }
 
-        .heading-lg {
+        .brutal-heading-lg {
             margin-bottom: var(--spacing-md);
         }
 
@@ -238,11 +236,11 @@
         }
 
         .step-number {
-            font-size: 1.02rem;
+            font-size: var(--text-base);
         }
 
         .step-label {
-            font-size: 0.75rem;
+            font-size: var(--text-xs);
         }
 
         .step-text {

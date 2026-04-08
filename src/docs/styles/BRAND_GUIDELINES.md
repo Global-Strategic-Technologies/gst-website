@@ -176,8 +176,11 @@ Privacy and Terms pages use "we," "us," "our" per legal convention.
 ## Accessibility
 
 - **Contrast**: All text/background combinations should meet WCAG 2.1 AA contrast ratios (4.5:1 for normal text, 3:1 for large text)
-- **Focus indicators**: 2px solid `--color-primary` outline via `.focus-outline` utility
+- **Focus indicators**: 2px solid `--color-primary` outline with 2px offset via `.interactive-focus` utility or `:focus-visible` on `.brutal-*` components
 - **Color alone**: Never use color as the sole indicator of state — always pair with text, icons, or patterns
+- **Touch targets**: 44x44px minimum per WCAG 2.5.5 — all `.brutal-btn` and `.brutal-choice-btn` components meet this
+- **Keyboard navigation**: All interactive components are focusable via Tab; modals trap focus; tab bars support arrow keys
+- **Live reference**: The [/brand page — Accessibility section](https://globalstrategic.tech/brand#accessibility) demonstrates focus states, contrast ratios, touch targets, keyboard patterns, ARIA usage, and semantic HTML structure
 
 ---
 
@@ -193,6 +196,27 @@ Shared status colors for use across all tools and components. Derived from battl
 | `--color-info` | `#05cd99` | `#05cd99` | Informational highlights (aliases `--color-primary`) |
 
 Tool-specific status variables (e.g. `--dm-success`, `--techpar-kpi-negative`) may reference these shared values for consistency, but existing tool palettes remain valid within their own scope.
+
+---
+
+## Alternative Palette System
+
+Six color palettes are defined in `src/styles/palettes.css`, enabling stakeholders to preview the entire site in alternative brand directions. The active palette is applied as a class on `<html>` (e.g., `html.palette-1`), mirroring the dark-theme pattern, and persisted via `localStorage('palette')`.
+
+| ID | Name | Primary | Secondary | Character |
+|----|------|---------|-----------|-----------|
+| 0 | **Current** (production) | Teal `#05cd99` | Amber `#CC8800` | The baseline |
+| 1 | **Steel Authority** | Cobalt `#1e40af` | Magenta `#db2777` | PE gravitas with an unexpected edge |
+| 2 | **Indigo Signal** | Violet `#7c3aed` | Lime `#84cc16` | Breaks every finance-blue convention |
+| 3 | **Copper Forge** | Rust `#b45309` | Cyan `#0891b2` | Industrial heat meets cold precision |
+| 4 | **Jade Edge** | Emerald `#059669` | Rose `#f43f5e` | Current teal pushed to its boldest form |
+| 5 | **Shadow Garden** | Forest `#166534` | Violet `#a855f7` | Terminal in an old-growth forest |
+
+Each palette overrides the 9 core tokens (`--color-primary`, `--color-primary-dark`, `--color-secondary`, `--color-success`, `--color-warning`, `--color-error`, `--color-authority`, `--color-distinguish`, `--color-subdued`) plus derived accent/border/opacity scales. All tool-domain colors cascade automatically.
+
+**How to preview:** Open the PalettePanel on the `/brand` page (right-edge tab bar). Click the middle delta icon to "pop out" the panel to all pages.
+
+**Important:** Palette 0 is the production palette. Alternative palettes are for stakeholder review only — they are not deployed to production.
 
 ---
 
@@ -286,5 +310,5 @@ For multi-series charts (max 6 colors), use this sequence for adequate color vis
 ---
 
 **Created**: March 23, 2026
-**Last Updated**: March 24, 2026
+**Last Updated**: April 5, 2026
 **Status**: Complete — all requirements finalized

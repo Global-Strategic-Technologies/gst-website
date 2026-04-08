@@ -260,7 +260,7 @@ export function compute(inputs: TechParInputs): TechParResult | null {
       benchmarkLo: stageConfig.benchmarks.infraHosting[0],
       benchmarkHi: stageConfig.benchmarks.infraHosting[1],
       zone: categoryZone(pct, stageConfig.benchmarks.infraHosting[0], stageConfig.benchmarks.infraHosting[1]),
-      colorVar: '--techpar-category-infra',
+      colorVar: '--color-primary',
     });
   }
   if (infraPersonnel > 0) {
@@ -272,7 +272,7 @@ export function compute(inputs: TechParInputs): TechParResult | null {
       benchmarkLo: stageConfig.benchmarks.infraPersonnel[0],
       benchmarkHi: stageConfig.benchmarks.infraPersonnel[1],
       zone: categoryZone(pct, stageConfig.benchmarks.infraPersonnel[0], stageConfig.benchmarks.infraPersonnel[1]),
-      colorVar: '--techpar-category-personnel',
+      colorVar: '--color-authority',
     });
   }
   if (rdOpEx > 0) {
@@ -284,7 +284,7 @@ export function compute(inputs: TechParInputs): TechParResult | null {
       benchmarkLo: stageConfig.benchmarks.rdOpEx[0],
       benchmarkHi: stageConfig.benchmarks.rdOpEx[1],
       zone: categoryZone(pct, stageConfig.benchmarks.rdOpEx[0], stageConfig.benchmarks.rdOpEx[1]),
-      colorVar: '--techpar-category-rd-opex',
+      colorVar: '--color-distinguish',
     });
   }
   if (rdCapEx > 0) {
@@ -302,7 +302,7 @@ export function compute(inputs: TechParInputs): TechParResult | null {
       benchmarkLo: Math.round(rdCapExBenchLo * 10) / 10,
       benchmarkHi: Math.round(rdCapExBenchHi * 10) / 10,
       zone: categoryZone(pct, rdCapExBenchLo, rdCapExBenchHi),
-      colorVar: '--techpar-category-rd-capex',
+      colorVar: '--color-secondary',
     });
   }
 

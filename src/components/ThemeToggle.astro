@@ -1,22 +1,15 @@
 ---
 // ThemeToggle.astro - Theme switcher component
+import DeltaIcon from './DeltaIcon.astro';
 import { trackThemeToggle } from '../utils/analytics';
 ---
 
 <button class="theme-toggle" id="themeToggle" data-testid="theme-toggle" title="Toggle dark theme" aria-label="Toggle dark theme">
-    <img
-        src="/images/logo/gst-delta-icon-teal-stroke-thick.svg"
-        alt=""
-        class="theme-toggle-icon"
-        loading="lazy"
-        aria-hidden="true"
-    />
+    <DeltaIcon size={10} class="theme-toggle-icon" />
 </button>
 
 <style>
     .theme-toggle-icon {
-        width: 0.67em;
-        height: 0.67em;
         display: block;
     }
 </style>

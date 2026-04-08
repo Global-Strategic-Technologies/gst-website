@@ -20,6 +20,7 @@ import CategoryFilter from '../../../components/radar/CategoryFilter.astro';
 
 import { CATEGORIES } from '../../../lib/inoreader/transform';
 import { trackPageView } from '../../../utils/analytics';
+import DeltaIcon from '../../../components/DeltaIcon.astro';
 
 trackPageView('hub-radar', 'The Radar - Perspectives | GST');
 ---
@@ -34,7 +35,7 @@ trackPageView('hub-radar', 'The Radar - Perspectives | GST');
   <!-- Print-only report header (hidden on screen) -->
   <div class="print-report-header" aria-hidden="true">
     <div class="print-report-header__brand">
-      <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" width="24" height="24" />
+      <DeltaIcon class="bullet-icon" />
       <span>GST</span>
     </div>
     <div class="print-report-header__title">The Radar</div>

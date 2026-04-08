@@ -1,6 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import ColorSpecimens from '../components/brand/ColorSpecimens.astro';
+import CompositeLogo from '../components/CompositeLogo.astro';
+import { palettes } from '../data/palettes';
 import { trackPageView } from '../utils/analytics';
+import DeltaIcon from '../components/DeltaIcon.astro';
+import TableOfContents from '../components/TableOfContents.astro';
 
 trackPageView('brand', 'Brand Style Reference');
 ---
@@ -8,413 +13,269 @@ trackPageView('brand', 'Brand Style Reference');
 <BaseLayout
   title="Brand Style Reference | GST"
   description="GST visual identity reference — colors, typography, spacing, and component patterns rendered live from the design system."
+  showPalettePanel
 >
 
 <div class="container">
   <h1 class="brutal-heading-lg brand-page__title">Brand Style Reference</h1>
 </div>
 
+<div class="brand-layout">
+  <TableOfContents
+    testId="brand-toc"
+    collapsible={true}
+    scrollSpy={true}
+    separatorBefore={[6, 10]}
+    items={[
+      { href: "#identity", label: "Brand Identity", isLayer: true, sublistSource: { mode: "query", scopeId: "identity" }, dataAttrs: { section: "identity" } },
+      { href: "#colors", label: "Color Palette", isLayer: true, sublistSource: { mode: "query", scopeId: "colors" }, dataAttrs: { section: "colors" } },
+      { href: "#typography", label: "Typography", isLayer: true, sublistSource: { mode: "query", scopeId: "typography" }, dataAttrs: { section: "typography" } },
+      { href: "#spacing", label: "Spacing Scale", isLayer: true, sublistSource: { mode: "query", scopeId: "spacing" }, dataAttrs: { section: "spacing" } },
+      { href: "#shadows", label: "Shadows" },
+      { href: "#transitions", label: "Transitions" },
+      { href: "#components", label: "Components", isLayer: true, sublistSource: { mode: "query", scopeId: "components" }, dataAttrs: { section: "components" } },
+      { href: "#component-states", label: "Component States", isLayer: true, sublistSource: { mode: "query", scopeId: "component-states" }, dataAttrs: { section: "component-states" } },
+      { href: "#accessibility", label: "Accessibility", isLayer: true, sublistSource: { mode: "query", scopeId: "accessibility" }, dataAttrs: { section: "accessibility" } },
+      { href: "#responsive-demos", label: "Responsive Behavior", isLayer: true, sublistSource: { mode: "query", scopeId: "responsive-demos" }, dataAttrs: { section: "responsive-demos" } },
+      { href: "#ui-library", label: "UI Component Library", isLayer: true, sublistSource: { mode: "query", scopeId: "ui-library" }, dataAttrs: { section: "ui-library" } },
+      { href: "#toc-component", label: "Table of Contents", isLayer: true, sublistSource: { mode: "query", scopeId: "toc-component" }, dataAttrs: { section: "toc-component" } },
+    ]}
+  />
+
+  <div class="brand-content palette-scope palette-0" id="palette-scope">
+
 <!-- Section 1: Brand Identity -->
 <section class="brand-section" id="identity">
   <div class="container">
-    <h2 class="heading-md brand-section__title">Brand Identity</h2>
+    <h2 class="brutal-heading-md brand-section__title">Brand Identity</h2>
 
     <div class="brand-identity-grid">
       <div class="brand-identity-logos">
         <div class="brand-logo-item">
-          <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="GST delta icon" width="80" height="80" />
-          <span class="text-small">Delta Icon</span>
+          <DeltaIcon size={80} class="brand-logo-delta" />
+          <span class="brutal-text-small">Delta Icon</span>
         </div>
         <div class="brand-logo-item">
-          <img src="/images/icon.svg" alt="GST composite logo" width="120" height="120" />
-          <span class="text-small">Composite Logo</span>
+          <CompositeLogo size={120} class="brand-logo-composite" />
+          <span class="brutal-text-small">Composite Logo</span>
+        </div>
+        <div class="brand-logo-item">
+          <img src="/images/icon.svg" alt="GST composite logo (static)" width="120" height="120" />
+          <span class="brutal-text-small">Static (PWA/OG)</span>
         </div>
       </div>
 
       <div class="brand-identity-info">
-        <h3 class="heading-sm">Brand Voice</h3>
-        <p class="text-base">Authoritative, precise, technical. No jargon for jargon's sake — clarity over complexity.</p>
+        <h3 class="brutal-heading-sm" id="brand-voice">Brand Voice</h3>
+        <p class="brutal-text-base">Authoritative, precise, technical. No jargon for jargon's sake — clarity over complexity.</p>
 
-        <h3 class="heading-sm">Wordmark</h3>
-        <p class="text-base"><strong>Global Strategic Technologies</strong> — formal contexts, first mention, legal. <strong>GST</strong> — shorthand, UI labels, repeat references.</p>
+        <h3 class="brutal-heading-sm" id="wordmark">Wordmark</h3>
+        <p class="brutal-text-base"><strong>Global Strategic Technologies</strong> — formal contexts, first mention, legal. <strong>GST</strong> — shorthand, UI labels, repeat references.</p>
 
-        <h3 class="heading-sm">Logo Usage</h3>
-        <p class="text-base">Single teal-stroke delta variant. Works on both light and dark backgrounds without modification. Minimum clear space: the icon's own width on all sides.</p>
+        <h3 class="brutal-heading-sm" id="logo-usage">Logo Usage</h3>
+        <p class="brutal-text-base">Single teal-stroke delta variant. Works on both light and dark backgrounds without modification. Minimum clear space: the icon's own width on all sides.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Section 2: Color Palette -->
+<!-- Section 2: Color Palette (includes palette explorer migrated from /colors) -->
 <section class="brand-section" id="colors">
-  <div class="container">
-    <h2 class="heading-md brand-section__title">Color Palette</h2>
-    <p class="text-small brand-section__note">Toggle dark mode via the header to see theme-specific values. All hex values are computed live from CSS variables.</p>
+    <div class="container">
+      <h2 class="brutal-heading-md brand-section__title">Color Palette</h2>
+      <p class="brutal-text-small brand-section__note brand-section__note--desktop">Toggle dark mode via the header to see theme-specific values. Open the palette panel (right edge) to switch palettes and edit colors live.</p>
+      <p class="brutal-text-small brand-section__note brand-section__note--mobile">Toggle dark mode via the header to see theme-specific values. Color swatches are read-only on mobile. Use a desktop browser for the interactive palette explorer.</p>
+      <p class="brutal-text-base colors-palette-concept" id="palette-concept">{palettes[0].concept}</p>
 
-    <h3 class="heading-sm brand-group-title">Primary &amp; Secondary</h3>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--color-primary">
-        <div class="brand-swatch__color" style="background: var(--color-primary);"></div>
-        <div class="brand-swatch__label">--color-primary</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Primary actions, active states, accents</div>
+      <h3 class="brutal-heading-sm brand-group-title" id="colors-primary">Primary &amp; Secondary</h3>
+      <div class="brand-swatch-grid">
+        <div class="brand-swatch" data-var="--color-primary">
+          <div class="brand-swatch__color" style="background: var(--color-primary);"></div>
+          <div class="brand-swatch__label">--color-primary</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Primary actions, active states, accents</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-primary-dark">
+          <div class="brand-swatch__color" style="background: var(--color-primary-dark);"></div>
+          <div class="brand-swatch__label">--color-primary-dark</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Hover/pressed state for primary</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-secondary">
+          <div class="brand-swatch__color" style="background: var(--color-secondary);"></div>
+          <div class="brand-swatch__label">--color-secondary</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Secondary emphasis, amber highlights</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-secondary-dark">
+          <div class="brand-swatch__color" style="background: var(--color-secondary-dark);"></div>
+          <div class="brand-swatch__label">--color-secondary-dark</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Dark-theme secondary variant</div>
+        </div>
       </div>
-      <div class="brand-swatch" data-var="--color-primary-dark">
-        <div class="brand-swatch__color" style="background: var(--color-primary-dark);"></div>
-        <div class="brand-swatch__label">--color-primary-dark</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Hover/pressed state for primary</div>
+
+      <h3 class="brutal-heading-sm brand-group-title" id="colors-semantic">Semantic</h3>
+      <div class="brand-swatch-grid">
+        <div class="brand-swatch" data-var="--color-success">
+          <div class="brand-swatch__color" style="background: var(--color-success);"></div>
+          <div class="brand-swatch__label">--color-success</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Positive outcomes, passing states</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-warning">
+          <div class="brand-swatch__color" style="background: var(--color-warning);"></div>
+          <div class="brand-swatch__label">--color-warning</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Caution indicators, attention-needed</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-error">
+          <div class="brand-swatch__color" style="background: var(--color-error);"></div>
+          <div class="brand-swatch__label">--color-error</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Errors, critical states, negative deltas</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-info">
+          <div class="brand-swatch__color" style="background: var(--color-info);"></div>
+          <div class="brand-swatch__label">--color-info</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Informational highlights (alias of primary)</div>
+        </div>
       </div>
-      <div class="brand-swatch" data-var="--color-secondary">
-        <div class="brand-swatch__color" style="background: var(--color-secondary);"></div>
-        <div class="brand-swatch__label">--color-secondary</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Secondary emphasis, amber highlights</div>
+
+      <h3 class="brutal-heading-sm brand-group-title" id="colors-text">Text Hierarchy</h3>
+      <div class="brand-swatch-grid">
+        <div class="brand-swatch" data-var="--text-primary">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background-color: var(--text-primary);"></div>
+          <div class="brand-swatch__label">--text-primary</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Headings, high-emphasis body text</div>
+        </div>
+        <div class="brand-swatch" data-var="--text-secondary">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background-color: var(--text-secondary);"></div>
+          <div class="brand-swatch__label">--text-secondary</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Body text, descriptions</div>
+        </div>
+        <div class="brand-swatch" data-var="--text-muted">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background-color: var(--text-muted);"></div>
+          <div class="brand-swatch__label">--text-muted</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Labels, captions, supporting text</div>
+        </div>
+        <div class="brand-swatch" data-var="--text-faded">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background-color: var(--text-faded);"></div>
+          <div class="brand-swatch__label">--text-faded</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Placeholders, disabled text, timestamps</div>
+        </div>
       </div>
-      <div class="brand-swatch" data-var="--color-secondary-dark">
-        <div class="brand-swatch__color" style="background: var(--color-secondary-dark);"></div>
-        <div class="brand-swatch__label">--color-secondary-dark</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Dark-theme secondary variant</div>
+
+      <h3 class="brutal-heading-sm brand-group-title" id="colors-backgrounds">Backgrounds</h3>
+      <div class="brand-swatch-grid">
+        <div class="brand-swatch" data-var="--bg-light">
+          <div class="brand-swatch__color" style="background: var(--bg-light);"></div>
+          <div class="brand-swatch__label">--bg-light</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Page background, card surfaces</div>
+        </div>
+        <div class="brand-swatch" data-var="--bg-light-alt">
+          <div class="brand-swatch__color" style="background: var(--bg-light-alt);"></div>
+          <div class="brand-swatch__label">--bg-light-alt</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Alternate sections, tool shells</div>
+        </div>
+        <div class="brand-swatch" data-var="--bg-dark">
+          <div class="brand-swatch__color" style="background: var(--bg-dark);"></div>
+          <div class="brand-swatch__label">--bg-dark</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Dark-theme page bg, service cards</div>
+        </div>
+        <div class="brand-swatch" data-var="--bg-dark-secondary">
+          <div class="brand-swatch__color" style="background: var(--bg-dark-secondary);"></div>
+          <div class="brand-swatch__label">--bg-dark-secondary</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Elevated dark surfaces, modals</div>
+        </div>
+        <div class="brand-swatch" data-var="--bg-dark-tertiary">
+          <div class="brand-swatch__color" style="background: var(--bg-dark-tertiary);"></div>
+          <div class="brand-swatch__label">--bg-dark-tertiary</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Footer, section backgrounds (dark)</div>
+        </div>
       </div>
+
+      <h3 class="brutal-heading-sm brand-group-title" id="colors-borders">Borders &amp; Accents</h3>
+      <div class="brand-swatch-grid">
+        <div class="brand-swatch" data-var="--border-light">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background-color: var(--border-light);"></div>
+          <div class="brand-swatch__label">--border-light</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Dividers, card borders, table lines</div>
+        </div>
+        <div class="brand-swatch" data-var="--accent-light-bg">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background-color: var(--accent-light-bg);"></div>
+          <div class="brand-swatch__label">--accent-light-bg</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Active row highlights, accent fills</div>
+        </div>
+        <div class="brand-swatch" data-var="--accent-light-bg-hover">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background-color: var(--accent-light-bg-hover);"></div>
+          <div class="brand-swatch__label">--accent-light-bg-hover</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Hover state for accent backgrounds</div>
+        </div>
+        <div class="brand-swatch" data-var="--accent-border-light">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background-color: var(--accent-border-light);"></div>
+          <div class="brand-swatch__label">--accent-border-light</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Subtle accent borders, badge outlines</div>
+        </div>
+        <div class="brand-swatch" data-var="--accent-border-medium">
+          <div class="brand-swatch__color brand-swatch__color--checker" style="background-color: var(--accent-border-medium);"></div>
+          <div class="brand-swatch__label">--accent-border-medium</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Stronger accent borders, focus rings</div>
+        </div>
+      </div>
+
+      <h3 class="brutal-heading-sm brand-group-title" id="colors-expanded">Expanded Palette</h3>
+      <p class="brutal-text-small brand-section__note">Purpose-named tokens shared across all tools. Tool-specific variables (TechPar zones, ICG maturity, DM domain, RegMap categories) derive from these.</p>
+      <div class="brand-swatch-grid">
+        <div class="brand-swatch" data-var="--color-authority">
+          <div class="brand-swatch__color" style="background: var(--color-authority);"></div>
+          <div class="brand-swatch__label">--color-authority</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Institutional credibility — hub authority line, DM results, TechPar personnel</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-distinguish">
+          <div class="brand-swatch__color" style="background: var(--color-distinguish);"></div>
+          <div class="brand-swatch__label">--color-distinguish</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Differentiation accent — RegMap industry, TechPar R&amp;D OpEx, chart series</div>
+        </div>
+        <div class="brand-swatch" data-var="--color-subdued">
+          <div class="brand-swatch__color" style="background: var(--color-subdued);"></div>
+          <div class="brand-swatch__label">--color-subdued</div>
+          <div class="brand-swatch__value"></div>
+          <div class="brand-swatch__usage">Muted neutral — DM methodology, process/background contexts</div>
+        </div>
+      </div>
+
+      <!-- Palette specimens and derived tool colors -->
+      <ColorSpecimens />
     </div>
-
-    <h3 class="heading-sm brand-group-title">Semantic</h3>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--color-success">
-        <div class="brand-swatch__color" style="background: var(--color-success);"></div>
-        <div class="brand-swatch__label">--color-success</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Positive outcomes, passing states</div>
-      </div>
-      <div class="brand-swatch" data-var="--color-warning">
-        <div class="brand-swatch__color" style="background: var(--color-warning);"></div>
-        <div class="brand-swatch__label">--color-warning</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Caution indicators, attention-needed</div>
-      </div>
-      <div class="brand-swatch" data-var="--color-error">
-        <div class="brand-swatch__color" style="background: var(--color-error);"></div>
-        <div class="brand-swatch__label">--color-error</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Errors, critical states, negative deltas</div>
-      </div>
-      <div class="brand-swatch" data-var="--color-info">
-        <div class="brand-swatch__color" style="background: var(--color-info);"></div>
-        <div class="brand-swatch__label">--color-info</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Informational highlights (alias of primary)</div>
-      </div>
-    </div>
-
-    <h3 class="heading-sm brand-group-title">Text Hierarchy</h3>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--text-primary">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-primary);"></div>
-        <div class="brand-swatch__label">--text-primary</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Headings, high-emphasis body text</div>
-      </div>
-      <div class="brand-swatch" data-var="--text-secondary">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-secondary);"></div>
-        <div class="brand-swatch__label">--text-secondary</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Body text, descriptions</div>
-      </div>
-      <div class="brand-swatch" data-var="--text-muted">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-muted);"></div>
-        <div class="brand-swatch__label">--text-muted</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Labels, captions, supporting text</div>
-      </div>
-      <div class="brand-swatch" data-var="--text-faded">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--text-faded);"></div>
-        <div class="brand-swatch__label">--text-faded</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Placeholders, disabled text, timestamps</div>
-      </div>
-    </div>
-
-    <h3 class="heading-sm brand-group-title">Backgrounds</h3>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--bg-light">
-        <div class="brand-swatch__color" style="background: var(--bg-light);"></div>
-        <div class="brand-swatch__label">--bg-light</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Page background, card surfaces</div>
-      </div>
-      <div class="brand-swatch" data-var="--bg-light-alt">
-        <div class="brand-swatch__color" style="background: var(--bg-light-alt);"></div>
-        <div class="brand-swatch__label">--bg-light-alt</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Alternate sections, tool shells</div>
-      </div>
-      <div class="brand-swatch" data-var="--bg-dark">
-        <div class="brand-swatch__color" style="background: var(--bg-dark);"></div>
-        <div class="brand-swatch__label">--bg-dark</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Dark-theme page bg, service cards</div>
-      </div>
-      <div class="brand-swatch" data-var="--bg-dark-secondary">
-        <div class="brand-swatch__color" style="background: var(--bg-dark-secondary);"></div>
-        <div class="brand-swatch__label">--bg-dark-secondary</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Elevated dark surfaces, modals</div>
-      </div>
-      <div class="brand-swatch" data-var="--bg-dark-tertiary">
-        <div class="brand-swatch__color" style="background: var(--bg-dark-tertiary);"></div>
-        <div class="brand-swatch__label">--bg-dark-tertiary</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Footer, section backgrounds (dark)</div>
-      </div>
-    </div>
-
-    <h3 class="heading-sm brand-group-title">Borders &amp; Accents</h3>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--border-light">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--border-light);"></div>
-        <div class="brand-swatch__label">--border-light</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Dividers, card borders, table lines</div>
-      </div>
-      <div class="brand-swatch" data-var="--accent-light-bg">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-light-bg);"></div>
-        <div class="brand-swatch__label">--accent-light-bg</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Active row highlights, accent fills</div>
-      </div>
-      <div class="brand-swatch" data-var="--accent-light-bg-hover">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-light-bg-hover);"></div>
-        <div class="brand-swatch__label">--accent-light-bg-hover</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Hover state for accent backgrounds</div>
-      </div>
-      <div class="brand-swatch" data-var="--accent-border-light">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-border-light);"></div>
-        <div class="brand-swatch__label">--accent-border-light</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Subtle accent borders, badge outlines</div>
-      </div>
-      <div class="brand-swatch" data-var="--accent-border-medium">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--accent-border-medium);"></div>
-        <div class="brand-swatch__label">--accent-border-medium</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Stronger accent borders, focus rings</div>
-      </div>
-    </div>
-
-    <h3 class="heading-sm brand-group-title">Tool-Specific</h3>
-
-    <h4 class="label brand-subgroup-title">Hub Shared</h4>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--hub-authority-blue">
-        <div class="brand-swatch__color" style="background: var(--hub-authority-blue);"></div>
-        <div class="brand-swatch__label">--hub-authority-blue</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Authority line text, stage badges</div>
-      </div>
-      <div class="brand-swatch" data-var="--hub-authority-blue-bg">
-        <div class="brand-swatch__color brand-swatch__color--checker" style="background: var(--hub-authority-blue-bg);"></div>
-        <div class="brand-swatch__label">--hub-authority-blue-bg</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Stage badge background fill</div>
-      </div>
-    </div>
-
-    <h4 class="label brand-subgroup-title">TechPar Zones</h4>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--techpar-zone-healthy">
-        <div class="brand-swatch__color" style="background: var(--techpar-zone-healthy);"></div>
-        <div class="brand-swatch__label">--techpar-zone-healthy</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Within benchmark range</div>
-      </div>
-      <div class="brand-swatch" data-var="--techpar-zone-ahead">
-        <div class="brand-swatch__color" style="background: var(--techpar-zone-ahead);"></div>
-        <div class="brand-swatch__label">--techpar-zone-ahead</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Spending below benchmark</div>
-      </div>
-      <div class="brand-swatch" data-var="--techpar-zone-underinvest">
-        <div class="brand-swatch__color" style="background: var(--techpar-zone-underinvest);"></div>
-        <div class="brand-swatch__label">--techpar-zone-underinvest</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Potential underinvestment</div>
-      </div>
-      <div class="brand-swatch" data-var="--techpar-zone-above">
-        <div class="brand-swatch__color" style="background: var(--techpar-zone-above);"></div>
-        <div class="brand-swatch__label">--techpar-zone-above</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Above benchmark range</div>
-      </div>
-      <div class="brand-swatch" data-var="--techpar-zone-elevated">
-        <div class="brand-swatch__color" style="background: var(--techpar-zone-elevated);"></div>
-        <div class="brand-swatch__label">--techpar-zone-elevated</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Elevated overspend warning</div>
-      </div>
-      <div class="brand-swatch" data-var="--techpar-zone-critical">
-        <div class="brand-swatch__color" style="background: var(--techpar-zone-critical);"></div>
-        <div class="brand-swatch__label">--techpar-zone-critical</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Critical overspend</div>
-      </div>
-    </div>
-
-    <h4 class="label brand-subgroup-title">Diligence Machine</h4>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--dm-methodology-brown">
-        <div class="brand-swatch__color" style="background: var(--dm-methodology-brown);"></div>
-        <div class="brand-swatch__label">--dm-methodology-brown</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Methodology section accents</div>
-      </div>
-      <div class="brand-swatch" data-var="--dm-results-blue">
-        <div class="brand-swatch__color" style="background: var(--dm-results-blue);"></div>
-        <div class="brand-swatch__label">--dm-results-blue</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Results/output section accents</div>
-      </div>
-      <div class="brand-swatch" data-var="--dm-positive">
-        <div class="brand-swatch__color" style="background: var(--dm-positive);"></div>
-        <div class="brand-swatch__label">--dm-positive</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Positive diligence findings</div>
-      </div>
-      <div class="brand-swatch" data-var="--dm-negative">
-        <div class="brand-swatch__color" style="background: var(--dm-negative);"></div>
-        <div class="brand-swatch__label">--dm-negative</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Negative/risk findings</div>
-      </div>
-      <div class="brand-swatch" data-var="--dm-warning">
-        <div class="brand-swatch__color" style="background: var(--dm-warning);"></div>
-        <div class="brand-swatch__label">--dm-warning</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Caution-level findings</div>
-      </div>
-      <div class="brand-swatch" data-var="--dm-success">
-        <div class="brand-swatch__color" style="background: var(--dm-success);"></div>
-        <div class="brand-swatch__label">--dm-success</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Pass/complete states</div>
-      </div>
-    </div>
-
-    <h4 class="label brand-subgroup-title">ICG Maturity</h4>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--icg-maturity-reactive">
-        <div class="brand-swatch__color" style="background: var(--icg-maturity-reactive);"></div>
-        <div class="brand-swatch__label">--icg-maturity-reactive</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Lowest maturity level</div>
-      </div>
-      <div class="brand-swatch" data-var="--icg-maturity-aware">
-        <div class="brand-swatch__color" style="background: var(--icg-maturity-aware);"></div>
-        <div class="brand-swatch__label">--icg-maturity-aware</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Early-stage maturity</div>
-      </div>
-      <div class="brand-swatch" data-var="--icg-maturity-optimizing">
-        <div class="brand-swatch__color" style="background: var(--icg-maturity-optimizing);"></div>
-        <div class="brand-swatch__label">--icg-maturity-optimizing</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Active optimization stage</div>
-      </div>
-      <div class="brand-swatch" data-var="--icg-maturity-strategic">
-        <div class="brand-swatch__color" style="background: var(--icg-maturity-strategic);"></div>
-        <div class="brand-swatch__label">--icg-maturity-strategic</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Highest maturity level</div>
-      </div>
-    </div>
-
-    <h4 class="label brand-subgroup-title">Regulatory Map</h4>
-    <div class="brand-swatch-grid">
-      <div class="brand-swatch" data-var="--regmap-category-industry">
-        <div class="brand-swatch__color" style="background: var(--regmap-category-industry);"></div>
-        <div class="brand-swatch__label">--regmap-category-industry</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Industry-specific regulations</div>
-      </div>
-      <div class="brand-swatch" data-var="--regmap-category-cyber">
-        <div class="brand-swatch__color" style="background: var(--regmap-category-cyber);"></div>
-        <div class="brand-swatch__label">--regmap-category-cyber</div>
-        <div class="brand-swatch__value"></div>
-        <div class="brand-swatch__usage">Cybersecurity regulations</div>
-      </div>
-    </div>
-  </div>
 </section>
 
 <!-- Section 3: Typography -->
 <section class="brand-section" id="typography">
   <div class="container">
-    <h2 class="heading-md brand-section__title">Typography</h2>
+    <h2 class="brutal-heading-md brand-section__title">Typography</h2>
 
-    <h3 class="heading-sm brand-group-title">Font Stack</h3>
-    <p class="text-base"><code class="brand-code">--font-family</code>: <span class="brand-font-stack" data-var="--font-family"></span></p>
+    <h3 class="brutal-heading-sm brand-group-title" id="type-font-stack">Font Stack</h3>
+    <p class="brutal-text-base"><code class="brand-code">--font-family</code>: <span class="brand-font-stack" data-var="--font-family"></span></p>
 
-    <h3 class="heading-sm brand-group-title">Utility Classes</h3>
-    <div class="brand-type-specimens">
-      <div class="brand-type-specimen">
-        <span class="heading-xl" data-specimen>Heading XL</span>
-        <code class="brand-code">.heading-xl</code>
-        <span class="brand-type-meta"></span>
-      </div>
-      <div class="brand-type-specimen">
-        <span class="heading-lg" data-specimen>Heading LG</span>
-        <code class="brand-code">.heading-lg</code>
-        <span class="brand-type-meta"></span>
-      </div>
-      <div class="brand-type-specimen">
-        <span class="heading-md" data-specimen>Heading MD</span>
-        <code class="brand-code">.heading-md</code>
-        <span class="brand-type-meta"></span>
-      </div>
-      <div class="brand-type-specimen">
-        <span class="heading-sm" data-specimen>Heading SM</span>
-        <code class="brand-code">.heading-sm</code>
-        <span class="brand-type-meta"></span>
-      </div>
-      <div class="brand-type-specimen">
-        <span class="text-base" data-specimen>Text Base</span>
-        <code class="brand-code">.text-base</code>
-        <span class="brand-type-meta"></span>
-      </div>
-      <div class="brand-type-specimen">
-        <span class="text-small" data-specimen>Text Small</span>
-        <code class="brand-code">.text-small</code>
-        <span class="brand-type-meta"></span>
-      </div>
-      <div class="brand-type-specimen">
-        <span class="text-tiny" data-specimen>Text Tiny</span>
-        <code class="brand-code">.text-tiny</code>
-        <span class="brand-type-meta"></span>
-      </div>
-      <div class="brand-type-specimen">
-        <span class="label" data-specimen>Label</span>
-        <code class="brand-code">.label</code>
-        <span class="brand-type-meta"></span>
-      </div>
-      <div class="brand-type-specimen">
-        <span class="label-small" data-specimen>Label Small</span>
-        <code class="brand-code">.label-small</code>
-        <span class="brand-type-meta"></span>
-      </div>
-      <div class="brand-type-specimen">
-        <span class="nav-link" data-specimen>Nav Link</span>
-        <code class="brand-code">.nav-link</code>
-        <span class="brand-type-meta"></span>
-      </div>
-      <div class="brand-type-specimen">
-        <span class="button-text" data-specimen>Button Text</span>
-        <code class="brand-code">.button-text</code>
-        <span class="brand-type-meta"></span>
-      </div>
-    </div>
-
-    <h3 class="heading-sm brand-group-title">Text Size Scale</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="type-sizes">Text Size Scale</h3>
     <div class="brand-type-specimens">
       <div class="brand-type-specimen" data-var="--text-xs">
         <span data-specimen style="font-size: var(--text-xs);">The quick brown fox — text-xs</span>
@@ -448,7 +309,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Font Weights</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="type-weights">Font Weights</h3>
     <div class="brand-type-specimens">
       <div class="brand-type-specimen">
         <span data-specimen style="font-weight: var(--font-weight-normal);">Normal (400) — The quick brown fox</span>
@@ -464,8 +325,8 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Brutalist Typography</h3>
-    <p class="text-small brand-section__note">Monospace-first variants for controls, data display, and tool interfaces. Designed to complement the existing Helvetica Neue system typography.</p>
+    <h3 class="brutal-heading-sm brand-group-title" id="type-utilities">Typography Utilities</h3>
+    <p class="brutal-text-small brand-section__note">Monospace-first variants for controls, data display, and tool interfaces. Designed to complement the existing Helvetica Neue system typography.</p>
 
     <div class="brand-type-specimens">
       <div class="brand-type-specimen">
@@ -530,9 +391,9 @@ trackPageView('brand', 'Brand Style Reference');
 <!-- Section 4: Spacing Scale -->
 <section class="brand-section" id="spacing">
   <div class="container">
-    <h2 class="heading-md brand-section__title">Spacing Scale</h2>
+    <h2 class="brutal-heading-md brand-section__title">Spacing Scale</h2>
 
-    <h3 class="heading-sm brand-group-title">Spacing Tokens</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="spacing-tokens">Spacing Tokens</h3>
     <div class="brand-spacing-list">
       <div class="brand-spacing-row" data-var="--spacing-xs">
         <code class="brand-code brand-spacing-name">--spacing-xs</code>
@@ -576,7 +437,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Gap Tokens</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="spacing-gaps">Gap Tokens</h3>
     <div class="brand-spacing-list">
       <div class="brand-spacing-row" data-var="--gap-tight">
         <code class="brand-code brand-spacing-name">--gap-tight</code>
@@ -605,26 +466,9 @@ trackPageView('brand', 'Brand Style Reference');
 <!-- Section 5: Shadows -->
 <section class="brand-section" id="shadows">
   <div class="container">
-    <h2 class="heading-md brand-section__title">Shadows</h2>
+    <h2 class="brutal-heading-md brand-section__title">Shadows</h2>
 
-    <h3 class="heading-sm brand-group-title">Current</h3>
-    <div class="brand-shadow-grid">
-      <div class="brand-shadow-card" style="box-shadow: var(--shadow-sm);">
-        <code class="brand-code">--shadow-sm</code>
-        <span class="brand-shadow-value" data-var="--shadow-sm"></span>
-      </div>
-      <div class="brand-shadow-card" style="box-shadow: var(--shadow-md);">
-        <code class="brand-code">--shadow-md</code>
-        <span class="brand-shadow-value" data-var="--shadow-md"></span>
-      </div>
-      <div class="brand-shadow-card" style="box-shadow: var(--shadow-lg);">
-        <code class="brand-code">--shadow-lg</code>
-        <span class="brand-shadow-value" data-var="--shadow-lg"></span>
-      </div>
-    </div>
-
-    <h3 class="heading-sm brand-group-title">Brutalist</h3>
-    <p class="text-small brand-section__note">Hard-edged borders replace diffuse shadows. Elevation conveyed through border weight and primary-color accents rather than blur.</p>
+    <p class="brutal-text-small brand-section__note">Hard-edged borders replace diffuse shadows. Elevation conveyed through border weight and primary-color accents rather than blur.</p>
     <div class="brand-shadow-grid">
       <div class="brutal-shadow brutal-shadow--sm">
         <code class="brand-code">--shadow-sm</code>
@@ -645,29 +489,9 @@ trackPageView('brand', 'Brand Style Reference');
 <!-- Section 6: Transitions -->
 <section class="brand-section" id="transitions">
   <div class="container">
-    <h2 class="heading-md brand-section__title">Transitions</h2>
+    <h2 class="brutal-heading-md brand-section__title">Transitions</h2>
 
-    <h3 class="heading-sm brand-group-title">Current</h3>
-    <div class="brand-transition-grid">
-      <div class="brand-transition-demo" style="transition: transform var(--transition-fast), background var(--transition-fast);">
-        <code class="brand-code">--transition-fast</code>
-        <span class="brand-transition-value" data-var="--transition-fast"></span>
-        <span class="brand-transition-hint text-tiny">Hover me</span>
-      </div>
-      <div class="brand-transition-demo" style="transition: transform var(--transition-normal), background var(--transition-normal);">
-        <code class="brand-code">--transition-normal</code>
-        <span class="brand-transition-value" data-var="--transition-normal"></span>
-        <span class="brand-transition-hint text-tiny">Hover me</span>
-      </div>
-      <div class="brand-transition-demo" style="transition: transform var(--transition-slow), background var(--transition-slow);">
-        <code class="brand-code">--transition-slow</code>
-        <span class="brand-transition-value" data-var="--transition-slow"></span>
-        <span class="brand-transition-hint text-tiny">Hover me</span>
-      </div>
-    </div>
-
-    <h3 class="heading-sm brand-group-title">Brutalist</h3>
-    <p class="text-small brand-section__note">Border-color and text-color transitions instead of scale transforms. State changes are immediate and structural — no lift, no grow.</p>
+    <p class="brutal-text-small brand-section__note">Border-color and text-color transitions instead of scale transforms. State changes are immediate and structural — no lift, no grow.</p>
     <div class="brand-transition-grid">
       <div class="brutal-transition" style="transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);">
         <code class="brand-code">--transition-fast</code>
@@ -691,39 +515,17 @@ trackPageView('brand', 'Brand Style Reference');
 <!-- Section 7: Components -->
 <section class="brand-section" id="components">
   <div class="container">
-    <h2 class="heading-md brand-section__title">Components</h2>
+    <h2 class="brutal-heading-md brand-section__title">Components</h2>
 
-    <h3 class="heading-sm brand-group-title">Hub Buttons (Current)</h3>
-    <div class="brand-component-row">
-      <div class="brand-component-item">
-        <button class="hub-btn hub-btn--primary">Primary</button>
-        <code class="brand-code">.hub-btn--primary</code>
-      </div>
-      <div class="brand-component-item">
-        <button class="hub-btn hub-btn--secondary">Secondary</button>
-        <code class="brand-code">.hub-btn--secondary</code>
-      </div>
-      <div class="brand-component-item">
-        <button class="hub-btn hub-btn--primary" disabled>Disabled</button>
-        <code class="brand-code">:disabled</code>
-      </div>
-    </div>
-    <div class="brand-component-row">
-      <div class="brand-component-item brand-component-item--full">
-        <button class="hub-btn hub-btn--primary hub-btn--full">Full Width</button>
-        <code class="brand-code">.hub-btn--full</code>
-      </div>
-    </div>
-
-    <h3 class="heading-sm brand-group-title">Hub Buttons (Brutalist)</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-hub-buttons">Hub Buttons</h3>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <button class="brutal-btn brutal-btn--primary">Primary</button>
-        <code class="brand-code">.hub-btn--primary</code>
+        <code class="brand-code">.brutal-btn--primary</code>
       </div>
       <div class="brand-component-item">
         <button class="brutal-btn brutal-btn--secondary">Secondary</button>
-        <code class="brand-code">.hub-btn--secondary</code>
+        <code class="brand-code">.brutal-btn--secondary</code>
       </div>
       <div class="brand-component-item">
         <button class="brutal-btn brutal-btn--primary" disabled>Disabled</button>
@@ -733,11 +535,11 @@ trackPageView('brand', 'Brand Style Reference');
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <button class="brutal-btn brutal-btn--primary brutal-btn--full">Full Width</button>
-        <code class="brand-code">.hub-btn--full</code>
+        <code class="brand-code">.brutal-btn--full</code>
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">CTA Buttons</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-cta-buttons">CTA Buttons</h3>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <a class="cta-button primary" href="#components">CTA Primary</a>
@@ -749,59 +551,21 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Tool Patterns</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-tool-patterns">Tool Patterns</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div class="tool-authority">Authority Line Specimen</div>
-        <code class="brand-code">.tool-authority</code>
+        <div class="brutal-tool-shell__authority">Authority Line Specimen</div>
+        <code class="brand-code">.brutal-tool-shell__authority</code>
       </div>
     </div>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div class="tool-section-label">Section Label Specimen</div>
-        <code class="brand-code">.tool-section-label</code>
-      </div>
-    </div>
-
-    <h3 class="heading-sm brand-group-title">Tool Shell (Current)</h3>
-    <div class="brand-component-row">
-      <div class="brand-component-item brand-component-item--full">
-        <div class="tool-shell">
-          <div class="tool-content">
-            <div class="tool-authority">Tool Authority Line</div>
-            <div class="tool-section-label">Section Label</div>
-            <p class="text-small">Default shell — <code class="brand-code">700px</code> max-width</p>
-          </div>
-        </div>
-        <code class="brand-code">.tool-shell — 700px max-width, rounded corners, bg-light-alt fill</code>
-      </div>
-    </div>
-    <div class="brand-component-row">
-      <div class="brand-component-item brand-component-item--full">
-        <div class="tool-shell tool-shell--narrow">
-          <div class="tool-content"><span class="text-tiny">narrow — 660px</span></div>
-        </div>
-        <code class="brand-code">.tool-shell--narrow</code>
-      </div>
-    </div>
-    <div class="brand-component-row">
-      <div class="brand-component-item brand-component-item--full">
-        <div class="tool-shell tool-shell--wide">
-          <div class="tool-content"><span class="text-tiny">wide — 760px</span></div>
-        </div>
-        <code class="brand-code">.tool-shell--wide</code>
-      </div>
-    </div>
-    <div class="brand-component-row">
-      <div class="brand-component-item brand-component-item--full">
-        <div class="tool-shell tool-shell--document">
-          <div class="tool-content"><span class="text-tiny">document — 800px</span></div>
-        </div>
-        <code class="brand-code">.tool-shell--document</code>
+        <div class="brutal-tool-shell__section-label">Section Label Specimen</div>
+        <code class="brand-code">.brutal-tool-shell__section-label</code>
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Tool Shell (Brutalist)</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-tool-shell">Tool Shell</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brutal-tool-shell">
@@ -839,23 +603,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Interaction States (Current)</h3>
-    <div class="brand-component-row">
-      <div class="brand-component-item">
-        <div class="interactive brand-interaction-box" tabindex="0">Hover / Focus</div>
-        <code class="brand-code">.interactive</code>
-      </div>
-      <div class="brand-component-item">
-        <a class="link-interactive" href="#components">Link Interactive</a>
-        <code class="brand-code">.link-interactive</code>
-      </div>
-      <div class="brand-component-item">
-        <div class="focus-outline brand-interaction-box">Focus Outline</div>
-        <code class="brand-code">.focus-outline</code>
-      </div>
-    </div>
-
-    <h3 class="heading-sm brand-group-title">Interaction States (Brutalist)</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-interactions">Interaction States</h3>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brutal-interactive" tabindex="0">Hover / Focus</div>
@@ -871,7 +619,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Skeleton Loading (Current)</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-skeleton-current">Skeleton Loading (Current)</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brand-skeleton-demo">
@@ -888,7 +636,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Skeleton Loading (Brutalist)</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-skeleton-next">Skeleton Loading</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brutal-skeleton-demo">
@@ -905,7 +653,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Tab Bar (Brutalist)</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-tab-bar">Tab Bar</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brutal-tab-bar" style="position: static;">
@@ -927,7 +675,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Segmented Control (Brutalist)</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-segmented-control">Segmented Control</h3>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brutal-segmented">
@@ -946,7 +694,19 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Form Field (Brutalist)</h3>
+    <h4 class="brutal-label brand-subgroup-title">Segmented Control Wide</h4>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div class="brutal-segmented brutal-segmented--wide">
+          <button class="brutal-segmented__btn brutal-segmented__btn--active" type="button">Active</button>
+          <button class="brutal-segmented__btn" type="button">Option B</button>
+          <button class="brutal-segmented__btn" type="button">Option C</button>
+        </div>
+        <code class="brand-code">.brutal-segmented--wide — full-width segmented control</code>
+      </div>
+    </div>
+
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-form-field">Form Field</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brutal-field">
@@ -957,11 +717,11 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h3 class="heading-sm brand-group-title">Delta Chevron</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="comp-delta-chevron">Delta Chevron</h3>
     <div class="brand-component-row">
       <div class="brand-component-item" id="chevron-demo">
         <div style="display: flex; align-items: center; gap: var(--spacing-sm); cursor: pointer;" id="chevron-toggle">
-          <span class="text-small">Toggle collapse</span>
+          <span class="brutal-text-small">Toggle collapse</span>
           <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/>
           </svg>
@@ -972,38 +732,456 @@ trackPageView('brand', 'Brand Style Reference');
   </div>
 </section>
 
-<!-- Section 8: UI Component Library -->
-<section class="brand-section" id="ui-library">
+<!-- Section 7b: Component States -->
+<section class="brand-section" id="component-states">
   <div class="container">
-    <h2 class="heading-md brand-section__title">UI Component Library</h2>
-    <p class="text-small brand-section__note">Shared controls and patterns used across the site. Each specimen renders live markup with the real CSS classes. This library defines UX platform standards.</p>
+    <h2 class="brutal-heading-md brand-section__title">Component States</h2>
+    <p class="brutal-text-small" style="margin-bottom: var(--spacing-xl); color: var(--text-muted);">
+      Interactive components rendered in each visual state. Forced via <code class="brand-code">data-demo-state</code> attributes.
+    </p>
 
-    <!-- 8a. Navigation -->
-    <h3 class="heading-sm brand-group-title">Navigation</h3>
-
-    <h4 class="label brand-subgroup-title">Breadcrumb (Current)</h4>
-    <div class="brand-component-row">
-      <div class="brand-component-item brand-component-item--full">
-        <nav aria-label="Breadcrumb demo" class="breadcrumb brand-breadcrumb-demo">
-          <ol class="breadcrumb__list">
-            <li class="breadcrumb__item">
-              <a href="#ui-library">Home</a>
-              <span class="breadcrumb__separator" aria-hidden="true">/</span>
-            </li>
-            <li class="breadcrumb__item">
-              <a href="#ui-library">Hub</a>
-              <span class="breadcrumb__separator" aria-hidden="true">/</span>
-            </li>
-            <li class="breadcrumb__item">
-              <span aria-current="page">Current Page</span>
-            </li>
-          </ol>
-        </nav>
-        <code class="brand-code">.breadcrumb — system font, primary-color links, slash separators</code>
+    <h3 class="brutal-heading-sm brand-group-title" id="states-button">Button States</h3>
+    <div class="brand-state-row">
+      <div class="brand-state-item">
+        <button class="brutal-btn brutal-btn--primary">Default</button>
+        <code class="brand-code">default</code>
+      </div>
+      <div class="brand-state-item">
+        <button class="brutal-btn brutal-btn--primary" data-demo-state="hover">Hover</button>
+        <code class="brand-code">:hover</code>
+      </div>
+      <div class="brand-state-item">
+        <button class="brutal-btn brutal-btn--primary" data-demo-state="focus">Focus</button>
+        <code class="brand-code">:focus-visible</code>
+      </div>
+      <div class="brand-state-item">
+        <button class="brutal-btn brutal-btn--primary" disabled>Disabled</button>
+        <code class="brand-code">:disabled</code>
+      </div>
+    </div>
+    <div class="brand-state-row">
+      <div class="brand-state-item">
+        <button class="brutal-btn brutal-btn--secondary">Default</button>
+        <code class="brand-code">secondary</code>
+      </div>
+      <div class="brand-state-item">
+        <button class="brutal-btn brutal-btn--secondary" data-demo-state="hover">Hover</button>
+        <code class="brand-code">:hover</code>
+      </div>
+      <div class="brand-state-item">
+        <button class="brutal-btn brutal-btn--secondary" data-demo-state="focus">Focus</button>
+        <code class="brand-code">:focus-visible</code>
+      </div>
+      <div class="brand-state-item">
+        <button class="brutal-btn brutal-btn--secondary" disabled>Disabled</button>
+        <code class="brand-code">:disabled</code>
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Breadcrumb (Brutalist)</h4>
+    <h3 class="brutal-heading-sm brand-group-title" id="states-form-field">Form Field States</h3>
+    <div class="brand-state-grid">
+      <div class="brand-state-item brand-state-item--wide">
+        <div class="brutal-field">
+          <label class="brutal-field__label">Default</label>
+          <input class="brutal-field__input" type="text" placeholder="Placeholder text" />
+        </div>
+        <code class="brand-code">default — dashed border</code>
+      </div>
+      <div class="brand-state-item brand-state-item--wide">
+        <div class="brutal-field">
+          <label class="brutal-field__label">Focused</label>
+          <input class="brutal-field__input" type="text" value="Entered text" data-demo-state="focus" />
+        </div>
+        <code class="brand-code">:focus — solid border, teal</code>
+      </div>
+      <div class="brand-state-item brand-state-item--wide">
+        <div class="brutal-field">
+          <label class="brutal-field__label">Disabled</label>
+          <input class="brutal-field__input" type="text" value="Cannot edit" disabled />
+        </div>
+        <code class="brand-code">:disabled — reduced opacity</code>
+      </div>
+      <div class="brand-state-item brand-state-item--wide">
+        <div class="brutal-field">
+          <label class="brutal-field__label">Error <span class="brutal-field__req" style="color: var(--color-error);">(invalid)</span></label>
+          <input class="brutal-field__input" type="text" value="Bad input" data-demo-state="error" />
+        </div>
+        <code class="brand-code">error — red border</code>
+      </div>
+      <div class="brand-state-item brand-state-item--wide">
+        <div class="brutal-field">
+          <label class="brutal-field__label">Read-only</label>
+          <input class="brutal-field__input" type="text" value="Locked value" readonly data-demo-state="readonly" />
+        </div>
+        <code class="brand-code">readonly — muted text, no cursor</code>
+      </div>
+    </div>
+
+    <h3 class="brutal-heading-sm brand-group-title" id="states-option-card">Option Card States</h3>
+    <div class="brand-state-row">
+      <div class="brand-state-item">
+        <div class="brutal-option-card">
+          <span class="brutal-option-card__label">Default</span>
+          <span class="brutal-option-card__description">Base state</span>
+        </div>
+        <code class="brand-code">default</code>
+      </div>
+      <div class="brand-state-item">
+        <div class="brutal-option-card" data-demo-state="hover">
+          <span class="brutal-option-card__label">Hover</span>
+          <span class="brutal-option-card__description">Teal border + subtle bg</span>
+        </div>
+        <code class="brand-code">:hover</code>
+      </div>
+      <div class="brand-state-item">
+        <div class="brutal-option-card" data-demo-state="focus">
+          <span class="brutal-option-card__label">Focus</span>
+          <span class="brutal-option-card__description">Outline ring</span>
+        </div>
+        <code class="brand-code">:focus-visible</code>
+      </div>
+      <div class="brand-state-item">
+        <div class="brutal-option-card brutal-option-card--selected">
+          <span class="brutal-option-card__label">Selected</span>
+          <span class="brutal-option-card__description">Teal border + label</span>
+        </div>
+        <code class="brand-code">--selected</code>
+      </div>
+    </div>
+
+    <h3 class="brutal-heading-sm brand-group-title" id="states-choice-button">Choice Button States</h3>
+    <div class="brand-state-row">
+      <div class="brand-state-item">
+        <button class="brutal-choice-btn" type="button">Default</button>
+        <code class="brand-code">default</code>
+      </div>
+      <div class="brand-state-item">
+        <button class="brutal-choice-btn" type="button" data-demo-state="hover">Hover</button>
+        <code class="brand-code">:hover</code>
+      </div>
+      <div class="brand-state-item">
+        <button class="brutal-choice-btn" type="button" data-demo-state="focus">Focus</button>
+        <code class="brand-code">:focus-visible</code>
+      </div>
+      <div class="brand-state-item">
+        <button class="brutal-choice-btn brutal-choice-btn--selected" type="button">Selected</button>
+        <code class="brand-code">--selected</code>
+      </div>
+      <div class="brand-state-item">
+        <button class="brutal-choice-btn brutal-choice-btn--unsure" type="button">Unsure</button>
+        <code class="brand-code">--unsure</code>
+      </div>
+      <div class="brand-state-item">
+        <button class="brutal-choice-btn brutal-choice-btn--unsure brutal-choice-btn--selected" type="button">Unsure+Sel</button>
+        <code class="brand-code">--unsure --selected</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 7c: Accessibility -->
+<section class="brand-section" id="accessibility">
+  <div class="container">
+    <h2 class="brutal-heading-md brand-section__title">Accessibility</h2>
+    <p class="brutal-text-small" style="margin-bottom: var(--spacing-xl); color: var(--text-muted);">
+      WCAG 2.1 AA compliance reference. Focus states, contrast ratios, touch targets, keyboard patterns, and semantic structure.
+    </p>
+
+    <!-- A: Focus States -->
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-focus">Focus States</h3>
+    <p class="brutal-text-small" style="margin-bottom: var(--spacing-md); color: var(--text-muted);">
+      All interactive components use a <code class="brand-code">2px solid var(--color-primary)</code> outline with <code class="brand-code">2px offset</code> on <code class="brand-code">:focus-visible</code>.
+    </p>
+    <div class="brand-state-row">
+      <div class="brand-state-item">
+        <button class="brutal-btn brutal-btn--primary" data-demo-state="focus">Button</button>
+        <code class="brand-code">:focus-visible</code>
+      </div>
+      <div class="brand-state-item">
+        <div class="brutal-field" style="margin-bottom: 0;">
+          <input class="brutal-field__input" type="text" value="Input field" data-demo-state="focus" />
+        </div>
+        <code class="brand-code">:focus (solid border)</code>
+      </div>
+      <div class="brand-state-item">
+        <div class="brutal-option-card" data-demo-state="focus" tabindex="0">
+          <span class="brutal-option-card__label">Option Card</span>
+        </div>
+        <code class="brand-code">:focus-visible</code>
+      </div>
+      <div class="brand-state-item">
+        <button class="brutal-choice-btn" type="button" data-demo-state="focus">Choice</button>
+        <code class="brand-code">:focus-visible</code>
+      </div>
+      <div class="brand-state-item">
+        <a class="brutal-link-interactive" href="#accessibility" data-demo-state="focus">Link</a>
+        <code class="brand-code">:focus-visible</code>
+      </div>
+    </div>
+
+    <!-- A: Contrast Ratio Table -->
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-contrast">Color Contrast Ratios</h3>
+    <p class="brutal-text-small" style="margin-bottom: var(--spacing-md); color: var(--text-muted);">
+      Text hierarchy on page backgrounds. WCAG 2.1 AA requires 4.5:1 for normal text, 3:1 for large text (&ge;18px or &ge;14px bold).
+    </p>
+
+    <h4 class="brutal-label brand-subgroup-title">Light Theme (on #ffffff)</h4>
+    <div class="a11y-contrast-table">
+      <div class="a11y-contrast-row">
+        <span class="a11y-swatch" style="background: rgba(26,26,26,0.95);"></span>
+        <span class="a11y-var">--text-primary</span>
+        <span class="a11y-ratio">~18:1</span>
+        <span class="a11y-badge a11y-badge--pass">AAA</span>
+      </div>
+      <div class="a11y-contrast-row">
+        <span class="a11y-swatch" style="background: rgba(26,26,26,0.7);"></span>
+        <span class="a11y-var">--text-secondary</span>
+        <span class="a11y-ratio">~10:1</span>
+        <span class="a11y-badge a11y-badge--pass">AAA</span>
+      </div>
+      <div class="a11y-contrast-row">
+        <span class="a11y-swatch" style="background: rgba(26,26,26,0.6);"></span>
+        <span class="a11y-var">--text-muted</span>
+        <span class="a11y-ratio">~7.5:1</span>
+        <span class="a11y-badge a11y-badge--pass">AA</span>
+      </div>
+      <div class="a11y-contrast-row">
+        <span class="a11y-swatch" style="background: rgba(26,26,26,0.6);"></span>
+        <span class="a11y-var">--text-faded</span>
+        <span class="a11y-ratio">~7.5:1</span>
+        <span class="a11y-badge a11y-badge--warn">AA (large only)</span>
+      </div>
+      <div class="a11y-contrast-row">
+        <span class="a11y-swatch" style="background: #05cd99;"></span>
+        <span class="a11y-var">--color-primary</span>
+        <span class="a11y-ratio">~2.7:1</span>
+        <span class="a11y-badge a11y-badge--fail">Decorative only</span>
+      </div>
+    </div>
+
+    <h4 class="brutal-label brand-subgroup-title">Dark Theme (on #0a0a0a)</h4>
+    <div class="a11y-contrast-table">
+      <div class="a11y-contrast-row">
+        <span class="a11y-swatch" style="background: rgba(245,245,245,0.95);"></span>
+        <span class="a11y-var">--text-primary</span>
+        <span class="a11y-ratio">~18:1</span>
+        <span class="a11y-badge a11y-badge--pass">AAA</span>
+      </div>
+      <div class="a11y-contrast-row">
+        <span class="a11y-swatch" style="background: rgba(200,200,200,0.8);"></span>
+        <span class="a11y-var">--text-secondary</span>
+        <span class="a11y-ratio">~10:1</span>
+        <span class="a11y-badge a11y-badge--pass">AAA</span>
+      </div>
+      <div class="a11y-contrast-row">
+        <span class="a11y-swatch" style="background: rgba(200,200,200,0.6);"></span>
+        <span class="a11y-var">--text-muted</span>
+        <span class="a11y-ratio">~7:1</span>
+        <span class="a11y-badge a11y-badge--pass">AA</span>
+      </div>
+      <div class="a11y-contrast-row">
+        <span class="a11y-swatch" style="background: #05cd99;"></span>
+        <span class="a11y-var">--color-primary</span>
+        <span class="a11y-ratio">~8:1</span>
+        <span class="a11y-badge a11y-badge--pass">AAA</span>
+      </div>
+    </div>
+
+    <!-- B: Touch Targets -->
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-touch">Touch Targets</h3>
+    <p class="brutal-text-small" style="margin-bottom: var(--spacing-md); color: var(--text-muted);">
+      WCAG 2.5.5 requires 44&times;44px minimum touch target size. All interactive components meet this requirement.
+    </p>
+    <div class="brand-state-row">
+      <div class="brand-state-item">
+        <div class="a11y-touch-demo">
+          <button class="brutal-btn brutal-btn--primary">Button</button>
+          <div class="a11y-touch-overlay">44&times;44</div>
+        </div>
+        <code class="brand-code">.brutal-btn — meets minimum</code>
+      </div>
+      <div class="brand-state-item">
+        <div class="a11y-touch-demo">
+          <button class="brutal-choice-btn" type="button">Choice</button>
+          <div class="a11y-touch-overlay">44&times;44</div>
+        </div>
+        <code class="brand-code">.brutal-choice-btn — min-height: 44px</code>
+      </div>
+    </div>
+
+    <!-- B: Keyboard Navigation -->
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-keyboard">Keyboard Navigation</h3>
+    <div class="a11y-kb-table">
+      <div class="a11y-kb-row a11y-kb-row--header">
+        <span>Pattern</span>
+        <span>Key</span>
+        <span>Behavior</span>
+      </div>
+      <div class="a11y-kb-row">
+        <span>Sequential focus</span>
+        <kbd>Tab</kbd>
+        <span>Move to next focusable element</span>
+      </div>
+      <div class="a11y-kb-row">
+        <span>Reverse focus</span>
+        <kbd>Shift+Tab</kbd>
+        <span>Move to previous focusable element</span>
+      </div>
+      <div class="a11y-kb-row">
+        <span>Activate</span>
+        <kbd>Enter / Space</kbd>
+        <span>Trigger button, select option card</span>
+      </div>
+      <div class="a11y-kb-row">
+        <span>Tab bar</span>
+        <kbd>&larr; &rarr;</kbd>
+        <span>Navigate between tabs (when focused)</span>
+      </div>
+      <div class="a11y-kb-row">
+        <span>Modal dismiss</span>
+        <kbd>Escape</kbd>
+        <span>Close modal, return focus to trigger</span>
+      </div>
+      <div class="a11y-kb-row">
+        <span>Modal trap</span>
+        <kbd>Tab (in modal)</kbd>
+        <span>Focus cycles within modal boundaries</span>
+      </div>
+    </div>
+
+    <!-- B: ARIA Patterns -->
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-aria">ARIA Patterns</h3>
+    <div class="a11y-code-block">
+      <pre><code>&lt;!-- Live region for dynamic results --&gt;
+&lt;div aria-live="polite" aria-atomic="true"&gt;
+  3 regulations found
+&lt;/div&gt;
+
+&lt;!-- Labeled input --&gt;
+&lt;label class="brutal-field__label" for="company"&gt;Company&lt;/label&gt;
+&lt;input class="brutal-field__input" id="company" aria-required="true" /&gt;
+
+&lt;!-- Tab bar --&gt;
+&lt;div role="tablist"&gt;
+  &lt;button role="tab" aria-selected="true"&gt;Active&lt;/button&gt;
+  &lt;button role="tab" aria-selected="false"&gt;Inactive&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;!-- Modal with focus trap --&gt;
+&lt;div role="dialog" aria-modal="true" aria-labelledby="modal-title"&gt;
+  &lt;h2 id="modal-title"&gt;Project Details&lt;/h2&gt;
+&lt;/div&gt;</code></pre>
+    </div>
+
+    <!-- B: Semantic HTML -->
+    <h3 class="brutal-heading-sm brand-group-title" id="a11y-semantic">Semantic HTML Structure</h3>
+    <p class="brutal-text-small" style="margin-bottom: var(--spacing-md); color: var(--text-muted);">
+      Heading hierarchy and landmark roles used across the site.
+    </p>
+    <div class="a11y-code-block">
+      <pre><code>&lt;body&gt;
+  &lt;header role="banner"&gt;         &lt;!-- .site-header — sticky nav --&gt;
+    &lt;nav role="navigation"&gt;...&lt;/nav&gt;
+  &lt;/header&gt;
+  &lt;main role="main"&gt;             &lt;!-- page content --&gt;
+    &lt;h1&gt;Page Title&lt;/h1&gt;
+    &lt;section&gt;
+      &lt;h2&gt;Section&lt;/h2&gt;
+      &lt;h3&gt;Subsection&lt;/h3&gt;
+    &lt;/section&gt;
+  &lt;/main&gt;
+  &lt;footer role="contentinfo"&gt;    &lt;!-- site footer --&gt;
+    ...
+  &lt;/footer&gt;
+&lt;/body&gt;</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- Section 7d: Responsive Behavior -->
+<section class="brand-section" id="responsive-demos">
+  <div class="container">
+    <h2 class="brutal-heading-md brand-section__title">Responsive Behavior</h2>
+    <p class="brutal-text-small" style="margin-bottom: var(--spacing-xl); color: var(--text-muted);">
+      Components rendered at desktop (1200px), tablet (768px), and mobile (480px) widths. Each frame is a live embed showing how layouts collapse and reflow.
+    </p>
+
+    <h3 class="brutal-heading-sm brand-group-title" id="resp-option-card">Option Card Grid</h3>
+    <div class="responsive-demo-row">
+      <div class="responsive-demo-frame responsive-demo-frame--desktop">
+        <span class="responsive-demo-label">1200px</span>
+        <iframe src="/brand/responsive-frame?group=cards" title="Cards at 1200px" loading="lazy" scrolling="no"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--tablet">
+        <span class="responsive-demo-label">768px</span>
+        <iframe src="/brand/responsive-frame?group=cards" title="Cards at 768px" loading="lazy" scrolling="no"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--mobile">
+        <span class="responsive-demo-label">480px</span>
+        <iframe src="/brand/responsive-frame?group=cards" title="Cards at 480px" loading="lazy" scrolling="no"></iframe>
+      </div>
+    </div>
+
+    <h3 class="brutal-heading-sm brand-group-title" id="resp-tab-bar">Tab Bar</h3>
+    <div class="responsive-demo-row">
+      <div class="responsive-demo-frame responsive-demo-frame--desktop">
+        <span class="responsive-demo-label">1200px</span>
+        <iframe src="/brand/responsive-frame?group=tabs" title="Tabs at 1200px" loading="lazy" scrolling="no"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--tablet">
+        <span class="responsive-demo-label">768px</span>
+        <iframe src="/brand/responsive-frame?group=tabs" title="Tabs at 768px" loading="lazy" scrolling="no"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--mobile">
+        <span class="responsive-demo-label">480px</span>
+        <iframe src="/brand/responsive-frame?group=tabs" title="Tabs at 480px" loading="lazy" scrolling="no"></iframe>
+      </div>
+    </div>
+
+    <h3 class="brutal-heading-sm brand-group-title" id="resp-form-controls">Form Controls</h3>
+    <div class="responsive-demo-row">
+      <div class="responsive-demo-frame responsive-demo-frame--desktop">
+        <span class="responsive-demo-label">1200px</span>
+        <iframe src="/brand/responsive-frame?group=form" title="Form at 1200px" loading="lazy" scrolling="no"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--tablet">
+        <span class="responsive-demo-label">768px</span>
+        <iframe src="/brand/responsive-frame?group=form" title="Form at 768px" loading="lazy" scrolling="no"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--mobile">
+        <span class="responsive-demo-label">480px</span>
+        <iframe src="/brand/responsive-frame?group=form" title="Form at 480px" loading="lazy" scrolling="no"></iframe>
+      </div>
+    </div>
+
+    <h3 class="brutal-heading-sm brand-group-title" id="resp-tool-shell">Tool Shell</h3>
+    <div class="responsive-demo-row">
+      <div class="responsive-demo-frame responsive-demo-frame--desktop">
+        <span class="responsive-demo-label">1200px</span>
+        <iframe src="/brand/responsive-frame?group=shell" title="Shell at 1200px" loading="lazy" scrolling="no"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--tablet">
+        <span class="responsive-demo-label">768px</span>
+        <iframe src="/brand/responsive-frame?group=shell" title="Shell at 768px" loading="lazy" scrolling="no"></iframe>
+      </div>
+      <div class="responsive-demo-frame responsive-demo-frame--mobile">
+        <span class="responsive-demo-label">480px</span>
+        <iframe src="/brand/responsive-frame?group=shell" title="Shell at 480px" loading="lazy" scrolling="no"></iframe>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 8: UI Component Library -->
+<section class="brand-section" id="ui-library">
+  <div class="container">
+    <h2 class="brutal-heading-md brand-section__title">UI Component Library</h2>
+    <p class="brutal-text-small brand-section__note">Shared controls and patterns used across the site. Each specimen renders live markup with the real CSS classes. This library defines UX platform standards.</p>
+
+    <!-- 8a. Navigation -->
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-navigation">Navigation</h3>
+
+    <h4 class="brutal-label brand-subgroup-title">Breadcrumb</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <nav aria-label="Breadcrumb brutalist demo" class="brutal-breadcrumb">
@@ -1025,7 +1203,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Nav Link</h4>
+    <h4 class="brutal-label brand-subgroup-title">Nav Link</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <a class="nav-link" href="#ui-library">Default</a>
@@ -1037,21 +1215,21 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <!-- 8a-1b. Site Chrome (Brutalist) -->
-    <h3 class="heading-sm brand-group-title">Site Chrome (Brutalist)</h3>
+    <!-- 8a-1b. Site Chrome -->
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-site-chrome">Site Chrome</h3>
 
-    <h4 class="label brand-subgroup-title">Logo</h4>
+    <h4 class="brutal-label brand-subgroup-title">Logo</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div style="display:flex;align-items:center;gap:0.25rem;">
-          <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" style="width:2rem;height:2rem;" aria-hidden="true" />
+          <DeltaIcon class="bullet-icon" />
           <span class="logo" style="font-size:2rem;font-weight:900;font-family:monospace;color:var(--text-primary);letter-spacing:-0.05em;text-transform:uppercase;display:flex;align-items:center;gap:var(--spacing-sm);height:2rem;text-decoration:none;border-bottom:none;" data-specimen>G<span style="color:var(--color-primary);">S</span>T<span style="width:8px;height:8px;background:var(--color-primary);display:block;animation:pulse 2s infinite;"></span></span>
         </div>
         <code class="brand-code">.logo — monospace, 900 weight, uppercase, -0.05em tracking, primary "S" accent, pulsing dot</code>
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Header Nav Links</h4>
+    <h4 class="brutal-label brand-subgroup-title">Header Nav Links</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <nav style="display:flex;gap:2rem;" aria-label="Nav link brutalist demo">
@@ -1063,7 +1241,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Footer Links</h4>
+    <h4 class="brutal-label brand-subgroup-title">Footer Links</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div style="display:flex;gap:2rem;align-items:center;">
@@ -1075,7 +1253,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Breadcrumb (Site Chrome)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Breadcrumb (Site Chrome)</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <nav aria-label="Breadcrumb site chrome demo" class="breadcrumb brand-breadcrumb-demo" style="font-family:monospace;">
@@ -1097,20 +1275,20 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Theme Toggle</h4>
+    <h4 class="brutal-label brand-subgroup-title">Theme Toggle</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <button style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:5rem;transition:color var(--transition-fast);padding:0;line-height:1;display:flex;align-items:center;height:0.85rem;" title="Theme toggle specimen" aria-label="Theme toggle specimen">
-          <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" style="width:0.67em;height:0.67em;display:block;" aria-hidden="true" />
+        <button style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;transition:color var(--transition-fast);padding:0;line-height:1;display:flex;align-items:center;" title="Theme toggle specimen" aria-label="Theme toggle specimen">
+          <DeltaIcon class="bullet-icon" />
         </button>
         <code class="brand-code">.theme-toggle — delta icon, no border/radius, var(--text-muted) color, var(--transition-fast)</code>
       </div>
     </div>
 
-    <!-- 8a-1c. Marketing Components (Brutalist) -->
-    <h3 class="heading-sm brand-group-title">Marketing Components (Brutalist)</h3>
+    <!-- 8a-1c. Marketing Components -->
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-marketing">Marketing Components</h3>
 
-    <h4 class="label brand-subgroup-title">Hero Title</h4>
+    <h4 class="brutal-label brand-subgroup-title">Hero Title</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <span class="brutal-hero__title" style="font-size:3rem;font-weight:900;letter-spacing:-0.04em;line-height:0.95;" data-specimen>Technology Advisory</span>
@@ -1118,7 +1296,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Hero Description</h4>
+    <h4 class="brutal-label brand-subgroup-title">Hero Description</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <span class="brutal-hero__description" style="font-size:1.25rem;line-height:1.6;font-weight:400;" data-specimen>GST partners with private equity firms to evaluate, stabilize, and scale the technology assets inside their portfolio companies.</span>
@@ -1126,7 +1304,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Trust Line</h4>
+    <h4 class="brutal-label brand-subgroup-title">Trust Line</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <span class="brutal-hero__trustline" style="font-size:0.9rem;" data-specimen>Trusted by PE firms managing $50B+ in assets</span>
@@ -1134,7 +1312,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Stats Bar</h4>
+    <h4 class="brutal-label brand-subgroup-title">Stats Bar</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div style="background:var(--color-primary);padding:1.5rem 2rem;display:flex;gap:3rem;">
@@ -1151,7 +1329,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">CTA Box</h4>
+    <h4 class="brutal-label brand-subgroup-title">CTA Box</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div style="border:2px solid var(--color-primary);padding:2rem;max-width:500px;">
@@ -1163,10 +1341,10 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <!-- 8a-1d. Legal Page Typography (Brutalist) -->
-    <h3 class="heading-sm brand-group-title">Legal Page Typography (Brutalist)</h3>
+    <!-- 8a-1d. Legal Page Typography -->
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-legal">Legal Page Typography</h3>
 
-    <h4 class="label brand-subgroup-title">Legal Page Heading</h4>
+    <h4 class="brutal-label brand-subgroup-title">Legal Page Heading</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <span style="font-size:2.5rem;font-weight:700;font-family:monospace;text-transform:uppercase;color:var(--text-primary);" data-specimen>Privacy Policy</span>
@@ -1174,7 +1352,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Legal Section Heading</h4>
+    <h4 class="brutal-label brand-subgroup-title">Legal Section Heading</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <span style="font-size:1.5rem;font-weight:600;font-family:monospace;text-transform:uppercase;color:var(--text-primary);" data-specimen>Information We Collect</span>
@@ -1182,7 +1360,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Legal Body Text</h4>
+    <h4 class="brutal-label brand-subgroup-title">Legal Body Text</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <p style="font-family:monospace;color:var(--text-secondary);line-height:1.8;margin:0;" data-specimen>GST is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard information when you visit our website or engage with our services.</p>
@@ -1190,7 +1368,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Legal Contact Section</h4>
+    <h4 class="brutal-label brand-subgroup-title">Legal Contact Section</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div style="padding:1.5rem;background:transparent;border-left:3px solid var(--color-primary);font-family:monospace;">
@@ -1201,10 +1379,10 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <!-- 8a-1e. Homepage Sections (Brutalist) -->
-    <h3 class="heading-sm brand-group-title">Homepage Sections (Brutalist)</h3>
+    <!-- 8a-1e. Homepage Sections -->
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-homepage">Homepage Sections</h3>
 
-    <h4 class="label brand-subgroup-title">Trust Card</h4>
+    <h4 class="brutal-label brand-subgroup-title">Trust Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div style="padding:var(--spacing-xl);background:transparent;border:2px solid var(--border-light);transition:all var(--transition-normal);max-width:400px;cursor:default;" onmouseenter="this.style.borderColor='var(--color-primary)'" onmouseleave="this.style.borderColor='var(--border-light)'" data-specimen>
@@ -1215,7 +1393,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Engagement Step Card</h4>
+    <h4 class="brutal-label brand-subgroup-title">Engagement Step Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div style="padding:var(--spacing-xl);background:transparent;border:2px solid var(--border-light);transition:all var(--transition-normal);max-width:250px;text-align:center;cursor:default;" onmouseenter="this.style.borderColor='var(--color-primary)'" onmouseleave="this.style.borderColor='var(--border-light)'" data-specimen>
@@ -1229,7 +1407,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Section Heading (Homepage)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Section Heading (Homepage)</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <span style="font-size:2rem;font-weight:var(--font-weight-bold);font-family:monospace;text-transform:uppercase;color:var(--text-primary);" data-specimen>Why Clients Trust GST</span>
@@ -1237,16 +1415,16 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Delta Bullet List</h4>
+    <h4 class="brutal-label brand-subgroup-title">Delta Bullet List</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <ul style="list-style:none;display:flex;flex-direction:column;gap:var(--gap-wide);padding:0;margin:0;">
           <li style="display:flex;align-items:center;gap:var(--spacing-lg);">
-            <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" style="width:1.25rem;height:1.25rem;" />
+            <DeltaIcon class="bullet-icon" />
             <span style="font-size:var(--text-base);font-family:monospace;color:var(--text-primary);line-height:1.6;" data-specimen>Private equity & investment teams</span>
           </li>
           <li style="display:flex;align-items:center;gap:var(--spacing-lg);">
-            <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" style="width:1.25rem;height:1.25rem;" />
+            <DeltaIcon class="bullet-icon" />
             <span style="font-size:var(--text-base);font-family:monospace;color:var(--text-primary);line-height:1.6;">SaaS and technology-enabled businesses</span>
           </li>
         </ul>
@@ -1254,10 +1432,10 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <!-- 8a-1f. About & Services (Brutalist) -->
-    <h3 class="heading-sm brand-group-title">About & Services (Brutalist)</h3>
+    <!-- 8a-1f. About & Services -->
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-about-services">About & Services</h3>
 
-    <h4 class="label brand-subgroup-title">Service Card</h4>
+    <h4 class="brutal-label brand-subgroup-title">Service Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div style="padding:var(--spacing-xl);background:transparent;border:2px solid var(--border-light);transition:all var(--transition-normal);max-width:320px;cursor:default;" onmouseenter="this.style.borderColor='var(--color-primary)'" onmouseleave="this.style.borderColor='var(--border-light)'" data-specimen>
@@ -1269,23 +1447,23 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">FAQ Accordion</h4>
+    <h4 class="brutal-label brand-subgroup-title">FAQ Accordion</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div style="max-width:500px;">
           <details style="background:transparent;border:2px solid var(--border-light);transition:background var(--transition-normal),border-color var(--transition-normal);margin-bottom:var(--spacing-sm);" open>
-            <summary style="padding:var(--spacing-lg);font-size:var(--text-lg);font-family:monospace;font-weight:var(--font-weight-semibold);color:var(--text-primary);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;" data-specimen>What does a diligence engagement include? <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" style="width:14px;height:14px;flex-shrink:0;transform:rotate(180deg);transition:transform var(--transition-fast);" aria-hidden="true" /></summary>
+            <summary style="padding:var(--spacing-lg);font-size:var(--text-lg);font-family:monospace;font-weight:var(--font-weight-semibold);color:var(--text-primary);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;" data-specimen>What does a diligence engagement include? <DeltaIcon class="bullet-icon" /></summary>
             <div style="padding:0 var(--spacing-lg) var(--spacing-lg);font-family:monospace;color:var(--text-secondary);line-height:1.7;">A comprehensive review of architecture, infrastructure, security posture, and development practices.</div>
           </details>
           <details style="background:transparent;border:2px solid var(--border-light);">
-            <summary style="padding:var(--spacing-lg);font-size:var(--text-lg);font-family:monospace;font-weight:var(--font-weight-semibold);color:var(--text-primary);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;">How long does buy-side diligence take? <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" style="width:14px;height:14px;flex-shrink:0;transform:rotate(0deg);transition:transform var(--transition-fast);" aria-hidden="true" /></summary>
+            <summary style="padding:var(--spacing-lg);font-size:var(--text-lg);font-family:monospace;font-weight:var(--font-weight-semibold);color:var(--text-primary);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;">How long does buy-side diligence take? <DeltaIcon class="bullet-icon" /></summary>
           </details>
         </div>
         <code class="brand-code">.faq-item — no radius, 2px border, delta icon up→down(180deg) on expand, monospace question/answer</code>
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Founder Bio Card</h4>
+    <h4 class="brutal-label brand-subgroup-title">Founder Bio Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div style="display:grid;grid-template-columns:120px 1fr;gap:var(--spacing-xl);max-width:600px;padding:var(--spacing-xl);border-top:2px solid var(--border-light);">
@@ -1301,10 +1479,10 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <!-- 8a-1g. Hub Gateways & Library (Brutalist) -->
-    <h3 class="heading-sm brand-group-title">Hub Gateways & Library (Brutalist)</h3>
+    <!-- 8a-1g. Hub Gateways & Library -->
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-hub-gateways">Hub Gateways & Library</h3>
 
-    <h4 class="label brand-subgroup-title">Hub Gateway Card</h4>
+    <h4 class="brutal-label brand-subgroup-title">Hub Gateway Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brutal-frosted" style="padding:var(--spacing-xl);border:2px solid var(--border-light);border-top:3px solid var(--color-primary);transition:all var(--transition-normal);max-width:280px;text-align:center;cursor:default;" onmouseenter="this.style.borderColor='var(--color-primary)'" onmouseleave="this.style.borderColor='var(--border-light)';this.style.borderTopColor='var(--color-primary)'" data-specimen>
@@ -1317,7 +1495,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Teaser Card (Gateway)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Teaser Card (Gateway)</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brutal-frosted" style="padding:1.5rem;border:2px solid var(--border-light);border-top:3px solid var(--color-primary);max-width:400px;text-align:center;" data-specimen>
@@ -1328,7 +1506,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Hub Header</h4>
+    <h4 class="brutal-label brand-subgroup-title">Hub Header</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div>
@@ -1339,10 +1517,32 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <!-- 8a-1h. Radar Feed (Brutalist) -->
-    <h3 class="heading-sm brand-group-title">Radar Feed (Brutalist)</h3>
+    <h4 class="brutal-label brand-subgroup-title">Frosted Glass Variants</h4>
+    <div class="brand-component-row">
+      <div class="brand-component-item">
+        <div class="brutal-frosted brutal-frosted--heavy" style="padding:var(--spacing-lg);min-height:60px;display:flex;align-items:center;justify-content:center;">
+          <span style="font-family:monospace;font-size:var(--text-xs);color:var(--text-primary);">Heavy frost</span>
+        </div>
+        <code class="brand-code">.brutal-frosted--heavy — stronger blur + tint</code>
+      </div>
+      <div class="brand-component-item">
+        <div class="brutal-frosted brutal-frosted--blur-only" style="padding:var(--spacing-lg);min-height:60px;display:flex;align-items:center;justify-content:center;">
+          <span style="font-family:monospace;font-size:var(--text-xs);color:var(--text-primary);">Blur only</span>
+        </div>
+        <code class="brand-code">.brutal-frosted--blur-only — blur without tint</code>
+      </div>
+      <div class="brand-component-item">
+        <div class="brutal-frosted brutal-frosted--overlay" style="padding:var(--spacing-lg);min-height:60px;display:flex;align-items:center;justify-content:center;">
+          <span style="font-family:monospace;font-size:var(--text-xs);color:var(--text-primary);">Overlay frost</span>
+        </div>
+        <code class="brand-code">.brutal-frosted--overlay — full overlay variant</code>
+      </div>
+    </div>
 
-    <h4 class="label brand-subgroup-title">Editor's Pick Badge</h4>
+    <!-- 8a-1h. Radar Feed -->
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-radar">Radar Feed</h3>
+
+    <h4 class="brutal-label brand-subgroup-title">Editor's Pick Badge</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <span style="font-size:var(--text-xs);font-family:monospace;font-weight:var(--font-weight-semibold);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-editors-pick);border:2px solid var(--color-editors-pick);padding:0.125rem var(--spacing-sm);" data-specimen>Editor's Pick</span>
@@ -1350,7 +1550,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">FYI Item (Collapsed)</h4>
+    <h4 class="brutal-label brand-subgroup-title">FYI Item (Collapsed)</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div style="padding:var(--spacing-md) 0;border-bottom:1px solid var(--border-light);max-width:48rem;">
@@ -1360,7 +1560,7 @@ trackPageView('brand', 'Brand Style Reference');
             <span>Apr 2</span>
           </div>
           <div style="display:flex;align-items:center;gap:var(--spacing-sm);">
-            <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" style="width:14px;height:14px;" aria-hidden="true" />
+            <DeltaIcon class="bullet-icon" />
             <span style="font-size:var(--text-base);font-family:monospace;font-weight:var(--font-weight-semibold);color:var(--text-primary);line-height:1.4;" data-specimen>Cloud infrastructure spend surges as AI workloads reshape enterprise budgets</span>
           </div>
         </div>
@@ -1368,7 +1568,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Wire Item</h4>
+    <h4 class="brutal-label brand-subgroup-title">Wire Item</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div style="display:flex;gap:var(--spacing-md);padding:var(--spacing-md) 0;border-bottom:1px solid var(--border-light);max-width:48rem;">
@@ -1382,7 +1582,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Category Filter</h4>
+    <h4 class="brutal-label brand-subgroup-title">Category Filter</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div style="display:flex;gap:var(--spacing-xs);">
@@ -1394,10 +1594,10 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <!-- 8a-1i. M&A Portfolio (Brutalist) -->
-    <h3 class="heading-sm brand-group-title">M&A Portfolio (Brutalist)</h3>
+    <!-- 8a-1i. M&A Portfolio -->
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-portfolio">M&A Portfolio</h3>
 
-    <h4 class="label brand-subgroup-title">Project Card</h4>
+    <h4 class="brutal-label brand-subgroup-title">Project Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brutal-frosted" style="padding:var(--spacing-xl);border:2px solid var(--border-light);transition:all var(--transition-normal);max-width:280px;cursor:default;" onmouseenter="this.style.borderColor='var(--color-primary)'" onmouseleave="this.style.borderColor='var(--border-light)'" data-specimen>
@@ -1417,7 +1617,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Project Modal</h4>
+    <h4 class="brutal-label brand-subgroup-title">Project Modal</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div style="max-width:500px;padding:1.5rem;border:1px solid var(--border-light);border-top:3px solid var(--color-primary);background:var(--bg-light);">
@@ -1435,7 +1635,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Filter Drawer</h4>
+    <h4 class="brutal-label brand-subgroup-title">Filter Drawer</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div style="width:280px;background:rgba(245,245,245,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-left:2px solid var(--color-primary);padding:1.25rem;" data-specimen>
@@ -1456,7 +1656,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Search Controls Bar</h4>
+    <h4 class="brutal-label brand-subgroup-title">Search Controls Bar</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div style="display:flex;align-items:center;gap:0.75rem;background:rgba(255,255,255,0.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:0.5rem;max-width:500px;border-bottom:2px solid var(--color-primary);" data-specimen>
@@ -1474,9 +1674,9 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
 
     <!-- 8a-2. Wizard Progress -->
-    <h3 class="heading-sm brand-group-title">Wizard Progress</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-wizard">Wizard Progress</h3>
 
-    <h4 class="label brand-subgroup-title">Desktop Progress Bar</h4>
+    <h4 class="brutal-label brand-subgroup-title">Desktop Progress Bar</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brand-wizard-progress">
@@ -1505,7 +1705,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Mobile Compact Progress</h4>
+    <h4 class="brutal-label brand-subgroup-title">Mobile Compact Progress</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brand-wizard-progress-mobile">
@@ -1522,41 +1722,20 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Option Card (Current)</h4>
-    <div class="brand-component-row">
-      <div class="brand-component-item brand-component-item--full">
-        <div class="options-grid">
-          <button class="option-card" type="button" data-demo-option>
-            <span class="option-label"><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" class="option-icon" width="10" height="10" />Full Acquisition</span>
-            <span class="option-description">Complete purchase of the target entity</span>
-          </button>
-          <button class="option-card option-card--selected" type="button" data-demo-option>
-            <span class="option-label"><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" class="option-icon" width="10" height="10" />Carve-out</span>
-            <span class="option-description">Separation of a business unit from a parent company</span>
-          </button>
-          <button class="option-card" type="button" data-demo-option>
-            <span class="option-label"><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" class="option-icon" width="10" height="10" />Majority Stake</span>
-            <span class="option-description">Controlling interest with existing ownership retained</span>
-          </button>
-        </div>
-        <code class="brand-code">.option-card — rounded corners, box-shadow, soft hover lift (current DM implementation)</code>
-      </div>
-    </div>
-
-    <h4 class="label brand-subgroup-title">Option Card (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Option Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="options-grid">
           <button class="brutal-option-card" type="button" data-demo-option-brutal>
-            <span class="brutal-option-card__label"><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" class="brutal-option-card__icon" width="10" height="10" />Full Acquisition</span>
+            <span class="brutal-option-card__label"><DeltaIcon class="brutal-option-card__icon" />Full Acquisition</span>
             <span class="brutal-option-card__description">Complete purchase of the target entity</span>
           </button>
           <button class="brutal-option-card brutal-option-card--selected" type="button" data-demo-option-brutal>
-            <span class="brutal-option-card__label"><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" class="brutal-option-card__icon" width="10" height="10" />Carve-out</span>
+            <span class="brutal-option-card__label"><DeltaIcon class="brutal-option-card__icon" />Carve-out</span>
             <span class="brutal-option-card__description">Separation of a business unit from a parent company</span>
           </button>
           <button class="brutal-option-card" type="button" data-demo-option-brutal>
-            <span class="brutal-option-card__label"><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" class="brutal-option-card__icon" width="10" height="10" />Majority Stake</span>
+            <span class="brutal-option-card__label"><DeltaIcon class="brutal-option-card__icon" />Majority Stake</span>
             <span class="brutal-option-card__description">Controlling interest with existing ownership retained</span>
           </button>
         </div>
@@ -1564,10 +1743,26 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <!-- 8b. Cards -->
-    <h3 class="heading-sm brand-group-title">Cards</h3>
+    <h4 class="brutal-label brand-subgroup-title">Option Card Variants</h4>
+    <div class="brand-component-row">
+      <div class="brand-component-item">
+        <div class="brutal-option-card brutal-option-card--compact" style="padding:var(--spacing-sm) var(--spacing-md);">
+          <span class="brutal-option-card__label" style="font-family:monospace;font-size:var(--text-sm);">Compact Option</span>
+        </div>
+        <code class="brand-code">.brutal-option-card--compact — reduced padding variant for tight layouts</code>
+      </div>
+      <div class="brand-component-item">
+        <div class="brutal-option-card brutal-option-card--selected-outline" style="padding:var(--spacing-sm) var(--spacing-md);border:2px solid var(--color-primary);">
+          <span class="brutal-option-card__label" style="font-family:monospace;font-size:var(--text-sm);">Selected Outline</span>
+        </div>
+        <code class="brand-code">.brutal-option-card--selected-outline — outline-only selected state (no fill)</code>
+      </div>
+    </div>
 
-    <h4 class="label brand-subgroup-title">Trust Card</h4>
+    <!-- 8b. Cards -->
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-cards">Cards</h3>
+
+    <h4 class="brutal-label brand-subgroup-title">Trust Card</h4>
     <div class="brand-card-grid">
       <div class="brutal-trust-card">
         <h3>Vendor-Neutral Analysis</h3>
@@ -1580,7 +1775,7 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
     <code class="brand-code">.brutal-trust-card — no radius, transparent bg, left-border accent, monospace heading, hard hover</code>
 
-    <h4 class="label brand-subgroup-title">Project Card (Current)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Project Card (Current)</h4>
     <div class="brand-card-grid brand-card-grid--single">
       <div class="project-card">
         <div class="project-card__header">
@@ -1610,7 +1805,7 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
     <code class="brand-code">.project-card — rounded hover shadow, filled metrics bg, rounded tags</code>
 
-    <h4 class="label brand-subgroup-title">Project Card (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Project Card</h4>
     <div class="brand-card-grid brand-card-grid--single">
       <div class="brutal-project-card">
         <div class="brutal-project-card__header">
@@ -1640,7 +1835,7 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
     <code class="brand-code">.project-card (brutalist) — no shadow, left-border metrics, monospace values, outlined tags, invert-hover CTA</code>
 
-    <h4 class="label brand-subgroup-title">Teaser Card (Current)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Teaser Card (Current)</h4>
     <div class="brand-card-grid brand-card-grid--single">
       <article class="teaser-card">
         <div class="teaser-card__header">
@@ -1662,7 +1857,7 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
     <code class="brand-code">.teaser-card — rounded corners, accent-wash bg, centered layout</code>
 
-    <h4 class="label brand-subgroup-title">Teaser Card (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Teaser Card</h4>
     <div class="brand-card-grid brand-card-grid--single">
       <article class="brutal-teaser-card">
         <div class="brutal-teaser-card__header">
@@ -1684,7 +1879,7 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
     <code class="brand-code">.teaser-card (brutalist) — no radius, border-top accent, left-aligned, monospace heading, outlined badge</code>
 
-    <h4 class="label brand-subgroup-title">Recommendation Card (Current)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Recommendation Card (Current)</h4>
     <div class="brand-card-grid brand-card-grid--single" style="max-width: 600px;">
       <div class="rec-card" id="demo-rec-card">
         <div class="rec-body">
@@ -1703,7 +1898,7 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
     <code class="brand-code">.icg-rec-card — rounded corners, filled badges, rounded borders</code>
 
-    <h4 class="label brand-subgroup-title">Recommendation Card (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Recommendation Card</h4>
     <div class="brand-card-grid brand-card-grid--single" style="max-width: 600px;">
       <div class="brutal-rec-card" id="demo-rec-brutal">
         <div class="brutal-rec-card__body">
@@ -1722,7 +1917,7 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
     <code class="brand-code">.icg-rec-card (brutalist) — no radius, left-border accent, outlined badges, monospace title</code>
 
-    <h4 class="label brand-subgroup-title">Attention Card (Current)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Attention Card (Current)</h4>
     <div class="brand-card-grid brand-card-grid--single" style="max-width: 600px;">
       <div class="attention-card attention-card--high" id="demo-attention-card">
         <div class="attention-header">
@@ -1738,7 +1933,7 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
     <code class="brand-code">.doc-attention-card — rounded corners, tinted bg by relevance, colored divider</code>
 
-    <h4 class="label brand-subgroup-title">Attention Card (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Attention Card</h4>
     <div class="brand-card-grid brand-card-grid--single" style="max-width: 600px;">
       <div class="brutal-attention-card brutal-attention-card--high" id="demo-attention-brutal">
         <div class="brutal-attention-card__header">
@@ -1755,7 +1950,7 @@ trackPageView('brand', 'Brand Style Reference');
 
     <!-- 8b-2. ICG Tool Components -->
 
-    <h4 class="label brand-subgroup-title">Progress Bar (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Progress Bar</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full" style="max-width: 400px;">
         <div class="brutal-progress-bar">
@@ -1768,7 +1963,7 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
     <code class="brand-code">.brutal-progress-bar — hard-edged track, no radius, monospace label, primary fill</code>
 
-    <h4 class="label brand-subgroup-title">Stat Tile (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Stat Tile</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full" style="max-width: 400px;">
         <div style="display: flex; gap: var(--gap-normal);">
@@ -1789,7 +1984,7 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
     <code class="brand-code">.brutal-stat-tile — hard borders, no radius, monospace value/label, no bg fill</code>
 
-    <h4 class="label brand-subgroup-title">Callout (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Callout</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full" style="max-width: 500px;">
         <div class="brutal-callout">
@@ -1810,9 +2005,9 @@ trackPageView('brand', 'Brand Style Reference');
     <code class="brand-code">.brutal-callout--warning — gold left-border accent for warnings</code>
 
     <!-- 8c. Form Controls -->
-    <h3 class="heading-sm brand-group-title">Form Controls</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-form-controls">Form Controls</h3>
 
-    <h4 class="label brand-subgroup-title">Search Input</h4>
+    <h4 class="brutal-label brand-subgroup-title">Search Input</h4>
     <div class="brand-component-row">
       <div class="brand-component-item" style="width: 340px;">
         <div class="search-box">
@@ -1823,20 +2018,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Filter Chips (Current)</h4>
-    <div class="brand-component-row">
-      <div class="brand-component-item brand-component-item--full">
-        <div class="filter-chips">
-          <div class="filter-chip filter-chip--active" data-demo-chip>All</div>
-          <div class="filter-chip" data-demo-chip>Growth</div>
-          <div class="filter-chip" data-demo-chip>Mature</div>
-          <div class="filter-chip" data-demo-chip>Early Stage</div>
-        </div>
-        <code class="brand-code">.filter-chip — rounded (4px), filled bg, filled active state</code>
-      </div>
-    </div>
-
-    <h4 class="label brand-subgroup-title">Filter Chips (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Filter Chips</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brutal-filter-chips">
@@ -1849,7 +2031,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Search Input (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Search Input</h4>
     <div class="brand-component-row">
       <div class="brand-component-item" style="width: 360px;">
         <div class="brutal-search">
@@ -1863,7 +2045,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Legend (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Legend</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brutal-legend">
@@ -1880,7 +2062,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Map CTA (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Map CTA</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brutal-map-cta">
@@ -1891,7 +2073,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Timeline (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Timeline</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div style="display: flex; flex-direction: column; gap: 4px; max-width: 400px;">
@@ -1919,7 +2101,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">FAQ (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">FAQ</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full" style="max-width: 600px;">
         <div class="brutal-faq">
@@ -1936,7 +2118,20 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Map Controls (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">FAQ Large</h4>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div class="brutal-faq brutal-faq--lg">
+          <details class="brutal-faq__item">
+            <summary class="brutal-faq__question">Large FAQ question with more prominent spacing?</summary>
+            <div class="brutal-faq__answer">Answer content with larger variant styling for prominent FAQ sections.</div>
+          </details>
+        </div>
+        <code class="brand-code">.brutal-faq--lg — larger FAQ variant with increased spacing and font size</code>
+      </div>
+    </div>
+
+    <h4 class="brutal-label brand-subgroup-title">Map Controls</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div style="display: flex; gap: 2px;">
@@ -1952,7 +2147,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Compliance Panel & Reg Card (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Compliance Panel & Reg Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full" style="max-width: 400px;">
         <div class="brutal-panel" style="max-height: none;">
@@ -1975,7 +2170,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Range Slider (Current)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Range Slider (Current)</h4>
     <div class="brand-component-row">
       <div class="brand-component-item" style="width: 300px;">
         <div class="slider-row">
@@ -1992,7 +2187,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Range Slider (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Range Slider</h4>
     <div class="brand-component-row">
       <div class="brand-component-item" style="width: 300px;">
         <div class="brutal-slider">
@@ -2009,7 +2204,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Filter Button with Badge</h4>
+    <h4 class="brutal-label brand-subgroup-title">Filter Button with Badge</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <button class="filter-button">
@@ -2022,12 +2217,12 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
 
     <!-- 8d. Overlays -->
-    <h3 class="heading-sm brand-group-title">Overlays</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-overlays">Overlays</h3>
 
-    <h4 class="label brand-subgroup-title">Modal Dialog</h4>
+    <h4 class="brutal-label brand-subgroup-title">Modal Dialog</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <button class="hub-btn hub-btn--primary" id="demo-modal-open">Open Demo Modal</button>
+        <button class="brutal-btn brutal-btn--primary" id="demo-modal-open">Open Demo Modal</button>
         <code class="brand-code">&lt;dialog&gt; with .project-modal — clip-path corners, backdrop blur</code>
       </div>
     </div>
@@ -2071,7 +2266,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </dialog>
 
-    <h4 class="label brand-subgroup-title">Filter Drawer (Current)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Filter Drawer (Current)</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="filter-drawer-demo">
@@ -2106,7 +2301,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Filter Drawer (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Filter Drawer</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brutal-filter-drawer">
@@ -2142,9 +2337,9 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
 
     <!-- 8e. Collapsible Content -->
-    <h3 class="heading-sm brand-group-title">Collapsible Content</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-collapsible">Collapsible Content</h3>
 
-    <h4 class="label brand-subgroup-title">Methodology Panel</h4>
+    <h4 class="brutal-label brand-subgroup-title">Methodology Panel</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div style="max-width: 700px;">
@@ -2180,7 +2375,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Details / Summary</h4>
+    <h4 class="brutal-label brand-subgroup-title">Details / Summary</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div style="max-width: 700px;">
@@ -2199,9 +2394,9 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
 
     <!-- 8f. Data Display -->
-    <h3 class="heading-sm brand-group-title">Data Display</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-data-display">Data Display</h3>
 
-    <h4 class="label brand-subgroup-title">Stats Bar</h4>
+    <h4 class="brutal-label brand-subgroup-title">Stats Bar</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="stats-bar">
@@ -2228,34 +2423,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Bench Table (Current)</h4>
-    <div class="brand-component-row">
-      <div class="brand-component-item brand-component-item--full">
-        <div style="max-width: 500px;">
-          <table class="tool-bench-table">
-            <tr>
-              <td>Infrastructure</td>
-              <td>12.4%</td>
-            </tr>
-            <tr class="bench-row--active">
-              <td>Personnel <span class="bench-label bench-label--score">Target</span></td>
-              <td>18.2%</td>
-            </tr>
-            <tr>
-              <td>R&D OpEx <span class="bench-label bench-label--stage">Growth</span></td>
-              <td>8.7%</td>
-            </tr>
-            <tr>
-              <td>R&D CapEx</td>
-              <td>5.1%</td>
-            </tr>
-          </table>
-        </div>
-        <code class="brand-code">.tool-bench-table — light borders, accent-bg active row, small rounded badges</code>
-      </div>
-    </div>
-
-    <h4 class="label brand-subgroup-title">Bench Table (Brutalist)</h4>
+    <h4 class="brutal-label brand-subgroup-title">Bench Table</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div style="max-width: 500px;">
@@ -2282,7 +2450,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">Badges &amp; Tags</h4>
+    <h4 class="brutal-label brand-subgroup-title">Badges &amp; Tags</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brand-year-badge">2025</div>
@@ -2307,9 +2475,9 @@ trackPageView('brand', 'Brand Style Reference');
     </div>
 
     <!-- 8g. Layout Containers -->
-    <h3 class="heading-sm brand-group-title">Layout Containers</h3>
+    <h3 class="brutal-heading-sm brand-group-title" id="lib-layout">Layout Containers</h3>
 
-    <h4 class="label brand-subgroup-title">Container</h4>
+    <h4 class="brutal-label brand-subgroup-title">Container</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="brand-container-demo">
@@ -2319,7 +2487,7 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
-    <h4 class="label brand-subgroup-title">CTA Box</h4>
+    <h4 class="brutal-label brand-subgroup-title">CTA Box</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div class="cta-box">
@@ -2331,8 +2499,125 @@ trackPageView('brand', 'Brand Style Reference');
       </div>
     </div>
 
+    <h4 class="brutal-label brand-subgroup-title">Choice Button</h4>
+    <div class="brand-component-row">
+      <div class="brand-component-item">
+        <button class="brutal-choice-btn" type="button">Default Choice</button>
+        <button class="brutal-choice-btn brutal-choice-btn--selected" type="button">Selected Choice</button>
+        <button class="brutal-choice-btn brutal-choice-btn--unsure" type="button">Unsure Choice</button>
+        <code class="brand-code">.brutal-choice-btn — monospace, bordered, no radius. Modifiers: --selected (primary accent), --unsure (secondary accent)</code>
+      </div>
+    </div>
+
+    <h4 class="brutal-label brand-subgroup-title">Content Label</h4>
+    <div class="brand-component-row">
+      <div class="brand-component-item">
+        <span class="brutal-content-label">Section Content Label</span>
+        <code class="brand-code">.brutal-content-label — uppercase monospace label for content sections</code>
+      </div>
+    </div>
+
+    <h4 class="brutal-label brand-subgroup-title">Text Input</h4>
+    <div class="brand-component-row">
+      <div class="brand-component-item">
+        <input class="brutal-input" type="text" placeholder="Brutalist text input" />
+        <code class="brand-code">.brutal-input — monospace, no radius, bordered, primary focus ring</code>
+      </div>
+    </div>
+
+    <h4 class="brutal-label brand-subgroup-title">Bottom Sheet</h4>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div style="position:relative;height:120px;border:1px solid var(--border-light);overflow:hidden;">
+          <div style="position:absolute;bottom:0;left:0;right:0;background:var(--bg-light);border-top:2px solid var(--color-primary);padding:var(--spacing-md);">
+            <div class="brutal-bottom-sheet__handle" style="display:flex;justify-content:center;padding:var(--spacing-xs) 0;">
+              <div class="brutal-bottom-sheet__handle-bar" style="width:40px;height:4px;background:var(--border-light);"></div>
+            </div>
+            <div style="font-family:monospace;font-size:var(--text-sm);color:var(--text-secondary);">Bottom sheet content area</div>
+          </div>
+        </div>
+        <code class="brand-code">.brutal-bottom-sheet — slide-up mobile panel. Sub-elements: __handle, __handle-bar, __overlay</code>
+      </div>
+    </div>
+
+    <h4 class="brutal-label brand-subgroup-title">Map Hint</h4>
+    <div class="brand-component-row">
+      <div class="brand-component-item">
+        <div class="brutal-map-hint" style="position:relative;display:inline-block;padding:var(--spacing-sm) var(--spacing-md);background:var(--bg-light);border:1px solid var(--border-light);font-family:monospace;font-size:var(--text-xs);color:var(--text-muted);">Click a region to view details</div>
+        <code class="brand-code">.brutal-map-hint — instructional overlay on map visualizations</code>
+      </div>
+    </div>
+
+    <h4 class="brutal-label brand-subgroup-title">Map Tap Bar</h4>
+    <div class="brand-component-row">
+      <div class="brand-component-item brand-component-item--full">
+        <div class="brutal-map-tap-bar" style="display:flex;align-items:center;justify-content:space-between;padding:var(--spacing-sm) var(--spacing-md);border:2px solid var(--color-primary);background:var(--bg-light);font-family:monospace;">
+          <span class="brutal-map-tap-bar__name" style="font-size:var(--text-sm);font-weight:var(--font-weight-bold);color:var(--text-primary);">Selected Region</span>
+          <button class="brutal-btn brutal-btn--primary brutal-map-tap-bar__action" type="button" style="font-size:var(--text-xs);padding:var(--spacing-xs) var(--spacing-md);">View Details</button>
+        </div>
+        <code class="brand-code">.brutal-map-tap-bar — mobile bottom bar for map selection. Sub-elements: __name, __action</code>
+      </div>
+    </div>
+
+    <h4 class="brutal-label brand-subgroup-title">Quick Zoom</h4>
+    <div class="brand-component-row">
+      <div class="brand-component-item">
+        <div class="brutal-quick-zoom" style="display:inline-flex;flex-direction:column;border:1px solid var(--border-light);">
+          <button type="button" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;border-bottom:1px solid var(--border-light);background:var(--bg-light);font-family:monospace;font-size:var(--text-base);color:var(--text-primary);cursor:pointer;">+</button>
+          <button type="button" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;background:var(--bg-light);font-family:monospace;font-size:var(--text-base);color:var(--text-primary);cursor:pointer;">&minus;</button>
+        </div>
+        <code class="brand-code">.brutal-quick-zoom — compact zoom controls for map visualizations</code>
+      </div>
+    </div>
+
   </div>
 </section>
+
+<!-- ═══════════════════════ TABLE OF CONTENTS COMPONENT ═══════════════════════ -->
+<section class="brand-section" id="toc-component">
+  <h2 class="brand-section-heading">
+    <DeltaIcon class="bullet-icon" />
+    Table of Contents Component
+  </h2>
+  <p class="brand-body">The <code>&lt;TableOfContents&gt;</code> component provides a reusable, props-driven table of contents with optional scroll-spy, mobile collapse, and auto-generated sublists from page headings.</p>
+
+  <div class="brand-component-row">
+    <div class="brand-component-item">
+      <h3 class="brutal-heading-sm" id="toc-basic">Basic</h3>
+      <div class="brand-toc-specimen">
+        <TableOfContents
+          heading="Demo: Basic"
+          items={[
+            { href: "#toc-basic", label: "Overview" },
+            { href: "#toc-collapsible", label: "Features", isLayer: true, sublistSource: { mode: "query", scopeId: "toc-component" } },
+            { href: "#toc-component", label: "API Reference" },
+          ]}
+          separatorBefore={[2]}
+        />
+      </div>
+      <code class="brand-code">&lt;TableOfContents items=&#123;[...]&#125; /&gt;</code>
+    </div>
+
+    <div class="brand-component-item">
+      <h3 class="brutal-heading-sm" id="toc-collapsible">Collapsible (resize to mobile)</h3>
+      <div class="brand-toc-specimen">
+        <TableOfContents
+          heading="Demo: Collapsible"
+          collapsible={true}
+          items={[
+            { href: "#toc-basic", label: "Section A" },
+            { href: "#toc-collapsible", label: "Section B" },
+            { href: "#toc-component", label: "Section C" },
+          ]}
+        />
+      </div>
+      <code class="brand-code">&lt;TableOfContents collapsible=&#123;true&#125; items=&#123;[...]&#125; /&gt;</code>
+    </div>
+  </div>
+</section>
+
+  </div><!-- .brand-content .palette-scope -->
+</div><!-- .brand-layout -->
 
 </BaseLayout>
 
@@ -2357,6 +2642,10 @@ trackPageView('brand', 'Brand Style Reference');
     margin-bottom: var(--spacing-xl);
     padding-bottom: var(--spacing-sm);
     border-bottom: 2px solid var(--color-primary);
+  }
+
+  .brand-section__note--mobile {
+    display: none;
   }
 
   .brand-section__note {
@@ -2399,11 +2688,17 @@ trackPageView('brand', 'Brand Style Reference');
     gap: var(--spacing-sm);
   }
 
-  .brand-logo-item img {
+  .brand-logo-item img,
+  .brand-logo-item :global(.brand-logo-composite) {
     border: 1px solid var(--border-light);
     border-radius: 6px;
     padding: var(--spacing-md);
     background: var(--bg-light-alt);
+  }
+
+  .brand-logo-item :global(.brand-logo-delta),
+  .brand-logo-item :global(.brand-logo-composite) {
+    color: var(--color-primary);
   }
 
   .brand-identity-info h3 {
@@ -2544,25 +2839,6 @@ trackPageView('brand', 'Brand Style Reference');
     gap: var(--gap-wide);
   }
 
-  .brand-shadow-card {
-    background: var(--bg-light);
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
-    padding: var(--spacing-2xl);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-sm);
-  }
-
-  .brand-shadow-value {
-    font-size: var(--text-xs);
-    font-family: monospace;
-    color: var(--text-muted);
-    text-align: center;
-    word-break: break-all;
-  }
-
   /* Transitions */
   .brand-transition-grid {
     display: grid;
@@ -2570,32 +2846,10 @@ trackPageView('brand', 'Brand Style Reference');
     gap: var(--gap-wide);
   }
 
-  .brand-transition-demo {
-    background: var(--bg-light-alt);
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
-    padding: var(--spacing-2xl);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-sm);
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .brand-transition-demo:hover {
-    transform: scale(1.05);
-    background: var(--accent-light-bg);
-  }
-
   .brand-transition-value {
     font-size: var(--text-xs);
     font-family: monospace;
     color: var(--text-muted);
-  }
-
-  .brand-transition-hint {
-    color: var(--text-faded);
   }
 
   /* Components */
@@ -2618,16 +2872,7 @@ trackPageView('brand', 'Brand Style Reference');
     width: 100%;
   }
 
-  .brand-interaction-box {
-    padding: var(--spacing-md) var(--spacing-xl);
-    border: 1px solid var(--border-light);
-    border-radius: 6px;
-    color: var(--text-secondary);
-    cursor: pointer;
-  }
-
   /* Left-align specimens (override global margin: 0 auto) */
-  .brand-component-item .tool-shell,
   .brand-component-item .brutal-tool-shell,
   .brand-component-item .cta-box {
     margin-left: 0;
@@ -2917,6 +3162,14 @@ trackPageView('brand', 'Brand Style Reference');
 
   /* Responsive */
   @media (max-width: 768px) {
+    .brand-section__note--desktop {
+      display: none;
+    }
+
+    .brand-section__note--mobile {
+      display: block;
+    }
+
     .brand-section {
       padding: var(--spacing-2xl) 0;
     }
@@ -2947,6 +3200,21 @@ trackPageView('brand', 'Brand Style Reference');
       grid-template-columns: 1fr;
     }
 
+    .brand-type-specimen > span:first-child {
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    .brand-component-item {
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    .a11y-contrast-table,
+    .a11y-kb-table {
+      overflow-x: auto;
+    }
+  }
 
   @media (max-width: 480px) {
     .brand-section {
@@ -2955,6 +3223,10 @@ trackPageView('brand', 'Brand Style Reference');
 
     .brand-swatch-grid {
       grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+
+    .brand-swatch__usage {
+      display: none;
     }
 
     .brand-shadow-grid,
@@ -2974,116 +3246,383 @@ trackPageView('brand', 'Brand Style Reference');
       flex-direction: column;
       align-items: flex-start;
     }
+  }
 
+  /* ═══════════════════════════════════════════════════════════
+     PALETTE EXPLORER — variables and scope overrides
+     (migrated from colors.astro)
+     ═══════════════════════════════════════════════════════════ */
 
-  /* Print */
-  @media print {
-    .brand-transition-demo:hover {
-      transform: none;
+  .colors-palette-concept {
+    color: var(--text-secondary);
+    max-width: 680px;
+    height: 3.2em;
+    overflow: hidden;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  /* palette-scope layout (palette CSS vars now in palettes.css) */
+  .palette-scope {
+    padding-bottom: var(--spacing-3xl);
+  }
+
+  /* ── REMOVED: :root alt-color definitions, dark-theme overrides,
+       .palette-scope tool derivations, .palette-0 through .palette-5
+       — all moved to src/styles/palettes.css ── */
+
+  /* ── Component State Demo Layout ── */
+  .brand-state-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap-wide);
+    align-items: flex-start;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .brand-state-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--gap-wide);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .brand-state-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    align-items: flex-start;
+  }
+
+  .brand-state-item--wide {
+    min-width: 240px;
+  }
+
+  /* ── Forced state: hover ── */
+  .brutal-btn--primary[data-demo-state="hover"] {
+    background: transparent;
+    color: var(--color-primary);
+  }
+
+  .brutal-btn--secondary[data-demo-state="hover"] {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .brutal-option-card[data-demo-state="hover"] {
+    border-color: var(--color-primary);
+    background: var(--accent-subtle-bg);
+  }
+
+  .brutal-choice-btn[data-demo-state="hover"] {
+    border-color: var(--color-primary);
+    color: var(--text-primary);
+  }
+
+  /* ── Forced state: focus ── */
+  .brutal-btn[data-demo-state="focus"] {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  .brutal-field__input[data-demo-state="focus"] {
+    border-color: var(--color-primary);
+    border-style: solid;
+  }
+
+  .brutal-option-card[data-demo-state="focus"] {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  .brutal-choice-btn[data-demo-state="focus"] {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  /* ── Forced state: error ── */
+  .brutal-field__input[data-demo-state="error"] {
+    border-color: var(--color-error);
+    border-style: solid;
+  }
+
+  /* ── Forced state: readonly ── */
+  .brutal-field__input[data-demo-state="readonly"] {
+    color: var(--text-muted);
+    cursor: default;
+  }
+
+  /* ── Forced state: focus on link ── */
+  .brutal-link-interactive[data-demo-state="focus"] {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  /* ── Accessibility Section ── */
+  .a11y-contrast-table {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: var(--spacing-xl);
+    max-width: 600px;
+  }
+
+  .a11y-contrast-row {
+    display: grid;
+    grid-template-columns: 24px 1fr auto auto;
+    gap: var(--spacing-md);
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-family: monospace;
+    font-size: var(--text-xs);
+    background: var(--bg-light-alt);
+    border: 1px solid var(--border-light);
+  }
+
+  html.dark-theme .a11y-contrast-row {
+    border-color: var(--border-dark-default);
+  }
+
+  .a11y-swatch {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--border-light);
+  }
+
+  html.dark-theme .a11y-swatch {
+    border-color: var(--border-dark-default);
+  }
+
+  .a11y-var {
+    color: var(--text-secondary);
+  }
+
+  .a11y-ratio {
+    color: var(--text-muted);
+    text-align: right;
+  }
+
+  .a11y-badge {
+    font-size: 0.65rem;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px var(--spacing-xs);
+    border: 1px solid;
+  }
+
+  .a11y-badge--pass {
+    color: var(--color-success);
+    border-color: var(--color-success);
+  }
+
+  .a11y-badge--warn {
+    color: var(--color-warning);
+    border-color: var(--color-warning);
+  }
+
+  .a11y-badge--fail {
+    color: var(--color-error);
+    border-color: var(--color-error);
+  }
+
+  .a11y-touch-demo {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .a11y-touch-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    border: 2px dashed var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: monospace;
+    font-size: 0.55rem;
+    color: var(--color-primary);
+    pointer-events: none;
+    opacity: 0.7;
+  }
+
+  .a11y-kb-table {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: var(--spacing-xl);
+    max-width: 600px;
+  }
+
+  .a11y-kb-row {
+    display: grid;
+    grid-template-columns: 140px 120px 1fr;
+    gap: var(--spacing-md);
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-family: monospace;
+    font-size: var(--text-xs);
+    background: var(--bg-light-alt);
+    border: 1px solid var(--border-light);
+  }
+
+  html.dark-theme .a11y-kb-row {
+    border-color: var(--border-dark-default);
+  }
+
+  .a11y-kb-row--header {
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+  }
+
+  .a11y-kb-row kbd {
+    font-family: monospace;
+    font-size: var(--text-xs);
+    padding: 2px var(--spacing-xs);
+    border: 1px solid var(--border-light);
+    background: var(--bg-light);
+    color: var(--text-primary);
+  }
+
+  html.dark-theme .a11y-kb-row kbd {
+    border-color: var(--border-dark-default);
+    background: var(--bg-dark-secondary);
+  }
+
+  .a11y-code-block {
+    margin-bottom: var(--spacing-xl);
+    max-width: 600px;
+  }
+
+  .a11y-code-block pre {
+    background: var(--bg-light-alt);
+    border: 1px solid var(--border-light);
+    padding: var(--spacing-lg);
+    overflow-x: auto;
+    font-family: monospace;
+    font-size: var(--text-xs);
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+
+  html.dark-theme .a11y-code-block pre {
+    border-color: var(--border-dark-default);
+  }
+
+  /* ── Responsive Demo Frames ── */
+  .responsive-demo-row {
+    display: flex;
+    gap: var(--gap-wide);
+    align-items: flex-start;
+    margin-bottom: var(--spacing-2xl);
+    overflow-x: auto;
+  }
+
+  .responsive-demo-frame {
+    flex-shrink: 0;
+    position: relative;
+    border: 1px solid var(--border-light);
+  }
+
+  html.dark-theme .responsive-demo-frame {
+    border-color: var(--border-dark-default);
+  }
+
+  .responsive-demo-frame iframe {
+    display: block;
+    border: none;
+    height: 200px;
+    background: var(--bg-light);
+    overflow: hidden;
+  }
+
+  .responsive-demo-frame--tablet iframe { height: 350px; }
+  .responsive-demo-frame--mobile iframe { height: 400px; }
+
+  .responsive-demo-frame--desktop iframe { width: 600px; }
+  .responsive-demo-frame--tablet iframe { width: 384px; }
+  .responsive-demo-frame--mobile iframe { width: 240px; }
+
+  .responsive-demo-label {
+    display: block;
+    font-family: monospace;
+    font-size: 0.6rem;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 2px var(--spacing-xs);
+    border-bottom: 1px solid var(--border-light);
+    background: var(--bg-light-alt);
+  }
+
+  html.dark-theme .responsive-demo-label {
+    border-bottom-color: var(--border-dark-default);
+  }
+
+  /* TOC specimen — prevent sticky positioning inside demo */
+  .brand-toc-specimen :global(.toc) {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  @media (max-width: 768px) {
+    .responsive-demo-row {
+      flex-direction: column;
+    }
+    .responsive-demo-frame--desktop iframe { width: 100%; min-width: 0; }
+    .responsive-demo-frame--tablet iframe { width: 100%; min-width: 0; }
+    .responsive-demo-frame--mobile iframe { width: 240px; }
+  }
+
+  /* ── Brand TOC (matches Hub Library article pattern) ── */
+  .brand-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: var(--spacing-2xl);
+    max-width: 1400px;
+    margin: 0 auto;
+    align-items: start;
+  }
+
+  .brand-content {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* Layout positioning for shared TOC component */
+  .brand-layout :global(.toc) {
+    position: sticky;
+    top: var(--spacing-xl);
+    max-height: calc(100vh - var(--spacing-2xl));
+    overflow-y: auto;
+  }
+
+  @media (max-width: 768px) {
+    .brand-layout {
+      display: block;
+    }
+
+    .brand-layout :global(.toc) {
+      position: static;
+      max-height: none;
+      overflow-y: visible;
+      margin-bottom: var(--spacing-lg);
     }
   }
+
 </style>
 
 <script>
-  function rgbToHex(rgb: string): string {
-    if (rgb === 'transparent' || rgb === 'rgba(0, 0, 0, 0)') return 'transparent';
-
-    const rgbaMatch = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-    if (!rgbaMatch) return rgb;
-
-    const r = parseInt(rgbaMatch[1]);
-    const g = parseInt(rgbaMatch[2]);
-    const b = parseInt(rgbaMatch[3]);
-    const a = rgbaMatch[4] !== undefined ? parseFloat(rgbaMatch[4]) : 1;
-
-    const hex = '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
-
-    if (a < 1) {
-      return `${hex} (${Math.round(a * 100)}%)`;
-    }
-    return hex;
-  }
-
-  function readAndPopulate(): void {
-    const root = document.documentElement;
-    const style = getComputedStyle(root);
-
-    // Color swatches: use temp element for resolved values
-    document.querySelectorAll<HTMLElement>('.brand-swatch').forEach(el => {
-      const varName = el.dataset.var;
-      if (!varName) return;
-
-      const temp = document.createElement('div');
-      temp.style.display = 'none';
-      temp.style.backgroundColor = `var(${varName})`;
-      root.appendChild(temp);
-      const resolved = getComputedStyle(temp).backgroundColor;
-      root.removeChild(temp);
-
-      const valueEl = el.querySelector('.brand-swatch__value');
-      if (valueEl) valueEl.textContent = rgbToHex(resolved);
-    });
-
-    // Spacing values
-    document.querySelectorAll<HTMLElement>('.brand-spacing-row').forEach(el => {
-      const varName = el.dataset.var;
-      if (!varName) return;
-      const raw = style.getPropertyValue(varName).trim();
-      const valueEl = el.querySelector('.brand-spacing-value');
-      if (valueEl) valueEl.textContent = raw;
-    });
-
-    // Shadow values
-    document.querySelectorAll<HTMLElement>('.brand-shadow-value').forEach(el => {
-      const varName = el.dataset.var;
-      if (!varName) return;
-      el.textContent = style.getPropertyValue(varName).trim();
-    });
-
-    // Transition values
-    document.querySelectorAll<HTMLElement>('.brand-transition-value').forEach(el => {
-      const varName = el.dataset.var;
-      if (!varName) return;
-      el.textContent = style.getPropertyValue(varName).trim();
-    });
-
-    // Font stack
-    const fontStackEl = document.querySelector<HTMLElement>('.brand-font-stack');
-    if (fontStackEl) {
-      fontStackEl.textContent = style.getPropertyValue('--font-family').trim();
-    }
-
-    // Typography utility class specimens: read computed styles
-    document.querySelectorAll<HTMLElement>('.brand-type-specimen').forEach(el => {
-      const specimen = el.querySelector<HTMLElement>('[data-specimen]');
-      if (!specimen) return;
-
-      const metaEl = el.querySelector('.brand-type-meta');
-      if (metaEl) {
-        const cs = getComputedStyle(specimen);
-        metaEl.textContent = `${cs.fontSize} / wt ${cs.fontWeight} / lh ${cs.lineHeight}`;
-      }
-
-      // Text size scale values
-      const varName = el.dataset.var;
-      const valueEl = el.querySelector('.brand-type-value');
-      if (varName && valueEl) {
-        valueEl.textContent = style.getPropertyValue(varName).trim();
-      }
-    });
-  }
-
-  // Re-read values on theme toggle (MutationObserver on html class changes)
-  new MutationObserver(() => readAndPopulate()).observe(
-    document.documentElement,
-    { attributes: true, attributeFilter: ['class'] }
-  );
-
-  // Initial population
-  document.addEventListener('DOMContentLoaded', readAndPopulate);
-
-  // Delta chevron toggle demo
   document.addEventListener('DOMContentLoaded', () => {
+    // Delta chevron toggle demo
     const toggle = document.getElementById('chevron-toggle');
     const demo = document.getElementById('chevron-demo');
     if (toggle && demo) {
@@ -3135,13 +3674,6 @@ trackPageView('brand', 'Brand Style Reference');
         document.querySelectorAll<HTMLElement>('[data-demo-option-brutal]').forEach(c =>
           c.classList.remove('option-card-brutal--selected'));
         card.classList.add('option-card-brutal--selected');
-      });
-    });
-
-    // Filter chip toggle demo (current)
-    document.querySelectorAll<HTMLElement>('[data-demo-chip]').forEach(chip => {
-      chip.addEventListener('click', () => {
-        chip.classList.toggle('filter-chip--active');
       });
     });
 
@@ -3227,5 +3759,20 @@ trackPageView('brand', 'Brand Style Reference');
         attCard.classList.toggle('is-dismissed');
       });
     }
+
+    // Responsive demo: sync theme to iframes
+    const syncThemeToFrames = () => {
+      const isDark = document.documentElement.classList.contains('dark-theme');
+      document.querySelectorAll<HTMLIFrameElement>('.responsive-demo-frame iframe').forEach(f => {
+        f.contentWindow?.postMessage({ type: 'theme-sync', dark: isDark }, '*');
+      });
+    };
+    // Observe theme class changes on <html>
+    const themeObserver = new MutationObserver(syncThemeToFrames);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    // Initial sync after iframes load
+    document.querySelectorAll<HTMLIFrameElement>('.responsive-demo-frame iframe').forEach(f => {
+      f.addEventListener('load', syncThemeToFrames);
+    });
   });
 </script>

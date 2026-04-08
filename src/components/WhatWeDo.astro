@@ -1,33 +1,34 @@
 ---
 // WhatWeDo section - displays core service offerings with SVG bullet indicators
+import DeltaIcon from './DeltaIcon.astro';
 ---
 
 <section class="what-we-do">
     <div class="container">
         <div class="services-content">
-            <h2 class="heading-lg">What We Do</h2>
+            <h2 class="brutal-heading-lg">What We Do</h2>
             <p class="intro-text">GST unlocks enterprise value through expert business technology advisory.</p>
 
             <ul class="services-list">
                 <li>
                     <span>Buy-side and sell-side technical diligence</span>
-                    <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="Service checkmark - Buy-side and sell-side technical diligence" class="bullet-icon" loading="lazy" />
+                    <DeltaIcon class="bullet-icon" />
                 </li>
                 <li>
                     <span>Architecture and platform assessments</span>
-                    <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="Service checkmark - Architecture and platform assessments" class="bullet-icon" loading="lazy" />
+                    <DeltaIcon class="bullet-icon" />
                 </li>
                 <li>
                     <span>Security, compliance, and operational risk evaluation</span>
-                    <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="Service checkmark - Security, compliance, and operational risk evaluation" class="bullet-icon" loading="lazy" />
+                    <DeltaIcon class="bullet-icon" />
                 </li>
                 <li>
                     <span>Product development and execution roadmaps</span>
-                    <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="Service checkmark - Product development, modernization and execution roadmaps" class="bullet-icon" loading="lazy" />
+                    <DeltaIcon class="bullet-icon" />
                 </li>
                 <li>
                     <span>Independent advisory for executives and boards</span>
-                    <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="Service checkmark - Independent advisory for executives and boards" class="bullet-icon" loading="lazy" />
+                    <DeltaIcon class="bullet-icon" />
                 </li>
             </ul>
 
@@ -50,9 +51,7 @@
         text-align: right;
     }
 
-    .heading-lg {
-        font-family: monospace;
-        text-transform: uppercase;
+    .brutal-heading-lg {
         margin-bottom: var(--spacing-xl);
     }
 
@@ -114,7 +113,7 @@
     }
 
     :global(html.dark-theme) .closing-text {
-        border-top-color: rgba(255, 255, 255, 0.15);
+        border-top-color: var(--border-dark-default);
     }
 
     /* Responsive design */

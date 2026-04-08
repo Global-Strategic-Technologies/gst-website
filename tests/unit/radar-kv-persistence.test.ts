@@ -137,6 +137,8 @@ describe('Radar KV Token Persistence', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
+
     // Restore console.warn spy if any test set it (prevents leak on assertion failure)
     if (warnSpy) {      warnSpy = null;
     }

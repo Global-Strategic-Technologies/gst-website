@@ -16,10 +16,9 @@ Start with one of these based on your needs:
 
 ## Quick Facts
 
-- **Total Tests**: 573 (all passing)
-  - Unit/Integration: 180 tests (Vitest)
-  - E2E: 393 tests (Playwright, cross-browser)
-    - **NEW**: 21 tests for Diligence Machine (across 3 browsers = 63 test runs)
+- **Total Tests**: 1,250 test cases (all passing)
+  - Unit/Integration: 857 tests (Vitest)
+  - E2E: 393 test cases (Playwright, × 3 browsers = 1,179 test runs)
 - **Test Frameworks**: Vitest + Playwright
 - **CI/CD Platform**: GitHub Actions (test.yml)
 - **Coverage Target**: 70%+ (currently exceeding)
@@ -46,9 +45,9 @@ npm run test:coverage         # With coverage metrics
 
 1. **Local Development**: Run `npm run test:all` before pushing
 2. **Push to GitHub**: Triggers `test.yml` workflow automatically
-3. **GitHub Actions**: Runs full test suite (552 tests) on every push/PR
+3. **GitHub Actions**: Runs full test suite (1,250 test cases) on every push/PR
 4. **Branch Protection**: Requires all tests to pass before merge
-5. **Vercel Deployment**: Auto-deploys on successful merge to main
+5. **Vercel Deployment**: Auto-deploys on successful merge to master
 
 ## Where to Find Things
 

@@ -6,6 +6,7 @@
  */
 import { CATEGORIES } from '../../lib/inoreader/transform';
 import type { RadarFyiItem } from '../../lib/inoreader/types';
+import DeltaIcon from '../DeltaIcon.astro';
 
 interface Props {
   item: RadarFyiItem;
@@ -26,7 +27,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
         <span class="date">{dateStr}</span>
       </div>
       <div class="fyi-item__headline">
-        <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" class="fyi-item__toggle delta-chevron" aria-hidden="true" />
+        <DeltaIcon size={14} class="fyi-item__toggle delta-chevron" />
         <h3 class="fyi-item__title">
           <a href={item.url} target="_blank" rel="noopener noreferrer"
              onclick="event.stopPropagation();">
@@ -173,7 +174,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
   }
 
   :global(html.dark-theme) .fyi-item__nested-take {
-    border-top-color: rgba(255, 255, 255, 0.15);
+    border-top-color: var(--border-dark-default);
   }
 
   .fyi-item__take p {
@@ -184,7 +185,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
   }
 
   :global(html.dark-theme) .fyi-item {
-    border-bottom-color: rgba(255, 255, 255, 0.15);
+    border-bottom-color: var(--border-dark-default);
   }
 
   @media (max-width: 480px) {

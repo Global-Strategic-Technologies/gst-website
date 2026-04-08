@@ -5,11 +5,13 @@ import Breadcrumb from '../components/Breadcrumb.astro';
 import GoogleAnalytics from '../components/GoogleAnalytics.astro';
 import SEO from '../components/SEO.astro';
 import SpeedInsights from '@vercel/speed-insights/astro';
+import PalettePanel from '../components/brand/PalettePanel.astro';
 import '../styles/global.css';
 
 interface Props {
     title: string;
     description?: string;
+    showPalettePanel?: boolean;
     ogTitle?: string;
     ogDescription?: string;
     ogImage?: string;
@@ -35,6 +37,7 @@ const {
     ogImageHeight,
     twitterSite,
     faqItems,
+    showPalettePanel,
 } = Astro.props;
 
 const currentPath = Astro.url.pathname;
@@ -44,7 +47,7 @@ const is404 = currentPath === '/404' || currentPath === '/404/';
 ---
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-palette-always={showPalettePanel || undefined}>
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -90,6 +93,13 @@ const is404 = currentPath === '/404' || currentPath === '/404/';
                 // localStorage not available (e.g., private browsing)
                 // Default to light theme silently
             }
+            // Initialize palette synchronously to prevent color flash
+            try {
+                var p = localStorage.getItem('palette');
+                if (p && p !== '0') document.documentElement.classList.add('palette-' + p);
+                if (localStorage.getItem('palette-popped-out') === 'true')
+                    document.documentElement.classList.add('palette-popped-out');
+            } catch (e) {}
         </script>
 
         <GoogleAnalytics />
@@ -106,6 +116,7 @@ const is404 = currentPath === '/404' || currentPath === '/404/';
             <slot />
         </main>
         <Footer />
+        <PalettePanel />
         {isProduction && <SpeedInsights />}
     </body>
 </html>

@@ -38,6 +38,7 @@ const regionMap = getRegulationsByRegion(regulations);
 import worldData from 'world-atlas/countries-110m.json';
 import usData from 'us-atlas/states-10m.json';
 import caData from '../../../../data/canada-provinces.json';
+import DeltaIcon from '../../../../components/DeltaIcon.astro';
 ---
 
 <BaseLayout
@@ -68,7 +69,7 @@ import caData from '../../../../data/canada-provinces.json';
         <div class="container">
             <div class="print-report-header" aria-hidden="true">
                 <div class="print-report-header__brand">
-                    <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" width="24" height="24" />
+                    <DeltaIcon class="bullet-icon" />
                     <span>GST</span>
                 </div>
                 <div class="print-report-header__title">Regulatory Map</div>
@@ -155,10 +156,13 @@ import caData from '../../../../data/canada-provinces.json';
     <section class="faq-section">
         <div class="container">
             <h2 class="brutal-heading-lg">Frequently Asked Questions</h2>
-            <div class="brutal-faq">
+            <div class="brutal-faq brutal-faq--lg">
                 {faqItems.map((item) => (
-                    <details class="brutal-faq__item">
-                        <summary class="brutal-faq__question">{item.question}</summary>
+                    <details class="brutal-faq__item brutal-frosted">
+                        <summary class="brutal-faq__question">
+                            <span>{item.question}</span>
+                            <DeltaIcon class="delta-chevron" />
+                        </summary>
                         <div class="brutal-faq__answer" set:html={item.answer} />
                     </details>
                 ))}
@@ -1396,7 +1400,7 @@ import caData from '../../../../data/canada-provinces.json';
             z-index: 50;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: opacity var(--transition-slow);
         }
 
         .brutal-bottom-sheet__overlay.visible {
@@ -1653,7 +1657,7 @@ import caData from '../../../../data/canada-provinces.json';
 
     /* Timeline dark theme */
     :global(html.dark-theme) .timeline-section {
-        border-top-color: rgba(255, 255, 255, 0.15);
+        border-top-color: var(--border-dark-default);
     }
 
     :global(html.dark-theme) .timeline-legend {
@@ -1665,11 +1669,11 @@ import caData from '../../../../data/canada-provinces.json';
     }
 
     :global(html.dark-theme) .timeline-scroll::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.15);
+        background: var(--border-dark-default);
     }
 
     :global(html.dark-theme .timeline-track::before) {
-        background: rgba(255, 255, 255, 0.15);
+        background: var(--border-dark-default);
     }
 
     /* Print-only elements (hidden on screen) */

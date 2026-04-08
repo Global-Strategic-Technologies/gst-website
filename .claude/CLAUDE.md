@@ -28,7 +28,7 @@ This document provides Claude with essential context about the GST Website proje
 - Diff behavior between main and your changes when relevant
 - Ask yourself: "Would a staff engineer approve this?"
 - Run unit and integration tests to verify correctness
-- **Do NOT run E2E tests unless explicitly told to do so**
+- **Do NOT run E2E tests unless explicitly told to do so** — except when the task itself is writing or fixing E2E tests, in which case running them *is* the verification step (use `--project=chromium` for a fast single-browser check)
 
 ### 5. Demand Elegance (Balanced)
 - For non-trivial changes: pause and ask "is there a more elegant way?"
@@ -79,36 +79,63 @@ This document provides Claude with essential context about the GST Website proje
 
 ## 🎨 Design System
 
-- **Design Philosophy**: Tech brutalist with dark mode support
+- **Design Philosophy**: Tech brutalist with dark mode support and frosted-glass aesthetic
 - **All design tokens** (colors, spacing, typography, transitions): [src/docs/styles/VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md)
 - **Conventions and patterns**: [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md)
+- **Brand decisions** (color hierarchy, palettes, voice, asset rules): [src/docs/styles/BRAND_GUIDELINES.md](src/docs/styles/BRAND_GUIDELINES.md)
+- **Palette system**: 6 alternative color palettes in `src/styles/palettes.css` — applied to `<html>` via class, persisted in localStorage
+- **Delta icon**: Use `DeltaIcon.astro` component (inline SVG with `currentColor`) — never `<img>` tags
 
 ## 🗂️ Project Structure
 
 ```
 gst-website/
-├── public/                    # Static assets
+├── public/                    # Static assets (favicon, images, manifest)
 ├── src/
 │   ├── components/           # Astro components
+│   │   ├── DeltaIcon.astro   # Palette-aware inline SVG delta (use instead of <img>)
 │   │   ├── Header.astro
 │   │   ├── Footer.astro
 │   │   ├── Hero.astro
-│   │   ├── StatsBar.astro
-│   │   ├── CTASection.astro
-│   │   └── ThemeToggle.astro
-│   ├── data/                 # Project/portfolio data
-│   │   └── ma-portfolio/
-│   │       └── projects.json # 51 validated projects
+│   │   ├── ThemeToggle.astro
+│   │   ├── SEO.astro
+│   │   ├── GoogleAnalytics.astro
+│   │   ├── Breadcrumb.astro
+│   │   ├── ... (14 root components)
+│   │   ├── brand/            # Brand page components (PalettePanel, ColorSpecimens)
+│   │   ├── hub/              # Hub page components (HubHeader, tool sub-components)
+│   │   ├── portfolio/        # M&A portfolio components (grid, modal, filters)
+│   │   └── radar/            # Radar feed components (FyiItem, CategoryFilter)
+│   ├── data/                 # Structured data
+│   │   ├── ma-portfolio/
+│   │   │   └── projects.json # 51 validated projects
+│   │   ├── palettes.ts       # Shared palette metadata (names, concepts, tips)
+│   │   ├── diligence-machine/# Attention areas, questions, wizard config
+│   │   ├── infrastructure-cost-governance/  # Domains, recommendations
+│   │   ├── techpar/          # Industry notes, recommendations, stages
+│   │   └── regulatory-map/   # 120 regulation JSON files
+│   ├── scripts/              # Client-side TypeScript modules
+│   │   └── palette-manager.ts# Site-wide palette switching, color editing, panel controls
 │   ├── docs/                 # Strategic documentation
 │   │   ├── testing/          # Test strategy & CI/CD docs
 │   │   ├── development/      # Development roadmap
-│   │   └── analytics/        # GA4 integration guides
+│   │   ├── analytics/        # GA4 integration guides
+│   │   ├── styles/           # CSS conventions, brand guidelines, variable reference
+│   │   ├── hub/              # Hub tool technical docs (Radar, DM, RegMap)
+│   │   └── seo/              # SEO implementation, JSON-LD, credentials
 │   ├── layouts/              # Page layouts
-│   │   └── BaseLayout.astro
+│   │   └── BaseLayout.astro  # Includes Header, Footer, PalettePanel, theme/palette init
 │   ├── pages/                # Route files (auto-routed)
-│   │   └── index.astro
-│   └── styles/               # Global CSS
-│       └── global.css
+│   │   ├── index.astro       # Homepage
+│   │   ├── brand.astro       # Brand style reference (palette explorer, specimens)
+│   │   ├── hub/              # Hub gateway + 6 tool pages + library articles
+│   │   └── ...               # services, about, ma-portfolio, privacy, terms
+│   └── styles/               # Global CSS (import order matters)
+│       ├── variables.css     # Design tokens (:root + html.dark-theme)
+│       ├── palettes.css      # 6 alternative palette definitions (html.palette-N)
+│       ├── typography.css    # Semantic text utility classes
+│       ├── interactions.css  # Interactive state patterns (hover, focus, chevron)
+│       └── global.css        # Layout, components, responsive — imports all above
 ├── .claude/
 │   ├── agents/               # Claude agent definitions
 │   └── ...
@@ -225,10 +252,13 @@ Specialized agents in `.claude/agents/`. Use the right agent for the task:
 - **All colors must use CSS variables** — never hardcode color values
 - **All spacing must use the spacing scale** (`--spacing-xs` through `--spacing-3xl`)
 - **All font sizes must use typography utilities** (`.heading-*`, `.text-*`, `.label-*`) or variables
-- **Dark theme must work automatically** — use variables, no `body.dark-theme` specific colors
+- **Dark theme must work automatically** — use variables; the selector is `html.dark-theme`, not `body.dark-theme`
+- **Palette overrides** in `palettes.css` — applied to `<html>` via class (like dark-theme); see BRAND_GUIDELINES.md § Alternative Palette System
+- **Delta icons**: use `DeltaIcon.astro` component — never `<img>` tags (cannot inherit palette/theme colors via `currentColor`)
+- **Buttons include frosted-glass** by default (`backdrop-filter: blur(2px)`, semi-transparent backgrounds) — see STYLES_GUIDE.md § Frosted Glass
 - **Responsive design desktop-first** — base styles for desktop, `max-width` breakpoints for smaller screens
 - **No hardcoded transitions** — use `--transition-fast`, `--transition-normal`, or `--transition-slow`
-- **Brand decisions** (color hierarchy, semantic colors, voice, asset rules): [src/docs/styles/BRAND_GUIDELINES.md](src/docs/styles/BRAND_GUIDELINES.md)
+- **Brand decisions** (color hierarchy, semantic colors, palettes, voice, asset rules): [src/docs/styles/BRAND_GUIDELINES.md](src/docs/styles/BRAND_GUIDELINES.md)
 
 ### Performance Standards
 - Core Web Vitals optimization
@@ -263,6 +293,13 @@ Specialized agents in `.claude/agents/`. Use the right agent for the task:
 3. Add unit tests; if user-facing, add E2E tests
 4. Test in both light and dark themes at desktop, 768px, and 480px
 
+### Working with Palettes
+1. Palette definitions: `src/styles/palettes.css` (CSS variable overrides per `html.palette-N`)
+2. Palette metadata: `src/data/palettes.ts` (names, concepts, token tips)
+3. Palette JS logic: `src/scripts/palette-manager.ts` (switching, color editing, panel controls)
+4. To add a new palette: add `--altN-*` variables in `palettes.css` (light + dark), add `html.palette-N` override block, add entry to `palettes.ts`
+5. PalettePanel renders site-wide from `BaseLayout.astro`; visible on `/brand` always, other pages via pop-out toggle
+
 ### Updating Portfolio Data
 1. Edit `src/data/ma-portfolio/projects.json`
 2. Run: `npm run test:run` to validate schema
@@ -287,4 +324,4 @@ Specialized agents in `.claude/agents/`. Use the right agent for the task:
 
 ---
 
-**Last Updated**: March 24, 2026
+**Last Updated**: April 6, 2026

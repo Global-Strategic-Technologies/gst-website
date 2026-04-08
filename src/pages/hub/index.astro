@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Hero from '../../components/Hero.astro';
 import CTASection from '../../components/CTASection.astro';
 import { trackPageView } from '../../utils/analytics';
+import DeltaIcon from '../../components/DeltaIcon.astro';
 
 trackPageView('hub', 'Strategic Intelligence Hub | GST');
 
@@ -98,13 +99,13 @@ const faqItems = [
 
     <section class="faq-section">
         <div class="container">
-            <h2 class="heading-lg">Frequently Asked Questions</h2>
+            <h2 class="brutal-heading-lg">Frequently Asked Questions</h2>
             <div class="brutal-faq brutal-faq--lg">
                 {faqItems.map((item) => (
                     <details class="brutal-faq__item brutal-frosted">
                         <summary class="brutal-faq__question">
                             <span>{item.question}</span>
-                            <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" class="delta-chevron" aria-hidden="true" />
+                            <DeltaIcon class="delta-chevron" />
                         </summary>
                         <div class="brutal-faq__answer" set:html={item.answer} />
                     </details>
@@ -128,7 +129,7 @@ const faqItems = [
 
     .hub-intro p {
         max-width: 800px;
-        font-size: 1.5rem;
+        font-size: var(--text-2xl);
         font-family: monospace;
         color: var(--text-primary);
         line-height: 1.6;
@@ -182,7 +183,7 @@ const faqItems = [
     }
 
     :global(html.dark-theme) .hub-card {
-        border-color: rgba(255, 255, 255, 0.15);
+        border-color: var(--border-dark-default);
         border-top-color: var(--color-primary);
     }
 
@@ -204,7 +205,7 @@ const faqItems = [
     }
 
     .hub-card-label {
-        font-size: 0.75rem;
+        font-size: var(--text-xs);
         font-family: monospace;
         font-weight: 700;
         text-transform: uppercase;
@@ -213,7 +214,7 @@ const faqItems = [
     }
 
     .hub-card h3 {
-        font-size: 1.5rem;
+        font-size: var(--text-2xl);
         font-family: monospace;
         font-weight: 700;
         color: var(--text-primary);
@@ -222,7 +223,7 @@ const faqItems = [
     }
 
     .hub-card p {
-        font-size: 1rem;
+        font-size: var(--text-base);
         font-family: monospace;
         color: var(--text-secondary);
         line-height: 1.7;
@@ -231,7 +232,7 @@ const faqItems = [
     }
 
     .hub-card-cta {
-        font-size: 0.95rem;
+        font-size: var(--text-base);
         font-family: monospace;
         font-weight: 600;
         color: var(--color-primary);
@@ -256,17 +257,17 @@ const faqItems = [
         }
 
         .hub-card h3 {
-            font-size: 1.25rem;
+            font-size: var(--text-xl);
         }
 
         .hub-card p {
-            font-size: 0.95rem;
+            font-size: var(--text-base);
         }
     }
 
     @media (max-width: 768px) {
         .hub-intro p {
-            font-size: 1.1rem;
+            font-size: var(--text-lg);
         }
 
         .hub-grid-section {
@@ -293,11 +294,11 @@ const faqItems = [
         }
 
         .hub-card h3 {
-            font-size: 1.2rem;
+            font-size: var(--text-xl);
         }
 
         .hub-card p {
-            font-size: 0.95rem;
+            font-size: var(--text-base);
             line-height: 1.7;
             margin-bottom: var(--spacing-lg);
         }
@@ -309,7 +310,7 @@ const faqItems = [
         }
 
         .hub-intro p {
-            font-size: 1rem;
+            font-size: var(--text-base);
             line-height: 1.7;
         }
 
@@ -335,18 +336,18 @@ const faqItems = [
         }
 
         .hub-card h3 {
-            font-size: 1.1rem;
+            font-size: var(--text-lg);
             margin-bottom: var(--spacing-sm);
         }
 
         .hub-card p {
-            font-size: 0.9rem;
+            font-size: var(--text-sm);
             line-height: 1.65;
             margin-bottom: var(--spacing-md);
         }
 
         .hub-card-cta {
-            font-size: 0.875rem;
+            font-size: var(--text-sm);
         }
     }
 
@@ -354,9 +355,7 @@ const faqItems = [
         padding: var(--spacing-3xl) 0;
     }
 
-    .faq-section .heading-lg {
-        font-family: monospace;
-        text-transform: uppercase;
+    .faq-section .brutal-heading-lg {
         margin-bottom: var(--spacing-2xl);
         text-align: center;
     }

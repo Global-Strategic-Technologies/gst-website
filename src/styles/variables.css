@@ -3,6 +3,7 @@
 :root {
   /* Primary Colors */
   --color-primary: #05cd99;
+  --color-primary-rgb: 5, 205, 153;
   --color-primary-dark: #04a87a;
   --color-secondary: #CC8800;
   --color-secondary-dark: #FFAA33;
@@ -42,18 +43,39 @@
   --text-muted: var(--text-light-muted);
   --text-faded: var(--text-light-faded);
 
+  /* Primary Color Opacity Scale */
+  --color-primary-02: rgba(var(--color-primary-rgb), 0.02);
+  --color-primary-03: rgba(var(--color-primary-rgb), 0.03);
+  --color-primary-04: rgba(var(--color-primary-rgb), 0.04);
+  --color-primary-05: rgba(var(--color-primary-rgb), 0.05);
+  --color-primary-06: rgba(var(--color-primary-rgb), 0.06);
+  --color-primary-08: rgba(var(--color-primary-rgb), 0.08);
+  --color-primary-10: rgba(var(--color-primary-rgb), 0.10);
+  --color-primary-12: rgba(var(--color-primary-rgb), 0.12);
+  --color-primary-13: rgba(var(--color-primary-rgb), 0.13);
+  --color-primary-15: rgba(var(--color-primary-rgb), 0.15);
+  --color-primary-18: rgba(var(--color-primary-rgb), 0.18);
+  --color-primary-20: rgba(var(--color-primary-rgb), 0.20);
+  --color-primary-25: rgba(var(--color-primary-rgb), 0.25);
+  --color-primary-30: rgba(var(--color-primary-rgb), 0.30);
+  --color-primary-45: rgba(var(--color-primary-rgb), 0.45);
+  --color-primary-50: rgba(var(--color-primary-rgb), 0.50);
+  --color-primary-55: rgba(var(--color-primary-rgb), 0.55);
+  --color-primary-60: rgba(var(--color-primary-rgb), 0.60);
+  --color-primary-65: rgba(var(--color-primary-rgb), 0.65);
+
   /* Borders & Accents */
   --border-light: rgba(26, 26, 26, 0.1);
-  --border-dark: rgba(5, 205, 153, 0.2);
-  --accent-subtle-bg: rgba(5, 205, 153, 0.02);
-  --accent-wash-bg: rgba(5, 205, 153, 0.03);
-  --accent-faint-bg: rgba(5, 205, 153, 0.04);
-  --accent-tint-bg: rgba(5, 205, 153, 0.06);
-  --accent-light-bg: rgba(5, 205, 153, 0.08);
-  --accent-light-bg-hover: rgba(5, 205, 153, 0.15);
-  --accent-dark-bg: rgba(5, 205, 153, 0.1);
-  --accent-border-light: rgba(5, 205, 153, 0.25);
-  --accent-border-medium: rgba(5, 205, 153, 0.3);
+  --border-dark: var(--color-primary-20);
+  --accent-subtle-bg: var(--color-primary-02);
+  --accent-wash-bg: var(--color-primary-03);
+  --accent-faint-bg: var(--color-primary-04);
+  --accent-tint-bg: var(--color-primary-06);
+  --accent-light-bg: var(--color-primary-08);
+  --accent-light-bg-hover: var(--color-primary-15);
+  --accent-dark-bg: var(--color-primary-10);
+  --accent-border-light: var(--color-primary-25);
+  --accent-border-medium: var(--color-primary-30);
 
   /* Spacing Scale */
   --spacing-xs: 0.25rem;
@@ -77,12 +99,14 @@
   --font-weight-bold: 700;
 
   /* Text Sizes */
+  --text-2xs: 0.65rem;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
   --text-lg: 1.1rem;
   --text-xl: 1.25rem;
   --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
 
   /* Transitions */
   --transition-fast: 0.2s ease-out;
@@ -111,7 +135,7 @@
   --search-input-bg: rgba(26, 26, 26, 0.02);
   --search-input-border: rgba(26, 26, 26, 0.1);
   --search-input-focus-bg: var(--bg-light);
-  --search-input-focus-shadow: rgba(5, 205, 153, 0.1);
+  --search-input-focus-shadow: var(--color-primary-10);
   --clear-filters-border: rgba(26, 26, 26, 0.1);
 
   /* Text Colors (Light Theme) */
@@ -135,70 +159,67 @@
   --about-image-border: var(--bg-dark-secondary);
   --about-image-text: #404040;
 
-  /* TechPar — Zone Colors */
-  --techpar-zone-underinvest: #CC8800;
-  --techpar-zone-underinvest-bg: rgba(204, 136, 0, 0.08);
-  --techpar-zone-ahead: #2ea84e;
-  --techpar-zone-ahead-bg: rgba(46, 168, 78, 0.08);
+  /* Expanded Palette — purpose-named tokens for tool derivation */
+  --color-authority: #5b7a9d;
+  --color-authority-rgb: 91, 122, 157;
+  --color-distinguish: #8b5cf6;
+  --color-subdued: #8c7a6b;
+  --color-subdued-rgb: 140, 122, 107;
+
+  /* Tool Color Derivations — all derive from the 9 core tokens above */
+  --hub-authority-blue: var(--color-authority);
+  --color-authority-bg: rgba(var(--color-authority-rgb), 0.1);
   --techpar-zone-healthy: var(--color-primary);
   --techpar-zone-healthy-bg: var(--accent-light-bg);
-  --techpar-zone-above: #CC8800;
+  --techpar-zone-ahead: var(--color-success);
+  --techpar-zone-underinvest: var(--color-warning);
+  --techpar-zone-above: var(--color-warning);
+  --techpar-zone-elevated: var(--color-error);
+  --techpar-zone-critical: var(--color-error);
+  --techpar-category-infra: var(--color-primary);
+  --techpar-category-personnel: var(--color-authority);
+  --techpar-category-rd-opex: var(--color-distinguish);
+  --techpar-category-rd-capex: var(--color-secondary);
+  --techpar-kpi-positive: var(--color-primary);
+  --techpar-kpi-warn: var(--color-warning);
+  --techpar-kpi-negative: var(--color-error);
+  --dm-methodology-brown: var(--color-subdued);
+  --color-subdued-bg: rgba(var(--color-subdued-rgb), 0.04);
+  --dm-results-blue: var(--color-authority);
+  --dm-results-tan: var(--color-subdued);
+  --dm-positive: var(--color-success);
+  --dm-negative: var(--color-error);
+  --dm-negative-dark: var(--color-error);
+  --dm-negative-dark-bg: rgba(178, 34, 34, 0.06);
+  --dm-warning: var(--color-warning);
+  --dm-warning-dark: var(--color-warning);
+  --dm-success: var(--color-success);
+  --icg-maturity-reactive: var(--color-error);
+  --icg-maturity-aware: var(--color-warning);
+  --icg-maturity-optimizing: var(--color-success);
+  --icg-maturity-strategic: var(--color-primary);
+  --icg-radar-grid: var(--text-muted);
+  --icg-radar-label: var(--text-faded);
+  --regmap-category-industry: var(--color-distinguish);
+  --regmap-category-cyber: var(--color-error);
+
+  /* TechPar — Zone Background Colors (opacity variants, kept for readability) */
+  --techpar-zone-ahead-bg: rgba(46, 168, 78, 0.08);
+  --techpar-zone-underinvest-bg: rgba(204, 136, 0, 0.08);
   --techpar-zone-above-bg: rgba(204, 136, 0, 0.08);
-  --techpar-zone-elevated: #d93636;
   --techpar-zone-elevated-bg: rgba(217, 54, 54, 0.08);
-  --techpar-zone-critical: #b82e2e;
   --techpar-zone-critical-bg: rgba(184, 46, 46, 0.08);
 
-  /* TechPar — Category Colors */
-  --techpar-category-infra: var(--color-primary);
-  --techpar-category-personnel: #3b82f6;
-  --techpar-category-rd-opex: #8b5cf6;
-  --techpar-category-rd-capex: var(--color-secondary);
-
-  /* TechPar — Chart Colors */
-  --techpar-chart-band-fill: rgba(5, 205, 153, 0.15);
-  --techpar-chart-band-border: rgba(5, 205, 153, 0.5);
-  --techpar-chart-ahead-fill: rgba(33, 118, 174, 0.10);   /* blue — CVD-safe, distinct from teal */
+  /* TechPar — Chart Colors (opacity-tuned, kept independently) */
+  --techpar-chart-band-fill: var(--color-primary-15);
+  --techpar-chart-band-border: var(--color-primary-50);
+  --techpar-chart-ahead-fill: rgba(33, 118, 174, 0.10);
   --techpar-chart-ahead-border: rgba(33, 118, 174, 0.5);
-  --techpar-chart-under-fill: rgba(224, 123, 0, 0.12);    /* amber-orange — distinct from blue/teal */
+  --techpar-chart-under-fill: rgba(224, 123, 0, 0.12);
   --techpar-chart-under-border: rgba(224, 123, 0, 0.55);
-  --techpar-chart-above-fill: rgba(217, 54, 54, 0.10);   /* red — caution/overspend zone */
+  --techpar-chart-above-fill: rgba(217, 54, 54, 0.10);
   --techpar-chart-above-border: rgba(217, 54, 54, 0.45);
   --techpar-chart-revenue-line: rgba(26, 26, 26, 0.55);
-
-  /* TechPar — KPI Colors */
-  --techpar-kpi-positive: var(--color-primary);
-  --techpar-kpi-warn: #CC8800;
-  --techpar-kpi-negative: #d93636;
-
-  /* Shared Hub Tool Colors */
-  --hub-authority-blue: #5b7a9d;
-  --hub-authority-blue-bg: rgba(91, 122, 157, 0.1);
-
-  /* Diligence Machine — Domain Colors */
-  --dm-methodology-brown: #8c7a6b;
-  --dm-methodology-brown-bg: rgba(140, 122, 107, 0.04);
-  --dm-results-blue: #7a9dbd;
-  --dm-results-tan: #a89888;
-  --dm-positive: #4cba7a;
-  --dm-negative: #e06060;
-  --dm-negative-dark: #b22222;
-  --dm-negative-dark-bg: rgba(178, 34, 34, 0.06);
-  --dm-warning: #d4923a;
-  --dm-warning-dark: #b26622;
-  --dm-success: #2e8b57;
-
-  /* ICG — Maturity Colors */
-  --icg-maturity-reactive: #E24B4A;
-  --icg-maturity-aware: #EF9F27;
-  --icg-maturity-optimizing: #639922;
-  --icg-maturity-strategic: var(--color-primary);
-  --icg-radar-grid: #999;
-  --icg-radar-label: #666;
-
-  /* Regulatory Map — Category Colors */
-  --regmap-category-industry: #6c63ff;
-  --regmap-category-cyber: #e74c3c;
 
   /* Spacing — Extended */
   --spacing-2_5xl: 2.5rem;
@@ -221,10 +242,10 @@ html.dark-theme {
   --color-editors-pick-hover: #b26622;
 
   /* Accent Opacity Scale (dark theme — slightly higher opacity for visibility) */
-  --accent-subtle-bg: rgba(5, 205, 153, 0.03);
-  --accent-wash-bg: rgba(5, 205, 153, 0.04);
-  --accent-faint-bg: rgba(5, 205, 153, 0.05);
-  --accent-tint-bg: rgba(5, 205, 153, 0.08);
+  --accent-subtle-bg: var(--color-primary-03);
+  --accent-wash-bg: var(--color-primary-04);
+  --accent-faint-bg: var(--color-primary-05);
+  --accent-tint-bg: var(--color-primary-08);
 
   /* Semantic Colors (dark theme) */
   --color-success: #3da868;
@@ -239,17 +260,17 @@ html.dark-theme {
   --filter-drawer-bg: var(--bg-dark-secondary);
 
   /* Accent & UI Elements */
-  --filter-chip-bg: rgba(5, 205, 153, 0.1);
-  --filter-chip-bg-hover: rgba(5, 205, 153, 0.15);
-  --filter-chip-border: rgba(5, 205, 153, 0.2);
-  --filter-button-bg: rgba(5, 205, 153, 0.1);
-  --filter-button-bg-hover: rgba(5, 205, 153, 0.15);
-  --filter-button-border: rgba(5, 205, 153, 0.2);
-  --search-input-bg: rgba(5, 205, 153, 0.05);
-  --search-input-border: rgba(5, 205, 153, 0.2);
+  --filter-chip-bg: var(--color-primary-10);
+  --filter-chip-bg-hover: var(--color-primary-15);
+  --filter-chip-border: var(--color-primary-20);
+  --filter-button-bg: var(--color-primary-10);
+  --filter-button-bg-hover: var(--color-primary-15);
+  --filter-button-border: var(--color-primary-20);
+  --search-input-bg: var(--color-primary-05);
+  --search-input-border: var(--color-primary-20);
   --search-input-focus-bg: var(--bg-dark-secondary);
-  --search-input-focus-shadow: rgba(5, 205, 153, 0.15);
-  --clear-filters-border: rgba(5, 205, 153, 0.2);
+  --search-input-focus-shadow: var(--color-primary-15);
+  --clear-filters-border: var(--color-primary-20);
 
   /* Text Colors */
   --filter-chip-text: rgba(200, 200, 200, 0.8);
@@ -262,7 +283,12 @@ html.dark-theme {
   --footer-text: rgba(153, 153, 153, 0.85);
   --footer-border: rgba(153, 153, 153, 0.15);
   --cta-box-text: rgba(200, 200, 200, 0.8);
-  --stat-item-border: rgba(5, 205, 153, 0.2);
+  --stat-item-border: var(--color-primary-20);
+
+  /* Dark Border Scale */
+  --border-dark-subtle: rgba(255, 255, 255, 0.10);
+  --border-dark-default: rgba(255, 255, 255, 0.15);
+  --border-dark-prominent: rgba(255, 255, 255, 0.20);
 
   /* Misc */
   --checkerboard-line: rgba(255, 255, 255, 0.08);
@@ -272,55 +298,36 @@ html.dark-theme {
   --about-image-border: #2a2a2a;
   --about-image-text: #808080;
 
-  /* TechPar — Zone Colors (dark theme) */
-  --techpar-zone-underinvest: #FFAA33;
-  --techpar-zone-underinvest-bg: rgba(255, 170, 51, 0.09);
-  --techpar-zone-ahead: #2ea84e;
+  /* Expanded Palette (dark theme) */
+  --color-authority: #7a9dbd;
+  --color-authority-rgb: 122, 157, 189;
+  --color-distinguish: #a78bfa;
+  --color-subdued: #a89888;
+  --color-subdued-rgb: 168, 152, 136;
+
+  /* Tool derivations auto-resolve from updated core tokens above */
+  /* Only override opacity variants that need dark-theme tuning */
+  --color-subdued-bg: rgba(var(--color-subdued-rgb), 0.06);
+  --color-authority-bg: rgba(var(--color-authority-rgb), 0.1);
+  --dm-negative-dark-bg: rgba(178, 34, 34, 0.1);
+
+  /* TechPar — Zone Backgrounds (dark theme opacity) */
   --techpar-zone-ahead-bg: rgba(46, 168, 78, 0.09);
-  --techpar-zone-above: #FFAA33;
+  --techpar-zone-underinvest-bg: rgba(255, 170, 51, 0.09);
   --techpar-zone-above-bg: rgba(255, 170, 51, 0.09);
-  --techpar-zone-elevated: #e05050;
   --techpar-zone-elevated-bg: rgba(224, 80, 80, 0.09);
-  --techpar-zone-critical: #e05050;
   --techpar-zone-critical-bg: rgba(224, 80, 80, 0.09);
 
   /* TechPar — Chart Colors (dark theme) */
-  --techpar-chart-band-fill: rgba(5, 205, 153, 0.13);
-  --techpar-chart-band-border: rgba(5, 205, 153, 0.45);
-  --techpar-chart-ahead-fill: rgba(56, 152, 214, 0.11);   /* blue — CVD-safe */
+  --techpar-chart-band-fill: var(--color-primary-13);
+  --techpar-chart-band-border: var(--color-primary-45);
+  --techpar-chart-ahead-fill: rgba(56, 152, 214, 0.11);
   --techpar-chart-ahead-border: rgba(56, 152, 214, 0.5);
-  --techpar-chart-under-fill: rgba(255, 140, 0, 0.12);    /* amber-orange */
+  --techpar-chart-under-fill: rgba(255, 140, 0, 0.12);
   --techpar-chart-under-border: rgba(255, 140, 0, 0.55);
-  --techpar-chart-above-fill: rgba(240, 70, 70, 0.12);   /* red — caution/overspend zone */
+  --techpar-chart-above-fill: rgba(240, 70, 70, 0.12);
   --techpar-chart-above-border: rgba(240, 70, 70, 0.50);
   --techpar-chart-revenue-line: rgba(200, 200, 200, 0.6);
-
-  /* TechPar — KPI Colors (dark theme) */
-  --techpar-kpi-warn: #FFAA33;
-  --techpar-kpi-negative: #e05050;
-
-  /* Shared Hub Tool Colors (dark theme) */
-  --hub-authority-blue: #7a9dbd;
-  --hub-authority-blue-bg: rgba(122, 157, 189, 0.1);
-
-  /* Diligence Machine — Domain Colors (dark theme) */
-  --dm-methodology-brown: #a89888;
-  --dm-methodology-brown-bg: rgba(140, 122, 107, 0.06);
-  --dm-results-blue: #9dbde0;
-  --dm-results-tan: #c0b0a0;
-  --dm-negative-dark-bg: rgba(178, 34, 34, 0.1);
-  --dm-success: #3da868;
-
-  /* ICG — Maturity Colors (dark theme) */
-  --icg-maturity-reactive: #e86060;
-  --icg-maturity-aware: #f5b040;
-  --icg-maturity-optimizing: #78b830;
-  --icg-radar-grid: #666;
-  --icg-radar-label: #999;
-
-  /* Regulatory Map — Category Colors (dark theme) */
-  --regmap-category-industry: #8078ff;
-  --regmap-category-cyber: #f06050;
 }
 
 /* Utility Classes for Common Patterns */

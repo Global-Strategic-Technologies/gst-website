@@ -2,10 +2,10 @@
 
 Enable verified brand logo display in Gmail, Apple Mail, and Yahoo Mail for `globalstrategic.tech` outbound email. When a recipient receives an email from GST, the delta icon appears as the sender avatar — a visual trust signal before the email is even opened.
 
-**Status**: Not Started
+**Status**: Stage 1 Complete (DNS hardened), Stage 2 Ready
 **Priority**: Medium — high-leverage brand trust signal for advisory communications
-**Effort**: Small (1-2 hours implementation + DNS propagation wait)
-**Last Updated**: April 3, 2026
+**Effort**: Small (30 min code + DNS record paste + 1-48 hour propagation)
+**Last Updated**: April 6, 2026
 
 ---
 
@@ -24,27 +24,51 @@ When sending sensitive technical diligence reports, investment memos, or advisor
 
 | Option | CMC (Common Mark Certificate) | VMC (Verified Mark Certificate) |
 |---|---|---|
-| **Requirements** | 12 months of logo usage history | Registered trademark (USPTO/EUIPO) |
+| **Requirements** | 12 months of logo usage history | Registered trademark (USPTO) |
 | **Cost** | ~$100-300/year | ~$1,500/year |
 | **Gmail Blue Checkmark** | No (logo only) | Yes (verified checkmark) |
 | **Apple Mail / Yahoo** | Logo displayed | Logo displayed + verified |
 | **Timeline** | Days (if DMARC ready) | Weeks (trademark verification) |
 
-**Recommendation**: Start with **CMC** unless the GST trademark is already finalized. The logo display provides the primary value; the blue checkmark is a future upgrade path.
+### Practical Recommendation
+
+1. **Now**: Implement BIMI with CMC path (~$100-300/year, no trademark needed). Logo displays in recipient inboxes immediately after DNS propagation. This delivers 90% of the value — visual brand identity, anti-spoofing, and deliverability boost.
+2. **In parallel**: File USPTO trademark registration for the GST delta icon. This takes 8-12 months (see Trademark Registration section below), so start early.
+3. **After trademark granted**: Upgrade from CMC to VMC (~$1,500/year) for the Gmail blue verified checkmark. Same infrastructure, different CA verification.
+
+The blue checkmark is a prestige upgrade, not a functional requirement. The CMC logo display provides the primary value for advisory communications.
+
+### USPTO Trademark Registration (for future VMC upgrade)
+
+| Item | Details |
+|------|---------|
+| **What** | Register the GST delta icon as a trademark with the US Patent & Trademark Office |
+| **Filing fee** | $250-350 per class (online TEAS filing) |
+| **Classes needed** | Class 35 (business consulting/advisory) and/or Class 42 (technology services) |
+| **Timeline** | 8-12 months from filing to registration (USPTO backlog) |
+| **Process** | File application → USPTO examiner reviews (3-4 months) → Published for opposition (30 days) → Registration issued |
+| **Requirements** | Proof the mark is in use in commerce (website screenshots, client communications) |
+| **Self-file?** | Yes, via [teas.uspto.gov](https://teas.uspto.gov). Attorney optional but recommended (~$500-1,500 for a simple filing) |
+| **Not needed for** | CMC certificate or initial BIMI logo display — only for VMC blue checkmark |
 
 ---
 
-## Current State
+## Current State (Verified April 6, 2026)
 
-| Component | Status | Notes |
+| Component | Status | Details |
 |---|---|---|
-| **DNS** | Cloudflare | Manual DNS record updates required |
+| **DNS** | Cloudflare | Active, records editable |
 | **Hosting** | Astro / Vercel | SVG served from `public/` static assets |
-| **DMARC** | `p=none` (assumed) | Must harden to `p=quarantine` or `p=reject` for BIMI |
-| **SPF** | Likely configured | Verify via `dig TXT globalstrategic.tech` |
-| **DKIM** | Likely configured | Depends on email provider (Google Workspace, etc.) |
+| **DMARC** | `p=quarantine; pct=100` | **Hardened** — meets BIMI requirement. Reporting to Cloudflare DMARC Management |
+| **SPF** | `v=spf1 include:_spf.google.com -all` | **Hard fail** — only Google Workspace authorized. Verified clean in Cloudflare reports (7 days) |
+| **DKIM** | RSA key published, active | **Verified** — signing via Google Workspace |
+| **Email provider** | Google Workspace | Sole sender for `@globalstrategic.tech` |
+| **DMARC reports** | Clean | No authentication failures in monitoring period |
 | **Brand Logo** | Exists (`public/images/logo/gst-delta-icon-teal-stroke-thick.svg`) | Must be converted to SVG Tiny PS profile |
 | **vercel.json** | Does not exist | Must be created for Content-Type header on BIMI SVG |
+| **USPTO Trademark** | Not filed | Required only for VMC (blue checkmark), not for CMC (logo display) |
+
+**Assessment**: All DNS prerequisites are met. Ready to proceed with code implementation (Stage 2) and BIMI DNS record (Stage 3).
 
 ---
 
@@ -125,35 +149,22 @@ When sending sensitive technical diligence reports, investment memos, or advisor
 
 ---
 
-### Step 3: DMARC Hardening
+### Step 3: DMARC Hardening — COMPLETE
 
-**What**: Transition DMARC policy from `p=none` (monitoring) to `p=quarantine` (enforcement). BIMI requires `p=quarantine` or `p=reject`.
+**Status**: Done (April 6, 2026)
 
-#### Manual Step (Cloudflare DNS)
+DMARC hardened from `p=none` to `p=quarantine; pct=100`. SPF hardened from `~all` (soft-fail) to `-all` (hard-fail). Verified via Cloudflare DMARC Management dashboard:
 
-Update the existing `_dmarc.globalstrategic.tech` TXT record:
+- DMARC policy: **Quarantine**
+- SPF policy: **Fail** (hard reject unauthorized senders)
+- DKIM in use: **Yes**
+- DMARC reports: **Clean** (no authentication failures)
 
-**Current** (assumed):
+Current DNS records:
 ```
-v=DMARC1; p=none; rua=mailto:dmarc@globalstrategic.tech;
+_dmarc.globalstrategic.tech TXT "v=DMARC1; p=quarantine; pct=100; rua=mailto:65d22352f4884af2ba1ce20f66bcf437@dmarc-reports.cloudflare.net; adkim=r; aspf=r;"
+globalstrategic.tech TXT "v=spf1 include:_spf.google.com -all"
 ```
-
-**Target**:
-```
-v=DMARC1; p=quarantine; pct=100; rua=mailto:dmarc@globalstrategic.tech; adkim=r; aspf=r;
-```
-
-**Risk Mitigation**:
-1. Before changing, verify SPF and DKIM are correctly configured for all sending sources (Google Workspace, Calendly, Vercel, any transactional email services)
-2. Consider a phased rollout: `pct=25` for 1 week, then `pct=50`, then `pct=100`
-3. Monitor DMARC aggregate reports (`rua`) for authentication failures during transition
-4. If legitimate email is being quarantined, add the sending source to SPF or configure DKIM
-
-**Pre-Flight Checks**:
-- `dig TXT globalstrategic.tech` — verify SPF record includes all sending IPs
-- `dig TXT _dmarc.globalstrategic.tech` — verify current DMARC policy
-- Send test emails from all GST email addresses and verify they pass SPF + DKIM alignment
-- Check DMARC aggregate reports for any existing failures before hardening
 
 ---
 
@@ -192,7 +203,7 @@ When ready to purchase a CMC:
 v=BIMI1; l=https://globalstrategic.tech/branding/logo-bimi.svg; a=https://globalstrategic.tech/branding/gst-bimi.pem;
 ```
 
-**VMC Upgrade Path**: If/when the GST trademark is registered, upgrade from CMC to VMC for the Gmail blue verified checkmark. Same process, different CA verification requirements.
+**VMC Upgrade Path**: After USPTO trademark registration (~8-12 months), upgrade from CMC to VMC for the Gmail blue verified checkmark. Same infrastructure, different CA verification. See "USPTO Trademark Registration" section above for filing details.
 
 ---
 
@@ -209,19 +220,33 @@ Test the implementation with these tools:
 
 ## Manual Steps Checklist
 
-These steps cannot be automated by Claude Code and must be performed manually:
+### Stage 1: DNS Hardening — COMPLETE
+- [x] **Verify current DMARC policy**: `p=quarantine; pct=100` confirmed
+- [x] **Verify SPF record**: `v=spf1 include:_spf.google.com -all` confirmed
+- [x] **Verify DKIM**: RSA key published, signing active via Google Workspace
+- [x] **Update DMARC record in Cloudflare**: hardened from `p=none` to `p=quarantine; pct=100`
+- [x] **Update SPF record**: hardened from `~all` to `-all`
+- [x] **Monitor DMARC reports**: clean — no authentication failures
 
-- [ ] **Verify current DMARC policy**: `dig TXT _dmarc.globalstrategic.tech`
-- [ ] **Verify SPF record**: `dig TXT globalstrategic.tech` — confirm all sending sources are included
-- [ ] **Verify DKIM**: send a test email and check headers for `dkim=pass`
-- [ ] **Update DMARC record in Cloudflare**: change `p=none` to `p=quarantine; pct=100;`
-- [ ] **Monitor DMARC reports**: watch for authentication failures for 1-2 weeks after hardening
-- [ ] **Add BIMI TXT record in Cloudflare**: `default._bimi` with the generated value
+### Stage 2: Code Implementation — READY
+- [ ] **Create `public/branding/logo-bimi.svg`**: SVG Tiny PS conversion (Claude Code)
+- [ ] **Create `vercel.json`**: Content-Type header for BIMI SVG path (Claude Code)
+- [ ] **Deploy to Vercel**: push to dev → merge to master → verify `curl -I` returns 200
+
+### Stage 3: BIMI DNS Record — AFTER STAGE 2 DEPLOYED
+- [ ] **Add BIMI TXT record in Cloudflare**: `default._bimi` → `v=BIMI1; l=https://globalstrategic.tech/branding/logo-bimi.svg; a=;`
 - [ ] **Wait for DNS propagation**: 1-48 hours
-- [ ] **Validate with BIMI Inspector**: confirm logo appears correctly
+- [ ] **Validate with BIMI Inspector**: [bimigroup.org/bimi-generator](https://bimigroup.org/bimi-generator/)
 - [ ] **Send test email to Gmail**: verify logo renders in inbox
-- [ ] **Purchase CMC certificate** (when ready): DigiCert or Entrust, ~$100-300/year
-- [ ] **Upload certificate and update DNS `a=` tag** with certificate URL
+
+### Stage 4: CMC Certificate — FUTURE
+- [ ] **Purchase CMC certificate**: DigiCert or Entrust, ~$100-300/year
+- [ ] **Host certificate**: `https://globalstrategic.tech/branding/gst-bimi.pem`
+- [ ] **Update BIMI DNS `a=` tag** with certificate URL
+
+### Stage 5: VMC Upgrade — FUTURE (requires trademark)
+- [ ] **File USPTO trademark**: $250-350/class, 8-12 month timeline
+- [ ] **After registration**: upgrade CMC to VMC (~$1,500/year) for Gmail blue checkmark
 
 ---
 

@@ -1,0 +1,158 @@
+---
+/* No props — this component exists solely to inject :global() CSS
+   for the swatch-control elements that injectControls() creates
+   via innerHTML at runtime. Without :global(), Astro's scoped CSS
+   adds data-astro-cid-* attribute selectors that can never match
+   dynamically-created DOM nodes. */
+---
+
+<Fragment />
+
+<style>
+  /* ── JS-injected swatch controls (:global required) ────────── */
+
+  :global(.swatch-controls) {
+    margin-top: var(--spacing-xs);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  :global(.swatch-controls__row) {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  :global(.swatch-picker) {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--border-light);
+    background: none;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  :global(.swatch-picker)::-webkit-color-swatch-wrapper { padding: 1px; }
+  :global(.swatch-picker)::-webkit-color-swatch { border: none; }
+
+  :global(.swatch-hex) {
+    flex: 1;
+    min-width: 0;
+    font-family: monospace;
+    font-size: var(--text-xs);
+    padding: 3px 5px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-light);
+    color: var(--text-primary);
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
+  }
+
+  :global(.swatch-hex):focus {
+    border-color: var(--color-primary);
+    outline: none;
+  }
+
+  :global(.swatch-reset) {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid var(--border-light);
+    background: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-family: monospace;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  :global(.swatch-reset):hover {
+    color: var(--color-error, #c44040);
+    border-color: var(--color-error, #c44040);
+  }
+
+  :global(.swatch-sliders) {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  :global(.swatch-slider-label) {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: monospace;
+    font-size: 9px;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: default;
+  }
+
+  :global(.swatch-slider-label--r) { color: #c44040; }
+  :global(.swatch-slider-label--g) { color: #16a34a; }
+  :global(.swatch-slider-label--b) { color: #3b82f6; }
+
+  :global(.swatch-slider) {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--border-light);
+    outline: none;
+    cursor: pointer;
+  }
+
+  :global(.swatch-slider)::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 14px;
+    background: var(--text-secondary);
+    border: none;
+    cursor: grab;
+  }
+
+  :global(.swatch-slider)::-moz-range-thumb {
+    width: 10px;
+    height: 14px;
+    background: var(--text-secondary);
+    border: none;
+    border-radius: 0;
+    cursor: grab;
+  }
+
+  :global(.swatch-slider)::-webkit-slider-thumb:active { cursor: grabbing; }
+  :global(.swatch-slider)::-moz-range-thumb:active { cursor: grabbing; }
+
+  :global(.swatch-slider-label--r .swatch-slider)::-webkit-slider-thumb { background: #c44040; }
+  :global(.swatch-slider-label--g .swatch-slider)::-webkit-slider-thumb { background: #16a34a; }
+  :global(.swatch-slider-label--b .swatch-slider)::-webkit-slider-thumb { background: #3b82f6; }
+  :global(.swatch-slider-label--r .swatch-slider)::-moz-range-thumb { background: #c44040; }
+  :global(.swatch-slider-label--g .swatch-slider)::-moz-range-thumb { background: #16a34a; }
+  :global(.swatch-slider-label--b .swatch-slider)::-moz-range-thumb { background: #3b82f6; }
+
+  /* ── Alpha slider & display ──────────────────────────────── */
+
+  :global(.swatch-slider-label--a) { color: var(--color-primary); }
+  :global(.swatch-slider-label--a .swatch-slider)::-webkit-slider-thumb { background: var(--color-primary); }
+  :global(.swatch-slider-label--a .swatch-slider)::-moz-range-thumb { background: var(--color-primary); }
+
+  :global(.swatch-alpha-display) {
+    font-family: monospace;
+    font-size: 9px;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+  }
+</style>

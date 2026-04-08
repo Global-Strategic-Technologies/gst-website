@@ -5,7 +5,7 @@ import vercel from '@astrojs/vercel';
 export default defineConfig({
   site: 'https://globalstrategic.tech',
   adapter: vercel({
-    webAnalytics: { enabled: false },
+    webAnalytics: { enabled: true },
     isr: {
       expiration: 60 * 60 * 6, // 6 hours — revalidation interval for SSR pages (Radar)
     },

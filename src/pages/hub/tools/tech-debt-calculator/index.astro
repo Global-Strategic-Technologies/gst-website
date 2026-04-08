@@ -8,6 +8,7 @@ import {
 } from '../../../../utils/tech-debt-engine';
 
 trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
+import DeltaIcon from '../../../../components/DeltaIcon.astro';
 ---
 
 <BaseLayout
@@ -44,7 +45,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
             <!-- Print-only report header (hidden on screen) -->
             <div class="print-report-header" aria-hidden="true">
                 <div class="print-report-header__brand">
-                    <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="" width="24" height="24" />
+                    <DeltaIcon class="bullet-icon" />
                     <span>GST</span>
                 </div>
                 <div class="print-report-header__title">Technical Debt Cost Report</div>
@@ -150,7 +151,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
                             </div>
                         </div>
 
-                        <div class="tool-section-label section-label section-label--spaced">Deployment Frequency</div>
+                        <div class="brutal-tool-shell__section-label section-label section-label--spaced">Deployment Frequency</div>
                         <div class="deploy-grid">
                             {DEPLOY_OPTIONS.map((opt, i) => (
                                 <button
@@ -164,7 +165,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
                         </div>
                         <div data-dora-message class="dora-message"></div>
 
-                        <div class="tool-section-label section-label section-label--spaced">ROI Analysis</div>
+                        <div class="brutal-tool-shell__section-label section-label section-label--spaced">ROI Analysis</div>
                         <div class="sliders-grid-2">
                             <div class="slider-row">
                                 <div class="slider-header">
@@ -464,7 +465,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
     }
 
     .calc-slider::-webkit-slider-thumb:hover {
-        box-shadow: 0 0 0 4px rgba(5, 205, 153, 0.2);
+        box-shadow: 0 0 0 4px var(--color-primary-20);
     }
 
     .calc-slider::-moz-range-thumb {
@@ -479,7 +480,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
     /* .calc-slider and .hint-input dark theme overrides — in global.css */
 
     :global(html.dark-theme) .deploy-btn {
-        border-color: rgba(255, 255, 255, 0.15);
+        border-color: var(--border-dark-default);
     }
 
     :global(html.dark-theme) .deploy-btn.active {
@@ -488,19 +489,19 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
     }
 
     :global(html.dark-theme) .result-stat {
-        border-top-color: rgba(255, 255, 255, 0.15);
+        border-top-color: var(--border-dark-default);
     }
 
     :global(html.dark-theme) .adv-results {
-        border-top-color: rgba(255, 255, 255, 0.15);
+        border-top-color: var(--border-dark-default);
     }
 
     :global(html.dark-theme) .inputs-section {
-        border-bottom-color: rgba(255, 255, 255, 0.1);
+        border-bottom-color: var(--border-dark-subtle);
     }
 
     :global(html.dark-theme) .advanced-section {
-        border-color: rgba(255, 255, 255, 0.1);
+        border-color: var(--border-dark-subtle);
     }
 
     :global(html.dark-theme) .advanced-panel {
@@ -508,7 +509,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
     }
 
     :global(html.dark-theme) .calc-footer {
-        border-top-color: rgba(255, 255, 255, 0.1);
+        border-top-color: var(--border-dark-subtle);
     }
 
     /* ── Advanced section ─────────────────────────────────────────────────── */
@@ -771,7 +772,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
     :global(html.dark-theme) .currency-select {
         background-color: transparent;
         color: var(--text-secondary);
-        border-color: rgba(255, 255, 255, 0.15);
+        border-color: var(--border-dark-default);
     }
 
     :global(html.dark-theme) .currency-select option {

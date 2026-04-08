@@ -1,0 +1,188 @@
+/* ═══════════════════════════════════════════════════════════
+   TABLE OF CONTENTS — shared styles for <TableOfContents>
+   Global BEM (not scoped) because runtime-generated sublists
+   can't receive Astro data-astro-cid-* attributes.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Container ─────────────────────────────────────────── */
+
+.toc {
+    padding: var(--spacing-lg);
+    background: transparent;
+    border: 2px solid var(--border-light);
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-primary) transparent;
+}
+
+html.dark-theme .toc {
+    border-color: var(--border-light);
+}
+
+.toc::-webkit-scrollbar { width: 4px; }
+.toc::-webkit-scrollbar-track { background: transparent; }
+.toc::-webkit-scrollbar-thumb { background: var(--color-primary); }
+
+/* ── Heading ───────────────────────────────────────────── */
+
+.toc__heading {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-family: monospace;
+    font-size: 1rem;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-md);
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: transparent;
+    border-left: 3px solid var(--color-primary);
+}
+
+.toc__heading .bullet-icon {
+    margin-top: 0;
+}
+
+.toc__heading img {
+    flex-shrink: 0;
+}
+
+/* ── Chevron (hidden by default, shown when collapsible + mobile) ── */
+
+.toc__chevron {
+    display: none;
+}
+
+/* ── List ──────────────────────────────────────────────── */
+
+.toc__list {
+    list-style: none;
+    padding-left: var(--spacing-md);
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.toc__list > li {
+    margin-bottom: 0;
+}
+
+.toc__list a {
+    font-family: monospace;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    text-decoration: none;
+    text-transform: none;
+    letter-spacing: normal;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+    display: block;
+    padding: 3px var(--spacing-sm);
+    border-left: 2px solid transparent;
+}
+
+.toc__list a:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.toc__list a.is-active {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+/* ── Separator ─────────────────────────────────────────── */
+
+.toc__separator {
+    height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    list-style: none;
+    display: none;
+}
+
+/* ── Layer items (bold parent links) ───────────────────── */
+
+.toc__layer > a {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* ── Runtime-generated sublists ────────────────────────── */
+
+.toc__sublist {
+    list-style: none;
+    padding-left: var(--spacing-md);
+    margin-top: var(--spacing-xs);
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.toc__sublist li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+}
+
+.toc__sublist .bullet-icon {
+    flex-shrink: 0;
+    opacity: 0.5;
+}
+
+.toc__sublist a {
+    font-family: monospace;
+    font-size: 0.8rem;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: block;
+    padding: 2px var(--spacing-xs);
+    border-left: 2px solid transparent;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+    font-weight: 400;
+}
+
+.toc__sublist a:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.toc__sublist a.is-active {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+/* ── Collapsible modifier (mobile) ─────────────────────── */
+
+@media (max-width: 768px) {
+    .toc--collapsible .toc__heading {
+        cursor: pointer;
+        user-select: none;
+        margin-bottom: 0;
+    }
+
+    .toc--collapsible .toc__chevron {
+        display: block;
+        margin-left: auto;
+    }
+
+    .toc--collapsible.is-collapsed .toc__list {
+        display: none;
+    }
+
+    .toc--collapsible .toc__list {
+        max-height: 50vh;
+        overflow-y: auto;
+        margin-top: var(--spacing-sm);
+    }
+
+    .toc--collapsible .toc__sublist {
+        display: none;
+    }
+}

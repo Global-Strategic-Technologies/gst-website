@@ -2,9 +2,9 @@
 
 ## What This Does
 
-Prevents merging PRs to `main` unless:
+Prevents merging PRs to `master` unless:
 - ✅ All tests pass
-- ✅ Branch is up to date with main
+- ✅ Branch is up to date with master
 - ✅ At least one approval (optional)
 
 ## Setup Steps
@@ -17,11 +17,11 @@ Or navigate manually:
 1. Go to your GitHub repo
 2. Click **Settings** (top right)
 3. Click **Branches** (left sidebar)
-4. Click **Add rule** or edit existing main rule
+4. Click **Add rule** or edit existing master rule
 
 ### 2. Configure Basic Settings
 
-**Branch name pattern:** `main`
+**Branch name pattern:** `master`
 
 Check these boxes:
 - ✅ **Require a pull request before merging**
@@ -78,7 +78,7 @@ Click **Create** (new rule) or **Save changes** (existing rule)
 
 ### For Authors Creating PRs
 
-When you create a PR to main:
+When you create a PR to master:
 
 ```
 ┌─ PR Created
@@ -141,7 +141,7 @@ If you NEED to bypass (rare!):
 ### "Require a pull request before merging"
 Forces all changes through PR review (not direct pushes).
 
-**Effect:** Can't `git push` directly to main - must PR first.
+**Effect:** Can't `git push` directly to master - must PR first.
 
 **Why:** Catch issues before production.
 
@@ -164,10 +164,10 @@ All CI tests must pass (green ✅) before merging.
 
 **Effect:** Can't merge if tests fail, even with approvals.
 
-**Why:** Ensures code quality - broken tests = broken main.
+**Why:** Ensures code quality - broken tests = broken master.
 
 ### "Require branches to be up to date before merging"
-PR must be rebased on latest main before merging.
+PR must be rebased on latest master before merging.
 
 **Effect:** Before merge button appears, must click "Update branch".
 
@@ -195,9 +195,9 @@ PR must be rebased on latest main before merging.
    ↓
 6. Click "Merge pull request"
    ├─ Checks if up to date
-   └─ Merges to main automatically
+   └─ Merges to master automatically
    ↓
-7. Vercel deploys main automatically
+7. Vercel deploys master automatically
    ↓
 8. Deleted PR branch (optional)
 ```
@@ -211,7 +211,7 @@ PR must be rebased on latest main before merging.
 1. Create a branch: `git checkout -b test-rules`
 2. Make a simple change: Add a comment to a file
 3. Push: `git push origin test-rules`
-4. Create PR to main
+4. Create PR to master
 5. Check that tests are required (should see "Some checks haven't completed yet")
 6. Wait for tests to pass
 7. Try to merge - should work if tests pass
@@ -219,7 +219,7 @@ PR must be rebased on latest main before merging.
 
 ### Verify in settings:
 
-Go to `Settings → Branches → main` and you should see:
+Go to `Settings → Branches → master` and you should see:
 
 ```
 ✅ Require a pull request before merging
@@ -251,7 +251,7 @@ Go to `Settings → Branches → main` and you should see:
 - Author needs to fix and push again
 
 ### "This branch can't be merged due to conflicts"
-- Branch is out of date with main
+- Branch is out of date with master
 - Click "Update branch" button to rebase
 - Tests may run again after rebase
 
@@ -269,7 +269,7 @@ Go to `Settings → Branches → main` and you should see:
 ## FAQ
 
 ### Q: Does this block Vercel deployments?
-**A:** No! Tests run during PR review. Once merged, Vercel deploys main automatically (tests already passed).
+**A:** No! Tests run during PR review. Once merged, Vercel deploys master automatically (tests already passed).
 
 ### Q: Can I skip tests for emergencies?
 **A:** Yes, if you're an admin. But better: tests usually pass in 10 minutes. Rare to need skip.
@@ -283,7 +283,7 @@ Go to `Settings → Branches → main` and you should see:
 ### Q: Can I merge without approval?
 **A:** Not with these rules. Tests must pass AND someone must approve (unless you're admin).
 
-### Q: What about direct commits to main?
+### Q: What about direct commits to master?
 **A:** This rule prevents them. All commits must go through PR (which requires tests to pass).
 
 ---

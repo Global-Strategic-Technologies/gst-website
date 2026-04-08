@@ -25,7 +25,7 @@ Three GitHub Actions workflow files have been created in `.github/workflows/`:
 ```bash
 git add .github/workflows/
 git commit -m "Add GitHub Actions CI/CD pipeline with test automation"
-git push origin main
+git push origin master
 ```
 
 ### Step 2: Enable Branch Protection (Recommended)
@@ -33,8 +33,8 @@ git push origin main
 Go to your GitHub repo:
 
 1. **Settings** → **Branches**
-2. Click **Add rule** (if not already created for main)
-3. Branch name: `main`
+2. Click **Add rule** (if not already created for master)
+3. Branch name: `master`
 4. Check these options:
    - ✅ **Require status checks to pass before merging**
    - ✅ **Require branches to be up to date before merging**
@@ -57,7 +57,7 @@ Your CI/CD is now set up. Vercel continues to work exactly as before.
 ### On Push to Main
 
 ```
-git push main
+git push master
     ↓
 GitHub Actions starts tests
 └─ Unit/Integration tests (Node 18 & 20)
@@ -101,7 +101,7 @@ You review:
 4. Merge when ready (if tests pass)
 ```
 
-**Tests MUST pass to merge to main** (enforced by branch protection).
+**Tests MUST pass to merge to master** (enforced by branch protection).
 
 ---
 
@@ -109,12 +109,12 @@ You review:
 
 ### Before (Vercel Only)
 ```
-git push main → Vercel deploys → Hope nothing broke
+git push master → Vercel deploys → Hope nothing broke
 ```
 
 ### After (Tests + Vercel)
 ```
-git push main → Tests run → Vercel deploys → Proof it works
+git push master → Tests run → Vercel deploys → Proof it works
 ```
 
 ### Before (PR Workflow)

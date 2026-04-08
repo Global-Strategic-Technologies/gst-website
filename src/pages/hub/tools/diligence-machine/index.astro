@@ -3,6 +3,7 @@ import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
 import { WIZARD_STEPS } from '../../../../data/diligence-machine/wizard-config';
 import { trackPageView } from '../../../../utils/analytics';
+import DeltaIcon from '../../../../components/DeltaIcon.astro';
 
 trackPageView('diligence-machine', 'The Diligence Machine | GST');
 ---
@@ -112,7 +113,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                                             type="button"
                                             aria-pressed="false"
                                         >
-                                            <span class="brutal-option-card__label"><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="brutal-option-card__icon" width="10" height="10" loading="lazy" />{option.label}</span>
+                                            <span class="brutal-option-card__label"><DeltaIcon class="bullet-icon" />{option.label}</span>
                                             {option.description && (
                                                 <span class="brutal-option-card__description">{option.description}</span>
                                             )}
@@ -132,7 +133,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                                             type="button"
                                             aria-pressed="false"
                                         >
-                                            <span class="brutal-option-card__label"><img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="brutal-option-card__icon" width="10" height="10" loading="lazy" />{option.label}</span>
+                                            <span class="brutal-option-card__label"><DeltaIcon class="bullet-icon" />{option.label}</span>
                                             {option.description && (
                                                 <span class="brutal-option-card__description">{option.description}</span>
                                             )}
@@ -158,14 +159,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                                                         aria-pressed="false"
                                                     >
                                                         <span class="brutal-option-card__label">
-                                                            <img
-                                                                src="/images/gst-delta-icon-teal-stroke-thick.svg"
-                                                                alt=""
-                                                                aria-hidden="true"
-                                                                class="brutal-option-card__icon"
-                                                                width="10"
-                                                                height="10"
-                                                            />
+                                                            <DeltaIcon size={10} class="brutal-option-card__icon" />
                                                             {opt.label}
                                                         </span>
                                                     </button>
@@ -226,7 +220,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                     <!-- Document Header -->
                     <header class="doc-header" data-testid="doc-header">
                         <div class="doc-brand">
-                            <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" class="doc-brand-icon" width="24" height="24" loading="lazy" />
+                            <DeltaIcon class="bullet-icon" />
                             <span class="doc-brand-name">GST</span>
                         </div>
                         <h1 class="doc-title">Overview and Agenda</h1>
@@ -248,7 +242,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                     <!-- Attention Areas -->
                     <section class="doc-attention-anchors" id="attentionAreasSection" data-testid="attention-areas-section" style="display:none;" aria-label="Attention areas">
                         <h2 class="doc-section-heading">
-                            <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
+                            <DeltaIcon class="bullet-icon" />
                             Attention Areas
                         </h2>
                         <p class="doc-section-subtitle">Critical risk factors and complexity areas requiring focused investigation during diligence</p>
@@ -262,7 +256,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                     <footer class="doc-footer">
                         <hr class="doc-divider" />
                         <div class="doc-footer-brand">
-                            <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="12" height="12" loading="lazy" />
+                            <DeltaIcon class="bullet-icon" />
                             <span>https://globalstrategic.tech</span>
                         </div>
                         <p class="doc-footer-disclaimer">These perspectives are presented from recurrent technology patterns. Extend, revise and replace these with others gathered during your discovery process.</p>
@@ -309,7 +303,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             </details>
 
             <a href="/hub/tools" class="brutal-btn brutal-btn--secondary back-link" id="backToTools">
-                <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="10" height="10" loading="lazy" />
+                <DeltaIcon class="bullet-icon" />
                 Back to Tools
             </a>
         </div>
@@ -711,7 +705,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                                 <div class="doc-q-header">
                                     <span class="doc-q-number">${topicIndex + 1}.${qIndex + 1}</span>
                                     <div class="doc-q-badges">
-                                        ${q.exitImpact ? `<span class="doc-q-exit-impact exit-impact-${escapeHtml(q.exitImpact.toLowerCase().replace(/\\s+/g, '-'))}">${escapeHtml(q.exitImpact)}</span>` : ''}
+                                        ${q.exitImpact ? `<span class="doc-q-exit-impact exit-impact-${escapeHtml(q.exitImpact.toLowerCase().replaceAll(' ', '-'))}">${escapeHtml(q.exitImpact)}</span>` : ''}
                                         <span class="doc-q-priority">${escapeHtml(q.priority)}</span>
                                         <button class="brutal-na-btn" data-dismiss-question="${escapeHtml(q.id)}" type="button" title="${dismissedQuestions.has(q.id) ? 'Restore this item' : 'Mark as not applicable'}">${dismissedQuestions.has(q.id) ? 'Restore' : 'N/A'}</button>
                                     </div>
@@ -849,7 +843,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
         docMeta.innerHTML = `
             <h2 class="doc-section-heading">
-                <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
+                <DeltaIcon class="bullet-icon" />
                 Target Parameters
             </h2>
             <div class="doc-meta-grid">
@@ -938,7 +932,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         const docToc = document.getElementById('docToc')!;
         docToc.innerHTML = `
             <h2 class="doc-section-heading">
-                <img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="" aria-hidden="true" width="14" height="14" loading="lazy" />
+                <DeltaIcon class="bullet-icon" />
                 Table of Contents
             </h2>
             <nav class="doc-toc-list" aria-label="Topic navigation">
@@ -1357,7 +1351,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     :global(html.dark-theme) .progress-number {
-        color: rgba(255, 255, 255, 0.15);
+        color: var(--border-dark-default);
     }
 
     :global(html.dark-theme) .progress-segment.completed .progress-number-text {
@@ -1442,7 +1436,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     :global(html.dark-theme) .progress-dot {
-        color: rgba(255, 255, 255, 0.15);
+        color: var(--border-dark-default);
     }
 
     /* ─── WIZARD STEPS ─────────────────────────────────────────────────── */
@@ -1582,7 +1576,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     :global(html.dark-theme) .field-section-label {
-        border-bottom-color: rgba(5, 205, 153, 0.3);
+        border-bottom-color: var(--color-primary-30);
     }
 
     /* ─── NAVIGATION ───────────────────────────────────────────────────── */
@@ -1624,7 +1618,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     :global(html.dark-theme) .doc-action-bar {
-        border-bottom-color: rgba(255, 255, 255, 0.15);
+        border-bottom-color: var(--border-dark-default);
     }
 
     /* ─── DOCUMENT PAGE ────────────────────────────────────────────────── */
@@ -1655,7 +1649,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     :global(html.dark-theme) .doc-page {
         background: rgba(255, 255, 255, 0.005);
-        border-color: rgba(255, 255, 255, 0.15);
+        border-color: var(--border-dark-default);
     }
 
     /* ─── DOCUMENT HEADER ──────────────────────────────────────────────── */
@@ -1826,7 +1820,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         line-height: 1.3;
         background: transparent;
         border: 1px solid transparent;
-        border-bottom: 1px dashed rgba(5, 205, 153, 0.3);
+        border-bottom: 1px dashed var(--color-primary-30);
         padding: 2px 0;
         width: 75%;
         outline: none;
@@ -1948,7 +1942,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     .doc-attention-grid :global(.doc-attention-card) {
         padding: calc(var(--spacing-xl) * 0.5) var(--spacing-xl);
         border-left: 3px solid var(--color-primary);
-        background: rgba(5, 205, 153, 0.03);
+        background: var(--accent-wash-bg);
         border-radius: 0;
         min-width: 0;
         overflow: hidden;
@@ -1959,21 +1953,21 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     .doc-attention-grid :global(.doc-attention-card.relevance-high) {
-        border-left-color: var(--hub-authority-blue);
-        background: var(--hub-authority-blue-bg);
+        border-left-color: var(--color-authority);
+        background: var(--color-authority-bg);
     }
 
     .doc-attention-grid :global(.doc-attention-card.relevance-medium) {
-        border-left-color: var(--dm-methodology-brown);
-        background: var(--dm-methodology-brown-bg);
+        border-left-color: var(--color-subdued);
+        background: var(--color-subdued-bg);
     }
 
     :global(html.dark-theme) .doc-attention-grid :global(.doc-attention-card.relevance-high) {
-        background: var(--hub-authority-blue-bg);
+        background: var(--color-authority-bg);
     }
 
     :global(html.dark-theme) .doc-attention-grid :global(.doc-attention-card.relevance-medium) {
-        background: var(--dm-methodology-brown-bg);
+        background: var(--color-subdued-bg);
     }
 
     .doc-attention-grid :global(.doc-attention-header) {
@@ -2006,11 +2000,11 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     .doc-attention-grid :global(.relevance-high .doc-attention-divider) {
-        background: var(--hub-authority-blue);
+        background: var(--color-authority);
     }
 
     .doc-attention-grid :global(.relevance-medium .doc-attention-divider) {
-        background: var(--dm-methodology-brown);
+        background: var(--color-subdued);
     }
 
     .doc-attention-grid :global(.doc-attention-desc) {
@@ -2153,11 +2147,11 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     .doc-topics :global(.doc-question.priority-high) {
-        border-left-color: var(--hub-authority-blue);
+        border-left-color: var(--color-authority);
     }
 
     .doc-topics :global(.doc-question.priority-medium) {
-        border-left-color: var(--dm-methodology-brown);
+        border-left-color: var(--color-subdued);
     }
 
     .doc-topics :global(.doc-question.priority-standard) {
@@ -2170,19 +2164,19 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     :global(html.dark-theme) .doc-topics :global(.doc-q-red-flag) {
         background: var(--dm-negative-dark-bg);
-        color: var(--dm-negative);
+        color: var(--color-error);
     }
 
     :global(html.dark-theme) .doc-topics :global(.exit-impact-multiple-expander) {
-        color: var(--dm-positive);
+        color: var(--color-success);
     }
 
     :global(html.dark-theme) .doc-topics :global(.exit-impact-valuation-drag) {
-        color: var(--dm-warning);
+        color: var(--color-warning);
     }
 
     :global(html.dark-theme) .doc-topics :global(.exit-impact-operational-risk) {
-        color: var(--dm-negative);
+        color: var(--color-error);
     }
 
     .doc-topics :global(.doc-q-header) {
@@ -2211,13 +2205,13 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     .doc-topics :global(.priority-high .doc-q-priority) {
-        background: var(--hub-authority-blue-bg);
-        color: var(--hub-authority-blue);
+        background: var(--color-authority-bg);
+        color: var(--color-authority);
     }
 
     .doc-topics :global(.priority-medium .doc-q-priority) {
-        background: var(--dm-methodology-brown-bg);
-        color: var(--dm-methodology-brown);
+        background: var(--color-subdued-bg);
+        color: var(--color-subdued);
     }
 
     .doc-topics :global(.priority-standard .doc-q-priority) {
@@ -2284,22 +2278,22 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     .doc-topics :global(.exit-impact-multiple-expander) {
         background: rgba(46, 139, 87, 0.12);
-        color: var(--dm-success);
+        color: var(--color-success);
     }
 
     .doc-topics :global(.exit-impact-valuation-drag) {
         background: rgba(178, 102, 34, 0.12);
-        color: var(--dm-warning-dark);
+        color: var(--color-warning);
     }
 
     .doc-topics :global(.exit-impact-operational-risk) {
         background: rgba(178, 34, 34, 0.12);
-        color: var(--dm-negative-dark);
+        color: var(--color-error);
     }
 
     .doc-topics :global(.doc-q-red-flag) {
         font-size: var(--text-sm);
-        color: var(--dm-negative-dark);
+        color: var(--color-error);
         line-height: 1.6;
         margin: 0 0 var(--spacing-sm) 0;
         padding: var(--spacing-xs) var(--spacing-sm);

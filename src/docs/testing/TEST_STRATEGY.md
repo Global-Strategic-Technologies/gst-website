@@ -618,7 +618,7 @@ expect.extend({
 
 Your current setup:
 - GitHub repo connected to Vercel
-- Automatic deployments on `main` branch push
+- Automatic deployments on `master` branch push
 - Vercel preview deployments for PRs
 
 **Recommended CI/CD Flow:**
@@ -632,7 +632,7 @@ GitHub Actions Tests (in parallel)
     ↓
 All Pass? → Continue
     ↓
-Merge to main
+Merge to master
     ↓
 Vercel Automatic Deployment
 ```
@@ -646,9 +646,9 @@ name: Test Suite
 
 on:
   push:
-    branches: [main, develop]
+    branches: [master, dev]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -799,7 +799,7 @@ name: PR Checks & Preview
 
 on:
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   pr-tests:
@@ -1273,7 +1273,7 @@ See **[ANALYTICS_TESTING.md](../analytics/ANALYTICS_TESTING.md)** for:
 
 **Current Flow (Without Tests):**
 ```
-git push main
+git push master
     ↓
 Vercel webhook triggered
     ↓
@@ -1282,7 +1282,7 @@ Vercel builds and deploys automatically
 
 **New Flow (With Tests):**
 ```
-git push main
+git push master
     ↓
 GitHub Actions runs tests in parallel
 ├── Unit & Integration Tests
@@ -1305,7 +1305,7 @@ Vercel builds and deploys (already triggered by push)
    - This is intentional - you control final deployment
 
 2. **For Pull Requests**
-   - Tests MUST pass before merging to main
+   - Tests MUST pass before merging to master
    - Use branch protection rules
    - Vercel creates preview deployments
    - Tests run before and after preview is ready
@@ -1335,7 +1335,7 @@ Create these files in your repo:
 Go to GitHub repo settings:
 
 1. Settings → Branches → Add rule
-2. Branch name pattern: `main`
+2. Branch name pattern: `master`
 3. Check:
    - ✅ "Require status checks to pass before merging"
    - ✅ "Unit & Integration Tests"
@@ -1343,12 +1343,12 @@ Go to GitHub repo settings:
    - ⚠️ E2E Tests (optional - they take longer)
    - ✅ "Require branches to be up to date before merging"
 
-This prevents merging to main if tests fail.
+This prevents merging to master if tests fail.
 
 #### Step 3: Configure Vercel Settings (No Changes Needed)
 
 Your current Vercel setup is perfect:
-- ✅ GitHub integration auto-deploys main
+- ✅ GitHub integration auto-deploys master
 - ✅ PR preview deployments work automatically
 - ✅ Environment variables are configured
 
@@ -1362,7 +1362,7 @@ Before running E2E tests, instrument components with selectors (see section 8).
 
 **For a Push to Main:**
 ```
-T=0s   git push main
+T=0s   git push master
 T=0.5s GitHub Actions triggered
 T=0.5s Vercel webhook triggered
 T=1m   Tests start running
@@ -1530,7 +1530,7 @@ Add to workflow to notify on failures:
 
 **Vercel deploys but tests fail:**
 - This is OK - tests are feedback, not blockers
-- You can revert main if needed
+- You can revert master if needed
 - PR tests ARE blockers for merge
 
 ### Checking Status

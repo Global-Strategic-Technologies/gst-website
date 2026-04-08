@@ -1,28 +1,29 @@
 ---
 // WhoWeSupport section - displays target audience segments with SVG bullet indicators
+import DeltaIcon from './DeltaIcon.astro';
 ---
 
 <section class="who-we-support">
     <div class="container">
         <div class="support-content">
-            <h2 class="heading-lg">Who We Support</h2>
+            <h2 class="brutal-heading-lg">Who We Support</h2>
             <p class="intro-text">GST partners with leaders who need clarity, confidence, and credible technical direction.</p>
 
             <ul class="support-list">
                 <li>
-                    <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="Audience segment - Private equity and investment teams" class="bullet-icon" loading="lazy" />
+                    <DeltaIcon class="bullet-icon" />
                     <span>Private equity & investment teams</span>
                 </li>
                 <li>
-                    <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="Audience segment - Founders and executive leadership" class="bullet-icon" loading="lazy" />
+                    <DeltaIcon class="bullet-icon" />
                     <span>Founders and executive leadership</span>
                 </li>
                 <li>
-                    <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="Audience segment - SaaS and technology-enabled businesses" class="bullet-icon" loading="lazy" />
+                    <DeltaIcon class="bullet-icon" />
                     <span>SaaS and technology-enabled businesses</span>
                 </li>
                 <li>
-                    <img src="/images/logo/gst-delta-icon-teal-stroke-thick.svg" alt="Audience segment - Security and compliance sensitive organizations" class="bullet-icon" loading="lazy" />
+                    <DeltaIcon class="bullet-icon" />
                     <span>Security- or compliance-sensitive organizations</span>
                 </li>
             </ul>
@@ -45,9 +46,7 @@
         margin: 0 auto;
     }
 
-    .heading-lg {
-        font-family: monospace;
-        text-transform: uppercase;
+    .brutal-heading-lg {
         margin-bottom: var(--spacing-xl);
     }
 
@@ -108,7 +107,7 @@
     }
 
     :global(html.dark-theme) .closing-text {
-        border-top-color: rgba(255, 255, 255, 0.15);
+        border-top-color: var(--border-dark-default);
     }
 
     /* Responsive design */

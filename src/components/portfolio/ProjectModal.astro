@@ -144,7 +144,7 @@
   }
 
   .modal-title {
-    font-size: 1.75rem;
+    font-size: var(--text-3xl);
     font-family: monospace;
     font-weight: 900;
     color: var(--text-primary);
@@ -153,7 +153,7 @@
   }
 
   .modal-industry {
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     font-family: monospace;
     color: var(--text-muted);
     margin: 0;
@@ -175,7 +175,7 @@
   }
 
   .metric-label {
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     font-family: monospace;
     font-weight: 700;
     text-transform: uppercase;
@@ -185,7 +185,7 @@
   }
 
   .metric-value {
-    font-size: 0.9375rem;
+    font-size: var(--text-sm);
     font-family: monospace;
     color: var(--text-secondary);
     line-height: 1.6;
@@ -197,7 +197,7 @@
   }
 
   .modal-section-title {
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     font-family: monospace;
     font-weight: 700;
     text-transform: uppercase;
@@ -207,7 +207,7 @@
   }
 
   .modal-text {
-    font-size: 0.9375rem;
+    font-size: var(--text-sm);
     font-family: monospace;
     color: var(--text-secondary);
     line-height: 1.6;
@@ -225,14 +225,14 @@
     color: var(--text-secondary);
     padding: 0.35rem 0.65rem;
     font-family: monospace;
-    font-size: 0.7rem;
+    font-size: var(--text-xs);
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
 
   .modal-engagement-type {
-    font-size: 1rem;
+    font-size: var(--text-base);
     font-family: monospace;
     font-weight: 600;
     color: var(--color-primary);
@@ -241,7 +241,7 @@
   }
 
   .modal-engagement-industry {
-    font-size: 0.8125rem;
+    font-size: var(--text-sm);
     color: var(--text-faded);
     margin: 0.5rem 0 0 0;
     font-weight: 500;
@@ -250,7 +250,7 @@
   /* Dark theme modal */
   :global(html.dark-theme) .project-modal {
     background: var(--bg-dark-secondary);
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: var(--border-dark-default);
     border-top-color: var(--color-primary);
   }
 
@@ -268,7 +268,7 @@
   }
 
   :global(html.dark-theme) .modal-metrics {
-    border-bottom-color: rgba(255, 255, 255, 0.15);
+    border-bottom-color: var(--border-dark-default);
   }
 
   :global(html.dark-theme) .metric-label {
@@ -329,7 +329,7 @@
     }
 
     .modal-title {
-      font-size: 1.35rem;
+      font-size: var(--text-xl);
     }
 
     .modal-metrics {
@@ -338,11 +338,11 @@
     }
 
     .modal-section-title {
-      font-size: 0.75rem;
+      font-size: var(--text-xs);
     }
 
     .modal-text {
-      font-size: 0.875rem;
+      font-size: var(--text-sm);
     }
   }
 </style>

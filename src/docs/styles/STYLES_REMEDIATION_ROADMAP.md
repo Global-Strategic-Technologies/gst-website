@@ -18,6 +18,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 9. [Theme-Agnostic Text Variable Refactor](#9-theme-agnostic-text-variable-refactor)
 10. [Reusable Skeleton CSS Classes](#10-reusable-skeleton-css-classes)
 11. [Astro CSS Alignment & Tooling](#11-astro-css-alignment--tooling)
+12. [Legacy Design System Removal](#12-legacy-design-system-removal) *(complete)*
 
 ---
 
@@ -289,7 +290,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## Completion Summary
 
-11 initiatives tracked. 10 fully complete, 1 awaiting stakeholder review (Init 1A).
+12 initiatives tracked. 11 fully complete, 1 awaiting stakeholder review (Init 1A).
 
 | Initiative | Status | Date | Notes |
 |-----------|--------|------|-------|
@@ -305,6 +306,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 | 9. Text Variable Refactor | Complete | Mar 24 | `--text-*` aliases added; 335 refs migrated; ~200 lines of redundant dark overrides removed |
 | 10. Skeleton CSS Classes | Complete | Mar 24 | `.skeleton-bar`, `.skeleton-bar--sm`, `.skeleton-dot` extracted to global.css |
 | 11. Astro CSS Alignment | Complete | Mar 24 | Stylelint added; Astro CSS patterns documented; `:global()` reduced 631→577 |
+| 12. Legacy Design System Removal | Complete | Apr 4 | ~360 lines removed; legacy classes deleted; `portfolio-controls.css` merged; `--color-primary-rgb` added |
 
 **Key outcomes**:
 - 22 new shared CSS variables defined (`--hub-authority-blue`, `--dm-*`, `--icg-*`, `--text-*` aliases, `--spacing-2_5xl`)
@@ -429,6 +431,24 @@ Result: 631 → 577 instances (-54). Remaining instances are all justified (dyna
 
 ---
 
+### 12. Legacy Design System Removal
+
+**Status**: Complete (April 4, 2026)
+
+**Problem**: The codebase carried ~360 lines of legacy (pre-brutalist) CSS class definitions alongside the canonical `.brutal-*` classes. Legacy typography classes (`.heading-*`, `.text-*`, `.label-*`), legacy component classes (`.hub-btn`, `.tool-shell`, `.tool-authority`, `.tool-section-label`, `.tool-bench-table`, `.option-card`), and a standalone `portfolio-controls.css` file were still present even though all consumers had been migrated to brutalist equivalents.
+
+**Key deliverables**:
+- Removed all legacy `.heading-*`, `.text-*`, `.label-*` typography classes from `typography.css` (replaced by `.brutal-heading-*`, `.brutal-text-*`, `.brutal-label-*`)
+- Removed legacy `.hub-btn`, `.tool-shell`, `.tool-authority`, `.tool-section-label`, `.tool-bench-table`, `.option-card` classes from `global.css` (replaced by `.brutal-btn`, `.brutal-tool-shell`, etc.)
+- Merged `portfolio-controls.css` into `global.css` and deleted the standalone file
+- Added `--color-primary-rgb` variable to `variables.css` for `rgba()` opacity patterns
+- Updated `.filter-chip` to brutalist styling (`border-radius: 0`, transparent background, 2px border)
+- Cleaned brand page to show only the brutalist design system
+
+**Impact**: ~360 lines of dead CSS removed, eliminating the parallel legacy/brutalist class duplication. Single canonical class namespace (`.brutal-*`) for the entire design system.
+
+---
+
 ## Related Documentation
 
 - [STYLES_GUIDE.md](./STYLES_GUIDE.md) - Current CSS conventions and patterns
@@ -439,4 +459,4 @@ Result: 631 → 577 instances (-54). Remaining instances are all justified (dyna
 ---
 
 **Created**: March 21, 2026
-**Last Updated**: March 24, 2026
+**Last Updated**: April 4, 2026

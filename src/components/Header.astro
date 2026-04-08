@@ -1,5 +1,6 @@
 ---
 import ThemeToggle from './ThemeToggle.astro';
+import DeltaIcon from './DeltaIcon.astro';
 import { trackNavigation } from '../utils/analytics';
 
 interface Props {
@@ -14,12 +15,7 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
     <div class="container">
         <nav role="navigation" aria-label="Main navigation">
             <div class="logo-wrapper">
-                <img
-                    src="/images/logo/gst-delta-icon-teal-stroke-thick.svg"
-                    alt="Global Strategic Technologies logo"
-                    class="delta-icon"
-                    aria-hidden="true"
-                />
+                <DeltaIcon size={32} class="delta-icon" />
                 <a href="/" class="logo" aria-label="GST" onclick="trackNavigation('/', 'Logo')">G<span>S</span>T</a>
             </div>
             <ul>

@@ -1,5 +1,7 @@
 # Site-Wide Brutalist Design Migration
 
+> **Archive Status**: This migration is complete and legacy classes have been removed (April 4, 2026). This document is retained for historical reference. The go-forward design system is documented on the [/brand](https://globalstrategic.tech/brand) reference page.
+
 Extend the brutalist design system — established during the [Hub Tools migration](./HUB_TOOLS_BRUTALIST_MIGRATION.md) — to all remaining marketing pages, site chrome, shared components, and content pages. The brutalist tokens and component classes live in `global.css`, `typography.css`, and `interactions.css`, rendered live on the [/brand](https://globalstrategic.tech/brand) reference page.
 
 **Status**: Complete (All 9 Stages)
