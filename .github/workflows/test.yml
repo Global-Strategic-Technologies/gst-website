@@ -3,8 +3,16 @@ name: Test Suite
 on:
   push:
     branches: [master, dev]
+    paths-ignore:
+      - '**.md'
+      - 'src/docs/**'
+      - '.claude/**'
   pull_request:
-    branches: [master]
+    branches: [master, dev]
+    paths-ignore:
+      - '**.md'
+      - 'src/docs/**'
+      - '.claude/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -14,6 +22,7 @@ jobs:
   unit-and-integration:
     name: Unit & Integration Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       matrix:
         node-version: [18.x, 20.x]
@@ -35,21 +44,29 @@ jobs:
         run: npm run test:run
 
       - name: Generate coverage report
-        run: npm run test:coverage
         if: matrix.node-version == '20.x'
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        if: matrix.node-version == '20.x'
-        with:
-          files: ./coverage/coverage-final.json
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
+        run: |
+          npm run test:coverage 2>&1 | tee coverage-output.txt
+          SUMMARY=$(grep "^All files" coverage-output.txt || echo "")
+          if [ -n "$SUMMARY" ]; then
+            STMTS=$(echo "$SUMMARY" | awk -F'|' '{gsub(/ /,"",$2); print $2}')
+            BRANCH=$(echo "$SUMMARY" | awk -F'|' '{gsub(/ /,"",$3); print $3}')
+            FUNCS=$(echo "$SUMMARY" | awk -F'|' '{gsub(/ /,"",$4); print $4}')
+            LINES=$(echo "$SUMMARY" | awk -F'|' '{gsub(/ /,"",$5); print $5}')
+            echo "## Code Coverage" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Coverage |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|----------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Statements | ${STMTS}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Branches | ${BRANCH}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Functions | ${FUNCS}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Lines | ${LINES}% |" >> $GITHUB_STEP_SUMMARY
+          fi
 
   e2e-tests:
     name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: unit-and-integration
     if: needs.unit-and-integration.result == 'success'
 
@@ -88,6 +105,14 @@ jobs:
       - name: Build application
         run: npm run build
 
+      - name: Verify build output
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "Build failed: dist directory not created"
+            exit 1
+          fi
+          echo "Build successful: $(du -sh dist/ | cut -f1)"
+
       - name: Run E2E tests
         run: npm run test:e2e
 
@@ -99,40 +124,11 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-  build-verification:
-    name: Build Verification
-    runs-on: ubuntu-latest
-    needs: unit-and-integration
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build for production
-        run: npm run build
-
-      - name: Verify build output
-        run: |
-          if [ ! -d "dist" ]; then
-            echo "Build failed: dist directory not created"
-            exit 1
-          fi
-          echo "✅ Build successful!"
-          du -sh dist/
-
   test-results:
     name: Test Results Summary
     runs-on: ubuntu-latest
-    needs: [unit-and-integration, e2e-tests, build-verification]
+    timeout-minutes: 2
+    needs: [unit-and-integration, e2e-tests]
     if: always()
 
     steps:
@@ -144,4 +140,3 @@ jobs:
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Unit & Integration Tests | ${{ needs.unit-and-integration.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| E2E Tests | ${{ needs.e2e-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build Verification | ${{ needs.build-verification.result }} |" >> $GITHUB_STEP_SUMMARY
