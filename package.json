@@ -19,6 +19,9 @@
     "radar:unseed": "npx tsx -e \"import { clearRadarCache } from './tests/e2e/fixtures/seed-radar-cache'; clearRadarCache();\"",
     "lint:css": "stylelint \"src/styles/*.css\""
   },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "dependencies": {
     "@astrojs/vercel": "^9.0.4",
     "@upstash/redis": "^1.36.4",
