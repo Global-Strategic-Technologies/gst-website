@@ -3,7 +3,8 @@
 ## Pipeline Overview
 
 **Workflow:** `.github/workflows/test.yml`
-**Triggers:** Push to `master`/`dev`, PRs to `master`/`dev`
+**Triggers:** Push to `master` or `dev`, PRs to `master`
+**Deduplication:** Concurrency group cancels redundant runs when both push and PR fire for the same branch
 **Path filtering:** Skips docs-only changes (`**.md`, `src/docs/**`, `.claude/**`)
 
 ```
@@ -17,11 +18,6 @@ git push / PR opened
   ┌─────────────────────┐
   │ E2E Tests           │  Playwright (3 browsers)
   │ + Build Verify      │  timeout: 20 min
-  └─────────┬───────────┘
-            ↓
-  ┌─────────────────────┐
-  │ Test Results        │  Summary posted to
-  │ Summary             │  GitHub Actions tab
   └─────────────────────┘
 
   Vercel deploys simultaneously (independent)
@@ -31,8 +27,7 @@ git push / PR opened
 
 ### Unit & Integration Tests
 - Runs on Node 22.x
-- Executes `npm run test:run`
-- Generates coverage report on 20.x only
+- Executes `npm run test:coverage`
 - Coverage summary (statements, branches, functions, lines) posted to GitHub Actions step summary
 - **Timeout:** 10 minutes
 
@@ -41,23 +36,26 @@ git push / PR opened
 - Builds the application (`npm run build`) and verifies output
 - Runs `npm run test:e2e` across chromium, firefox, webkit
 - Playwright browsers cached between runs
-- Playwright HTML report uploaded as artifact (30-day retention)
+- Playwright HTML report uploaded as artifact (7-day retention)
 - **Timeout:** 20 minutes
 
-### Test Results Summary
-- Runs on `always()` — posts even if earlier jobs fail
-- Markdown table with pass/fail status for each job
-- **Timeout:** 2 minutes
-
-## Concurrency
+## Concurrency & Deduplication
 
 ```yaml
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 ```
 
 A new push to the same branch cancels any in-progress run, preventing wasted compute.
+
+When a PR is open and you push to `dev`, both `push` and `pull_request` events fire. Both resolve to the same concurrency group (`Test Suite-dev`), so the earlier run is cancelled — only one completes.
+
+| Scenario | Events fired | Runs to completion |
+|---|---|---|
+| Push to `dev`, no PR open | `push` | 1 |
+| Push to `dev`, PR open | `push` + `pull_request` | 1 (earlier cancelled) |
+| Merge to `master` | `push` | 1 |
 
 ## Coverage
 
@@ -84,10 +82,8 @@ PRs to `master` require:
 - Up-to-date branch
 
 ### Required Status Checks
-- Test Suite / Unit & Integration Tests (18.x)
-- Test Suite / Unit & Integration Tests (20.x)
+- Test Suite / Unit & Integration Tests
 - Test Suite / E2E Tests (Playwright)
-- Test Suite / Test Results Summary
 
 ## Key Files
 

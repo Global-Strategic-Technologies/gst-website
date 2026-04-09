@@ -2,21 +2,16 @@
 
 ## What Just Happened?
 
-Three GitHub Actions workflow files have been created in `.github/workflows/`:
+One GitHub Actions workflow file in `.github/workflows/`:
 
-1. **test.yml** - Runs on every push and PR
-   - Unit & Integration tests (2 Node versions: 18.x, 20.x)
+1. **test.yml** - Runs on push to `master`/`dev` and PRs to `master`
+   - Unit & Integration tests (Node 22.x)
    - E2E tests with Playwright
    - Build verification
-   - Coverage upload to Codecov
+   - Coverage summary in GitHub Actions step summary
+   - Concurrency group deduplicates when both push and PR fire for the same branch
 
-2. **deploy-preview.yml** - Runs on PRs
-   - Posts test results as PR comment
-   - Tells you when to expect Vercel preview
-
-3. **deployment-status.yml** - Listens for Vercel deployments
-   - Posts preview URL to PR comment
-   - Links to the deployed preview
+Vercel handles deployments independently (preview on PR, production on `master` merge).
 
 ## Quick Start (5 minutes)
 
@@ -54,51 +49,40 @@ Your CI/CD is now set up. Vercel continues to work exactly as before.
 
 ## How the Workflow Runs
 
-### On Push to Main
+### On Push to `dev` (No PR Open)
 
 ```
-git push master
+git push dev
     ↓
-GitHub Actions starts tests
-└─ Unit/Integration tests (Node 18 & 20)
-└─ E2E tests
-└─ Build verification
+GitHub Actions starts tests (shift-left)
+└─ Unit/Integration tests (Node 22.x)
+└─ E2E tests (if unit passes)
     ↓
-Vercel webhook triggered (separate, simultaneous)
-└─ Builds site
-└─ Deploys to production
-    ↓
-Both complete independently
+Immediate feedback before PR is created
 ```
 
-**Timeline:**
-- Tests start: ~5 seconds after push
-- Tests complete: ~8-10 minutes
-- Vercel build: ~3-5 minutes
-- Vercel deployment: ~1-2 minutes
-
-You get **immediate feedback** in GitHub Actions even if Vercel hasn't finished building.
-
-### On Pull Request
+### On Push to `dev` (PR Open to `master`)
 
 ```
-Create/update PR
+git push dev
     ↓
-GitHub Actions tests run immediately
+Both push and pull_request events fire
     ↓
-Tests pass/fail?
-├─ PASS → PR shows ✅ "Ready to merge"
-└─ FAIL → PR shows ❌ "Changes requested"
+Concurrency group cancels the earlier run
     ↓
-Vercel preview deployment (simultaneous)
-└─ Creates preview URL
-└─ Posts to PR comment
+Only one run completes (no duplication)
     ↓
-You review:
-1. Test results (always first)
-2. Code changes
-3. Live preview (Vercel)
-4. Merge when ready (if tests pass)
+Vercel preview deployment (simultaneous, independent)
+```
+
+### On Merge to `master`
+
+```
+Merge PR
+    ↓
+GitHub Actions runs tests (post-merge verification)
+    ↓
+Vercel deploys to production (simultaneous, independent)
 ```
 
 **Tests MUST pass to merge to master** (enforced by branch protection).
@@ -161,8 +145,8 @@ If E2E tests fail:
 Unit test coverage:
 1. Go to **Actions** tab
 2. Click a test run
-3. Look for **Codecov** step
-4. Visit codecov.io (if setup) for detailed report
+3. Expand the **Unit & Integration Tests** job
+4. Coverage summary table is in the step summary
 
 ---
 
@@ -212,21 +196,6 @@ Unit tests pass but Astro build errors.
 3. Push, tests auto-rerun
 4. Check build verification job
 
-### Scenario 5: Node 18 Passes But Node 20 Fails
-
-Tests run on both versions - sometimes one breaks compatibility.
-
-**What to do:**
-1. Run locally with both versions:
-   ```bash
-   nvm use 18
-   npm test
-   nvm use 20
-   npm test
-   ```
-2. Fix compatibility issue
-3. Push and re-run tests
-
 ---
 
 ## Configuration
@@ -250,18 +219,6 @@ Make sure `package.json` has these scripts:
 ```
 
 If any are missing, add them before committing.
-
-### Optional: Codecov Setup
-
-For better coverage reporting:
-
-1. Go to [codecov.io](https://codecov.io)
-2. Sign in with GitHub
-3. Select your repo
-4. Follow setup (usually auto-connects)
-5. Codecov badge can be added to README
-
-Not required - works without it, just nicer with it.
 
 ---
 
@@ -296,11 +253,6 @@ gh run view <run-id> --log
 - Increase timeout in `playwright.config.ts`
 - Use explicit waits instead of sleeps
 - Check if dev server is running
-
-#### Codecov not uploading
-- Not critical - tests still work
-- Check codecov.io token if configured
-- Can disable if causing issues
 
 ---
 
@@ -354,13 +306,11 @@ npm run test:all
 open coverage/index.html
 ```
 
-### Files Created
+### Files
 ```
 .github/
 └── workflows/
-    ├── test.yml                    # Main test workflow
-    ├── deploy-preview.yml          # PR comments
-    └── deployment-status.yml       # Deployment status
+    └── test.yml                    # Test workflow (unit, integration, E2E)
 ```
 
 ### GitHub Actions Links
@@ -385,6 +335,6 @@ open coverage/index.html
 
 ---
 
-**Last Updated:** 2026-01-28
+**Last Updated:** 2026-04-09
 **Status:** Ready to use
 **Questions?** Check TEST_STRATEGY.md for detailed documentation
