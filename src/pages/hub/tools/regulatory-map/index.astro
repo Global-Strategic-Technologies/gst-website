@@ -4,7 +4,6 @@ import HubHeader from '../../../../components/hub/HubHeader.astro';
 import MapVisualizer from '../../../../components/hub/tools/regulatory-map/MapVisualizer.astro';
 import CompliancePanel from '../../../../components/hub/tools/regulatory-map/CompliancePanel.astro';
 import { trackPageView } from '../../../../utils/analytics';
-import { fetchAllRegulations, getRegulationsByRegion } from '../../../../utils/fetchRegulations';
 
 trackPageView('regulatory-map', 'Regulatory Map | GST');
 
@@ -31,13 +30,6 @@ const faqItems = [
     },
 ];
 
-const regulations = await fetchAllRegulations();
-const regionMap = getRegulationsByRegion(regulations);
-
-// Import TopoJSON data at build time
-import worldData from 'world-atlas/countries-110m.json';
-import usData from 'us-atlas/states-10m.json';
-import caData from '../../../../data/canada-provinces.json';
 import DeltaIcon from '../../../../components/DeltaIcon.astro';
 ---
 
@@ -176,12 +168,6 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     </section>
 </BaseLayout>
 
-<!-- Embedded build-time data for client consumption -->
-<script type="application/json" id="regulationData" set:html={JSON.stringify(regionMap)} />
-<script type="application/json" id="worldTopoData" set:html={JSON.stringify(worldData)} />
-<script type="application/json" id="usTopoData" set:html={JSON.stringify(usData)} />
-<script type="application/json" id="caTopoData" set:html={JSON.stringify(caData)} />
-
 <script>
     import { geoEquirectangular, geoPath } from 'd3-geo';
     import { select } from 'd3-selection';
@@ -196,27 +182,19 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     import { provinceCodeToName } from '../../../../utils/canadianProvinceMap';
     import { trackEvent } from '../../../../utils/analytics';
 
-    // --- Parse embedded data ---
-    const regionMap: Record<string, Regulation[]> = JSON.parse(
-        document.getElementById('regulationData')!.textContent!
-    );
-    const topology: Topology = JSON.parse(
-        document.getElementById('worldTopoData')!.textContent!
-    );
+    // --- Fetch geodata and regulation data in parallel ---
+    const [regionMap, topology, usTopo, caTopo] = await Promise.all([
+        fetch('/data/regulations.json').then(r => r.json()) as Promise<Record<string, Regulation[]>>,
+        fetch('/data/world-110m.json').then(r => r.json()) as Promise<Topology>,
+        fetch('/data/us-states-10m.json').then(r => r.json()) as Promise<Topology>,
+        fetch('/data/canada-provinces.json').then(r => r.json()) as Promise<Topology>,
+    ]);
 
-    // --- Parse US states data ---
-    const usTopo: Topology = JSON.parse(
-        document.getElementById('usTopoData')!.textContent!
-    );
     const usStates = feature(
         usTopo as unknown as Topology<{ states: GeometryCollection }>,
         usTopo.objects.states as GeometryCollection
     ) as unknown as FeatureCollection<Geometry, { name?: string }>;
 
-    // --- Parse Canadian provinces data ---
-    const caTopo: Topology = JSON.parse(
-        document.getElementById('caTopoData')!.textContent!
-    );
     const caProvinces = feature(
         caTopo as unknown as Topology<{ collection: GeometryCollection }>,
         caTopo.objects.collection as GeometryCollection

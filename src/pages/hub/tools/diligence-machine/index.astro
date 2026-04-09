@@ -311,7 +311,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 </BaseLayout>
 
 <script>
-    import { generateScript, syncMultiRegion, MULTI_REGION_ID } from '../../../../utils/diligence-engine';
+    import { syncMultiRegion, MULTI_REGION_ID } from '../../../../utils/diligence-engine';
     import { getOptionLabel, WIZARD_STEPS } from '../../../../data/diligence-machine/wizard-config';
     import { trackCTA, trackEvent } from '../../../../utils/analytics';
     import { copyWithFeedback } from '../../../../utils/copy-feedback';
@@ -1191,7 +1191,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
         }
     });
 
-    btnGenerate.addEventListener('click', () => {
+    btnGenerate.addEventListener('click', async () => {
         if (!isStepValid(currentStep)) return;
 
         trackEvent({ event: 'dm_generate', category: 'engagement' });
@@ -1215,6 +1215,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
             operatingModel: inputs.operatingModel!,
         };
 
+        const { generateScript } = await import('../../../../utils/diligence-engine');
         const script = generateScript(fullInputs);
         renderOutput(script);
     });

@@ -12,19 +12,20 @@ const measurementId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID || 'G-WTGM9Y1YB0'
 {enableAnalytics && (
   <>
     <script define:vars={{ measurementId }} is:inline>
-      // Initialize Google Analytics
-      // Always initialize gtag function for both production and testing
+      // Buffer dataLayer immediately so early gtag() calls are queued
       window.dataLayer = window.dataLayer || [];
       function gtag() {
         dataLayer.push(arguments);
       }
-      gtag('js', new Date());
-      gtag('config', measurementId, {
-        send_page_view: true,
-      });
-
-      // Expose gtag globally for event tracking
       window.gtag = gtag;
+
+      // Defer GA configuration until browser is idle to avoid blocking FCP
+      (window.requestIdleCallback || function(cb) { setTimeout(cb, 0); })(function() {
+        gtag('js', new Date());
+        gtag('config', measurementId, {
+          send_page_view: true,
+        });
+      });
     </script>
 
     {isProduction && (

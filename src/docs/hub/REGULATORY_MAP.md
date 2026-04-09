@@ -22,10 +22,18 @@ User (Map UI)
 ├── src/data/regulatory-map/
 │     *.json                      ← 120 regulation files (Zod-validated at build time)
 │
-├── src/data/canada-provinces.json ← TopoJSON for Canadian province boundaries
+├── src/data/canada-provinces.json ← TopoJSON for Canadian province boundaries (simplified)
+│
+├── public/data/
+│     world-110m.json             ← World country boundaries (fetched at runtime)
+│     us-states-10m.json          ← US state boundaries (fetched at runtime)
+│     canada-provinces.json       ← Canadian province boundaries (fetched at runtime)
+│
+├── src/pages/data/
+│     regulations.json.ts         ← Prerendered API endpoint for regulation data
 │
 ├── src/pages/hub/tools/regulatory-map/
-│     index.astro                 ← Route entry, D3 rendering, event wiring, embedded data
+│     index.astro                 ← Route entry, D3 rendering, event wiring
 │
 ├── src/types/regulatory-map.ts   ← TypeScript interfaces (Regulation, RegionSelectedDetail)
 │
@@ -36,7 +44,7 @@ User (Map UI)
       canadianProvinceMap.ts      ← CA-XX province code → name mapping
 ```
 
-All rendering logic runs client-side. No server calls. Regulation data and TopoJSON are embedded at build time as `<script type="application/json">` blocks.
+All rendering logic runs client-side. Regulation data and TopoJSON geodata are served as static files and fetched in parallel at page load via `Promise.all`, keeping the HTML payload small (~48KB) for fast FCP.
 
 ---
 
@@ -55,9 +63,9 @@ All rendering logic runs client-side. No server calls. Regulation data and TopoJ
 
 ## Data Flow
 
-1. **Build time**: `fetchAllRegulations()` loads all `src/data/regulatory-map/*.json` files via `import.meta.glob` and validates each against the Zod schema
-2. **SSG output**: Validated regulation data, world TopoJSON, US states TopoJSON, and Canadian provinces TopoJSON are serialized into the HTML as `<script type="application/json">` blocks
-3. **Client hydration**: D3 parses embedded data, projects geography with `geoEquirectangular`, renders SVG paths, and colors regions by regulation coverage
+1. **Build time**: `fetchAllRegulations()` loads all `src/data/regulatory-map/*.json` files via `import.meta.glob` and validates each against the Zod schema. The result is prerendered to `/data/regulations.json` via a static API endpoint
+2. **Static assets**: TopoJSON files (world, US states, Canadian provinces) are served from `public/data/`
+3. **Client load**: Page fetches all four data files in parallel via `Promise.all([...fetch()])`, then D3 projects geography with `geoEquirectangular`, renders SVG paths, and colors regions by regulation coverage
 4. **Interaction**: Click dispatches `regionSelected` CustomEvent; the compliance panel listens and renders regulation cards
 
 ### Component Communication
@@ -378,7 +386,7 @@ The map covers four categories of regulation: **data privacy** (69), **cybersecu
 
 ### Projection
 
-Uses `geoEquirectangular` fitted to the SVG viewport. Countries are rendered from `world-atlas/countries-110m.json`, US states from `us-atlas/states-10m.json`, and Canadian provinces from a custom `canada-provinces.json` TopoJSON.
+Uses `geoEquirectangular` fitted to the SVG viewport. Countries are rendered from `public/data/world-110m.json`, US states from `public/data/us-states-10m.json`, and Canadian provinces from `public/data/canada-provinces.json`. All three are fetched at runtime in parallel.
 
 ### Country Suppression
 
@@ -447,7 +455,7 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 | `world-atlas` 110m resolution | Sufficient detail for country-level interaction; smaller than 50m/10m |
 | `us-atlas` 10m for US states | Higher resolution needed for small states (RI, CT, DE) |
 | CSS classes on SVG paths (not inline fills) | Enables dark theme via `:global(html.dark-theme)` selectors |
-| Build-time TopoJSON embedding | No runtime fetch, fully static SSG output |
+| Runtime fetch of geodata from `public/data/` | Keeps HTML at ~48KB for fast FCP; data loads in parallel |
 | `CustomEvent` for component communication | Native browser API, no framework dependency, decoupled |
 | `remove()` for CTA dismissal | Permanent removal rather than `hidden` avoids layout recalculation |
 
@@ -578,7 +586,7 @@ Prioritized list of regulations and jurisdictions for future phases:
 | Singapore | Present | Present (no change) |
 
 - Of 64 countries gained, only **Bahrain** (`BH-PDPL.json`) has a regulation in our data but no renderable polygon. Serbia exists in 110m but is small. Singapore is present in both.
-- The 634 KB payload increase is embedded inline at build time — significant for a single missing country.
+- The 634 KB payload increase would add to the runtime fetch payload — significant for a single missing country. (Note: geodata is now fetched at runtime from `public/data/`, not embedded inline, so the impact is on network transfer rather than HTML size.)
 - No user-reported issues with current resolution.
 
 **Cheaper alternatives if Bahrain visibility becomes needed:**

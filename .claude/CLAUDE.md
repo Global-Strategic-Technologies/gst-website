@@ -91,6 +91,7 @@ This document provides Claude with essential context about the GST Website proje
 ```
 gst-website/
 ├── public/                    # Static assets (favicon, images, manifest)
+│   └── data/                 # Runtime-fetched data (TopoJSON, regulation JSON)
 ├── src/
 │   ├── components/           # Astro components
 │   │   ├── DeltaIcon.astro   # Palette-aware inline SVG delta (use instead of <img>)

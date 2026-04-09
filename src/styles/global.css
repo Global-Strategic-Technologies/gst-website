@@ -2956,11 +2956,11 @@ html.dark-theme .brutal-frosted {
 }
 
 /* Heavy variant — controls, drawers, sticky bars that need readable
-   content over blurred background. Higher opacity + stronger blur. */
+   content over blurred background. Higher opacity + moderate blur. */
 .brutal-frosted--heavy {
     background: rgba(255, 255, 255, 0.75);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 
 html.dark-theme .brutal-frosted--heavy {
@@ -2991,8 +2991,8 @@ html.dark-theme .brutal-frosted--blur-only {
    Higher opacity than heavy for readability. */
 .brutal-frosted--overlay {
     background: rgba(245, 245, 245, 0.92);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 
 html.dark-theme .brutal-frosted--overlay {
