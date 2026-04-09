@@ -96,16 +96,6 @@ describe('Analytics Utility Functions', () => {
       expect(callArgs[2].location).toBe('footer');
     });
 
-    it('should track hero primary CTA (calendly type)', () => {
-      trackCTA('calendly', 'hero');
-
-      expect(gtagMock).toHaveBeenCalledWith('event', 'cta_click', {
-        event_category: 'engagement',
-        cta_type: 'calendly',
-        location: 'hero',
-      });
-    });
-
     it('should track hero secondary CTA (services type)', () => {
       trackCTA('services', 'hero');
 
@@ -165,26 +155,4 @@ describe('Analytics Utility Functions', () => {
     });
   });
 
-  describe('Event Categories', () => {
-    it('navigation events should use navigation category', () => {
-      trackNavigation('/test', 'Test');
-
-      const callArgs = gtagMock.mock.calls[0];
-      expect(callArgs[2].event_category).toBe('navigation');
-    });
-
-    it('CTA events should use engagement category', () => {
-      trackCTA('calendly', 'hero');
-
-      const callArgs = gtagMock.mock.calls[0];
-      expect(callArgs[2].event_category).toBe('engagement');
-    });
-
-    it('theme events should use ui category', () => {
-      trackThemeToggle('dark');
-
-      const callArgs = gtagMock.mock.calls[0];
-      expect(callArgs[2].event_category).toBe('ui');
-    });
-  });
 });

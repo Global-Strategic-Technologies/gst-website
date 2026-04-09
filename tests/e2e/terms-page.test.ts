@@ -4,17 +4,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-
-/**
- * Click the theme toggle via dispatchEvent to bypass WebKit hit-test issues.
- */
-async function clickThemeToggle(page: import('@playwright/test').Page): Promise<void> {
-  await page.evaluate(() => {
-    document.getElementById('themeToggle')?.dispatchEvent(
-      new MouseEvent('click', { bubbles: true })
-    );
-  });
-}
+import { clickThemeToggle } from './helpers/theme';
 
 test.describe('Terms Page', () => {
   test.beforeEach(async ({ page }) => {

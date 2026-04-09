@@ -16,9 +16,9 @@
 ```
 ✅ Test dependencies installed
 ✅ Vitest & Playwright configured
-✅ Unit/Integration tests (180 tests across 10 files)
-✅ E2E tests (372 tests across 3 browsers)
-✅ All 552 tests passing
+✅ Unit/Integration tests (22 files)
+✅ E2E tests (24 files × 3 browsers)
+✅ All tests passing
 ```
 
 ## Available Commands

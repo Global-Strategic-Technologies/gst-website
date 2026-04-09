@@ -7,6 +7,20 @@
  * - highestStepReached tracking
  * - State persistence to localStorage
  * - CSS class management (active, completed, reachable)
+ *
+ * IMPORTANT: These tests exercise a WizardNavigationSimulator that replicates
+ * the navigation logic from the production inline <script> in
+ * src/pages/hub/tools/diligence-machine/index.astro (lines 313–1244).
+ *
+ * The production code cannot be extracted into importable modules without a
+ * significant refactor (14+ state variables, 60+ DOM manipulations, tight
+ * coupling to page DOM structure). This simulator faithfully mirrors the
+ * production logic for showStep(), canNavigateToStep(), state persistence,
+ * and CSS class management.
+ *
+ * If the production wizard navigation logic changes, these tests MUST be
+ * updated in parallel. The E2E tests in diligence-machine.test.ts provide
+ * the ultimate safety net against production regressions.
  */
 
 // globals: true in vitest.config.ts provides describe, it, expect, beforeEach

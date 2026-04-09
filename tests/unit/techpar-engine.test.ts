@@ -9,7 +9,6 @@
  * - Data integrity: signal copy coverage, benchmark ranges, zone ordering
  */
 
-import { describe, it, expect } from 'vitest';
 import {
   compute,
   getZone,

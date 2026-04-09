@@ -1,33 +1,8 @@
 import { test, expect, devices } from '@playwright/test';
+import { openFilterDrawer } from './helpers/portfolio';
 
 // Run these tests with mobile viewport
 test.use({ ...devices['iPhone 12'] });
-
-/**
- * Open the filter drawer and wait for its slide-in transition to complete.
- * The drawer animates `right: -400px → 0` over 0.3s. Checking `toBeVisible()`
- * alone is insufficient — browsers may consider the drawer visible mid-transition,
- * causing subsequent chip clicks to miss. We wait for the `.open` class (applied
- * immediately) AND for `transitionend` to fire or a stable computed position.
- */
-async function openFilterDrawer(page: import('@playwright/test').Page): Promise<void> {
-  // Use evaluate to bypass WebKit hit-testing issues on mobile viewport
-  await page.evaluate(() => {
-    (document.querySelector('[data-testid="portfolio-filter-toggle"]') as HTMLElement)?.click();
-  });
-
-  const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
-  await expect(drawer).toBeVisible({ timeout: 5000 });
-
-  // Wait for the drawer to have the .open class and for the CSS transition to settle.
-  // We check that the computed right value is >= -1px (accounts for sub-pixel rounding).
-  await page.waitForFunction(() => {
-    const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
-    if (!el || !el.classList.contains('open')) return false;
-    const right = parseFloat(window.getComputedStyle(el).right);
-    return right >= -1;
-  }, { timeout: 5000 });
-}
 
 test.describe('Mobile Navigation Journey', () => {
   test.beforeEach(async ({ page }) => {

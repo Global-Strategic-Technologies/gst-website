@@ -1191,13 +1191,13 @@ test('should display description', async ({ page }) => {
 npm run test:e2e
 
 # Run specific test file
-npx playwright test tests/e2e/portfolio-discovery.test.ts
+npx playwright test tests/e2e/portfolio-filtering.test.ts
 
 # Run with headed browser to see what's happening
 npx playwright test --headed
 
 # Run single test
-npx playwright test portfolio-discovery.test.ts -g "should apply stage filter"
+npx playwright test portfolio-filtering.test.ts -g "should apply stage filter"
 
 # Run with verbose output
 npx playwright test --verbose

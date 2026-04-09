@@ -4,17 +4,8 @@
  */
 
 import { test, expect } from '@playwright/test';
-
-/**
- * Click the theme toggle via dispatchEvent to bypass WebKit hit-test issues.
- */
-async function clickThemeToggle(page: import('@playwright/test').Page): Promise<void> {
-  await page.evaluate(() => {
-    document.getElementById('themeToggle')?.dispatchEvent(
-      new MouseEvent('click', { bubbles: true })
-    );
-  });
-}
+import { clickThemeToggle } from './helpers/theme';
+import { setupAnalyticsMocking } from './helpers/analytics';
 
 /**
  * Click the founder photo link via dispatchEvent to bypass WebKit hit-test issues.
@@ -28,49 +19,9 @@ async function clickFounderPhotoLink(page: import('@playwright/test').Page): Pro
 }
 
 test.describe('About Page - Founder Section', () => {
-  // Helper function to setup gtag wrapping for analytics verification
-  async function setupAnalyticsMocking(page: any) {
-    await page.evaluate(() => {
-      // Initialize event tracking arrays
-      (window as any).gtagEvents = [];
-      (window as any).gtagCalls = [];
-
-      // Store the original gtag function
-      const originalGtag = (window as any).gtag;
-
-      // Create wrapped gtag function
-      (window as any).gtag = function(...args: any[]) {
-        // Record all gtag calls
-        (window as any).gtagCalls.push({
-          timestamp: new Date().toISOString(),
-          args: JSON.parse(JSON.stringify(args)),
-        });
-
-        // Record event calls specifically
-        if (args[0] === 'event') {
-          (window as any).gtagEvents.push({
-            eventName: args[1],
-            eventData: args[2] || {},
-            timestamp: new Date().toISOString(),
-          });
-        }
-
-        // Call original gtag
-        if (typeof originalGtag === 'function') {
-          return originalGtag.apply(this, args);
-        }
-      };
-    });
-  }
-
   test.beforeEach(async ({ page }) => {
-    // Block external GA requests
-    await page.route('**/googletagmanager.com/**', route => {
-      route.abort();
-    });
-    await page.route('**/google-analytics.com/**', route => {
-      route.abort();
-    });
+    // Setup analytics mocking (blocks GA requests + records events)
+    await setupAnalyticsMocking(page);
 
     // Navigate to about page
     await page.goto('/about', { waitUntil: 'domcontentloaded' });
@@ -328,52 +279,6 @@ test.describe('About Page - Founder Section', () => {
         'https://www.linkedin.com/in/reidperyam/'
       );
       expect(founderClickEvent?.eventData.event_category).toBe('engagement');
-    });
-
-    test('should include correct destination in analytics event', async ({ page }) => {
-      const founderLink = page.locator('#founder-photo-link');
-
-      // Prevent navigation
-      await page.evaluate(() => {
-        const link = document.getElementById('founder-photo-link') as HTMLAnchorElement;
-        if (link) {
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-          });
-        }
-      });
-
-      // Use dispatchEvent to bypass WebKit hit-test issues
-      await clickFounderPhotoLink(page);
-
-      // Verify event data
-      const events = await page.evaluate(() => (window as any).gtagEvents || []);
-      const event = events.find((e: any) => e.eventName === 'founder_profile_click');
-
-      expect(event?.eventData.destination).toBe('https://www.linkedin.com/in/reidperyam/');
-    });
-
-    test('should categorize founder click as engagement event', async ({ page }) => {
-      const founderLink = page.locator('#founder-photo-link');
-
-      // Prevent navigation
-      await page.evaluate(() => {
-        const link = document.getElementById('founder-photo-link') as HTMLAnchorElement;
-        if (link) {
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-          });
-        }
-      });
-
-      // Use dispatchEvent to bypass WebKit hit-test issues
-      await clickFounderPhotoLink(page);
-
-      // Verify event category
-      const events = await page.evaluate(() => (window as any).gtagEvents || []);
-      const event = events.find((e: any) => e.eventName === 'founder_profile_click');
-
-      expect(event?.eventData.event_category).toBe('engagement');
     });
 
     test('should track multiple clicks on founder photo', async ({ page }) => {

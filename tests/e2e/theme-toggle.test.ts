@@ -1,18 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-/**
- * Click the theme toggle via dispatchEvent.
- * WebKit's hit-testing can fail on the toggle due to the footer's z-index: 0
- * stacking context + the large font-size creating an oversized bounding box.
- * dispatchEvent bypasses Playwright's coordinate-based click.
- */
-async function clickThemeToggle(page: import('@playwright/test').Page): Promise<void> {
-  await page.evaluate(() => {
-    document.getElementById('themeToggle')?.dispatchEvent(
-      new MouseEvent('click', { bubbles: true })
-    );
-  });
-}
+import { clickThemeToggle } from './helpers/theme';
 
 test.describe('Theme Toggle Journey', () => {
   test.beforeEach(async ({ page }) => {
@@ -225,6 +212,7 @@ test.describe('Theme Toggle Journey', () => {
     const initialIsDark = await page.evaluate(() =>
       document.documentElement.classList.contains('dark-theme')
     );
+    const initialBgColor = await page.evaluate(() => window.getComputedStyle(document.body).backgroundColor);
 
     // Rapidly toggle theme 5 times, waiting for each toggle to register
     for (let i = 0; i < 5; i++) {
@@ -243,8 +231,7 @@ test.describe('Theme Toggle Journey', () => {
 
     // Verify CSS actually changed too
     const finalBgColor = await page.evaluate(() => window.getComputedStyle(document.body).backgroundColor);
-    const expectedThemeSwitched = true;
-    expect(expectedThemeSwitched).toBe(true); // If we reached here, theme toggling worked
+    expect(finalBgColor).not.toBe(initialBgColor);
   });
 
   test('should maintain functionality with theme changes', async ({ page }) => {

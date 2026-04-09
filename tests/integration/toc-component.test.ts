@@ -7,6 +7,13 @@
  *
  * Since Astro components cannot be rendered directly in Vitest, these tests
  * replicate the component's serialization and mapping logic in isolation.
+ * The tested functions (buildTocClientConfig, getTocItemClasses, resolveDefaults,
+ * buildSeparatorMap) mirror inline template expressions in
+ * src/components/TableOfContents.astro — not importable production code.
+ *
+ * If the Astro component's data contract changes, these tests MUST be updated
+ * in parallel. The E2E tests in table-of-contents.test.ts validate the
+ * rendered output end-to-end.
  */
 
 // globals: true in vitest.config.ts provides describe, it, expect, beforeEach

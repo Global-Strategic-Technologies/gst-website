@@ -1,24 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-/**
- * Helper: click an SVG path element via dispatchEvent.
- * SVG paths inside a D3-managed <svg> intercept pointer events at the SVG level,
- * so Playwright's click() fails with "element intercepts pointer events".
- */
-async function clickSvgPath(page: import('@playwright/test').Page, selector: string): Promise<void> {
-  await page.locator(selector).first().waitFor({ state: 'attached' });
-  await page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-  }, selector);
-}
-
-/**
- * Wait for D3 map paths to finish rendering.
- */
-async function waitForMapReady(page: import('@playwright/test').Page): Promise<void> {
-  await page.waitForFunction(() => document.querySelectorAll('.country-path').length > 0);
-}
+import { clickSvgPath, waitForMapReady } from './helpers/regulatory-map';
 
 test.describe('Regulatory Map — Category Filters', () => {
   test.beforeEach(async ({ page }) => {

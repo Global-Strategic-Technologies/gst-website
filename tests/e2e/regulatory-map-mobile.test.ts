@@ -1,25 +1,8 @@
 import { test, expect, devices } from '@playwright/test';
+import { clickSvgPath, waitForMapReady } from './helpers/regulatory-map';
 
 // Run all tests in this file with iPhone 12 viewport
 test.use({ ...devices['iPhone 12'] });
-
-/**
- * Helper: click an SVG path element via dispatchEvent.
- */
-async function clickSvgPath(page: import('@playwright/test').Page, selector: string): Promise<void> {
-  await page.locator(selector).first().waitFor({ state: 'attached' });
-  await page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-  }, selector);
-}
-
-/**
- * Wait for D3 map paths to finish rendering.
- */
-async function waitForMapReady(page: import('@playwright/test').Page): Promise<void> {
-  await page.waitForFunction(() => document.querySelectorAll('.country-path').length > 0);
-}
 
 /**
  * Helper: dismiss the bottom sheet by programmatically clicking the overlay.
