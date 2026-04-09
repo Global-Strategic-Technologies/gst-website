@@ -84,9 +84,8 @@ test.describe('Diligence Machine E2E', () => {
     test('should navigate backwards and maintain highestStepReached', async ({ page }) => {
       // Advance to step 3 (use clickElement for WebKit stability)
       await clickElement(page, '[data-testid="option-transaction-type-full-acquisition"]');
-      await page.waitForTimeout(400);
+      await expectWizardOnStep(page, 2);
       await clickElement(page, '[data-testid="option-product-type-b2b-saas"]');
-      await page.waitForTimeout(400);
 
       // Verify we're on step 3
       await expectWizardOnStep(page, 3);
@@ -144,9 +143,8 @@ test.describe('Diligence Machine E2E', () => {
 
       // Select final option (use clickElement for WebKit stability)
       await clickElement(page, '[data-testid="option-operating-model-centralized-eng"]');
-      await page.waitForTimeout(100);
 
-      // Generate button should now be enabled
+      // Generate button should now be enabled (toBeEnabled auto-retries)
       await expect(btnGenerate).toBeEnabled();
     });
   });
@@ -155,11 +153,10 @@ test.describe('Diligence Machine E2E', () => {
     test('should restore wizard state after page reload', async ({ page }) => {
       // Complete first 3 steps (use clickElement for WebKit stability)
       await clickElement(page, '[data-testid="option-transaction-type-carve-out"]');
-      await page.waitForTimeout(400);
+      await expectWizardOnStep(page, 2);
       await clickElement(page, '[data-testid="option-product-type-on-premise-enterprise"]');
-      await page.waitForTimeout(400);
+      await expectWizardOnStep(page, 3);
       await clickElement(page, '[data-testid="option-tech-archetype-hybrid-legacy"]');
-      await page.waitForTimeout(400);
 
       // Verify we're on step 4
       await expectWizardOnStep(page, 4);
@@ -309,8 +306,9 @@ test.describe('Diligence Machine E2E', () => {
       // Attempt to click unreached segment 7
       await clickElement(page, '[data-testid="progress-segment-7"]');
 
-      // Wait briefly and verify we did NOT navigate
-      await page.waitForTimeout(300);
+      // Wait briefly to confirm no navigation occurred — a timeout is necessary here
+      // because there is no positive state transition to wait for (verifying absence of change).
+      await page.waitForTimeout(200);
       await expectWizardOnStep(page, 3);
 
       // Verify unreached segment does not have pointer cursor
@@ -331,8 +329,9 @@ test.describe('Diligence Machine E2E', () => {
       // Click the active segment (step 3)
       await clickElement(page, '[data-testid="progress-segment-3"]');
 
-      // Wait briefly and verify no navigation occurred
-      await page.waitForTimeout(300);
+      // Wait briefly to confirm no navigation occurred — a timeout is necessary here
+      // because there is no positive state transition to wait for (verifying absence of change).
+      await page.waitForTimeout(200);
       await expectWizardOnStep(page, 3);
 
       // Verify state unchanged in localStorage
@@ -466,7 +465,9 @@ test.describe('Diligence Machine E2E', () => {
 
       // Select final option (use clickElement for WebKit stability)
       await clickElement(page, '[data-testid="option-operating-model-centralized-eng"]');
-      await page.waitForTimeout(400);
+
+      // Wait for Generate button to become enabled before clicking (no auto-advance on final step)
+      await expect(page.locator('[data-testid="btn-generate"]')).toBeEnabled();
 
       // Click Generate (use clickElement for WebKit stability)
       await clickElement(page, '[data-testid="btn-generate"]');
@@ -1115,8 +1116,12 @@ test.describe('Diligence Machine E2E', () => {
       // Hover over label
       await transactionTypeLabel.hover();
 
-      // Wait for CSS transition
-      await page.waitForTimeout(100);
+      // Wait for the CSS transition to apply the underline (evaluate does not auto-retry,
+      // so we poll the computed style directly rather than using a fixed timeout).
+      await page.waitForFunction(() => {
+        const el = document.querySelector('.doc-meta-label--clickable[data-step-id="transaction-type"]');
+        return el ? window.getComputedStyle(el).textDecoration.includes('underline') : false;
+      }, { timeout: 2000 });
 
       // Get hover state
       const after = await transactionTypeLabel.evaluate((el) => ({
@@ -1281,7 +1286,8 @@ test.describe('Diligence Machine E2E', () => {
       // Try clicking it anyway (force)
       await page.locator('[data-testid="btn-next"]').click({ force: true });
 
-      // Wait a moment
+      // Wait briefly to confirm no navigation occurred — a timeout is necessary here
+      // because there is no positive state transition to wait for (verifying absence of change).
       await page.waitForTimeout(200);
 
       // Should still be on step 1
@@ -1291,11 +1297,10 @@ test.describe('Diligence Machine E2E', () => {
     test('should require at least one geography selection', async ({ page }) => {
       // Manually navigate to step 5 (use clickElement for WebKit stability)
       await clickElement(page, '[data-testid="option-transaction-type-full-acquisition"]');
-      await page.waitForTimeout(400);
+      await expectWizardOnStep(page, 2);
       await clickElement(page, '[data-testid="option-product-type-b2b-saas"]');
-      await page.waitForTimeout(400);
+      await expectWizardOnStep(page, 3);
       await clickElement(page, '[data-testid="option-tech-archetype-modern-cloud-native"]');
-      await page.waitForTimeout(400);
 
       // Complete compound step 4
       await page.waitForFunction(() => {
@@ -1349,11 +1354,10 @@ test.describe('Diligence Machine E2E', () => {
 
       // Now advance to step 4 with fresh state
       await clickElement(page, '[data-testid="option-transaction-type-full-acquisition"]');
-      await page.waitForTimeout(400);
+      await expectWizardOnStep(page, 2);
       await clickElement(page, '[data-testid="option-product-type-b2b-saas"]');
-      await page.waitForTimeout(400);
+      await expectWizardOnStep(page, 3);
       await clickElement(page, '[data-testid="option-tech-archetype-modern-cloud-native"]');
-      await page.waitForTimeout(400);
 
       await expectWizardOnStep(page, 4);
 
@@ -1366,6 +1370,9 @@ test.describe('Diligence Machine E2E', () => {
 
       // Try forcing click
       await page.locator('[data-testid="btn-next"]').click({ force: true });
+
+      // Wait briefly to confirm no navigation occurred — a timeout is necessary here
+      // because there is no positive state transition to wait for (verifying absence of change).
       await page.waitForTimeout(200);
 
       // Should still be on step 4

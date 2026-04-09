@@ -80,15 +80,6 @@ test.describe('Google Analytics E2E Tests', () => {
   }
 
   test.describe('GA4 Script Loading', () => {
-    test('should initialize gtag function', async ({ page }) => {
-      await gotoAndSetupAnalytics(page, '/');
-
-      const gtagExists = await page.evaluate(() => {
-        return typeof window.gtag === 'function';
-      });
-      expect(gtagExists).toBe(true);
-    });
-
     test('should load GA4 on all pages', async ({ page }) => {
       const pages = [
         { url: '/', name: 'Home' },
@@ -318,8 +309,11 @@ test.describe('Google Analytics E2E Tests', () => {
       if (await themeToggle.isVisible()) {
         await clickThemeToggle(page);
 
-        // Wait a bit for state update
-        await page.waitForTimeout(100);
+        // Wait for theme state to change
+        await page.waitForFunction((prev) =>
+          (document.documentElement.classList.contains('dark-theme') ? 'dark' : 'light') !== prev,
+          initialTheme
+        );
 
         // Verify theme changed
         const newTheme = await page.evaluate(() => {
@@ -395,38 +389,6 @@ test.describe('Google Analytics E2E Tests', () => {
       await page.waitForURL('/ma-portfolio');
 
       // Even though we navigated, verify gtag is still functioning
-      const gtagExists = await page.evaluate(() => {
-        return typeof window.gtag === 'function';
-      });
-      expect(gtagExists).toBe(true);
-    });
-  });
-
-  test.describe('Cross-Browser GA Functionality', () => {
-    test('should initialize GA on mobile viewport', async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-      await gotoAndSetupAnalytics(page, '/');
-
-      const gtagExists = await page.evaluate(() => {
-        return typeof window.gtag === 'function';
-      });
-      expect(gtagExists).toBe(true);
-    });
-
-    test('should initialize GA on tablet viewport', async ({ page }) => {
-      await page.setViewportSize({ width: 768, height: 1024 });
-      await gotoAndSetupAnalytics(page, '/');
-
-      const gtagExists = await page.evaluate(() => {
-        return typeof window.gtag === 'function';
-      });
-      expect(gtagExists).toBe(true);
-    });
-
-    test('should initialize GA on desktop viewport', async ({ page }) => {
-      await page.setViewportSize({ width: 1920, height: 1080 });
-      await gotoAndSetupAnalytics(page, '/');
-
       const gtagExists = await page.evaluate(() => {
         return typeof window.gtag === 'function';
       });

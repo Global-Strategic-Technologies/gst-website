@@ -22,8 +22,10 @@ async function waitForMapReady(page: import('@playwright/test').Page): Promise<v
     document.querySelectorAll('.brutal-timeline-entry').length > 0 &&
     (document.querySelector('.brutal-timeline-entry') as HTMLElement)?.offsetHeight > 0
   );
-  // Allow D3 event handlers to bind after DOM render
-  await new Promise(r => setTimeout(r, 300));
+  // Brief pause for D3 event handler binding after DOM render.
+  // No positive condition to poll — D3 binds synchronously after paint
+  // but we need the microtask queue to flush.
+  await new Promise(r => setTimeout(r, 200));
 }
 
 test.describe('Regulatory Map — Timeline', () => {

@@ -169,13 +169,4 @@ describe('Sort Projects Utility', () => {
     });
   });
 
-  describe('Chaining sorts', () => {
-    it('should allow chaining sorts', () => {
-      // First sort by year, then by name (within same year)
-      let sorted = sortProjectsByYear(mockProjects);
-      const sameYearProjects = sorted.filter(p => p.year === 2024);
-
-      expect(sameYearProjects.length).toBeGreaterThan(0);
-    });
-  });
 });

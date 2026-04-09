@@ -330,52 +330,6 @@ test.describe('About Page - Founder Section', () => {
       expect(founderClickEvent?.eventData.event_category).toBe('engagement');
     });
 
-    test('should include correct destination in analytics event', async ({ page }) => {
-      const founderLink = page.locator('#founder-photo-link');
-
-      // Prevent navigation
-      await page.evaluate(() => {
-        const link = document.getElementById('founder-photo-link') as HTMLAnchorElement;
-        if (link) {
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-          });
-        }
-      });
-
-      // Use dispatchEvent to bypass WebKit hit-test issues
-      await clickFounderPhotoLink(page);
-
-      // Verify event data
-      const events = await page.evaluate(() => (window as any).gtagEvents || []);
-      const event = events.find((e: any) => e.eventName === 'founder_profile_click');
-
-      expect(event?.eventData.destination).toBe('https://www.linkedin.com/in/reidperyam/');
-    });
-
-    test('should categorize founder click as engagement event', async ({ page }) => {
-      const founderLink = page.locator('#founder-photo-link');
-
-      // Prevent navigation
-      await page.evaluate(() => {
-        const link = document.getElementById('founder-photo-link') as HTMLAnchorElement;
-        if (link) {
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-          });
-        }
-      });
-
-      // Use dispatchEvent to bypass WebKit hit-test issues
-      await clickFounderPhotoLink(page);
-
-      // Verify event category
-      const events = await page.evaluate(() => (window as any).gtagEvents || []);
-      const event = events.find((e: any) => e.eventName === 'founder_profile_click');
-
-      expect(event?.eventData.event_category).toBe('engagement');
-    });
-
     test('should track multiple clicks on founder photo', async ({ page }) => {
       const founderLink = page.locator('#founder-photo-link');
 

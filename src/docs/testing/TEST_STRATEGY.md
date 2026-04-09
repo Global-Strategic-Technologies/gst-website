@@ -203,61 +203,28 @@ describe('Portfolio Grid & Modals', () => {
 
 **Coverage Target:** 85%+
 
-#### C. Theme Toggle
-**File:** `src/components/ThemeToggle.astro`
+#### C. Table of Contents Component
+**File:** `src/components/TableOfContents.astro`
 
 **Key Functionality:**
-- Toggle dark/light theme
-- Persist theme choice to localStorage
-- Apply theme class to body
-- Respect system preferences (optional)
+- Render TOC from page headings
+- Highlight active section on scroll
+- Navigate to section on click
 
 **Test Cases:**
 ```typescript
-// tests/integration/theme-toggle.test.ts
-describe('Theme Toggle', () => {
-  it('should toggle theme on button click', async () => {
-    // Click toggle, verify class change
+// tests/integration/toc-component.test.ts
+describe('Table of Contents', () => {
+  it('should render TOC from page headings', async () => {
+    // Verify TOC items match page headings
   });
 
-  it('should persist theme to localStorage', async () => {
-    // Toggle, reload, verify persisted
+  it('should highlight active section on scroll', async () => {
+    // Scroll, verify active class updates
   });
 
-  it('should apply theme class to body', async () => {
-    // Toggle, verify body.dark-theme exists
-  });
-});
-```
-
-**Coverage Target:** 90%+
-
-#### D. Sticky Controls Positioning
-**File:** `src/components/portfolio/StickyControls.astro`
-
-**Key Functionality:**
-- Sticky positioning when scrolling
-- Hide/show on scroll up/down
-- Responsive layout (mobile vs desktop)
-
-**Test Cases:**
-```typescript
-// tests/integration/sticky-controls.test.ts
-describe('Sticky Controls', () => {
-  it('should become sticky on scroll', async () => {
-    // Scroll down, verify sticky class applied
-  });
-
-  it('should hide on scroll down', async () => {
-    // Scroll down quickly, verify hidden
-  });
-
-  it('should show on scroll up', async () => {
-    // Scroll up, verify visible
-  });
-
-  it('should be responsive on mobile', async () => {
-    // Set mobile viewport, verify layout
+  it('should navigate to section on click', async () => {
+    // Click TOC item, verify scroll position
   });
 });
 ```
@@ -439,9 +406,7 @@ c:\Code\gst-website\
 │   ├── integration/
 │   │   ├── portfolio-filtering.test.ts
 │   │   ├── portfolio-grid.test.ts
-│   │   ├── theme-toggle.test.ts
-│   │   ├── sticky-controls.test.ts
-│   │   └── header-footer.test.ts
+│   │   └── toc-component.test.ts
 │   ├── e2e/
 │   │   ├── discover-project.test.ts
 │   │   ├── view-project-details.test.ts

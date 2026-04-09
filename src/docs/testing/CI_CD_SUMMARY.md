@@ -31,7 +31,7 @@ git push / PR opened
 
 ### Unit & Integration Tests
 - Runs on Node 18.x and 20.x
-- Executes `npm run test:run` (924 tests)
+- Executes `npm run test:run`
 - Generates coverage report on 20.x only
 - Coverage summary (statements, branches, functions, lines) posted to GitHub Actions step summary
 - **Timeout:** 10 minutes

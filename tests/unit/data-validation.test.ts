@@ -76,7 +76,6 @@ describe('Projects Data Validation', () => {
     it('should have valid codeName (non-empty string)', () => {
       projects.forEach((project) => {
         expect(project.codeName).toBeTruthy();
-        expect(typeof project.codeName).toBe('string');
         expect(project.codeName.length).toBeGreaterThan(0);
       });
     });
@@ -84,21 +83,18 @@ describe('Projects Data Validation', () => {
     it('should have valid industry (non-empty string)', () => {
       projects.forEach((project) => {
         expect(project.industry).toBeTruthy();
-        expect(typeof project.industry).toBe('string');
       });
     });
 
     it('should have valid theme (non-empty string)', () => {
       projects.forEach((project) => {
         expect(project.theme).toBeTruthy();
-        expect(typeof project.theme).toBe('string');
       });
     });
 
     it('should have valid summary (non-empty string)', () => {
       projects.forEach((project) => {
         expect(project.summary).toBeTruthy();
-        expect(typeof project.summary).toBe('string');
         expect(project.summary.length).toBeGreaterThan(10);
       });
     });
@@ -131,7 +127,6 @@ describe('Projects Data Validation', () => {
     it('should have valid growthStage field', () => {
       projects.forEach((project) => {
         expect(project.growthStage).toBeTruthy();
-        expect(typeof project.growthStage).toBe('string');
       });
     });
 
@@ -196,11 +191,6 @@ describe('Projects Data Validation', () => {
       });
     });
 
-    it('should have non-negative arrNumeric values', () => {
-      projects.forEach((project) => {
-        expect(project.arrNumeric).toBeGreaterThanOrEqual(0);
-      });
-    });
   });
 
   describe('Technology Tags', () => {

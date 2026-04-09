@@ -225,6 +225,7 @@ test.describe('Theme Toggle Journey', () => {
     const initialIsDark = await page.evaluate(() =>
       document.documentElement.classList.contains('dark-theme')
     );
+    const initialBgColor = await page.evaluate(() => window.getComputedStyle(document.body).backgroundColor);
 
     // Rapidly toggle theme 5 times, waiting for each toggle to register
     for (let i = 0; i < 5; i++) {
@@ -243,8 +244,7 @@ test.describe('Theme Toggle Journey', () => {
 
     // Verify CSS actually changed too
     const finalBgColor = await page.evaluate(() => window.getComputedStyle(document.body).backgroundColor);
-    const expectedThemeSwitched = true;
-    expect(expectedThemeSwitched).toBe(true); // If we reached here, theme toggling worked
+    expect(finalBgColor).not.toBe(initialBgColor);
   });
 
   test('should maintain functionality with theme changes', async ({ page }) => {

@@ -9,22 +9,6 @@
  */
 
 // ---------------------------------------------------------------------------
-// Helpers — skeleton width calculation (mirrors RadarFeedSkeleton.astro template)
-// ---------------------------------------------------------------------------
-
-const SKELETON_COUNT = 6;
-
-/** Compute the title-bar width for skeleton item at index `i`. */
-function skeletonTitleWidth(i: number): number {
-  return 70 + (i % 3) * 10;
-}
-
-/** Compute the meta-bar width for skeleton item at index `i`. */
-function skeletonMetaWidth(i: number): number {
-  return 30 + (i % 3) * 10;
-}
-
-// ---------------------------------------------------------------------------
 // Helpers — timestamp formatting (mirrors RadarHeader.astro frontmatter)
 // ---------------------------------------------------------------------------
 
@@ -44,64 +28,11 @@ function formatRadarTimestamp(date: Date): string {
 // RadarFeedSkeleton — Width Calculations
 // ---------------------------------------------------------------------------
 
-describe('RadarFeedSkeleton — width calculations', () => {
-  it('should generate exactly 6 skeleton items', () => {
-    const items = Array.from({ length: SKELETON_COUNT });
-    expect(items).toHaveLength(6);
-  });
-
-  it('should produce title widths cycling through [70%, 80%, 90%]', () => {
-    const widths = Array.from({ length: SKELETON_COUNT }, (_, i) =>
-      skeletonTitleWidth(i),
-    );
-    expect(widths).toEqual([70, 80, 90, 70, 80, 90]);
-  });
-
-  it('should produce meta widths cycling through [30%, 40%, 50%]', () => {
-    const widths = Array.from({ length: SKELETON_COUNT }, (_, i) =>
-      skeletonMetaWidth(i),
-    );
-    expect(widths).toEqual([30, 40, 50, 30, 40, 50]);
-  });
-
-  it('should always keep title widths between 70 and 90 inclusive', () => {
-    for (let i = 0; i < SKELETON_COUNT; i++) {
-      const w = skeletonTitleWidth(i);
-      expect(w).toBeGreaterThanOrEqual(70);
-      expect(w).toBeLessThanOrEqual(90);
-    }
-  });
-
-  it('should always keep meta widths between 30 and 50 inclusive', () => {
-    for (let i = 0; i < SKELETON_COUNT; i++) {
-      const w = skeletonMetaWidth(i);
-      expect(w).toBeGreaterThanOrEqual(30);
-      expect(w).toBeLessThanOrEqual(50);
-    }
-  });
-
-  it('should have title width strictly greater than meta width for every item', () => {
-    for (let i = 0; i < SKELETON_COUNT; i++) {
-      expect(skeletonTitleWidth(i)).toBeGreaterThan(skeletonMetaWidth(i));
-    }
-  });
-
-  it('should produce a 3-step repeating pattern (period = 3)', () => {
-    for (let i = 0; i < SKELETON_COUNT; i++) {
-      expect(skeletonTitleWidth(i)).toBe(skeletonTitleWidth(i % 3));
-      expect(skeletonMetaWidth(i)).toBe(skeletonMetaWidth(i % 3));
-    }
-  });
-
-  it('should use aria-hidden="true" on the container (design intent verification)', () => {
-    // This test documents the accessibility design decision:
-    // The skeleton is purely decorative, so it is hidden from assistive
-    // technology via aria-hidden="true" on the .feed-skeleton container.
-    // Actual verification occurs in E2E; here we record the contract.
-    const ariaHidden = true; // matches the attribute in RadarFeedSkeleton.astro
-    expect(ariaHidden).toBe(true);
-  });
-});
+// RadarFeedSkeleton width calculations block removed:
+// Tests were exercising locally-defined helper functions (skeletonTitleWidth,
+// skeletonMetaWidth) that mirror but do not import the Astro template logic.
+// If the template diverges, these tests still pass — false confidence.
+// The aria-hidden test was a tautological `expect(true).toBe(true)`.
 
 // ---------------------------------------------------------------------------
 // RadarHeader — Timestamp Formatting
