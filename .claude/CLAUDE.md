@@ -70,12 +70,12 @@ This document provides Claude with essential context about the GST Website proje
 
 **GST Website** - A modern, high-performance static site for Global Strategic Technologies built with Astro and deployed to Vercel.
 
-- **Framework**: Astro 5.16+
+- **Framework**: Astro 6.x
 - **Build Tool**: Vite
 - **Deployment**: Vercel
 - **Testing**: Vitest (unit/integration) + Playwright (E2E)
 - **Package Manager**: npm
-- **Node Version**: 18+ (LTS)
+- **Node Version**: 22+ (LTS)
 
 ## 🎨 Design System
 

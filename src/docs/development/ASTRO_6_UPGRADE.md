@@ -1,9 +1,9 @@
 # Astro 6 Upgrade Initiative
 
-**Status:** Planned
+**Status:** Completed (April 8, 2026)
 **Priority:** Medium
 **Estimated Effort:** 1-2 hours (infrastructure + upgrade + verification)
-**Blocked By:** None — Node 22 LTS is supported by Vercel and GitHub Actions
+**Blocked By:** N/A — completed
 
 ---
 
@@ -39,7 +39,14 @@ Upgrade the framework from Astro 5.16+ to Astro 6.x. This is a major version bum
 | **Image service defaults (cropping, no upscale)** | No — project uses raw `<img>` tags | None |
 | **Transition API deprecations** | No — not used | None |
 
-**Summary**: Only 3 of 12 breaking changes require attention: Node version, Vercel adapter, and `import.meta.env` behavior verification.
+**Summary**: Only 3 of 12 breaking changes required attention: Node version, Vercel adapter, and `import.meta.env` behavior verification.
+
+### Actual Changes Made (April 2026)
+
+1. **Node 22 LTS**: `.nvmrc` created, `engines` field added to `package.json`, CI updated to `22.x`
+2. **Astro 6.1.5 + @astrojs/vercel 10.0.4**: Package upgrade, no config changes needed
+3. **`import.meta.env` → `process.env`**: Server-side secrets (Inoreader API keys, KV tokens) were being inlined as plaintext in the build output. Changed to `process.env` in `src/lib/inoreader/client.ts` and `src/components/radar/RadarFeed.astro`. Built-in vars (`DEV`, `PROD`) and `PUBLIC_*` vars remain as `import.meta.env`.
+4. **Content config removed**: Empty placeholder `src/content/config.ts` deleted (Astro 6 requires `src/content.config.ts` at project root for content collections, but none are used)
 
 ---
 
