@@ -10,7 +10,7 @@
 git push / PR opened
         ↓
   ┌─────────────────────┐
-  │ Unit & Integration  │  Node 18.x + 20.x matrix
+  │ Unit & Integration  │  Node 22.x
   │ Tests + Coverage    │  timeout: 10 min
   └─────────┬───────────┘
             ↓ (must pass)
@@ -30,7 +30,7 @@ git push / PR opened
 ## Jobs
 
 ### Unit & Integration Tests
-- Runs on Node 18.x and 20.x
+- Runs on Node 22.x
 - Executes `npm run test:run`
 - Generates coverage report on 20.x only
 - Coverage summary (statements, branches, functions, lines) posted to GitHub Actions step summary
