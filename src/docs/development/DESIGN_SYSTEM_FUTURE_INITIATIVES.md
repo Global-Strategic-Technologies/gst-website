@@ -1,6 +1,6 @@
 # Design System — Future Initiatives
 
-Tracked initiatives identified during the design system maturity assessment (April 2026) that were deferred from the [Design System Completeness Initiative](./DESIGN_SYSTEM_COMPLETENESS.md). Each is independent and can be executed in any order.
+Tracked initiatives identified during the design system maturity assessment (April 2026) that were deferred from the Design System Completeness Initiative (archived — see git history for commit `b111e64`). Each is independent and can be executed in any order.
 
 **Status**: Initiatives 1–5 Complete, Documentation Updated
 **Created**: April 5, 2026
