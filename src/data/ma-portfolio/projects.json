@@ -8,7 +8,7 @@
     "arr": "$156M",
     "arrNumeric": 156000000,
     "currency": "USD",
-    "growthStage": "Mature / Expansion",
+    "growthStage": "Mature Enterprise",
     "year": 2026,
     "technologies": [
       "Node.js",
@@ -39,7 +39,7 @@
     "arr": "$74M",
     "arrNumeric": 73838000,
     "currency": "USD",
-    "growthStage": "Mature / Expansion",
+    "growthStage": "Mature Enterprise",
     "year": 2026,
     "technologies": [
       "Python",
@@ -72,7 +72,7 @@
     "arr": "$67M",
     "arrNumeric": 67000000,
     "currency": "USD",
-    "growthStage": "Mature / Expansion",
+    "growthStage": "Mature Enterprise",
     "year": 2026,
     "technologies": [
       "FACS",
@@ -102,7 +102,7 @@
     "arr": "$50M",
     "arrNumeric": 50000000,
     "currency": "USD",
-    "growthStage": "Mature",
+    "growthStage": "Mature Enterprise",
     "year": 2026,
     "technologies": [
       "AS-400",
@@ -126,7 +126,7 @@
     "arr": "$61M",
     "arrNumeric": 61100000,
     "currency": "USD",
-    "growthStage": "Mature / Expansion",
+    "growthStage": "Mature Enterprise",
     "year": 2026,
     "technologies": [
       "AWS",
@@ -157,7 +157,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Small / Growth",
+    "growthStage": "Early-Stage Growth",
     "year": 2026,
     "technologies": [
       "Node.js",
@@ -182,7 +182,7 @@
     "arr": "$151M",
     "arrNumeric": 151000000,
     "currency": "USD",
-    "growthStage": "Mature / Expansion",
+    "growthStage": "Mature Enterprise",
     "year": 2026,
     "technologies": [
       ".NET 10",
@@ -212,7 +212,7 @@
     "arr": "$186M",
     "arrNumeric": 186000000,
     "currency": "USD",
-    "growthStage": "Mature / Growth",
+    "growthStage": "Mature Enterprise",
     "year": 2026,
     "technologies": [
       "Snowflake",
@@ -242,7 +242,7 @@
     "arr": "A$68M",
     "arrNumeric": 68200000,
     "currency": "AUD",
-    "growthStage": "Mature / Leading",
+    "growthStage": "Mature Enterprise",
     "year": 2025,
     "technologies": [
       "AWS",
@@ -270,7 +270,7 @@
     "arr": "$67M",
     "arrNumeric": 67200000,
     "currency": "USD",
-    "growthStage": "Mature",
+    "growthStage": "Mature Enterprise",
     "year": 2025,
     "technologies": [
       "Python",
@@ -303,7 +303,7 @@
     "arr": "£45M",
     "arrNumeric": 45000000,
     "currency": "GBP",
-    "growthStage": "Growth Stage",
+    "growthStage": "Scaling Growth",
     "year": 2025,
     "technologies": [
       ".NET",
@@ -331,7 +331,7 @@
     "arr": "$21M",
     "arrNumeric": 21000000,
     "currency": "USD",
-    "growthStage": "Expansion",
+    "growthStage": "Expansion Stage",
     "year": 2025,
     "technologies": [
       "AWS",
@@ -361,7 +361,7 @@
     "arr": "$10M",
     "arrNumeric": 10000000,
     "currency": "USD",
-    "growthStage": "Growth Stage",
+    "growthStage": "Scaling Growth",
     "year": 2025,
     "technologies": [
       "Azure",
@@ -389,7 +389,7 @@
     "arr": "$4M",
     "arrNumeric": 4070000,
     "currency": "USD",
-    "growthStage": "Expansion / Scale-up",
+    "growthStage": "Expansion Stage",
     "year": 2025,
     "technologies": [
       "C#",
@@ -414,7 +414,7 @@
     "arr": "$4M",
     "arrNumeric": 4000000,
     "currency": "USD",
-    "growthStage": "SaaS / Scale-up",
+    "growthStage": "Scaling Growth",
     "year": 2025,
     "technologies": [
       "TypeScript",
@@ -446,7 +446,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Expansion / M&A",
+    "growthStage": "Expansion Stage",
     "year": 2025,
     "technologies": [
       "Java",
@@ -474,7 +474,7 @@
     "arr": "$70M",
     "arrNumeric": 70000000,
     "currency": "USD",
-    "growthStage": "Growth",
+    "growthStage": "Scaling Growth",
     "year": 2025,
     "technologies": [
       "PHP",
@@ -503,7 +503,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Scaling / Expansion",
+    "growthStage": "Expansion Stage",
     "year": 2025,
     "technologies": [
       "Microsoft Azure",
@@ -528,7 +528,7 @@
     "arr": "$100K",
     "arrNumeric": 10000,
     "currency": "USD",
-    "growthStage": "Developed",
+    "growthStage": "Established Market Leader",
     "year": 2025,
     "technologies": [
       "GCP",
@@ -554,7 +554,7 @@
     "arr": "$189M",
     "arrNumeric": 189000000,
     "currency": "USD",
-    "growthStage": "Mature / Scale-up",
+    "growthStage": "Mature Enterprise",
     "year": 2024,
     "technologies": [
       "Java",
@@ -610,7 +610,7 @@
     "arr": "$120M",
     "arrNumeric": 120000000,
     "currency": "USD",
-    "growthStage": "Mature",
+    "growthStage": "Mature Enterprise",
     "year": 2024,
     "technologies": [
       "Datacor ERP (SaaS)",
@@ -635,7 +635,7 @@
     "arr": "$90M",
     "arrNumeric": 90000000,
     "currency": "USD",
-    "growthStage": "Established",
+    "growthStage": "Established Market Leader",
     "year": 2024,
     "technologies": [
       "AWS",
@@ -664,7 +664,7 @@
     "arr": "$88M",
     "arrNumeric": 88000000,
     "currency": "USD",
-    "growthStage": "Expansion / Mature",
+    "growthStage": "Mature Enterprise",
     "year": 2024,
     "technologies": [
       "GoLang",
@@ -698,7 +698,7 @@
     "arr": "$40M",
     "arrNumeric": 40000000,
     "currency": "USD",
-    "growthStage": "Scaling post-acquisition",
+    "growthStage": "Scaling Growth",
     "year": 2024,
     "technologies": [
       "AWS",
@@ -726,7 +726,7 @@
     "arr": "€36M",
     "arrNumeric": 36000000,
     "currency": "EUR",
-    "growthStage": "Mature",
+    "growthStage": "Mature Enterprise",
     "year": 2024,
     "technologies": [
       "AWS",
@@ -754,7 +754,7 @@
     "arr": "$21M",
     "arrNumeric": 21100000,
     "currency": "USD",
-    "growthStage": "High Growth",
+    "growthStage": "Scaling Growth",
     "year": 2024,
     "technologies": [
       "AWS",
@@ -785,7 +785,7 @@
     "arr": "$13M",
     "arrNumeric": 13000000,
     "currency": "USD",
-    "growthStage": "Growth Stage",
+    "growthStage": "Scaling Growth",
     "year": 2024,
     "technologies": [
       "AWS",
@@ -809,7 +809,7 @@
     "arr": "$9M",
     "arrNumeric": 9000000,
     "currency": "USD",
-    "growthStage": "Early Stage",
+    "growthStage": "Early-Stage Growth",
     "year": 2024,
     "technologies": [
       "AWS",
@@ -833,7 +833,7 @@
     "arr": "$25M",
     "arrNumeric": 25000000,
     "currency": "USD",
-    "growthStage": "Mature / Growth",
+    "growthStage": "Mature Enterprise",
     "year": 2024,
     "technologies": [
       "Kubernetes",
@@ -858,7 +858,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Early Stage",
+    "growthStage": "Early-Stage Growth",
     "year": 2024,
     "technologies": [
       "Python",
@@ -883,7 +883,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Modernizing",
+    "growthStage": "Legacy System",
     "year": 2024,
     "technologies": [
       "Java",
@@ -912,7 +912,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Mature",
+    "growthStage": "Mature Enterprise",
     "year": 2024,
     "technologies": [
       "Microsoft Azure",
@@ -966,7 +966,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Mature",
+    "growthStage": "Mature Enterprise",
     "year": 2024,
     "technologies": [
       ".NET",
@@ -992,7 +992,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Early Stage",
+    "growthStage": "Early-Stage Growth",
     "year": 2024,
     "technologies": [
       "ColdFusion",
@@ -1019,7 +1019,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Legacy / Transitioning",
+    "growthStage": "Legacy System",
     "year": 2024,
     "technologies": [
       "VB.NET",
@@ -1049,7 +1049,7 @@
     "arr": "$220M",
     "arrNumeric": 220000000,
     "currency": "USD",
-    "growthStage": "Maturity / Turnaround",
+    "growthStage": "Mature Enterprise",
     "year": 2023,
     "technologies": [
       "Oracle",
@@ -1075,7 +1075,7 @@
     "arr": "$54M",
     "arrNumeric": 54100000,
     "currency": "USD",
-    "growthStage": "Growth Stage",
+    "growthStage": "Scaling Growth",
     "year": 2023,
     "technologies": [
       "JavaScript",
@@ -1109,7 +1109,7 @@
     "arr": "$44M",
     "arrNumeric": 44000000,
     "currency": "USD",
-    "growthStage": "Mature",
+    "growthStage": "Mature Enterprise",
     "year": 2023,
     "technologies": [
       "Ruby on Rails",
@@ -1139,7 +1139,7 @@
     "arr": "$24M",
     "arrNumeric": 24000000,
     "currency": "USD",
-    "growthStage": "Scaling / Integration",
+    "growthStage": "Scaling Growth",
     "year": 2023,
     "technologies": [
       "AWS",
@@ -1167,7 +1167,7 @@
     "arr": "$6M",
     "arrNumeric": 6000000,
     "currency": "USD",
-    "growthStage": "Developed",
+    "growthStage": "Established Market Leader",
     "year": 2023,
     "technologies": [
       "Modern development frameworks",
@@ -1192,7 +1192,7 @@
     "arr": "$500K",
     "arrNumeric": 500000,
     "currency": "USD",
-    "growthStage": "Early Stage",
+    "growthStage": "Early-Stage Growth",
     "year": 2023,
     "technologies": [
       "AWS",
@@ -1216,7 +1216,7 @@
     "arr": "$40M",
     "arrNumeric": 40000000,
     "currency": "USD",
-    "growthStage": "Growth Stage",
+    "growthStage": "Scaling Growth",
     "year": 2023,
     "technologies": [
       "Node.js",
@@ -1241,7 +1241,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Early Stage",
+    "growthStage": "Early-Stage Growth",
     "year": 2023,
     "technologies": [
       "Zoho Creator",
@@ -1293,7 +1293,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Early Stage",
+    "growthStage": "Early-Stage Growth",
     "year": 2023,
     "technologies": [
       "Google Cloud Platform",
@@ -1317,7 +1317,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Early Stage",
+    "growthStage": "Early-Stage Growth",
     "year": 2023,
     "technologies": [
       "AI",
@@ -1345,7 +1345,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Established",
+    "growthStage": "Established Market Leader",
     "year": 2023,
     "technologies": [
       "Java",
@@ -1370,7 +1370,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Early Stage / Scaling",
+    "growthStage": "Scaling Growth",
     "year": 2023,
     "technologies": [
       ".NET Core",
@@ -1395,7 +1395,7 @@
     "arr": "$34M",
     "arrNumeric": 34000000,
     "currency": "USD",
-    "growthStage": "SaaS / Scaling",
+    "growthStage": "Scaling Growth",
     "year": 2022,
     "technologies": [
       "AWS",
@@ -1420,7 +1420,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "High Growth",
+    "growthStage": "Scaling Growth",
     "year": 2022,
     "technologies": [
       ".NET",
@@ -1445,7 +1445,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Startup",
+    "growthStage": "Early-Stage Growth",
     "year": 2022,
     "technologies": [
       "Docker",
@@ -1473,7 +1473,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "High Growth",
+    "growthStage": "Scaling Growth",
     "year": 2022,
     "technologies": [
       "NodeJS",
@@ -1503,7 +1503,7 @@
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
-    "growthStage": "Mature Startup",
+    "growthStage": "Established Market Leader",
     "year": 2022,
     "technologies": [
       "NLP",
@@ -1529,7 +1529,7 @@
     "arr": "$22M",
     "arrNumeric": 22000000,
     "currency": "USD",
-    "growthStage": "Established",
+    "growthStage": "Established Market Leader",
     "year": 2022,
     "technologies": [
       "AWS",
@@ -1551,7 +1551,7 @@
     "arr": "$70M",
     "arrNumeric": 70000000,
     "currency": "USD",
-    "growthStage": "Early Stage",
+    "growthStage": "Early-Stage Growth",
     "year": 2022,
     "technologies": [
       "C#",

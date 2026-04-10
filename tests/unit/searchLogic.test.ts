@@ -19,7 +19,7 @@ const mockProjects: Project[] = [
     arr: '$100M',
     arrNumeric: 100000000,
     currency: 'USD',
-    growthStage: 'Growth',
+    growthStage: 'Scaling Growth',
     year: 2024,
     technologies: ['Node.js', 'React', 'AWS'],
     engagementType: 'Value Creation - Growth'
@@ -33,7 +33,7 @@ const mockProjects: Project[] = [
     arr: '€50M',
     arrNumeric: 50000000,
     currency: 'EUR',
-    growthStage: 'Mature',
+    growthStage: 'Mature Enterprise',
     year: 2023,
     technologies: ['Python', 'PostgreSQL', 'AWS'],
     engagementType: 'Value Creation - Modernization'
@@ -47,7 +47,7 @@ const mockProjects: Project[] = [
     arr: '£75M',
     arrNumeric: 75000000,
     currency: 'GBP',
-    growthStage: 'Growth',
+    growthStage: 'Scaling Growth',
     year: 2024,
     technologies: ['React', 'TypeScript', 'D3.js'],
     engagementType: 'Early Stage Assessment'
@@ -61,7 +61,7 @@ const mockProjects: Project[] = [
     arr: '$200M',
     arrNumeric: 200000000,
     currency: 'USD',
-    growthStage: 'Mature',
+    growthStage: 'Mature Enterprise',
     year: 2022,
     technologies: ['Go', 'Kubernetes'],
     engagementType: undefined

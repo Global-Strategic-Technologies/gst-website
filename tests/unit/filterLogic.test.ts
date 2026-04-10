@@ -55,7 +55,7 @@ const mockProjects: Project[] = [
     arr: '£75M',
     arrNumeric: 75000000,
     currency: 'GBP',
-    growthStage: 'Scaling Stage',
+    growthStage: 'Scaling Growth',
     year: 2024,
     technologies: ['Go', 'Kubernetes'],
     engagementType: 'Early Stage Assessment'
@@ -126,7 +126,7 @@ describe('filterLogic', () => {
       const stages = getUniqueGrowthStages(mockProjects);
       expect(stages).toContain('Early-Stage Growth');
       expect(stages).toContain('Mature Enterprise');
-      expect(stages).toContain('Scaling Stage');
+      expect(stages).toContain('Scaling Growth');
       expect(stages).toHaveLength(4);
     });
 
@@ -139,7 +139,7 @@ describe('filterLogic', () => {
     it('should filter and sort growth stage projects', () => {
       const growthStages = getGrowthStageProjects(mockProjects);
       expect(growthStages).toContain('Early-Stage Growth');
-      expect(growthStages).toContain('Scaling Stage');
+      expect(growthStages).toContain('Scaling Growth');
       expect(growthStages).not.toContain('Mature Enterprise');
       expect(growthStages.length).toBeLessThan(4);
     });
