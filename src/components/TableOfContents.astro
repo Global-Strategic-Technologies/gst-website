@@ -134,6 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let headingEls: Element[] = [];
 
       if (item.source.mode === 'query') {
+        if (!item.source.scopeId) return;
         const scope = document.getElementById(item.source.scopeId);
         if (!scope) return;
         const sel = item.source.selector || 'h3[id]';

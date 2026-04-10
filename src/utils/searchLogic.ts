@@ -27,18 +27,22 @@ export function performSearch(projects: Project[], searchTerm: string): Project[
 }
 
 /**
- * Debounces a function to delay its execution
+ * Debounces a function to delay its execution.
+ * Uses split generics (A for args, R for return) so callers with any
+ * argument shape can bind cleanly — a `(...args: unknown[]) => unknown`
+ * constraint is too strict for concrete callers like `(term: string) => void`.
+ *
  * @param func - Function to debounce
  * @param delay - Delay in milliseconds
  * @returns Debounced function
  */
-export function debounce<T extends (...args: unknown[]) => unknown>(
-  func: T,
+export function debounce<A extends unknown[], R>(
+  func: (...args: A) => R,
   delay: number
-): (...args: Parameters<T>) => void {
+): (...args: A) => void {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-  return function debounced(...args: Parameters<T>) {
+  return function debounced(...args: A) {
     if (timeoutId !== null) {
       clearTimeout(timeoutId);
     }

@@ -1,12 +1,29 @@
 import { sortProjectsByYear, sortProjectsByARR, sortProjectsByName } from '@/utils/sort';
 import type { Project } from '@/types/portfolio';
 
+/**
+ * Creates a Project with sensible defaults for fields the sort tests don't exercise.
+ * Call sites override the fields the specific test cares about (id, codeName, year, arrNumeric).
+ */
+function mockProject(overrides: Partial<Project> & Pick<Project, 'id' | 'codeName' | 'year' | 'arrNumeric'>): Project {
+  return {
+    industry: 'Software',
+    theme: 'Technology',
+    summary: 'Mock project for sort tests',
+    arr: '$0',
+    currency: 'USD',
+    growthStage: 'Scaling Growth',
+    technologies: [],
+    ...overrides,
+  };
+}
+
 describe('Sort Projects Utility', () => {
   const mockProjects: Project[] = [
-    { id: '1', codeName: 'Project Alpha', year: 2022, arrNumeric: 50000000, industry: '', theme: '', summary: '', arr: '', currency: 'USD', growthStage: '', technologies: [], engagementType: undefined },
-    { id: '2', codeName: 'Project Beta', year: 2024, arrNumeric: 100000000, industry: '', theme: '', summary: '', arr: '', currency: 'USD', growthStage: '', technologies: [], engagementType: undefined },
-    { id: '3', codeName: 'Project Gamma', year: 2023, arrNumeric: 75000000, industry: '', theme: '', summary: '', arr: '', currency: 'USD', growthStage: '', technologies: [], engagementType: undefined },
-    { id: '4', codeName: 'Project Delta', year: 2025, arrNumeric: 150000000, industry: '', theme: '', summary: '', arr: '', currency: 'USD', growthStage: '', technologies: [], engagementType: undefined },
+    mockProject({ id: '1', codeName: 'Project Alpha', year: 2022, arrNumeric: 50000000 }),
+    mockProject({ id: '2', codeName: 'Project Beta', year: 2024, arrNumeric: 100000000 }),
+    mockProject({ id: '3', codeName: 'Project Gamma', year: 2023, arrNumeric: 75000000 }),
+    mockProject({ id: '4', codeName: 'Project Delta', year: 2025, arrNumeric: 150000000 }),
   ];
 
   describe('sortProjectsByYear', () => {
@@ -51,10 +68,10 @@ describe('Sort Projects Utility', () => {
     });
 
     it('should handle projects with same year', () => {
-      const sameYear = [
-        { id: '1', codeName: 'Alpha', year: 2024, arrNumeric: 50000000 },
-        { id: '2', codeName: 'Beta', year: 2024, arrNumeric: 100000000 },
-        { id: '3', codeName: 'Gamma', year: 2023, arrNumeric: 75000000 },
+      const sameYear: Project[] = [
+        mockProject({ id: '1', codeName: 'Alpha', year: 2024, arrNumeric: 50000000 }),
+        mockProject({ id: '2', codeName: 'Beta', year: 2024, arrNumeric: 100000000 }),
+        mockProject({ id: '3', codeName: 'Gamma', year: 2023, arrNumeric: 75000000 }),
       ];
 
       const sorted = sortProjectsByYear(sameYear);
@@ -84,10 +101,10 @@ describe('Sort Projects Utility', () => {
     });
 
     it('should handle projects with zero ARR', () => {
-      const withZero = [
-        { id: '1', codeName: 'Alpha', year: 2024, arrNumeric: 50000000 },
-        { id: '2', codeName: 'Beta', year: 2024, arrNumeric: 0 },
-        { id: '3', codeName: 'Gamma', year: 2023, arrNumeric: 100000000 },
+      const withZero: Project[] = [
+        mockProject({ id: '1', codeName: 'Alpha', year: 2024, arrNumeric: 50000000 }),
+        mockProject({ id: '2', codeName: 'Beta', year: 2024, arrNumeric: 0 }),
+        mockProject({ id: '3', codeName: 'Gamma', year: 2023, arrNumeric: 100000000 }),
       ];
 
       const sorted = sortProjectsByARR(withZero);
@@ -98,10 +115,12 @@ describe('Sort Projects Utility', () => {
     });
 
     it('should handle projects with missing arrNumeric', () => {
-      const withMissing = [
-        { id: '1', codeName: 'Alpha', year: 2024, arrNumeric: 50000000 },
-        { id: '2', codeName: 'Beta', year: 2024 } as any,
-        { id: '3', codeName: 'Gamma', year: 2023, arrNumeric: 100000000 },
+      const withMissing: Project[] = [
+        mockProject({ id: '1', codeName: 'Alpha', year: 2024, arrNumeric: 50000000 }),
+        // Simulate a runtime anomaly where arrNumeric was never set; TypeScript
+        // forbids this at compile time so we cast via unknown.
+        mockProject({ id: '2', codeName: 'Beta', year: 2024, arrNumeric: undefined as unknown as number }),
+        mockProject({ id: '3', codeName: 'Gamma', year: 2023, arrNumeric: 100000000 }),
       ];
 
       const sorted = sortProjectsByARR(withMissing);
@@ -136,10 +155,10 @@ describe('Sort Projects Utility', () => {
     });
 
     it('should handle case-insensitive sorting', () => {
-      const mixedCase = [
-        { id: '1', codeName: 'zebra', year: 2024, arrNumeric: 50000000 },
-        { id: '2', codeName: 'Apple', year: 2024, arrNumeric: 100000000 },
-        { id: '3', codeName: 'Banana', year: 2023, arrNumeric: 75000000 },
+      const mixedCase: Project[] = [
+        mockProject({ id: '1', codeName: 'zebra', year: 2024, arrNumeric: 50000000 }),
+        mockProject({ id: '2', codeName: 'Apple', year: 2024, arrNumeric: 100000000 }),
+        mockProject({ id: '3', codeName: 'Banana', year: 2023, arrNumeric: 75000000 }),
       ];
 
       const sorted = sortProjectsByName(mixedCase);
@@ -149,10 +168,10 @@ describe('Sort Projects Utility', () => {
     });
 
     it('should handle projects with similar names', () => {
-      const similar = [
-        { id: '1', codeName: 'Project App', year: 2024, arrNumeric: 50000000 },
-        { id: '2', codeName: 'Project Append', year: 2024, arrNumeric: 100000000 },
-        { id: '3', codeName: 'Project Apple', year: 2023, arrNumeric: 75000000 },
+      const similar: Project[] = [
+        mockProject({ id: '1', codeName: 'Project App', year: 2024, arrNumeric: 50000000 }),
+        mockProject({ id: '2', codeName: 'Project Append', year: 2024, arrNumeric: 100000000 }),
+        mockProject({ id: '3', codeName: 'Project Apple', year: 2023, arrNumeric: 75000000 }),
       ];
 
       const sorted = sortProjectsByName(similar);

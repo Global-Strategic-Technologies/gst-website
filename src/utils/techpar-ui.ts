@@ -1,7 +1,7 @@
 import { Chart, registerables } from 'chart.js';
 import type { ChartDataset, TooltipItem } from 'chart.js';
 import { compute, buildTrajectory, buildHistoricalTrajectory, zoneColorVar, zoneBgVar, zoneLabel, kpiClass, formatDollars, formatPercent, serializeToParams, deserializeFromParams, buildSummaryText } from './techpar-engine';
-import type { TechParInputs, TechParResult, StageConfig, HistoricalPoint } from './techpar-engine';
+import type { TechParInputs, TechParResult, StageConfig, HistoricalPoint, Stage } from './techpar-engine';
 import { STAGES } from '../data/techpar/stages';
 import { SIGNAL_COPY } from '../data/techpar/signal-copy';
 import { INDUSTRY_NOTES } from '../data/techpar/industry-notes';
@@ -692,7 +692,7 @@ function checkSanity() {
         });
         return;
     }
-    const config = STAGES[stageKey];
+    const config = STAGES[stageKey as Stage];
     const arr = getInput('arr');
     if (!arr || !config) return;
 
@@ -1282,7 +1282,7 @@ function renderTrajectory(r: TechParResult) {
                     filter: (item: TooltipItem<'line'>) => item.dataset.label !== '_z',
                     callbacks: {
                         title: (c: TooltipItem<'line'>[]) => `Month ${c[0].dataIndex}`,
-                        label: (c: TooltipItem<'line'>) => `${c.dataset.label}: ${fmtD(c.parsed.y)}/mo`,
+                        label: (c: TooltipItem<'line'>) => `${c.dataset.label}: ${fmtD(c.parsed.y ?? 0)}/mo`,
                     },
                 },
             },

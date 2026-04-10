@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import type { UserInputs } from '../../../src/utils/diligence-engine';
 
 /**
@@ -168,15 +168,16 @@ export async function completeWizardToStep(
         return activeStep?.getAttribute('data-step') === '5';
       }, { timeout: 2000 });
 
-      if (!inputs.geographies || inputs.geographies.length === 0) {
+      const geographies = inputs.geographies;
+      if (!geographies || geographies.length === 0) {
         throw new Error('Missing geographies input for step 5');
       }
 
       // Select each geography (skip multi-region if it will be auto-added)
       // Use evaluate() for WebKit stability
-      const geosToSelect = inputs.geographies.filter(geo => {
+      const geosToSelect = geographies.filter(geo => {
         // Skip multi-region if we have 2+ other regions (it will be auto-added)
-        return !(geo === 'multi-region' && inputs.geographies.length > 2);
+        return !(geo === 'multi-region' && geographies.length > 2);
       });
 
       await page.evaluate((geos) => {

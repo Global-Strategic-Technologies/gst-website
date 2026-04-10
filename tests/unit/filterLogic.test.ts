@@ -198,13 +198,6 @@ describe('filterLogic', () => {
       expect(text).toContain('react');
     });
 
-    it('should handle projects with string technologies', () => {
-      const projectWithStringTechs = { ...mockProjects[0], technologies: 'Node.js, React' as any };
-      const text = createSearchableText(projectWithStringTechs);
-      expect(text).toContain('node.js');
-      expect(text).toContain('react');
-    });
-
     it('should handle projects without technologies', () => {
       const projectNoTechs = { ...mockProjects[0], technologies: [] };
       const text = createSearchableText(projectNoTechs);

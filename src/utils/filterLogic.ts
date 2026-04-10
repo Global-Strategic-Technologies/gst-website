@@ -1,4 +1,4 @@
-import type { Project } from '../types/portfolio';
+import type { Project, EngagementType } from '../types/portfolio';
 
 /**
  * Engagement type categorization constants
@@ -171,12 +171,12 @@ export function getUniqueYears(projects: Project[]): number[] {
  * @param projects - Array of projects to analyze
  * @returns Sorted array of unique engagement types
  */
-export function getUniqueEngagementTypes(projects: Project[]): string[] {
+export function getUniqueEngagementTypes(projects: Project[]): EngagementType[] {
   return [
     ...new Set(
       projects
         .map(p => p.engagementType)
-        .filter((e): e is string => e !== undefined)
+        .filter((e): e is EngagementType => e !== undefined)
     )
   ].sort();
 }
@@ -187,13 +187,7 @@ export function getUniqueEngagementTypes(projects: Project[]): string[] {
  * @returns Combined searchable text
  */
 export function createSearchableText(project: Project): string {
-  const techs = Array.isArray(project.technologies)
-    ? project.technologies
-    : typeof project.technologies === 'string'
-      ? project.technologies.split(',').map(t => t.trim())
-      : [];
-
-  return [project.codeName, project.industry, project.summary, ...techs]
+  return [project.codeName, project.industry, project.summary, ...project.technologies]
     .join(' ')
     .toLowerCase();
 }
