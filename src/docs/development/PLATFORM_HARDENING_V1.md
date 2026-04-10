@@ -110,6 +110,32 @@ The existing CI pipeline runs tests but has no linting, no type-checking beyond 
   - **Job 2: Unit & Integration Tests** (existing) — unchanged, runs in parallel with Job 1
   - **Job 3: E2E Tests** (existing) — `needs: [lint-and-typecheck, unit-and-integration]`
   - Net impact: ~1 minute added to total wall-clock time; lint failure surfaces in ~30-60s
+- **Fix the `paths-ignore` / required-checks deadlock** — the current workflow uses `paths-ignore` for `**.md`, `src/docs/**`, and `.claude/**`, so docs-only PRs do not trigger any runs. But the master branch ruleset (`Protect master branch`, ID `12237842`) requires `Unit & Integration Tests` and `E2E Tests (Playwright)` to report success. When no run executes, no status is reported, and the PR is permanently blocked in "Expected — Waiting for status to be reported" state. **Observed during PR #78** (docs-only merge), requiring a temporary ruleset disable/re-enable to unblock. **Fix**: replace `paths-ignore` with the *dummy skip job* pattern using `dorny/paths-filter@v3`:
+  ```yaml
+  jobs:
+    changes:
+      runs-on: ubuntu-latest
+      outputs:
+        code: ${{ steps.filter.outputs.code }}
+      steps:
+        - uses: actions/checkout@v5
+        - uses: dorny/paths-filter@v3
+          id: filter
+          with:
+            filters: |
+              code:
+                - '!(**.md|src/docs/**|.claude/**)'
+
+    unit-and-integration:
+      needs: changes
+      runs-on: ubuntu-latest
+      steps:
+        - if: needs.changes.outputs.code == 'true'
+          run: npm ci && npm run test:coverage
+        - if: needs.changes.outputs.code != 'true'
+          run: echo "Skipped — docs-only change"
+  ```
+  This keeps the required job names visible to branch protection (so they always report a status), while skipping the expensive work for docs-only changes. Same pattern applied to `lint-and-typecheck` and `e2e-tests`. Remove the `paths-ignore` blocks entirely from the `on:` section.
 - **500 error page** — create `src/pages/500.astro` (only 404 exists; Radar SSR route has no branded error page)
 
 ### Commits
@@ -120,6 +146,7 @@ chore(lint): add Prettier configuration
 chore(lint): fix existing lint violations across codebase
 chore(hooks): add husky pre-commit hooks with lint-staged
 ci: restructure pipeline to 3-job parallel-then-gate architecture
+ci: fix paths-ignore / required-checks deadlock with dummy skip jobs
 feat(error): add branded 500 error page
 ```
 
@@ -129,6 +156,7 @@ feat(error): add branded 500 error page
 - Pre-commit hooks prevent unformatted commits
 - 500 page renders correctly in both themes
 - Total pipeline wall-clock time increases by ≤1 minute
+- Docs-only PRs merge cleanly without bypassing branch protection (verified by creating a test docs-only PR and confirming required checks report success within ~5s)
 
 ---
 
