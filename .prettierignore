@@ -1,0 +1,28 @@
+# Generated and build output
+dist/
+.astro/
+.vercel/
+coverage/
+playwright-report/
+test-results/
+.cache/
+
+# Dependencies
+node_modules/
+
+# Lock files
+package-lock.json
+
+# Hand-curated JSON data files — preserve existing formatting
+src/data/ma-portfolio/projects.json
+src/data/canada-provinces.json
+
+# Regulatory map (120 files, curated manually)
+src/data/regulatory-map/
+
+# Public static assets (topojson, minified, generated)
+public/data/
+public/favicon.svg
+
+# Test coverage artifacts (if generated locally)
+*.lcov
