@@ -19,6 +19,14 @@ Cross-tool UX unification roadmap — identifies reusable UI patterns (copy feed
 
 Improvement roadmap for the Tech Debt Cost Calculator (17 initiatives across 7 priority tiers).
 
+### [DYNAMIC_VISUAL_EFFECTS.md](./DYNAMIC_VISUAL_EFFECTS.md)
+
+Exploration initiative evaluating whether ambient animated effects (grid pulses, floating particles, glow shifts) could enhance the homepage hero section without conflicting with the tech-brutalist brand identity. Includes 5 candidate effects ranked by brand alignment, evaluation criteria, and a time-boxed prototype plan.
+
+### [PLATFORM_HARDENING_V1.md](./PLATFORM_HARDENING_V1.md)
+
+Comprehensive 10-phase platform hardening initiative to support the next 6 months of business growth. Covers data validation (Zod schemas), CI/CD (ESLint, pre-commit hooks, 3-job pipeline), CSS architecture (Astro scoped styles migration), test coverage & accessibility (axe-core), SEO, cookie consent & GDPR, tool analytics standardization, email capture, error monitoring (Sentry), security headers, and documentation normalization. ~28-33 working days total effort.
+
 Each roadmap includes:
 - Current state assessment with strengths and known issues
 - Prioritized initiatives with effort/impact ratings
@@ -34,6 +42,8 @@ Each roadmap includes:
 | E2E Image Tests | High | 30m | Next |
 | Unit Error Tests | Medium | 1-2h | Soon |
 | Perf Dashboard | Low | 1-2h | Later |
+| Dynamic Visual Effects | Low | 2-4h prototype | Exploratory |
+| **Platform Hardening V1** | **High** | **28-33 days (10 phases)** | **Next** |
 
 ### Hub Tools Control Consolidation
 
@@ -72,4 +82,4 @@ When adding new initiatives:
 
 ---
 
-*Last Updated: March 25, 2026*
+*Last Updated: April 9, 2026*
