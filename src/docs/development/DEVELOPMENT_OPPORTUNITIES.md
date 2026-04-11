@@ -18,12 +18,14 @@ Automate performance regression detection by integrating Lighthouse CI into the 
 ### What Problem Does It Solve?
 
 Current state:
+
 - Performance improvements are validated manually via Lighthouse reports
 - No automated CI checks prevent regressions
 - Team relies on Vercel Speed Insights for post-deployment monitoring
 - Performance budgets are not enforced
 
 With Lighthouse CI:
+
 - Performance budgets are checked on every PR
 - Build fails if LCP degrades beyond threshold
 - Historical trend tracking
@@ -86,11 +88,13 @@ Add a targeted E2E test to verify that the LCP optimization on the About page (r
 ### What Problem Does It Solve?
 
 Current state:
+
 - About page has founder images optimized with `fetchpriority="high"`
 - No automated regression detection if attributes are accidentally removed
 - Visual regressions caught manually or via Speed Insights delays
 
 With E2E test:
+
 - Instant feedback on image loading regressions
 - Prevents accidental removal of performance attributes
 - Validates image visibility on page load
@@ -153,11 +157,13 @@ Add targeted unit tests for the error handling improvements made to DOM access, 
 ### What Problem Does It Solve?
 
 Current state:
+
 - Error handling added to prevent console errors (null checks, try-catch blocks)
 - No automated tests validate this error handling works
 - Silent failures could go unnoticed in production
 
 With unit tests:
+
 - Error handling code is validated
 - Fallback behavior is verified
 - Developers can refactor safely
@@ -169,10 +175,9 @@ With unit tests:
 ```typescript
 describe('ThemeToggle localStorage handling', () => {
   test('should use default theme when localStorage is unavailable', () => {
-    const mockStorage = jest.spyOn(Storage.prototype, 'getItem')
-      .mockImplementation(() => {
-        throw new SecurityError('localStorage unavailable');
-      });
+    const mockStorage = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new SecurityError('localStorage unavailable');
+    });
 
     // Component initialization should not throw
     // Verify default 'light' theme is applied
@@ -183,10 +188,9 @@ describe('ThemeToggle localStorage handling', () => {
   });
 
   test('should gracefully handle localStorage.setItem failure', () => {
-    const mockSetItem = jest.spyOn(Storage.prototype, 'setItem')
-      .mockImplementation(() => {
-        throw new SecurityError('Private browsing mode');
-      });
+    const mockSetItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new SecurityError('Private browsing mode');
+    });
 
     // Should not throw when saving theme preference
     expect(() => toggleTheme()).not.toThrow();
@@ -206,10 +210,7 @@ describe('Portfolio data parsing', () => {
     const result = safeParseProjects(malformedData);
 
     expect(result).toEqual([]);
-    expect(console.error).toHaveBeenCalledWith(
-      'Failed to parse projects data:',
-      expect.any(Error)
-    );
+    expect(console.error).toHaveBeenCalledWith('Failed to parse projects data:', expect.any(Error));
   });
 
   test('should initialize with empty array on parse failure', () => {
@@ -229,7 +230,7 @@ describe('ProjectModal DOM safety', () => {
     // Remove a required modal element
     document.getElementById('modal-title-2')?.remove();
 
-    const project = { codeName: 'Test', /* ... */ };
+    const project = { codeName: 'Test' /* ... */ };
 
     // Should not throw
     expect(() => window.projectModal.open(1, [project])).not.toThrow();
@@ -237,9 +238,7 @@ describe('ProjectModal DOM safety', () => {
 
   test('should only update elements that exist', () => {
     const mockElement = { textContent: '' };
-    document.getElementById = jest.fn((id) =>
-      id === 'modal-title-2' ? mockElement : null
-    );
+    document.getElementById = jest.fn((id) => (id === 'modal-title-2' ? mockElement : null));
 
     window.projectModal.open(1, [{ codeName: 'Test' }]);
 
@@ -278,11 +277,13 @@ Create a simple dashboard or documentation that consolidates performance metrics
 ### What Problem Does It Solve?
 
 Current state:
+
 - Performance data scattered across multiple tools
 - No historical trend tracking
 - Hard to correlate code changes with performance impact
 
 With dashboard:
+
 - Single source of truth for performance metrics
 - Historical trend visibility
 - Easy to showcase improvements to stakeholders
@@ -290,17 +291,20 @@ With dashboard:
 ### Potential Implementations
 
 **Option A: Lightweight (No cost)**
+
 - Create monthly performance report in Markdown
 - Track: LCP, FCP, CLS, TBT over time
 - Attach screenshots from Lighthouse/Speed Insights
 - Store in `/docs/performance/reports/`
 
 **Option B: Automated (Low cost)**
+
 - Set up GitHub Pages with Lighthouse CI reports
 - Auto-generates weekly summaries
 - Tracks regression history
 
 **Option C: Premium (Paid)**
+
 - Calibre (paid, $50-300/mo)
 - SpeedCurve (paid, $99+/mo)
 - Provides trend analysis, team collaboration
@@ -317,14 +321,106 @@ Start with **Option A** (lightweight manual reports) while Lighthouse CI is new.
 
 ---
 
+## Initiative #5: Full `light-dark()` Sweep of Dark-Theme Override Block
+
+**Status:** Blocked (pending Phase 9 pilot success signal)
+**Priority:** Low-Medium
+**Estimated Effort:** 2-4 hours (plus visual regression verification across 6 palettes)
+**Expected ROI:** Medium — maintainability improvement; not business-critical
+**Dependencies:** Phase 3 commit 0d (LightningCSS active) AND Phase 9 item #6 (bounded pilot) must be complete with all success signals green
+
+### Overview
+
+Migrate the remaining declarations in the `html.dark-theme` override block in [src/styles/global.css](../../styles/global.css) from paired base-rule + override-rule to single-declaration `light-dark()` calls, collapsing ~211 lines of duplicated theme logic into co-located single declarations.
+
+This is the broader-sweep follow-on to the bounded pilot queued as Phase 9 item #6 of [PLATFORM_HARDENING_V1.md](./PLATFORM_HARDENING_V1.md). The pilot migrates one small themed surface (likely button declarations or a single card variant); this initiative extends that pattern to every remaining themeable rule in the dark-theme override block.
+
+### What Problem Does It Solve?
+
+**Current state:**
+
+- Every themeable declaration requires two rules: a base rule plus an `html.dark-theme` override selector
+- The two rules live in different blocks (component styles vs. the centralized override block at `global.css` lines ~900-1110)
+- Editing a themed surface requires touching two disjoint locations; forgetting the override causes silent theme breakage
+- ~211 lines of the override block are pure value-swapping that could be expressed in half the lines, co-located with the base declaration
+- Onboarding cost: new contributors have to learn the override-block pattern before they can safely modify themed components
+
+**With a full `light-dark()` sweep:**
+
+- One rule per themeable declaration, base + dark values co-located
+- Editing a themed surface is a single-location change
+- The override block shrinks from ~211 lines to whatever residual global-cascade rules remain (likely <50 lines)
+- Pattern is self-documenting — `light-dark(light-value, dark-value)` is obvious at a glance
+- LightningCSS compiles the source to a `@media (prefers-color-scheme)` + CSS custom property trick that works in every browser with custom-property support, so no compatibility cost
+
+### What Problem Does It NOT Solve?
+
+- Does not affect the 6-palette alternative system ([src/styles/palettes.css](../../styles/palettes.css)) — palettes use a different cascade mechanism (`html.palette-N` class overrides) that is orthogonal to light/dark theming
+- Does not change any visual output — this is a refactor, not a redesign
+- Does not eliminate all global-cascade theming — some selectors legitimately need global reach (e.g., `html.dark-theme body { background: ... }`) and should stay in the override block
+
+### Dependencies & Gating
+
+This initiative is **blocked until both of the following are true**:
+
+1. **LightningCSS is active** as the Vite CSS transformer (Phase 3 commit 0d of PLATFORM_HARDENING_V1). Without it, `light-dark()` would only work in browsers that natively support it (partial support in 2026) and would degrade on older browsers.
+2. **The Phase 9 pilot (item #6) has landed and met its success signals**:
+   - Pilot commit passes all unit, integration, and E2E tests
+   - Visual regression check shows zero diff across both themes (light and dark) and all 6 alternative palettes (palette-1 through palette-6)
+   - LightningCSS compiled output is confirmed stable across multiple rebuilds
+   - `color-scheme: light` / `color-scheme: dark` declarations are wired up on `html` / `html.dark-theme` so `light-dark()` resolves against the class-driven theme rather than OS preference
+
+If the pilot surfaces unexpected complications (palette interaction bugs, LightningCSS compilation quirks, visual regressions), this initiative remains indefinitely blocked and is revisited only if the blocking issue is resolved upstream.
+
+### Implementation Checklist
+
+- [ ] Confirm Phase 9 pilot success signals are all green (tests, visual diff, palette sweep)
+- [ ] Inventory every declaration in `global.css` lines ~900-1110 — classify each as "collapsible to `light-dark()`" or "must remain global-cascade"
+- [ ] For each collapsible rule: identify the base-rule location (component scoped style or remaining global section), merge the light/dark values into a `light-dark()` call, delete the override-block entry
+- [ ] Verify visually after each batch of ~20 declarations (don't do it all in one commit — 4-6 commits grouped by component area)
+- [ ] Run full E2E suite once after each batch (`npm run test:e2e`)
+- [ ] Spot-check all 6 alternative palettes at light and dark theme combinations (12 screenshots per commit)
+- [ ] Verify LightningCSS output diff is deterministic by running `npm run build` twice and comparing
+- [ ] Update [STYLES_GUIDE.md](../styles/STYLES_GUIDE.md) to document `light-dark()` as the preferred pattern for new themed declarations
+- [ ] Remove or shrink the override-block section of `global.css` to reflect the new reality
+
+### Success Metrics
+
+- `html.dark-theme` override block in `global.css` reduced from ~211 lines to <50 lines
+- Zero visual regressions across 12 theme/palette combinations
+- New contributor onboarding doc for theming updated; new themed components written in the new pattern
+- No increase in build output size (LightningCSS compiled output should be ≤ current bytes)
+- E2E suite passes at every intermediate commit (refactor invariant)
+
+### Commit Structure
+
+```
+refactor(css): migrate button theme declarations to light-dark()
+refactor(css): migrate card theme declarations to light-dark()
+refactor(css): migrate form/input theme declarations to light-dark()
+refactor(css): migrate surface + container theme declarations to light-dark()
+refactor(css): migrate remaining themed declarations and shrink override block
+docs(styles): document light-dark() as preferred theming pattern
+```
+
+### References
+
+- [MDN: `light-dark()` CSS function](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/light-dark)
+- [Lightning CSS transpilation docs — `light-dark()`](https://lightningcss.dev/transpilation.html)
+- [PLATFORM_HARDENING_V1.md Phase 9 item #6](./PLATFORM_HARDENING_V1.md#phase-9-miscellaneous-cleanup-bucket) — gating pilot
+- [CLAUDE.md CSS Styling Standards](../../../.claude/CLAUDE.md) — existing dark-theme rules
+
+---
+
 ## Summary Table
 
-| Initiative | Priority | Effort | ROI | Status | Start Date |
-|-----------|----------|--------|-----|--------|------------|
-| Lighthouse CI | High | 2-3h | Very High | Proposed | Sprint 1 |
-| E2E Image Test | High | 30m | High | Proposed | Sprint 1 |
-| Unit Error Tests | Medium | 1-2h | Medium-High | Proposed | Sprint 2 |
-| Perf Dashboard | Low-Medium | 1-2h | Medium | Proposed | Sprint 3+ |
+| Initiative                | Priority   | Effort | ROI         | Status                          | Start Date     |
+| ------------------------- | ---------- | ------ | ----------- | ------------------------------- | -------------- |
+| Lighthouse CI             | High       | 2-3h   | Very High   | Proposed                        | Sprint 1       |
+| E2E Image Test            | High       | 30m    | High        | Proposed                        | Sprint 1       |
+| Unit Error Tests          | Medium     | 1-2h   | Medium-High | Proposed                        | Sprint 2       |
+| Perf Dashboard            | Low-Medium | 1-2h   | Medium      | Proposed                        | Sprint 3+      |
+| `light-dark()` Full Sweep | Low-Medium | 2-4h   | Medium      | Blocked (pending Phase 9 pilot) | Post-hardening |
 
 ---
 
@@ -362,5 +458,6 @@ These initiatives build upon recent optimizations:
 1. **This Sprint:** Implement Lighthouse CI (#1) and E2E test (#2)
 2. **Next Sprint:** Add unit tests for error handling (#3)
 3. **Future:** Set up performance dashboard (#4) as team needs evolve
+4. **Post-hardening (conditional):** Execute `light-dark()` full sweep (#5) — only if the Phase 9 pilot in PLATFORM_HARDENING_V1.md hits all its success signals
 
 For questions or to propose modifications, contact the development team.

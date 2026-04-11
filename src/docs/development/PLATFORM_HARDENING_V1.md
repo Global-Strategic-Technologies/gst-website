@@ -235,27 +235,47 @@ If it still appears, confirm `src/content.config.ts` exists and exports `export 
 
 **Status**: Proposed
 **Priority**: High
-**Effort**: 5-6 days
+**Effort**: 6-7 days
 **Dependencies**: Phase 2 (linting catches regressions during refactoring)
 
 ### Problem
 
-`global.css` is 5,511 lines mixing genuinely global concerns with component-specific styles. Large components (`brand.astro` 3,778 lines, `PortfolioHeader.astro` 869, `StickyControls.astro` 785, `techpar-ui.ts` 1,473) make code review painful and merge conflicts likely. Duplicated patterns exist across 9 pages (print report header) and 3 files (card markup).
+`global.css` is 5,511 lines mixing genuinely global concerns with component-specific styles. Large components (`brand.astro` 3,778 lines, `PortfolioHeader.astro` 869, `StickyControls.astro` 785, `techpar-ui.ts` 1,473) make code review painful and merge conflicts likely. Duplicated patterns exist across 10 pages (print report header) and 3+ files (card markup).
+
+A **critical tooling gap** also exists: the current stylelint configuration only lints `src/styles/*.css` and does not parse `<style>` blocks inside `.astro` files. After this phase migrates ~4,600 lines of component CSS into scoped blocks, those styles would become a linting blind spot — this must be fixed **before** the migration begins.
 
 ### CSS Strategy
 
-**Follow Astro conventions: scoped `<style>` tags.** The project already uses Astro scoped styles in 23 components and 18 pages. CSS custom properties defined in `variables.css` cascade into scoped `<style>` blocks because Astro uses generated class attributes (not shadow DOM). Benefits over `@import` splitting:
+**Follow Astro conventions: scoped `<style>` tags.** The project already uses Astro scoped styles in 41 components and pages (23 components + 18 pages). CSS custom properties defined in `variables.css` cascade into scoped `<style>` blocks because Astro uses generated class attributes (not shadow DOM). Benefits over `@import` splitting:
 
 - Automatic dead CSS elimination (Astro only ships styles for rendered components)
 - Co-located discoverability (styles live with their component)
 - Collision safety (scoped by default, explicit via `:global()` when needed)
 - Deleting a component automatically removes its styles
 
+**Three foundation tooling changes land first** (commits 0a–0d) to make the migration safe and turn Phase 3 discipline into permanent guardrails:
+
+1. **stylelint coverage for `.astro` scoped styles** via `postcss-html` + `stylelint-config-html/astro` — closes the linting blind spot before it opens
+2. **CSS `@layer` cascade layers** (`reset, tokens, utilities, components, theme, overrides`) — eliminates future `!important` hacks by giving palette/dark-theme overrides a clean cascade lane that always beats unlayered scoped rules, regardless of specificity. Baseline High since Sept 2024; 95%+ global support
+3. **Complexity rules for scoped styles only** — re-enable `no-descending-specificity`, `max-nesting-depth: 3`, `selector-max-compound-selectors: 4`, and `selector-max-specificity: "0,3,0"` in an `.astro`-only stylelint override (these are too noisy globally but cheap wins in naturally bounded scoped blocks)
+4. **LightningCSS as the Vite CSS transformer** — replaces esbuild's default CSS pipeline with a single Rust-based tool that handles autoprefixing, minification, modern-CSS down-leveling (nesting, `oklch()`, `color-mix()`, `light-dark()`), and stricter syntax validation. Opt-in via one line in `astro.config.mjs`; reversible in seconds. Gives legacy cruft in `global.css` a free cleanup as a side effect of every subsequent Phase 3 commit.
+
+A **final guardrail commit** (commit 14) adopts `stylelint-declaration-strict-value` for colors to mechanically enforce the "no hardcoded colors" rule from CLAUDE.md on every future commit.
+
 ### Scope
 
-- **Slim down `global.css` to genuinely global concerns** (~200-300 lines):
-  - Keep: reset/box-sizing, skip-nav, body/html base styles, checkerboard `body::before`, container/layout utilities, `html.dark-theme` variable overrides
-  - Move to scoped component styles: `.site-header` rules → `Header.astro`, `.tool-methodology` → tool pages or shared component, hero styles → `Hero.astro`, portfolio grid styles → portfolio components
+**Foundation tooling (commits 0a–0d, land first):**
+
+- **Add stylelint coverage for `.astro` scoped styles** — install `postcss-html` and `stylelint-config-html`; add an `overrides` block in `.stylelintrc.json` that applies `stylelint-config-html/astro` + `customSyntax: "postcss-html"` to `**/*.astro`; update `lint:css` script glob to `src/**/*.{css,astro}`; update `lint-staged` entry; update [DEVELOPER_TOOLING.md](DEVELOPER_TOOLING.md) per directive #12
+- **Introduce CSS `@layer` cascade layers** — add `@layer reset, tokens, utilities, components, theme, overrides;` to `global.css`; wrap existing globals (`variables.css` in `tokens`, `typography.css` + `interactions.css` in `utilities`, `palettes.css` in `theme`, `html.dark-theme` overrides in `theme`) in their respective layers; scoped component styles stay unlayered so theme/overrides layers cleanly win without specificity escalation. **No style value changes** — this commit is pure organization.
+- **Enable complexity rules for `.astro` override only** — in the new `.astro` stylelint override block, turn on `no-descending-specificity: true`, `max-nesting-depth: [3, { ignoreAtRules: [media, supports, container] }]`, `selector-max-compound-selectors: 4`, `selector-max-specificity: "0,3,0"`, `declaration-block-no-shorthand-property-overrides: true`, `shorthand-property-no-redundant-values: true`, `declaration-block-no-redundant-longhand-properties: true`. Scoped blocks are naturally bounded, so these rules cost little and catch the exact drift that made `global.css` unmanageable.
+- **Opt into LightningCSS** via `vite.css.transformer: "lightningcss"` in `astro.config.mjs`; `npm install --save-dev lightningcss`. Verify `npm run build` output diff is clean and bundle size trends down. Reversible in one line.
+
+**Code structure scope:**
+
+- **Slim down `global.css` to genuinely global concerns** (~300 lines):
+  - Keep: reset/box-sizing, skip-nav, body/html base styles, checkerboard `body::before`, container/layout utilities, `html.dark-theme` variable overrides, global responsive breakpoints for container utilities, print base rules
+  - Move to scoped component styles: `.site-header` rules → `Header.astro`, `.tool-methodology` → tool pages or shared component, hero styles → `Hero.astro`, portfolio grid/filter styles → portfolio components, tool-specimen block → `brand.astro` scoped (split into 3 sub-commits by section for safer review and rollback)
 - **Keep `variables.css`, `typography.css`, `interactions.css`, `palettes.css` as global imports** — design tokens and utility classes that genuinely need global scope
 - **Use `:global()` sparingly** — only for parent→slotted-child styling; `is:global` only for `<html>`/`<body>` (like ThemeToggle)
 - **Create z-index scale** in `variables.css`:
@@ -268,39 +288,75 @@ If it still appears, confirm `src/content.config.ts` exists and exports `export 
   --z-modal-overlay: 1001;
   --z-skip-nav: 10000;
   ```
-- **Extract shared portfolio filter logic** — `PortfolioHeader.astro` re-implements keyword arrays and filtering that `StickyControls.astro` already imports from `filterLogic.ts`; align PortfolioHeader to use the same centralized utilities (~25 lines removed)
-- **Extract `<PrintReportHeader />` component** — identical 17-line block repeated across 9 pages; create `src/components/PrintReportHeader.astro` with a `title` prop (~118 lines saved)
-- **Extract `<Card />` component with variants** — near-identical card markup across `services.astro` (6 cards), `WhyClientsTrustUs.astro` (4 cards), `hub/index.astro` (3 cards); create `src/components/Card.astro` with `variant` prop (~44 lines saved)
-- **Decompose `brand.astro`** — split 3,778-line page into sub-components (some already exist in `src/components/brand/`)
-- **Modularize `techpar-ui.ts`** — split 1,473 lines into:
-  - `src/utils/techpar/chart.ts` — Chart.js config, dataset builders
-  - `src/utils/techpar/dom.ts` — DOM manipulation, event binding
-  - `src/utils/techpar/state.ts` — state management, input parsing
-  - `src/utils/techpar-ui.ts` — thin re-export barrel
+  Replace raw values (current chaos includes 9999, 10001, 10000, 1002, 60, 30, 8, 5 across multiple files) with these tokens in the same commit.
+- **Extract shared portfolio filter logic** — `PortfolioHeader.astro` inlines keyword arrays (`growthKeywords`, `matureKeywords`, `valueCreationTypes`, `technicalDiligenceTypes`) that duplicate what `StickyControls.astro` already imports from `filterLogic.ts`; align PortfolioHeader to use the same centralized utilities (~25 lines removed). Diff arrays for behavior parity before switching.
+- **Extract `<PrintReportHeader />` component** — identical 17-line block repeated across **10 pages** (about, privacy, terms, services, ma-portfolio, hub/library/business-architectures, hub/library/vdr-structure, hub/radar, hub/tools/regulatory-map, hub/tools/tech-debt-calculator); create `src/components/PrintReportHeader.astro` with a `title` prop; move the ~30-line CSS block from `global.css` into the component (~140 lines saved)
+- **Extract `<Card />` component with deep variant unification** — consolidate near-identical card patterns via base class `<Card variant="service|audience|trust|hub">` across `services.astro` (7 cards: 3 service-card + 4 audience-card), `WhyClientsTrustUs.astro` (4 trust-cards), `hub/index.astro` (3 hub-cards). Base component owns the shared `brutal-frosted` shell; variants own top-border vs left-border accents and icon/CTA shape differences. ~60+ lines saved.
+- **Decompose `brand.astro`** — split 3,778-line page (~3,600 inline lines after existing extractions) into ~6-8 sub-components under `src/components/brand/` (sections: brand identity, colors, typography, spacing, shadows, transitions, components, states)
+- **Modularize `techpar-ui.ts`** — split 1,474 lines into:
+  - `src/utils/techpar/chart.ts` — Chart.js config, dataset builders, trajectory computation & rendering
+  - `src/utils/techpar/dom.ts` — DOM manipulation, event binding, tab navigation, copy/export utilities
+  - `src/utils/techpar/state.ts` — state management, input parsing, scenario management, URL state hydration
+  - `src/utils/techpar-ui.ts` — thin re-export barrel preserving all public names used by `hub/tools/techpar/index.astro`
 - **Extract magic numbers** — maturity thresholds (25, 50, 75), z-index values, modal ID suffixes into named constants
+
+**Final guardrail (commit 14):**
+
+- **Adopt `stylelint-declaration-strict-value`** for color enforcement — `npm install --save-dev stylelint-declaration-strict-value`; add rule `"scale-unlimited/declaration-strict-value": [["/color$/", "fill", "stroke", "background", "/^border/"], { "ignoreVariables": true, "ignoreValues": ["transparent", "inherit", "currentColor", "none", "unset", "initial", "0"], "severity": "warning" }]`. Start at `warning` severity for a week of real commits, then promote to `error`. Spacing/typography enforcement via `expandShorthand` deferred to Phase 9 backlog — it needs a larger allowlist and shouldn't block the refactor.
 
 ### Commits
 
 ```
-refactor(css): move header styles from global.css to Header.astro scoped styles
-refactor(css): move hero styles from global.css to Hero.astro scoped styles
-refactor(css): move portfolio styles from global.css to portfolio components
-refactor(css): move tool styles from global.css to tool page scoped styles
-refactor(css): add z-index scale variables and replace magic values
-refactor(portfolio): align PortfolioHeader filter logic with filterLogic.ts
-feat(components): extract PrintReportHeader shared component
-feat(components): extract Card component with variants
-refactor(brand): decompose brand.astro into sub-components
-refactor(techpar): modularize techpar-ui.ts into chart, dom, state modules
-refactor: extract magic numbers into named constants
+# Foundation tooling (must land before any style migration)
+chore(lint): add stylelint coverage for .astro scoped styles via postcss-html           # 0a
+refactor(css): introduce @layer cascade layer scheme in global.css                      # 0b
+chore(lint): enable complexity rules for .astro scoped styles                           # 0c
+chore(build): opt into LightningCSS via Vite transformer                                # 0d
+
+# Infrastructure before migration
+refactor(css): add z-index scale variables and replace magic values                     # 1
+
+# Logic deduplication (small, self-contained)
+refactor(portfolio): sync PortfolioHeader filter logic with filterLogic.ts              # 2
+
+# Shared component extractions
+feat(components): extract PrintReportHeader shared component                            # 3
+feat(components): extract Card base with service/audience/trust/hub variants            # 4
+
+# CSS migration (one domain at a time, each commit passes build + unit tests)
+refactor(css): move header styles to Header.astro scoped                                # 5
+refactor(css): move hero styles to Hero.astro scoped                                    # 6
+refactor(css): move services + about styles to scoped                                   # 7
+refactor(css): move stats-bar, CTA, and remaining page-level styles to scoped           # 8
+refactor(css): move portfolio filter-control styles to portfolio components             # 9
+
+# Tool-specimen block split into 3 sub-commits for safer review and rollback
+refactor(css): move tool-specimen colors section to brand.astro scoped                  # 10a
+refactor(css): move tool-specimen typography section to brand.astro scoped              # 10b
+refactor(css): move tool-specimen components section to brand.astro scoped              # 10c
+
+# Large decompositions
+refactor(brand): decompose brand.astro into section sub-components                      # 11
+refactor(techpar): modularize techpar-ui.ts into chart, dom, state modules              # 12
+
+# Constants cleanup
+refactor: extract magic numbers into named constants                                    # 13
+
+# Final guardrail — turn refactor discipline into permanent rule
+chore(lint): enable strict-value color token enforcement (warning severity)             # 14
 ```
 
 ### Success Criteria
 
 - `global.css` reduced to ≤300 lines of genuinely global styles
 - No component >500 lines (tool pages may be ~800 with inline scripts)
-- All E2E tests pass without regressions
-- Stylelint passes
+- `npm run lint:css` covers `.astro` scoped styles (no linting blind spot)
+- Stylelint complexity rules active in `.astro` override (no-descending-specificity, max-nesting-depth: 3, selector-max-compound-selectors: 4)
+- `stylelint-declaration-strict-value` enforces var() for color properties (warning severity ready for promotion to error)
+- `@layer` cascade lanes declared in `global.css`; palette and dark-theme overrides live in `theme`/`overrides` layers
+- LightningCSS active as Vite CSS transformer; `npm run build` succeeds with no regression
+- All unit and integration tests pass with zero assertion changes (refactor invariant)
+- All existing E2E tests continue to pass when run at phase end (run explicitly, not per commit)
 
 ---
 
@@ -699,6 +755,38 @@ Items are added here as they're discovered. Each entry should link back to the d
    - **Effort**: ~2 line changes (file deletions).
    - **Context**: Two one-shot data migration scripts left over from 2026-02 commits (`eb18718` and the projects.json move). Neither has imports anywhere in the codebase; the only remaining reference is a historical mention in `src/docs/testing/TEST_STRATEGY.md`. Phase 2 Commit 5 added them to the ESLint ignore list to unblock the baseline. Delete both files and remove the corresponding entries from `eslint.config.mjs` ignores.
 
+#### Discovered during Phase 3 (Code Structure & CSS Architecture)
+
+6. **`light-dark()` single-declaration theme switching — bounded pilot**
+   - **Files**: [src/styles/global.css](../../styles/global.css) (one section of the `html.dark-theme` override block), plus one themed component's scoped styles as pilot target
+   - **Effort**: ~25-30 lines modified, time-boxed to one commit. **Explicit non-goal: full sweep of the 211-line dark-theme override block** (that exceeds Phase 9's ≤30 line criterion and is logged as a follow-on opportunity — see below).
+   - **Context**: Discovered during Phase 3 research on LightningCSS capabilities. The current dark-theme pattern requires two rules per themeable declaration — a base rule plus an `html.dark-theme` override selector — and the override block is ~211 lines (`global.css` lines 900-1110). CSS's `light-dark()` function collapses this into a single declaration:
+
+     ```css
+     /* Current pattern (two rules, in different blocks) */
+     .button {
+       background: var(--color-surface-light);
+       color: var(--color-text-light);
+     }
+     html.dark-theme .button {
+       background: var(--color-surface-dark);
+       color: var(--color-text-dark);
+     }
+
+     /* With light-dark() (one rule, co-located) */
+     .button {
+       background: light-dark(var(--color-surface-light), var(--color-surface-dark));
+       color: light-dark(var(--color-text-light), var(--color-text-dark));
+     }
+     ```
+
+     Browser support is partial in 2026, but **LightningCSS (adopted in Phase 3 commit 0d) compiles `light-dark()` to a `@media (prefers-color-scheme)` + CSS variable trick that works in every browser with custom-property support** — so the source can use the modern syntax and the output stays universally compatible.
+
+   - **Pilot scope**: Choose one small, self-contained themed surface (recommended: button declarations, or one card variant) and migrate its light/dark values to `light-dark()`. Verify visually in both themes and in one alternative palette (e.g., palette-3). Document the before/after diff and the LightningCSS-compiled output for future reference.
+   - **Pre-requisite**: The project must set `color-scheme: light` on `<html>` and `color-scheme: dark` on `html.dark-theme` so `light-dark()` resolves against the class-driven theme rather than the OS preference. Verify this is wired up before starting the pilot (it is not today — adding the two declarations is part of this commit).
+   - **Why pilot and not sweep**: A full sweep of the dark-theme override block is a behavior-equivalent refactor that touches 200+ lines, which exceeds Phase 9's inclusion criteria (≤30 lines, isolated, mechanical). The pilot proves the pattern works with LightningCSS compilation and the existing palette system; a broader sweep is deferred to [DEVELOPMENT_OPPORTUNITIES.md](./DEVELOPMENT_OPPORTUNITIES.md) as a follow-on initiative entry.
+   - **Success signal for promoting to a broader sweep**: pilot commit passes all tests, visual regression check shows zero diff in both themes across all 6 palettes, and LightningCSS output is confirmed stable.
+
 <!-- Add new items below as Phase 2-7 work uncovers them. Use the same format. -->
 
 ### Commits
@@ -708,6 +796,10 @@ Commits in this phase use the `chore(cleanup):` prefix to distinguish them from 
 ```
 chore(cleanup): rename ICG threshold → triggerThreshold and drop map shim
 chore(cleanup): correct portfolio project count references (51 → 57)
+chore(cleanup): run full-codebase Prettier sweep and re-enable format:check in CI
+chore(cleanup): investigate/fix techpar-eslint parser failure
+chore(cleanup): delete stale one-shot migration scripts
+refactor(css): pilot light-dark() single-declaration theme switching
 ```
 
 ### Success Criteria
@@ -733,14 +825,14 @@ chore(cleanup): correct portfolio project count references (51 → 57)
 | ----- | --------------------------------------- | -------------- | ------------------------------- |
 | 1     | Data Integrity (Zod, `any` elimination) | 3-4 days       | Week 1-2                        |
 | 2     | CI/CD & Developer Guardrails            | 3 days         | Week 2-3                        |
-| 3     | Code Structure & CSS Architecture       | 5-6 days       | Week 3-5                        |
+| 3     | Code Structure & CSS Architecture       | 6-7 days       | Week 3-5                        |
 | 4     | Test Coverage & Accessibility           | 5 days         | Week 5-7                        |
 | 5     | SEO Hardening                           | 1-2 days       | Week 7                          |
 | 6     | Hub Tool Analytics Standardization      | 2 days         | Week 7-8                        |
 | 7     | Client-Side Error Monitoring            | 2 days         | Week 8-9                        |
 | 8     | Astro Alignment, Security & Docs        | 3 days         | Week 9-11                       |
 | 9     | Miscellaneous Cleanup Bucket            | ~1 day         | Week 11                         |
-|       | **Total**                               | **25-30 days** | **~11 weeks at 50% allocation** |
+|       | **Total**                               | **26-31 days** | **~11 weeks at 50% allocation** |
 
 After Phase 9 completes, proceed to [BUSINESS_ENABLEMENT_V1.md](./BUSINESS_ENABLEMENT_V1.md) for Cookie Consent / GDPR and Email Capture (~4 additional days).
 
@@ -750,7 +842,11 @@ After Phase 9 completes, proceed to [BUSINESS_ENABLEMENT_V1.md](./BUSINESS_ENABL
 
 1. **Zod schemas in `src/schemas/`, not alongside data** — avoids circular dependencies; single source of truth for data contracts importable by both production code and tests
 
-2. **CSS architecture follows Astro scoped styles convention** — 23 components + 18 pages already use scoped `<style>` tags; `global.css` slimmed to genuinely global concerns (~200-300 lines); CSS custom properties cascade into scoped styles because Astro uses class-based scoping, not shadow DOM; co-location means deleting a component removes its styles automatically
+2. **CSS architecture follows Astro scoped styles convention** — 41 components and pages (23 components + 18 pages) already use scoped `<style>` tags; `global.css` slimmed to genuinely global concerns (~300 lines); CSS custom properties cascade into scoped styles because Astro uses class-based scoping, not shadow DOM; co-location means deleting a component removes its styles automatically. Cascade control is delegated to **CSS `@layer` lanes** (`reset, tokens, utilities, components, theme, overrides`) so palette and dark-theme overrides win cleanly without specificity escalation or `!important` hacks. Design token discipline is enforced mechanically via `stylelint-declaration-strict-value` rather than by code review alone.
+
+2a. **LightningCSS as the Vite CSS transformer** (Phase 3) — replaces Astro's default esbuild CSS pipeline with a single Rust-based tool that handles autoprefixing, minification, modern-CSS down-leveling (CSS nesting, `oklch()`, `color-mix()`, `light-dark()`), vendor-prefix cleanup, and stricter syntax validation. Chosen over a hand-rolled PostCSS plugin chain because it's one dependency vs. six, is configured in a single line, and gives legacy cruft in the existing `global.css` a free cleanup as a side effect of every build. Orthogonal to stylelint (which enforces style rules; LightningCSS only transforms output) and to `@layer` (which LightningCSS has first-class support for).
+
+2b. **stylelint coverage extended to `.astro` scoped styles** (Phase 3) — via `postcss-html` + `stylelint-config-html/astro`; closes the linting blind spot that would otherwise swallow 4,600+ lines of CSS migrated into scoped blocks. Complexity rules (`no-descending-specificity`, `max-nesting-depth: 3`, `selector-max-compound-selectors: 4`, `selector-max-specificity: "0,3,0"`) are applied in the `.astro` override only — too noisy for legacy `global.css` but cheap wins inside naturally bounded scoped blocks.
 
 3. **Content collections only for regulatory-map** — other data sources are TypeScript modules with computed values; converting them to content collections would lose type-safe imports for no benefit
 
@@ -790,28 +886,43 @@ Each phase should produce **atomic commits** — one logical change per commit, 
 ### Example: Phase 3 commit sequence
 
 ```
+# Foundation tooling (must land before any style migration)
+chore(lint): add stylelint coverage for .astro scoped styles via postcss-html
+refactor(css): introduce @layer cascade layer scheme in global.css
+chore(lint): enable complexity rules for .astro scoped styles
+chore(build): opt into LightningCSS via Vite transformer
+
 # Infrastructure first
-refactor(css): add z-index scale variables to variables.css
+refactor(css): add z-index scale variables and replace magic values
+
+# Logic deduplication (small, self-contained)
+refactor(portfolio): sync PortfolioHeader filter logic with filterLogic.ts
 
 # Component extractions (each independently useful)
 feat(components): extract PrintReportHeader shared component
-feat(components): extract Card component with variants
+feat(components): extract Card base with service/audience/trust/hub variants
 
-# CSS migration (one domain at a time, each commit passes E2E)
-refactor(css): move header styles from global.css to Header.astro
-refactor(css): move hero styles from global.css to Hero.astro
-refactor(css): move portfolio styles from global.css to portfolio components
-refactor(css): move tool styles from global.css to tool page scoped styles
+# CSS migration (one domain at a time, each commit passes build + unit tests)
+refactor(css): move header styles to Header.astro scoped
+refactor(css): move hero styles to Hero.astro scoped
+refactor(css): move services + about styles to scoped
+refactor(css): move stats-bar, CTA, and remaining page-level styles to scoped
+refactor(css): move portfolio filter-control styles to portfolio components
 
-# Logic deduplication
-refactor(portfolio): align PortfolioHeader filter logic with filterLogic.ts
+# Tool-specimen block split for safer review and rollback
+refactor(css): move tool-specimen colors section to brand.astro scoped
+refactor(css): move tool-specimen typography section to brand.astro scoped
+refactor(css): move tool-specimen components section to brand.astro scoped
 
 # Large decompositions
-refactor(brand): decompose brand.astro into sub-components
+refactor(brand): decompose brand.astro into section sub-components
 refactor(techpar): modularize techpar-ui.ts into chart, dom, state modules
 
 # Constants cleanup
 refactor: extract magic numbers into named constants
+
+# Final guardrail — turn refactor discipline into permanent rule
+chore(lint): enable strict-value color token enforcement (warning severity)
 ```
 
 ---
