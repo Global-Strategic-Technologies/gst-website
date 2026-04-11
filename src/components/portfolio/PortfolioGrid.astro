@@ -12,40 +12,52 @@ const { projects } = Astro.props;
 <div class="portfolio-grid-container brutal-frosted--blur-only">
   <div class="container">
     <div class="grid" data-testid="portfolio-grid">
-      {projects.map((project) => (
-        <div class="project-card" data-project-id={project.id} data-testid="project-card" role="button" tabindex="0">
-          <div class="card-header">
-            <div>
-              <h3 class="project-title">{project.codeName}</h3>
-              <p class="project-industry">{project.industry}</p>
+      {
+        projects.map((project) => (
+          <div
+            class="project-card"
+            data-project-id={project.id}
+            data-testid="project-card"
+            role="button"
+            tabindex="0"
+          >
+            <div class="card-header">
+              <div>
+                <h3 class="project-title">{project.codeName}</h3>
+                <p class="project-industry">{project.industry}</p>
+              </div>
+              <div class="year-badge">{project.year}</div>
             </div>
-            <div class="year-badge">{project.year}</div>
-          </div>
 
-          <div class="metrics">
-            <div class="metric">
-              <div class="metric-label">ARR</div>
-              <div class="metric-value arr">
-                {project.arr === 'Not in source' ? '--' : project.arr}
+            <div class="metrics">
+              <div class="metric">
+                <div class="metric-label">ARR</div>
+                <div class="metric-value arr">
+                  {project.arr === 'Not in source' ? '--' : project.arr}
+                </div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Stage</div>
+                <div class="metric-value">{project.growthStage}</div>
               </div>
             </div>
-            <div class="metric">
-              <div class="metric-label">Stage</div>
-              <div class="metric-value">{project.growthStage}</div>
+
+            <p class="summary">{project.summary}</p>
+
+            <div class="tags">
+              <div class="tag theme">{project.theme}</div>
             </div>
+
+            <button
+              class="cta-button"
+              aria-label={`View details for ${project.codeName}`}
+              data-testid={`project-card-cta-${project.id}`}
+            >
+              View Project Details
+            </button>
           </div>
-
-          <p class="summary">{project.summary}</p>
-
-          <div class="tags">
-            <div class="tag theme">{project.theme}</div>
-          </div>
-
-          <button class="cta-button" aria-label={`View details for ${project.codeName}`} data-testid={`project-card-cta-${project.id}`}>
-            View Project Details
-          </button>
-        </div>
-      ))}
+        ))
+      }
     </div>
   </div>
 
@@ -55,7 +67,7 @@ const { projects } = Astro.props;
 
 <style>
   .portfolio-grid-container {
-    padding: 2rem 0 4rem 0;
+    padding: 2rem 0 4rem;
   }
 
   .container {
@@ -116,7 +128,7 @@ const { projects } = Astro.props;
     font-weight: 900;
     font-size: var(--text-xl);
     color: var(--text-primary);
-    margin: 0 0 0.25rem 0;
+    margin: 0 0 0.25rem;
     letter-spacing: -0.01em;
     line-height: 1.3;
   }
@@ -319,7 +331,7 @@ const { projects } = Astro.props;
     }
 
     .portfolio-grid-container {
-      padding: 1rem 0 2rem 0;
+      padding: 1rem 0 2rem;
     }
 
     .grid {
@@ -363,7 +375,6 @@ const { projects } = Astro.props;
       margin-top: 0.75rem;
     }
   }
-
 
   @media (max-width: 768px) {
     .project-modal {
@@ -431,7 +442,7 @@ const { projects } = Astro.props;
       filteredProjects: [],
       filters: { search: '', stage: 'all', theme: 'all', year: 'all' },
       growthStages: [],
-      matureStages: []
+      matureStages: [],
     };
   }
 
@@ -446,7 +457,7 @@ const { projects } = Astro.props;
       window.gtag('event', 'filter_applied', {
         event_category: 'portfolio',
         filter_type: filterType,
-        filter_value: filterValue
+        filter_value: filterValue,
       });
     }
   }
@@ -455,7 +466,7 @@ const { projects } = Astro.props;
     const cards = document.querySelectorAll('.project-card');
 
     // Card click handlers
-    cards.forEach(card => {
+    cards.forEach((card) => {
       card.addEventListener('click', () => {
         openProjectModal(card.dataset.projectId);
       });
@@ -469,7 +480,7 @@ const { projects } = Astro.props;
     });
 
     // CTA button click handlers (same as card click)
-    document.querySelectorAll('.cta-button').forEach(btn => {
+    document.querySelectorAll('.cta-button').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         const card = btn.closest('.project-card');
@@ -510,7 +521,7 @@ const { projects } = Astro.props;
       attributes: true,
       attributeFilter: ['style'],
       subtree: true,
-      childList: true
+      childList: true,
     });
   }
 </script>

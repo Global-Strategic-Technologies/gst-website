@@ -6,8 +6,20 @@
 <!-- Project Details Modal -->
 <dialog id="project-modal-2" class="project-modal" data-testid="project-modal">
   <div class="modal-content">
-    <button id="modal-close-2" class="modal-close" aria-label="Close modal" data-testid="project-modal-close">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <button
+      id="modal-close-2"
+      class="modal-close"
+      aria-label="Close modal"
+      data-testid="project-modal-close"
+    >
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <line x1="18" y1="6" x2="6" y2="18"></line>
         <line x1="6" y1="6" x2="18" y2="18"></line>
       </svg>
@@ -15,8 +27,12 @@
 
     <div class="modal-header">
       <div>
-        <h2 id="modal-title-2" class="modal-title" data-testid="project-modal-title">Project Title</h2>
-        <p id="modal-industry-2" class="modal-industry" data-testid="project-modal-industry">Industry</p>
+        <h2 id="modal-title-2" class="modal-title" data-testid="project-modal-title">
+          Project Title
+        </h2>
+        <p id="modal-industry-2" class="modal-industry" data-testid="project-modal-industry">
+          Industry
+        </p>
       </div>
     </div>
 
@@ -41,24 +57,58 @@
 
     <div class="modal-section">
       <h3 class="modal-section-title">Engagement Type</h3>
-      <p id="modal-engagement-type-2" class="modal-engagement-type" data-testid="project-modal-engagement-type">Engagement Type</p>
-      <p id="modal-engagement-description-2" class="modal-text" data-testid="project-modal-engagement-description">Engagement description goes here.</p>
-      <p id="modal-engagement-industry-2" class="modal-engagement-industry" data-testid="project-modal-engagement-industry">Industry</p>
+      <p
+        id="modal-engagement-type-2"
+        class="modal-engagement-type"
+        data-testid="project-modal-engagement-type"
+      >
+        Engagement Type
+      </p>
+      <p
+        id="modal-engagement-description-2"
+        class="modal-text"
+        data-testid="project-modal-engagement-description"
+      >
+        Engagement description goes here.
+      </p>
+      <p
+        id="modal-engagement-industry-2"
+        class="modal-engagement-industry"
+        data-testid="project-modal-engagement-industry"
+      >
+        Industry
+      </p>
     </div>
 
     <div class="modal-section">
       <h3 class="modal-section-title">Summary</h3>
-      <p id="modal-summary-2" class="modal-text" data-testid="project-modal-summary">Project summary goes here.</p>
+      <p id="modal-summary-2" class="modal-text" data-testid="project-modal-summary">
+        Project summary goes here.
+      </p>
     </div>
 
-    <div class="modal-section" id="modal-challenge-section" style="display: none;" data-testid="project-modal-challenge-section">
+    <div
+      class="modal-section"
+      id="modal-challenge-section"
+      style="display: none;"
+      data-testid="project-modal-challenge-section"
+    >
       <h3 class="modal-section-title">Challenge</h3>
-      <p id="modal-challenge-2" class="modal-text" data-testid="project-modal-challenge">Challenge description goes here.</p>
+      <p id="modal-challenge-2" class="modal-text" data-testid="project-modal-challenge">
+        Challenge description goes here.
+      </p>
     </div>
 
-    <div class="modal-section" id="modal-solution-section" style="display: none;" data-testid="project-modal-solution-section">
+    <div
+      class="modal-section"
+      id="modal-solution-section"
+      style="display: none;"
+      data-testid="project-modal-solution-section"
+    >
       <h3 class="modal-section-title">Solution</h3>
-      <p id="modal-solution-2" class="modal-text" data-testid="project-modal-solution">Solution description goes here.</p>
+      <p id="modal-solution-2" class="modal-text" data-testid="project-modal-solution">
+        Solution description goes here.
+      </p>
     </div>
 
     <div class="modal-section">
@@ -85,10 +135,14 @@
     border: 1px solid var(--border-light);
     border-radius: 0;
     clip-path: polygon(
-      2.5% 0%, 97.5% 0%,
-      100% 2.5%, 100% 97.5%,
-      97.5% 100%, 2.5% 100%,
-      0% 97.5%, 0% 2.5%
+      2.5% 0%,
+      97.5% 0%,
+      100% 2.5%,
+      100% 97.5%,
+      97.5% 100%,
+      2.5% 100%,
+      0% 97.5%,
+      0% 2.5%
     );
     z-index: 1000;
     border-top: 3px solid var(--color-primary);
@@ -148,7 +202,7 @@
     font-family: monospace;
     font-weight: 900;
     color: var(--text-primary);
-    margin: 0 0 0.25rem 0;
+    margin: 0 0 0.25rem;
     letter-spacing: -0.01em;
   }
 
@@ -181,7 +235,7 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--text-secondary);
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.5rem;
   }
 
   .metric-value {
@@ -203,7 +257,7 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--text-secondary);
-    margin: 0 0 0.75rem 0;
+    margin: 0 0 0.75rem;
   }
 
   .modal-text {
@@ -236,14 +290,14 @@
     font-family: monospace;
     font-weight: 600;
     color: var(--color-primary);
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.5rem;
     letter-spacing: -0.01em;
   }
 
   .modal-engagement-industry {
     font-size: var(--text-sm);
     color: var(--text-faded);
-    margin: 0.5rem 0 0 0;
+    margin: 0.5rem 0 0;
     font-weight: 500;
   }
 
@@ -350,8 +404,8 @@
 <script is:inline>
   // Export modal utility functions for use in PortfolioGrid
   window.projectModal = {
-    open: function(projectId, projects) {
-      const project = projects.find(p => p.id === projectId);
+    open: function (projectId, projects) {
+      const project = projects.find((p) => p.id === projectId);
       if (!project) return;
 
       // Track project view in analytics
@@ -360,7 +414,7 @@
           event_category: 'portfolio',
           project_id: projectId,
           project_name: project.codeName,
-          industry: project.industry
+          industry: project.industry,
         });
       }
 
@@ -382,7 +436,8 @@
       if (modalStage) modalStage.textContent = project.growthStage;
       if (modalTheme) modalTheme.textContent = project.theme;
       if (modalEngagementType) modalEngagementType.textContent = project.engagementType || 'N/A';
-      if (modalEngagementDesc) modalEngagementDesc.textContent = project.engagementTypeDescription || '';
+      if (modalEngagementDesc)
+        modalEngagementDesc.textContent = project.engagementTypeDescription || '';
 
       const modalEngagementIndustry = document.getElementById('modal-engagement-industry-2');
       if (modalEngagementIndustry) modalEngagementIndustry.textContent = project.industry || '';
@@ -416,14 +471,14 @@
       // Render technologies
       const techs = Array.isArray(project.technologies)
         ? project.technologies
-        : (typeof project.technologies === 'string'
-            ? project.technologies.split(',').map(t => t.trim())
-            : []);
+        : typeof project.technologies === 'string'
+          ? project.technologies.split(',').map((t) => t.trim())
+          : [];
 
       const techTagsContainer = document.getElementById('modal-tech-tags-2');
       if (techTagsContainer) {
         techTagsContainer.innerHTML = techs
-          .map(tech => `<span class="tech-tag">${window.projectModal.escapeHtml(tech)}</span>`)
+          .map((tech) => `<span class="tech-tag">${window.projectModal.escapeHtml(tech)}</span>`)
           .join('');
       }
 
@@ -432,20 +487,20 @@
       if (modal) modal.showModal();
     },
 
-    close: function() {
+    close: function () {
       const modal = document.getElementById('project-modal-2');
       if (modal) {
         // Track modal close in analytics
         if (window.gtag) {
           window.gtag('event', 'portfolio_close_modal', {
-            event_category: 'portfolio'
+            event_category: 'portfolio',
           });
         }
         modal.close();
       }
     },
 
-    init: function() {
+    init: function () {
       const modal = document.getElementById('project-modal-2');
       const closeBtn = document.getElementById('modal-close-2');
 
@@ -473,16 +528,16 @@
       }
     },
 
-    escapeHtml: function(text) {
+    escapeHtml: function (text) {
       const map = {
         '&': '&amp;',
         '<': '&lt;',
         '>': '&gt;',
         '"': '&quot;',
-        "'": '&#039;'
+        "'": '&#039;',
       };
-      return text.replace(/[&<>"']/g, m => map[m]);
-    }
+      return text.replace(/[&<>"']/g, (m) => map[m]);
+    },
   };
 
   // Initialize modal on load

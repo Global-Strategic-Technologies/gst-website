@@ -257,6 +257,18 @@ The pre-commit hook runs `stylelint --fix` on staged `.css` and `.astro` files. 
 
 The base and override configs both register `layer` as an allowed at-rule (`at-rule-no-unknown: [true, { "ignoreAtRules": ["import", "layer"] }]`) so CSS cascade layer declarations parse cleanly. This supports the `@layer reset, tokens, utilities, components, theme, overrides;` scheme introduced in Phase 3 commit 0b.
 
+### Complexity rules in the `.astro` override
+
+Phase 3 commit 0c enabled a tighter complexity rule set in the `.astro` override only. These rules are too noisy for legacy `global.css` but are cheap wins in naturally bounded scoped blocks:
+
+- `max-nesting-depth: [3, { ignoreAtRules: [media, supports, container] }]` — prevents deeply nested scoped rules; `@media`, `@supports`, and `@container` don't count toward the depth since they're conditional wrappers, not selector nesting
+- `selector-max-compound-selectors: 4` — caps the number of compound selectors in any single selector (e.g., `.a .b .c .d .e` would fail)
+- `declaration-block-no-shorthand-property-overrides` — flags patterns like `background-color: red; background: blue;` where the longhand is silently overwritten
+- `shorthand-property-no-redundant-values` — flags `padding: 0 0 4px 0` (redundant trailing `0`) and similar; auto-fixable
+- `declaration-block-no-redundant-longhand-properties` — flags patterns where multiple longhand declarations could be consolidated into a shorthand
+
+Two rules from the original Phase 3 plan — `selector-max-specificity: "0,3,0"` and `no-descending-specificity: true` — were deferred to Phase 9 backlog (item #7) because they surfaced ~100 pre-existing violations in monolithic hub tool files. Those will be addressed once the Phase 3 main migration (commits 5-10c) has relocated most offending selectors out of those files.
+
 ### Latent specimen-override disables in global.css
 
 [src/styles/global.css](../../styles/global.css) contains two `stylelint-disable no-duplicate-selectors` blocks around the brand-page specimen section (search/filter cluster and stats/cta cluster). These specimens deliberately re-declare production component styles. Phase 3 commits 10a/10b/10c will move them into `brand.astro` scoped styles (with a `.brand-specimen` guard), at which point the disable comments should be removed.

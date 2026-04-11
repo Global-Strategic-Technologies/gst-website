@@ -35,7 +35,6 @@
       "customSyntax": "postcss-html",
       "rules": {
         "import-notation": null,
-        "no-descending-specificity": null,
         "selector-class-pattern": null,
         "custom-property-pattern": null,
         "keyframes-name-pattern": null,
@@ -48,8 +47,6 @@
         "color-hex-length": null,
         "value-keyword-case": null,
         "property-no-deprecated": null,
-        "declaration-block-no-redundant-longhand-properties": null,
-        "shorthand-property-no-redundant-values": null,
         "no-duplicate-selectors": true,
         "declaration-block-no-duplicate-properties": true,
         "color-named": "never",
@@ -59,7 +56,13 @@
         "declaration-empty-line-before": null,
         "custom-property-empty-line-before": null,
         "selector-pseudo-class-no-unknown": [true, { "ignorePseudoClasses": ["global"] }],
-        "at-rule-no-unknown": [true, { "ignoreAtRules": ["import", "layer"] }]
+        "at-rule-no-unknown": [true, { "ignoreAtRules": ["import", "layer"] }],
+        "no-descending-specificity": null,
+        "max-nesting-depth": [3, { "ignoreAtRules": ["media", "supports", "container"] }],
+        "selector-max-compound-selectors": 4,
+        "declaration-block-no-shorthand-property-overrides": true,
+        "shorthand-property-no-redundant-values": true,
+        "declaration-block-no-redundant-longhand-properties": true
       }
     }
   ],

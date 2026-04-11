@@ -757,7 +757,12 @@ Items are added here as they're discovered. Each entry should link back to the d
 
 #### Discovered during Phase 3 (Code Structure & CSS Architecture)
 
-6. **`light-dark()` single-declaration theme switching — bounded pilot**
+7. **Tighten stylelint complexity rules: `selector-max-specificity` and `no-descending-specificity`**
+   - **Files**: [.stylelintrc.json](../../../.stylelintrc.json) (rule config), plus ~100 call sites across [src/pages/hub/tools/techpar/index.astro](../../pages/hub/tools/techpar/index.astro), [src/pages/hub/tools/diligence-machine/index.astro](../../pages/hub/tools/diligence-machine/index.astro), [src/pages/hub/tools/infrastructure-cost-governance/index.astro](../../pages/hub/tools/infrastructure-cost-governance/index.astro)
+   - **Effort**: ~1 day (many mechanical fixes; some require actual restructuring)
+   - **Context**: Phase 3 commit 0c enabled 5 complexity rules in the `.astro` stylelint override (`max-nesting-depth: 3`, `selector-max-compound-selectors: 4`, and three shorthand/longhand declaration rules). Two additional rules from the original plan — `selector-max-specificity: "0,3,0"` and `no-descending-specificity: true` — were deliberately deferred because they surfaced 126 pre-existing violations. `selector-max-specificity: 0,3,0` is too tight for the codebase's `:global(html.dark-theme) .foo .bar` pattern which naturally reaches specificity (0,4,1); `no-descending-specificity` surfaces real ordering drift but requires coordinated hand-fixes across multiple hub tool files. Ship hardening first; revisit both rules once Phase 3's main migration (commits 5-10c) has relocated most of the offending selectors out of these monolithic files. Options for tightening: (a) raise specificity threshold to `0,4,1` and enable as-is, (b) enable with `severity: warning` initially and promote to error after violations fall below N, (c) leave disabled and rely on scoped-style migration to reduce specificity naturally.
+
+8. **`light-dark()` single-declaration theme switching — bounded pilot**
    - **Files**: [src/styles/global.css](../../styles/global.css) (one section of the `html.dark-theme` override block), plus one themed component's scoped styles as pilot target
    - **Effort**: ~25-30 lines modified, time-boxed to one commit. **Explicit non-goal: full sweep of the 211-line dark-theme override block** (that exceeds Phase 9's ≤30 line criterion and is logged as a follow-on opportunity — see below).
    - **Context**: Discovered during Phase 3 research on LightningCSS capabilities. The current dark-theme pattern requires two rules per themeable declaration — a base rule plus an `html.dark-theme` override selector — and the override block is ~211 lines (`global.css` lines 900-1110). CSS's `light-dark()` function collapses this into a single declaration:
@@ -799,6 +804,7 @@ chore(cleanup): correct portfolio project count references (51 → 57)
 chore(cleanup): run full-codebase Prettier sweep and re-enable format:check in CI
 chore(cleanup): investigate/fix techpar-eslint parser failure
 chore(cleanup): delete stale one-shot migration scripts
+chore(lint): tighten selector-max-specificity and enable no-descending-specificity
 refactor(css): pilot light-dark() single-declaration theme switching
 ```
 
