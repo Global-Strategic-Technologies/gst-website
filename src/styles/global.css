@@ -49,7 +49,7 @@
   position: absolute;
   top: -100%;
   left: var(--spacing-md);
-  z-index: 10000;
+  z-index: var(--z-skip-nav);
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-primary);
   color: var(--bg-dark);
@@ -964,7 +964,7 @@ footer p {
   font-size: 0.75rem;
   font-weight: 900;
   letter-spacing: 0.1em;
-  z-index: 1000;
+  z-index: var(--z-modal);
   text-transform: uppercase;
   display: none;
 }
@@ -1703,7 +1703,7 @@ main {
   border-left: 2px solid var(--color-primary);
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
   transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 1001;
+  z-index: var(--z-modal-overlay);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -1721,7 +1721,7 @@ main {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0);
-  z-index: 1000;
+  z-index: var(--z-modal);
   display: none;
   transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
@@ -5253,7 +5253,7 @@ html.dark-theme .teaser-card {
     0% 97.5%,
     0% 2.5%
   );
-  z-index: 1000;
+  z-index: var(--z-modal);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   overflow-y: auto;
 }

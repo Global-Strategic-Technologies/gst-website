@@ -118,6 +118,24 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
   --shadow-lg: -4px 0 20px rgba(0, 0, 0, 0.15);
 
+  /* Z-index scale (Phase 3 commit 1) —
+   * Canonical tiers for stacking context. Replace raw numeric z-index
+   * values with these variables. Higher number → higher in stack.
+   * Tool-internal layers (map annotations, chart overlays) may use
+   * direct values for contextual reasons; prefer variables otherwise.
+   */
+  --z-negative: -1; /* body::before background grid */
+  --z-base: 1; /* normal content stacking */
+  --z-raised: 5; /* tool content layers (maps, charts) */
+  --z-sticky: 10; /* sticky headers, dropdowns anchored to content */
+  --z-dropdown: 20; /* floating menus, dropdowns */
+  --z-palette-panel: 30; /* palette panel (brand.astro) */
+  --z-overlay: 50; /* general overlays */
+  --z-compliance-panel: 60; /* regulatory map compliance panel */
+  --z-modal: 1000; /* modal base */
+  --z-modal-overlay: 1001; /* modal backdrop */
+  --z-skip-nav: 10000; /* skip-nav link (top of page) */
+
   /* Section Backgrounds */
   --services-bg: #eeeeee;
   --footer-bg: #eeeeee;
