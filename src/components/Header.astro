@@ -1,7 +1,7 @@
 ---
-import ThemeToggle from './ThemeToggle.astro';
 import DeltaIcon from './DeltaIcon.astro';
-import { trackNavigation } from '../utils/analytics';
+// Note: trackNavigation is imported in the <script> block below to wire
+// it to window for inline onclick handlers.
 
 interface Props {
     currentPath?: string;
@@ -31,6 +31,8 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
 <script>
     import { trackNavigation } from '../utils/analytics';
 
-    // Make trackNavigation available to inline onclick handlers
+    // Make trackNavigation available to inline onclick handlers.
+    // TODO(phase-3): replace with proper ambient `Window` type declaration.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).trackNavigation = trackNavigation;
 </script>

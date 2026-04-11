@@ -349,7 +349,6 @@ test.describe('Mobile Navigation Journey', () => {
     await openFilterDrawer(page);
 
     // Apply a filter — use evaluate for WebKit mobile
-    const growthChip = page.locator('[data-testid="filter-chip-stage-growth"]');
     await page.evaluate(() => {
       (document.querySelector('[data-testid="filter-chip-stage-growth"]') as HTMLElement)?.click();
     });

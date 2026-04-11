@@ -319,7 +319,7 @@ function resetAll() {
 
     // Clear URL state and localStorage
     history.replaceState(null, '', window.location.pathname);
-    try { localStorage.removeItem(LS_KEY); } catch {}
+    try { localStorage.removeItem(LS_KEY); } catch { /* ignore — localStorage unavailable */ }
 
     // Re-run update and go to profile tab
     updateAll();
@@ -646,7 +646,7 @@ function syncUrlState() {
         // Debounced localStorage save
         if (saveTimeout) clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
-            try { localStorage.setItem(LS_KEY, params.toString()); } catch {}
+            try { localStorage.setItem(LS_KEY, params.toString()); } catch { /* ignore — localStorage unavailable */ }
         }, 300);
     } else {
         history.replaceState(null, '', window.location.pathname);
@@ -1353,7 +1353,7 @@ function hydrateFromUrl() {
         try {
             const saved = localStorage.getItem(LS_KEY);
             if (saved) params = new URLSearchParams(saved);
-        } catch {}
+        } catch { /* ignore — localStorage unavailable */ }
     }
 
     if (params.toString() === '') return;
@@ -1467,7 +1467,7 @@ try {
         onboarding.open = false;
     }
     localStorage.setItem(VISITED_KEY, '1');
-} catch {}
+} catch { /* ignore — localStorage unavailable */ }
 
 // ─── Init ──────────────────────────────────────────────────
 hydrateFromUrl();

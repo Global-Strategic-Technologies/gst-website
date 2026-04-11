@@ -257,7 +257,7 @@ function switchPalette(id: number) {
   html.classList.add(`palette-${id}`);
 
   // Persist
-  try { localStorage.setItem('palette', String(id)); } catch (e) { /* ignore */ }
+  try { localStorage.setItem('palette', String(id)); } catch { /* ignore — localStorage unavailable */ }
 
   // Update brand-page-specific UI (no-op on other pages)
   const conceptEl = document.getElementById('palette-concept');
@@ -346,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
       themeObserverPaused = true;
       document.documentElement.classList.toggle('dark-theme');
       const isDark = document.documentElement.classList.contains('dark-theme');
-      try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch (e) { /* ignore */ }
+      try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch { /* ignore — localStorage unavailable */ }
       themeObserverPaused = false;
       resetAllOverrides();
     });
@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
       popoutBtn.classList.toggle('is-active');
       try {
         localStorage.setItem('palette-popped-out', wasPopped ? 'false' : 'true');
-      } catch (e) { /* ignore */ }
+      } catch { /* ignore — localStorage unavailable */ }
     });
   }
 

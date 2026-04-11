@@ -34,6 +34,13 @@ export default [
       // PLATFORM_HARDENING_V1.md Phase 9 backlog for deletion.
       'abbreviate-arr.js',
       'sort-projects.js',
+      // astro-eslint-parser trips on this file with a spurious
+      // "Declaration or statement expected" error at the <style>
+      // block boundary (line 601). Other large .astro files including
+      // brand.astro (3778 lines) and diligence-machine/index.astro
+      // parse fine, so this is file-specific. Tracked in Phase 9 for
+      // further investigation. Prettier parses it correctly.
+      'src/pages/hub/tools/techpar/index.astro',
     ],
   },
 
@@ -42,6 +49,23 @@ export default [
 
   // ── TypeScript recommended ─────────────────────────────────────────
   ...tseslint.configs.recommended,
+
+  // ── Rule adjustments applied everywhere ────────────────────────────
+  {
+    rules: {
+      // Respect `_`-prefixed names as intentionally unused.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
+    },
+  },
 
   // ── Astro recommended ──────────────────────────────────────────────
   ...astro.configs.recommended,

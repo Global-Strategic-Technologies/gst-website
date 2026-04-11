@@ -57,7 +57,6 @@ const is404 = currentPath === '/404' || currentPath === '/404/';
         <!-- SEO Component (JSON-LD, Open Graph, Meta Tags) -->
         <SEO
             title={title}
-            description={description}
             ogTitle={ogTitle}
             ogDescription={ogDescription}
             ogImage={ogImage}
@@ -89,17 +88,19 @@ const is404 = currentPath === '/404' || currentPath === '/404/';
                 if (theme === 'dark') {
                     document.documentElement.classList.add('dark-theme');
                 }
-            } catch (e) {
+            } catch {
                 // localStorage not available (e.g., private browsing)
                 // Default to light theme silently
             }
             // Initialize palette synchronously to prevent color flash
             try {
-                var p = localStorage.getItem('palette');
+                const p = localStorage.getItem('palette');
                 if (p && p !== '0') document.documentElement.classList.add('palette-' + p);
                 if (localStorage.getItem('palette-popped-out') === 'true')
                     document.documentElement.classList.add('palette-popped-out');
-            } catch (e) {}
+            } catch {
+                // localStorage not available — palette init silently skipped
+            }
         </script>
 
         <GoogleAnalytics />

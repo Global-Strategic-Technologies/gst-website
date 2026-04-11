@@ -100,7 +100,7 @@ try {
   if (localStorage.getItem('palette-popped-out') === 'true') {
     document.getElementById('panel-popout-toggle')?.classList.add('is-active');
   }
-} catch (e) { /* ignore */ }
+} catch { /* ignore — localStorage unavailable */ }
 </script>
 
 <style>

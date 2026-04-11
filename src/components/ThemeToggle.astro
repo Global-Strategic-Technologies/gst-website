@@ -1,7 +1,8 @@
 ---
 // ThemeToggle.astro - Theme switcher component
+// Note: trackThemeToggle is imported in the <script> block below — the
+// frontmatter does not need it.
 import DeltaIcon from './DeltaIcon.astro';
-import { trackThemeToggle } from '../utils/analytics';
 ---
 
 <button class="theme-toggle" id="themeToggle" data-testid="theme-toggle" title="Toggle dark theme" aria-label="Toggle dark theme">

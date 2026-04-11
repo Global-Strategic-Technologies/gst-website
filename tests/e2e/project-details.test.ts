@@ -49,7 +49,7 @@ test.describe('Project Details Viewing Journey', () => {
     // Verify modal contains heading or title
     const heading = modal.locator('h2, h3, [data-testid*="name"], [data-testid*="title"]').first();
     const headingVisible = await heading.isVisible({ timeout: 2000 }).catch(() => false);
-    expect(headingVisible || modalContent?.trim().length! > 20).toBeTruthy();
+    expect(headingVisible || (modalContent?.trim().length ?? 0) > 20).toBeTruthy();
   });
 
   test('should have technology information displayed', async ({ page }) => {

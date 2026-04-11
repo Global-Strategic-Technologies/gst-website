@@ -1,5 +1,5 @@
 ---
-import type { Stat, Project } from '../../types/portfolio';
+import type { Project } from '../../types/portfolio';
 
 interface Props {
   portfolioType?: string;
@@ -492,7 +492,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => technica
 <script is:inline define:vars={{ projectsData: JSON.stringify(projects), growthStagesList: growthStages, matureStagesList: matureStages, valueCreationList: valueCreationEngagements, technicalDiligenceList: technicalDiligenceEngagements }}>
   // Initialize global state if it doesn't exist
   if (!window.portfolioState) {
-    let allProjects = [];
+    let allProjects;
     try {
       allProjects = JSON.parse(projectsData);
     } catch (e) {
@@ -517,9 +517,9 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(e => technica
     };
   }
 
-  let allProjects = window.portfolioState.allProjects;
+  const allProjects = window.portfolioState.allProjects;
   let filteredProjects = window.portfolioState.filteredProjects;
-  let filters = window.portfolioState.filters;
+  const filters = window.portfolioState.filters;
 
   function filterProjects() {
     window.portfolioState.filteredProjects = allProjects.filter(project => {

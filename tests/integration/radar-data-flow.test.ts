@@ -17,7 +17,6 @@ import type {
   InoreaderAnnotation,
   RadarFyiItem,
   RadarWireItem,
-  RadarFeedItem,
 } from '@/lib/inoreader/types';
 
 // ---------------------------------------------------------------------------

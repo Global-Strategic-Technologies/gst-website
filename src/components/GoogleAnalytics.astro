@@ -14,8 +14,8 @@ const measurementId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID || 'G-WTGM9Y1YB0'
     <script define:vars={{ measurementId }} is:inline>
       // Buffer dataLayer immediately so early gtag() calls are queued
       window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
+      function gtag(...args) {
+        dataLayer.push(args);
       }
       window.gtag = gtag;
 

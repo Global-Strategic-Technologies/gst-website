@@ -16,13 +16,11 @@ import {
   formatDollars,
   formatPercent,
   DEFAULT_INPUTS,
-  zoneLabel,
-  kpiClass,
   serializeToParams,
   deserializeFromParams,
   buildSummaryText,
 } from '../../src/utils/techpar-engine';
-import type { TechParInputs, StageConfig, Zone } from '../../src/utils/techpar-engine';
+import type { TechParInputs, StageConfig } from '../../src/utils/techpar-engine';
 import { STAGES, STAGE_KEYS } from '../../src/data/techpar/stages';
 import { SIGNAL_COPY } from '../../src/data/techpar/signal-copy';
 
@@ -157,7 +155,6 @@ describe('compute() KPI formulas', () => {
 
 describe('getZone() boundary tests', () => {
   const stages = STAGE_KEYS;
-  const zones: Zone[] = ['underinvest', 'ahead', 'healthy', 'above', 'elevated', 'critical'];
 
   for (const stageKey of stages) {
     const config = STAGES[stageKey] as StageConfig;

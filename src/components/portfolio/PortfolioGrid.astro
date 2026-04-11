@@ -418,7 +418,7 @@ const { projects } = Astro.props;
 <script is:inline define:vars={{ projectsData: JSON.stringify(projects) }}>
   // Initialize global state if not already done
   if (!window.portfolioState) {
-    let allProjects = [];
+    let allProjects;
     try {
       allProjects = JSON.parse(projectsData);
     } catch (e) {
@@ -434,8 +434,6 @@ const { projects } = Astro.props;
       matureStages: []
     };
   }
-
-  let allProjects = window.portfolioState.allProjects;
 
   function openProjectModal(projectId) {
     // Use ProjectModal component's open function

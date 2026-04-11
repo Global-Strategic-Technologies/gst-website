@@ -23,7 +23,6 @@ export async function copyWithFeedback(
   const target = options?.feedbackTarget ?? button;
   const duration = options?.duration ?? 2000;
   const successLabel = options?.label ?? 'Copied!';
-  const failLabel = options?.failLabel ?? 'Failed';
 
   // Use stored original to survive rapid re-clicks while feedback is showing
   const DATA_KEY = 'data-copy-original';

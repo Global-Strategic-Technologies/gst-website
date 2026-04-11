@@ -28,7 +28,7 @@ import {
   DEFAULT_STATE,
 } from '../../src/utils/icg-engine';
 
-import type { ICGState, DomainScore, ICGSnapshot, CompanyStage } from '../../src/utils/icg-engine';
+import type { ICGState, DomainScore, ICGSnapshot } from '../../src/utils/icg-engine';
 
 import { DOMAINS, ANSWER_OPTIONS, TOTAL_QUESTIONS } from '../../src/data/infrastructure-cost-governance/domains';
 import { RECOMMENDATIONS } from '../../src/data/infrastructure-cost-governance/recommendations';
@@ -213,11 +213,9 @@ describe('calculateResults', () => {
   });
 
   it('does not set showFoundationalFlag when D1 score is above 33', () => {
+    // D2 is also foundational and unanswered (score 0), so to test the
+    // cleared-flag path both D1 and D2 need to score above threshold.
     const answers = domainAnswers('d1', 2); // score = 67
-    const state = makeState({ answers, currentStep: 7 });
-    const result = calculateResults(state, DOMAINS);
-    // D2 is also foundational and unanswered (score 0), so flag still shows
-    // To test D1 alone, we need D2 above threshold too
     const answersWithD2 = { ...answers, ...domainAnswers('d2', 2) };
     const state2 = makeState({ answers: answersWithD2, currentStep: 7 });
     const result2 = calculateResults(state2, DOMAINS);

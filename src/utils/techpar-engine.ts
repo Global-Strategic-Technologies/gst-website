@@ -487,9 +487,6 @@ export function buildHistoricalTrajectory(
   for (let seg = 0; seg < segmentCount; seg++) {
     const from = anchors[seg];
     const to = anchors[seg + 1];
-    // Only emit 12 data points for historical segments (not the final "Now" anchor)
-    const isLastSegment = seg === segmentCount - 1;
-
     for (let m = 0; m < 12; m++) {
       const t = m / 11; // 0 at start, 1 at end
       const monRev = from.monRev + (to.monRev - from.monRev) * t;

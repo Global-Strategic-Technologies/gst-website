@@ -123,7 +123,6 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
 
   test('should verify filter button toggle state changes correctly', async ({ page }) => {
     const filterButton = page.locator('[data-testid="portfolio-filter-toggle"]');
-    const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
 
     // Initial state should be collapsed
     let ariaExpanded = await filterButton.getAttribute('aria-expanded');
@@ -190,7 +189,6 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
   });
 
   test('should verify clear filters button is accessible and functional', async ({ page }) => {
-    const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
     const clearButton = page.locator('[data-testid="clear-filters-button"]');
 
     // Open the drawer

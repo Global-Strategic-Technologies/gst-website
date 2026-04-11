@@ -104,8 +104,6 @@ test.describe('Regulatory Map — Timeline', () => {
       await expect(panel).toBeHidden();
 
       // Click the first timeline entry
-      const firstEntry = page.locator('.brutal-timeline-entry').first();
-      const entryName = await firstEntry.locator('.brutal-timeline-entry__name').textContent();
       await jsClick(page, '.brutal-timeline-entry');
 
       // Panel should become visible
@@ -182,8 +180,6 @@ test.describe('Regulatory Map — Timeline', () => {
     });
 
     test('should clear map highlights when deactivating a timeline entry', async ({ page }) => {
-      const firstEntry = page.locator('.brutal-timeline-entry').first();
-
       // Activate — highlights appear
       await jsClick(page, '.brutal-timeline-entry');
       await page.waitForFunction(() => {

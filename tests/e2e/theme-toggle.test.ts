@@ -65,10 +65,6 @@ test.describe('Theme Toggle Journey', () => {
   });
 
   test('should maintain theme across navigation', async ({ page }) => {
-    // Set dark theme
-    const themeToggle = page.locator('[data-testid="theme-toggle"]');
-    const body = page.locator('body');
-
     // Get initial state
     const initialIsDark = await page.evaluate(() =>
       document.documentElement.classList.contains('dark-theme')
@@ -133,8 +129,6 @@ test.describe('Theme Toggle Journey', () => {
   });
 
   test('should persist theme on page reload', async ({ page }) => {
-    const themeToggle = page.locator('[data-testid="theme-toggle"]');
-
     // Toggle to dark mode
     const initialIsDark = await page.evaluate(() =>
       document.documentElement.classList.contains('dark-theme')

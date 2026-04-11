@@ -458,7 +458,7 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(isTechnicalDi
 <script define:vars={{ projectsData: JSON.stringify(projects), growthStagesList: growthStages, matureStagesList: matureStages, valueCreationList: valueCreationEngagements, technicalDiligenceList: technicalDiligenceEngagements }}>
   // Initialize global state
   if (!window.portfolioState) {
-    let allProjects = [];
+    let allProjects;
     try {
       allProjects = JSON.parse(projectsData);
     } catch (e) {
@@ -483,9 +483,9 @@ const technicalDiligenceEngagements = uniqueEngagementTypes.filter(isTechnicalDi
     };
   }
 
-  let allProjects = window.portfolioState.allProjects;
+  const allProjects = window.portfolioState.allProjects;
   let filteredProjects = window.portfolioState.filteredProjects;
-  let filters = window.portfolioState.filters;
+  const filters = window.portfolioState.filters;
 
   function filterProjects() {
     window.portfolioState.filteredProjects = allProjects.filter(project => {

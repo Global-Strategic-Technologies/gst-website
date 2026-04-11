@@ -69,7 +69,10 @@ const isDev = import.meta.env.DEV;
 
 <script>
     import { trackCTA, trackNavigation } from '../../../utils/analytics';
+    // TODO(phase-3): replace with proper ambient `Window` type declaration.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).trackCTA = trackCTA;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).trackNavigation = trackNavigation;
 </script>
 

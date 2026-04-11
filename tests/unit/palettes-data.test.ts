@@ -42,7 +42,7 @@ describe('Palette data integrity', () => {
   });
 
   it('TOKEN_TIPS values should all be non-empty strings', () => {
-    for (const [key, value] of Object.entries(TOKEN_TIPS)) {
+    for (const value of Object.values(TOKEN_TIPS)) {
       expect(typeof value).toBe('string');
       expect(value.length).toBeGreaterThan(0);
     }

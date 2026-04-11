@@ -742,9 +742,11 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
                 const attentionId = el.dataset.attentionId;
                 const questionId = el.dataset.questionId;
                 if (attentionId) {
-                    isNowCollapsed ? collapsedAttention.add(attentionId) : collapsedAttention.delete(attentionId);
+                    if (isNowCollapsed) collapsedAttention.add(attentionId);
+                    else collapsedAttention.delete(attentionId);
                 } else if (questionId) {
-                    isNowCollapsed ? collapsedQuestions.add(questionId) : collapsedQuestions.delete(questionId);
+                    if (isNowCollapsed) collapsedQuestions.add(questionId);
+                    else collapsedQuestions.delete(questionId);
                 }
                 saveState();
             });

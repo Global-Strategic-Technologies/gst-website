@@ -282,8 +282,6 @@ test.describe('About Page - Founder Section', () => {
     });
 
     test('should track multiple clicks on founder photo', async ({ page }) => {
-      const founderLink = page.locator('#founder-photo-link');
-
       // Prevent navigation
       await page.evaluate(() => {
         const link = document.getElementById('founder-photo-link') as HTMLAnchorElement;
