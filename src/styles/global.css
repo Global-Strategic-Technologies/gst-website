@@ -364,120 +364,6 @@ a:hover {
   color: var(--color-primary);
 }
 
-/* Hero */
-.hero {
-  padding: 2rem 0;
-  background: linear-gradient(
-    180deg,
-    rgba(245, 245, 245, 0) 0%,
-    var(--bg-light-alt) 15%,
-    var(--bg-light-alt) 85%,
-    rgba(245, 245, 245, 0) 100%
-  );
-  position: relative;
-}
-
-.hero::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 40px;
-  background: none;
-}
-
-.hero-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 3rem;
-}
-
-.hero h1 {
-  font-size: 6rem;
-  font-weight: 900;
-  line-height: 0.95;
-  color: var(--text-primary);
-  text-transform: uppercase;
-  letter-spacing: -0.04em;
-  margin-bottom: 0.5rem;
-}
-
-.hero h1 .line {
-  display: block;
-}
-
-.hero h1 .accent {
-  color: var(--color-primary);
-}
-
-.hero h1 .highlight {
-  color: var(--color-primary);
-}
-
-html.dark-theme .hero h1 .highlight {
-  color: var(--color-primary);
-}
-
-.hero-content {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  gap: 2rem;
-  margin-top: 0.5rem;
-}
-
-.hero p {
-  font-size: 1.5rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  font-weight: 400;
-}
-
-.hero p .highlight {
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-html.dark-theme .hero p .highlight {
-  color: var(--color-primary);
-}
-
-.hero-action {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xl);
-  justify-content: center;
-}
-
-.cta-group {
-  display: flex;
-  gap: var(--spacing-xl);
-  flex-wrap: wrap;
-}
-
-.cta-button.primary {
-  background: var(--color-primary);
-  color: var(--bg-dark);
-}
-
-.cta-button.secondary {
-  background: transparent;
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.cta-button.secondary:hover {
-  background: var(--color-primary);
-  color: var(--bg-dark);
-}
-
-.trust-line {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  font-weight: 500;
-  letter-spacing: 0.05em;
-}
-
 /* CTA Button — hero/primary call-to-action for marketing pages.
    Spacious padding, larger text, translateX hover motion.
    Distinct from .brutal-btn (compact utility button for tool UIs). */
@@ -929,25 +815,6 @@ html.dark-theme body::before {
     25px 25px;
 }
 
-/* Dark Theme - Hero */
-html.dark-theme .hero {
-  background: linear-gradient(
-    180deg,
-    rgba(10, 10, 10, 0) 0%,
-    var(--bg-dark) 15%,
-    var(--bg-dark) 85%,
-    rgba(10, 10, 10, 0) 100%
-  );
-}
-
-html.dark-theme .hero h1 {
-  color: var(--text-dark-primary);
-}
-
-html.dark-theme .hero p {
-  color: var(--text-dark-secondary);
-}
-
 /* Dark Theme - Stats */
 html.dark-theme .stat-item {
   border-right-color: transparent;
@@ -1099,25 +966,6 @@ html.dark-theme .cta-box p {
     padding: 0 1.5rem;
   }
 
-  .hero h1 {
-    font-size: 3.5rem;
-  }
-
-  .hero-content {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-xl);
-    margin-top: var(--spacing-lg);
-  }
-
-  .hero p {
-    font-size: 1.1rem;
-  }
-
-  .cta-group {
-    flex-direction: column;
-    gap: var(--spacing-xl);
-  }
-
   .cta-button {
     width: fit-content;
   }
@@ -1163,52 +1011,12 @@ html.dark-theme .cta-box p {
     padding: 0 1rem;
   }
 
-  .hero {
-    padding: var(--spacing-2xl) 0 var(--spacing-sm) 0;
-  }
-
-  .hero::after {
-    height: 0;
-  }
-
-  .hero h1 {
-    font-size: 1.75rem;
-    line-height: 1.15;
-    margin-bottom: var(--spacing-md);
-  }
-
-  .hero-layout {
-    gap: var(--spacing-xl);
-  }
-
-  .hero-content {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-xl);
-    margin-top: var(--spacing-lg);
-  }
-
-  .hero p {
-    font-size: 1rem;
-    line-height: 1.7;
-  }
-
   .cta-button {
     width: 100%;
     text-align: center;
     padding: var(--spacing-lg) var(--spacing-xl);
     font-size: 0.9rem;
     min-height: 44px;
-  }
-
-  .cta-group {
-    flex-direction: column;
-    gap: var(--spacing-md);
-    width: 100%;
-  }
-
-  .trust-line {
-    font-size: 0.9rem;
-    margin-top: var(--spacing-md);
   }
 
   .cta-section {

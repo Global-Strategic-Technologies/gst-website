@@ -3,87 +3,272 @@
 // window for inline onclick handlers — the frontmatter does not need it.
 
 interface Props {
-    title?: string;
-    subtitle?: string;
-    description: string;
-    primaryCTA?: {
-        text: string;
-        href: string;
-    };
-    secondaryCTA?: {
-        text: string;
-        href: string;
-    };
-    trustLine?: string;
+  title?: string;
+  subtitle?: string;
+  description: string;
+  primaryCTA?: {
+    text: string;
+    href: string;
+  };
+  secondaryCTA?: {
+    text: string;
+    href: string;
+  };
+  trustLine?: string;
 }
 
-const {
-    title,
-    subtitle,
-    description,
-    primaryCTA,
-    secondaryCTA,
-    trustLine
-} = Astro.props;
+const { title, subtitle, description, primaryCTA, secondaryCTA, trustLine } = Astro.props;
 ---
 
 <section class="hero">
-    <div class="container">
-        <div class="hero-layout">
-            <h1 class="brutal-hero__title">
-                {title ? (
-                    <span class="line">{title}</span>
-                ) : (
-                    <>
-                        <span class="line">Technology Advisory</span>
-                        <span class="line"><span class="highlight">& Execution</span></span>
-                    </>
-                )}
-                {subtitle && <span class="line"><span class="accent">{subtitle}</span></span>}
-            </h1>
+  <div class="container">
+    <div class="hero-layout">
+      <h1 class="brutal-hero__title">
+        {
+          title ? (
+            <span class="line">{title}</span>
+          ) : (
+            <>
+              <span class="line">Technology Advisory</span>
+              <span class="line">
+                <span class="highlight">& Execution</span>
+              </span>
+            </>
+          )
+        }
+        {
+          subtitle && (
+            <span class="line">
+              <span class="accent">{subtitle}</span>
+            </span>
+          )
+        }
+      </h1>
 
-            <div class="hero-content">
-                <div>
-                    <p class="brutal-hero__description">{description}</p>
-                </div>
-                <div class="hero-action">
-                    {(primaryCTA || secondaryCTA) && (
-                        <div class="cta-group">
-                            {primaryCTA && (
-                                <a
-                                    href={primaryCTA.href}
-                                    class="cta-button primary"
-                                    onclick="trackCTA('calendly', 'hero')"
-                                    {...(primaryCTA.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                                >
-                                    {primaryCTA.text}
-                                </a>
-                            )}
-                            {secondaryCTA && (
-                                <a
-                                    href={secondaryCTA.href}
-                                    class="cta-button secondary"
-                                    onclick="trackCTA('services', 'hero')"
-                                >
-                                    {secondaryCTA.text}
-                                </a>
-                            )}
-                        </div>
-                    )}
-                    {trustLine && (
-                        <p class="trust-line brutal-hero__trustline">{trustLine}</p>
-                    )}
-                </div>
-            </div>
+      <div class="hero-content">
+        <div>
+          <p class="brutal-hero__description">{description}</p>
         </div>
+        <div class="hero-action">
+          {
+            (primaryCTA || secondaryCTA) && (
+              <div class="cta-group">
+                {primaryCTA && (
+                  <a
+                    href={primaryCTA.href}
+                    class="cta-button primary"
+                    onclick="trackCTA('calendly', 'hero')"
+                    {...(primaryCTA.href.startsWith('http')
+                      ? { target: '_blank', rel: 'noopener noreferrer' }
+                      : {})}
+                  >
+                    {primaryCTA.text}
+                  </a>
+                )}
+                {secondaryCTA && (
+                  <a
+                    href={secondaryCTA.href}
+                    class="cta-button secondary"
+                    onclick="trackCTA('services', 'hero')"
+                  >
+                    {secondaryCTA.text}
+                  </a>
+                )}
+              </div>
+            )
+          }
+          {trustLine && <p class="trust-line brutal-hero__trustline">{trustLine}</p>}
+        </div>
+      </div>
     </div>
+  </div>
 </section>
 
-<script>
-    import { trackCTA } from '../utils/analytics';
+<style>
+  .hero {
+    padding: 2rem 0;
+    background: linear-gradient(
+      180deg,
+      rgba(245, 245, 245, 0) 0%,
+      var(--bg-light-alt) 15%,
+      var(--bg-light-alt) 85%,
+      rgba(245, 245, 245, 0) 100%
+    );
+    position: relative;
+  }
 
-    // Make trackCTA available to inline onclick handlers.
-    // TODO(phase-3): replace with proper ambient `Window` type declaration.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).trackCTA = trackCTA;
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 40px;
+    background: none;
+  }
+
+  .hero-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  .hero h1 {
+    font-size: 6rem;
+    font-weight: 900;
+    line-height: 0.95;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: -0.04em;
+    margin-bottom: 0.5rem;
+  }
+
+  .hero h1 .line {
+    display: block;
+  }
+
+  .hero h1 .accent {
+    color: var(--color-primary);
+  }
+
+  .hero h1 .highlight {
+    color: var(--color-primary);
+  }
+
+  .hero-content {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 2rem;
+    margin-top: 0.5rem;
+  }
+
+  .hero p {
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .hero p .highlight {
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  .hero-action {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    justify-content: center;
+  }
+
+  .cta-group {
+    display: flex;
+    gap: var(--spacing-xl);
+    flex-wrap: wrap;
+  }
+
+  .trust-line {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+  }
+
+  :global(html.dark-theme) .hero {
+    background: linear-gradient(
+      180deg,
+      rgba(10, 10, 10, 0) 0%,
+      var(--bg-dark) 15%,
+      var(--bg-dark) 85%,
+      rgba(10, 10, 10, 0) 100%
+    );
+  }
+
+  :global(html.dark-theme) .hero h1 {
+    color: var(--text-dark-primary);
+  }
+
+  :global(html.dark-theme) .hero h1 .highlight {
+    color: var(--color-primary);
+  }
+
+  :global(html.dark-theme) .hero p {
+    color: var(--text-dark-secondary);
+  }
+
+  :global(html.dark-theme) .hero p .highlight {
+    color: var(--color-primary);
+  }
+
+  @media (max-width: 768px) {
+    .hero h1 {
+      font-size: 3.5rem;
+    }
+
+    .hero-content {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-xl);
+      margin-top: var(--spacing-lg);
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+    }
+
+    .cta-group {
+      flex-direction: column;
+      gap: var(--spacing-xl);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero {
+      padding: var(--spacing-2xl) 0 var(--spacing-sm) 0;
+    }
+
+    .hero::after {
+      height: 0;
+    }
+
+    .hero h1 {
+      font-size: 1.75rem;
+      line-height: 1.15;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .hero-layout {
+      gap: var(--spacing-xl);
+    }
+
+    .hero-content {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-xl);
+      margin-top: var(--spacing-lg);
+    }
+
+    .hero p {
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    .cta-group {
+      flex-direction: column;
+      gap: var(--spacing-md);
+      width: 100%;
+    }
+
+    .trust-line {
+      font-size: 0.9rem;
+      margin-top: var(--spacing-md);
+    }
+  }
+</style>
+
+<script>
+  import { trackCTA } from '../utils/analytics';
+
+  // Make trackCTA available to inline onclick handlers.
+  // TODO(phase-3): replace with proper ambient `Window` type declaration.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).trackCTA = trackCTA;
 </script>
