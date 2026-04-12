@@ -233,7 +233,7 @@ If it still appears, confirm `src/content.config.ts` exists and exports `export 
 
 ## Phase 3: Code Structure & CSS Architecture
 
-**Status**: Proposed
+**Status**: In Progress
 **Priority**: High
 **Effort**: 6-7 days
 **Dependencies**: Phase 2 (linting catches regressions during refactoring)
@@ -308,32 +308,36 @@ A **final guardrail commit** (commit 14) adopts `stylelint-declaration-strict-va
 
 ```
 # Foundation tooling (must land before any style migration)
-chore(lint): add stylelint coverage for .astro scoped styles via postcss-html           # 0a
-refactor(css): introduce @layer cascade layer scheme in global.css                      # 0b
-chore(lint): enable complexity rules for .astro scoped styles                           # 0c
-chore(build): opt into LightningCSS via Vite transformer                                # 0d
+chore(lint): add stylelint coverage for .astro scoped styles via postcss-html           # 0a ✓
+refactor(css): introduce @layer cascade layer scheme in global.css                      # 0b ✓
+chore(lint): disable stylelint whitespace rules that fight Prettier                     # 0b.1 ✓
+chore(lint): enable complexity rules for .astro scoped styles                           # 0c ✓
+chore(build): opt into LightningCSS via Vite transformer                                # 0d ✓
+fix(build): restore frosted glass — wire LightningCSS to browserslist                   # 0e ✓
 
 # Infrastructure before migration
-refactor(css): add z-index scale variables and replace magic values                     # 1
+refactor(css): add z-index scale variables and replace magic values                     # 1 ✓
 
 # Logic deduplication (small, self-contained)
-refactor(portfolio): sync PortfolioHeader filter logic with filterLogic.ts              # 2
+refactor(portfolio): sync PortfolioHeader filter logic with filterLogic.ts              # 2 ✓
 
 # Shared component extractions
-feat(components): extract PrintReportHeader shared component                            # 3
-feat(components): extract Card base with service/audience/trust/hub variants            # 4
+feat(components): extract PrintReportHeader shared component                            # 3 ✓
+# Card component extraction skipped — cards are already well-scoped,                    # 4 SKIP
+# abstraction adds indirection with minimal CSS reduction (~40 lines)
 
 # CSS migration (one domain at a time, each commit passes build + unit tests)
-refactor(css): move header styles to Header.astro scoped                                # 5
-refactor(css): move hero styles to Hero.astro scoped                                    # 6
-refactor(css): move services + about styles to scoped                                   # 7
-refactor(css): move stats-bar, CTA, and remaining page-level styles to scoped           # 8
-refactor(css): move portfolio filter-control styles to portfolio components             # 9
+refactor(css): move header styles to Header.astro scoped                                # 5 ✓
+refactor(css): move hero styles to Hero.astro scoped                                    # 6 ✓
+refactor(css): remove dead services/about styles from global.css                        # 7 ✓
+refactor(css): move stats/CTA/footer styles to scoped components                        # 8 ✓
+# Portfolio filter migration skipped — styles are correctly shared between              # 9 SKIP
+# PortfolioHeader and StickyControls (comment in global.css confirms)
+refactor(css): move theme-toggle styles to ThemeToggle.astro scoped                     # 9a ✓
 
-# Tool-specimen block split into 3 sub-commits for safer review and rollback
-refactor(css): move tool-specimen colors section to brand.astro scoped                  # 10a
-refactor(css): move tool-specimen typography section to brand.astro scoped              # 10b
-refactor(css): move tool-specimen components section to brand.astro scoped              # 10c
+# Brand specimen migration deferred — analysis showed most brutalist CSS                # 10a-c DEFER
+# classes are genuinely shared across the site (used by 10+ files), not
+# brand-page-only. Will be addressed when brand.astro is decomposed.
 
 # Large decompositions
 refactor(brand): decompose brand.astro into section sub-components                      # 11
