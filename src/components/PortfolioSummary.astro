@@ -1,76 +1,80 @@
 ---
+
 ---
 
-<section class="portfolio-summary">
-    <div class="container">
-        <div class="summary-content">
-            <h2>Overview</h2>
-            <p>M&A services span both the buy-side and sell-side executing technical diligence, preparing portfolio companies for sale and investment, and executing post-acquisition value creation initiatives to build value, reduce risks and costs while accelerating business objectives</p>
-        </div>
+<section class="portfolio-summary" aria-label="Portfolio overview">
+  <div class="container">
+    <div class="summary-content">
+      <h2>Overview</h2>
+      <p>
+        M&A services span both the buy-side and sell-side executing technical diligence, preparing
+        portfolio companies for sale and investment, and executing post-acquisition value creation
+        initiatives to build value, reduce risks and costs while accelerating business objectives
+      </p>
     </div>
+  </div>
 </section>
 
 <style>
-    .portfolio-summary {
-        padding: 3rem 0;
-        background: transparent;
-        border-bottom: none;
-    }
+  .portfolio-summary {
+    padding: 3rem 0;
+    background: transparent;
+    border-bottom: none;
+  }
 
-    .summary-content {
-        max-width: 900px;
+  .summary-content {
+    max-width: 900px;
+  }
+
+  .portfolio-summary h2 {
+    font-size: var(--text-3xl);
+    font-family: monospace;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1.5rem;
+  }
+
+  .portfolio-summary p {
+    font-size: var(--text-lg);
+    font-family: monospace;
+    color: var(--text-secondary);
+    line-height: 1.8;
+  }
+
+  :global(html.dark-theme) .portfolio-summary {
+    background: transparent;
+  }
+
+  @media (max-width: 768px) {
+    .portfolio-summary {
+      padding: 2rem 0;
     }
 
     .portfolio-summary h2 {
-        font-size: var(--text-3xl);
-        font-family: monospace;
-        font-weight: 700;
-        color: var(--text-primary);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 1.5rem;
+      font-size: var(--text-2xl);
+      margin-bottom: 1rem;
     }
 
     .portfolio-summary p {
-        font-size: var(--text-lg);
-        font-family: monospace;
-        color: var(--text-secondary);
-        line-height: 1.8;
+      font-size: var(--text-base);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .portfolio-summary {
+      padding: 1.5rem 0;
     }
 
-    :global(html.dark-theme) .portfolio-summary {
-        background: transparent;
+    .portfolio-summary h2 {
+      font-size: var(--text-xl);
+      margin-bottom: 0.75rem;
     }
 
-
-    @media (max-width: 768px) {
-        .portfolio-summary {
-            padding: 2rem 0;
-        }
-
-        .portfolio-summary h2 {
-            font-size: var(--text-2xl);
-            margin-bottom: 1rem;
-        }
-
-        .portfolio-summary p {
-            font-size: var(--text-base);
-        }
+    .portfolio-summary p {
+      font-size: var(--text-sm);
+      line-height: 1.6;
     }
-
-    @media (max-width: 480px) {
-        .portfolio-summary {
-            padding: 1.5rem 0;
-        }
-
-        .portfolio-summary h2 {
-            font-size: var(--text-xl);
-            margin-bottom: 0.75rem;
-        }
-
-        .portfolio-summary p {
-            font-size: var(--text-sm);
-            line-height: 1.6;
-        }
-    }
+  }
 </style>

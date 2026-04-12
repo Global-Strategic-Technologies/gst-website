@@ -3,135 +3,140 @@
 import DeltaIcon from './DeltaIcon.astro';
 ---
 
-<section class="who-we-support">
-    <div class="container">
-        <div class="support-content">
-            <h2 class="brutal-heading-lg">Who We Support</h2>
-            <p class="intro-text">GST partners with leaders who need clarity, confidence, and credible technical direction.</p>
+<section class="who-we-support" aria-label="Who we support">
+  <div class="container">
+    <div class="support-content">
+      <h2 class="brutal-heading-lg">Who We Support</h2>
+      <p class="intro-text">
+        GST partners with leaders who need clarity, confidence, and credible technical direction.
+      </p>
 
-            <ul class="support-list">
-                <li>
-                    <DeltaIcon class="bullet-icon" />
-                    <span>Private equity & investment teams</span>
-                </li>
-                <li>
-                    <DeltaIcon class="bullet-icon" />
-                    <span>Founders and executive leadership</span>
-                </li>
-                <li>
-                    <DeltaIcon class="bullet-icon" />
-                    <span>SaaS and technology-enabled businesses</span>
-                </li>
-                <li>
-                    <DeltaIcon class="bullet-icon" />
-                    <span>Security- or compliance-sensitive organizations</span>
-                </li>
-            </ul>
+      <ul class="support-list">
+        <li>
+          <DeltaIcon class="bullet-icon" />
+          <span>Private equity & investment teams</span>
+        </li>
+        <li>
+          <DeltaIcon class="bullet-icon" />
+          <span>Founders and executive leadership</span>
+        </li>
+        <li>
+          <DeltaIcon class="bullet-icon" />
+          <span>SaaS and technology-enabled businesses</span>
+        </li>
+        <li>
+          <DeltaIcon class="bullet-icon" />
+          <span>Security- or compliance-sensitive organizations</span>
+        </li>
+      </ul>
 
-            <p class="closing-text">Engagements range from buy-side pre-investment diligence, post-close execution, integration, value creation, sell-side preparation, and continual advisory.</p>
-        </div>
+      <p class="closing-text">
+        Engagements range from buy-side pre-investment diligence, post-close execution, integration,
+        value creation, sell-side preparation, and continual advisory.
+      </p>
     </div>
+  </div>
 </section>
 
 <style>
-    /* Component styles following design system patterns */
+  /* Component styles following design system patterns */
+  .who-we-support {
+    padding: var(--spacing-3xl) 0;
+    background: transparent;
+    position: relative;
+  }
+
+  .support-content {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .brutal-heading-lg {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .intro-text {
+    font-size: var(--text-lg);
+    font-family: monospace;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-2xl);
+    line-height: 1.7;
+  }
+
+  .support-list {
+    list-style: none;
+    margin-bottom: var(--spacing-2xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-wide);
+  }
+
+  .support-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-lg);
+    font-size: var(--text-base);
+    font-family: monospace;
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+
+  .closing-text {
+    font-size: var(--text-base);
+    font-family: monospace;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-top: var(--spacing-2xl);
+    padding-top: var(--spacing-2xl);
+    border-top: 2px solid var(--border-light);
+  }
+
+  .closing-text::before {
+    content: '// ';
+    color: var(--color-primary);
+    font-weight: 900;
+  }
+
+  /* Dark theme support */
+  :global(html.dark-theme) .who-we-support {
+    background: transparent;
+  }
+
+  :global(html.dark-theme) .closing-text {
+    border-top-color: var(--border-dark-default);
+  }
+
+  /* Responsive design */
+  @media (max-width: 768px) {
     .who-we-support {
-        padding: var(--spacing-3xl) 0;
-        background: transparent;
-        position: relative;
-    }
-
-    .support-content {
-        max-width: 900px;
-        margin: 0 auto;
-    }
-
-    .brutal-heading-lg {
-        margin-bottom: var(--spacing-xl);
+      padding: var(--spacing-2xl) 0;
     }
 
     .intro-text {
-        font-size: var(--text-lg);
-        font-family: monospace;
-        color: var(--text-secondary);
-        margin-bottom: var(--spacing-2xl);
-        line-height: 1.7;
+      font-size: var(--text-base);
+      margin-bottom: var(--spacing-xl);
     }
 
     .support-list {
-        list-style: none;
-        margin-bottom: var(--spacing-2xl);
-        display: flex;
-        flex-direction: column;
-        gap: var(--gap-wide);
+      gap: var(--gap-normal);
     }
 
-    .support-list li {
-        display: flex;
-        align-items: flex-start;
-        gap: var(--spacing-lg);
-        font-size: var(--text-base);
-        font-family: monospace;
-        color: var(--text-primary);
-        line-height: 1.6;
+    .support-list li span {
+      font-size: var(--text-small);
     }
 
     .closing-text {
-        font-size: var(--text-base);
-        font-family: monospace;
-        color: var(--text-secondary);
-        line-height: 1.8;
-        margin-top: var(--spacing-2xl);
-        padding-top: var(--spacing-2xl);
-        border-top: 2px solid var(--border-light);
+      font-size: var(--text-small);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .who-we-support {
+      padding: var(--spacing-md) 0 var(--spacing-xl) 0;
     }
 
-    .closing-text::before {
-        content: '// ';
-        color: var(--color-primary);
-        font-weight: 900;
+    .support-list li {
+      gap: var(--spacing-md);
     }
-
-    /* Dark theme support */
-    :global(html.dark-theme) .who-we-support {
-        background: transparent;
-    }
-
-    :global(html.dark-theme) .closing-text {
-        border-top-color: var(--border-dark-default);
-    }
-
-    /* Responsive design */
-    @media (max-width: 768px) {
-        .who-we-support {
-            padding: var(--spacing-2xl) 0;
-        }
-
-        .intro-text {
-            font-size: var(--text-base);
-            margin-bottom: var(--spacing-xl);
-        }
-
-        .support-list {
-            gap: var(--gap-normal);
-        }
-
-        .support-list li span {
-            font-size: var(--text-small);
-        }
-
-        .closing-text {
-            font-size: var(--text-small);
-        }
-    }
-
-    @media (max-width: 480px) {
-        .who-we-support {
-            padding: var(--spacing-md) 0 var(--spacing-xl) 0;
-        }
-
-        .support-list li {
-            gap: var(--spacing-md);
-        }
-    }
+  }
 </style>

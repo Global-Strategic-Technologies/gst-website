@@ -2,178 +2,190 @@
 // WhyClientsTrustUs section - displays core credibility drivers with 2x2 card grid
 ---
 
-<section class="why-clients-trust-us">
-    <div class="container">
-        <div class="trust-content">
-            <h2 class="brutal-heading-lg">Why Clients Trust GST</h2>
+<section class="why-clients-trust-us" aria-label="Why clients trust GST">
+  <div class="container">
+    <div class="trust-content">
+      <h2 class="brutal-heading-lg">Why Clients Trust GST</h2>
 
-            <div class="trust-cards">
-                <div class="trust-card brutal-frosted">
-                    <h3>Independent, vendor-neutral guidance</h3>
-                    <p>No technology bias, no vendor relationships, no hidden agendas. GST's recommendations are grounded in your strategic objectives and technical realities, not product portfolio incentives.</p>
-                </div>
-                <div class="trust-card brutal-frosted">
-                    <h3>Deep technical expertise translated into business risk and opportunity</h3>
-                    <p>GST bridges the gap between technical architecture and business impact. Complex systems become clear. Trade-offs get quantified. Risk becomes actionable.</p>
-                </div>
-                <div class="trust-card brutal-frosted">
-                    <h3>Executive-ready communication for leadership and investors</h3>
-                    <p>Technical findings translated for boards and C-suite. No jargon. Clear implications. Decision-ready context that informs strategy and allocation.</p>
-                </div>
-                <div class="trust-card brutal-frosted">
-                    <h3>Practical shovel-ready initiatives given real operational constraints</h3>
-                    <p>Every recommendation accounts for budget, timeline, and team capacity. Roadmaps that actually happen. Next steps teams can execute.</p>
-                </div>
-            </div>
+      <div class="trust-cards">
+        <div class="trust-card brutal-frosted">
+          <h3>Independent, vendor-neutral guidance</h3>
+          <p>
+            No technology bias, no vendor relationships, no hidden agendas. GST's recommendations
+            are grounded in your strategic objectives and technical realities, not product portfolio
+            incentives.
+          </p>
         </div>
+        <div class="trust-card brutal-frosted">
+          <h3>Deep technical expertise translated into business risk and opportunity</h3>
+          <p>
+            GST bridges the gap between technical architecture and business impact. Complex systems
+            become clear. Trade-offs get quantified. Risk becomes actionable.
+          </p>
+        </div>
+        <div class="trust-card brutal-frosted">
+          <h3>Executive-ready communication for leadership and investors</h3>
+          <p>
+            Technical findings translated for boards and C-suite. No jargon. Clear implications.
+            Decision-ready context that informs strategy and allocation.
+          </p>
+        </div>
+        <div class="trust-card brutal-frosted">
+          <h3>Practical shovel-ready initiatives given real operational constraints</h3>
+          <p>
+            Every recommendation accounts for budget, timeline, and team capacity. Roadmaps that
+            actually happen. Next steps teams can execute.
+          </p>
+        </div>
+      </div>
     </div>
+  </div>
 </section>
 
 <style>
-    /* Component styles following design system patterns */
-    .why-clients-trust-us {
-        padding: var(--spacing-3xl) 0;
-        background: transparent;
-        position: relative;
-    }
+  /* Component styles following design system patterns */
+  .why-clients-trust-us {
+    padding: var(--spacing-3xl) 0;
+    background: transparent;
+    position: relative;
+  }
 
-    .trust-content {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
+  .trust-content {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
 
-    .brutal-heading-lg {
-        margin-bottom: var(--spacing-2xl);
-        text-align: center;
-    }
+  .brutal-heading-lg {
+    margin-bottom: var(--spacing-2xl);
+    text-align: center;
+  }
 
+  .trust-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--gap-extra-wide);
+  }
+
+  .trust-card {
+    padding: var(--spacing-2xl);
+    background: transparent;
+    border: 2px solid var(--border-light);
+    border-radius: 0;
+    transition: border-color var(--transition-normal);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .trust-card:hover {
+    border-color: var(--color-primary);
+  }
+
+  .trust-card h3 {
+    font-size: var(--text-lg);
+    font-family: monospace;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+    line-height: 1.4;
+  }
+
+  .trust-card p {
+    font-size: var(--text-base);
+    font-family: monospace;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    flex-grow: 1;
+  }
+
+  /* Dark theme support */
+  :global(html.dark-theme) .why-clients-trust-us {
+    background: transparent;
+  }
+
+  :global(html.dark-theme) .trust-card {
+    background: transparent;
+    border-color: var(--border-dark-default);
+  }
+
+  :global(html.dark-theme) .trust-card:hover {
+    background: transparent;
+    border-color: var(--color-primary);
+  }
+
+  /* Responsive design */
+  @media (max-width: 1024px) {
     .trust-cards {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--gap-extra-wide);
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--gap-wide);
     }
 
     .trust-card {
-        padding: var(--spacing-2xl);
-        background: transparent;
-        border: 2px solid var(--border-light);
-        border-radius: 0;
-        transition: border-color var(--transition-normal);
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-
-    .trust-card:hover {
-        border-color: var(--color-primary);
+      padding: var(--spacing-xl);
     }
 
     .trust-card h3 {
-        font-size: var(--text-lg);
-        font-family: monospace;
-        font-weight: var(--font-weight-bold);
-        color: var(--text-primary);
-        margin-bottom: var(--spacing-md);
-        line-height: 1.4;
+      font-size: var(--text-base);
     }
 
     .trust-card p {
-        font-size: var(--text-base);
-        font-family: monospace;
-        color: var(--text-secondary);
-        line-height: 1.7;
-        flex-grow: 1;
+      font-size: var(--text-small);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .why-clients-trust-us {
+      padding: var(--spacing-2xl) 0;
     }
 
-    /* Dark theme support */
-    :global(html.dark-theme) .why-clients-trust-us {
-        background: transparent;
+    .brutal-heading-lg {
+      margin-bottom: var(--spacing-xl);
     }
 
-    :global(html.dark-theme) .trust-card {
-        background: transparent;
-        border-color: var(--border-dark-default);
+    .trust-cards {
+      grid-template-columns: 1fr;
+      gap: var(--gap-normal);
     }
 
-    :global(html.dark-theme) .trust-card:hover {
-        background: transparent;
-        border-color: var(--color-primary);
+    .trust-card {
+      padding: var(--spacing-lg);
     }
 
-
-    /* Responsive design */
-    @media (max-width: 1024px) {
-        .trust-cards {
-            grid-template-columns: repeat(2, 1fr);
-            gap: var(--gap-wide);
-        }
-
-        .trust-card {
-            padding: var(--spacing-xl);
-        }
-
-        .trust-card h3 {
-            font-size: var(--text-base);
-        }
-
-        .trust-card p {
-            font-size: var(--text-small);
-        }
+    .trust-card h3 {
+      font-size: var(--text-base);
+      margin-bottom: var(--spacing-sm);
     }
 
-    @media (max-width: 768px) {
-        .why-clients-trust-us {
-            padding: var(--spacing-2xl) 0;
-        }
+    .trust-card p {
+      font-size: var(--text-small);
+    }
+  }
 
-        .brutal-heading-lg {
-            margin-bottom: var(--spacing-xl);
-        }
-
-        .trust-cards {
-            grid-template-columns: 1fr;
-            gap: var(--gap-normal);
-        }
-
-        .trust-card {
-            padding: var(--spacing-lg);
-        }
-
-        .trust-card h3 {
-            font-size: var(--text-base);
-            margin-bottom: var(--spacing-sm);
-        }
-
-        .trust-card p {
-            font-size: var(--text-small);
-        }
+  @media (max-width: 480px) {
+    .why-clients-trust-us {
+      padding: var(--spacing-xl) 0;
     }
 
-    @media (max-width: 480px) {
-        .why-clients-trust-us {
-            padding: var(--spacing-xl) 0;
-        }
-
-        .brutal-heading-lg {
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .trust-cards {
-            gap: var(--gap-normal);
-        }
-
-        .trust-card {
-            padding: var(--spacing-md);
-        }
-
-        .trust-card h3 {
-            font-size: var(--text-small);
-            margin-bottom: var(--spacing-sm);
-        }
-
-        .trust-card p {
-            font-size: var(--text-tiny);
-            line-height: 1.6;
-        }
+    .brutal-heading-lg {
+      margin-bottom: var(--spacing-lg);
     }
+
+    .trust-cards {
+      gap: var(--gap-normal);
+    }
+
+    .trust-card {
+      padding: var(--spacing-md);
+    }
+
+    .trust-card h3 {
+      font-size: var(--text-small);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .trust-card p {
+      font-size: var(--text-tiny);
+      line-height: 1.6;
+    }
+  }
 </style>
