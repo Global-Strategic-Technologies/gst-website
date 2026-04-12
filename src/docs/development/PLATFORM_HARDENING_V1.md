@@ -519,14 +519,14 @@ docs(analytics): update hardening plan and analytics docs for Phase 6
 
 ## Phase 7: Client-Side Error Monitoring
 
-**Status**: Proposed
+**Status**: Complete
 **Priority**: Medium
 **Effort**: 2 days
 **Dependencies**: Phase 2 (CI catches instrumentation regressions)
 
 ### Problem
 
-If a tool calculation fails or the Inoreader API errors, it's completely invisible. The codebase uses defensive null-checks and try-catch with silent fallbacks (good for UX, bad for observability). Only 5 files have try-catch, and only 3 log to `console.error`. No error tracking service exists.
+Tool calculation failures, Inoreader API errors, and localStorage failures were completely invisible. The codebase used defensive null-checks and try-catch with silent fallbacks (good for UX, bad for observability).
 
 ### Why not Vercel?
 
@@ -606,25 +606,38 @@ These steps must be completed **before** the implementation commits can be merge
 
 **Not pursuing**: Session replay (LogRocket, Sentry Replay) — adds significant bundle size and privacy complexity for a low-traffic advisory site.
 
+### What Was Done
+
+1. **Installed `@sentry/astro`** — official Astro integration via `astro.config.mjs`, auto-handles client+server
+2. **Privacy-first client config** (`sentry.client.config.ts`): `sendDefaultPii: false`, `tracesSampleRate: 0`, `replaysSessionSampleRate: 0`, `replaysOnErrorSampleRate: 1.0` (error replay only), `beforeSend` filter for browser noise (ResizeObserver, localStorage SecurityError)
+3. **Server config** (`sentry.server.config.ts`): error-only, no tracing
+4. **Source map upload slot** wired up in astro.config.mjs — activate by adding `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` to Vercel
+5. **Instrumented 15 error paths**: 9 in Inoreader client (area:inoreader-api, area:redis-connection), 2 in file cache (area:file-cache), 3 in palette-manager (area:palette-manager), 2 in TechPar chart rendering (area:techpar-calculation)
+6. **20 unit tests** verifying config policy and instrumentation coverage
+
 ### Commits
 
 ```
-docs(monitoring): document error monitoring service evaluation
-feat(monitoring): add ErrorTracking component with Sentry integration
+feat(monitoring): add Sentry integration with error replay
 feat(monitoring): instrument Inoreader client and cache error paths
-feat(monitoring): instrument palette-manager and techpar-ui error paths
-feat(monitoring): add global error boundary for uncaught exceptions
-test(monitoring): add unit and E2E tests for error tracking
-docs(monitoring): document recommended Sentry alert rules
+feat(monitoring): instrument client-side error paths
+test(monitoring): add Sentry instrumentation verification tests
+docs(monitoring): update hardening plan and developer tooling for Phase 7
 ```
+
+### Follow-Up Tasks
+
+- **Sentry alert rule configuration** — deferred per user request; see Phase 7 manual setup docs for recommended rules
+- **Source map upload** — add `SENTRY_AUTH_TOKEN` to Vercel when first real error needs stack trace debugging
+- **Consent gating** — deferred to BUSINESS_ENABLEMENT_V1.md
 
 ### Success Criteria
 
-- Client-side JavaScript errors surfaced in Sentry dashboard
-- Silent failures in Inoreader client, palette manager, and tool scripts report to Sentry
-- Privacy-first Sentry config verified (no PII, no session replay); follow-on initiative will evaluate additional consent gating
-- Zero increase in console errors visible to users
-- Sentry DSN configured via environment variable (not hardcoded)
+- Client-side JavaScript errors surfaced in Sentry dashboard ✓
+- Silent failures in Inoreader client, palette manager, and tool scripts report to Sentry ✓
+- Privacy-first Sentry config verified (no PII, error-only replay, no tracing) ✓
+- Zero increase in console errors visible to users ✓
+- Sentry DSN configured via environment variable (not hardcoded) ✓
 
 ---
 

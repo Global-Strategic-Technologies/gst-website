@@ -313,6 +313,29 @@ expect(results.critical).toHaveLength(0);
 
 ---
 
+## Error monitoring (Sentry)
+
+The site uses [@sentry/astro](https://docs.sentry.io/platforms/javascript/guides/astro/) for error monitoring, configured as an Astro integration in `astro.config.mjs`.
+
+| Config file               | Purpose                                              |
+| ------------------------- | ---------------------------------------------------- |
+| `sentry.client.config.ts` | Client-side init — error capture + error-only replay |
+| `sentry.server.config.ts` | Server-side init — SSR error capture (Radar page)    |
+| `astro.config.mjs`        | Integration registration + source map upload config  |
+
+**Key settings**: No PII (`sendDefaultPii: false`), no performance tracing (`tracesSampleRate: 0`), error-only replay (`replaysOnErrorSampleRate: 1.0`), disabled in development (`enabled: import.meta.env.PROD`).
+
+**Environment variables**:
+
+- `PUBLIC_SENTRY_DSN` — required, set in Vercel (Production + Preview)
+- `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` — optional, for source map upload
+
+**Error tags used in `captureException`**: `area:inoreader-api`, `area:redis-connection`, `area:file-cache`, `area:palette-manager`, `area:techpar-calculation`
+
+**Viewing errors**: Log in to [sentry.io](https://sentry.io), select the `gst-website` project. Filter by tag (`area:inoreader-api`) to see specific subsystem failures.
+
+---
+
 ## Browser support
 
 The project declares its supported browsers in the `"browserslist"` field of [package.json](../../../package.json):
