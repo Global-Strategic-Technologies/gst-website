@@ -3,12 +3,7 @@
  * Tests the analytics utility functions
  */
 
-import {
-  trackEvent,
-  trackNavigation,
-  trackCTA,
-  trackThemeToggle,
-} from '@/utils/analytics';
+import { trackEvent, trackNavigation, trackCTA, trackThemeToggle } from '@/utils/analytics';
 
 describe('Analytics Utility Functions', () => {
   let gtagMock: any;
@@ -46,6 +41,15 @@ describe('Analytics Utility Functions', () => {
         event_category: 'navigation',
         label: 'Test Label',
         value: 42,
+      });
+    });
+
+    it('should support tool category for hub tool events', () => {
+      trackEvent({ event: 'tp_start', category: 'tool', page: 'techpar' });
+
+      expect(gtagMock).toHaveBeenCalledWith('event', 'tp_start', {
+        event_category: 'tool',
+        page: 'techpar',
       });
     });
 
@@ -154,5 +158,4 @@ describe('Analytics Utility Functions', () => {
       }).not.toThrow();
     });
   });
-
 });

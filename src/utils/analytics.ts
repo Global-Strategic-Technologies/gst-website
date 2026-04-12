@@ -3,7 +3,7 @@
  * Provides a type-safe interface for Google Analytics 4 events
  */
 
-export type EventCategory = 'navigation' | 'portfolio' | 'engagement' | 'ui';
+export type EventCategory = 'navigation' | 'portfolio' | 'engagement' | 'ui' | 'tool';
 
 export interface AnalyticsEvent {
   event: string;
