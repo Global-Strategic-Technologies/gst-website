@@ -1728,7 +1728,12 @@ main {
 .filter-overlay.open {
   display: block;
   background: rgba(0, 0, 0, 0.3);
-  pointer-events: auto;
+  /* pointer-events: none — the overlay is a visual dim only.
+     If it captured pointer events, the full-viewport fixed element would
+     block wheel/touch scroll on the main content under it, locking the
+     page until the drawer is closed. Click-outside-to-close is handled
+     by a document-level click listener in PortfolioHeader.astro. */
+  pointer-events: none;
 }
 
 /* Dark Theme - Filters */

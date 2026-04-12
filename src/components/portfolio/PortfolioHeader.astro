@@ -840,6 +840,15 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
     }
   }
 
+  // Outside-click and Escape-key handlers attached at document level while the
+  // drawer is open. Declared at script scope so open/close can share references.
+  // The drawer's visual backdrop (.filter-overlay) is `pointer-events: none`
+  // (see global.css) so it no longer captures clicks OR scroll events — main
+  // content stays scrollable when the drawer is open. Click-outside-to-close
+  // is now handled here via document-level listener instead.
+  let drawerDocumentClickHandler = null;
+  let drawerDocumentKeyHandler = null;
+
   function openFilterDrawer() {
     const drawer = document.getElementById('filter-drawer');
     const overlay = document.getElementById('filter-overlay');
@@ -849,6 +858,29 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
       drawer.classList.add('open');
       overlay.classList.add('open');
       toggle.setAttribute('aria-expanded', 'true');
+
+      // Defer attaching the click handler one tick so the in-flight click that
+      // opened the drawer doesn't immediately trigger it and close the drawer.
+      // Guard: only attach if the drawer is still open (prevents a race if
+      // closeFilterDrawer is called before this deferred callback fires).
+      setTimeout(() => {
+        if (!drawer.classList.contains('open')) return;
+        drawerDocumentClickHandler = (event) => {
+          const target = event.target;
+          if (!(target instanceof Node)) return;
+          // Ignore clicks inside the drawer itself.
+          if (drawer.contains(target)) return;
+          // Ignore clicks on the filter-toggle button — it owns open/close.
+          if (toggle.contains(target)) return;
+          closeFilterDrawer();
+        };
+        document.addEventListener('click', drawerDocumentClickHandler);
+      }, 0);
+
+      drawerDocumentKeyHandler = (event) => {
+        if (event.key === 'Escape') closeFilterDrawer();
+      };
+      document.addEventListener('keydown', drawerDocumentKeyHandler);
     }
   }
 
@@ -862,12 +894,20 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
       overlay.classList.remove('open');
       toggle.setAttribute('aria-expanded', 'false');
     }
+
+    if (drawerDocumentClickHandler) {
+      document.removeEventListener('click', drawerDocumentClickHandler);
+      drawerDocumentClickHandler = null;
+    }
+    if (drawerDocumentKeyHandler) {
+      document.removeEventListener('keydown', drawerDocumentKeyHandler);
+      drawerDocumentKeyHandler = null;
+    }
   }
 
   function attachDrawerListeners() {
     const toggle = document.getElementById('filter-toggle');
     const closeBtn = document.getElementById('drawer-close');
-    const overlay = document.getElementById('filter-overlay');
     const clearBtn = document.getElementById('clear-filters');
 
     if (toggle) {
@@ -885,9 +925,10 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
       closeBtn.addEventListener('click', closeFilterDrawer);
     }
 
-    if (overlay) {
-      overlay.addEventListener('click', closeFilterDrawer);
-    }
+    // NOTE: filter-overlay click listener removed — overlay now has
+    // pointer-events: none so it cannot receive clicks. Click-outside-to-close
+    // is handled in openFilterDrawer/closeFilterDrawer via document-level
+    // click listener.
 
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
