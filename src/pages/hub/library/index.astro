@@ -10,74 +10,107 @@ const isDev = import.meta.env.DEV;
 ---
 
 <BaseLayout
-    title="The Library | GST"
-    description="Deep-dive frameworks and blueprints for technical due diligence and value creation execution."
-    ogTitle="The Library - Resources | GST"
-    ogDescription="Frameworks and blueprints for technical due diligence and value creation."
-    ogImage="/og-image.png"
-    ogUrl="https://globalstrategic.tech/hub/library"
+  title="The Library | GST"
+  description="Deep-dive frameworks and blueprints for technical due diligence and value creation execution."
+  ogTitle="The Library - Resources | GST"
+  ogDescription="Frameworks and blueprints for technical due diligence and value creation."
+  ogImage="/og-image.png"
+  ogImageAlt="GST Library - Due Diligence Frameworks and Reference Architectures"
+  ogUrl="https://globalstrategic.tech/hub/library"
 >
-    <section class="library-section">
-        <div class="container">
-            <HubHeader
-                title="The Library"
-                subtitle="Useful information for technical due diligence frameworks and value creation blueprints."
-            />
+  <section class="library-section">
+    <div class="container">
+      <HubHeader
+        title="The Library"
+        subtitle="Useful information for technical due diligence frameworks and value creation blueprints."
+      />
 
-            <article class="brutal-gateway-card brutal-frosted">
-                <div class="brutal-gateway-card__header">
-                    <h2>Business &amp; Technology Architectures</h2>
-                </div>
-                <ul class="brutal-gateway-card__features">
-                    <li><DeltaIcon class="bullet-icon" />How architecture choices cascade into business outcomes</li>
-                    <li><DeltaIcon class="bullet-icon" />Five layers from software foundations to industry forces</li>
-                    <li><DeltaIcon class="bullet-icon" />Diligence focus areas for investors, executives &amp; founders</li>
-                </ul>
-                <a href="/hub/library/business-architectures" class="cta-button primary brutal-gateway-card__cta" onclick="trackCTA('resource-article', 'library')">Read Article</a>
-            </article>
-
-            <article class="brutal-gateway-card brutal-frosted">
-                <div class="brutal-gateway-card__header">
-                    <h2>Virtual Data Room (VDR) Structure Guide</h2>
-                </div>
-                <ul class="brutal-gateway-card__features">
-                    <li><DeltaIcon class="bullet-icon" />Organize a technology-focused virtual data room</li>
-                    <li><DeltaIcon class="bullet-icon" />Folder taxonomy &amp; content recommendations</li>
-                    <li><DeltaIcon class="bullet-icon" />Best practices from 100+ buy-side and sell-side deals</li>
-                </ul>
-                <a href="/hub/library/vdr-structure" class="cta-button primary brutal-gateway-card__cta" onclick="trackCTA('resource-guide', 'library')">Read Guide</a>
-            </article>
-
-            {isDev && (
-                <article class="brutal-gateway-card">
-                    <div class="brutal-gateway-card__header">
-                        <h2>Technology Strategy 101</h2>
-                    </div>
-                    <ul class="brutal-gateway-card__features">
-                        <li><DeltaIcon class="bullet-icon" />Foundational frameworks for aligning technology decisions with business objectives</li>
-                        <li><DeltaIcon class="bullet-icon" />Build vs. buy analysis, platform selection, and roadmap prioritization</li>
-                        <li><DeltaIcon class="bullet-icon" />Translating technical trade-offs into board-ready language for investors and executives</li>
-                    </ul>
-                    <span class="brutal-gateway-card__badge">Planned</span>
-                </article>
-            )}
-
-            <a href="/hub" class="cta-button secondary" onclick="trackNavigation('/hub', 'Return to Hub')">Return to Hub</a>
+      <article class="brutal-gateway-card brutal-frosted">
+        <div class="brutal-gateway-card__header">
+          <h2>Business &amp; Technology Architectures</h2>
         </div>
-    </section>
+        <ul class="brutal-gateway-card__features">
+          <li>
+            <DeltaIcon class="bullet-icon" />How architecture choices cascade into business outcomes
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Five layers from software foundations to industry
+            forces
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Diligence focus areas for investors, executives &amp;
+            founders
+          </li>
+        </ul>
+        <a
+          href="/hub/library/business-architectures"
+          class="cta-button primary brutal-gateway-card__cta"
+          onclick="trackCTA('resource-article', 'library')">Read Article</a
+        >
+      </article>
+
+      <article class="brutal-gateway-card brutal-frosted">
+        <div class="brutal-gateway-card__header">
+          <h2>Virtual Data Room (VDR) Structure Guide</h2>
+        </div>
+        <ul class="brutal-gateway-card__features">
+          <li><DeltaIcon class="bullet-icon" />Organize a technology-focused virtual data room</li>
+          <li><DeltaIcon class="bullet-icon" />Folder taxonomy &amp; content recommendations</li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Best practices from 100+ buy-side and sell-side deals
+          </li>
+        </ul>
+        <a
+          href="/hub/library/vdr-structure"
+          class="cta-button primary brutal-gateway-card__cta"
+          onclick="trackCTA('resource-guide', 'library')">Read Guide</a
+        >
+      </article>
+
+      {
+        isDev && (
+          <article class="brutal-gateway-card">
+            <div class="brutal-gateway-card__header">
+              <h2>Technology Strategy 101</h2>
+            </div>
+            <ul class="brutal-gateway-card__features">
+              <li>
+                <DeltaIcon class="bullet-icon" />
+                Foundational frameworks for aligning technology decisions with business objectives
+              </li>
+              <li>
+                <DeltaIcon class="bullet-icon" />
+                Build vs. buy analysis, platform selection, and roadmap prioritization
+              </li>
+              <li>
+                <DeltaIcon class="bullet-icon" />
+                Translating technical trade-offs into board-ready language for investors and
+                executives
+              </li>
+            </ul>
+            <span class="brutal-gateway-card__badge">Planned</span>
+          </article>
+        )
+      }
+
+      <a href="/hub" class="cta-button secondary" onclick="trackNavigation('/hub', 'Return to Hub')"
+        >Return to Hub</a
+      >
+    </div>
+  </section>
 </BaseLayout>
 
 <script>
-    import { trackCTA, trackNavigation } from '../../../utils/analytics';
-    // TODO(phase-3): replace with proper ambient `Window` type declaration.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).trackCTA = trackCTA;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).trackNavigation = trackNavigation;
+  import { trackCTA, trackNavigation } from '../../../utils/analytics';
+  // TODO(phase-3): replace with proper ambient `Window` type declaration.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).trackCTA = trackCTA;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).trackNavigation = trackNavigation;
 </script>
 
 <style>
-    .library-section {
-        padding-bottom: var(--spacing-3xl);
-    }
+  .library-section {
+    padding-bottom: var(--spacing-3xl);
+  }
 </style>

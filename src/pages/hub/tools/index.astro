@@ -10,203 +10,320 @@ const isDev = import.meta.env.DEV;
 ---
 
 <BaseLayout
-    title="Tools | GST"
-    description="Interactive calculators and generators to quantify risk and value in technology investments."
-    ogTitle="Tools | GST"
-    ogDescription="Interactive tools for technology investment analysis and risk quantification."
-    ogImage="/og-image.png"
-    ogUrl="https://globalstrategic.tech/hub/tools"
+  title="Tools | GST"
+  description="Interactive calculators and generators to quantify risk and value in technology investments."
+  ogTitle="Tools | GST"
+  ogDescription="Interactive tools for technology investment analysis and risk quantification."
+  ogImage="/og-image.png"
+  ogImageAlt="GST Interactive Tools for Technology Investment Analysis"
+  ogUrl="https://globalstrategic.tech/hub/tools"
 >
-    <script is:inline type="application/ld+json" set:html={JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "ItemList",
-        "name": "GST Strategic Intelligence Tools",
-        "description": "Interactive calculators and generators to quantify risk and value in technology investments",
-        "numberOfItems": 5,
-        "itemListElement": [
-            {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Regulatory Map",
-                "url": "https://globalstrategic.tech/hub/tools/regulatory-map"
-            },
-            {
-                "@type": "ListItem",
-                "position": 2,
-                "name": "The Diligence Machine",
-                "url": "https://globalstrategic.tech/hub/tools/diligence-machine"
-            },
-            {
-                "@type": "ListItem",
-                "position": 3,
-                "name": "Technical Debt Cost Calculator",
-                "url": "https://globalstrategic.tech/hub/tools/tech-debt-calculator"
-            },
-            {
-                "@type": "ListItem",
-                "position": 4,
-                "name": "Infrastructure Cost Governance",
-                "url": "https://globalstrategic.tech/hub/tools/infrastructure-cost-governance"
-            },
-            {
-                "@type": "ListItem",
-                "position": 5,
-                "name": "TechPar",
-                "url": "https://globalstrategic.tech/hub/tools/techpar"
-            }
-        ]
-    })} />
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: 'GST Strategic Intelligence Tools',
+      description:
+        'Interactive calculators and generators to quantify risk and value in technology investments',
+      numberOfItems: 5,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Regulatory Map',
+          url: 'https://globalstrategic.tech/hub/tools/regulatory-map',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'The Diligence Machine',
+          url: 'https://globalstrategic.tech/hub/tools/diligence-machine',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Technical Debt Cost Calculator',
+          url: 'https://globalstrategic.tech/hub/tools/tech-debt-calculator',
+        },
+        {
+          '@type': 'ListItem',
+          position: 4,
+          name: 'Infrastructure Cost Governance',
+          url: 'https://globalstrategic.tech/hub/tools/infrastructure-cost-governance',
+        },
+        {
+          '@type': 'ListItem',
+          position: 5,
+          name: 'TechPar',
+          url: 'https://globalstrategic.tech/hub/tools/techpar',
+        },
+      ],
+    })}
+  />
 
-    <section class="tools-section">
-        <div class="container">
-            <HubHeader
-                title="Tools"
-                subtitle="Strategic tools for quantifying risk and value in technology investments."
-            />
+  <section class="tools-section">
+    <div class="container">
+      <HubHeader
+        title="Tools"
+        subtitle="Strategic tools for quantifying risk and value in technology investments."
+      />
 
-            <article class="brutal-gateway-card brutal-frosted">
-                <div class="brutal-gateway-card__header">
-                    <h2>Regulatory Map</h2>
-                </div>
-                <ul class="brutal-gateway-card__features">
-                    <li><DeltaIcon class="bullet-icon" />120 regulations across privacy, AI, cybersecurity, and compliance</li>
-                    <li><DeltaIcon class="bullet-icon" />Search, filter, and click any country to explore its requirements</li>
-                    <li><DeltaIcon class="bullet-icon" />Timeline tracker, penalties, and shareable bookmarks</li>
-                </ul>
-                <a href="/hub/tools/regulatory-map" class="cta-button primary brutal-gateway-card__cta">Launch Tool</a>
-            </article>
-
-            <article class="brutal-gateway-card brutal-frosted">
-                <div class="brutal-gateway-card__header">
-                    <h2>The Diligence Machine</h2>
-                </div>
-                <ul class="brutal-gateway-card__features">
-                    <li><DeltaIcon class="bullet-icon" />Customize a diligence checklist and agenda based on target parameters</li>
-                    <li><DeltaIcon class="bullet-icon" />Prioritized by risk profile across infrastructure, security, operations</li>
-                    <li><DeltaIcon class="bullet-icon" />Executive-ready scope estimates with resource and timeline models</li>
-                </ul>
-                <a href="/hub/tools/diligence-machine" class="cta-button primary brutal-gateway-card__cta">Launch Tool</a>
-            </article>
-
-            <article class="brutal-gateway-card brutal-frosted">
-                <div class="brutal-gateway-card__header">
-                    <h2>Technical Debt Cost Calculator</h2>
-                </div>
-                <ul class="brutal-gateway-card__features">
-                    <li><DeltaIcon class="bullet-icon" />Quantify the annual carrying cost of technical debt</li>
-                    <li><DeltaIcon class="bullet-icon" />Input team size, salary, maintenance burden, and delivery metrics</li>
-                    <li><DeltaIcon class="bullet-icon" />Produce defensible estimates for PE diligence conversations</li>
-                </ul>
-                <a href="/hub/tools/tech-debt-calculator" class="cta-button primary brutal-gateway-card__cta">Launch Tool</a>
-            </article>
-
-            <article class="brutal-gateway-card brutal-frosted">
-                <div class="brutal-gateway-card__header">
-                    <h2>Infrastructure Cost Governance</h2>
-                </div>
-                <ul class="brutal-gateway-card__features">
-                    <li><DeltaIcon class="bullet-icon" />Maturity assessment across six cloud cost management domains</li>
-                    <li><DeltaIcon class="bullet-icon" />Scored diagnostic with benchmarks for PE diligence and board reviews</li>
-                    <li><DeltaIcon class="bullet-icon" />Prioritized improvement checklist with shareable results</li>
-                </ul>
-                <a href="/hub/tools/infrastructure-cost-governance" class="cta-button primary brutal-gateway-card__cta">Launch Tool</a>
-            </article>
-
-            <article class="brutal-gateway-card brutal-frosted">
-                <div class="brutal-gateway-card__header">
-                    <h2>TechPar</h2>
-                </div>
-                <ul class="brutal-gateway-card__features">
-                    <li><DeltaIcon class="bullet-icon" />Benchmark total technology cost against stage-adjusted ranges from published SaaS research</li>
-                    <li><DeltaIcon class="bullet-icon" />Compute blended cost ratio across infrastructure, personnel, and R&D spend</li>
-                    <li><DeltaIcon class="bullet-icon" />36-month trajectory projection for IC packages, board reporting, and sell-side preparation</li>
-                </ul>
-                <a href="/hub/tools/techpar" class="cta-button primary brutal-gateway-card__cta">Launch Tool</a>
-            </article>
-
-            {isDev && (
-                <>
-                    <article class="brutal-gateway-card">
-                        <div class="brutal-gateway-card__header">
-                            <h2>Acquisition Integration Priority Matrix</h2>
-                        </div>
-                        <ul class="brutal-gateway-card__features">
-                            <li><DeltaIcon class="bullet-icon" />Map tech stacks of two merging companies via drag-and-drop</li>
-                            <li><DeltaIcon class="bullet-icon" />Red-Yellow-Green compatibility report identifies friction points</li>
-                            <li><DeltaIcon class="bullet-icon" />Reveals Day 2 integration challenges before deal close</li>
-                        </ul>
-                        <span class="brutal-gateway-card__badge">Planned</span>
-                    </article>
-
-                    <article class="brutal-gateway-card">
-                        <div class="brutal-gateway-card__header">
-                            <h2>The AI Readiness Assessment</h2>
-                        </div>
-                        <ul class="brutal-gateway-card__features">
-                            <li><DeltaIcon class="bullet-icon" />Evaluates documentation, test coverage, and architectural modularity</li>
-                            <li><DeltaIcon class="bullet-icon" />"Vibe-Ready" score determines AI-agent refactoring feasibility</li>
-                            <li><DeltaIcon class="bullet-icon" />Signals expertise in modern AI-augmented development workflows</li>
-                        </ul>
-                        <span class="brutal-gateway-card__badge">Planned</span>
-                    </article>
-
-                    <article class="brutal-gateway-card">
-                        <div class="brutal-gateway-card__header">
-                            <h2>Security & Compliance "Gap Finder"</h2>
-                        </div>
-                        <ul class="brutal-gateway-card__features">
-                            <li><DeltaIcon class="bullet-icon" />Industry-tailored checklist: SOC2, HIPAA, GDPR, PCI-DSS</li>
-                            <li><DeltaIcon class="bullet-icon" />Radar chart visualizes security and compliance gaps</li>
-                            <li><DeltaIcon class="bullet-icon" />De-risks exits and funding rounds with compliance readiness</li>
-                        </ul>
-                        <span class="brutal-gateway-card__badge">Planned</span>
-                    </article>
-
-                    <article class="brutal-gateway-card">
-                        <div class="brutal-gateway-card__header">
-                            <h2>Technical Diligence Questionnaire</h2>
-                        </div>
-                        <ul class="brutal-gateway-card__features">
-                            <li><DeltaIcon class="bullet-icon" />Structured questionnaire covering architecture, security, operations, and team</li>
-                            <li><DeltaIcon class="bullet-icon" />Tailored to target profile: stage, industry, and deal context</li>
-                            <li><DeltaIcon class="bullet-icon" />Exportable questionnaire package for target company distribution</li>
-                        </ul>
-                        <span class="brutal-gateway-card__badge">Planned</span>
-                    </article>
-
-                    <article class="brutal-gateway-card">
-                        <div class="brutal-gateway-card__header">
-                            <h2>Information Request List (IRL) Generator</h2>
-                        </div>
-                        <ul class="brutal-gateway-card__features">
-                            <li><DeltaIcon class="bullet-icon" />Generate a comprehensive document and data request list for technical diligence</li>
-                            <li><DeltaIcon class="bullet-icon" />Categorized by domain: infrastructure, codebase, security, compliance, team</li>
-                            <li><DeltaIcon class="bullet-icon" />Priority-ranked with expected delivery formats and responsible parties</li>
-                        </ul>
-                        <span class="brutal-gateway-card__badge">Planned</span>
-                    </article>
-
-                    <article class="brutal-gateway-card">
-                        <div class="brutal-gateway-card__header">
-                            <h2>Diligence Discovery Agenda Creator</h2>
-                        </div>
-                        <ul class="brutal-gateway-card__features">
-                            <li><DeltaIcon class="bullet-icon" />Transforms Diligence Machine output into a structured meeting agenda</li>
-                            <li><DeltaIcon class="bullet-icon" />Time-boxed sessions with assigned topics, owners, and key questions</li>
-                            <li><DeltaIcon class="bullet-icon" />Exportable agenda for distribution to deal teams and target management</li>
-                        </ul>
-                        <span class="brutal-gateway-card__badge">Planned</span>
-                    </article>
-                </>
-            )}
-
-            <a href="/hub" class="cta-button secondary">Return to Hub</a>
+      <article class="brutal-gateway-card brutal-frosted">
+        <div class="brutal-gateway-card__header">
+          <h2>Regulatory Map</h2>
         </div>
-    </section>
+        <ul class="brutal-gateway-card__features">
+          <li>
+            <DeltaIcon class="bullet-icon" />120 regulations across privacy, AI, cybersecurity, and
+            compliance
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Search, filter, and click any country to explore its
+            requirements
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Timeline tracker, penalties, and shareable bookmarks
+          </li>
+        </ul>
+        <a href="/hub/tools/regulatory-map" class="cta-button primary brutal-gateway-card__cta"
+          >Launch Tool</a
+        >
+      </article>
+
+      <article class="brutal-gateway-card brutal-frosted">
+        <div class="brutal-gateway-card__header">
+          <h2>The Diligence Machine</h2>
+        </div>
+        <ul class="brutal-gateway-card__features">
+          <li>
+            <DeltaIcon class="bullet-icon" />Customize a diligence checklist and agenda based on
+            target parameters
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Prioritized by risk profile across infrastructure,
+            security, operations
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Executive-ready scope estimates with resource and
+            timeline models
+          </li>
+        </ul>
+        <a href="/hub/tools/diligence-machine" class="cta-button primary brutal-gateway-card__cta"
+          >Launch Tool</a
+        >
+      </article>
+
+      <article class="brutal-gateway-card brutal-frosted">
+        <div class="brutal-gateway-card__header">
+          <h2>Technical Debt Cost Calculator</h2>
+        </div>
+        <ul class="brutal-gateway-card__features">
+          <li>
+            <DeltaIcon class="bullet-icon" />Quantify the annual carrying cost of technical debt
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Input team size, salary, maintenance burden, and
+            delivery metrics
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Produce defensible estimates for PE diligence
+            conversations
+          </li>
+        </ul>
+        <a
+          href="/hub/tools/tech-debt-calculator"
+          class="cta-button primary brutal-gateway-card__cta">Launch Tool</a
+        >
+      </article>
+
+      <article class="brutal-gateway-card brutal-frosted">
+        <div class="brutal-gateway-card__header">
+          <h2>Infrastructure Cost Governance</h2>
+        </div>
+        <ul class="brutal-gateway-card__features">
+          <li>
+            <DeltaIcon class="bullet-icon" />Maturity assessment across six cloud cost management
+            domains
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Scored diagnostic with benchmarks for PE diligence and
+            board reviews
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Prioritized improvement checklist with shareable
+            results
+          </li>
+        </ul>
+        <a
+          href="/hub/tools/infrastructure-cost-governance"
+          class="cta-button primary brutal-gateway-card__cta">Launch Tool</a
+        >
+      </article>
+
+      <article class="brutal-gateway-card brutal-frosted">
+        <div class="brutal-gateway-card__header">
+          <h2>TechPar</h2>
+        </div>
+        <ul class="brutal-gateway-card__features">
+          <li>
+            <DeltaIcon class="bullet-icon" />Benchmark total technology cost against stage-adjusted
+            ranges from published SaaS research
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Compute blended cost ratio across infrastructure,
+            personnel, and R&D spend
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />36-month trajectory projection for IC packages, board
+            reporting, and sell-side preparation
+          </li>
+        </ul>
+        <a href="/hub/tools/techpar" class="cta-button primary brutal-gateway-card__cta"
+          >Launch Tool</a
+        >
+      </article>
+
+      {
+        isDev && (
+          <>
+            <article class="brutal-gateway-card">
+              <div class="brutal-gateway-card__header">
+                <h2>Acquisition Integration Priority Matrix</h2>
+              </div>
+              <ul class="brutal-gateway-card__features">
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Map tech stacks of two merging companies via drag-and-drop
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Red-Yellow-Green compatibility report identifies friction points
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Reveals Day 2 integration challenges before deal close
+                </li>
+              </ul>
+              <span class="brutal-gateway-card__badge">Planned</span>
+            </article>
+
+            <article class="brutal-gateway-card">
+              <div class="brutal-gateway-card__header">
+                <h2>The AI Readiness Assessment</h2>
+              </div>
+              <ul class="brutal-gateway-card__features">
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Evaluates documentation, test coverage, and architectural modularity
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  "Vibe-Ready" score determines AI-agent refactoring feasibility
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Signals expertise in modern AI-augmented development workflows
+                </li>
+              </ul>
+              <span class="brutal-gateway-card__badge">Planned</span>
+            </article>
+
+            <article class="brutal-gateway-card">
+              <div class="brutal-gateway-card__header">
+                <h2>Security & Compliance "Gap Finder"</h2>
+              </div>
+              <ul class="brutal-gateway-card__features">
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Industry-tailored checklist: SOC2, HIPAA, GDPR, PCI-DSS
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Radar chart visualizes security and compliance gaps
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  De-risks exits and funding rounds with compliance readiness
+                </li>
+              </ul>
+              <span class="brutal-gateway-card__badge">Planned</span>
+            </article>
+
+            <article class="brutal-gateway-card">
+              <div class="brutal-gateway-card__header">
+                <h2>Technical Diligence Questionnaire</h2>
+              </div>
+              <ul class="brutal-gateway-card__features">
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Structured questionnaire covering architecture, security, operations, and team
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Tailored to target profile: stage, industry, and deal context
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Exportable questionnaire package for target company distribution
+                </li>
+              </ul>
+              <span class="brutal-gateway-card__badge">Planned</span>
+            </article>
+
+            <article class="brutal-gateway-card">
+              <div class="brutal-gateway-card__header">
+                <h2>Information Request List (IRL) Generator</h2>
+              </div>
+              <ul class="brutal-gateway-card__features">
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Generate a comprehensive document and data request list for technical diligence
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Categorized by domain: infrastructure, codebase, security, compliance, team
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Priority-ranked with expected delivery formats and responsible parties
+                </li>
+              </ul>
+              <span class="brutal-gateway-card__badge">Planned</span>
+            </article>
+
+            <article class="brutal-gateway-card">
+              <div class="brutal-gateway-card__header">
+                <h2>Diligence Discovery Agenda Creator</h2>
+              </div>
+              <ul class="brutal-gateway-card__features">
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Transforms Diligence Machine output into a structured meeting agenda
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Time-boxed sessions with assigned topics, owners, and key questions
+                </li>
+                <li>
+                  <DeltaIcon class="bullet-icon" />
+                  Exportable agenda for distribution to deal teams and target management
+                </li>
+              </ul>
+              <span class="brutal-gateway-card__badge">Planned</span>
+            </article>
+          </>
+        )
+      }
+
+      <a href="/hub" class="cta-button secondary">Return to Hub</a>
+    </div>
+  </section>
 </BaseLayout>
 
 <style>
-    .tools-section {
-        padding-bottom: var(--spacing-3xl);
-    }
+  .tools-section {
+    padding-bottom: var(--spacing-3xl);
+  }
 </style>
