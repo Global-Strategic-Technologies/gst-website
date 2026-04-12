@@ -625,12 +625,6 @@ test(monitoring): add Sentry instrumentation verification tests
 docs(monitoring): update hardening plan and developer tooling for Phase 7
 ```
 
-### Follow-Up Tasks
-
-- **Sentry alert rule configuration** — deferred per user request; see Phase 7 manual setup docs for recommended rules
-- **Source map upload** — add `SENTRY_AUTH_TOKEN` to Vercel when first real error needs stack trace debugging
-- **Consent gating** — deferred to BUSINESS_ENABLEMENT_V1.md
-
 ### Success Criteria
 
 - Client-side JavaScript errors surfaced in Sentry dashboard ✓
@@ -836,6 +830,21 @@ Items are added here as they're discovered. Each entry should link back to the d
     - **Files**: [src/pages/hub/tools/diligence-machine/index.astro](../../pages/hub/tools/diligence-machine/index.astro)
     - **Effort**: ~10 min
     - **Context**: Build warns that `diligence-engine.ts` is both statically and dynamically imported by the same file. Consolidate to one import style.
+
+14. **Configure Sentry alert rules**
+    - **Files**: Sentry dashboard (no code changes)
+    - **Effort**: ~15 min
+    - **Context**: Phase 7 deferred alert rule setup. Recommended rules: "New issue" → email, "10+ events/hour on tool pages" → email, "Any event with area:inoreader-api" → email, "Any event with area:redis-connection" → email. See Phase 7 manual setup docs for details.
+
+15. **Enable Sentry source map upload**
+    - **Files**: Vercel environment variables (add `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`)
+    - **Effort**: ~10 min
+    - **Context**: Phase 7 wired up the `sourceMapsUploadOptions` config slot in `astro.config.mjs` but left it disabled (`enabled: !!process.env.SENTRY_AUTH_TOKEN`). Adding the auth token to Vercel activates readable stack traces in Sentry. Generate an auth token at sentry.io → Settings → Auth Tokens.
+
+16. **Evaluate Sentry consent gating**
+    - **Files**: `sentry.client.config.ts`, cookie consent integration
+    - **Effort**: ~2-4 hours (depends on consent banner implementation)
+    - **Context**: Phase 7 runs Sentry under legitimate-interest basis (error monitoring, not user tracking). The follow-on [BUSINESS_ENABLEMENT_V1.md](./BUSINESS_ENABLEMENT_V1.md) initiative will ship a cookie consent banner — at that point, evaluate whether to additionally gate Sentry on consent or keep it under legitimate interest. Error-only replay (`replaysOnErrorSampleRate: 1.0`) is the main consideration; pure error capture is generally accepted as legitimate interest under GDPR.
 
 <!-- Add new items below as Phase 2-8 work uncovers them. Use the same format. -->
 
