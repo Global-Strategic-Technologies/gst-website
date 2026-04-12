@@ -1,5 +1,14 @@
 ---
 import type { Project } from '../../types/portfolio';
+import {
+  getGrowthStageProjects,
+  getMatureStageProjects,
+  getUniqueEngagementTypes,
+  getUniqueThemes,
+  getUniqueYears,
+  isValueCreationEngagement,
+  isTechnicalDiligenceEngagement,
+} from '../../utils/filterLogic';
 
 interface Props {
   portfolioType?: string;
@@ -10,55 +19,18 @@ const { portfolioType = 'standard', projects = [] } = Astro.props;
 
 const title = portfolioType === 'ma' ? 'PORTFOLIO M&A ENGAGEMENTS' : 'CLIENT ENGAGEMENTS';
 
-// Extract unique values for filters
-const uniqueThemes = [...new Set(projects.map((p) => p.theme))].sort();
-const uniqueYears = [...new Set(projects.map((p) => p.year))].sort((a, b) => b - a);
+// Filter option lists — all derived via the centralized filterLogic module
+// so keyword/category definitions stay in one place (previously duplicated
+// here and in src/utils/filterLogic.ts).
+const uniqueThemes = getUniqueThemes(projects);
+const uniqueYears = getUniqueYears(projects);
+const growthStages = getGrowthStageProjects(projects);
+const matureStages = getMatureStageProjects(projects);
 
-// Categorize growth stages
-const growthKeywords = ['growth', 'expansion', 'small', 'scaling', 'scale-up', 'startup', 'early'];
-const matureKeywords = [
-  'mature',
-  'maturity',
-  'established',
-  'developed',
-  'legacy',
-  'modernizing',
-  'enterprise',
-];
-
-const uniqueStages = [...new Set(projects.map((p) => p.growthStage))];
-const growthStages = uniqueStages
-  .filter((s) => growthKeywords.some((k) => s.toLowerCase().includes(k)))
-  .sort();
-const matureStages = uniqueStages
-  .filter((s) => matureKeywords.some((k) => s.toLowerCase().includes(k)))
-  .sort();
-
-// Categorize engagement types
-const valueCreationTypes = [
-  'Value Creation - Growth',
-  'Value Creation - Integration',
-  'Value Creation - Modernization',
-  'Value Creation - Turnaround',
-];
-const technicalDiligenceTypes = [
-  'Early Stage Assessment',
-  'Technical Assessment',
-  'Buy-Side Technical Diligence',
-];
-
-const uniqueEngagementTypes = [
-  ...new Set(
-    projects
-      .map((p) => p.engagementType)
-      .filter((e): e is Exclude<typeof e, undefined> => e !== undefined)
-  ),
-].sort();
-const valueCreationEngagements = uniqueEngagementTypes
-  .filter((e) => valueCreationTypes.includes(e))
-  .sort();
+const uniqueEngagementTypes = getUniqueEngagementTypes(projects);
+const valueCreationEngagements = uniqueEngagementTypes.filter(isValueCreationEngagement).sort();
 const technicalDiligenceEngagements = uniqueEngagementTypes
-  .filter((e) => technicalDiligenceTypes.includes(e))
+  .filter(isTechnicalDiligenceEngagement)
   .sort();
 ---
 
@@ -690,24 +662,14 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
       // Year filter
       if (filters.year !== 'all' && project.year.toString() !== filters.year) return false;
 
-      // Engagement type filter - categorized by type
+      // Engagement type filter — uses `valueCreationList` / `technicalDiligenceList`
+      // passed via define:vars from the frontmatter, which are derived from the
+      // centralized filterLogic categorization. No inline arrays to drift.
       if (filters.engagement !== 'all') {
-        const valueCreationTypes = [
-          'Value Creation - Growth',
-          'Value Creation - Integration',
-          'Value Creation - Modernization',
-          'Value Creation - Turnaround',
-        ];
-        const technicalDiligenceTypes = [
-          'Early Stage Assessment',
-          'Technical Assessment',
-          'Buy-Side Technical Diligence',
-        ];
-
         if (filters.engagement === 'value-creation') {
-          if (!valueCreationTypes.includes(project.engagementType)) return false;
+          if (!valueCreationList.includes(project.engagementType)) return false;
         } else if (filters.engagement === 'technical-diligence') {
-          if (!technicalDiligenceTypes.includes(project.engagementType)) return false;
+          if (!technicalDiligenceList.includes(project.engagementType)) return false;
         }
       }
 
