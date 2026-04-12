@@ -487,62 +487,76 @@ test.describe('TechPar - EEAT enhancements', () => {
 
 test.describe('TechPar - Regression', () => {
   test('infrastructure value is stable across annual-mode page reload', async ({ page }) => {
+    // 1. Setup — populate inputs
     await gotoTool(page);
     await selectStage(page);
     await fillInput(page, 'arr', '10000000');
     await clickTab(page, 'costs');
-
-    // Switch to annual period and enter a value
     await page.click('[data-infra-period="annual"]');
     await fillInput(page, 'infra', '1200000');
 
-    // Wait for URL state to persist
-    await page.waitForTimeout(500);
-    const urlBefore = page.url();
-    const paramsBefore = new URL(urlBefore).searchParams;
-    const hBefore = paramsBefore.get('h');
+    // 2. Wait for URL state to stabilise (debounced localStorage write)
+    await page.waitForFunction(() => new URL(window.location.href).searchParams.has('h'), {
+      timeout: 5000,
+    });
+    const hBefore = new URL(page.url()).searchParams.get('h');
+    expect(hBefore).toBeTruthy();
 
-    // Reload the page and check the value is unchanged
+    // 3. Reload and wait for hydration to complete
     await page.reload();
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForSelector('[data-panel="profile"]', { timeout: 5000 });
-    await page.waitForTimeout(500);
+    await page.waitForFunction(() => new URL(window.location.href).searchParams.has('h'), {
+      timeout: 5000,
+    });
 
-    const urlAfter = page.url();
-    const paramsAfter = new URL(urlAfter).searchParams;
-    const hAfter = paramsAfter.get('h');
-
+    // 4. Verify URL param is unchanged (no double-conversion)
+    const hAfter = new URL(page.url()).searchParams.get('h');
     expect(hAfter).toBe(hBefore);
 
-    // Verify the DOM input also matches
-    const infraValue = await page.locator('[data-input="infra"]').inputValue();
-    expect(parseFloat(infraValue)).toBeCloseTo(1200000, 0);
+    // 5. Verify the DOM input reflects the original value
+    await expect(page.locator('[data-input="infra"]')).toHaveValue('1200000');
   });
 
   test('reset button clears all inputs after two-click confirmation', async ({ page }) => {
+    // 1. Setup — populate meaningful state
     await gotoTool(page);
     await selectStage(page);
     await fillInput(page, 'arr', '10000000');
     await clickTab(page, 'costs');
     await fillInput(page, 'infra', '50000');
 
-    // Verify state is populated
-    expect(page.url()).toContain('a=10000000');
+    // 2. Verify populated state before reset
+    await page.waitForFunction(() => new URL(window.location.href).searchParams.has('a'), {
+      timeout: 5000,
+    });
 
-    // First click — confirmation prompt
+    // 3. First click — confirmation prompt (no state change yet)
     const resetBtn = page.locator('[data-action="reset"]');
     await resetBtn.click();
     await expect(resetBtn).toContainText('Click again to reset');
 
-    // Second click — actual reset
+    // Verify state is still populated — first click must NOT reset
+    expect(new URL(page.url()).searchParams.has('a')).toBe(true);
+
+    // 4. Second click — actual reset
     await resetBtn.click();
 
-    // Should return to profile tab with clean URL
-    await expect(page.locator('[data-panel="profile"]')).toHaveClass(/tp-panel--active/);
-    expect(page.url()).not.toContain('a=10000000');
-    expect(page.url()).not.toContain('h=');
+    // 5. Wait for state to clear (URL params removed)
+    await page.waitForFunction(() => !new URL(window.location.href).searchParams.has('a'), {
+      timeout: 5000,
+    });
 
-    // Stage should be deselected
+    // 6. Verify behavioral outcomes
+    // Returns to profile tab
+    await expect(page.locator('[data-panel="profile"]')).toHaveClass(/tp-panel--active/);
+
+    // URL is clean
+    expect(new URL(page.url()).searchParams.has('h')).toBe(false);
+
+    // Stage cards are deselected
     await expect(page.locator('.tp-stage-card--active')).toHaveCount(0);
+
+    // ARR input is cleared
+    await expect(page.locator('#tp-arr')).toHaveValue('');
   });
 });
