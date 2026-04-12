@@ -1,4 +1,5 @@
 {
+  "plugins": ["stylelint-declaration-strict-value"],
   "extends": "stylelint-config-standard",
   "rules": {
     "import-notation": null,
@@ -26,7 +27,24 @@
     "declaration-empty-line-before": null,
     "custom-property-empty-line-before": null,
     "selector-pseudo-class-no-unknown": [true, { "ignorePseudoClasses": ["global"] }],
-    "at-rule-no-unknown": [true, { "ignoreAtRules": ["import", "layer"] }]
+    "at-rule-no-unknown": [true, { "ignoreAtRules": ["import", "layer"] }],
+    "scale-unlimited/declaration-strict-value": [
+      ["/color$/", "fill", "stroke", "background-color"],
+      {
+        "ignoreValues": [
+          "transparent",
+          "inherit",
+          "currentColor",
+          "currentcolor",
+          "none",
+          "unset",
+          "initial",
+          "0"
+        ],
+        "ignoreFunctions": true,
+        "severity": "warning"
+      }
+    ]
   },
   "overrides": [
     {
@@ -62,7 +80,24 @@
         "selector-max-compound-selectors": 4,
         "declaration-block-no-shorthand-property-overrides": true,
         "shorthand-property-no-redundant-values": true,
-        "declaration-block-no-redundant-longhand-properties": true
+        "declaration-block-no-redundant-longhand-properties": true,
+        "scale-unlimited/declaration-strict-value": [
+          ["/color$/", "fill", "stroke", "background-color"],
+          {
+            "ignoreValues": [
+              "transparent",
+              "inherit",
+              "currentColor",
+              "currentcolor",
+              "none",
+              "unset",
+              "initial",
+              "0"
+            ],
+            "ignoreFunctions": true,
+            "severity": "warning"
+          }
+        ]
       }
     }
   ],
