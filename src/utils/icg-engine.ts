@@ -43,36 +43,53 @@ export interface ICGResult {
   skippedCount: number;
 }
 
+// ─── Maturity thresholds ────────────────────────────────────────────────────
+
+/** Score ceilings for each maturity level (Reactive ≤ 25, Aware ≤ 50, Optimizing ≤ 75, Strategic > 75) */
+export const MATURITY_THRESHOLDS = {
+  reactive: 25,
+  aware: 50,
+  optimizing: 75,
+} as const;
+
+/** A foundational domain scoring at or below this value triggers the foundational-gap flag */
+export const FOUNDATIONAL_THRESHOLD = 33;
+
 // ─── Maturity level ──────────────────────────────────────────────────────────
 
-export function getMaturityLevel(score: number): { level: ICGResult['maturityLevel']; color: string } {
-  if (score <= 25) return { level: 'Reactive',   color: 'var(--color-error)' };
-  if (score <= 50) return { level: 'Aware',      color: 'var(--color-warning)' };
-  if (score <= 75) return { level: 'Optimizing', color: 'var(--color-success)' };
-  return                   { level: 'Strategic',  color: 'var(--color-primary)' };
+export function getMaturityLevel(score: number): {
+  level: ICGResult['maturityLevel'];
+  color: string;
+} {
+  if (score <= MATURITY_THRESHOLDS.reactive)
+    return { level: 'Reactive', color: 'var(--color-error)' };
+  if (score <= MATURITY_THRESHOLDS.aware) return { level: 'Aware', color: 'var(--color-warning)' };
+  if (score <= MATURITY_THRESHOLDS.optimizing)
+    return { level: 'Optimizing', color: 'var(--color-success)' };
+  return { level: 'Strategic', color: 'var(--color-primary)' };
 }
 
 // ─── Foundational flag ──────────────────────────────────────────────────────
 
 export function checkFoundationalFlag(domainScores: DomainScore[]): boolean {
-  return domainScores.some(d => d.isFoundational && d.score <= 33);
+  return domainScores.some((d) => d.isFoundational && d.score <= FOUNDATIONAL_THRESHOLD);
 }
 
 // ─── Recommendations ────────────────────────────────────────────────────────
 
 const IMPACT_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
-const EFFORT_ORDER: Record<string, number> = { 'quick-win': 0, 'project': 1, 'initiative': 2 };
+const EFFORT_ORDER: Record<string, number> = { 'quick-win': 0, project: 1, initiative: 2 };
 const DOMAIN_ORDER: Record<string, number> = { d1: 0, d2: 1, d3: 2, d4: 3, d5: 4, d6: 5 };
 
 export function getRecommendations(
   state: ICGState,
-  allRecs: readonly Recommendation[],
+  allRecs: readonly Recommendation[]
 ): Recommendation[] {
   return allRecs
-    .filter(r => {
+    .filter((r) => {
       const answer = state.answers[r.triggerQuestionId];
       // -1 ("Not sure") and undefined both treated as 0 for triggering
-      const effective = (answer === undefined || answer === -1) ? 0 : answer;
+      const effective = answer === undefined || answer === -1 ? 0 : answer;
       return effective <= r.triggerThreshold;
     })
     .sort((a, b) => {
@@ -89,9 +106,9 @@ export function getRecommendations(
 export function calculateResults(state: ICGState, domains: readonly Domain[]): ICGResult {
   const totalQuestions = domains.reduce((sum, d) => sum + d.questions.length, 0);
 
-  const domainScores: DomainScore[] = domains.map(d => {
+  const domainScores: DomainScore[] = domains.map((d) => {
     const maxScore = d.questions.length * 3;
-    const skippedCount = d.questions.filter(q => state.answers[q.id] === -1).length;
+    const skippedCount = d.questions.filter((q) => state.answers[q.id] === -1).length;
     // -1 ("Not sure") scores as -1 — ignorance is worse than known absence (0)
     // Unanswered questions default to 0; "Not sure" actively penalizes
     const rawScore = d.questions.reduce((sum, q) => {
@@ -106,13 +123,13 @@ export function calculateResults(state: ICGState, domains: readonly Domain[]): I
       rawScore,
       maxScore,
       isFoundational: d.foundational,
-      belowFoundationalThreshold: d.foundational && score <= 33,
+      belowFoundationalThreshold: d.foundational && score <= FOUNDATIONAL_THRESHOLD,
       skippedCount,
     };
   });
 
   const answeredCount = Object.keys(state.answers).length;
-  const skippedCount = Object.values(state.answers).filter(v => v === -1).length;
+  const skippedCount = Object.values(state.answers).filter((v) => v === -1).length;
 
   const totalWeight = domains.reduce((sum, d) => sum + d.weight, 0);
   const weightedSum = domainScores.reduce((sum, ds, i) => {
@@ -205,7 +222,7 @@ export function buildSummaryText(
   result: ICGResult,
   domains: readonly Domain[],
   recs: readonly Recommendation[],
-  url?: string,
+  url?: string
 ): string {
   const date = new Date().toISOString().slice(0, 10);
   const { level } = getMaturityLevel(result.overallScore);
@@ -224,8 +241,8 @@ export function buildSummaryText(
 
   if (result.showFoundationalFlag) {
     const belowNames = result.domainScores
-      .filter(ds => ds.isFoundational && ds.belowFoundationalThreshold)
-      .map(ds => ds.name);
+      .filter((ds) => ds.isFoundational && ds.belowFoundationalThreshold)
+      .map((ds) => ds.name);
     lines.push(`⚠ Foundational gap: ${belowNames.join(' and ')} scored below threshold`);
   }
 
@@ -262,13 +279,19 @@ export interface ICGExport {
   totalQuestions: number;
   skippedCount: number;
   answers: Record<string, number>;
-  recommendations: Array<{ id: string; title: string; impact: string; effort: string; domain: string }>;
+  recommendations: Array<{
+    id: string;
+    title: string;
+    impact: string;
+    effort: string;
+    domain: string;
+  }>;
 }
 
 export function buildExportPayload(
   state: ICGState,
   result: ICGResult,
-  recs: readonly Recommendation[],
+  recs: readonly Recommendation[]
 ): ICGExport {
   return {
     exportedAt: new Date().toISOString(),
@@ -281,7 +304,7 @@ export function buildExportPayload(
     totalQuestions: result.totalQuestions,
     skippedCount: result.skippedCount,
     answers: { ...state.answers },
-    recommendations: recs.map(r => ({
+    recommendations: recs.map((r) => ({
       id: r.id,
       title: r.title,
       impact: r.impact,
@@ -293,13 +316,8 @@ export function buildExportPayload(
 
 // ─── Quick wins ─────────────────────────────────────────────────────────────
 
-export function getQuickWins(
-  recs: readonly Recommendation[],
-  limit = 3,
-): Recommendation[] {
-  return recs
-    .filter(r => r.impact === 'high' && r.effort === 'quick-win')
-    .slice(0, limit);
+export function getQuickWins(recs: readonly Recommendation[], limit = 3): Recommendation[] {
+  return recs.filter((r) => r.impact === 'high' && r.effort === 'quick-win').slice(0, limit);
 }
 
 // ─── Benchmark contextualization ────────────────────────────────────────────
@@ -320,15 +338,17 @@ export const BENCHMARK_RANGES: readonly BenchmarkRange[] = [
 
 /** Return the first benchmark range that contains the given score, or null. */
 export function findMatchingRange(score: number): BenchmarkRange | null {
-  return BENCHMARK_RANGES.find(r => score >= r.low && score <= r.high) ?? null;
+  return BENCHMARK_RANGES.find((r) => score >= r.low && score <= r.high) ?? null;
 }
 
 export function contextualizeScore(score: number, stage?: CompanyStage): string | null {
   if (!stage) return null;
-  const range = BENCHMARK_RANGES.find(r => r.stageKey === stage);
+  const range = BENCHMARK_RANGES.find((r) => r.stageKey === stage);
   if (!range) return null;
-  if (score < range.low) return `Your score of ${score} is below the typical range for ${range.label} companies (${range.low}\u2013${range.high})`;
-  if (score > range.high) return `Your score of ${score} is above the typical range for ${range.label} companies (${range.low}\u2013${range.high})`;
+  if (score < range.low)
+    return `Your score of ${score} is below the typical range for ${range.label} companies (${range.low}\u2013${range.high})`;
+  if (score > range.high)
+    return `Your score of ${score} is above the typical range for ${range.label} companies (${range.low}\u2013${range.high})`;
   return `Your score of ${score} is within the typical range for ${range.label} companies (${range.low}\u2013${range.high})`;
 }
 
@@ -345,13 +365,19 @@ export interface ICGComparison {
   a: { label: string; overallScore: number; maturityLevel: string };
   b: { label: string; overallScore: number; maturityLevel: string };
   overallDelta: number;
-  domainDeltas: Array<{ domainId: string; name: string; scoreA: number; scoreB: number; delta: number }>;
+  domainDeltas: Array<{
+    domainId: string;
+    name: string;
+    scoreA: number;
+    scoreB: number;
+    delta: number;
+  }>;
 }
 
 export function compareSnapshots(
   snapshotA: ICGSnapshot,
   snapshotB: ICGSnapshot,
-  domains: readonly Domain[],
+  domains: readonly Domain[]
 ): ICGComparison | null {
   const stateA = decodeState(snapshotA.encodedState);
   const stateB = decodeState(snapshotB.encodedState);
@@ -364,8 +390,16 @@ export function compareSnapshots(
   const resultB = calculateResults(fullB, domains);
 
   return {
-    a: { label: snapshotA.label, overallScore: resultA.overallScore, maturityLevel: resultA.maturityLevel },
-    b: { label: snapshotB.label, overallScore: resultB.overallScore, maturityLevel: resultB.maturityLevel },
+    a: {
+      label: snapshotA.label,
+      overallScore: resultA.overallScore,
+      maturityLevel: resultA.maturityLevel,
+    },
+    b: {
+      label: snapshotB.label,
+      overallScore: resultB.overallScore,
+      maturityLevel: resultB.maturityLevel,
+    },
     overallDelta: resultB.overallScore - resultA.overallScore,
     domainDeltas: resultA.domainScores.map((dsA, i) => ({
       domainId: dsA.domainId,
@@ -388,15 +422,17 @@ export function buildRadarPoints(
   domainScores: ReadonlyArray<Pick<DomainScore, 'name' | 'score'>>,
   cx: number,
   cy: number,
-  radius: number,
+  radius: number
 ): string {
-  return domainScores.map((ds, i) => {
-    const angle = (Math.PI * 2 * i) / domainScores.length - Math.PI / 2;
-    const r = (ds.score / 100) * radius;
-    const x = cx + r * Math.cos(angle);
-    const y = cy + r * Math.sin(angle);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
+  return domainScores
+    .map((ds, i) => {
+      const angle = (Math.PI * 2 * i) / domainScores.length - Math.PI / 2;
+      const r = (ds.score / 100) * radius;
+      const x = cx + r * Math.cos(angle);
+      const y = cy + r * Math.sin(angle);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
 }
 
 // ─── Default initial state ──────────────────────────────────────────────────
