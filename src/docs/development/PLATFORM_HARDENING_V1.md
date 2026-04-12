@@ -817,10 +817,7 @@ Items are added here as they're discovered. Each entry should link back to the d
       - **(c) Hybrid**: Workflow triggers on all branches (option a), but only `master` branch ruleset blocks merge. Feature branch CI is advisory (failures visible but non-blocking).
     - **Recommendation**: Option (c) — maximum visibility, minimum friction. Developers see CI status on every push without being blocked on WIP branches.
 
-12. **Fix tsconfig.json `baseUrl` deprecation warning**
-    - **Files**: [tsconfig.json](../../../tsconfig.json)
-    - **Effort**: ~10 min
-    - **Context**: TypeScript 5.9 warns that `baseUrl` is deprecated and will stop functioning in TS 7.0. The project uses `baseUrl: "."` to enable the `@/*` path alias (used in 14 test files). Modern TS supports `paths` without `baseUrl`. Fix: remove `baseUrl`, update `paths` to use relative project references, and verify all 14 test file imports still resolve.
+12. ~~**Fix tsconfig.json `baseUrl` deprecation warning**~~ — **Done** (Phase 6). Removed `baseUrl`, updated `paths` to `"./src/*"`.
 
 13. **Fix Vite dual-import warning for diligence-engine.ts**
     - **Files**: [src/pages/hub/tools/diligence-machine/index.astro](../../pages/hub/tools/diligence-machine/index.astro)
