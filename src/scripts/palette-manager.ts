@@ -5,6 +5,7 @@
 
 import { PALETTE_NAMES, PALETTE_CONCEPTS, TOKEN_TIPS } from '../data/palettes';
 import { rgbToHex, hexToRgb, parseAlpha } from '../utils/palette-utils';
+import * as Sentry from '@sentry/browser';
 
 // ── Read & Populate ────────────────────────────────────────
 
@@ -12,7 +13,7 @@ function readAndPopulate(): void {
   const root = document.documentElement;
   const style = getComputedStyle(root);
 
-  document.querySelectorAll<HTMLElement>('.brand-swatch').forEach(el => {
+  document.querySelectorAll<HTMLElement>('.brand-swatch').forEach((el) => {
     const varName = el.dataset.var;
     if (!varName) return;
     if (el.dataset.userOverride === 'true') return;
@@ -46,7 +47,7 @@ function readAndPopulate(): void {
   });
 
   // Brand-page-only elements (guarded — no-op on other pages)
-  document.querySelectorAll<HTMLElement>('.brand-spacing-row').forEach(el => {
+  document.querySelectorAll<HTMLElement>('.brand-spacing-row').forEach((el) => {
     const varName = el.dataset.var;
     if (!varName) return;
     const raw = style.getPropertyValue(varName).trim();
@@ -54,13 +55,13 @@ function readAndPopulate(): void {
     if (valueEl) valueEl.textContent = raw;
   });
 
-  document.querySelectorAll<HTMLElement>('.brand-shadow-value').forEach(el => {
+  document.querySelectorAll<HTMLElement>('.brand-shadow-value').forEach((el) => {
     const varName = el.dataset.var;
     if (!varName) return;
     el.textContent = style.getPropertyValue(varName).trim();
   });
 
-  document.querySelectorAll<HTMLElement>('.brand-transition-value').forEach(el => {
+  document.querySelectorAll<HTMLElement>('.brand-transition-value').forEach((el) => {
     const varName = el.dataset.var;
     if (!varName) return;
     el.textContent = style.getPropertyValue(varName).trim();
@@ -69,7 +70,7 @@ function readAndPopulate(): void {
   const fontStackEl = document.querySelector<HTMLElement>('.brand-font-stack');
   if (fontStackEl) fontStackEl.textContent = style.getPropertyValue('--font-family').trim();
 
-  document.querySelectorAll<HTMLElement>('.brand-type-specimen').forEach(el => {
+  document.querySelectorAll<HTMLElement>('.brand-type-specimen').forEach((el) => {
     const specimen = el.querySelector<HTMLElement>('[data-specimen]');
     if (!specimen) return;
     const metaEl = el.querySelector('.brand-type-meta');
@@ -122,14 +123,18 @@ function applyColor(swatch: HTMLElement, hex: string, alpha?: number) {
     sliderB.value = String(rgb[2]);
   }
   if (sliderA && alpha !== undefined) sliderA.value = String(Math.round(alpha * 100));
-  if (alphaDisplay && alpha !== undefined) alphaDisplay.textContent = `@ ${Math.round(alpha * 100)}%`;
+  if (alphaDisplay && alpha !== undefined)
+    alphaDisplay.textContent = `@ ${Math.round(alpha * 100)}%`;
 
   swatch.dataset.userOverride = 'true';
 
   const varName = swatch.dataset.var;
   if (varName) {
     if (hasAlpha && rgb) {
-      document.documentElement.style.setProperty(varName, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`);
+      document.documentElement.style.setProperty(
+        varName,
+        `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`
+      );
     } else {
       document.documentElement.style.setProperty(varName, hex);
     }
@@ -139,7 +144,7 @@ function applyColor(swatch: HTMLElement, hex: string, alpha?: number) {
 // ── Inject Controls ────────────────────────────────────────
 
 function injectControls() {
-  document.querySelectorAll<HTMLElement>('.brand-swatch').forEach(el => {
+  document.querySelectorAll<HTMLElement>('.brand-swatch').forEach((el) => {
     if (el.querySelector('.swatch-controls')) return;
 
     const varName = el.dataset.var;
@@ -232,7 +237,9 @@ function injectControls() {
         const freshHex = rgbToHex(fresh);
         const freshAlpha = parseAlpha(fresh);
         const valueEl = el.querySelector('.brand-swatch__value');
-        if (valueEl) valueEl.textContent = freshAlpha < 1 ? `${freshHex} @ ${Math.round(freshAlpha * 100)}%` : freshHex;
+        if (valueEl)
+          valueEl.textContent =
+            freshAlpha < 1 ? `${freshHex} @ ${Math.round(freshAlpha * 100)}%` : freshHex;
         if (picker) picker.value = freshHex === 'transparent' ? '#000000' : freshHex;
         if (hexInput) hexInput.value = freshHex;
         const freshRgb = hexToRgb(freshHex);
@@ -257,7 +264,11 @@ function switchPalette(id: number) {
   html.classList.add(`palette-${id}`);
 
   // Persist
-  try { localStorage.setItem('palette', String(id)); } catch { /* ignore — localStorage unavailable */ }
+  try {
+    localStorage.setItem('palette', String(id));
+  } catch (e) {
+    Sentry.captureException(e, { tags: { area: 'palette-manager' } });
+  }
 
   // Update brand-page-specific UI (no-op on other pages)
   const conceptEl = document.getElementById('palette-concept');
@@ -266,7 +277,7 @@ function switchPalette(id: number) {
   if (nameEl) nameEl.textContent = PALETTE_NAMES[id] || '';
 
   // Update tab active state
-  document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach(tab => {
+  document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach((tab) => {
     const tabId = parseInt(tab.dataset.palette || '0');
     tab.classList.toggle('palette-panel__tab--active', tabId === id);
   });
@@ -278,7 +289,7 @@ function resetAllOverrides() {
   // Clear inline style overrides from <html>
   const html = document.documentElement;
   // Only remove color-related inline styles, preserve other attributes
-  document.querySelectorAll<HTMLElement>('.brand-swatch').forEach(el => {
+  document.querySelectorAll<HTMLElement>('.brand-swatch').forEach((el) => {
     const varName = el.dataset.var;
     if (varName) html.style.removeProperty(varName);
     delete el.dataset.userOverride;
@@ -311,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
   readAndPopulate();
 
   // Palette tab switching
-  document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach(tab => {
+  document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach((tab) => {
     tab.addEventListener('click', () => {
       const id = parseInt(tab.dataset.palette || '0');
       themeObserverPaused = true;
@@ -346,7 +357,11 @@ document.addEventListener('DOMContentLoaded', () => {
       themeObserverPaused = true;
       document.documentElement.classList.toggle('dark-theme');
       const isDark = document.documentElement.classList.contains('dark-theme');
-      try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch { /* ignore — localStorage unavailable */ }
+      try {
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      } catch (e) {
+        Sentry.captureException(e, { tags: { area: 'palette-manager' } });
+      }
       themeObserverPaused = false;
       resetAllOverrides();
     });
@@ -367,7 +382,9 @@ document.addEventListener('DOMContentLoaded', () => {
       popoutBtn.classList.toggle('is-active');
       try {
         localStorage.setItem('palette-popped-out', wasPopped ? 'false' : 'true');
-      } catch { /* ignore — localStorage unavailable */ }
+      } catch (e) {
+        Sentry.captureException(e, { tags: { area: 'palette-manager' } });
+      }
     });
   }
 
@@ -409,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentPalette = document.documentElement.className.match(/palette-(\d)/);
   if (currentPalette) {
     const id = parseInt(currentPalette[1]);
-    document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach(tab => {
+    document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach((tab) => {
       const tabId = parseInt(tab.dataset.palette || '0');
       tab.classList.toggle('palette-panel__tab--active', tabId === id);
     });
