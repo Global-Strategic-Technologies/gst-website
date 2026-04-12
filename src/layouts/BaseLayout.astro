@@ -76,9 +76,10 @@ const isHomepage = currentPath === '/' || currentPath === '';
     <meta name="theme-color" content="#05cd99" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#05cd99" media="(prefers-color-scheme: dark)" />
 
-    <!-- Preconnect to Google Analytics to reduce critical path latency -->
+    <!-- Preconnect to third-party origins to reduce critical path latency -->
     <link rel="preconnect" href="https://www.googletagmanager.com" />
     <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+    <link rel="preconnect" href="https://calendly.com" />
 
     <!-- Initialize theme synchronously to prevent FOUC and race conditions in E2E tests -->
     <script is:inline>
