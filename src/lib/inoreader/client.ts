@@ -13,6 +13,7 @@
 
 import type { InoreaderStreamResponse, InoreaderItem } from './types';
 import { buildCacheKey, getCachedResponse, setCachedResponse } from './cache';
+import * as Sentry from '@sentry/node';
 
 const API_BASE = 'https://www.inoreader.com/reader/api/0';
 const OAUTH_BASE = 'https://www.inoreader.com/oauth2';
@@ -26,7 +27,10 @@ const KV_ACCESS_TOKEN_KEY = 'inoreader:access_token';
 const KV_REFRESH_TOKEN_KEY = 'inoreader:refresh_token';
 const KV_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
-type RedisStore = { get: <T>(key: string) => Promise<T | null>; set: (key: string, value: unknown, opts?: { ex?: number }) => Promise<unknown> };
+type RedisStore = {
+  get: <T>(key: string) => Promise<T | null>;
+  set: (key: string, value: unknown, opts?: { ex?: number }) => Promise<unknown>;
+};
 let _redisInstance: RedisStore | null | undefined; // undefined = not yet attempted
 
 async function getRedis(): Promise<RedisStore | null> {
@@ -41,13 +45,17 @@ async function getRedis(): Promise<RedisStore | null> {
     }
     _redisInstance = new Redis({ url, token }) as unknown as RedisStore;
     return _redisInstance;
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error, { tags: { area: 'redis-connection' } });
     _redisInstance = null;
     return null;
   }
 }
 
-async function loadTokensFromKV(): Promise<{ accessToken: string | null; refreshToken: string | null }> {
+async function loadTokensFromKV(): Promise<{
+  accessToken: string | null;
+  refreshToken: string | null;
+}> {
   try {
     const store = await getRedis();
     if (!store) return { accessToken: null, refreshToken: null };
@@ -61,6 +69,7 @@ async function loadTokensFromKV(): Promise<{ accessToken: string | null; refresh
     return { accessToken, refreshToken };
   } catch (error) {
     console.warn(`[Radar] KV read failed, falling back to env vars: ${(error as Error).message}`);
+    Sentry.captureException(error, { tags: { area: 'redis-connection' } });
     return { accessToken: null, refreshToken: null };
   }
 }
@@ -76,6 +85,7 @@ async function saveTokensToKV(accessToken: string, refreshToken: string): Promis
     console.log('[Radar] Tokens persisted to KV store');
   } catch (error) {
     console.warn(`[Radar] KV write failed (non-fatal): ${(error as Error).message}`);
+    Sentry.captureException(error, { tags: { area: 'redis-connection' } });
   }
 }
 
@@ -127,7 +137,7 @@ async function getConfig(): Promise<ClientConfig> {
   if (!appId || !appKey || !accessToken) {
     throw new Error(
       'Inoreader credentials not configured. ' +
-      'Set INOREADER_APP_ID, INOREADER_APP_KEY, and INOREADER_ACCESS_TOKEN.'
+        'Set INOREADER_APP_ID, INOREADER_APP_KEY, and INOREADER_ACCESS_TOKEN.'
     );
   }
 
@@ -136,10 +146,10 @@ async function getConfig(): Promise<ClientConfig> {
 
 function buildHeaders(config: ClientConfig): Record<string, string> {
   return {
-    'Authorization': `Bearer ${config.accessToken}`,
-    'AppId': config.appId,
-    'AppKey': config.appKey,
-    'Accept': 'application/json',
+    Authorization: `Bearer ${config.accessToken}`,
+    AppId: config.appId,
+    AppKey: config.appKey,
+    Accept: 'application/json',
   };
 }
 
@@ -168,6 +178,10 @@ async function refreshAccessToken(config: ClientConfig): Promise<string | null> 
 
     if (!response.ok) {
       console.error(`[Radar] Token refresh failed: ${response.status}`);
+      Sentry.captureMessage(`Inoreader token refresh failed: ${response.status}`, {
+        level: 'error',
+        tags: { area: 'inoreader-api' },
+      });
       return null;
     }
 
@@ -186,6 +200,7 @@ async function refreshAccessToken(config: ClientConfig): Promise<string | null> 
     return newAccessToken;
   } catch (error) {
     console.error(`[Radar] Token refresh request failed: ${(error as Error).message}`);
+    Sentry.captureException(error, { tags: { area: 'inoreader-api' } });
     return null;
   }
 }
@@ -209,9 +224,19 @@ async function authenticatedFetch(url: string, config: ClientConfig): Promise<Re
       refreshedAccessToken = newToken;
       const updatedConfig = { ...config, accessToken: newToken };
 
-      const retryResponse = await fetch(url, { headers: buildHeaders(updatedConfig), signal: controller.signal });
+      const retryResponse = await fetch(url, {
+        headers: buildHeaders(updatedConfig),
+        signal: controller.signal,
+      });
       if (!retryResponse.ok) {
         console.error(`[Radar] Request failed after token refresh: ${retryResponse.status}`);
+        Sentry.captureMessage(
+          `Inoreader request failed after token refresh: ${retryResponse.status}`,
+          {
+            level: 'error',
+            tags: { area: 'inoreader-api' },
+          }
+        );
         return null;
       }
       return retryResponse;
@@ -229,7 +254,7 @@ async function authenticatedFetch(url: string, config: ClientConfig): Promise<Re
  */
 export async function fetchAnnotatedItems(
   count: number = 30,
-  configOverride?: ClientConfig,
+  configOverride?: ClientConfig
 ): Promise<InoreaderStreamResponse | null> {
   const useCache = import.meta.env.DEV && !configOverride;
   const cacheKey = useCache ? buildCacheKey('fetchAnnotatedItems', count) : '';
@@ -241,14 +266,16 @@ export async function fetchAnnotatedItems(
     }
   }
 
-  const config = configOverride ?? await getConfig();
+  const config = configOverride ?? (await getConfig());
   const streamId = encodeURIComponent('user/-/state/com.google/annotated');
 
-  const url = `${API_BASE}/stream/contents/${streamId}?` + new URLSearchParams({
-    n: count.toString(),
-    annotations: '1',
-    output: 'json',
-  });
+  const url =
+    `${API_BASE}/stream/contents/${streamId}?` +
+    new URLSearchParams({
+      n: count.toString(),
+      annotations: '1',
+      output: 'json',
+    });
 
   try {
     const response = await authenticatedFetch(url, config);
@@ -268,6 +295,7 @@ export async function fetchAnnotatedItems(
     return data;
   } catch (error) {
     console.error(`[Radar] Inoreader request failed: ${(error as Error).message}`);
+    Sentry.captureException(error, { tags: { area: 'inoreader-api' } });
     return null;
   }
 }
@@ -279,7 +307,7 @@ export async function fetchAnnotatedItems(
 export async function fetchFolderStream(
   folderName: string,
   count: number = 20,
-  configOverride?: ClientConfig,
+  configOverride?: ClientConfig
 ): Promise<InoreaderStreamResponse | null> {
   const useCache = import.meta.env.DEV && !configOverride;
   const cacheKey = useCache ? buildCacheKey('fetchFolderStream', folderName, count) : '';
@@ -291,13 +319,15 @@ export async function fetchFolderStream(
     }
   }
 
-  const config = configOverride ?? await getConfig();
+  const config = configOverride ?? (await getConfig());
   const streamId = encodeURIComponent(`user/-/label/${folderName}`);
 
-  const url = `${API_BASE}/stream/contents/${streamId}?` + new URLSearchParams({
-    n: count.toString(),
-    output: 'json',
-  });
+  const url =
+    `${API_BASE}/stream/contents/${streamId}?` +
+    new URLSearchParams({
+      n: count.toString(),
+      output: 'json',
+    });
 
   try {
     const response = await authenticatedFetch(url, config);
@@ -317,6 +347,7 @@ export async function fetchFolderStream(
     return data;
   } catch (error) {
     console.error(`[Radar] Folder fetch failed: ${(error as Error).message}`);
+    Sentry.captureException(error, { tags: { area: 'inoreader-api' } });
     return null;
   }
 }
@@ -329,7 +360,7 @@ export async function fetchFolderStream(
 export async function fetchAllStreams(
   folderPrefix: string = 'GST-',
   countPerFolder: number = 15,
-  configOverride?: ClientConfig,
+  configOverride?: ClientConfig
 ): Promise<InoreaderStreamResponse | null> {
   const useCache = import.meta.env.DEV && !configOverride;
   const cacheKey = useCache ? buildCacheKey('fetchAllStreams', folderPrefix, countPerFolder) : '';
@@ -341,7 +372,7 @@ export async function fetchAllStreams(
     }
   }
 
-  const config = configOverride ?? await getConfig();
+  const config = configOverride ?? (await getConfig());
 
   const tagsUrl = `${API_BASE}/tag/list?output=json`;
 
@@ -401,6 +432,7 @@ export async function fetchAllStreams(
     return merged;
   } catch (error) {
     console.error(`[Radar] Stream fetch failed: ${(error as Error).message}`);
+    Sentry.captureException(error, { tags: { area: 'inoreader-api' } });
     return null;
   }
 }

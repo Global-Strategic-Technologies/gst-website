@@ -12,6 +12,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import * as Sentry from '@sentry/node';
 
 const CACHE_DIR = join(process.cwd(), '.cache', 'inoreader');
 const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -40,7 +41,8 @@ export function getCachedResponse<T>(cacheKey: string): T | null {
     }
 
     return entry.data;
-  } catch {
+  } catch (error) {
+    Sentry.captureException(error, { tags: { area: 'file-cache' } });
     return null;
   }
 }
@@ -54,12 +56,9 @@ export function setCachedResponse<T>(cacheKey: string, data: T): void {
       data,
     };
 
-    writeFileSync(
-      join(CACHE_DIR, `${cacheKey}.json`),
-      JSON.stringify(entry),
-      'utf-8',
-    );
+    writeFileSync(join(CACHE_DIR, `${cacheKey}.json`), JSON.stringify(entry), 'utf-8');
   } catch (error) {
     console.warn(`[Radar] Failed to write dev cache: ${(error as Error).message}`);
+    Sentry.captureException(error, { tags: { area: 'file-cache' } });
   }
 }
