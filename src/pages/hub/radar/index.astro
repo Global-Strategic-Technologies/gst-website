@@ -17,10 +17,10 @@ import RadarHeader from '../../../components/radar/RadarHeader.astro';
 import RadarFeed from '../../../components/radar/RadarFeed.astro';
 import RadarFeedSkeleton from '../../../components/radar/RadarFeedSkeleton.astro';
 import CategoryFilter from '../../../components/radar/CategoryFilter.astro';
+import PrintReportHeader from '../../../components/PrintReportHeader.astro';
 
 import { CATEGORIES } from '../../../lib/inoreader/transform';
 import { trackPageView } from '../../../utils/analytics';
-import DeltaIcon from '../../../components/DeltaIcon.astro';
 
 trackPageView('hub-radar', 'The Radar - Perspectives | GST');
 ---
@@ -32,15 +32,7 @@ trackPageView('hub-radar', 'The Radar - Perspectives | GST');
   ogDescription="Curated technology and M&A intelligence for PE investors and portfolio company leaders."
   ogImage="/og-image.png"
 >
-  <!-- Print-only report header (hidden on screen) -->
-  <div class="print-report-header" aria-hidden="true">
-    <div class="print-report-header__brand">
-      <DeltaIcon class="bullet-icon" />
-      <span>GST</span>
-    </div>
-    <div class="print-report-header__title">The Radar</div>
-    <div class="print-report-header__date">Generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-  </div>
+  <PrintReportHeader title="The Radar" />
 
   <div class="radar-container">
     <div class="container">

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
+import PrintReportHeader from '../../../../components/PrintReportHeader.astro';
 import { trackPageView } from '../../../../utils/analytics';
 import DeltaIcon from '../../../../components/DeltaIcon.astro';
 import TableOfContents from '../../../../components/TableOfContents.astro';
@@ -23,23 +24,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
         subtitle="How technology architecture choices cascade into business outcomes, and what every investor, executive, and board member should understand before the next deal."
       />
 
-      <!-- Print-only report header (hidden on screen) -->
-      <div class="print-report-header" aria-hidden="true">
-        <div class="print-report-header__brand">
-          <DeltaIcon class="bullet-icon" />
-          <span>GST</span>
-        </div>
-        <div class="print-report-header__title">Business & Technology Architectures</div>
-        <div class="print-report-header__date">
-          Generated {
-            new Date().toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })
-          }
-        </div>
-      </div>
+      <PrintReportHeader title="Business & Technology Architectures" />
 
       <blockquote class="arch-epigraph">
         <p>
@@ -209,7 +194,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     visible and most measurable, but also where it matters least in isolation. Clean
                     code inside a poorly designed system is a polished component in a failing
                     machine.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -220,7 +206,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     replaced, and how gracefully failures are contained. This is where Conway's Law
                     (Layer 4) first makes itself felt; system boundaries tend to mirror team
                     boundaries, for better or worse.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -231,7 +218,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     true cost of switching providers or absorbing acquisitions becomes apparent. In
                     diligence, this sub-layer frequently reveals liabilities that the code itself
                     won't show you.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -246,7 +234,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     takes down the entire checkout flow. The business impact (churn, support cost,
                     brand damage) concentrates at this level regardless of which sub-layer contains
                     the actual deficiency.</span
-                  ></span>
+                  ></span
+                >
               </li>
             </ul>
 
@@ -281,7 +270,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     this translates directly to <em>change cost and change risk</em>. Systems with
                     poor separation of responsibilities are expensive to modify, slow to extend, and
                     prone to cascading failures that affect seemingly unrelated capabilities.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -293,7 +283,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     integration complexity increases. During M&amp;A, tight coupling between
                     components is one of the primary drivers of integration difficulty and timeline
                     risk.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -303,7 +294,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     signals architectural maturity. Organizations that implement least privilege
                     well tend to have clearer system boundaries, better audit capabilities, and
                     lower regulatory risk.</span
-                  ></span>
+                  ></span
+                >
               </li>
             </ul>
 
@@ -478,7 +470,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     is catastrophic. In practice, however, this philosophy produces heavy approval
                     processes, infrequent releases, long planning cycles, and a cultural resistance
                     to experimentation.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -490,7 +483,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     matters is whether they can be detected and resolved before a customer is
                     meaningfully affected. DevOps practices push toward more modular architectures
                     because modularity enables faster detection, isolation, and recovery.</span
-                  ></span>
+                  ></span
+                >
               </li>
             </ul>
 
@@ -523,7 +517,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     >Software companies can deploy dozens of times per day because each iteration is
                     essentially free to produce. Companies building physical products face material
                     costs and lead times that constrain iteration speed.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -531,7 +526,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     >Software can be updated continuously. Hardware deployed in the field has a
                     fixed operational life where updates range from difficult to impossible.
                     Operational architecture must account for this difference.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -540,7 +536,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     >Companies that operate platforms or ecosystems must consider how operational
                     changes affect partners, integrators, and customers who have built on their
                     interfaces.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -549,7 +546,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     >A startup can afford operational practices that accept higher rates of visible
                     failure in exchange for speed. An enterprise serving Fortune 500 customers
                     cannot. Operational architecture must match the company's position and promises.</span
-                  ></span>
+                  ></span
+                >
               </li>
             </ul>
 
@@ -635,7 +633,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     advantage is control and speed of iteration across the entire stack. The risk is
                     calcification: when the market shifts, the entire value chain has to shift with
                     it.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -648,7 +647,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     while outsourcing physical manufacturing to partners. This creates competitive
                     moats through the difficulty of replication without the capital burden of owning
                     every stage.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -666,7 +666,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     competitors also have access to? In diligence, modular architectures also
                     surface a distinct risk profile: dependency health, licensing exposure, and
                     supply chain vulnerabilities that don't exist in integrated systems.</span
-                  ></span>
+                  ></span
+                >
               </li>
             </ul>
 
@@ -728,7 +729,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     that engineering investment tracks to revenue opportunity rather than running
                     ahead of it. In diligence, ask whether the target's architecture evolved through
                     validated iterations or was designed around assumptions that were never tested.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -744,7 +746,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     expand into adjacent opportunities. Architecture built without that clarity
                     tends to accumulate features without strategic coherence, creating maintenance
                     burden without corresponding market advantage.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -767,7 +770,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     sits. It also changes the diligence focus: when the operations are the product,
                     the operational architecture layer deserves the scrutiny you would normally
                     reserve for the product itself.</span
-                  ></span>
+                  ></span
+                >
               </li>
             </ul>
 
@@ -782,7 +786,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     >Is the architecture built for actual, demonstrated customer needs, or for
                     hypothetical future requirements that may never materialize? Over-engineered
                     architecture is a cost center disguised as foresight.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -790,7 +795,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     >Is the architecture as simple as the problem permits, or has complexity been
                     introduced without corresponding value? Unnecessary complexity is a predictor of
                     future integration difficulty and ongoing maintenance cost.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -806,7 +812,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     architecture, the question is: how many one-way doors has this company walked
                     through? Architectures with a high ratio of irreversible decisions are harder to
                     integrate, harder to modernize, and more expensive to exit.</span
-                  ></span>
+                  ></span
+                >
               </li>
             </ul>
 
@@ -925,7 +932,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     institutional knowledge, and the ratio of builders to maintainers. During
                     diligence, the question isn't just "how many engineers?" but "what can this team
                     actually <em>do</em>?"</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -935,7 +943,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     embrace the calculated risk that modern technology practices require. If it
                     rewards feature velocity without measuring quality, expect technical debt to be
                     accumulating faster than the balance sheet suggests.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -944,7 +953,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     processes in technology organizations often signal a history of production
                     failures that created institutional caution, which may be justified or may be a
                     legacy constraint that adds cost without reducing risk.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -954,7 +964,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     to mirror the architecture of the teams that build it. Reorganizing teams
                     without considering the implications for system architecture creates friction
                     that burns time and budget.</span
-                  ></span>
+                  ></span
+                >
               </li>
             </ul>
 
@@ -970,7 +981,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
             <p class="arch-body">
               The diagnostic questions are straightforward: <em
                 >Does the organization reinforce strategy, or fight it? Are teams empowered or
-                blocked? Do incentives reward the outcomes that matter?</em>
+                blocked? Do incentives reward the outcomes that matter?</em
+              >
             </p>
 
             <p class="arch-body">
@@ -1048,7 +1060,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                   >Regulatory Map</a
                 > tracks 120 regulations across data privacy, AI governance, cybersecurity, and industry
                 compliance — a starting point for understanding which requirements apply to a target's
-                geography and sector.</em>
+                geography and sector.</em
+              >
             </p>
 
             <p class="arch-business-meaning">
@@ -1111,7 +1124,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     >Allow organizations to buy architectural capabilities they can't build fast
                     enough. But the very architectural differences that make a target valuable are
                     often the same ones that make integration difficult.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -1119,7 +1133,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     class="arch-label-desc"
                     >Provide exposure to emerging architectural patterns without full commitment.
                     They're a hedge against uncertainty about which industry standards will win.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -1127,7 +1142,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     >Works best when the trajectory is clear and internal architecture supports
                     iterative development. It struggles when the required changes cut across too
                     many existing architectural layers.</span
-                  ></span>
+                  ></span
+                >
               </li>
             </ul>
 
@@ -1206,7 +1222,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     >Strong software architecture enables operational agility. Operational agility
                     supports product iteration speed. Product flexibility enables competitive
                     response to industry shifts.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -1214,7 +1231,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     >Industry standards limit product architecture choices. Product architecture
                     dictates operational requirements. Operational requirements shape what software
                     architecture must support.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -1222,7 +1240,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     >Organizational architecture (the people, incentives, processes, and structure)
                     runs alongside every layer and either amplifies or dampens the effectiveness of
                     choices made at each level.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="arch-label-group"
@@ -1232,7 +1251,8 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
                     organization first. Great companies exhibit coherence across all five layers.
                     Technology diligence is about identifying where that coherence exists and where
                     it breaks down.</span
-                  ></span>
+                  ></span
+                >
               </li>
             </ul>
 

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
+import PrintReportHeader from '../../../../components/PrintReportHeader.astro';
 import { trackPageView } from '../../../../utils/analytics';
 import DeltaIcon from '../../../../components/DeltaIcon.astro';
 import TableOfContents from '../../../../components/TableOfContents.astro';
@@ -16,19 +17,7 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
   ogImage="/og-image.png"
   ogUrl="https://globalstrategic.tech/hub/library/vdr-structure"
 >
-  <!-- Print-only report header (hidden on screen) -->
-  <div class="print-report-header" aria-hidden="true">
-    <div class="print-report-header__brand">
-      <DeltaIcon class="bullet-icon" />
-      <span>GST</span>
-    </div>
-    <div class="print-report-header__title">VDR Structure Guide</div>
-    <div class="print-report-header__date">
-      Generated {
-        new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-      }
-    </div>
-  </div>
+  <PrintReportHeader title="VDR Structure Guide" />
 
   <section class="vdr-guide">
     <div class="container">
@@ -680,49 +669,56 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
                   ><strong>Flat folder structures</strong><span class="vdr-label-desc"
                     >Hundreds of files in a single directory with no logical grouping forces buyers
                     to search instead of browse</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
                   ><strong>No naming convention</strong><span class="vdr-label-desc"
                     >Files named "Final_v3_REVISED_JB.xlsx" create confusion about which version is
                     authoritative</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
                   ><strong>Stale or undated documents</strong><span class="vdr-label-desc"
                     >Materials without dates leave buyers guessing whether information is current or
                     obsolete</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
                   ><strong>Incomplete financial data</strong><span class="vdr-label-desc"
                     >Missing months, unexplained adjustments, or format inconsistencies between
                     periods trigger follow-up requests</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
                   ><strong>Oversharing pre-LOI</strong><span class="vdr-label-desc"
                     >Disclosing sensitive customer data, source code, or salary details before a
                     signed Letter of Intent exposes the company unnecessarily</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
                   ><strong>Missing architecture diagrams</strong><span class="vdr-label-desc"
                     >Without visual representations, buyers must reverse-engineer the system from
                     scattered documents</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
                   ><strong>Ignoring the diligence request list</strong><span class="vdr-label-desc"
                     >Uploading materials without mapping them to the buyer's specific request list
                     creates unnecessary back-and-forth</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
@@ -730,14 +726,16 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
                     >Granting all parties full access to all documents, instead of staging
                     disclosure by diligence workstream (i.e., technology diligence, tax diligence,
                     financial diligence, legal diligence) or phase</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
                   ><strong>Empty directories</strong><span class="vdr-label-desc"
                     >Placeholder folders with no content force consumers to constantly open and
                     close directories hunting for relevant documents</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
@@ -745,7 +743,8 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
                     >Content whose value or relevance is not immediately self-evident wastes
                     reviewer time. If a document needs context, add contributed narrative to explain
                     why it matters</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
@@ -753,7 +752,8 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
                     >Uploading files that require specialized or proprietary applications to open
                     (e.g., Visio, Sketch) slows review. Use open or common formats like PDF, CSV,
                     and PNG whenever possible</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
@@ -762,7 +762,8 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
                     >The VDR platform itself serves as the security layer with access controls and
                     audit trails. Adding file-level passwords or encryption creates unnecessary
                     friction without meaningful additional protection</span
-                  ></span>
+                  ></span
+                >
               </li>
             </ul>
           </section>
@@ -783,55 +784,63 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
                   ><strong>Consistent naming convention</strong><span class="vdr-label-desc"
                     >Use a standard format: <code>[Category]-[Document Name]-[YYYY-MM-DD]</code> for every
                     file</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
                   ><strong>Root-level index document</strong><span class="vdr-label-desc"
                     >Provide a master index that maps each folder to the diligence request list
                     items it addresses</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
                   ><strong>Staged disclosure</strong><span class="vdr-label-desc"
                     >Structure access by transaction phase: IOI stage (high-level), LOI stage
                     (detailed), and confirmatory (full access)</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
                   ><strong>Designated VDR administrator</strong><span class="vdr-label-desc"
                     >Assign a single point of contact responsible for uploads, access management,
                     and version control</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
                   ><strong>Pre-populate against the request list</strong><span
                     class="vdr-label-desc"
                     >Map every anticipated diligence request to a document before the VDR opens</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
                   ><strong>Track Q&A within the platform</strong><span class="vdr-label-desc"
                     >Use the VDR's built-in Q&A functionality rather than side-channel email threads</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
                   ><strong>Regular freshness audits</strong><span class="vdr-label-desc"
                     >Review and update materials monthly during an active process to ensure nothing
                     goes stale</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
                   ><strong>Watermarking and access logging</strong><span class="vdr-label-desc"
                     >Enable document watermarks and track download activity by user for information
                     security</span
-                  ></span>
+                  ></span
+                >
               </li>
             </ul>
           </section>
@@ -858,7 +867,8 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
                   ><span class="vdr-label-desc"
                     >AI-powered deal management platform with built-in bidder engagement scoring and
                     workflow automation.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
@@ -868,7 +878,8 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
                   ><span class="vdr-label-desc"
                     >Cloud content management platform with enterprise-grade security and broad
                     third-party integrations.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
@@ -879,7 +890,8 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
                   ><span class="vdr-label-desc"
                     >Purpose-built M&A platform (formerly Merrill DatasiteOne) with redaction,
                     AI-assisted document organization, and deal analytics.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
@@ -890,7 +902,8 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
                   ><span class="vdr-label-desc"
                     >Deal-focused VDR with streamlined setup, granular permissions, and integrated
                     Q&A tracking.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
@@ -901,7 +914,8 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
                   ><span class="vdr-label-desc"
                     >General-purpose cloud storage often used for early-stage or lower-middle-market
                     deals where dedicated VDR cost is not justified.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
@@ -912,7 +926,8 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
                   ><span class="vdr-label-desc"
                     >Established M&A data room provider with strong compliance features and global
                     deal network.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
@@ -925,7 +940,8 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
                   ><span class="vdr-label-desc"
                     >Microsoft ecosystem document management commonly used internally before
                     migrating to a dedicated VDR for external diligence.</span
-                  ></span>
+                  ></span
+                >
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span class="vdr-label-group"
@@ -936,7 +952,8 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
                   ><span class="vdr-label-desc"
                     >Virtual data room with dynamic watermarking, fence view protection, and
                     detailed user activity reporting.</span
-                  ></span>
+                  ></span
+                >
               </li>
             </ul>
           </section>

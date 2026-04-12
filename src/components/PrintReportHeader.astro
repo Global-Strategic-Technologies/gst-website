@@ -1,0 +1,82 @@
+---
+/**
+ * PrintReportHeader — branded header rendered only when a page is printed.
+ *
+ * Hidden on screen (display: none) and revealed inside an @media print
+ * block across 10 pages. Use this component anywhere a printed export
+ * needs the standard GST brand + title + generation-date strip at the
+ * top of page 1.
+ *
+ * Class names are intentionally kept unhashed (via `:global()` on every
+ * selector in the scoped <style> block) because two tool pages
+ * (hub/tools/tech-debt-calculator and hub/tools/regulatory-map) override
+ * individual elements of this component inside their own scoped
+ * `@media print` blocks with tool-specific typography. Those overrides
+ * depend on matching the canonical unhashed class names.
+ *
+ * Do not rename or add new class names here without auditing the two
+ * override sites first.
+ */
+import DeltaIcon from './DeltaIcon.astro';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+
+const generatedDate = new Date().toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+
+<div class="print-report-header" aria-hidden="true">
+  <div class="print-report-header__brand">
+    <DeltaIcon class="bullet-icon" />
+    <span>GST</span>
+  </div>
+  <div class="print-report-header__title">{title}</div>
+  <div class="print-report-header__date">Generated {generatedDate}</div>
+</div>
+
+<style>
+  :global(.print-report-header) {
+    display: none;
+  }
+
+  @media print {
+    :global(.print-report-header) {
+      display: flex !important;
+      align-items: center;
+      gap: 1rem;
+      padding-bottom: 1rem;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #000;
+      font-family: monospace;
+    }
+
+    :global(.print-report-header__brand) {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 900;
+      font-size: 1.25rem;
+      text-transform: uppercase;
+    }
+
+    :global(.print-report-header__title) {
+      font-weight: 700;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    :global(.print-report-header__date) {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: #666;
+    }
+  }
+</style>

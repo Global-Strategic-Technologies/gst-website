@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/Hero.astro';
 import CTASection from '../components/CTASection.astro';
 import EngagementFlow from '../components/EngagementFlow.astro';
+import PrintReportHeader from '../components/PrintReportHeader.astro';
 import { trackPageView } from '../utils/analytics';
 import DeltaIcon from '../components/DeltaIcon.astro';
 
@@ -47,19 +48,7 @@ const faqItems = [
   ogImageAlt="GST Services - M&A Advisory, Product Development, Technical Leadership"
   faqItems={faqItems}
 >
-  <!-- Print-only report header (hidden on screen) -->
-  <div class="print-report-header" aria-hidden="true">
-    <div class="print-report-header__brand">
-      <DeltaIcon class="bullet-icon" />
-      <span>GST</span>
-    </div>
-    <div class="print-report-header__title">Services</div>
-    <div class="print-report-header__date">
-      Generated {
-        new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-      }
-    </div>
-  </div>
+  <PrintReportHeader title="Services" />
 
   <Hero
     title="Technology Advisory & Execution"
@@ -76,21 +65,25 @@ const faqItems = [
           <ul class="service-list">
             <li>
               <DeltaIcon class="bullet-icon" /><span
-                >Buy-side: quantify the true costs, risks and opportunities before you sign</span>
+                >Buy-side: quantify the true costs, risks and opportunities before you sign</span
+              >
             </li>
             <li>
               <DeltaIcon class="bullet-icon" /><span
-                >Sell-side: prepare founders 6 to 3 months before exit to maximize valuation</span>
+                >Sell-side: prepare founders 6 to 3 months before exit to maximize valuation</span
+              >
             </li>
             <li>
               <DeltaIcon class="bullet-icon" /><span
                 >Buy-side & Sell-side: Identify hidden technical debt, security exposures, and
-                compliance gaps that erode deal value</span>
+                compliance gaps that erode deal value</span
+              >
             </li>
             <li>
               <DeltaIcon class="bullet-icon" /><span
                 >Buy-side & Sell-side: Flag architecture challenges and opportunities, and harden
-                security posture pre-transaction</span>
+                security posture pre-transaction</span
+              >
             </li>
           </ul>
         </div>
@@ -100,19 +93,23 @@ const faqItems = [
           <ul class="service-list">
             <li>
               <DeltaIcon class="bullet-icon" /><span
-                >Remediate legacy monolithic architectures into scalable, maintainable systems</span>
+                >Remediate legacy monolithic architectures into scalable, maintainable systems</span
+              >
             </li>
             <li>
               <DeltaIcon class="bullet-icon" /><span
-                >Multi-region cloud infrastructure and platform engineering</span>
+                >Multi-region cloud infrastructure and platform engineering</span
+              >
             </li>
             <li>
               <DeltaIcon class="bullet-icon" /><span
-                >CI/CD pipeline acceleration and SDLC optimization</span>
+                >CI/CD pipeline acceleration and SDLC optimization</span
+              >
             </li>
             <li>
               <DeltaIcon class="bullet-icon" /><span
-                >Compress release cycles from quarters to weeks</span>
+                >Compress release cycles from quarters to weeks</span
+              >
             </li>
           </ul>
         </div>
@@ -122,19 +119,23 @@ const faqItems = [
           <ul class="service-list">
             <li>
               <DeltaIcon class="bullet-icon" /><span
-                >Fractional CTO advisory for rapid scaling and platform migrations</span>
+                >Fractional CTO advisory for rapid scaling and platform migrations</span
+              >
             </li>
             <li>
               <DeltaIcon class="bullet-icon" /><span
-                >Board-level technical communication and reporting</span>
+                >Board-level technical communication and reporting</span
+              >
             </li>
             <li>
               <DeltaIcon class="bullet-icon" /><span
-                >Bridge the gap between architecture decisions and business risk</span>
+                >Bridge the gap between architecture decisions and business risk</span
+              >
             </li>
             <li>
               <DeltaIcon class="bullet-icon" /><span
-                >Post-acquisition integration and technology strategy alignment</span>
+                >Post-acquisition integration and technology strategy alignment</span
+              >
             </li>
           </ul>
         </div>

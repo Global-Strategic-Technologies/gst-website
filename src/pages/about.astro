@@ -2,477 +2,496 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/Hero.astro';
 import CTASection from '../components/CTASection.astro';
+import PrintReportHeader from '../components/PrintReportHeader.astro';
 import { trackPageView } from '../utils/analytics';
-import DeltaIcon from '../components/DeltaIcon.astro';
 
 // Track page view
 trackPageView('about', 'About | GST Leadership & Experience');
 ---
 
 <BaseLayout
-    title="About | GST"
-    description="Learn about the founder and leadership team at GST, bringing decades of experience in technology, M&A, and product development."
+  title="About | GST"
+  description="Learn about the founder and leadership team at GST, bringing decades of experience in technology, M&A, and product development."
 >
-    <!-- Print-only report header (hidden on screen) -->
-    <div class="print-report-header" aria-hidden="true">
-        <div class="print-report-header__brand">
-            <DeltaIcon class="bullet-icon" />
-            <span>GST</span>
-        </div>
-        <div class="print-report-header__title">About</div>
-        <div class="print-report-header__date">Generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+  <PrintReportHeader title="About" />
+
+  <Hero
+    title="Technology Leadership"
+    subtitle="For Your Challenges & Opportunities"
+    description="Driven by decades of experience across technology strategy, implementation, and innovation"
+  />
+
+  <section class="about-section">
+    <div class="container">
+      <div class="about-content">
+        <h2>Technology for Value</h2>
+        <p>
+          GST turns complex architecture, security, and platform realities into clear, actionable
+          steps to reduce risk and accelerate growth.
+        </p>
+      </div>
     </div>
+  </section>
 
-    <Hero
-        title="Technology Leadership"
-        subtitle="For Your Challenges & Opportunities"
-        description="Driven by decades of experience across technology strategy, implementation, and innovation"
-    />
-
-    <section class="about-section">
-        <div class="container">
-            <div class="about-content">
-                <h2>Technology for Value</h2>
-                <p>GST turns complex architecture, security, and platform realities into clear, actionable steps to reduce risk and accelerate growth.</p>
-            </div>
+  <section class="founder-section">
+    <div class="container">
+      <div class="founder-content">
+        <a
+          href="https://www.linkedin.com/in/reidperyam/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="founder-photo-link"
+          id="founder-photo-link"
+          title="View Founder's LinkedIn Profile"
+        >
+          <picture class="founder-portrait founder-portrait-light">
+            <img
+              src="/images/founder-light-450.jpg"
+              alt="Reid Peryam, Founder and Technology Strategist at GST"
+              class="founder-image"
+              fetchpriority="high"
+              width="600"
+              height="450"
+            />
+          </picture>
+          <picture class="founder-portrait founder-portrait-dark" aria-hidden="true">
+            <img
+              src="/images/founder-dark-450.jpg"
+              alt=""
+              class="founder-image"
+              fetchpriority="high"
+              width="600"
+              height="450"
+            />
+          </picture>
+        </a>
+        <div class="founder-bio">
+          <h2>About the Founder</h2>
+          <p>
+            Reid Peryam is an architect and advisor with over 20 years of experience aligning
+            technology, strategy, and people to drive business value.
+          </p>
+          <p>
+            He works with leadership teams across industries and continents; in M&A and
+            transformation contexts, he partners on both the buy-side and sell-side to assess
+            technology assets, identify material risks and opportunities, and execute results.
+          </p>
+          <p>
+            Reid founded GST to address a persistent gap in private equity and executive
+            decision-making: the need for technology expertise grounded in business value. His work
+            focuses on translating technical reality into strategic clarity, risk awareness, and an
+            actionable path forward.
+          </p>
+          <div class="founder-signature founder-signature-light">
+            <img
+              src="/images/signature-light.png"
+              alt="Founder signature"
+              class="signature-image"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+          <div class="founder-signature founder-signature-dark" aria-hidden="true">
+            <img
+              src="/images/signature-dark.png"
+              alt=""
+              class="signature-image"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+          <p class="founder-credentials">
+            <em
+              >Reid is a two-time alumnus of the University of California, Berkeley's Haas School of
+              Business and also Boston University. GST's advisory work is grounded in long-term
+              value creation and disciplined execution.</em>
+          </p>
         </div>
-    </section>
+      </div>
+    </div>
+  </section>
 
-    <section class="founder-section">
-        <div class="container">
-            <div class="founder-content">
-                <a href="https://www.linkedin.com/in/reidperyam/" target="_blank" rel="noopener noreferrer" class="founder-photo-link" id="founder-photo-link" title="View Founder's LinkedIn Profile">
-                    <picture class="founder-portrait founder-portrait-light">
-                        <img
-                            src="/images/founder-light-450.jpg"
-                            alt="Reid Peryam, Founder and Technology Strategist at GST"
-                            class="founder-image"
-                            fetchpriority="high"
-                            width="600"
-                            height="450"
-                        />
-                    </picture>
-                    <picture class="founder-portrait founder-portrait-dark" aria-hidden="true">
-                        <img
-                            src="/images/founder-dark-450.jpg"
-                            alt=""
-                            class="founder-image"
-                            fetchpriority="high"
-                            width="600"
-                            height="450"
-                        />
-                    </picture>
-                </a>
-                <div class="founder-bio">
-                    <h2>About the Founder</h2>
-                    <p>Reid Peryam is an architect and advisor with over 20 years of experience aligning technology, strategy, and people to drive business value.</p>
-                    <p>He works with leadership teams across industries and continents; in M&A and transformation contexts, he partners on both the buy-side and sell-side to assess technology assets, identify material risks and opportunities, and execute results.</p>
-                    <p>Reid founded GST to address a persistent gap in private equity and executive decision-making: the need for technology expertise grounded in business value. His work focuses on translating technical reality into strategic clarity, risk awareness, and an actionable path forward.</p>
-                    <div class="founder-signature founder-signature-light">
-                        <img
-                            src="/images/signature-light.png"
-                            alt="Founder signature"
-                            class="signature-image"
-                            loading="lazy"
-                            decoding="async"
-                        />
-                    </div>
-                    <div class="founder-signature founder-signature-dark" aria-hidden="true">
-                        <img
-                            src="/images/signature-dark.png"
-                            alt=""
-                            class="signature-image"
-                            loading="lazy"
-                            decoding="async"
-                        />
-                    </div>
-                    <p class="founder-credentials"><em>Reid is a two-time alumnus of the University of California, Berkeley's Haas School of Business and also Boston University. GST's advisory work is grounded in long-term value creation and disciplined execution.</em></p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <CTASection
-        title="Let's discuss your next challenge"
-        description="Connect with us to explore how GST's experience can help drive your objectives forward."
-        buttonText="Schedule a Consultation"
-        calendlyUrl="https://calendly.com/globalstrategictech"
-    />
+  <CTASection
+    title="Let's discuss your next challenge"
+    description="Connect with us to explore how GST's experience can help drive your objectives forward."
+    buttonText="Schedule a Consultation"
+    calendlyUrl="https://calendly.com/globalstrategictech"
+  />
 </BaseLayout>
 
 <style>
-    .about-section {
-        padding: 3rem 0;
-        background: transparent;
-        border-bottom: 2px solid var(--border-light);
-    }
+  .about-section {
+    padding: 3rem 0;
+    background: transparent;
+    border-bottom: 2px solid var(--border-light);
+  }
 
-    .about-content {
-        max-width: 900px;
-    }
+  .about-content {
+    max-width: 900px;
+  }
 
-    .about-section h2 {
-        font-size: var(--text-3xl);
-        font-family: monospace;
-        font-weight: 700;
-        color: var(--text-primary);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 1.5rem;
-    }
+  .about-section h2 {
+    font-size: var(--text-3xl);
+    font-family: monospace;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1.5rem;
+  }
 
-    .about-section p {
-        font-size: var(--text-lg);
-        font-family: monospace;
-        color: var(--text-secondary);
-        line-height: 1.8;
-    }
+  .about-section p {
+    font-size: var(--text-lg);
+    font-family: monospace;
+    color: var(--text-secondary);
+    line-height: 1.8;
+  }
 
-    :global(html.dark-theme) .about-section {
-        background: transparent;
-        border-bottom-color: var(--border-dark-default);
-    }
+  :global(html.dark-theme) .about-section {
+    background: transparent;
+    border-bottom-color: var(--border-dark-default);
+  }
 
-    .experience-section {
-        padding: 5rem 0;
-    }
+  .experience-section {
+    padding: 5rem 0;
+  }
 
-    .experience-section h2 {
-        font-size: var(--text-3xl);
-        font-family: monospace;
-        font-weight: 700;
-        color: var(--text-primary);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 3rem;
-        text-align: center;
-    }
+  .experience-section h2 {
+    font-size: var(--text-3xl);
+    font-family: monospace;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 3rem;
+    text-align: center;
+  }
 
+  .experience-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.5rem;
+  }
+
+  .experience-card {
+    padding: 2.5rem;
+    background: transparent;
+    border: 2px solid var(--border-light);
+    transition: all var(--transition-normal);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .experience-card:hover {
+    border-color: var(--color-primary);
+  }
+
+  .experience-card h3 {
+    font-size: var(--text-xl);
+    font-family: monospace;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    line-height: 1.3;
+  }
+
+  .experience-card p {
+    font-size: var(--text-sm);
+    font-family: monospace;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  :global(html.dark-theme) .experience-card {
+    background: transparent;
+    border-color: var(--border-dark-default);
+  }
+
+  :global(html.dark-theme) .experience-card:hover {
+    background: transparent;
+    border-color: var(--color-primary);
+  }
+
+  .founder-section {
+    padding: 3rem 0;
+    background: transparent;
+    border-top: 2px solid var(--border-light);
+  }
+
+  .founder-content {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 3rem;
+    align-items: center;
+    max-width: 1200px;
+  }
+
+  .founder-photo-link {
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity var(--transition-normal);
+  }
+
+  .founder-photo-link:hover {
+    opacity: 0.9;
+  }
+
+  .founder-portrait {
+    display: none;
+    width: 100%;
+    max-width: 450px;
+  }
+
+  .founder-portrait-light {
+    display: block;
+  }
+
+  .founder-portrait-dark {
+    display: none;
+  }
+
+  :global(html.dark-theme) .founder-portrait-light {
+    display: none;
+  }
+
+  :global(html.dark-theme) .founder-portrait-dark {
+    display: block;
+  }
+
+  .founder-image {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border: 2px solid var(--border-light);
+    display: block;
+  }
+
+  .founder-bio h2 {
+    font-size: var(--text-3xl);
+    font-family: monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    line-height: 1.3;
+  }
+
+  .founder-bio p {
+    font-size: var(--text-base);
+    font-family: monospace;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: 1.5rem;
+  }
+
+  .founder-bio p:last-child {
+    margin-bottom: 0;
+  }
+
+  .founder-signature {
+    margin: 1.5rem 2rem 1.5rem auto;
+    max-width: 200px;
+  }
+
+  .founder-signature-light {
+    display: block;
+  }
+
+  .founder-signature-dark {
+    display: none;
+  }
+
+  :global(html.dark-theme) .founder-signature-light {
+    display: none;
+  }
+
+  :global(html.dark-theme) .founder-signature-dark {
+    display: block;
+  }
+
+  .signature-image {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .founder-credentials {
+    font-style: italic;
+    color: var(--text-secondary);
+  }
+
+  :global(html.dark-theme) .founder-section {
+    background: transparent;
+    border-top-color: var(--border-dark-default);
+  }
+
+  :global(html.dark-theme) .founder-image {
+    border-color: var(--border-dark-default);
+  }
+
+  @media (max-width: 1024px) {
     .experience-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 2.5rem;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.75rem;
     }
 
     .experience-card {
-        padding: 2.5rem;
-        background: transparent;
-        border: 2px solid var(--border-light);
-        transition: all var(--transition-normal);
-        display: flex;
-        flex-direction: column;
-    }
-
-    .experience-card:hover {
-        border-color: var(--color-primary);
+      padding: 1.75rem;
     }
 
     .experience-card h3 {
-        font-size: var(--text-xl);
-        font-family: monospace;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 1rem;
-        line-height: 1.3;
+      font-size: var(--text-lg);
     }
 
     .experience-card p {
-        font-size: var(--text-sm);
-        font-family: monospace;
-        color: var(--text-secondary);
-        line-height: 1.7;
-    }
-
-    :global(html.dark-theme) .experience-card {
-        background: transparent;
-        border-color: var(--border-dark-default);
-    }
-
-    :global(html.dark-theme) .experience-card:hover {
-        background: transparent;
-        border-color: var(--color-primary);
-    }
-
-    .founder-section {
-        padding: 3rem 0;
-        background: transparent;
-        border-top: 2px solid var(--border-light);
+      font-size: var(--text-sm);
     }
 
     .founder-content {
-        display: grid;
-        grid-template-columns: 1fr 1.5fr;
-        gap: 3rem;
-        align-items: center;
-        max-width: 1200px;
-    }
-
-    .founder-photo-link {
-        text-decoration: none;
-        cursor: pointer;
-        transition: opacity var(--transition-normal);
-    }
-
-    .founder-photo-link:hover {
-        opacity: 0.9;
+      grid-template-columns: 1fr;
+      gap: 2rem;
     }
 
     .founder-portrait {
-        display: none;
-        width: 100%;
-        max-width: 450px;
+      max-width: 350px;
+      margin: 0 auto;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .about-section {
+      padding: 2rem 0;
     }
 
-    .founder-portrait-light {
-        display: block;
+    .about-section h2 {
+      font-size: var(--text-2xl);
+      margin-bottom: 1rem;
     }
 
-    .founder-portrait-dark {
-        display: none;
+    .about-section p {
+      font-size: var(--text-base);
     }
 
-    :global(html.dark-theme) .founder-portrait-light {
-        display: none;
+    .experience-section {
+      padding: 2.5rem 0;
     }
 
-    :global(html.dark-theme) .founder-portrait-dark {
-        display: block;
+    .experience-section h2 {
+      font-size: var(--text-2xl);
+      margin-bottom: 2rem;
     }
 
-    .founder-image {
-        width: 100%;
-        aspect-ratio: 4 / 3;
-        object-fit: cover;
-        border: 2px solid var(--border-light);
-        display: block;
+    .experience-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .experience-card {
+      padding: 1.5rem;
+    }
+
+    .experience-card h3 {
+      font-size: var(--text-lg);
+    }
+
+    .experience-card p {
+      font-size: var(--text-sm);
+    }
+
+    .founder-section {
+      padding: 2rem 0;
+    }
+
+    .founder-content {
+      gap: 1.5rem;
+    }
+
+    .founder-portrait {
+      max-width: 100%;
     }
 
     .founder-bio h2 {
-        font-size: var(--text-3xl);
-        font-family: monospace;
-        font-weight: 700;
-        text-transform: uppercase;
-        color: var(--text-primary);
-        margin-bottom: 1.5rem;
-        line-height: 1.3;
+      font-size: var(--text-2xl);
+      margin-bottom: 1rem;
     }
 
     .founder-bio p {
-        font-size: var(--text-base);
-        font-family: monospace;
-        color: var(--text-secondary);
-        line-height: 1.8;
-        margin-bottom: 1.5rem;
+      font-size: var(--text-sm);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .about-section {
+      padding: 1.5rem 0;
+    }
+
+    .about-section h2 {
+      font-size: var(--text-xl);
+      margin-bottom: 0.75rem;
+    }
+
+    .about-section p {
+      font-size: var(--text-sm);
+      line-height: 1.6;
+    }
+
+    .experience-section {
+      padding: 2rem 0;
+    }
+
+    .experience-section h2 {
+      font-size: var(--text-xl);
+      margin-bottom: 1.5rem;
+    }
+
+    .experience-card {
+      padding: 1.25rem;
+    }
+
+    .experience-card h3 {
+      font-size: var(--text-base);
+      margin-bottom: 0.75rem;
+    }
+
+    .experience-card p {
+      font-size: var(--text-sm);
+      line-height: 1.6;
+    }
+
+    .founder-section {
+      padding: 1.5rem 0;
+    }
+
+    .founder-portrait {
+      max-width: 100%;
+    }
+
+    .founder-image {
+      aspect-ratio: 4 / 3;
+    }
+
+    .founder-bio h2 {
+      font-size: var(--text-lg);
+      margin-bottom: 0.75rem;
+    }
+
+    .founder-bio p {
+      font-size: var(--text-sm);
+      line-height: 1.6;
+      margin-bottom: 1rem;
     }
 
     .founder-bio p:last-child {
-        margin-bottom: 0;
+      margin-bottom: 0;
     }
+  }
 
-    .founder-signature {
-        margin: 1.5rem 2rem 1.5rem auto;
-        max-width: 200px;
+  /* Print */
+  @media print {
+    @page {
+      margin: 1.5cm;
     }
-
-    .founder-signature-light {
-        display: block;
-    }
-
-    .founder-signature-dark {
-        display: none;
-    }
-
-    :global(html.dark-theme) .founder-signature-light {
-        display: none;
-    }
-
-    :global(html.dark-theme) .founder-signature-dark {
-        display: block;
-    }
-
-    .signature-image {
-        width: 100%;
-        height: auto;
-        display: block;
-    }
-
-    .founder-credentials {
-        font-style: italic;
-        color: var(--text-secondary);
-    }
-
-    :global(html.dark-theme) .founder-section {
-        background: transparent;
-        border-top-color: var(--border-dark-default);
-    }
-
-    :global(html.dark-theme) .founder-image {
-        border-color: var(--border-dark-default);
-    }
-
-    @media (max-width: 1024px) {
-        .experience-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.75rem;
-        }
-
-        .experience-card {
-            padding: 1.75rem;
-        }
-
-        .experience-card h3 {
-            font-size: var(--text-lg);
-        }
-
-        .experience-card p {
-            font-size: var(--text-sm);
-        }
-
-        .founder-content {
-            grid-template-columns: 1fr;
-            gap: 2rem;
-        }
-
-        .founder-portrait {
-            max-width: 350px;
-            margin: 0 auto;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .about-section {
-            padding: 2rem 0;
-        }
-
-        .about-section h2 {
-            font-size: var(--text-2xl);
-            margin-bottom: 1rem;
-        }
-
-        .about-section p {
-            font-size: var(--text-base);
-        }
-
-        .experience-section {
-            padding: 2.5rem 0;
-        }
-
-        .experience-section h2 {
-            font-size: var(--text-2xl);
-            margin-bottom: 2rem;
-        }
-
-        .experience-grid {
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-        }
-
-        .experience-card {
-            padding: 1.5rem;
-        }
-
-        .experience-card h3 {
-            font-size: var(--text-lg);
-        }
-
-        .experience-card p {
-            font-size: var(--text-sm);
-        }
-
-        .founder-section {
-            padding: 2rem 0;
-        }
-
-        .founder-content {
-            gap: 1.5rem;
-        }
-
-        .founder-portrait {
-            max-width: 100%;
-        }
-
-        .founder-bio h2 {
-            font-size: var(--text-2xl);
-            margin-bottom: 1rem;
-        }
-
-        .founder-bio p {
-            font-size: var(--text-sm);
-        }
-    }
-
-    @media (max-width: 480px) {
-        .about-section {
-            padding: 1.5rem 0;
-        }
-
-        .about-section h2 {
-            font-size: var(--text-xl);
-            margin-bottom: 0.75rem;
-        }
-
-        .about-section p {
-            font-size: var(--text-sm);
-            line-height: 1.6;
-        }
-
-        .experience-section {
-            padding: 2rem 0;
-        }
-
-        .experience-section h2 {
-            font-size: var(--text-xl);
-            margin-bottom: 1.5rem;
-        }
-
-        .experience-card {
-            padding: 1.25rem;
-        }
-
-        .experience-card h3 {
-            font-size: var(--text-base);
-            margin-bottom: 0.75rem;
-        }
-
-        .experience-card p {
-            font-size: var(--text-sm);
-            line-height: 1.6;
-        }
-
-        .founder-section {
-            padding: 1.5rem 0;
-        }
-
-        .founder-portrait {
-            max-width: 100%;
-        }
-
-        .founder-image {
-            aspect-ratio: 4 / 3;
-        }
-
-        .founder-bio h2 {
-            font-size: var(--text-lg);
-            margin-bottom: 0.75rem;
-        }
-
-        .founder-bio p {
-            font-size: var(--text-sm);
-            line-height: 1.6;
-            margin-bottom: 1rem;
-        }
-
-        .founder-bio p:last-child {
-            margin-bottom: 0;
-        }
-    }
-
-    /* Print */
-    @media print {
-        @page {
-            margin: 1.5cm;
-        }
-    }
+  }
 </style>
 
 <script is:inline>

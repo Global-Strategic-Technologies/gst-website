@@ -1,11 +1,11 @@
 ---
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
+import PrintReportHeader from '../../../../components/PrintReportHeader.astro';
 import { trackPageView } from '../../../../utils/analytics';
 import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engine';
 
 trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
-import DeltaIcon from '../../../../components/DeltaIcon.astro';
 ---
 
 <BaseLayout
@@ -62,15 +62,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
         subtitle="Quantify the real cost of deferred technical investment. Built for PE diligence and portfolio executive conversations."
       />
 
-      <!-- Print-only report header (hidden on screen) -->
-      <div class="print-report-header" aria-hidden="true">
-        <div class="print-report-header__brand">
-          <DeltaIcon class="bullet-icon" />
-          <span>GST</span>
-        </div>
-        <div class="print-report-header__title">Technical Debt Cost Report</div>
-        <div class="print-report-header__date" id="print-date"></div>
-      </div>
+      <PrintReportHeader title="Technical Debt Cost Report" />
 
       <div data-calc class="brutal-tool-shell brutal-tool-shell--wide">
         <p class="brutal-tool-shell__authority tdc-authority">
@@ -1580,16 +1572,6 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     // Apply URL-encoded state before initialising sliders so DOM positions match
     const urlState = readUrlState();
     if (urlState) Object.assign(state, urlState);
-
-    // Populate print date
-    const printDateEl = document.getElementById('print-date');
-    if (printDateEl) {
-      printDateEl.textContent = new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-    }
 
     initSliders();
     render();

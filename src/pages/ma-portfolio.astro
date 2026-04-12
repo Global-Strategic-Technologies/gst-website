@@ -5,10 +5,10 @@ import PortfolioGrid from '../components/portfolio/PortfolioGrid.astro';
 import StickyControls from '../components/portfolio/StickyControls.astro';
 import StatsBar from '../components/StatsBar.astro';
 import PortfolioSummary from '../components/PortfolioSummary.astro';
+import PrintReportHeader from '../components/PrintReportHeader.astro';
 import { trackPageView } from '../utils/analytics';
 import { projects } from '../data/ma-portfolio';
 import type { Stat } from '../types/portfolio';
-import DeltaIcon from '../components/DeltaIcon.astro';
 
 // Track page view
 trackPageView('ma-portfolio', 'M&A Portfolio | Strategic Advisory & Implementation');
@@ -36,19 +36,7 @@ const portfolioType = 'ma';
   title="M&A | GST"
   description="Explore GST's track record of 51 M&A advisory and implementation projects across healthcare, logistics, software, finance, and more."
 >
-  <!-- Print-only report header (hidden on screen) -->
-  <div class="print-report-header" aria-hidden="true">
-    <div class="print-report-header__brand">
-      <DeltaIcon class="bullet-icon" />
-      <span>GST</span>
-    </div>
-    <div class="print-report-header__title">M&A Portfolio</div>
-    <div class="print-report-header__date">
-      Generated {
-        new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-      }
-    </div>
-  </div>
+  <PrintReportHeader title="M&A Portfolio" />
 
   <StickyControls projects={projects} />
   <div class="portfolio-content">

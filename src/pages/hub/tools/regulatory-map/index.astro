@@ -3,6 +3,7 @@ import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
 import MapVisualizer from '../../../../components/hub/tools/regulatory-map/MapVisualizer.astro';
 import CompliancePanel from '../../../../components/hub/tools/regulatory-map/CompliancePanel.astro';
+import PrintReportHeader from '../../../../components/PrintReportHeader.astro';
 import { trackPageView } from '../../../../utils/analytics';
 
 trackPageView('regulatory-map', 'Regulatory Map | GST');
@@ -88,14 +89,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
 
   <section class="regulatory-map-section">
     <div class="container">
-      <div class="print-report-header" aria-hidden="true">
-        <div class="print-report-header__brand">
-          <DeltaIcon class="bullet-icon" />
-          <span>GST</span>
-        </div>
-        <div class="print-report-header__title">Regulatory Map</div>
-        <div class="print-report-header__date" id="print-date"></div>
-      </div>
+      <PrintReportHeader title="Regulatory Map" />
 
       <HubHeader
         title="Regulatory Map"
@@ -1537,13 +1531,6 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       });
     });
   });
-</script>
-
-<script>
-  const printDate = document.getElementById('print-date');
-  if (printDate) {
-    printDate.textContent = `Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
-  }
 </script>
 
 <style>

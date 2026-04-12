@@ -1,18 +1,13 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import DeltaIcon from '../components/DeltaIcon.astro';
+import PrintReportHeader from '../components/PrintReportHeader.astro';
 ---
 
-<BaseLayout title="Privacy Policy | GST" description="How Global Strategic Technologies collects, uses, and safeguards your information when you visit our website or engage with our advisory services.">
-  <!-- Print-only report header (hidden on screen) -->
-  <div class="print-report-header" aria-hidden="true">
-    <div class="print-report-header__brand">
-      <DeltaIcon class="bullet-icon" />
-      <span>GST</span>
-    </div>
-    <div class="print-report-header__title">Privacy Policy</div>
-    <div class="print-report-header__date">Generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-  </div>
+<BaseLayout
+  title="Privacy Policy | GST"
+  description="How Global Strategic Technologies collects, uses, and safeguards your information when you visit our website or engage with our advisory services."
+>
+  <PrintReportHeader title="Privacy Policy" />
 
   <div class="legal-page-container">
     <div>
@@ -23,17 +18,26 @@ import DeltaIcon from '../components/DeltaIcon.astro';
 
       <section class="legal-page-body">
         <p>
-          Global Strategic Technologies LLC ("GST," "we," "us," or "our") is committed to protecting your privacy.
-          This Privacy Policy explains how we collect, use, and safeguard information when you visit our website
-          or engage with our services.
+          Global Strategic Technologies LLC ("GST," "we," "us," or "our") is committed to protecting
+          your privacy. This Privacy Policy explains how we collect, use, and safeguard information
+          when you visit our website or engage with our services.
         </p>
 
         <h2>Information We Collect</h2>
         <p>We may collect the following types of information:</p>
         <ul>
-          <li><strong>Contact Information:</strong> Name, email address, phone number, and company details you provide when contacting us or scheduling consultations.</li>
-          <li><strong>Usage Data:</strong> Information about how you interact with our website, including IP address, browser type, pages visited, and time spent on pages.</li>
-          <li><strong>Communications:</strong> Records of correspondence when you contact us via email, phone, or through our website.</li>
+          <li>
+            <strong>Contact Information:</strong> Name, email address, phone number, and company details
+            you provide when contacting us or scheduling consultations.
+          </li>
+          <li>
+            <strong>Usage Data:</strong> Information about how you interact with our website, including
+            IP address, browser type, pages visited, and time spent on pages.
+          </li>
+          <li>
+            <strong>Communications:</strong> Records of correspondence when you contact us via email,
+            phone, or through our website.
+          </li>
         </ul>
 
         <h2>How We Use Your Information</h2>
@@ -48,12 +52,23 @@ import DeltaIcon from '../components/DeltaIcon.astro';
 
         <h2>Information Sharing</h2>
         <p>
-          We do not sell, rent, or trade your personal information. We may share your information only in the following circumstances:
+          We do not sell, rent, or trade your personal information. We may share your information
+          only in the following circumstances:
         </p>
         <ul>
-          <li><strong>Service Providers:</strong> With trusted third-party service providers who assist in operating our website or conducting our business (e.g., calendar scheduling tools, email services).</li>
-          <li><strong>Legal Requirements:</strong> When required by law or to protect our rights, property, or safety.</li>
-          <li><strong>Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets.</li>
+          <li>
+            <strong>Service Providers:</strong> With trusted third-party service providers who assist
+            in operating our website or conducting our business (e.g., calendar scheduling tools, email
+            services).
+          </li>
+          <li>
+            <strong>Legal Requirements:</strong> When required by law or to protect our rights, property,
+            or safety.
+          </li>
+          <li>
+            <strong>Business Transfers:</strong> In connection with a merger, acquisition, or sale of
+            assets.
+          </li>
         </ul>
 
         <h2>Third-Party Services</h2>
@@ -66,15 +81,15 @@ import DeltaIcon from '../components/DeltaIcon.astro';
 
         <h2>Cookies and Tracking</h2>
         <p>
-          Our website may use cookies and similar tracking technologies to enhance your browsing experience.
-          You can control cookie preferences through your browser settings.
+          Our website may use cookies and similar tracking technologies to enhance your browsing
+          experience. You can control cookie preferences through your browser settings.
         </p>
 
         <h2>Data Security</h2>
         <p>
-          We implement reasonable security measures to protect your information from unauthorized access,
-          alteration, disclosure, or destruction. However, no method of transmission over the internet is
-          completely secure, and we cannot guarantee absolute security.
+          We implement reasonable security measures to protect your information from unauthorized
+          access, alteration, disclosure, or destruction. However, no method of transmission over
+          the internet is completely secure, and we cannot guarantee absolute security.
         </p>
 
         <h2>Your Rights</h2>
@@ -88,38 +103,41 @@ import DeltaIcon from '../components/DeltaIcon.astro';
 
         <h2>Client Confidentiality</h2>
         <p>
-          For information shared during client engagements, we maintain strict confidentiality in accordance
-          with our engagement agreements and professional standards. Client project information is handled
-          separately from general website visitor data.
+          For information shared during client engagements, we maintain strict confidentiality in
+          accordance with our engagement agreements and professional standards. Client project
+          information is handled separately from general website visitor data.
         </p>
 
         <h2>Children's Privacy</h2>
         <p>
-          Our services are not directed to individuals under 18 years of age. We do not knowingly collect
-          personal information from children.
+          Our services are not directed to individuals under 18 years of age. We do not knowingly
+          collect personal information from children.
         </p>
 
         <h2>Changes to This Policy</h2>
         <p>
-          We may update this Privacy Policy periodically. Any changes will be posted on this page with an
-          updated "Last Updated" date. We encourage you to review this policy regularly.
+          We may update this Privacy Policy periodically. Any changes will be posted on this page
+          with an updated "Last Updated" date. We encourage you to review this policy regularly.
         </p>
 
         <h2>California Privacy Rights</h2>
         <p>
-          California residents have additional rights under the California Consumer Privacy Act (CCPA),
-          including the right to know what personal information is collected, the right to delete personal
-          information, and the right to opt out of the sale of personal information. We do not sell personal information.
+          California residents have additional rights under the California Consumer Privacy Act
+          (CCPA), including the right to know what personal information is collected, the right to
+          delete personal information, and the right to opt out of the sale of personal information.
+          We do not sell personal information.
         </p>
 
         <section class="legal-contact-section">
           <h2>Contact Us</h2>
           <p>
-            If you have questions or concerns about this Privacy Policy or our data practices, please contact us:
+            If you have questions or concerns about this Privacy Policy or our data practices,
+            please contact us:
           </p>
           <p>
-            <strong>Global Strategic Technologies LLC</strong><br>
-            Email: <a href="mailto:contact@globalstrategic.tech">contact@globalstrategic.tech</a><br>
+            <strong>Global Strategic Technologies LLC</strong><br />
+            Email: <a href="mailto:contact@globalstrategic.tech">contact@globalstrategic.tech</a><br
+            />
             Website: <a href="https://globalstrategic.tech">globalstrategic.tech</a>
           </p>
         </section>
