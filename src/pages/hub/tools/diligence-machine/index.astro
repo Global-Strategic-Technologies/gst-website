@@ -566,7 +566,11 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 </BaseLayout>
 
 <script>
-  import { syncMultiRegion, MULTI_REGION_ID } from '../../../../utils/diligence-engine';
+  import {
+    syncMultiRegion,
+    MULTI_REGION_ID,
+    generateScript,
+  } from '../../../../utils/diligence-engine';
   import { getOptionLabel, WIZARD_STEPS } from '../../../../data/diligence-machine/wizard-config';
   import { trackCTA, trackEvent } from '../../../../utils/analytics';
   import { copyWithFeedback } from '../../../../utils/copy-feedback';
@@ -1585,7 +1589,6 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
       operatingModel: inputs.operatingModel!,
     };
 
-    const { generateScript } = await import('../../../../utils/diligence-engine');
     const script = generateScript(fullInputs);
     renderOutput(script);
   });
