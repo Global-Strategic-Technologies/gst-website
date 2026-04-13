@@ -650,7 +650,7 @@ Developer experience gaps (manual sitemap, no content collections, no security h
 
 - **Astro content collections for regulatory-map** — migrate 120 JSON files from `src/data/regulatory-map/` to `src/content/regulatory-map/` with Astro's built-in collection validation. Replaces manual `import.meta.glob` + Zod in `fetchRegulations.ts`. No `src/content/` directory exists yet.
 - **Security headers** — `vercel.json` with CSP, X-Frame-Options (`DENY`), X-Content-Type-Options (`nosniff`), Referrer-Policy (`strict-origin-when-cross-origin`), Permissions-Policy (disable camera, microphone, geolocation). Astro middleware (`src/middleware.ts`) for SSR routes (Radar).
-- **Evaluate `client:visible` for Chart.js** — chart.js is ~200KB; wrapping TechPar chart init in an island could defer loading. Document the decision even if skipped.
+- **Evaluate `client:visible` for Chart.js** — **Evaluated and deferred**. `client:visible` requires framework components (React/Vue/Svelte); TechPar uses vanilla JS scripts, so the directive doesn't apply. Dynamic import (`import('chart.js')`) is the alternative but adds async complexity for marginal gain — Chart.js only loads on the TechPar page and Vite already code-splits it into a separate chunk. No action needed.
 - **Documentation restructure** — normalize all 6 doc directories:
 
   **Standard structure** (every directory follows the same pattern):
