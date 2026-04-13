@@ -6,7 +6,7 @@ const SPECIAL_ARR_VALUES = ['Not in source', 'N/A', '--', ''] as const;
 /**
  * Type for special ARR values
  */
-type SpecialARRValue = typeof SPECIAL_ARR_VALUES[number];
+type SpecialARRValue = (typeof SPECIAL_ARR_VALUES)[number];
 
 /**
  * Checks if a value is a special (non-numeric) ARR value

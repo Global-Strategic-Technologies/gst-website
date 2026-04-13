@@ -5,9 +5,7 @@ import { test, expect } from '@playwright/test';
  */
 async function clickPanelButton(page: import('@playwright/test').Page, id: string): Promise<void> {
   await page.evaluate((btnId) => {
-    document.getElementById(btnId)?.dispatchEvent(
-      new MouseEvent('click', { bubbles: true })
-    );
+    document.getElementById(btnId)?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   }, id);
 }
 
@@ -52,15 +50,17 @@ test.describe('Palette Panel', () => {
 
       // Open
       await clickPanelButton(page, 'panel-toggle');
-      await page.waitForFunction(() =>
-        document.getElementById('palette-panel')?.classList.contains('is-open')
-      , { timeout: 10000 });
+      await page.waitForFunction(
+        () => document.getElementById('palette-panel')?.classList.contains('is-open'),
+        { timeout: 10000 }
+      );
 
       // Close
       await clickPanelButton(page, 'panel-toggle');
-      await page.waitForFunction(() =>
-        !document.getElementById('palette-panel')?.classList.contains('is-open')
-      , { timeout: 10000 });
+      await page.waitForFunction(
+        () => !document.getElementById('palette-panel')?.classList.contains('is-open'),
+        { timeout: 10000 }
+      );
     });
   });
 
@@ -75,9 +75,9 @@ test.describe('Palette Panel', () => {
         tab?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
 
-      await page.waitForFunction(() =>
-        document.documentElement.classList.contains('palette-2')
-      , { timeout: 10000 });
+      await page.waitForFunction(() => document.documentElement.classList.contains('palette-2'), {
+        timeout: 10000,
+      });
     });
 
     test('should remove previous palette class when switching', async ({ page }) => {
@@ -86,16 +86,18 @@ test.describe('Palette Panel', () => {
 
       // Switch to palette 2 then palette 3
       await page.evaluate(() => {
-        (document.querySelector('[data-palette="2"]') as HTMLElement)
-          ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        (document.querySelector('[data-palette="2"]') as HTMLElement)?.dispatchEvent(
+          new MouseEvent('click', { bubbles: true })
+        );
       });
-      await page.waitForFunction(() =>
-        document.documentElement.classList.contains('palette-2')
-      , { timeout: 10000 });
+      await page.waitForFunction(() => document.documentElement.classList.contains('palette-2'), {
+        timeout: 10000,
+      });
 
       await page.evaluate(() => {
-        (document.querySelector('[data-palette="3"]') as HTMLElement)
-          ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        (document.querySelector('[data-palette="3"]') as HTMLElement)?.dispatchEvent(
+          new MouseEvent('click', { bubbles: true })
+        );
       });
 
       const result = await page.evaluate(() => ({
@@ -110,8 +112,9 @@ test.describe('Palette Panel', () => {
       await clickPanelButton(page, 'panel-toggle');
 
       await page.evaluate(() => {
-        (document.querySelector('[data-palette="3"]') as HTMLElement)
-          ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        (document.querySelector('[data-palette="3"]') as HTMLElement)?.dispatchEvent(
+          new MouseEvent('click', { bubbles: true })
+        );
       });
 
       const result = await page.evaluate(() => {
@@ -128,13 +131,12 @@ test.describe('Palette Panel', () => {
       await clickPanelButton(page, 'panel-toggle');
 
       await page.evaluate(() => {
-        (document.querySelector('[data-palette="4"]') as HTMLElement)
-          ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        (document.querySelector('[data-palette="4"]') as HTMLElement)?.dispatchEvent(
+          new MouseEvent('click', { bubbles: true })
+        );
       });
 
-      await page.waitForFunction(() =>
-        localStorage.getItem('palette') === '4'
-      , { timeout: 10000 });
+      await page.waitForFunction(() => localStorage.getItem('palette') === '4', { timeout: 10000 });
     });
 
     test('should restore palette from localStorage on page load', async ({ page }) => {
@@ -152,9 +154,9 @@ test.describe('Palette Panel', () => {
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
       await clickPanelButton(page, 'panel-popout-toggle');
 
-      await page.waitForFunction(() =>
-        localStorage.getItem('palette-popped-out') === 'true'
-      , { timeout: 10000 });
+      await page.waitForFunction(() => localStorage.getItem('palette-popped-out') === 'true', {
+        timeout: 10000,
+      });
     });
 
     test('should restore pop-out state from localStorage on reload', async ({ page }) => {
@@ -188,13 +190,14 @@ test.describe('Palette Panel', () => {
       await clickPanelButton(page, 'panel-toggle');
 
       await page.evaluate(() => {
-        (document.querySelector('[data-palette="2"]') as HTMLElement)
-          ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        (document.querySelector('[data-palette="2"]') as HTMLElement)?.dispatchEvent(
+          new MouseEvent('click', { bubbles: true })
+        );
       });
 
-      await page.waitForFunction(() =>
-        document.documentElement.classList.contains('palette-2')
-      , { timeout: 10000 });
+      await page.waitForFunction(() => document.documentElement.classList.contains('palette-2'), {
+        timeout: 10000,
+      });
 
       // Navigate to homepage
       await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -219,9 +222,10 @@ test.describe('Palette Panel', () => {
       // Click reset
       await clickPanelButton(page, 'reset-all');
 
-      await page.waitForFunction(() =>
-        document.documentElement.style.getPropertyValue('--color-primary') === ''
-      , { timeout: 10000 });
+      await page.waitForFunction(
+        () => document.documentElement.style.getPropertyValue('--color-primary') === '',
+        { timeout: 10000 }
+      );
     });
   });
 });

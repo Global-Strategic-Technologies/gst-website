@@ -71,10 +71,7 @@ export async function verifyCompoundSelection(
 /**
  * Verify that output contains at least minCount questions
  */
-export async function verifyOutputHasQuestions(
-  page: Page,
-  minCount: number
-): Promise<void> {
+export async function verifyOutputHasQuestions(page: Page, minCount: number): Promise<void> {
   const questions = page.locator('.doc-question');
   const count = await questions.count();
   expect(count).toBeGreaterThanOrEqual(minCount);
@@ -112,61 +109,90 @@ export async function completeWizardToStep(
       }
 
       // Use evaluate() for WebKit stability (avoids "not stable" issues)
-      await page.evaluate(([stepId, value]) => {
-        const element = document.querySelector(`[data-testid="option-${stepId}-${value}"]`);
-        if (element) (element as HTMLElement).click();
-      }, [stepId, value]);
+      await page.evaluate(
+        ([stepId, value]) => {
+          const element = document.querySelector(`[data-testid="option-${stepId}-${value}"]`);
+          if (element) (element as HTMLElement).click();
+        },
+        [stepId, value]
+      );
 
       // Wait for auto-advance to complete (300ms setTimeout in source)
-      await page.waitForFunction((expectedStep) => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === String(expectedStep);
-      }, step + 1, { timeout: 5000 });
+      await page.waitForFunction(
+        (expectedStep) => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === String(expectedStep);
+        },
+        step + 1,
+        { timeout: 5000 }
+      );
     }
 
     // Compound step (step 4)
     else if (step === 4) {
       // Wait for step 4 to be active (after auto-advance from step 3)
-      await page.waitForFunction(() => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === '4';
-      }, { timeout: 2000 });
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '4';
+        },
+        { timeout: 2000 }
+      );
 
       if (!inputs.headcount || !inputs.revenueRange || !inputs.growthStage || !inputs.companyAge) {
-        throw new Error('Missing compound step inputs: need headcount, revenueRange, growthStage, companyAge');
+        throw new Error(
+          'Missing compound step inputs: need headcount, revenueRange, growthStage, companyAge'
+        );
       }
 
       // Select all 4 fields (use evaluate for WebKit stability)
-      await page.evaluate((inputs) => {
-        const headcount = document.querySelector(`[data-testid="compound-headcount-${inputs.headcount}"]`);
-        const revenue = document.querySelector(`[data-testid="compound-revenue-range-${inputs.revenueRange}"]`);
-        const growth = document.querySelector(`[data-testid="compound-growth-stage-${inputs.growthStage}"]`);
-        const age = document.querySelector(`[data-testid="compound-company-age-${inputs.companyAge}"]`);
-        if (headcount) (headcount as HTMLElement).click();
-        if (revenue) (revenue as HTMLElement).click();
-        if (growth) (growth as HTMLElement).click();
-        if (age) (age as HTMLElement).click();
-      }, {
-        headcount: inputs.headcount,
-        revenueRange: inputs.revenueRange,
-        growthStage: inputs.growthStage,
-        companyAge: inputs.companyAge
-      } as any);
+      await page.evaluate(
+        (inputs) => {
+          const headcount = document.querySelector(
+            `[data-testid="compound-headcount-${inputs.headcount}"]`
+          );
+          const revenue = document.querySelector(
+            `[data-testid="compound-revenue-range-${inputs.revenueRange}"]`
+          );
+          const growth = document.querySelector(
+            `[data-testid="compound-growth-stage-${inputs.growthStage}"]`
+          );
+          const age = document.querySelector(
+            `[data-testid="compound-company-age-${inputs.companyAge}"]`
+          );
+          if (headcount) (headcount as HTMLElement).click();
+          if (revenue) (revenue as HTMLElement).click();
+          if (growth) (growth as HTMLElement).click();
+          if (age) (age as HTMLElement).click();
+        },
+        {
+          headcount: inputs.headcount,
+          revenueRange: inputs.revenueRange,
+          growthStage: inputs.growthStage,
+          companyAge: inputs.companyAge,
+        } as any
+      );
 
       // Wait for auto-advance to step 5 (300ms timer after all 4 fields filled)
-      await page.waitForFunction(() => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === '5';
-      }, { timeout: 5000 });
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '5';
+        },
+        { timeout: 5000 }
+      );
     }
 
     // Multi-select geography (step 5)
     else if (step === 5) {
       // Wait for step 5 to be active
-      await page.waitForFunction(() => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === '5';
-      }, { timeout: 2000 });
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '5';
+        },
+        { timeout: 2000 }
+      );
 
       const geographies = inputs.geographies;
       if (!geographies || geographies.length === 0) {
@@ -175,13 +201,13 @@ export async function completeWizardToStep(
 
       // Select each geography (skip multi-region if it will be auto-added)
       // Use evaluate() for WebKit stability
-      const geosToSelect = geographies.filter(geo => {
+      const geosToSelect = geographies.filter((geo) => {
         // Skip multi-region if we have 2+ other regions (it will be auto-added)
         return !(geo === 'multi-region' && geographies.length > 2);
       });
 
       await page.evaluate((geos) => {
-        geos.forEach(geo => {
+        geos.forEach((geo) => {
           const element = document.querySelector(`[data-testid="option-geography-${geo}"]`);
           if (element) (element as HTMLElement).click();
         });
@@ -194,10 +220,13 @@ export async function completeWizardToStep(
       });
 
       // Wait for next step
-      await page.waitForFunction(() => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === '6';
-      }, { timeout: 2000 });
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '6';
+        },
+        { timeout: 2000 }
+      );
     }
   }
 }
@@ -214,14 +243,19 @@ export async function completeWizardAndGenerate(
   await completeWizardToStep(page, 10, inputs);
 
   // Verify we're on step 10
-  await page.waitForFunction(() => {
-    const activeStep = document.querySelector('.wizard-step.active');
-    return activeStep?.getAttribute('data-step') === '10';
-  }, { timeout: 2000 });
+  await page.waitForFunction(
+    () => {
+      const activeStep = document.querySelector('.wizard-step.active');
+      return activeStep?.getAttribute('data-step') === '10';
+    },
+    { timeout: 2000 }
+  );
 
   // Select final step option (operating-model) - use evaluate for WebKit
   await page.evaluate((operatingModel) => {
-    const element = document.querySelector(`[data-testid="option-operating-model-${operatingModel}"]`);
+    const element = document.querySelector(
+      `[data-testid="option-operating-model-${operatingModel}"]`
+    );
     if (element) (element as HTMLElement).click();
   }, inputs.operatingModel);
 
@@ -236,10 +270,16 @@ export async function completeWizardAndGenerate(
   });
 
   // If wizard is still visible after 1s, click again
-  const wizardStillVisible = await page.waitForFunction(() => {
-    const wizard = document.querySelector('[data-testid="wizard-container"]');
-    return wizard && window.getComputedStyle(wizard).display === 'none';
-  }, { timeout: 1500 }).then(() => false).catch(() => true);
+  const wizardStillVisible = await page
+    .waitForFunction(
+      () => {
+        const wizard = document.querySelector('[data-testid="wizard-container"]');
+        return wizard && window.getComputedStyle(wizard).display === 'none';
+      },
+      { timeout: 1500 }
+    )
+    .then(() => false)
+    .catch(() => true);
 
   if (wizardStillVisible) {
     await page.evaluate(() => {
@@ -249,16 +289,22 @@ export async function completeWizardAndGenerate(
   }
 
   // Wait for wizard to hide
-  await page.waitForFunction(() => {
-    const wizard = document.querySelector('[data-testid="wizard-container"]');
-    return wizard && window.getComputedStyle(wizard).display === 'none';
-  }, { timeout: 5000 });
+  await page.waitForFunction(
+    () => {
+      const wizard = document.querySelector('[data-testid="wizard-container"]');
+      return wizard && window.getComputedStyle(wizard).display === 'none';
+    },
+    { timeout: 5000 }
+  );
 
   // Wait for output to appear
-  await page.waitForFunction(() => {
-    const output = document.querySelector('[data-testid="output-container"]');
-    return output && window.getComputedStyle(output).display !== 'none';
-  }, { timeout: 5000 });
+  await page.waitForFunction(
+    () => {
+      const output = document.querySelector('[data-testid="output-container"]');
+      return output && window.getComputedStyle(output).display !== 'none';
+    },
+    { timeout: 5000 }
+  );
 }
 
 /**
@@ -282,10 +328,14 @@ export async function getAttentionAreaCount(page: Page): Promise<number> {
  */
 export async function expectWizardOnStep(page: Page, stepNumber: number): Promise<void> {
   // Wait for the expected step to become active
-  await page.waitForFunction((step) => {
-    const activeStep = document.querySelector('.wizard-step.active');
-    return activeStep?.getAttribute('data-step') === String(step);
-  }, stepNumber, { timeout: 5000 });
+  await page.waitForFunction(
+    (step) => {
+      const activeStep = document.querySelector('.wizard-step.active');
+      return activeStep?.getAttribute('data-step') === String(step);
+    },
+    stepNumber,
+    { timeout: 5000 }
+  );
 
   const activeStep = page.locator('.wizard-step.active');
   await expect(activeStep).toBeVisible();

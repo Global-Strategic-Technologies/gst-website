@@ -11,94 +11,109 @@ import '../../styles/global.css';
 
 const group = Astro.url.searchParams.get('group') || 'cards';
 ---
+
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="robots" content="noindex" />
-  <title>Responsive Frame</title>
-  <style>
-    body {
-      margin: 0;
-      padding: var(--spacing-md);
-      background: var(--bg-light);
-      color: var(--text-primary);
-      font-family: var(--font-family);
-      overflow: hidden;
-    }
-  </style>
-</head>
-<body>
-  {group === 'cards' && (
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--gap-normal);">
-      <div class="brutal-option-card">
-        <span class="brutal-option-card__label">Option A</span>
-        <span class="brutal-option-card__description">Card description text for responsive test</span>
-      </div>
-      <div class="brutal-option-card brutal-option-card--selected">
-        <span class="brutal-option-card__label">Option B</span>
-        <span class="brutal-option-card__description">Selected card with longer text content</span>
-      </div>
-      <div class="brutal-option-card">
-        <span class="brutal-option-card__label">Option C</span>
-        <span class="brutal-option-card__description">Third card in grid</span>
-      </div>
-    </div>
-  )}
-
-  {group === 'tabs' && (
-    <div class="brutal-tab-bar" style="position: static;">
-      <button class="brutal-tab brutal-tab--active" type="button">
-        <span class="brutal-tab__label">Overview</span>
-      </button>
-      <button class="brutal-tab brutal-tab--done" type="button">
-        <span class="brutal-tab__label">Details</span>
-      </button>
-      <button class="brutal-tab" type="button">
-        <span class="brutal-tab__label">Results</span>
-        <span class="brutal-tab__badge brutal-tab__badge--on"></span>
-      </button>
-      <button class="brutal-tab" type="button">
-        <span class="brutal-tab__label">Summary</span>
-      </button>
-    </div>
-  )}
-
-  {group === 'form' && (
-    <div style="max-width: 100%;">
-      <div class="brutal-field">
-        <label class="brutal-field__label">Company name <span class="brutal-field__req">(required)</span></label>
-        <input class="brutal-field__input" type="text" placeholder="Enter company name" />
-      </div>
-      <div style="display: flex; gap: var(--gap-normal); flex-wrap: wrap;">
-        <button class="brutal-btn brutal-btn--primary">Submit</button>
-        <button class="brutal-btn brutal-btn--secondary">Cancel</button>
-      </div>
-    </div>
-  )}
-
-  {group === 'shell' && (
-    <div class="brutal-tool-shell" style="margin: 0; max-width: 100%;">
-      <div class="brutal-tool-shell__content">
-        <div class="brutal-tool-shell__authority">Tool Authority Line</div>
-        <div class="brutal-tool-shell__section-label">Section Label</div>
-        <p class="brutal-text-small">Shell container adapts to viewport width.</p>
-      </div>
-    </div>
-  )}
-
-  <script>
-    // Sync theme with parent frame
-    window.addEventListener('message', (e) => {
-      if (e.data?.type === 'theme-sync') {
-        document.documentElement.classList.toggle('dark-theme', e.data.dark);
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Responsive Frame</title>
+    <style>
+      body {
+        margin: 0;
+        padding: var(--spacing-md);
+        background: var(--bg-light);
+        color: var(--text-primary);
+        font-family: var(--font-family);
+        overflow: hidden;
       }
-    });
-    // Initial theme from parent (if in iframe)
-    if (window.parent !== window) {
-      const parentDark = window.parent.document.documentElement.classList.contains('dark-theme');
-      document.documentElement.classList.toggle('dark-theme', parentDark);
+    </style>
+  </head>
+  <body>
+    {
+      group === 'cards' && (
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--gap-normal);">
+          <div class="brutal-option-card">
+            <span class="brutal-option-card__label">Option A</span>
+            <span class="brutal-option-card__description">
+              Card description text for responsive test
+            </span>
+          </div>
+          <div class="brutal-option-card brutal-option-card--selected">
+            <span class="brutal-option-card__label">Option B</span>
+            <span class="brutal-option-card__description">
+              Selected card with longer text content
+            </span>
+          </div>
+          <div class="brutal-option-card">
+            <span class="brutal-option-card__label">Option C</span>
+            <span class="brutal-option-card__description">Third card in grid</span>
+          </div>
+        </div>
+      )
     }
-  </script>
-</body>
+
+    {
+      group === 'tabs' && (
+        <div class="brutal-tab-bar" style="position: static;">
+          <button class="brutal-tab brutal-tab--active" type="button">
+            <span class="brutal-tab__label">Overview</span>
+          </button>
+          <button class="brutal-tab brutal-tab--done" type="button">
+            <span class="brutal-tab__label">Details</span>
+          </button>
+          <button class="brutal-tab" type="button">
+            <span class="brutal-tab__label">Results</span>
+            <span class="brutal-tab__badge brutal-tab__badge--on" />
+          </button>
+          <button class="brutal-tab" type="button">
+            <span class="brutal-tab__label">Summary</span>
+          </button>
+        </div>
+      )
+    }
+
+    {
+      group === 'form' && (
+        <div style="max-width: 100%;">
+          <div class="brutal-field">
+            <label class="brutal-field__label">
+              Company name <span class="brutal-field__req">(required)</span>
+            </label>
+            <input class="brutal-field__input" type="text" placeholder="Enter company name" />
+          </div>
+          <div style="display: flex; gap: var(--gap-normal); flex-wrap: wrap;">
+            <button class="brutal-btn brutal-btn--primary">Submit</button>
+            <button class="brutal-btn brutal-btn--secondary">Cancel</button>
+          </div>
+        </div>
+      )
+    }
+
+    {
+      group === 'shell' && (
+        <div class="brutal-tool-shell" style="margin: 0; max-width: 100%;">
+          <div class="brutal-tool-shell__content">
+            <div class="brutal-tool-shell__authority">Tool Authority Line</div>
+            <div class="brutal-tool-shell__section-label">Section Label</div>
+            <p class="brutal-text-small">Shell container adapts to viewport width.</p>
+          </div>
+        </div>
+      )
+    }
+
+    <script>
+      // Sync theme with parent frame
+      window.addEventListener('message', (e) => {
+        if (e.data?.type === 'theme-sync') {
+          document.documentElement.classList.toggle('dark-theme', e.data.dark);
+        }
+      });
+      // Initial theme from parent (if in iframe)
+      if (window.parent !== window) {
+        const parentDark = window.parent.document.documentElement.classList.contains('dark-theme');
+        document.documentElement.classList.toggle('dark-theme', parentDark);
+      }
+    </script>
+  </body>
 </html>

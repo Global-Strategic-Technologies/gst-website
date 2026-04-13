@@ -5,9 +5,20 @@ interface Props {
 }
 const { size = 14, class: className = '' } = Astro.props;
 ---
-<svg viewBox="0 0 64 64" fill="none" aria-hidden="true"
-     width={size} height={size} class={className}
-     style="flex-shrink:0;">
-  <path d="M32 12 L52 52 L12 52 Z" fill="none" stroke="currentColor"
-        stroke-width="6" stroke-linejoin="miter"/>
+
+<svg
+  viewBox="0 0 64 64"
+  fill="none"
+  aria-hidden="true"
+  width={size}
+  height={size}
+  class={className}
+  style="flex-shrink:0;"
+>
+  <path
+    d="M32 12 L52 52 L12 52 Z"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="6"
+    stroke-linejoin="miter"></path>
 </svg>

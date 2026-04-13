@@ -20,7 +20,7 @@ describe('Country Code Maps', () => {
     });
 
     it('should have all values as 3-character uppercase strings', () => {
-      Object.values(numericToAlpha3).forEach(code => {
+      Object.values(numericToAlpha3).forEach((code) => {
         expect(code).toMatch(/^[A-Z]{3}$/);
       });
     });
@@ -39,13 +39,13 @@ describe('Country Code Maps', () => {
     });
 
     it('should have all keys as 3-character uppercase strings', () => {
-      Object.keys(alpha3ToName).forEach(key => {
+      Object.keys(alpha3ToName).forEach((key) => {
         expect(key).toMatch(/^[A-Z]{3}$/);
       });
     });
 
     it('should have every numericToAlpha3 value present as a key', () => {
-      Object.values(numericToAlpha3).forEach(alpha3 => {
+      Object.values(numericToAlpha3).forEach((alpha3) => {
         expect(alpha3ToName).toHaveProperty(alpha3);
       });
     });
@@ -63,7 +63,7 @@ describe('US State Code Maps', () => {
     });
 
     it('should have all values matching US-XX format', () => {
-      Object.values(fipsToStateCode).forEach(code => {
+      Object.values(fipsToStateCode).forEach((code) => {
         expect(code).toMatch(/^US-[A-Z]{2}$/);
       });
     });
@@ -79,7 +79,7 @@ describe('US State Code Maps', () => {
     });
 
     it('should have every fipsToStateCode value present as a key', () => {
-      Object.values(fipsToStateCode).forEach(stateCode => {
+      Object.values(fipsToStateCode).forEach((stateCode) => {
         expect(stateCodeToName).toHaveProperty(stateCode);
       });
     });
@@ -100,7 +100,7 @@ describe('Canadian Province Code Map', () => {
     });
 
     it('should have all keys matching CA-XX format', () => {
-      Object.keys(provinceCodeToName).forEach(key => {
+      Object.keys(provinceCodeToName).forEach((key) => {
         expect(key).toMatch(/^CA-[A-Z]{2}$/);
       });
     });

@@ -17,29 +17,34 @@ A Claude skill for maintaining consistent content patterns, brand voice, and str
 ### Option 1: Local Project Skill (Recommended for GST Website Development)
 
 1. **Navigate to your GST website project directory:**
+
    ```bash
    cd C:\Code\gst-website
    ```
 
 2. **Create a `.claude` directory** (if it doesn't exist):
+
    ```bash
    mkdir .claude
    cd .claude
    ```
 
 3. **Create a `skills` subdirectory:**
+
    ```bash
    mkdir skills
    cd skills
    ```
 
 4. **Copy the skill files** into this directory:
+
    ```bash
    mkdir gst-content-architecture
    # Copy SKILL.md and skill.json into gst-content-architecture/
    ```
 
    Your structure should look like:
+
    ```
    C:\Code\gst-website\
    └── .claude\
@@ -58,10 +63,11 @@ A Claude skill for maintaining consistent content patterns, brand voice, and str
    - **macOS/Linux:** `~/.claude/skills/`
 
 2. **Create the skill directory:**
+
    ```bash
    # Windows (PowerShell)
    mkdir $env:USERPROFILE\.claude\skills\gst-content-architecture
-   
+
    # macOS/Linux
    mkdir -p ~/.claude/skills/gst-content-architecture
    ```
@@ -110,6 +116,7 @@ When chatting with Claude in your GST project:
 ### Automatic Triggers
 
 The skill automatically activates when you:
+
 - Mention creating website pages or sections
 - Ask for hero section copy
 - Request card layouts or descriptions
@@ -121,6 +128,7 @@ The skill automatically activates when you:
 ## Key Features to Leverage
 
 ### 1. Content Templates
+
 ```
 "Use the hero section template to create copy for [page name]"
 "Apply the card component pattern for these three services"
@@ -128,6 +136,7 @@ The skill automatically activates when you:
 ```
 
 ### 2. Brand Voice Enforcement
+
 ```
 "Review this copy against the brand voice guidelines"
 "Rewrite this in the GST authoritative style"
@@ -135,6 +144,7 @@ The skill automatically activates when you:
 ```
 
 ### 3. Audience Adaptation
+
 ```
 "Adapt this technical content for PE investor audience"
 "Write this for C-suite executives per the audience profiles"
@@ -142,6 +152,7 @@ The skill automatically activates when you:
 ```
 
 ### 4. Delta Symbol Integration
+
 ```
 "Format these metrics using Delta notation"
 "Add Delta symbols to this content appropriately"
@@ -149,6 +160,7 @@ The skill automatically activates when you:
 ```
 
 ### 5. Quality Assurance
+
 ```
 "Check this page against the content checklist"
 "Verify SEO metadata patterns"
@@ -156,6 +168,7 @@ The skill automatically activates when you:
 ```
 
 ### 6. Technical Resource Integration
+
 ```
 "Use Context7 to implement this in Astro"
 "Check project docs for existing CSS patterns"
@@ -168,22 +181,22 @@ The skill automatically activates when you:
 ### Delta SVG Asset
 
 The skill now references the project's Delta symbol SVG:
+
 ```
 Location: public/images/gst-delta-icon-teal-stroke-thick.svg
 Usage: Hero sections, card icons, decorative elements
 ```
 
 **Implementation:**
+
 ```html
-<img src="/images/gst-delta-icon-teal-stroke-thick.svg" 
-     alt="Delta symbol"
-     width="48" 
-     height="48" />
+<img src="/images/gst-delta-icon-teal-stroke-thick.svg" alt="Delta symbol" width="48" height="48" />
 ```
 
 ### Context7 MCP
 
 Always leverage Context7 for Astro-specific technical questions:
+
 ```bash
 "Context7: How do I implement dynamic routes in Astro?"
 "Context7: Best practices for Astro component composition?"
@@ -193,11 +206,13 @@ Always leverage Context7 for Astro-specific technical questions:
 ### Project Documentation
 
 Technical documentation is located at:
+
 ```
 C:\Code\gst-website\src\docs\
 ```
 
 Reference for:
+
 - CSS patterns and design system (`styles/`)
 - Architecture decisions
 - Component specifications
@@ -206,6 +221,7 @@ Reference for:
 ### UX Expert Agent
 
 Use for design validation:
+
 ```
 "UX Agent: Review this card layout for mobile usability"
 "UX Agent: Validate accessibility for this navigation"
@@ -224,6 +240,7 @@ Use for design validation:
 ## When to Reference This Skill
 
 **Always use for:**
+
 - New page creation
 - Hero section development
 - Card/grid layouts
@@ -232,6 +249,7 @@ Use for design validation:
 - Brand voice questions
 
 **Consider using for:**
+
 - Blog post structure
 - Email templates
 - Presentation content
@@ -239,6 +257,7 @@ Use for design validation:
 - Client-facing documents
 
 **Don't need for:**
+
 - Pure technical implementation (CSS, JavaScript)
 - Backend development
 - DevOps configuration
@@ -264,7 +283,6 @@ When brand guidelines or content patterns evolve:
   - Included UX Expert Agent integration
   - Added comprehensive resource priority workflow
   - Updated examples with Astro component code
-  
 - **v1.0.0** (January 2026) - Initial release
   - Core content templates
   - Brand voice guidelines
@@ -275,6 +293,7 @@ When brand guidelines or content patterns evolve:
 ## Integration with Other Resources
 
 This skill works alongside:
+
 - **GST Brand Guidelines (v2.0)** - Full visual identity system
 - **Style Documentation** (`C:\Code\gst-website\src\docs\styles\`) - CSS patterns
 - **Context7** - Astro best practices
@@ -285,17 +304,20 @@ The skill focuses specifically on **content architecture** while complementing t
 ## Troubleshooting
 
 **Skill not appearing:**
+
 - Verify file placement in `.claude/skills/` directory
 - Check that both `SKILL.md` and `skill.json` exist
 - Restart Claude Code
 - Check file permissions (should be readable)
 
 **Skill not activating:**
+
 - Try explicitly mentioning it: "Using the GST content architecture skill..."
 - Verify trigger words are present in your prompt
 - Check you're in the correct project context
 
 **Content doesn't match brand:**
+
 - Reference specific sections: "Apply the hero section template"
 - Request voice review: "Check against brand voice guidelines"
 - Use quality checklist: "Verify against the content checklist"
@@ -303,6 +325,7 @@ The skill focuses specifically on **content architecture** while complementing t
 ## Support
 
 For questions or issues:
+
 - Review the full skill documentation in `SKILL.md`
 - Reference GST Brand Guidelines v2.0 for visual identity
 - Consult style documentation for CSS/technical patterns

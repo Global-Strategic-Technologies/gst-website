@@ -23,14 +23,15 @@ import {
   applyMaturityOverrides,
 } from '../../src/utils/diligence-engine';
 import type { UserInputs } from '../../src/utils/diligence-engine';
-import type { DiligenceQuestion, QuestionCondition } from '../../src/data/diligence-machine/questions';
+import type {
+  DiligenceQuestion,
+  QuestionCondition,
+} from '../../src/data/diligence-machine/questions';
 
 // ─── TEST DATA ──────────────────────────────────────────────────────────────
 
 // Helper: create a minimal question for testing
-function makeQuestion(
-  overrides: Partial<DiligenceQuestion> = {}
-): DiligenceQuestion {
+function makeQuestion(overrides: Partial<DiligenceQuestion> = {}): DiligenceQuestion {
   return {
     id: overrides.id ?? 'test-q',
     topic: overrides.topic ?? 'architecture',
@@ -376,7 +377,7 @@ describe('sortByPriority', () => {
     const sorted = sortByPriority(unsorted);
 
     // Stable sort should preserve original order for equal priority
-    expect(sorted.map(q => q.id)).toEqual(['c2', 'c1', 'c3']);
+    expect(sorted.map((q) => q.id)).toEqual(['c2', 'c1', 'c3']);
   });
 
   it('should handle empty arrays', () => {
@@ -440,19 +441,28 @@ describe('balanceAcrossTopics', () => {
   describe('minimum per topic (3 questions)', () => {
     it('should select minimum 3 per topic when available', () => {
       const questions = [
-        archQ1, archQ2, archQ3, archQ4,
-        opsQ1, opsQ2, opsQ3,
-        ciQ1, ciQ2, ciQ3,
-        secQ1, secQ2, secQ3,
+        archQ1,
+        archQ2,
+        archQ3,
+        archQ4,
+        opsQ1,
+        opsQ2,
+        opsQ3,
+        ciQ1,
+        ciQ2,
+        ciQ3,
+        secQ1,
+        secQ2,
+        secQ3,
       ];
 
       const result = balanceAcrossTopics(questions, 15, 20);
 
       // Count questions per topic
-      const archCount = result.filter(q => q.topic === 'architecture').length;
-      const opsCount = result.filter(q => q.topic === 'operations').length;
-      const ciCount = result.filter(q => q.topic === 'carveout-integration').length;
-      const secCount = result.filter(q => q.topic === 'security-risk').length;
+      const archCount = result.filter((q) => q.topic === 'architecture').length;
+      const opsCount = result.filter((q) => q.topic === 'operations').length;
+      const ciCount = result.filter((q) => q.topic === 'carveout-integration').length;
+      const secCount = result.filter((q) => q.topic === 'security-risk').length;
 
       expect(archCount).toBeGreaterThanOrEqual(3);
       expect(opsCount).toBeGreaterThanOrEqual(3);
@@ -462,15 +472,22 @@ describe('balanceAcrossTopics', () => {
 
     it('should take fewer than 3 when topic has less than 3 questions', () => {
       const questions = [
-        archQ1, archQ2, // Only 2 in architecture
-        opsQ1, opsQ2, opsQ3,
-        ciQ1, ciQ2, ciQ3,
-        secQ1, secQ2, secQ3,
+        archQ1,
+        archQ2, // Only 2 in architecture
+        opsQ1,
+        opsQ2,
+        opsQ3,
+        ciQ1,
+        ciQ2,
+        ciQ3,
+        secQ1,
+        secQ2,
+        secQ3,
       ];
 
       const result = balanceAcrossTopics(questions, 15, 20);
 
-      const archCount = result.filter(q => q.topic === 'architecture').length;
+      const archCount = result.filter((q) => q.topic === 'architecture').length;
       expect(archCount).toBe(2); // Takes all available (< 3)
     });
   });
@@ -478,10 +495,19 @@ describe('balanceAcrossTopics', () => {
   describe('maxTotal cap', () => {
     it('should respect maxTotal cap', () => {
       const questions = [
-        archQ1, archQ2, archQ3, archQ4,
-        opsQ1, opsQ2, opsQ3,
-        ciQ1, ciQ2, ciQ3,
-        secQ1, secQ2, secQ3,
+        archQ1,
+        archQ2,
+        archQ3,
+        archQ4,
+        opsQ1,
+        opsQ2,
+        opsQ3,
+        ciQ1,
+        ciQ2,
+        ciQ3,
+        secQ1,
+        secQ2,
+        secQ3,
       ];
 
       const result = balanceAcrossTopics(questions, 15, 20);
@@ -491,10 +517,19 @@ describe('balanceAcrossTopics', () => {
 
     it('should stop at maxTotal even if more questions available', () => {
       const questions = [
-        archQ1, archQ2, archQ3, archQ4,
-        opsQ1, opsQ2, opsQ3,
-        ciQ1, ciQ2, ciQ3,
-        secQ1, secQ2, secQ3,
+        archQ1,
+        archQ2,
+        archQ3,
+        archQ4,
+        opsQ1,
+        opsQ2,
+        opsQ3,
+        ciQ1,
+        ciQ2,
+        ciQ3,
+        secQ1,
+        secQ2,
+        secQ3,
       ];
 
       const result = balanceAcrossTopics(questions, 10, 10);
@@ -510,10 +545,19 @@ describe('balanceAcrossTopics', () => {
   describe('priority-based filling after minimum', () => {
     it('should fill remaining slots by priority across all topics', () => {
       const questions = [
-        archQ1, archQ2, archQ3, archQ4,
-        opsQ1, opsQ2, opsQ3,
-        ciQ1, ciQ2, ciQ3,
-        secQ1, secQ2, secQ3,
+        archQ1,
+        archQ2,
+        archQ3,
+        archQ4,
+        opsQ1,
+        opsQ2,
+        opsQ3,
+        ciQ1,
+        ciQ2,
+        ciQ3,
+        secQ1,
+        secQ2,
+        secQ3,
       ];
 
       const result = balanceAcrossTopics(questions, 15, 20);
@@ -527,16 +571,26 @@ describe('balanceAcrossTopics', () => {
     it('should prioritize high questions in phase 2 filling', () => {
       // Create questions where high questions exist beyond the first 3
       const questions = [
-        archQ3, archQ3, archQ3, archQ1, // 3 standard, 1 high
-        opsQ3, opsQ3, opsQ3, opsQ1,
-        ciQ3, ciQ3, ciQ3,
-        secQ3, secQ3, secQ3,
+        archQ3,
+        archQ3,
+        archQ3,
+        archQ1, // 3 standard, 1 high
+        opsQ3,
+        opsQ3,
+        opsQ3,
+        opsQ1,
+        ciQ3,
+        ciQ3,
+        ciQ3,
+        secQ3,
+        secQ3,
+        secQ3,
       ];
 
       const result = balanceAcrossTopics(questions, 15, 20);
 
       // Should include the high questions from arch and ops in phase 2
-      const highIds = result.filter(q => q.priority === 'high').map(q => q.id);
+      const highIds = result.filter((q) => q.priority === 'high').map((q) => q.id);
       expect(highIds.length).toBeGreaterThan(0);
     });
   });
@@ -550,10 +604,18 @@ describe('balanceAcrossTopics', () => {
     it('should handle maxTotal smaller than minPerTopic * topicCount', () => {
       // 4 topics * 3 minimum = 12, but maxTotal = 10
       const questions = [
-        archQ1, archQ2, archQ3,
-        opsQ1, opsQ2, opsQ3,
-        ciQ1, ciQ2, ciQ3,
-        secQ1, secQ2, secQ3,
+        archQ1,
+        archQ2,
+        archQ3,
+        opsQ1,
+        opsQ2,
+        opsQ3,
+        ciQ1,
+        ciQ2,
+        ciQ3,
+        secQ1,
+        secQ2,
+        secQ3,
       ];
 
       const result = balanceAcrossTopics(questions, 15, 10);
@@ -573,14 +635,23 @@ describe('balanceAcrossTopics', () => {
 
     it('should not include duplicates', () => {
       const questions = [
-        archQ1, archQ2, archQ3, archQ4,
-        opsQ1, opsQ2, opsQ3,
-        ciQ1, ciQ2, ciQ3,
-        secQ1, secQ2, secQ3,
+        archQ1,
+        archQ2,
+        archQ3,
+        archQ4,
+        opsQ1,
+        opsQ2,
+        opsQ3,
+        ciQ1,
+        ciQ2,
+        ciQ3,
+        secQ1,
+        secQ2,
+        secQ3,
       ];
 
       const result = balanceAcrossTopics(questions, 15, 20);
-      const ids = result.map(q => q.id);
+      const ids = result.map((q) => q.id);
       const uniqueIds = new Set(ids);
 
       expect(ids.length).toBe(uniqueIds.size);
@@ -607,10 +678,10 @@ describe('groupByTopic', () => {
 
     expect(topics.length).toBe(4); // All 4 topics represented
 
-    const archTopic = topics.find(t => t.topicId === 'architecture');
-    const opsTopic = topics.find(t => t.topicId === 'operations');
-    const ciTopic = topics.find(t => t.topicId === 'carveout-integration');
-    const secTopic = topics.find(t => t.topicId === 'security-risk');
+    const archTopic = topics.find((t) => t.topicId === 'architecture');
+    const opsTopic = topics.find((t) => t.topicId === 'operations');
+    const ciTopic = topics.find((t) => t.topicId === 'carveout-integration');
+    const secTopic = topics.find((t) => t.topicId === 'security-risk');
 
     expect(archTopic?.questions).toHaveLength(2);
     expect(opsTopic?.questions).toHaveLength(1);
@@ -622,7 +693,7 @@ describe('groupByTopic', () => {
     const questions = [archQ2, archQ1]; // standard before high
     const topics = groupByTopic(questions);
 
-    const archTopic = topics.find(t => t.topicId === 'architecture');
+    const archTopic = topics.find((t) => t.topicId === 'architecture');
     expect(archTopic?.questions[0].priority).toBe('high');
     expect(archTopic?.questions[1].priority).toBe('standard');
   });
@@ -631,7 +702,7 @@ describe('groupByTopic', () => {
     const questions = [archQ1];
     const topics = groupByTopic(questions);
 
-    const archTopic = topics.find(t => t.topicId === 'architecture');
+    const archTopic = topics.find((t) => t.topicId === 'architecture');
     expect(archTopic?.topicLabel).toBe('Architecture');
     expect(archTopic?.audienceLevel).toBe('CTO / VP Engineering / Senior Architect');
   });
@@ -641,7 +712,7 @@ describe('groupByTopic', () => {
     const topics = groupByTopic(questions);
 
     expect(topics.length).toBe(2);
-    expect(topics.map(t => t.topicId)).toEqual(['architecture', 'operations']);
+    expect(topics.map((t) => t.topicId)).toEqual(['architecture', 'operations']);
   });
 
   it('should return topics in correct order', () => {
@@ -685,10 +756,7 @@ describe('generateScript (Integration)', () => {
 
   it('should include 15-20 total questions', () => {
     const script = generateScript(baseInputs);
-    const totalQuestions = script.topics.reduce(
-      (sum, topic) => sum + topic.questions.length,
-      0
-    );
+    const totalQuestions = script.topics.reduce((sum, topic) => sum + topic.questions.length, 0);
 
     expect(totalQuestions).toBeGreaterThanOrEqual(15);
     expect(totalQuestions).toBeLessThanOrEqual(20);
@@ -716,13 +784,11 @@ describe('generateScript (Integration)', () => {
     const script = generateScript(inputs);
 
     // All questions should match the input conditions
-    const allQuestions = script.topics.flatMap(t => t.questions);
+    const allQuestions = script.topics.flatMap((t) => t.questions);
     expect(allQuestions.length).toBeGreaterThan(0);
 
     // Check that carve-out specific questions are included
-    const carveoutQuestions = allQuestions.filter(q =>
-      q.topic === 'carveout-integration'
-    );
+    const carveoutQuestions = allQuestions.filter((q) => q.topic === 'carveout-integration');
     expect(carveoutQuestions.length).toBeGreaterThan(0);
   });
 
@@ -750,7 +816,7 @@ describe('generateScript (Integration)', () => {
 
     // Verify specific attention areas based on conditions
     const hasRelevantAttention = script.attentionAreas.some(
-      anchor =>
+      (anchor) =>
         anchor.id === 'attention-tech-debt' || // hybrid-legacy + 5-10yr
         anchor.id === 'attention-carveout-entangle' || // carve-out + hybrid-legacy
         anchor.id === 'attention-gdpr-multi' // eu/uk geographies
@@ -828,7 +894,7 @@ describe('generateScript (Integration)', () => {
 
     expect(script.topics.length).toBeGreaterThan(0);
 
-    script.topics.forEach(topic => {
+    script.topics.forEach((topic) => {
       expect(topic).toHaveProperty('topicId');
       expect(topic).toHaveProperty('topicLabel');
       expect(topic).toHaveProperty('audienceLevel');
@@ -849,10 +915,11 @@ describe('generateScript (Integration)', () => {
     expect(script.metadata.totalQuestions).toBeGreaterThanOrEqual(15);
 
     // Should NOT include carve-out specific questions
-    const allQuestions = script.topics.flatMap(t => t.questions);
+    const allQuestions = script.topics.flatMap((t) => t.questions);
     const carveoutQuestions = allQuestions.filter(
-      q => q.conditions.transactionTypes?.includes('carve-out') &&
-           !q.conditions.transactionTypes?.includes('venture-series')
+      (q) =>
+        q.conditions.transactionTypes?.includes('carve-out') &&
+        !q.conditions.transactionTypes?.includes('venture-series')
     );
     expect(carveoutQuestions.length).toBe(0);
   });
@@ -866,12 +933,12 @@ describe('generateScript (Integration)', () => {
     const script = generateScript(deepTechInputs);
 
     // Should include deep-tech specific questions and attention areas
-    const allQuestions = script.topics.flatMap(t => t.questions);
+    const allQuestions = script.topics.flatMap((t) => t.questions);
     expect(allQuestions.length).toBeGreaterThan(0);
 
     // Check for IP-related attention areas
     const hasIPAttention = script.attentionAreas.some(
-      anchor => anchor.id === 'attention-ip-docs'
+      (anchor) => anchor.id === 'attention-ip-docs'
     );
     // May or may not be included depending on growth stage
     expect(typeof hasIPAttention).toBe('boolean');
@@ -945,9 +1012,7 @@ describe('generateScript (Integration)', () => {
     };
 
     const result = generateScript(inputs);
-    const carveoutTopic = result.topics.find(
-      (t) => t.topicId === 'carveout-integration'
-    );
+    const carveoutTopic = result.topics.find((t) => t.topicId === 'carveout-integration');
     expect(carveoutTopic).toBeDefined();
     expect(carveoutTopic!.questions.length).toBeGreaterThanOrEqual(3);
   });
@@ -1109,26 +1174,30 @@ describe('applyArchetypePivot', () => {
     const inputs: UserInputs = { ...baseInputs, techArchetype: 'self-managed-infra' };
     const result = applyArchetypePivot([cloudOnlyQ, mixedQ, wildcardQ, selfManagedQ], inputs);
 
-    expect(result.map(q => q.id)).not.toContain('cloud-only');
-    expect(result.map(q => q.id)).toContain('mixed');
-    expect(result.map(q => q.id)).toContain('wildcard');
-    expect(result.map(q => q.id)).toContain('self-managed');
+    expect(result.map((q) => q.id)).not.toContain('cloud-only');
+    expect(result.map((q) => q.id)).toContain('mixed');
+    expect(result.map((q) => q.id)).toContain('wildcard');
+    expect(result.map((q) => q.id)).toContain('self-managed');
   });
 
   it('should filter out exclusively cloud-native questions for datacenter-vendor archetype', () => {
     const inputs: UserInputs = { ...baseInputs, techArchetype: 'datacenter-vendor' };
     const result = applyArchetypePivot([cloudOnlyQ, wildcardQ], inputs);
 
-    expect(result.map(q => q.id)).not.toContain('cloud-only');
-    expect(result.map(q => q.id)).toContain('wildcard');
+    expect(result.map((q) => q.id)).not.toContain('cloud-only');
+    expect(result.map((q) => q.id)).toContain('wildcard');
   });
 
   it('should filter for on-premise-enterprise product type', () => {
-    const inputs: UserInputs = { ...baseInputs, productType: 'on-premise-enterprise', techArchetype: 'hybrid-legacy' };
+    const inputs: UserInputs = {
+      ...baseInputs,
+      productType: 'on-premise-enterprise',
+      techArchetype: 'hybrid-legacy',
+    };
     const result = applyArchetypePivot([cloudOnlyQ, wildcardQ], inputs);
 
-    expect(result.map(q => q.id)).not.toContain('cloud-only');
-    expect(result.map(q => q.id)).toContain('wildcard');
+    expect(result.map((q) => q.id)).not.toContain('cloud-only');
+    expect(result.map((q) => q.id)).toContain('wildcard');
   });
 
   it('should pass through all questions for cloud-native archetype', () => {
@@ -1159,7 +1228,7 @@ describe('applyMaturityOverrides', () => {
     };
     const result = applyMaturityOverrides([], inputs);
 
-    expect(result.some(a => a.id === 'attention-manual-ops-masking')).toBe(true);
+    expect(result.some((a) => a.id === 'attention-manual-ops-masking')).toBe(true);
   });
 
   it('should not inject for low-revenue companies', () => {
@@ -1171,7 +1240,7 @@ describe('applyMaturityOverrides', () => {
     };
     const result = applyMaturityOverrides([], inputs);
 
-    expect(result.some(a => a.id === 'attention-manual-ops-masking')).toBe(false);
+    expect(result.some((a) => a.id === 'attention-manual-ops-masking')).toBe(false);
   });
 
   it('should not inject for high-headcount companies', () => {
@@ -1183,7 +1252,7 @@ describe('applyMaturityOverrides', () => {
     };
     const result = applyMaturityOverrides([], inputs);
 
-    expect(result.some(a => a.id === 'attention-manual-ops-masking')).toBe(false);
+    expect(result.some((a) => a.id === 'attention-manual-ops-masking')).toBe(false);
   });
 
   it('should not inject for non-mature growth stages', () => {
@@ -1195,7 +1264,7 @@ describe('applyMaturityOverrides', () => {
     };
     const result = applyMaturityOverrides([], inputs);
 
-    expect(result.some(a => a.id === 'attention-manual-ops-masking')).toBe(false);
+    expect(result.some((a) => a.id === 'attention-manual-ops-masking')).toBe(false);
   });
 
   it('should not duplicate if anchor already present', () => {
@@ -1205,16 +1274,18 @@ describe('applyMaturityOverrides', () => {
       headcount: '1-50',
       growthStage: 'mature',
     };
-    const existing = [{
-      id: 'attention-manual-ops-masking',
-      title: 'Manual Operations Masking',
-      description: 'Already present',
-      relevance: 'high' as const,
-      conditions: {},
-    }];
+    const existing = [
+      {
+        id: 'attention-manual-ops-masking',
+        title: 'Manual Operations Masking',
+        description: 'Already present',
+        relevance: 'high' as const,
+        conditions: {},
+      },
+    ];
     const result = applyMaturityOverrides(existing, inputs);
 
-    const count = result.filter(a => a.id === 'attention-manual-ops-masking').length;
+    const count = result.filter((a) => a.id === 'attention-manual-ops-masking').length;
     expect(count).toBe(1);
   });
 });

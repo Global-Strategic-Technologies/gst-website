@@ -118,7 +118,9 @@ test.describe('Regulatory Map E2E', () => {
   });
 
   test.describe('3. Map Interaction — US State Selection', () => {
-    test('should show state-level regulation when clicking a highlighted US state', async ({ page }) => {
+    test('should show state-level regulation when clicking a highlighted US state', async ({
+      page,
+    }) => {
       // Use Texas (US-TX) — large state with TDPSA
       const texasSelector = '[data-state-code="US-TX"].state-path--active';
       const texasExists = await page.locator(texasSelector).count();
@@ -149,10 +151,14 @@ test.describe('Regulatory Map E2E', () => {
       await page.evaluate(() => (document.querySelector('#zoomIn') as HTMLElement)?.click());
 
       // Wait for D3 zoom transition (300ms) to complete and transform to change
-      await page.waitForFunction((before) => {
-        const g = document.querySelector('#mapSvg g');
-        return g && g.getAttribute('transform') !== before;
-      }, transformBefore, { timeout: 5000 });
+      await page.waitForFunction(
+        (before) => {
+          const g = document.querySelector('#mapSvg g');
+          return g && g.getAttribute('transform') !== before;
+        },
+        transformBefore,
+        { timeout: 5000 }
+      );
 
       const transformAfter = await g.getAttribute('transform');
       expect(transformAfter).not.toBe(transformBefore);
@@ -161,24 +167,35 @@ test.describe('Regulatory Map E2E', () => {
     test('should reset zoom when clicking reset button', async ({ page }) => {
       // Zoom in first
       await page.evaluate(() => (document.querySelector('#zoomIn') as HTMLElement)?.click());
-      await page.waitForFunction(() => {
-        const g = document.querySelector('#mapSvg g');
-        const t = g?.getAttribute('transform') ?? '';
-        return t !== '' && t !== null;
-      }, { timeout: 5000 });
+      await page.waitForFunction(
+        () => {
+          const g = document.querySelector('#mapSvg g');
+          const t = g?.getAttribute('transform') ?? '';
+          return t !== '' && t !== null;
+        },
+        { timeout: 5000 }
+      );
 
       // Reset
       await page.evaluate(() => (document.querySelector('#zoomReset') as HTMLElement)?.click());
 
       // Wait for reset transition — transform should become identity or scale(1)
-      await page.waitForFunction(() => {
-        const g = document.querySelector('#mapSvg g');
-        const t = g?.getAttribute('transform') ?? '';
-        return t === '' || t.includes('scale(1') || t.includes('matrix(1');
-      }, { timeout: 5000 });
+      await page.waitForFunction(
+        () => {
+          const g = document.querySelector('#mapSvg g');
+          const t = g?.getAttribute('transform') ?? '';
+          return t === '' || t.includes('scale(1') || t.includes('matrix(1');
+        },
+        { timeout: 5000 }
+      );
 
       const transform = await page.locator('#mapSvg g').first().getAttribute('transform');
-      expect(transform === null || transform === '' || transform.includes('scale(1') || transform.includes('matrix(1')).toBeTruthy();
+      expect(
+        transform === null ||
+          transform === '' ||
+          transform.includes('scale(1') ||
+          transform.includes('matrix(1')
+      ).toBeTruthy();
     });
   });
 

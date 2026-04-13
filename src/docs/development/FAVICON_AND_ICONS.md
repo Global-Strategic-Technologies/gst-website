@@ -9,20 +9,23 @@ This document describes the comprehensive favicon and icon system implemented fo
 ### Files and Locations
 
 #### Icon Assets
+
 All icon assets are stored in `/public/` and `/public/images/`:
 
-| File | Location | Size | Purpose |
-|------|----------|------|---------|
-| `favicon.svg` | `/public/favicon.svg` | 64×64 viewBox | Modern browser favicon (scalable) |
-| `favicon.ico` | `/public/images/favicon.ico` | 32×32 | Legacy browser fallback |
-| `apple-touch-icon.png` | `/public/images/apple-touch-icon.png` | 180×180 | iOS/macOS home screen icon |
-| `web-app-manifest-192.png` | `/public/images/web-app-manifest-192.png` | 192×192 | Android PWA home screen icon |
-| `web-app-manifest-512.png` | `/public/images/web-app-manifest-512.png` | 512×512 | Android PWA splash/install screen |
+| File                       | Location                                  | Size          | Purpose                           |
+| -------------------------- | ----------------------------------------- | ------------- | --------------------------------- |
+| `favicon.svg`              | `/public/favicon.svg`                     | 64×64 viewBox | Modern browser favicon (scalable) |
+| `favicon.ico`              | `/public/images/favicon.ico`              | 32×32         | Legacy browser fallback           |
+| `apple-touch-icon.png`     | `/public/images/apple-touch-icon.png`     | 180×180       | iOS/macOS home screen icon        |
+| `web-app-manifest-192.png` | `/public/images/web-app-manifest-192.png` | 192×192       | Android PWA home screen icon      |
+| `web-app-manifest-512.png` | `/public/images/web-app-manifest-512.png` | 512×512       | Android PWA splash/install screen |
 
 #### Configuration Files
+
 - **Web Manifest**: `/public/site.webmanifest` - PWA configuration file
 
 #### Reference in HTML
+
 - **BaseLayout**: `src/layouts/BaseLayout.astro` (lines 25-33) - Main HTML head configuration
 
 ## Configuration Details
@@ -44,6 +47,7 @@ Located in `src/layouts/BaseLayout.astro` (lines 25-33):
 ```
 
 **Tag Explanation:**
+
 - `<link rel="icon" type="image/svg+xml" href="/favicon.svg" />` - Primary favicon for modern browsers (scalable SVG)
 - `<link rel="icon" type="image/x-icon" href="/images/favicon.ico" />` - Fallback for legacy browsers (Safari, IE)
 - `<link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />` - iOS home screen icon (180×180 optimal)
@@ -55,6 +59,7 @@ Located in `src/layouts/BaseLayout.astro` (lines 25-33):
 Located in `/public/site.webmanifest`:
 
 **Key Properties:**
+
 - `name`: "Global Strategic Technologies" - Full app name for splash screens
 - `short_name`: "GST" - Short name for home screen shortcuts
 - `description`: "Technology advisory and execution" - App description
@@ -72,6 +77,7 @@ Located in `/public/site.webmanifest`:
 ## Design System Integration
 
 ### Color Scheme
+
 - **Primary Color**: `#05cd99` (GST teal)
   - Used for theme color in both light and dark modes
   - Maintains brand consistency across all platforms
@@ -79,6 +85,7 @@ Located in `/public/site.webmanifest`:
   - Used for manifest background color
 
 ### Icon Design Principles
+
 1. **Simplicity**: Clean, recognizable teal delta symbol
 2. **Scalability**: SVG format for seamless scaling
 3. **Consistency**: Same teal color (#05cd99) across all variants
@@ -88,42 +95,50 @@ Located in `/public/site.webmanifest`:
 ## Browser and Device Support
 
 ### Desktop Browsers
-| Browser | Support | Icon Type |
-|---------|---------|-----------|
-| Chrome/Edge | ✅ | SVG favicon, theme color |
-| Firefox | ✅ | SVG favicon, theme color |
-| Safari | ✅ | ICO favicon (SVG support varies) |
-| IE 11 | ✅ | ICO favicon |
+
+| Browser     | Support | Icon Type                        |
+| ----------- | ------- | -------------------------------- |
+| Chrome/Edge | ✅      | SVG favicon, theme color         |
+| Firefox     | ✅      | SVG favicon, theme color         |
+| Safari      | ✅      | ICO favicon (SVG support varies) |
+| IE 11       | ✅      | ICO favicon                      |
 
 ### Mobile Platforms
-| Platform | Support | Icon Type | Size |
-|----------|---------|-----------|------|
-| iOS/macOS | ✅ | apple-touch-icon.png | 180×180 |
-| Android | ✅ | Web app manifest icons | 192×192, 512×512 |
-| PWA Install | ✅ | Manifest with maskable icons | 192×192, 512×512 |
+
+| Platform    | Support | Icon Type                    | Size             |
+| ----------- | ------- | ---------------------------- | ---------------- |
+| iOS/macOS   | ✅      | apple-touch-icon.png         | 180×180          |
+| Android     | ✅      | Web app manifest icons       | 192×192, 512×512 |
+| PWA Install | ✅      | Manifest with maskable icons | 192×192, 512×512 |
 
 ## How It Works
 
 ### 1. Favicon Display
+
 **Desktop Browsers:**
+
 1. Browser requests icon via `<link rel="icon">` tags
 2. Modern browsers prefer SVG (`favicon.svg`) for scalability
 3. Legacy browsers fall back to ICO (`favicon.ico`)
 4. Icon displays in browser tab and bookmarks
 
 ### 2. Mobile Home Screen
+
 **iOS:**
+
 1. User selects "Add to Home Screen"
 2. Safari uses `<link rel="apple-touch-icon">` (180×180 PNG)
 3. Icon displays on home screen without changes
 
 **Android:**
+
 1. User selects "Install app" or "Add to home screen"
 2. Chrome reads `/site.webmanifest`
 3. Selects appropriate icon from manifest (192×192 or 512×512)
 4. Applies adaptive icon treatment if "maskable" purpose is defined
 
 ### 3. Theme Color Integration
+
 - **Light Mode**: Address bar and system UI use `#05cd99`
 - **Dark Mode**: Respects user's dark mode preference, uses same `#05cd99`
 - **Safari**: Theme color integrates with tab bar color
@@ -132,6 +147,7 @@ Located in `/public/site.webmanifest`:
 ## Testing and Verification
 
 ### Manual Browser Testing
+
 1. **Desktop:**
    - Check favicon in browser tab (should display teal delta)
    - Right-click bookmark to verify bookmark icon
@@ -150,6 +166,7 @@ Located in `/public/site.webmanifest`:
    - Check adaptive icon rendering
 
 ### DevTools Verification
+
 ```
 Chrome/Edge DevTools:
 1. Open DevTools (F12)
@@ -161,7 +178,9 @@ Chrome/Edge DevTools:
 ```
 
 ### Lighthouse Audit
+
 Run Lighthouse PWA audit:
+
 ```bash
 npm run dev
 # Navigate to http://localhost:4321
@@ -173,6 +192,7 @@ npm run dev
 ## Performance Considerations
 
 ### File Sizes
+
 - `favicon.svg` - Minimal vector (< 1KB)
 - `favicon.ico` - Legacy format (1.6KB)
 - `apple-touch-icon.png` - Compressed PNG (5.3KB)
@@ -183,6 +203,7 @@ npm run dev
 **Total Icon Assets**: ~27KB (all cached by browser)
 
 ### Optimization Tips
+
 1. SVG favicon is scalable and lightweight
 2. PNG icons are pre-optimized for size
 3. Manifest caching reduces requests
@@ -191,6 +212,7 @@ npm run dev
 ## Maintenance and Updates
 
 ### Adding New Icon Variants
+
 If you need to add new icon sizes or formats:
 
 1. **Add icon file** to `/public/images/` with descriptive name
@@ -199,12 +221,15 @@ If you need to add new icon sizes or formats:
 4. **Test in browsers** to verify display and sizing
 
 ### Updating Manifest Properties
+
 - **Name/Description**: Update `name` and `description` in `site.webmanifest`
 - **Theme Color**: Update `theme_color` in manifest AND `<meta name="theme-color">` tags in BaseLayout
 - **Start URL/Scope**: Update for different routing/deployment paths
 
 ### Design System Updates
+
 If changing GST brand colors:
+
 1. Update `#05cd99` to new primary color in:
    - `site.webmanifest` (`theme_color`)
    - `BaseLayout.astro` (both `<meta name="theme-color">` tags)
@@ -213,6 +238,7 @@ If changing GST brand colors:
 ## PWA Installation Flow
 
 ### User Journey
+
 1. **Visit website** → User navigates to globalstrategic.tech
 2. **Browser recognizes installability** → Chrome/Edge shows "Install" prompt
 3. **User accepts install** → Browser reads `site.webmanifest`
@@ -222,6 +248,7 @@ If changing GST brand colors:
 7. **Launch experience** → Opens as standalone app with theme color
 
 ### Requirements Met
+
 ✅ Web manifest present and valid
 ✅ Start URL specified
 ✅ Display mode set to "standalone"

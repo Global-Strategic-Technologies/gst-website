@@ -35,7 +35,7 @@ describe('Question Bank Data Integrity', () => {
       ];
 
       QUESTIONS.forEach((question) => {
-        requiredFields.forEach(field => {
+        requiredFields.forEach((field) => {
           expect(question).toHaveProperty(field);
         });
       });
@@ -71,7 +71,10 @@ describe('Question Bank Data Integrity', () => {
         topicCounts[q.topic] = (topicCounts[q.topic] || 0) + 1;
       }
       for (const topic of Object.keys(TOPIC_META)) {
-        expect(topicCounts[topic], `Topic ${topic} has fewer than 8 questions`).toBeGreaterThanOrEqual(8);
+        expect(
+          topicCounts[topic],
+          `Topic ${topic} has fewer than 8 questions`
+        ).toBeGreaterThanOrEqual(8);
       }
     });
   });
@@ -80,7 +83,9 @@ describe('Question Bank Data Integrity', () => {
     it('should have valid priority values', () => {
       const validPriorities = ['high', 'medium', 'standard'];
       for (const q of QUESTIONS) {
-        expect(validPriorities, `Question ${q.id} has invalid priority: ${q.priority}`).toContain(q.priority);
+        expect(validPriorities, `Question ${q.id} has invalid priority: ${q.priority}`).toContain(
+          q.priority
+        );
       }
     });
 
@@ -94,7 +99,10 @@ describe('Question Bank Data Integrity', () => {
       }
 
       for (const topic of Object.keys(TOPIC_META)) {
-        expect(topicHighCounts[topic], `Topic ${topic} has no high questions`).toBeGreaterThanOrEqual(1);
+        expect(
+          topicHighCounts[topic],
+          `Topic ${topic} has no high questions`
+        ).toBeGreaterThanOrEqual(1);
       }
     });
 
@@ -113,7 +121,11 @@ describe('Question Bank Data Integrity', () => {
       expect(priorityCounts.high).toBeGreaterThanOrEqual(Math.floor(QUESTIONS.length * 0.15));
 
       // No single priority should dominate (> 60%)
-      const maxCount = Math.max(priorityCounts.high, priorityCounts.medium, priorityCounts.standard);
+      const maxCount = Math.max(
+        priorityCounts.high,
+        priorityCounts.medium,
+        priorityCounts.standard
+      );
       expect(maxCount).toBeLessThan(QUESTIONS.length * 0.6);
     });
   });
@@ -121,14 +133,19 @@ describe('Question Bank Data Integrity', () => {
   describe('content validation', () => {
     it('should have non-empty text for every question', () => {
       for (const q of QUESTIONS) {
-        expect(q.text.length, `Question ${q.id} has text shorter than 20 chars`).toBeGreaterThan(20);
+        expect(q.text.length, `Question ${q.id} has text shorter than 20 chars`).toBeGreaterThan(
+          20
+        );
         expect(q.text.trim()).toBe(q.text); // No leading/trailing whitespace
       }
     });
 
     it('should have non-empty rationale for every question', () => {
       for (const q of QUESTIONS) {
-        expect(q.rationale.length, `Question ${q.id} has rationale shorter than 20 chars`).toBeGreaterThan(20);
+        expect(
+          q.rationale.length,
+          `Question ${q.id} has rationale shorter than 20 chars`
+        ).toBeGreaterThan(20);
         expect(q.rationale.trim()).toBe(q.rationale); // No leading/trailing whitespace
       }
     });
@@ -170,22 +187,31 @@ describe('Question Bank Data Integrity', () => {
         const c = q.conditions;
         if (c.transactionTypes) {
           for (const t of c.transactionTypes) {
-            expect(validTransactionTypes, `Question ${q.id} has invalid transactionType: ${t}`).toContain(t);
+            expect(
+              validTransactionTypes,
+              `Question ${q.id} has invalid transactionType: ${t}`
+            ).toContain(t);
           }
         }
         if (c.productTypes) {
           for (const t of c.productTypes) {
-            expect(validProductTypes, `Question ${q.id} has invalid productType: ${t}`).toContain(t);
+            expect(validProductTypes, `Question ${q.id} has invalid productType: ${t}`).toContain(
+              t
+            );
           }
         }
         if (c.techArchetypes) {
           for (const t of c.techArchetypes) {
-            expect(validArchetypes, `Question ${q.id} has invalid techArchetype: ${t}`).toContain(t);
+            expect(validArchetypes, `Question ${q.id} has invalid techArchetype: ${t}`).toContain(
+              t
+            );
           }
         }
         if (c.growthStages) {
           for (const t of c.growthStages) {
-            expect(validGrowthStages, `Question ${q.id} has invalid growthStage: ${t}`).toContain(t);
+            expect(validGrowthStages, `Question ${q.id} has invalid growthStage: ${t}`).toContain(
+              t
+            );
           }
         }
         if (c.geographies) {
@@ -194,38 +220,62 @@ describe('Question Bank Data Integrity', () => {
           }
         }
         if (c.headcountMin) {
-          expect(validHeadcounts, `Question ${q.id} has invalid headcountMin: ${c.headcountMin}`).toContain(c.headcountMin);
+          expect(
+            validHeadcounts,
+            `Question ${q.id} has invalid headcountMin: ${c.headcountMin}`
+          ).toContain(c.headcountMin);
         }
         if (c.revenueMin) {
-          expect(validRevenues, `Question ${q.id} has invalid revenueMin: ${c.revenueMin}`).toContain(c.revenueMin);
+          expect(
+            validRevenues,
+            `Question ${q.id} has invalid revenueMin: ${c.revenueMin}`
+          ).toContain(c.revenueMin);
         }
         if (c.companyAgeMin) {
-          expect(validAges, `Question ${q.id} has invalid companyAgeMin: ${c.companyAgeMin}`).toContain(c.companyAgeMin);
+          expect(
+            validAges,
+            `Question ${q.id} has invalid companyAgeMin: ${c.companyAgeMin}`
+          ).toContain(c.companyAgeMin);
         }
         // v2 condition fields
         if (c.businessModels) {
           for (const t of c.businessModels) {
-            expect(validBusinessModels, `Question ${q.id} has invalid businessModel: ${t}`).toContain(t);
+            expect(
+              validBusinessModels,
+              `Question ${q.id} has invalid businessModel: ${t}`
+            ).toContain(t);
           }
         }
         if (c.scaleIntensity) {
           for (const t of c.scaleIntensity) {
-            expect(validScaleIntensity, `Question ${q.id} has invalid scaleIntensity: ${t}`).toContain(t);
+            expect(
+              validScaleIntensity,
+              `Question ${q.id} has invalid scaleIntensity: ${t}`
+            ).toContain(t);
           }
         }
         if (c.transformationStates) {
           for (const t of c.transformationStates) {
-            expect(validTransformationStates, `Question ${q.id} has invalid transformationState: ${t}`).toContain(t);
+            expect(
+              validTransformationStates,
+              `Question ${q.id} has invalid transformationState: ${t}`
+            ).toContain(t);
           }
         }
         if (c.dataSensitivity) {
           for (const t of c.dataSensitivity) {
-            expect(validDataSensitivity, `Question ${q.id} has invalid dataSensitivity: ${t}`).toContain(t);
+            expect(
+              validDataSensitivity,
+              `Question ${q.id} has invalid dataSensitivity: ${t}`
+            ).toContain(t);
           }
         }
         if (c.operatingModels) {
           for (const t of c.operatingModels) {
-            expect(validOperatingModels, `Question ${q.id} has invalid operatingModel: ${t}`).toContain(t);
+            expect(
+              validOperatingModels,
+              `Question ${q.id} has invalid operatingModel: ${t}`
+            ).toContain(t);
           }
         }
       }
@@ -243,38 +293,71 @@ describe('Question Bank Data Integrity', () => {
         const c = q.conditions;
 
         if (c.transactionTypes) {
-          expect(c.transactionTypes.length, `Question ${q.id} has empty transactionTypes array`).toBeGreaterThan(0);
+          expect(
+            c.transactionTypes.length,
+            `Question ${q.id} has empty transactionTypes array`
+          ).toBeGreaterThan(0);
         }
         if (c.productTypes) {
-          expect(c.productTypes.length, `Question ${q.id} has empty productTypes array`).toBeGreaterThan(0);
+          expect(
+            c.productTypes.length,
+            `Question ${q.id} has empty productTypes array`
+          ).toBeGreaterThan(0);
         }
         if (c.techArchetypes) {
-          expect(c.techArchetypes.length, `Question ${q.id} has empty techArchetypes array`).toBeGreaterThan(0);
+          expect(
+            c.techArchetypes.length,
+            `Question ${q.id} has empty techArchetypes array`
+          ).toBeGreaterThan(0);
         }
         if (c.growthStages) {
-          expect(c.growthStages.length, `Question ${q.id} has empty growthStages array`).toBeGreaterThan(0);
+          expect(
+            c.growthStages.length,
+            `Question ${q.id} has empty growthStages array`
+          ).toBeGreaterThan(0);
         }
         if (c.geographies) {
-          expect(c.geographies.length, `Question ${q.id} has empty geographies array`).toBeGreaterThan(0);
+          expect(
+            c.geographies.length,
+            `Question ${q.id} has empty geographies array`
+          ).toBeGreaterThan(0);
         }
         if (c.excludeTransactionTypes) {
-          expect(c.excludeTransactionTypes.length, `Question ${q.id} has empty excludeTransactionTypes array`).toBeGreaterThan(0);
+          expect(
+            c.excludeTransactionTypes.length,
+            `Question ${q.id} has empty excludeTransactionTypes array`
+          ).toBeGreaterThan(0);
         }
         // v2 condition fields
         if (c.businessModels) {
-          expect(c.businessModels.length, `Question ${q.id} has empty businessModels array`).toBeGreaterThan(0);
+          expect(
+            c.businessModels.length,
+            `Question ${q.id} has empty businessModels array`
+          ).toBeGreaterThan(0);
         }
         if (c.scaleIntensity) {
-          expect(c.scaleIntensity.length, `Question ${q.id} has empty scaleIntensity array`).toBeGreaterThan(0);
+          expect(
+            c.scaleIntensity.length,
+            `Question ${q.id} has empty scaleIntensity array`
+          ).toBeGreaterThan(0);
         }
         if (c.transformationStates) {
-          expect(c.transformationStates.length, `Question ${q.id} has empty transformationStates array`).toBeGreaterThan(0);
+          expect(
+            c.transformationStates.length,
+            `Question ${q.id} has empty transformationStates array`
+          ).toBeGreaterThan(0);
         }
         if (c.dataSensitivity) {
-          expect(c.dataSensitivity.length, `Question ${q.id} has empty dataSensitivity array`).toBeGreaterThan(0);
+          expect(
+            c.dataSensitivity.length,
+            `Question ${q.id} has empty dataSensitivity array`
+          ).toBeGreaterThan(0);
         }
         if (c.operatingModels) {
-          expect(c.operatingModels.length, `Question ${q.id} has empty operatingModels array`).toBeGreaterThan(0);
+          expect(
+            c.operatingModels.length,
+            `Question ${q.id} has empty operatingModels array`
+          ).toBeGreaterThan(0);
         }
       }
     });
@@ -291,7 +374,10 @@ describe('Question Bank Data Integrity', () => {
 
       for (const q of QUESTIONS) {
         const expectedPrefix = topicPrefixes[q.topic];
-        expect(q.id.startsWith(expectedPrefix), `Question ${q.id} doesn't start with ${expectedPrefix}`).toBe(true);
+        expect(
+          q.id.startsWith(expectedPrefix),
+          `Question ${q.id} doesn't start with ${expectedPrefix}`
+        ).toBe(true);
       }
     });
 
@@ -309,10 +395,12 @@ describe('Question Bank Data Integrity', () => {
 
       // Each topic should have sequentially numbered IDs (no gaps)
       for (const [topic, ids] of Object.entries(topicQuestions)) {
-        const numbers = ids.map(id => {
-          const match = id.match(/-(\d+)$/);
-          return match ? parseInt(match[1]) : 0;
-        }).sort((a, b) => a - b);
+        const numbers = ids
+          .map((id) => {
+            const match = id.match(/-(\d+)$/);
+            return match ? parseInt(match[1]) : 0;
+          })
+          .sort((a, b) => a - b);
 
         // Check for sequential numbering starting from 01
         expect(numbers[0], `Topic ${topic} doesn't start at 01`).toBe(1);
@@ -327,7 +415,10 @@ describe('Question Bank Data Integrity', () => {
     it('should have valid exitImpact values when present', () => {
       for (const q of QUESTIONS) {
         if (q.exitImpact) {
-          expect(validExitImpacts, `Question ${q.id} has invalid exitImpact: ${q.exitImpact}`).toContain(q.exitImpact);
+          expect(
+            validExitImpacts,
+            `Question ${q.id} has invalid exitImpact: ${q.exitImpact}`
+          ).toContain(q.exitImpact);
         }
       }
     });
@@ -343,16 +434,21 @@ describe('Question Bank Data Integrity', () => {
     it('should have non-empty lookoutSignal when present', () => {
       for (const q of QUESTIONS) {
         if (q.lookoutSignal !== undefined) {
-          expect(q.lookoutSignal.length, `Question ${q.id} has empty lookoutSignal`).toBeGreaterThan(0);
-          expect(q.lookoutSignal.trim(), `Question ${q.id} has whitespace-only lookoutSignal`).toBe(q.lookoutSignal);
+          expect(
+            q.lookoutSignal.length,
+            `Question ${q.id} has empty lookoutSignal`
+          ).toBeGreaterThan(0);
+          expect(q.lookoutSignal.trim(), `Question ${q.id} has whitespace-only lookoutSignal`).toBe(
+            q.lookoutSignal
+          );
         }
       }
     });
 
     it('should have at least some questions with v2 metadata fields', () => {
-      const withExitImpact = QUESTIONS.filter(q => q.exitImpact);
-      const withTrack = QUESTIONS.filter(q => q.track);
-      const withLookout = QUESTIONS.filter(q => q.lookoutSignal);
+      const withExitImpact = QUESTIONS.filter((q) => q.exitImpact);
+      const withTrack = QUESTIONS.filter((q) => q.track);
+      const withLookout = QUESTIONS.filter((q) => q.lookoutSignal);
 
       expect(withExitImpact.length, 'No questions have exitImpact').toBeGreaterThan(0);
       expect(withTrack.length, 'No questions have track').toBeGreaterThan(0);
@@ -373,7 +469,7 @@ describe('Attention Areas Data Integrity', () => {
       const requiredFields = ['id', 'title', 'description', 'relevance', 'conditions'];
 
       ATTENTION_AREAS.forEach((anchor) => {
-        requiredFields.forEach(field => {
+        requiredFields.forEach((field) => {
           expect(anchor, `Anchor ${anchor.id} missing field: ${field}`).toHaveProperty(field);
         });
       });
@@ -389,12 +485,14 @@ describe('Attention Areas Data Integrity', () => {
     it('should have valid relevance values', () => {
       const validRelevance = ['high', 'medium', 'low'];
       for (const r of ATTENTION_AREAS) {
-        expect(validRelevance, `Anchor ${r.id} has invalid relevance: ${r.relevance}`).toContain(r.relevance);
+        expect(validRelevance, `Anchor ${r.id} has invalid relevance: ${r.relevance}`).toContain(
+          r.relevance
+        );
       }
     });
 
     it('should have at least 3 high-relevance anchors', () => {
-      const highRelevanceCount = ATTENTION_AREAS.filter(r => r.relevance === 'high').length;
+      const highRelevanceCount = ATTENTION_AREAS.filter((r) => r.relevance === 'high').length;
       expect(highRelevanceCount).toBeGreaterThanOrEqual(3);
     });
 
@@ -426,7 +524,10 @@ describe('Attention Areas Data Integrity', () => {
 
     it('should have non-empty description', () => {
       for (const r of ATTENTION_AREAS) {
-        expect(r.description.length, `Anchor ${r.id} has description shorter than 20 chars`).toBeGreaterThan(20);
+        expect(
+          r.description.length,
+          `Anchor ${r.id} has description shorter than 20 chars`
+        ).toBeGreaterThan(20);
         expect(r.description.trim()).toBe(r.description); // No leading/trailing whitespace
       }
     });
@@ -452,7 +553,10 @@ describe('Attention Areas Data Integrity', () => {
 
         if (c.transactionTypes) {
           for (const t of c.transactionTypes) {
-            expect(validTransactionTypes, `Anchor ${r.id} has invalid transactionType: ${t}`).toContain(t);
+            expect(
+              validTransactionTypes,
+              `Anchor ${r.id} has invalid transactionType: ${t}`
+            ).toContain(t);
           }
         }
         if (c.productTypes) {
@@ -478,13 +582,21 @@ describe('Attention Areas Data Integrity', () => {
           }
         }
         if (c.headcountMin) {
-          expect(validHeadcounts, `Anchor ${r.id} has invalid headcountMin: ${c.headcountMin}`).toContain(c.headcountMin);
+          expect(
+            validHeadcounts,
+            `Anchor ${r.id} has invalid headcountMin: ${c.headcountMin}`
+          ).toContain(c.headcountMin);
         }
         if (c.revenueMin) {
-          expect(validRevenues, `Anchor ${r.id} has invalid revenueMin: ${c.revenueMin}`).toContain(c.revenueMin);
+          expect(validRevenues, `Anchor ${r.id} has invalid revenueMin: ${c.revenueMin}`).toContain(
+            c.revenueMin
+          );
         }
         if (c.companyAgeMin) {
-          expect(validAges, `Anchor ${r.id} has invalid companyAgeMin: ${c.companyAgeMin}`).toContain(c.companyAgeMin);
+          expect(
+            validAges,
+            `Anchor ${r.id} has invalid companyAgeMin: ${c.companyAgeMin}`
+          ).toContain(c.companyAgeMin);
         }
       }
     });
@@ -499,11 +611,21 @@ describe('Attention Areas Data Integrity', () => {
     it('should have meaningful conditions (not all wildcards)', () => {
       for (const r of ATTENTION_AREAS) {
         const c = r.conditions;
-        const hasCondition = c.transactionTypes || c.productTypes || c.techArchetypes ||
-                            c.growthStages || c.geographies || c.headcountMin ||
-                            c.revenueMin || c.companyAgeMin || c.excludeTransactionTypes ||
-                            c.businessModels || c.scaleIntensity || c.transformationStates ||
-                            c.dataSensitivity || c.operatingModels;
+        const hasCondition =
+          c.transactionTypes ||
+          c.productTypes ||
+          c.techArchetypes ||
+          c.growthStages ||
+          c.geographies ||
+          c.headcountMin ||
+          c.revenueMin ||
+          c.companyAgeMin ||
+          c.excludeTransactionTypes ||
+          c.businessModels ||
+          c.scaleIntensity ||
+          c.transformationStates ||
+          c.dataSensitivity ||
+          c.operatingModels;
 
         expect(hasCondition, `Anchor ${r.id} has no conditions (pure wildcard)`).toBeTruthy();
       }
@@ -513,7 +635,10 @@ describe('Attention Areas Data Integrity', () => {
   describe('ID format validation', () => {
     it('should have IDs with attention- prefix', () => {
       for (const r of ATTENTION_AREAS) {
-        expect(r.id.startsWith('attention-'), `Anchor ${r.id} doesn't start with 'attention-'`).toBe(true);
+        expect(
+          r.id.startsWith('attention-'),
+          `Anchor ${r.id} doesn't start with 'attention-'`
+        ).toBe(true);
       }
     });
 
@@ -549,9 +674,12 @@ describe('Generated Script Dismiss/Collapse Support', () => {
   describe('attention area IDs in generated output', () => {
     it('should only contain IDs from the source ATTENTION_AREAS data', () => {
       const script = generateScript(validInputs);
-      const sourceIds = new Set(ATTENTION_AREAS.map(a => a.id));
+      const sourceIds = new Set(ATTENTION_AREAS.map((a) => a.id));
       for (const area of script.attentionAreas) {
-        expect(sourceIds.has(area.id), `Generated attention area ID "${area.id}" not found in source data`).toBe(true);
+        expect(
+          sourceIds.has(area.id),
+          `Generated attention area ID "${area.id}" not found in source data`
+        ).toBe(true);
       }
     });
 
@@ -565,10 +693,13 @@ describe('Generated Script Dismiss/Collapse Support', () => {
   describe('question IDs in generated output', () => {
     it('should only contain IDs from the source QUESTIONS data', () => {
       const script = generateScript(validInputs);
-      const sourceIds = new Set(QUESTIONS.map(q => q.id));
+      const sourceIds = new Set(QUESTIONS.map((q) => q.id));
       for (const topic of script.topics) {
         for (const q of topic.questions) {
-          expect(sourceIds.has(q.id), `Generated question ID "${q.id}" not found in source data`).toBe(true);
+          expect(
+            sourceIds.has(q.id),
+            `Generated question ID "${q.id}" not found in source data`
+          ).toBe(true);
         }
       }
     });
@@ -608,7 +739,7 @@ describe('Wizard Configuration Integrity', () => {
       const requiredFields = ['id', 'title', 'subtitle', 'inputType'];
 
       WIZARD_STEPS.forEach((step) => {
-        requiredFields.forEach(field => {
+        requiredFields.forEach((field) => {
           expect(step, `Step ${step.id} missing field: ${field}`).toHaveProperty(field);
         });
       });
@@ -644,7 +775,10 @@ describe('Wizard Configuration Integrity', () => {
       const validInputTypes = ['single-select', 'multi-select', 'compound'];
 
       WIZARD_STEPS.forEach((step) => {
-        expect(validInputTypes, `Step ${step.id} has invalid inputType: ${step.inputType}`).toContain(step.inputType);
+        expect(
+          validInputTypes,
+          `Step ${step.id} has invalid inputType: ${step.inputType}`
+        ).toContain(step.inputType);
       });
     });
 
@@ -677,7 +811,10 @@ describe('Wizard Configuration Integrity', () => {
         if (step.fields) {
           for (const field of step.fields) {
             const ids = field.options.map((o) => o.id);
-            expect(new Set(ids).size, `Field ${field.id} in step ${step.id} has duplicate option IDs`).toBe(ids.length);
+            expect(
+              new Set(ids).size,
+              `Field ${field.id} in step ${step.id} has duplicate option IDs`
+            ).toBe(ids.length);
           }
         }
       }
@@ -686,7 +823,10 @@ describe('Wizard Configuration Integrity', () => {
     it('should have at least 3 options per single-select step', () => {
       for (const step of WIZARD_STEPS) {
         if (step.inputType === 'single-select' && step.options) {
-          expect(step.options.length, `Step ${step.id} has fewer than 3 options`).toBeGreaterThanOrEqual(3);
+          expect(
+            step.options.length,
+            `Step ${step.id} has fewer than 3 options`
+          ).toBeGreaterThanOrEqual(3);
         }
       }
     });
@@ -694,16 +834,22 @@ describe('Wizard Configuration Integrity', () => {
     it('should have label and id for all options', () => {
       for (const step of WIZARD_STEPS) {
         if (step.options) {
-          step.options.forEach(option => {
+          step.options.forEach((option) => {
             expect(option.id, `Option in step ${step.id} missing id`).toBeTruthy();
-            expect(option.label, `Option ${option.id} in step ${step.id} missing label`).toBeTruthy();
+            expect(
+              option.label,
+              `Option ${option.id} in step ${step.id} missing label`
+            ).toBeTruthy();
           });
         }
         if (step.fields) {
           for (const field of step.fields) {
-            field.options.forEach(option => {
+            field.options.forEach((option) => {
               expect(option.id, `Option in field ${field.id} missing id`).toBeTruthy();
-              expect(option.label, `Option ${option.id} in field ${field.id} missing label`).toBeTruthy();
+              expect(
+                option.label,
+                `Option ${option.id} in field ${field.id} missing label`
+              ).toBeTruthy();
             });
           }
         }
@@ -716,14 +862,19 @@ describe('Wizard Configuration Integrity', () => {
 
       for (const step of WIZARD_STEPS) {
         if (step.options) {
-          step.options.forEach(option => {
-            expect(option.id, `Option ${option.id} in step ${step.id} is not kebab-case`).toMatch(kebabCasePattern);
+          step.options.forEach((option) => {
+            expect(option.id, `Option ${option.id} in step ${step.id} is not kebab-case`).toMatch(
+              kebabCasePattern
+            );
           });
         }
         if (step.fields) {
           for (const field of step.fields) {
-            field.options.forEach(option => {
-              expect(option.id, `Option ${option.id} in field ${field.id} is not kebab-case`).toMatch(kebabCasePattern);
+            field.options.forEach((option) => {
+              expect(
+                option.id,
+                `Option ${option.id} in field ${field.id} is not kebab-case`
+              ).toMatch(kebabCasePattern);
             });
           }
         }
@@ -733,20 +884,20 @@ describe('Wizard Configuration Integrity', () => {
 
   describe('compound field validation', () => {
     it('should have company-profile as compound step', () => {
-      const compoundStep = WIZARD_STEPS.find(s => s.inputType === 'compound');
+      const compoundStep = WIZARD_STEPS.find((s) => s.inputType === 'compound');
       expect(compoundStep).toBeDefined();
       expect(compoundStep!.id).toBe('company-profile');
     });
 
     it('should have 4 fields in company-profile', () => {
-      const compoundStep = WIZARD_STEPS.find(s => s.id === 'company-profile');
+      const compoundStep = WIZARD_STEPS.find((s) => s.id === 'company-profile');
       expect(compoundStep?.fields).toBeDefined();
       expect(compoundStep!.fields!.length).toBe(4);
     });
 
     it('should have expected field IDs in company-profile', () => {
-      const compoundStep = WIZARD_STEPS.find(s => s.id === 'company-profile');
-      const fieldIds = compoundStep!.fields!.map(f => f.id);
+      const compoundStep = WIZARD_STEPS.find((s) => s.id === 'company-profile');
+      const fieldIds = compoundStep!.fields!.map((f) => f.id);
 
       expect(fieldIds).toContain('headcount');
       expect(fieldIds).toContain('revenue-range');
@@ -757,14 +908,14 @@ describe('Wizard Configuration Integrity', () => {
 
   describe('content validation', () => {
     it('should have non-empty title for all steps', () => {
-      WIZARD_STEPS.forEach(step => {
+      WIZARD_STEPS.forEach((step) => {
         expect(step.title.length, `Step ${step.id} has empty title`).toBeGreaterThan(0);
         expect(step.title.trim()).toBe(step.title);
       });
     });
 
     it('should have non-empty subtitle for all steps', () => {
-      WIZARD_STEPS.forEach(step => {
+      WIZARD_STEPS.forEach((step) => {
         expect(step.subtitle.length, `Step ${step.id} has empty subtitle`).toBeGreaterThan(0);
         expect(step.subtitle.trim()).toBe(step.subtitle);
       });
@@ -773,14 +924,20 @@ describe('Wizard Configuration Integrity', () => {
     it('should have non-empty labels for all options', () => {
       for (const step of WIZARD_STEPS) {
         if (step.options) {
-          step.options.forEach(option => {
-            expect(option.label.length, `Option ${option.id} in step ${step.id} has empty label`).toBeGreaterThan(0);
+          step.options.forEach((option) => {
+            expect(
+              option.label.length,
+              `Option ${option.id} in step ${step.id} has empty label`
+            ).toBeGreaterThan(0);
           });
         }
         if (step.fields) {
           for (const field of step.fields) {
-            field.options.forEach(option => {
-              expect(option.label.length, `Option ${option.id} in field ${field.id} has empty label`).toBeGreaterThan(0);
+            field.options.forEach((option) => {
+              expect(
+                option.label.length,
+                `Option ${option.id} in field ${field.id} has empty label`
+              ).toBeGreaterThan(0);
             });
           }
         }
@@ -814,31 +971,31 @@ describe('Bracket Order Configuration', () => {
 
   describe('bracket values match wizard options', () => {
     it('should have headcount brackets matching wizard options', () => {
-      const companyProfileStep = WIZARD_STEPS.find(s => s.id === 'company-profile');
-      const headcountField = companyProfileStep!.fields!.find(f => f.id === 'headcount');
-      const wizardOptions = headcountField!.options.map(o => o.id);
+      const companyProfileStep = WIZARD_STEPS.find((s) => s.id === 'company-profile');
+      const headcountField = companyProfileStep!.fields!.find((f) => f.id === 'headcount');
+      const wizardOptions = headcountField!.options.map((o) => o.id);
 
-      BRACKET_ORDER.headcount.forEach(bracket => {
+      BRACKET_ORDER.headcount.forEach((bracket) => {
         expect(wizardOptions, `Bracket ${bracket} not in wizard options`).toContain(bracket);
       });
     });
 
     it('should have revenue-range brackets matching wizard options', () => {
-      const companyProfileStep = WIZARD_STEPS.find(s => s.id === 'company-profile');
-      const revenueField = companyProfileStep!.fields!.find(f => f.id === 'revenue-range');
-      const wizardOptions = revenueField!.options.map(o => o.id);
+      const companyProfileStep = WIZARD_STEPS.find((s) => s.id === 'company-profile');
+      const revenueField = companyProfileStep!.fields!.find((f) => f.id === 'revenue-range');
+      const wizardOptions = revenueField!.options.map((o) => o.id);
 
-      BRACKET_ORDER['revenue-range'].forEach(bracket => {
+      BRACKET_ORDER['revenue-range'].forEach((bracket) => {
         expect(wizardOptions, `Bracket ${bracket} not in wizard options`).toContain(bracket);
       });
     });
 
     it('should have company-age brackets matching wizard options', () => {
-      const companyProfileStep = WIZARD_STEPS.find(s => s.id === 'company-profile');
-      const ageField = companyProfileStep!.fields!.find(f => f.id === 'company-age');
-      const wizardOptions = ageField!.options.map(o => o.id);
+      const companyProfileStep = WIZARD_STEPS.find((s) => s.id === 'company-profile');
+      const ageField = companyProfileStep!.fields!.find((f) => f.id === 'company-age');
+      const wizardOptions = ageField!.options.map((o) => o.id);
 
-      BRACKET_ORDER['company-age'].forEach(bracket => {
+      BRACKET_ORDER['company-age'].forEach((bracket) => {
         expect(wizardOptions, `Bracket ${bracket} not in wizard options`).toContain(bracket);
       });
     });
@@ -894,12 +1051,14 @@ describe('Topic Metadata Integrity', () => {
   });
 
   it('should have unique order values', () => {
-    const orders = Object.values(TOPIC_META).map(m => m.order);
+    const orders = Object.values(TOPIC_META).map((m) => m.order);
     expect(new Set(orders).size).toBe(orders.length);
   });
 
   it('should have sequential order values starting from 1', () => {
-    const orders = Object.values(TOPIC_META).map(m => m.order).sort((a, b) => a - b);
+    const orders = Object.values(TOPIC_META)
+      .map((m) => m.order)
+      .sort((a, b) => a - b);
     expect(orders[0]).toBe(1);
     expect(orders[orders.length - 1]).toBe(4);
   });

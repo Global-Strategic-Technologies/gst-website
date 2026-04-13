@@ -57,7 +57,9 @@ test.describe('Mobile Navigation Journey', () => {
 
   test('should open filter drawer on mobile', async ({ page }) => {
     // Wait for portfolio to be fully initialized
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
+    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
+      timeout: 5000,
+    });
 
     await openFilterDrawer(page);
 
@@ -68,7 +70,9 @@ test.describe('Mobile Navigation Journey', () => {
 
   test('should allow typing in search on mobile', async ({ page }) => {
     // Wait for portfolio to be fully initialized
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
+    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
+      timeout: 5000,
+    });
 
     // Focus search input
     const searchInput = page.locator('[data-testid="portfolio-search-input"]');
@@ -76,7 +80,9 @@ test.describe('Mobile Navigation Journey', () => {
 
     // Clear and type — use evaluate to focus + fill for cross-browser reliability
     await page.evaluate(() => {
-      const input = document.querySelector('[data-testid="portfolio-search-input"]') as HTMLInputElement;
+      const input = document.querySelector(
+        '[data-testid="portfolio-search-input"]'
+      ) as HTMLInputElement;
       if (input) {
         input.focus();
         input.value = '';
@@ -162,12 +168,17 @@ test.describe('Mobile Navigation Journey', () => {
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Wait for modal content to render and become scrollable
-    await page.waitForFunction(() => {
-      const el = document.querySelector('[data-testid="project-modal"]');
-      return el && el.scrollHeight > el.clientHeight;
-    }, { timeout: 5000 }).catch(() => {
-      // Modal content may not be tall enough to scroll on this viewport — skip
-    });
+    await page
+      .waitForFunction(
+        () => {
+          const el = document.querySelector('[data-testid="project-modal"]');
+          return el && el.scrollHeight > el.clientHeight;
+        },
+        { timeout: 5000 }
+      )
+      .catch(() => {
+        // Modal content may not be tall enough to scroll on this viewport — skip
+      });
 
     // Attempt to scroll within modal
     const scrolled = await page.evaluate(() => {
@@ -227,7 +238,7 @@ test.describe('Mobile Navigation Journey', () => {
     const card = page.locator('[data-testid="project-card"]').first();
     await expect(card).toBeVisible();
 
-    const fontSize = await card.evaluate(el => {
+    const fontSize = await card.evaluate((el) => {
       return window.getComputedStyle(el).fontSize;
     });
 
@@ -238,7 +249,9 @@ test.describe('Mobile Navigation Journey', () => {
 
   test('should allow clicking stage filter chips on mobile', async ({ page }) => {
     // Wait for initialization
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
+    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
+      timeout: 5000,
+    });
 
     await openFilterDrawer(page);
 
@@ -264,7 +277,9 @@ test.describe('Mobile Navigation Journey', () => {
 
   test('should allow clicking theme filter chips on mobile', async ({ page }) => {
     // Wait for initialization
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
+    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
+      timeout: 5000,
+    });
 
     await openFilterDrawer(page);
 
@@ -291,7 +306,9 @@ test.describe('Mobile Navigation Journey', () => {
 
   test('should allow clicking year filter chips on mobile', async ({ page }) => {
     // Wait for initialization
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
+    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
+      timeout: 5000,
+    });
 
     await openFilterDrawer(page);
 
@@ -318,7 +335,9 @@ test.describe('Mobile Navigation Journey', () => {
 
   test('should allow clicking engagement filter chips on mobile', async ({ page }) => {
     // Wait for initialization
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
+    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
+      timeout: 5000,
+    });
 
     await openFilterDrawer(page);
 
@@ -326,7 +345,11 @@ test.describe('Mobile Navigation Journey', () => {
     const engagementChip = page.locator('[data-testid="filter-chip-engagement-value-creation"]');
     await expect(engagementChip).toBeVisible();
     await page.evaluate(() => {
-      (document.querySelector('[data-testid="filter-chip-engagement-value-creation"]') as HTMLElement)?.click();
+      (
+        document.querySelector(
+          '[data-testid="filter-chip-engagement-value-creation"]'
+        ) as HTMLElement
+      )?.click();
     });
 
     // Verify it's now active
@@ -339,7 +362,9 @@ test.describe('Mobile Navigation Journey', () => {
 
   test('should update page after applying filter on mobile', async ({ page }) => {
     // Wait for initialization
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
+    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
+      timeout: 5000,
+    });
 
     // Get initial project count
     const initialCards = page.locator('[data-testid^="project-card-"]');
@@ -359,12 +384,15 @@ test.describe('Mobile Navigation Journey', () => {
     });
 
     // Wait for drawer slide-out transition to complete
-    await page.waitForFunction(() => {
-      const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
-      if (!el) return true;
-      const right = window.getComputedStyle(el).right;
-      return right !== '0px';
-    }, { timeout: 5000 });
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
+        if (!el) return true;
+        const right = window.getComputedStyle(el).right;
+        return right !== '0px';
+      },
+      { timeout: 5000 }
+    );
 
     // Grid should still be visible and interactive
     const gridCards = page.locator('[data-testid^="project-card-"]');
@@ -378,7 +406,9 @@ test.describe('Mobile Navigation Journey', () => {
 
   test('should allow clearing filters on mobile', async ({ page }) => {
     // Wait for initialization
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
+    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
+      timeout: 5000,
+    });
 
     await openFilterDrawer(page);
 
@@ -402,10 +432,13 @@ test.describe('Mobile Navigation Journey', () => {
     });
 
     // Wait for filters to reset — "All Stages" chip should become active
-    await page.waitForFunction(() => {
-      const el = document.querySelector('[data-testid="filter-chip-stage-all"]');
-      return el && el.classList.contains('active');
-    }, { timeout: 5000 });
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('[data-testid="filter-chip-stage-all"]');
+        return el && el.classList.contains('active');
+      },
+      { timeout: 5000 }
+    );
 
     // Filters should be reset to "All"
     const allStagesChip = page.locator('[data-testid="filter-chip-stage-all"]');

@@ -12,22 +12,22 @@ import { test, expect } from '@playwright/test';
 
 /** Wait for the client-side TOC script to finish generating sublists. */
 async function waitForSublists(page: import('@playwright/test').Page, selector = '.toc__sublist') {
-  await page.waitForFunction(
-    (sel) => document.querySelectorAll(sel).length > 0,
-    selector,
-    { timeout: 10000 },
-  );
+  await page.waitForFunction((sel) => document.querySelectorAll(sel).length > 0, selector, {
+    timeout: 10000,
+  });
 }
 
 test.describe('TableOfContents Component', () => {
   test.describe('Sublist Generation', () => {
-    test('should generate sublists for layer-1 on business-architectures page', async ({ page }) => {
+    test('should generate sublists for layer-1 on business-architectures page', async ({
+      page,
+    }) => {
       await page.goto('/hub/library/business-architectures', { waitUntil: 'domcontentloaded' });
       await waitForSublists(page);
 
       // Count h3[id] headings inside #layer-1 (the source of truth)
-      const h3Count = await page.evaluate(() =>
-        document.querySelectorAll('#layer-1 h3[id]').length,
+      const h3Count = await page.evaluate(
+        () => document.querySelectorAll('#layer-1 h3[id]').length
       );
       expect(h3Count).toBeGreaterThan(0);
 
@@ -66,10 +66,12 @@ test.describe('TableOfContents Component', () => {
       await expect(toc).toBeVisible();
 
       // Confirm initial active link is the first section
-      await page.waitForFunction(() =>
-        document.querySelector('[data-testid="brand-toc"] .toc__list a.is-active')
-          ?.getAttribute('href') === '#identity',
-        { timeout: 10000 },
+      await page.waitForFunction(
+        () =>
+          document
+            .querySelector('[data-testid="brand-toc"] .toc__list a.is-active')
+            ?.getAttribute('href') === '#identity',
+        { timeout: 10000 }
       );
 
       // Scroll the #components section into view (mid-page)
@@ -79,10 +81,12 @@ test.describe('TableOfContents Component', () => {
       });
 
       // Wait for scroll-spy to update the active link to #components
-      await page.waitForFunction(() =>
-        document.querySelector('[data-testid="brand-toc"] .toc__list a.is-active')
-          ?.getAttribute('href') === '#components',
-        { timeout: 10000 },
+      await page.waitForFunction(
+        () =>
+          document
+            .querySelector('[data-testid="brand-toc"] .toc__list a.is-active')
+            ?.getAttribute('href') === '#components',
+        { timeout: 10000 }
       );
     });
 
@@ -95,20 +99,24 @@ test.describe('TableOfContents Component', () => {
         if (section) section.scrollIntoView({ behavior: 'instant' });
       });
 
-      await page.waitForFunction(() =>
-        document.querySelector('[data-testid="brand-toc"] .toc__list a.is-active')
-          ?.getAttribute('href') === '#components',
-        { timeout: 10000 },
+      await page.waitForFunction(
+        () =>
+          document
+            .querySelector('[data-testid="brand-toc"] .toc__list a.is-active')
+            ?.getAttribute('href') === '#components',
+        { timeout: 10000 }
       );
 
       // Scroll back to top
       await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
 
       // The first link should become active again
-      await page.waitForFunction(() =>
-        document.querySelector('[data-testid="brand-toc"] .toc__list a.is-active')
-          ?.getAttribute('href') === '#identity',
-        { timeout: 10000 },
+      await page.waitForFunction(
+        () =>
+          document
+            .querySelector('[data-testid="brand-toc"] .toc__list a.is-active')
+            ?.getAttribute('href') === '#identity',
+        { timeout: 10000 }
       );
     });
   });
@@ -120,18 +128,20 @@ test.describe('TableOfContents Component', () => {
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
 
       // Wait for collapsed state on mobile
-      await page.waitForFunction(() =>
-        document.querySelector('[data-testid="brand-toc"]')?.classList.contains('is-collapsed'),
-        { timeout: 10000 },
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-testid="brand-toc"]')?.classList.contains('is-collapsed'),
+        { timeout: 10000 }
       );
 
       // Resize to desktop
       await page.setViewportSize({ width: 1200, height: 800 });
 
       // The matchMedia listener should remove is-collapsed
-      await page.waitForFunction(() =>
-        !document.querySelector('[data-testid="brand-toc"]')?.classList.contains('is-collapsed'),
-        { timeout: 10000 },
+      await page.waitForFunction(
+        () =>
+          !document.querySelector('[data-testid="brand-toc"]')?.classList.contains('is-collapsed'),
+        { timeout: 10000 }
       );
     });
   });
@@ -172,21 +182,21 @@ test.describe('TableOfContents Component', () => {
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
 
       // Wait for scroll-spy to initialize on the main TOC
-      await page.waitForFunction(() =>
-        document.querySelector('[data-testid="brand-toc"] .toc__list a.is-active') !== null,
-        { timeout: 10000 },
+      await page.waitForFunction(
+        () => document.querySelector('[data-testid="brand-toc"] .toc__list a.is-active') !== null,
+        { timeout: 10000 }
       );
 
       // The main TOC (brand-toc) should have exactly one active link
-      const mainActiveCount = await page.evaluate(() =>
-        document.querySelectorAll('[data-testid="brand-toc"] .toc__list a.is-active').length,
+      const mainActiveCount = await page.evaluate(
+        () => document.querySelectorAll('[data-testid="brand-toc"] .toc__list a.is-active').length
       );
       expect(mainActiveCount).toBe(1);
 
       // Specimen TOCs (inside .brand-toc-specimen) should have zero active links
       // because they are not configured with scrollSpy={true}
-      const specimenActiveCount = await page.evaluate(() =>
-        document.querySelectorAll('.brand-toc-specimen .toc__list a.is-active').length,
+      const specimenActiveCount = await page.evaluate(
+        () => document.querySelectorAll('.brand-toc-specimen .toc__list a.is-active').length
       );
       expect(specimenActiveCount).toBe(0);
     });

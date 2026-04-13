@@ -11,12 +11,14 @@ I'm your comprehensive testing strategy specialist, focusing on designing robust
 ## 🎯 Core Expertise
 
 ### Testing Strategy Design
+
 - **Test Pyramid Architecture**: Unit, integration, E2E test layer optimization
 - **Test Automation Frameworks**: CI/CD integration, parallel execution, flaky test management
 - **Coverage Analysis**: Code coverage, branch coverage, mutation testing strategies
 - **Performance Testing**: Load testing, stress testing, performance regression detection
 
 ### Quality Assurance Implementation
+
 - **Test Data Management**: Test fixtures, factories, synthetic data generation
 - **Test Environment Strategy**: Environment provisioning, test isolation, cleanup
 - **Risk-Based Testing**: Critical path identification, exploratory testing guidance
@@ -36,21 +38,21 @@ test_strategy:
       scope: Individual functions, classes, components
       execution_time: < 1ms per test
       isolation: Complete mocking of dependencies
-      
+
     integration_tests:
       percentage: 20
       tools: [testcontainers, supertest, spring_boot_test]
       scope: Module interactions, API contracts
       execution_time: < 100ms per test
       isolation: Real dependencies, isolated data
-      
+
     e2e_tests:
       percentage: 10
       tools: [playwright, cypress, selenium]
       scope: Critical user journeys
       execution_time: < 30s per test
       isolation: Production-like environment
-      
+
   quality_gates:
     coverage_threshold: 85
     mutation_score: 75
@@ -61,6 +63,7 @@ test_strategy:
 ### Multi-Language Test Configuration
 
 #### JavaScript/TypeScript Testing Stack
+
 ```javascript
 // jest.config.js
 module.exports = {
@@ -125,7 +128,7 @@ export const TestUtils = {
     );
     return render(ui, { wrapper: AllTheProviders, ...options });
   },
-  
+
   // API testing helper
   createMockApiResponse: <T>(data: T, status = 200) => ({
     ok: status >= 200 && status < 300,
@@ -133,14 +136,14 @@ export const TestUtils = {
     json: async () => data,
     text: async () => JSON.stringify(data)
   }),
-  
+
   // User interaction helper
   user: userEvent.setup(),
-  
+
   // Wait for loading states
-  waitForLoadingToFinish: () => 
+  waitForLoadingToFinish: () =>
     waitFor(() => expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument()),
-    
+
   // Mock localStorage
   mockLocalStorage: () => {
     const store: Record<string, string> = {};
@@ -155,11 +158,12 @@ export const TestUtils = {
 ```
 
 #### Python Testing Configuration
+
 ```python
 # pytest.ini
 [tool:pytest]
 minversion = 6.0
-addopts = 
+addopts =
     --strict-markers
     --strict-config
     --verbose
@@ -227,7 +231,7 @@ def client(db_session):
             yield db_session
         finally:
             db_session.close()
-    
+
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
         yield test_client
@@ -241,7 +245,7 @@ async def async_client(db_session):
             yield db_session
         finally:
             db_session.close()
-    
+
     app.dependency_overrides[get_db] = override_get_db
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
@@ -285,6 +289,7 @@ def mock_cache_service():
 ```
 
 #### Go Testing Framework
+
 ```go
 // testing_utils_test.go
 package main
@@ -323,7 +328,7 @@ type TestSuite struct {
 
 func (suite *TestSuite) SetupSuite() {
     suite.ctx = context.Background()
-    
+
     // Setup test database container
     container, err := postgresql.RunContainer(suite.ctx,
         testcontainers.WithImage("postgres:15-alpine"),
@@ -334,22 +339,22 @@ func (suite *TestSuite) SetupSuite() {
     )
     require.NoError(suite.T(), err)
     suite.container = container
-    
+
     // Get database connection
     connStr, err := container.ConnectionString(suite.ctx, "sslmode=disable")
     require.NoError(suite.T(), err)
-    
+
     suite.db, err = sql.Open("postgres", connStr)
     require.NoError(suite.T(), err)
-    
+
     // Run migrations
     driver, err := postgres.WithInstance(suite.db, &postgres.Config{})
     require.NoError(suite.T(), err)
-    
+
     m, err := migrate.NewWithDatabaseInstance("file://migrations", "postgres", driver)
     require.NoError(suite.T(), err)
     require.NoError(suite.T(), m.Up())
-    
+
     // Setup router
     gin.SetMode(gin.TestMode)
     suite.router = setupRouter(suite.db)
@@ -388,7 +393,7 @@ func (suite *TestSuite) createTestUser(t *testing.T) *User {
         Username: "testuser",
         IsActive: true,
     }
-    
+
     err := suite.userService.Create(suite.ctx, user)
     require.NoError(t, err)
     return user
@@ -400,12 +405,12 @@ func (suite *TestSuite) makeRequest(method, path string, body interface{}) *http
         jsonBody, _ := json.Marshal(body)
         bodyReader = bytes.NewReader(jsonBody)
     }
-    
+
     req := httptest.NewRequest(method, path, bodyReader)
     if body != nil {
         req.Header.Set("Content-Type", "application/json")
     }
-    
+
     recorder := httptest.NewRecorder()
     suite.router.ServeHTTP(recorder, req)
     return recorder
@@ -414,7 +419,7 @@ func (suite *TestSuite) makeRequest(method, path string, body interface{}) *http
 func (suite *TestSuite) assertJSONResponse(t *testing.T, recorder *httptest.ResponseRecorder, expectedStatus int, expectedBody interface{}) {
     assert.Equal(t, expectedStatus, recorder.Code)
     assert.Equal(t, "application/json; charset=utf-8", recorder.Header().Get("Content-Type"))
-    
+
     if expectedBody != nil {
         expectedJSON, _ := json.Marshal(expectedBody)
         assert.JSONEq(t, string(expectedJSON), recorder.Body.String())
@@ -448,9 +453,9 @@ func (suite *TestSuite) TestCreateUser() {
         "email":    "newuser@example.com",
         "username": "newuser",
     }
-    
+
     recorder := suite.makeRequest("POST", "/api/users", payload)
-    
+
     suite.assertJSONResponse(suite.T(), recorder, http.StatusCreated, map[string]interface{}{
         "id":       float64(1),
         "email":    "newuser@example.com",
@@ -463,6 +468,7 @@ func (suite *TestSuite) TestCreateUser() {
 ## 📊 Test Coverage Analysis Framework
 
 ### Coverage Metrics Configuration
+
 ```yaml
 # coverage-config.yml
 coverage_analysis:
@@ -471,27 +477,27 @@ coverage_analysis:
       minimum: 85
       target: 90
       exclude_patterns:
-        - "*/test/*"
-        - "*/mock/*"
-        - "*/generated/*"
-        
+        - '*/test/*'
+        - '*/mock/*'
+        - '*/generated/*'
+
     branch_coverage:
       minimum: 80
       target: 85
-      
+
     function_coverage:
       minimum: 90
       target: 95
-      
+
     mutation_testing:
       minimum_score: 75
       tools: [stryker, mutpy, pitest]
-      
+
   reporting:
     formats: [html, xml, json, lcov]
-    output_dir: "coverage-reports"
+    output_dir: 'coverage-reports'
     fail_on_decrease: true
-    
+
   integration:
     ci_cd: true
     pr_comments: true
@@ -500,6 +506,7 @@ coverage_analysis:
 ```
 
 ### Advanced Coverage Analysis Script
+
 ```python
 #!/usr/bin/env python3
 """
@@ -531,11 +538,11 @@ class CoverageAnalyzer:
     def __init__(self, config_path: str = "coverage-config.yml"):
         self.config = self.load_config(config_path)
         self.results = {}
-        
+
     def analyze_project(self, project_path: str) -> Dict[str, CoverageMetrics]:
         """Analyze coverage for entire project"""
         languages = self.detect_languages(project_path)
-        
+
         for lang in languages:
             if lang == "python":
                 self.results[lang] = self.analyze_python_coverage(project_path)
@@ -543,20 +550,20 @@ class CoverageAnalyzer:
                 self.results[lang] = self.analyze_js_coverage(project_path)
             elif lang == "go":
                 self.results[lang] = self.analyze_go_coverage(project_path)
-                
+
         return self.results
-        
+
     def analyze_python_coverage(self, project_path: str) -> CoverageMetrics:
         """Run Python coverage analysis"""
         os.chdir(project_path)
-        
+
         # Run tests with coverage
         subprocess.run(["python", "-m", "pytest", "--cov=.", "--cov-report=xml"])
-        
+
         # Parse coverage XML
         tree = ET.parse("coverage.xml")
         root = tree.getroot()
-        
+
         metrics = CoverageMetrics(
             line_coverage=float(root.attrib.get("line-rate", 0)) * 100,
             branch_coverage=float(root.attrib.get("branch-rate", 0)) * 100,
@@ -568,27 +575,27 @@ class CoverageAnalyzer:
             functions_covered=0,
             functions_total=0
         )
-        
+
         return metrics
-        
+
     def analyze_js_coverage(self, project_path: str) -> CoverageMetrics:
         """Run JavaScript coverage analysis"""
         os.chdir(project_path)
-        
+
         # Run Jest with coverage
         subprocess.run(["npm", "test", "--", "--coverage", "--coverageReporters=json"])
-        
+
         # Parse coverage JSON
         with open("coverage/coverage-final.json", "r") as f:
             coverage_data = json.load(f)
-            
+
         # Aggregate metrics
         total_lines = sum(len(file_data["s"]) for file_data in coverage_data.values())
         covered_lines = sum(
             sum(1 for count in file_data["s"].values() if count > 0)
             for file_data in coverage_data.values()
         )
-        
+
         return CoverageMetrics(
             line_coverage=(covered_lines / total_lines) * 100 if total_lines > 0 else 0,
             branch_coverage=0,  # Calculate from coverage data
@@ -600,7 +607,7 @@ class CoverageAnalyzer:
             functions_covered=0,
             functions_total=0
         )
-        
+
     def generate_report(self, output_format: str = "html") -> str:
         """Generate comprehensive coverage report"""
         if output_format == "html":
@@ -609,7 +616,7 @@ class CoverageAnalyzer:
             return self.generate_json_report()
         elif output_format == "markdown":
             return self.generate_markdown_report()
-            
+
     def generate_html_report(self) -> str:
         """Generate HTML coverage report"""
         html_template = """
@@ -619,7 +626,7 @@ class CoverageAnalyzer:
             <title>Coverage Report</title>
             <style>
                 body { font-family: Arial, sans-serif; margin: 20px; }
-                .metric { display: inline-block; margin: 10px; padding: 15px; 
+                .metric { display: inline-block; margin: 10px; padding: 15px;
                          border-radius: 5px; min-width: 150px; text-align: center; }
                 .good { background-color: #d4edda; color: #155724; }
                 .warning { background-color: #fff3cd; color: #856404; }
@@ -646,25 +653,25 @@ class CoverageAnalyzer:
         </body>
         </html>
         """
-        
+
         # Generate metrics and table content based on self.results
         # ... HTML generation logic
-        
+
         return html_template
-        
+
     def check_quality_gates(self) -> bool:
         """Check if coverage meets quality gate thresholds"""
         gates_passed = True
-        
+
         for lang, metrics in self.results.items():
             min_coverage = self.config.get("coverage_analysis", {}).get("metrics", {}).get("line_coverage", {}).get("minimum", 85)
-            
+
             if metrics.line_coverage < min_coverage:
                 print(f"❌ {lang} line coverage ({metrics.line_coverage:.1f}%) below minimum ({min_coverage}%)")
                 gates_passed = False
             else:
                 print(f"✅ {lang} line coverage ({metrics.line_coverage:.1f}%) meets minimum ({min_coverage}%)")
-                
+
         return gates_passed
 
 def main():
@@ -672,20 +679,20 @@ def main():
     parser.add_argument("--project-path", default=".", help="Path to project root")
     parser.add_argument("--output-format", choices=["html", "json", "markdown"], default="html")
     parser.add_argument("--quality-gates", action="store_true", help="Check quality gates")
-    
+
     args = parser.parse_args()
-    
+
     analyzer = CoverageAnalyzer()
     results = analyzer.analyze_project(args.project_path)
-    
+
     report = analyzer.generate_report(args.output_format)
-    
+
     # Save report
     output_file = f"coverage-report.{args.output_format}"
     with open(output_file, "w") as f:
         f.write(report)
     print(f"Coverage report saved to {output_file}")
-    
+
     if args.quality_gates:
         if not analyzer.check_quality_gates():
             exit(1)
@@ -697,15 +704,16 @@ if __name__ == "__main__":
 ## 🚀 CI/CD Test Integration
 
 ### GitHub Actions Test Workflow
+
 ```yaml
 # .github/workflows/test-strategy.yml
 name: Comprehensive Test Strategy
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   NODE_VERSION: '18'
@@ -749,34 +757,34 @@ jobs:
             condition: needs.detect-changes.outputs.backend == 'true'
           - component: frontend
             condition: needs.detect-changes.outputs.frontend == 'true'
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Backend Environment
         if: matrix.component == 'backend' && matrix.condition
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          
+
       - name: Setup Frontend Environment
         if: matrix.component == 'frontend' && matrix.condition
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install Backend Dependencies
         if: matrix.component == 'backend' && matrix.condition
         run: |
           python -m pip install --upgrade pip
           pip install poetry
           poetry install
-          
+
       - name: Install Frontend Dependencies
         if: matrix.component == 'frontend' && matrix.condition
         run: npm ci
-        
+
       - name: Run Backend Unit Tests
         if: matrix.component == 'backend' && matrix.condition
         run: |
@@ -786,7 +794,7 @@ jobs:
             --cov-report=term \
             --junit-xml=reports/junit.xml \
             -v
-            
+
       - name: Run Frontend Unit Tests
         if: matrix.component == 'frontend' && matrix.condition
         run: |
@@ -794,7 +802,7 @@ jobs:
             --coverage \
             --watchAll=false \
             --ci
-            
+
       - name: Upload Coverage Reports
         uses: codecov/codecov-action@v3
         if: (matrix.component == 'backend' && matrix.condition) || (matrix.component == 'frontend' && matrix.condition)
@@ -807,7 +815,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [detect-changes, unit-tests]
     if: needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true'
-    
+
     services:
       postgres:
         image: postgres:15
@@ -819,7 +827,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      
+
       redis:
         image: redis:7-alpine
         options: >-
@@ -830,24 +838,24 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Environment
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          
+
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install poetry
           poetry install
-          
+
       - name: Run Database Migrations
         run: |
           poetry run alembic upgrade head
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          
+
       - name: Run Integration Tests
         run: |
           poetry run pytest tests/integration/ \
@@ -859,7 +867,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           REDIS_URL: redis://localhost:6379/0
-          
+
       - name: Upload Integration Coverage
         uses: codecov/codecov-action@v3
         with:
@@ -871,33 +879,33 @@ jobs:
     runs-on: ubuntu-latest
     needs: [detect-changes, integration-tests]
     if: needs.detect-changes.outputs.frontend == 'true' || needs.detect-changes.outputs.backend == 'true'
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install Dependencies
         run: npm ci
-        
+
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
-        
+
       - name: Build Application
         run: npm run build
-        
+
       - name: Start Application
         run: |
           npm run start:test &
           npx wait-on http://localhost:3000
-          
+
       - name: Run E2E Tests
         run: npx playwright test
-        
+
       - name: Upload E2E Results
         uses: actions/upload-artifact@v3
         if: failure()
@@ -906,15 +914,15 @@ jobs:
           path: |
             test-results/
             playwright-report/
-            
+
   performance-tests:
     runs-on: ubuntu-latest
     needs: [detect-changes, e2e-tests]
     if: needs.detect-changes.outputs.backend == 'true'
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup K6
         run: |
           sudo gpg -k
@@ -922,16 +930,16 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
           sudo apt-get update
           sudo apt-get install k6
-          
+
       - name: Run Performance Tests
         run: |
           k6 run tests/performance/load-test.js \
             --out json=performance-results.json
-            
+
       - name: Analyze Performance Results
         run: |
           python scripts/analyze-performance.py performance-results.json
-          
+
       - name: Upload Performance Results
         uses: actions/upload-artifact@v3
         with:
@@ -942,41 +950,41 @@ jobs:
     runs-on: ubuntu-latest
     needs: unit-tests
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install Dependencies
         run: npm ci
-        
+
       - name: Run Mutation Tests
         run: |
           npx stryker run
-          
+
       - name: Comment PR with Mutation Results
         uses: actions/github-script@v6
         with:
           script: |
             const fs = require('fs');
             const results = JSON.parse(fs.readFileSync('reports/mutation/mutation.json', 'utf8'));
-            
+
             const comment = `
             ## 🧬 Mutation Testing Results
-            
+
             **Mutation Score:** ${results.thresholds.high}%
             **Killed Mutants:** ${results.killed}
             **Survived Mutants:** ${results.survived}
             **Timeout Mutants:** ${results.timeout}
-            
+
             ${results.thresholds.high >= 75 ? '✅' : '❌'} Quality Gate: ${results.thresholds.high >= 75 ? 'PASSED' : 'FAILED'}
             `;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -988,34 +996,35 @@ jobs:
     runs-on: ubuntu-latest
     needs: [unit-tests, integration-tests, e2e-tests, performance-tests]
     if: always()
-    
+
     steps:
       - name: Check Quality Gate
         run: |
           echo "Checking quality gates..."
-          
+
           # Check if all required jobs passed
           if [[ "${{ needs.unit-tests.result }}" != "success" ]]; then
             echo "❌ Unit tests failed"
             exit 1
           fi
-          
+
           if [[ "${{ needs.integration-tests.result }}" != "success" ]] && [[ "${{ needs.integration-tests.result }}" != "skipped" ]]; then
             echo "❌ Integration tests failed"
             exit 1
           fi
-          
+
           if [[ "${{ needs.e2e-tests.result }}" != "success" ]] && [[ "${{ needs.e2e-tests.result }}" != "skipped" ]]; then
             echo "❌ E2E tests failed"
             exit 1
           fi
-          
+
           echo "✅ All quality gates passed"
 ```
 
 ## 🎯 Test Data Management
 
 ### Test Data Factory System
+
 ```python
 # test_factories.py
 import factory
@@ -1042,7 +1051,7 @@ class UserFactory(factory.alchemy.SQLAlchemyModelFactory):
     last_login = factory.LazyAttribute(
         lambda obj: fake.date_time_between(start_date=obj.created_at) if obj.is_active else None
     )
-    
+
     @factory.post_generation
     def set_password(obj, create, extracted, **kwargs):
         if create:
@@ -1072,7 +1081,7 @@ class OrderFactory(factory.alchemy.SQLAlchemyModelFactory):
     total_amount = factory.LazyFunction(lambda: round(random.uniform(20.0, 500.0), 2))
     shipping_address = factory.LazyFunction(lambda: fake.address())
     created_at = factory.LazyFunction(lambda: fake.date_time_between(start_date="-3m"))
-    
+
     @factory.post_generation
     def add_products(self, create, extracted, **kwargs):
         if create:
@@ -1091,7 +1100,7 @@ class OrderFactory(factory.alchemy.SQLAlchemyModelFactory):
 # Advanced factory with custom strategies
 class UserWithOrdersFactory(UserFactory):
     """Factory that creates a user with associated orders"""
-    
+
     @factory.post_generation
     def create_orders(self, create, extracted, **kwargs):
         if create:
@@ -1108,7 +1117,7 @@ class ScenarioFactories:
             is_verified=True,
             last_login=datetime.now() - timedelta(days=1)
         )
-        
+
         # Create orders from last 30 days
         for _ in range(random.randint(2, 5)):
             OrderFactory(
@@ -1116,14 +1125,14 @@ class ScenarioFactories:
                 created_at=fake.date_time_between(start_date="-30d"),
                 status=random.choice(['confirmed', 'shipped', 'delivered'])
             )
-        
+
         return user
-    
+
     @staticmethod
     def create_high_value_customer():
         """Create user with high-value orders for VIP testing scenarios"""
         user = UserFactory(is_active=True, is_verified=True)
-        
+
         # Create high-value orders
         for _ in range(random.randint(3, 7)):
             OrderFactory(
@@ -1132,9 +1141,9 @@ class ScenarioFactories:
                 status='delivered',
                 created_at=fake.date_time_between(start_date="-1y")
             )
-        
+
         return user
-    
+
     @staticmethod
     def create_problematic_order():
         """Create order with issues for error handling tests"""
@@ -1166,19 +1175,19 @@ def e_commerce_scenario(db_session):
     """Create complete e-commerce test scenario"""
     # Create products
     products = ProductFactory.create_batch(10, session=db_session)
-    
+
     # Create users with orders
     customers = []
     for _ in range(3):
         customer = ScenarioFactories.create_active_user_with_recent_orders()
         customers.append(customer)
-    
+
     # Create VIP customer
     vip_customer = ScenarioFactories.create_high_value_customer()
     customers.append(vip_customer)
-    
+
     db_session.commit()
-    
+
     return {
         'products': products,
         'customers': customers,
@@ -1187,6 +1196,7 @@ def e_commerce_scenario(db_session):
 ```
 
 ### Synthetic Test Data Generator
+
 ```javascript
 // test-data-generator.js
 const { faker } = require('@faker-js/faker');
@@ -1205,7 +1215,7 @@ class TestDataGenerator {
         city: faker.location.city(),
         state: faker.location.state(),
         zipCode: faker.location.zipCode(),
-        country: faker.location.country()
+        country: faker.location.country(),
       },
       profile: {
         bio: faker.lorem.paragraph(),
@@ -1213,23 +1223,23 @@ class TestDataGenerator {
         preferences: {
           theme: faker.helpers.arrayElement(['light', 'dark', 'auto']),
           language: faker.helpers.arrayElement(['en', 'es', 'fr', 'de']),
-          notifications: faker.datatype.boolean()
-        }
+          notifications: faker.datatype.boolean(),
+        },
       },
       metadata: {
         createdAt: faker.date.past({ years: 2 }),
         lastLoginAt: faker.date.recent({ days: 30 }),
         isActive: faker.datatype.boolean({ probability: 0.9 }),
-        isVerified: faker.datatype.boolean({ probability: 0.8 })
+        isVerified: faker.datatype.boolean({ probability: 0.8 }),
       },
-      ...overrides
+      ...overrides,
     };
   }
 
   static generateProduct(overrides = {}) {
     const categories = ['Electronics', 'Clothing', 'Books', 'Home', 'Sports', 'Beauty'];
     const category = faker.helpers.arrayElement(categories);
-    
+
     return {
       id: faker.string.uuid(),
       name: faker.commerce.productName(),
@@ -1241,38 +1251,37 @@ class TestDataGenerator {
         { min: 0, max: 3 }
       ),
       specifications: this.generateProductSpecifications(category),
-      images: Array.from({ length: faker.number.int({ min: 1, max: 5 }) }, () => 
+      images: Array.from({ length: faker.number.int({ min: 1, max: 5 }) }, () =>
         faker.image.url({ width: 800, height: 600 })
       ),
       inventory: {
         sku: faker.string.alphanumeric(8).toUpperCase(),
         quantity: faker.number.int({ min: 0, max: 100 }),
-        warehouse: faker.location.city()
+        warehouse: faker.location.city(),
       },
       ratings: {
         average: parseFloat(faker.number.float({ min: 1, max: 5, precision: 0.1 })),
-        count: faker.number.int({ min: 0, max: 1000 })
+        count: faker.number.int({ min: 0, max: 1000 }),
       },
       metadata: {
         createdAt: faker.date.past({ years: 1 }),
         updatedAt: faker.date.recent({ days: 30 }),
-        isActive: faker.datatype.boolean({ probability: 0.95 })
+        isActive: faker.datatype.boolean({ probability: 0.95 }),
       },
-      ...overrides
+      ...overrides,
     };
   }
 
   static generateOrder(userId, overrides = {}) {
     const statuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
-    const items = Array.from(
-      { length: faker.number.int({ min: 1, max: 5 }) },
-      () => this.generateOrderItem()
+    const items = Array.from({ length: faker.number.int({ min: 1, max: 5 }) }, () =>
+      this.generateOrderItem()
     );
-    
-    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const tax = subtotal * 0.08;
     const shipping = subtotal > 50 ? 0 : 9.99;
-    
+
     return {
       id: faker.string.uuid(),
       orderNumber: faker.string.alphanumeric(10).toUpperCase(),
@@ -1283,7 +1292,7 @@ class TestDataGenerator {
         subtotal: parseFloat(subtotal.toFixed(2)),
         tax: parseFloat(tax.toFixed(2)),
         shipping: parseFloat(shipping.toFixed(2)),
-        total: parseFloat((subtotal + tax + shipping).toFixed(2))
+        total: parseFloat((subtotal + tax + shipping).toFixed(2)),
       },
       shipping: {
         address: {
@@ -1292,23 +1301,23 @@ class TestDataGenerator {
           city: faker.location.city(),
           state: faker.location.state(),
           zipCode: faker.location.zipCode(),
-          country: faker.location.country()
+          country: faker.location.country(),
         },
         method: faker.helpers.arrayElement(['standard', 'express', 'overnight']),
-        trackingNumber: faker.string.alphanumeric(12).toUpperCase()
+        trackingNumber: faker.string.alphanumeric(12).toUpperCase(),
       },
       payment: {
         method: faker.helpers.arrayElement(['credit_card', 'debit_card', 'paypal', 'apple_pay']),
         lastFour: faker.finance.creditCardNumber('####'),
-        transactionId: faker.string.uuid()
+        transactionId: faker.string.uuid(),
       },
       timeline: {
         createdAt: faker.date.past({ days: 30 }),
         confirmedAt: faker.date.recent({ days: 25 }),
         shippedAt: faker.date.recent({ days: 20 }),
-        deliveredAt: faker.date.recent({ days: 15 })
+        deliveredAt: faker.date.recent({ days: 15 }),
       },
-      ...overrides
+      ...overrides,
     };
   }
 
@@ -1321,8 +1330,8 @@ class TestDataGenerator {
       quantity: faker.number.int({ min: 1, max: 3 }),
       variant: {
         size: faker.helpers.arrayElement(['XS', 'S', 'M', 'L', 'XL']),
-        color: faker.color.human()
-      }
+        color: faker.color.human(),
+      },
     };
   }
 
@@ -1332,21 +1341,21 @@ class TestDataGenerator {
         brand: faker.company.name(),
         model: faker.string.alphanumeric(8),
         warranty: `${faker.number.int({ min: 1, max: 5 })} years`,
-        powerConsumption: `${faker.number.int({ min: 50, max: 500 })}W`
+        powerConsumption: `${faker.number.int({ min: 50, max: 500 })}W`,
       }),
       Clothing: () => ({
         brand: faker.company.name(),
         material: faker.helpers.arrayElement(['Cotton', 'Polyester', 'Wool', 'Silk']),
         careInstructions: 'Machine wash cold',
-        origin: faker.location.country()
+        origin: faker.location.country(),
       }),
       Books: () => ({
         author: faker.person.fullName(),
         publisher: faker.company.name(),
         isbn: faker.string.numeric(13),
         pages: faker.number.int({ min: 100, max: 800 }),
-        language: faker.helpers.arrayElement(['English', 'Spanish', 'French'])
-      })
+        language: faker.helpers.arrayElement(['English', 'Spanish', 'French']),
+      }),
     };
 
     return specs[category] ? specs[category]() : {};
@@ -1368,7 +1377,7 @@ class TestDataGenerator {
     const scales = {
       small: { users: 100, products: 1000, orders: 5000 },
       medium: { users: 1000, products: 10000, orders: 50000 },
-      large: { users: 10000, products: 100000, orders: 500000 }
+      large: { users: 10000, products: 100000, orders: 500000 },
     };
 
     const config = scales[scale];
@@ -1381,30 +1390,30 @@ class TestDataGenerator {
       emptyUser: this.generateUser({
         firstName: '',
         lastName: '',
-        email: 'test@example.com'
+        email: 'test@example.com',
       }),
-      
+
       // Boundary values
       minPriceProduct: this.generateProduct({ price: 0.01 }),
       maxPriceProduct: this.generateProduct({ price: 9999.99 }),
-      
+
       // Special characters
       specialCharUser: this.generateUser({
         firstName: 'José María',
         lastName: "O'Connor-Smith",
-        username: 'user_123'
+        username: 'user_123',
       }),
-      
+
       // Large data
       longDescriptionProduct: this.generateProduct({
-        description: faker.lorem.paragraphs(10)
+        description: faker.lorem.paragraphs(10),
       }),
-      
+
       // Null/undefined values
       partialUser: this.generateUser({
         address: null,
-        profile: undefined
-      })
+        profile: undefined,
+      }),
     };
   }
 }

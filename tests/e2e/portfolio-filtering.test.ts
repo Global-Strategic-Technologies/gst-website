@@ -4,7 +4,9 @@ import { openFilterDrawer } from './helpers/portfolio';
 test.describe('Portfolio Filtering - DOM Integration Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/ma-portfolio', { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 5000 });
+    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
+      timeout: 5000,
+    });
   });
 
   test('should initialize with "All Stages" filter active', async ({ page }) => {

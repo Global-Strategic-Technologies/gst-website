@@ -5,9 +5,7 @@ import { test, expect } from '@playwright/test';
  */
 async function clickPanelButton(page: import('@playwright/test').Page, id: string): Promise<void> {
   await page.evaluate((btnId) => {
-    document.getElementById(btnId)?.dispatchEvent(
-      new MouseEvent('click', { bubbles: true })
-    );
+    document.getElementById(btnId)?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   }, id);
 }
 
@@ -16,27 +14,29 @@ async function clickPanelButton(page: import('@playwright/test').Page, id: strin
  */
 async function openPanel(page: import('@playwright/test').Page): Promise<void> {
   await clickPanelButton(page, 'panel-toggle');
-  await page.waitForFunction(() =>
-    document.getElementById('palette-panel')?.classList.contains('is-open')
-  , { timeout: 10000 });
+  await page.waitForFunction(
+    () => document.getElementById('palette-panel')?.classList.contains('is-open'),
+    { timeout: 10000 }
+  );
 }
 
 /**
  * Wait for swatch controls to be injected (they are added by palette-manager on DOMContentLoaded + panel open).
  */
 async function waitForSwatchControls(page: import('@playwright/test').Page): Promise<void> {
-  await page.waitForFunction(() =>
-    document.querySelectorAll('.swatch-controls').length > 0
-  , { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelectorAll('.swatch-controls').length > 0, {
+    timeout: 10000,
+  });
 }
 
 /** CSS selector for the first semi-transparent swatch (--text-secondary, alpha 0.7). */
 const ALPHA_SWATCH = '.brand-swatch[data-var="--text-secondary"]';
 
 test.describe('Palette Panel Controls', () => {
-
   test.describe('Swatch Controls Injection', () => {
-    test('should inject swatch controls inside brand-swatch elements when panel opens', async ({ page }) => {
+    test('should inject swatch controls inside brand-swatch elements when panel opens', async ({
+      page,
+    }) => {
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
@@ -47,7 +47,7 @@ test.describe('Palette Panel Controls', () => {
         // injectControls() now supports semi-transparent swatches (alpha slider).
         // Only fully transparent swatches (rgba(0,0,0,0)) are still skipped.
         let eligible = 0;
-        swatches.forEach(el => {
+        swatches.forEach((el) => {
           const colorEl = el.querySelector<HTMLElement>('.brand-swatch__color');
           if (!colorEl) return;
           const bg = getComputedStyle(colorEl).backgroundColor;
@@ -111,7 +111,9 @@ test.describe('Palette Panel Controls', () => {
   });
 
   test.describe('Color Picker Sync', () => {
-    test('should sync hex input and RGB sliders when color picker value changes', async ({ page }) => {
+    test('should sync hex input and RGB sliders when color picker value changes', async ({
+      page,
+    }) => {
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
@@ -129,11 +131,15 @@ test.describe('Palette Panel Controls', () => {
       }, newColor);
 
       // Wait for sync to complete
-      await page.waitForFunction((color) => {
-        const swatch = document.querySelector('.brand-swatch');
-        const hexInput = swatch?.querySelector<HTMLInputElement>('.swatch-hex');
-        return hexInput?.value === color;
-      }, newColor, { timeout: 10000 });
+      await page.waitForFunction(
+        (color) => {
+          const swatch = document.querySelector('.brand-swatch');
+          const hexInput = swatch?.querySelector<HTMLInputElement>('.swatch-hex');
+          return hexInput?.value === color;
+        },
+        newColor,
+        { timeout: 10000 }
+      );
 
       const result = await page.evaluate(() => {
         const swatch = document.querySelector('.brand-swatch');
@@ -156,7 +162,9 @@ test.describe('Palette Panel Controls', () => {
       expect(result.b).toBe(102);
     });
 
-    test('should preserve alpha when color picker changes on a semi-transparent swatch', async ({ page }) => {
+    test('should preserve alpha when color picker changes on a semi-transparent swatch', async ({
+      page,
+    }) => {
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
@@ -172,21 +180,28 @@ test.describe('Palette Panel Controls', () => {
       expect(initialAlpha).toBeTruthy();
 
       // Change the color picker on the alpha swatch
-      await page.evaluate(({ sel, color }) => {
-        const swatch = document.querySelector<HTMLElement>(sel);
-        const picker = swatch?.querySelector<HTMLInputElement>('.swatch-picker');
-        if (picker) {
-          picker.value = color;
-          picker.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-      }, { sel: ALPHA_SWATCH, color: newColor });
+      await page.evaluate(
+        ({ sel, color }) => {
+          const swatch = document.querySelector<HTMLElement>(sel);
+          const picker = swatch?.querySelector<HTMLInputElement>('.swatch-picker');
+          if (picker) {
+            picker.value = color;
+            picker.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        },
+        { sel: ALPHA_SWATCH, color: newColor }
+      );
 
       // Wait for hex input to sync
-      await page.waitForFunction(({ sel, color }) => {
-        const swatch = document.querySelector(sel);
-        const hexInput = swatch?.querySelector<HTMLInputElement>('.swatch-hex');
-        return hexInput?.value === color;
-      }, { sel: ALPHA_SWATCH, color: newColor }, { timeout: 10000 });
+      await page.waitForFunction(
+        ({ sel, color }) => {
+          const swatch = document.querySelector(sel);
+          const hexInput = swatch?.querySelector<HTMLInputElement>('.swatch-hex');
+          return hexInput?.value === color;
+        },
+        { sel: ALPHA_SWATCH, color: newColor },
+        { timeout: 10000 }
+      );
 
       const result = await page.evaluate((sel) => {
         const swatch = document.querySelector<HTMLElement>(sel);
@@ -225,11 +240,15 @@ test.describe('Palette Panel Controls', () => {
       }, newHex);
 
       // Wait for picker to sync
-      await page.waitForFunction((hex) => {
-        const swatch = document.querySelector('.brand-swatch');
-        const picker = swatch?.querySelector<HTMLInputElement>('.swatch-picker');
-        return picker?.value === hex;
-      }, newHex, { timeout: 10000 });
+      await page.waitForFunction(
+        (hex) => {
+          const swatch = document.querySelector('.brand-swatch');
+          const picker = swatch?.querySelector<HTMLInputElement>('.swatch-picker');
+          return picker?.value === hex;
+        },
+        newHex,
+        { timeout: 10000 }
+      );
 
       const result = await page.evaluate(() => {
         const swatch = document.querySelector('.brand-swatch');
@@ -252,27 +271,36 @@ test.describe('Palette Panel Controls', () => {
       expect(result.b).toBe(136);
     });
 
-    test('should preserve alpha when hex input changes on a semi-transparent swatch', async ({ page }) => {
+    test('should preserve alpha when hex input changes on a semi-transparent swatch', async ({
+      page,
+    }) => {
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
       const newHex = '#22cc88';
 
-      await page.evaluate(({ sel, hex }) => {
-        const swatch = document.querySelector<HTMLElement>(sel);
-        const hexInput = swatch?.querySelector<HTMLInputElement>('.swatch-hex');
-        if (hexInput) {
-          hexInput.value = hex;
-          hexInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-      }, { sel: ALPHA_SWATCH, hex: newHex });
+      await page.evaluate(
+        ({ sel, hex }) => {
+          const swatch = document.querySelector<HTMLElement>(sel);
+          const hexInput = swatch?.querySelector<HTMLInputElement>('.swatch-hex');
+          if (hexInput) {
+            hexInput.value = hex;
+            hexInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        },
+        { sel: ALPHA_SWATCH, hex: newHex }
+      );
 
-      await page.waitForFunction(({ sel, hex }) => {
-        const swatch = document.querySelector(sel);
-        const picker = swatch?.querySelector<HTMLInputElement>('.swatch-picker');
-        return picker?.value === hex;
-      }, { sel: ALPHA_SWATCH, hex: newHex }, { timeout: 10000 });
+      await page.waitForFunction(
+        ({ sel, hex }) => {
+          const swatch = document.querySelector(sel);
+          const picker = swatch?.querySelector<HTMLInputElement>('.swatch-picker');
+          return picker?.value === hex;
+        },
+        { sel: ALPHA_SWATCH, hex: newHex },
+        { timeout: 10000 }
+      );
 
       const result = await page.evaluate((sel) => {
         const swatch = document.querySelector<HTMLElement>(sel);
@@ -310,11 +338,15 @@ test.describe('Palette Panel Controls', () => {
       const expectedHex = '#ff8000';
 
       // Wait for hex input to sync
-      await page.waitForFunction((hex) => {
-        const swatch = document.querySelector('.brand-swatch');
-        const hexInput = swatch?.querySelector<HTMLInputElement>('.swatch-hex');
-        return hexInput?.value === hex;
-      }, expectedHex, { timeout: 10000 });
+      await page.waitForFunction(
+        (hex) => {
+          const swatch = document.querySelector('.brand-swatch');
+          const hexInput = swatch?.querySelector<HTMLInputElement>('.swatch-hex');
+          return hexInput?.value === hex;
+        },
+        expectedHex,
+        { timeout: 10000 }
+      );
 
       const result = await page.evaluate(() => {
         const swatch = document.querySelector('.brand-swatch');
@@ -330,7 +362,9 @@ test.describe('Palette Panel Controls', () => {
       expect(result.hex).toBe(expectedHex);
     });
 
-    test('should preserve alpha when RGB sliders change on a semi-transparent swatch', async ({ page }) => {
+    test('should preserve alpha when RGB sliders change on a semi-transparent swatch', async ({
+      page,
+    }) => {
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
@@ -350,11 +384,15 @@ test.describe('Palette Panel Controls', () => {
 
       const expectedHex = '#64c832';
 
-      await page.waitForFunction(({ sel, hex }) => {
-        const swatch = document.querySelector(sel);
-        const hexInput = swatch?.querySelector<HTMLInputElement>('.swatch-hex');
-        return hexInput?.value === hex;
-      }, { sel: ALPHA_SWATCH, hex: expectedHex }, { timeout: 10000 });
+      await page.waitForFunction(
+        ({ sel, hex }) => {
+          const swatch = document.querySelector(sel);
+          const hexInput = swatch?.querySelector<HTMLInputElement>('.swatch-hex');
+          return hexInput?.value === hex;
+        },
+        { sel: ALPHA_SWATCH, hex: expectedHex },
+        { timeout: 10000 }
+      );
 
       const result = await page.evaluate((sel) => {
         const swatch = document.querySelector<HTMLElement>(sel);
@@ -369,7 +407,9 @@ test.describe('Palette Panel Controls', () => {
   });
 
   test.describe('Individual Swatch Reset', () => {
-    test('should restore CSS variable and remove inline style when swatch reset is clicked', async ({ page }) => {
+    test('should restore CSS variable and remove inline style when swatch reset is clicked', async ({
+      page,
+    }) => {
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
@@ -394,10 +434,13 @@ test.describe('Palette Panel Controls', () => {
       });
 
       // Verify the override was applied (inline style set on html)
-      await page.waitForFunction(() => {
-        const swatch = document.querySelector<HTMLElement>('.brand-swatch');
-        return swatch?.dataset.userOverride === 'true';
-      }, { timeout: 10000 });
+      await page.waitForFunction(
+        () => {
+          const swatch = document.querySelector<HTMLElement>('.brand-swatch');
+          return swatch?.dataset.userOverride === 'true';
+        },
+        { timeout: 10000 }
+      );
 
       // Click the swatch reset button
       await page.evaluate(() => {
@@ -407,18 +450,23 @@ test.describe('Palette Panel Controls', () => {
       });
 
       // Wait for the override to be removed
-      await page.waitForFunction(() => {
-        const swatch = document.querySelector<HTMLElement>('.brand-swatch');
-        const varName = swatch?.dataset.var;
-        if (!varName) return false;
-        // Inline style should be removed
-        const inlineValue = document.documentElement.style.getPropertyValue(varName);
-        // data-user-override should be removed
-        return inlineValue === '' && swatch?.dataset.userOverride !== 'true';
-      }, { timeout: 10000 });
+      await page.waitForFunction(
+        () => {
+          const swatch = document.querySelector<HTMLElement>('.brand-swatch');
+          const varName = swatch?.dataset.var;
+          if (!varName) return false;
+          // Inline style should be removed
+          const inlineValue = document.documentElement.style.getPropertyValue(varName);
+          // data-user-override should be removed
+          return inlineValue === '' && swatch?.dataset.userOverride !== 'true';
+        },
+        { timeout: 10000 }
+      );
     });
 
-    test('should restore alpha slider and display when a semi-transparent swatch is reset', async ({ page }) => {
+    test('should restore alpha slider and display when a semi-transparent swatch is reset', async ({
+      page,
+    }) => {
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
@@ -447,10 +495,14 @@ test.describe('Palette Panel Controls', () => {
       }, ALPHA_SWATCH);
 
       // Verify override is applied
-      await page.waitForFunction((sel) => {
-        const swatch = document.querySelector<HTMLElement>(sel);
-        return swatch?.dataset.userOverride === 'true';
-      }, ALPHA_SWATCH, { timeout: 10000 });
+      await page.waitForFunction(
+        (sel) => {
+          const swatch = document.querySelector<HTMLElement>(sel);
+          return swatch?.dataset.userOverride === 'true';
+        },
+        ALPHA_SWATCH,
+        { timeout: 10000 }
+      );
 
       // Click reset
       await page.evaluate((sel) => {
@@ -460,18 +512,25 @@ test.describe('Palette Panel Controls', () => {
       }, ALPHA_SWATCH);
 
       // Wait for override to be cleared and alpha to restore
-      await page.waitForFunction(({ sel, expected }) => {
-        const swatch = document.querySelector<HTMLElement>(sel);
-        const varName = swatch?.dataset.var;
-        if (!varName) return false;
-        const inlineValue = document.documentElement.style.getPropertyValue(varName);
-        const slider = swatch?.querySelector<HTMLInputElement>('.swatch-slider-a');
-        const alphaDisplay = swatch?.querySelector('.swatch-alpha-display');
-        return inlineValue === '' &&
-               swatch?.dataset.userOverride !== 'true' &&
-               slider !== null && parseInt(slider!.value) === expected &&
-               alphaDisplay?.textContent === `@ ${expected}%`;
-      }, { sel: ALPHA_SWATCH, expected: originalAlpha }, { timeout: 10000 });
+      await page.waitForFunction(
+        ({ sel, expected }) => {
+          const swatch = document.querySelector<HTMLElement>(sel);
+          const varName = swatch?.dataset.var;
+          if (!varName) return false;
+          const inlineValue = document.documentElement.style.getPropertyValue(varName);
+          const slider = swatch?.querySelector<HTMLInputElement>('.swatch-slider-a');
+          const alphaDisplay = swatch?.querySelector('.swatch-alpha-display');
+          return (
+            inlineValue === '' &&
+            swatch?.dataset.userOverride !== 'true' &&
+            slider !== null &&
+            parseInt(slider!.value) === expected &&
+            alphaDisplay?.textContent === `@ ${expected}%`
+          );
+        },
+        { sel: ALPHA_SWATCH, expected: originalAlpha },
+        { timeout: 10000 }
+      );
     });
   });
 
@@ -489,9 +548,9 @@ test.describe('Palette Panel Controls', () => {
       await clickPanelButton(page, 'panel-theme-toggle');
 
       // Wait for dark-theme class to appear
-      await page.waitForFunction(() =>
-        document.documentElement.classList.contains('dark-theme')
-      , { timeout: 10000 });
+      await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'), {
+        timeout: 10000,
+      });
 
       // Verify localStorage persistence
       const storedTheme = await page.evaluate(() => localStorage.getItem('theme'));
@@ -522,27 +581,37 @@ test.describe('Palette Panel Controls', () => {
       });
 
       // Verify override is in place
-      await page.waitForFunction(() => {
-        const swatch = document.querySelector<HTMLElement>('.brand-swatch');
-        return swatch?.dataset.userOverride === 'true';
-      }, { timeout: 10000 });
+      await page.waitForFunction(
+        () => {
+          const swatch = document.querySelector<HTMLElement>('.brand-swatch');
+          return swatch?.dataset.userOverride === 'true';
+        },
+        { timeout: 10000 }
+      );
 
       // Toggle theme
       await clickPanelButton(page, 'panel-theme-toggle');
 
       // Wait for overrides to be cleared (resetAllOverrides is called by theme toggle)
-      await page.waitForFunction(() => {
-        const swatch = document.querySelector<HTMLElement>('.brand-swatch');
-        const varName = swatch?.dataset.var;
-        if (!varName) return false;
-        return document.documentElement.style.getPropertyValue(varName) === '' &&
-               swatch?.dataset.userOverride !== 'true';
-      }, { timeout: 10000 });
+      await page.waitForFunction(
+        () => {
+          const swatch = document.querySelector<HTMLElement>('.brand-swatch');
+          const varName = swatch?.dataset.var;
+          if (!varName) return false;
+          return (
+            document.documentElement.style.getPropertyValue(varName) === '' &&
+            swatch?.dataset.userOverride !== 'true'
+          );
+        },
+        { timeout: 10000 }
+      );
     });
   });
 
   test.describe('Popout Icon Rotation', () => {
-    test('should show correct rotation without animation when popout state is pre-set', async ({ page }) => {
+    test('should show correct rotation without animation when popout state is pre-set', async ({
+      page,
+    }) => {
       // Set localStorage before navigating so the inline script applies the state
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
       await page.evaluate(() => localStorage.setItem('palette-popped-out', 'true'));
@@ -575,7 +644,9 @@ test.describe('Palette Panel Controls', () => {
   });
 
   test.describe('Panel Resize Bounds', () => {
-    test('should keep panel body width within 280-900px when resize handle is dragged', async ({ page }) => {
+    test('should keep panel body width within 280-900px when resize handle is dragged', async ({
+      page,
+    }) => {
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
 

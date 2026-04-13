@@ -34,7 +34,9 @@ test.describe('Radar Page', () => {
       expect(linkText).toContain('The GST Hub');
     });
 
-    test('should display exactly 5 category filter buttons (All + 4 categories)', async ({ page }) => {
+    test('should display exactly 5 category filter buttons (All + 4 categories)', async ({
+      page,
+    }) => {
       const filterNav = page.locator('.category-filter');
       await expect(filterNav).toBeVisible();
 
@@ -44,8 +46,7 @@ test.describe('Radar Page', () => {
 
       // Verify the button labels match known categories
       const labels = await page.evaluate(() =>
-        Array.from(document.querySelectorAll('.filter-btn'))
-          .map(el => el.textContent?.trim())
+        Array.from(document.querySelectorAll('.filter-btn')).map((el) => el.textContent?.trim())
       );
       expect(labels[0]).toBe('All');
       // Remaining 4 should all be non-empty category labels
@@ -69,17 +70,20 @@ test.describe('Radar Page', () => {
     test('should show either live feed items or fallback message', async ({ page }) => {
       // Wait for either content items or fallback to render
       // Increased timeout — under parallel contention the SSR may be slower
-      await page.waitForFunction(() => {
-        const items = document.querySelectorAll('.fyi-item, .wire-item').length;
-        const fallback = document.querySelector('.radar-empty');
-        return items > 0 || (fallback && fallback.textContent!.trim().length > 0);
-      }, { timeout: 15000 });
+      await page.waitForFunction(
+        () => {
+          const items = document.querySelectorAll('.fyi-item, .wire-item').length;
+          const fallback = document.querySelector('.radar-empty');
+          return items > 0 || (fallback && fallback.textContent!.trim().length > 0);
+        },
+        { timeout: 15000 }
+      );
 
       const hasContent = await hasRadarContent(page);
       if (hasContent) {
         // Verify at least one feed item (FYI or Wire) is present
-        const itemCount = await page.evaluate(() =>
-          document.querySelectorAll('.fyi-item, .wire-item').length
+        const itemCount = await page.evaluate(
+          () => document.querySelectorAll('.fyi-item, .wire-item').length
         );
         expect(itemCount).toBeGreaterThan(0);
       } else {
@@ -126,8 +130,9 @@ test.describe('Radar Page', () => {
 
       const validCategories = ['pe-ma', 'enterprise-tech', 'ai-automation', 'security'];
       const categoryValues = await page.evaluate(() =>
-        Array.from(document.querySelectorAll('[data-category]'))
-          .map(el => (el as HTMLElement).dataset.category)
+        Array.from(document.querySelectorAll('[data-category]')).map(
+          (el) => (el as HTMLElement).dataset.category
+        )
       );
 
       expect(categoryValues.length).toBeGreaterThan(0);
@@ -136,9 +141,9 @@ test.describe('Radar Page', () => {
       }
     });
 
-    test('FYI items should display Editor\'s Pick tags', async ({ page }) => {
+    test("FYI items should display Editor's Pick tags", async ({ page }) => {
       const fyiItems = page.locator('.fyi-item');
-      if (await fyiItems.count() === 0) {
+      if ((await fyiItems.count()) === 0) {
         test.skip();
         return;
       }
@@ -160,15 +165,20 @@ test.describe('Radar Page', () => {
   // -------------------------------------------------------------------------
 
   test.describe('Category Filtering', () => {
-    test('"All" filter should be active by default with no other button active', async ({ page }) => {
+    test('"All" filter should be active by default with no other button active', async ({
+      page,
+    }) => {
       const activeButtons = await page.evaluate(() =>
-        Array.from(document.querySelectorAll('.filter-btn.active'))
-          .map(el => (el as HTMLElement).dataset.filter)
+        Array.from(document.querySelectorAll('.filter-btn.active')).map(
+          (el) => (el as HTMLElement).dataset.filter
+        )
       );
       expect(activeButtons).toEqual(['all']);
     });
 
-    test('clicking a category should activate it, deactivate "All", and hide non-matching items', async ({ page }) => {
+    test('clicking a category should activate it, deactivate "All", and hide non-matching items', async ({
+      page,
+    }) => {
       const hasContent = await hasRadarContent(page);
       if (!hasContent) {
         test.skip();
@@ -186,9 +196,10 @@ test.describe('Radar Page', () => {
       let targetCategory: string | null = null;
 
       for (const cat of categories) {
-        const catCount = await page.evaluate((c) =>
-          document.querySelectorAll(`[data-category="${c}"]`).length
-        , cat);
+        const catCount = await page.evaluate(
+          (c) => document.querySelectorAll(`[data-category="${c}"]`).length,
+          cat
+        );
         if (catCount > 0 && catCount < totalBefore) {
           targetCategory = cat;
           break;
@@ -208,16 +219,19 @@ test.describe('Radar Page', () => {
         (cat) => {
           const allItems = document.querySelectorAll('[data-category]');
           let hasHidden = false;
-          allItems.forEach(el => {
+          allItems.forEach((el) => {
             const htmlEl = el as HTMLElement;
-            if (htmlEl.dataset.category !== cat && window.getComputedStyle(htmlEl).display === 'none') {
+            if (
+              htmlEl.dataset.category !== cat &&
+              window.getComputedStyle(htmlEl).display === 'none'
+            ) {
               hasHidden = true;
             }
           });
           return hasHidden;
         },
         targetCategory,
-        { timeout: 3000 },
+        { timeout: 3000 }
       );
 
       // 3. Verify: "All" is deactivated
@@ -228,8 +242,9 @@ test.describe('Radar Page', () => {
 
       // 4. Verify: only ONE button is active and it's the target
       const activeButtons = await page.evaluate(() =>
-        Array.from(document.querySelectorAll('.filter-btn.active'))
-          .map(el => (el as HTMLElement).dataset.filter)
+        Array.from(document.querySelectorAll('.filter-btn.active')).map(
+          (el) => (el as HTMLElement).dataset.filter
+        )
       );
       expect(activeButtons).toEqual([targetCategory]);
 
@@ -273,7 +288,7 @@ test.describe('Radar Page', () => {
         (expectedCount) => {
           const items = document.querySelectorAll('[data-category]');
           let visible = 0;
-          items.forEach(el => {
+          items.forEach((el) => {
             if (window.getComputedStyle(el as HTMLElement).display !== 'none') {
               visible++;
             }
@@ -281,7 +296,7 @@ test.describe('Radar Page', () => {
           return visible === expectedCount;
         },
         totalBefore,
-        { timeout: 3000 },
+        { timeout: 3000 }
       );
 
       // Verify: count restored to original
@@ -300,8 +315,9 @@ test.describe('Radar Page', () => {
       await clickCategoryFilter(page, 'enterprise-tech');
 
       const etActiveButtons = await page.evaluate(() =>
-        Array.from(document.querySelectorAll('.filter-btn.active'))
-          .map(el => (el as HTMLElement).dataset.filter)
+        Array.from(document.querySelectorAll('.filter-btn.active')).map(
+          (el) => (el as HTMLElement).dataset.filter
+        )
       );
       expect(etActiveButtons).toEqual(['enterprise-tech']);
 
@@ -309,8 +325,9 @@ test.describe('Radar Page', () => {
       await clickCategoryFilter(page, 'security');
 
       const secActiveButtons = await page.evaluate(() =>
-        Array.from(document.querySelectorAll('.filter-btn.active'))
-          .map(el => (el as HTMLElement).dataset.filter)
+        Array.from(document.querySelectorAll('.filter-btn.active')).map(
+          (el) => (el as HTMLElement).dataset.filter
+        )
       );
       expect(secActiveButtons).toEqual(['security']);
 

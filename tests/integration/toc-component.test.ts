@@ -95,13 +95,8 @@ function resolveDefaults(props: Partial<TocProps>): TocProps {
  * Returns an array of booleans, one per item index, indicating whether
  * a separator element should be inserted before that item.
  */
-function buildSeparatorMap(
-  itemCount: number,
-  separatorBefore: number[]
-): boolean[] {
-  return Array.from({ length: itemCount }, (_, i) =>
-    separatorBefore.includes(i)
-  );
+function buildSeparatorMap(itemCount: number, separatorBefore: number[]): boolean[] {
+  return Array.from({ length: itemCount }, (_, i) => separatorBefore.includes(i));
 }
 
 // ─── TESTS ───────────────────────────────────────────────────────────────────

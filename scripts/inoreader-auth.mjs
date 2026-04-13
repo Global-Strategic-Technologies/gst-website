@@ -44,13 +44,15 @@ if (!appId || !appKey) {
 const command = process.argv[2];
 
 if (command === 'setup') {
-  const authUrl = `${OAUTH_BASE}/auth?` + new URLSearchParams({
-    client_id: appId,
-    redirect_uri: 'http://localhost:3000/callback',
-    response_type: 'code',
-    scope: 'read',
-    state: 'gst-radar-setup',
-  });
+  const authUrl =
+    `${OAUTH_BASE}/auth?` +
+    new URLSearchParams({
+      client_id: appId,
+      redirect_uri: 'http://localhost:3000/callback',
+      response_type: 'code',
+      scope: 'read',
+      state: 'gst-radar-setup',
+    });
 
   console.log('\n1. Open this URL in your browser:\n');
   console.log(authUrl);
@@ -58,11 +60,12 @@ if (command === 'setup') {
   console.log('3. You will be redirected to localhost:3000/callback?code=XXXXX');
   console.log('4. Copy the "code" parameter from the URL.');
   console.log('\n5. Run: node scripts/inoreader-auth.mjs exchange YOUR_CODE_HERE\n');
-
 } else if (command === 'exchange') {
   const code = process.argv[3];
   if (!code) {
-    console.error('Provide the authorization code: node scripts/inoreader-auth.mjs exchange YOUR_CODE');
+    console.error(
+      'Provide the authorization code: node scripts/inoreader-auth.mjs exchange YOUR_CODE'
+    );
     process.exit(1);
   }
 
@@ -89,7 +92,6 @@ if (command === 'setup') {
   console.log(`INOREADER_ACCESS_TOKEN=${data.access_token}`);
   console.log(`INOREADER_REFRESH_TOKEN=${data.refresh_token}`);
   console.log(`\nAccess token expires in: ${data.expires_in} seconds`);
-
 } else if (command === 'refresh') {
   const refreshToken = process.env.INOREADER_REFRESH_TOKEN;
   if (!refreshToken) {
@@ -119,7 +121,6 @@ if (command === 'setup') {
   if (data.refresh_token) {
     console.log(`INOREADER_REFRESH_TOKEN=${data.refresh_token}`);
   }
-
 } else {
   console.log('Inoreader OAuth Helper for GST Radar\n');
   console.log('Usage:');

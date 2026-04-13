@@ -65,11 +65,7 @@ export const QuestionTopicSchema = z.enum([
 
 export const QuestionPrioritySchema = z.enum(['high', 'medium', 'standard']);
 
-export const ExitImpactSchema = z.enum([
-  'Multiple Expander',
-  'Valuation Drag',
-  'Operational Risk',
-]);
+export const ExitImpactSchema = z.enum(['Multiple Expander', 'Valuation Drag', 'Operational Risk']);
 
 export const TrackSchema = z.enum(['Architecture', 'Operations', 'Carve-out', 'Security']);
 

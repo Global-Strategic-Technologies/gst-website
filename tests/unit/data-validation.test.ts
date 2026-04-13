@@ -19,9 +19,7 @@ describe('Projects Data Validation', () => {
       if (!result.success) {
         // Surface the first issue so a failing run is actionable.
         const first = result.error.issues[0];
-        throw new Error(
-          `Schema parse failed at ${first?.path.join('.')}: ${first?.message}`
-        );
+        throw new Error(`Schema parse failed at ${first?.path.join('.')}: ${first?.message}`);
       }
       expect(result.success).toBe(true);
     });

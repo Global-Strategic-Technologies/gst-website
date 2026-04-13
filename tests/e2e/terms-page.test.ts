@@ -9,10 +9,10 @@ import { clickThemeToggle } from './helpers/theme';
 test.describe('Terms Page', () => {
   test.beforeEach(async ({ page }) => {
     // Block external GA requests
-    await page.route('**/googletagmanager.com/**', route => {
+    await page.route('**/googletagmanager.com/**', (route) => {
       route.abort();
     });
-    await page.route('**/google-analytics.com/**', route => {
+    await page.route('**/google-analytics.com/**', (route) => {
       route.abort();
     });
 
@@ -45,7 +45,9 @@ test.describe('Terms Page', () => {
       await expect(lastUpdated).toContainText('February 2026');
     });
 
-    test('should contain legal-page-container, legal-page-header, and legal-page-body elements', async ({ page }) => {
+    test('should contain legal-page-container, legal-page-header, and legal-page-body elements', async ({
+      page,
+    }) => {
       const container = page.locator('.legal-page-container');
       const header = page.locator('.legal-page-header');
       const body = page.locator('.legal-page-body');
@@ -105,7 +107,9 @@ test.describe('Terms Page', () => {
 
   test.describe('Links', () => {
     test('should have contact email link with correct mailto href', async ({ page }) => {
-      const emailLink = page.locator('.legal-page-body a[href="mailto:contact@globalstrategic.tech"]').first();
+      const emailLink = page
+        .locator('.legal-page-body a[href="mailto:contact@globalstrategic.tech"]')
+        .first();
       await expect(emailLink).toBeVisible();
 
       const href = await emailLink.getAttribute('href');
@@ -113,7 +117,9 @@ test.describe('Terms Page', () => {
     });
 
     test('should have website link with correct href', async ({ page }) => {
-      const websiteLink = page.locator('.legal-page-body a[href="https://globalstrategic.tech"]').first();
+      const websiteLink = page
+        .locator('.legal-page-body a[href="https://globalstrategic.tech"]')
+        .first();
       await expect(websiteLink).toBeVisible();
 
       const href = await websiteLink.getAttribute('href');
@@ -132,7 +138,7 @@ test.describe('Terms Page', () => {
       const link = page.locator('.legal-page-body a').first();
       await expect(link).toBeVisible();
 
-      const color = await link.evaluate(el => {
+      const color = await link.evaluate((el) => {
         return window.getComputedStyle(el).color;
       });
 
@@ -149,7 +155,7 @@ test.describe('Terms Page', () => {
 
     test('should have green left border on contact section', async ({ page }) => {
       const contactSection = page.locator('.legal-contact-section');
-      const borderLeft = await contactSection.evaluate(el => {
+      const borderLeft = await contactSection.evaluate((el) => {
         const style = window.getComputedStyle(el);
         return style.borderLeftColor;
       });
@@ -179,7 +185,7 @@ test.describe('Terms Page', () => {
       const heading = page.locator('.legal-page-header h1');
 
       // Get light theme color
-      const lightColor = await heading.evaluate(el => {
+      const lightColor = await heading.evaluate((el) => {
         return window.getComputedStyle(el).color;
       });
 
@@ -188,11 +194,13 @@ test.describe('Terms Page', () => {
       await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
 
       // Verify dark theme is active
-      const isDark = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
+      const isDark = await page.evaluate(() =>
+        document.documentElement.classList.contains('dark-theme')
+      );
       expect(isDark).toBe(true);
 
       // Get dark theme color
-      const darkColor = await heading.evaluate(el => {
+      const darkColor = await heading.evaluate((el) => {
         return window.getComputedStyle(el).color;
       });
 
@@ -204,7 +212,7 @@ test.describe('Terms Page', () => {
       const termsBody = page.locator('.legal-page-body');
 
       // Get light theme color
-      const lightColor = await termsBody.evaluate(el => {
+      const lightColor = await termsBody.evaluate((el) => {
         return window.getComputedStyle(el).color;
       });
 
@@ -213,7 +221,7 @@ test.describe('Terms Page', () => {
       await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
 
       // Get dark theme color
-      const darkColor = await termsBody.evaluate(el => {
+      const darkColor = await termsBody.evaluate((el) => {
         return window.getComputedStyle(el).color;
       });
 
@@ -229,7 +237,7 @@ test.describe('Terms Page', () => {
 
       // Contact section should be visible with structural left border
       await expect(contactSection).toBeVisible();
-      const borderLeft = await contactSection.evaluate(el => {
+      const borderLeft = await contactSection.evaluate((el) => {
         return window.getComputedStyle(el).borderLeftStyle;
       });
       expect(borderLeft).toBe('solid');
@@ -258,7 +266,7 @@ test.describe('Terms Page', () => {
       const heading = page.locator('.legal-page-header h1');
       await expect(heading).toBeVisible();
 
-      const fontSize = await heading.evaluate(el => {
+      const fontSize = await heading.evaluate((el) => {
         return window.getComputedStyle(el).fontSize;
       });
 
@@ -284,11 +292,13 @@ test.describe('Terms Page', () => {
 
   test.describe('Accessibility', () => {
     test('should allow email links to receive keyboard focus', async ({ page }) => {
-      const emailLink = page.locator('.legal-page-body a[href="mailto:contact@globalstrategic.tech"]').first();
+      const emailLink = page
+        .locator('.legal-page-body a[href="mailto:contact@globalstrategic.tech"]')
+        .first();
 
       await emailLink.focus();
 
-      const isFocused = await emailLink.evaluate(el => el === document.activeElement);
+      const isFocused = await emailLink.evaluate((el) => el === document.activeElement);
       expect(isFocused).toBe(true);
     });
 
@@ -303,7 +313,7 @@ test.describe('Terms Page', () => {
     test('should not have sticky positioning on the terms header', async ({ page }) => {
       const header = page.locator('.legal-page-header');
 
-      const position = await header.evaluate(el => {
+      const position = await header.evaluate((el) => {
         return window.getComputedStyle(el).position;
       });
 

@@ -11,9 +11,9 @@ test.use({ ...devices['iPhone 12'] });
  */
 async function dismissBottomSheet(page: import('@playwright/test').Page): Promise<void> {
   await page.evaluate(() => {
-    document.getElementById('bottomSheetOverlay')?.dispatchEvent(
-      new MouseEvent('click', { bubbles: true })
-    );
+    document
+      .getElementById('bottomSheetOverlay')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   });
   await page.waitForFunction(() => {
     const el = document.getElementById('compliancePanel');
@@ -25,7 +25,10 @@ async function dismissBottomSheet(page: import('@playwright/test').Page): Promis
  * Reusable helper: open bottom sheet via two-tap flow and wait for transition to complete.
  * Waits for the CSS transform to settle (translateY(100%) → translateY(0)) per best practices §5.
  */
-async function openBottomSheetFor(page: import('@playwright/test').Page, alpha3: string): Promise<void> {
+async function openBottomSheetFor(
+  page: import('@playwright/test').Page,
+  alpha3: string
+): Promise<void> {
   await clickSvgPath(page, `[data-alpha3="${alpha3}"].country-path--active`);
   await page.waitForFunction(() => {
     const el = document.getElementById('mapTapBar');
@@ -37,13 +40,17 @@ async function openBottomSheetFor(page: import('@playwright/test').Page, alpha3:
   });
 
   // Wait for both the class AND the CSS transform to reach final value
-  await page.waitForFunction(() => {
-    const el = document.getElementById('compliancePanel');
-    if (!el || !el.classList.contains('brutal-panel--sheet-open')) return false;
-    const transform = window.getComputedStyle(el).transform;
-    // translateY(0) computes to 'none' or identity matrix
-    return transform === 'none' || transform === 'matrix(1, 0, 0, 1, 0, 0)';
-  }, undefined, { timeout: 5000 });
+  await page.waitForFunction(
+    () => {
+      const el = document.getElementById('compliancePanel');
+      if (!el || !el.classList.contains('brutal-panel--sheet-open')) return false;
+      const transform = window.getComputedStyle(el).transform;
+      // translateY(0) computes to 'none' or identity matrix
+      return transform === 'none' || transform === 'matrix(1, 0, 0, 1, 0, 0)';
+    },
+    undefined,
+    { timeout: 5000 }
+  );
 }
 
 test.describe('Regulatory Map — Mobile UX', () => {
@@ -83,7 +90,7 @@ test.describe('Regulatory Map — Mobile UX', () => {
 
       // Drag handle should be visible on mobile
       const handle = page.locator('#bottomSheetHandle');
-      const display = await handle.evaluate(el => window.getComputedStyle(el).display);
+      const display = await handle.evaluate((el) => window.getComputedStyle(el).display);
       expect(display).not.toBe('none');
     });
   });
@@ -124,7 +131,7 @@ test.describe('Regulatory Map — Mobile UX', () => {
   test.describe('3. Quick-Zoom Buttons', () => {
     test('should display quick-zoom buttons on mobile', async ({ page }) => {
       const quickZoom = page.locator('#mapQuickZoom');
-      const display = await quickZoom.evaluate(el => window.getComputedStyle(el).display);
+      const display = await quickZoom.evaluate((el) => window.getComputedStyle(el).display);
       expect(display).not.toBe('none');
     });
 
@@ -146,7 +153,9 @@ test.describe('Regulatory Map — Mobile UX', () => {
 
       // Click "Europe" quick-zoom — use evaluate for WebKit mobile
       await page.evaluate(() => {
-        (document.querySelector('.brutal-quick-zoom[data-region="europe"]') as HTMLElement)?.click();
+        (
+          document.querySelector('.brutal-quick-zoom[data-region="europe"]') as HTMLElement
+        )?.click();
       });
 
       // Wait for D3 zoom transition to change the transform
@@ -161,13 +170,17 @@ test.describe('Regulatory Map — Mobile UX', () => {
   });
 
   test.describe('4. Zoom Controls on Mobile', () => {
-    test('should hide +/−/reset zoom controls on mobile (quick-zoom provides navigation)', async ({ page }) => {
+    test('should hide +/−/reset zoom controls on mobile (quick-zoom provides navigation)', async ({
+      page,
+    }) => {
       const controls = page.locator('.map-controls');
-      const display = await controls.evaluate(el => window.getComputedStyle(el).display);
+      const display = await controls.evaluate((el) => window.getComputedStyle(el).display);
       expect(display).toBe('none');
     });
 
-    test('should have 32px minimum quick-zoom button size for touch accessibility', async ({ page }) => {
+    test('should have 32px minimum quick-zoom button size for touch accessibility', async ({
+      page,
+    }) => {
       const btn = page.locator('.brutal-quick-zoom').first();
       const box = await btn.boundingBox();
 
@@ -180,7 +193,7 @@ test.describe('Regulatory Map — Mobile UX', () => {
   test.describe('5. Legend Positioning', () => {
     test('should render legend inline (not overlapping map) on mobile', async ({ page }) => {
       const legend = page.locator('.brutal-legend');
-      const position = await legend.evaluate(el => window.getComputedStyle(el).position);
+      const position = await legend.evaluate((el) => window.getComputedStyle(el).position);
 
       // On mobile, legend should be static (inline) not absolute/fixed
       expect(position).toBe('static');
@@ -188,7 +201,9 @@ test.describe('Regulatory Map — Mobile UX', () => {
   });
 
   test.describe('6. Filter Deselection on Mobile', () => {
-    test('should close bottom sheet when filter removes selected region regulations', async ({ page }) => {
+    test('should close bottom sheet when filter removes selected region regulations', async ({
+      page,
+    }) => {
       // Two-tap to open Thailand (has data-privacy + cybersecurity, NOT industry-compliance)
       await openBottomSheetFor(page, 'THA');
 
@@ -202,7 +217,9 @@ test.describe('Regulatory Map — Mobile UX', () => {
       // Switch to Industry Compliance — Thailand has no industry regs
       // Use evaluate to bypass hit-testing issues on mobile viewport
       await page.evaluate(() => {
-        const chip = document.querySelector('.brutal-filter-chip[data-category="industry-compliance"]');
+        const chip = document.querySelector(
+          '.brutal-filter-chip[data-category="industry-compliance"]'
+        );
         if (chip) (chip as HTMLElement).click();
       });
 

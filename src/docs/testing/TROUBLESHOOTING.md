@@ -7,12 +7,14 @@ Solutions to common problems when running tests locally and in CI/CD.
 ### "Tests work locally but fail in GitHub Actions"
 
 **Possible causes:**
+
 1. **Node version mismatch** - CI runs Node 18 and 20, you might have a different version
 2. **Missing environment variables** - Check `.env` file is not committed
 3. **Flaky timing in E2E tests** - Your machine is faster than CI
 4. **Platform differences** - You're on Windows, CI runs on Linux
 
 **Solution:**
+
 ```bash
 # Check your Node version
 node --version
@@ -27,11 +29,13 @@ cat .github/workflows/test.yml
 ### "npm run test:all hangs or times out"
 
 **Possible causes:**
+
 1. **E2E tests waiting too long** - Playwright timeouts too aggressive
 2. **Resource exhaustion** - Too many tests running at once
 3. **Stale Playwright cache** - Outdated browser binaries
 
 **Solution:**
+
 ```bash
 # Clear Playwright cache
 rm -rf ~/.cache/ms-playwright
@@ -49,7 +53,9 @@ npx playwright test --workers=1
 **Likely cause:** Race condition or timing-dependent assertion
 
 **Solution:**
+
 1. **Use proper waits, not arbitrary timeouts**
+
    ```typescript
    // ❌ Bad - arbitrary wait
    await page.waitForTimeout(1000);
@@ -70,6 +76,7 @@ npx playwright test --workers=1
 ### "Coverage report is missing"
 
 **Solution:**
+
 ```bash
 # Coverage is only generated with Vitest (unit/integration)
 npm run test:coverage
@@ -85,11 +92,13 @@ open coverage/index.html
 ### "Workflow shows red X but tests passed locally"
 
 **Possible causes:**
+
 1. **Branch protection rules blocking merge** - Even though tests passed
 2. **Other status checks failing** - Not just tests
 3. **Tests didn't actually run** - Check workflow logs
 
 **Solution:**
+
 ```bash
 # Check GitHub Actions logs
 # 1. Go to repository → Actions tab
@@ -104,11 +113,13 @@ npm run test:all
 ### "GitHub Actions test.yml not running on my branch"
 
 **Possible causes:**
+
 1. **Workflow not triggered on your branch** - Only runs on master/dev
 2. **Branch protection requires different branch** - Check repository settings
 3. **Workflow file has syntax error** - YAML parsing failed
 
 **Solution:**
+
 ```bash
 # Check workflow file
 cat .github/workflows/test.yml
@@ -122,11 +133,13 @@ cat .github/workflows/test.yml
 ### "Tests pass locally but fail in CI on specific browser (Firefox or Safari)"
 
 **Possible causes:**
+
 1. **Browser-specific CSS behavior** - margin/padding calculations differ
 2. **JavaScript timing differences** - Animation frame ordering varies
 3. **CSS vendor prefixes missing** - Autoprefixer not running
 
 **Solution:**
+
 ```bash
 # Run E2E tests on specific browser locally
 npx playwright test --project=firefox
@@ -142,11 +155,13 @@ npx playwright test --headed --project=firefox
 ### "Vercel deployment fails after tests pass"
 
 **Possible causes:**
+
 1. **Build command failing** - `npm run build` works locally but not in CI
 2. **Environment variables not set in Vercel** - Check Vercel dashboard
 3. **Node version mismatch** - Vercel using different Node than GitHub Actions
 
 **Solution:**
+
 ```bash
 # Simulate Vercel build locally
 npm run build
@@ -168,11 +183,13 @@ node --version  # Your version
 ### "I can't merge my PR even though all checks pass"
 
 **Possible causes:**
+
 1. **Branch not up to date with master** - Need to rebase/merge
 2. **Code review required but not completed** - Waiting for approval
 3. **Branch protection rule not satisfied** - Outdated protection settings
 
 **Solution:**
+
 ```bash
 # Update your branch with latest master
 git fetch origin
@@ -195,12 +212,14 @@ Then refresh GitHub PR page to re-run tests.
 **Solution:**
 
 1. **Read full error context**
+
    ```bash
    # Run with verbose output
    npx playwright test -g "test name" --verbose
    ```
 
 2. **Save debug output**
+
    ```bash
    # Generate video and trace files
    npx playwright test --trace on --video on
@@ -220,6 +239,7 @@ Then refresh GitHub PR page to re-run tests.
 ### "How do I debug a specific E2E test?"
 
 **Solution:**
+
 ```bash
 # Method 1: Interactive debugger
 npx playwright test --debug -g "test name"
@@ -243,6 +263,7 @@ npx playwright test -g "test name"
 ### "Tests running slowly locally"
 
 **Solutions:**
+
 ```bash
 # Run in parallel (faster, default)
 npm run test:all
@@ -257,7 +278,9 @@ npx playwright test --trace on --timeout=60000
 ### "CI tests timing out (20 minute limit)"
 
 **Solution:**
+
 1. **Optimize slow E2E tests**
+
    ```bash
    # Run just E2E tests
    npm run test:e2e
@@ -277,11 +300,13 @@ npx playwright test --trace on --timeout=60000
 ### "Google Analytics events not tracking in tests"
 
 **Causes:**
+
 1. **GA requests blocked by test setup** - Playwright blocks external requests
 2. **gtag not initialized yet** - Tests running before GA loads
 3. **Events not properly tracked** - Check event name/parameters
 
 **Solution:**
+
 ```bash
 # Run analytics tests specifically
 npx playwright test analytics.test.ts
@@ -305,11 +330,13 @@ cat src/docs/analytics/ANALYTICS_TESTING.md
 ### "vitest.config.ts errors when running tests"
 
 **Possible causes:**
+
 1. **TypeScript compilation error** - Check for type errors in config
 2. **Missing @vitest/ui** - If using `npm run test:ui`
 3. **Coverage provider not installed** - Using undefined coverage option
 
 **Solution:**
+
 ```bash
 # Install missing dependencies
 npm install @vitest/ui
@@ -324,6 +351,7 @@ cat vitest.config.ts
 ### "Playwright browsers not installed"
 
 **Solution:**
+
 ```bash
 # Install Playwright browsers
 npx playwright install
@@ -346,14 +374,14 @@ npx playwright install --with-deps
 
 ## Quick Reference
 
-| Problem | Command |
-|---------|---------|
-| Run all tests | `npm run test:all` |
-| Run specific test | `npx playwright test -g "test name"` |
-| Debug test | `npx playwright test --debug` |
-| View headed | `npx playwright test --headed` |
-| Check coverage | `npm run test:coverage` |
-| Clear Playwright | `rm -rf ~/.cache/ms-playwright` |
-| Run on Firefox | `npx playwright test --project=firefox` |
+| Problem           | Command                                 |
+| ----------------- | --------------------------------------- |
+| Run all tests     | `npm run test:all`                      |
+| Run specific test | `npx playwright test -g "test name"`    |
+| Debug test        | `npx playwright test --debug`           |
+| View headed       | `npx playwright test --headed`          |
+| Check coverage    | `npm run test:coverage`                 |
+| Clear Playwright  | `rm -rf ~/.cache/ms-playwright`         |
+| Run on Firefox    | `npx playwright test --project=firefox` |
 
 See [README.md](./README.md) for more commands.

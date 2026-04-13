@@ -20,7 +20,7 @@ export function performSearch(projects: Project[], searchTerm: string): Project[
 
   const searchLower = searchTerm.toLowerCase();
 
-  return projects.filter(project => {
+  return projects.filter((project) => {
     const searchableText = createSearchableText(project);
     return searchableText.includes(searchLower);
   });
@@ -118,11 +118,7 @@ export function getSearchRelevance(project: Project, searchTerm: string): number
 
   // Match in technologies - medium-low priority (25 points)
   if (Array.isArray(project.technologies)) {
-    if (
-      project.technologies.some(t =>
-        t.toLowerCase().includes(searchLower)
-      )
-    ) {
+    if (project.technologies.some((t) => t.toLowerCase().includes(searchLower))) {
       score += 25;
     }
   }
@@ -141,10 +137,7 @@ export function getSearchRelevance(project: Project, searchTerm: string): number
  * @param searchTerm - Search term for relevance calculation
  * @returns Projects sorted by relevance (highest first)
  */
-export function sortBySearchRelevance(
-  projects: Project[],
-  searchTerm: string
-): Project[] {
+export function sortBySearchRelevance(projects: Project[], searchTerm: string): Project[] {
   if (!searchTerm.trim()) {
     return projects;
   }

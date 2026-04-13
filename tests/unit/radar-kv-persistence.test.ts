@@ -32,10 +32,7 @@ vi.mock('@upstash/redis', () => ({
   Redis: MockRedisConstructor,
 }));
 
-import {
-  fetchAnnotatedItems,
-  resetTokenCache,
-} from '@/lib/inoreader/client';
+import { fetchAnnotatedItems, resetTokenCache } from '@/lib/inoreader/client';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -79,7 +76,10 @@ function setEnv(overrides: Record<string, string> = {}) {
   env.DEV = false as any;
 }
 
-function mockResponse(body: any, init: { ok?: boolean; status?: number; statusText?: string } = {}) {
+function mockResponse(
+  body: any,
+  init: { ok?: boolean; status?: number; statusText?: string } = {}
+) {
   const { ok = true, status = 200, statusText = 'OK' } = init;
   return {
     ok,
@@ -106,7 +106,11 @@ function mockItem(overrides: Record<string, any> = {}) {
     published: overrides.published ?? 1708000000,
     canonical: overrides.canonical ?? [{ href: `https://example.com/${overrides.id ?? 'item-1'}` }],
     alternate: overrides.alternate,
-    origin: overrides.origin ?? { streamId: 'feed/test', title: 'Test Feed', htmlUrl: 'https://example.com' },
+    origin: overrides.origin ?? {
+      streamId: 'feed/test',
+      title: 'Test Feed',
+      htmlUrl: 'https://example.com',
+    },
     summary: overrides.summary ?? { content: 'Summary' },
     categories: overrides.categories ?? [],
   };
@@ -140,7 +144,8 @@ describe('Radar KV Token Persistence', () => {
     vi.restoreAllMocks();
 
     // Restore console.warn spy if any test set it (prevents leak on assertion failure)
-    if (warnSpy) {      warnSpy = null;
+    if (warnSpy) {
+      warnSpy = null;
     }
 
     // Restore original env values
@@ -162,8 +167,8 @@ describe('Radar KV Token Persistence', () => {
     it('should use KV access token over env var when Redis has stored tokens', async () => {
       setEnv();
       mockRedisGet
-        .mockResolvedValueOnce('kv-access-token')   // access token
-        .mockResolvedValueOnce('kv-refresh-token');  // refresh token
+        .mockResolvedValueOnce('kv-access-token') // access token
+        .mockResolvedValueOnce('kv-refresh-token'); // refresh token
 
       mockFetch.mockResolvedValueOnce(mockResponse(mockStreamResponse([mockItem()])));
 
@@ -192,9 +197,7 @@ describe('Radar KV Token Persistence', () => {
 
     it('should fall back to env vars when KV returns null tokens', async () => {
       setEnv();
-      mockRedisGet
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(null);
+      mockRedisGet.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
 
       mockFetch.mockResolvedValueOnce(mockResponse(mockStreamResponse([mockItem()])));
 
@@ -227,10 +230,12 @@ describe('Radar KV Token Persistence', () => {
       // First call: 401 triggers refresh
       mockFetch.mockResolvedValueOnce(mockResponse({}, { ok: false, status: 401 }));
       // Token refresh response
-      mockFetch.mockResolvedValueOnce(mockResponse({
-        access_token: 'refreshed-in-memory-token',
-        refresh_token: 'new-refresh-token',
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({
+          access_token: 'refreshed-in-memory-token',
+          refresh_token: 'new-refresh-token',
+        })
+      );
       // Retry with refreshed token
       mockFetch.mockResolvedValueOnce(mockResponse(mockStreamResponse([mockItem()])));
       // Second call should use in-memory refreshed token
@@ -250,9 +255,7 @@ describe('Radar KV Token Persistence', () => {
         KV_REST_API_TOKEN: '',
       });
 
-      await expect(fetchAnnotatedItems(10)).rejects.toThrow(
-        'Inoreader credentials not configured'
-      );
+      await expect(fetchAnnotatedItems(10)).rejects.toThrow('Inoreader credentials not configured');
     });
   });
 
@@ -268,25 +271,23 @@ describe('Radar KV Token Persistence', () => {
 
       // 401 → refresh → retry
       mockFetch.mockResolvedValueOnce(mockResponse({}, { ok: false, status: 401 }));
-      mockFetch.mockResolvedValueOnce(mockResponse({
-        access_token: 'new-access',
-        refresh_token: 'new-refresh',
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({
+          access_token: 'new-access',
+          refresh_token: 'new-refresh',
+        })
+      );
       mockFetch.mockResolvedValueOnce(mockResponse(mockStreamResponse()));
 
       await fetchAnnotatedItems(10);
 
       expect(mockRedisSet).toHaveBeenCalledTimes(2);
-      expect(mockRedisSet).toHaveBeenCalledWith(
-        'inoreader:access_token',
-        'new-access',
-        { ex: 60 * 60 * 24 * 30 }
-      );
-      expect(mockRedisSet).toHaveBeenCalledWith(
-        'inoreader:refresh_token',
-        'new-refresh',
-        { ex: 60 * 60 * 24 * 30 }
-      );
+      expect(mockRedisSet).toHaveBeenCalledWith('inoreader:access_token', 'new-access', {
+        ex: 60 * 60 * 24 * 30,
+      });
+      expect(mockRedisSet).toHaveBeenCalledWith('inoreader:refresh_token', 'new-refresh', {
+        ex: 60 * 60 * 24 * 30,
+      });
     });
 
     it('should NOT save to KV when refresh response omits refresh_token', async () => {
@@ -294,10 +295,12 @@ describe('Radar KV Token Persistence', () => {
       mockRedisGet.mockResolvedValue(null);
 
       mockFetch.mockResolvedValueOnce(mockResponse({}, { ok: false, status: 401 }));
-      mockFetch.mockResolvedValueOnce(mockResponse({
-        access_token: 'new-access',
-        // no refresh_token
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({
+          access_token: 'new-access',
+          // no refresh_token
+        })
+      );
       mockFetch.mockResolvedValueOnce(mockResponse(mockStreamResponse()));
 
       await fetchAnnotatedItems(10);
@@ -307,17 +310,17 @@ describe('Radar KV Token Persistence', () => {
 
     it('should update in-memory KV cache after successful refresh and persist', async () => {
       setEnv();
-      mockRedisGet
-        .mockResolvedValueOnce('old-kv-access')
-        .mockResolvedValueOnce('old-kv-refresh');
+      mockRedisGet.mockResolvedValueOnce('old-kv-access').mockResolvedValueOnce('old-kv-refresh');
       mockRedisSet.mockResolvedValue('OK');
 
       // 401 → refresh with new tokens → retry
       mockFetch.mockResolvedValueOnce(mockResponse({}, { ok: false, status: 401 }));
-      mockFetch.mockResolvedValueOnce(mockResponse({
-        access_token: 'brand-new-access',
-        refresh_token: 'brand-new-refresh',
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({
+          access_token: 'brand-new-access',
+          refresh_token: 'brand-new-refresh',
+        })
+      );
       mockFetch.mockResolvedValueOnce(mockResponse(mockStreamResponse()));
 
       await fetchAnnotatedItems(10);
@@ -335,19 +338,19 @@ describe('Radar KV Token Persistence', () => {
       warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       mockFetch.mockResolvedValueOnce(mockResponse({}, { ok: false, status: 401 }));
-      mockFetch.mockResolvedValueOnce(mockResponse({
-        access_token: 'new-access',
-        refresh_token: 'new-refresh',
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({
+          access_token: 'new-access',
+          refresh_token: 'new-refresh',
+        })
+      );
       mockFetch.mockResolvedValueOnce(mockResponse(mockStreamResponse([mockItem()])));
 
       const result = await fetchAnnotatedItems(10);
 
       expect(result).not.toBeNull();
       expect(result!.items).toHaveLength(1);
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('KV write failed')
-      );
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('KV write failed'));
     });
   });
 
@@ -370,9 +373,7 @@ describe('Radar KV Token Persistence', () => {
       expect(result!.items).toHaveLength(1);
       const headers = mockFetch.mock.calls[0][1].headers as Record<string, string>;
       expect(headers['Authorization']).toBe('Bearer env-access-token');
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('KV read failed')
-      );
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('KV read failed'));
     });
 
     it('should not throw when KV write fails with network error', async () => {
@@ -383,18 +384,18 @@ describe('Radar KV Token Persistence', () => {
       warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       mockFetch.mockResolvedValueOnce(mockResponse({}, { ok: false, status: 401 }));
-      mockFetch.mockResolvedValueOnce(mockResponse({
-        access_token: 'new-access',
-        refresh_token: 'new-refresh',
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({
+          access_token: 'new-access',
+          refresh_token: 'new-refresh',
+        })
+      );
       mockFetch.mockResolvedValueOnce(mockResponse(mockStreamResponse()));
 
       const result = await fetchAnnotatedItems(10);
 
       expect(result).not.toBeNull();
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('KV write failed')
-      );
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('KV write failed'));
     });
 
     it('should cache null Redis instance and not re-attempt construction', async () => {
@@ -437,9 +438,7 @@ describe('Radar KV Token Persistence', () => {
       setEnv();
 
       // First invocation: KV returns token-A
-      mockRedisGet
-        .mockResolvedValueOnce('token-A')
-        .mockResolvedValueOnce('refresh-A');
+      mockRedisGet.mockResolvedValueOnce('token-A').mockResolvedValueOnce('refresh-A');
 
       mockFetch.mockResolvedValueOnce(mockResponse(mockStreamResponse()));
 
@@ -452,9 +451,7 @@ describe('Radar KV Token Persistence', () => {
       resetTokenCache();
 
       // Second invocation: KV returns token-B
-      mockRedisGet
-        .mockResolvedValueOnce('token-B')
-        .mockResolvedValueOnce('refresh-B');
+      mockRedisGet.mockResolvedValueOnce('token-B').mockResolvedValueOnce('refresh-B');
 
       mockFetch.mockResolvedValueOnce(mockResponse(mockStreamResponse()));
 
@@ -504,10 +501,12 @@ describe('Radar KV Token Persistence', () => {
       mockRedisSet.mockResolvedValue('OK');
 
       mockFetch.mockResolvedValueOnce(mockResponse({}, { ok: false, status: 401 }));
-      mockFetch.mockResolvedValueOnce(mockResponse({
-        access_token: 'new-access',
-        refresh_token: 'new-refresh',
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({
+          access_token: 'new-access',
+          refresh_token: 'new-refresh',
+        })
+      );
       mockFetch.mockResolvedValueOnce(mockResponse(mockStreamResponse()));
 
       await fetchAnnotatedItems(10);
@@ -524,10 +523,12 @@ describe('Radar KV Token Persistence', () => {
       mockRedisSet.mockResolvedValue('OK');
 
       mockFetch.mockResolvedValueOnce(mockResponse({}, { ok: false, status: 401 }));
-      mockFetch.mockResolvedValueOnce(mockResponse({
-        access_token: 'x',
-        refresh_token: 'y',
-      }));
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({
+          access_token: 'x',
+          refresh_token: 'y',
+        })
+      );
       mockFetch.mockResolvedValueOnce(mockResponse(mockStreamResponse()));
 
       await fetchAnnotatedItems(10);

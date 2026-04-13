@@ -15,7 +15,8 @@ const stagesData: Record<Stage, StageConfig> = {
     label: 'Seed / Pre-A',
     frame: 'convergence',
     note: 'At seed stage, a high technology cost ratio is expected. Infrastructure often leads revenue. What matters is whether the ratio trends down as ARR scales.',
-    noteUnder: 'At seed stage, technology spend below 15% of ARR may indicate underinvestment in core infrastructure or product. Ensure critical systems are adequately resourced before optimising for efficiency.',
+    noteUnder:
+      'At seed stage, technology spend below 15% of ARR may indicate underinvestment in core infrastructure or product. Ensure critical systems are adequately resourced before optimising for efficiency.',
     zones: { underinvest: 15, lo: 60, hi: 100, above: 115, critical: 130 },
     benchmarks: {
       infraHosting: [8, 28],
@@ -30,7 +31,8 @@ const stagesData: Record<Stage, StageConfig> = {
     label: 'Series A',
     frame: 'convergence',
     note: 'Series A companies often carry cost structures from rapid early growth. The key question is whether technology spend as a percentage of revenue is declining as you scale.',
-    noteUnder: 'Technology spend below 12% of ARR at Series A may signal underinvestment in engineering or infrastructure. Sustained underspend can impair product velocity and create technical debt that is costly to unwind later.',
+    noteUnder:
+      'Technology spend below 12% of ARR at Series A may signal underinvestment in engineering or infrastructure. Sustained underspend can impair product velocity and create technical debt that is costly to unwind later.',
     zones: { underinvest: 12, lo: 45, hi: 75, above: 90, critical: 105 },
     benchmarks: {
       infraHosting: [8, 22],
@@ -45,7 +47,8 @@ const stagesData: Record<Stage, StageConfig> = {
     label: 'Series B\u2013C',
     frame: 'convergence',
     note: 'At Series B\u2013C, technology spend should be converging toward a sustainable ratio. Persistent overspend signals architectural issues that compound as you scale toward profitability.',
-    noteUnder: 'Technology spend below 10% of ARR at Series B\u2013C is atypically lean. Verify that engineering capacity and infrastructure are sufficient to support your growth targets before attributing this to efficiency.',
+    noteUnder:
+      'Technology spend below 10% of ARR at Series B\u2013C is atypically lean. Verify that engineering capacity and infrastructure are sufficient to support your growth targets before attributing this to efficiency.',
     zones: { underinvest: 10, lo: 35, hi: 55, above: 68, critical: 80 },
     benchmarks: {
       infraHosting: [8, 18],
@@ -60,7 +63,8 @@ const stagesData: Record<Stage, StageConfig> = {
     label: 'PE-backed',
     frame: 'dollars',
     note: 'In a PE context, every percentage point above the 40% ceiling translates directly to EBITDA compression and exit value. Technology cost optimization is a financial engineering lever.',
-    noteUnder: 'Technology spend below 8% of ARR in a PE-backed company warrants scrutiny. Underinvestment in infrastructure or engineering capacity can suppress growth and create execution risk at exit.',
+    noteUnder:
+      'Technology spend below 8% of ARR in a PE-backed company warrants scrutiny. Underinvestment in infrastructure or engineering capacity can suppress growth and create execution risk at exit.',
     zones: { underinvest: 8, lo: 25, hi: 40, above: 50, critical: 60 },
     benchmarks: {
       infraHosting: [8, 15],
@@ -75,7 +79,8 @@ const stagesData: Record<Stage, StageConfig> = {
     label: 'Enterprise',
     frame: 'dollars',
     note: 'At enterprise scale, technology spend as a percentage of revenue is typically well below early-stage norms. Persistent spend above 32% warrants a structural review.',
-    noteUnder: 'Technology spend below 6% of ARR at enterprise scale can indicate underinvestment in modernisation or maintenance. Legacy system risk and engineering capacity constraints often surface as operational drag over time.',
+    noteUnder:
+      'Technology spend below 6% of ARR at enterprise scale can indicate underinvestment in modernisation or maintenance. Legacy system risk and engineering capacity constraints often surface as operational drag over time.',
     zones: { underinvest: 6, lo: 18, hi: 32, above: 40, critical: 50 },
     benchmarks: {
       infraHosting: [5, 12],

@@ -10,10 +10,10 @@ The Radar is a curated intelligence feed on the GST Strategic Intelligence Hub a
 
 ### Content Tiers
 
-| Tier | Name | Source | Effort | Value |
-|------|------|--------|--------|-------|
-| 1 | The Wire | Automated RSS via Inoreader folders | Zero per item | Source curation signal |
-| 2 | FYI | Inoreader annotated items (highlights + notes) | Seconds per item | Practitioner commentary |
+| Tier | Name     | Source                                         | Effort           | Value                   |
+| ---- | -------- | ---------------------------------------------- | ---------------- | ----------------------- |
+| 1    | The Wire | Automated RSS via Inoreader folders            | Zero per item    | Source curation signal  |
+| 2    | FYI      | Inoreader annotated items (highlights + notes) | Seconds per item | Practitioner commentary |
 
 Both tiers render in a **single unified feed**, sorted chronologically (FYI by annotation date, Wire by publish date). FYI items retain their visual distinction (expandable, category tag, GST Take) but appear inline among Wire items.
 
@@ -41,21 +41,22 @@ The "Updated" timestamp in the page header (`RadarHeader.astro`) displays the se
 
 Set in Vercel project settings and local `.env`:
 
-| Variable | Purpose | Source |
-|----------|---------|--------|
-| `INOREADER_APP_ID` | Inoreader developer app ID | Manual (Inoreader dev portal) |
-| `INOREADER_APP_KEY` | Inoreader developer app key | Manual (Inoreader dev portal) |
-| `INOREADER_ACCESS_TOKEN` | OAuth access token (initial/fallback) | OAuth flow or Redis auto-refresh |
-| `INOREADER_REFRESH_TOKEN` | OAuth refresh token (initial/fallback) | OAuth flow or Redis auto-refresh |
-| `INOREADER_FOLDER_PREFIX` | Folder prefix filter (default: `GST-`) | Manual |
-| `KV_REST_API_URL` | Upstash Redis REST endpoint | Auto-provisioned by Vercel Upstash integration |
-| `KV_REST_API_TOKEN` | Upstash Redis standard token (read/write) | Auto-provisioned by Vercel Upstash integration |
+| Variable                  | Purpose                                   | Source                                         |
+| ------------------------- | ----------------------------------------- | ---------------------------------------------- |
+| `INOREADER_APP_ID`        | Inoreader developer app ID                | Manual (Inoreader dev portal)                  |
+| `INOREADER_APP_KEY`       | Inoreader developer app key               | Manual (Inoreader dev portal)                  |
+| `INOREADER_ACCESS_TOKEN`  | OAuth access token (initial/fallback)     | OAuth flow or Redis auto-refresh               |
+| `INOREADER_REFRESH_TOKEN` | OAuth refresh token (initial/fallback)    | OAuth flow or Redis auto-refresh               |
+| `INOREADER_FOLDER_PREFIX` | Folder prefix filter (default: `GST-`)    | Manual                                         |
+| `KV_REST_API_URL`         | Upstash Redis REST endpoint               | Auto-provisioned by Vercel Upstash integration |
+| `KV_REST_API_TOKEN`       | Upstash Redis standard token (read/write) | Auto-provisioned by Vercel Upstash integration |
 
 The Vercel Upstash integration also provisions `KV_REST_API_READ_ONLY_TOKEN`, `KV_URL`, and `REDIS_URL` — these are **not used** by the Radar client. See [Environment Variables for Redis](#environment-variables-for-redis) for details.
 
 ## Inoreader Setup
 
 ### Prerequisites
+
 - Inoreader Pro plan (~$7.50/month)
 - Register app at https://www.inoreader.com/developers/
 
@@ -75,12 +76,12 @@ Do steps 1-2 quickly back-to-back — auth codes expire within minutes. The exch
 
 Create folders in Inoreader prefixed with `GST-`:
 
-| Folder | Category | Content |
-|--------|----------|---------|
-| `GST-PE-MA` | PE & M&A | Deal activity, fund strategies |
+| Folder                | Category        | Content                          |
+| --------------------- | --------------- | -------------------------------- |
+| `GST-PE-MA`           | PE & M&A        | Deal activity, fund strategies   |
 | `GST-Enterprise-Tech` | Enterprise Tech | Cloud, infrastructure, platforms |
-| `GST-AI-Automation` | AI & Automation | Enterprise AI, ML ops |
-| `GST-Security` | Security | Cybersecurity, regulatory |
+| `GST-AI-Automation`   | AI & Automation | Enterprise AI, ML ops            |
+| `GST-Security`        | Security        | Cybersecurity, regulatory        |
 
 ### Annotation Workflow (Publishing to FYI)
 
@@ -154,19 +155,19 @@ The API client handles token refresh automatically at runtime:
 
 When resolving credentials, the client checks three sources in order:
 
-| Priority | Source | When Used |
-|----------|--------|-----------|
-| 1 | In-memory refresh | Token was refreshed during this SSR invocation |
-| 2 | Upstash Redis store | Token was refreshed by a previous invocation and persisted |
-| 3 | Environment variable | Initial setup value; used when Redis is empty or unavailable |
+| Priority | Source               | When Used                                                    |
+| -------- | -------------------- | ------------------------------------------------------------ |
+| 1        | In-memory refresh    | Token was refreshed during this SSR invocation               |
+| 2        | Upstash Redis store  | Token was refreshed by a previous invocation and persisted   |
+| 3        | Environment variable | Initial setup value; used when Redis is empty or unavailable |
 
 ### Upstash Redis Persistence
 
 Tokens are stored in Upstash Redis to survive across serverless invocations:
 
-| Redis Key | Value | TTL |
-|--------|-------|-----|
-| `inoreader:access_token` | OAuth access token | 30 days |
+| Redis Key                 | Value               | TTL     |
+| ------------------------- | ------------------- | ------- |
+| `inoreader:access_token`  | OAuth access token  | 30 days |
 | `inoreader:refresh_token` | OAuth refresh token | 30 days |
 
 **Why this matters:** Without Redis, each serverless invocation starts fresh with the original env var tokens. When Inoreader's refresh endpoint returns a new refresh token (which it does on every refresh), the old refresh token may be invalidated. Without persistence, the next invocation would try to use the now-invalid original refresh token from the env var — eventually causing a permanent auth failure.
@@ -189,13 +190,13 @@ No code changes or local env var setup needed. For local development, Redis is n
 
 The Vercel Upstash integration auto-provisions **5 environment variables** when you connect a Redis store to the project. The Radar client only uses 2 of them:
 
-| Variable | Used by Radar? | Purpose |
-|----------|:-:|---------|
-| `KV_REST_API_URL` | **Yes** | Upstash Redis REST endpoint (HTTPS) — used by `@upstash/redis` SDK |
-| `KV_REST_API_TOKEN` | **Yes** | Standard token with **full read/write** access — required because the client both reads and writes tokens |
-| `KV_REST_API_READ_ONLY_TOKEN` | No | Read-only token — permits only read commands (GET, not SET). Intended for client-side/browser code where the token is publicly exposed. Not needed here since all Redis calls are server-side in Vercel serverless functions |
-| `KV_URL` | No | Redis protocol connection string (`rediss://...`) — for native Redis clients like `ioredis`. Not needed since we use the REST SDK |
-| `REDIS_URL` | No | Alias for `KV_URL` — same Redis protocol string, provided for compatibility with frameworks that expect this name |
+| Variable                      | Used by Radar? | Purpose                                                                                                                                                                                                                      |
+| ----------------------------- | :------------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `KV_REST_API_URL`             |    **Yes**     | Upstash Redis REST endpoint (HTTPS) — used by `@upstash/redis` SDK                                                                                                                                                           |
+| `KV_REST_API_TOKEN`           |    **Yes**     | Standard token with **full read/write** access — required because the client both reads and writes tokens                                                                                                                    |
+| `KV_REST_API_READ_ONLY_TOKEN` |       No       | Read-only token — permits only read commands (GET, not SET). Intended for client-side/browser code where the token is publicly exposed. Not needed here since all Redis calls are server-side in Vercel serverless functions |
+| `KV_URL`                      |       No       | Redis protocol connection string (`rediss://...`) — for native Redis clients like `ioredis`. Not needed since we use the REST SDK                                                                                            |
+| `REDIS_URL`                   |       No       | Alias for `KV_URL` — same Redis protocol string, provided for compatibility with frameworks that expect this name                                                                                                            |
 
 **Why `KV_REST_API_TOKEN` and not `KV_REST_API_READ_ONLY_TOKEN`?** The Radar client calls `store.set()` to persist refreshed OAuth tokens. The read-only token would reject these write operations. The standard token is safe to use because it never leaves the server — it's only accessed in Vercel serverless functions, never exposed to browsers.
 
@@ -259,7 +260,7 @@ The `radar:seed` script writes two cache entries into `.cache/inoreader/` with a
 The seed script (`tests/e2e/fixtures/seed-radar-cache.ts`) writes the same cache files the dev-mode cache system reads. The Astro dev server sees valid cache entries and skips all Inoreader API calls. The mock data includes:
 
 - **5 FYI items** with annotations (highlights + GST Take) across all 4 categories
-- **13 Wire items** across all 4 GST-* folders with realistic titles and sources
+- **13 Wire items** across all 4 GST-\* folders with realistic titles and sources
 
 ### Resetting to Live Data
 
@@ -307,6 +308,7 @@ E2E tests reuse the dev-mode file cache (see above) to serve deterministic mock 
 3. **Playwright global teardown** (`tests/e2e/global-teardown.ts`) cleans up the cache after tests complete
 
 Only two cache entries are needed:
+
 - `fetchAnnotatedItems(30)` — seeds 5 FYI items across all 4 categories
 - `fetchAllStreams('GST-', 15)` — seeds 13 Wire items across all 4 folders
 
@@ -331,7 +333,7 @@ The seeding script duplicates `buildCacheKey()` from `src/lib/inoreader/cache.ts
 ### Mock Data Characteristics
 
 - **FYI items**: 5 articles with annotations (highlighted text + GST Take), covering all 4 categories
-- **Wire items**: 13 articles spread across 4 GST-* folders with realistic titles and sources
+- **Wire items**: 13 articles spread across 4 GST-\* folders with realistic titles and sources
 - All items have valid URLs, timestamps, sources, and category folder labels
 - Category distribution is intentionally uneven so filter tests can verify count changes
 - Both tiers render in a single unified feed, interleaved chronologically
@@ -344,6 +346,7 @@ npx playwright test tests/e2e/radar-page.test.ts --project=chromium  # Chromium 
 ```
 
 Console output confirms mock data is active:
+
 ```
 [E2E Setup] Radar mock cache seeded
 ...
@@ -361,7 +364,7 @@ adapter: vercel({
   isr: {
     expiration: 60 * 60 * 6, // 6 hours (21,600 seconds)
   },
-})
+});
 ```
 
 Because the page sets `export const prerender = false`, Astro delegates it to a Vercel serverless function (`_isr.func`) rather than generating static HTML at build time.
@@ -381,10 +384,10 @@ Because the page sets `export const prerender = false`, Astro delegates it to a 
 
 ### What Refreshes When
 
-| Content | Refresh Trigger | Frequency |
-|---------|----------------|-----------|
-| The Wire (RSS feeds) | ISR revalidation | Every 6 hours |
-| FYI (annotated items) | ISR revalidation | Every 6 hours |
+| Content                | Refresh Trigger   | Frequency               |
+| ---------------------- | ----------------- | ----------------------- |
+| The Wire (RSS feeds)   | ISR revalidation  | Every 6 hours           |
+| FYI (annotated items)  | ISR revalidation  | Every 6 hours           |
 | Static assets (JS/CSS) | Vercel deployment | Immutable, 1-year cache |
 
 ### Vercel Routing
@@ -396,6 +399,7 @@ Vercel generates routing rules that send `/hub/radar` requests to the ISR functi
 ```
 
 The prerender config (`.vercel/output/functions/_isr.prerender-config.json`) sets:
+
 - `expiration: 21600` (6 hours)
 - `allowQuery: ["x_astro_path"]`
 - `passQuery: true`
@@ -410,16 +414,16 @@ The prerender config (`.vercel/output/functions/_isr.prerender-config.json`) set
 
 ### Failure Scenarios in Detail
 
-| Scenario | User Sees | ISR Cache Impact | Logged |
-|----------|-----------|------------------|--------|
-| Inoreader API temporarily down | Fallback message | Degraded page cached for 6h | `[Radar] Inoreader API error: {status}` |
-| Access token expired (refresh works) | **Normal page** — auto-heals | Good page cached | `[Radar] Access token expired, attempting refresh...` + `Tokens persisted to KV store` |
-| Refresh token revoked/expired (no Redis) | Fallback message | Degraded page cached for 6h | `[Radar] Token refresh failed: {status}` |
-| Refresh token revoked (with Redis) | **Unlikely** — Redis stores fresh pair on each refresh | N/A | Should not occur if Redis is healthy |
-| Both tokens invalid + Redis empty | Fallback message | Degraded page cached for 6h | `[Radar] Token refresh failed` |
-| Redis unavailable | Falls back to env vars | No impact if env vars are valid | `[Radar] KV read failed, falling back to env vars` |
-| Env vars missing entirely | **Page render crashes** | No cache generated | `Inoreader credentials not configured` error |
-| Network timeout to Inoreader | Fallback message | Degraded page cached for 6h | `[Radar] Wire fetch failed` / `Folder fetch failed` |
+| Scenario                                 | User Sees                                              | ISR Cache Impact                | Logged                                                                                 |
+| ---------------------------------------- | ------------------------------------------------------ | ------------------------------- | -------------------------------------------------------------------------------------- |
+| Inoreader API temporarily down           | Fallback message                                       | Degraded page cached for 6h     | `[Radar] Inoreader API error: {status}`                                                |
+| Access token expired (refresh works)     | **Normal page** — auto-heals                           | Good page cached                | `[Radar] Access token expired, attempting refresh...` + `Tokens persisted to KV store` |
+| Refresh token revoked/expired (no Redis) | Fallback message                                       | Degraded page cached for 6h     | `[Radar] Token refresh failed: {status}`                                               |
+| Refresh token revoked (with Redis)       | **Unlikely** — Redis stores fresh pair on each refresh | N/A                             | Should not occur if Redis is healthy                                                   |
+| Both tokens invalid + Redis empty        | Fallback message                                       | Degraded page cached for 6h     | `[Radar] Token refresh failed`                                                         |
+| Redis unavailable                        | Falls back to env vars                                 | No impact if env vars are valid | `[Radar] KV read failed, falling back to env vars`                                     |
+| Env vars missing entirely                | **Page render crashes**                                | No cache generated              | `Inoreader credentials not configured` error                                           |
+| Network timeout to Inoreader             | Fallback message                                       | Degraded page cached for 6h     | `[Radar] Wire fetch failed` / `Folder fetch failed`                                    |
 
 **Key risk (mitigated by Redis):** Previously, if the refresh token expired, Vercel ISR would cache a degraded page indefinitely with no alerting. With Upstash Redis, each successful refresh persists a new token pair, keeping the chain alive. The remaining risk is if the Redis store is deleted or both the Redis-stored and env var tokens expire simultaneously — an unlikely scenario under normal operation.
 
@@ -431,20 +435,20 @@ The Inoreader client (`src/lib/inoreader/client.ts`) logs to `console.error` / `
 
 **Log messages to watch for:**
 
-| Log Message | Severity | Meaning |
-|-------------|----------|---------|
-| `[Radar] Access token expired, attempting refresh...` | Warn | Normal — token rotation in progress |
-| `[Radar] Access token refreshed successfully` | Info | Normal — self-healed |
-| `[Radar] Loaded tokens from KV store` | Info | Normal — using Redis-persisted tokens |
-| `[Radar] Tokens persisted to KV store` | Info | Normal — fresh tokens saved for next invocation |
-| `[Radar] KV read failed, falling back to env vars` | Warn | Redis unavailable — using env vars instead |
-| `[Radar] KV write failed (non-fatal)` | Warn | Redis persistence failed — tokens still work in-memory |
-| `[Radar] Token refresh failed: {status}` | Error | **Action needed** — refresh token may be revoked |
-| `[Radar] No refresh token available` | Error | **Action needed** — env var missing |
-| `[Radar] Request failed after token refresh: {status}` | Error | API issue persists after token refresh |
-| `[Radar] Inoreader API error: {status} {statusText}` | Error | Inoreader returned non-200 |
-| `[Radar] Wire fetch failed` | Error | Network error fetching folders |
-| `[Radar] No folders found with prefix "GST-"` | Warn | No matching folders — check Inoreader organization |
+| Log Message                                            | Severity | Meaning                                                |
+| ------------------------------------------------------ | -------- | ------------------------------------------------------ |
+| `[Radar] Access token expired, attempting refresh...`  | Warn     | Normal — token rotation in progress                    |
+| `[Radar] Access token refreshed successfully`          | Info     | Normal — self-healed                                   |
+| `[Radar] Loaded tokens from KV store`                  | Info     | Normal — using Redis-persisted tokens                  |
+| `[Radar] Tokens persisted to KV store`                 | Info     | Normal — fresh tokens saved for next invocation        |
+| `[Radar] KV read failed, falling back to env vars`     | Warn     | Redis unavailable — using env vars instead             |
+| `[Radar] KV write failed (non-fatal)`                  | Warn     | Redis persistence failed — tokens still work in-memory |
+| `[Radar] Token refresh failed: {status}`               | Error    | **Action needed** — refresh token may be revoked       |
+| `[Radar] No refresh token available`                   | Error    | **Action needed** — env var missing                    |
+| `[Radar] Request failed after token refresh: {status}` | Error    | API issue persists after token refresh                 |
+| `[Radar] Inoreader API error: {status} {statusText}`   | Error    | Inoreader returned non-200                             |
+| `[Radar] Wire fetch failed`                            | Error    | Network error fetching folders                         |
+| `[Radar] No folders found with prefix "GST-"`          | Warn     | No matching folders — check Inoreader organization     |
 
 ### How to View Logs
 
@@ -456,10 +460,12 @@ The Inoreader client (`src/lib/inoreader/client.ts`) logs to `console.error` / `
 ### Verifying It's Working
 
 **Quick manual check:**
+
 - Visit `/hub/radar` — if the unified feed shows FYI and Wire items, it's working
 - Empty feed with fallback message indicates an API or token problem
 
 **Vercel dashboard checks:**
+
 - **Logs tab**: Filter for `[Radar]` errors in recent ISR invocations
 - **Functions tab**: Check that the `_isr` function is being invoked and returning 200
 - **Deployments tab**: View function logs for a specific deployment
@@ -518,15 +524,16 @@ The Inoreader client (`src/lib/inoreader/client.ts`) logs to `console.error` / `
 
 18 tests covering the Upstash Redis token persistence layer. These call public functions **without** `configOverride` to exercise the real `getConfig()` → `loadTokensFromKV()` → `getRedis()` code path.
 
-| Group | Tests | What's Covered |
-|-------|-------|----------------|
-| KV Token Loading | 6 | Token priority chain (in-memory > Redis > env), one-time load flag, env var fallback, exhausted sources |
-| Persistence on Refresh | 4 | Save both tokens on 401 refresh, skip when no refresh_token returned, in-memory cache update, KV write failure resilience |
-| Graceful Degradation | 3 | Redis read failure, Redis write failure, cached null instance reuse |
-| resetTokenCache | 1 | Full state reset triggers fresh KV reload (simulates new serverless invocation) |
-| Edge Cases | 3 | `UPSTASH_REDIS_REST_*` fallback env var names, 30-day TTL verification, correct Redis key names |
+| Group                  | Tests | What's Covered                                                                                                            |
+| ---------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------- |
+| KV Token Loading       | 6     | Token priority chain (in-memory > Redis > env), one-time load flag, env var fallback, exhausted sources                   |
+| Persistence on Refresh | 4     | Save both tokens on 401 refresh, skip when no refresh_token returned, in-memory cache update, KV write failure resilience |
+| Graceful Degradation   | 3     | Redis read failure, Redis write failure, cached null instance reuse                                                       |
+| resetTokenCache        | 1     | Full state reset triggers fresh KV reload (simulates new serverless invocation)                                           |
+| Edge Cases             | 3     | `UPSTASH_REDIS_REST_*` fallback env var names, 30-day TTL verification, correct Redis key names                           |
 
 **Mocking strategy:**
+
 - `@upstash/redis` is mocked at module level via `vi.mock()` — constructor and `get`/`set` methods are individually controllable
 - `import.meta.env` properties are set directly on the env object per test (with save/restore in `beforeEach`/`afterEach`)
 - Global `fetch` is stubbed to return controlled responses
@@ -541,7 +548,8 @@ npx vitest run tests/unit/radar-kv-persistence.test.ts     # KV persistence only
 ## Category Inference
 
 Priority order:
+
 1. Explicit `gst-*` tag on the Inoreader item
-2. GST-* folder membership
+2. GST-\* folder membership
 3. Keyword matching from article title
 4. Default: `enterprise-tech`

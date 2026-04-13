@@ -8,13 +8,29 @@
 <div class="brutal-map-container" id="mapContainer" data-testid="map-container">
   <div class="map-controls">
     <button id="zoomIn" class="brutal-map-control" aria-label="Zoom in" title="Zoom in">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+        ><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        ></path></svg
+      >
     </button>
     <button id="zoomOut" class="brutal-map-control" aria-label="Zoom out" title="Zoom out">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+        ><path d="M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        ></path></svg
+      >
     </button>
     <button id="zoomReset" class="brutal-map-control" aria-label="Reset zoom" title="Reset zoom">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="3" width="10" height="10" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+        ><rect
+          x="3"
+          y="3"
+          width="10"
+          height="10"
+          rx="1"
+          stroke="currentColor"
+          stroke-width="1.5"
+          fill="none"></rect></svg
+      >
     </button>
   </div>
   <div class="brutal-map-tap-bar" id="mapTapBar" hidden>
@@ -26,18 +42,32 @@
     class="map-svg"
     role="img"
     aria-label="Interactive world map showing countries with regulatory data highlighted. Use scroll wheel or pinch to zoom, drag to pan."
-    preserveAspectRatio="xMidYMid meet"
-  ></svg>
+    preserveAspectRatio="xMidYMid meet"></svg>
   <div class="brutal-map-tooltip" id="mapTooltip" role="tooltip" aria-hidden="true"></div>
   <div class="map-quick-zoom" id="mapQuickZoom">
-    <button class="brutal-quick-zoom" data-region="americas" aria-label="Zoom to Americas">AMR</button>
+    <button class="brutal-quick-zoom" data-region="americas" aria-label="Zoom to Americas"
+      >AMR</button
+    >
     <button class="brutal-quick-zoom" data-region="europe" aria-label="Zoom to Europe">EUR</button>
-    <button class="brutal-quick-zoom" data-region="asia-pacific" aria-label="Zoom to Asia-Pacific">APAC</button>
-    <button class="brutal-quick-zoom" data-region="africa-mideast" aria-label="Zoom to Africa & Middle East">MEA</button>
+    <button class="brutal-quick-zoom" data-region="asia-pacific" aria-label="Zoom to Asia-Pacific"
+      >APAC</button
+    >
+    <button
+      class="brutal-quick-zoom"
+      data-region="africa-mideast"
+      aria-label="Zoom to Africa & Middle East">MEA</button
+    >
   </div>
   <div class="brutal-map-hint" id="mapPinchHint" hidden aria-hidden="true">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-      <path d="M6 12L2 8M6 12L2 16M18 12L22 8M18 12L22 16"/>
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+    >
+      <path d="M6 12L2 8M6 12L2 16M18 12L22 8M18 12L22 16"></path>
     </svg>
     <span>Pinch to zoom</span>
   </div>

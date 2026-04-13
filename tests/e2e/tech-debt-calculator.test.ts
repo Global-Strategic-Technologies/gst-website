@@ -7,10 +7,13 @@ async function gotoCalc(page: Page): Promise<void> {
   await page.goto('/hub/tools/tech-debt-calculator');
   await page.waitForLoadState('domcontentloaded');
   // Wait until the first metric is populated (—→ real value) by the render() call
-  await page.waitForFunction(() => {
-    const el = document.querySelector('[data-metric="annual-cost"]');
-    return el && el.textContent !== '—';
-  }, { timeout: 5000 });
+  await page.waitForFunction(
+    () => {
+      const el = document.querySelector('[data-metric="annual-cost"]');
+      return el && el.textContent !== '—';
+    },
+    { timeout: 5000 }
+  );
 }
 
 /** Read the text content of a data-metric element */
@@ -28,12 +31,15 @@ async function getById(page: Page, id: string): Promise<string> {
  * Dispatches an 'input' event so the page script picks up the change.
  */
 async function setSlider(page: Page, inputId: string, value: number): Promise<void> {
-  await page.evaluate(({ id, val }) => {
-    const el = document.getElementById(id) as HTMLInputElement | null;
-    if (!el) throw new Error(`Slider not found: #${id}`);
-    el.value = String(val);
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-  }, { id: inputId, val: value });
+  await page.evaluate(
+    ({ id, val }) => {
+      const el = document.getElementById(id) as HTMLInputElement | null;
+      if (!el) throw new Error(`Slider not found: #${id}`);
+      el.value = String(val);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    },
+    { id: inputId, val: value }
+  );
 }
 
 /**
@@ -51,7 +57,6 @@ async function jsClick(page: Page, selector: string): Promise<void> {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 test.describe('Tech Debt Calculator', () => {
-
   // ── Page load ──────────────────────────────────────────────────────────────
 
   test.describe('page load', () => {
@@ -95,7 +100,7 @@ test.describe('Tech Debt Calculator', () => {
     test('results section appears below inputs', async ({ page }) => {
       await gotoCalc(page);
 
-      const inputsBox  = await page.locator('.inputs-section').boundingBox();
+      const inputsBox = await page.locator('.inputs-section').boundingBox();
       const resultsBox = await page.locator('.results-section').boundingBox();
 
       expect(inputsBox).not.toBeNull();
@@ -156,14 +161,16 @@ test.describe('Tech Debt Calculator', () => {
         const el = document.getElementById('ctx-engs-lost');
         return el && !el.textContent?.includes('—');
       });
-      const ftesLow = parseFloat((await getById(page, 'ctx-engs-lost')).replace(/[^0-9.]/g, '')) || 0;
+      const ftesLow =
+        parseFloat((await getById(page, 'ctx-engs-lost')).replace(/[^0-9.]/g, '')) || 0;
 
       await setSlider(page, 'input-maint-pct', 80);
       await page.waitForFunction(() => {
         const el = document.getElementById('ctx-engs-lost');
         return el && !el.textContent?.includes('—');
       });
-      const ftesHigh = parseFloat((await getById(page, 'ctx-engs-lost')).replace(/[^0-9.]/g, '')) || 0;
+      const ftesHigh =
+        parseFloat((await getById(page, 'ctx-engs-lost')).replace(/[^0-9.]/g, '')) || 0;
 
       // Higher burden → more FTEs lost (plain number, no suffix ambiguity)
       expect(ftesHigh).toBeGreaterThan(ftesLow);
@@ -190,9 +197,9 @@ test.describe('Tech Debt Calculator', () => {
       // Push burden well above the 35% threshold
       await setSlider(page, 'input-maint-pct', 50);
 
-      const color = await page.locator('[data-metric="annual-cost"]').evaluate(
-        el => window.getComputedStyle(el).color
-      );
+      const color = await page
+        .locator('[data-metric="annual-cost"]')
+        .evaluate((el) => window.getComputedStyle(el).color);
 
       // --color-secondary is applied at ≥ 35%; it must not be the primary teal
       // We verify the computed colour is NOT the default (primary green)
@@ -250,18 +257,20 @@ test.describe('Tech Debt Calculator', () => {
       await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
       await jsClick(page, '[data-advanced-toggle]');
-      await page.waitForFunction(() =>
-        document.querySelector('[data-advanced-toggle]')?.getAttribute('aria-expanded') === 'true'
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-advanced-toggle]')?.getAttribute('aria-expanded') === 'true'
       );
       await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
       await jsClick(page, '[data-advanced-toggle]');
-      await page.waitForFunction(() =>
-        document.querySelector('[data-advanced-toggle]')?.getAttribute('aria-expanded') === 'false'
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-advanced-toggle]')?.getAttribute('aria-expanded') ===
+          'false'
       );
       await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     });
-
 
     test('toggle label text updates when opened and closed', async ({ page }) => {
       await gotoCalc(page);
@@ -281,10 +290,13 @@ test.describe('Tech Debt Calculator', () => {
       await jsClick(page, '[data-advanced-toggle]');
 
       // Wait for values to be written by render()
-      await page.waitForFunction(() => {
-        const el = document.querySelector('[data-metric="direct-labor"]');
-        return el && el.textContent !== '—';
-      }, { timeout: 3000 });
+      await page.waitForFunction(
+        () => {
+          const el = document.querySelector('[data-metric="direct-labor"]');
+          return el && el.textContent !== '—';
+        },
+        { timeout: 3000 }
+      );
 
       expect(await getMetric(page, 'direct-labor')).not.toBe('—');
       expect(await getMetric(page, 'incident-labor')).not.toBe('—');
@@ -366,7 +378,6 @@ test.describe('Tech Debt Calculator', () => {
   // ── URL state persistence ──────────────────────────────────────────────────
 
   test.describe('URL state persistence', () => {
-
     /**
      * Navigate to the TDC with a pre-encoded ?s= param.
      * The param is built from encodeState via the engine, but here we use a
@@ -379,14 +390,19 @@ test.describe('Tech Debt Calculator', () => {
     async function gotoCalcWithParams(page: Page, params: string): Promise<void> {
       await page.goto(`/hub/tools/tech-debt-calculator?s=${params}`);
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForFunction(() => {
-        const el = document.querySelector('[data-metric="annual-cost"]');
-        return el && el.textContent !== '—';
-      }, { timeout: 5000 });
+      await page.waitForFunction(
+        () => {
+          const el = document.querySelector('[data-metric="annual-cost"]');
+          return el && el.textContent !== '—';
+        },
+        { timeout: 5000 }
+      );
     }
 
     // Known-valid encoded state: {a:0,ts:80,sp:70,mp:60,di:2,in:3,mttr:4,bp:50,ap:50}
-    const ENCODED_STATE = btoa(JSON.stringify({ a: 0, ts: 80, sp: 70, mp: 60, di: 2, 'in': 3, mttr: 4, bp: 50, ap: 50 }));
+    const ENCODED_STATE = btoa(
+      JSON.stringify({ a: 0, ts: 80, sp: 70, mp: 60, di: 2, in: 3, mttr: 4, bp: 50, ap: 50 })
+    );
 
     test('URL ?s= param restores team size slider position', async ({ page }) => {
       await gotoCalcWithParams(page, ENCODED_STATE);
@@ -448,10 +464,13 @@ test.describe('Tech Debt Calculator', () => {
       // Garbage base64 that decodes to non-JSON
       await page.goto('/hub/tools/tech-debt-calculator?s=not-valid-base64!!!');
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForFunction(() => {
-        const el = document.querySelector('[data-metric="annual-cost"]');
-        return el && el.textContent !== '—';
-      }, { timeout: 5000 });
+      await page.waitForFunction(
+        () => {
+          const el = document.querySelector('[data-metric="annual-cost"]');
+          return el && el.textContent !== '—';
+        },
+        { timeout: 5000 }
+      );
 
       // Calculator should still render with default values (not crash)
       const annualCost = await getMetric(page, 'annual-cost');
@@ -469,7 +488,11 @@ test.describe('Tech Debt Calculator', () => {
     });
 
     test.describe('clipboard', () => {
-      test('Copy Link button changes text to Copied! on click', async ({ page, context, browserName }) => {
+      test('Copy Link button changes text to Copied! on click', async ({
+        page,
+        context,
+        browserName,
+      }) => {
         await gotoCalc(page);
 
         if (browserName === 'chromium') {
@@ -564,12 +587,12 @@ test.describe('Tech Debt Calculator', () => {
       await gotoCalc(page);
 
       const usdText = await getMetric(page, 'annual-cost');
-      const usdVal  = parseFloat(usdText.replace(/[^0-9.]/g, ''));
+      const usdVal = parseFloat(usdText.replace(/[^0-9.]/g, ''));
 
       await page.locator('#currency-select').selectOption('EUR');
 
       const eurText = await getMetric(page, 'annual-cost');
-      const eurVal  = parseFloat(eurText.replace(/[^0-9.]/g, ''));
+      const eurVal = parseFloat(eurText.replace(/[^0-9.]/g, ''));
 
       // EUR multiplier is 0.92 — converted value must be lower
       expect(eurVal).toBeLessThan(usdVal);
@@ -589,5 +612,4 @@ test.describe('Tech Debt Calculator', () => {
       expect(urlAfter).toBe(urlBefore);
     });
   });
-
 });

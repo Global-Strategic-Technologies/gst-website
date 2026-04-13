@@ -118,7 +118,7 @@ const wizardStepsData: WizardStep[] = [
     id: 'company-profile',
     title: 'Company Profile',
     navLabel: 'Company',
-    subtitle: 'Describe the target company\'s scale and maturity.',
+    subtitle: "Describe the target company's scale and maturity.",
     inputType: 'compound',
     fields: [
       {
@@ -373,17 +373,17 @@ export const BRACKET_ORDER = {
 
 /** Human-readable labels for input summary display */
 export function getOptionLabel(stepId: string, optionId: string): string {
-  const step = WIZARD_STEPS.find(s => s.id === stepId);
+  const step = WIZARD_STEPS.find((s) => s.id === stepId);
   if (!step) return optionId;
 
   if (step.options) {
-    const opt = step.options.find(o => o.id === optionId);
+    const opt = step.options.find((o) => o.id === optionId);
     return opt?.label ?? optionId;
   }
 
   if (step.fields) {
     for (const field of step.fields) {
-      const opt = field.options.find(o => o.id === optionId);
+      const opt = field.options.find((o) => o.id === optionId);
       if (opt) return opt.label;
     }
   }

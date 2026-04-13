@@ -27,11 +27,7 @@ function buildCacheKey(fn: string, ...args: unknown[]): string {
 function writeCacheEntry(cacheKey: string, data: unknown): void {
   mkdirSync(CACHE_DIR, { recursive: true });
   const entry = { timestamp: Date.now(), data };
-  writeFileSync(
-    join(CACHE_DIR, `${cacheKey}.json`),
-    JSON.stringify(entry),
-    'utf-8',
-  );
+  writeFileSync(join(CACHE_DIR, `${cacheKey}.json`), JSON.stringify(entry), 'utf-8');
 }
 
 /** Populate the dev cache with mock data for both FYI and Wire tiers. */

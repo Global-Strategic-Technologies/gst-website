@@ -14,11 +14,11 @@ export interface RecordedEvent {
  */
 export async function setupAnalyticsMocking(page: Page): Promise<void> {
   // Block real GA requests to Google
-  await page.route('**/googletagmanager.com/**', route => {
+  await page.route('**/googletagmanager.com/**', (route) => {
     route.abort();
   });
 
-  await page.route('**/google-analytics.com/**', route => {
+  await page.route('**/google-analytics.com/**', (route) => {
     route.abort();
   });
 
@@ -31,7 +31,7 @@ export async function setupAnalyticsMocking(page: Page): Promise<void> {
     const originalGtag = (window as any).gtag;
 
     // Override gtag to record calls
-    (window as any).gtag = function(...args: any[]) {
+    (window as any).gtag = function (...args: any[]) {
       (window as any).gtagCalls.push({
         timestamp: new Date().toISOString(),
         args: JSON.parse(JSON.stringify(args)),
@@ -78,7 +78,7 @@ export async function expectEventTracked(
   expectedParams?: Record<string, any>
 ): Promise<void> {
   const events = await getRecordedEvents(page);
-  const matchingEvent = events.find(e => e.eventName === eventName);
+  const matchingEvent = events.find((e) => e.eventName === eventName);
 
   expect(matchingEvent).toBeDefined();
 
@@ -111,7 +111,7 @@ export async function waitForEvent(
 
   while (Date.now() - startTime < timeout) {
     const events = await getRecordedEvents(page);
-    const event = events.find(e => e.eventName === eventName);
+    const event = events.find((e) => e.eventName === eventName);
 
     if (event) {
       return event;
@@ -123,6 +123,6 @@ export async function waitForEvent(
   const recordedEvents = await getRecordedEvents(page);
   throw new Error(
     `Event "${eventName}" was not tracked within ${timeout}ms. ` +
-    `Recorded events: ${recordedEvents.map(e => e.eventName).join(', ')}`
+      `Recorded events: ${recordedEvents.map((e) => e.eventName).join(', ')}`
   );
 }

@@ -5,7 +5,9 @@ import type { Project } from '@/types/portfolio';
  * Creates a Project with sensible defaults for fields the sort tests don't exercise.
  * Call sites override the fields the specific test cares about (id, codeName, year, arrNumeric).
  */
-function mockProject(overrides: Partial<Project> & Pick<Project, 'id' | 'codeName' | 'year' | 'arrNumeric'>): Project {
+function mockProject(
+  overrides: Partial<Project> & Pick<Project, 'id' | 'codeName' | 'year' | 'arrNumeric'>
+): Project {
   return {
     industry: 'Software',
     theme: 'Technology',
@@ -47,7 +49,7 @@ describe('Sort Projects Utility', () => {
     it('should maintain project identity through sort', () => {
       const sorted = sortProjectsByYear(mockProjects);
 
-      const ids = sorted.map(p => p.id);
+      const ids = sorted.map((p) => p.id);
       expect(ids).toContain('1');
       expect(ids).toContain('2');
       expect(ids).toContain('3');
@@ -119,7 +121,12 @@ describe('Sort Projects Utility', () => {
         mockProject({ id: '1', codeName: 'Alpha', year: 2024, arrNumeric: 50000000 }),
         // Simulate a runtime anomaly where arrNumeric was never set; TypeScript
         // forbids this at compile time so we cast via unknown.
-        mockProject({ id: '2', codeName: 'Beta', year: 2024, arrNumeric: undefined as unknown as number }),
+        mockProject({
+          id: '2',
+          codeName: 'Beta',
+          year: 2024,
+          arrNumeric: undefined as unknown as number,
+        }),
         mockProject({ id: '3', codeName: 'Gamma', year: 2023, arrNumeric: 100000000 }),
       ];
 
@@ -187,5 +194,4 @@ describe('Sort Projects Utility', () => {
       expect(sorted).toEqual([]);
     });
   });
-
 });

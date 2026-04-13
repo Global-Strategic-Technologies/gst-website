@@ -18,7 +18,7 @@ export async function copyWithFeedback(
     copiedClass?: string;
     /** Element to show feedback text on instead of button (e.g. a child <span>) */
     feedbackTarget?: HTMLElement;
-  },
+  }
 ): Promise<void> {
   const target = options?.feedbackTarget ?? button;
   const duration = options?.duration ?? 2000;

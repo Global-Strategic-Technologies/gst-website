@@ -12,9 +12,9 @@ import { setupAnalyticsMocking } from './helpers/analytics';
  */
 async function clickFounderPhotoLink(page: import('@playwright/test').Page): Promise<void> {
   await page.evaluate(() => {
-    document.getElementById('founder-photo-link')?.dispatchEvent(
-      new MouseEvent('click', { bubbles: true })
-    );
+    document
+      .getElementById('founder-photo-link')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   });
 }
 
@@ -27,9 +27,12 @@ test.describe('About Page - Founder Section', () => {
     await page.goto('/about', { waitUntil: 'domcontentloaded' });
 
     // Wait for gtag to be available
-    await page.waitForFunction(() => {
-      return typeof window.gtag === 'function';
-    }, { timeout: 10000 });
+    await page.waitForFunction(
+      () => {
+        return typeof window.gtag === 'function';
+      },
+      { timeout: 10000 }
+    );
 
     // Setup mocking for analytics verification
     await setupAnalyticsMocking(page);
@@ -78,13 +81,15 @@ test.describe('About Page - Founder Section', () => {
     test('should show light theme photo by default', async ({ page }) => {
       // Ensure light theme is active
 
-      const isDarkMode = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
+      const isDarkMode = await page.evaluate(() =>
+        document.documentElement.classList.contains('dark-theme')
+      );
 
       if (isDarkMode) {
         // Toggle to light theme
         await clickThemeToggle(page);
-        await page.waitForFunction(() =>
-          !document.documentElement.classList.contains('dark-theme')
+        await page.waitForFunction(
+          () => !document.documentElement.classList.contains('dark-theme')
         );
       }
 
@@ -97,17 +102,15 @@ test.describe('About Page - Founder Section', () => {
     });
 
     test('should switch to dark theme photo when dark mode is enabled', async ({ page }) => {
-
-
       // Get initial theme
-      const initialIsDark = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
+      const initialIsDark = await page.evaluate(() =>
+        document.documentElement.classList.contains('dark-theme')
+      );
 
       // Toggle to dark mode if not already there
       if (!initialIsDark) {
         await clickThemeToggle(page);
-        await page.waitForFunction(() =>
-          document.documentElement.classList.contains('dark-theme')
-        );
+        await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
       }
 
       // Verify dark photo is displayed
@@ -121,14 +124,19 @@ test.describe('About Page - Founder Section', () => {
     test('should switch photos when toggling between light and dark themes', async ({ page }) => {
       // Toggle theme 3 times and verify correct photo displays each time
       for (let i = 0; i < 3; i++) {
-        const wasDarkBefore = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
+        const wasDarkBefore = await page.evaluate(() =>
+          document.documentElement.classList.contains('dark-theme')
+        );
         await clickThemeToggle(page);
-        await page.waitForFunction((prev) =>
-          document.documentElement.classList.contains('dark-theme') !== prev
-        , wasDarkBefore);
+        await page.waitForFunction(
+          (prev) => document.documentElement.classList.contains('dark-theme') !== prev,
+          wasDarkBefore
+        );
 
         // Check which theme is active
-        const isDark = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
+        const isDark = await page.evaluate(() =>
+          document.documentElement.classList.contains('dark-theme')
+        );
 
         if (isDark) {
           const darkPhoto = page.locator('.founder-portrait-dark');
@@ -151,12 +159,14 @@ test.describe('About Page - Founder Section', () => {
     test('should show light signature by default', async ({ page }) => {
       // Ensure light theme
 
-      const isDarkMode = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
+      const isDarkMode = await page.evaluate(() =>
+        document.documentElement.classList.contains('dark-theme')
+      );
 
       if (isDarkMode) {
         await clickThemeToggle(page);
-        await page.waitForFunction(() =>
-          !document.documentElement.classList.contains('dark-theme')
+        await page.waitForFunction(
+          () => !document.documentElement.classList.contains('dark-theme')
         );
       }
 
@@ -168,12 +178,12 @@ test.describe('About Page - Founder Section', () => {
 
     test('should switch to dark signature in dark theme', async ({ page }) => {
       // Ensure dark theme
-      const initialIsDark = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
+      const initialIsDark = await page.evaluate(() =>
+        document.documentElement.classList.contains('dark-theme')
+      );
       if (!initialIsDark) {
         await clickThemeToggle(page);
-        await page.waitForFunction(() =>
-          document.documentElement.classList.contains('dark-theme')
-        );
+        await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
       }
 
       // Verify via computed style — toBeVisible() is unreliable here because
@@ -193,13 +203,16 @@ test.describe('About Page - Founder Section', () => {
 
     test('should maintain signature aspect ratio across themes', async ({ page }) => {
       // Determine which signature is currently visible via computed style
-      const getVisibleSigClass = () => page.evaluate(() => {
-        const light = document.querySelector('.founder-signature-light');
-        const dark = document.querySelector('.founder-signature-dark');
-        if (light && window.getComputedStyle(light).display !== 'none') return '.founder-signature-light';
-        if (dark && window.getComputedStyle(dark).display !== 'none') return '.founder-signature-dark';
-        return null;
-      });
+      const getVisibleSigClass = () =>
+        page.evaluate(() => {
+          const light = document.querySelector('.founder-signature-light');
+          const dark = document.querySelector('.founder-signature-dark');
+          if (light && window.getComputedStyle(light).display !== 'none')
+            return '.founder-signature-light';
+          if (dark && window.getComputedStyle(dark).display !== 'none')
+            return '.founder-signature-dark';
+          return null;
+        });
 
       const initialClass = await getVisibleSigClass();
       if (!initialClass) return; // no signature visible, skip
@@ -218,18 +231,24 @@ test.describe('About Page - Founder Section', () => {
         // Toggle theme and wait for the OTHER signature to become visible
         const wasDark = initialClass === '.founder-signature-dark';
         await clickThemeToggle(page);
-        await page.waitForFunction((prev) =>
-          document.documentElement.classList.contains('dark-theme') !== prev
-        , wasDark);
+        await page.waitForFunction(
+          (prev) => document.documentElement.classList.contains('dark-theme') !== prev,
+          wasDark
+        );
 
-        const expectedClass = initialClass === '.founder-signature-light'
-          ? '.founder-signature-dark'
-          : '.founder-signature-light';
+        const expectedClass =
+          initialClass === '.founder-signature-light'
+            ? '.founder-signature-dark'
+            : '.founder-signature-light';
 
-        await page.waitForFunction((cls) => {
-          const el = document.querySelector(cls);
-          return el && window.getComputedStyle(el).display !== 'none';
-        }, expectedClass, { timeout: 5000 });
+        await page.waitForFunction(
+          (cls) => {
+            const el = document.querySelector(cls);
+            return el && window.getComputedStyle(el).display !== 'none';
+          },
+          expectedClass,
+          { timeout: 5000 }
+        );
 
         // Wait for the new signature image to load and render
         const newVisibleSig = page.locator(`${expectedClass} img`);
@@ -270,9 +289,7 @@ test.describe('About Page - Founder Section', () => {
 
       // Verify founder_profile_click event was tracked
       const events = await page.evaluate(() => (window as any).gtagEvents || []);
-      const founderClickEvent = events.find(
-        (e: any) => e.eventName === 'founder_profile_click'
-      );
+      const founderClickEvent = events.find((e: any) => e.eventName === 'founder_profile_click');
 
       expect(founderClickEvent).toBeDefined();
       expect(founderClickEvent?.eventData.destination).toBe(
@@ -295,22 +312,26 @@ test.describe('About Page - Founder Section', () => {
       // Click multiple times via dispatchEvent to bypass WebKit hit-test issues
       for (let i = 0; i < 3; i++) {
         await page.evaluate(() => {
-          document.getElementById('founder-photo-link')?.dispatchEvent(
-            new MouseEvent('click', { bubbles: true })
-          );
+          document
+            .getElementById('founder-photo-link')
+            ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         });
         // Wait for each event to be recorded before the next click
-        await page.waitForFunction((expected) => {
-          const events = (window as any).gtagEvents || [];
-          return events.filter((e: any) => e.eventName === 'founder_profile_click').length >= expected;
-        }, i + 1, { timeout: 5000 });
+        await page.waitForFunction(
+          (expected) => {
+            const events = (window as any).gtagEvents || [];
+            return (
+              events.filter((e: any) => e.eventName === 'founder_profile_click').length >= expected
+            );
+          },
+          i + 1,
+          { timeout: 5000 }
+        );
       }
 
       // Verify all clicks were tracked
       const events = await page.evaluate(() => (window as any).gtagEvents || []);
-      const founderClicks = events.filter(
-        (e: any) => e.eventName === 'founder_profile_click'
-      );
+      const founderClicks = events.filter((e: any) => e.eventName === 'founder_profile_click');
 
       expect(founderClicks.length).toBe(3);
     });
@@ -330,13 +351,17 @@ test.describe('About Page - Founder Section', () => {
             const rules = Array.from(sheet.cssRules || []);
             for (const rule of rules) {
               const cssRule = rule as CSSStyleRule;
-              if (cssRule.selectorText?.includes('founder-photo-link') &&
-                  cssRule.selectorText?.includes(':hover') &&
-                  cssRule.style?.opacity) {
+              if (
+                cssRule.selectorText?.includes('founder-photo-link') &&
+                cssRule.selectorText?.includes(':hover') &&
+                cssRule.style?.opacity
+              ) {
                 return parseFloat(cssRule.style.opacity) < 1;
               }
             }
-          } catch { /* cross-origin sheets */ }
+          } catch {
+            /* cross-origin sheets */
+          }
         }
         return false;
       });
@@ -345,7 +370,7 @@ test.describe('About Page - Founder Section', () => {
 
     test('should have cursor:pointer on founder photo link', async ({ page }) => {
       const founderLink = page.locator('#founder-photo-link');
-      const cursor = await founderLink.evaluate(el => {
+      const cursor = await founderLink.evaluate((el) => {
         return window.getComputedStyle(el).cursor;
       });
 
@@ -354,7 +379,7 @@ test.describe('About Page - Founder Section', () => {
 
     test('should not have text decoration on founder photo link', async ({ page }) => {
       const founderLink = page.locator('#founder-photo-link');
-      const textDecoration = await founderLink.evaluate(el => {
+      const textDecoration = await founderLink.evaluate((el) => {
         return window.getComputedStyle(el).textDecoration;
       });
 
@@ -380,7 +405,7 @@ test.describe('About Page - Founder Section', () => {
       const credentials = page.locator('.founder-credentials');
       await expect(credentials).toBeVisible();
 
-      const fontStyle = await credentials.evaluate(el => {
+      const fontStyle = await credentials.evaluate((el) => {
         return window.getComputedStyle(el).fontStyle;
       });
 
@@ -389,7 +414,7 @@ test.describe('About Page - Founder Section', () => {
 
     test('should position founder photo and bio side by side', async ({ page }) => {
       const founderContent = page.locator('.founder-content');
-      const displayValue = await founderContent.evaluate(el => {
+      const displayValue = await founderContent.evaluate((el) => {
         return window.getComputedStyle(el).display;
       });
 
@@ -405,7 +430,7 @@ test.describe('About Page - Founder Section', () => {
       await expect(founderSection).toBeVisible();
 
       const founderContent = page.locator('.founder-content');
-      const displayValue = await founderContent.evaluate(el => {
+      const displayValue = await founderContent.evaluate((el) => {
         return window.getComputedStyle(el).display;
       });
 
@@ -465,7 +490,7 @@ test.describe('About Page - Founder Section', () => {
       // Tab to the link
       await founderLink.focus();
 
-      const isFocused = await founderLink.evaluate(el => el === document.activeElement);
+      const isFocused = await founderLink.evaluate((el) => el === document.activeElement);
       expect(isFocused).toBe(true);
     });
 

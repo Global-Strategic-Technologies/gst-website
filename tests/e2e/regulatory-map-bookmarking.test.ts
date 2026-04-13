@@ -27,7 +27,13 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
     });
 
     test('should add filter param to URL when switching category', async ({ page }) => {
-      await page.evaluate(() => (document.querySelector('.brutal-filter-chip[data-category="ai-governance"]') as HTMLElement)?.click());
+      await page.evaluate(() =>
+        (
+          document.querySelector(
+            '.brutal-filter-chip[data-category="ai-governance"]'
+          ) as HTMLElement
+        )?.click()
+      );
 
       // Wait for map to update (behavioral proof filter applied)
       await page.waitForFunction(() => {
@@ -42,7 +48,11 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
 
     test('should encode both region and filter in URL', async ({ page }) => {
       // Set filter first
-      await page.evaluate(() => (document.querySelector('.brutal-filter-chip[data-category="data-privacy"]') as HTMLElement)?.click());
+      await page.evaluate(() =>
+        (
+          document.querySelector('.brutal-filter-chip[data-category="data-privacy"]') as HTMLElement
+        )?.click()
+      );
       await page.waitForFunction(() => {
         const chip = document.querySelector('.brutal-filter-chip[data-category="data-privacy"]');
         return chip && chip.classList.contains('brutal-filter-chip--active');
@@ -66,7 +76,13 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
       expect(new URL(page.url()).searchParams.get('region')).toBe('THA');
 
       // Switch to industry-compliance — Thailand has no regs in this category
-      await page.evaluate(() => (document.querySelector('.brutal-filter-chip[data-category="industry-compliance"]') as HTMLElement)?.click());
+      await page.evaluate(() =>
+        (
+          document.querySelector(
+            '.brutal-filter-chip[data-category="industry-compliance"]'
+          ) as HTMLElement
+        )?.click()
+      );
 
       // Wait for panel to close (region deselected)
       await page.waitForFunction(() => {
@@ -82,11 +98,19 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
 
     test('should clear all params when returning to default state', async ({ page }) => {
       // Set a filter
-      await page.evaluate(() => (document.querySelector('.brutal-filter-chip[data-category="cybersecurity"]') as HTMLElement)?.click());
+      await page.evaluate(() =>
+        (
+          document.querySelector(
+            '.brutal-filter-chip[data-category="cybersecurity"]'
+          ) as HTMLElement
+        )?.click()
+      );
       expect(new URL(page.url()).searchParams.has('filter')).toBe(true);
 
       // Return to "All"
-      await page.evaluate(() => (document.querySelector('.brutal-filter-chip[data-category="all"]') as HTMLElement)?.click());
+      await page.evaluate(() =>
+        (document.querySelector('.brutal-filter-chip[data-category="all"]') as HTMLElement)?.click()
+      );
       await page.waitForFunction(() => {
         const chip = document.querySelector('.brutal-filter-chip[data-category="all"]');
         return chip && chip.classList.contains('brutal-filter-chip--active');
@@ -108,14 +132,17 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
       await expect(page.locator('#panelCountryName')).toHaveText('Germany');
 
       // Germany path should have selected class
-      const isSelected = await page.locator('[data-alpha3="DEU"]').first().evaluate(el =>
-        el.classList.contains('country-path--selected')
-      );
+      const isSelected = await page
+        .locator('[data-alpha3="DEU"]')
+        .first()
+        .evaluate((el) => el.classList.contains('country-path--selected'));
       expect(isSelected).toBe(true);
     });
 
     test('should restore filter from URL params', async ({ page }) => {
-      await page.goto('/hub/tools/regulatory-map?filter=ai-governance', { waitUntil: 'domcontentloaded' });
+      await page.goto('/hub/tools/regulatory-map?filter=ai-governance', {
+        waitUntil: 'domcontentloaded',
+      });
       await waitForMapReady(page);
 
       // AI Governance chip should be active
@@ -132,11 +159,15 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
     });
 
     test('should restore both region and filter from URL params', async ({ page }) => {
-      await page.goto('/hub/tools/regulatory-map?region=DEU&filter=data-privacy', { waitUntil: 'domcontentloaded' });
+      await page.goto('/hub/tools/regulatory-map?region=DEU&filter=data-privacy', {
+        waitUntil: 'domcontentloaded',
+      });
       await waitForMapReady(page);
 
       // Filter should be applied
-      await expect(page.locator('.brutal-filter-chip[data-category="data-privacy"]')).toHaveClass(/brutal-filter-chip--active/);
+      await expect(page.locator('.brutal-filter-chip[data-category="data-privacy"]')).toHaveClass(
+        /brutal-filter-chip--active/
+      );
 
       // Panel should show Germany
       await expect(page.locator('[data-testid="compliance-panel"]')).toBeVisible();
@@ -148,7 +179,9 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
     });
 
     test('should handle invalid region param gracefully', async ({ page }) => {
-      await page.goto('/hub/tools/regulatory-map?region=INVALID', { waitUntil: 'domcontentloaded' });
+      await page.goto('/hub/tools/regulatory-map?region=INVALID', {
+        waitUntil: 'domcontentloaded',
+      });
       await waitForMapReady(page);
 
       // Page should load normally — no panel, no errors
@@ -165,16 +198,22 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
       await waitForMapReady(page);
 
       // Should fall back to "All" filter
-      await expect(page.locator('.brutal-filter-chip[data-category="all"]')).toHaveClass(/brutal-filter-chip--active/);
+      await expect(page.locator('.brutal-filter-chip[data-category="all"]')).toHaveClass(
+        /brutal-filter-chip--active/
+      );
     });
 
     test('should not select region that has no regs for the given filter', async ({ page }) => {
       // Thailand has no industry-compliance regs
-      await page.goto('/hub/tools/regulatory-map?region=THA&filter=industry-compliance', { waitUntil: 'domcontentloaded' });
+      await page.goto('/hub/tools/regulatory-map?region=THA&filter=industry-compliance', {
+        waitUntil: 'domcontentloaded',
+      });
       await waitForMapReady(page);
 
       // Filter should be applied
-      await expect(page.locator('.brutal-filter-chip[data-category="industry-compliance"]')).toHaveClass(/brutal-filter-chip--active/);
+      await expect(
+        page.locator('.brutal-filter-chip[data-category="industry-compliance"]')
+      ).toHaveClass(/brutal-filter-chip--active/);
 
       // But panel should NOT be visible (Thailand has no industry regs)
       const panel = page.locator('[data-testid="compliance-panel"]');
@@ -208,10 +247,14 @@ test.describe('Regulatory Map — URL Bookmarking & Sharing', () => {
       await expect(copyBtn).toHaveAttribute('aria-label', 'Link copied!');
 
       // Should revert after 2 seconds
-      await page.waitForFunction(() => {
-        const btn = document.getElementById('panelCopyLink');
-        return btn && !btn.classList.contains('brutal-panel__copy--copied');
-      }, undefined, { timeout: 5000 });
+      await page.waitForFunction(
+        () => {
+          const btn = document.getElementById('panelCopyLink');
+          return btn && !btn.classList.contains('brutal-panel__copy--copied');
+        },
+        undefined,
+        { timeout: 5000 }
+      );
 
       await expect(copyBtn).toHaveAttribute('aria-label', 'Copy link to this view');
     });

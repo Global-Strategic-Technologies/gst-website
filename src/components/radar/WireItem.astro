@@ -18,7 +18,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
 
 <article class="wire-item" data-category={item.category}>
   <div class="wire-item__indicator">
-    {cat && <span class="dot" style={`background: ${cat.color}`}></span>}
+    {cat && <span class="dot" style={`background: ${cat.color}`} />}
   </div>
   <div class="wire-item__content">
     <a href={item.url} target="_blank" rel="noopener noreferrer" class="wire-item__title">
@@ -73,7 +73,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
   }
 
   .wire-item__meta .source::after {
-    content: "·";
+    content: '·';
     margin: 0 var(--spacing-xs);
   }
 

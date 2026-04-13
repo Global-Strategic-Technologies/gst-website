@@ -14,11 +14,7 @@ import type { ZodType } from 'zod';
  * @returns The parsed, type-safe data
  * @throws Error with the label prefix on validation failure
  */
-export function validateDataSource<T>(
-  schema: ZodType<T>,
-  data: unknown,
-  label: string
-): T {
+export function validateDataSource<T>(schema: ZodType<T>, data: unknown, label: string): T {
   const result = schema.safeParse(data);
 
   if (!result.success) {

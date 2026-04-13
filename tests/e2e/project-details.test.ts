@@ -4,7 +4,9 @@ test.describe('Project Details Viewing Journey', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/ma-portfolio', { waitUntil: 'domcontentloaded' });
     // Wait for portfolio JS to initialize and bind event handlers
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 10000 });
+    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
+      timeout: 10000,
+    });
   });
 
   test('should have interactive project elements', async ({ page }) => {
@@ -64,7 +66,9 @@ test.describe('Project Details Viewing Journey', () => {
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Verify technology information is displayed in modal
-    const techSection = modal.locator('[data-testid*="technolog"], [data-testid*="tech"], .technologies');
+    const techSection = modal.locator(
+      '[data-testid*="technolog"], [data-testid*="tech"], .technologies'
+    );
     const techVisible = await techSection.isVisible({ timeout: 2000 }).catch(() => false);
 
     // If tech section exists, verify it has content
@@ -86,7 +90,7 @@ test.describe('Project Details Viewing Journey', () => {
     await card.focus();
 
     // Should be focused
-    const isFocused = await card.evaluate(el => el === document.activeElement);
+    const isFocused = await card.evaluate((el) => el === document.activeElement);
     expect(isFocused).toBe(true);
 
     // Press Enter to interact
@@ -120,7 +124,10 @@ test.describe('Project Details Viewing Journey', () => {
       await expect(modal).toBeVisible({ timeout: 5000 });
 
       // Verify different project details are displayed
-      const projectName = await modal.locator('[data-testid*="name"], h2, h3').first().textContent();
+      const projectName = await modal
+        .locator('[data-testid*="name"], h2, h3')
+        .first()
+        .textContent();
 
       if (i > 0) {
         // On second iteration, verify we're seeing different project

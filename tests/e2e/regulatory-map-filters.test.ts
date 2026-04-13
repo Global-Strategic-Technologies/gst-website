@@ -24,7 +24,11 @@ test.describe('Regulatory Map — Category Filters', () => {
     const aiChip = page.locator('.brutal-filter-chip[data-category="ai-governance"]');
     const allChip = page.locator('.brutal-filter-chip[data-category="all"]');
 
-    await page.evaluate(() => (document.querySelector('.brutal-filter-chip[data-category="ai-governance"]') as HTMLElement)?.click());
+    await page.evaluate(() =>
+      (
+        document.querySelector('.brutal-filter-chip[data-category="ai-governance"]') as HTMLElement
+      )?.click()
+    );
 
     // AI chip should now be active
     await expect(aiChip).toHaveClass(/brutal-filter-chip--active/);
@@ -38,7 +42,11 @@ test.describe('Regulatory Map — Category Filters', () => {
     expect(initialActiveCount).toBeGreaterThan(0);
 
     // Switch to AI Governance (fewer regulations than All)
-    await page.evaluate(() => (document.querySelector('.brutal-filter-chip[data-category="ai-governance"]') as HTMLElement)?.click());
+    await page.evaluate(() =>
+      (
+        document.querySelector('.brutal-filter-chip[data-category="ai-governance"]') as HTMLElement
+      )?.click()
+    );
 
     // Wait for map to update — active count should change
     await page.waitForFunction((initialCount) => {
@@ -56,13 +64,19 @@ test.describe('Regulatory Map — Category Filters', () => {
     const initialActiveCount = await page.locator('.country-path--active').count();
 
     // Switch away
-    await page.evaluate(() => (document.querySelector('.brutal-filter-chip[data-category="ai-governance"]') as HTMLElement)?.click());
+    await page.evaluate(() =>
+      (
+        document.querySelector('.brutal-filter-chip[data-category="ai-governance"]') as HTMLElement
+      )?.click()
+    );
     await page.waitForFunction((initial) => {
       return document.querySelectorAll('.country-path--active').length !== initial;
     }, initialActiveCount);
 
     // Switch back to All
-    await page.evaluate(() => (document.querySelector('.brutal-filter-chip[data-category="all"]') as HTMLElement)?.click());
+    await page.evaluate(() =>
+      (document.querySelector('.brutal-filter-chip[data-category="all"]') as HTMLElement)?.click()
+    );
     await page.waitForFunction((initial) => {
       return document.querySelectorAll('.country-path--active').length === initial;
     }, initialActiveCount);
@@ -85,7 +99,13 @@ test.describe('Regulatory Map — Category Filters', () => {
     });
 
     // Switch to Industry Compliance — Thailand has no industry-compliance regs
-    await page.evaluate(() => (document.querySelector('.brutal-filter-chip[data-category="industry-compliance"]') as HTMLElement)?.click());
+    await page.evaluate(() =>
+      (
+        document.querySelector(
+          '.brutal-filter-chip[data-category="industry-compliance"]'
+        ) as HTMLElement
+      )?.click()
+    );
 
     // Panel should be hidden because Thailand has no industry compliance regulations
     await expect(panel).toBeHidden();
@@ -104,7 +124,11 @@ test.describe('Regulatory Map — Category Filters', () => {
     await expect(page.locator('#panelCountryName')).toHaveText('Germany');
 
     // Switch to Data Privacy — Germany still has GDPR
-    await page.evaluate(() => (document.querySelector('.brutal-filter-chip[data-category="data-privacy"]') as HTMLElement)?.click());
+    await page.evaluate(() =>
+      (
+        document.querySelector('.brutal-filter-chip[data-category="data-privacy"]') as HTMLElement
+      )?.click()
+    );
 
     // Panel should still be visible with Germany
     await expect(panel).toBeVisible();
@@ -115,7 +139,9 @@ test.describe('Regulatory Map — Category Filters', () => {
     expect(cardCount).toBeGreaterThan(0);
   });
 
-  test('should update panel regulation count when filter changes for selected region', async ({ page }) => {
+  test('should update panel regulation count when filter changes for selected region', async ({
+    page,
+  }) => {
     // Select Germany (has regulations in multiple categories)
     await clickSvgPath(page, '[data-alpha3="DEU"].country-path--active');
 
@@ -129,7 +155,11 @@ test.describe('Regulatory Map — Category Filters', () => {
     expect(allCount).toBeGreaterThan(0);
 
     // Switch to Data Privacy
-    await page.evaluate(() => (document.querySelector('.brutal-filter-chip[data-category="data-privacy"]') as HTMLElement)?.click());
+    await page.evaluate(() =>
+      (
+        document.querySelector('.brutal-filter-chip[data-category="data-privacy"]') as HTMLElement
+      )?.click()
+    );
 
     // Wait for panel to re-render with filtered results
     await page.waitForFunction((prevCount) => {

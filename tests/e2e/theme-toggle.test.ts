@@ -41,7 +41,7 @@ test.describe('Theme Toggle Journey', () => {
     // Get initial theme and color
     const initialState = await page.evaluate(() => ({
       hasDarkClass: document.documentElement.classList.contains('dark-theme'),
-      bgColor: window.getComputedStyle(document.body).backgroundColor
+      bgColor: window.getComputedStyle(document.body).backgroundColor,
     }));
 
     // Click theme toggle
@@ -49,15 +49,19 @@ test.describe('Theme Toggle Journey', () => {
     await clickThemeToggle(page);
 
     // Wait for actual CSS to change, not just timeout
-    await page.waitForFunction((initialBgColor: string) => {
-      const newBg = window.getComputedStyle(document.body).backgroundColor;
-      return newBg !== initialBgColor;
-    }, initialState.bgColor, { timeout: 5000 });
+    await page.waitForFunction(
+      (initialBgColor: string) => {
+        const newBg = window.getComputedStyle(document.body).backgroundColor;
+        return newBg !== initialBgColor;
+      },
+      initialState.bgColor,
+      { timeout: 5000 }
+    );
 
     // Theme should have changed (both class and actual color)
     const newState = await page.evaluate(() => ({
       hasDarkClass: document.documentElement.classList.contains('dark-theme'),
-      bgColor: window.getComputedStyle(document.body).backgroundColor
+      bgColor: window.getComputedStyle(document.body).backgroundColor,
     }));
 
     expect(newState.hasDarkClass).not.toBe(initialState.hasDarkClass);
@@ -82,12 +86,16 @@ test.describe('Theme Toggle Journey', () => {
     );
 
     // Navigate to another page — use a known internal nav link
-    const link = page.locator('nav a[href="/services"], nav a[href="/ma-portfolio"], a[href="/services"], a[href="/ma-portfolio"]').first();
+    const link = page
+      .locator(
+        'nav a[href="/services"], nav a[href="/ma-portfolio"], a[href="/services"], a[href="/ma-portfolio"]'
+      )
+      .first();
     const href = await link.getAttribute('href');
 
     if (href) {
       // Use evaluate to bypass WebKit hit-testing on navigation links
-      await link.evaluate(el => (el as HTMLElement).click());
+      await link.evaluate((el) => (el as HTMLElement).click());
       // Wait for navigation to fully complete before evaluating
       await page.waitForURL(`**${href}`, { timeout: 10000 });
       await page.waitForLoadState('domcontentloaded');
@@ -108,7 +116,7 @@ test.describe('Theme Toggle Journey', () => {
 
     // Focus and interact
     await themeToggle.focus();
-    const isFocused = await themeToggle.evaluate(el => el === document.activeElement);
+    const isFocused = await themeToggle.evaluate((el) => el === document.activeElement);
     expect(isFocused).toBe(true);
 
     // Press Enter to activate
@@ -117,9 +125,10 @@ test.describe('Theme Toggle Journey', () => {
     );
 
     await themeToggle.press('Enter');
-    await page.waitForFunction((wasDark) =>
-      document.documentElement.classList.contains('dark-theme') !== wasDark,
-    initialIsDark);
+    await page.waitForFunction(
+      (wasDark) => document.documentElement.classList.contains('dark-theme') !== wasDark,
+      initialIsDark
+    );
 
     // Theme should have changed
     const newIsDark = await page.evaluate(() =>
@@ -136,9 +145,7 @@ test.describe('Theme Toggle Journey', () => {
     if (!initialIsDark) {
       await clickThemeToggle(page);
       // Wait for actual state change instead of arbitrary timeout
-      await page.waitForFunction(() =>
-        document.documentElement.classList.contains('dark-theme')
-      );
+      await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
     }
 
     // Wait for localStorage to be set (theme toggle handler writes it)
@@ -159,7 +166,7 @@ test.describe('Theme Toggle Journey', () => {
     await expect(themeToggle).toBeVisible();
 
     // Check font size is reasonable
-    const fontSize = await themeToggle.evaluate(el => {
+    const fontSize = await themeToggle.evaluate((el) => {
       return window.getComputedStyle(el).fontSize;
     });
 
@@ -167,21 +174,22 @@ test.describe('Theme Toggle Journey', () => {
     expect(size).toBeGreaterThanOrEqual(12);
 
     // Check contrast (text color should differ from background)
-    const textColor = await themeToggle.evaluate(el => {
+    const textColor = await themeToggle.evaluate((el) => {
       return window.getComputedStyle(el).color;
     });
-    const bgColor = await themeToggle.evaluate(el => {
+    const bgColor = await themeToggle.evaluate((el) => {
       return window.getComputedStyle(el).backgroundColor;
     });
     expect(textColor).not.toBe(bgColor);
 
     // Toggle theme and check again
     await clickThemeToggle(page);
-    await page.waitForFunction((prevBg) =>
-      window.getComputedStyle(document.body).backgroundColor !== prevBg,
-    bgColor);
+    await page.waitForFunction(
+      (prevBg) => window.getComputedStyle(document.body).backgroundColor !== prevBg,
+      bgColor
+    );
 
-    const newFontSize = await themeToggle.evaluate(el => {
+    const newFontSize = await themeToggle.evaluate((el) => {
       return window.getComputedStyle(el).fontSize;
     });
 
@@ -189,10 +197,10 @@ test.describe('Theme Toggle Journey', () => {
     expect(newSize).toBeGreaterThanOrEqual(12);
 
     // Check contrast in new theme
-    const newTextColor = await themeToggle.evaluate(el => {
+    const newTextColor = await themeToggle.evaluate((el) => {
       return window.getComputedStyle(el).color;
     });
-    const newBgColor = await themeToggle.evaluate(el => {
+    const newBgColor = await themeToggle.evaluate((el) => {
       return window.getComputedStyle(el).backgroundColor;
     });
     expect(newTextColor).not.toBe(newBgColor);
@@ -206,15 +214,20 @@ test.describe('Theme Toggle Journey', () => {
     const initialIsDark = await page.evaluate(() =>
       document.documentElement.classList.contains('dark-theme')
     );
-    const initialBgColor = await page.evaluate(() => window.getComputedStyle(document.body).backgroundColor);
+    const initialBgColor = await page.evaluate(
+      () => window.getComputedStyle(document.body).backgroundColor
+    );
 
     // Rapidly toggle theme 5 times, waiting for each toggle to register
     for (let i = 0; i < 5; i++) {
-      const wasDark = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
+      const wasDark = await page.evaluate(() =>
+        document.documentElement.classList.contains('dark-theme')
+      );
       await clickThemeToggle(page);
-      await page.waitForFunction((prev) =>
-        document.documentElement.classList.contains('dark-theme') !== prev,
-      wasDark);
+      await page.waitForFunction(
+        (prev) => document.documentElement.classList.contains('dark-theme') !== prev,
+        wasDark
+      );
     }
 
     // After 5 toggles (odd number), theme should be opposite of initial
@@ -224,7 +237,9 @@ test.describe('Theme Toggle Journey', () => {
     expect(finalIsDark).not.toBe(initialIsDark);
 
     // Verify CSS actually changed too
-    const finalBgColor = await page.evaluate(() => window.getComputedStyle(document.body).backgroundColor);
+    const finalBgColor = await page.evaluate(
+      () => window.getComputedStyle(document.body).backgroundColor
+    );
     expect(finalBgColor).not.toBe(initialBgColor);
   });
 
@@ -257,10 +272,14 @@ test.describe('Theme Toggle Journey', () => {
 
     // Toggle theme
     await clickThemeToggle(page);
-    await page.waitForFunction((initial) => {
-      const isDark = document.documentElement.classList.contains('dark-theme');
-      return isDark !== initial;
-    }, initialIsDark, { timeout: 5000 });
+    await page.waitForFunction(
+      (initial) => {
+        const isDark = document.documentElement.classList.contains('dark-theme');
+        return isDark !== initial;
+      },
+      initialIsDark,
+      { timeout: 5000 }
+    );
 
     // Find another interactive element (navigation link or other button)
     const navLink = page.locator('a[href*="/ma-portfolio"], a:has-text("M&A")').first();

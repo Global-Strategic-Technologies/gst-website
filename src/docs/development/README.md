@@ -7,6 +7,7 @@ This directory contains strategic documentation for ongoing and proposed develop
 ### [DEVELOPMENT_OPPORTUNITIES.md](./DEVELOPMENT_OPPORTUNITIES.md)
 
 Strategic roadmap of development initiatives focused on:
+
 - **Performance monitoring** (Lighthouse CI integration)
 - **Test automation** (E2E and unit tests)
 - **Code quality** (Error handling validation)
@@ -32,6 +33,7 @@ Exploration initiative evaluating whether ambient animated effects (grid pulses,
 Post-hardening follow-on initiative (~4 days) covering business-facing capabilities that require vendor selection and legal review: Cookie Consent / GDPR compliance (custom banner with GA4 Consent Mode) and Email Capture (footer signup form with Zod validation). Depends on Platform Hardening V1 being complete.
 
 Each roadmap includes:
+
 - Current state assessment with strengths and known issues
 - Prioritized initiatives with effort/impact ratings
 - Implementation notes and dependency maps
@@ -40,26 +42,26 @@ Each roadmap includes:
 
 ### Platform Initiatives
 
-| Initiative | Priority | Effort | Start |
-|-----------|----------|--------|-------|
-| Lighthouse CI | High | 2-3h | Next |
-| E2E Image Tests | High | 30m | Next |
-| Unit Error Tests | Medium | 1-2h | Soon |
-| Perf Dashboard | Low | 1-2h | Later |
-| Dynamic Visual Effects | Low | 2-4h prototype | Exploratory |
-| **Platform Hardening V1** | **High** | **24-29 days (8 phases)** | **In Progress** |
-| Business Enablement V1 | Medium-High | 4 days (2 initiatives) | Post-hardening |
+| Initiative                | Priority    | Effort                    | Start           |
+| ------------------------- | ----------- | ------------------------- | --------------- |
+| Lighthouse CI             | High        | 2-3h                      | Next            |
+| E2E Image Tests           | High        | 30m                       | Next            |
+| Unit Error Tests          | Medium      | 1-2h                      | Soon            |
+| Perf Dashboard            | Low         | 1-2h                      | Later           |
+| Dynamic Visual Effects    | Low         | 2-4h prototype            | Exploratory     |
+| **Platform Hardening V1** | **High**    | **24-29 days (8 phases)** | **In Progress** |
+| Business Enablement V1    | Medium-High | 4 days (2 initiatives)    | Post-hardening  |
 
 ### Hub Tools Control Consolidation
 
-| Initiative | Phase | Effort | Impact |
-|-----------|-------|--------|--------|
-| Copy-to-clipboard utility | A | Low | High |
-| Benchmark table CSS | A | Low | Medium |
-| TechPar benchmark markers | B | Small | Low |
-| Export action bar | B | Medium | Medium |
-| Collapsible sections | C | Low | Medium |
-| Dark theme variable migration | C | Medium | Medium |
+| Initiative                    | Phase | Effort | Impact |
+| ----------------------------- | ----- | ------ | ------ |
+| Copy-to-clipboard utility     | A     | Low    | High   |
+| Benchmark table CSS           | A     | Low    | Medium |
+| TechPar benchmark markers     | B     | Small  | Low    |
+| Export action bar             | B     | Medium | Medium |
+| Collapsible sections          | C     | Low    | Medium |
+| Dark theme variable migration | C     | Medium | Medium |
 
 ## Recent Performance Improvements
 
@@ -80,6 +82,7 @@ See [DEVELOPMENT_OPPORTUNITIES.md](./DEVELOPMENT_OPPORTUNITIES.md) for details.
 ## Contributing
 
 When adding new initiatives:
+
 1. Add a new section to DEVELOPMENT_OPPORTUNITIES.md
 2. Follow the template: Overview → Problem → Solution → ROI
 3. Include implementation checklist and success metrics
@@ -87,4 +90,4 @@ When adding new initiatives:
 
 ---
 
-*Last Updated: April 9, 2026*
+_Last Updated: April 9, 2026_

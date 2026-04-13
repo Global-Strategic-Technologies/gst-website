@@ -6,11 +6,7 @@
  * Validated at build time against `TechParRecommendationsSchema`.
  */
 
-import {
-  TechParRecommendationsSchema,
-  type Stage,
-  type Zone,
-} from '../../schemas/techpar';
+import { TechParRecommendationsSchema, type Stage, type Zone } from '../../schemas/techpar';
 import { validateDataSource } from '../../utils/validateData';
 
 const recommendationsData: Record<Stage, Record<Zone, string[]>> = {

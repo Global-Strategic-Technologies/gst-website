@@ -3,7 +3,7 @@ import { palettes, PALETTE_NAMES, PALETTE_CONCEPTS, TOKEN_TIPS } from '@/data/pa
 describe('Palette data integrity', () => {
   it('should export exactly 6 palettes (ids 0-5)', () => {
     expect(palettes).toHaveLength(6);
-    expect(palettes.map(p => p.id)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(palettes.map((p) => p.id)).toEqual([0, 1, 2, 3, 4, 5]);
   });
 
   it('each palette should have non-empty name and concept', () => {
@@ -31,9 +31,15 @@ describe('Palette data integrity', () => {
 
   it('TOKEN_TIPS should have entries for core semantic tokens', () => {
     const coreTokens = [
-      '--color-primary', '--color-primary-dark', '--color-secondary',
-      '--color-success', '--color-warning', '--color-error',
-      '--color-authority', '--color-distinguish', '--color-subdued',
+      '--color-primary',
+      '--color-primary-dark',
+      '--color-secondary',
+      '--color-success',
+      '--color-warning',
+      '--color-error',
+      '--color-authority',
+      '--color-distinguish',
+      '--color-subdued',
     ];
     for (const token of coreTokens) {
       expect(TOKEN_TIPS[token]).toBeTruthy();

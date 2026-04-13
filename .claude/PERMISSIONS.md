@@ -5,9 +5,11 @@ This document outlines the permissions and configurations for Claude Code when w
 ## Granted Permissions
 
 ### 📝 Task File Editing (Unrestricted)
+
 **Path**: `.claude/tasks/**/*`
 
 Claude has **unrestricted edit permissions** for all files in the `.claude/tasks/` directory, including:
+
 - `todo.md` - Task planning and progress tracking
 - `lessons.md` - Learning log and self-improvement patterns
 - Any future task management files
@@ -15,6 +17,7 @@ Claude has **unrestricted edit permissions** for all files in the `.claude/tasks
 **Purpose**: Enable autonomous task management, progress tracking, and learning capture without requiring user approval for edits.
 
 **Scope**:
+
 - ✅ Create new task files
 - ✅ Update progress on existing tasks
 - ✅ Mark tasks as complete
@@ -28,9 +31,7 @@ Claude has **unrestricted edit permissions** for all files in the `.claude/tasks
 
 ```json
 {
-  "editable_paths": [
-    ".claude/tasks/**/*"
-  ],
+  "editable_paths": [".claude/tasks/**/*"],
   "permissions": {
     "edit_task_files": true,
     "description": "Claude can freely edit task management files"
@@ -50,12 +51,14 @@ This configuration follows the Claude Workflow Directives in `claude.md`:
 ## Files Included
 
 ### `todo.md`
+
 - Current and completed tasks
 - Implementation plans and progress
 - Verification results
 - Task status and timelines
 
 ### `lessons.md`
+
 - Patterns and learnings from corrections
 - Rules to prevent repeating mistakes
 - Self-improvement tracking
@@ -64,6 +67,7 @@ This configuration follows the Claude Workflow Directives in `claude.md`:
 ## Usage
 
 Claude will automatically:
+
 1. Create task entries when starting work
 2. Update progress as work proceeds
 3. Mark items complete with verification results

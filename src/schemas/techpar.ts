@@ -16,7 +16,14 @@ export const StageSchema = z.enum(STAGE_KEYS);
 export const FRAME_KEYS = ['convergence', 'dollars'] as const;
 export const FrameSchema = z.enum(FRAME_KEYS);
 
-export const ZONE_KEYS = ['underinvest', 'ahead', 'healthy', 'above', 'elevated', 'critical'] as const;
+export const ZONE_KEYS = [
+  'underinvest',
+  'ahead',
+  'healthy',
+  'above',
+  'elevated',
+  'critical',
+] as const;
 export const ZoneSchema = z.enum(ZONE_KEYS);
 
 export const INDUSTRY_KEYS = ['saas', 'fintech', 'marketplace', 'infra_hw', 'other'] as const;

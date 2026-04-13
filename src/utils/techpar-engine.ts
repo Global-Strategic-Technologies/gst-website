@@ -175,7 +175,7 @@ function computeGap(pctArr: number, arr: number, hi: number, growthRate: number)
   let gap = 0;
   for (let m = 0; m < 36; m++) {
     const monthlyRev = (arr / 12) * Math.pow(1 + mg, m);
-    gap += Math.max(0, monthlyRev * pctArr / 100 - monthlyRev * hi / 100);
+    gap += Math.max(0, (monthlyRev * pctArr) / 100 - (monthlyRev * hi) / 100);
   }
   return gap;
 }
@@ -185,7 +185,7 @@ function computeUnderGap(pctArr: number, arr: number, lo: number, growthRate: nu
   let gap = 0;
   for (let m = 0; m < 36; m++) {
     const monthlyRev = (arr / 12) * Math.pow(1 + mg, m);
-    gap += Math.max(0, monthlyRev * lo / 100 - monthlyRev * pctArr / 100);
+    gap += Math.max(0, (monthlyRev * lo) / 100 - (monthlyRev * pctArr) / 100);
   }
   return gap;
 }
@@ -205,7 +205,13 @@ function categoryZone(pct: number, benchLo: number, benchHi: number): Zone {
       above: benchHi * 1.3,
       critical: benchHi * 1.6,
     },
-    benchmarks: { infraHosting: [0, 0], infraPersonnel: [0, 0], rdOpEx: [0, 0], rdCapExOfRD: [0, 0], total: [0, 0] },
+    benchmarks: {
+      infraHosting: [0, 0],
+      infraPersonnel: [0, 0],
+      rdOpEx: [0, 0],
+      rdCapExOfRD: [0, 0],
+      total: [0, 0],
+    },
   };
   return getZone(pct, fakeConfig);
 }
@@ -213,16 +219,26 @@ function categoryZone(pct: number, benchLo: number, benchHi: number): Zone {
 // ─── Core computation ────────────────────────────────────────────────────────
 
 export function compute(inputs: TechParInputs): TechParResult | null {
-  const { arr, infraHosting, infraPersonnel, rdCapEx, engFTE, engCost, prodCost, toolingCost, capexView, growthRate, exitMultiple } = inputs;
+  const {
+    arr,
+    infraHosting,
+    infraPersonnel,
+    rdCapEx,
+    engFTE,
+    engCost,
+    prodCost,
+    toolingCost,
+    capexView,
+    growthRate,
+    exitMultiple,
+  } = inputs;
 
   if (!arr || !infraHosting) return null;
 
   const stageConfig = STAGES[inputs.stage] as StageConfig;
 
   // Compute rdOpEx based on mode
-  const rdOpEx = inputs.mode === 'deepdive'
-    ? engCost + prodCost + toolingCost
-    : inputs.rdOpEx;
+  const rdOpEx = inputs.mode === 'deepdive' ? engCost + prodCost + toolingCost : inputs.rdOpEx;
 
   const infraAnnual = infraHosting * 12;
   const totalCash = infraAnnual + infraPersonnel + rdOpEx + rdCapEx;
@@ -241,7 +257,11 @@ export function compute(inputs: TechParInputs): TechParResult | null {
       pctArr: pct,
       benchmarkLo: stageConfig.benchmarks.infraHosting[0],
       benchmarkHi: stageConfig.benchmarks.infraHosting[1],
-      zone: categoryZone(pct, stageConfig.benchmarks.infraHosting[0], stageConfig.benchmarks.infraHosting[1]),
+      zone: categoryZone(
+        pct,
+        stageConfig.benchmarks.infraHosting[0],
+        stageConfig.benchmarks.infraHosting[1]
+      ),
       colorVar: '--color-primary',
     });
   }
@@ -253,7 +273,11 @@ export function compute(inputs: TechParInputs): TechParResult | null {
       pctArr: pct,
       benchmarkLo: stageConfig.benchmarks.infraPersonnel[0],
       benchmarkHi: stageConfig.benchmarks.infraPersonnel[1],
-      zone: categoryZone(pct, stageConfig.benchmarks.infraPersonnel[0], stageConfig.benchmarks.infraPersonnel[1]),
+      zone: categoryZone(
+        pct,
+        stageConfig.benchmarks.infraPersonnel[0],
+        stageConfig.benchmarks.infraPersonnel[1]
+      ),
       colorVar: '--color-authority',
     });
   }
@@ -273,10 +297,10 @@ export function compute(inputs: TechParInputs): TechParResult | null {
     const pct = (rdCapEx / arr) * 100;
     // Derive CapEx-as-%-of-revenue benchmark from rdCapExOfRD (CapEx as % of total R&D)
     const totalRD = rdOpEx + rdCapEx;
-    const rdCapExBenchLo = totalRD > 0
-      ? (totalRD * stageConfig.benchmarks.rdCapExOfRD[0] / 100) / arr * 100 : 0;
-    const rdCapExBenchHi = totalRD > 0
-      ? (totalRD * stageConfig.benchmarks.rdCapExOfRD[1] / 100) / arr * 100 : 0;
+    const rdCapExBenchLo =
+      totalRD > 0 ? ((totalRD * stageConfig.benchmarks.rdCapExOfRD[0]) / 100 / arr) * 100 : 0;
+    const rdCapExBenchHi =
+      totalRD > 0 ? ((totalRD * stageConfig.benchmarks.rdCapExOfRD[1]) / 100 / arr) * 100 : 0;
     categories.push({
       label: 'R&D CapEx',
       value: rdCapEx,
@@ -293,7 +317,7 @@ export function compute(inputs: TechParInputs): TechParResult | null {
   const infraPersonnelPct = infraPersonnel > 0 ? (infraPersonnel / arr) * 100 : null;
   const rdOpExPct = rdOpEx > 0 ? (rdOpEx / arr) * 100 : null;
   const rdCapExPct = rdCapEx > 0 ? (rdCapEx / arr) * 100 : null;
-  const rdCapExOfRD = (rdOpEx + rdCapEx) > 0 ? (rdCapEx / (rdOpEx + rdCapEx)) * 100 : null;
+  const rdCapExOfRD = rdOpEx + rdCapEx > 0 ? (rdCapEx / (rdOpEx + rdCapEx)) * 100 : null;
   const blendedInfra = ((infraAnnual + infraPersonnel) / arr) * 100;
   const revenuePerEngineer = engFTE > 0 ? arr / engFTE : null;
   const engPctOfRD = engCost > 0 && rdOpEx > 0 ? (engCost / rdOpEx) * 100 : null;
@@ -303,12 +327,12 @@ export function compute(inputs: TechParInputs): TechParResult | null {
   const cumulative36 = computeGap(totalTechPct, arr, stageConfig.zones.hi, growthRate);
   const exitValue = cumulative36 * exitMultiple;
   const underinvestGap = computeUnderGap(totalTechPct, arr, stageConfig.zones.lo, growthRate);
-  const annualAdvantage = totalTechPct < stageConfig.zones.hi
-    ? (arr / 12) * (stageConfig.zones.hi - totalTechPct) / 100 * 12
-    : 0;
-  const annualExcess = totalTechPct > stageConfig.zones.hi
-    ? (totalTechPct - stageConfig.zones.hi) / 100 * arr
-    : 0;
+  const annualAdvantage =
+    totalTechPct < stageConfig.zones.hi
+      ? (((arr / 12) * (stageConfig.zones.hi - totalTechPct)) / 100) * 12
+      : 0;
+  const annualExcess =
+    totalTechPct > stageConfig.zones.hi ? ((totalTechPct - stageConfig.zones.hi) / 100) * arr : 0;
 
   return {
     total,
@@ -357,14 +381,16 @@ export function buildTrajectory(inputs: TechParInputs, config: StageConfig): Tra
   const mg = monthlyGrowthFactor(inputs.growthRate);
   const mon = inputs.arr / 12;
 
-  const rdOpEx = inputs.mode === 'deepdive'
-    ? inputs.engCost + inputs.prodCost + inputs.toolingCost
-    : inputs.rdOpEx;
+  const rdOpEx =
+    inputs.mode === 'deepdive'
+      ? inputs.engCost + inputs.prodCost + inputs.toolingCost
+      : inputs.rdOpEx;
 
   const infraAnnual = inputs.infraHosting * 12;
-  const totalVal = inputs.capexView === 'gaap'
-    ? infraAnnual + inputs.infraPersonnel + rdOpEx
-    : infraAnnual + inputs.infraPersonnel + rdOpEx + inputs.rdCapEx;
+  const totalVal =
+    inputs.capexView === 'gaap'
+      ? infraAnnual + inputs.infraPersonnel + rdOpEx
+      : infraAnnual + inputs.infraPersonnel + rdOpEx + inputs.rdCapEx;
   const pctArr = inputs.arr > 0 ? (totalVal / inputs.arr) * 100 : 0;
 
   const labels: string[] = [];
@@ -378,11 +404,11 @@ export function buildTrajectory(inputs: TechParInputs, config: StageConfig): Tra
   for (let m = 0; m < 37; m++) {
     labels.push(m === 0 ? 'Now' : m % 6 === 0 ? `M${m}` : '');
     const rev = mon * Math.pow(1 + mg, m);
-    spend.push(Math.round(rev * pctArr / 100));
-    bandLo.push(Math.round(rev * config.zones.lo / 100));
-    bandHi.push(Math.round(rev * config.zones.hi / 100));
-    underFloor.push(Math.round(rev * config.zones.underinvest / 100));
-    aboveCeiling.push(Math.round(rev * config.zones.above / 100));
+    spend.push(Math.round((rev * pctArr) / 100));
+    bandLo.push(Math.round((rev * config.zones.lo) / 100));
+    bandHi.push(Math.round((rev * config.zones.hi) / 100));
+    underFloor.push(Math.round((rev * config.zones.underinvest) / 100));
+    aboveCeiling.push(Math.round((rev * config.zones.above) / 100));
     revenue.push(Math.round(rev));
   }
 
@@ -407,8 +433,8 @@ export interface HistoricalResult {
 /** Compute technology cost percentages and monthly equivalents for prior-year data points. */
 export function computeHistorical(points: HistoricalPoint[]): HistoricalResult[] {
   return points
-    .filter(p => p.arr > 0 && p.totalTechSpend > 0)
-    .map(p => ({
+    .filter((p) => p.arr > 0 && p.totalTechSpend > 0)
+    .map((p) => ({
       label: p.label,
       techCostPct: (p.totalTechSpend / p.arr) * 100,
       monthlySpend: p.totalTechSpend / 12,
@@ -433,8 +459,16 @@ export function buildHistoricalTrajectory(
   points: HistoricalPoint[],
   config: StageConfig,
   currentArr?: number,
-  currentTechSpend?: number,
-): { labels: string[]; spend: number[]; bandLo: number[]; bandHi: number[]; underFloor: number[]; aboveCeiling: number[]; revenue: number[] } {
+  currentTechSpend?: number
+): {
+  labels: string[];
+  spend: number[];
+  bandLo: number[];
+  bandHi: number[];
+  underFloor: number[];
+  aboveCeiling: number[];
+  revenue: number[];
+} {
   const labels: string[] = [];
   const spend: number[] = [];
   const bandLo: number[] = [];
@@ -444,7 +478,11 @@ export function buildHistoricalTrajectory(
   const revenue: number[] = [];
 
   // Build anchor points: each historical year, then "Now" as the final target
-  interface Anchor { label: string; monSpend: number; monRev: number; }
+  interface Anchor {
+    label: string;
+    monSpend: number;
+    monRev: number;
+  }
   const anchors: Anchor[] = [];
   for (const p of points) {
     if (p.arr <= 0) continue;
@@ -458,7 +496,7 @@ export function buildHistoricalTrajectory(
   // smoothly into the forward projection's starting point
   if (currentArr && currentArr > 0) {
     anchors.push({
-      label: '',  // "Now" label is provided by the forward trajectory
+      label: '', // "Now" label is provided by the forward trajectory
       monSpend: (currentTechSpend || 0) / 12,
       monRev: currentArr / 12,
     });
@@ -471,10 +509,10 @@ export function buildHistoricalTrajectory(
     for (let m = 0; m < 12; m++) {
       labels.push(m === 0 ? a.label : '');
       spend.push(Math.round(a.monSpend));
-      bandLo.push(Math.round(a.monRev * config.zones.lo / 100));
-      bandHi.push(Math.round(a.monRev * config.zones.hi / 100));
-      underFloor.push(Math.round(a.monRev * config.zones.underinvest / 100));
-      aboveCeiling.push(Math.round(a.monRev * config.zones.above / 100));
+      bandLo.push(Math.round((a.monRev * config.zones.lo) / 100));
+      bandHi.push(Math.round((a.monRev * config.zones.hi) / 100));
+      underFloor.push(Math.round((a.monRev * config.zones.underinvest) / 100));
+      aboveCeiling.push(Math.round((a.monRev * config.zones.above) / 100));
       revenue.push(Math.round(a.monRev));
     }
     return { labels, spend, bandLo, bandHi, underFloor, aboveCeiling, revenue };
@@ -494,10 +532,10 @@ export function buildHistoricalTrajectory(
 
       labels.push(m === 0 ? from.label : '');
       spend.push(Math.round(monSpend));
-      bandLo.push(Math.round(monRev * config.zones.lo / 100));
-      bandHi.push(Math.round(monRev * config.zones.hi / 100));
-      underFloor.push(Math.round(monRev * config.zones.underinvest / 100));
-      aboveCeiling.push(Math.round(monRev * config.zones.above / 100));
+      bandLo.push(Math.round((monRev * config.zones.lo) / 100));
+      bandHi.push(Math.round((monRev * config.zones.hi) / 100));
+      underFloor.push(Math.round((monRev * config.zones.underinvest) / 100));
+      aboveCeiling.push(Math.round((monRev * config.zones.above) / 100));
       revenue.push(Math.round(monRev));
     }
   }
@@ -526,7 +564,7 @@ const PARAM_KEYS: Record<string, keyof TechParInputs | 'stage' | 'mode' | 'capex
 };
 
 const REVERSE_KEYS: Record<string, string> = Object.fromEntries(
-  Object.entries(PARAM_KEYS).map(([short, long]) => [long, short]),
+  Object.entries(PARAM_KEYS).map(([short, long]) => [long, short])
 );
 
 const VALID_STAGES: Stage[] = ['seed', 'series_a', 'series_bc', 'pe', 'enterprise'];
@@ -534,7 +572,10 @@ const VALID_MODES: Mode[] = ['quick', 'deepdive'];
 const VALID_CAPEX: CapExView[] = ['cash', 'gaap'];
 
 /** Serialize TechParInputs into compact URL search params. Only non-default values are included. */
-export function serializeToParams(inputs: TechParInputs, historical?: HistoricalPoint[]): URLSearchParams {
+export function serializeToParams(
+  inputs: TechParInputs,
+  historical?: HistoricalPoint[]
+): URLSearchParams {
   const params = new URLSearchParams();
   const set = (field: string, val: string) => {
     const key = REVERSE_KEYS[field];
@@ -640,7 +681,12 @@ export function deserializeFromParams(params: URLSearchParams): DeserializedStat
 // ─── Plain-text Summary ───────────────────────────────────────────────────────
 
 /** Build a structured plain-text summary suitable for clipboard / email / Slack. */
-export function buildSummaryText(inputs: TechParInputs, result: TechParResult, url?: string, historical?: HistoricalPoint[]): string {
+export function buildSummaryText(
+  inputs: TechParInputs,
+  result: TechParResult,
+  url?: string,
+  historical?: HistoricalPoint[]
+): string {
   const s = result.stageConfig;
   const lines: string[] = [];
 
@@ -648,9 +694,13 @@ export function buildSummaryText(inputs: TechParInputs, result: TechParResult, u
   lines.push(`Generated: ${new Date().toISOString().slice(0, 10)}`);
   lines.push('\u2500'.repeat(40));
   lines.push(`Stage: ${s.label}`);
-  lines.push(`ARR: ${formatDollars(inputs.arr)} | Growth: ${inputs.growthRate}% | Basis: ${inputs.capexView === 'gaap' ? 'GAAP' : 'Cash'}`);
+  lines.push(
+    `ARR: ${formatDollars(inputs.arr)} | Growth: ${inputs.growthRate}% | Basis: ${inputs.capexView === 'gaap' ? 'GAAP' : 'Cash'}`
+  );
   lines.push('');
-  lines.push(`Total technology cost: ${formatPercent(result.totalTechPct)} of revenue (${formatDollars(result.total)}/yr)`);
+  lines.push(
+    `Total technology cost: ${formatPercent(result.totalTechPct)} of revenue (${formatDollars(result.total)}/yr)`
+  );
   lines.push(`Zone: ${zoneLabel(result.zone)}`);
   lines.push(`Benchmark range: ${s.benchmarks.total[0]}\u2013${s.benchmarks.total[1]}%`);
   lines.push('');
@@ -665,18 +715,33 @@ export function buildSummaryText(inputs: TechParInputs, result: TechParResult, u
     lines.push('Historical:');
     const histResults = computeHistorical(historical);
     for (const h of histResults) {
-      lines.push(`  ${h.label}: ${formatPercent(h.techCostPct)} (${formatDollars(h.monthlySpend * 12)} on ${formatDollars(h.monthlyRevenue * 12)} ARR)`);
+      lines.push(
+        `  ${h.label}: ${formatPercent(h.techCostPct)} (${formatDollars(h.monthlySpend * 12)} on ${formatDollars(h.monthlyRevenue * 12)} ARR)`
+      );
     }
-    lines.push(`  Current: ${formatPercent(result.totalTechPct)} (${formatDollars(result.total)} on ${formatDollars(inputs.arr)} ARR)`);
+    lines.push(
+      `  Current: ${formatPercent(result.totalTechPct)} (${formatDollars(result.total)} on ${formatDollars(inputs.arr)} ARR)`
+    );
   }
 
-  if (result.gap.cumulative36 > 0 && result.zone !== 'healthy' && result.zone !== 'ahead' && result.zone !== 'underinvest') {
+  if (
+    result.gap.cumulative36 > 0 &&
+    result.zone !== 'healthy' &&
+    result.zone !== 'ahead' &&
+    result.zone !== 'underinvest'
+  ) {
     lines.push('');
-    lines.push(`36-month excess above ${s.zones.hi}% ceiling: ${formatDollars(result.gap.cumulative36)}`);
-    lines.push(`Exit value at ${inputs.exitMultiple}\u00d7: ${formatDollars(result.gap.exitValue)}`);
+    lines.push(
+      `36-month excess above ${s.zones.hi}% ceiling: ${formatDollars(result.gap.cumulative36)}`
+    );
+    lines.push(
+      `Exit value at ${inputs.exitMultiple}\u00d7: ${formatDollars(result.gap.exitValue)}`
+    );
   } else if (result.gap.underinvestGap > 0) {
     lines.push('');
-    lines.push(`36-month gap below ${s.zones.lo}% floor: ${formatDollars(result.gap.underinvestGap)}`);
+    lines.push(
+      `36-month gap below ${s.zones.lo}% floor: ${formatDollars(result.gap.underinvestGap)}`
+    );
   }
 
   lines.push('');

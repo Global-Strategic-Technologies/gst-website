@@ -6,10 +6,7 @@
  * Validated at build time against `AttentionAreasArraySchema`.
  */
 
-import {
-  AttentionAreasArraySchema,
-  type AttentionArea,
-} from '../../schemas/diligence';
+import { AttentionAreasArraySchema, type AttentionArea } from '../../schemas/diligence';
 import { validateDataSource } from '../../utils/validateData';
 
 export type { AttentionArea };
@@ -19,7 +16,7 @@ const attentionAreasData: AttentionArea[] = [
     id: 'attention-hw-eol',
     title: 'Hardware End-of-Life Exposure',
     description:
-      'On-premise infrastructure can provide predictable cost and data-sovereignty control that cloud models often lack. However, in companies over 10 years old, it can also mask a \'silent\' CapEx cycle as hardware approaches end-of-life. Validate the asset inventory, vendor support status, and refresh/migration plan, then quantify capex, downtime risk, and integration impact.',
+      "On-premise infrastructure can provide predictable cost and data-sovereignty control that cloud models often lack. However, in companies over 10 years old, it can also mask a 'silent' CapEx cycle as hardware approaches end-of-life. Validate the asset inventory, vendor support status, and refresh/migration plan, then quantify capex, downtime risk, and integration impact.",
     relevance: 'high',
     conditions: {
       techArchetypes: ['self-managed-infra'],
@@ -158,7 +155,7 @@ const attentionAreasData: AttentionArea[] = [
     id: 'attention-canada-privacy',
     title: 'Canadian Privacy Law Complexity',
     description:
-      'Canadian operations face a layered privacy landscape with PIPEDA at the federal level and substantially similar provincial legislation in Quebec (Law 25), Alberta, and British Columbia. Quebec\'s Law 25 introduces GDPR-like requirements including privacy impact assessments, consent reforms, and data portability rights.',
+      "Canadian operations face a layered privacy landscape with PIPEDA at the federal level and substantially similar provincial legislation in Quebec (Law 25), Alberta, and British Columbia. Quebec's Law 25 introduces GDPR-like requirements including privacy impact assessments, consent reforms, and data portability rights.",
     relevance: 'medium',
     conditions: {
       geographies: ['canada'],
@@ -222,7 +219,7 @@ const attentionAreasData: AttentionArea[] = [
     id: 'attention-moat-erosion',
     title: 'AI Commodity Risk (Moat Erosion)',
     description:
-      'Being an \'AI wrapper\' can be a valid GTM strategy for speed. The strategic risk is whether value is derived from proprietary data, workflow integration, and distribution, or whether the company is effectively renting a moat from a larger model provider that could be diminished by pricing, policy, or API changes. Validate what is truly proprietary, how easily competitors can replicate the experience, and whether pricing power has changed over time.',
+      "Being an 'AI wrapper' can be a valid GTM strategy for speed. The strategic risk is whether value is derived from proprietary data, workflow integration, and distribution, or whether the company is effectively renting a moat from a larger model provider that could be diminished by pricing, policy, or API changes. Validate what is truly proprietary, how easily competitors can replicate the experience, and whether pricing power has changed over time.",
     relevance: 'high',
     conditions: {
       productTypes: ['b2b-saas'],
@@ -243,7 +240,7 @@ const attentionAreasData: AttentionArea[] = [
     id: 'attention-manual-ops-masking',
     title: 'Manual Operations Masking',
     description:
-      'High revenue with low headcount can signal elite efficiency, or a fragile operating model dependent on concentrated tribal knowledge and manual intervention. If the latter, scaling breaks because the process isn\'t encoded in systems. Validate by tracing core workflows end-to-end, reviewing exception handling and staffing coverage, and confirming whether runbooks/telemetry exist to reduce person-dependency.',
+      "High revenue with low headcount can signal elite efficiency, or a fragile operating model dependent on concentrated tribal knowledge and manual intervention. If the latter, scaling breaks because the process isn't encoded in systems. Validate by tracing core workflows end-to-end, reviewing exception handling and staffing coverage, and confirming whether runbooks/telemetry exist to reduce person-dependency.",
     relevance: 'high',
     conditions: {
       revenueMin: '25-100m',

@@ -1,7 +1,7 @@
 ---
 name: test-automation-specialist
 description: Expert in comprehensive test automation strategies including unit, integration, E2E, and performance testing with modern frameworks
-tools: ["*"]
+tools: ['*']
 ---
 
 # Test Automation Specialist
@@ -11,12 +11,14 @@ A specialized agent for implementing comprehensive test automation strategies us
 ## Core Capabilities
 
 ### Testing Pyramid
+
 - **Unit Tests**: Fast, isolated tests for individual components
 - **Integration Tests**: Tests for component interactions and external services
 - **End-to-End Tests**: Full user journey testing
 - **Contract Tests**: API contract validation
 
 ### Testing Strategies
+
 - Test-Driven Development (TDD)
 - Behavior-Driven Development (BDD)
 - Property-based testing
@@ -24,6 +26,7 @@ A specialized agent for implementing comprehensive test automation strategies us
 - Visual regression testing
 
 ### Frameworks & Tools
+
 - **JavaScript/TypeScript**: Jest, Vitest, Cypress, Playwright, Testing Library
 - **Python**: pytest, unittest, hypothesis, behave
 - **Java**: JUnit 5, TestNG, Mockito, Testcontainers
@@ -32,17 +35,14 @@ A specialized agent for implementing comprehensive test automation strategies us
 ## Testing Implementations
 
 ### JavaScript/TypeScript Test Suite
+
 ```typescript
 // jest.config.js
 export default {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
-  collectCoverageFrom: [
-    'src/**/*.{ts,tsx}',
-    '!src/**/*.d.ts',
-    '!src/test/**/*',
-  ],
+  collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts', '!src/test/**/*'],
   coverageThreshold: {
     global: {
       branches: 80,
@@ -66,7 +66,7 @@ configure({ testIdAttribute: 'data-testid' });
 // Mock global objects
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation(query => ({
+  value: jest.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -80,6 +80,7 @@ Object.defineProperty(window, 'matchMedia', {
 ```
 
 ### Unit Testing Patterns
+
 ```typescript
 // src/services/UserService.test.ts
 import { UserService } from './UserService';
@@ -124,12 +125,8 @@ describe('UserService', () => {
 
       // Assert
       expect(result).toEqual(expectedUser);
-      expect(mockUserRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining(userData)
-      );
-      expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith(
-        userData.email
-      );
+      expect(mockUserRepository.save).toHaveBeenCalledWith(expect.objectContaining(userData));
+      expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith(userData.email);
     });
 
     it('should throw error for invalid email format', async () => {
@@ -141,9 +138,7 @@ describe('UserService', () => {
       };
 
       // Act & Assert
-      await expect(userService.createUser(invalidUserData))
-        .rejects
-        .toThrow('Invalid email format');
+      await expect(userService.createUser(invalidUserData)).rejects.toThrow('Invalid email format');
 
       expect(mockUserRepository.save).not.toHaveBeenCalled();
     });
@@ -156,14 +151,10 @@ describe('UserService', () => {
         age: 25,
       };
 
-      mockUserRepository.save.mockRejectedValue(
-        new Error('Database connection failed')
-      );
+      mockUserRepository.save.mockRejectedValue(new Error('Database connection failed'));
 
       // Act & Assert
-      await expect(userService.createUser(userData))
-        .rejects
-        .toThrow('Failed to create user');
+      await expect(userService.createUser(userData)).rejects.toThrow('Failed to create user');
 
       expect(mockEmailService.sendWelcomeEmail).not.toHaveBeenCalled();
     });
@@ -205,6 +196,7 @@ describe('UserService', () => {
 ```
 
 ### React Component Testing
+
 ```typescript
 // src/components/UserProfile.test.tsx
 import React from 'react';
@@ -307,6 +299,7 @@ describe('UserProfile', () => {
 ```
 
 ### Integration Testing
+
 ```typescript
 // src/test/integration/UserAPI.integration.test.ts
 import request from 'supertest';
@@ -340,10 +333,7 @@ describe('User API Integration', () => {
       };
 
       // Act
-      const response = await request(app)
-        .post('/api/users')
-        .send(userData)
-        .expect(201);
+      const response = await request(app).post('/api/users').send(userData).expect(201);
 
       // Assert
       expect(response.body).toMatchObject({
@@ -369,16 +359,10 @@ describe('User API Integration', () => {
       };
 
       // Create first user
-      await request(app)
-        .post('/api/users')
-        .send(userData)
-        .expect(201);
+      await request(app).post('/api/users').send(userData).expect(201);
 
       // Act - try to create duplicate
-      const response = await request(app)
-        .post('/api/users')
-        .send(userData)
-        .expect(400);
+      const response = await request(app).post('/api/users').send(userData).expect(400);
 
       // Assert
       expect(response.body.error).toContain('Email already exists');
@@ -388,20 +372,16 @@ describe('User API Integration', () => {
   describe('GET /api/users/:id', () => {
     it('should return user by ID', async () => {
       // Arrange
-      const createResponse = await request(app)
-        .post('/api/users')
-        .send({
-          email: 'test@example.com',
-          name: 'John Doe',
-          age: 25,
-        });
+      const createResponse = await request(app).post('/api/users').send({
+        email: 'test@example.com',
+        name: 'John Doe',
+        age: 25,
+      });
 
       const userId = createResponse.body.id;
 
       // Act
-      const response = await request(app)
-        .get(`/api/users/${userId}`)
-        .expect(200);
+      const response = await request(app).get(`/api/users/${userId}`).expect(200);
 
       // Assert
       expect(response.body).toMatchObject({
@@ -414,15 +394,14 @@ describe('User API Integration', () => {
 
     it('should return 404 for non-existent user', async () => {
       // Act
-      await request(app)
-        .get('/api/users/nonexistent-id')
-        .expect(404);
+      await request(app).get('/api/users/nonexistent-id').expect(404);
     });
   });
 });
 ```
 
 ### End-to-End Testing with Playwright
+
 ```typescript
 // e2e/user-management.spec.ts
 import { test, expect, Page } from '@playwright/test';
@@ -455,15 +434,15 @@ test.describe('User Management', () => {
     await page.click('[data-testid="submit-button"]');
 
     // Verify success message
-    await expect(page.locator('[data-testid="success-message"]'))
-      .toContainText('User created successfully');
+    await expect(page.locator('[data-testid="success-message"]')).toContainText(
+      'User created successfully'
+    );
 
     // Verify redirect to users list
     await expect(page).toHaveURL('/users');
 
     // Verify user appears in list
-    await expect(page.locator('[data-testid="user-row"]'))
-      .toContainText('John Doe');
+    await expect(page.locator('[data-testid="user-row"]')).toContainText('John Doe');
   });
 
   test('should edit existing user', async ({ page }) => {
@@ -485,11 +464,11 @@ test.describe('User Management', () => {
     await page.click('[data-testid="submit-button"]');
 
     // Verify update
-    await expect(page.locator('[data-testid="success-message"]'))
-      .toContainText('User updated successfully');
+    await expect(page.locator('[data-testid="success-message"]')).toContainText(
+      'User updated successfully'
+    );
 
-    await expect(page.locator('[data-testid="user-row"]'))
-      .toContainText('Jane Johnson');
+    await expect(page.locator('[data-testid="user-row"]')).toContainText('Jane Johnson');
   });
 
   test('should delete user with confirmation', async ({ page }) => {
@@ -506,14 +485,12 @@ test.describe('User Management', () => {
     await page.click('[data-testid="delete-user-test@example.com"]');
 
     // Confirm deletion
-    await expect(page.locator('[data-testid="confirm-dialog"]'))
-      .toBeVisible();
+    await expect(page.locator('[data-testid="confirm-dialog"]')).toBeVisible();
 
     await page.click('[data-testid="confirm-delete-button"]');
 
     // Verify user is removed
-    await expect(page.locator('[data-testid="user-row"]:has-text("Test User")'))
-      .toHaveCount(0);
+    await expect(page.locator('[data-testid="user-row"]:has-text("Test User")')).toHaveCount(0);
   });
 
   test('should validate form inputs', async ({ page }) => {
@@ -523,26 +500,28 @@ test.describe('User Management', () => {
     await page.click('[data-testid="submit-button"]');
 
     // Check validation errors
-    await expect(page.locator('[data-testid="name-error"]'))
-      .toContainText('Name is required');
+    await expect(page.locator('[data-testid="name-error"]')).toContainText('Name is required');
 
-    await expect(page.locator('[data-testid="email-error"]'))
-      .toContainText('Email is required');
+    await expect(page.locator('[data-testid="email-error"]')).toContainText('Email is required');
 
     // Check invalid email
     await page.fill('[data-testid="email-input"]', 'invalid-email');
     await page.click('[data-testid="submit-button"]');
 
-    await expect(page.locator('[data-testid="email-error"]'))
-      .toContainText('Please enter a valid email');
+    await expect(page.locator('[data-testid="email-error"]')).toContainText(
+      'Please enter a valid email'
+    );
   });
 });
 
-async function createTestUser(page: Page, userData: {
-  name: string;
-  email: string;
-  role: string;
-}) {
+async function createTestUser(
+  page: Page,
+  userData: {
+    name: string;
+    email: string;
+    role: string;
+  }
+) {
   await page.goto('/users/create');
   await page.fill('[data-testid="name-input"]', userData.name);
   await page.fill('[data-testid="email-input"]', userData.email);
@@ -553,6 +532,7 @@ async function createTestUser(page: Page, userData: {
 ```
 
 ### Property-Based Testing
+
 ```typescript
 // src/utils/validation.test.ts
 import fc from 'fast-check';
@@ -562,19 +542,16 @@ describe('Validation Utils - Property Based Tests', () => {
   describe('validateEmail', () => {
     test('should accept valid email formats', () => {
       fc.assert(
-        fc.property(
-          fc.emailAddress(),
-          (email) => {
-            expect(validateEmail(email)).toBe(true);
-          }
-        )
+        fc.property(fc.emailAddress(), (email) => {
+          expect(validateEmail(email)).toBe(true);
+        })
       );
     });
 
     test('should reject strings without @ symbol', () => {
       fc.assert(
         fc.property(
-          fc.string().filter(s => !s.includes('@') && s.length > 0),
+          fc.string().filter((s) => !s.includes('@') && s.length > 0),
           (invalidEmail) => {
             expect(validateEmail(invalidEmail)).toBe(false);
           }
@@ -585,33 +562,29 @@ describe('Validation Utils - Property Based Tests', () => {
 
   describe('validatePassword', () => {
     test('should accept passwords meeting criteria', () => {
-      const validPasswordArb = fc.string({
-        minLength: 8,
-        maxLength: 50,
-      }).map(s => s + 'A1!'); // Ensure requirements are met
+      const validPasswordArb = fc
+        .string({
+          minLength: 8,
+          maxLength: 50,
+        })
+        .map((s) => s + 'A1!'); // Ensure requirements are met
 
       fc.assert(
-        fc.property(
-          validPasswordArb,
-          (password) => {
-            const result = validatePassword(password);
-            expect(result.isValid).toBe(true);
-            expect(result.errors).toHaveLength(0);
-          }
-        )
+        fc.property(validPasswordArb, (password) => {
+          const result = validatePassword(password);
+          expect(result.isValid).toBe(true);
+          expect(result.errors).toHaveLength(0);
+        })
       );
     });
 
     test('should reject passwords that are too short', () => {
       fc.assert(
-        fc.property(
-          fc.string({ maxLength: 7 }),
-          (shortPassword) => {
-            const result = validatePassword(shortPassword);
-            expect(result.isValid).toBe(false);
-            expect(result.errors).toContain('Password must be at least 8 characters');
-          }
-        )
+        fc.property(fc.string({ maxLength: 7 }), (shortPassword) => {
+          const result = validatePassword(shortPassword);
+          expect(result.isValid).toBe(false);
+          expect(result.errors).toContain('Password must be at least 8 characters');
+        })
       );
     });
   });
@@ -619,28 +592,20 @@ describe('Validation Utils - Property Based Tests', () => {
   describe('sanitizeInput', () => {
     test('should always return a string', () => {
       fc.assert(
-        fc.property(
-          fc.anything(),
-          (input) => {
-            const result = sanitizeInput(input);
-            expect(typeof result).toBe('string');
-          }
-        )
+        fc.property(fc.anything(), (input) => {
+          const result = sanitizeInput(input);
+          expect(typeof result).toBe('string');
+        })
       );
     });
 
     test('should remove HTML tags', () => {
       fc.assert(
-        fc.property(
-          fc.string(),
-          fc.string(),
-          fc.string(),
-          (before, tag, after) => {
-            const input = `${before}<${tag}>${after}</${tag}>`;
-            const result = sanitizeInput(input);
-            expect(result).not.toMatch(/<[^>]*>/);
-          }
-        )
+        fc.property(fc.string(), fc.string(), fc.string(), (before, tag, after) => {
+          const input = `${before}<${tag}>${after}</${tag}>`;
+          const result = sanitizeInput(input);
+          expect(result).not.toMatch(/<[^>]*>/);
+        })
       );
     });
   });
@@ -648,6 +613,7 @@ describe('Validation Utils - Property Based Tests', () => {
 ```
 
 ### Performance Testing
+
 ```typescript
 // src/test/performance/load-test.spec.ts
 import { test, expect } from '@playwright/test';
@@ -660,8 +626,10 @@ test.describe('Performance Tests', () => {
     // Get performance metrics
     const metrics = await page.evaluate(() => {
       const timing = performance.timing;
-      const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-      
+      const navigation = performance.getEntriesByType(
+        'navigation'
+      )[0] as PerformanceNavigationTiming;
+
       return {
         loadTime: timing.loadEventEnd - timing.navigationStart,
         domContentLoaded: timing.domContentLoadedEventEnd - timing.navigationStart,
@@ -679,11 +647,11 @@ test.describe('Performance Tests', () => {
 
   test('API endpoints should respond within SLA', async ({ page }) => {
     const startTime = Date.now();
-    
+
     const response = await page.request.get('/api/users');
-    
+
     const responseTime = Date.now() - startTime;
-    
+
     expect(response.ok()).toBe(true);
     expect(responseTime).toBeLessThan(500); // 500ms SLA
   });
@@ -691,6 +659,7 @@ test.describe('Performance Tests', () => {
 ```
 
 ### Test Data Management
+
 ```typescript
 // src/test/fixtures/userFixtures.ts
 export const UserFixtures = {
@@ -708,8 +677,7 @@ export const UserFixtures = {
     permissions: ['read', 'write', 'delete'],
   }),
 
-  multipleUsers: (count: number) => 
-    Array.from({ length: count }, () => UserFixtures.validUser()),
+  multipleUsers: (count: number) => Array.from({ length: count }, () => UserFixtures.validUser()),
 
   userWithoutEmail: () => {
     const user = UserFixtures.validUser();
@@ -729,7 +697,7 @@ export class DatabaseFixtures {
 
   async createUsersWithOrders(userCount: number, ordersPerUser: number) {
     const users = [];
-    
+
     for (let i = 0; i < userCount; i++) {
       const user = await this.createUser();
       users.push(user);
@@ -749,6 +717,7 @@ export class DatabaseFixtures {
 ```
 
 ### CI/CD Test Configuration
+
 ```yaml
 # .github/workflows/test.yml
 name: Test Suite
@@ -762,28 +731,28 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run unit tests
         run: npm run test:unit -- --coverage --watchAll=false
-      
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
 
   integration-tests:
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: postgres:14
@@ -795,19 +764,19 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run integration tests
         run: npm run test:integration
         env:
@@ -815,28 +784,28 @@ jobs:
 
   e2e-tests:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Install Playwright
         run: npx playwright install --with-deps
-      
+
       - name: Build application
         run: npm run build
-      
+
       - name: Run E2E tests
         run: npm run test:e2e
-      
+
       - name: Upload test results
         uses: actions/upload-artifact@v3
         if: always()

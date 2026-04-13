@@ -17,17 +17,17 @@ The Hub Tools migration (Stages 1-5) brutalized all five tool pages into a cohes
 
 ### Technical Debt Eliminated
 
-| Debt Category | Current State | After Migration |
-|---|---|---|
-| **Hardcoded colors** | 12+ hex/rgba values outside variables (`#b26622`, `#d4923a`, `rgba(26,26,26,0.95)`) | All colors via CSS variables |
-| **Inconsistent dark theme** | About, Services, Privacy, Terms pages have incomplete `:global(html.dark-theme)` overrides; hero text colors hardcoded in global.css | Standardized `rgba(255, 255, 255, 0.15)` borders; all colors via theme-aware variables |
-| **Duplicate CSS** | ~1,200 lines of scoped CSS across 20+ components redefining spacing, typography, and hover states already available in the design system | Scoped CSS reduced to layout/positioning only |
-| **Mixed typography** | Marketing pages use `.heading-*` / `.text-*` (sans-serif); tools use `.brutal-heading-*` / `.brutal-text-*` (monospace) | Single typographic voice site-wide |
-| **Inconsistent border-radius** | 20+ instances of `4px` / `8px` radius on cards, badges, FAQ items | `border-radius: 0` everywhere |
-| **Inconsistent box-shadow** | 15+ instances of `box-shadow` on cards, hover states, modals | Removed — structural borders replace depth cues |
-| **Hardcoded transitions** | `0.2s` / `0.3s` in About, Services pages | `--transition-fast` / `--transition-normal` variables |
-| **Missing print styles** | Portfolio, Radar, Hub gateways, Library pages have no `@media print` | Branded print output for all content pages |
-| **No reusable hero/CTA classes** | Hero and CTA styles live in global.css as element selectors, not composable classes | `.brutal-hero`, `.brutal-cta` class families |
+| Debt Category                    | Current State                                                                                                                            | After Migration                                                                        |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **Hardcoded colors**             | 12+ hex/rgba values outside variables (`#b26622`, `#d4923a`, `rgba(26,26,26,0.95)`)                                                      | All colors via CSS variables                                                           |
+| **Inconsistent dark theme**      | About, Services, Privacy, Terms pages have incomplete `:global(html.dark-theme)` overrides; hero text colors hardcoded in global.css     | Standardized `rgba(255, 255, 255, 0.15)` borders; all colors via theme-aware variables |
+| **Duplicate CSS**                | ~1,200 lines of scoped CSS across 20+ components redefining spacing, typography, and hover states already available in the design system | Scoped CSS reduced to layout/positioning only                                          |
+| **Mixed typography**             | Marketing pages use `.heading-*` / `.text-*` (sans-serif); tools use `.brutal-heading-*` / `.brutal-text-*` (monospace)                  | Single typographic voice site-wide                                                     |
+| **Inconsistent border-radius**   | 20+ instances of `4px` / `8px` radius on cards, badges, FAQ items                                                                        | `border-radius: 0` everywhere                                                          |
+| **Inconsistent box-shadow**      | 15+ instances of `box-shadow` on cards, hover states, modals                                                                             | Removed — structural borders replace depth cues                                        |
+| **Hardcoded transitions**        | `0.2s` / `0.3s` in About, Services pages                                                                                                 | `--transition-fast` / `--transition-normal` variables                                  |
+| **Missing print styles**         | Portfolio, Radar, Hub gateways, Library pages have no `@media print`                                                                     | Branded print output for all content pages                                             |
+| **No reusable hero/CTA classes** | Hero and CTA styles live in global.css as element selectors, not composable classes                                                      | `.brutal-hero`, `.brutal-cta` class families                                           |
 
 ---
 
@@ -48,17 +48,17 @@ Each stage migrates a logical group of related pages/components. Between stages,
 
 ### Migration Order (simplest -> most complex)
 
-| Stage | Scope | Scoped CSS | border-radius | box-shadow | Hardcoded Colors | Effort |
-|-------|-------|-----------|--------------|-----------|-----------------|--------|
-| 1 | ~~Site Chrome (Header, Footer, Breadcrumb, ThemeToggle)~~ | ~~48 lines~~ | ~~0~~ | ~~0~~ | ~~0~~ | ~~Complete~~ |
-| 2 | ~~Shared Components (Hero, CTASection, StatsBar) + global.css marketing sections~~ | ~~0 scoped + ~200 global~~ | ~~0~~ | ~~0~~ | ~~3 (hero text)~~ | ~~Complete~~ |
-| 3 | ~~Legal & Error (Privacy, Terms, 404)~~ | ~~90 lines~~ | ~~0~~ | ~~0~~ | ~~2~~ | ~~Complete~~ |
-| 4 | ~~Homepage Sections (WhoWeSupport, WhatWeDo, WhyClientsTrustUs, EngagementFlow)~~ | ~~297 lines~~ | ~~6~~ | ~~6~~ | ~~3~~ | ~~Complete~~ |
-| 5 | ~~About & Services Pages~~ | ~~344 lines~~ | ~~6~~ | ~~3~~ | ~~4~~ | ~~Complete~~ |
-| 6 | ~~Hub Gateways & Library (hub/index, library/index, tools/index, VDR Structure, Business Architectures)~~ | ~~232 lines~~ | ~~7~~ | ~~3~~ | ~~4~~ | ~~Complete~~ |
-| 7 | ~~Radar Feed (CategoryFilter, FyiItem, WireItem, RadarFeed, RadarHeader)~~ | ~~140+ lines~~ | ~~2~~ | ~~0~~ | ~~4~~ | ~~Complete~~ |
-| 8 | ~~M&A Portfolio (PortfolioGrid, PortfolioHeader, PortfolioSummary, StickyControls, ProjectModal)~~ | ~~500+ lines~~ | ~~0~~ | ~~3+~~ | ~~4+~~ | ~~Complete~~ |
-| 9 | ~~Hub Tools Carryover Audit~~ | ~~0~~ | ~~0~~ | ~~0~~ | ~~0~~ | ~~Complete~~ |
+| Stage | Scope                                                                                                     | Scoped CSS                 | border-radius | box-shadow | Hardcoded Colors  | Effort       |
+| ----- | --------------------------------------------------------------------------------------------------------- | -------------------------- | ------------- | ---------- | ----------------- | ------------ |
+| 1     | ~~Site Chrome (Header, Footer, Breadcrumb, ThemeToggle)~~                                                 | ~~48 lines~~               | ~~0~~         | ~~0~~      | ~~0~~             | ~~Complete~~ |
+| 2     | ~~Shared Components (Hero, CTASection, StatsBar) + global.css marketing sections~~                        | ~~0 scoped + ~200 global~~ | ~~0~~         | ~~0~~      | ~~3 (hero text)~~ | ~~Complete~~ |
+| 3     | ~~Legal & Error (Privacy, Terms, 404)~~                                                                   | ~~90 lines~~               | ~~0~~         | ~~0~~      | ~~2~~             | ~~Complete~~ |
+| 4     | ~~Homepage Sections (WhoWeSupport, WhatWeDo, WhyClientsTrustUs, EngagementFlow)~~                         | ~~297 lines~~              | ~~6~~         | ~~6~~      | ~~3~~             | ~~Complete~~ |
+| 5     | ~~About & Services Pages~~                                                                                | ~~344 lines~~              | ~~6~~         | ~~3~~      | ~~4~~             | ~~Complete~~ |
+| 6     | ~~Hub Gateways & Library (hub/index, library/index, tools/index, VDR Structure, Business Architectures)~~ | ~~232 lines~~              | ~~7~~         | ~~3~~      | ~~4~~             | ~~Complete~~ |
+| 7     | ~~Radar Feed (CategoryFilter, FyiItem, WireItem, RadarFeed, RadarHeader)~~                                | ~~140+ lines~~             | ~~2~~         | ~~0~~      | ~~4~~             | ~~Complete~~ |
+| 8     | ~~M&A Portfolio (PortfolioGrid, PortfolioHeader, PortfolioSummary, StickyControls, ProjectModal)~~        | ~~500+ lines~~             | ~~0~~         | ~~3+~~     | ~~4+~~            | ~~Complete~~ |
+| 9     | ~~Hub Tools Carryover Audit~~                                                                             | ~~0~~                      | ~~0~~         | ~~0~~      | ~~0~~             | ~~Complete~~ |
 
 ---
 
@@ -75,14 +75,14 @@ Each stage migrates a logical group of related pages/components. Between stages,
 
 ### Migration Tasks
 
-| Task | Details |
-|---|---|
+| Task                  | Details                                                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | **Header typography** | Nav links → `.brutal-label` (monospace, uppercase). Logo text → monospace. Active link indicator → 2px hard underline (no gradient/glow) |
-| **Header borders** | Replace `border-bottom: 4px solid var(--color-primary)` with `2px solid var(--color-primary)` (structural, not decorative) |
-| **Footer typography** | All footer text → monospace. Link hover → primary-color underline reveal (`.brutal-link-interactive` pattern) |
-| **Footer borders** | Top border → `2px solid var(--border-light)`. Dark theme → `rgba(255, 255, 255, 0.15)` |
-| **Breadcrumb** | Already clean. Switch to `.brutal-text-small` for font, verify monospace rendering |
-| **ThemeToggle** | Minimal changes — verify icon container has no radius, borders are structural |
+| **Header borders**    | Replace `border-bottom: 4px solid var(--color-primary)` with `2px solid var(--color-primary)` (structural, not decorative)               |
+| **Footer typography** | All footer text → monospace. Link hover → primary-color underline reveal (`.brutal-link-interactive` pattern)                            |
+| **Footer borders**    | Top border → `2px solid var(--border-light)`. Dark theme → `rgba(255, 255, 255, 0.15)`                                                   |
+| **Breadcrumb**        | Already clean. Switch to `.brutal-text-small` for font, verify monospace rendering                                                       |
+| **ThemeToggle**       | Minimal changes — verify icon container has no radius, borders are structural                                                            |
 
 ### New Brutalist Classes Expected
 
@@ -118,6 +118,7 @@ None — site chrome should reuse existing `.brutal-label`, `.brutal-link-intera
 ### Global CSS Sections to Migrate
 
 **Hero** (global.css ~lines 571-680):
+
 - Hardcoded `rgba(26, 26, 26, 0.95)` on hero h1 — replace with `var(--text-primary)`
 - Hardcoded hero paragraph colors — replace with `var(--text-secondary)`
 - Hero highlight spans use `var(--color-primary)` (keep)
@@ -125,24 +126,26 @@ None — site chrome should reuse existing `.brutal-label`, `.brutal-link-intera
 - Grid layout and responsive breakpoints (keep structure, remove any radius/shadow)
 
 **Stats Bar** (global.css ~lines 749-781):
+
 - Switch stat values to `.brutal-data` or monospace
 - Switch stat labels to `.brutal-label`
 - Remove any soft borders/shadows
 
 **CTA Section**:
+
 - No scoped CSS currently. Ensure CTA buttons use `.brutal-btn--primary`
 - Section heading → `.brutal-heading-lg`
 
 ### New Brutalist Classes Expected
 
-| Class | Purpose |
-|---|---|
-| `.brutal-hero` | Hero container — no radius, structural borders |
-| `.brutal-hero__title` | Monospace hero h1 with theme-aware color variable |
-| `.brutal-hero__subtitle` | Monospace subtitle, secondary text color |
-| `.brutal-hero__description` | Monospace body text |
-| `.brutal-hero__trustline` | Monospace small trust indicator |
-| `.brutal-hero__actions` | Button container layout |
+| Class                       | Purpose                                           |
+| --------------------------- | ------------------------------------------------- |
+| `.brutal-hero`              | Hero container — no radius, structural borders    |
+| `.brutal-hero__title`       | Monospace hero h1 with theme-aware color variable |
+| `.brutal-hero__subtitle`    | Monospace subtitle, secondary text color          |
+| `.brutal-hero__description` | Monospace body text                               |
+| `.brutal-hero__trustline`   | Monospace small trust indicator                   |
+| `.brutal-hero__actions`     | Button container layout                           |
 
 ### Pause Point Checklist
 
@@ -177,12 +180,12 @@ None — site chrome should reuse existing `.brutal-label`, `.brutal-link-intera
 
 ### Direct Swaps
 
-| Current Pattern | Brutalist Replacement | Files |
-|---|---|---|
+| Current Pattern                           | Brutalist Replacement                                                    | Files          |
+| ----------------------------------------- | ------------------------------------------------------------------------ | -------------- |
 | `rgba(5, 205, 153, 0.3)` hardcoded accent | `var(--color-primary)` with opacity via `color-mix()` or accent variable | Privacy, Terms |
-| `rgba(245, 245, 245, 0.1)` dark override | `rgba(255, 255, 255, 0.15)` standardized | Privacy, Terms |
-| `.heading-md` / `.text-base` | `.brutal-heading-md` / `.brutal-text-base` | Privacy, Terms |
-| Section headings (h2, h3) | Monospace, uppercase | Privacy, Terms |
+| `rgba(245, 245, 245, 0.1)` dark override  | `rgba(255, 255, 255, 0.15)` standardized                                 | Privacy, Terms |
+| `.heading-md` / `.text-base`              | `.brutal-heading-md` / `.brutal-text-base`                               | Privacy, Terms |
+| Section headings (h2, h3)                 | Monospace, uppercase                                                     | Privacy, Terms |
 
 ### 404 Page
 
@@ -190,12 +193,12 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 
 ### Migration Tasks
 
-| Task | Details |
-|---|---|
+| Task                      | Details                                                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | **Legal page typography** | All body text → `.brutal-text-base`. Headings → `.brutal-heading-md` / `.brutal-heading-sm`. Lists → monospace |
-| **Legal page borders** | Section dividers → `2px solid var(--border-light)`. Dark theme → `rgba(255, 255, 255, 0.15)` |
-| **Accent colors** | Replace hardcoded `rgba(5, 205, 153, 0.3)` with design system variable |
-| **Print styles** | Add branded print header/footer for legal documents (useful for compliance printing) |
+| **Legal page borders**    | Section dividers → `2px solid var(--border-light)`. Dark theme → `rgba(255, 255, 255, 0.15)`                   |
+| **Accent colors**         | Replace hardcoded `rgba(5, 205, 153, 0.3)` with design system variable                                         |
+| **Print styles**          | Add branded print header/footer for legal documents (useful for compliance printing)                           |
 
 ### Pause Point Checklist
 
@@ -227,35 +230,35 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 
 ### Direct Swaps
 
-| Current Pattern | Brutalist Replacement | Components |
-|---|---|---|
-| `border-radius: 8px` | `border-radius: 0` | WhyClientsTrustUs, EngagementFlow |
-| `box-shadow: 0 4px 12px rgba(...)` | Remove — use `2px solid var(--border-light)` | WhyClientsTrustUs, EngagementFlow |
-| `.heading-md` / `.heading-lg` | `.brutal-heading-md` / `.brutal-heading-lg` | All 4 components |
-| `.text-base` / `.text-small` | `.brutal-text-base` / `.brutal-text-small` | All 4 components |
-| Gradient section backgrounds | Flat background with optional subtle border divider | WhoWeSupport, WhatWeDo |
+| Current Pattern                    | Brutalist Replacement                               | Components                        |
+| ---------------------------------- | --------------------------------------------------- | --------------------------------- |
+| `border-radius: 8px`               | `border-radius: 0`                                  | WhyClientsTrustUs, EngagementFlow |
+| `box-shadow: 0 4px 12px rgba(...)` | Remove — use `2px solid var(--border-light)`        | WhyClientsTrustUs, EngagementFlow |
+| `.heading-md` / `.heading-lg`      | `.brutal-heading-md` / `.brutal-heading-lg`         | All 4 components                  |
+| `.text-base` / `.text-small`       | `.brutal-text-base` / `.brutal-text-small`          | All 4 components                  |
+| Gradient section backgrounds       | Flat background with optional subtle border divider | WhoWeSupport, WhatWeDo            |
 
 ### Migration Tasks
 
-| Task | Details |
-|---|---|
-| **Section titles** | All → `.brutal-heading-lg` (monospace, uppercase) |
-| **Body text** | All → `.brutal-text-base` (monospace) |
-| **Cards** | Remove radius and shadow. Add `2px solid var(--border-light)` borders. Dark theme → `rgba(255, 255, 255, 0.15)` |
-| **Delta bullets** | Keep SVG delta icon. Verify monospace label text |
-| **Engagement flow steps** | Remove radius on step cards. Arrows → structural (hard lines, no soft curves) |
-| **Trust indicators** | Square cards, hard borders, monospace stat values (`.brutal-data`) |
-| **Hover states** | Replace shadow-lift with border-color change to `var(--color-primary)` (`.brutal-interactive` pattern) |
-| **Section backgrounds** | Remove gradients. Use flat `transparent` or `var(--bg-light-alt)` with hard border dividers |
+| Task                      | Details                                                                                                         |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Section titles**        | All → `.brutal-heading-lg` (monospace, uppercase)                                                               |
+| **Body text**             | All → `.brutal-text-base` (monospace)                                                                           |
+| **Cards**                 | Remove radius and shadow. Add `2px solid var(--border-light)` borders. Dark theme → `rgba(255, 255, 255, 0.15)` |
+| **Delta bullets**         | Keep SVG delta icon. Verify monospace label text                                                                |
+| **Engagement flow steps** | Remove radius on step cards. Arrows → structural (hard lines, no soft curves)                                   |
+| **Trust indicators**      | Square cards, hard borders, monospace stat values (`.brutal-data`)                                              |
+| **Hover states**          | Replace shadow-lift with border-color change to `var(--color-primary)` (`.brutal-interactive` pattern)          |
+| **Section backgrounds**   | Remove gradients. Use flat `transparent` or `var(--bg-light-alt)` with hard border dividers                     |
 
 ### New Brutalist Classes Expected
 
-| Class | Purpose |
-|---|---|
-| `.brutal-section` | Reusable page section with hard border dividers, monospace headings |
-| `.brutal-card` | Base card — no radius, 2px border, transparent bg, primary-border hover |
-| `.brutal-card__title` | Monospace card heading |
-| `.brutal-card__body` | Monospace card body text |
+| Class                 | Purpose                                                                 |
+| --------------------- | ----------------------------------------------------------------------- |
+| `.brutal-section`     | Reusable page section with hard border dividers, monospace headings     |
+| `.brutal-card`        | Base card — no radius, 2px border, transparent bg, primary-border hover |
+| `.brutal-card__title` | Monospace card heading                                                  |
+| `.brutal-card__body`  | Monospace card body text                                                |
 
 ### Pause Point Checklist
 
@@ -291,44 +294,44 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 
 ### About Page Debt
 
-| Issue | Location | Fix |
-|---|---|---|
-| 3x `border-radius` (4px, 8px) | Founder image, bio card | `border-radius: 0` |
-| 1x `box-shadow` | Bio card | Remove → `2px solid var(--border-light)` |
-| 2x hardcoded rgba colors | Section backgrounds | Replace with design system variables |
-| Missing dark theme parity | Multiple rgba values without overrides | Add `:global(html.dark-theme)` for all borders/backgrounds |
-| 2x hardcoded transitions (`0.3s`) | Hover states | `var(--transition-normal)` |
+| Issue                             | Location                               | Fix                                                        |
+| --------------------------------- | -------------------------------------- | ---------------------------------------------------------- |
+| 3x `border-radius` (4px, 8px)     | Founder image, bio card                | `border-radius: 0`                                         |
+| 1x `box-shadow`                   | Bio card                               | Remove → `2px solid var(--border-light)`                   |
+| 2x hardcoded rgba colors          | Section backgrounds                    | Replace with design system variables                       |
+| Missing dark theme parity         | Multiple rgba values without overrides | Add `:global(html.dark-theme)` for all borders/backgrounds |
+| 2x hardcoded transitions (`0.3s`) | Hover states                           | `var(--transition-normal)`                                 |
 
 ### Services Page Debt
 
-| Issue | Location | Fix |
-|---|---|---|
-| 3x `border-radius` (8px) | Service cards, FAQ items | `border-radius: 0` |
-| 2x `box-shadow` | Service cards, FAQ hover | Remove → structural borders |
-| 2x hardcoded rgba colors | FAQ background | Replace with variables |
-| FAQ accordion | Custom `<details>` styling | Map to `.brutal-faq` (created during RegMap Stage 2) |
-| 2x hardcoded transitions (0.3s, 0.2s) | Card hover, FAQ toggle | `var(--transition-normal)` / `var(--transition-fast)` |
+| Issue                                 | Location                   | Fix                                                   |
+| ------------------------------------- | -------------------------- | ----------------------------------------------------- |
+| 3x `border-radius` (8px)              | Service cards, FAQ items   | `border-radius: 0`                                    |
+| 2x `box-shadow`                       | Service cards, FAQ hover   | Remove → structural borders                           |
+| 2x hardcoded rgba colors              | FAQ background             | Replace with variables                                |
+| FAQ accordion                         | Custom `<details>` styling | Map to `.brutal-faq` (created during RegMap Stage 2)  |
+| 2x hardcoded transitions (0.3s, 0.2s) | Card hover, FAQ toggle     | `var(--transition-normal)` / `var(--transition-fast)` |
 
 ### Direct Swaps
 
-| Current Pattern | Brutalist Replacement | Page |
-|---|---|---|
-| `.heading-lg` | `.brutal-heading-lg` | About, Services |
-| `.heading-md` | `.brutal-heading-md` | About, Services |
-| `.text-base` | `.brutal-text-base` | About, Services |
-| Service card FAQ `<details>` | `.brutal-faq__item` / `.brutal-faq__question` / `.brutal-faq__answer` | Services |
-| `transition: all 0.3s ease` | `transition: all var(--transition-normal)` | About, Services |
+| Current Pattern              | Brutalist Replacement                                                 | Page            |
+| ---------------------------- | --------------------------------------------------------------------- | --------------- |
+| `.heading-lg`                | `.brutal-heading-lg`                                                  | About, Services |
+| `.heading-md`                | `.brutal-heading-md`                                                  | About, Services |
+| `.text-base`                 | `.brutal-text-base`                                                   | About, Services |
+| Service card FAQ `<details>` | `.brutal-faq__item` / `.brutal-faq__question` / `.brutal-faq__answer` | Services        |
+| `transition: all 0.3s ease`  | `transition: all var(--transition-normal)`                            | About, Services |
 
 ### Migration Tasks
 
-| Task | Details |
-|---|---|
-| **Founder section** | Bio card → hard borders, no radius. Portrait image → square crop (no radius). Signature image → keep as-is (organic element) |
-| **Service cards** | Remove radius and shadow. Add `2px solid var(--border-light)`. Hover → primary border (`.brutal-interactive`) |
-| **FAQ accordion** | Reuse `.brutal-faq` family from RegMap migration. Remove custom radius/shadow |
-| **Section backgrounds** | Replace rgba hardcodes with design system variables |
-| **Dark theme** | Add missing overrides for all border-using elements |
-| **Print styles** | Add branded print for About (founder bio) and Services (service catalog) |
+| Task                    | Details                                                                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Founder section**     | Bio card → hard borders, no radius. Portrait image → square crop (no radius). Signature image → keep as-is (organic element) |
+| **Service cards**       | Remove radius and shadow. Add `2px solid var(--border-light)`. Hover → primary border (`.brutal-interactive`)                |
+| **FAQ accordion**       | Reuse `.brutal-faq` family from RegMap migration. Remove custom radius/shadow                                                |
+| **Section backgrounds** | Replace rgba hardcodes with design system variables                                                                          |
+| **Dark theme**          | Add missing overrides for all border-using elements                                                                          |
+| **Print styles**        | Add branded print for About (founder bio) and Services (service catalog)                                                     |
 
 ### Global CSS Sections Affected
 
@@ -366,32 +369,32 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 
 ### Direct Swaps
 
-| Current Pattern | Brutalist Replacement | Files |
-|---|---|---|
-| `border-radius: 8px` | `border-radius: 0` | hub/index (3), library/index (2), tools/index (2) |
-| `box-shadow` | `2px solid var(--border-light)` | hub/index (3) |
-| `.heading-md` / `.heading-lg` | `.brutal-heading-md` / `.brutal-heading-lg` | All |
-| `.text-base` / `.text-small` | `.brutal-text-base` / `.brutal-text-small` | All |
-| Tool/library link cards | `.brutal-card` (from Stage 4) or `.brutal-teaser-card` (existing) | hub/index, library/index, tools/index |
+| Current Pattern               | Brutalist Replacement                                             | Files                                             |
+| ----------------------------- | ----------------------------------------------------------------- | ------------------------------------------------- |
+| `border-radius: 8px`          | `border-radius: 0`                                                | hub/index (3), library/index (2), tools/index (2) |
+| `box-shadow`                  | `2px solid var(--border-light)`                                   | hub/index (3)                                     |
+| `.heading-md` / `.heading-lg` | `.brutal-heading-md` / `.brutal-heading-lg`                       | All                                               |
+| `.text-base` / `.text-small`  | `.brutal-text-base` / `.brutal-text-small`                        | All                                               |
+| Tool/library link cards       | `.brutal-card` (from Stage 4) or `.brutal-teaser-card` (existing) | hub/index, library/index, tools/index             |
 
 ### Migration Tasks
 
-| Task | Details |
-|---|---|
-| **Hub landing** | Tool/library cards → `.brutal-card` or `.brutal-teaser-card`. Remove shadows and radius. Hover → primary border |
-| **HubHeader** | Already clean — verify monospace rendering, add `.brutal-heading-lg` to title |
-| **Library index** | Document cards → square, hard borders. Category labels → `.brutal-label` |
-| **Tools index** | Tool cards → match `.brutal-teaser-card` pattern from existing design system |
-| **VDR Structure** | Content page — headings → `.brutal-heading-*`, body → `.brutal-text-base`, code blocks → hard borders |
-| **Business Architectures** | Same treatment as VDR Structure |
-| **Print styles** | Add for library content pages (useful reference documents) |
+| Task                       | Details                                                                                                         |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Hub landing**            | Tool/library cards → `.brutal-card` or `.brutal-teaser-card`. Remove shadows and radius. Hover → primary border |
+| **HubHeader**              | Already clean — verify monospace rendering, add `.brutal-heading-lg` to title                                   |
+| **Library index**          | Document cards → square, hard borders. Category labels → `.brutal-label`                                        |
+| **Tools index**            | Tool cards → match `.brutal-teaser-card` pattern from existing design system                                    |
+| **VDR Structure**          | Content page — headings → `.brutal-heading-*`, body → `.brutal-text-base`, code blocks → hard borders           |
+| **Business Architectures** | Same treatment as VDR Structure                                                                                 |
+| **Print styles**           | Add for library content pages (useful reference documents)                                                      |
 
 ### New Brutalist Classes Expected
 
-| Class | Purpose |
-|---|---|
-| `.brutal-content-page` | Document-style layout for library content — hard border sections, monospace headings, readable body |
-| `.brutal-content-page__section` | Section with 2px top border divider |
+| Class                           | Purpose                                                                                             |
+| ------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `.brutal-content-page`          | Document-style layout for library content — hard border sections, monospace headings, readable body |
+| `.brutal-content-page__section` | Section with 2px top border divider                                                                 |
 
 ### Pause Point Checklist
 
@@ -426,32 +429,32 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 
 ### Critical Fixes
 
-| Issue | Location | Fix |
-|---|---|---|
-| Hardcoded `#b26622` | FyiItem, PortfolioHeader (Editor's Pick badge bg) | Create `--color-editors-pick` variable in `variables.css` |
-| Hardcoded `#d4923a` | FyiItem, PortfolioHeader (Editor's Pick badge hover) | Create `--color-editors-pick-hover` variable in `variables.css` |
-| `border-radius` on badges | FyiItem (2 instances) | `border-radius: 0` |
+| Issue                     | Location                                             | Fix                                                             |
+| ------------------------- | ---------------------------------------------------- | --------------------------------------------------------------- |
+| Hardcoded `#b26622`       | FyiItem, PortfolioHeader (Editor's Pick badge bg)    | Create `--color-editors-pick` variable in `variables.css`       |
+| Hardcoded `#d4923a`       | FyiItem, PortfolioHeader (Editor's Pick badge hover) | Create `--color-editors-pick-hover` variable in `variables.css` |
+| `border-radius` on badges | FyiItem (2 instances)                                | `border-radius: 0`                                              |
 
 ### Direct Swaps
 
-| Current Pattern | Brutalist Replacement | Files |
-|---|---|---|
-| `.heading-md` | `.brutal-heading-md` | RadarHeader (via HubHeader) |
-| Category filter pills | `.brutal-filter-chip` (already exists) | CategoryFilter |
-| `.text-base` / `.text-small` | `.brutal-text-base` / `.brutal-text-small` | FyiItem, WireItem |
-| Feed item cards | `.brutal-card` (from Stage 4) | FyiItem, WireItem |
-| Loading skeleton | `.brutal-skeleton` (exists in global.css) | RadarFeedSkeleton |
+| Current Pattern              | Brutalist Replacement                      | Files                       |
+| ---------------------------- | ------------------------------------------ | --------------------------- |
+| `.heading-md`                | `.brutal-heading-md`                       | RadarHeader (via HubHeader) |
+| Category filter pills        | `.brutal-filter-chip` (already exists)     | CategoryFilter              |
+| `.text-base` / `.text-small` | `.brutal-text-base` / `.brutal-text-small` | FyiItem, WireItem           |
+| Feed item cards              | `.brutal-card` (from Stage 4)              | FyiItem, WireItem           |
+| Loading skeleton             | `.brutal-skeleton` (exists in global.css)  | RadarFeedSkeleton           |
 
 ### Migration Tasks
 
-| Task | Details |
-|---|---|
-| **CategoryFilter** | Verify current pills match `.brutal-filter-chip` — already variable-clean but needs monospace + no radius |
-| **FyiItem** | Card → square corners, hard borders. Source badges → monospace `.brutal-label`. Editor's Pick → new variable color. Annotation text → `.brutal-text-base` |
-| **WireItem** | Card → square corners, hard borders. Source/date → `.brutal-label-small` monospace |
-| **RadarFeedSkeleton** | Pulse animation → match `.brutal-skeleton` pattern (existing) |
-| **Editor's Pick variable** | Add `--color-editors-pick: #d4923a` and `--color-editors-pick-hover: #b26622` to `variables.css` (both themes) |
-| **Print styles** | Add for radar feed — list format, hide filter chrome, branded header/footer |
+| Task                       | Details                                                                                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CategoryFilter**         | Verify current pills match `.brutal-filter-chip` — already variable-clean but needs monospace + no radius                                                 |
+| **FyiItem**                | Card → square corners, hard borders. Source badges → monospace `.brutal-label`. Editor's Pick → new variable color. Annotation text → `.brutal-text-base` |
+| **WireItem**               | Card → square corners, hard borders. Source/date → `.brutal-label-small` monospace                                                                        |
+| **RadarFeedSkeleton**      | Pulse animation → match `.brutal-skeleton` pattern (existing)                                                                                             |
+| **Editor's Pick variable** | Add `--color-editors-pick: #d4923a` and `--color-editors-pick-hover: #b26622` to `variables.css` (both themes)                                            |
+| **Print styles**           | Add for radar feed — list format, hide filter chrome, branded header/footer                                                                               |
 
 ### Pause Point Checklist
 
@@ -485,46 +488,46 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 
 ### Critical Fixes
 
-| Issue | Location | Fix |
-|---|---|---|
+| Issue                          | Location                        | Fix                                                      |
+| ------------------------------ | ------------------------------- | -------------------------------------------------------- |
 | Hardcoded `#b26622`, `#d4923a` | PortfolioHeader (Editor's Pick) | Use `--color-editors-pick` variable (created in Stage 7) |
-| 4+ hardcoded rgba colors | PortfolioHeader section | Replace with design system variables |
-| `box-shadow` on cards/modal | PortfolioGrid, ProjectModal | Remove → hard borders |
-| `box-shadow` on header | PortfolioHeader | Remove → structural border |
+| 4+ hardcoded rgba colors       | PortfolioHeader section         | Replace with design system variables                     |
+| `box-shadow` on cards/modal    | PortfolioGrid, ProjectModal     | Remove → hard borders                                    |
+| `box-shadow` on header         | PortfolioHeader                 | Remove → structural border                               |
 
 ### Direct Swaps
 
-| Current Pattern | Brutalist Replacement | Components |
-|---|---|---|
-| `.heading-md` / `.heading-lg` | `.brutal-heading-md` / `.brutal-heading-lg` | PortfolioHeader, PortfolioSummary |
-| `.text-base` / `.text-small` | `.brutal-text-base` / `.brutal-text-small` | All |
-| `.label` / `.label-small` | `.brutal-label` / `.brutal-label-small` | Project cards, filters |
-| Filter/sort controls | `.brutal-filter-chip` + `.brutal-segmented` (existing) | StickyControls |
-| Portfolio summary gradient | Flat background or transparent | PortfolioSummary |
+| Current Pattern               | Brutalist Replacement                                  | Components                        |
+| ----------------------------- | ------------------------------------------------------ | --------------------------------- |
+| `.heading-md` / `.heading-lg` | `.brutal-heading-md` / `.brutal-heading-lg`            | PortfolioHeader, PortfolioSummary |
+| `.text-base` / `.text-small`  | `.brutal-text-base` / `.brutal-text-small`             | All                               |
+| `.label` / `.label-small`     | `.brutal-label` / `.brutal-label-small`                | Project cards, filters            |
+| Filter/sort controls          | `.brutal-filter-chip` + `.brutal-segmented` (existing) | StickyControls                    |
+| Portfolio summary gradient    | Flat background or transparent                         | PortfolioSummary                  |
 
 ### Migration Tasks
 
-| Task | Details |
-|---|---|
-| **PortfolioGrid** | Project cards → square corners, hard borders, monospace labels. Year badges → `.brutal-label`. ARR/stage metrics → `.brutal-data-sm`. Hover → primary border (not shadow lift) |
-| **PortfolioHeader** | Remove shadow. Section title → `.brutal-heading-lg`. Stat values → `.brutal-data`. Replace hardcoded colors with variables |
-| **PortfolioSummary** | Gradient → flat. Stats → `.brutal-data` + `.brutal-label` |
-| **StickyControls** | Filter pills → `.brutal-filter-chip`. Sort toggle → `.brutal-segmented`. Search → `.brutal-search` (existing from RegMap). Sticky bar border → `2px solid var(--border-light)` |
-| **ProjectModal** | Remove border-radius and box-shadow. Header → `.brutal-heading-md`. Close button → `.brutal-btn`. Detail labels → `.brutal-label`. Technology tags → `.brutal-filter-chip` (non-interactive variant) |
-| **portfolio-controls.css** | Migrate to use brutalist variables/patterns. Consider merging into global.css if small enough |
-| **Print styles** | Portfolio grid → clean card list. Modal detail → full-page print. Branded header/footer |
+| Task                       | Details                                                                                                                                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **PortfolioGrid**          | Project cards → square corners, hard borders, monospace labels. Year badges → `.brutal-label`. ARR/stage metrics → `.brutal-data-sm`. Hover → primary border (not shadow lift)                       |
+| **PortfolioHeader**        | Remove shadow. Section title → `.brutal-heading-lg`. Stat values → `.brutal-data`. Replace hardcoded colors with variables                                                                           |
+| **PortfolioSummary**       | Gradient → flat. Stats → `.brutal-data` + `.brutal-label`                                                                                                                                            |
+| **StickyControls**         | Filter pills → `.brutal-filter-chip`. Sort toggle → `.brutal-segmented`. Search → `.brutal-search` (existing from RegMap). Sticky bar border → `2px solid var(--border-light)`                       |
+| **ProjectModal**           | Remove border-radius and box-shadow. Header → `.brutal-heading-md`. Close button → `.brutal-btn`. Detail labels → `.brutal-label`. Technology tags → `.brutal-filter-chip` (non-interactive variant) |
+| **portfolio-controls.css** | Migrate to use brutalist variables/patterns. Consider merging into global.css if small enough                                                                                                        |
+| **Print styles**           | Portfolio grid → clean card list. Modal detail → full-page print. Branded header/footer                                                                                                              |
 
 ### New Brutalist Classes Expected
 
-| Class | Purpose |
-|---|---|
-| `.brutal-project-card` | Portfolio project card — hard borders, monospace labels, primary-border hover |
-| `.brutal-project-card__badge` | Year/stage badge — square, monospace, outlined |
-| `.brutal-project-card__metric` | ARR/growth metric — `.brutal-data-sm` styling |
-| `.brutal-modal` | Full-screen or overlay modal — hard borders, no radius, no shadow, 3px primary top border |
-| `.brutal-modal__header` | Modal header with close button |
-| `.brutal-modal__body` | Modal content area |
-| `.brutal-tag` | Non-interactive chip for technology tags — square, outlined, monospace |
+| Class                          | Purpose                                                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------------------- |
+| `.brutal-project-card`         | Portfolio project card — hard borders, monospace labels, primary-border hover             |
+| `.brutal-project-card__badge`  | Year/stage badge — square, monospace, outlined                                            |
+| `.brutal-project-card__metric` | ARR/growth metric — `.brutal-data-sm` styling                                             |
+| `.brutal-modal`                | Full-screen or overlay modal — hard borders, no radius, no shadow, 3px primary top border |
+| `.brutal-modal__header`        | Modal header with close button                                                            |
+| `.brutal-modal__body`          | Modal content area                                                                        |
+| `.brutal-tag`                  | Non-interactive chip for technology tags — square, outlined, monospace                    |
 
 ### Pause Point Checklist
 
@@ -562,18 +565,18 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 
 ### Carryover from Hub Tools Migration
 
-| Tool | Stage | Scoped Selectors | Examples |
-|---|---|---|---|
-| Tech Debt Calculator | HT-1 | 17 | `.result-cost-value` (clamp font-size), `.deploy-btn`, `.slider-value`, `.currency-select` |
-| Diligence Machine | HT-4 | 23 | `.doc-title`, `.doc-meta-label`, `.progress-label`, `.doc-toc a`, `.doc-attention-title` |
+| Tool                 | Stage | Scoped Selectors | Examples                                                                                   |
+| -------------------- | ----- | ---------------- | ------------------------------------------------------------------------------------------ |
+| Tech Debt Calculator | HT-1  | 17               | `.result-cost-value` (clamp font-size), `.deploy-btn`, `.slider-value`, `.currency-select` |
+| Diligence Machine    | HT-4  | 23               | `.doc-title`, `.doc-meta-label`, `.progress-label`, `.doc-toc a`, `.doc-attention-title`   |
 
 ### Audit Tasks
 
-| Task | Details |
-|---|---|
-| **Review TDC scoped selectors** | Determine if any of the 17 scoped monospace selectors now overlap with classes created during Stages 1–8. If so, replace scoped CSS with shared class and apply in markup |
-| **Review DM scoped selectors** | Same review for the 23 DM document output selectors. The document generation section is highly specialized — most will likely remain scoped |
-| **Brand page gap check** | Verify all brutalized Hub Tool controls have brand page specimens. Stages HT-2, HT-3, HT-5 confirmed clean; HT-1 and HT-4 may have gaps |
+| Task                                     | Details                                                                                                                                                                                             |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Review TDC scoped selectors**          | Determine if any of the 17 scoped monospace selectors now overlap with classes created during Stages 1–8. If so, replace scoped CSS with shared class and apply in markup                           |
+| **Review DM scoped selectors**           | Same review for the 23 DM document output selectors. The document generation section is highly specialized — most will likely remain scoped                                                         |
+| **Brand page gap check**                 | Verify all brutalized Hub Tool controls have brand page specimens. Stages HT-2, HT-3, HT-5 confirmed clean; HT-1 and HT-4 may have gaps                                                             |
 | **`.cta-button` vs `.brutal-btn` audit** | `.cta-button` in global.css already has `font-family: monospace` but coexists with `.brutal-btn`. Determine if `.cta-button` should be aliased, consolidated, or left as the marketing-page variant |
 
 ### Pause Point Checklist
@@ -599,22 +602,22 @@ Already uses only the Hero component — brutalized automatically by Stage 2. Ve
 
 Classes that will likely need to be created during migration and added to the shared stylesheets:
 
-| Class | Created During | Destination |
-|---|---|---|
+| Class                                                                                            | Created During              | Destination  |
+| ------------------------------------------------------------------------------------------------ | --------------------------- | ------------ |
 | `.brutal-hero`, `.brutal-hero__title`, `__subtitle`, `__description`, `__trustline`, `__actions` | Stage 2 (Shared Components) | `global.css` |
-| `.brutal-section` | Stage 4 (Homepage) | `global.css` |
-| `.brutal-card`, `.brutal-card__title`, `__body` | Stage 4 (Homepage) | `global.css` |
-| `.brutal-content-page`, `.brutal-content-page__section` | Stage 6 (Library) | `global.css` |
-| `.brutal-project-card`, `__badge`, `__metric` | Stage 8 (Portfolio) | `global.css` |
-| `.brutal-modal`, `__header`, `__body` | Stage 8 (Portfolio) | `global.css` |
-| `.brutal-tag` | Stage 8 (Portfolio) | `global.css` |
+| `.brutal-section`                                                                                | Stage 4 (Homepage)          | `global.css` |
+| `.brutal-card`, `.brutal-card__title`, `__body`                                                  | Stage 4 (Homepage)          | `global.css` |
+| `.brutal-content-page`, `.brutal-content-page__section`                                          | Stage 6 (Library)           | `global.css` |
+| `.brutal-project-card`, `__badge`, `__metric`                                                    | Stage 8 (Portfolio)         | `global.css` |
+| `.brutal-modal`, `__header`, `__body`                                                            | Stage 8 (Portfolio)         | `global.css` |
+| `.brutal-tag`                                                                                    | Stage 8 (Portfolio)         | `global.css` |
 
 ### Variables to Add
 
-| Variable | Value (Light) | Value (Dark) | Created During |
-|---|---|---|---|
-| `--color-editors-pick` | `#d4923a` | `#d4923a` | Stage 7 (Radar) |
-| `--color-editors-pick-hover` | `#b26622` | `#b26622` | Stage 7 (Radar) |
+| Variable                     | Value (Light) | Value (Dark) | Created During  |
+| ---------------------------- | ------------- | ------------ | --------------- |
+| `--color-editors-pick`       | `#d4923a`     | `#d4923a`    | Stage 7 (Radar) |
+| `--color-editors-pick-hover` | `#b26622`     | `#b26622`    | Stage 7 (Radar) |
 
 Each new class should be added to the `/brand` page as a specimen after creation.
 
@@ -634,23 +637,23 @@ Each new class should be added to the `/brand` page as a specimen after creation
 
 ## CSS Reduction Targets
 
-| File | Current Lines | Target Reduction | Notes |
-|---|---|---|---|
-| `global.css` | ~5,329 | Net neutral (marketing sections shrink, new `.brutal-*` classes grow) | Refactored, not necessarily smaller |
-| Scoped CSS (all pages/components) | ~1,200 | -800 to -1,000 | Move reusable patterns to global, keep only layout/positioning |
-| `portfolio-controls.css` | 32 | -32 (merge into global.css) | Too small for separate file |
+| File                              | Current Lines | Target Reduction                                                      | Notes                                                          |
+| --------------------------------- | ------------- | --------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `global.css`                      | ~5,329        | Net neutral (marketing sections shrink, new `.brutal-*` classes grow) | Refactored, not necessarily smaller                            |
+| Scoped CSS (all pages/components) | ~1,200        | -800 to -1,000                                                        | Move reusable patterns to global, keep only layout/positioning |
+| `portfolio-controls.css`          | 32            | -32 (merge into global.css)                                           | Too small for separate file                                    |
 
 ---
 
 ## Risk Mitigation
 
-| Risk | Mitigation |
-|---|---|
-| Homepage visual regression | Stage 4 has the most visual impact — pause for manual review before proceeding |
-| E2E test breakage | Grep for every changed class name in `tests/` before committing (per CLAUDE.md rule) |
+| Risk                           | Mitigation                                                                                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Homepage visual regression     | Stage 4 has the most visual impact — pause for manual review before proceeding                                                                    |
+| E2E test breakage              | Grep for every changed class name in `tests/` before committing (per CLAUDE.md rule)                                                              |
 | Overly austere marketing pages | Hero and CTA sections may need a "softer brutalist" treatment — frosted glass on hero, primary-color accent borders. Decide during Stage 2 review |
-| Portfolio filter UX regression | StickyControls is heavily interactive — test all filter/sort combinations after migration |
-| Print regression | Verify print output for each stage. Existing tool print styles are the reference standard |
+| Portfolio filter UX regression | StickyControls is heavily interactive — test all filter/sort combinations after migration                                                         |
+| Print regression               | Verify print output for each stage. Existing tool print styles are the reference standard                                                         |
 
 ---
 

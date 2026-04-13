@@ -8,8 +8,8 @@ import { test, expect } from '@playwright/test';
 test.describe('404 Page', () => {
   test.beforeEach(async ({ page }) => {
     // Block external GA requests
-    await page.route('**/googletagmanager.com/**', route => route.abort());
-    await page.route('**/google-analytics.com/**', route => route.abort());
+    await page.route('**/googletagmanager.com/**', (route) => route.abort());
+    await page.route('**/google-analytics.com/**', (route) => route.abort());
 
     // domcontentloaded is reliable under worker contention; networkidle can
     // time out when many parallel workers are running against the same dev server
@@ -96,7 +96,7 @@ test.describe('404 Page', () => {
       // WebKit-safe: dispatch click via JS to avoid coordinate-based hit-testing issues
       await page.evaluate(() => {
         const btns = document.querySelectorAll<HTMLElement>('.hero a.cta-button');
-        const btn = Array.from(btns).find(el => el.textContent?.includes('View Services'));
+        const btn = Array.from(btns).find((el) => el.textContent?.includes('View Services'));
         if (!btn) throw new Error('View Services button not found');
         btn.click();
       });

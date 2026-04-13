@@ -168,11 +168,11 @@ test(email): verify form passes axe-core WCAG 2.1 AA checks
 
 ## Summary Timeline
 
-| Initiative | Scope | Effort | Prerequisite |
-|------------|-------|--------|--------------|
-| 1 | Cookie Consent & GDPR Compliance | 2 days | Platform Hardening V1 complete |
-| 2 | Email Capture | 2 days | Initiative 1 + Platform Hardening V1 complete |
-| | **Total** | **4 days** | **~1 week at full focus, ~2 weeks at 50% allocation** |
+| Initiative | Scope                            | Effort     | Prerequisite                                          |
+| ---------- | -------------------------------- | ---------- | ----------------------------------------------------- |
+| 1          | Cookie Consent & GDPR Compliance | 2 days     | Platform Hardening V1 complete                        |
+| 2          | Email Capture                    | 2 days     | Initiative 1 + Platform Hardening V1 complete         |
+|            | **Total**                        | **4 days** | **~1 week at full focus, ~2 weeks at 50% allocation** |
 
 ---
 
@@ -182,7 +182,7 @@ test(email): verify form passes axe-core WCAG 2.1 AA checks
 
 2. **Email capture in footer, not modal/popup** — always visible, zero-friction, no interruption; avoids aggressive popup patterns that conflict with the professional PE advisory brand
 
-3. **Consent banner before any tracking, not just GA4** — Initiative 1 must gate *all* tracking mechanisms (GA4, Sentry error monitoring, any future analytics), not just the one that existed when consent was originally designed. This prevents "add tracking later, forget to gate it" regressions.
+3. **Consent banner before any tracking, not just GA4** — Initiative 1 must gate _all_ tracking mechanisms (GA4, Sentry error monitoring, any future analytics), not just the one that existed when consent was originally designed. This prevents "add tracking later, forget to gate it" regressions.
 
 4. **Email validation via Zod** — reuses the schema infrastructure from Platform Hardening V1 Phase 1; avoids duplicate validation logic between client and potential future server-side handling
 

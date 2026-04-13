@@ -6,41 +6,41 @@
  */
 
 interface Props {
-    title?: string;
-    ogTitle?: string;
-    ogDescription?: string;
-    ogImage?: string;
-    ogType?: string;
-    ogUrl?: string;
-    canonicalUrl?: string;
-    // Enhanced social media meta tags
-    ogImageAlt?: string;
-    ogImageWidth?: number;
-    ogImageHeight?: number;
-    ogImageType?: string;
-    ogSiteName?: string;
-    ogLocale?: string;
-    twitterSite?: string;
-    faqItems?: Array<{ question: string; answer: string }>;
+  title?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  ogType?: string;
+  ogUrl?: string;
+  canonicalUrl?: string;
+  // Enhanced social media meta tags
+  ogImageAlt?: string;
+  ogImageWidth?: number;
+  ogImageHeight?: number;
+  ogImageType?: string;
+  ogSiteName?: string;
+  ogLocale?: string;
+  twitterSite?: string;
+  faqItems?: Array<{ question: string; answer: string }>;
 }
 
 const {
-    title = 'GST | M&A Strategic Technology Advisory',
-    ogTitle,
-    ogDescription = 'Specialized technical diligence and AI strategy for organizations navigating complex product transitions.',
-    ogImage = '/og-image.png',
-    ogType = 'website',
-    ogUrl,
-    canonicalUrl,
-    // Enhanced social media meta tags
-    ogImageAlt = 'GST - M&A Strategic Technology Advisory and Technical Due Diligence',
-    ogImageWidth = 1200,
-    ogImageHeight = 630,
-    ogImageType = 'image/png',
-    ogSiteName = 'GST',
-    ogLocale = 'en_US',
-    twitterSite = '@globalstrategic',
-    faqItems,
+  title = 'GST | M&A Strategic Technology Advisory',
+  ogTitle,
+  ogDescription = 'Specialized technical diligence and AI strategy for organizations navigating complex product transitions.',
+  ogImage = '/og-image.png',
+  ogType = 'website',
+  ogUrl,
+  canonicalUrl,
+  // Enhanced social media meta tags
+  ogImageAlt = 'GST - M&A Strategic Technology Advisory and Technical Due Diligence',
+  ogImageWidth = 1200,
+  ogImageHeight = 630,
+  ogImageType = 'image/png',
+  ogSiteName = 'GST',
+  ogLocale = 'en_US',
+  twitterSite = '@globalstrategic',
+  faqItems,
 } = Astro.props;
 
 // Derive og:title from page title when not explicitly provided
@@ -60,334 +60,354 @@ const finalOgUrl = ogUrl || currentUrl;
 
 // Convert relative image paths to absolute URLs
 const absoluteOgImage = ogImage.startsWith('http')
-    ? ogImage
-    : `${baseUrl}${ogImage.startsWith('/') ? ogImage : '/' + ogImage}`;
+  ? ogImage
+  : `${baseUrl}${ogImage.startsWith('/') ? ogImage : '/' + ogImage}`;
 
 // Build BreadcrumbList from pathname
 const pathname = Astro.url.pathname.replace(/\/$/, '');
 const segments = pathname.split('/').filter(Boolean);
 const isHomepage = segments.length === 0;
 
-const breadcrumbJsonLd = !isHomepage ? {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    'itemListElement': [
+const breadcrumbJsonLd = !isHomepage
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
         {
-            '@type': 'ListItem',
-            'position': 1,
-            'name': 'Home',
-            'item': 'https://globalstrategic.tech/',
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: 'https://globalstrategic.tech/',
         },
         ...segments.map((slug, index) => {
-            const position = index + 2;
-            const name = slugToName(slug);
-            const isLast = index === segments.length - 1;
-            const path = '/' + segments.slice(0, index + 1).join('/') + '/';
+          const position = index + 2;
+          const name = slugToName(slug);
+          const isLast = index === segments.length - 1;
+          const path = '/' + segments.slice(0, index + 1).join('/') + '/';
 
-            return isLast
-                ? { '@type': 'ListItem' as const, 'position': position, 'name': name }
-                : { '@type': 'ListItem' as const, 'position': position, 'name': name, 'item': `https://globalstrategic.tech${path}` };
+          return isLast
+            ? { '@type': 'ListItem' as const, position: position, name: name }
+            : {
+                '@type': 'ListItem' as const,
+                position: position,
+                name: name,
+                item: `https://globalstrategic.tech${path}`,
+              };
         }),
-    ],
-} : null;
+      ],
+    }
+  : null;
 
 // Build FAQPage schema when faqItems are provided
-const faqJsonLd = faqItems && faqItems.length > 0 ? {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    'mainEntity': faqItems.map(item => ({
-        '@type': 'Question',
-        'name': item.question,
-        'acceptedAnswer': {
+const faqJsonLd =
+  faqItems && faqItems.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqItems.map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: {
             '@type': 'Answer',
-            'text': item.answer,
-        },
-    })),
-} : null;
+            text: item.answer,
+          },
+        })),
+      }
+    : null;
 
 const jsonLdData = {
-    '@context': 'https://schema.org',
-    '@type': 'ProfessionalService',
-    'name': 'Global Strategic Technologies',
-    'url': 'https://globalstrategic.tech',
-    'logo': 'https://globalstrategic.tech/icon.svg',
-    'sameAs': [
-        'https://www.linkedin.com/company/global-strategic-technologies/'
+  '@context': 'https://schema.org',
+  '@type': 'ProfessionalService',
+  name: 'Global Strategic Technologies',
+  url: 'https://globalstrategic.tech',
+  logo: 'https://globalstrategic.tech/icon.svg',
+  sameAs: ['https://www.linkedin.com/company/global-strategic-technologies/'],
+  founder: {
+    '@type': 'Person',
+    name: 'Reid Peryam',
+    jobTitle: 'Strategic Technology Advisor',
+    sameAs: ['https://www.linkedin.com/in/reidperyam/'],
+    alumniOf: [
+      {
+        '@type': 'CollegeOrUniversity',
+        name: 'UC Berkeley Haas School of Business',
+      },
+      {
+        '@type': 'CollegeOrUniversity',
+        name: 'Boston University',
+      },
     ],
-    'founder': {
-        '@type': 'Person',
-        'name': 'Reid Peryam',
-        'jobTitle': 'Strategic Technology Advisor',
-        'sameAs': [
-            'https://www.linkedin.com/in/reidperyam/'
-        ],
-        'alumniOf': [
-            {
-                '@type': 'CollegeOrUniversity',
-                'name': 'UC Berkeley Haas School of Business'
-            },
-            {
-                '@type': 'CollegeOrUniversity',
-                'name': 'Boston University'
-            }
-        ],
-        'hasCredential': [
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Microsoft Certified: DevOps Engineer Expert',
-                'credentialCategory': 'Professional Certification',
-                'publisher': {
-                    '@type': 'Organization',
-                    'name': 'Microsoft'
-                },
-                'datePublished': '2021-06',
-                'expires': '2027-06',
-                'identifier': '6C14577815D1D876',
-                'competencyRequired': 'Azure DevOps, Software Development Life Cycle (SDLC), Software Development, Azure Solutions'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Microsoft Certified: Azure Solutions Architect Expert',
-                'credentialCategory': 'Professional Certification',
-                'publisher': {
-                    '@type': 'Organization',
-                    'name': 'Microsoft'
-                },
-                'datePublished': '2021-04',
-                'expires': '2027-04',
-                'identifier': 'AD20FA63C42592C5',
-                'competencyRequired': 'Software Solution Development, Cloud-Native Architecture, Azure Solutions, Microsoft Azure'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Microsoft Certified: Azure Developer Associate',
-                'credentialCategory': 'Professional Certification',
-                'publisher': {
-                    '@type': 'Organization',
-                    'name': 'Microsoft'
-                },
-                'datePublished': '2021-05',
-                'expires': '2027-05',
-                'identifier': 'AD895CD745DD2DD8',
-                'competencyRequired': 'Software Development, Microsoft Azure, Azure Solutions, Azure DevOps, Cloud-Native Applications'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Microsoft Certified: Azure AI Engineer Associate',
-                'credentialCategory': 'Professional Certification',
-                'publisher': {
-                    '@type': 'Organization',
-                    'name': 'Microsoft'
-                },
-                'datePublished': '2021-09',
-                'expires': '2026-09',
-                'competencyRequired': 'Artificial Intelligence (AI), Machine Learning, Cloud-Native Architecture, Microsoft Azure'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Certificate of Business Excellence',
-                'credentialCategory': 'Executive Education',
-                'publisher': {
-                    '@type': 'CollegeOrUniversity',
-                    'name': 'University of California, Berkeley, Haas School of Business'
-                },
-                'datePublished': '2023-09',
-                'identifier': '82675585',
-                'competencyRequired': 'Artificial Intelligence (AI), Digital Transformation, Product Management, Blockchain, Data Strategy, Executive Leadership'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Berkeley Executive Leadership Program',
-                'credentialCategory': 'Executive Education',
-                'publisher': {
-                    '@type': 'CollegeOrUniversity',
-                    'name': 'University of California, Berkeley, Haas School of Business'
-                },
-                'datePublished': '2023-03',
-                'identifier': '70041714',
-                'competencyRequired': 'Organizational Leadership, Systems Thinking, Culture Change, Stakeholder Management'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Digital Transformation',
-                'credentialCategory': 'Executive Education',
-                'publisher': {
-                    '@type': 'CollegeOrUniversity',
-                    'name': 'University of California, Berkeley, Haas School of Business'
-                },
-                'datePublished': '2023-01',
-                'identifier': '66187273',
-                'competencyRequired': 'Organizational Leadership, Digital Transformation, Product Management, Technology Strategy, Data Strategy, Enterprise Architecture'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Artificial Intelligence: Business Strategies and Applications',
-                'credentialCategory': 'Executive Education',
-                'publisher': {
-                    '@type': 'CollegeOrUniversity',
-                    'name': 'University of California, Berkeley, Haas School of Business'
-                },
-                'datePublished': '2023-04',
-                'identifier': '71228917',
-                'competencyRequired': 'Artificial Intelligence (AI), Machine Learning, Business Strategy, Neural Networks'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Blockchain and Cryptocurrencies: Technologies, Strategic Applications, and Emerging Trends',
-                'credentialCategory': 'Executive Education',
-                'publisher': {
-                    '@type': 'CollegeOrUniversity',
-                    'name': 'University of California, Berkeley, Haas School of Business'
-                },
-                'datePublished': '2023-08',
-                'identifier': '79127223',
-                'competencyRequired': 'Cryptocurrency, Blockchain'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Excellence In Technology Strategy',
-                'credentialCategory': 'Executive Education',
-                'publisher': {
-                    '@type': 'CollegeOrUniversity',
-                    'name': 'University of California, Berkeley, Haas School of Business'
-                },
-                'datePublished': '2022-04',
-                'identifier': '49757257',
-                'competencyRequired': 'Organizational Leadership, Digital Transformation, Product Management, Technology Strategy, Business Strategy, Enterprise Architecture'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Data Strategy: Leveraging Data as a Competitive Advantage',
-                'credentialCategory': 'Executive Education',
-                'publisher': {
-                    '@type': 'CollegeOrUniversity',
-                    'name': 'University of California, Berkeley, Haas School of Business'
-                },
-                'datePublished': '2022-06',
-                'identifier': '52691267',
-                'competencyRequired': 'Product Management, Technology Strategy, Data Strategy, Business Strategy, Enterprise Architecture'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Product Management Studio: June 6-August 11, 2022',
-                'credentialCategory': 'Executive Education',
-                'publisher': {
-                    '@type': 'CollegeOrUniversity',
-                    'name': 'University of California, Berkeley, Haas School of Business'
-                },
-                'datePublished': '2022-08',
-                'identifier': '56795945',
-                'competencyRequired': 'Organizational Leadership, Product Management, Systems Thinking, Technology Strategy, Design Thinking'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Business Analytics for Leaders: From Data to Decisions',
-                'credentialCategory': 'Executive Education',
-                'publisher': {
-                    '@type': 'CollegeOrUniversity',
-                    'name': 'University of California, Berkeley, Haas School of Business'
-                },
-                'datePublished': '2022-04',
-                'identifier': '49371816',
-                'competencyRequired': 'Artificial Intelligence (AI), Product Management, Machine Learning, Technology Strategy, Data Strategy, Business Strategy'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Leading Complex Projects',
-                'credentialCategory': 'Executive Education',
-                'publisher': {
-                    '@type': 'CollegeOrUniversity',
-                    'name': 'University of California, Berkeley, Haas School of Business'
-                },
-                'datePublished': '2022-01',
-                'identifier': '45714456',
-                'competencyRequired': 'Organizational Leadership, Digital Transformation, Product Management, Project Management, Stakeholder Management'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Certified SAFe® 5 Agilist',
-                'credentialCategory': 'Professional Certification',
-                'publisher': {
-                    '@type': 'Organization',
-                    'name': 'SAFe by Scaled Agile, Inc.'
-                },
-                'datePublished': '2021-07',
-                'expires': '2022-07',
-                'identifier': '77243988-6382',
-                'competencyRequired': 'Agile Methodologies, Agile Project Management, Scrum'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'CKAD: Certified Kubernetes Application Developer',
-                'credentialCategory': 'Professional Certification',
-                'publisher': {
-                    '@type': 'Organization',
-                    'name': 'The Linux Foundation'
-                },
-                'datePublished': '2021-02',
-                'expires': '2024-02',
-                'identifier': 'LF-nk1u2e8ck!',
-                'competencyRequired': 'Software Development, Kubernetes, DevOps'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'CKA: Certified Kubernetes Administrator',
-                'credentialCategory': 'Professional Certification',
-                'publisher': {
-                    '@type': 'Organization',
-                    'name': 'The Linux Foundation'
-                },
-                'datePublished': '2021-01',
-                'expires': '2024-01',
-                'identifier': 'LF-rg3vj38yvx',
-                'competencyRequired': 'Software Development, Kubernetes, DevOps'
-            },
-            {
-                '@type': 'EducationalOccupationalCredential',
-                'name': 'Microsoft Certified: Azure AI Fundamentals',
-                'credentialCategory': 'Professional Certification',
-                'publisher': {
-                    '@type': 'Organization',
-                    'name': 'Microsoft'
-                },
-                'datePublished': '2021-08',
-                'identifier': 'H943-8317',
-                'competencyRequired': 'Artificial Intelligence (AI), Machine Learning, Software Development, Neural Networks, Microsoft Azure'
-            }
-        ]
-    },
-    'description': 'Strategic Technology Advisory focusing on M&A technical due diligence, platform modernization, and AI/data strategy.',
-    'knowsAbout': [
-        'Technical Due Diligence',
-        'M&A Tech Strategy',
-        'AI Strategy',
-        'Platform Modernization',
-        'Cloud Architecture',
-        'Digital Transformation',
-        'Data Strategy',
-        'Kubernetes',
-        'Blockchain',
-        'Cloud-Native Architecture'
+    hasCredential: [
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Microsoft Certified: DevOps Engineer Expert',
+        credentialCategory: 'Professional Certification',
+        publisher: {
+          '@type': 'Organization',
+          name: 'Microsoft',
+        },
+        datePublished: '2021-06',
+        expires: '2027-06',
+        identifier: '6C14577815D1D876',
+        competencyRequired:
+          'Azure DevOps, Software Development Life Cycle (SDLC), Software Development, Azure Solutions',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Microsoft Certified: Azure Solutions Architect Expert',
+        credentialCategory: 'Professional Certification',
+        publisher: {
+          '@type': 'Organization',
+          name: 'Microsoft',
+        },
+        datePublished: '2021-04',
+        expires: '2027-04',
+        identifier: 'AD20FA63C42592C5',
+        competencyRequired:
+          'Software Solution Development, Cloud-Native Architecture, Azure Solutions, Microsoft Azure',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Microsoft Certified: Azure Developer Associate',
+        credentialCategory: 'Professional Certification',
+        publisher: {
+          '@type': 'Organization',
+          name: 'Microsoft',
+        },
+        datePublished: '2021-05',
+        expires: '2027-05',
+        identifier: 'AD895CD745DD2DD8',
+        competencyRequired:
+          'Software Development, Microsoft Azure, Azure Solutions, Azure DevOps, Cloud-Native Applications',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Microsoft Certified: Azure AI Engineer Associate',
+        credentialCategory: 'Professional Certification',
+        publisher: {
+          '@type': 'Organization',
+          name: 'Microsoft',
+        },
+        datePublished: '2021-09',
+        expires: '2026-09',
+        competencyRequired:
+          'Artificial Intelligence (AI), Machine Learning, Cloud-Native Architecture, Microsoft Azure',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Certificate of Business Excellence',
+        credentialCategory: 'Executive Education',
+        publisher: {
+          '@type': 'CollegeOrUniversity',
+          name: 'University of California, Berkeley, Haas School of Business',
+        },
+        datePublished: '2023-09',
+        identifier: '82675585',
+        competencyRequired:
+          'Artificial Intelligence (AI), Digital Transformation, Product Management, Blockchain, Data Strategy, Executive Leadership',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Berkeley Executive Leadership Program',
+        credentialCategory: 'Executive Education',
+        publisher: {
+          '@type': 'CollegeOrUniversity',
+          name: 'University of California, Berkeley, Haas School of Business',
+        },
+        datePublished: '2023-03',
+        identifier: '70041714',
+        competencyRequired:
+          'Organizational Leadership, Systems Thinking, Culture Change, Stakeholder Management',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Digital Transformation',
+        credentialCategory: 'Executive Education',
+        publisher: {
+          '@type': 'CollegeOrUniversity',
+          name: 'University of California, Berkeley, Haas School of Business',
+        },
+        datePublished: '2023-01',
+        identifier: '66187273',
+        competencyRequired:
+          'Organizational Leadership, Digital Transformation, Product Management, Technology Strategy, Data Strategy, Enterprise Architecture',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Artificial Intelligence: Business Strategies and Applications',
+        credentialCategory: 'Executive Education',
+        publisher: {
+          '@type': 'CollegeOrUniversity',
+          name: 'University of California, Berkeley, Haas School of Business',
+        },
+        datePublished: '2023-04',
+        identifier: '71228917',
+        competencyRequired:
+          'Artificial Intelligence (AI), Machine Learning, Business Strategy, Neural Networks',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Blockchain and Cryptocurrencies: Technologies, Strategic Applications, and Emerging Trends',
+        credentialCategory: 'Executive Education',
+        publisher: {
+          '@type': 'CollegeOrUniversity',
+          name: 'University of California, Berkeley, Haas School of Business',
+        },
+        datePublished: '2023-08',
+        identifier: '79127223',
+        competencyRequired: 'Cryptocurrency, Blockchain',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Excellence In Technology Strategy',
+        credentialCategory: 'Executive Education',
+        publisher: {
+          '@type': 'CollegeOrUniversity',
+          name: 'University of California, Berkeley, Haas School of Business',
+        },
+        datePublished: '2022-04',
+        identifier: '49757257',
+        competencyRequired:
+          'Organizational Leadership, Digital Transformation, Product Management, Technology Strategy, Business Strategy, Enterprise Architecture',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Data Strategy: Leveraging Data as a Competitive Advantage',
+        credentialCategory: 'Executive Education',
+        publisher: {
+          '@type': 'CollegeOrUniversity',
+          name: 'University of California, Berkeley, Haas School of Business',
+        },
+        datePublished: '2022-06',
+        identifier: '52691267',
+        competencyRequired:
+          'Product Management, Technology Strategy, Data Strategy, Business Strategy, Enterprise Architecture',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Product Management Studio: June 6-August 11, 2022',
+        credentialCategory: 'Executive Education',
+        publisher: {
+          '@type': 'CollegeOrUniversity',
+          name: 'University of California, Berkeley, Haas School of Business',
+        },
+        datePublished: '2022-08',
+        identifier: '56795945',
+        competencyRequired:
+          'Organizational Leadership, Product Management, Systems Thinking, Technology Strategy, Design Thinking',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Business Analytics for Leaders: From Data to Decisions',
+        credentialCategory: 'Executive Education',
+        publisher: {
+          '@type': 'CollegeOrUniversity',
+          name: 'University of California, Berkeley, Haas School of Business',
+        },
+        datePublished: '2022-04',
+        identifier: '49371816',
+        competencyRequired:
+          'Artificial Intelligence (AI), Product Management, Machine Learning, Technology Strategy, Data Strategy, Business Strategy',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Leading Complex Projects',
+        credentialCategory: 'Executive Education',
+        publisher: {
+          '@type': 'CollegeOrUniversity',
+          name: 'University of California, Berkeley, Haas School of Business',
+        },
+        datePublished: '2022-01',
+        identifier: '45714456',
+        competencyRequired:
+          'Organizational Leadership, Digital Transformation, Product Management, Project Management, Stakeholder Management',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Certified SAFe® 5 Agilist',
+        credentialCategory: 'Professional Certification',
+        publisher: {
+          '@type': 'Organization',
+          name: 'SAFe by Scaled Agile, Inc.',
+        },
+        datePublished: '2021-07',
+        expires: '2022-07',
+        identifier: '77243988-6382',
+        competencyRequired: 'Agile Methodologies, Agile Project Management, Scrum',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'CKAD: Certified Kubernetes Application Developer',
+        credentialCategory: 'Professional Certification',
+        publisher: {
+          '@type': 'Organization',
+          name: 'The Linux Foundation',
+        },
+        datePublished: '2021-02',
+        expires: '2024-02',
+        identifier: 'LF-nk1u2e8ck!',
+        competencyRequired: 'Software Development, Kubernetes, DevOps',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'CKA: Certified Kubernetes Administrator',
+        credentialCategory: 'Professional Certification',
+        publisher: {
+          '@type': 'Organization',
+          name: 'The Linux Foundation',
+        },
+        datePublished: '2021-01',
+        expires: '2024-01',
+        identifier: 'LF-rg3vj38yvx',
+        competencyRequired: 'Software Development, Kubernetes, DevOps',
+      },
+      {
+        '@type': 'EducationalOccupationalCredential',
+        name: 'Microsoft Certified: Azure AI Fundamentals',
+        credentialCategory: 'Professional Certification',
+        publisher: {
+          '@type': 'Organization',
+          name: 'Microsoft',
+        },
+        datePublished: '2021-08',
+        identifier: 'H943-8317',
+        competencyRequired:
+          'Artificial Intelligence (AI), Machine Learning, Software Development, Neural Networks, Microsoft Azure',
+      },
     ],
-    'address': {
-        '@type': 'PostalAddress',
-        'addressCountry': 'US'
-    }
+  },
+  description:
+    'Strategic Technology Advisory focusing on M&A technical due diligence, platform modernization, and AI/data strategy.',
+  knowsAbout: [
+    'Technical Due Diligence',
+    'M&A Tech Strategy',
+    'AI Strategy',
+    'Platform Modernization',
+    'Cloud Architecture',
+    'Digital Transformation',
+    'Data Strategy',
+    'Kubernetes',
+    'Blockchain',
+    'Cloud-Native Architecture',
+  ],
+  address: {
+    '@type': 'PostalAddress',
+    addressCountry: 'US',
+  },
 };
 ---
 
 <!-- JSON-LD Structured Data -->
 <script type="application/ld+json" set:html={JSON.stringify(jsonLdData)} />
 
-<!-- BreadcrumbList Structured Data -->
-{breadcrumbJsonLd && (
+<!-- BreadcrumbList Structured Data -->{
+  breadcrumbJsonLd && (
     <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} />
-)}
+  )
+}
 
 <!-- FAQPage Structured Data -->
-{faqJsonLd && (
-    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
-)}
+{faqJsonLd && <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />}
 
 <!-- Open Graph Meta Tags -->
 <meta property="og:title" content={finalOgTitle} />
@@ -414,6 +434,9 @@ const jsonLdData = {
 <link rel="canonical" href={finalCanonicalUrl} />
 
 <!-- Additional SEO Meta Tags -->
-<meta name="keywords" content="M&A technical due diligence, technology advisory, platform modernization, AI strategy, technical diligence" />
+<meta
+  name="keywords"
+  content="M&A technical due diligence, technology advisory, platform modernization, AI strategy, technical diligence"
+/>
 <meta name="author" content="Reid Peryam" />
 <meta name="robots" content="index, follow" />

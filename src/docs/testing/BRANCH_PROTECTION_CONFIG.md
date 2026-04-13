@@ -3,6 +3,7 @@
 ## What This Does
 
 Prevents merging PRs to `master` unless:
+
 - ✅ All tests pass
 - ✅ Branch is up to date with master
 - ✅ At least one approval (optional)
@@ -14,6 +15,7 @@ Prevents merging PRs to `master` unless:
 **URL:** `https://github.com/YOUR_ORG/gst-website/settings/branches`
 
 Or navigate manually:
+
 1. Go to your GitHub repo
 2. Click **Settings** (top right)
 3. Click **Branches** (left sidebar)
@@ -24,6 +26,7 @@ Or navigate manually:
 **Branch name pattern:** `master`
 
 Check these boxes:
+
 - ✅ **Require a pull request before merging**
   - ✅ Require approvals: `1` (optional)
   - ✅ Dismiss stale pull request approvals when new commits are pushed
@@ -44,6 +47,7 @@ Under "Require status checks to pass before merging", search for and select:
 ```
 
 The "E2E Tests" check is optional because:
+
 - Takes 5-8 minutes longer
 - Sometimes flaky (will improve after initial setup)
 - Can skip for emergency hotfixes with admin override
@@ -139,6 +143,7 @@ If you NEED to bypass (rare!):
 ## Rule Details Explained
 
 ### "Require a pull request before merging"
+
 Forces all changes through PR review (not direct pushes).
 
 **Effect:** Can't `git push` directly to master - must PR first.
@@ -146,6 +151,7 @@ Forces all changes through PR review (not direct pushes).
 **Why:** Catch issues before production.
 
 ### "Require approvals"
+
 Someone must review and approve before merging.
 
 **Effect:** PR won't merge until someone clicks Approve.
@@ -153,6 +159,7 @@ Someone must review and approve before merging.
 **Why:** Prevents mistakes, catches edge cases.
 
 ### "Dismiss stale pull request approvals when new commits are pushed"
+
 If author pushes new commits after approval, approval is removed.
 
 **Effect:** New code must be approved again.
@@ -160,6 +167,7 @@ If author pushes new commits after approval, approval is removed.
 **Why:** Prevents approving old code, then changing it without re-review.
 
 ### "Require status checks to pass before merging"
+
 All CI tests must pass (green ✅) before merging.
 
 **Effect:** Can't merge if tests fail, even with approvals.
@@ -167,6 +175,7 @@ All CI tests must pass (green ✅) before merging.
 **Why:** Ensures code quality - broken tests = broken master.
 
 ### "Require branches to be up to date before merging"
+
 PR must be rebased on latest master before merging.
 
 **Effect:** Before merge button appears, must click "Update branch".
@@ -241,25 +250,30 @@ Go to `Settings → Branches → master` and you should see:
 ## Troubleshooting
 
 ### "Some checks haven't completed yet"
+
 - Tests are still running (usually 5-10 minutes)
 - Wait for them to finish
 - Refresh the page to see update
 
 ### "X check failed"
+
 - Tests failed
 - Click on the failed check to see error
 - Author needs to fix and push again
 
 ### "This branch can't be merged due to conflicts"
+
 - Branch is out of date with master
 - Click "Update branch" button to rebase
 - Tests may run again after rebase
 
 ### "This branch has no commit history"
+
 - Brand new branch with no changes
 - Make a real change first
 
 ### "Protection rule mismatch"
+
 - Status check name doesn't match
 - Go to Actions tab and get exact check name
 - Update the branch protection rule
@@ -269,21 +283,27 @@ Go to `Settings → Branches → master` and you should see:
 ## FAQ
 
 ### Q: Does this block Vercel deployments?
+
 **A:** No! Tests run during PR review. Once merged, Vercel deploys master automatically (tests already passed).
 
 ### Q: Can I skip tests for emergencies?
+
 **A:** Yes, if you're an admin. But better: tests usually pass in 10 minutes. Rare to need skip.
 
 ### Q: What if tests are flaky?
+
 **A:** Flaky tests usually happen before first implementation. Once tests are solid, they'll be reliable. Rerun is an option in Actions.
 
 ### Q: Does this work with squash merging?
+
 **A:** Yes! GitHub allows any merge strategy. Tests still must pass.
 
 ### Q: Can I merge without approval?
+
 **A:** Not with these rules. Tests must pass AND someone must approve (unless you're admin).
 
 ### Q: What about direct commits to master?
+
 **A:** This rule prevents them. All commits must go through PR (which requires tests to pass).
 
 ---

@@ -211,7 +211,6 @@ describe('toWireItem - Category Inference', () => {
       const item = makeItem({ categories: ['user/123/label/GST-Security'] });
       expect(toWireItem(item).category).toBe('security');
     });
-
   });
 
   // Priority 3: Title keyword matching
@@ -250,7 +249,6 @@ describe('toWireItem - Category Inference', () => {
       const item = makeItem({ title: 'New LLM Benchmark Released' });
       expect(toWireItem(item).category).toBe('ai-automation');
     });
-
   });
 
   // Priority 4: Default
@@ -262,10 +260,7 @@ describe('toWireItem - Category Inference', () => {
   // Priority ordering
   it('should prefer gst-* tag over folder label', () => {
     const item = makeItem({
-      categories: [
-        'user/123/label/gst-security',
-        'user/123/label/GST-AI-Automation',
-      ],
+      categories: ['user/123/label/gst-security', 'user/123/label/GST-AI-Automation'],
     });
     expect(toWireItem(item).category).toBe('security');
   });
@@ -361,7 +356,9 @@ describe('toFyiItem', () => {
 
   it('should decode HTML entities in summary', () => {
     const item = makeItem({
-      summary: { content: 'AT&amp;T says &lt;hello&gt; &amp; &quot;goodbye&quot; it&#39;s&nbsp;done' },
+      summary: {
+        content: 'AT&amp;T says &lt;hello&gt; &amp; &quot;goodbye&quot; it&#39;s&nbsp;done',
+      },
       annotations: [makeAnnotation()],
     });
     const result = toFyiItem(item);
@@ -514,21 +511,21 @@ describe('mergeFeed', () => {
     const wire2 = makeWire({ id: 'wire-2', publishedAt: '2024-02-12T00:00:00.000Z' });
 
     const feed = mergeFeed([fyi1, fyi2], [wire1, wire2]);
-    expect(feed.map(f => f.id)).toEqual(['fyi-1', 'wire-1', 'fyi-2', 'wire-2']);
+    expect(feed.map((f) => f.id)).toEqual(['fyi-1', 'wire-1', 'fyi-2', 'wire-2']);
   });
 
   it('should handle empty fyi array', () => {
     const wire = [makeWire({ id: 'w1' }), makeWire({ id: 'w2' })];
     const feed = mergeFeed([], wire);
     expect(feed).toHaveLength(2);
-    expect(feed.every(f => f.kind === 'wire')).toBe(true);
+    expect(feed.every((f) => f.kind === 'wire')).toBe(true);
   });
 
   it('should handle empty wire array', () => {
     const fyi = [makeFyi({ id: 'f1' }), makeFyi({ id: 'f2' })];
     const feed = mergeFeed(fyi, []);
     expect(feed).toHaveLength(2);
-    expect(feed.every(f => f.kind === 'fyi')).toBe(true);
+    expect(feed.every((f) => f.kind === 'fyi')).toBe(true);
   });
 
   it('should handle both arrays empty', () => {

@@ -7,15 +7,20 @@
 ---
 
 <div class="feed-skeleton" aria-hidden="true">
-  {Array.from({ length: 6 }).map((_, i) => (
-    <div class="skeleton-item">
-      <div class="skeleton-dot skeleton-item-dot"></div>
-      <div class="skeleton-content">
-        <div class="skeleton-bar" style={`width: ${70 + (i % 3) * 10}%`}></div>
-        <div class="skeleton-bar skeleton-bar--sm" style={`width: ${30 + (i % 3) * 10}%; animation-delay: 0.3s`}></div>
+  {
+    Array.from({ length: 6 }).map((_, i) => (
+      <div class="skeleton-item">
+        <div class="skeleton-dot skeleton-item-dot" />
+        <div class="skeleton-content">
+          <div class="skeleton-bar" style={`width: ${70 + (i % 3) * 10}%`} />
+          <div
+            class="skeleton-bar skeleton-bar--sm"
+            style={`width: ${30 + (i % 3) * 10}%; animation-delay: 0.3s`}
+          />
+        </div>
       </div>
-    </div>
-  ))}
+    ))
+  }
 </div>
 
 <style>

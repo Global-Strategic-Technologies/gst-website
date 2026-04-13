@@ -8,6 +8,7 @@ Extract project metadata from the report at $ARGUMENTS and insert a new record i
 ## Step 1 — Read the schema
 
 Read `src/data/ma-portfolio/projects.json`. Extract all unique values currently used for:
+
 - `theme`
 - `growthStage`
 - `engagementType`
@@ -20,25 +21,25 @@ You MUST use only existing values for these enumerated fields. Do not invent new
 
 Read the PDF at `$ARGUMENTS`. Extract the following:
 
-| Field | Extraction guidance |
-|-------|---------------------|
-| `id` | kebab-case slug from the code name (e.g. `"project-eagle"`) |
-| `codeName` | Project code name from the report cover (e.g. `"Project Eagle"`) |
-| `industry` | Derive from business description if not explicit |
-| `theme` | Map to closest existing theme value from Step 1 |
-| `summary` | ~30 words describing the technology/product. Do NOT use the real company or product name. |
-| `arr` | Extract from the report (e.g. `"$74M"`). Search web for estimates if unavailable. Use `"N/A"` as last resort. |
-| `arrNumeric` | Numeric USD value (e.g. `73838000`). Use `0` if N/A. |
-| `currency` | `"USD"` unless stated otherwise |
-| `growthStage` | Map to closest existing value from Step 1 based on company maturity signals |
-| `year` | Year of the engagement / report publication |
-| `technologies` | Core platform technologies and key integrations — concise string array |
-| `engagementType` | Use existing value from Step 1 |
-| `engagementTypeTag` | Matching tag from Step 1 |
-| `engagementTypeDescription` | One-line description of the engagement type |
-| `challenge` | 1–2 sentences: the core technology assessment challenge |
-| `solution` | 1–2 sentences: key findings and conclusions |
-| `engagementCategory` | Use existing value from Step 1 |
+| Field                       | Extraction guidance                                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `id`                        | kebab-case slug from the code name (e.g. `"project-eagle"`)                                                   |
+| `codeName`                  | Project code name from the report cover (e.g. `"Project Eagle"`)                                              |
+| `industry`                  | Derive from business description if not explicit                                                              |
+| `theme`                     | Map to closest existing theme value from Step 1                                                               |
+| `summary`                   | ~30 words describing the technology/product. Do NOT use the real company or product name.                     |
+| `arr`                       | Extract from the report (e.g. `"$74M"`). Search web for estimates if unavailable. Use `"N/A"` as last resort. |
+| `arrNumeric`                | Numeric USD value (e.g. `73838000`). Use `0` if N/A.                                                          |
+| `currency`                  | `"USD"` unless stated otherwise                                                                               |
+| `growthStage`               | Map to closest existing value from Step 1 based on company maturity signals                                   |
+| `year`                      | Year of the engagement / report publication                                                                   |
+| `technologies`              | Core platform technologies and key integrations — concise string array                                        |
+| `engagementType`            | Use existing value from Step 1                                                                                |
+| `engagementTypeTag`         | Matching tag from Step 1                                                                                      |
+| `engagementTypeDescription` | One-line description of the engagement type                                                                   |
+| `challenge`                 | 1–2 sentences: the core technology assessment challenge                                                       |
+| `solution`                  | 1–2 sentences: key findings and conclusions                                                                   |
+| `engagementCategory`        | Use existing value from Step 1                                                                                |
 
 Company name — use the real name only if it appears on the report cover or is explicitly marked non-confidential. Otherwise omit from JSON (no `companyName` field in schema) and use `"N/A"` in the summary table only.
 

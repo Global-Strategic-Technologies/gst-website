@@ -72,156 +72,164 @@ const clientConfig = JSON.stringify({
   class:list={['toc', extraClass]}
   aria-label={ariaLabel}
   data-toc-config={clientConfig}
-  {...(testId ? { 'data-testid': testId } : {})}
+  {...testId ? { 'data-testid': testId } : {}}
 >
   <h2 class="toc__heading">
     <DeltaIcon class="bullet-icon" />
     {heading}
-    {collapsible && (
-      <svg class="delta-chevron toc__chevron" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-        <path d="M32 8 L56 56 L8 56 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter"/>
-      </svg>
-    )}
+    {
+      collapsible && (
+        <svg class="delta-chevron toc__chevron" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <path
+            d="M32 8 L56 56 L8 56 Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="5"
+            stroke-linejoin="miter"
+          />
+        </svg>
+      )
+    }
   </h2>
   <ul class="toc__list">
-    {items.map((item, idx) => (
-      <>
-        {separatorBefore.includes(idx) && (
-          <li class="toc__separator" aria-hidden="true"></li>
-        )}
-        <li
-          class:list={[item.isLayer && 'toc__layer']}
-          {...Object.fromEntries(
-            Object.entries(item.dataAttrs ?? {}).map(([k, v]) => [`data-${k}`, v])
-          )}
-        >
-          <a href={item.href}>{item.label}</a>
-        </li>
-      </>
-    ))}
+    {
+      items.map((item, idx) => (
+        <>
+          {separatorBefore.includes(idx) && <li class="toc__separator" aria-hidden="true" />}
+          <li
+            class:list={[item.isLayer && 'toc__layer']}
+            {...Object.fromEntries(
+              Object.entries(item.dataAttrs ?? {}).map(([k, v]) => [`data-${k}`, v])
+            )}
+          >
+            <a href={item.href}>{item.label}</a>
+          </li>
+        </>
+      ))
+    }
   </ul>
 </nav>
 
 <script>
-interface TocConfigItem {
-  href: string;
-  source: {
-    mode: 'query' | 'ids';
-    scopeId?: string;
-    selector?: string;
-    ids?: string[];
-    headingSelector?: string;
-  };
-}
+  interface TocConfigItem {
+    href: string;
+    source: {
+      mode: 'query' | 'ids';
+      scopeId?: string;
+      selector?: string;
+      ids?: string[];
+      headingSelector?: string;
+    };
+  }
 
-interface TocConfig {
-  collapsible: boolean;
-  scrollSpy: boolean;
-  sublistIconSize: number;
-  items: TocConfigItem[];
-}
+  interface TocConfig {
+    collapsible: boolean;
+    scrollSpy: boolean;
+    sublistIconSize: number;
+    items: TocConfigItem[];
+  }
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll<HTMLElement>('[data-toc-config]').forEach((nav) => {
-    const config: TocConfig = JSON.parse(nav.dataset.tocConfig!);
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll<HTMLElement>('[data-toc-config]').forEach((nav) => {
+      const config: TocConfig = JSON.parse(nav.dataset.tocConfig!);
 
-    // ── Sublist generation ──────────────────────────────
-    config.items.forEach((item) => {
-      const anchor = nav.querySelector<HTMLAnchorElement>(`a[href="${item.href}"]`);
-      const layerLi = anchor?.parentElement;
-      if (!layerLi) return;
+      // ── Sublist generation ──────────────────────────────
+      config.items.forEach((item) => {
+        const anchor = nav.querySelector<HTMLAnchorElement>(`a[href="${item.href}"]`);
+        const layerLi = anchor?.parentElement;
+        if (!layerLi) return;
 
-      let headingEls: Element[] = [];
+        let headingEls: Element[] = [];
 
-      if (item.source.mode === 'query') {
-        if (!item.source.scopeId) return;
-        const scope = document.getElementById(item.source.scopeId);
-        if (!scope) return;
-        const sel = item.source.selector || 'h3[id]';
-        headingEls = Array.from(scope.querySelectorAll(sel));
-      } else if (item.source.mode === 'ids') {
-        const hSel = item.source.headingSelector || 'h2';
-        headingEls = (item.source.ids as string[])
-          .map((id: string) => {
-            const section = document.getElementById(id);
-            return section?.querySelector(hSel);
-          })
-          .filter(Boolean) as Element[];
+        if (item.source.mode === 'query') {
+          if (!item.source.scopeId) return;
+          const scope = document.getElementById(item.source.scopeId);
+          if (!scope) return;
+          const sel = item.source.selector || 'h3[id]';
+          headingEls = Array.from(scope.querySelectorAll(sel));
+        } else if (item.source.mode === 'ids') {
+          const hSel = item.source.headingSelector || 'h2';
+          headingEls = (item.source.ids as string[])
+            .map((id: string) => {
+              const section = document.getElementById(id);
+              return section?.querySelector(hSel);
+            })
+            .filter(Boolean) as Element[];
+        }
+
+        if (headingEls.length === 0) return;
+
+        const sublist = document.createElement('ul');
+        sublist.className = 'toc__sublist';
+
+        headingEls.forEach((heading) => {
+          const li = document.createElement('li');
+
+          const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          icon.setAttribute('viewBox', '0 0 64 64');
+          icon.setAttribute('fill', 'none');
+          icon.setAttribute('aria-hidden', 'true');
+          icon.setAttribute('width', String(config.sublistIconSize));
+          icon.setAttribute('height', String(config.sublistIconSize));
+          icon.setAttribute('class', 'bullet-icon');
+          icon.style.flexShrink = '0';
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', 'M32 8 L56 56 L8 56 Z');
+          path.setAttribute('fill', 'none');
+          path.setAttribute('stroke', 'currentColor');
+          path.setAttribute('stroke-width', '5');
+          path.setAttribute('stroke-linejoin', 'miter');
+          icon.appendChild(path);
+
+          const link = document.createElement('a');
+          const targetId = heading.id || heading.closest('[id]')?.id;
+          link.href = `#${targetId}`;
+          link.textContent = heading.textContent?.trim() || '';
+
+          li.appendChild(icon);
+          li.appendChild(link);
+          sublist.appendChild(li);
+        });
+
+        layerLi.appendChild(sublist);
+      });
+
+      // ── Collapsible (mobile) ────────────────────────────
+      if (config.collapsible) {
+        nav.classList.add('toc--collapsible');
+        const heading = nav.querySelector<HTMLElement>('.toc__heading');
+        const mobileQuery = window.matchMedia('(max-width: 768px)');
+
+        const applyMobileState = (isMobile: boolean) => {
+          nav.classList.toggle('is-collapsed', isMobile);
+        };
+        applyMobileState(mobileQuery.matches);
+        mobileQuery.addEventListener('change', (e) => applyMobileState(e.matches));
+
+        heading?.addEventListener('click', () => {
+          if (mobileQuery.matches) nav.classList.toggle('is-collapsed');
+        });
       }
 
-      if (headingEls.length === 0) return;
+      // ── Scroll-spy ──────────────────────────────────────
+      if (config.scrollSpy) {
+        const tocLinks = nav.querySelectorAll<HTMLAnchorElement>('.toc__list a');
+        const sectionIds = Array.from(tocLinks).map((a) => a.getAttribute('href')!.slice(1));
 
-      const sublist = document.createElement('ul');
-      sublist.className = 'toc__sublist';
+        const onScroll = () => {
+          let activeId = sectionIds[0];
+          for (const id of sectionIds) {
+            const el = document.getElementById(id);
+            if (el && el.getBoundingClientRect().top <= 80) activeId = id;
+          }
+          tocLinks.forEach((a) => {
+            a.classList.toggle('is-active', a.getAttribute('href') === `#${activeId}`);
+          });
+        };
 
-      headingEls.forEach((heading) => {
-        const li = document.createElement('li');
-
-        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        icon.setAttribute('viewBox', '0 0 64 64');
-        icon.setAttribute('fill', 'none');
-        icon.setAttribute('aria-hidden', 'true');
-        icon.setAttribute('width', String(config.sublistIconSize));
-        icon.setAttribute('height', String(config.sublistIconSize));
-        icon.setAttribute('class', 'bullet-icon');
-        icon.style.flexShrink = '0';
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M32 8 L56 56 L8 56 Z');
-        path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', 'currentColor');
-        path.setAttribute('stroke-width', '5');
-        path.setAttribute('stroke-linejoin', 'miter');
-        icon.appendChild(path);
-
-        const link = document.createElement('a');
-        const targetId = heading.id || heading.closest('[id]')?.id;
-        link.href = `#${targetId}`;
-        link.textContent = heading.textContent?.trim() || '';
-
-        li.appendChild(icon);
-        li.appendChild(link);
-        sublist.appendChild(li);
-      });
-
-      layerLi.appendChild(sublist);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+      }
     });
-
-    // ── Collapsible (mobile) ────────────────────────────
-    if (config.collapsible) {
-      nav.classList.add('toc--collapsible');
-      const heading = nav.querySelector<HTMLElement>('.toc__heading');
-      const mobileQuery = window.matchMedia('(max-width: 768px)');
-
-      const applyMobileState = (isMobile: boolean) => {
-        nav.classList.toggle('is-collapsed', isMobile);
-      };
-      applyMobileState(mobileQuery.matches);
-      mobileQuery.addEventListener('change', (e) => applyMobileState(e.matches));
-
-      heading?.addEventListener('click', () => {
-        if (mobileQuery.matches) nav.classList.toggle('is-collapsed');
-      });
-    }
-
-    // ── Scroll-spy ──────────────────────────────────────
-    if (config.scrollSpy) {
-      const tocLinks = nav.querySelectorAll<HTMLAnchorElement>('.toc__list a');
-      const sectionIds = Array.from(tocLinks).map((a) => a.getAttribute('href')!.slice(1));
-
-      const onScroll = () => {
-        let activeId = sectionIds[0];
-        for (const id of sectionIds) {
-          const el = document.getElementById(id);
-          if (el && el.getBoundingClientRect().top <= 80) activeId = id;
-        }
-        tocLinks.forEach((a) => {
-          a.classList.toggle('is-active', a.getAttribute('href') === `#${activeId}`);
-        });
-      };
-
-      window.addEventListener('scroll', onScroll, { passive: true });
-      onScroll();
-    }
   });
-});
 </script>

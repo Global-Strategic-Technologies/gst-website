@@ -143,13 +143,19 @@ describe('calculate() — collapsed mode (advancedOpen: false)', () => {
 
   it('hoursLostPerEng equals 40 × (maintPct / 100) — formula is mode-independent', () => {
     expect(calculate(makeState({ maintPct: 40 })).hoursLostPerEng).toBe(16);
-    expect(calculate(makeState({ maintPct: 0  })).hoursLostPerEng).toBe(0);
+    expect(calculate(makeState({ maintPct: 0 })).hoursLostPerEng).toBe(0);
     expect(calculate(makeState({ maintPct: 100 })).hoursLostPerEng).toBe(40);
   });
 
   it('costPerEng equals totalMonthly / teamSize', () => {
     // Explicitly set all inputs used by this formula
-    const state = makeState({ advancedOpen: false, teamSizePos: teamSizeToPos(10), salaryPos: salaryToPos(120000), maintPct: 30, deployIdx: 2 });
+    const state = makeState({
+      advancedOpen: false,
+      teamSizePos: teamSizeToPos(10),
+      salaryPos: salaryToPos(120000),
+      maintPct: 30,
+      deployIdx: 2,
+    });
     const result = calculate(state);
     const teamSize = posToTeamSize(state.teamSizePos);
     expect(result.costPerEng).toBeCloseTo(result.totalMonthly / teamSize, 5);
@@ -165,7 +171,7 @@ describe('calculate() — collapsed mode (advancedOpen: false)', () => {
 
   it('V multiplier scales directMonthly — higher V means higher cost', () => {
     // deployIdx 0 = Elite V:0.8, deployIdx 8 = Annually V:2.4
-    const elite    = calculate(makeState({ deployIdx: 0 }));
+    const elite = calculate(makeState({ deployIdx: 0 }));
     const annually = calculate(makeState({ deployIdx: 8 }));
     expect(elite.V).toBe(0.8);
     expect(elite.doraLabel).toBe('Elite');
@@ -188,8 +194,8 @@ describe('calculate() — expanded mode (advancedOpen: true)', () => {
     // Use salary=150000 — a $5K multiple that round-trips through posToSalary(salaryToPos(v))
     // exactly (proven by DEFAULT_STATE test). Derive expected from the round-tripped value.
     const salaryInput = 150000;
-    const salaryPos   = salaryToPos(salaryInput);
-    const salary      = posToSalary(salaryPos); // = 150000 (exact round-trip)
+    const salaryPos = salaryToPos(salaryInput);
+    const salary = posToSalary(salaryPos); // = 150000 (exact round-trip)
     const state = makeState({
       advancedOpen: true,
       salaryPos,
@@ -198,7 +204,7 @@ describe('calculate() — expanded mode (advancedOpen: true)', () => {
     });
     const result = calculate(state);
     const expectedHourlyRate = salary / 2080;
-    const expectedIncident   = 4 * 10 * expectedHourlyRate;
+    const expectedIncident = 4 * 10 * expectedHourlyRate;
     expect(result.incidentMonthly).toBeCloseTo(expectedIncident, 5);
   });
 

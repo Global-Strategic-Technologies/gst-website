@@ -6,7 +6,7 @@
    dynamically-created DOM nodes. */
 ---
 
-<Fragment />
+<Fragment></Fragment>
 
 <style>
   /* ── JS-injected swatch controls (:global required) ────────── */
@@ -34,8 +34,12 @@
     flex-shrink: 0;
   }
 
-  :global(.swatch-picker)::-webkit-color-swatch-wrapper { padding: 1px; }
-  :global(.swatch-picker)::-webkit-color-swatch { border: none; }
+  :global(.swatch-picker)::-webkit-color-swatch-wrapper {
+    padding: 1px;
+  }
+  :global(.swatch-picker)::-webkit-color-swatch {
+    border: none;
+  }
 
   :global(.swatch-hex) {
     flex: 1;
@@ -70,7 +74,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: color var(--transition-fast), border-color var(--transition-fast);
+    transition:
+      color var(--transition-fast),
+      border-color var(--transition-fast);
   }
 
   :global(.swatch-reset):hover {
@@ -97,9 +103,15 @@
     cursor: default;
   }
 
-  :global(.swatch-slider-label--r) { color: #c44040; }
-  :global(.swatch-slider-label--g) { color: #16a34a; }
-  :global(.swatch-slider-label--b) { color: #3b82f6; }
+  :global(.swatch-slider-label--r) {
+    color: #c44040;
+  }
+  :global(.swatch-slider-label--g) {
+    color: #16a34a;
+  }
+  :global(.swatch-slider-label--b) {
+    color: #3b82f6;
+  }
 
   :global(.swatch-slider) {
     flex: 1;
@@ -130,21 +142,43 @@
     cursor: grab;
   }
 
-  :global(.swatch-slider)::-webkit-slider-thumb:active { cursor: grabbing; }
-  :global(.swatch-slider)::-moz-range-thumb:active { cursor: grabbing; }
+  :global(.swatch-slider)::-webkit-slider-thumb:active {
+    cursor: grabbing;
+  }
+  :global(.swatch-slider)::-moz-range-thumb:active {
+    cursor: grabbing;
+  }
 
-  :global(.swatch-slider-label--r .swatch-slider)::-webkit-slider-thumb { background: #c44040; }
-  :global(.swatch-slider-label--g .swatch-slider)::-webkit-slider-thumb { background: #16a34a; }
-  :global(.swatch-slider-label--b .swatch-slider)::-webkit-slider-thumb { background: #3b82f6; }
-  :global(.swatch-slider-label--r .swatch-slider)::-moz-range-thumb { background: #c44040; }
-  :global(.swatch-slider-label--g .swatch-slider)::-moz-range-thumb { background: #16a34a; }
-  :global(.swatch-slider-label--b .swatch-slider)::-moz-range-thumb { background: #3b82f6; }
+  :global(.swatch-slider-label--r .swatch-slider)::-webkit-slider-thumb {
+    background: #c44040;
+  }
+  :global(.swatch-slider-label--g .swatch-slider)::-webkit-slider-thumb {
+    background: #16a34a;
+  }
+  :global(.swatch-slider-label--b .swatch-slider)::-webkit-slider-thumb {
+    background: #3b82f6;
+  }
+  :global(.swatch-slider-label--r .swatch-slider)::-moz-range-thumb {
+    background: #c44040;
+  }
+  :global(.swatch-slider-label--g .swatch-slider)::-moz-range-thumb {
+    background: #16a34a;
+  }
+  :global(.swatch-slider-label--b .swatch-slider)::-moz-range-thumb {
+    background: #3b82f6;
+  }
 
   /* ── Alpha slider & display ──────────────────────────────── */
 
-  :global(.swatch-slider-label--a) { color: var(--color-primary); }
-  :global(.swatch-slider-label--a .swatch-slider)::-webkit-slider-thumb { background: var(--color-primary); }
-  :global(.swatch-slider-label--a .swatch-slider)::-moz-range-thumb { background: var(--color-primary); }
+  :global(.swatch-slider-label--a) {
+    color: var(--color-primary);
+  }
+  :global(.swatch-slider-label--a .swatch-slider)::-webkit-slider-thumb {
+    background: var(--color-primary);
+  }
+  :global(.swatch-slider-label--a .swatch-slider)::-moz-range-thumb {
+    background: var(--color-primary);
+  }
 
   :global(.swatch-alpha-display) {
     font-family: monospace;

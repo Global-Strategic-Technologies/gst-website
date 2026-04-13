@@ -5,12 +5,7 @@
  * Validated at build time against `SignalCopyMapSchema`.
  */
 
-import {
-  SignalCopyMapSchema,
-  type Stage,
-  type Zone,
-  type SignalCopy,
-} from '../../schemas/techpar';
+import { SignalCopyMapSchema, type Stage, type Zone, type SignalCopy } from '../../schemas/techpar';
 import { validateDataSource } from '../../utils/validateData';
 
 export type { SignalCopy };

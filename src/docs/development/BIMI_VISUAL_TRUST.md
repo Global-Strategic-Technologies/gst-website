@@ -22,13 +22,13 @@ When sending sensitive technical diligence reports, investment memos, or advisor
 
 ## Certificate Strategy: CMC vs VMC
 
-| Option | CMC (Common Mark Certificate) | VMC (Verified Mark Certificate) |
-|---|---|---|
-| **Requirements** | 12 months of logo usage history | Registered trademark (USPTO) |
-| **Cost** | ~$100-300/year | ~$1,500/year |
-| **Gmail Blue Checkmark** | No (logo only) | Yes (verified checkmark) |
-| **Apple Mail / Yahoo** | Logo displayed | Logo displayed + verified |
-| **Timeline** | Days (if DMARC ready) | Weeks (trademark verification) |
+| Option                   | CMC (Common Mark Certificate)   | VMC (Verified Mark Certificate) |
+| ------------------------ | ------------------------------- | ------------------------------- |
+| **Requirements**         | 12 months of logo usage history | Registered trademark (USPTO)    |
+| **Cost**                 | ~$100-300/year                  | ~$1,500/year                    |
+| **Gmail Blue Checkmark** | No (logo only)                  | Yes (verified checkmark)        |
+| **Apple Mail / Yahoo**   | Logo displayed                  | Logo displayed + verified       |
+| **Timeline**             | Days (if DMARC ready)           | Weeks (trademark verification)  |
 
 ### Practical Recommendation
 
@@ -40,33 +40,33 @@ The blue checkmark is a prestige upgrade, not a functional requirement. The CMC 
 
 ### USPTO Trademark Registration (for future VMC upgrade)
 
-| Item | Details |
-|------|---------|
-| **What** | Register the GST delta icon as a trademark with the US Patent & Trademark Office |
-| **Filing fee** | $250-350 per class (online TEAS filing) |
-| **Classes needed** | Class 35 (business consulting/advisory) and/or Class 42 (technology services) |
-| **Timeline** | 8-12 months from filing to registration (USPTO backlog) |
-| **Process** | File application → USPTO examiner reviews (3-4 months) → Published for opposition (30 days) → Registration issued |
-| **Requirements** | Proof the mark is in use in commerce (website screenshots, client communications) |
-| **Self-file?** | Yes, via [teas.uspto.gov](https://teas.uspto.gov). Attorney optional but recommended (~$500-1,500 for a simple filing) |
-| **Not needed for** | CMC certificate or initial BIMI logo display — only for VMC blue checkmark |
+| Item               | Details                                                                                                                |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| **What**           | Register the GST delta icon as a trademark with the US Patent & Trademark Office                                       |
+| **Filing fee**     | $250-350 per class (online TEAS filing)                                                                                |
+| **Classes needed** | Class 35 (business consulting/advisory) and/or Class 42 (technology services)                                          |
+| **Timeline**       | 8-12 months from filing to registration (USPTO backlog)                                                                |
+| **Process**        | File application → USPTO examiner reviews (3-4 months) → Published for opposition (30 days) → Registration issued      |
+| **Requirements**   | Proof the mark is in use in commerce (website screenshots, client communications)                                      |
+| **Self-file?**     | Yes, via [teas.uspto.gov](https://teas.uspto.gov). Attorney optional but recommended (~$500-1,500 for a simple filing) |
+| **Not needed for** | CMC certificate or initial BIMI logo display — only for VMC blue checkmark                                             |
 
 ---
 
 ## Current State (Verified April 6, 2026)
 
-| Component | Status | Details |
-|---|---|---|
-| **DNS** | Cloudflare | Active, records editable |
-| **Hosting** | Astro / Vercel | SVG served from `public/` static assets |
-| **DMARC** | `p=quarantine; pct=100` | **Hardened** — meets BIMI requirement. Reporting to Cloudflare DMARC Management |
-| **SPF** | `v=spf1 include:_spf.google.com -all` | **Hard fail** — only Google Workspace authorized. Verified clean in Cloudflare reports (7 days) |
-| **DKIM** | RSA key published, active | **Verified** — signing via Google Workspace |
-| **Email provider** | Google Workspace | Sole sender for `@globalstrategic.tech` |
-| **DMARC reports** | Clean | No authentication failures in monitoring period |
-| **Brand Logo** | Exists (`public/images/logo/gst-delta-icon-teal-stroke-thick.svg`) | Must be converted to SVG Tiny PS profile |
-| **vercel.json** | Does not exist | Must be created for Content-Type header on BIMI SVG |
-| **USPTO Trademark** | Not filed | Required only for VMC (blue checkmark), not for CMC (logo display) |
+| Component           | Status                                                             | Details                                                                                         |
+| ------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| **DNS**             | Cloudflare                                                         | Active, records editable                                                                        |
+| **Hosting**         | Astro / Vercel                                                     | SVG served from `public/` static assets                                                         |
+| **DMARC**           | `p=quarantine; pct=100`                                            | **Hardened** — meets BIMI requirement. Reporting to Cloudflare DMARC Management                 |
+| **SPF**             | `v=spf1 include:_spf.google.com -all`                              | **Hard fail** — only Google Workspace authorized. Verified clean in Cloudflare reports (7 days) |
+| **DKIM**            | RSA key published, active                                          | **Verified** — signing via Google Workspace                                                     |
+| **Email provider**  | Google Workspace                                                   | Sole sender for `@globalstrategic.tech`                                                         |
+| **DMARC reports**   | Clean                                                              | No authentication failures in monitoring period                                                 |
+| **Brand Logo**      | Exists (`public/images/logo/gst-delta-icon-teal-stroke-thick.svg`) | Must be converted to SVG Tiny PS profile                                                        |
+| **vercel.json**     | Does not exist                                                     | Must be created for Content-Type header on BIMI SVG                                             |
+| **USPTO Trademark** | Not filed                                                          | Required only for VMC (blue checkmark), not for CMC (logo display)                              |
 
 **Assessment**: All DNS prerequisites are met. Ready to proceed with code implementation (Stage 2) and BIMI DNS record (Stage 3).
 
@@ -82,6 +82,7 @@ The blue checkmark is a prestige upgrade, not a functional requirement. The CMC 
 **Destination**: `public/branding/logo-bimi.svg`
 
 **SVG Tiny PS Requirements**:
+
 - 1:1 square aspect ratio (current: 64x64 -- already compliant)
 - `version="1.2"` and `baseProfile="tiny-ps"` attributes on `<svg>` tag
 - No `<script>`, `<style>`, `<image>`, or external references
@@ -90,6 +91,7 @@ The blue checkmark is a prestige upgrade, not a functional requirement. The CMC 
 - Background should be filled (not transparent) for best rendering in dark/light mail clients
 
 **Implementation**:
+
 ```xml
 <svg version="1.2" baseProfile="tiny-ps"
      xmlns="http://www.w3.org/2000/svg"
@@ -106,6 +108,7 @@ The blue checkmark is a prestige upgrade, not a functional requirement. The CMC 
 ```
 
 **Notes**:
+
 - Scaled to 512x512 for high-DPI mail clients
 - Dark background chosen for contrast in both light and dark mail themes
 - Consider alternatives: white background, teal-filled delta, composite GST wordmark
@@ -142,6 +145,7 @@ The blue checkmark is a prestige upgrade, not a functional requirement. The CMC 
 ```
 
 **Verification**: After deployment, confirm:
+
 - `curl -I https://globalstrategic.tech/branding/logo-bimi.svg` returns `HTTP/2 200` with `Content-Type: image/svg+xml`
 - No 301/302 redirects in the response chain
 
@@ -161,6 +165,7 @@ DMARC hardened from `p=none` to `p=quarantine; pct=100`. SPF hardened from `~all
 - DMARC reports: **Clean** (no authentication failures)
 
 Current DNS records:
+
 ```
 _dmarc.globalstrategic.tech TXT "v=DMARC1; p=quarantine; pct=100; rua=mailto:65d22352f4884af2ba1ce20f66bcf437@dmarc-reports.cloudflare.net; adkim=r; aspf=r;"
 globalstrategic.tech TXT "v=spf1 include:_spf.google.com -all"
@@ -174,14 +179,15 @@ globalstrategic.tech TXT "v=spf1 include:_spf.google.com -all"
 
 Add a new TXT record:
 
-| Field | Value |
-|---|---|
-| **Type** | TXT |
-| **Name** | `default._bimi` |
+| Field       | Value                                                                 |
+| ----------- | --------------------------------------------------------------------- |
+| **Type**    | TXT                                                                   |
+| **Name**    | `default._bimi`                                                       |
 | **Content** | `v=BIMI1; l=https://globalstrategic.tech/branding/logo-bimi.svg; a=;` |
-| **TTL** | Auto (or 3600) |
+| **TTL**     | Auto (or 3600)                                                        |
 
 **Notes**:
+
 - `l=` points to the logo URL (must be HTTPS, must return 200 with correct Content-Type)
 - `a=` is empty for now — this is where the CMC/VMC certificate URL goes when purchased
 - The `default` selector applies to all email from the domain
@@ -221,6 +227,7 @@ Test the implementation with these tools:
 ## Manual Steps Checklist
 
 ### Stage 1: DNS Hardening — COMPLETE
+
 - [x] **Verify current DMARC policy**: `p=quarantine; pct=100` confirmed
 - [x] **Verify SPF record**: `v=spf1 include:_spf.google.com -all` confirmed
 - [x] **Verify DKIM**: RSA key published, signing active via Google Workspace
@@ -229,22 +236,26 @@ Test the implementation with these tools:
 - [x] **Monitor DMARC reports**: clean — no authentication failures
 
 ### Stage 2: Code Implementation — READY
+
 - [ ] **Create `public/branding/logo-bimi.svg`**: SVG Tiny PS conversion (Claude Code)
 - [ ] **Create `vercel.json`**: Content-Type header for BIMI SVG path (Claude Code)
 - [ ] **Deploy to Vercel**: push to dev → merge to master → verify `curl -I` returns 200
 
 ### Stage 3: BIMI DNS Record — AFTER STAGE 2 DEPLOYED
+
 - [ ] **Add BIMI TXT record in Cloudflare**: `default._bimi` → `v=BIMI1; l=https://globalstrategic.tech/branding/logo-bimi.svg; a=;`
 - [ ] **Wait for DNS propagation**: 1-48 hours
 - [ ] **Validate with BIMI Inspector**: [bimigroup.org/bimi-generator](https://bimigroup.org/bimi-generator/)
 - [ ] **Send test email to Gmail**: verify logo renders in inbox
 
 ### Stage 4: CMC Certificate — FUTURE
+
 - [ ] **Purchase CMC certificate**: DigiCert or Entrust, ~$100-300/year
 - [ ] **Host certificate**: `https://globalstrategic.tech/branding/gst-bimi.pem`
 - [ ] **Update BIMI DNS `a=` tag** with certificate URL
 
 ### Stage 5: VMC Upgrade — FUTURE (requires trademark)
+
 - [ ] **File USPTO trademark**: $250-350/class, 8-12 month timeline
 - [ ] **After registration**: upgrade CMC to VMC (~$1,500/year) for Gmail blue checkmark
 
@@ -264,11 +275,11 @@ These steps can be executed by Claude Code when ready:
 
 ## Files Created/Modified
 
-| File | Action | Notes |
-|---|---|---|
-| `public/branding/logo-bimi.svg` | Create | SVG Tiny PS profile, 512x512, delta icon |
-| `vercel.json` | Create | Content-Type header for BIMI SVG |
-| Cloudflare DNS | Manual | `_dmarc` TXT update + `default._bimi` TXT addition |
+| File                            | Action | Notes                                              |
+| ------------------------------- | ------ | -------------------------------------------------- |
+| `public/branding/logo-bimi.svg` | Create | SVG Tiny PS profile, 512x512, delta icon           |
+| `vercel.json`                   | Create | Content-Type header for BIMI SVG                   |
+| Cloudflare DNS                  | Manual | `_dmarc` TXT update + `default._bimi` TXT addition |
 
 ---
 

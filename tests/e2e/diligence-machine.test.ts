@@ -55,10 +55,13 @@ test.describe('Diligence Machine E2E', () => {
       await clickElement(page, '[data-testid="option-transaction-type-full-acquisition"]');
 
       // Wait for auto-advance (300ms delay)
-      await page.waitForFunction(() => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === '2';
-      }, { timeout: 5000 });
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '2';
+        },
+        { timeout: 5000 }
+      );
 
       // Verify we're now on step 2
       await expectWizardOnStep(page, 2);
@@ -187,7 +190,7 @@ test.describe('Diligence Machine E2E', () => {
           version: 1,
           currentStep: 5,
           highestStepReached: 5,
-          inputs: { transactionType: 'full-acquisition' }
+          inputs: { transactionType: 'full-acquisition' },
         };
         localStorage.setItem('diligence-machine-state', JSON.stringify(oldState));
       });
@@ -200,7 +203,9 @@ test.describe('Diligence Machine E2E', () => {
       await expectWizardOnStep(page, 1);
 
       // No selections should be present
-      const selectedCards = page.locator('.brutal-option-card.brutal-option-card--selected-outline');
+      const selectedCards = page.locator(
+        '.brutal-option-card.brutal-option-card--selected-outline'
+      );
       expect(await selectedCards.count()).toBe(0);
     });
   });
@@ -225,10 +230,13 @@ test.describe('Diligence Machine E2E', () => {
       await clickElement(page, '[data-testid="progress-segment-2"]');
 
       // Wait for navigation to complete
-      await page.waitForFunction(() => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === '2';
-      }, { timeout: 2000 });
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '2';
+        },
+        { timeout: 2000 }
+      );
 
       // Verify wizard is now on step 2
       await expectWizardOnStep(page, 2);
@@ -258,30 +266,42 @@ test.describe('Diligence Machine E2E', () => {
 
       // Navigate back to step 2 via Back button
       await clickElement(page, '[data-testid="btn-back"]');
-      await page.waitForFunction(() => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === '4';
-      }, { timeout: 2000 });
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '4';
+        },
+        { timeout: 2000 }
+      );
       await clickElement(page, '[data-testid="btn-back"]');
-      await page.waitForFunction(() => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === '3';
-      }, { timeout: 2000 });
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '3';
+        },
+        { timeout: 2000 }
+      );
       await clickElement(page, '[data-testid="btn-back"]');
-      await page.waitForFunction(() => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === '2';
-      }, { timeout: 2000 });
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '2';
+        },
+        { timeout: 2000 }
+      );
       await expectWizardOnStep(page, 2);
 
       // Click progress segment 4 (reachable, forward)
       await clickElement(page, '[data-testid="progress-segment-4"]');
 
       // Wait for navigation
-      await page.waitForFunction(() => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === '4';
-      }, { timeout: 2000 });
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '4';
+        },
+        { timeout: 2000 }
+      );
 
       // Verify wizard navigated to step 4
       await expectWizardOnStep(page, 4);
@@ -310,9 +330,9 @@ test.describe('Diligence Machine E2E', () => {
       await expectWizardOnStep(page, 3);
 
       // Verify unreached segment does not have pointer cursor
-      const cursor = await page.locator('[data-testid="progress-segment-7"]').evaluate(
-        (el) => window.getComputedStyle(el).cursor
-      );
+      const cursor = await page
+        .locator('[data-testid="progress-segment-7"]')
+        .evaluate((el) => window.getComputedStyle(el).cursor);
       expect(cursor).not.toBe('pointer');
     });
 
@@ -353,10 +373,13 @@ test.describe('Diligence Machine E2E', () => {
 
       // Navigate back to step 3 via progress bar
       await clickElement(page, '[data-testid="progress-segment-3"]');
-      await page.waitForFunction(() => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === '3';
-      }, { timeout: 2000 });
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '3';
+        },
+        { timeout: 2000 }
+      );
 
       // Verify all 10 segments have correct states
       // Segments 1-2: completed (before current)
@@ -397,16 +420,21 @@ test.describe('Diligence Machine E2E', () => {
 
       // Click progress segment 2
       await clickElement(page, '[data-testid="progress-segment-2"]');
-      await page.waitForFunction(() => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === '2';
-      }, { timeout: 2000 });
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '2';
+        },
+        { timeout: 2000 }
+      );
 
       // Verify aria-valuenow updated
       await expect(progressBar).toHaveAttribute('aria-valuenow', '2');
     });
 
-    test('should show pointer cursor on completed and reachable segments only', async ({ page }) => {
+    test('should show pointer cursor on completed and reachable segments only', async ({
+      page,
+    }) => {
       // Advance to step 4
       await completeWizardToStep(page, 4, {
         transactionType: 'full-acquisition',
@@ -421,23 +449,23 @@ test.describe('Diligence Machine E2E', () => {
 
       // Verify completed segments (1-3) have pointer cursor
       for (const seg of [1, 2, 3]) {
-        const cursor = await page.locator(`[data-testid="progress-segment-${seg}"]`).evaluate(
-          (el) => window.getComputedStyle(el).cursor
-        );
+        const cursor = await page
+          .locator(`[data-testid="progress-segment-${seg}"]`)
+          .evaluate((el) => window.getComputedStyle(el).cursor);
         expect(cursor).toBe('pointer');
       }
 
       // Verify active segment (4) does NOT have pointer cursor
-      const activeCursor = await page.locator('[data-testid="progress-segment-4"]').evaluate(
-        (el) => window.getComputedStyle(el).cursor
-      );
+      const activeCursor = await page
+        .locator('[data-testid="progress-segment-4"]')
+        .evaluate((el) => window.getComputedStyle(el).cursor);
       expect(activeCursor).not.toBe('pointer');
 
       // Verify unreached segments (5-10) do NOT have pointer cursor
       for (const seg of [5, 6, 7, 8, 9, 10]) {
-        const cursor = await page.locator(`[data-testid="progress-segment-${seg}"]`).evaluate(
-          (el) => window.getComputedStyle(el).cursor
-        );
+        const cursor = await page
+          .locator(`[data-testid="progress-segment-${seg}"]`)
+          .evaluate((el) => window.getComputedStyle(el).cursor);
         expect(cursor).not.toBe('pointer');
       }
     });
@@ -471,16 +499,22 @@ test.describe('Diligence Machine E2E', () => {
       await clickElement(page, '[data-testid="btn-generate"]');
 
       // Wizard should disappear immediately
-      await page.waitForFunction(() => {
-        const wizard = document.querySelector('[data-testid="wizard-container"]');
-        return wizard && window.getComputedStyle(wizard).display === 'none';
-      }, { timeout: 500 });
+      await page.waitForFunction(
+        () => {
+          const wizard = document.querySelector('[data-testid="wizard-container"]');
+          return wizard && window.getComputedStyle(wizard).display === 'none';
+        },
+        { timeout: 500 }
+      );
 
       // Output should appear immediately (no fake loading delay)
-      await page.waitForFunction(() => {
-        const output = document.querySelector('[data-testid="output-container"]');
-        return output && window.getComputedStyle(output).display !== 'none';
-      }, { timeout: 5000 });
+      await page.waitForFunction(
+        () => {
+          const output = document.querySelector('[data-testid="output-container"]');
+          return output && window.getComputedStyle(output).display !== 'none';
+        },
+        { timeout: 5000 }
+      );
 
       // Output should be visible
       await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
@@ -535,7 +569,9 @@ test.describe('Diligence Machine E2E', () => {
 
       // Verify footer
       await expect(page.locator('.doc-footer')).toBeVisible();
-      await expect(page.locator('.doc-footer-disclaimer')).toContainText('These perspectives are presented from recurrent technology patterns');
+      await expect(page.locator('.doc-footer-disclaimer')).toContainText(
+        'These perspectives are presented from recurrent technology patterns'
+      );
     });
   });
 
@@ -645,7 +681,9 @@ test.describe('Diligence Machine E2E', () => {
 
           // Verify badge has appropriate CSS class (may have space or hyphen separator)
           const className = await badge.getAttribute('class');
-          expect(className).toMatch(/exit-impact-(multiple-expander|multiple expander|valuation-drag|valuation drag|operational-risk|operational risk)/);
+          expect(className).toMatch(
+            /exit-impact-(multiple-expander|multiple expander|valuation-drag|valuation drag|operational-risk|operational risk)/
+          );
         }
       }
     });
@@ -800,10 +838,13 @@ test.describe('Diligence Machine E2E', () => {
       await expect(page.locator('#btnCopyLabel')).toHaveText('Copied!');
 
       // Wait for label to revert (source uses setTimeout 2000ms)
-      await page.waitForFunction(() => {
-        const label = document.getElementById('btnCopyLabel');
-        return label && label.textContent === 'Copy';
-      }, { timeout: 5000 });
+      await page.waitForFunction(
+        () => {
+          const label = document.getElementById('btnCopyLabel');
+          return label && label.textContent === 'Copy';
+        },
+        { timeout: 5000 }
+      );
 
       // Verify clipboard content (skip for Firefox/WebKit which may not support clipboard API)
       if (browserName === 'chromium') {
@@ -877,13 +918,19 @@ test.describe('Diligence Machine E2E', () => {
       });
 
       // Wait for wizard to appear (increased timeout for slower browsers under contention)
-      await page.waitForFunction(() => {
-        const wizard = document.querySelector('[data-testid="wizard-container"]');
-        const output = document.querySelector('[data-testid="output-container"]');
-        return wizard && output &&
-               window.getComputedStyle(wizard).display !== 'none' &&
-               window.getComputedStyle(output).display === 'none';
-      }, { timeout: 10000 });
+      await page.waitForFunction(
+        () => {
+          const wizard = document.querySelector('[data-testid="wizard-container"]');
+          const output = document.querySelector('[data-testid="output-container"]');
+          return (
+            wizard &&
+            output &&
+            window.getComputedStyle(wizard).display !== 'none' &&
+            window.getComputedStyle(output).display === 'none'
+          );
+        },
+        { timeout: 10000 }
+      );
 
       // Wizard should be visible
       await expect(page.locator('[data-testid="wizard-container"]')).toBeVisible();
@@ -895,7 +942,9 @@ test.describe('Diligence Machine E2E', () => {
       await expectWizardOnStep(page, 1);
 
       // No selections should be present
-      const selectedCards = page.locator('.brutal-option-card.brutal-option-card--selected-outline');
+      const selectedCards = page.locator(
+        '.brutal-option-card.brutal-option-card--selected-outline'
+      );
       expect(await selectedCards.count()).toBe(0);
 
       // localStorage should be reset to initial state (not null, but step 1)
@@ -931,10 +980,13 @@ test.describe('Diligence Machine E2E', () => {
       });
 
       // Wait for wizard to appear
-      await page.waitForFunction(() => {
-        const wizard = document.querySelector('[data-testid="wizard-container"]');
-        return wizard && window.getComputedStyle(wizard).display !== 'none';
-      }, { timeout: 5000 });
+      await page.waitForFunction(
+        () => {
+          const wizard = document.querySelector('[data-testid="wizard-container"]');
+          return wizard && window.getComputedStyle(wizard).display !== 'none';
+        },
+        { timeout: 5000 }
+      );
 
       // Wizard should be visible
       await expect(page.locator('[data-testid="wizard-container"]')).toBeVisible();
@@ -977,16 +1029,25 @@ test.describe('Diligence Machine E2E', () => {
 
       // Click on "Transaction Type" label in Target Parameters
       // Click on "Transaction Type" label — use evaluate for WebKit stability
-      await expect(page.locator('.doc-meta-label--clickable[data-step-id="transaction-type"]')).toBeVisible();
+      await expect(
+        page.locator('.doc-meta-label--clickable[data-step-id="transaction-type"]')
+      ).toBeVisible();
       await page.evaluate(() => {
-        (document.querySelector('.doc-meta-label--clickable[data-step-id="transaction-type"]') as HTMLElement)?.click();
+        (
+          document.querySelector(
+            '.doc-meta-label--clickable[data-step-id="transaction-type"]'
+          ) as HTMLElement
+        )?.click();
       });
 
       // Wait for wizard to appear
-      await page.waitForFunction(() => {
-        const wizard = document.querySelector('[data-testid="wizard-container"]');
-        return wizard && window.getComputedStyle(wizard).display !== 'none';
-      }, { timeout: 5000 });
+      await page.waitForFunction(
+        () => {
+          const wizard = document.querySelector('[data-testid="wizard-container"]');
+          return wizard && window.getComputedStyle(wizard).display !== 'none';
+        },
+        { timeout: 5000 }
+      );
 
       // Wizard should be visible
       await expect(page.locator('[data-testid="wizard-container"]')).toBeVisible();
@@ -1001,7 +1062,9 @@ test.describe('Diligence Machine E2E', () => {
       await verifyStepSelection(page, 'transaction-type', 'full-acquisition');
     });
 
-    test('should navigate to compound step when clicking company size parameter', async ({ page }) => {
+    test('should navigate to compound step when clicking company size parameter', async ({
+      page,
+    }) => {
       await completeWizardAndGenerate(page, {
         transactionType: 'carve-out',
         productType: 'on-premise-enterprise',
@@ -1021,9 +1084,15 @@ test.describe('Diligence Machine E2E', () => {
       await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
 
       // Click on "Company Size" label (maps to company-profile step) — use evaluate for WebKit stability
-      await expect(page.locator('.doc-meta-label--clickable[data-step-id="company-profile"]').first()).toBeVisible();
+      await expect(
+        page.locator('.doc-meta-label--clickable[data-step-id="company-profile"]').first()
+      ).toBeVisible();
       await page.evaluate(() => {
-        (document.querySelector('.doc-meta-label--clickable[data-step-id="company-profile"]') as HTMLElement)?.click();
+        (
+          document.querySelector(
+            '.doc-meta-label--clickable[data-step-id="company-profile"]'
+          ) as HTMLElement
+        )?.click();
       });
 
       // Wait for wizard
@@ -1042,7 +1111,9 @@ test.describe('Diligence Machine E2E', () => {
       await verifyCompoundSelection(page, 'company-age', '10-20yr');
     });
 
-    test('should navigate to multi-select geography step when clicking geography parameter', async ({ page }) => {
+    test('should navigate to multi-select geography step when clicking geography parameter', async ({
+      page,
+    }) => {
       await completeWizardAndGenerate(page, {
         transactionType: 'full-acquisition',
         productType: 'b2b-saas',
@@ -1062,9 +1133,15 @@ test.describe('Diligence Machine E2E', () => {
       await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
 
       // Click on "Geography" label — use evaluate for WebKit stability
-      await expect(page.locator('.doc-meta-label--clickable[data-step-id="geography"]')).toBeVisible();
+      await expect(
+        page.locator('.doc-meta-label--clickable[data-step-id="geography"]')
+      ).toBeVisible();
       await page.evaluate(() => {
-        (document.querySelector('.doc-meta-label--clickable[data-step-id="geography"]') as HTMLElement)?.click();
+        (
+          document.querySelector(
+            '.doc-meta-label--clickable[data-step-id="geography"]'
+          ) as HTMLElement
+        )?.click();
       });
 
       await page.waitForFunction(() => {
@@ -1100,7 +1177,9 @@ test.describe('Diligence Machine E2E', () => {
 
       await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
 
-      const transactionTypeLabel = page.locator('.doc-meta-label--clickable[data-step-id="transaction-type"]');
+      const transactionTypeLabel = page.locator(
+        '.doc-meta-label--clickable[data-step-id="transaction-type"]'
+      );
 
       // Get initial state
       const before = await transactionTypeLabel.evaluate((el) => ({
@@ -1116,10 +1195,15 @@ test.describe('Diligence Machine E2E', () => {
 
       // Wait for the CSS transition to apply the underline (evaluate does not auto-retry,
       // so we poll the computed style directly rather than using a fixed timeout).
-      await page.waitForFunction(() => {
-        const el = document.querySelector('.doc-meta-label--clickable[data-step-id="transaction-type"]');
-        return el ? window.getComputedStyle(el).textDecoration.includes('underline') : false;
-      }, { timeout: 2000 });
+      await page.waitForFunction(
+        () => {
+          const el = document.querySelector(
+            '.doc-meta-label--clickable[data-step-id="transaction-type"]'
+          );
+          return el ? window.getComputedStyle(el).textDecoration.includes('underline') : false;
+        },
+        { timeout: 2000 }
+      );
 
       // Get hover state
       const after = await transactionTypeLabel.evaluate((el) => ({
@@ -1130,7 +1214,9 @@ test.describe('Diligence Machine E2E', () => {
       expect(after.textDecoration).toContain('underline');
     });
 
-    test('should preserve wizard state when navigating back from parameter label', async ({ page }) => {
+    test('should preserve wizard state when navigating back from parameter label', async ({
+      page,
+    }) => {
       await completeWizardAndGenerate(page, {
         transactionType: 'full-acquisition',
         productType: 'b2b-saas',
@@ -1151,7 +1237,11 @@ test.describe('Diligence Machine E2E', () => {
 
       // Click on "Product Type" label to navigate back — use evaluate for WebKit stability
       await page.evaluate(() => {
-        (document.querySelector('.doc-meta-label--clickable[data-step-id="product-type"]') as HTMLElement)?.click();
+        (
+          document.querySelector(
+            '.doc-meta-label--clickable[data-step-id="product-type"]'
+          ) as HTMLElement
+        )?.click();
       });
 
       await page.waitForFunction(() => {
@@ -1172,10 +1262,13 @@ test.describe('Diligence Machine E2E', () => {
 
       // Verify we can navigate forward
       await clickElement(page, '[data-testid="btn-next"]');
-      await page.waitForFunction(() => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === '2';
-      }, { timeout: 2000 });
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '2';
+        },
+        { timeout: 2000 }
+      );
       await expectWizardOnStep(page, 2);
 
       // Verify highestStepReached is maintained (should be 10)
@@ -1183,7 +1276,9 @@ test.describe('Diligence Machine E2E', () => {
       expect(state.highestStepReached).toBe(10);
     });
 
-    test('should navigate back to wizard from output using different parameter labels', async ({ page }) => {
+    test('should navigate back to wizard from output using different parameter labels', async ({
+      page,
+    }) => {
       await completeWizardAndGenerate(page, {
         transactionType: 'full-acquisition',
         productType: 'b2b-saas',
@@ -1204,26 +1299,38 @@ test.describe('Diligence Machine E2E', () => {
 
       // Test navigating to step 6 via Business Model label — use evaluate for WebKit
       await page.evaluate(() => {
-        (document.querySelector('.doc-meta-label--clickable[data-step-id="business-model"]') as HTMLElement)?.click();
+        (
+          document.querySelector(
+            '.doc-meta-label--clickable[data-step-id="business-model"]'
+          ) as HTMLElement
+        )?.click();
       });
-      await page.waitForFunction(() => {
-        const wizard = document.querySelector('[data-testid="wizard-container"]');
-        return wizard && window.getComputedStyle(wizard).display !== 'none';
-      }, { timeout: 5000 });
+      await page.waitForFunction(
+        () => {
+          const wizard = document.querySelector('[data-testid="wizard-container"]');
+          return wizard && window.getComputedStyle(wizard).display !== 'none';
+        },
+        { timeout: 5000 }
+      );
       await expectWizardOnStep(page, 6);
       await verifyStepSelection(page, 'business-model', 'productized-platform');
 
       // Verify we can still use progress bar navigation
       await clickElement(page, '[data-testid="progress-segment-10"]');
-      await page.waitForFunction(() => {
-        const activeStep = document.querySelector('.wizard-step.active');
-        return activeStep?.getAttribute('data-step') === '10';
-      }, { timeout: 5000 });
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '10';
+        },
+        { timeout: 5000 }
+      );
       await expectWizardOnStep(page, 10);
       await verifyStepSelection(page, 'operating-model', 'centralized-eng');
     });
 
-    test('should have correct data-step-id attributes on all clickable labels', async ({ page }) => {
+    test('should have correct data-step-id attributes on all clickable labels', async ({
+      page,
+    }) => {
       await completeWizardAndGenerate(page, {
         transactionType: 'full-acquisition',
         productType: 'b2b-saas',

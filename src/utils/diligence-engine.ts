@@ -84,10 +84,7 @@ export function meetsMinimumBracket(
  * Undefined condition fields are wildcards (match everything).
  * Specified arrays use OR logic within, AND logic across fields.
  */
-export function matchesConditions(
-  conditions: QuestionCondition,
-  inputs: UserInputs
-): boolean {
+export function matchesConditions(conditions: QuestionCondition, inputs: UserInputs): boolean {
   if (
     conditions.transactionTypes &&
     !conditions.transactionTypes.includes(inputs.transactionType)
@@ -102,24 +99,15 @@ export function matchesConditions(
     return false;
   }
 
-  if (
-    conditions.productTypes &&
-    !conditions.productTypes.includes(inputs.productType)
-  ) {
+  if (conditions.productTypes && !conditions.productTypes.includes(inputs.productType)) {
     return false;
   }
 
-  if (
-    conditions.techArchetypes &&
-    !conditions.techArchetypes.includes(inputs.techArchetype)
-  ) {
+  if (conditions.techArchetypes && !conditions.techArchetypes.includes(inputs.techArchetype)) {
     return false;
   }
 
-  if (
-    conditions.growthStages &&
-    !conditions.growthStages.includes(inputs.growthStage)
-  ) {
+  if (conditions.growthStages && !conditions.growthStages.includes(inputs.growthStage)) {
     return false;
   }
 
@@ -152,17 +140,11 @@ export function matchesConditions(
   }
 
   // v2 condition dimensions
-  if (
-    conditions.businessModels &&
-    !conditions.businessModels.includes(inputs.businessModel)
-  ) {
+  if (conditions.businessModels && !conditions.businessModels.includes(inputs.businessModel)) {
     return false;
   }
 
-  if (
-    conditions.scaleIntensity &&
-    !conditions.scaleIntensity.includes(inputs.scaleIntensity)
-  ) {
+  if (conditions.scaleIntensity && !conditions.scaleIntensity.includes(inputs.scaleIntensity)) {
     return false;
   }
 
@@ -173,17 +155,11 @@ export function matchesConditions(
     return false;
   }
 
-  if (
-    conditions.dataSensitivity &&
-    !conditions.dataSensitivity.includes(inputs.dataSensitivity)
-  ) {
+  if (conditions.dataSensitivity && !conditions.dataSensitivity.includes(inputs.dataSensitivity)) {
     return false;
   }
 
-  if (
-    conditions.operatingModels &&
-    !conditions.operatingModels.includes(inputs.operatingModel)
-  ) {
+  if (conditions.operatingModels && !conditions.operatingModels.includes(inputs.operatingModel)) {
     return false;
   }
 
@@ -243,8 +219,7 @@ export function balanceAcrossTopics(
 
   // Phase 2: Fill remaining slots from all topics by priority
   if (result.length < maxTotal) {
-    const remaining = questions
-      .filter((q) => !selected.has(q.id));
+    const remaining = questions.filter((q) => !selected.has(q.id));
     const sorted = sortByPriority(remaining);
 
     for (const q of sorted) {
@@ -266,9 +241,7 @@ export function groupByTopic(questions: DiligenceQuestion[]): TopicOutput[] {
 
   for (const id of topicIds) {
     const meta = TOPIC_META[id];
-    const topicQuestions = sortByPriority(
-      questions.filter((q) => q.topic === id)
-    );
+    const topicQuestions = sortByPriority(questions.filter((q) => q.topic === id));
 
     if (topicQuestions.length > 0) {
       topics.push({
@@ -389,9 +362,7 @@ export function computeTriggers(conditions: QuestionCondition): string[] {
  */
 export function generateScript(inputs: UserInputs): GeneratedScript {
   // 1. Filter questions by conditions
-  const matchedQuestions = QUESTIONS.filter((q) =>
-    matchesConditions(q.conditions, inputs)
-  );
+  const matchedQuestions = QUESTIONS.filter((q) => matchesConditions(q.conditions, inputs));
 
   // 2. Apply archetype pivot (filter cloud-native Qs for on-prem targets)
   const pivotedQuestions = applyArchetypePivot(matchedQuestions, inputs);
@@ -407,9 +378,7 @@ export function generateScript(inputs: UserInputs): GeneratedScript {
   }
 
   // 5. Filter attention areas by conditions
-  const matchedAreas = ATTENTION_AREAS.filter((a) =>
-    matchesConditions(a.conditions, inputs)
-  );
+  const matchedAreas = ATTENTION_AREAS.filter((a) => matchesConditions(a.conditions, inputs));
 
   // 6. Apply maturity overrides (inject computed attention areas)
   const enrichedAreas = applyMaturityOverrides(matchedAreas, inputs);
@@ -457,7 +426,7 @@ export const MULTI_REGION_ID = 'multi-region';
  * Returns a new array (does not mutate the input).
  */
 export function syncMultiRegion(geographies: string[]): string[] {
-  const nonMR = geographies.filter(g => g !== MULTI_REGION_ID);
+  const nonMR = geographies.filter((g) => g !== MULTI_REGION_ID);
   const hasMR = geographies.includes(MULTI_REGION_ID);
 
   if (nonMR.length >= 2 && !hasMR) {

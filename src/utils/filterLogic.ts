@@ -8,13 +8,13 @@ export const ENGAGEMENT_CATEGORIES = {
     'Value Creation - Growth',
     'Value Creation - Integration',
     'Value Creation - Modernization',
-    'Value Creation - Turnaround'
+    'Value Creation - Turnaround',
   ],
   technicalDiligence: [
     'Early Stage Assessment',
     'Technical Assessment',
-    'Buy-Side Technical Diligence'
-  ]
+    'Buy-Side Technical Diligence',
+  ],
 } as const;
 
 /**
@@ -27,7 +27,7 @@ export const GROWTH_KEYWORDS = [
   'scaling',
   'scale-up',
   'startup',
-  'early'
+  'early',
 ];
 
 /**
@@ -40,7 +40,7 @@ export const MATURE_KEYWORDS = [
   'developed',
   'legacy',
   'modernizing',
-  'enterprise'
+  'enterprise',
 ];
 
 /**
@@ -67,12 +67,12 @@ export function categorizeGrowthStage(stage: string): 'growth' | 'mature' | 'oth
   const stageLower = stage.toLowerCase();
 
   // Check for growth stage indicators
-  if (GROWTH_KEYWORDS.some(keyword => stageLower.includes(keyword))) {
+  if (GROWTH_KEYWORDS.some((keyword) => stageLower.includes(keyword))) {
     return 'growth';
   }
 
   // Check for mature stage indicators
-  if (MATURE_KEYWORDS.some(keyword => stageLower.includes(keyword))) {
+  if (MATURE_KEYWORDS.some((keyword) => stageLower.includes(keyword))) {
     return 'mature';
   }
 
@@ -121,7 +121,7 @@ export function categorizeEngagementType(
  * @returns Array of unique growth stages
  */
 export function getUniqueGrowthStages(projects: Project[]): string[] {
-  return [...new Set(projects.map(p => p.growthStage))];
+  return [...new Set(projects.map((p) => p.growthStage))];
 }
 
 /**
@@ -131,9 +131,7 @@ export function getUniqueGrowthStages(projects: Project[]): string[] {
  */
 export function getGrowthStageProjects(projects: Project[]): string[] {
   const uniqueStages = getUniqueGrowthStages(projects);
-  return uniqueStages
-    .filter(stage => categorizeGrowthStage(stage) === 'growth')
-    .sort();
+  return uniqueStages.filter((stage) => categorizeGrowthStage(stage) === 'growth').sort();
 }
 
 /**
@@ -143,9 +141,7 @@ export function getGrowthStageProjects(projects: Project[]): string[] {
  */
 export function getMatureStageProjects(projects: Project[]): string[] {
   const uniqueStages = getUniqueGrowthStages(projects);
-  return uniqueStages
-    .filter(stage => categorizeGrowthStage(stage) === 'mature')
-    .sort();
+  return uniqueStages.filter((stage) => categorizeGrowthStage(stage) === 'mature').sort();
 }
 
 /**
@@ -154,7 +150,7 @@ export function getMatureStageProjects(projects: Project[]): string[] {
  * @returns Sorted array of unique themes
  */
 export function getUniqueThemes(projects: Project[]): string[] {
-  return [...new Set(projects.map(p => p.theme))].sort();
+  return [...new Set(projects.map((p) => p.theme))].sort();
 }
 
 /**
@@ -163,7 +159,7 @@ export function getUniqueThemes(projects: Project[]): string[] {
  * @returns Array of unique years sorted in descending order
  */
 export function getUniqueYears(projects: Project[]): number[] {
-  return [...new Set(projects.map(p => p.year))].sort((a, b) => b - a);
+  return [...new Set(projects.map((p) => p.year))].sort((a, b) => b - a);
 }
 
 /**
@@ -174,10 +170,8 @@ export function getUniqueYears(projects: Project[]): number[] {
 export function getUniqueEngagementTypes(projects: Project[]): EngagementType[] {
   return [
     ...new Set(
-      projects
-        .map(p => p.engagementType)
-        .filter((e): e is EngagementType => e !== undefined)
-    )
+      projects.map((p) => p.engagementType).filter((e): e is EngagementType => e !== undefined)
+    ),
   ].sort();
 }
 
@@ -206,7 +200,7 @@ export function filterProjects(
   growthStages: string[] = [],
   matureStages: string[] = []
 ): Project[] {
-  return projects.filter(project => {
+  return projects.filter((project) => {
     // Search filter
     if (criteria.search) {
       const searchLower = criteria.search.toLowerCase();

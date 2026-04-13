@@ -15,8 +15,8 @@ let filenames: string[];
 
 describe('Regulatory Map Data Validation', () => {
   beforeAll(() => {
-    filenames = fs.readdirSync(DATA_DIR).filter(f => f.endsWith('.json'));
-    regulations = filenames.map(f => {
+    filenames = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json'));
+    regulations = filenames.map((f) => {
       const raw = fs.readFileSync(path.join(DATA_DIR, f), 'utf-8');
       return JSON.parse(raw) as Regulation;
     });
@@ -46,7 +46,12 @@ describe('Regulatory Map Data Validation', () => {
     });
 
     it('should have a valid category on each regulation', () => {
-      const validCategories = ['data-privacy', 'ai-governance', 'industry-compliance', 'cybersecurity'];
+      const validCategories = [
+        'data-privacy',
+        'ai-governance',
+        'industry-compliance',
+        'cybersecurity',
+      ];
       regulations.forEach((reg, i) => {
         expect(validCategories, `File: ${filenames[i]}`).toContain(reg.category);
       });
@@ -62,10 +67,13 @@ describe('Regulatory Map Data Validation', () => {
     });
 
     it('should have the expected number of regulations per category', () => {
-      const byCat = regulations.reduce((acc, r) => {
-        acc[r.category] = (acc[r.category] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const byCat = regulations.reduce(
+        (acc, r) => {
+          acc[r.category] = (acc[r.category] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
       expect(byCat['data-privacy']).toBe(69);
       expect(byCat['ai-governance']).toBe(19);
       expect(byCat['industry-compliance']).toBe(12);
@@ -95,7 +103,7 @@ describe('Regulatory Map Data Validation', () => {
 
     it('should have valid region code formats', () => {
       regulations.forEach((reg, i) => {
-        reg.regions.forEach(code => {
+        reg.regions.forEach((code) => {
           expect(code, `File: ${filenames[i]}, code: ${code}`).toMatch(REGION_CODE_REGEX);
         });
       });
@@ -119,7 +127,7 @@ describe('Regulatory Map Data Validation', () => {
         if (reg.keyRequirements !== undefined) {
           expect(Array.isArray(reg.keyRequirements), `File: ${filenames[i]}`).toBe(true);
           expect(reg.keyRequirements.length, `File: ${filenames[i]}`).toBeGreaterThan(0);
-          reg.keyRequirements.forEach(req => {
+          reg.keyRequirements.forEach((req) => {
             expect(typeof req).toBe('string');
             expect(req.length).toBeGreaterThan(0);
           });
@@ -139,7 +147,7 @@ describe('Regulatory Map Data Validation', () => {
 
   describe('Uniqueness Constraints', () => {
     it('should have unique regulation IDs', () => {
-      const ids = regulations.map(r => r.id);
+      const ids = regulations.map((r) => r.id);
       const uniqueIds = new Set(ids);
       expect(uniqueIds.size).toBe(ids.length);
     });
@@ -147,7 +155,9 @@ describe('Regulatory Map Data Validation', () => {
     it('should have no duplicate region codes within a single regulation', () => {
       regulations.forEach((reg, i) => {
         const uniqueCodes = new Set(reg.regions);
-        expect(uniqueCodes.size, `File: ${filenames[i]} has duplicate region codes`).toBe(reg.regions.length);
+        expect(uniqueCodes.size, `File: ${filenames[i]} has duplicate region codes`).toBe(
+          reg.regions.length
+        );
       });
     });
   });
@@ -159,9 +169,11 @@ describe('Regulatory Map Data Validation', () => {
       const knownAbsent = new Set(['BHR', 'SRB']);
 
       regulations.forEach((reg, i) => {
-        reg.regions.forEach(code => {
+        reg.regions.forEach((code) => {
           if (/^[A-Z]{3}$/.test(code) && !knownAbsent.has(code)) {
-            expect(alpha3ToName, `File: ${filenames[i]}, unknown alpha-3: ${code}`).toHaveProperty(code);
+            expect(alpha3ToName, `File: ${filenames[i]}, unknown alpha-3: ${code}`).toHaveProperty(
+              code
+            );
           }
         });
       });
@@ -169,9 +181,11 @@ describe('Regulatory Map Data Validation', () => {
 
     it('should have all US-XX codes in stateCodeToName', () => {
       regulations.forEach((reg, i) => {
-        reg.regions.forEach(code => {
+        reg.regions.forEach((code) => {
           if (/^US-[A-Z]{2}$/.test(code)) {
-            expect(stateCodeToName, `File: ${filenames[i]}, unknown state: ${code}`).toHaveProperty(code);
+            expect(stateCodeToName, `File: ${filenames[i]}, unknown state: ${code}`).toHaveProperty(
+              code
+            );
           }
         });
       });
@@ -179,9 +193,12 @@ describe('Regulatory Map Data Validation', () => {
 
     it('should have all CA-XX codes in provinceCodeToName', () => {
       regulations.forEach((reg, i) => {
-        reg.regions.forEach(code => {
+        reg.regions.forEach((code) => {
           if (/^CA-[A-Z]{2}$/.test(code)) {
-            expect(provinceCodeToName, `File: ${filenames[i]}, unknown province: ${code}`).toHaveProperty(code);
+            expect(
+              provinceCodeToName,
+              `File: ${filenames[i]}, unknown province: ${code}`
+            ).toHaveProperty(code);
           }
         });
       });
@@ -209,10 +226,20 @@ describe('Regulatory Map Data Validation', () => {
 
     it('should group multiple regulations sharing a region code', () => {
       const reg1: Regulation = {
-        id: 'a', name: 'A', regions: ['DEU'], effectiveDate: '2024-01-01', summary: 'A', category: 'data-privacy',
+        id: 'a',
+        name: 'A',
+        regions: ['DEU'],
+        effectiveDate: '2024-01-01',
+        summary: 'A',
+        category: 'data-privacy',
       };
       const reg2: Regulation = {
-        id: 'b', name: 'B', regions: ['DEU'], effectiveDate: '2024-06-01', summary: 'B', category: 'data-privacy',
+        id: 'b',
+        name: 'B',
+        regions: ['DEU'],
+        effectiveDate: '2024-06-01',
+        summary: 'B',
+        category: 'data-privacy',
       };
       const result = getRegulationsByRegion([reg1, reg2]);
       expect(result['DEU']).toHaveLength(2);
@@ -226,7 +253,7 @@ describe('Regulatory Map Data Validation', () => {
       const result = getRegulationsByRegion([gdpr]);
 
       expect(gdpr.regions).toHaveLength(27);
-      gdpr.regions.forEach(code => {
+      gdpr.regions.forEach((code) => {
         expect(result[code]).toContainEqual(gdpr);
       });
     });

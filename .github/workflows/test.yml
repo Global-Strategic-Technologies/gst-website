@@ -71,11 +71,9 @@ jobs:
         if: needs.changes.outputs.code == 'true'
         run: npm run lint:css
 
-      # Prettier is enforced per-file via the husky pre-commit hook
-      # (lint-staged runs `prettier --write` on staged files). A full
-      # `prettier --check .` pass is deferred until the legacy codebase
-      # has been progressively formatted — see PLATFORM_HARDENING_V1.md
-      # Phase 9 backlog for the planned catch-up sweep.
+      - name: Prettier check
+        if: needs.changes.outputs.code == 'true'
+        run: npx prettier --check .
 
       - name: npm audit (production dependencies only)
         if: needs.changes.outputs.code == 'true'

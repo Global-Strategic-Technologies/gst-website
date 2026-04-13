@@ -30,10 +30,7 @@ export async function hasRadarContent(page: Page): Promise<boolean> {
  * Click a category filter button and wait for the DOM to update.
  * Uses page.evaluate() for WebKit stability.
  */
-export async function clickCategoryFilter(
-  page: Page,
-  category: string,
-): Promise<void> {
+export async function clickCategoryFilter(page: Page, category: string): Promise<void> {
   await page.evaluate((cat) => {
     const btn = document.querySelector(`.filter-btn[data-filter="${cat}"]`);
     if (!btn) throw new Error(`Filter button not found: ${cat}`);
@@ -47,7 +44,7 @@ export async function clickCategoryFilter(
       return btn?.classList.contains('active');
     },
     category,
-    { timeout: 2000 },
+    { timeout: 2000 }
   );
 }
 
@@ -55,14 +52,9 @@ export async function clickCategoryFilter(
  * Get visible item count for items matching a data-category value.
  * Items hidden by the category filter (display: none) are excluded.
  */
-export async function getVisibleItemCount(
-  page: Page,
-  category?: string,
-): Promise<number> {
+export async function getVisibleItemCount(page: Page, category?: string): Promise<number> {
   return page.evaluate((cat) => {
-    const selector = cat
-      ? `[data-category="${cat}"]`
-      : '[data-category]';
+    const selector = cat ? `[data-category="${cat}"]` : '[data-category]';
     const items = document.querySelectorAll(selector);
     let count = 0;
     items.forEach((el) => {

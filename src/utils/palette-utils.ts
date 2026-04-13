@@ -7,8 +7,10 @@ export function rgbToHex(rgb: string): string {
   if (rgb === 'transparent' || rgb === 'rgba(0, 0, 0, 0)') return 'transparent';
   const m = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
   if (!m) return rgb;
-  const r = parseInt(m[1]), g = parseInt(m[2]), b = parseInt(m[3]);
-  return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+  const r = parseInt(m[1]),
+    g = parseInt(m[2]),
+    b = parseInt(m[3]);
+  return '#' + [r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('');
 }
 
 export function hexToRgb(hex: string): [number, number, number] | null {

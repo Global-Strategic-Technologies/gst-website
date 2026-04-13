@@ -7,6 +7,7 @@ This guide documents best practices for writing E2E tests that actually verify f
 ### 1. ❌ False-Positive Assertions
 
 **Bad:**
+
 ```typescript
 // Always passes - count is always >= 0
 expect(cardCount).toBeGreaterThanOrEqual(0);
@@ -19,6 +20,7 @@ expect(typeof isDark).toBe('boolean');
 ```
 
 **Good:**
+
 ```typescript
 // Verifies elements actually exist
 expect(cardCount).toBeGreaterThan(0);
@@ -33,6 +35,7 @@ expect(isDark).toBe(expectedValue);
 ### 2. ❌ Testing UI Presence, Not Behavior
 
 **Bad:**
+
 ```typescript
 test('should apply filter', async ({ page }) => {
   const chip = page.locator('[data-testid="filter-chip"]');
@@ -44,6 +47,7 @@ test('should apply filter', async ({ page }) => {
 ```
 
 **Good:**
+
 ```typescript
 test('should apply filter', async ({ page }) => {
   const chip = page.locator('[data-testid="filter-chip"]');
@@ -68,51 +72,53 @@ test('should apply filter', async ({ page }) => {
 ### 3. ❌ Placeholder Timeouts Instead of State Waits
 
 **Bad:**
+
 ```typescript
 // Arbitrary 100ms wait - might not be enough, tests fragile
 await page.waitForTimeout(100);
-const hasClass = await body.evaluate(el => el.classList.contains('dark-theme'));
+const hasClass = await body.evaluate((el) => el.classList.contains('dark-theme'));
 expect(hasClass).toBe(true);
 ```
 
 **Good:**
+
 ```typescript
 // Wait for actual state change
-await page.waitForFunction((initialColor) => {
-  const bg = window.getComputedStyle(document.body).backgroundColor;
-  return bg !== initialColor;
-}, initialBgColor, { timeout: 5000 });
-
-const newBg = await body.evaluate(el =>
-  window.getComputedStyle(el).backgroundColor
+await page.waitForFunction(
+  (initialColor) => {
+    const bg = window.getComputedStyle(document.body).backgroundColor;
+    return bg !== initialColor;
+  },
+  initialBgColor,
+  { timeout: 5000 }
 );
+
+const newBg = await body.evaluate((el) => window.getComputedStyle(el).backgroundColor);
 expect(newBg).not.toBe(initialBgColor);
 ```
 
 ### 4. ❌ Checking CSS Classes, Not Actual CSS Properties
 
 **Bad:**
+
 ```typescript
 test('should apply dark theme', async ({ page }) => {
   const body = page.locator('body');
   await themeToggle.click();
 
   // Only checks class name
-  const hasDarkClass = await body.evaluate(el =>
-    el.classList.contains('dark-theme')
-  );
+  const hasDarkClass = await body.evaluate((el) => el.classList.contains('dark-theme'));
   expect(hasDarkClass).toBe(true);
 });
 ```
 
 **Good:**
+
 ```typescript
 test('should apply dark theme with correct styling', async ({ page }) => {
   const body = page.locator('body');
 
-  const initialBg = await body.evaluate(el =>
-    window.getComputedStyle(el).backgroundColor
-  );
+  const initialBg = await body.evaluate((el) => window.getComputedStyle(el).backgroundColor);
 
   await themeToggle.click();
 
@@ -123,12 +129,8 @@ test('should apply dark theme with correct styling', async ({ page }) => {
   }, initialBg);
 
   // Verify both class AND actual CSS properties changed
-  const darkClass = await body.evaluate(el =>
-    el.classList.contains('dark-theme')
-  );
-  const bgColor = await body.evaluate(el =>
-    window.getComputedStyle(el).backgroundColor
-  );
+  const darkClass = await body.evaluate((el) => el.classList.contains('dark-theme'));
+  const bgColor = await body.evaluate((el) => window.getComputedStyle(el).backgroundColor);
 
   expect(darkClass).toBe(true);
   expect(bgColor).not.toBe(initialBg);
@@ -141,6 +143,7 @@ test('should apply dark theme with correct styling', async ({ page }) => {
 ### 1. Test User Interactions → Results
 
 Every test should follow this pattern:
+
 1. Setup (get initial state)
 2. Interact (user action)
 3. Wait (for actual state change)
@@ -157,10 +160,13 @@ test('should update project list when filter applied', async ({ page }) => {
   await filterButton.click();
 
   // 3. Wait - For actual state change
-  await page.waitForFunction(() => {
-    const state = (window as any).portfolioState;
-    return state && state.filters && state.filters.stage === 'growth';
-  }, { timeout: 5000 });
+  await page.waitForFunction(
+    () => {
+      const state = (window as any).portfolioState;
+      return state && state.filters && state.filters.stage === 'growth';
+    },
+    { timeout: 5000 }
+  );
 
   // 4. Verify - Results
   const filteredCards = page.locator('[data-testid="project-card"]');
@@ -168,9 +174,7 @@ test('should update project list when filter applied', async ({ page }) => {
 
   // Count may be same or different depending on data
   // But state MUST have changed
-  const filterState = await page.evaluate(() =>
-    (window as any).portfolioState?.filters?.stage
-  );
+  const filterState = await page.evaluate(() => (window as any).portfolioState?.filters?.stage);
   expect(filterState).toBe('growth');
 });
 ```
@@ -184,9 +188,9 @@ test('should toggle theme', async ({ page }) => {
   const body = page.locator('body');
 
   // Get BEFORE state
-  const beforeState = await body.evaluate(el => ({
+  const beforeState = await body.evaluate((el) => ({
     hasDarkClass: el.classList.contains('dark-theme'),
-    bgColor: window.getComputedStyle(el).backgroundColor
+    bgColor: window.getComputedStyle(el).backgroundColor,
   }));
 
   // Action
@@ -199,9 +203,9 @@ test('should toggle theme', async ({ page }) => {
   }, beforeState.bgColor);
 
   // Get AFTER state
-  const afterState = await body.evaluate(el => ({
+  const afterState = await body.evaluate((el) => ({
     hasDarkClass: el.classList.contains('dark-theme'),
-    bgColor: window.getComputedStyle(el).backgroundColor
+    bgColor: window.getComputedStyle(el).backgroundColor,
   }));
 
   // VERIFY they're different
@@ -213,11 +217,13 @@ test('should toggle theme', async ({ page }) => {
 ### 3. Use Proper Waiting Mechanisms
 
 **Bad:**
+
 ```typescript
 await page.waitForTimeout(100); // Arbitrary wait
 ```
 
 **Good:**
+
 ```typescript
 // Wait for specific element
 await page.waitForSelector('[data-testid="modal"]');
@@ -232,14 +238,18 @@ await page.waitForFunction(() => {
 });
 
 // Wait for specific condition with timeout
-await page.waitForFunction(() => {
-  return document.querySelectorAll('.active').length > 0;
-}, { timeout: 5000 });
+await page.waitForFunction(
+  () => {
+    return document.querySelectorAll('.active').length > 0;
+  },
+  { timeout: 5000 }
+);
 ```
 
 ### 4. Test Behavioral Features, Not Implementation Details
 
 **Bad:**
+
 ```typescript
 // Tests implementation detail (class name)
 test('should add active class', async ({ page }) => {
@@ -249,6 +259,7 @@ test('should add active class', async ({ page }) => {
 ```
 
 **Good:**
+
 ```typescript
 // Tests observable behavior
 test('should highlight selected filter', async ({ page }) => {
@@ -259,17 +270,16 @@ test('should highlight selected filter', async ({ page }) => {
   await chip.click();
 
   // Verify it's now selected (could be class, attribute, or anything)
-  expect(await chip.evaluate(el => {
-    return el.classList.contains('active') ||
-           el.getAttribute('aria-selected') === 'true';
-  })).toBe(true);
+  expect(
+    await chip.evaluate((el) => {
+      return el.classList.contains('active') || el.getAttribute('aria-selected') === 'true';
+    })
+  ).toBe(true);
 
   // Verify other filters are deselected
   const otherChips = page.locator('[data-testid="filter-chip"]').not(chip);
   for (const other of await otherChips.all()) {
-    expect(await other.evaluate(el =>
-      el.classList.contains('active')
-    )).toBe(false);
+    expect(await other.evaluate((el) => el.classList.contains('active'))).toBe(false);
   }
 });
 ```
@@ -277,6 +287,7 @@ test('should highlight selected filter', async ({ page }) => {
 ### 5. Add Explicit Assertions for Expected Values
 
 **Bad:**
+
 ```typescript
 // Vague - could be any badge
 const badge = page.locator('[data-testid="filter-badge"]');
@@ -284,6 +295,7 @@ await expect(badge).toBeVisible();
 ```
 
 **Good — when a readiness gate guarantees content is rendered** (see [#25](#25--shallow-readiness-gates-in-beforeeach-that-dont-match-test-dependencies)):
+
 ```typescript
 // Explicit - verify exact content (safe after a proper waitForSelector gate)
 const badge = page.locator('[data-testid="filter-badge"]');
@@ -292,6 +304,7 @@ expect(badgeText).toBe('1'); // Exactly 1 filter applied
 ```
 
 **Good — when content may still be rendering** (e.g., after navigation, dynamic updates, or no readiness gate):
+
 ```typescript
 // Auto-retrying — Playwright polls until the assertion passes
 const badge = page.locator('[data-testid="filter-badge"]');
@@ -305,6 +318,7 @@ await expect(badge).toHaveText('1');
 CSS-animated panels (drawers, bottom sheets, slide-ins) may report `toBeVisible()` mid-transition, before child elements are interactable. This causes flaky failures, especially on Firefox and WebKit under parallel worker load.
 
 **Bad:**
+
 ```typescript
 test('should click filter chip in drawer', async ({ page }) => {
   // Open drawer
@@ -321,6 +335,7 @@ test('should click filter chip in drawer', async ({ page }) => {
 ```
 
 **Good:**
+
 ```typescript
 /**
  * Reusable helper — waits for both visibility AND transition completion.
@@ -333,12 +348,15 @@ async function openFilterDrawer(page: Page): Promise<void> {
   await expect(drawer).toBeVisible({ timeout: 5000 });
 
   // ✅ Wait for the CSS transition to complete (right: -400px → 0)
-  await page.waitForFunction(() => {
-    const el = document.querySelector('[data-testid="filter-drawer"]');
-    if (!el || !el.classList.contains('open')) return false;
-    const right = parseFloat(window.getComputedStyle(el).right);
-    return right >= -1; // accounts for sub-pixel rounding
-  }, { timeout: 5000 });
+  await page.waitForFunction(
+    () => {
+      const el = document.querySelector('[data-testid="filter-drawer"]');
+      if (!el || !el.classList.contains('open')) return false;
+      const right = parseFloat(window.getComputedStyle(el).right);
+      return right >= -1; // accounts for sub-pixel rounding
+    },
+    { timeout: 5000 }
+  );
 }
 
 test('should click filter chip in drawer', async ({ page }) => {
@@ -351,6 +369,7 @@ test('should click filter chip in drawer', async ({ page }) => {
 ```
 
 **Key principle:** For any element that uses CSS `transition` or `animation`, wait for the **computed CSS property** to reach its final value — not just for `toBeVisible()` or a class to be applied. Common properties to check:
+
 - Slide-in drawers: `right`, `left`, or `transform`
 - Bottom sheets: `transform: translateY(0)`
 - Fade-ins: `opacity`
@@ -363,6 +382,7 @@ test('should click filter chip in drawer', async ({ page }) => {
 Tests that assume specific data relationships (e.g., "Brazil has no industry-compliance regulations") break silently when new data is added. This is especially common with filter/category tests where global regulations (like Basel III or PCI-DSS) can retroactively add categories to countries.
 
 **Bad:**
+
 ```typescript
 test('should deselect when filter removes regulations', async ({ page }) => {
   // ❌ Assumes Brazil has no industry-compliance regs — breaks when global regs are added
@@ -373,6 +393,7 @@ test('should deselect when filter removes regulations', async ({ page }) => {
 ```
 
 **Good:**
+
 ```typescript
 test('should deselect when filter removes regulations', async ({ page }) => {
   // ✅ Thailand has data-privacy + cybersecurity but NOT industry-compliance
@@ -383,29 +404,32 @@ test('should deselect when filter removes regulations', async ({ page }) => {
 });
 ```
 
-**Key principle:** When a test depends on a specific data relationship (region X has/doesn't have category Y), document *why* that region was chosen in a comment. When adding new data files, grep tests for the affected region codes to catch broken assumptions. See also: CLAUDE.md § "Content Changes Must Include Test Updates".
+**Key principle:** When a test depends on a specific data relationship (region X has/doesn't have category Y), document _why_ that region was chosen in a comment. When adding new data files, grep tests for the affected region codes to catch broken assumptions. See also: CLAUDE.md § "Content Changes Must Include Test Updates".
 
 ### 7. ❌ Clicking Elements Obscured by Z-Index Layering
 
 Playwright's `click()` (even with `force: true`) dispatches a click at the element's center coordinates. If a higher z-index element covers that point, the click lands on the wrong element. This commonly happens with overlays (z-index: 50) that sit behind panels (z-index: 60) — the overlay is "visible" but unreachable by coordinate-based clicks.
 
 **Bad:**
+
 ```typescript
 // ❌ Overlay is behind the panel in z-index stacking — click hits the panel instead
 await page.locator('#bottomSheetOverlay').click({ force: true });
 ```
 
 **Good:**
+
 ```typescript
 // ✅ Dispatch the event directly to bypass coordinate-based hit testing
 await page.evaluate(() => {
-  document.getElementById('bottomSheetOverlay')?.dispatchEvent(
-    new MouseEvent('click', { bubbles: true })
-  );
+  document
+    .getElementById('bottomSheetOverlay')
+    ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 });
 ```
 
 **When to use `dispatchEvent` over `click()`:**
+
 - Overlays behind higher z-index panels
 - SVG path elements inside D3-managed `<svg>` containers (same pattern as `clickSvgPath`)
 - Any element where Playwright logs `"<other-element> intercepts pointer events"` repeatedly
@@ -417,6 +441,7 @@ await page.evaluate(() => {
 Playwright's `toBeHidden()` checks computed visibility. If your CSS overrides the `[hidden]` attribute with `display: block` (common for animated panels that need to remain in the layout for transitions), the element is technically visible even when `hidden` is set.
 
 **Bad:**
+
 ```typescript
 // ❌ CSS rule `.panel[hidden] { display: block; transform: translateY(100%) }` means
 //    Playwright sees this as visible — toBeHidden() fails
@@ -425,6 +450,7 @@ await expect(panel).toBeHidden();
 ```
 
 **Good:**
+
 ```typescript
 // ✅ Check the actual behavioral state instead
 await page.waitForFunction(() => {
@@ -464,14 +490,10 @@ test('should filter projects by stage', async ({ page }) => {
   });
 
   // Verify visual feedback
-  await expect(
-    page.locator('[data-testid="filter-chip-stage-growth"]')
-  ).toHaveClass(/active/);
+  await expect(page.locator('[data-testid="filter-chip-stage-growth"]')).toHaveClass(/active/);
 
   // Verify "All" is no longer active
-  await expect(
-    page.locator('[data-testid="filter-chip-stage-all"]')
-  ).not.toHaveClass(/active/);
+  await expect(page.locator('[data-testid="filter-chip-stage-all"]')).not.toHaveClass(/active/);
 });
 ```
 
@@ -482,9 +504,9 @@ test('should toggle between light and dark themes', async ({ page }) => {
   const body = page.locator('body');
 
   // Get initial state
-  const before = await body.evaluate(el => ({
+  const before = await body.evaluate((el) => ({
     class: el.className,
-    bg: window.getComputedStyle(el).backgroundColor
+    bg: window.getComputedStyle(el).backgroundColor,
   }));
 
   // Toggle theme
@@ -496,9 +518,9 @@ test('should toggle between light and dark themes', async ({ page }) => {
   }, before.bg);
 
   // Get new state
-  const after = await body.evaluate(el => ({
+  const after = await body.evaluate((el) => ({
     class: el.className,
-    bg: window.getComputedStyle(el).backgroundColor
+    bg: window.getComputedStyle(el).backgroundColor,
   }));
 
   // Verify both changed
@@ -574,6 +596,7 @@ If your test has any of these, it's likely a false positive:
 This manifests as tests that **pass in isolation but fail in the full suite**, often with `Test timeout of 30000ms exceeded` on a `click()` or `waitForSelector()` call that follows the navigation — the page never finished loading so the element isn't interactive yet.
 
 **Bad:**
+
 ```typescript
 // ❌ Times out when parallel workers saturate the dev server
 test.beforeEach(async ({ page }) => {
@@ -583,6 +606,7 @@ test.beforeEach(async ({ page }) => {
 ```
 
 **Good:**
+
 ```typescript
 // ✅ domcontentloaded completes as soon as the HTML is parsed — reliable under load
 // The explicit waitForFunction/waitForSelector that follows is the real readiness guard
@@ -601,6 +625,7 @@ test.beforeEach(async ({ page }) => {
 Playwright's `browserContext.grantPermissions()` only supports clipboard permissions (`clipboard-read`, `clipboard-write`) on Chromium. Firefox and WebKit throw `"Unknown permission"` errors, causing immediate test failure.
 
 **Bad:**
+
 ```typescript
 // ❌ Fails on Firefox ("Unknown permission: clipboard-read")
 // ❌ Fails on WebKit ("Unknown permission: clipboard-write")
@@ -612,6 +637,7 @@ test('should copy link', async ({ page }) => {
 ```
 
 **Good:**
+
 ```typescript
 // ✅ Test the UI feedback, not the clipboard content
 // Source code should show feedback regardless of clipboard API success:
@@ -637,6 +663,7 @@ test('should show copied feedback on click', async ({ page }) => {
 When `globals: true` is set in `vitest.config.ts`, test primitives (`describe`, `it`, `expect`, `beforeEach`, `afterEach`) are injected globally. Explicitly importing them from `'vitest'` in the same file causes Vitest 4.x to silently fail — tests appear to load but never register, producing "No test suite found" or "failed to find the runner" errors with 0 tests executed.
 
 **Bad:**
+
 ```typescript
 // ❌ With globals: true, these imports shadow the global injections
 // Tests silently fail to register — 0 tests run, suite marked as failed
@@ -650,6 +677,7 @@ describe('my feature', () => {
 ```
 
 **Good:**
+
 ```typescript
 // ✅ Only import vi (for mocks/spies) — everything else comes from globals
 import { vi } from 'vitest';
@@ -662,6 +690,7 @@ describe('my feature', () => {
 ```
 
 **What to import from `'vitest'`:**
+
 - `vi` — always import (mocks, spies, timers, stubs)
 - `describe`, `it`, `test`, `expect`, `beforeEach`, `afterEach`, `beforeAll`, `afterAll` — **never import** when `globals: true`
 
@@ -672,6 +701,7 @@ describe('my feature', () => {
 Vitest 4.x requires lifecycle hooks to be nested inside a `describe` block. A top-level `beforeEach` (common when a file has a single implicit test group) causes a runner initialization error.
 
 **Bad:**
+
 ```typescript
 // ❌ Top-level beforeEach — Vitest 4.x throws "failed to find the runner"
 let mockFetch: ReturnType<typeof vi.fn>;
@@ -681,10 +711,13 @@ beforeEach(() => {
   vi.stubGlobal('fetch', mockFetch);
 });
 
-it('should fetch data', async () => { /* ... */ });
+it('should fetch data', async () => {
+  /* ... */
+});
 ```
 
 **Good:**
+
 ```typescript
 // ✅ Wrap in a describe block
 import { vi } from 'vitest';
@@ -697,7 +730,9 @@ describe('API Client', () => {
     vi.stubGlobal('fetch', mockFetch);
   });
 
-  it('should fetch data', async () => { /* ... */ });
+  it('should fetch data', async () => {
+    /* ... */
+  });
 });
 ```
 
@@ -708,15 +743,17 @@ Arbitrary `waitForTimeout(300)` / `waitForTimeout(400)` calls after triggering a
 The correct approach is to poll the DOM condition that the transition produces — the CSS class change — not the transition duration.
 
 **Bad:**
+
 ```typescript
 // ❌ Guesses transition is done after 400ms — fails under CI load
 await closeButton.click();
 await page.waitForTimeout(400); // Transition time is 0.3s
-const hasOpenClass = await drawer.evaluate(el => el.classList.contains('open'));
+const hasOpenClass = await drawer.evaluate((el) => el.classList.contains('open'));
 expect(hasOpenClass).toBe(false);
 ```
 
 **Good:**
+
 ```typescript
 // ✅ Waits for the actual class change — zero arbitrary delay
 await closeButton.click();
@@ -724,7 +761,7 @@ await page.waitForFunction(() => {
   const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
   return el && !el.classList.contains('open');
 });
-const hasOpenClass = await drawer.evaluate(el => el.classList.contains('open'));
+const hasOpenClass = await drawer.evaluate((el) => el.classList.contains('open'));
 expect(hasOpenClass).toBe(false);
 ```
 
@@ -737,6 +774,7 @@ When a full-viewport overlay element is at a high z-index, Playwright's `locator
 This is a special case of §7 (Clicking Elements Obscured by Z-Index Layering), common in drawer/modal overlay patterns.
 
 **Bad:**
+
 ```typescript
 // ❌ Hit-test can land on the drawer (higher z-index sibling) instead of the overlay
 const overlay = page.locator('[data-testid="portfolio-filter-overlay"]');
@@ -744,6 +782,7 @@ await overlay.click(); // Fails: "element intercepts pointer events"
 ```
 
 **Good:**
+
 ```typescript
 // ✅ dispatchEvent bypasses the hit-test entirely — event fires directly on the target
 await page.evaluate(() => {
@@ -761,6 +800,7 @@ CSS transitions run asynchronously. When a class is removed to trigger a close a
 This manifests as intermittent failures with unexpected values like `-6.9` instead of `-400` — the test happened to read the property at a different point in the animation each time.
 
 **Bad:**
+
 ```typescript
 // ❌ Reads right value mid-animation — non-deterministic result
 await closeButton.click();
@@ -774,6 +814,7 @@ expect(finalRight).toBeLessThanOrEqual(-360); // Fails: actual value is e.g. -6.
 ```
 
 **Good:**
+
 ```typescript
 // ✅ Assert on the logical state (class, aria), not the animated CSS property
 await closeButton.click();
@@ -794,6 +835,7 @@ expect(await filterButton.getAttribute('aria-expanded')).toBe('false'); // ✅ D
 `page.$$()` (and `page.$()`) takes a one-shot DOM snapshot and returns `ElementHandle` references. When elements are rendered dynamically via `innerHTML` (common in wizard/SPA patterns), the snapshot may return 0 elements or stale handles if the render hasn't completed. This causes tests to silently skip interactions — e.g., "answer all questions" answers nothing, so the next button stays disabled and the test times out.
 
 **Bad:**
+
 ```typescript
 // ❌ page.$$ is a snapshot — if innerHTML render hasn't completed, returns []
 async function answerAllInStep(page: Page, score: number): Promise<void> {
@@ -805,6 +847,7 @@ async function answerAllInStep(page: Page, score: number): Promise<void> {
 ```
 
 **Good:**
+
 ```typescript
 // ✅ waitForSelector confirms elements exist; locator auto-retries
 async function answerAllInStep(page: Page, score: number): Promise<void> {
@@ -819,6 +862,7 @@ async function answerAllInStep(page: Page, score: number): Promise<void> {
 ```
 
 **When this bites you:**
+
 - Wizard/multi-step forms that render questions via `innerHTML` on each step transition
 - SPA views that swap content dynamically without full page navigation
 - Any pattern where a container's children are replaced after a state change
@@ -832,19 +876,21 @@ async function answerAllInStep(page: Page, score: number): Promise<void> {
 This is the most common cause of "works in Chromium, fails in WebKit/Firefox" — WebKit is slightly slower to process event handlers under parallel load.
 
 **Bad:**
+
 ```typescript
 // ❌ evaluate returns before the click handler's DOM updates complete
 await page.evaluate(() => {
   document.querySelector('.filter-chip[data-category="ai"]')?.click();
 });
 // Immediately reading state — may get pre-click value
-const isActive = await page.locator('.filter-chip[data-category="ai"]').evaluate(
-  el => el.classList.contains('active')
-);
+const isActive = await page
+  .locator('.filter-chip[data-category="ai"]')
+  .evaluate((el) => el.classList.contains('active'));
 expect(isActive).toBe(true); // Flaky
 ```
 
 **Good:**
+
 ```typescript
 // ✅ Click via evaluate, then wait for the DOM to reflect the change
 await page.evaluate(() => {
@@ -866,6 +912,7 @@ await expect(page.locator('.filter-chip[data-category="ai"]')).toHaveClass(/acti
 When source code uses `setTimeout` for delayed actions (auto-advance, debounce, animation cleanup) without saving the timer ID, stale timers can fire after navigation has moved to a different state. This creates race conditions that are invisible in manual testing but surface under E2E parallel load.
 
 **Bad (source code):**
+
 ```typescript
 // ❌ Timer reference is lost — cannot be cancelled
 function handleOptionClick(card: HTMLElement): void {
@@ -874,13 +921,14 @@ function handleOptionClick(card: HTMLElement): void {
   // Auto-advance after visual feedback delay
   setTimeout(() => {
     if (currentStep < totalSteps) {
-      showStep(currentStep + 1);  // Fires even if user navigated away
+      showStep(currentStep + 1); // Fires even if user navigated away
     }
   }, 300);
 }
 ```
 
 **Good (source code):**
+
 ```typescript
 // ✅ Save timer ID, cancel in any navigation function
 let autoAdvanceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -916,21 +964,23 @@ function handleOptionClick(card: HTMLElement): void {
 `page.evaluate()` mocks (window property overrides, `gtag` intercepts, `fetch` stubs) exist only in the current page context. After `page.goto()` to a different URL, the new page loads fresh JavaScript — all mocks are gone. Tests that navigate and then assert on mocked state silently pass with unmocked (real) behavior, or fail because the mock data is missing.
 
 **Bad:**
+
 ```typescript
 test('should track events across pages', async ({ page }) => {
-  await setupAnalyticsMocking(page);  // Overrides window.gtag
+  await setupAnalyticsMocking(page); // Overrides window.gtag
   await page.goto('/page-a');
   // ... interact with page A
 
-  await page.goto('/page-b');  // ❌ Mocks are gone — new page context
+  await page.goto('/page-b'); // ❌ Mocks are gone — new page context
 
   await page.locator('#cta').click();
-  const events = await getRecordedEvents(page);  // Returns [] — mock was lost
-  expect(events).toContainEqual({ eventName: 'cta_click' });  // Fails
+  const events = await getRecordedEvents(page); // Returns [] — mock was lost
+  expect(events).toContainEqual({ eventName: 'cta_click' }); // Fails
 });
 ```
 
 **Good:**
+
 ```typescript
 test('should track events across pages', async ({ page }) => {
   await setupAnalyticsMocking(page);
@@ -938,7 +988,7 @@ test('should track events across pages', async ({ page }) => {
   // ... interact with page A
 
   await page.goto('/page-b');
-  await setupAnalyticsMocking(page);  // ✅ Re-initialize mocks for new page
+  await setupAnalyticsMocking(page); // ✅ Re-initialize mocks for new page
 
   await page.locator('#cta').click();
   const events = await getRecordedEvents(page);
@@ -955,6 +1005,7 @@ Tests that depend on a page's default selections (e.g., "Series B-C is pre-selec
 This was discovered in the TechPar tool: 13 E2E tests relied on `series_bc` being the default company stage. When the default was removed (forcing users to make an intentional choice), all 13 tests failed because `buildInputs()` returned `null` without a stage selection.
 
 **Bad:**
+
 ```typescript
 // ❌ Assumes series_bc is pre-selected — breaks when default is removed
 test('should enable analysis button', async ({ page }) => {
@@ -968,11 +1019,12 @@ test('should enable analysis button', async ({ page }) => {
 ```
 
 **Good:**
+
 ```typescript
 // ✅ Explicitly sets all required state — survives default changes
 test('should enable analysis button', async ({ page }) => {
   await gotoTool(page);
-  await selectStage(page, 'series_bc');  // Explicit — no implicit dependency
+  await selectStage(page, 'series_bc'); // Explicit — no implicit dependency
   await fillInput(page, 'arr', '10000000');
   await clickTab(page, 'costs');
   await fillInput(page, 'infra', '50000');
@@ -990,21 +1042,21 @@ When testing theme state, modal state, or any class/attribute toggle, the query 
 This is especially insidious because the test passes for months, across hundreds of CI runs, until an unrelated change exposes the latent bug.
 
 **Bad:**
+
 ```typescript
 // ❌ dark-theme class is on <html>, not <body> — always returns false
 const body = page.locator('body');
-const isDark = await body.evaluate(el => el.classList.contains('dark-theme'));
+const isDark = await body.evaluate((el) => el.classList.contains('dark-theme'));
 if (!isDark) {
   await clickThemeToggle(page); // Always fires — toggles theme unpredictably
 }
 ```
 
 **Good:**
+
 ```typescript
 // ✅ Query the element that actually holds the class
-const isDark = await page.evaluate(() =>
-  document.documentElement.classList.contains('dark-theme')
-);
+const isDark = await page.evaluate(() => document.documentElement.classList.contains('dark-theme'));
 if (!isDark) {
   await clickThemeToggle(page);
 }
@@ -1021,12 +1073,11 @@ CSS class changes are synchronous in JavaScript, but the browser's style recalcu
 This manifests as: `waitForFunction` confirms the class is present, but the immediately following `toBeVisible()` fails because the element's computed display hasn't updated yet.
 
 **Bad:**
+
 ```typescript
 // ❌ Class is applied, but CSS cascade hasn't recalculated display property yet
 await clickThemeToggle(page);
-await page.waitForFunction(() =>
-  document.documentElement.classList.contains('dark-theme')
-);
+await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
 
 // Fails in Firefox — display is still 'none' despite class being present
 const darkEl = page.locator('.dark-variant');
@@ -1034,19 +1085,23 @@ await expect(darkEl).toBeVisible(); // Flaky
 ```
 
 **Good:**
+
 ```typescript
 // ✅ Wait for the actual computed style, not the class
 await clickThemeToggle(page);
-await page.waitForFunction(() => {
-  const el = document.querySelector('.dark-variant');
-  return el && window.getComputedStyle(el).display !== 'none';
-}, { timeout: 5000 });
+await page.waitForFunction(
+  () => {
+    const el = document.querySelector('.dark-variant');
+    return el && window.getComputedStyle(el).display !== 'none';
+  },
+  { timeout: 5000 }
+);
 
 const darkEl = page.locator('.dark-variant');
 await expect(darkEl).toBeVisible({ timeout: 5000 });
 ```
 
-**Why this differs from anti-pattern #4:** Anti-pattern #4 says "don't *assert* on classes, assert on computed styles." This pattern says "don't *wait* on classes when you're about to *assert* on computed styles." The wait and the assertion must target the same layer — if you're asserting on visibility, wait for visibility, not for the class that eventually causes visibility.
+**Why this differs from anti-pattern #4:** Anti-pattern #4 says "don't _assert_ on classes, assert on computed styles." This pattern says "don't _wait_ on classes when you're about to _assert_ on computed styles." The wait and the assertion must target the same layer — if you're asserting on visibility, wait for visibility, not for the class that eventually causes visibility.
 
 **When this bites you:** Any CSS rule that uses a parent class to toggle `display`, `visibility`, or `opacity` on a child element — especially theme toggles (`html.dark-theme`), accordion panels, and tab content switches. Firefox's rendering pipeline is measurably slower than Chromium's under parallel CI load.
 
@@ -1057,6 +1112,7 @@ Setting `permissions` (e.g., `clipboard-read`, `clipboard-write`) in the Playwri
 This is an **externality bug**: the config change works for the tests the author ran, but breaks unrelated tests that the author never checked.
 
 **Bad:**
+
 ```typescript
 // playwright.config.ts — ❌ breaks ALL mobile test files
 projects: [
@@ -1067,7 +1123,7 @@ projects: [
       permissions: ['clipboard-read', 'clipboard-write'], // ← bleeds into mobile tests
     },
   },
-]
+];
 
 // mobile-navigation.test.ts — inherits clipboard permissions → crash
 test.use({ ...devices['iPhone 12'] });
@@ -1075,6 +1131,7 @@ test.use({ ...devices['iPhone 12'] });
 ```
 
 **Good:**
+
 ```typescript
 // playwright.config.ts — ✅ no permissions at project level
 projects: [
@@ -1082,7 +1139,7 @@ projects: [
     name: 'chromium',
     use: { ...devices['Desktop Chrome'] },
   },
-]
+];
 
 // diligence-machine.test.ts — ✅ grant per-test, guarded by browser
 test('should copy output to clipboard', async ({ page, context, browserName }) => {
@@ -1094,6 +1151,7 @@ test('should copy output to clipboard', async ({ page, context, browserName }) =
 ```
 
 **Key principles:**
+
 1. **Never add permissions to project-level config** — they leak into every test that runs under that project, including mobile device overrides.
 2. **Grant permissions per-test** using `context.grantPermissions()` with a `browserName` guard.
 3. **Check externalities** — before committing a config-level change, grep for `test.use` calls that might interact with it: `grep -r "test.use" tests/e2e/`.
@@ -1103,6 +1161,7 @@ test('should copy output to clipboard', async ({ page, context, browserName }) =
 CSS `:hover` is a browser-internal pseudo-class state. Dispatching `mouseenter`, `mouseover`, or `pointerover` events via JavaScript does **not** activate `:hover` styles in headless browsers (and often not in headed mode either). Tests that dispatch mouse events and then assert on `:hover` CSS properties always fail.
 
 **Bad:**
+
 ```typescript
 // ❌ dispatchEvent does not activate CSS :hover pseudo-class
 await page.evaluate(() => {
@@ -1111,13 +1170,14 @@ await page.evaluate(() => {
   el?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 });
 
-const opacity = await page.locator('.photo-link').evaluate(el =>
-  window.getComputedStyle(el).opacity
-);
-expect(opacity).toBe('0.85');  // Fails — :hover styles never activated
+const opacity = await page
+  .locator('.photo-link')
+  .evaluate((el) => window.getComputedStyle(el).opacity);
+expect(opacity).toBe('0.85'); // Fails — :hover styles never activated
 ```
 
 **Good:**
+
 ```typescript
 // ✅ Verify the CSS rule exists in the stylesheet instead
 const hasHoverRule = await page.evaluate(() => {
@@ -1128,7 +1188,9 @@ const hasHoverRule = await page.evaluate(() => {
           return true;
         }
       }
-    } catch { /* cross-origin sheets throw */ }
+    } catch {
+      /* cross-origin sheets throw */
+    }
   }
   return false;
 });
@@ -1136,6 +1198,7 @@ expect(hasHoverRule).toBe(true);
 ```
 
 **When to use which approach:**
+
 - **JavaScript event handlers** (e.g., `element.addEventListener('mouseenter', ...)`) — use `page.hover()` or `dispatchEvent`, these work fine
 - **CSS `:hover` pseudo-class styles** — cannot be triggered programmatically; verify the rule exists in the stylesheet, or use `page.hover()` which activates the browser's native hover state (works in headed mode, unreliable in headless)
 
@@ -1146,6 +1209,7 @@ expect(hasHoverRule).toBe(true);
 When `beforeEach` waits for a container element (e.g., `.hero`) but tests assert on child content (e.g., `.hero p`), Firefox under parallel worker load can resolve the container selector before children are attached to the DOM. Tests then snapshot empty or incomplete child elements via non-retrying calls like `textContent()`.
 
 **Bad:**
+
 ```typescript
 test.beforeEach(async ({ page }) => {
   await page.goto('/page', { waitUntil: 'domcontentloaded' });
@@ -1161,6 +1225,7 @@ test('should display description', async ({ page }) => {
 ```
 
 **Good:**
+
 ```typescript
 test.beforeEach(async ({ page }) => {
   await page.goto('/page', { waitUntil: 'domcontentloaded' });
@@ -1178,6 +1243,7 @@ test('should display description', async ({ page }) => {
 **Key principle:** The readiness gate in `beforeEach` should wait for the deepest shared element that downstream tests depend on — not just the outermost container. This is especially important with `waitUntil: 'domcontentloaded'`, which fires before the browser has fully built the render tree.
 
 **When this bites you:**
+
 - Static SSG pages under `domcontentloaded` (no hydration to blame — it's pure DOM construction timing)
 - Firefox and WebKit under parallel worker contention (Chromium is faster at DOM attachment)
 - Tests that use non-retrying snapshot calls (`textContent()`, `getAttribute()`, `isVisible()`) immediately after a container-level readiness gate
@@ -1209,17 +1275,20 @@ npx playwright test && npx playwright show-report
 ## Debugging Tests
 
 1. **Add console logs**:
+
    ```typescript
    const state = await page.evaluate(() => (window as any).portfolioState);
    console.log('Portfolio state:', state);
    ```
 
 2. **Take screenshots**:
+
    ```typescript
    await page.screenshot({ path: 'screenshot.png' });
    ```
 
 3. **Use headed mode**:
+
    ```bash
    npx playwright test --headed
    ```

@@ -9,8 +9,8 @@ import type { Page } from '@playwright/test';
  */
 export async function clickThemeToggle(page: Page): Promise<void> {
   await page.evaluate(() => {
-    document.getElementById('themeToggle')?.dispatchEvent(
-      new MouseEvent('click', { bubbles: true })
-    );
+    document
+      .getElementById('themeToggle')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   });
 }

@@ -29,7 +29,7 @@ export const CATEGORIES: Record<string, RadarCategory> = {
     label: 'AI & Automation',
     color: '#3498DB',
   },
-  'security': {
+  security: {
     id: 'security',
     label: 'Security',
     color: '#E74C3C',
@@ -44,9 +44,7 @@ const FOLDER_TO_CATEGORY: Record<string, string> = {
 };
 
 function extractUrl(item: InoreaderItem): string {
-  return item.canonical?.[0]?.href
-    || item.alternate?.[0]?.href
-    || '';
+  return item.canonical?.[0]?.href || item.alternate?.[0]?.href || '';
 }
 
 function stripHtml(html: string): string {
@@ -99,9 +97,11 @@ function inferCategory(item: InoreaderItem): string {
   }
 
   const title = (item.title || '').toLowerCase();
-  if (/private equity|m&a|merger|acquisition|deal|buyout|portfolio company/.test(title)) return 'pe-ma';
+  if (/private equity|m&a|merger|acquisition|deal|buyout|portfolio company/.test(title))
+    return 'pe-ma';
   if (/security|cyber|vulnerability|breach|compliance|soc\b/.test(title)) return 'security';
-  if (/\bai\b|artificial intelligence|machine learning|llm|automation|ml ops/.test(title)) return 'ai-automation';
+  if (/\bai\b|artificial intelligence|machine learning|llm|automation|ml ops/.test(title))
+    return 'ai-automation';
 
   return 'enterprise-tech';
 }
@@ -118,8 +118,8 @@ export function toFyiItem(item: InoreaderItem): RadarFyiItem | null {
   // Merge across all annotations: collect the first non-empty text and note.
   // Inoreader may store a highlight (text only) and a comment (note only)
   // as separate annotation objects on the same item.
-  const highlightedText = annotations.find(a => a.text && a.text.trim() !== '')?.text || '';
-  const gstTake = annotations.find(a => a.note && a.note.trim() !== '')?.note || '';
+  const highlightedText = annotations.find((a) => a.text && a.text.trim() !== '')?.text || '';
+  const gstTake = annotations.find((a) => a.note && a.note.trim() !== '')?.note || '';
 
   // Use the most recent annotation timestamp for sort ordering
   const latestAnnotation = annotations.reduce((latest, a) =>
@@ -161,14 +161,9 @@ export function toWireItem(item: InoreaderItem): RadarWireItem {
  * Merge FYI and Wire items into a single chronological feed.
  * FYI items sort by annotatedAt; Wire items sort by publishedAt.
  */
-export function mergeFeed(
-  fyi: RadarFyiItem[],
-  wire: RadarWireItem[],
-): RadarFeedItem[] {
+export function mergeFeed(fyi: RadarFyiItem[], wire: RadarWireItem[]): RadarFeedItem[] {
   return [
-    ...fyi.map(item => ({ ...item, kind: 'fyi' as const, sortDate: item.annotatedAt })),
-    ...wire.map(item => ({ ...item, kind: 'wire' as const, sortDate: item.publishedAt })),
-  ].sort((a, b) =>
-    new Date(b.sortDate).getTime() - new Date(a.sortDate).getTime()
-  );
+    ...fyi.map((item) => ({ ...item, kind: 'fyi' as const, sortDate: item.annotatedAt })),
+    ...wire.map((item) => ({ ...item, kind: 'wire' as const, sortDate: item.publishedAt })),
+  ].sort((a, b) => new Date(b.sortDate).getTime() - new Date(a.sortDate).getTime());
 }

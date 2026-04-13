@@ -102,8 +102,18 @@ describe('RadarHeader — timestamp formatting (America/Santiago)', () => {
 
   it('should format all 12 months with correct abbreviated names', () => {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
 
     months.forEach((abbr, idx) => {
@@ -119,7 +129,7 @@ describe('RadarHeader — timestamp formatting (America/Santiago)', () => {
     const date = new Date('2026-02-15T17:30:00Z');
     const result = formatRadarTimestamp(date);
     expect(result).toMatch(
-      /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{1,2},\s\d{4},\s\d{1,2}:\d{2}\s*(AM|PM)$/,
+      /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{1,2},\s\d{4},\s\d{1,2}:\d{2}\s*(AM|PM)$/
     );
   });
 

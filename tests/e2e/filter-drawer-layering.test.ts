@@ -7,10 +7,14 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     // can time out when many workers share the same dev server.
     await page.goto('/ma-portfolio', { waitUntil: 'domcontentloaded' });
     // Wait for portfolio initialization
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, { timeout: 10000 });
+    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
+      timeout: 10000,
+    });
   });
 
-  test('should verify filter drawer is initially hidden with correct positioning', async ({ page }) => {
+  test('should verify filter drawer is initially hidden with correct positioning', async ({
+    page,
+  }) => {
     const drawer = page.locator('[data-testid="portfolio-filter-drawer"]');
 
     // Get the initial right position (should be negative/off-screen)
@@ -176,12 +180,15 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
       });
 
       // Wait for drawer to close (class removed AND transition settled)
-      await page.waitForFunction(() => {
-        const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
-        if (!el || el.classList.contains('open')) return false;
-        const right = parseFloat(window.getComputedStyle(el).right);
-        return right < -100;
-      }, { timeout: 5000 });
+      await page.waitForFunction(
+        () => {
+          const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
+          if (!el || el.classList.contains('open')) return false;
+          const right = parseFloat(window.getComputedStyle(el).right);
+          return right < -100;
+        },
+        { timeout: 5000 }
+      );
 
       hasOpenClass = await drawer.evaluate((el) => el.classList.contains('open'));
       expect(hasOpenClass).toBe(false);

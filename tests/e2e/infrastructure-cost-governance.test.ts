@@ -24,15 +24,19 @@ async function jsClick(page: Page, selector: string): Promise<void> {
 /** Wait for a specific wizard step to render — verifies label AND question buttons exist.
  *  The extra rAF wait ensures event handlers are wired after innerHTML replacement. */
 async function waitForStep(page: Page, step: number): Promise<void> {
-  await page.waitForFunction((s) => {
-    const label = document.querySelector('[data-domain-label]');
-    if (!label || !label.textContent?.includes(`Domain ${s}`)) return false;
-    // Ensure question buttons have been rendered via innerHTML
-    return document.querySelectorAll('[data-answer]').length > 0;
-  }, step, { timeout: 5000 });
+  await page.waitForFunction(
+    (s) => {
+      const label = document.querySelector('[data-domain-label]');
+      if (!label || !label.textContent?.includes(`Domain ${s}`)) return false;
+      // Ensure question buttons have been rendered via innerHTML
+      return document.querySelectorAll('[data-answer]').length > 0;
+    },
+    step,
+    { timeout: 5000 }
+  );
   // Wait one animation frame so addEventListener loop after innerHTML completes
-  await page.waitForFunction(() =>
-    new Promise(resolve => requestAnimationFrame(() => resolve(true)))
+  await page.waitForFunction(
+    () => new Promise((resolve) => requestAnimationFrame(() => resolve(true)))
   );
 }
 
@@ -54,7 +58,9 @@ async function answerAllInStep(page: Page, score: number): Promise<void> {
     // Keep clicking unselected buttons until none remain
     for (let safety = 0; safety < 20; safety++) {
       const btns = Array.from(document.querySelectorAll(`[data-score="${s}"]`));
-      const target = btns.find(b => !b.classList.contains('brutal-choice-btn--selected')) as HTMLElement | undefined;
+      const target = btns.find((b) => !b.classList.contains('brutal-choice-btn--selected')) as
+        | HTMLElement
+        | undefined;
       if (!target) break;
       target.click(); // triggers synchronous render() which rebuilds innerHTML
       clicked++;
@@ -64,10 +70,13 @@ async function answerAllInStep(page: Page, score: number): Promise<void> {
 
   // Verify all questions were answered (next button should be enabled)
   if (totalClicked > 0) {
-    await page.waitForFunction(() => {
-      const btn = document.querySelector('[data-action="next"]') as HTMLButtonElement | null;
-      return btn && !btn.disabled;
-    }, { timeout: 3000 });
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector('[data-action="next"]') as HTMLButtonElement | null;
+        return btn && !btn.disabled;
+      },
+      { timeout: 3000 }
+    );
   }
 }
 
@@ -110,7 +119,7 @@ test.describe('ICG - Landing page', () => {
     const stats = await page.$$('.brutal-stat-tile');
     expect(stats).toHaveLength(3);
 
-    const values = await Promise.all(stats.map(s => s.textContent()));
+    const values = await Promise.all(stats.map((s) => s.textContent()));
     const text = values.join(' ');
     expect(text).toContain('6');
     expect(text).toContain('20');
@@ -200,7 +209,9 @@ test.describe('ICG - Results view', () => {
     await expect(warning).not.toHaveClass(/is-hidden/);
   });
 
-  test('foundational flag does not render when foundational domains are "Optimized"', async ({ page }) => {
+  test('foundational flag does not render when foundational domains are "Optimized"', async ({
+    page,
+  }) => {
     await gotoTool(page);
     await jsClick(page, '[data-action="start"]');
     await waitForStep(page, 1);
@@ -252,10 +263,13 @@ test.describe('ICG - Results view', () => {
     await jsClick(page, '[data-action="copy"]');
 
     // Assert on observable UI feedback
-    await page.waitForFunction(() => {
-      const btn = document.querySelector('[data-action="copy"]');
-      return btn && btn.textContent === 'Link copied';
-    }, { timeout: 3000 });
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector('[data-action="copy"]');
+        return btn && btn.textContent === 'Link copied';
+      },
+      { timeout: 3000 }
+    );
 
     const btnText = await page.textContent('[data-action="copy"]');
     expect(btnText).toBe('Link copied');
@@ -310,10 +324,13 @@ test.describe('ICG - Copy Summary', () => {
 
     await jsClick(page, '[data-action="copy-summary"]');
 
-    await page.waitForFunction(() => {
-      const btn = document.querySelector('[data-action="copy-summary"]');
-      return btn && btn.textContent === 'Copied!';
-    }, { timeout: 3000 });
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector('[data-action="copy-summary"]');
+        return btn && btn.textContent === 'Copied!';
+      },
+      { timeout: 3000 }
+    );
 
     const btnText = await page.textContent('[data-action="copy-summary"]');
     expect(btnText).toBe('Copied!');
