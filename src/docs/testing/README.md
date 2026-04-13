@@ -2,62 +2,42 @@
 
 Complete reference for testing setup and continuous integration on the GST Website project.
 
-## 📚 Documentation
+## By Use Case
 
-Start with one of these based on your needs:
+| I need to...                  | Go to                                                         |
+| ----------------------------- | ------------------------------------------------------------- |
+| Get started with testing      | [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) (5 min)            |
+| Run tests locally             | [QUICK_REFERENCE.md](./QUICK_REFERENCE.md#available-commands) |
+| Fix failing tests             | [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)                    |
+| Understand the CI/CD pipeline | [GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md)          |
+| Write new tests               | [TEST_STRATEGY.md](./TEST_STRATEGY.md)                        |
+| Follow E2E best practices     | [TEST_BEST_PRACTICES.md](./TEST_BEST_PRACTICES.md)            |
+| Set up branch protection      | [BRANCH_PROTECTION_CONFIG.md](./BRANCH_PROTECTION_CONFIG.md)  |
 
-- **[INDEX.md](./INDEX.md)** - Navigation guide with use-case shortcuts
-- **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - One-page cheat sheet for common tasks
-- **[TEST_STRATEGY.md](./TEST_STRATEGY.md)** - Comprehensive testing approach and patterns
-- **[GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md)** - How to set up CI/CD pipeline
-- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Solutions to common testing and CI/CD issues
-- **[BRANCH_PROTECTION_CONFIG.md](./BRANCH_PROTECTION_CONFIG.md)** - GitHub branch protection rules
-- **[TEST_BEST_PRACTICES.md](./TEST_BEST_PRACTICES.md)** - E2E testing best practices and red flags
+## All Documentation
+
+| File                                                         | Purpose                        | Read Time | Audience                 |
+| ------------------------------------------------------------ | ------------------------------ | --------- | ------------------------ |
+| [QUICK_REFERENCE.md](./QUICK_REFERENCE.md)                   | Commands and common tasks      | 5 min     | Developers               |
+| [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)                   | Solutions to common issues     | 15 min    | Developers               |
+| [TEST_STRATEGY.md](./TEST_STRATEGY.md)                       | Testing approach and patterns  | 30 min    | Architects, test writers |
+| [TEST_BEST_PRACTICES.md](./TEST_BEST_PRACTICES.md)           | E2E patterns and anti-patterns | 15 min    | E2E test writers         |
+| [GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md)         | CI/CD pipeline setup           | 10 min    | DevOps, maintainers      |
+| [BRANCH_PROTECTION_CONFIG.md](./BRANCH_PROTECTION_CONFIG.md) | GitHub branch rules            | 10 min    | Maintainers              |
 
 ## Quick Facts
 
-- **Total Tests**: 1,250 test cases (all passing)
-  - Unit/Integration: 857 tests (Vitest)
-  - E2E: 393 test cases (Playwright, × 3 browsers = 1,179 test runs)
-- **Test Frameworks**: Vitest + Playwright
-- **CI/CD Platform**: GitHub Actions (test.yml)
-- **Coverage Target**: 70%+ (currently exceeding)
+- **Total Tests**: 906+ unit/integration (Vitest) + E2E (Playwright, 3 browsers)
+- **Coverage Target**: 70%+ (threshold enforced via vitest config)
+- **CI/CD**: GitHub Actions (`test.yml`) on push/PR to master
+- **Accessibility**: `npm run test:a11y` — axe-core scan with ratchet
 
 ## Common Commands
 
 ```bash
-# Run tests locally
-npm run test                   # Watch mode
-npm run test:run              # Single run (unit/integration)
-npm run test:e2e              # E2E tests only
+npm run test:run              # Unit/integration (single run)
+npm run test:e2e              # E2E tests (all browsers)
 npm run test:all              # Everything
-
-# View results
-npm run test:ui               # Vitest UI (unit/integration)
-npm run test:e2e:ui           # Playwright UI (E2E)
-npm run test:e2e:debug        # Playwright debug mode
-
-# Coverage report
-npm run test:coverage         # With coverage metrics
+npm run test:coverage         # With coverage report
+npm run test:a11y             # Accessibility scan (chromium)
 ```
-
-## How It Works
-
-1. **Local Development**: Run `npm run test:all` before pushing
-2. **Push to GitHub**: Triggers `test.yml` workflow automatically
-3. **GitHub Actions**: Runs full test suite (1,250 test cases) on every push/PR
-4. **Branch Protection**: Requires all tests to pass before merge
-5. **Vercel Deployment**: Auto-deploys on successful merge to master
-
-## Where to Find Things
-
-| Question | Answer |
-|----------|--------|
-| How do I run tests? | [QUICK_REFERENCE.md](./QUICK_REFERENCE.md#available-commands) |
-| How does CI/CD work? | [GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md) |
-| How do I write tests? | [TEST_STRATEGY.md](./TEST_STRATEGY.md) |
-| Tests are failing, what do I do? | [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) |
-| How do branch protection rules work? | [BRANCH_PROTECTION_CONFIG.md](./BRANCH_PROTECTION_CONFIG.md) |
-| What are E2E best practices? | [TEST_BEST_PRACTICES.md](./TEST_BEST_PRACTICES.md) |
-
-For more complex questions, use [INDEX.md](./INDEX.md) to find detailed documentation.
