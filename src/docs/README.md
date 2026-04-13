@@ -8,10 +8,10 @@ Master index for all project documentation.
 | ---------------------------- | ------------------------------------- | ---- | ---------------------------------- |
 | [analytics/](analytics/)     | GA4 integration, event tracking       | 3    | [README.md](analytics/README.md)   |
 | [development/](development/) | Roadmap, tooling, initiatives         | 16   | [README.md](development/README.md) |
-| [hub/](hub/)                 | Hub tool technical docs               | 4    | [README.md](hub/README.md)         |
+| [hub/](hub/)                 | Hub tool technical docs               | 5    | [README.md](hub/README.md)         |
 | [seo/](seo/)                 | SEO implementation, JSON-LD           | 5    | [README.md](seo/README.md)         |
-| [styles/](styles/)           | CSS conventions, brand, tokens        | 5    | [README.md](styles/README.md)      |
-| [testing/](testing/)         | Test strategy, CI/CD, troubleshooting | 8    | [README.md](testing/README.md)     |
+| [styles/](styles/)           | CSS conventions, brand, tokens        | 6    | [README.md](styles/README.md)      |
+| [testing/](testing/)         | Test strategy, CI/CD, troubleshooting | 7    | [README.md](testing/README.md)     |
 
 ## Quick Navigation
 
