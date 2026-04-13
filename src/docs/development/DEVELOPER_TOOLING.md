@@ -342,6 +342,38 @@ The site uses [@sentry/astro](https://docs.sentry.io/platforms/javascript/guides
 
 **Viewing errors**: Log in to [sentry.io](https://sentry.io), select the `gst-website` project. Filter by tag (`area:inoreader-api`) to see specific subsystem failures.
 
+### Alert rules
+
+Configure these in the Sentry dashboard under **Alerts → Create Alert Rule** for the `gst-website` project:
+
+| Rule                                    | Condition                                            | Action         |
+| --------------------------------------- | ---------------------------------------------------- | -------------- |
+| New issue                               | A new issue is created                               | Email (owner)  |
+| High-volume errors                      | >10 events/hour on any page                          | Email (owner)  |
+| Inoreader API failures                  | New issue with tag `area:inoreader-api`              | Email (owner)  |
+| Redis connection failures               | New issue with tag `area:redis-connection`            | Email (owner)  |
+
+These rules are configured externally in Sentry's UI, not in code. The tag filters rely on the `area` tags set in `captureException` calls throughout the codebase.
+
+### Source map upload
+
+Source maps enable readable stack traces in Sentry. The upload is wired in `astro.config.mjs` via the `sourceMapsUploadOptions` block but only activates when the required env vars are set:
+
+- `SENTRY_AUTH_TOKEN` — generate at sentry.io → Settings → Auth Tokens (scope: `org:read`, `project:releases`, `project:write`)
+- `SENTRY_ORG` — your Sentry organization slug
+- `SENTRY_PROJECT` — the project slug (e.g., `gst-website`)
+
+Add all three to **Vercel → Project Settings → Environment Variables** (Production only). Once set, every production build will upload source maps automatically.
+
+### Privacy and consent evaluation
+
+Evaluated during Phase 9 (2026-04-13):
+
+- **Pure error capture** (`captureException`, `captureMessage`): Classified as **legitimate interest** under GDPR — diagnostic data for maintaining service reliability. No consent required.
+- **Error-only replay** (`replaysOnErrorSampleRate: 1.0`): Records DOM state only when an error occurs. Arguably still legitimate interest since it is diagnostic, not behavioral tracking. No session replay for general browsing.
+- **No PII**: `sendDefaultPii: false` prevents automatic collection of user identifiers, IP addresses, or cookies.
+- **Decision**: Keep current configuration as legitimate interest. Re-evaluate when [BUSINESS_ENABLEMENT_V1.md](./BUSINESS_ENABLEMENT_V1.md) ships a cookie consent banner — at that point, consider gating replay behind analytics consent while keeping error capture ungated.
+
 ---
 
 ## Browser support
