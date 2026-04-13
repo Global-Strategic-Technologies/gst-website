@@ -35,8 +35,7 @@ const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
 test.describe('Accessibility — WCAG 2.1 AA', () => {
   for (const pg of PAGES) {
     test(`${pg.name} (${pg.path}) has zero critical violations`, async ({ page }) => {
-      await page.goto(pg.path, { waitUntil: 'domcontentloaded' });
-      await page.waitForLoadState('networkidle');
+      await page.goto(pg.path, { waitUntil: 'load' });
 
       const results = await checkA11y(page);
 

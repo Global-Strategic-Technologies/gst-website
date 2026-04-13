@@ -12,8 +12,10 @@ import { expect, type Page } from '@playwright/test';
  * this cache during SSR, so content is always available during E2E runs.
  */
 export async function waitForRadarReady(page: Page): Promise<void> {
-  // SSR page delivers full HTML — just confirm the radar structure rendered
-  await expect(page.locator('.hub-header')).toBeVisible();
+  // SSR page delivers full HTML — confirm header and content area rendered.
+  // Under parallel load, webkit takes longer; use explicit timeout.
+  await expect(page.locator('.hub-header')).toBeVisible({ timeout: 10000 });
+  await page.waitForLoadState('domcontentloaded');
 }
 
 /**

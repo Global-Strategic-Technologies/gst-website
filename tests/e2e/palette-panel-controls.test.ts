@@ -274,7 +274,7 @@ test.describe('Palette Panel Controls', () => {
     test('should preserve alpha when hex input changes on a semi-transparent swatch', async ({
       page,
     }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand', { waitUntil: 'load' });
       await openPanel(page);
       await waitForSwatchControls(page);
 

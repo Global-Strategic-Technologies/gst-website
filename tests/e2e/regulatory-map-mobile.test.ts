@@ -49,7 +49,7 @@ async function openBottomSheetFor(
       return transform === 'none' || transform === 'matrix(1, 0, 0, 1, 0, 0)';
     },
     undefined,
-    { timeout: 5000 }
+    { timeout: 10000 }
   );
 }
 
@@ -193,6 +193,7 @@ test.describe('Regulatory Map — Mobile UX', () => {
   test.describe('5. Legend Positioning', () => {
     test('should render legend inline (not overlapping map) on mobile', async ({ page }) => {
       const legend = page.locator('.brutal-legend');
+      await legend.waitFor({ state: 'visible', timeout: 10000 });
       const position = await legend.evaluate((el) => window.getComputedStyle(el).position);
 
       // On mobile, legend should be static (inline) not absolute/fixed

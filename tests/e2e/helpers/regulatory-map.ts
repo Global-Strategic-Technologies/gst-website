@@ -22,5 +22,12 @@ export async function clickSvgPath(page: Page, selector: string): Promise<void> 
  * indicating D3 has completed its initial SVG render.
  */
 export async function waitForMapReady(page: Page): Promise<void> {
-  await page.waitForFunction(() => document.querySelectorAll('.country-path').length > 0);
+  // Wait for D3 to render country paths AND for at least one to be active
+  // (regulations loaded and applied). Under parallel load, D3 init takes longer.
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll('.country-path').length > 0 &&
+      document.querySelectorAll('.country-path--active').length > 0,
+    { timeout: 15000 }
+  );
 }

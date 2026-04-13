@@ -135,15 +135,17 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     // Click to open
     await openFilterDrawer(page);
 
-    // Should be expanded
+    // Wait for drawer to fully open (class + aria state)
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('[data-testid="portfolio-filter-overlay"]');
+        return el && el.classList.contains('open');
+      },
+      { timeout: 10000 }
+    );
+
     ariaExpanded = await filterButton.getAttribute('aria-expanded');
     expect(ariaExpanded).toBe('true');
-
-    // Wait for overlay to have open class (drawer is fully open)
-    await page.waitForFunction(() => {
-      const el = document.querySelector('[data-testid="portfolio-filter-overlay"]');
-      return el && el.classList.contains('open');
-    });
 
     // Close using dispatchEvent to avoid z-index pointer-event interception
     await page.evaluate(() => {
@@ -152,10 +154,13 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
     });
 
     // Wait for drawer to close
-    await page.waitForFunction(() => {
-      const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
-      return el && !el.classList.contains('open');
-    });
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('[data-testid="portfolio-filter-drawer"]');
+        return el && !el.classList.contains('open');
+      },
+      { timeout: 10000 }
+    );
 
     // Should be collapsed again
     ariaExpanded = await filterButton.getAttribute('aria-expanded');

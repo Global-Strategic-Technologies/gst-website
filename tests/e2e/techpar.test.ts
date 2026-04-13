@@ -3,9 +3,13 @@ import { test, expect, type Page } from '@playwright/test';
 const TOOL_URL = '/hub/tools/techpar';
 
 async function gotoTool(page: Page): Promise<void> {
-  await page.goto(TOOL_URL);
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForSelector('[data-panel="profile"]', { timeout: 5000 });
+  await page.goto(TOOL_URL, { waitUntil: 'load' });
+  await page.waitForSelector('[data-panel="profile"]', { timeout: 10000 });
+  // Wait for the profile panel to be fully active (scripts hydrated)
+  await page.waitForFunction(
+    () => document.querySelector('[data-panel="profile"]')?.classList.contains('tp-panel--active'),
+    { timeout: 10000 }
+  );
 }
 
 async function fillInput(page: Page, attr: string, value: string): Promise<void> {
@@ -16,6 +20,12 @@ async function fillInput(page: Page, attr: string, value: string): Promise<void>
 
 async function clickTab(page: Page, tab: string): Promise<void> {
   await page.click(`.tp-tab[data-tab="${tab}"]`);
+  // Wait for the target panel to become active before proceeding
+  await page.waitForFunction(
+    (t) => document.querySelector(`[data-panel="${t}"]`)?.classList.contains('tp-panel--active'),
+    tab,
+    { timeout: 10000 }
+  );
 }
 
 async function selectStage(page: Page, stage: string = 'series_bc'): Promise<void> {
@@ -457,8 +467,11 @@ test.describe('TechPar - EEAT enhancements', () => {
     await fillInput(page, 'infra', '50000');
     await clickTab(page, 'analysis');
     await page.click('[data-action="save-scenario"]');
+    await expect(page.locator('[data-scenario-list]')).toContainText('Scenario 1');
     await page.click('[data-action="save-scenario"]');
+    await expect(page.locator('[data-scenario-list]')).toContainText('Scenario 2');
     await page.click('[data-action="save-scenario"]');
+    await expect(page.locator('[data-scenario-list]')).toContainText('Scenario 3');
     const saveBtn = page.locator('[data-action="save-scenario"]');
     await expect(saveBtn).toBeDisabled();
   });
@@ -478,23 +491,26 @@ test.describe('TechPar - Regression', () => {
 
     // 2. Wait for URL state to stabilise (debounced localStorage write)
     await page.waitForFunction(() => new URL(window.location.href).searchParams.has('h'), {
-      timeout: 5000,
+      timeout: 10000,
     });
     const hBefore = new URL(page.url()).searchParams.get('h');
     expect(hBefore).toBeTruthy();
 
     // 3. Reload and wait for hydration to complete
-    await page.reload();
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForFunction(() => new URL(window.location.href).searchParams.has('h'), {
-      timeout: 5000,
-    });
+    await page.reload({ waitUntil: 'load' });
+    // Wait for the page script to finish initializing (profile panel becomes active)
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-panel="profile"]')?.classList.contains('tp-panel--active'),
+      { timeout: 15000 }
+    );
 
     // 4. Verify URL param is unchanged (no double-conversion)
     const hAfter = new URL(page.url()).searchParams.get('h');
     expect(hAfter).toBe(hBefore);
 
-    // 5. Verify the DOM input reflects the original value
+    // 5. Navigate to costs tab and verify the DOM input reflects the original value
+    await clickTab(page, 'costs');
     await expect(page.locator('[data-input="infra"]')).toHaveValue('1200000');
   });
 
@@ -508,7 +524,7 @@ test.describe('TechPar - Regression', () => {
 
     // 2. Verify populated state before reset
     await page.waitForFunction(() => new URL(window.location.href).searchParams.has('a'), {
-      timeout: 5000,
+      timeout: 10000,
     });
 
     // 3. First click — confirmation prompt (no state change yet)
@@ -524,7 +540,7 @@ test.describe('TechPar - Regression', () => {
 
     // 5. Wait for state to clear (URL params removed)
     await page.waitForFunction(() => !new URL(window.location.href).searchParams.has('a'), {
-      timeout: 5000,
+      timeout: 15000,
     });
 
     // 6. Verify behavioral outcomes

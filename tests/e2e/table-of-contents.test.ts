@@ -22,7 +22,7 @@ test.describe('TableOfContents Component', () => {
     test('should generate sublists for layer-1 on business-architectures page', async ({
       page,
     }) => {
-      await page.goto('/hub/library/business-architectures', { waitUntil: 'domcontentloaded' });
+      await page.goto('/hub/library/business-architectures', { waitUntil: 'load' });
       await waitForSublists(page);
 
       // Count h3[id] headings inside #layer-1 (the source of truth)

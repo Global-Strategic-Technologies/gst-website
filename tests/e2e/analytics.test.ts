@@ -166,7 +166,15 @@ test.describe('Google Analytics E2E Tests', () => {
       const title = page.locator('[data-testid="project-modal-title"]');
       await expect(title).toBeVisible();
 
-      // Verify event was tracked with proper details
+      // Wait for event to be tracked (may lag under load)
+      await page.waitForFunction(
+        () =>
+          ((window as any).gtagEvents || []).some(
+            (e: any) => e.eventName === 'portfolio_view_details'
+          ),
+        { timeout: 5000 }
+      );
+
       const events = await page.evaluate(() => (window as any).gtagEvents || []);
       const viewEvent = events.find((e: any) => e.eventName === 'portfolio_view_details');
       expect(viewEvent).toBeDefined();

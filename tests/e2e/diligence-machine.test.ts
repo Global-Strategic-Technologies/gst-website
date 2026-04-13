@@ -176,7 +176,9 @@ test.describe('Diligence Machine E2E', () => {
 
       // Go back to step 1 and verify selection persisted
       await page.locator('[data-testid="btn-back"]').click();
+      await expectWizardOnStep(page, 3);
       await page.locator('[data-testid="btn-back"]').click();
+      await expectWizardOnStep(page, 2);
       await page.locator('[data-testid="btn-back"]').click();
 
       await expectWizardOnStep(page, 1);

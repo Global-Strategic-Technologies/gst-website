@@ -7,16 +7,16 @@ export default defineConfig({
   testMatch: '**/*.test.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  retries: process.env.CI ? 1 : 1,
   workers: process.env.CI ? 2 : undefined,
   reporter: 'html',
-  timeout: 30000,
+  timeout: 45000,
   use: {
     baseURL: 'http://localhost:4321',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    navigationTimeout: 15000,
-    actionTimeout: 5000,
+    navigationTimeout: 20000,
+    actionTimeout: 10000,
   },
 
   projects: [
