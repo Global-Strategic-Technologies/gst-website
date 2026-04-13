@@ -219,7 +219,7 @@ npm run astro                 # Run Astro CLI
 
 ### Testing & CI/CD
 
-- **Start here**: [src/docs/testing/INDEX.md](src/docs/testing/INDEX.md) — use-case-based navigation to all testing docs
+- **Start here**: [src/docs/testing/README.md](src/docs/testing/README.md) — use-case-based navigation to all testing docs
 - **Writing or fixing E2E tests**: read [src/docs/testing/TEST_BEST_PRACTICES.md](src/docs/testing/TEST_BEST_PRACTICES.md) first — 25 documented anti-patterns and their fixes
 - **Writing new tests**: read [src/docs/testing/TEST_STRATEGY.md](src/docs/testing/TEST_STRATEGY.md) for test patterns by component type
 - **Tests failing**: check [src/docs/testing/TROUBLESHOOTING.md](src/docs/testing/TROUBLESHOOTING.md) before debugging manually

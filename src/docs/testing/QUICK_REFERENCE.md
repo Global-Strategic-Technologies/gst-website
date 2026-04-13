@@ -2,14 +2,14 @@
 
 ## What Was Created
 
-| File | Purpose | Status |
-|------|---------|--------|
-| `TEST_STRATEGY.md` | Complete strategy | ✅ Done |
-| `GITHUB_ACTIONS_SETUP.md` | Quick start guide | ✅ Done |
-| `BRANCH_PROTECTION_CONFIG.md` | Branch rules | ✅ Done |
-| `CI_CD_SUMMARY.md` | Architecture overview | ✅ Done |
-| `vitest.config.ts` | Unit test config | ✅ Done |
-| `playwright.config.ts` | E2E test config | ✅ Done |
+| File                                              | Purpose               | Status  |
+| ------------------------------------------------- | --------------------- | ------- |
+| `TEST_STRATEGY.md`                                | Complete strategy     | ✅ Done |
+| `GITHUB_ACTIONS_SETUP.md`                         | Quick start guide     | ✅ Done |
+| `BRANCH_PROTECTION_CONFIG.md`                     | Branch rules          | ✅ Done |
+| `GITHUB_ACTIONS_SETUP.md` § Pipeline Architecture | Architecture overview | ✅ Done |
+| `vitest.config.ts`                                | Unit test config      | ✅ Done |
+| `playwright.config.ts`                            | E2E test config       | ✅ Done |
 
 ## Setup Status
 
@@ -40,6 +40,7 @@ npm run test:e2e:debug # Playwright debug → step through E2E tests
 ## Development Workflow
 
 ### Before Pushing Code
+
 ```
 1. Make your changes
 2. Run npm run test:all locally
@@ -48,6 +49,7 @@ npm run test:e2e:debug # Playwright debug → step through E2E tests
 ```
 
 ### After Pushing to Remote
+
 ```
 1. Vercel automatically deploys master branch
 2. Preview builds created for PRs
@@ -106,6 +108,7 @@ npm run test:e2e:debug # Debug E2E
 ## Testing Quick Reference
 
 ### Unit Test Template
+
 ```typescript
 import { describe, it, expect } from 'vitest';
 
@@ -118,6 +121,7 @@ describe('My Function', () => {
 ```
 
 ### Integration Test Template
+
 ```typescript
 import { test, expect, Page } from '@playwright/test';
 
@@ -130,6 +134,7 @@ test('should filter results', async ({ page }) => {
 ```
 
 ### E2E Test Template
+
 ```typescript
 import { test, expect } from '@playwright/test';
 
@@ -175,6 +180,7 @@ test.describe('User Journey', () => {
 ## Accessing Test UIs
 
 ### Vitest UI (Unit/Integration Tests)
+
 ```bash
 npm run test:ui
 # Opens interactive dashboard at http://localhost:XXXX/__vitest__/
@@ -187,6 +193,7 @@ npm run test:ui
 ```
 
 ### Playwright UI (E2E Tests)
+
 ```bash
 npm run test:e2e:ui
 # Opens interactive test dashboard
@@ -199,6 +206,7 @@ npm run test:e2e:ui
 ```
 
 ### Playwright Debug (Step Through Tests)
+
 ```bash
 npm run test:e2e:debug
 # Opens Playwright Inspector
@@ -229,40 +237,44 @@ npm run test:all
 
 ## Coverage Targets
 
-| Category | Target |
-|----------|--------|
-| Overall | 70% |
+| Category            | Target |
+| ------------------- | ------ |
+| Overall             | 70%    |
 | Critical Components | 85-95% |
-| Utility Functions | 90%+ |
-| Portfolio Filtering | 85% |
-| Modals | 85% |
-| Theme Toggle | 95% |
+| Utility Functions   | 90%+   |
+| Portfolio Filtering | 85%    |
+| Modals              | 85%    |
+| Theme Toggle        | 95%    |
 
 ## Viewing Results
 
 ### Command Line
-| Command | Shows |
-|---------|-------|
+
+| Command            | Shows                                     |
+| ------------------ | ----------------------------------------- |
 | `npm run test:run` | Unit/integration test results in terminal |
-| `npm run test:e2e` | E2E test results + Playwright report URL |
-| `npm run test:all` | Both combined |
+| `npm run test:e2e` | E2E test results + Playwright report URL  |
+| `npm run test:all` | Both combined                             |
 
 ### Browser UI (Interactive)
-| Command | Opens Browser | Shows |
-|---------|--------------|-------|
-| `npm run test:ui` | http://localhost:XXXX/__vitest__/ | 174 unit/integration tests, live reload |
-| `npm run test:e2e:ui` | Playwright UI | 207 E2E tests, video playback, traces |
-| `npm run test:e2e:debug` | Playwright Inspector | Step through E2E tests one action at a time |
+
+| Command                  | Opens Browser                     | Shows                                       |
+| ------------------------ | --------------------------------- | ------------------------------------------- |
+| `npm run test:ui`        | http://localhost:XXXX/**vitest**/ | 174 unit/integration tests, live reload     |
+| `npm run test:e2e:ui`    | Playwright UI                     | 207 E2E tests, video playback, traces       |
+| `npm run test:e2e:debug` | Playwright Inspector              | Step through E2E tests one action at a time |
 
 ### Reports
-| File/Folder | Access | Shows |
-|-------------|--------|-------|
-| `coverage/index.html` | Open in browser | Line-by-line code coverage |
-| `test-results/` | Playwright report URL | Screenshots, video, traces (after E2E run) |
+
+| File/Folder           | Access                | Shows                                      |
+| --------------------- | --------------------- | ------------------------------------------ |
+| `coverage/index.html` | Open in browser       | Line-by-line code coverage                 |
+| `test-results/`       | Playwright report URL | Screenshots, video, traces (after E2E run) |
 
 ## Troubleshooting
 
 ### Tests fail locally
+
 ```bash
 # Try clean install
 rm -rf node_modules package-lock.json
@@ -276,6 +288,7 @@ npm run test tests/unit/my.test.ts
 ```
 
 ### Build fails
+
 ```bash
 # Clean build
 npm run build
@@ -285,7 +298,9 @@ npm run build -- --verbose
 ```
 
 ### E2E tests timeout
+
 Edit `playwright.config.ts`:
+
 ```typescript
 use: {
   timeout: 30000,  // Increase from default
@@ -293,6 +308,7 @@ use: {
 ```
 
 ### Tests pass locally but fail in CI
+
 - Check Node version matches
 - Try `npm ci` (not `npm install`)
 - Add explicit waits (not sleeps)
@@ -373,6 +389,7 @@ npm run test:e2e:debug
 ## Common Patterns
 
 ### Testing filtering logic
+
 ```typescript
 it('should filter by search term', async () => {
   // Arrange
@@ -381,7 +398,7 @@ it('should filter by search term', async () => {
 
   // Act
   await page.fill('[data-testid="search"]', 'tech');
-  await page.waitForTimeout(400);  // Wait for debounce
+  await page.waitForTimeout(400); // Wait for debounce
 
   // Assert
   const count = await page.locator('[data-testid="result"]').count();
@@ -390,6 +407,7 @@ it('should filter by search term', async () => {
 ```
 
 ### Testing modals
+
 ```typescript
 it('should open modal on click', async () => {
   await page.click('[data-testid="project-card"]');
@@ -403,17 +421,14 @@ it('should open modal on click', async () => {
 ```
 
 ### Testing theme toggle
+
 ```typescript
 it('should toggle theme', async () => {
-  const isDark = await page.evaluate(() =>
-    document.body.classList.contains('dark-theme')
-  );
+  const isDark = await page.evaluate(() => document.body.classList.contains('dark-theme'));
 
   await page.click('[data-testid="theme-toggle"]');
 
-  const isDarkAfter = await page.evaluate(() =>
-    document.body.classList.contains('dark-theme')
-  );
+  const isDarkAfter = await page.evaluate(() => document.body.classList.contains('dark-theme'));
 
   expect(isDarkAfter).toBe(!isDark);
 });
