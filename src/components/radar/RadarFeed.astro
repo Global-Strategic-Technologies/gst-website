@@ -33,7 +33,10 @@ try {
 // The Wire — automated feed from all GST folders
 let wire: RadarWireItem[] = [];
 try {
-  const folderPrefix = process.env.INOREADER_FOLDER_PREFIX || 'GST-';
+  const folderPrefix =
+    process.env.INOREADER_FOLDER_PREFIX ||
+    (import.meta as Record<string, Record<string, string>>).env?.INOREADER_FOLDER_PREFIX ||
+    'GST-';
   const streamsResponse = await fetchAllStreams(folderPrefix, 15);
   if (streamsResponse) {
     const fyiUrls = new Set(fyi.map((f) => f.url));

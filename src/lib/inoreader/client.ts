@@ -19,6 +19,12 @@ const API_BASE = 'https://www.inoreader.com/reader/api/0';
 const OAUTH_BASE = 'https://www.inoreader.com/oauth2';
 const FETCH_TIMEOUT_MS = 10_000;
 
+// Resolve server-side env vars from process.env (Vercel runtime) with
+// import.meta.env fallback (Astro dev server loads .env there, not process.env).
+function env(key: string): string | undefined {
+  return process.env[key] || (import.meta as Record<string, Record<string, string>>).env?.[key];
+}
+
 // ---------------------------------------------------------------------------
 // Upstash Redis — lazy-loaded, gracefully degrades when unavailable
 // ---------------------------------------------------------------------------
@@ -37,8 +43,8 @@ async function getRedis(): Promise<RedisStore | null> {
   if (_redisInstance !== undefined) return _redisInstance;
   try {
     const { Redis } = await import('@upstash/redis');
-    const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-    const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+    const url = env('KV_REST_API_URL') || env('UPSTASH_REDIS_REST_URL');
+    const token = env('KV_REST_API_TOKEN') || env('UPSTASH_REDIS_REST_TOKEN');
     if (!url || !token) {
       _redisInstance = null;
       return null;
@@ -129,10 +135,10 @@ async function getConfig(): Promise<ClientConfig> {
     kvTokensLoaded = true;
   }
 
-  const appId = process.env.INOREADER_APP_ID;
-  const appKey = process.env.INOREADER_APP_KEY;
-  const accessToken = refreshedAccessToken || kvAccessToken || process.env.INOREADER_ACCESS_TOKEN;
-  const refreshToken = kvRefreshToken || process.env.INOREADER_REFRESH_TOKEN;
+  const appId = env('INOREADER_APP_ID');
+  const appKey = env('INOREADER_APP_KEY');
+  const accessToken = refreshedAccessToken || kvAccessToken || env('INOREADER_ACCESS_TOKEN');
+  const refreshToken = kvRefreshToken || env('INOREADER_REFRESH_TOKEN');
 
   if (!appId || !appKey || !accessToken) {
     throw new Error(
