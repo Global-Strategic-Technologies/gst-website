@@ -201,4 +201,70 @@ test.describe('TableOfContents Component', () => {
       expect(specimenActiveCount).toBe(0);
     });
   });
+
+  test.describe('Sticky Positioning', () => {
+    test('should stick TOC to viewport on brand page when scrolling', async ({ page }) => {
+      await page.setViewportSize({ width: 1200, height: 800 });
+      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+
+      const toc = page.getByTestId('brand-toc');
+      await expect(toc).toBeVisible();
+
+      // Verify computed position is sticky
+      const position = await toc.evaluate((el) => window.getComputedStyle(el).position);
+      expect(position).toBe('sticky');
+
+      // Record initial top position
+      const initialTop = await toc.evaluate((el) => el.getBoundingClientRect().top);
+
+      // Scroll to a mid-page section
+      await page.evaluate(() => {
+        document.getElementById('components')?.scrollIntoView({ behavior: 'instant' });
+      });
+
+      // Wait for scroll to settle
+      await page.waitForFunction(() => window.scrollY > 200, { timeout: 5000 });
+
+      // TOC should remain near the top of the viewport (stuck), not scrolled away
+      const postScrollTop = await toc.evaluate((el) => el.getBoundingClientRect().top);
+      expect(postScrollTop).toBeLessThan(100);
+      expect(postScrollTop).toBeLessThan(initialTop);
+    });
+
+    test('should stick TOC to viewport on business-architectures page when scrolling', async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 1200, height: 800 });
+      await page.goto('/hub/library/business-architectures', { waitUntil: 'load' });
+      await waitForSublists(page);
+
+      const toc = page.locator('.toc');
+
+      // Verify computed position is sticky
+      const position = await toc.evaluate((el) => window.getComputedStyle(el).position);
+      expect(position).toBe('sticky');
+
+      // Scroll to a mid-page section
+      await page.evaluate(() => {
+        document.getElementById('layer-3')?.scrollIntoView({ behavior: 'instant' });
+      });
+
+      await page.waitForFunction(() => window.scrollY > 200, { timeout: 5000 });
+
+      // TOC should remain near the top of the viewport
+      const postScrollTop = await toc.evaluate((el) => el.getBoundingClientRect().top);
+      expect(postScrollTop).toBeLessThan(100);
+    });
+
+    test('should not be sticky on mobile viewport', async ({ page }) => {
+      await page.setViewportSize({ width: 480, height: 800 });
+      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+
+      const toc = page.getByTestId('brand-toc');
+      await expect(toc).toBeVisible();
+
+      const position = await toc.evaluate((el) => window.getComputedStyle(el).position);
+      expect(position).toBe('static');
+    });
+  });
 });
