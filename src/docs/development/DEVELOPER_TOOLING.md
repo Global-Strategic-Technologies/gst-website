@@ -359,7 +359,7 @@ These rules are configured externally in Sentry's UI, not in code. The tag filte
 
 Source maps enable readable stack traces in Sentry. The upload is wired in `astro.config.mjs` via the `sourceMapsUploadOptions` block but only activates when the required env vars are set:
 
-- `SENTRY_AUTH_TOKEN` — generate at sentry.io → Settings → Auth Tokens (scope: `org:read`, `project:releases`, `project:write`)
+- `SENTRY_AUTH_TOKEN` — create an Organization Token at sentry.io → Settings → Developer Settings → Organization Tokens (preset permissions, no manual scope selection). See [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md) for full walkthrough
 - `SENTRY_ORG` — your Sentry organization slug
 - `SENTRY_PROJECT` — the project slug (e.g., `gst-website`)
 

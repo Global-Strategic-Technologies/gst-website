@@ -10,11 +10,14 @@ Source maps give Sentry readable stack traces instead of minified code. The uplo
 
 ### Steps
 
-1. **Generate a Sentry auth token**
-   - Go to [sentry.io](https://sentry.io) → Settings → Auth Tokens
+1. **Create an Organization Auth Token** (recommended by Sentry for source map uploads)
+   - Go to [sentry.io](https://sentry.io) → **Settings → Developer Settings → Organization Tokens**
    - Click **Create New Token**
-   - Required scopes: `org:read`, `project:releases`, `project:write`
-   - Copy the token immediately (it won't be shown again)
+   - Give it a name like `GST Website Source Maps`
+   - Organization tokens have preset permissions — no manual scope selection needed
+   - Copy the token immediately (it is only shown once and cannot be retrieved later)
+
+   > **Why Organization Token, not Personal Token?** Organization tokens are scoped to the org (not your personal account), have the right permissions for source map upload out of the box, and are the Sentry-recommended approach. If you must use a Personal Token instead (Settings → Auth Tokens → Personal Tokens), set **Project: Read & Write** and **Release: Admin**.
 
 2. **Find your org and project slugs**
    - Org slug: visible in the URL when logged in — `https://sentry.io/organizations/{ORG_SLUG}/`
