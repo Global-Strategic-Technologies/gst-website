@@ -81,10 +81,10 @@ const clientConfig = JSON.stringify({
       collapsible && (
         <svg class="delta-chevron toc__chevron" viewBox="0 0 64 64" fill="none" aria-hidden="true">
           <path
-            d="M32 8 L56 56 L8 56 Z"
+            d="M32 12 L52 52 L12 52 Z"
             fill="none"
             stroke="currentColor"
-            stroke-width="5"
+            stroke-width="6"
             stroke-linejoin="miter"
           />
         </svg>
@@ -174,10 +174,10 @@ const clientConfig = JSON.stringify({
           icon.setAttribute('class', 'bullet-icon');
           icon.style.flexShrink = '0';
           const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          path.setAttribute('d', 'M32 8 L56 56 L8 56 Z');
+          path.setAttribute('d', 'M32 12 L52 52 L12 52 Z');
           path.setAttribute('fill', 'none');
           path.setAttribute('stroke', 'currentColor');
-          path.setAttribute('stroke-width', '5');
+          path.setAttribute('stroke-width', '6');
           path.setAttribute('stroke-linejoin', 'miter');
           icon.appendChild(path);
 

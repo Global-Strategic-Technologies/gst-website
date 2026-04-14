@@ -574,10 +574,10 @@ The `.delta-chevron` utility (defined in `interactions.css`) provides a collapse
 ```html
 <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
   <path
-    d="M32 8 L56 56 L8 56 Z"
+    d="M32 12 L52 52 L12 52 Z"
     fill="none"
     stroke="currentColor"
-    stroke-width="5"
+    stroke-width="6"
     stroke-linejoin="miter"
   />
 </svg>
