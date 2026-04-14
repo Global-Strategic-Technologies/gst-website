@@ -332,7 +332,7 @@ test.describe('Google Analytics E2E Tests', () => {
       const events: string[] = [];
 
       // Listen for network requests to GA
-      await page.on('request', (request) => {
+      page.on('request', (request) => {
         if (
           request.url().includes('google-analytics') ||
           request.url().includes('googletagmanager')
@@ -407,7 +407,7 @@ test.describe('Google Analytics E2E Tests', () => {
       expect(gtagExists).toBe(true);
 
       // Verify we're on the new page
-      expect(await page.url()).toContain('/ma-portfolio');
+      expect(page.url()).toContain('/ma-portfolio');
     });
   });
 });

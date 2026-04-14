@@ -218,9 +218,9 @@ export function decodeState(encoded: string): Partial<ICGState> | null {
 // ─── Summary text ───────────────────────────────────────────────────────────
 
 export function buildSummaryText(
-  state: ICGState,
+  _state: ICGState,
   result: ICGResult,
-  domains: readonly Domain[],
+  _domains: readonly Domain[],
   recs: readonly Recommendation[],
   url?: string
 ): string {

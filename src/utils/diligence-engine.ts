@@ -182,7 +182,7 @@ export function sortByPriority(questions: DiligenceQuestion[]): DiligenceQuestio
  */
 export function balanceAcrossTopics(
   questions: DiligenceQuestion[],
-  minTotal: number,
+  _minTotal: number,
   maxTotal: number
 ): DiligenceQuestion[] {
   const topicIds = Object.keys(TOPIC_META) as Array<keyof typeof TOPIC_META>;

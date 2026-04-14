@@ -398,16 +398,16 @@ const jsonLdData = {
 ---
 
 <!-- JSON-LD Structured Data -->
-<script type="application/ld+json" set:html={JSON.stringify(jsonLdData)} />
+<script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLdData)} />
 
 <!-- BreadcrumbList Structured Data -->{
   breadcrumbJsonLd && (
-    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} />
   )
 }
 
 <!-- FAQPage Structured Data -->
-{faqJsonLd && <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />}
+{faqJsonLd && <script is:inline type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />}
 
 <!-- Open Graph Meta Tags -->
 <meta property="og:title" content={finalOgTitle} />
