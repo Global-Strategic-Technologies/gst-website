@@ -8,9 +8,23 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     exclude: ['tests/e2e/**'],
     coverage: {
-      include: ['src/utils/**', 'src/data/**/*.ts', 'src/scripts/**'],
+      include: ['src/utils/**', 'src/data/**/*.ts'],
+      exclude: [
+        // Browser-only modules — covered by E2E (Playwright), not unit tests.
+        // These files depend on DOM APIs, Canvas, localStorage, or Clipboard
+        // that vitest's node environment cannot execute.
+        'src/utils/techpar-ui.ts',
+        'src/utils/techpar/chart.ts',
+        'src/utils/techpar/dom.ts',
+        'src/utils/techpar/state.ts',
+        'src/utils/breadcrumbs.ts',
+        'src/utils/copy-feedback.ts',
+        'src/utils/analytics.ts',
+        'src/utils/fetchRegulations.ts',
+        'src/utils/validateData.ts',
+      ],
       thresholds: {
-        lines: 35,
+        lines: 70,
       },
     },
   },
