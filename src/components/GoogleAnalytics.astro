@@ -28,6 +28,26 @@ const measurementId = PUBLIC_GA_MEASUREMENT_ID;
           send_page_view: true,
         });
       });
+
+      // Track Calendly booking confirmations via postMessage API
+      window.addEventListener('message', function (e) {
+        if (
+          e.origin === 'https://calendly.com' &&
+          e.data &&
+          e.data.event === 'calendly.event_scheduled'
+        ) {
+          if (typeof gtag === 'function') {
+            gtag('event', 'calendly_booking_confirmed', {
+              event_category: 'engagement',
+              calendly_event_type:
+                (e.data.payload &&
+                  e.data.payload.event_type &&
+                  e.data.payload.event_type.name) ||
+                'unknown',
+            });
+          }
+        }
+      });
     </script>
 
     {isProduction && (
