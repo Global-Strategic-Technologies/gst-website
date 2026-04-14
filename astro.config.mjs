@@ -15,9 +15,15 @@ export default defineConfig({
   env: {
     schema: {
       // Inoreader API — server secrets (never inlined, resolved at runtime)
-      INOREADER_APP_ID: envField.string({ context: 'server', access: 'secret' }),
-      INOREADER_APP_KEY: envField.string({ context: 'server', access: 'secret' }),
-      INOREADER_ACCESS_TOKEN: envField.string({ context: 'server', access: 'secret' }),
+      // Optional: Radar page degrades gracefully when absent (shows fallback message).
+      // Required only for local dev with live feed and on Vercel production.
+      INOREADER_APP_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
+      INOREADER_APP_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
+      INOREADER_ACCESS_TOKEN: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
       INOREADER_REFRESH_TOKEN: envField.string({
         context: 'server',
         access: 'secret',
