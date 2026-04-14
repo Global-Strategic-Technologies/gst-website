@@ -4,9 +4,11 @@
 // Loads in production and test environments (test requests are mocked)
 // Measurement ID should be provided via environment variable
 
+import { PUBLIC_GA_MEASUREMENT_ID, PUBLIC_ENABLE_ANALYTICS } from 'astro:env/client';
+
 const isProduction = import.meta.env.PROD;
-const enableAnalytics = import.meta.env.PUBLIC_ENABLE_ANALYTICS !== 'false';
-const measurementId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID || 'G-WTGM9Y1YB0';
+const enableAnalytics = PUBLIC_ENABLE_ANALYTICS !== 'false';
+const measurementId = PUBLIC_GA_MEASUREMENT_ID;
 ---
 
 {enableAnalytics && (

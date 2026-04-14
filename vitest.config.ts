@@ -31,6 +31,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // astro:env virtual modules don't exist outside Astro's build pipeline.
+      // Map them to test stubs that export undefined for all vars (tests use
+      // configOverride or set values via vi.mock).
+      'astro:env/server': path.resolve(__dirname, './tests/__mocks__/astro-env-server.ts'),
+      'astro:env/client': path.resolve(__dirname, './tests/__mocks__/astro-env-client.ts'),
     },
   },
 });

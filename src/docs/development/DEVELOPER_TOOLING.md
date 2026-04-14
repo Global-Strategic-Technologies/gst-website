@@ -321,6 +321,37 @@ expect(results.critical).toHaveLength(0);
 
 ---
 
+## Environment variables
+
+All environment variables are declared in `astro.config.mjs` → `env.schema` using Astro's `envField` helper. This is the **single source of truth** for what vars the app needs, their types, defaults, and access levels.
+
+### How to access env vars
+
+| Context | Import from | Example |
+| --- | --- | --- |
+| Server-side code (`src/lib/`, `.astro` frontmatter) | `astro:env/server` | `import { INOREADER_APP_ID } from 'astro:env/server'` |
+| Client-side code (`<script>`, client components) | `astro:env/client` | `import { PUBLIC_GA_MEASUREMENT_ID } from 'astro:env/client'` |
+| Vite built-ins (`PROD`, `DEV`, `MODE`) | `import.meta.env` | `import.meta.env.PROD` (these are NOT custom vars) |
+| Build-time config (`astro.config.mjs`) | `process.env` | Only for vars read before Astro initializes (Sentry auth token) |
+
+### Rules
+
+- **Never use `process.env` in `src/`** — ESLint `no-restricted-properties` enforces this. Use `astro:env/server` or `astro:env/client` instead.
+- **Server secrets** (`access: "secret"`) are never inlined into the build output. They're resolved at runtime by the Vercel adapter, which is why server islands (`server:defer`) work safely.
+- **Public vars** (`access: "public"`) are inlined at build time. Use the `PUBLIC_` prefix convention.
+- **`.env` file** is for local development only (loaded by Astro dev server). Production vars are set in Vercel dashboard.
+- **`.env.example`** documents all vars with placeholder values. Keep it in sync when adding new vars.
+
+### Testing
+
+Vitest can't resolve `astro:env/*` virtual modules. Test stubs live at:
+- `tests/__mocks__/astro-env-server.ts` — exports `undefined` for all server vars
+- `tests/__mocks__/astro-env-client.ts` — exports defaults for public vars
+
+Tests that need specific env values should use `vi.mock('astro:env/server', () => ({ ... }))` with `vi.hoisted()` for the factory object.
+
+---
+
 ## Error monitoring (Sentry)
 
 The site uses [@sentry/astro](https://docs.sentry.io/platforms/javascript/guides/astro/) for error monitoring, configured as an Astro integration in `astro.config.mjs`.
@@ -331,11 +362,11 @@ The site uses [@sentry/astro](https://docs.sentry.io/platforms/javascript/guides
 | `sentry.server.config.ts` | Server-side init — SSR error capture (Radar page)    |
 | `astro.config.mjs`        | Integration registration + source map upload config  |
 
-**Key settings**: No PII (`sendDefaultPii: false`), no performance tracing (`tracesSampleRate: 0`), error-only replay (`replaysOnErrorSampleRate: 1.0`), disabled in development (`enabled: import.meta.env.PROD`).
+**Key settings**: No PII (`sendDefaultPii: false`), no performance tracing (`tracesSampleRate: 0`), error-only replay (`replaysOnErrorSampleRate: 1.0`), disabled in development (`enabled: import.meta.env.PROD`). DSN is imported from `astro:env/client` (declared in env schema).
 
 **Environment variables**:
 
-- `PUBLIC_SENTRY_DSN` — required, set in Vercel (Production + Preview)
+- `PUBLIC_SENTRY_DSN` — declared in env schema, set in Vercel (Production + Preview)
 - `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` — optional, for source map upload
 
 **Error tags used in `captureException`**: `area:inoreader-api`, `area:redis-connection`, `area:file-cache`, `area:palette-manager`, `area:techpar-calculation`

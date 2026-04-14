@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/astro';
+import { PUBLIC_SENTRY_DSN } from 'astro:env/client';
 
 Sentry.init({
-  dsn: import.meta.env.PUBLIC_SENTRY_DSN,
+  dsn: PUBLIC_SENTRY_DSN,
   environment: import.meta.env.MODE,
   enabled: import.meta.env.PROD,
   sendDefaultPii: false,

@@ -12,7 +12,7 @@
  *
  * Mocking strategy:
  * - @upstash/redis is mocked at module level via vi.mock()
- * - import.meta.env properties are set directly on the env object
+ * - astro:env/server module is mocked with vi.mock to provide test values
  * - global fetch is stubbed to return controlled responses
  */
 
@@ -32,24 +32,30 @@ vi.mock('@upstash/redis', () => ({
   Redis: MockRedisConstructor,
 }));
 
+// ---------------------------------------------------------------------------
+// Mock astro:env/server — vi.hoisted ensures the object is available when
+// vi.mock's factory runs (vi.mock is hoisted above all imports).
+// ---------------------------------------------------------------------------
+
+const astroEnv = vi.hoisted(() => ({
+  INOREADER_APP_ID: 'test-app-id' as string | undefined,
+  INOREADER_APP_KEY: 'test-app-key' as string | undefined,
+  INOREADER_ACCESS_TOKEN: 'env-access-token' as string | undefined,
+  INOREADER_REFRESH_TOKEN: 'env-refresh-token' as string | undefined,
+  INOREADER_FOLDER_PREFIX: 'GST-',
+  KV_REST_API_URL: 'https://redis.example.com' as string | undefined,
+  KV_REST_API_TOKEN: 'redis-token' as string | undefined,
+  UPSTASH_REDIS_REST_URL: undefined as string | undefined,
+  UPSTASH_REDIS_REST_TOKEN: undefined as string | undefined,
+}));
+
+vi.mock('astro:env/server', () => astroEnv);
+
 import { fetchAnnotatedItems, resetTokenCache } from '@/lib/inoreader/client';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** All env keys we might set — cleaned up after each test */
-const ENV_KEYS = [
-  'INOREADER_APP_ID',
-  'INOREADER_APP_KEY',
-  'INOREADER_ACCESS_TOKEN',
-  'INOREADER_REFRESH_TOKEN',
-  'KV_REST_API_URL',
-  'KV_REST_API_TOKEN',
-  'UPSTASH_REDIS_REST_URL',
-  'UPSTASH_REDIS_REST_TOKEN',
-  'DEV',
-] as const;
 
 const BASE_ENV: Record<string, string> = {
   INOREADER_APP_ID: 'test-app-id',
@@ -60,20 +66,15 @@ const BASE_ENV: Record<string, string> = {
   KV_REST_API_TOKEN: 'redis-token',
 };
 
-/** Save original values so we can restore them — declared in describe scope */
+const ENV_KEYS = Object.keys(astroEnv) as (keyof typeof astroEnv)[];
 
 function setEnv(overrides: Record<string, string> = {}) {
   const merged = { ...BASE_ENV, ...overrides };
-  const env = import.meta.env;
   for (const key of ENV_KEYS) {
-    if (key in merged) {
-      env[key] = merged[key];
-    } else {
-      delete env[key];
-    }
+    (astroEnv as any)[key] = key in merged ? merged[key] : undefined;
   }
   // Ensure DEV is false so dev-cache is skipped
-  env.DEV = false as any;
+  import.meta.env.DEV = false as any;
 }
 
 function mockResponse(
@@ -133,29 +134,22 @@ describe('Radar KV Token Persistence', () => {
     mockRedisSet.mockReset();
     MockRedisConstructor.mockClear();
 
-    // Save original env values
-    const env = import.meta.env;
+    // Save astro:env/server values for restore
     for (const key of ENV_KEYS) {
-      savedEnv[key] = env[key];
+      savedEnv[key] = (astroEnv as any)[key];
     }
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
 
-    // Restore console.warn spy if any test set it (prevents leak on assertion failure)
     if (warnSpy) {
       warnSpy = null;
     }
 
-    // Restore original env values
-    const env = import.meta.env;
+    // Restore astro:env/server values
     for (const key of ENV_KEYS) {
-      if (savedEnv[key] !== undefined) {
-        env[key] = savedEnv[key];
-      } else {
-        delete env[key];
-      }
+      (astroEnv as any)[key] = savedEnv[key];
     }
   });
 

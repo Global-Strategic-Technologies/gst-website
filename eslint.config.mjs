@@ -153,6 +153,23 @@ export default [
     },
   },
 
+  // ── Ban process.env in application code (use astro:env instead) ────
+  {
+    files: ['src/**/*.{ts,tsx,astro}'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'process',
+          property: 'env',
+          message:
+            'Use astro:env/server or astro:env/client imports instead of process.env. ' +
+            'See DEVELOPER_TOOLING.md § Environment variables.',
+        },
+      ],
+    },
+  },
+
   // ── Prettier compatibility: MUST be last ───────────────────────────
   prettier,
 ];

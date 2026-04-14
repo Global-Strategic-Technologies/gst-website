@@ -14,16 +14,20 @@
 import type { InoreaderStreamResponse, InoreaderItem } from './types';
 import { buildCacheKey, getCachedResponse, setCachedResponse } from './cache';
 import * as Sentry from '@sentry/node';
+import {
+  INOREADER_APP_ID,
+  INOREADER_APP_KEY,
+  INOREADER_ACCESS_TOKEN,
+  INOREADER_REFRESH_TOKEN,
+  KV_REST_API_URL,
+  KV_REST_API_TOKEN,
+  UPSTASH_REDIS_REST_URL,
+  UPSTASH_REDIS_REST_TOKEN,
+} from 'astro:env/server';
 
 const API_BASE = 'https://www.inoreader.com/reader/api/0';
 const OAUTH_BASE = 'https://www.inoreader.com/oauth2';
 const FETCH_TIMEOUT_MS = 10_000;
-
-// Resolve server-side env vars from process.env (Vercel runtime) with
-// import.meta.env fallback (Astro dev server loads .env there, not process.env).
-function env(key: string): string | undefined {
-  return process.env[key] || (import.meta as Record<string, Record<string, string>>).env?.[key];
-}
 
 // ---------------------------------------------------------------------------
 // Upstash Redis — lazy-loaded, gracefully degrades when unavailable
@@ -43,8 +47,8 @@ async function getRedis(): Promise<RedisStore | null> {
   if (_redisInstance !== undefined) return _redisInstance;
   try {
     const { Redis } = await import('@upstash/redis');
-    const url = env('KV_REST_API_URL') || env('UPSTASH_REDIS_REST_URL');
-    const token = env('KV_REST_API_TOKEN') || env('UPSTASH_REDIS_REST_TOKEN');
+    const url = KV_REST_API_URL || UPSTASH_REDIS_REST_URL;
+    const token = KV_REST_API_TOKEN || UPSTASH_REDIS_REST_TOKEN;
     if (!url || !token) {
       _redisInstance = null;
       return null;
@@ -135,10 +139,10 @@ async function getConfig(): Promise<ClientConfig> {
     kvTokensLoaded = true;
   }
 
-  const appId = env('INOREADER_APP_ID');
-  const appKey = env('INOREADER_APP_KEY');
-  const accessToken = refreshedAccessToken || kvAccessToken || env('INOREADER_ACCESS_TOKEN');
-  const refreshToken = kvRefreshToken || env('INOREADER_REFRESH_TOKEN');
+  const appId = INOREADER_APP_ID;
+  const appKey = INOREADER_APP_KEY;
+  const accessToken = refreshedAccessToken || kvAccessToken || INOREADER_ACCESS_TOKEN;
+  const refreshToken = kvRefreshToken || INOREADER_REFRESH_TOKEN || '';
 
   if (!appId || !appKey || !accessToken) {
     throw new Error(
@@ -147,7 +151,7 @@ async function getConfig(): Promise<ClientConfig> {
     );
   }
 
-  return { appId, appKey, accessToken, refreshToken: refreshToken || '' };
+  return { appId, appKey, accessToken, refreshToken };
 }
 
 function buildHeaders(config: ClientConfig): Record<string, string> {

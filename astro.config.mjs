@@ -1,5 +1,5 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
+import { defineConfig, envField } from 'astro/config';
 import vercel from '@astrojs/vercel';
 import sentry from '@sentry/astro';
 import sitemap from '@astrojs/sitemap';
@@ -17,6 +17,53 @@ const lightningcssTargets = browserslistToTargets(browserslist());
 
 export default defineConfig({
   site: 'https://globalstrategic.tech',
+  env: {
+    schema: {
+      // Inoreader API — server secrets (never inlined, resolved at runtime)
+      INOREADER_APP_ID: envField.string({ context: 'server', access: 'secret' }),
+      INOREADER_APP_KEY: envField.string({ context: 'server', access: 'secret' }),
+      INOREADER_ACCESS_TOKEN: envField.string({ context: 'server', access: 'secret' }),
+      INOREADER_REFRESH_TOKEN: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      INOREADER_FOLDER_PREFIX: envField.string({
+        context: 'server',
+        access: 'public',
+        default: 'GST-',
+      }),
+
+      // Upstash Redis — optional, graceful degradation when absent
+      KV_REST_API_URL: envField.string({ context: 'server', access: 'secret', optional: true }),
+      KV_REST_API_TOKEN: envField.string({ context: 'server', access: 'secret', optional: true }),
+      UPSTASH_REDIS_REST_URL: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      UPSTASH_REDIS_REST_TOKEN: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+
+      // Sentry — public DSN for client init (auth token stays in process.env for build-time config)
+      PUBLIC_SENTRY_DSN: envField.string({ context: 'client', access: 'public', optional: true }),
+
+      // Google Analytics — client public
+      PUBLIC_GA_MEASUREMENT_ID: envField.string({
+        context: 'client',
+        access: 'public',
+        default: 'G-WTGM9Y1YB0',
+      }),
+      PUBLIC_ENABLE_ANALYTICS: envField.string({
+        context: 'client',
+        access: 'public',
+        default: 'true',
+      }),
+    },
+  },
   integrations: [
     sentry({
       org: process.env.SENTRY_ORG,

@@ -12,6 +12,7 @@ import WireItem from './WireItem.astro';
 
 import { fetchAnnotatedItems, fetchAllStreams } from '../../lib/inoreader/client';
 import { toFyiItem, toWireItem, mergeFeed, CATEGORIES } from '../../lib/inoreader/transform';
+import { INOREADER_FOLDER_PREFIX } from 'astro:env/server';
 
 import type { RadarFyiItem, RadarWireItem } from '../../lib/inoreader/types';
 
@@ -33,10 +34,7 @@ try {
 // The Wire — automated feed from all GST folders
 let wire: RadarWireItem[] = [];
 try {
-  const folderPrefix =
-    process.env.INOREADER_FOLDER_PREFIX ||
-    (import.meta as Record<string, Record<string, string>>).env?.INOREADER_FOLDER_PREFIX ||
-    'GST-';
+  const folderPrefix = INOREADER_FOLDER_PREFIX;
   const streamsResponse = await fetchAllStreams(folderPrefix, 15);
   if (streamsResponse) {
     const fyiUrls = new Set(fyi.map((f) => f.url));
