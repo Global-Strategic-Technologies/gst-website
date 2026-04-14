@@ -398,7 +398,7 @@ trackPageView('brand', 'Brand Style Reference');
     color: var(--text-muted);
   }
 
-  .brand-breadcrumb-demo :global(.breadcrumb__list) {
+  .brand-breadcrumb-demo .breadcrumb__list {
     list-style: none;
     padding: 0;
     margin: 0;
@@ -408,23 +408,23 @@ trackPageView('brand', 'Brand Style Reference');
     color: var(--text-muted);
   }
 
-  .brand-breadcrumb-demo :global(.breadcrumb__item) {
+  .brand-breadcrumb-demo .breadcrumb__item {
     display: flex;
     align-items: baseline;
     white-space: nowrap;
   }
 
-  .brand-breadcrumb-demo :global(.breadcrumb__item a) {
+  .brand-breadcrumb-demo .breadcrumb__item a {
     color: var(--color-primary);
     text-decoration: none;
     transition: opacity var(--transition-fast);
   }
 
-  .brand-breadcrumb-demo :global(.breadcrumb__item a:hover) {
+  .brand-breadcrumb-demo .breadcrumb__item a:hover {
     opacity: 0.8;
   }
 
-  .brand-breadcrumb-demo :global(.breadcrumb__separator) {
+  .brand-breadcrumb-demo .breadcrumb__separator {
     margin: 0 var(--spacing-sm);
   }
 
@@ -463,7 +463,7 @@ trackPageView('brand', 'Brand Style Reference');
       transform var(--transition-normal);
   }
 
-  :global(html.dark-theme) .brand-progress-number {
+  html.dark-theme .brand-progress-number {
     color: rgba(255, 255, 255, 0.3);
   }
 
@@ -491,7 +491,7 @@ trackPageView('brand', 'Brand Style Reference');
     fill: var(--bg-light);
   }
 
-  :global(html.dark-theme) .brand-progress-segment--completed .brand-progress-number-text {
+  html.dark-theme .brand-progress-segment--completed .brand-progress-number-text {
     fill: var(--bg-dark);
   }
 
@@ -554,7 +554,7 @@ trackPageView('brand', 'Brand Style Reference');
       transform var(--transition-normal);
   }
 
-  :global(html.dark-theme) .brand-progress-dot {
+  html.dark-theme .brand-progress-dot {
     color: rgba(255, 255, 255, 0.3);
   }
 
@@ -1078,7 +1078,7 @@ trackPageView('brand', 'Brand Style Reference');
   }
 
   /* TOC specimen — prevent sticky positioning inside demo */
-  .brand-toc-specimen :global(.toc) {
+  .brand-toc-specimen .toc {
     position: static;
     max-height: none;
     overflow-y: visible;
@@ -1120,7 +1120,7 @@ trackPageView('brand', 'Brand Style Reference');
   }
 
   /* Layout positioning for shared TOC component */
-  .brand-layout :global(.toc) {
+  .brand-layout .toc {
     position: sticky;
     top: var(--spacing-xl);
     max-height: calc(100vh - var(--spacing-2xl));
@@ -1132,7 +1132,7 @@ trackPageView('brand', 'Brand Style Reference');
       display: block;
     }
 
-    .brand-layout :global(.toc) {
+    .brand-layout .toc {
       position: static;
       max-height: none;
       overflow-y: visible;
@@ -1273,7 +1273,7 @@ trackPageView('brand', 'Brand Style Reference');
     background: rgba(0, 0, 0, 0.5);
   }
 
-  :global(html.dark-theme) .modal {
+  html.dark-theme .modal {
     background: var(--bg-dark-secondary);
     border-color: var(--border-dark);
   }
@@ -1355,7 +1355,7 @@ trackPageView('brand', 'Brand Style Reference');
     box-shadow: var(--shadow-lg);
   }
 
-  :global(html.dark-theme) .filter-drawer-demo {
+  html.dark-theme .filter-drawer-demo {
     background: var(--bg-dark-secondary);
   }
 
@@ -1468,7 +1468,7 @@ trackPageView('brand', 'Brand Style Reference');
     position: relative;
   }
 
-  :global(html.dark-theme) .cta-box {
+  html.dark-theme .cta-box {
     background: var(--cta-box-bg);
   }
 
