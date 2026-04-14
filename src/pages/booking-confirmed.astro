@@ -1,0 +1,183 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DeltaIcon from '../components/DeltaIcon.astro';
+---
+
+<BaseLayout
+  title="Booking Confirmed | GST"
+  description="Your meeting with Global Strategic Technologies has been successfully scheduled. We look forward to speaking with you."
+>
+  <main class="confirmation-page">
+    <div class="confirmation-container">
+      <div class="confirmation-card">
+        <div class="confirmation-icon">
+          <DeltaIcon size={48} class="delta-accent" />
+        </div>
+
+        <h1 class="confirmation-title">Booking Confirmed</h1>
+
+        <p class="confirmation-message">
+          Your meeting has been successfully scheduled. You will receive a calendar invitation with
+          the meeting details shortly.
+        </p>
+
+        <div class="confirmation-details">
+          <h2 class="confirmation-details__heading">What to Expect</h2>
+          <ul class="confirmation-steps">
+            <li>
+              <DeltaIcon size={10} class="bullet-icon" />
+              <span>A calendar invite will arrive in your inbox</span>
+            </li>
+            <li>
+              <DeltaIcon size={10} class="bullet-icon" />
+              <span>You will receive a reminder before the meeting</span>
+            </li>
+            <li>
+              <DeltaIcon size={10} class="bullet-icon" />
+              <span>Come prepared with any questions about your technology landscape</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="confirmation-actions">
+          <a href="/" class="cta-button">Return Home</a>
+          <a href="/services" class="confirmation-link">Explore Our Services</a>
+        </div>
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .confirmation-page {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-3xl) var(--spacing-lg);
+  }
+
+  .confirmation-container {
+    max-width: 640px;
+    width: 100%;
+  }
+
+  .confirmation-card {
+    background: var(--bg-light);
+    border: 2px solid var(--color-primary);
+    padding: var(--spacing-3xl) var(--spacing-2xl);
+    text-align: center;
+  }
+
+  .confirmation-icon {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .delta-accent {
+    color: var(--color-primary);
+  }
+
+  .confirmation-title {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .confirmation-message {
+    font-size: var(--text-lg);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-2xl);
+    line-height: 1.6;
+  }
+
+  .confirmation-details {
+    text-align: left;
+    border-top: 1px solid var(--border-light);
+    padding-top: var(--spacing-xl);
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .confirmation-details__heading {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .confirmation-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-normal);
+  }
+
+  .confirmation-steps li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    color: var(--text-secondary);
+    font-size: var(--text-base);
+    line-height: 1.5;
+  }
+
+  .confirmation-steps li .bullet-icon {
+    color: var(--color-primary);
+    margin-top: 0.35em;
+  }
+
+  .confirmation-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-lg);
+  }
+
+  .confirmation-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: var(--text-sm);
+    transition: color var(--transition-fast);
+  }
+
+  .confirmation-link:hover {
+    color: var(--color-primary);
+  }
+
+  /* Dark theme */
+  :global(html.dark-theme) .confirmation-card {
+    background: var(--bg-dark-secondary);
+  }
+
+  :global(html.dark-theme) .confirmation-details {
+    border-top-color: var(--border-dark-subtle);
+  }
+
+  @media (max-width: 768px) {
+    .confirmation-card {
+      padding: var(--spacing-2xl) var(--spacing-xl);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .confirmation-page {
+      padding: var(--spacing-2xl) var(--spacing-md);
+    }
+
+    .confirmation-card {
+      padding: var(--spacing-xl) var(--spacing-lg);
+    }
+
+    .confirmation-title {
+      font-size: var(--text-2xl);
+    }
+
+    .confirmation-message {
+      font-size: var(--text-base);
+    }
+  }
+</style>
