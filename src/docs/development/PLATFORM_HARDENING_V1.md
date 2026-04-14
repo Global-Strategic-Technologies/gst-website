@@ -840,7 +840,7 @@ Items are added here as they're discovered. Each entry should link back to the d
 15. **Enable Sentry source map upload**
     - **Files**: Vercel environment variables (add `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`)
     - **Effort**: ~10 min
-    - **Context**: Phase 7 wired up the `sourceMapsUploadOptions` config slot in `astro.config.mjs` but left it disabled (`enabled: !!process.env.SENTRY_AUTH_TOKEN`). Adding the auth token to Vercel activates readable stack traces in Sentry. Generate an auth token at sentry.io → Settings → Auth Tokens.
+    - **Context**: Phase 7 wired up source map upload in `astro.config.mjs` (top-level `org`/`project`/`authToken` + `sourceMapsUploadOptions.enabled` gate). Adding an Organization Token to Vercel activates readable stack traces. See [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md) for setup steps.
 
 16. **Evaluate Sentry consent gating**
     - **Files**: `sentry.client.config.ts`, cookie consent integration

@@ -45,9 +45,12 @@ Source maps give Sentry readable stack traces instead of minified code. The uplo
 
 ### Troubleshooting
 
-- **"Authentication required" error in build**: The auth token is invalid or expired. Generate a new one.
-- **"Organization not found"**: Check the org slug matches exactly (case-sensitive).
+- **"Didn't find any matching sources for debug ID upload"**: This is almost always a symptom of an auth failure (401), not a missing config. The Sentry Vite plugin injects debug IDs during the build and writes source maps to a temp directory — if auth fails, the upload step can't run, and the plugin reports "no matching sources" as a secondary warning. Fix the auth token and this warning resolves.
+- **"Authentication required" or 401 error in build**: The auth token is invalid, expired, or missing. Generate a new Organization Token at sentry.io → Settings → Developer Settings → Organization Tokens.
+- **"Organization not found"**: Check the `SENTRY_ORG` slug matches exactly (case-sensitive, visible in your Sentry URL).
+- **"Sending telemetry data" warning**: Should not appear — `telemetry: false` is set in `astro.config.mjs`. If it appears, verify the config wasn't reverted.
 - **Source maps uploaded but traces still minified**: Verify the release version in Sentry matches what the client reports. Check that `sentry.client.config.ts` and the build output use the same release identifier.
+- **Don't add Sentry env vars to `.env` locally**: The upload should only run on Vercel production builds. Locally it slows builds and fails since there's no deployment context.
 
 ---
 

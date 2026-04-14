@@ -357,13 +357,19 @@ These rules are configured externally in Sentry's UI, not in code. The tag filte
 
 ### Source map upload
 
-Source maps enable readable stack traces in Sentry. The upload is wired in `astro.config.mjs` via the `sourceMapsUploadOptions` block but only activates when the required env vars are set:
+Source maps enable readable stack traces in Sentry. The upload is configured in `astro.config.mjs` via top-level `org`, `project`, and `authToken` fields on the `sentry()` integration, plus a `sourceMapsUploadOptions` block with `enabled` and `filesToDeleteAfterUpload`. The upload only activates when `SENTRY_AUTH_TOKEN` is set (`enabled: !!process.env.SENTRY_AUTH_TOKEN`), so local builds are unaffected.
+
+**Telemetry**: Disabled (`telemetry: false`) to suppress the Sentry Vite plugin's usage data collection.
+
+**Required env vars** (Production only — do NOT add to `.env` locally):
 
 - `SENTRY_AUTH_TOKEN` — create an Organization Token at sentry.io → Settings → Developer Settings → Organization Tokens (preset permissions, no manual scope selection). See [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md) for full walkthrough
 - `SENTRY_ORG` — your Sentry organization slug
 - `SENTRY_PROJECT` — the project slug (e.g., `gst-website`)
 
-Add all three to **Vercel → Project Settings → Environment Variables** (Production only). Once set, every production build will upload source maps automatically.
+Add all three to **Vercel → Project Settings → Environment Variables** (Production only). Once set, every production build will upload source maps automatically and delete `.map` files from the deploy output.
+
+**Troubleshooting**: If you see `"Didn't find any matching sources for debug ID upload"` in Vercel build logs, check that the auth token is valid (401 errors cascade into this warning). The Sentry Vite plugin generates source maps to a temp directory and uploads from there — the warning is a symptom of auth failure, not a missing config.
 
 ### Privacy and consent evaluation
 
