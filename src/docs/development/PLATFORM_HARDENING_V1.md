@@ -840,7 +840,7 @@ Items are added here as they're discovered. Each entry should link back to the d
 15. **Enable Sentry source map upload**
     - **Files**: Vercel environment variables (add `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`)
     - **Effort**: ~10 min
-    - **Context**: Phase 7 wired up source map upload in `astro.config.mjs` (top-level `org`/`project`/`authToken` + `sourceMapsUploadOptions.enabled` gate). Adding an Organization Token to Vercel activates readable stack traces. See [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md) for setup steps.
+    - **Context**: Phase 7 wired up source map upload. The `sentry()` integration is conditionally included when `SENTRY_AUTH_TOKEN` is present. `vite.build.sourcemap: 'hidden'` in user config ensures both client and server maps are generated. See [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md) for setup steps.
 
 16. **Evaluate Sentry consent gating**
     - **Files**: `sentry.client.config.ts`, cookie consent integration

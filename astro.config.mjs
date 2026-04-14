@@ -66,16 +66,19 @@ export default defineConfig({
     },
   },
   integrations: [
-    sentry({
-      org: process.env.SENTRY_ORG,
-      project: process.env.SENTRY_PROJECT,
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-      sourceMapsUploadOptions: {
-        enabled: !!process.env.SENTRY_AUTH_TOKEN,
-        filesToDeleteAfterUpload: ['dist/**/*.map', '.vercel/output/**/*.map'],
-      },
-      telemetry: false,
-    }),
+    // Sentry: source maps, error tracking. Only active when SENTRY_AUTH_TOKEN is set
+    // (Vercel production). @sentry/astro auto-enables sourcemap:'hidden', auto-detects
+    // Vercel output dirs, and auto-deletes .map files after upload.
+    ...(process.env.SENTRY_AUTH_TOKEN
+      ? [
+          sentry({
+            org: process.env.SENTRY_ORG,
+            project: process.env.SENTRY_PROJECT,
+            authToken: process.env.SENTRY_AUTH_TOKEN,
+            telemetry: false,
+          }),
+        ]
+      : []),
     sitemap({
       filter: (page) => !page.includes('/brand') && !page.includes('/colors'),
     }),
@@ -90,6 +93,14 @@ export default defineConfig({
     enabled: false, // Disable dev toolbar to prevent interference with E2E tests
   },
   vite: {
+    build: {
+      // Sentry source maps. 'hidden' generates .map files without adding
+      // sourceMappingURL to output JS (browsers don't request them).
+      // @sentry/astro auto-enables this for the server build, but Astro's
+      // client build ignores integration updateConfig — explicit config here
+      // ensures both builds generate maps. Sentry auto-deletes after upload.
+      sourcemap: 'hidden',
+    },
     css: {
       // LightningCSS replaces esbuild for CSS: autoprefixing, minification,
       // and modern-CSS down-leveling (nesting, oklch, color-mix, light-dark).
