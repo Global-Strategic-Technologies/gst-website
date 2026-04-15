@@ -1169,7 +1169,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     docMeta.innerHTML = `
             <h2 class="doc-section-heading">
-                <DeltaIcon class="bullet-icon" />
+                <svg viewBox="0 0 64 64" fill="none" aria-hidden="true" width="14" height="14" class="bullet-icon" style="flex-shrink:0;"><path d="M32 12 L52 52 L12 52 Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="miter"></path></svg>
                 Target Parameters
             </h2>
             <div class="doc-meta-grid">
@@ -1267,7 +1267,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     const docToc = document.getElementById('docToc')!;
     docToc.innerHTML = `
             <h2 class="doc-section-heading">
-                <DeltaIcon class="bullet-icon" />
+                <svg viewBox="0 0 64 64" fill="none" aria-hidden="true" width="14" height="14" class="bullet-icon" style="flex-shrink:0;"><path d="M32 12 L52 52 L12 52 Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="miter"></path></svg>
                 Table of Contents
             </h2>
             <nav class="doc-toc-list" aria-label="Topic navigation">
@@ -2836,7 +2836,7 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     .wizard-nav {
-      flex-direction: column;
+      flex-direction: row;
     }
 
     /* Document output mobile overrides */
@@ -2859,15 +2859,26 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     }
 
     .doc-meta :global(.doc-meta-grid) {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: 1fr;
       padding: 0 var(--spacing-md);
-      gap: var(--spacing-xs);
+      gap: 0;
+    }
+
+    .doc-meta :global(.doc-meta-card) {
+      padding: var(--spacing-xs) 0;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 1px solid var(--border-light);
     }
 
     .doc-meta :global(.doc-meta-card--identifier) {
-      grid-column: 1 / -1;
+      flex-direction: column;
       align-items: center;
       text-align: center;
+      border-bottom: none;
+      padding: var(--spacing-sm) 0;
+      margin-bottom: var(--spacing-xs);
     }
 
     .doc-meta :global(.doc-meta-card--identifier .doc-meta-label) {
@@ -2880,17 +2891,15 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
       width: 100%;
     }
 
-    /* Reset desktop column alignment for 2-col mobile grid */
+    /* Reset desktop column alignment */
     .doc-meta :global(.doc-meta-card--col2),
     .doc-meta :global(.doc-meta-card--col3) {
-      align-items: flex-start;
-      text-align: left;
+      align-items: baseline;
+      text-align: right;
     }
 
-    /* Right-align second column in 2-col grid */
-    .doc-meta :global(.doc-meta-card:nth-child(2n + 1):not(.doc-meta-card--identifier)) {
-      align-items: flex-end;
-      text-align: right;
+    :global(html.dark-theme) .doc-meta :global(.doc-meta-card) {
+      border-bottom-color: var(--border-dark-subtle);
     }
 
     .doc-meta :global(.doc-meta-actions) {
@@ -2909,10 +2918,13 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
 
     .doc-toc :global(.doc-toc-list) {
       flex-wrap: wrap;
+      justify-content: flex-start;
     }
 
     .doc-toc :global(.doc-toc-link) {
       border-left: none;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      font-size: var(--text-xs);
     }
 
     .doc-attention-grid {
@@ -2922,10 +2934,14 @@ trackPageView('diligence-machine', 'The Diligence Machine | GST');
     .doc-action-bar {
       margin-left: var(--spacing-sm);
       margin-right: var(--spacing-sm);
+      flex-wrap: wrap;
+      gap: var(--spacing-xs);
     }
 
     .doc-action-btn {
       flex: 1 1 auto;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      font-size: var(--text-xs);
     }
 
     .doc-topics :global(.doc-topic-header) {
