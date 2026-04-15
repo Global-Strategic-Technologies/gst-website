@@ -579,14 +579,15 @@ main {
   outline-offset: 2px;
 }
 
-/* Filter Drawer - Base Styles */
+/* Filter Drawer - Base Styles
+   Background + blur are provided by the .brutal-frosted--overlay utility
+   co-applied in markup. Keep layout/position/border here only. */
 .filter-drawer {
   position: fixed;
   right: -400px;
   top: 133px;
   width: 350px;
   height: calc(100vh - 133px);
-  background: var(--bg-light);
   border-left: 2px solid var(--color-primary);
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
   transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -683,7 +684,6 @@ html.dark-theme .clear-filters-button:hover {
 }
 
 html.dark-theme .filter-drawer {
-  background: var(--filter-drawer-bg);
   border-left-color: var(--color-primary);
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.4);
 }
