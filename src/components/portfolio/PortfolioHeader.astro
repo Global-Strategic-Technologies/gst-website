@@ -1045,24 +1045,39 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
     initStickyControls();
   }
 
-  // Keep the filter drawer flush with (never behind) the page footer.
-  // Sets `drawer.style.bottom` in px whenever the footer is within the
-  // viewport, raising the drawer's bottom edge to sit exactly at the
-  // footer's top edge. The drawer's CSS default is `bottom: 0` (plus
-  // `top: 133px`) so height is implicit; this listener only needs to
-  // update `bottom`.
+  // Keep the filter drawer's bottom edge above (never behind, never flush
+  // against) the page footer. Two coupled behaviours:
+  //   1. Sets `drawer.style.bottom` so the drawer sits FOOTER_GAP_PX above
+  //      the footer's top whenever the footer is within the viewport.
+  //   2. When the drawer shrinks (footer entering viewport), advances the
+  //      drawer's internal scroll by the same delta so chips at the
+  //      drawer's visible bottom stay anchored - they are never cut by the
+  //      clip boundary just because the page scrolled. When the drawer
+  //      grows (page scrolling back up) the internal scroll reverses by
+  //      the same delta for symmetric behaviour. Reaches of 0 or
+  //      scrollMax are clamped by the browser automatically.
   function initDrawerFooterClearance() {
     const drawer = document.getElementById('filter-drawer');
     const footer = document.querySelector('footer[role="contentinfo"]') as HTMLElement | null;
     if (!drawer || !footer) return;
 
+    const FOOTER_GAP_PX = 16;
     let pending = false;
+    let prevClearance = 0;
+
     function update() {
       pending = false;
       if (!drawer || !footer) return;
       const footerTop = footer.getBoundingClientRect().top;
-      const clearance = Math.max(0, window.innerHeight - footerTop);
+      const footerInView = footerTop < window.innerHeight;
+      const clearance = footerInView ? window.innerHeight - footerTop + FOOTER_GAP_PX : 0;
+      const delta = clearance - prevClearance;
       drawer.style.bottom = clearance + 'px';
+      if (delta !== 0) {
+        const content = drawer.querySelector('.drawer-content') as HTMLElement | null;
+        if (content) content.scrollTop += delta;
+      }
+      prevClearance = clearance;
     }
     function schedule() {
       if (pending) return;
