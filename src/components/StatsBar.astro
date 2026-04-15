@@ -52,7 +52,7 @@ const { stats } = Astro.props;
   }
 
   .stat-label {
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
     color: var(--bg-dark);
     font-weight: 700;
     text-transform: uppercase;
@@ -81,7 +81,7 @@ const { stats } = Astro.props;
     }
 
     .stat-label {
-      font-size: 0.75rem;
+      font-size: var(--text-xs);
     }
   }
 
@@ -105,7 +105,7 @@ const { stats } = Astro.props;
     }
 
     .stat-label {
-      font-size: 0.7rem;
+      font-size: var(--text-xs);
     }
   }
 </style>

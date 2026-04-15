@@ -62,20 +62,20 @@ const generatedDate = new Date().toLocaleDateString('en-US', {
       align-items: center;
       gap: 0.5rem;
       font-weight: 900;
-      font-size: 1.25rem;
+      font-size: var(--text-xl);
       text-transform: uppercase;
     }
 
     :global(.print-report-header__title) {
       font-weight: 700;
-      font-size: 1rem;
+      font-size: var(--text-base);
       text-transform: uppercase;
       letter-spacing: 0.06em;
     }
 
     :global(.print-report-header__date) {
       margin-left: auto;
-      font-size: 0.75rem;
+      font-size: var(--text-xs);
       color: #666;
     }
   }

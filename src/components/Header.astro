@@ -137,7 +137,7 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
     text-decoration: none;
     font-weight: var(--font-weight-bold);
     font-family: monospace;
-    font-size: 0.9rem;
+    font-size: var(--text-sm);
     text-transform: uppercase;
     letter-spacing: 0.1em;
     transition:
@@ -186,7 +186,7 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
     }
 
     .site-header nav a:not(.logo) {
-      font-size: 0.8rem;
+      font-size: var(--text-xs);
     }
   }
 
@@ -204,7 +204,7 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
     }
 
     .site-header nav a:not(.logo) {
-      font-size: 0.7rem;
+      font-size: var(--text-xs);
       letter-spacing: 0.05em;
     }
   }
