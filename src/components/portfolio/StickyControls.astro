@@ -563,17 +563,8 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
 
       // Engagement type filter
       if (filters.engagement !== 'all') {
-        const valueCreationTypes = [
-          'Value Creation - Growth',
-          'Value Creation - Integration',
-          'Value Creation - Modernization',
-          'Value Creation - Turnaround',
-        ];
-        const technicalDiligenceTypes = [
-          'Early Stage Assessment',
-          'Technical Assessment',
-          'Buy-Side Technical Diligence',
-        ];
+        const valueCreationTypes = ['Value Creation'];
+        const technicalDiligenceTypes = ['Technical Assessment', 'Technical Diligence'];
 
         if (filters.engagement === 'value-creation') {
           if (!valueCreationTypes.includes(project.engagementType)) return false;

@@ -30,7 +30,7 @@ const mockProjects: Project[] = [
     growthStage: 'Early-Stage Growth',
     year: 2024,
     technologies: ['Node.js', 'React'],
-    engagementType: 'Value Creation - Growth',
+    engagementType: 'Value Creation',
   },
   {
     id: 'project-2',
@@ -44,7 +44,7 @@ const mockProjects: Project[] = [
     growthStage: 'Mature Enterprise',
     year: 2023,
     technologies: ['Python', 'AWS'],
-    engagementType: 'Value Creation - Modernization',
+    engagementType: 'Value Creation',
   },
   {
     id: 'project-3',
@@ -58,7 +58,7 @@ const mockProjects: Project[] = [
     growthStage: 'Scaling Growth',
     year: 2024,
     technologies: ['Go', 'Kubernetes'],
-    engagementType: 'Early Stage Assessment',
+    engagementType: 'Technical Diligence',
   },
   {
     id: 'project-4',
@@ -103,12 +103,11 @@ describe('filterLogic', () => {
 
   describe('categorizeEngagementType', () => {
     it('should categorize value creation types', () => {
-      expect(categorizeEngagementType('Value Creation - Growth')).toBe('value-creation');
-      expect(categorizeEngagementType('Value Creation - Integration')).toBe('value-creation');
+      expect(categorizeEngagementType('Value Creation')).toBe('value-creation');
     });
 
     it('should categorize technical diligence types', () => {
-      expect(categorizeEngagementType('Early Stage Assessment')).toBe('technical-diligence');
+      expect(categorizeEngagementType('Technical Diligence')).toBe('technical-diligence');
       expect(categorizeEngagementType('Technical Assessment')).toBe('technical-diligence');
     });
 
@@ -177,9 +176,9 @@ describe('filterLogic', () => {
   describe('getUniqueEngagementTypes', () => {
     it('should extract and sort unique engagement types', () => {
       const types = getUniqueEngagementTypes(mockProjects);
-      expect(types).toContain('Value Creation - Growth');
-      expect(types).toContain('Early Stage Assessment');
-      expect(types.length).toBe(3); // Excludes undefined
+      expect(types).toContain('Value Creation');
+      expect(types).toContain('Technical Diligence');
+      expect(types.length).toBe(2); // Excludes undefined; project-1 and project-2 share 'Value Creation'
     });
 
     it('should handle projects without engagement types', () => {
@@ -296,8 +295,8 @@ describe('filterLogic', () => {
 
   describe('Constants', () => {
     it('should export engagement categories', () => {
-      expect(ENGAGEMENT_CATEGORIES.valueCreation).toContain('Value Creation - Growth');
-      expect(ENGAGEMENT_CATEGORIES.technicalDiligence).toContain('Early Stage Assessment');
+      expect(ENGAGEMENT_CATEGORIES.valueCreation).toContain('Value Creation');
+      expect(ENGAGEMENT_CATEGORIES.technicalDiligence).toContain('Technical Diligence');
     });
 
     it('should export growth keywords', () => {

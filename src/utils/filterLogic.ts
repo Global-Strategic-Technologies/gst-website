@@ -4,17 +4,8 @@ import type { Project, EngagementType } from '../types/portfolio';
  * Engagement type categorization constants
  */
 export const ENGAGEMENT_CATEGORIES = {
-  valueCreation: [
-    'Value Creation - Growth',
-    'Value Creation - Integration',
-    'Value Creation - Modernization',
-    'Value Creation - Turnaround',
-  ],
-  technicalDiligence: [
-    'Early Stage Assessment',
-    'Technical Assessment',
-    'Buy-Side Technical Diligence',
-  ],
+  valueCreation: ['Value Creation'],
+  technicalDiligence: ['Technical Assessment', 'Technical Diligence'],
 } as const;
 
 /**
@@ -104,8 +95,8 @@ export function isTechnicalDiligenceEngagement(engagementType: string | undefine
  * @param engagementType - The engagement type to categorize (may be undefined)
  * @returns 'value-creation' for growth engagements, 'technical-diligence' for assessment engagements, 'other' for unknown
  * @example
- * categorizeEngagementType('Value Creation - Growth') // returns 'value-creation'
- * categorizeEngagementType('Early Stage Assessment') // returns 'technical-diligence'
+ * categorizeEngagementType('Value Creation') // returns 'value-creation'
+ * categorizeEngagementType('Technical Diligence') // returns 'technical-diligence'
  */
 export function categorizeEngagementType(
   engagementType: string | undefined

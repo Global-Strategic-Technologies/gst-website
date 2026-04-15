@@ -22,7 +22,7 @@ const mockProjects: Project[] = [
     growthStage: 'Scaling Growth',
     year: 2024,
     technologies: ['Node.js', 'React', 'AWS'],
-    engagementType: 'Value Creation - Growth',
+    engagementType: 'Value Creation',
   },
   {
     id: 'project-2',
@@ -36,7 +36,7 @@ const mockProjects: Project[] = [
     growthStage: 'Mature Enterprise',
     year: 2023,
     technologies: ['Python', 'PostgreSQL', 'AWS'],
-    engagementType: 'Value Creation - Modernization',
+    engagementType: 'Value Creation',
   },
   {
     id: 'project-3',
@@ -50,7 +50,7 @@ const mockProjects: Project[] = [
     growthStage: 'Scaling Growth',
     year: 2024,
     technologies: ['React', 'TypeScript', 'D3.js'],
-    engagementType: 'Early Stage Assessment',
+    engagementType: 'Technical Diligence',
   },
   {
     id: 'project-4',

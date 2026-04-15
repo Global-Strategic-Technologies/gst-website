@@ -25,13 +25,9 @@ export const GrowthStageSchema = z.enum(GROWTH_STAGE_VALUES);
 
 /** Engagement type values. */
 export const ENGAGEMENT_TYPE_VALUES = [
-  'Value Creation - Growth',
-  'Value Creation - Integration',
-  'Value Creation - Modernization',
-  'Value Creation - Turnaround',
-  'Early Stage Assessment',
+  'Value Creation',
   'Technical Assessment',
-  'Buy-Side Technical Diligence',
+  'Technical Diligence',
 ] as const;
 export const EngagementTypeSchema = z.enum(ENGAGEMENT_TYPE_VALUES);
 
