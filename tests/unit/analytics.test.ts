@@ -83,11 +83,11 @@ describe('Analytics Utility Functions', () => {
 
   describe('trackCTA', () => {
     it('should track cta_click event with type and location', () => {
-      trackCTA('calendly', 'hero');
+      trackCTA('calendarbridge', 'hero');
 
       expect(gtagMock).toHaveBeenCalledWith('event', 'cta_click', {
         event_category: 'engagement',
-        cta_type: 'calendly',
+        cta_type: 'calendarbridge',
         location: 'hero',
       });
     });
@@ -111,9 +111,9 @@ describe('Analytics Utility Functions', () => {
     });
 
     it('should use engagement category for all CTA clicks', () => {
-      trackCTA('calendly', 'hero');
+      trackCTA('calendarbridge', 'hero');
       trackCTA('services', 'hero');
-      trackCTA('calendly', 'cta-section');
+      trackCTA('calendarbridge', 'cta-section');
 
       expect(gtagMock.mock.calls[0][2].event_category).toBe('engagement');
       expect(gtagMock.mock.calls[1][2].event_category).toBe('engagement');

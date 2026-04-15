@@ -6,14 +6,14 @@ interface Props {
   title: string;
   description: string;
   buttonText?: string;
-  calendlyUrl?: string;
+  bookingUrl?: string;
 }
 
 const {
   title,
   description,
   buttonText = 'BOOK_CALENDAR_SLOT()',
-  calendlyUrl = 'https://calendly.com/globalstrategictech',
+  bookingUrl = 'https://calendarbridge.com/book/globalstrategictech/',
 } = Astro.props;
 ---
 
@@ -23,11 +23,11 @@ const {
       <h2 class="brutal-cta__title">{title}</h2>
       <p class="brutal-cta__description">{description}</p>
       <a
-        href={calendlyUrl}
+        href={bookingUrl}
         target="_blank"
         rel="noopener noreferrer"
         class="cta-button"
-        onclick="trackCTA('calendly', 'cta-section')">{buttonText}</a
+        onclick="trackCTA('calendarbridge', 'cta-section')">{buttonText}</a
       >
     </div>
   </div>

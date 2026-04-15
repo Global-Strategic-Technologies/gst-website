@@ -43,7 +43,7 @@ export function trackNavigation(destination: string, label: string): void {
 
 /**
  * Track CTA (Call-to-Action) button clicks
- * @param ctaType - Type of CTA (calendly, email, etc.)
+ * @param ctaType - Type of CTA (calendarbridge, email, etc.)
  * @param location - Where the CTA is located on the page
  */
 export function trackCTA(ctaType: string, location: string): void {
