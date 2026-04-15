@@ -146,49 +146,6 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
       >
 
       <div class="filter-section">
-        <div class="filter-label">Company Growth Stage</div>
-        <div class="filter-chips" id="stage-chips" data-testid="stage-filter-chips">
-          <div class="filter-chip active" data-value="all" data-testid="filter-chip-stage-all">
-            All Stages
-          </div>
-          <div
-            class="filter-chip"
-            data-value="growth-category"
-            data-testid="filter-chip-stage-growth"
-          >
-            Growth Stage
-          </div>
-          <div
-            class="filter-chip"
-            data-value="mature-category"
-            data-testid="filter-chip-stage-mature"
-          >
-            Mature Stage
-          </div>
-        </div>
-      </div>
-
-      <div class="filter-section">
-        <div class="filter-label">Theme</div>
-        <div class="filter-chips" id="theme-chips" data-testid="theme-filter-chips">
-          <div class="filter-chip active" data-value="all" data-testid="filter-chip-theme-all">
-            All Themes
-          </div>
-          {
-            uniqueThemes.map((theme) => (
-              <div
-                class="filter-chip"
-                data-value={theme}
-                data-testid={`filter-chip-theme-${theme.toLowerCase().replace(/\s+/g, '-')}`}
-              >
-                {theme}
-              </div>
-            ))
-          }
-        </div>
-      </div>
-
-      <div class="filter-section">
         <div class="filter-label">Year</div>
         <div class="filter-chips" id="year-chips" data-testid="year-filter-chips">
           <div class="filter-chip active" data-value="all" data-testid="filter-chip-year-all">
@@ -228,6 +185,49 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
           >
             Technical Diligence
           </div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Company Growth Stage</div>
+        <div class="filter-chips" id="stage-chips" data-testid="stage-filter-chips">
+          <div class="filter-chip active" data-value="all" data-testid="filter-chip-stage-all">
+            All Stages
+          </div>
+          <div
+            class="filter-chip"
+            data-value="growth-category"
+            data-testid="filter-chip-stage-growth"
+          >
+            Growth Stage
+          </div>
+          <div
+            class="filter-chip"
+            data-value="mature-category"
+            data-testid="filter-chip-stage-mature"
+          >
+            Mature Stage
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Theme</div>
+        <div class="filter-chips" id="theme-chips" data-testid="theme-filter-chips">
+          <div class="filter-chip active" data-value="all" data-testid="filter-chip-theme-all">
+            All Themes
+          </div>
+          {
+            uniqueThemes.map((theme) => (
+              <div
+                class="filter-chip"
+                data-value={theme}
+                data-testid={`filter-chip-theme-${theme.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                {theme}
+              </div>
+            ))
+          }
         </div>
       </div>
     </div>
