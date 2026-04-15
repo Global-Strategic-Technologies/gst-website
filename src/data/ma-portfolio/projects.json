@@ -1450,9 +1450,9 @@
   {
     "id": "chariot",
     "codeName": "Chariot",
-    "industry": "Transportation",
+    "industry": "Logistics",
     "theme": "Logistics",
-    "summary": "On-demand bus charter platform providing applications for fleet managers, drivers, and customers alongside a transport management system.",
+    "summary": "On-demand charter bus marketplace (apps for operators, drivers, and customers) growing at 300% year-over-year, with an imminent launch of an adjacent Transport Management System (TMS) SaaS for bus fleet operators.",
     "arr": "Not in source",
     "arrNumeric": 0,
     "currency": "USD",
@@ -1461,15 +1461,13 @@
     "technologies": [
       ".NET",
       "C#",
-      "AWS",
-      "DevOps",
-      "SaaS"
+      "AWS"
     ],
     "engagementType": "Value Creation",
     "engagementTypeTag": "value-creation",
     "engagementTypeDescription": "Post-acquisition value creation work",
-    "challenge": null,
-    "solution": null,
+    "challenge": "Value-creation readiness assessment of whether a charter-bus marketplace growing at 300% year-over-year can sustain that trajectory for five to eight years without disproportionate investment, and whether it is adequately prepared to operate as both a platform company and a SaaS company following the imminent launch of its Transport Management System.",
+    "solution": "Confirmed the product architecture can support continued growth and that leadership is appropriately experienced and cohesive, with strengths in a 1–2 week release cadence and data-driven talent screening; flagged under-resourcing, the absence of a technical-roadmap owner, the lack of an integrated incident-management system, and below-average Infrastructure / SDLC / Organization capability scores as the primary constraints on the growth thesis; recommended assigning technical-roadmap ownership (OTC $50k–$100k, AC $250k–$500k), building a proprietary data strategy, extending cloud infrastructure across multiple availability zones and regions, adopting a backlog-prioritization framework (MoSCoW or RICE), and funding TMS R&D independently once early-adopter proof-of-concept is achieved.",
     "engagementCategory": "Sell-Side"
   },
   {
@@ -1581,11 +1579,11 @@
       "AWS",
       "Salesforce"
     ],
-    "engagementType": "Value Creation",
-    "engagementTypeTag": "value-creation",
+    "engagementType": "Technical Diligence",
+    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Post-acquisition value creation work",
-    "challenge": null,
-    "solution": null,
+    "challenge": "Assessing the technology maturity of a tech-enabled research services company for acquisition.",
+    "solution": "Proprietary, aging technology platform and reporting capabilities identified as requiring extensive manual work.",
     "engagementCategory": "Buy-Side"
   },
   {
@@ -1612,8 +1610,8 @@
     "engagementType": "Value Creation",
     "engagementTypeTag": "value-creation",
     "engagementTypeDescription": "Post-acquisition value creation work",
-    "challenge": null,
-    "solution": null,
+    "challenge": "Combinging acquired technology platform into portfolio company SaaS platform.",
+    "solution": "Integrating disparate product architectures into near-term and designed future-state, combined platform architecture to support immediate revenue growth and cross-selling enablement.",
     "engagementCategory": "Value Creation"
   }
 ]
