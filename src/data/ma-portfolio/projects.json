@@ -781,7 +781,7 @@
     "codeName": "Tempo",
     "industry": "HealthTech",
     "theme": "Healthcare",
-    "summary": "Low-code enterprise workflow automation platform focused on healthcare data management, migration, and electronic health record processing efficiency.",
+    "summary": "Low-code enterprise workflow automation platform for healthcare data management, EHR migration, and ETL of legacy electronic health records into modern systems with generative AI capabilities.",
     "arr": "$13M",
     "arrNumeric": 13000000,
     "currency": "USD",
@@ -789,15 +789,16 @@
     "year": 2024,
     "technologies": [
       "AWS",
-      "SQL Server",
+      "FHIR",
       "Generative AI",
-      "FHIR standards"
+      "Salesforce",
+      "Lucene"
     ],
     "engagementType": "Technical Diligence",
     "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
-    "challenge": "Scaling a professional services firm's technology.",
-    "solution": "Recommended migrating to a robust ERP solution to support professional services automation and financials as the company scales.",
+    "challenge": "Identifying integration, security, and platform risks across a HIPAA-regulated healthcare data platform targeted for acquisition, with focus on the company's ability to merge cleanly with the acquirer's stack.",
+    "solution": "Confirmed no material technology risks to the investment, validated HITRUST r2 certified security posture and a fit-for-purpose low-code platform, while flagging OWASP Top 10 code weaknesses and recommending OSS governance, OAuth 2.0 migration, and a more scalable ERP as the company scales.",
     "engagementCategory": "Buy-Side"
   },
   {
