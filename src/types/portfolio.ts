@@ -13,6 +13,7 @@ export {
   SUPPORTED_CURRENCIES,
   GROWTH_STAGE_VALUES,
   ENGAGEMENT_TYPE_VALUES,
+  ENGAGEMENT_CATEGORY_VALUES,
   SORTABLE_COLUMNS,
   SORT_DIRECTIONS,
 } from '../schemas/portfolio';
@@ -21,6 +22,7 @@ export type {
   Currency,
   GrowthStage,
   EngagementType,
+  EngagementCategory,
   SortableColumn,
   SortDirection,
   Project,
@@ -42,8 +44,9 @@ export interface Stat {
 export interface FilterState {
   search: string;
   theme: string;
-  stage: string;
   year: string;
+  engagement: string;
+  type: string;
 }
 
 /**

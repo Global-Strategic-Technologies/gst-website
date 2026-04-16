@@ -31,6 +31,10 @@ export const ENGAGEMENT_TYPE_VALUES = [
 ] as const;
 export const EngagementTypeSchema = z.enum(ENGAGEMENT_TYPE_VALUES);
 
+/** Engagement category values (Buy-Side, Sell-Side, Value Creation). */
+export const ENGAGEMENT_CATEGORY_VALUES = ['Buy-Side', 'Sell-Side'] as const;
+export const EngagementCategorySchema = z.enum(ENGAGEMENT_CATEGORY_VALUES);
+
 /** Columns that projects can be sorted by. */
 export const SORTABLE_COLUMNS = ['codeName', 'theme', 'arr', 'growthStage', 'year'] as const;
 export const SortableColumnSchema = z.enum(SORTABLE_COLUMNS);
@@ -59,6 +63,7 @@ export const ProjectSchema = z.object({
   // `null` to mean "field intentionally empty" (10 of 57 projects today).
   challenge: z.string().nullish(),
   solution: z.string().nullish(),
+  engagementCategory: EngagementCategorySchema.optional(),
 });
 
 /** Array of projects — the shape of `src/data/ma-portfolio/projects.json`. */
@@ -68,6 +73,7 @@ export const ProjectsArraySchema = z.array(ProjectSchema);
 export type Currency = z.infer<typeof CurrencySchema>;
 export type GrowthStage = z.infer<typeof GrowthStageSchema>;
 export type EngagementType = z.infer<typeof EngagementTypeSchema>;
+export type EngagementCategory = z.infer<typeof EngagementCategorySchema>;
 export type SortableColumn = z.infer<typeof SortableColumnSchema>;
 export type SortDirection = z.infer<typeof SortDirectionSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
