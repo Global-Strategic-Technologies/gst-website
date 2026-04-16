@@ -736,15 +736,9 @@ Items are added here as they're discovered. Each entry should link back to the d
 
 #### Discovered during Phase 1 (Data Integrity)
 
-1. **ICG `Recommendation` legacy `threshold` → `triggerThreshold` field rename**
-   - **File**: [src/data/infrastructure-cost-governance/recommendations.ts](../../data/infrastructure-cost-governance/recommendations.ts)
-   - **Effort**: ~25 lines (mechanical find/replace + delete `.map()` shim)
-   - **Context**: The file's 22 literal records use `threshold:` while the public type, schema, and engine use `triggerThreshold:`. A trailing `.map()` translates between them. Discovered during Phase 1 Commit 3 (`feat(schemas): add Zod schemas for techpar, diligence, ICG data`); the schema validates the post-map shape so it's not blocking. The fix is to rename `threshold:` → `triggerThreshold:` in all 22 records and delete the `.map()` shim entirely. Pure mechanical change with zero functional impact.
+1. ~~**ICG `Recommendation` legacy `threshold` → `triggerThreshold` field rename**~~ — **Done**. Records renamed and `.map()` shim deleted.
 
-2. **Project count drift in documentation (51 vs 57)**
-   - **Files**: [.claude/CLAUDE.md](../../../.claude/CLAUDE.md), [src/docs/development/PLATFORM_HARDENING_V1.md](./PLATFORM_HARDENING_V1.md), [src/pages/ma-portfolio.astro](../../pages/ma-portfolio.astro) (page meta description)
-   - **Effort**: ~5 line changes across 3 files
-   - **Context**: Both CLAUDE.md and the Phase 1 problem statement in this doc say "51 projects" but `projects.json` actually contains 57. The page meta description also says "51 M&A advisory and implementation projects." Discovered during Phase 1 Commit 2 (`feat(schemas): add Zod schemas for portfolio data`) when running the pre-flight parse check. Sweep all references to a single accurate count (or replace literal numbers with `${projects.length}` in places where it's templated).
+2. ~~**Project count drift in documentation (51 vs 57)**~~ — **Done**. All references updated; historical mention in the Phase 1 problem statement above is left intact for context.
 
 #### Discovered during Phase 2 (CI/CD & Developer Guardrails)
 
@@ -758,10 +752,7 @@ Items are added here as they're discovered. Each entry should link back to the d
    - **Effort**: Investigation only; fix depends on root cause.
    - **Context**: `astro-eslint-parser` fails on this file with `Parsing error: Declaration or statement expected` at the `<style>` block boundary (line 601). Other large `.astro` files including `brand.astro` (3778 lines) and `hub/tools/diligence-machine/index.astro` parse correctly. Prettier's Astro parser handles the file fine. As a workaround, Phase 2 Commit 5 added the file to the ESLint ignore list. Investigate whether the file contains an unusual construct the parser doesn't handle, or whether this is a bug in `astro-eslint-parser` worth filing upstream. Either fix the file or upgrade/patch the parser, then remove the ignore.
 
-5. **Stale one-shot migration scripts at repo root**
-   - **Files**: [abbreviate-arr.js](../../../abbreviate-arr.js), [sort-projects.js](../../../sort-projects.js)
-   - **Effort**: ~2 line changes (file deletions).
-   - **Context**: Two one-shot data migration scripts left over from 2026-02 commits (`eb18718` and the projects.json move). Neither has imports anywhere in the codebase; the only remaining reference is a historical mention in `src/docs/testing/TEST_STRATEGY.md`. Phase 2 Commit 5 added them to the ESLint ignore list to unblock the baseline. Delete both files and remove the corresponding entries from `eslint.config.mjs` ignores.
+5. ~~**Stale one-shot migration scripts at repo root**~~ — **Done**. Both `abbreviate-arr.js` and `sort-projects.js` deleted.
 
 #### Discovered during Phase 3 (Code Structure & CSS Architecture)
 
@@ -770,10 +761,7 @@ Items are added here as they're discovered. Each entry should link back to the d
    - **Effort**: ~1 hour, mostly mechanical find/replace with build-diff verification
    - **Context**: Phase 3 commit 0e removed all manual `-webkit-backdrop-filter` declarations because LightningCSS was deduplicating them against the unprefixed form and shipping only one (which broke Firefox). Other paired prefixes (user-select, appearance, line-clamp, box-orient, mask, slider-thumb) were left in place for this commit because they did NOT exhibit the same dedupe bug — LightningCSS correctly auto-adds the prefixes it needs. However, they're still tech debt: LightningCSS would add them automatically based on the `browserslist` config, so the manual source declarations are redundant maintenance burden. Sweep them out in a dedicated commit after Phase 3 main migration completes, when source CSS has been reorganized into scoped blocks. Verification per change: run `npm run build` and diff the compiled CSS output to confirm the removed manual prefix is re-added automatically by LightningCSS.
 
-7. **Tighten stylelint complexity rules: `selector-max-specificity` and `no-descending-specificity`**
-   - **Files**: [.stylelintrc.json](../../../.stylelintrc.json) (rule config), plus ~100 call sites across [src/pages/hub/tools/techpar/index.astro](../../pages/hub/tools/techpar/index.astro), [src/pages/hub/tools/diligence-machine/index.astro](../../pages/hub/tools/diligence-machine/index.astro), [src/pages/hub/tools/infrastructure-cost-governance/index.astro](../../pages/hub/tools/infrastructure-cost-governance/index.astro)
-   - **Effort**: ~1 day (many mechanical fixes; some require actual restructuring)
-   - **Context**: Phase 3 commit 0c enabled 5 complexity rules in the `.astro` stylelint override (`max-nesting-depth: 3`, `selector-max-compound-selectors: 4`, and three shorthand/longhand declaration rules). Two additional rules from the original plan — `selector-max-specificity: "0,3,0"` and `no-descending-specificity: true` — were deliberately deferred because they surfaced 126 pre-existing violations. `selector-max-specificity: 0,3,0` is too tight for the codebase's `:global(html.dark-theme) .foo .bar` pattern which naturally reaches specificity (0,4,1); `no-descending-specificity` surfaces real ordering drift but requires coordinated hand-fixes across multiple hub tool files. Ship hardening first; revisit both rules once Phase 3's main migration (commits 5-10c) has relocated most of the offending selectors out of these monolithic files. Options for tightening: (a) raise specificity threshold to `0,4,1` and enable as-is, (b) enable with `severity: warning` initially and promote to error after violations fall below N, (c) leave disabled and rely on scoped-style migration to reduce specificity naturally.
+7. ~~**Tighten stylelint complexity rules: `selector-max-specificity` and `no-descending-specificity`**~~ — **Done**. Both rules enabled at `severity: warning` in [.stylelintrc.json](../../../.stylelintrc.json) (root + `.astro` override); `selector-max-specificity` raised to `0,4,1` to accommodate `:global(html.dark-theme) .foo .bar`. Promote to `error` once remaining warnings clear.
 
 8. **`light-dark()` single-declaration theme switching — bounded pilot**
    - **Files**: [src/styles/global.css](../../styles/global.css) (one section of the `html.dark-theme` override block), plus one themed component's scoped styles as pilot target
@@ -810,20 +798,9 @@ Items are added here as they're discovered. Each entry should link back to the d
    - **Effort**: ~2-3 hours across 3 sub-commits (colors, typography, components)
    - **Context**: Phase 3 analysis revealed that most brutalist component CSS classes (`.brutal-btn`, `.brutal-frosted`, `.brutal-heading-*`, etc.) are genuinely shared across the site (used by 10+ files), not brand-page-only. The specimen blocks in global.css duplicate some of these selectors for the brand-page style guide. The planned 10a/10b/10c commits were deferred because moving them requires merging with the brand.astro `<style is:global>` block rather than simple cut-paste. The `stylelint-disable` comment at global.css line 4049 tracks this.
 
-10. **`@layer` declaration — wrap sections or remove** (deferred Phase 3 commit 0b)
-    - **Files**: [src/styles/global.css](../../styles/global.css) line 35
-    - **Effort**: ~10 min to remove, ~2 hours to actually wrap sections
-    - **Context**: Phase 3 commit 0b added the `@layer` declaration (`reset, tokens, utilities, components, theme, overrides`) as a progressive step, but no CSS rules were wrapped in `@layer` blocks because unlayered rules beat layered rules for normal declarations — the original plan to wrap was based on a cascade-direction misconception. The declaration is currently a no-op. Either wrap at least the reset/tokens sections to prove the pattern, or remove the declaration to avoid dead code.
+10. ~~**`@layer` declaration — wrap sections or remove**~~ — **Done**. Dead `@layer` declaration removed from global.css.
 
-11. **Enable CI/CD on feature branches (not just PRs to master)**
-    - **Files**: [.github/workflows/test.yml](../../../.github/workflows/test.yml), GitHub repository settings (branch rulesets)
-    - **Effort**: ~30 min (workflow trigger change + optional branch ruleset)
-    - **Context**: The `test.yml` workflow currently triggers on `push` to `master` and on `pull_request` to `master`. Feature branches like `feat/platform-hardening` run no CI until a PR is opened. This means test failures accumulate undetected across many commits and are only discovered at PR time (or locally if the developer remembers to run the full suite). Enabling CI on feature branch pushes surfaces failures early — before they compound.
-    - **Options**:
-      - **(a) Workflow trigger change**: Add `push: branches: ['feat/**', 'fix/**', 'dev']` to `test.yml`'s `on:` block. Cheapest option; runs lint + unit tests on every push to any feature branch. E2E can be limited to PR-only to save CI minutes.
-      - **(b) Branch ruleset**: Create a GitHub branch ruleset matching `feat/**` that requires the `Unit & Integration Tests` check. This prevents pushing commits that break tests but adds friction for WIP branches. Better suited for team environments.
-      - **(c) Hybrid**: Workflow triggers on all branches (option a), but only `master` branch ruleset blocks merge. Feature branch CI is advisory (failures visible but non-blocking).
-    - **Recommendation**: Option (c) — maximum visibility, minimum friction. Developers see CI status on every push without being blocked on WIP branches.
+11. ~~**Enable CI/CD on feature branches (not just PRs to master)**~~ — **Done**. [test.yml](../../../.github/workflows/test.yml) `push.branches` now includes `master, dev, feat/**, fix/**` (hybrid option c — advisory on feature branches, blocking on master).
 
 12. ~~**Fix tsconfig.json `baseUrl` deprecation warning**~~ — **Done** (Phase 6). Removed `baseUrl`, updated `paths` to `"./src/*"`.
 
