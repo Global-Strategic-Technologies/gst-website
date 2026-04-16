@@ -58,32 +58,11 @@
     <div class="modal-section">
       <h3 class="modal-section-title">Engagement Type</h3>
       <p
-        id="modal-engagement-category-2"
-        class="modal-engagement-category"
-        data-testid="project-modal-engagement-category"
+        id="modal-engagement-line-2"
+        class="modal-engagement-line"
+        data-testid="project-modal-engagement"
       >
-        Category
-      </p>
-      <p
-        id="modal-engagement-type-2"
-        class="modal-engagement-type"
-        data-testid="project-modal-engagement-type"
-      >
-        Engagement Type
-      </p>
-      <p
-        id="modal-engagement-description-2"
-        class="modal-text"
-        data-testid="project-modal-engagement-description"
-      >
-        Engagement description goes here.
-      </p>
-      <p
-        id="modal-engagement-industry-2"
-        class="modal-engagement-industry"
-        data-testid="project-modal-engagement-industry"
-      >
-        Industry
+        Sell-Side · Technical Assessment
       </p>
     </div>
 
@@ -292,30 +271,13 @@
     letter-spacing: 0.04em;
   }
 
-  .modal-engagement-category {
-    font-size: var(--text-2xs);
-    font-family: monospace;
-    font-weight: 700;
-    color: var(--color-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin: 0 0 var(--spacing-xs);
-  }
-
-  .modal-engagement-type {
+  .modal-engagement-line {
     font-size: var(--text-base);
     font-family: monospace;
     font-weight: 600;
-    color: var(--color-primary);
-    margin: 0 0 0.5rem;
+    color: var(--color-tertiary);
+    margin: 0;
     letter-spacing: -0.01em;
-  }
-
-  .modal-engagement-industry {
-    font-size: var(--text-sm);
-    color: var(--text-faded);
-    margin: 0.5rem 0 0;
-    font-weight: 500;
   }
 
   /* Dark theme modal */
@@ -442,9 +404,7 @@
       const modalArr = document.getElementById('modal-arr-2');
       const modalStage = document.getElementById('modal-stage-2');
       const modalTheme = document.getElementById('modal-theme-2');
-      const modalEngagementCategory = document.getElementById('modal-engagement-category-2');
-      const modalEngagementType = document.getElementById('modal-engagement-type-2');
-      const modalEngagementDesc = document.getElementById('modal-engagement-description-2');
+      const modalEngagementLine = document.getElementById('modal-engagement-line-2');
       const modalSummary = document.getElementById('modal-summary-2');
 
       if (modalTitle) modalTitle.textContent = project.codeName;
@@ -453,14 +413,10 @@
       if (modalArr) modalArr.textContent = project.arr === 'Not in source' ? '--' : project.arr;
       if (modalStage) modalStage.textContent = project.growthStage;
       if (modalTheme) modalTheme.textContent = project.theme;
-      if (modalEngagementCategory)
-        modalEngagementCategory.textContent = project.engagementCategory || '';
-      if (modalEngagementType) modalEngagementType.textContent = project.engagementType || 'N/A';
-      if (modalEngagementDesc)
-        modalEngagementDesc.textContent = project.engagementTypeDescription || '';
-
-      const modalEngagementIndustry = document.getElementById('modal-engagement-industry-2');
-      if (modalEngagementIndustry) modalEngagementIndustry.textContent = project.industry || '';
+      if (modalEngagementLine) {
+        const parts = [project.engagementCategory, project.engagementType].filter(Boolean);
+        modalEngagementLine.textContent = parts.join(' \u00B7 ') || 'N/A';
+      }
 
       if (modalSummary) modalSummary.textContent = project.summary;
 
