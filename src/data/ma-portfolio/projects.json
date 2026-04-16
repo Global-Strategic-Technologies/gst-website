@@ -115,7 +115,7 @@
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Integrating two healthcare revenue cycle platforms while capturing margin opportunities through VARR automation and consolidating foundational IT operations.",
     "solution": "Developed phased integration strategy prioritizing Insurance Follow-Up migration to Arrow for VARR automation, Bad Debt consolidation to Atlas for capacity optimization, and foundational IT consolidation for efficiency gains of $290-480k OTC and $250-375k annual savings.",
-    "engagementCategory": "Value Creation"
+    "engagementCategory": "Sell-Side"
   },
   {
     "id": "eclipse",
@@ -173,7 +173,7 @@
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Value-creation planning for migrating a legacy desktop body-shop management toolset to a cloud-native multi-tenant SaaS serving collision-repair facilities and multi-shop operators, with integrations to major accounting platforms and estimating systems.",
     "solution": "Recommended migrating on-premise desktop tools to a Node.js / AWS cloud architecture with iOS and Android mobile apps to eliminate client deployment burden and unify production, financial, and customer workflows.",
-    "engagementCategory": "Value Creation"
+    "engagementCategory": "Sell-Side"
   },
   {
     "id": "helios",
@@ -261,7 +261,7 @@
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Planning international expansion for a registry platform.",
     "solution": "Mapped expansion complexity across Singapore, UK, and Canada to forecast R&D investment needs.",
-    "engagementCategory": "Value Creation"
+    "engagementCategory": "Sell-Side"
   },
   {
     "id": "legis",
@@ -352,7 +352,7 @@
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Optimizing R&D for a .NET/React platform.",
     "solution": "Identified opportunities to use customer data to drive roadmap decisions and build engineering depth in AI/ML.",
-    "engagementCategory": "Value Creation"
+    "engagementCategory": "Sell-Side"
   },
   {
     "id": "wolverine",
@@ -1447,7 +1447,7 @@
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": null,
     "solution": null,
-    "engagementCategory": "Value Creation"
+    "engagementCategory": "Sell-Side"
   },
   {
     "id": "chariot",
@@ -1619,7 +1619,7 @@
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Combinging acquired technology platform into portfolio company SaaS platform.",
     "solution": "Integrating disparate product architectures into near-term and designed future-state, combined platform architecture to support immediate revenue growth and cross-selling enablement.",
-    "engagementCategory": "Value Creation"
+    "engagementCategory": "Sell-Side"
   },
   {
     "id": "claymore",
@@ -1683,7 +1683,7 @@
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Post-acquisition de-risk workstream identifying stability, quality, and sustainability constraints across the SDLC, customer integration, and cloud cost governance to accelerate consolidation onto a single platform.",
     "solution": "Baselined the SDLC (60% Java / 20% Angular across ~200 GitHub repos, ~60% test coverage, Jenkins CI/CD self-scored 2–3/10, Spotify squads with unclear product mapping); flagged DevOps immaturity, knowledge islands around WordPress and Elasticsearch, ambiguous PO/PM roles, and missing sprint-capacity planning; recommended GitHub Actions/GitLab pipelines, MuleSoft for SmartPost refactoring, Domo metrics, LinearB, 15–25% tech-debt allocation, and containerizing services beyond CoreAPI.",
-    "engagementCategory": "Value Creation"
+    "engagementCategory": "Sell-Side"
   },
   {
     "id": "laurel",
