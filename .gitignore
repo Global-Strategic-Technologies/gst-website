@@ -28,6 +28,8 @@ pnpm-debug.log*
 
 # claude local settings (per-developer)
 .claude/settings.local.json
+# claude scheduled-tasks runtime lock (per-session)
+.claude/scheduled_tasks.lock
 
 # playwright test results and reports
 test-results/
