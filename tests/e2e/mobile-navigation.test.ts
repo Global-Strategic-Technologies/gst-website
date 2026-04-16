@@ -247,34 +247,6 @@ test.describe('Mobile Navigation Journey', () => {
     expect(size).toBeGreaterThanOrEqual(12);
   });
 
-  test('should allow clicking stage filter chips on mobile', async ({ page }) => {
-    // Wait for initialization
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
-      timeout: 5000,
-    });
-
-    await openFilterDrawer(page);
-
-    // Click Growth Stage filter — use evaluate to bypass hit-testing on mobile
-    const growthChip = page.locator('[data-testid="filter-chip-stage-growth"]');
-    await page.evaluate(() => {
-      (document.querySelector('[data-testid="filter-chip-stage-growth"]') as HTMLElement)?.click();
-    });
-
-    // Wait for async state update before asserting
-    await page.waitForFunction(() => {
-      const chip = document.querySelector('[data-testid="filter-chip-stage-growth"]');
-      return chip?.classList.contains('active');
-    });
-
-    // Verify it's now active
-    await expect(growthChip).toHaveClass(/active/);
-
-    // All Stages should no longer be active
-    const allStagesChip = page.locator('[data-testid="filter-chip-stage-all"]');
-    await expect(allStagesChip).not.toHaveClass(/active/);
-  });
-
   test('should allow clicking theme filter chips on mobile', async ({ page }) => {
     // Wait for initialization
     await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
@@ -304,35 +276,6 @@ test.describe('Mobile Navigation Journey', () => {
     await expect(allThemesChip).not.toHaveClass(/active/);
   });
 
-  test('should allow clicking year filter chips on mobile', async ({ page }) => {
-    // Wait for initialization
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
-      timeout: 5000,
-    });
-
-    await openFilterDrawer(page);
-
-    // Click a year filter — use evaluate to bypass hit-testing on mobile
-    const yearChip = page.locator('[data-testid="filter-chip-year-2024"]');
-    await expect(yearChip).toBeVisible();
-    await page.evaluate(() => {
-      (document.querySelector('[data-testid="filter-chip-year-2024"]') as HTMLElement)?.click();
-    });
-
-    // Wait for async state update before asserting
-    await page.waitForFunction(() => {
-      const chip = document.querySelector('[data-testid="filter-chip-year-2024"]');
-      return chip?.classList.contains('active');
-    });
-
-    // Verify it's now active
-    await expect(yearChip).toHaveClass(/active/);
-
-    // All Years should no longer be active
-    const allYearsChip = page.locator('[data-testid="filter-chip-year-all"]');
-    await expect(allYearsChip).not.toHaveClass(/active/);
-  });
-
   test('should allow clicking engagement filter chips on mobile', async ({ page }) => {
     // Wait for initialization
     await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
@@ -342,13 +285,11 @@ test.describe('Mobile Navigation Journey', () => {
     await openFilterDrawer(page);
 
     // Click an engagement filter — use evaluate for WebKit mobile
-    const engagementChip = page.locator('[data-testid="filter-chip-engagement-value-creation"]');
+    const engagementChip = page.locator('[data-testid="filter-chip-engagement-buy-side"]');
     await expect(engagementChip).toBeVisible();
     await page.evaluate(() => {
       (
-        document.querySelector(
-          '[data-testid="filter-chip-engagement-value-creation"]'
-        ) as HTMLElement
+        document.querySelector('[data-testid="filter-chip-engagement-buy-side"]') as HTMLElement
       )?.click();
     });
 
@@ -367,7 +308,7 @@ test.describe('Mobile Navigation Journey', () => {
     });
 
     // Get initial project count
-    const initialCards = page.locator('[data-testid^="project-card-"]');
+    const initialCards = page.locator('[data-testid="project-card"]');
     const initialCount = await initialCards.count();
     expect(initialCount).toBeGreaterThan(0);
 
@@ -375,7 +316,9 @@ test.describe('Mobile Navigation Journey', () => {
 
     // Apply a filter — use evaluate for WebKit mobile
     await page.evaluate(() => {
-      (document.querySelector('[data-testid="filter-chip-stage-growth"]') as HTMLElement)?.click();
+      (
+        document.querySelector('[data-testid="filter-chip-engagement-buy-side"]') as HTMLElement
+      )?.click();
     });
 
     // Close drawer — use evaluate for WebKit mobile
@@ -395,13 +338,15 @@ test.describe('Mobile Navigation Journey', () => {
     );
 
     // Grid should still be visible and interactive
-    const gridCards = page.locator('[data-testid^="project-card-"]');
+    const gridCards = page.locator('[data-testid="project-card"]');
     const gridCardCount = await gridCards.count();
     expect(gridCardCount).toBeGreaterThan(0);
 
     // Verify filter state was applied
-    const filterState = await page.evaluate(() => (window as any).portfolioState?.filters?.stage);
-    expect(filterState).toBe('growth-category');
+    const filterState = await page.evaluate(
+      () => (window as any).portfolioState?.filters?.engagement
+    );
+    expect(filterState).toBe('Buy-Side');
   });
 
   test('should allow clearing filters on mobile', async ({ page }) => {
@@ -413,13 +358,15 @@ test.describe('Mobile Navigation Journey', () => {
     await openFilterDrawer(page);
 
     // Apply multiple filters — use evaluate for WebKit mobile
-    const growthChip = page.locator('[data-testid="filter-chip-stage-growth"]');
+    const buySideChip = page.locator('[data-testid="filter-chip-engagement-buy-side"]');
     const financeChip = page.locator('[data-testid="filter-chip-theme-finance"]');
 
     await page.evaluate(() => {
-      (document.querySelector('[data-testid="filter-chip-stage-growth"]') as HTMLElement)?.click();
+      (
+        document.querySelector('[data-testid="filter-chip-engagement-buy-side"]') as HTMLElement
+      )?.click();
     });
-    await expect(growthChip).toHaveClass(/active/);
+    await expect(buySideChip).toHaveClass(/active/);
 
     await page.evaluate(() => {
       (document.querySelector('[data-testid="filter-chip-theme-finance"]') as HTMLElement)?.click();
@@ -431,22 +378,22 @@ test.describe('Mobile Navigation Journey', () => {
       (document.querySelector('[data-testid="clear-filters-button"]') as HTMLElement)?.click();
     });
 
-    // Wait for filters to reset — "All Stages" chip should become active
+    // Wait for filters to reset — "All Engagements" chip should become active
     await page.waitForFunction(
       () => {
-        const el = document.querySelector('[data-testid="filter-chip-stage-all"]');
+        const el = document.querySelector('[data-testid="filter-chip-engagement-all"]');
         return el && el.classList.contains('active');
       },
       { timeout: 5000 }
     );
 
     // Filters should be reset to "All"
-    const allStagesChip = page.locator('[data-testid="filter-chip-stage-all"]');
+    const allEngagementsChip = page.locator('[data-testid="filter-chip-engagement-all"]');
     const allThemesChip = page.locator('[data-testid="filter-chip-theme-all"]');
 
-    await expect(allStagesChip).toHaveClass(/active/);
+    await expect(allEngagementsChip).toHaveClass(/active/);
     await expect(allThemesChip).toHaveClass(/active/);
-    await expect(growthChip).not.toHaveClass(/active/);
+    await expect(buySideChip).not.toHaveClass(/active/);
     await expect(financeChip).not.toHaveClass(/active/);
   });
 });

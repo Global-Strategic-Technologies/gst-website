@@ -161,10 +161,9 @@ test.describe('Project Details Viewing Journey', () => {
       const card = cards.nth(i);
       await expect(card).toBeVisible();
 
-      // Each card should have clickable content
-      const clickable = card.locator('a, button, [role="button"]');
-      const clickableCount = await clickable.count();
-      expect(clickableCount).toBeGreaterThan(0);
+      // Card itself is the interactive element (card-as-button pattern)
+      await expect(card).toHaveAttribute('role', 'button');
+      await expect(card).toHaveAttribute('tabindex', '0');
     }
   });
 
