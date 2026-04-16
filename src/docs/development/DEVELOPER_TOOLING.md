@@ -92,7 +92,8 @@ The GitHub Actions workflow [.github/workflows/test.yml](../../../.github/workfl
 │   changes (gate job, ~5s)                                      │
 │    │                                                            │
 │    │ Detects whether the PR touches any non-docs files using   │
-│    │ dorny/paths-filter@v3. Outputs `code: true | false`.      │
+│    │ dorny/paths-filter@v4. Outputs `code: true | false` and    │
+│    │ logs the matched file list for diagnostics.                │
 │    ▼                                                            │
 │                                                                │
 │   ┌─ Lint & Type Check ──────────┐                             │
@@ -130,6 +131,30 @@ All three jobs are **required status checks** on two branch rulesets:
 
 - **`master`** (ruleset 12237842) — PRs cannot merge until all checks pass
 - **`feat/**` and `fix/**`** (ruleset 15011377) — pushes to feature/fix branches are blocked until checks pass, shifting test failures left instead of deferring to PR time
+
+#### Paths-filter syntax notes (load-bearing)
+
+The gate job uses `dorny/paths-filter@v4` with a specific pattern that is easy to get wrong. Two gotchas surfaced during iteration:
+
+1. **Extended-glob negation does not work**. `'!(**.md|src/docs/**|.claude/**)'` as a single filter entry is accepted by YAML but evaluated by picomatch as always-match, so the gate never fires. Use one negation per list item.
+2. **Negation-only patterns need a catch-all**. With `predicate-quantifier: 'every'`, a list of only `!` patterns produces no file that satisfies "every pattern matches" — the catch-all `**` gives picomatch a positive match to start from, which the negations then whittle down.
+
+The correct pattern (mirrors the [dorny/paths-filter README](https://github.com/dorny/paths-filter#example-of-filtering-on-file-extension) canonical example):
+
+```yaml
+predicate-quantifier: 'every'
+list-files: json # emit matched files for diagnostics
+filters: |
+  code:
+    - '**' # positive catch-all
+    - '!**/*.md' # negations
+    - '!src/docs/**'
+    - '!.claude/**'
+```
+
+The job also sets `permissions: { contents: read, pull-requests: read }` so paths-filter can use the GitHub API on PR events instead of falling back to git-based detection.
+
+If the gate misbehaves, check the **"Log gate decision"** step output — it prints `code=true/false` and the JSON-formatted list of matched files, so you can see exactly what the filter saw without having to re-derive the evaluation.
 
 ---
 
@@ -531,6 +556,15 @@ If all six pass, the failure is likely E2E-only or environment-specific. Check:
 - Playwright browser version mismatch (CI uses `npx playwright install --with-deps`)
 - Timezone or locale dependency (CI runs in UTC)
 - Network requests the test accidentally makes (all production traffic should be mocked)
+
+### "My docs-only push ran E2E tests instead of skipping"
+
+Open the failing run on the Actions tab and expand the **Detect Code Changes** job's "Log gate decision" step. It prints `code=true|false` and the matched file list — that's exactly what the paths-filter saw.
+
+- If `code=false` but jobs still ran full flow: there's a step missing the `if: needs.changes.outputs.code == 'true'` guard somewhere
+- If `code=true` on a pure docs push: the filter matched a file you didn't expect — inspect the file list. Adjust the negations or add a new one (docs directory? config file? auto-generated artifact? lock file?)
+
+Never remove the positive `**` catch-all when adding more negations — with `predicate-quantifier: 'every'`, a negation-only list always produces `code=false` regardless of the actual changeset.
 
 ### "I need to temporarily skip the hook"
 

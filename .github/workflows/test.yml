@@ -26,20 +26,35 @@ jobs:
     name: Detect Code Changes
     runs-on: ubuntu-latest
     timeout-minutes: 2
+    # pull-requests: read lets dorny/paths-filter use the GitHub API on PR
+    # events instead of falling back to git-based detection. Omitting this
+    # still works but is less reliable on rebased/force-pushed PR branches.
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      matched-files: ${{ steps.filter.outputs.code_files }}
     steps:
       - uses: actions/checkout@v5
       - uses: dorny/paths-filter@v4
         id: filter
         with:
           predicate-quantifier: 'every'
+          # list-files: json emits the matched files as `<name>_files` so we
+          # can log them for diagnostics. Without this, a broken filter
+          # silently flips the gate and looks identical to a working one.
+          list-files: json
           filters: |
             code:
               - '**'
               - '!**/*.md'
               - '!src/docs/**'
               - '!.claude/**'
+      - name: Log gate decision
+        run: |
+          echo "code=${{ steps.filter.outputs.code }}"
+          echo "matched files: ${{ steps.filter.outputs.code_files }}"
 
   lint-and-typecheck:
     name: Lint & Type Check
