@@ -40,6 +40,16 @@ jobs:
       - uses: dorny/paths-filter@v4
         id: filter
         with:
+          # For push events, compare against the previous commit on the
+          # SAME branch. The action's default base is the repository's
+          # default branch (master), which for a push to dev means the
+          # diff spans ALL unmerged commits — not just this push. That
+          # caused every push to dev to look like a full code change
+          # regardless of what the push actually touched. Setting base
+          # to the pushed branch triggers paths-filter's "same branch"
+          # codepath: diff against `github.event.before`. Ignored on
+          # pull_request events (per the action's docs).
+          base: ${{ github.ref_name }}
           predicate-quantifier: 'every'
           # list-files: json emits the matched files as `<name>_files` so we
           # can log them for diagnostics. Without this, a broken filter

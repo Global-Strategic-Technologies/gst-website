@@ -134,14 +134,16 @@ All three jobs are **required status checks** on two branch rulesets:
 
 #### Paths-filter syntax notes (load-bearing)
 
-The gate job uses `dorny/paths-filter@v4` with a specific pattern that is easy to get wrong. Two gotchas surfaced during iteration:
+The gate job uses `dorny/paths-filter@v4` with a specific pattern that is easy to get wrong. Three gotchas surfaced during iteration:
 
 1. **Extended-glob negation does not work**. `'!(**.md|src/docs/**|.claude/**)'` as a single filter entry is accepted by YAML but evaluated by picomatch as always-match, so the gate never fires. Use one negation per list item.
 2. **Negation-only patterns need a catch-all**. With `predicate-quantifier: 'every'`, a list of only `!` patterns produces no file that satisfies "every pattern matches" — the catch-all `**` gives picomatch a positive match to start from, which the negations then whittle down.
+3. **`base` must point at the pushed branch, not the default branch**. For push events, paths-filter defaults `base` to the repository default branch (`master`). A push to `dev` therefore compares `dev vs master` — the full set of unmerged commits — not just the files in that push. Every push to `dev` then looks like a full code change regardless of what it touched. Setting `base: ${{ github.ref_name }}` triggers the action's "same branch" codepath, which compares against the previous commit on the pushed branch instead.
 
 The correct pattern (mirrors the [dorny/paths-filter README](https://github.com/dorny/paths-filter#example-of-filtering-on-file-extension) canonical example):
 
 ```yaml
+base: ${{ github.ref_name }} # compare against previous commit on pushed branch
 predicate-quantifier: 'every'
 list-files: json # emit matched files for diagnostics
 filters: |
@@ -154,7 +156,7 @@ filters: |
 
 The job also sets `permissions: { contents: read, pull-requests: read }` so paths-filter can use the GitHub API on PR events instead of falling back to git-based detection.
 
-If the gate misbehaves, check the **"Log gate decision"** step output — it prints `code=true/false` and the JSON-formatted list of matched files, so you can see exactly what the filter saw without having to re-derive the evaluation.
+If the gate misbehaves, check the **"Log gate decision"** step output — it prints `code=true/false` and the JSON-formatted list of matched files, so you can see exactly what the filter saw without having to re-derive the evaluation. If the matched-file count looks suspiciously large (e.g. dozens of files for a single-file push), the `base` configuration is wrong — paths-filter is diffing against the default branch instead of the previous commit.
 
 ---
 
@@ -561,8 +563,9 @@ If all six pass, the failure is likely E2E-only or environment-specific. Check:
 
 Open the failing run on the Actions tab and expand the **Detect Code Changes** job's "Log gate decision" step. It prints `code=true|false` and the matched file list — that's exactly what the paths-filter saw.
 
-- If `code=false` but jobs still ran full flow: there's a step missing the `if: needs.changes.outputs.code == 'true'` guard somewhere
-- If `code=true` on a pure docs push: the filter matched a file you didn't expect — inspect the file list. Adjust the negations or add a new one (docs directory? config file? auto-generated artifact? lock file?)
+- **Large matched-file count (dozens of files for a one-file push)**: paths-filter is diffing against the wrong base. Confirm the `base: ${{ github.ref_name }}` line is present on the paths-filter step; without it, the action defaults to the repo's default branch (`master`) and the filter sees every unmerged commit on the current branch
+- **`code=false` but jobs still ran full flow**: there's a step missing the `if: needs.changes.outputs.code == 'true'` guard somewhere
+- **`code=true` with a sensible matched-file list on a pure docs push**: the filter matched a file you didn't expect — inspect the list. Adjust the negations or add a new one (docs directory? config file? auto-generated artifact? lock file?)
 
 Never remove the positive `**` catch-all when adding more negations — with `predicate-quantifier: 'every'`, a negation-only list always produces `code=false` regardless of the actual changeset.
 
