@@ -543,6 +543,9 @@ const { projects } = Astro.props;
     filteredProjects = window.portfolioState.filteredProjects;
     updateGridDisplay();
     updateFilterBadge();
+    if (window.portfolioFilters && window.portfolioFilters.updateAvailableChips) {
+      window.portfolioFilters.updateAvailableChips();
+    }
     window.dispatchEvent(
       new CustomEvent('portfolioFiltered', { detail: { count: filteredProjects.length } })
     );

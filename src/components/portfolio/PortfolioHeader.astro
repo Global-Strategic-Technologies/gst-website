@@ -656,6 +656,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     filteredProjects = window.portfolioState.filteredProjects;
     updateGridDisplay();
     updateFilterBadge();
+    updateAvailableChips();
     window.dispatchEvent(
       new CustomEvent('portfolioFiltered', { detail: { count: filteredProjects.length } })
     );
@@ -817,6 +818,89 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     }
   }
 
+  let isUpdatingChips = false;
+
+  function updateChipAvailability(containerId, availableValues, filterKey) {
+    const container = document.getElementById(containerId);
+    if (!container) return false;
+
+    const currentValue = filters[filterKey];
+    let needsReset = false;
+
+    container.querySelectorAll('.filter-chip').forEach((chip) => {
+      const value = chip.dataset.value;
+      if (value === 'all') return;
+
+      if (availableValues.has(value)) {
+        chip.classList.remove('chip-unavailable');
+        chip.removeAttribute('aria-disabled');
+      } else {
+        chip.classList.add('chip-unavailable');
+        chip.setAttribute('aria-disabled', 'true');
+        if (value === currentValue) {
+          needsReset = true;
+          chip.classList.remove('active');
+        }
+      }
+    });
+
+    if (needsReset) {
+      filters[filterKey] = 'all';
+      window.portfolioState.filters[filterKey] = 'all';
+      const allChip = container.querySelector('[data-value="all"]');
+      if (allChip) allChip.classList.add('active');
+    }
+
+    return needsReset;
+  }
+
+  function updateAvailableChips() {
+    if (isUpdatingChips) return;
+    isUpdatingChips = true;
+
+    const available = { year: new Set(), engagement: new Set(), type: new Set(), theme: new Set() };
+
+    for (const project of allProjects) {
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        const techs = Array.isArray(project.technologies)
+          ? project.technologies
+          : typeof project.technologies === 'string'
+            ? project.technologies.split(',').map((t) => t.trim())
+            : [];
+        const searchableText = [project.codeName, project.industry, project.summary, ...techs]
+          .join(' ')
+          .toLowerCase();
+        if (!searchableText.includes(searchLower)) continue;
+      }
+
+      const matchesYear = filters.year === 'all' || project.year.toString() === filters.year;
+      const matchesEngagement =
+        filters.engagement === 'all' || project.engagementCategory === filters.engagement;
+      const matchesType = filters.type === 'all' || project.engagementType === filters.type;
+      const matchesTheme = filters.theme === 'all' || project.theme === filters.theme;
+
+      if (matchesEngagement && matchesType && matchesTheme)
+        available.year.add(project.year.toString());
+      if (matchesYear && matchesType && matchesTheme)
+        available.engagement.add(project.engagementCategory);
+      if (matchesYear && matchesEngagement && matchesTheme)
+        available.type.add(project.engagementType);
+      if (matchesYear && matchesEngagement && matchesType) available.theme.add(project.theme);
+    }
+
+    const r1 = updateChipAvailability('year-chips', available.year, 'year');
+    const r2 = updateChipAvailability('engagement-chips', available.engagement, 'engagement');
+    const r3 = updateChipAvailability('type-chips', available.type, 'type');
+    const r4 = updateChipAvailability('theme-chips', available.theme, 'theme');
+
+    isUpdatingChips = false;
+
+    if (r1 || r2 || r3 || r4) {
+      filterProjects();
+    }
+  }
+
   // Outside-click and Escape-key handlers attached at document level while the
   // drawer is open. Declared at script scope so open/close can share references.
   // The drawer's visual backdrop (.filter-overlay) is `pointer-events: none`
@@ -956,6 +1040,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     attachChipListeners,
     openFilterDrawer,
     closeFilterDrawer,
+    updateAvailableChips,
     getFilteredProjects: () => window.portfolioState.filteredProjects,
     getFilters: () => window.portfolioState.filters,
   };

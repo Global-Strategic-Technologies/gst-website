@@ -496,6 +496,12 @@ main {
   border-color: var(--color-primary);
 }
 
+.filter-chip.chip-unavailable {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* Search Input - Base Styles */
 .search-input {
   width: 100%;
@@ -650,6 +656,10 @@ html.dark-theme .filter-chip.active {
   background: var(--color-primary);
   color: var(--bg-dark);
   border-color: var(--color-primary);
+}
+
+html.dark-theme .filter-chip.chip-unavailable {
+  opacity: 0.3;
 }
 
 html.dark-theme .search-input {
