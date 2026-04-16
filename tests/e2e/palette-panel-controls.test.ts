@@ -690,13 +690,57 @@ test.describe('Palette Panel Controls', () => {
   });
 
   test.describe('Mobile Viewport', () => {
-    test('should hide palette panel at 480px viewport width', async ({ page }) => {
+    test('should show palette panel edge strip at mobile viewport width', async ({ page }) => {
       await page.setViewportSize({ width: 480, height: 800 });
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
 
       const display = await page.evaluate(() => {
         const panel = document.getElementById('palette-panel');
         return panel ? getComputedStyle(panel).display : '';
+      });
+      expect(display).not.toBe('none');
+
+      const toggle = page.getByTestId('palette-panel-toggle');
+      await expect(toggle).toBeVisible();
+    });
+
+    test('should use 2-column swatch grid on mobile', async ({ page }) => {
+      await page.setViewportSize({ width: 480, height: 800 });
+      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await openPanel(page);
+      await waitForSwatchControls(page);
+
+      const columns = await page.evaluate(() => {
+        const grid = document.querySelector('.palette-panel__swatch-grid');
+        if (!grid) return '';
+        return getComputedStyle(grid).gridTemplateColumns;
+      });
+      // 2-column grid resolves to two pixel values (e.g. "120px 120px")
+      const colCount = columns.split(/\s+/).filter(Boolean).length;
+      expect(colCount).toBe(2);
+    });
+
+    test('should narrow panel body to 280px on mobile', async ({ page }) => {
+      await page.setViewportSize({ width: 480, height: 800 });
+      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await openPanel(page);
+
+      const bodyWidth = await page.evaluate(() => {
+        const body = document.getElementById('panel-body');
+        return body ? body.getBoundingClientRect().width : 0;
+      });
+      expect(bodyWidth).toBeLessThanOrEqual(280);
+      expect(bodyWidth).toBeGreaterThan(0);
+    });
+
+    test('should hide resize handle on mobile', async ({ page }) => {
+      await page.setViewportSize({ width: 480, height: 800 });
+      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await openPanel(page);
+
+      const display = await page.evaluate(() => {
+        const resize = document.getElementById('panel-resize');
+        return resize ? getComputedStyle(resize).display : '';
       });
       expect(display).toBe('none');
     });
