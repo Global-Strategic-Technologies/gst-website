@@ -95,6 +95,20 @@ This document provides Claude with essential context about the GST Website proje
 - **Do not add or edit hooks, lint configs, or CI jobs without updating [DEVELOPER_TOOLING.md](../src/docs/development/DEVELOPER_TOOLING.md)** — the doc is the single source of truth for new contributors and future sessions
 - **Do not use `git commit --no-verify`** unless you are explicitly told the change is an emergency and the user has agreed to the follow-up. CI will still enforce what the hook would have caught, so `--no-verify` only defers the problem
 
+### 13. One Command Per Bash Call (Avoid Permission-Prompt Thrash)
+
+Claude Code's permission matcher evaluates the ENTIRE command string against the `allow` list in [`.claude/settings.local.json`](../.claude/settings.local.json). A compound command like `cd X && npm run Y | tee Z` is ONE string that matches no wildcard, even when every individual command (`cd`, `npm run`, `tee`) is pre-approved. The result: a permission prompt for work the user already authorized.
+
+**Rules:**
+
+- **Never chain with `&&`, `||`, or `;`** across Bash tool calls. Use one call per command and let prior calls complete naturally.
+- **Pipes are permitted only when the entire pipeline fits a single allow-list pattern.** `git log --oneline | head -20` works because `Bash(git *)` covers it and `head` is pre-approved too; but in practice most pipes mix tool families (e.g. `npm run X | tee /tmp/Y`) and trip the matcher. When in doubt, write to a file via the Write tool or split into two Bash calls.
+- **Prefer dedicated tools over shell pipelines.** `Grep` for content search, `Glob` for file patterns, `Read` for file contents — these bypass the shell entirely and are always allowed.
+- **Redirections and env-prefixes count.** `cmd > /tmp/out.txt`, `FOO=bar cmd`, `cmd 2>&1 | tail -5` are all compound strings to the matcher. Sidestep by writing the output via the Write tool, or by running the base command and parsing the result in the next call.
+- **Exception — genuine sequential coupling.** If two commands MUST be atomic (e.g. `git add X && git commit -m …` where the user explicitly authorized one combined action), keep them together. The cost of one prompt is lower than the cost of a half-applied state.
+
+This rule exists to reduce user prompt fatigue. A single compound command that thrashes the approval loop is worse than three clean calls that just work.
+
 ---
 
 ## 📋 Project Overview
