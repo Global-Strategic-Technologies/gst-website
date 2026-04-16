@@ -130,9 +130,12 @@ The existing CI pipeline runs tests but has no linting, no type-checking beyond 
         - uses: dorny/paths-filter@v3
           id: filter
           with:
-            filters: |
-              code:
-                - '!(**.md|src/docs/**|.claude/**)'
+            predicate-quantifier: 'every'
+          filters: |
+            code:
+              - '!**/*.md'
+              - '!src/docs/**'
+              - '!.claude/**'
 
     unit-and-integration:
       needs: changes
@@ -145,6 +148,8 @@ The existing CI pipeline runs tests but has no linting, no type-checking beyond 
   ```
 
   This keeps the required job names visible to branch protection (so they always report a status), while skipping the expensive work for docs-only changes. Same pattern applied to `lint-and-typecheck` and `e2e-tests`. Remove the `paths-ignore` blocks entirely from the `on:` section.
+
+  **Syntax note** (fixed in commit `73bbb0c`, 2026-04-16): the original Phase 2 implementation used a single-line extended-glob filter `'!(**.md|src/docs/**|.claude/**)'`, which `dorny/paths-filter` evaluated as `true` for all inputs — so docs-only pushes still ran full E2E. The correct idiom is separate negated list items combined with `predicate-quantifier: 'every'`, as shown above.
 
 - **500 error page** — create `src/pages/500.astro` (only 404 exists; Radar SSR route has no branded error page)
 
