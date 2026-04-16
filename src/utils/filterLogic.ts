@@ -39,10 +39,10 @@ export const MATURE_KEYWORDS = [
  */
 export interface FilterCriteria {
   search: string;
-  stage: string; // 'all' | 'growth-category' | 'mature-category' | specific stage name
   theme: string; // 'all' | specific theme name
   year: string; // 'all' | year as string
-  engagement: string; // 'all' | 'value-creation' | 'technical-diligence'
+  engagement: string; // 'all' | specific engagementCategory value
+  type: string; // 'all' | specific engagementType value
 }
 
 /**
@@ -167,6 +167,21 @@ export function getUniqueEngagementTypes(projects: Project[]): EngagementType[] 
 }
 
 /**
+ * Gets all unique engagement categories from a list of projects
+ * @param projects - Array of projects to analyze
+ * @returns Sorted array of unique engagement category strings
+ */
+export function getUniqueEngagementCategories(projects: Project[]): string[] {
+  return [
+    ...new Set(
+      projects
+        .map((p) => p.engagementCategory)
+        .filter((c): c is NonNullable<typeof c> => c !== undefined && c !== null)
+    ),
+  ].sort();
+}
+
+/**
  * Extracts searchable text from a project
  * @param project - Project to extract text from
  * @returns Combined searchable text
@@ -181,16 +196,9 @@ export function createSearchableText(project: Project): string {
  * Filters projects based on provided criteria
  * @param projects - Array of projects to filter
  * @param criteria - Filter criteria to apply
- * @param growthStages - List of growth stage values
- * @param matureStages - List of mature stage values
  * @returns Filtered array of projects
  */
-export function filterProjects(
-  projects: Project[],
-  criteria: FilterCriteria,
-  growthStages: string[] = [],
-  matureStages: string[] = []
-): Project[] {
+export function filterProjects(projects: Project[], criteria: FilterCriteria): Project[] {
   return projects.filter((project) => {
     // Search filter
     if (criteria.search) {
@@ -198,17 +206,6 @@ export function filterProjects(
       const searchableText = createSearchableText(project);
 
       if (!searchableText.includes(searchLower)) return false;
-    }
-
-    // Stage filter - handle category filtering
-    if (criteria.stage !== 'all') {
-      if (criteria.stage === 'growth-category') {
-        if (!growthStages.includes(project.growthStage)) return false;
-      } else if (criteria.stage === 'mature-category') {
-        if (!matureStages.includes(project.growthStage)) return false;
-      } else if (project.growthStage !== criteria.stage) {
-        return false;
-      }
     }
 
     // Theme filter
@@ -221,17 +218,14 @@ export function filterProjects(
       return false;
     }
 
-    // Engagement type filter - categorized by type
+    // Engagement category filter (engagementCategory field)
     if (criteria.engagement !== 'all') {
-      if (criteria.engagement === 'value-creation') {
-        if (!isValueCreationEngagement(project.engagementType)) {
-          return false;
-        }
-      } else if (criteria.engagement === 'technical-diligence') {
-        if (!isTechnicalDiligenceEngagement(project.engagementType)) {
-          return false;
-        }
-      }
+      if (project.engagementCategory !== criteria.engagement) return false;
+    }
+
+    // Engagement type filter (engagementType field)
+    if (criteria.type !== 'all') {
+      if (project.engagementType !== criteria.type) return false;
     }
 
     return true;

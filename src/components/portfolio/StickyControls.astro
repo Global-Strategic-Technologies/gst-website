@@ -7,22 +7,7 @@ interface Props {
 
 const { projects } = Astro.props;
 
-import {
-  getGrowthStageProjects,
-  getMatureStageProjects,
-  getUniqueEngagementTypes,
-  isValueCreationEngagement,
-  isTechnicalDiligenceEngagement,
-} from '../../utils/filterLogic';
-
-// Use centralized filter logic
-const growthStages = getGrowthStageProjects(projects);
-const matureStages = getMatureStageProjects(projects);
-const uniqueEngagementTypes = getUniqueEngagementTypes(projects);
-const valueCreationEngagements = uniqueEngagementTypes.filter(isValueCreationEngagement).sort();
-const technicalDiligenceEngagements = uniqueEngagementTypes
-  .filter(isTechnicalDiligenceEngagement)
-  .sort();
+// No filter logic imports needed — StickyControls delegates to PortfolioHeader's script
 ---
 
 <!-- Fixed Controls - Positioned independently at viewport level -->
@@ -490,10 +475,6 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
   is:inline
   define:vars={{
     projectsData: JSON.stringify(projects),
-    growthStagesList: growthStages,
-    matureStagesList: matureStages,
-    valueCreationList: valueCreationEngagements,
-    technicalDiligenceList: technicalDiligenceEngagements,
   }}
 >
   // Initialize global state
@@ -511,15 +492,11 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
       filteredProjects: [],
       filters: {
         search: '',
-        stage: 'all',
         theme: 'all',
         year: 'all',
         engagement: 'all',
+        type: 'all',
       },
-      growthStages: growthStagesList,
-      matureStages: matureStagesList,
-      valueCreationEngagements: valueCreationList,
-      technicalDiligenceEngagements: technicalDiligenceList,
     };
   }
 
@@ -544,33 +521,20 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
         if (!searchableText.includes(searchLower)) return false;
       }
 
-      // Stage filter
-      if (filters.stage !== 'all') {
-        if (filters.stage === 'growth-category') {
-          if (!growthStagesList.includes(project.growthStage)) return false;
-        } else if (filters.stage === 'mature-category') {
-          if (!matureStagesList.includes(project.growthStage)) return false;
-        } else if (project.growthStage !== filters.stage) {
-          return false;
-        }
-      }
-
       // Theme filter
       if (filters.theme !== 'all' && project.theme !== filters.theme) return false;
 
       // Year filter
       if (filters.year !== 'all' && project.year.toString() !== filters.year) return false;
 
-      // Engagement type filter
+      // Engagement category filter
       if (filters.engagement !== 'all') {
-        const valueCreationTypes = ['Value Creation'];
-        const technicalDiligenceTypes = ['Technical Assessment', 'Technical Diligence'];
+        if (project.engagementCategory !== filters.engagement) return false;
+      }
 
-        if (filters.engagement === 'value-creation') {
-          if (!valueCreationTypes.includes(project.engagementType)) return false;
-        } else if (filters.engagement === 'technical-diligence') {
-          if (!technicalDiligenceTypes.includes(project.engagementType)) return false;
-        }
+      // Engagement type filter
+      if (filters.type !== 'all') {
+        if (project.engagementType !== filters.type) return false;
       }
 
       return true;
@@ -628,25 +592,10 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
   }
 
   function attachChipListeners() {
-    const stageChipsContainer = document.getElementById('stage-chips');
     const themeChipsContainer = document.getElementById('theme-chips');
     const yearChipsContainer = document.getElementById('year-chips');
     const engagementChipsContainer = document.getElementById('engagement-chips');
-
-    if (stageChipsContainer && !stageChipsContainer.hasListener) {
-      stageChipsContainer.querySelectorAll('.filter-chip').forEach((chip) => {
-        chip.addEventListener('click', function () {
-          stageChipsContainer
-            .querySelectorAll('.filter-chip')
-            .forEach((c) => c.classList.remove('active'));
-          this.classList.add('active');
-          filters.stage = chip.dataset.value;
-          window.portfolioState.filters.stage = filters.stage;
-          filterProjects();
-        });
-      });
-      stageChipsContainer.hasListener = true;
-    }
+    const typeChipsContainer = document.getElementById('type-chips');
 
     if (themeChipsContainer && !themeChipsContainer.hasListener) {
       themeChipsContainer.querySelectorAll('.filter-chip').forEach((chip) => {
@@ -691,6 +640,21 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
         });
       });
       engagementChipsContainer.hasListener = true;
+    }
+
+    if (typeChipsContainer && !typeChipsContainer.hasListener) {
+      typeChipsContainer.querySelectorAll('.filter-chip').forEach((chip) => {
+        chip.addEventListener('click', function () {
+          typeChipsContainer
+            .querySelectorAll('.filter-chip')
+            .forEach((c) => c.classList.remove('active'));
+          this.classList.add('active');
+          filters.type = chip.dataset.value;
+          window.portfolioState.filters.type = filters.type;
+          filterProjects();
+        });
+      });
+      typeChipsContainer.hasListener = true;
     }
   }
 

@@ -1,13 +1,10 @@
 ---
 import type { Project } from '../../types/portfolio';
 import {
-  getGrowthStageProjects,
-  getMatureStageProjects,
   getUniqueEngagementTypes,
+  getUniqueEngagementCategories,
   getUniqueThemes,
   getUniqueYears,
-  isValueCreationEngagement,
-  isTechnicalDiligenceEngagement,
 } from '../../utils/filterLogic';
 
 interface Props {
@@ -19,19 +16,10 @@ const { portfolioType = 'standard', projects = [] } = Astro.props;
 
 const title = portfolioType === 'ma' ? 'PORTFOLIO M&A ENGAGEMENTS' : 'CLIENT ENGAGEMENTS';
 
-// Filter option lists — all derived via the centralized filterLogic module
-// so keyword/category definitions stay in one place (previously duplicated
-// here and in src/utils/filterLogic.ts).
 const uniqueThemes = getUniqueThemes(projects);
 const uniqueYears = getUniqueYears(projects);
-const growthStages = getGrowthStageProjects(projects);
-const matureStages = getMatureStageProjects(projects);
-
 const uniqueEngagementTypes = getUniqueEngagementTypes(projects);
-const valueCreationEngagements = uniqueEngagementTypes.filter(isValueCreationEngagement).sort();
-const technicalDiligenceEngagements = uniqueEngagementTypes
-  .filter(isTechnicalDiligenceEngagement)
-  .sort();
+const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 ---
 
 <div class="portfolio-header">
@@ -108,10 +96,9 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
     Revert path if readability becomes a problem: swap
     `brutal-frosted--blur-only` → `brutal-frosted--overlay` to restore the
     high-opacity (0.92) frosted pane. Known edge case under the current
-    choice: in light theme, the drawer's section labels (e.g. "COMPANY
-    GROWTH STAGE") can drop to marginal contrast when the drawer overlaps
-    the green stats band. Filter chips themselves have their own fill and
-    remain readable.
+    choice: in light theme, the drawer's section labels can drop to marginal
+    contrast when the drawer overlaps the green stats band. Filter chips
+    themselves have their own fill and remain readable.
   -->
   <div
     id="filter-drawer"
@@ -166,48 +153,42 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
       </div>
 
       <div class="filter-section">
-        <div class="filter-label">Client Engagement</div>
+        <div class="filter-label">Engagement</div>
         <div class="filter-chips" id="engagement-chips" data-testid="engagement-filter-chips">
           <div class="filter-chip active" data-value="all" data-testid="filter-chip-engagement-all">
-            All Types
+            All Engagements
           </div>
-          <div
-            class="filter-chip"
-            data-value="value-creation"
-            data-testid="filter-chip-engagement-value-creation"
-          >
-            Value Creation
-          </div>
-          <div
-            class="filter-chip"
-            data-value="technical-diligence"
-            data-testid="filter-chip-engagement-technical-diligence"
-          >
-            Technical Diligence
-          </div>
+          {
+            uniqueEngagementCategories.map((cat) => (
+              <div
+                class="filter-chip"
+                data-value={cat}
+                data-testid={`filter-chip-engagement-${cat.toLowerCase().replace(/[\s&]+/g, '-')}`}
+              >
+                {cat}
+              </div>
+            ))
+          }
         </div>
       </div>
 
       <div class="filter-section">
-        <div class="filter-label">Company Growth Stage</div>
-        <div class="filter-chips" id="stage-chips" data-testid="stage-filter-chips">
-          <div class="filter-chip active" data-value="all" data-testid="filter-chip-stage-all">
-            All Stages
+        <div class="filter-label">Type</div>
+        <div class="filter-chips" id="type-chips" data-testid="type-filter-chips">
+          <div class="filter-chip active" data-value="all" data-testid="filter-chip-type-all">
+            All Types
           </div>
-          <div
-            class="filter-chip"
-            data-value="growth-category"
-            data-testid="filter-chip-stage-growth"
-          >
-            Growth Stage
-          </div>
-          <div
-            class="filter-chip"
-            data-value="mature-category"
-            data-testid="filter-chip-stage-mature"
-          >
-            Mature Stage
-          </div>
+          {
+            uniqueEngagementTypes.map((t) => (
+              <div
+                class="filter-chip"
+                data-value={t}
+                data-testid={`filter-chip-type-${t.toLowerCase().replace(/[\s&]+/g, '-')}`}
+              >
+                {t}
+              </div>
+            ))
+          }
         </div>
       </div>
 
@@ -607,10 +588,6 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
   is:inline
   define:vars={{
     projectsData: JSON.stringify(projects),
-    growthStagesList: growthStages,
-    matureStagesList: matureStages,
-    valueCreationList: valueCreationEngagements,
-    technicalDiligenceList: technicalDiligenceEngagements,
   }}
 >
   // Initialize global state if it doesn't exist
@@ -628,15 +605,11 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
       filteredProjects: [],
       filters: {
         search: '',
-        stage: 'all',
         theme: 'all',
         year: 'all',
         engagement: 'all',
+        type: 'all',
       },
-      growthStages: growthStagesList,
-      matureStages: matureStagesList,
-      valueCreationEngagements: valueCreationList,
-      technicalDiligenceEngagements: technicalDiligenceList,
     };
   }
 
@@ -661,32 +634,20 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
         if (!searchableText.includes(searchLower)) return false;
       }
 
-      // Stage filter - handle category filtering
-      if (filters.stage !== 'all') {
-        if (filters.stage === 'growth-category') {
-          if (!growthStagesList.includes(project.growthStage)) return false;
-        } else if (filters.stage === 'mature-category') {
-          if (!matureStagesList.includes(project.growthStage)) return false;
-        } else if (project.growthStage !== filters.stage) {
-          return false;
-        }
-      }
-
       // Theme filter
       if (filters.theme !== 'all' && project.theme !== filters.theme) return false;
 
       // Year filter
       if (filters.year !== 'all' && project.year.toString() !== filters.year) return false;
 
-      // Engagement type filter — uses `valueCreationList` / `technicalDiligenceList`
-      // passed via define:vars from the frontmatter, which are derived from the
-      // centralized filterLogic categorization. No inline arrays to drift.
+      // Engagement category filter
       if (filters.engagement !== 'all') {
-        if (filters.engagement === 'value-creation') {
-          if (!valueCreationList.includes(project.engagementType)) return false;
-        } else if (filters.engagement === 'technical-diligence') {
-          if (!technicalDiligenceList.includes(project.engagementType)) return false;
-        }
+        if (project.engagementCategory !== filters.engagement) return false;
+      }
+
+      // Engagement type filter
+      if (filters.type !== 'all') {
+        if (project.engagementType !== filters.type) return false;
       }
 
       return true;
@@ -744,26 +705,10 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
   }
 
   function attachChipListeners() {
-    const stageChipsContainer = document.getElementById('stage-chips');
     const themeChipsContainer = document.getElementById('theme-chips');
     const yearChipsContainer = document.getElementById('year-chips');
     const engagementChipsContainer = document.getElementById('engagement-chips');
-
-    if (stageChipsContainer && !stageChipsContainer.hasListener) {
-      stageChipsContainer.addEventListener('click', (e) => {
-        const chip = e.target.closest('.filter-chip');
-        if (chip) {
-          document
-            .querySelectorAll('#stage-chips .filter-chip')
-            .forEach((c) => c.classList.remove('active'));
-          chip.classList.add('active');
-          filters.stage = chip.dataset.value;
-          window.portfolioState.filters.stage = filters.stage;
-          filterProjects();
-        }
-      });
-      stageChipsContainer.hasListener = true;
-    }
+    const typeChipsContainer = document.getElementById('type-chips');
 
     if (themeChipsContainer && !themeChipsContainer.hasListener) {
       themeChipsContainer.addEventListener('click', (e) => {
@@ -811,6 +756,22 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
         }
       });
       engagementChipsContainer.hasListener = true;
+    }
+
+    if (typeChipsContainer && !typeChipsContainer.hasListener) {
+      typeChipsContainer.addEventListener('click', (e) => {
+        const chip = e.target.closest('.filter-chip');
+        if (chip) {
+          document
+            .querySelectorAll('#type-chips .filter-chip')
+            .forEach((c) => c.classList.remove('active'));
+          chip.classList.add('active');
+          filters.type = chip.dataset.value;
+          window.portfolioState.filters.type = filters.type;
+          filterProjects();
+        }
+      });
+      typeChipsContainer.hasListener = true;
     }
   }
 
@@ -952,10 +913,10 @@ const technicalDiligenceEngagements = uniqueEngagementTypes
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
         filters.search = '';
-        filters.stage = 'all';
         filters.theme = 'all';
         filters.year = 'all';
         filters.engagement = 'all';
+        filters.type = 'all';
         window.portfolioState.filters = { ...filters };
 
         const searchInput = document.getElementById('search-input-fixed');

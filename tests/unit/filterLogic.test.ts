@@ -10,6 +10,7 @@ import {
   getUniqueThemes,
   getUniqueYears,
   getUniqueEngagementTypes,
+  getUniqueEngagementCategories,
   createSearchableText,
   filterProjects,
   type FilterCriteria,
@@ -17,7 +18,7 @@ import {
 import type { Project } from '@/types/portfolio';
 
 // Mock project data
-const mockProjects: Project[] = [
+const mockProjects: (Project & { engagementCategory?: string })[] = [
   {
     id: 'project-1',
     codeName: 'Tech Corp Acquisition',
@@ -31,6 +32,7 @@ const mockProjects: Project[] = [
     year: 2024,
     technologies: ['Node.js', 'React'],
     engagementType: 'Value Creation',
+    engagementCategory: 'Value Creation',
   },
   {
     id: 'project-2',
@@ -45,6 +47,7 @@ const mockProjects: Project[] = [
     year: 2023,
     technologies: ['Python', 'AWS'],
     engagementType: 'Value Creation',
+    engagementCategory: 'Value Creation',
   },
   {
     id: 'project-3',
@@ -59,6 +62,7 @@ const mockProjects: Project[] = [
     year: 2024,
     technologies: ['Go', 'Kubernetes'],
     engagementType: 'Technical Diligence',
+    engagementCategory: 'Buy-Side',
   },
   {
     id: 'project-4',
@@ -73,6 +77,7 @@ const mockProjects: Project[] = [
     year: 2022,
     technologies: ['Java', 'Microservices'],
     engagementType: undefined,
+    engagementCategory: 'Sell-Side',
   },
 ];
 
@@ -209,86 +214,106 @@ describe('filterLogic', () => {
     });
   });
 
+  describe('getUniqueEngagementCategories', () => {
+    it('should extract and sort unique engagement categories', () => {
+      const categories = getUniqueEngagementCategories(mockProjects as Project[]);
+      expect(categories).toContain('Buy-Side');
+      expect(categories).toContain('Sell-Side');
+      expect(categories).toContain('Value Creation');
+      expect(categories.length).toBe(3);
+      expect(categories).toEqual([...categories].sort());
+    });
+
+    it('should handle empty project list', () => {
+      expect(getUniqueEngagementCategories([])).toEqual([]);
+    });
+  });
+
   describe('filterProjects', () => {
     const criteria: FilterCriteria = {
       search: '',
-      stage: 'all',
       theme: 'all',
       year: 'all',
       engagement: 'all',
+      type: 'all',
     };
 
     it('should return all projects with default criteria', () => {
-      const result = filterProjects(mockProjects, criteria);
+      const result = filterProjects(mockProjects as Project[], criteria);
       expect(result).toHaveLength(mockProjects.length);
     });
 
     it('should filter by search term', () => {
       const searchCriteria = { ...criteria, search: 'Tech' };
-      const result = filterProjects(mockProjects, searchCriteria);
+      const result = filterProjects(mockProjects as Project[], searchCriteria);
       expect(result.length).toBeGreaterThan(0);
       expect(result).toContainEqual(mockProjects[0]);
     });
 
     it('should filter by theme', () => {
       const themeCriteria = { ...criteria, theme: 'Technology' };
-      const result = filterProjects(mockProjects, themeCriteria);
+      const result = filterProjects(mockProjects as Project[], themeCriteria);
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('project-1');
     });
 
     it('should filter by year', () => {
       const yearCriteria = { ...criteria, year: '2024' };
-      const result = filterProjects(mockProjects, yearCriteria);
+      const result = filterProjects(mockProjects as Project[], yearCriteria);
       expect(result.length).toBe(2);
       expect(result.map((p) => p.year)).toEqual([2024, 2024]);
     });
 
-    it('should filter by growth stage category', () => {
-      const growthStages = getGrowthStageProjects(mockProjects);
-      const matureStages = getMatureStageProjects(mockProjects);
-      const stageCriteria = { ...criteria, stage: 'growth-category' };
-      const result = filterProjects(mockProjects, stageCriteria, growthStages, matureStages);
-      expect(result.length).toBeGreaterThan(0);
-      expect(result.every((p) => growthStages.includes(p.growthStage))).toBe(true);
-    });
-
-    it('should filter by value creation engagement type', () => {
-      const engagementCriteria = { ...criteria, engagement: 'value-creation' };
-      const result = filterProjects(mockProjects, engagementCriteria);
+    it('should filter by engagement category', () => {
+      const engagementCriteria = { ...criteria, engagement: 'Value Creation' };
+      const result = filterProjects(mockProjects as Project[], engagementCriteria);
       expect(result.length).toBe(2);
       expect(result.map((p) => p.id)).toEqual(['project-1', 'project-2']);
     });
 
-    it('should filter by technical diligence engagement type', () => {
-      const engagementCriteria = { ...criteria, engagement: 'technical-diligence' };
-      const result = filterProjects(mockProjects, engagementCriteria);
+    it('should filter by engagement category Buy-Side', () => {
+      const engagementCriteria = { ...criteria, engagement: 'Buy-Side' };
+      const result = filterProjects(mockProjects as Project[], engagementCriteria);
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('project-3');
+    });
+
+    it('should filter by engagement type', () => {
+      const typeCriteria = { ...criteria, type: 'Technical Diligence' };
+      const result = filterProjects(mockProjects as Project[], typeCriteria);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('project-3');
+    });
+
+    it('should filter by engagement type Value Creation', () => {
+      const typeCriteria = { ...criteria, type: 'Value Creation' };
+      const result = filterProjects(mockProjects as Project[], typeCriteria);
+      expect(result.length).toBe(2);
+      expect(result.map((p) => p.id)).toEqual(['project-1', 'project-2']);
     });
 
     it('should combine multiple filters (intersection)', () => {
       const multiCriteria: FilterCriteria = {
         search: '',
-        stage: 'all',
         theme: 'Healthcare',
         year: '2023',
         engagement: 'all',
+        type: 'all',
       };
-      const result = filterProjects(mockProjects, multiCriteria);
+      const result = filterProjects(mockProjects as Project[], multiCriteria);
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('project-2');
     });
 
     it('should handle case-insensitive search', () => {
       const searchCriteria = { ...criteria, search: 'HEALTHCARE' };
-      const result = filterProjects(mockProjects, searchCriteria);
+      const result = filterProjects(mockProjects as Project[], searchCriteria);
       expect(result.length).toBeGreaterThan(0);
     });
 
     it('should return empty array when no projects match', () => {
       const nomatchCriteria = { ...criteria, search: 'NonexistentTerm' };
-      const result = filterProjects(mockProjects, nomatchCriteria);
+      const result = filterProjects(mockProjects as Project[], nomatchCriteria);
       expect(result).toHaveLength(0);
     });
   });
