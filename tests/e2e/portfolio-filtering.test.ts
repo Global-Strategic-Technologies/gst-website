@@ -47,30 +47,6 @@ test.describe('Portfolio Filtering - DOM Integration Tests', () => {
     await expect(allThemesChip).not.toHaveClass(/active/);
   });
 
-  test('should activate year filter when clicked', async ({ page }) => {
-    await openFilterDrawer(page);
-
-    const yearChip = page.locator('[data-testid="filter-chip-year-2024"]');
-    await yearChip.click();
-
-    await expect(yearChip).toHaveClass(/active/);
-
-    const allYearsChip = page.locator('[data-testid="filter-chip-year-all"]');
-    await expect(allYearsChip).not.toHaveClass(/active/);
-  });
-
-  test('should activate type filter when clicked', async ({ page }) => {
-    await openFilterDrawer(page);
-
-    const tdChip = page.locator('[data-testid="filter-chip-type-technical-diligence"]');
-    await tdChip.click();
-
-    await expect(tdChip).toHaveClass(/active/);
-
-    const allTypesChip = page.locator('[data-testid="filter-chip-type-all"]');
-    await expect(allTypesChip).not.toHaveClass(/active/);
-  });
-
   test('should only allow one engagement filter active at a time', async ({ page }) => {
     await openFilterDrawer(page);
 
@@ -136,7 +112,6 @@ test.describe('Portfolio Filtering - DOM Integration Tests', () => {
 
     const buySideChip = page.locator('[data-testid="filter-chip-engagement-buy-side"]');
     const financeChip = page.locator('[data-testid="filter-chip-theme-finance"]');
-    const yearChip = page.locator('[data-testid="filter-chip-year-2025"]');
 
     await page.evaluate(() => {
       (
@@ -151,11 +126,6 @@ test.describe('Portfolio Filtering - DOM Integration Tests', () => {
     await expect(financeChip).toHaveClass(/active/);
 
     await page.evaluate(() => {
-      (document.querySelector('[data-testid="filter-chip-year-2025"]') as HTMLElement)?.click();
-    });
-    await expect(yearChip).toHaveClass(/active/);
-
-    await page.evaluate(() => {
       (document.querySelector('[data-testid="clear-filters-button"]') as HTMLElement)?.click();
     });
 
@@ -166,28 +136,21 @@ test.describe('Portfolio Filtering - DOM Integration Tests', () => {
 
     await expect(buySideChip).not.toHaveClass(/active/);
     await expect(financeChip).not.toHaveClass(/active/);
-    await expect(yearChip).not.toHaveClass(/active/);
 
     const allEngagementsChip = page.locator('[data-testid="filter-chip-engagement-all"]');
     const allThemesChip = page.locator('[data-testid="filter-chip-theme-all"]');
-    const allYearsChip = page.locator('[data-testid="filter-chip-year-all"]');
 
     await expect(allEngagementsChip).toHaveClass(/active/);
     await expect(allThemesChip).toHaveClass(/active/);
-    await expect(allYearsChip).toHaveClass(/active/);
   });
 
   test('should render all filter chip categories', async ({ page }) => {
     await openFilterDrawer(page);
 
     const engagementChips = page.locator('[data-testid^="filter-chip-engagement-"]');
-    const typeChips = page.locator('[data-testid^="filter-chip-type-"]');
     const themeChips = page.locator('[data-testid^="filter-chip-theme-"]');
-    const yearChips = page.locator('[data-testid^="filter-chip-year-"]');
 
     expect(await engagementChips.count()).toBeGreaterThan(0);
-    expect(await typeChips.count()).toBeGreaterThan(0);
     expect(await themeChips.count()).toBeGreaterThan(0);
-    expect(await yearChips.count()).toBeGreaterThan(0);
   });
 });

@@ -1,11 +1,6 @@
 ---
 import type { Project } from '../../types/portfolio';
-import {
-  getUniqueEngagementTypes,
-  getUniqueEngagementCategories,
-  getUniqueThemes,
-  getUniqueYears,
-} from '../../utils/filterLogic';
+import { getUniqueEngagementCategories, getUniqueThemes } from '../../utils/filterLogic';
 
 interface Props {
   portfolioType?: string;
@@ -17,8 +12,6 @@ const { portfolioType = 'standard', projects = [] } = Astro.props;
 const title = portfolioType === 'ma' ? 'PORTFOLIO M&A ENGAGEMENTS' : 'CLIENT ENGAGEMENTS';
 
 const uniqueThemes = getUniqueThemes(projects);
-const uniqueYears = getUniqueYears(projects);
-const uniqueEngagementTypes = getUniqueEngagementTypes(projects);
 const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 ---
 
@@ -133,26 +126,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       >
 
       <div class="filter-section">
-        <div class="filter-label">Year</div>
-        <div class="filter-chips" id="year-chips" data-testid="year-filter-chips">
-          <div class="filter-chip active" data-value="all" data-testid="filter-chip-year-all">
-            All Years
-          </div>
-          {
-            uniqueYears.map((year) => (
-              <div
-                class="filter-chip"
-                data-value={year.toString()}
-                data-testid={`filter-chip-year-${year}`}
-              >
-                {year}
-              </div>
-            ))
-          }
-        </div>
-      </div>
-
-      <div class="filter-section">
         <div class="filter-label">Engagement</div>
         <div class="filter-chips" id="engagement-chips" data-testid="engagement-filter-chips">
           <div class="filter-chip active" data-value="all" data-testid="filter-chip-engagement-all">
@@ -166,26 +139,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
                 data-testid={`filter-chip-engagement-${cat.toLowerCase().replace(/[\s&]+/g, '-')}`}
               >
                 {cat}
-              </div>
-            ))
-          }
-        </div>
-      </div>
-
-      <div class="filter-section">
-        <div class="filter-label">Type</div>
-        <div class="filter-chips" id="type-chips" data-testid="type-filter-chips">
-          <div class="filter-chip active" data-value="all" data-testid="filter-chip-type-all">
-            All Types
-          </div>
-          {
-            uniqueEngagementTypes.map((t) => (
-              <div
-                class="filter-chip"
-                data-value={t}
-                data-testid={`filter-chip-type-${t.toLowerCase().replace(/[\s&]+/g, '-')}`}
-              >
-                {t}
               </div>
             ))
           }
@@ -606,9 +559,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       filters: {
         search: '',
         theme: 'all',
-        year: 'all',
         engagement: 'all',
-        type: 'all',
       },
     };
   }
@@ -637,17 +588,9 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       // Theme filter
       if (filters.theme !== 'all' && project.theme !== filters.theme) return false;
 
-      // Year filter
-      if (filters.year !== 'all' && project.year.toString() !== filters.year) return false;
-
       // Engagement category filter
       if (filters.engagement !== 'all') {
         if (project.engagementCategory !== filters.engagement) return false;
-      }
-
-      // Engagement type filter
-      if (filters.type !== 'all') {
-        if (project.engagementType !== filters.type) return false;
       }
 
       return true;
@@ -707,9 +650,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 
   function attachChipListeners() {
     const themeChipsContainer = document.getElementById('theme-chips');
-    const yearChipsContainer = document.getElementById('year-chips');
     const engagementChipsContainer = document.getElementById('engagement-chips');
-    const typeChipsContainer = document.getElementById('type-chips');
 
     if (themeChipsContainer && !themeChipsContainer.hasListener) {
       themeChipsContainer.addEventListener('click', (e) => {
@@ -727,22 +668,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       themeChipsContainer.hasListener = true;
     }
 
-    if (yearChipsContainer && !yearChipsContainer.hasListener) {
-      yearChipsContainer.addEventListener('click', (e) => {
-        const chip = e.target.closest('.filter-chip');
-        if (chip) {
-          document
-            .querySelectorAll('#year-chips .filter-chip')
-            .forEach((c) => c.classList.remove('active'));
-          chip.classList.add('active');
-          filters.year = chip.dataset.value;
-          window.portfolioState.filters.year = filters.year;
-          filterProjects();
-        }
-      });
-      yearChipsContainer.hasListener = true;
-    }
-
     if (engagementChipsContainer && !engagementChipsContainer.hasListener) {
       engagementChipsContainer.addEventListener('click', (e) => {
         const chip = e.target.closest('.filter-chip');
@@ -757,22 +682,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
         }
       });
       engagementChipsContainer.hasListener = true;
-    }
-
-    if (typeChipsContainer && !typeChipsContainer.hasListener) {
-      typeChipsContainer.addEventListener('click', (e) => {
-        const chip = e.target.closest('.filter-chip');
-        if (chip) {
-          document
-            .querySelectorAll('#type-chips .filter-chip')
-            .forEach((c) => c.classList.remove('active'));
-          chip.classList.add('active');
-          filters.type = chip.dataset.value;
-          window.portfolioState.filters.type = filters.type;
-          filterProjects();
-        }
-      });
-      typeChipsContainer.hasListener = true;
     }
   }
 
@@ -858,7 +767,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     if (isUpdatingChips) return;
     isUpdatingChips = true;
 
-    const available = { year: new Set(), engagement: new Set(), type: new Set(), theme: new Set() };
+    const available = { engagement: new Set(), theme: new Set() };
 
     for (const project of allProjects) {
       if (filters.search) {
@@ -874,29 +783,20 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
         if (!searchableText.includes(searchLower)) continue;
       }
 
-      const matchesYear = filters.year === 'all' || project.year.toString() === filters.year;
       const matchesEngagement =
         filters.engagement === 'all' || project.engagementCategory === filters.engagement;
-      const matchesType = filters.type === 'all' || project.engagementType === filters.type;
       const matchesTheme = filters.theme === 'all' || project.theme === filters.theme;
 
-      if (matchesEngagement && matchesType && matchesTheme)
-        available.year.add(project.year.toString());
-      if (matchesYear && matchesType && matchesTheme)
-        available.engagement.add(project.engagementCategory);
-      if (matchesYear && matchesEngagement && matchesTheme)
-        available.type.add(project.engagementType);
-      if (matchesYear && matchesEngagement && matchesType) available.theme.add(project.theme);
+      if (matchesTheme) available.engagement.add(project.engagementCategory);
+      if (matchesEngagement) available.theme.add(project.theme);
     }
 
-    const r1 = updateChipAvailability('year-chips', available.year, 'year');
-    const r2 = updateChipAvailability('engagement-chips', available.engagement, 'engagement');
-    const r3 = updateChipAvailability('type-chips', available.type, 'type');
-    const r4 = updateChipAvailability('theme-chips', available.theme, 'theme');
+    const r1 = updateChipAvailability('engagement-chips', available.engagement, 'engagement');
+    const r2 = updateChipAvailability('theme-chips', available.theme, 'theme');
 
     isUpdatingChips = false;
 
-    if (r1 || r2 || r3 || r4) {
+    if (r1 || r2) {
       filterProjects();
     }
   }
@@ -998,9 +898,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       clearBtn.addEventListener('click', () => {
         filters.search = '';
         filters.theme = 'all';
-        filters.year = 'all';
         filters.engagement = 'all';
-        filters.type = 'all';
         window.portfolioState.filters = { ...filters };
 
         const searchInput = document.getElementById('search-input-fixed');

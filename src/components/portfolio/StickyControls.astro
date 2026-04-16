@@ -493,9 +493,7 @@ const { projects } = Astro.props;
       filters: {
         search: '',
         theme: 'all',
-        year: 'all',
         engagement: 'all',
-        type: 'all',
       },
     };
   }
@@ -524,17 +522,9 @@ const { projects } = Astro.props;
       // Theme filter
       if (filters.theme !== 'all' && project.theme !== filters.theme) return false;
 
-      // Year filter
-      if (filters.year !== 'all' && project.year.toString() !== filters.year) return false;
-
       // Engagement category filter
       if (filters.engagement !== 'all') {
         if (project.engagementCategory !== filters.engagement) return false;
-      }
-
-      // Engagement type filter
-      if (filters.type !== 'all') {
-        if (project.engagementType !== filters.type) return false;
       }
 
       return true;
@@ -596,9 +586,7 @@ const { projects } = Astro.props;
 
   function attachChipListeners() {
     const themeChipsContainer = document.getElementById('theme-chips');
-    const yearChipsContainer = document.getElementById('year-chips');
     const engagementChipsContainer = document.getElementById('engagement-chips');
-    const typeChipsContainer = document.getElementById('type-chips');
 
     if (themeChipsContainer && !themeChipsContainer.hasListener) {
       themeChipsContainer.querySelectorAll('.filter-chip').forEach((chip) => {
@@ -615,21 +603,6 @@ const { projects } = Astro.props;
       themeChipsContainer.hasListener = true;
     }
 
-    if (yearChipsContainer && !yearChipsContainer.hasListener) {
-      yearChipsContainer.querySelectorAll('.filter-chip').forEach((chip) => {
-        chip.addEventListener('click', function () {
-          yearChipsContainer
-            .querySelectorAll('.filter-chip')
-            .forEach((c) => c.classList.remove('active'));
-          this.classList.add('active');
-          filters.year = chip.dataset.value;
-          window.portfolioState.filters.year = filters.year;
-          filterProjects();
-        });
-      });
-      yearChipsContainer.hasListener = true;
-    }
-
     if (engagementChipsContainer && !engagementChipsContainer.hasListener) {
       engagementChipsContainer.querySelectorAll('.filter-chip').forEach((chip) => {
         chip.addEventListener('click', function () {
@@ -643,21 +616,6 @@ const { projects } = Astro.props;
         });
       });
       engagementChipsContainer.hasListener = true;
-    }
-
-    if (typeChipsContainer && !typeChipsContainer.hasListener) {
-      typeChipsContainer.querySelectorAll('.filter-chip').forEach((chip) => {
-        chip.addEventListener('click', function () {
-          typeChipsContainer
-            .querySelectorAll('.filter-chip')
-            .forEach((c) => c.classList.remove('active'));
-          this.classList.add('active');
-          filters.type = chip.dataset.value;
-          window.portfolioState.filters.type = filters.type;
-          filterProjects();
-        });
-      });
-      typeChipsContainer.hasListener = true;
     }
   }
 

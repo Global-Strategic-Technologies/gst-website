@@ -232,9 +232,7 @@ describe('filterLogic', () => {
     const criteria: FilterCriteria = {
       search: '',
       theme: 'all',
-      year: 'all',
       engagement: 'all',
-      type: 'all',
     };
 
     it('should return all projects with default criteria', () => {
@@ -256,13 +254,6 @@ describe('filterLogic', () => {
       expect(result[0].id).toBe('project-1');
     });
 
-    it('should filter by year', () => {
-      const yearCriteria = { ...criteria, year: '2024' };
-      const result = filterProjects(mockProjects, yearCriteria);
-      expect(result.length).toBe(2);
-      expect(result.map((p) => p.year)).toEqual([2024, 2024]);
-    });
-
     it('should filter by engagement category Sell-Side', () => {
       const engagementCriteria = { ...criteria, engagement: 'Sell-Side' };
       const result = filterProjects(mockProjects, engagementCriteria);
@@ -277,27 +268,11 @@ describe('filterLogic', () => {
       expect(result[0].id).toBe('project-3');
     });
 
-    it('should filter by engagement type', () => {
-      const typeCriteria = { ...criteria, type: 'Technical Diligence' };
-      const result = filterProjects(mockProjects, typeCriteria);
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('project-3');
-    });
-
-    it('should filter by engagement type Value Creation', () => {
-      const typeCriteria = { ...criteria, type: 'Value Creation' };
-      const result = filterProjects(mockProjects, typeCriteria);
-      expect(result.length).toBe(2);
-      expect(result.map((p) => p.id)).toEqual(['project-1', 'project-2']);
-    });
-
     it('should combine multiple filters (intersection)', () => {
       const multiCriteria: FilterCriteria = {
         search: '',
         theme: 'Healthcare',
-        year: '2023',
-        engagement: 'all',
-        type: 'all',
+        engagement: 'Sell-Side',
       };
       const result = filterProjects(mockProjects, multiCriteria);
       expect(result).toHaveLength(1);

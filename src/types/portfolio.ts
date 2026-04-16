@@ -44,9 +44,7 @@ export interface Stat {
 export interface FilterState {
   search: string;
   theme: string;
-  year: string;
   engagement: string;
-  type: string;
 }
 
 /**

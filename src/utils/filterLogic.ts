@@ -40,9 +40,7 @@ export const MATURE_KEYWORDS = [
 export interface FilterCriteria {
   search: string;
   theme: string; // 'all' | specific theme name
-  year: string; // 'all' | year as string
   engagement: string; // 'all' | specific engagementCategory value
-  type: string; // 'all' | specific engagementType value
 }
 
 /**
@@ -213,19 +211,9 @@ export function filterProjects(projects: Project[], criteria: FilterCriteria): P
       return false;
     }
 
-    // Year filter
-    if (criteria.year !== 'all' && project.year.toString() !== criteria.year) {
-      return false;
-    }
-
     // Engagement category filter (engagementCategory field)
     if (criteria.engagement !== 'all') {
       if (project.engagementCategory !== criteria.engagement) return false;
-    }
-
-    // Engagement type filter (engagementType field)
-    if (criteria.type !== 'all') {
-      if (project.engagementType !== criteria.type) return false;
     }
 
     return true;
