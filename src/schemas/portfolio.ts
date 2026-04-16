@@ -57,7 +57,6 @@ export const ProjectSchema = z.object({
   year: z.number().int().min(1900).max(2100),
   technologies: z.array(z.string()).readonly(),
   engagementType: EngagementTypeSchema.optional(),
-  engagementTypeTag: z.string().optional(),
   engagementTypeDescription: z.string().optional(),
   // challenge and solution use .nullish() because existing records use
   // `null` to mean "field intentionally empty" (10 of 57 projects today).

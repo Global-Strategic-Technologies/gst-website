@@ -24,7 +24,6 @@
       "Okta"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side product competitiveness and technical diligence assessment",
     "challenge": "Evaluating product competitiveness and technology scalability of an integrated cross-border payments and spend management platform undergoing a multi-year migration from legacy architecture to a modern serverless platform.",
     "solution": "Confirmed a differentiated product outperforming larger competitors with a modern cloud-native architecture supporting scalable growth, elite-level engineering metrics, and production-grade AI capabilities, with technical debt confined to transitional legacy operations.",
@@ -57,7 +56,6 @@
       "Azure"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Re-engagement of project Ecological to quantify additional AI enablement. Assessing technology maturity and integration readiness of a GovTech SaaS platform built on a hybrid Python/Django and legacy C#/.NET stack following two bolt-on acquisitions, with an active AI product expansion underway.",
     "solution": "Validated robust cloud-native architecture on AWS EKS with 99.95% uptime and 95%+ net revenue retention, confirmed successful integration of two acquired products, assessed AI chatbot viability with proprietary data flywheel, and identified legacy .NET technical debt requiring prioritised remediation.",
@@ -87,7 +85,6 @@
       "VMware"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Assessing technology readiness for revenue growth and integration compatibility of a healthcare collections platform built on legacy FACS system.",
     "solution": "Validated strong operational foundation with SOC 2 Type 2 compliance, efficient service delivery through pragmatic commercial platforms, and identified long-range platform transition planning needs while confirming scalability without disproportionate investment.",
@@ -111,7 +108,6 @@
       ".NET"
     ],
     "engagementType": "Value Creation",
-    "engagementTypeTag": "value-creation",
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Integrating two healthcare revenue cycle platforms while capturing margin opportunities through VARR automation and consolidating foundational IT operations.",
     "solution": "Developed phased integration strategy prioritizing Insurance Follow-Up migration to Arrow for VARR automation, Bad Debt consolidation to Atlas for capacity optimization, and foundational IT consolidation for efficiency gains of $290-480k OTC and $250-375k annual savings.",
@@ -142,7 +138,6 @@
       "Rhapsody"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Creating a technology roadmap for a surgical platform.",
     "solution": "Designed a 12-month plan to containerize legacy applications (Docker) and move to a modern multi-tenant AWS architecture.",
@@ -169,7 +164,6 @@
       "Android"
     ],
     "engagementType": "Value Creation",
-    "engagementTypeTag": "value-creation",
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Value-creation planning for migrating a legacy desktop body-shop management toolset to a cloud-native multi-tenant SaaS serving collision-repair facilities and multi-shop operators, with integrations to major accounting platforms and estimating systems.",
     "solution": "Recommended migrating on-premise desktop tools to a Node.js / AWS cloud architecture with iOS and Android mobile apps to eliminate client deployment burden and unify production, financial, and customer workflows.",
@@ -199,7 +193,6 @@
       "Zerto"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side technology evaluation for investor readiness",
     "challenge": "Demonstrating technology maturity, platform defensibility, and scalability of a proprietary transportation operations platform operating within FedRAMP-authorized infrastructure to prospective investors, with a carve-out in progress.",
     "solution": "Validated mature, vertically integrated technology-enabled services organization with 99.97% uptime, 1,500+ platform enhancements since 2017, FedRAMP Moderate authorization with 150 NIST 800-53 controls, and articulated investment opportunities in data architecture maturation, AI-enabled analytics, and Zero Trust alignment.",
@@ -229,7 +222,6 @@
       "Terraform"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side AI competitive analysis and technology evaluation",
     "challenge": "Evaluating AI strategy defensibility, competitive positioning, and disruption risk for a healthcare marketing agency facing multi-front AI threats from in-house pharma capabilities, AI-native competitors, and commoditization of content generation services.",
     "solution": "Identified fragmented AI infrastructure across four early-stage tools with low defensibility, positioned the proprietary omnichannel analytics platform as the most defensible asset, and delivered a prioritized AI roadmap to strengthen investor narrative ahead of exit.",
@@ -257,7 +249,6 @@
       "Multi-AZ RDS"
     ],
     "engagementType": "Value Creation",
-    "engagementTypeTag": "value-creation",
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Planning international expansion for a registry platform.",
     "solution": "Mapped expansion complexity across Singapore, UK, and Canada to forecast R&D investment needs.",
@@ -290,7 +281,6 @@
       "PHP"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side product competitiveness and technical diligence assessment",
     "challenge": "Showcasing a high-volume data platform processing high-volume data processing.",
     "solution": "Produced an external report validating the Python/Django architecture and the modernization roadmap for legacy 'legacy product' products.",
@@ -318,7 +308,6 @@
       "Elasticsearch"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Comprehensive technology evaluation",
     "challenge": "Validating a global R&D organization for a significant annual recurring revenue intranet software provider.",
     "solution": "Verified 'key financial performance metric' financial performance and low R&D costs (low percentage of ARR) to prove efficiency to investors.",
@@ -348,7 +337,6 @@
       "Cordova"
     ],
     "engagementType": "Value Creation",
-    "engagementTypeTag": "value-creation",
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Optimizing R&D for a .NET/React platform.",
     "solution": "Identified opportunities to use customer data to drive roadmap decisions and build engineering depth in AI/ML.",
@@ -376,7 +364,6 @@
       "LLM"
     ],
     "engagementType": "Value Creation",
-    "engagementTypeTag": "value-creation",
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Validating a cloud-native supply chain design platform.",
     "solution": "Recommended a 'refactoring program' to target complex code modules in the solver components.",
@@ -408,7 +395,6 @@
       "SonarQube"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Assessing whether a small-team, informal-SDLC SaaS platform built on a single multi-tenant SQL Server database and mixed legacy .NET versions can support the acquirer's expected revenue growth and enterprise-scale customers without disproportionate investment.",
     "solution": "Confirmed that the cohesive Microsoft stack (C#/.NET/SQL Server/Azure Government Cloud) and stateless OAuth/OIDC identity layer provide a sound basis for scaling; identified targeted, low-complexity investments — managed-services migration, multi-tenant schema audit, read-replicas plus caching, .NET 8 consolidation, MVC pagination, full-scope third-party pen test, engineering-leader hire, and product management maturation — all absorbable by the acquirer's existing resources.",
@@ -440,7 +426,6 @@
       "OpenAI"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Rapid 'First Impressions' assessment of a target with 1.5M lines of code.",
     "solution": "Validated the use of TypeScript/React but flagged potential data breach history requiring dark web scans.",
@@ -468,7 +453,6 @@
       "AI/LLM"
     ],
     "engagementType": "Value Creation",
-    "engagementTypeTag": "value-creation",
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Validating a trading platform covering extensive financial instrument coverage.",
     "solution": "Assessed the migration to Snowflake for data independence and validated the modular service-oriented architecture.",
@@ -497,7 +481,6 @@
       "WooCommerce"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Evaluating a direct-to-consumer telemedicine model.",
     "solution": "Confirmed a 'Growth-Ready' SDLC but recommended replacing legacy framework with Laravel to reduce maintenance costs.",
@@ -522,7 +505,6 @@
       "Cloud-Native Architecture"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side product competitiveness and technical diligence assessment",
     "challenge": "Developing the 'Product & Technology aspects of the Investment Thesis' for an airline cargo platform.",
     "solution": "Helped the client demonstrate 'increased revenue potential for airline partners' to potential buyers.",
@@ -552,7 +534,6 @@
       "Google Gemini AI"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side product competitiveness and technical diligence assessment",
     "challenge": "Producing an independent technology overview to validate scalability, extensibility, and security posture of a single-founder-built cloud-native real estate rentals SaaS platform ahead of investor outreach.",
     "solution": "Confirmed a modern serverless architecture on Firebase/GCP with TypeScript/Vue/Nuxt frontend and event-driven backend supports growth without disproportionate investment; validated fit-for-purpose security including AES-256 encryption, RBAC, passwordless login, and 30-day PII expiry; flagged opportunities to broaden MLS data integrations, mature generative AI capabilities, extend the enterprise API for partner ecosystem, and expand into commercial real estate and lease/deposit handling.",
@@ -578,7 +559,6 @@
       "PostgreSQL"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Analyzing extensive codebase for a registration and titling platform.",
     "solution": "Identified high code complexity in legacy 'legacy registration system' products and recommended moving from AngularJS to ReactJS.",
@@ -608,7 +588,6 @@
       "LLM"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side product competitiveness and technical diligence assessment",
     "challenge": "Preparing a substantial revenue document management platform for transaction.",
     "solution": "Coached the team to handle 'Rude Q&A' regarding legacy code and validated the metadata-centric 'platform consolidation' consolidation strategy.",
@@ -633,7 +612,6 @@
       "SonicWall VPN"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Evaluating legacy systems for a chemical manufacturing provider.",
     "solution": "Benchmarked IT maturity against 'Tech-Enabled' industry standards to identify operational gaps.",
@@ -662,7 +640,6 @@
       "MySQL"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side product competitiveness and technical diligence assessment",
     "challenge": "Demonstrating scalability for a substantial revenue event management platform handling substantial data volume.",
     "solution": "Validated the customer data platform and AWS RDS architecture to support a clean external investor report.",
@@ -696,7 +673,6 @@
       "Kafka"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Auditing a DSP/SSP platform processing high-volume transaction processing.",
     "solution": "Validated the scalability of the Go/Python backend but flagged identified technical debt items for remediation.",
@@ -724,7 +700,6 @@
       "HubSpot"
     ],
     "engagementType": "Value Creation",
-    "engagementTypeTag": "value-creation",
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Carving out a global identity security company from a major insurance parent.",
     "solution": "Designed a plan to replace parent-provided IT services and establish standalone operations.",
@@ -752,7 +727,6 @@
       "Microsoft stack"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Assessing a transplant management system handling sensitive biological data.",
     "solution": "Identified 'over-coupled' Docker containers and recommended a move to distinct instances to prevent outages.",
@@ -783,7 +757,6 @@
       "PHP 5.6"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Evaluating an education-to-career pathway platform for post-acquisition integration.",
     "solution": "Confirmed the Snowflake/Matillion data pipeline would support smooth data integration.",
@@ -808,7 +781,6 @@
       "Lucene"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Identifying integration, security, and platform risks across a HIPAA-regulated healthcare data platform targeted for acquisition, with focus on the company's ability to merge cleanly with the acquirer's stack.",
     "solution": "Confirmed no material technology risks to the investment, validated HITRUST r2 certified security posture and a fit-for-purpose low-code platform, while flagging OWASP Top 10 code weaknesses and recommending OSS governance, OAuth 2.0 migration, and a more scalable ERP as the company scales.",
@@ -832,7 +804,6 @@
       "Agile/Scrum"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Ensuring a remote notary platform could scale revenue without disproportionate R&D cost.",
     "solution": "Recommended replacing contractor teams with FTEs and implementing automated CI/CD pipelines.",
@@ -857,7 +828,6 @@
       "Debian Linux"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Proving integration readiness for a data integration service company.",
     "solution": "Demonstrated that the SaaS-based back-office operations would require 'minimal technical consolidation' for the acquirer.",
@@ -882,7 +852,6 @@
       "Aurora"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side product competitiveness and technical diligence assessment",
     "challenge": "Proving integration readiness for a data integration service company.",
     "solution": "Demonstrated that the SaaS-based back-office operations would require 'minimal technical consolidation' for the acquirer.",
@@ -911,7 +880,6 @@
       "Apache NiFi"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Comprehensive technology evaluation",
     "challenge": "Assessing a scheduling solution for complex manufacturing constraints.",
     "solution": "Recommended developing a new integration platform to facilitate data interchange with the acquirer’s MES offerings.",
@@ -938,7 +906,6 @@
       "Xceptor"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Assessing a 20-application 'enterprise suite' platform for financial funds.",
     "solution": "Validated the 'Buy vs. Build' strategy for enterprise systems and the use of RPA for event-driven business rules.",
@@ -977,7 +944,6 @@
       "OData"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side investor-facing technical assessment",
     "challenge": "Sell-side investor technology assessment of a multi-product information governance SaaS platform, validating scalability, security posture, and the ability to execute on cross-sell, international expansion, and M&A consolidation.",
     "solution": "Confirmed the .NET/Azure/SQL stack, SOC 2 Type 2 on the Records and Physical products, Azure DevOps CI/CD with Scaled Agile, and Aha!-driven product management as credible growth foundations; validated the in-progress unified GRC UI and Stratus microservices back-end as the cross-sell vehicle; flagged multi-tenant refactoring of Physical, Rackspace-to-Azure consolidation of Discover, SOC 2 extension to Discover, FedRAMP consideration, automated OSS/vulnerability scanning, and support metrics (FRT/ART/CSAT) as key workstreams.",
@@ -1003,7 +969,6 @@
       "SQL"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Validating revenue cycle management systems for hospitals.",
     "solution": "Flagged critical risks in the use of legacy system and recommended a modernization plan for custom ETL processes.",
@@ -1038,7 +1003,6 @@
       "Barracuda"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Buy-side assessment of whether a ten-year-old ColdFusion/Lucee LMS and eCommerce platform, running in a shared Azure account and supported by a single transitioning developer, can be carved out, migrated, and remediated without disproportionate investment.",
     "solution": "Confirmed the multi-tenant SaaS platform on Azure, its normalized SQL Server schema, and Rackspace-managed infrastructure are fit-for-purpose; prioritized a lift-and-shift of the application and database VMs into a dedicated Azure account, AzureAD replacement of the custom IAM (unlocking SSO/MFA for StraighterLine integration), SHA-1 → SHA-256 password hashing, annual third-party pen testing, and UI/UX and BI hiring to mitigate single-developer key-person risk; estimated $140k–$410k one-time and $150k–$520k annualized.",
@@ -1068,7 +1032,6 @@
       "GCP"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Modernizing a 30-year-old maintenance management system for the cloud.",
     "solution": "Proposed a re-architecture plan to move from legacy on-premise systems to a modern SaaS-ready tech stack.",
@@ -1094,7 +1057,6 @@
       "Salesforce"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side product competitiveness and technical diligence assessment",
     "challenge": "Preparing a food & beverage manufacturer with legacy BPCS ERP systems for sale.",
     "solution": "Delivered internal recommendations to articulate the IT turnaround story and defend technical debt in Oracle/legacy ERP systems to potential buyers.",
@@ -1128,7 +1090,6 @@
       "R"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Comprehensive technology evaluation",
     "challenge": "Proving the scalability of a mental health platform for students.",
     "solution": "Validated a modern React/Node.js tech stack with substantial codebase and 'no technical debt' affecting the roadmap.",
@@ -1158,7 +1119,6 @@
       "Stripe"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side product competitiveness and technical diligence assessment",
     "challenge": "Proving the platform readiness of a real estate investing community.",
     "solution": "Highlighted an exceptional strong customer satisfaction metrics and a clear roadmap to demonstrate long-term growth potential.",
@@ -1186,7 +1146,6 @@
       "RESTful APIs"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side product competitiveness and technical diligence assessment",
     "challenge": "Positioning a complex payments platform with 7 distinct products for exit.",
     "solution": "Validated the 'microservices architecture' microservices architecture and highlighted a majority of resources to maintenance to prove operational maturity to investors.",
@@ -1211,7 +1170,6 @@
       "Terraform"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Determining if an oncology platform could support a 3x increase in volume.",
     "solution": "Validated the containerized architecture and recommended building an AI/ML curation tool to replace manual workflows.",
@@ -1235,7 +1193,6 @@
       "Microservices"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Assessing a cybersecurity firm aiming to democratize protection for SMBs.",
     "solution": "Validated the platform's ability to scale from 5,000 to 25,000 active users.",
@@ -1260,7 +1217,6 @@
       "low-code/no-code"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Assessing a regulatory permit platform's ability to grow revenue 3-4X.",
     "solution": "Recommended integrating a leading IAM PaaS to replace custom authentication and implementing automated load testing.",
@@ -1285,7 +1241,6 @@
       "AWS"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Assessing a pricing engine coupled to the third-party platform PaaS.",
     "solution": "Flagged 'Critical' risk in third-party platform dependency; recommended immediate refactoring into interface-driven services.",
@@ -1312,7 +1267,6 @@
       "React JS"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side product competitiveness and technical diligence assessment",
     "challenge": "Sell-side preparation for a driver safety and compliance platform.",
     "solution": "Verified the maturity of the RESTful API and Service-Oriented Architecture (SOA) to support a smooth transition for the buyer.",
@@ -1336,7 +1290,6 @@
       "API"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Assessing scalability of inventory apps for grocery operations.",
     "solution": "Recommended formal business impact analysis (BIA) to model ransomware and outage risks.",
@@ -1364,7 +1317,6 @@
       "Terraform"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Validating an 'Intelligent Document Processing' (IDP) company.",
     "solution": "Verified the academic depth of the data science team and assessed the NLP algorithms driving the product.",
@@ -1393,7 +1345,6 @@
       "eLearning Platform"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Assessing whether the cloud-first IT stack and third-party SecuTrial eCRF (on a 14-year-old WebObjects framework) can absorb 30% annual transaction growth (5× over five years) within a $200k ceiling while maintaining GDPR and MPDG compliance.",
     "solution": "Confirmed the cloud SaaS portfolio (SecuTrial, Microsoft 365, Sophos, Veeam, ISO 27001-certified noris-network hosting) is fit-for-purpose over a five-year horizon, with the perpetual 50-concurrent-trial SecuTrial license covering near-term scale; flagged dated WebObjects architecture and eventual need for ~100 additional trial licenses; recommended identifying an alternate eCRF as a contingency, annual third-party pen testing, DR simulation, documented SLAs, formal GDPR audit, and promoting the contract DPO to a full-time role.",
@@ -1418,7 +1369,6 @@
       "Containerization"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Assessing a pricing optimization platform for independent grocers.",
     "solution": "Validated the AWS/PostgreSQL architecture but recommended defining a data retention policy to manage storage growth.",
@@ -1443,7 +1393,6 @@
       "QuickSight"
     ],
     "engagementType": "Value Creation",
-    "engagementTypeTag": "value-creation",
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": null,
     "solution": null,
@@ -1466,7 +1415,6 @@
       "AWS"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Technology Diligence to determine whether a charter-bus marketplace growing at 300% YoY can sustain that trajectory for five to eight years, and whether it is prepared to run as both a marketplace and a SaaS company after its imminent TMS launch.",
     "solution": "Confirmed the architecture supports continued growth and leadership is cohesive, with a 1–2 week release cadence as a key strength; flagged under-resourcing, missing technical-roadmap ownership, lack of integrated incident management, and below-average Infrastructure/SDLC/Organization scores; recommended assigning technical-roadmap ownership (OTC $50k–$100k, AC $250k–$500k), multi-AZ/multi-region cloud, a backlog-prioritization framework, and funding TMS R&D independently once early-adopter PoC is achieved.",
@@ -1504,7 +1452,6 @@
       "Jira"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Buy-side assessment of whether a lean mobile threat defense startup's hybrid-cloud architecture, SDLC, and organization can scale into an MTD suite for high-value C-Suite and government customers, despite immature DevOps, a single-region AWS footprint, and R&D running at 158% of revenue.",
     "solution": "Validated the proprietary mobile forensic IP — Docker/Java/Python with PostgreSQL, Elasticsearch, and FastText ML models — as defensible and low-risk; flagged single-node Docker Compose, hard-coded HTTP endpoints, no HA/autoscaling, single European AWS region, manual releases, missing OSS/security scanning, and key-person risk across VP Engineering and VP Customer Success; priced remediation (Kubernetes refactor, SOC 2, annual pen testing, 4–8 FTE build-out) at $271k–$810k one-time plus $2M–$4M over five years.",
@@ -1539,7 +1486,6 @@
       "New Relic"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Buy-side TDD assessing whether product architecture, infrastructure, processes, and organization can support 40% organic growth without disproportionate investment, and whether ETA and route-optimization capabilities can compete up-market.",
     "solution": "Confirmed AWS infrastructure, strong leadership tenure, mature dual-track Agile SDLC, and 25+ third-party integrations as key strengths; flagged the legacy Node.js monolith (CoffeeScript server, AngularJS front-end, O(n²) client-side data-filtering, manual compute scaling), underdeveloped active-navigation, missing CTO/Chief Architect and data-science team, manual CI/CD with 10% unit-test coverage, and a 7.7:1 developer-to-QA ratio; recommended hiring a CTO, CPO, and Senior Architect, an architectural-modernization assessment, JMeter load testing, SonarQube, GDPR review, and automated deployment.",
@@ -1565,7 +1511,6 @@
       "REST API"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Validating an AI/NLU customer service platform.",
     "solution": "Identified that legacy systems comprised significant portion of hosting costs and recommended a third-party vendor for cost-reduction.",
@@ -1587,7 +1532,6 @@
       "Salesforce"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Assessing the technology maturity of a tech-enabled research services company for acquisition.",
     "solution": "Proprietary, aging technology platform and reporting capabilities identified as requiring extensive manual work.",
@@ -1615,7 +1559,6 @@
       "SQLite"
     ],
     "engagementType": "Value Creation",
-    "engagementTypeTag": "value-creation",
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Combinging acquired technology platform into portfolio company SaaS platform.",
     "solution": "Integrating disparate product architectures into near-term and designed future-state, combined platform architecture to support immediate revenue growth and cross-selling enablement.",
@@ -1646,7 +1589,6 @@
       "CrowdStrike"
     ],
     "engagementType": "Technical Diligence",
-    "engagementTypeTag": "technical-diligence",
     "engagementTypeDescription": "Technical diligence for M&A transactions",
     "challenge": "Preliminary buy-side TDD of a 2,500-person globally distributed project management firm spanning 20+ legal entities, evaluating platform fragmentation, security posture, integration-playbook maturity, and AI governance.",
     "solution": "Confirmed ISO 27001:2022 certification, a defense-in-depth security stack (BlueVoyant MDR, CrowdStrike EDR, ThreatLocker, Vanta), a tiered dual-datacenter DR program, and a proven three-stage integration playbook as strengths; flagged 82.47% IT service-desk SLA compliance (below the 90%+ norm), five of seven integration workstreams incomplete, EMEA entities outside the ISO boundary, and nascent AI governance as primary post-close areas (est. $100K–$200K).",
@@ -1679,7 +1621,6 @@
       "New Relic"
     ],
     "engagementType": "Value Creation",
-    "engagementTypeTag": "value-creation",
     "engagementTypeDescription": "Post-acquisition value creation work",
     "challenge": "Post-acquisition de-risk workstream identifying stability, quality, and sustainability constraints across the SDLC, customer integration, and cloud cost governance to accelerate consolidation onto a single platform.",
     "solution": "Baselined the SDLC (60% Java / 20% Angular across ~200 GitHub repos, ~60% test coverage, Jenkins CI/CD self-scored 2–3/10, Spotify squads with unclear product mapping); flagged DevOps immaturity, knowledge islands around WordPress and Elasticsearch, ambiguous PO/PM roles, and missing sprint-capacity planning; recommended GitHub Actions/GitLab pipelines, MuleSoft for SmartPost refactoring, Domo metrics, LinearB, 15–25% tech-debt allocation, and containerizing services beyond CoreAPI.",
@@ -1702,7 +1643,6 @@
       "Recommendation Systems"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Sell-side technical assessment and diligence readiness",
     "challenge": "Pre-diligence AI/ML readiness and data-strategy engagement preparing the company to present its data science capabilities, algorithm choices, and personalized-storefront technology for investor TDD, after prior missteps with third-party ML/AI.",
     "solution": "Validated AI/ML maturity behind the personalized rewards storefront and savings engine against the product's external positioning; ran a data SWOT and audited the data asset inventory; framed the seven-question test for when customer data creates durable competitive advantage; coached leadership on accurately communicating strengths and proactively mitigating risks during an investor TDD.",
@@ -1726,7 +1666,6 @@
       "Azure Functions"
     ],
     "engagementType": "Technical Assessment",
-    "engagementTypeTag": "technical-assessment",
     "engagementTypeDescription": "Pre-bid preliminary technical impressions",
     "challenge": "Pre-bid light-touch assessment of whether a single-tenant Azure data-integration SaaS is modern and scalable enough to back, how exposed it is to AI risk, and which organizational roles are missing — giving the investor conviction to lean in or pause on the bid.",
     "solution": "Stack is not modern but serviceable and cost-efficient (infra 5.2% of revenue); single-tenant design is defensible for varied customer ontologies. Flagged missing IaC/CI/CD, automated QA, observability, and incident response; an emerging product and data strategy with no articulated AI roadmap; and key organizational gaps — DevOps leader, Cloud Data Architect, and interim CTO — to address before pursuing 5–10× scale.",
