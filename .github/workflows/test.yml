@@ -36,6 +36,7 @@ jobs:
           predicate-quantifier: 'every'
           filters: |
             code:
+              - '**'
               - '!**/*.md'
               - '!src/docs/**'
               - '!.claude/**'
