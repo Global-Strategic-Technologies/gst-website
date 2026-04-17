@@ -423,23 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
       | HTMLElement
       | undefined;
 
-    if (themeClone) {
-      themeClone.removeAttribute('id');
-      mobileHeader.appendChild(themeClone);
-      themeClone.addEventListener('click', () => {
-        themeObserverPaused = true;
-        document.documentElement.classList.toggle('dark-theme');
-        const isDark = document.documentElement.classList.contains('dark-theme');
-        try {
-          localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        } catch {
-          /* ignore */
-        }
-        themeObserverPaused = false;
-        resetAllOverrides();
-      });
-    }
-
+    // Append popout first (left position), then theme toggle (right position)
     if (popoutClone) {
       popoutClone.removeAttribute('id');
       mobileHeader.appendChild(popoutClone);
@@ -467,6 +451,23 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fab) fab.style.display = '';
           }
         }
+      });
+    }
+
+    if (themeClone) {
+      themeClone.removeAttribute('id');
+      mobileHeader.appendChild(themeClone);
+      themeClone.addEventListener('click', () => {
+        themeObserverPaused = true;
+        document.documentElement.classList.toggle('dark-theme');
+        const isDark = document.documentElement.classList.contains('dark-theme');
+        try {
+          localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        } catch {
+          /* ignore */
+        }
+        themeObserverPaused = false;
+        resetAllOverrides();
       });
     }
   }
