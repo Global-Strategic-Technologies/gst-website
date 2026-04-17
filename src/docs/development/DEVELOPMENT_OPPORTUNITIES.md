@@ -414,6 +414,42 @@ docs(styles): document light-dark() as preferred theming pattern
 
 ---
 
+## Initiative #10: Single-Browser CI for E2E Tests
+
+**Status:** Proposed
+**Priority:** Medium
+**Estimated Effort:** 30 minutes
+**Expected ROI:** High — ~60% CI time reduction
+
+### Overview
+
+Run E2E tests on Chromium only in the default CI pipeline, reserving Firefox and WebKit for a separate nightly or pre-merge gate. The current 3-browser configuration runs every test 3 times, tripling CI wall-clock time (~20 min → ~7 min).
+
+### What Problem Does It Solve?
+
+- E2E suite currently takes ~20 minutes across 3 browser projects (chromium, firefox, webkit)
+- Cross-browser bugs are rare for this codebase (static Astro site, no browser-specific JS APIs)
+- The incremental safety of running all 3 browsers on every push doesn't justify the 3x runtime cost
+- Developer feedback loop is slowed by the long CI pipeline
+
+### Implementation
+
+1. Add a `chromium-only` project to `playwright.config.ts` and make it the CI default
+2. Create a separate GitHub Actions workflow (`test-cross-browser.yml`) that runs all 3 projects on:
+   - Nightly schedule (cron)
+   - PRs targeting `master`
+   - Manual dispatch
+3. Update `test.yml` to use `--project=chromium` for the standard E2E step
+4. Tag any known cross-browser-sensitive tests with `@crossbrowser` annotation for the full suite
+
+### Success Metrics
+
+- Default CI E2E step completes in <8 minutes
+- Cross-browser regressions caught within 24 hours (nightly gate) or at PR merge time
+- Zero cross-browser bugs shipped to production that would have been caught by the old config
+
+---
+
 ## Deferred Performance Initiatives
 
 These initiatives were identified during the April 2026 Vercel Speed Insights analysis but deferred due to scope, risk, or cost/benefit considerations. Previously tracked in a separate `PERFORMANCE_FUTURE_INITIATIVES.md` (now consolidated here).
@@ -459,6 +495,7 @@ All 10 wizard steps are server-rendered upfront. Switching to client-side render
 | CSS @layer Splitting (#7)      | Low        | 4-8h   | Low         | Deferred                | —              |
 | Wizard Lazy-Render (#8)        | Low        | 4-6h   | Low         | Deferred                | —              |
 | Transition Consolidation (#9)  | Low        | 3-5h   | Low         | Deferred                | —              |
+| Single-Browser CI E2E (#10)    | Medium     | 30m    | High        | Proposed                | Sprint 2       |
 
 ---
 
