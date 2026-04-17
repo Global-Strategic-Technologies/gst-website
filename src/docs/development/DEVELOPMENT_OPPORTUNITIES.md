@@ -412,15 +412,53 @@ docs(styles): document light-dark() as preferred theming pattern
 
 ---
 
+---
+
+## Deferred Performance Initiatives
+
+These initiatives were identified during the April 2026 Vercel Speed Insights analysis but deferred due to scope, risk, or cost/benefit considerations. Previously tracked in a separate `PERFORMANCE_FUTURE_INITIATIVES.md` (now consolidated here).
+
+**Context:** In April 2026, three pages were flagged as "Needs Improvement" by Vercel Speed Insights (scores 75-78). Six targeted optimizations were implemented. The initiatives below were evaluated and intentionally deferred.
+
+### Initiative #6: Global CSS Refactoring
+
+**Status:** Deferred | **Priority:** Medium | **Risk:** High | **Effort:** 8-16h
+
+`global.css` was 5,511 lines and loaded on every page. Phase 3 of Platform Hardening V1 addressed this partially (CSS architecture refactor, scoped styles migration), reducing it significantly. Remaining work: extract any further component-specific styles into scoped blocks. Only revisit if Lighthouse CSS metrics regress.
+
+### Initiative #7: CSS Code Splitting via @layer
+
+**Status:** Deferred | **Priority:** Low | **Risk:** Medium | **Effort:** 4-8h
+
+CSS `@layer` was adopted in Phase 3 for organizational purposes. Code-splitting (loading non-critical layers with lower priority) was deferred — the marginal gain doesn't justify the architectural complexity. Revisit only after Initiative #6 is complete.
+
+### Initiative #8: Diligence Machine Wizard Lazy-Rendering
+
+**Status:** Deferred | **Priority:** Low | **Risk:** Medium | **Effort:** 4-6h
+
+All 10 wizard steps are server-rendered upfront. Switching to client-side rendering would degrade SEO and accessibility. Consider `content-visibility: auto` as a middle-ground if Speed Insights score remains below 80.
+
+### Initiative #9: Transition Rule Consolidation
+
+**Status:** Deferred | **Priority:** Low | **Risk:** Medium | **Effort:** 3-5h
+
+82 `transition:` declarations exist across CSS files. Each serves a specific component; consolidating risks breaking hover/focus animations. Low impact — transition declarations add negligible parse-time cost.
+
+---
+
 ## Summary Table
 
-| Initiative                | Priority   | Effort | ROI         | Status                          | Start Date     |
-| ------------------------- | ---------- | ------ | ----------- | ------------------------------- | -------------- |
-| Lighthouse CI             | High       | 2-3h   | Very High   | Proposed                        | Sprint 1       |
-| E2E Image Test            | High       | 30m    | High        | Proposed                        | Sprint 1       |
-| Unit Error Tests          | Medium     | 1-2h   | Medium-High | Proposed                        | Sprint 2       |
-| Perf Dashboard            | Low-Medium | 1-2h   | Medium      | Proposed                        | Sprint 3+      |
-| `light-dark()` Full Sweep | Low-Medium | 2-4h   | Medium      | Blocked (pending Phase 9 pilot) | Post-hardening |
+| Initiative                     | Priority   | Effort | ROI         | Status                  | Start Date     |
+| ------------------------------ | ---------- | ------ | ----------- | ----------------------- | -------------- |
+| Lighthouse CI (#1)             | High       | 2-3h   | Very High   | Proposed                | Sprint 1       |
+| E2E Image Test (#2)            | High       | 30m    | High        | Proposed                | Sprint 1       |
+| Unit Error Tests (#3)          | Medium     | 1-2h   | Medium-High | Proposed                | Sprint 2       |
+| Perf Dashboard (#4)            | Low-Medium | 1-2h   | Medium      | Proposed                | Sprint 3+      |
+| `light-dark()` Full Sweep (#5) | Low-Medium | 2-4h   | Medium      | Blocked (pending pilot) | Post-hardening |
+| Global CSS Refactoring (#6)    | Medium     | 8-16h  | Medium      | Deferred                | —              |
+| CSS @layer Splitting (#7)      | Low        | 4-8h   | Low         | Deferred                | —              |
+| Wizard Lazy-Render (#8)        | Low        | 4-6h   | Low         | Deferred                | —              |
+| Transition Consolidation (#9)  | Low        | 3-5h   | Low         | Deferred                | —              |
 
 ---
 

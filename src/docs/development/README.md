@@ -18,14 +18,14 @@ Strategic documentation for ongoing, proposed, and completed development initiat
 
 ## Reference Docs
 
-| Doc                                                                          | Purpose                                                                                                                 |
-| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md)                               | Authoritative reference for lint, format, hooks, CI, Sentry, browser targets                                            |
-| [DEVELOPMENT_OPPORTUNITIES.md](./DEVELOPMENT_OPPORTUNITIES.md)               | Evergreen backlog of testing, performance, and quality initiatives                                                      |
-| [PERFORMANCE_FUTURE_INITIATIVES.md](./PERFORMANCE_FUTURE_INITIATIVES.md)     | Deferred performance optimizations (CSS splitting, build tooling). See also DEVELOPMENT_OPPORTUNITIES for related items |
-| [DESIGN_SYSTEM_FUTURE_INITIATIVES.md](./DESIGN_SYSTEM_FUTURE_INITIATIVES.md) | Design system maturity items (opacity scales, border variables, accessibility)                                          |
-| [FAVICON_AND_ICONS.md](./FAVICON_AND_ICONS.md)                               | Favicon/icon system across browsers, iOS, Android, PWA                                                                  |
-| [STYLES_REMEDIATION_ROADMAP.md](../styles/STYLES_REMEDIATION_ROADMAP.md)     | Tracked CSS improvements (12 initiatives with status)                                                                   |
+| Doc                                                                          | Purpose                                                                                                 |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md)                               | Authoritative reference for lint, format, hooks, CI, Sentry, browser targets                            |
+| [DEVELOPMENT_OPPORTUNITIES.md](./DEVELOPMENT_OPPORTUNITIES.md)               | Evergreen backlog of testing, performance, and quality initiatives (includes deferred perf initiatives) |
+| [DESIGN_SYSTEM_FUTURE_INITIATIVES.md](./DESIGN_SYSTEM_FUTURE_INITIATIVES.md) | Design system maturity items (opacity scales, border variables, accessibility)                          |
+| [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md)                           | Sentry alert rules, source map upload, and consent gating setup steps                                   |
+| [FAVICON_AND_ICONS.md](./FAVICON_AND_ICONS.md)                               | Favicon/icon system across browsers, iOS, Android, PWA                                                  |
+| [STYLES_REMEDIATION_ROADMAP.md](../styles/STYLES_REMEDIATION_ROADMAP.md)     | Tracked CSS improvements (12 initiatives with status)                                                   |
 
 ## Archived (Completed)
 
@@ -45,4 +45,6 @@ These documents record completed initiatives retained for historical context:
 
 ---
 
-_Last Updated: April 13, 2026_
+← Back to [Master Documentation Index](../README.md)
+
+_Last Updated: April 17, 2026_

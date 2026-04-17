@@ -892,7 +892,7 @@ fix(e2e): remediate 42 flaky test failures under parallel load
 
 - **Security findings** → fix immediately or escalate to Phase 8 security headers work
 - **Failing tests** → fix in the discovering commit; never punt
-- **Performance regressions** → fix immediately; track in [PERFORMANCE_FUTURE_INITIATIVES.md](./PERFORMANCE_FUTURE_INITIATIVES.md) if structural
+- **Performance regressions** → fix immediately; track in [DEVELOPMENT_OPPORTUNITIES.md](./DEVELOPMENT_OPPORTUNITIES.md) § Deferred Performance Initiatives if structural
 - **Anything visible to users** (broken UI, copy errors, accessibility violations) → fix in the appropriate phase, not here
 - **Items requiring a design decision** → these need stakeholder input, not bucket cleanup; create a separate doc or Key Design Decision entry
 - **Items discovered during Phase 9 itself** → Phase 9 is not self-feeding. If Phase 9 execution surfaces new drift, log it in [DEVELOPMENT_OPPORTUNITIES.md](./DEVELOPMENT_OPPORTUNITIES.md) for a future initiative
@@ -1028,7 +1028,7 @@ Both benefit from the hardened foundation: CI pipeline (Phase 2), refactored com
 - [DEVELOPMENT_OPPORTUNITIES.md](./DEVELOPMENT_OPPORTUNITIES.md) — Performance monitoring initiatives (Lighthouse CI, E2E tests)
 - [DESIGN_SYSTEM_FUTURE_INITIATIVES.md](./DESIGN_SYSTEM_FUTURE_INITIATIVES.md) — Deferred design system enhancements
 - [HUB_TOOLS_UX_UNIFICATION.md](./HUB_TOOLS_UX_UNIFICATION.md) — Cross-tool UX patterns
-- [PERFORMANCE_FUTURE_INITIATIVES.md](./PERFORMANCE_FUTURE_INITIATIVES.md) — Deferred performance optimizations
+- [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md) — Sentry alert rules, source maps, consent gating
 - [BRAND_GUIDELINES.md](../styles/BRAND_GUIDELINES.md) — Brand voice and design philosophy
 - [STYLES_GUIDE.md](../styles/STYLES_GUIDE.md) — CSS conventions and patterns
 - [VARIABLES_REFERENCE.md](../styles/VARIABLES_REFERENCE.md) — Design token catalog

@@ -41,3 +41,7 @@ npm run test:all              # Everything
 npm run test:coverage         # With coverage report
 npm run test:a11y             # Accessibility scan (chromium)
 ```
+
+---
+
+← Back to [Master Documentation Index](../README.md)
