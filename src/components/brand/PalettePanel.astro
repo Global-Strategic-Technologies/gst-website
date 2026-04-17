@@ -529,6 +529,15 @@ import { palettes } from '../../data/palettes';
       border-bottom-width: 2px;
     }
 
+    /* Popout icon: down triangle = off, upright = on */
+    .palette-panel__mobile-header .palette-panel__popout .palette-panel__icon {
+      transform: rotate(180deg);
+    }
+
+    .palette-panel__mobile-header .palette-panel__popout.is-active .palette-panel__icon {
+      transform: rotate(0deg);
+    }
+
     /* Swatch grid — 3 compact columns on mobile, no horizontal overflow */
     .palette-panel__swatch-grid {
       grid-template-columns: repeat(3, 1fr);
