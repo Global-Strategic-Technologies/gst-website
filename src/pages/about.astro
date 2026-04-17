@@ -111,6 +111,9 @@ trackPageView('about', 'About | GST Leadership & Experience');
               value creation and disciplined execution.</em
             >
           </p>
+          <p class="founder-contact">
+            <a href="mailto:contact@globalstrategic.tech">contact@globalstrategic.tech</a>
+          </p>
         </div>
       </div>
     </div>
@@ -121,6 +124,7 @@ trackPageView('about', 'About | GST Leadership & Experience');
     description="Connect with us to explore how GST's experience can help drive your objectives forward."
     buttonText="Schedule a Consultation"
     bookingUrl="https://calendarbridge.com/book/globalstrategictech/"
+    emailAddress="contact@globalstrategic.tech"
   />
 </BaseLayout>
 
@@ -323,6 +327,24 @@ trackPageView('about', 'About | GST Leadership & Experience');
   .founder-credentials {
     font-style: italic;
     color: var(--text-secondary);
+  }
+
+  .founder-contact {
+    margin-top: var(--spacing-md);
+  }
+
+  .founder-contact a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-family: monospace;
+    font-size: var(--text-sm);
+    letter-spacing: 0.05em;
+    transition: border-bottom var(--transition-fast);
+    border-bottom: 1px solid transparent;
+  }
+
+  .founder-contact a:hover {
+    border-bottom-color: var(--color-primary);
   }
 
   :global(html.dark-theme) .founder-section {
