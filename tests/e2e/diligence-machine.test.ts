@@ -578,7 +578,7 @@ test.describe('Diligence Machine E2E', () => {
   });
 
   test.describe('8. Output Content Verification', () => {
-    test('should generate 15-20 questions', async ({ page }) => {
+    test('should generate 15-20 questions with complete structure', async ({ page }) => {
       await completeWizardAndGenerate(page, {
         transactionType: 'full-acquisition',
         productType: 'b2b-saas',
@@ -597,53 +597,33 @@ test.describe('Diligence Machine E2E', () => {
 
       await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
 
-      // Count all questions
+      // Count all questions — should be 15-20
       const count = await getQuestionCount(page);
       expect(count).toBeGreaterThanOrEqual(15);
       expect(count).toBeLessThanOrEqual(20);
-    });
 
-    test('should render complete question structure with all fields', async ({ page }) => {
-      await completeWizardAndGenerate(page, {
-        transactionType: 'full-acquisition',
-        productType: 'b2b-saas',
-        techArchetype: 'modern-cloud-native',
-        headcount: '51-200',
-        revenueRange: '5-25m',
-        growthStage: 'scaling',
-        companyAge: '2-5yr',
-        geographies: ['us'],
-        businessModel: 'productized-platform',
-        scaleIntensity: 'moderate',
-        transformationState: 'stable',
-        dataSensitivity: 'moderate',
-        operatingModel: 'centralized-eng',
-      });
-
-      await expect(page.locator('[data-testid="output-container"]')).toBeVisible();
-
-      // Get first question
+      // Verify first question has complete structure
       const firstQuestion = page.locator('.doc-question').first();
 
-      // Verify question number
+      // Question number
       const qNumber = firstQuestion.locator('.doc-q-number');
       await expect(qNumber).toBeVisible();
       const numberText = await qNumber.textContent();
       expect(numberText).toMatch(/^\d+\.\d+$/); // Format: 1.1, 2.3, etc.
 
-      // Verify priority badge
+      // Priority badge
       const priorityBadge = firstQuestion.locator('.doc-q-priority');
       await expect(priorityBadge).toBeVisible();
       const priority = await priorityBadge.textContent();
       expect(['high', 'medium', 'standard']).toContain(priority);
 
-      // Verify question text
+      // Question text
       const qText = firstQuestion.locator('.doc-q-text');
       await expect(qText).toBeVisible();
       const text = await qText.textContent();
       expect(text!.length).toBeGreaterThan(10);
 
-      // Verify rationale
+      // Rationale
       const rationale = firstQuestion.locator('.doc-q-rationale');
       await expect(rationale).toBeVisible();
       const rationaleText = await rationale.textContent();
