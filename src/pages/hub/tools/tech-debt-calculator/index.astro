@@ -530,7 +530,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
   }
 
   .inputs-section {
-    border-bottom: 2px solid var(--border-light);
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-subtle));
   }
 
   /* ── Section label overrides (base from global .tool-section-label) ──── */
@@ -662,14 +662,10 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
 
   /* .calc-slider and .hint-input dark theme overrides — in global.css */
 
-  :global(html.dark-theme) .inputs-section {
-    border-bottom-color: var(--border-dark-subtle);
-  }
-
   /* ── Advanced section ─────────────────────────────────────────────────── */
   .advanced-section {
-    border-top: 2px solid var(--border-light);
-    border-bottom: 2px solid var(--border-light);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-subtle));
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-subtle));
   }
 
   .advanced-toggle {
@@ -708,7 +704,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
 
   .advanced-panel {
     padding: 0 var(--spacing-2xl) var(--spacing-xl);
-    border-top: 1px solid var(--border-light);
+    border-top: 1px solid light-dark(var(--border-light), rgba(255, 255, 255, 0.08));
   }
 
   .advanced-panel .section-label:first-child {
@@ -725,7 +721,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
   .deploy-btn {
     min-height: 44px;
     padding: var(--spacing-xs);
-    border: 2px solid var(--border-light);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     background: transparent;
     border-radius: 0;
     color: var(--text-faded);
@@ -814,7 +810,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
 
   .result-stat {
     padding-top: var(--spacing-sm);
-    border-top: 2px solid var(--border-light);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   }
 
   .result-stat-label {
@@ -848,7 +844,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
 
   /* Advanced results — same grid style, separated by a subtle rule */
   .adv-results {
-    border-top: 2px solid var(--border-light);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     padding-top: var(--spacing-lg);
     margin-top: var(--spacing-sm);
     margin-bottom: var(--spacing-md);
@@ -882,7 +878,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
   /* ── Footer ───────────────────────────────────────────────────────────── */
   .calc-footer {
     padding: var(--spacing-md) var(--spacing-2xl);
-    border-top: 2px solid var(--border-light);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-subtle));
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -893,35 +889,6 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
     color: var(--text-faded);
   }
 
-  :global(html.dark-theme) .deploy-btn {
-    border-color: var(--border-dark-default);
-  }
-
-  :global(html.dark-theme) .deploy-btn.active {
-    background: var(--color-primary);
-    color: var(--bg-dark);
-  }
-
-  :global(html.dark-theme) .result-stat {
-    border-top-color: var(--border-dark-default);
-  }
-
-  :global(html.dark-theme) .adv-results {
-    border-top-color: var(--border-dark-default);
-  }
-
-  :global(html.dark-theme) .advanced-section {
-    border-color: var(--border-dark-subtle);
-  }
-
-  :global(html.dark-theme) .advanced-panel {
-    border-top-color: rgba(255, 255, 255, 0.08);
-  }
-
-  :global(html.dark-theme) .calc-footer {
-    border-top-color: var(--border-dark-subtle);
-  }
-
   /* ── Footer controls group (currency + copy link) ─────────────────────── */
   .calc-footer__controls {
     flex-shrink: 0;
@@ -930,7 +897,7 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
   /* ── Currency selector ────────────────────────────────────────────────── */
   .currency-select {
     padding: var(--spacing-xs) var(--spacing-sm);
-    border: 2px solid var(--border-light);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     border-radius: 0;
     background: transparent;
     color: var(--text-muted);
@@ -956,15 +923,8 @@ trackPageView('tech-debt-calculator', 'Technical Debt Cost Calculator | GST');
     outline: none;
   }
 
-  :global(html.dark-theme) .currency-select {
-    background-color: transparent;
-    color: var(--text-secondary);
-    border-color: var(--border-dark-default);
-  }
-
   :global(html.dark-theme) .currency-select option {
     background-color: var(--bg-dark-secondary);
-    color: var(--text-secondary);
   }
 
   /* ── Copy Link button ─────────────────────────────────────────────────── */

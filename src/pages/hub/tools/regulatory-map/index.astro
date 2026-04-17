@@ -1594,11 +1594,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       z-index: 20;
       background: var(--bg-light);
       padding: var(--spacing-sm) 0;
-      border-bottom: 1px solid var(--border-light);
-    }
-
-    :global(html.dark-theme) .regulation-filters {
-      border-bottom-color: var(--border-dark);
+      border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark));
     }
   }
 
@@ -1724,7 +1720,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   .timeline-section {
     margin-top: var(--spacing-3xl);
     padding-top: var(--spacing-2xl);
-    border-top: 2px solid var(--border-light);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   }
 
   .timeline-heading {
@@ -1832,10 +1828,6 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   }
 
   /* Timeline dark theme */
-  :global(html.dark-theme) .timeline-section {
-    border-top-color: var(--border-dark-default);
-  }
-
   :global(html.dark-theme) .timeline-legend {
     color: var(--text-dark-muted);
   }
