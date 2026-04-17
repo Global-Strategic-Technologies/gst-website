@@ -504,43 +504,29 @@ import { palettes } from '../../data/palettes';
       touch-action: none;
     }
 
-    /* Mobile header — horizontal tab row + controls */
+    /* Mobile header — wrapping grid, no horizontal scroll */
     .palette-panel__mobile-header {
-      display: flex;
-      align-items: center;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
       gap: var(--spacing-xs);
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
       padding: 0 var(--spacing-lg) var(--spacing-sm);
-      scrollbar-width: none;
     }
 
-    .palette-panel__mobile-header::-webkit-scrollbar {
-      display: none;
-    }
-
-    .palette-panel__mobile-header .palette-panel__tab {
-      flex-shrink: 0;
-      min-width: 44px;
-      min-height: 44px;
+    .palette-panel__mobile-header .palette-panel__tab,
+    .palette-panel__mobile-header .palette-panel__theme-toggle,
+    .palette-panel__mobile-header .palette-panel__popout {
+      min-height: 40px;
       border: 1px solid var(--border-light);
       border-radius: 4px;
-      border-right: 1px solid var(--border-light);
+      margin-top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .palette-panel__mobile-header .palette-panel__tab--active {
       border-color: var(--color-primary);
       border-bottom-width: 2px;
-    }
-
-    .palette-panel__mobile-header .palette-panel__theme-toggle,
-    .palette-panel__mobile-header .palette-panel__popout {
-      flex-shrink: 0;
-      min-width: 44px;
-      min-height: 44px;
-      border: 1px solid var(--border-light);
-      border-radius: 4px;
-      margin-top: 0;
     }
 
     /* Swatch grid — 3 compact columns on mobile, no horizontal overflow */
