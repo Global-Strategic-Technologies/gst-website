@@ -504,10 +504,10 @@ import { palettes } from '../../data/palettes';
       touch-action: none;
     }
 
-    /* Mobile header — wrapping grid, no horizontal scroll */
+    /* Mobile header — 6-column grid: numbers on row 1, deltas on row 2 */
     .palette-panel__mobile-header {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(6, 1fr);
       gap: var(--spacing-xs);
       padding: 0 var(--spacing-lg) var(--spacing-sm);
     }
@@ -527,6 +527,12 @@ import { palettes } from '../../data/palettes';
     .palette-panel__mobile-header .palette-panel__tab--active {
       border-color: var(--color-primary);
       border-bottom-width: 2px;
+    }
+
+    /* Delta buttons span half the row each */
+    .palette-panel__mobile-header .palette-panel__theme-toggle,
+    .palette-panel__mobile-header .palette-panel__popout {
+      grid-column: span 3;
     }
 
     /* Popout icon: down triangle = off, upright = on */
