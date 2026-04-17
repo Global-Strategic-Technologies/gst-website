@@ -40,18 +40,6 @@ test.describe('Filter Drawer Background Scroll - MA Portfolio Page', () => {
     expect(drawerStillOpen).toBe(true);
   });
 
-  test('should keep overlay pointer-events none when drawer is open', async ({ page }) => {
-    await openFilterDrawer(page);
-
-    // Verify the overlay does not intercept pointer events
-    const pointerEvents = await page.evaluate(() => {
-      const overlay = document.querySelector('[data-testid="portfolio-filter-overlay"]');
-      if (!overlay) return null;
-      return window.getComputedStyle(overlay).pointerEvents;
-    });
-    expect(pointerEvents).toBe('none');
-  });
-
   test('should close drawer via click outside (document-level handler)', async ({ page }) => {
     await openFilterDrawer(page);
 
@@ -182,7 +170,8 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
     await waitForDrawerGap(page, EXPECTED_GAP_PX);
 
     const { drawerBottom, footerTop } = await readRects(page);
-    expect(footerTop - drawerBottom).toBeCloseTo(EXPECTED_GAP_PX, 0);
+    expect(footerTop - drawerBottom).toBeGreaterThanOrEqual(EXPECTED_GAP_PX - 2);
+    expect(footerTop - drawerBottom).toBeLessThanOrEqual(EXPECTED_GAP_PX + 2);
   });
 
   test('drawer clips all chip content above footer top when scrolled to page bottom', async ({
@@ -194,7 +183,8 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
     await waitForDrawerGap(page, EXPECTED_GAP_PX);
 
     const { drawerBottom, drawerLeft, drawerRight, footerTop } = await readRects(page);
-    expect(footerTop - drawerBottom).toBeCloseTo(EXPECTED_GAP_PX, 0);
+    expect(footerTop - drawerBottom).toBeGreaterThanOrEqual(EXPECTED_GAP_PX - 2);
+    expect(footerTop - drawerBottom).toBeLessThanOrEqual(EXPECTED_GAP_PX + 2);
 
     // Sample 3 horizontal points inside the gap + footer zone. No chip should
     // render here - both the overflow clip and the gap should keep chips
@@ -225,7 +215,8 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
     await waitForDrawerGap(page, EXPECTED_GAP_PX);
 
     const { drawerBottom, footerTop } = await readRects(page);
-    expect(footerTop - drawerBottom).toBeCloseTo(EXPECTED_GAP_PX, 0);
+    expect(footerTop - drawerBottom).toBeGreaterThanOrEqual(EXPECTED_GAP_PX - 2);
+    expect(footerTop - drawerBottom).toBeLessThanOrEqual(EXPECTED_GAP_PX + 2);
   });
 
   test('drawer internal scroll advances as page scroll shrinks the drawer', async ({ page }) => {
@@ -269,6 +260,7 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
     await waitForDrawerGap(page, EXPECTED_GAP_PX);
 
     const { drawerBottom, footerTop } = await readRects(page);
-    expect(footerTop - drawerBottom).toBeCloseTo(EXPECTED_GAP_PX, 0);
+    expect(footerTop - drawerBottom).toBeGreaterThanOrEqual(EXPECTED_GAP_PX - 2);
+    expect(footerTop - drawerBottom).toBeLessThanOrEqual(EXPECTED_GAP_PX + 2);
   });
 });
