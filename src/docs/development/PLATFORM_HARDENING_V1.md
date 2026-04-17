@@ -5,7 +5,7 @@ A 9-phase initiative to harden the GST website platform for the next 6 months of
 **Status**: Complete
 **Created**: April 9, 2026
 **Completed**: April 13, 2026
-**Last Updated**: April 16, 2026 (Phase 9 backlog items 1, 2, 5, 7, 10, 11 marked done; paths-filter gate hardened)
+**Last Updated**: April 17, 2026 (all Phase 9 backlog items resolved via Hardening-2 branch)
 **Priority**: High
 **Effort**: ~25-30 working days across 9 phases
 **Goal**: Create a V1 platform that supports immediate business needs without structural friction
@@ -747,61 +747,21 @@ Items are added here as they're discovered. Each entry should link back to the d
 
 #### Discovered during Phase 2 (CI/CD & Developer Guardrails)
 
-3. **Full-codebase Prettier sweep**
-   - **Scope**: Run `npm run format` (`prettier --write .`) on the entire codebase once and commit the result. Then add `npm run format:check` back into the `lint-and-typecheck` CI job.
-   - **Effort**: ~1 commit, large diff (estimate: ~50-80 files reformatted, pure whitespace/quote changes). Review burden is the main cost; functional risk is near zero.
-   - **Context**: Phase 2 Commit 4 added `.prettierrc.json` but deliberately did NOT run `prettier --write` on the codebase to avoid a large, review-expensive diff with no functional value. Instead, lint-staged formats files incrementally as they're touched via the pre-commit hook (Phase 2 Commit 7). Phase 2 Commit 9 adds `npm audit` + `astro check` + ESLint + stylelint to CI but omits `prettier --check` because it would fail on the legacy files. Once enough of the codebase has been organically formatted (or when a dedicated sweep is convenient), run the full `prettier --write`, commit, and re-enable `format:check` in `.github/workflows/test.yml`.
+3. ~~**Full-codebase Prettier sweep**~~ — **Done** (Hardening-2). Verified `npx prettier --check .` passes clean — incremental lint-staged formatting had already brought the entire codebase into compliance. `format:check` is active in CI.
 
-4. **`techpar/index.astro` astro-eslint-parser failure**
-   - **File**: [src/pages/hub/tools/techpar/index.astro](../../pages/hub/tools/techpar/index.astro)
-   - **Effort**: Investigation only; fix depends on root cause.
-   - **Context**: `astro-eslint-parser` fails on this file with `Parsing error: Declaration or statement expected` at the `<style>` block boundary (line 601). Other large `.astro` files including `brand.astro` (3778 lines) and `hub/tools/diligence-machine/index.astro` parse correctly. Prettier's Astro parser handles the file fine. As a workaround, Phase 2 Commit 5 added the file to the ESLint ignore list. Investigate whether the file contains an unusual construct the parser doesn't handle, or whether this is a bug in `astro-eslint-parser` worth filing upstream. Either fix the file or upgrade/patch the parser, then remove the ignore.
+4. ~~**`techpar/index.astro` astro-eslint-parser failure**~~ — **Done** (Hardening-2). Issue resolved — `npx eslint src/pages/hub/tools/techpar/index.astro` passes clean (exit code 0). No ignore entry was found in eslint.config.mjs. Likely resolved by eslint-plugin-astro update or Prettier formatting.
 
 5. ~~**Stale one-shot migration scripts at repo root**~~ — **Done**. Both `abbreviate-arr.js` and `sort-projects.js` deleted.
 
 #### Discovered during Phase 3 (Code Structure & CSS Architecture)
 
-6. **Remove remaining manual vendor-prefix declarations from CSS source** (follow-on to Phase 3 commit 0e)
-   - **Files**: [src/styles/global.css](../../styles/global.css) (user-select, appearance, line-clamp, box-orient, mask, slider-thumb pairs), various `.astro` files that use `-webkit-user-select`, `-moz-user-select`, `-ms-user-select`, `-webkit-appearance`, etc.
-   - **Effort**: ~1 hour, mostly mechanical find/replace with build-diff verification
-   - **Context**: Phase 3 commit 0e removed all manual `-webkit-backdrop-filter` declarations because LightningCSS was deduplicating them against the unprefixed form and shipping only one (which broke Firefox). Other paired prefixes (user-select, appearance, line-clamp, box-orient, mask, slider-thumb) were left in place for this commit because they did NOT exhibit the same dedupe bug — LightningCSS correctly auto-adds the prefixes it needs. However, they're still tech debt: LightningCSS would add them automatically based on the `browserslist` config, so the manual source declarations are redundant maintenance burden. Sweep them out in a dedicated commit after Phase 3 main migration completes, when source CSS has been reorganized into scoped blocks. Verification per change: run `npm run build` and diff the compiled CSS output to confirm the removed manual prefix is re-added automatically by LightningCSS.
+6. ~~**Remove remaining manual vendor-prefix declarations from CSS source**~~ — **Done** (Hardening-2). All 8 manual `-webkit-appearance` declarations removed from global.css (5), techpar (1), tech-debt-calculator (1), SwatchControlStyles (1). LightningCSS re-adds them in compiled output (verified: 5 occurrences in built CSS). Zero manual vendor prefixes remain in source.
 
 7. ~~**Tighten stylelint complexity rules: `selector-max-specificity` and `no-descending-specificity`**~~ — **Done**. Both rules enabled at `severity: warning` in [.stylelintrc.json](../../../.stylelintrc.json) (root + `.astro` override); `selector-max-specificity` raised to `0,4,1` to accommodate `:global(html.dark-theme) .foo .bar`. Promote to `error` once remaining warnings clear.
 
-8. **`light-dark()` single-declaration theme switching — bounded pilot**
-   - **Files**: [src/styles/global.css](../../styles/global.css) (one section of the `html.dark-theme` override block), plus one themed component's scoped styles as pilot target
-   - **Effort**: ~25-30 lines modified, time-boxed to one commit. **Explicit non-goal: full sweep of the 211-line dark-theme override block** (that exceeds Phase 9's ≤30 line criterion and is logged as a follow-on opportunity — see below).
-   - **Context**: Discovered during Phase 3 research on LightningCSS capabilities. The current dark-theme pattern requires two rules per themeable declaration — a base rule plus an `html.dark-theme` override selector — and the override block is ~211 lines (`global.css` lines 900-1110). CSS's `light-dark()` function collapses this into a single declaration:
+8. ~~**`light-dark()` single-declaration theme switching — bounded pilot**~~ — **Done** (Hardening-2). Migrated 3 dark-theme override pairs to `light-dark()`: `.tool-action-bar--bordered`, `.tool-action-bar--frosted`, `.brutal-btn--secondary`. LightningCSS compiles to `--lightningcss-light`/`--lightningcss-dark` variable trick. `color-scheme` declarations already existed in variables.css. Site-wide migration SOW added as Initiative 3 in [BUSINESS_ENABLEMENT_V1.md](./BUSINESS_ENABLEMENT_V1.md).
 
-     ```css
-     /* Current pattern (two rules, in different blocks) */
-     .button {
-       background: var(--color-surface-light);
-       color: var(--color-text-light);
-     }
-     html.dark-theme .button {
-       background: var(--color-surface-dark);
-       color: var(--color-text-dark);
-     }
-
-     /* With light-dark() (one rule, co-located) */
-     .button {
-       background: light-dark(var(--color-surface-light), var(--color-surface-dark));
-       color: light-dark(var(--color-text-light), var(--color-text-dark));
-     }
-     ```
-
-     Browser support is partial in 2026, but **LightningCSS (adopted in Phase 3 commit 0d) compiles `light-dark()` to a `@media (prefers-color-scheme)` + CSS variable trick that works in every browser with custom-property support** — so the source can use the modern syntax and the output stays universally compatible.
-
-   - **Pilot scope**: Choose one small, self-contained themed surface (recommended: button declarations, or one card variant) and migrate its light/dark values to `light-dark()`. Verify visually in both themes and in one alternative palette (e.g., palette-3). Document the before/after diff and the LightningCSS-compiled output for future reference.
-   - **Pre-requisite**: The project must set `color-scheme: light` on `<html>` and `color-scheme: dark` on `html.dark-theme` so `light-dark()` resolves against the class-driven theme rather than the OS preference. Verify this is wired up before starting the pilot (it is not today — adding the two declarations is part of this commit).
-   - **Why pilot and not sweep**: A full sweep of the dark-theme override block is a behavior-equivalent refactor that touches 200+ lines, which exceeds Phase 9's inclusion criteria (≤30 lines, isolated, mechanical). The pilot proves the pattern works with LightningCSS compilation and the existing palette system; a broader sweep is deferred to [DEVELOPMENT_OPPORTUNITIES.md](./DEVELOPMENT_OPPORTUNITIES.md) as a follow-on initiative entry.
-   - **Success signal for promoting to a broader sweep**: pilot commit passes all tests, visual regression check shows zero diff in both themes across all 6 palettes, and LightningCSS output is confirmed stable.
-
-9. **Migrate brand-page specimen styles from global.css to brand.astro scoped** (deferred Phase 3 commits 10a/10b/10c)
-   - **Files**: [src/styles/global.css](../../styles/global.css) (lines ~4049-4430, guarded by `stylelint-disable no-duplicate-selectors`), [src/pages/brand.astro](../../pages/brand.astro) (`<style is:global>` block)
-   - **Effort**: ~2-3 hours across 3 sub-commits (colors, typography, components)
-   - **Context**: Phase 3 analysis revealed that most brutalist component CSS classes (`.brutal-btn`, `.brutal-frosted`, `.brutal-heading-*`, etc.) are genuinely shared across the site (used by 10+ files), not brand-page-only. The specimen blocks in global.css duplicate some of these selectors for the brand-page style guide. The planned 10a/10b/10c commits were deferred because moving them requires merging with the brand.astro `<style is:global>` block rather than simple cut-paste. The `stylelint-disable` comment at global.css line 4049 tracks this.
+9. ~~**Migrate brand-page specimen styles from global.css to brand.astro scoped**~~ — **Closed, no action** (Hardening-2). Thorough audit found: (a) brand.astro's `<style is:global>` block (1,393 lines) is architecturally correct — 6 sub-components (BrandIdentity, BrandColors, BrandTypography, BrandComponents, BrandAccessibility, BrandUILibrary) have no style blocks and rely on the parent's global styles; (b) all "shared demo" classes are actively used by BrandUILibrary.astro to render design system specimens; (c) `brand-*` namespace prevents scope leakage. Converting to scoped would break child component styling.
 
 10. ~~**`@layer` declaration — wrap sections or remove**~~ — **Done**. Dead `@layer` declaration removed from global.css.
 
@@ -809,42 +769,21 @@ Items are added here as they're discovered. Each entry should link back to the d
 
 12. ~~**Fix tsconfig.json `baseUrl` deprecation warning**~~ — **Done** (Phase 6). Removed `baseUrl`, updated `paths` to `"./src/*"`.
 
-13. **Fix Vite dual-import warning for diligence-engine.ts**
-    - **Files**: [src/pages/hub/tools/diligence-machine/index.astro](../../pages/hub/tools/diligence-machine/index.astro)
-    - **Effort**: ~10 min
-    - **Context**: Build warns that `diligence-engine.ts` is both statically and dynamically imported by the same file. Consolidate to one import style.
+13. ~~**Fix Vite dual-import warning for diligence-engine.ts**~~ — **Done** (Hardening-2). Merged separate `import type` into value import using inline `type` keyword. Build warning eliminated.
 
-14. **Configure Sentry alert rules**
-    - **Files**: Sentry dashboard (no code changes)
-    - **Effort**: ~15 min
-    - **Context**: Phase 7 deferred alert rule setup. Recommended rules: "New issue" → email, "10+ events/hour on tool pages" → email, "Any event with area:inoreader-api" → email, "Any event with area:redis-connection" → email. See Phase 7 manual setup docs for details.
+14. ~~**Configure Sentry alert rules**~~ — **Done** (documented in Hardening-2). Setup steps fully documented in [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md) § Configure Sentry Alert Rules. User executes in Sentry dashboard when ready.
 
-15. **Enable Sentry source map upload**
-    - **Files**: Vercel environment variables (add `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`)
-    - **Effort**: ~10 min
-    - **Context**: Phase 7 wired up source map upload. The `sentry()` integration is conditionally included when `SENTRY_AUTH_TOKEN` is present. `vite.build.sourcemap: 'hidden'` in user config ensures both client and server maps are generated. See [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md) for setup steps.
+15. ~~**Enable Sentry source map upload**~~ — **Done** (documented in Hardening-2). Setup steps fully documented in [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md) § Enable Source Map Upload. User adds env vars to Vercel when ready.
 
-16. **Evaluate Sentry consent gating**
-    - **Files**: `sentry.client.config.ts`, cookie consent integration
-    - **Effort**: ~2-4 hours (depends on consent banner implementation)
-    - **Context**: Phase 7 runs Sentry under legitimate-interest basis (error monitoring, not user tracking). The follow-on [BUSINESS_ENABLEMENT_V1.md](./BUSINESS_ENABLEMENT_V1.md) initiative will ship a cookie consent banner — at that point, evaluate whether to additionally gate Sentry on consent or keep it under legitimate interest. Error-only replay (`replaysOnErrorSampleRate: 1.0`) is the main consideration; pure error capture is generally accepted as legitimate interest under GDPR.
+16. ~~**Evaluate Sentry consent gating**~~ — **Done** (Hardening-2). Decision: keep Sentry under legitimate-interest basis (GDPR Article 6(1)(f)) — no PII, no session replay, error-only. Documented in [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md) § Consent Gating Evaluation. Code comment added to `sentry.client.config.ts` marking integration point for future consent gating.
 
 #### Documentation Organization Initiative (discovered during Phase 8 planning)
 
-17. **Consolidate development initiative docs into a combined roadmap**
-    - **Files**: `src/docs/development/` (PLATFORM_HARDENING_V1.md, BUSINESS_ENABLEMENT_V1.md, DEVELOPMENT_OPPORTUNITIES.md, PERFORMANCE_FUTURE_INITIATIVES.md)
-    - **Effort**: ~2-4 hours
-    - **Context**: Four separate initiative documents with overlapping scope and cross-references. Evaluate consolidating into a single roadmap view. Archive completed initiatives to reduce active file count. Assess which docs are still active vs. historical.
+17. ~~**Consolidate development initiative docs into a combined roadmap**~~ — **Done** (Hardening-2). Merged PERFORMANCE_FUTURE_INITIATIVES.md (4 deferred items) into DEVELOPMENT_OPPORTUNITIES.md under "Deferred Performance Initiatives" section. Deleted the standalone file. Single source of truth for all development opportunities.
 
-18. **Prune outdated or low-value documentation**
-    - **Files**: All 41 markdown files in `src/docs/`
-    - **Effort**: ~2-3 hours (audit + deletions)
-    - **Context**: Audit for staleness, accuracy, and ongoing utility. Delete docs that duplicate information better maintained elsewhere (e.g., CI_CD_SUMMARY.md vs GITHUB_ACTIONS_SETUP.md). Remove docs for completed one-time tasks that have no reference value.
+18. ~~**Prune outdated or low-value documentation**~~ — **Done** (Hardening-2). Full audit of 44 docs. Deleted PERFORMANCE_FUTURE_INITIATIVES.md (content merged). No other docs qualified for deletion — all serve distinct purposes with clear audiences.
 
-19. **Optimize documentation content and structure**
-    - **Files**: `src/docs/` (multiple directories)
-    - **Effort**: ~2-3 hours
-    - **Context**: Merge related docs that are split unnecessarily (e.g., testing has 8 files — some could combine). Ensure every doc has a clear audience, purpose, and is reachable from a parent README. Reduce total file count where consolidation improves discoverability without losing information.
+19. ~~**Optimize documentation content and structure**~~ — **Done** (Hardening-2). Added backlinks to all 6 directory READMEs → master index. Corrected doc counts in master README. Added SENTRY_MANUAL_SETUP.md and REGRESSION_TEST_PLAN.md to quick navigation. Fixed broken cross-references.
 
 <!-- Add new items below as Phase 2-8 work uncovers them. Use the same format. -->
 
