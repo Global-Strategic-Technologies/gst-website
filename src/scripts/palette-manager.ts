@@ -530,26 +530,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Footer-aware FAB positioning via IntersectionObserver
+  // Footer-aware FAB positioning — keep FAB above footer on scroll
   const footer = document.querySelector('footer');
   if (footer && fab) {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!isMobile()) return;
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const footerRect = footer.getBoundingClientRect();
-            const viewportH = window.innerHeight;
-            const footerVisibleH = viewportH - footerRect.top;
-            fab.style.bottom = `${Math.max(16, footerVisibleH + 16)}px`;
-          } else {
-            fab.style.bottom = '16px';
-          }
-        }
-      },
-      { threshold: [0, 0.25, 0.5, 0.75, 1] }
-    );
-    observer.observe(footer);
+    const updateFabPosition = () => {
+      if (!isMobile()) return;
+      const footerRect = footer.getBoundingClientRect();
+      const viewportH = window.innerHeight;
+      if (footerRect.top < viewportH) {
+        // Footer is visible — push FAB above it
+        const footerVisibleH = viewportH - footerRect.top;
+        fab.style.bottom = `${footerVisibleH + 16}px`;
+      } else {
+        fab.style.bottom = '16px';
+      }
+    };
+    window.addEventListener('scroll', updateFabPosition, { passive: true });
+    updateFabPosition();
   }
 
   // Clean up mobile state on resize to desktop
