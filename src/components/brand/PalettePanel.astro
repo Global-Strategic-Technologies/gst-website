@@ -218,11 +218,6 @@ import { palettes } from '../../data/palettes';
     align-items: stretch;
   }
 
-  /* ── Visibility: hidden unless on brand page or popped out ── */
-  :global(html:not(.palette-popped-out, [data-palette-always])) .palette-panel {
-    display: none !important;
-  }
-
   .palette-panel__edge {
     display: flex;
     flex-direction: column;
@@ -449,12 +444,6 @@ import { palettes } from '../../data/palettes';
     height: 24px;
   }
 
-  /* ── Visibility gating for FAB + backdrop (same as panel) ── */
-  :global(html:not(.palette-popped-out, [data-palette-always])) .palette-panel__fab,
-  :global(html:not(.palette-popped-out, [data-palette-always])) .palette-panel__backdrop {
-    display: none !important;
-  }
-
   /* ── Mobile: bottom sheet layout ───────────────────────── */
   @media (max-width: 768px) {
     /* Hide desktop-only elements */
@@ -664,6 +653,21 @@ import { palettes } from '../../data/palettes';
       opacity: 0;
       pointer-events: none;
     }
+  }
+</style>
+
+<style is:global>
+  /* ── Visibility gating — must be global to avoid Astro scoping ── */
+  /* Astro's :global() wrapper inside scoped <style> produces invalid
+     selectors when the :global() wraps part of a compound selector.
+     These rules need to match html attributes without scoping. */
+  html:not(.palette-popped-out, [data-palette-always]) .palette-panel {
+    display: none !important;
+  }
+
+  html:not(.palette-popped-out, [data-palette-always]) .palette-panel__fab,
+  html:not(.palette-popped-out, [data-palette-always]) .palette-panel__backdrop {
+    display: none !important;
   }
 </style>
 
