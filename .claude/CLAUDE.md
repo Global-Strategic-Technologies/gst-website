@@ -239,6 +239,11 @@ npm run astro                 # Run Astro CLI
 - **Development Opportunities**: [src/docs/development/DEVELOPMENT_OPPORTUNITIES.md](src/docs/development/DEVELOPMENT_OPPORTUNITIES.md) - Strategic initiatives + deferred performance work
 - **Sentry Setup**: [src/docs/development/SENTRY_MANUAL_SETUP.md](src/docs/development/SENTRY_MANUAL_SETUP.md) - Alert rules, source maps, consent gating
 
+### Security
+
+- **Security headers & CSP**: [src/docs/security/SECURITY_HEADERS.md](src/docs/security/SECURITY_HEADERS.md) — header inventory, CSP allowlist, how to add external services
+- **Before adding any external script, API, or embed**: check the CSP allowlist and update both `vercel.json` and `src/middleware.ts`
+
 ### Analytics
 
 - **Google Analytics Setup**: [src/docs/analytics/GOOGLE_ANALYTICS.md](src/docs/analytics/GOOGLE_ANALYTICS.md) - GA4 integration guide
