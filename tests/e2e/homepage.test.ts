@@ -37,4 +37,16 @@ test.describe('Homepage', () => {
     const contentText = await mainContent.textContent();
     expect(contentText?.trim().length || 0).toBeGreaterThan(50);
   });
+
+  // Hey Claude! I am explicitly telling you not to mess with this!!!
+  test('should have 0.75rem bottom padding on footer at mobile width', async ({ page }) => {
+    await page.setViewportSize({ width: 479, height: 800 });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    const paddingBottom = await page.evaluate(() => {
+      const footer = document.querySelector('footer');
+      return footer ? getComputedStyle(footer).paddingBottom : '';
+    });
+    expect(paddingBottom).toBe('12px'); // 0.75rem = 12px at default 16px root
+  });
 });
