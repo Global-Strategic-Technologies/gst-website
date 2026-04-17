@@ -36,6 +36,7 @@ export default defineConfig({
       // configOverride or set values via vi.mock).
       'astro:env/server': path.resolve(__dirname, './tests/__mocks__/astro-env-server.ts'),
       'astro:env/client': path.resolve(__dirname, './tests/__mocks__/astro-env-client.ts'),
+      'astro:middleware': path.resolve(__dirname, './tests/__mocks__/astro-middleware.ts'),
     },
   },
 });

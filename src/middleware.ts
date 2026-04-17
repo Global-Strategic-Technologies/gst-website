@@ -8,7 +8,7 @@ import { defineMiddleware } from 'astro:middleware';
  * injected here. Mirrors the same security headers from vercel.json.
  */
 
-const SECURITY_HEADERS: Record<string, string> = {
+export const SECURITY_HEADERS: Record<string, string> = {
   'X-Frame-Options': 'DENY',
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
