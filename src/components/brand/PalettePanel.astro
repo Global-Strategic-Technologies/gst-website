@@ -544,14 +544,29 @@ import { palettes } from '../../data/palettes';
       transform: rotate(0deg);
     }
 
-    /* Hide popout on brand page — it has no visible effect there.
-       Theme toggle expands to fill the full row. */
-    :global(html[data-palette-always]) .palette-panel__mobile-header .palette-panel__popout {
-      display: none;
+    /* Popout button: labeled + color-coded for clarity on mobile */
+    .palette-panel__mobile-header .palette-panel__popout {
+      gap: var(--spacing-xs);
+      font-family: monospace;
+      font-size: 9px;
+      font-weight: var(--font-weight-bold);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      transition:
+        color var(--transition-fast),
+        border-color var(--transition-fast),
+        background var(--transition-fast);
     }
 
-    :global(html[data-palette-always]) .palette-panel__mobile-header .palette-panel__theme-toggle {
-      grid-column: span 6;
+    .palette-panel__mobile-header .palette-panel__popout.is-active {
+      color: var(--color-primary);
+      border-color: var(--color-primary);
+      background: var(--accent-light-bg);
+    }
+
+    .palette-panel__mobile-header .palette-panel__popout.is-active .palette-panel__icon path {
+      fill: var(--color-primary);
     }
 
     /* Swatch grid — 3 compact columns on mobile, no horizontal overflow */

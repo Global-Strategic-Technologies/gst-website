@@ -427,6 +427,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (popoutClone) {
       popoutClone.removeAttribute('id');
       mobileHeader.appendChild(popoutClone);
+
+      // Add text label to communicate cross-page scope
+      const popoutLabel = document.createElement('span');
+      popoutLabel.className = 'palette-panel__popout-label';
+      const isCurrentlyPopped = document.documentElement.classList.contains('palette-popped-out');
+      popoutLabel.textContent = isCurrentlyPopped ? 'All Pages' : 'Brand Only';
+      popoutClone.appendChild(popoutLabel);
+
       popoutClone.addEventListener('click', () => {
         const html = document.documentElement;
         const wasPopped = html.classList.contains('palette-popped-out');
@@ -436,6 +444,11 @@ document.addEventListener('DOMContentLoaded', () => {
         popoutClone.classList.toggle('is-active');
         // Sync desktop popout button state
         document.getElementById('panel-popout-toggle')?.classList.toggle('is-active');
+
+        // Update label text to reflect new state
+        const nowPopped = html.classList.contains('palette-popped-out');
+        popoutLabel.textContent = nowPopped ? 'All Pages' : 'Brand Only';
+
         try {
           localStorage.setItem('palette-popped-out', wasPopped ? 'false' : 'true');
         } catch {
