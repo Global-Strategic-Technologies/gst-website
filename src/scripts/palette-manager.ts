@@ -336,166 +336,200 @@ document.addEventListener('DOMContentLoaded', () => {
   injectControls();
   readAndPopulate();
 
-  // Mobile: tap swatch to expand its controls (only one at a time)
-  document.querySelectorAll<HTMLElement>('.palette-panel .brand-swatch').forEach((swatch) => {
-    swatch.addEventListener('click', (e) => {
-      if (!isMobile()) return;
-      // Don't toggle if clicking an input/button inside controls
-      const target = e.target as HTMLElement;
-      if (target.closest('.swatch-controls')) return;
-
-      const wasExpanded = swatch.classList.contains('swatch-expanded');
-      // Collapse any other expanded swatch
-      document
-        .querySelectorAll<HTMLElement>('.palette-panel .brand-swatch.swatch-expanded')
-        .forEach((s) => s.classList.remove('swatch-expanded'));
-      // Toggle this one
-      if (!wasExpanded) swatch.classList.add('swatch-expanded');
-    });
-  });
-
-  // Palette tab switching
-  document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      const id = parseInt(tab.dataset.palette || '0');
-      themeObserverPaused = true;
-      switchPalette(id);
-      themeObserverPaused = false;
-    });
-  });
-
-  // Reset all button
-  const resetBtn = document.getElementById('reset-all');
-  if (resetBtn) resetBtn.addEventListener('click', resetAllOverrides);
-
-  // Panel toggle (open/close)
-  const panelToggle = document.getElementById('panel-toggle');
+  // ── DOM references ──────────────────────────────────────
   const panel = document.getElementById('palette-panel');
   const panelBody = document.getElementById('panel-body');
   const panelResize = document.getElementById('panel-resize');
-
-  // ── Mobile bottom sheet ──────────────────────────────────
   const fab = document.getElementById('panel-fab');
   const backdrop = document.getElementById('panel-backdrop');
   const grabHandle = document.getElementById('panel-grab-handle');
   const mobileHeader = document.getElementById('panel-mobile-header');
 
-  function openMobileSheet(): void {
+  // ── Shared action: open panel ───────────────────────────
+  function openPanel(): void {
     if (!panel) return;
     panel.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
-    if (backdrop) {
-      backdrop.hidden = false;
-      void backdrop.offsetHeight; // force reflow before transition
-      backdrop.classList.add('is-visible');
+    if (isMobile()) {
+      document.body.style.overflow = 'hidden';
+      if (backdrop) {
+        backdrop.hidden = false;
+        void backdrop.offsetHeight;
+        backdrop.classList.add('is-visible');
+      }
     }
     requestAnimationFrame(() => readAndPopulate());
   }
 
-  function closeMobileSheet(): void {
+  // ── Shared action: close panel ──────────────────────────
+  function closePanel(): void {
     if (!panel) return;
     panel.classList.remove('is-open');
-    document.body.style.overflow = '';
-    backdrop?.classList.remove('is-visible');
-    setTimeout(() => {
-      if (backdrop) backdrop.hidden = true;
-    }, 300);
+    if (isMobile()) {
+      document.body.style.overflow = '';
+      backdrop?.classList.remove('is-visible');
+      setTimeout(() => {
+        if (backdrop) backdrop.hidden = true;
+      }, 300);
+    }
   }
 
-  // Clone palette tabs and controls into mobile header
+  // ── Shared action: select palette ───────────────────────
+  function handlePaletteSelect(id: number): void {
+    themeObserverPaused = true;
+    switchPalette(id);
+    themeObserverPaused = false;
+  }
+
+  // ── Shared action: toggle theme ─────────────────────────
+  function handleThemeToggle(): void {
+    themeObserverPaused = true;
+    document.documentElement.classList.toggle('dark-theme');
+    const isDark = document.documentElement.classList.contains('dark-theme');
+    try {
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    } catch {
+      Sentry.addBreadcrumb({
+        category: 'palette-manager',
+        message: 'localStorage write failed',
+        level: 'warning',
+      });
+    }
+    themeObserverPaused = false;
+    resetAllOverrides();
+  }
+
+  // ── Shared action: toggle popout ────────────────────────
+  // All popout buttons (desktop edge + mobile clone) call this.
+  // The mobile label is updated by the caller after this returns.
+  function handlePopoutToggle(): void {
+    const html = document.documentElement;
+    const wasPopped = html.classList.contains('palette-popped-out');
+    themeObserverPaused = true;
+    html.classList.toggle('palette-popped-out');
+    themeObserverPaused = false;
+
+    // Sync is-active on ALL popout buttons (desktop + mobile clones)
+    document
+      .querySelectorAll<HTMLElement>(
+        '#panel-popout-toggle, .palette-panel__mobile-header .palette-panel__popout'
+      )
+      .forEach((btn) => btn.classList.toggle('is-active'));
+
+    try {
+      localStorage.setItem('palette-popped-out', wasPopped ? 'false' : 'true');
+    } catch {
+      Sentry.addBreadcrumb({
+        category: 'palette-manager',
+        message: 'localStorage write failed',
+        level: 'warning',
+      });
+    }
+
+    // On mobile non-brand pages, manage FAB visibility
+    if (isMobile()) {
+      const isBrandPage = html.hasAttribute('data-palette-always');
+      if (wasPopped && !isBrandPage) {
+        closePanel();
+        if (fab) fab.style.display = 'none';
+      } else if (!wasPopped && !isBrandPage) {
+        if (fab) fab.style.display = '';
+      }
+    }
+  }
+
+  // ── Wire desktop controls ───────────────────────────────
+
+  // Panel toggle (edge strip delta button)
+  const panelToggle = document.getElementById('panel-toggle');
+  panelToggle?.addEventListener('click', () => {
+    if (panel?.classList.contains('is-open')) {
+      closePanel();
+    } else {
+      openPanel();
+    }
+  });
+
+  // Desktop palette tabs
+  document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach((tab) => {
+    tab.addEventListener('click', () => handlePaletteSelect(parseInt(tab.dataset.palette || '0')));
+  });
+
+  // Desktop theme toggle
+  document.getElementById('panel-theme-toggle')?.addEventListener('click', handleThemeToggle);
+
+  // Desktop popout toggle
+  const popoutBtn = document.getElementById('panel-popout-toggle');
+  if (popoutBtn) {
+    if (document.documentElement.classList.contains('palette-popped-out')) {
+      popoutBtn.classList.add('is-active');
+    }
+    popoutBtn.addEventListener('click', handlePopoutToggle);
+  }
+
+  // Reset all button
+  document.getElementById('reset-all')?.addEventListener('click', resetAllOverrides);
+
+  // ── Wire mobile controls ────────────────────────────────
+
+  // Clone tabs and controls into mobile header
   if (mobileHeader) {
+    // Clone palette tabs
     document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach((tab) => {
       const clone = tab.cloneNode(true) as HTMLElement;
       mobileHeader.appendChild(clone);
-      clone.addEventListener('click', () => {
-        const id = parseInt(clone.dataset.palette || '0');
-        themeObserverPaused = true;
-        switchPalette(id);
-        themeObserverPaused = false;
-      });
+      clone.addEventListener('click', () =>
+        handlePaletteSelect(parseInt(clone.dataset.palette || '0'))
+      );
     });
 
-    // Clone theme toggle and popout into mobile header
-    const themeClone = document.getElementById('panel-theme-toggle')?.cloneNode(true) as
-      | HTMLElement
-      | undefined;
+    // Clone popout (left position) with text label
     const popoutClone = document.getElementById('panel-popout-toggle')?.cloneNode(true) as
       | HTMLElement
       | undefined;
-
-    // Append popout first (left position), then theme toggle (right position)
     if (popoutClone) {
       popoutClone.removeAttribute('id');
       mobileHeader.appendChild(popoutClone);
-
-      // Add text label to communicate cross-page scope
       const popoutLabel = document.createElement('span');
       popoutLabel.className = 'palette-panel__popout-label';
-      const isCurrentlyPopped = document.documentElement.classList.contains('palette-popped-out');
-      popoutLabel.textContent = isCurrentlyPopped ? 'All Pages' : 'Brand Only';
+      const isPopped = document.documentElement.classList.contains('palette-popped-out');
+      popoutLabel.textContent = isPopped ? 'All Pages' : 'Brand Only';
       popoutClone.appendChild(popoutLabel);
-
       popoutClone.addEventListener('click', () => {
-        const html = document.documentElement;
-        const wasPopped = html.classList.contains('palette-popped-out');
-        themeObserverPaused = true;
-        html.classList.toggle('palette-popped-out');
-        themeObserverPaused = false;
-        popoutClone.classList.toggle('is-active');
-        // Sync desktop popout button state
-        document.getElementById('panel-popout-toggle')?.classList.toggle('is-active');
-
-        // Update label text to reflect new state
-        const nowPopped = html.classList.contains('palette-popped-out');
+        handlePopoutToggle();
+        const nowPopped = document.documentElement.classList.contains('palette-popped-out');
         popoutLabel.textContent = nowPopped ? 'All Pages' : 'Brand Only';
-
-        try {
-          localStorage.setItem('palette-popped-out', wasPopped ? 'false' : 'true');
-        } catch {
-          /* ignore */
-        }
-        if (isMobile()) {
-          const isBrandPage = html.hasAttribute('data-palette-always');
-          if (wasPopped && !isBrandPage) {
-            // Popping in on non-brand page: close sheet and hide FAB
-            // (CSS will also hide them, but clean up state explicitly)
-            closeMobileSheet();
-            if (fab) fab.style.display = 'none';
-          } else if (!wasPopped && !isBrandPage) {
-            // Popping out on non-brand page: show FAB
-            if (fab) fab.style.display = '';
-          }
-          // On brand page: FAB stays visible regardless — the panel is
-          // always available there. Popping in only affects other pages.
-        }
       });
     }
 
+    // Clone theme toggle (right position)
+    const themeClone = document.getElementById('panel-theme-toggle')?.cloneNode(true) as
+      | HTMLElement
+      | undefined;
     if (themeClone) {
       themeClone.removeAttribute('id');
       mobileHeader.appendChild(themeClone);
-      themeClone.addEventListener('click', () => {
-        themeObserverPaused = true;
-        document.documentElement.classList.toggle('dark-theme');
-        const isDark = document.documentElement.classList.contains('dark-theme');
-        try {
-          localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        } catch {
-          /* ignore */
-        }
-        themeObserverPaused = false;
-        resetAllOverrides();
-      });
+      themeClone.addEventListener('click', handleThemeToggle);
     }
   }
 
-  // FAB click → open sheet
-  fab?.addEventListener('click', openMobileSheet);
+  // FAB and backdrop
+  fab?.addEventListener('click', openPanel);
+  backdrop?.addEventListener('click', closePanel);
 
-  // Backdrop click → close sheet
-  backdrop?.addEventListener('click', closeMobileSheet);
+  // Mobile: tap swatch to expand its controls (one at a time)
+  document.querySelectorAll<HTMLElement>('.palette-panel .brand-swatch').forEach((swatch) => {
+    swatch.addEventListener('click', (e) => {
+      if (!isMobile()) return;
+      if ((e.target as HTMLElement).closest('.swatch-controls')) return;
+      const wasExpanded = swatch.classList.contains('swatch-expanded');
+      document
+        .querySelectorAll<HTMLElement>('.palette-panel .brand-swatch.swatch-expanded')
+        .forEach((s) => s.classList.remove('swatch-expanded'));
+      if (!wasExpanded) swatch.classList.add('swatch-expanded');
+    });
+  });
 
-  // Swipe-down-to-dismiss on grab handle
+  // ── Touch gestures (mobile only) ───────────────────────
   let sheetStartY = 0;
   let sheetCurrentY = 0;
 
@@ -524,32 +558,23 @@ document.addEventListener('DOMContentLoaded', () => {
       panel.style.transition = '';
       panel.style.transform = '';
     }
-    const dy = sheetCurrentY - sheetStartY;
-    if (dy > 80) {
-      closeMobileSheet();
-    }
+    if (sheetCurrentY - sheetStartY > 80) closePanel();
   });
 
-  // Footer-aware FAB positioning — keep FAB above footer on scroll
+  // ── Footer-aware FAB positioning ────────────────────────
   const footer = document.querySelector('footer');
   if (footer && fab) {
     const updateFabPosition = () => {
       if (!isMobile()) return;
-      const footerRect = footer.getBoundingClientRect();
+      const footerTop = footer.getBoundingClientRect().top;
       const viewportH = window.innerHeight;
-      if (footerRect.top < viewportH) {
-        // Footer is visible — push FAB above it
-        const footerVisibleH = viewportH - footerRect.top;
-        fab.style.bottom = `${footerVisibleH + 16}px`;
-      } else {
-        fab.style.bottom = '16px';
-      }
+      fab.style.bottom = footerTop < viewportH ? `${viewportH - footerTop + 16}px` : '16px';
     };
     window.addEventListener('scroll', updateFabPosition, { passive: true });
     updateFabPosition();
   }
 
-  // Clean up mobile state on resize to desktop
+  // ── Viewport change cleanup ─────────────────────────────
   window.addEventListener('resize', () => {
     if (!isMobile() && panel?.classList.contains('is-open') && backdrop) {
       document.body.style.overflow = '';
@@ -559,76 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Desktop panel toggle (unchanged behavior)
-  if (panelToggle && panel && panelBody) {
-    panelToggle.addEventListener('click', () => {
-      if (isMobile()) {
-        openMobileSheet();
-        return;
-      }
-      panel.classList.toggle('is-open');
-      if (panel.classList.contains('is-open')) {
-        requestAnimationFrame(() => readAndPopulate());
-      }
-    });
-  }
-
-  // Theme toggle (mirrors footer ThemeToggle)
-  const panelThemeToggle = document.getElementById('panel-theme-toggle');
-  if (panelThemeToggle) {
-    panelThemeToggle.addEventListener('click', () => {
-      themeObserverPaused = true;
-      document.documentElement.classList.toggle('dark-theme');
-      const isDark = document.documentElement.classList.contains('dark-theme');
-      try {
-        localStorage.setItem('theme', isDark ? 'dark' : 'light');
-      } catch {
-        Sentry.addBreadcrumb({
-          category: 'palette-manager',
-          message: 'localStorage write failed',
-          level: 'warning',
-        });
-      }
-      themeObserverPaused = false;
-      resetAllOverrides();
-    });
-  }
-
-  // Pop-out toggle
-  const popoutBtn = document.getElementById('panel-popout-toggle');
-  if (popoutBtn) {
-    const isPoppedOut = document.documentElement.classList.contains('palette-popped-out');
-    if (isPoppedOut) popoutBtn.classList.add('is-active');
-
-    popoutBtn.addEventListener('click', () => {
-      const html = document.documentElement;
-      const wasPopped = html.classList.contains('palette-popped-out');
-      themeObserverPaused = true;
-      html.classList.toggle('palette-popped-out');
-      themeObserverPaused = false;
-      popoutBtn.classList.toggle('is-active');
-      try {
-        localStorage.setItem('palette-popped-out', wasPopped ? 'false' : 'true');
-      } catch {
-        Sentry.addBreadcrumb({
-          category: 'palette-manager',
-          message: 'localStorage write failed',
-          level: 'warning',
-        });
-      }
-      if (isMobile()) {
-        const isBrandPage = document.documentElement.hasAttribute('data-palette-always');
-        if (wasPopped && !isBrandPage) {
-          closeMobileSheet();
-          if (fab) fab.style.display = 'none';
-        } else if (!wasPopped && !isBrandPage) {
-          if (fab) fab.style.display = '';
-        }
-      }
-    });
-  }
-
-  // Resize handle (drag to resize)
+  // ── Desktop resize handle (mouse only) ──────────────────
   if (panelResize && panelBody && panel) {
     const MIN_WIDTH = 280;
     const MAX_WIDTH = 900;
@@ -649,8 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mousemove', (e: MouseEvent) => {
       if (!isDragging) return;
       const dx = dragStartX - e.clientX;
-      const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, dragStartWidth + dx));
-      panelBody.style.width = `${newWidth}px`;
+      panelBody.style.width = `${Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, dragStartWidth + dx))}px`;
     });
 
     document.addEventListener('mouseup', () => {
@@ -662,7 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Sync active tab with persisted palette on load (both desktop and mobile tabs)
+  // ── Sync persisted palette on load ──────────────────────
   const currentPalette = document.documentElement.className.match(/palette-(\d)/);
   if (currentPalette) {
     const id = parseInt(currentPalette[1]);
