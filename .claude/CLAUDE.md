@@ -225,6 +225,8 @@ npm run astro                 # Run Astro CLI
 
 ## 📚 Critical Documentation
 
+**Master index**: [src/docs/README.md](src/docs/README.md) — links to all 6 documentation directories with use-case navigation. Start here when looking for any project documentation.
+
 ### Developer Tooling (Lint, Format, Hooks, CI)
 
 - **Authoritative reference**: [src/docs/development/DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md) — quick-reference table of all scripts, pre-commit hook flow, CI pipeline diagram, config file locations, troubleshooting
@@ -240,8 +242,10 @@ npm run astro                 # Run Astro CLI
 
 ### Development Roadmap
 
-- **Platform Hardening V1**: [src/docs/development/PLATFORM_HARDENING_V1.md](src/docs/development/PLATFORM_HARDENING_V1.md) - 9-phase foundation initiative (Phase 1 & 2 complete)
-- **Development Opportunities**: [src/docs/development/DEVELOPMENT_OPPORTUNITIES.md](src/docs/development/DEVELOPMENT_OPPORTUNITIES.md) - Strategic initiatives
+- **Platform Hardening V1**: [src/docs/development/PLATFORM_HARDENING_V1.md](src/docs/development/PLATFORM_HARDENING_V1.md) - 9-phase foundation initiative (complete)
+- **Business Enablement V1**: [src/docs/development/BUSINESS_ENABLEMENT_V1.md](src/docs/development/BUSINESS_ENABLEMENT_V1.md) - Next steps: Cookie Consent, Email Capture, light-dark() migration
+- **Development Opportunities**: [src/docs/development/DEVELOPMENT_OPPORTUNITIES.md](src/docs/development/DEVELOPMENT_OPPORTUNITIES.md) - Strategic initiatives + deferred performance work
+- **Sentry Setup**: [src/docs/development/SENTRY_MANUAL_SETUP.md](src/docs/development/SENTRY_MANUAL_SETUP.md) - Alert rules, source maps, consent gating
 
 ### Analytics
 
