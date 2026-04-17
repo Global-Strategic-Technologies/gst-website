@@ -1,4 +1,9 @@
-/* Design System Variables - Single Source of Truth */
+/* Design System Variables - Single Source of Truth
+ * All theme-switching uses light-dark() — LightningCSS compiles this to
+ * --lightningcss-light/--lightningcss-dark variable tricks for full
+ * browser support. The html.dark-theme selector sets color-scheme: dark
+ * which triggers light-dark() to resolve to the second (dark) value.
+ */
 
 :root {
   color-scheme: light;
@@ -7,45 +12,43 @@
   --color-primary: #05cd99;
   --color-primary-rgb: 5, 205, 153;
   --color-primary-dark: #04a87a;
-  --color-secondary: #cc8800;
+  --color-secondary: light-dark(#cc8800, #ffaa33);
   --color-secondary-dark: #ffaa33;
-  --color-tertiary: #02724f;
-  --color-tertiary-dark: #01633f;
+  --color-tertiary: light-dark(#02724f, #05cd99);
+  --color-tertiary-dark: light-dark(#01633f, #04a87a);
 
   /* Editor's Pick */
-  --color-editors-pick: #b26622;
-  --color-editors-pick-hover: #d4923a;
+  --color-editors-pick: light-dark(#b26622, #d4923a);
+  --color-editors-pick-hover: light-dark(#d4923a, #b26622);
 
   /* Semantic Colors */
   --color-success: light-dark(#2e8b57, #3da868);
-  --color-warning: #cc8800;
-  --color-error: #d93636;
+  --color-warning: light-dark(#cc8800, #ffaa33);
+  --color-error: light-dark(#d93636, #e05050);
   --color-info: var(--color-primary);
 
   /* Backgrounds */
-  --bg-light: #ffffff;
-  --bg-light-alt: #f5f5f5;
+  --bg-light: light-dark(#ffffff, #0a0a0a);
+  --bg-light-alt: light-dark(#f5f5f5, #141414);
   --bg-dark: #0a0a0a;
   --bg-dark-secondary: #1a1a1a;
   --bg-dark-tertiary: #141414;
 
-  /* Text Colors - Light Theme */
+  /* Text Colors — static per-theme constants (not switched) */
   --text-light-primary: rgba(26, 26, 26, 0.95);
   --text-light-secondary: rgba(26, 26, 26, 0.7);
   --text-light-muted: rgba(26, 26, 26, 0.65);
   --text-light-faded: rgba(26, 26, 26, 0.65);
-
-  /* Text Colors - Dark Theme */
   --text-dark-primary: rgba(245, 245, 245, 0.95);
   --text-dark-secondary: rgba(200, 200, 200, 0.8);
   --text-dark-muted: rgba(200, 200, 200, 0.6);
   --text-dark-faded: rgba(200, 200, 200, 0.6);
 
-  /* Theme-Agnostic Text Aliases (auto-switch via dark theme overrides) */
-  --text-primary: var(--text-light-primary);
-  --text-secondary: var(--text-light-secondary);
-  --text-muted: var(--text-light-muted);
-  --text-faded: var(--text-light-faded);
+  /* Theme-Agnostic Text Aliases (auto-switch via light-dark) */
+  --text-primary: light-dark(rgba(26, 26, 26, 0.95), rgba(245, 245, 245, 0.95));
+  --text-secondary: light-dark(rgba(26, 26, 26, 0.7), rgba(200, 200, 200, 0.8));
+  --text-muted: light-dark(rgba(26, 26, 26, 0.65), rgba(200, 200, 200, 0.6));
+  --text-faded: light-dark(rgba(26, 26, 26, 0.65), rgba(200, 200, 200, 0.6));
 
   /* Primary Color Opacity Scale */
   --color-primary-02: rgba(var(--color-primary-rgb), 0.02);
@@ -71,15 +74,20 @@
   /* Borders & Accents */
   --border-light: rgba(26, 26, 26, 0.1);
   --border-dark: var(--color-primary-20);
-  --accent-subtle-bg: var(--color-primary-02);
-  --accent-wash-bg: var(--color-primary-03);
-  --accent-faint-bg: var(--color-primary-04);
-  --accent-tint-bg: var(--color-primary-06);
+  --accent-subtle-bg: light-dark(var(--color-primary-02), var(--color-primary-03));
+  --accent-wash-bg: light-dark(var(--color-primary-03), var(--color-primary-04));
+  --accent-faint-bg: light-dark(var(--color-primary-04), var(--color-primary-05));
+  --accent-tint-bg: light-dark(var(--color-primary-06), var(--color-primary-08));
   --accent-light-bg: var(--color-primary-08);
   --accent-light-bg-hover: var(--color-primary-15);
   --accent-dark-bg: var(--color-primary-10);
   --accent-border-light: var(--color-primary-25);
   --accent-border-medium: var(--color-primary-30);
+
+  /* Dark Border Scale — static constants for dark-theme-specific borders */
+  --border-dark-subtle: rgba(255, 255, 255, 0.1);
+  --border-dark-default: rgba(255, 255, 255, 0.15);
+  --border-dark-prominent: rgba(255, 255, 255, 0.2);
 
   /* Spacing Scale */
   --spacing-xs: 0.25rem;
@@ -141,56 +149,58 @@
   --z-skip-nav: 10000; /* skip-nav link (top of page) */
 
   /* Section Backgrounds */
-  --services-bg: #eeeeee;
-  --footer-bg: #eeeeee;
-  --cta-box-bg: var(--bg-light);
-  --service-card-bg: var(--bg-dark);
-  --filter-drawer-bg: var(--bg-light);
+  --services-bg: light-dark(#eeeeee, #141414);
+  --footer-bg: light-dark(#eeeeee, #141414);
+  --cta-box-bg: light-dark(#ffffff, #1a1a1a);
+  --service-card-bg: light-dark(#0a0a0a, #1a1a1a);
+  --filter-drawer-bg: light-dark(#ffffff, #1a1a1a);
 
-  /* Accent & UI Elements (Light Theme) */
-  --filter-chip-bg: rgba(26, 26, 26, 0.05);
-  --filter-chip-bg-hover: rgba(26, 26, 26, 0.08);
-  --filter-chip-border: rgba(26, 26, 26, 0.1);
-  --filter-button-bg: rgba(26, 26, 26, 0.05);
-  --filter-button-bg-hover: rgba(26, 26, 26, 0.08);
-  --filter-button-border: rgba(26, 26, 26, 0.1);
-  --search-input-bg: rgba(26, 26, 26, 0.02);
-  --search-input-border: rgba(26, 26, 26, 0.1);
-  --search-input-focus-bg: var(--bg-light);
-  --search-input-focus-shadow: var(--color-primary-10);
-  --clear-filters-border: rgba(26, 26, 26, 0.1);
+  /* Accent & UI Elements */
+  --filter-chip-bg: light-dark(rgba(26, 26, 26, 0.05), var(--color-primary-10));
+  --filter-chip-bg-hover: light-dark(rgba(26, 26, 26, 0.08), var(--color-primary-15));
+  --filter-chip-bg-active: light-dark(#02724f, #05cd99);
+  --filter-chip-border: light-dark(rgba(26, 26, 26, 0.1), var(--color-primary-20));
+  --filter-chip-text-active: light-dark(#ffffff, #0a0a0a);
+  --filter-button-bg: light-dark(rgba(26, 26, 26, 0.05), var(--color-primary-10));
+  --filter-button-bg-hover: light-dark(rgba(26, 26, 26, 0.08), var(--color-primary-15));
+  --filter-button-border: light-dark(rgba(26, 26, 26, 0.1), var(--color-primary-20));
+  --search-input-bg: light-dark(rgba(26, 26, 26, 0.02), var(--color-primary-05));
+  --search-input-border: light-dark(rgba(26, 26, 26, 0.1), var(--color-primary-20));
+  --search-input-focus-bg: light-dark(#ffffff, #1a1a1a);
+  --search-input-focus-shadow: light-dark(var(--color-primary-10), var(--color-primary-15));
+  --clear-filters-border: light-dark(rgba(26, 26, 26, 0.1), var(--color-primary-20));
 
-  /* Text Colors (Light Theme) */
-  --filter-chip-text: rgba(26, 26, 26, 0.7);
-  --filter-button-text: rgba(26, 26, 26, 0.7);
-  --clear-filters-text: rgba(26, 26, 26, 0.6);
-  --search-input-text: rgba(26, 26, 26, 0.85);
-  --search-input-placeholder: rgba(26, 26, 26, 0.5);
-  --service-card-text: #b0b0b0;
-  --service-card-heading: var(--bg-light);
-  --footer-text: rgba(26, 26, 26, 0.85);
-  --footer-border: rgba(26, 26, 26, 0.1);
-  --cta-box-text: rgba(26, 26, 26, 0.85);
-  --stat-item-border: var(--color-primary);
+  /* Text Colors */
+  --filter-chip-text: light-dark(rgba(26, 26, 26, 0.7), rgba(200, 200, 200, 0.8));
+  --filter-button-text: light-dark(rgba(26, 26, 26, 0.7), rgba(200, 200, 200, 0.8));
+  --clear-filters-text: light-dark(rgba(26, 26, 26, 0.6), rgba(200, 200, 200, 0.6));
+  --search-input-text: light-dark(rgba(26, 26, 26, 0.85), rgba(245, 245, 245, 0.85));
+  --search-input-placeholder: light-dark(rgba(26, 26, 26, 0.5), rgba(200, 200, 200, 0.5));
+  --service-card-text: light-dark(#b0b0b0, #d0d0d0);
+  --service-card-heading: light-dark(#ffffff, #0a0a0a);
+  --footer-text: light-dark(rgba(26, 26, 26, 0.85), rgba(153, 153, 153, 0.85));
+  --footer-border: light-dark(rgba(26, 26, 26, 0.1), rgba(153, 153, 153, 0.15));
+  --cta-box-text: light-dark(rgba(26, 26, 26, 0.85), rgba(200, 200, 200, 0.8));
+  --stat-item-border: light-dark(var(--color-primary), var(--color-primary-20));
 
   /* Misc */
-  --checkerboard-line: rgba(0, 0, 0, 0.08);
-  --theme-toggle-color: rgba(74, 74, 74, 0.8);
-  --service-card-border: var(--bg-dark-secondary);
-  --about-image-bg: var(--bg-dark-tertiary);
-  --about-image-border: var(--bg-dark-secondary);
-  --about-image-text: #404040;
+  --checkerboard-line: light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.08));
+  --theme-toggle-color: light-dark(rgba(74, 74, 74, 0.8), rgba(200, 200, 200, 0.8));
+  --service-card-border: light-dark(#1a1a1a, #2a2a2a);
+  --about-image-bg: light-dark(#141414, #1a1a1a);
+  --about-image-border: light-dark(#1a1a1a, #2a2a2a);
+  --about-image-text: light-dark(#404040, #808080);
 
   /* Expanded Palette — purpose-named tokens for tool derivation */
-  --color-authority: #5b7a9d;
+  --color-authority: light-dark(#5b7a9d, #7a9dbd);
   --color-authority-rgb: 91, 122, 157;
-  --color-distinguish: #8b5cf6;
-  --color-subdued: #8c7a6b;
+  --color-distinguish: light-dark(#8b5cf6, #a78bfa);
+  --color-subdued: light-dark(#8c7a6b, #a89888);
   --color-subdued-rgb: 140, 122, 107;
 
   /* Tool Color Derivations — all derive from the 9 core tokens above */
   --hub-authority-blue: var(--color-authority);
-  --color-authority-bg: rgba(var(--color-authority-rgb), 0.1);
+  --color-authority-bg: light-dark(rgba(91, 122, 157, 0.1), rgba(122, 157, 189, 0.1));
   --techpar-zone-healthy: var(--color-primary);
   --techpar-zone-healthy-bg: var(--accent-light-bg);
   --techpar-zone-ahead: var(--color-success);
@@ -206,13 +216,13 @@
   --techpar-kpi-warn: var(--color-warning);
   --techpar-kpi-negative: var(--color-error);
   --dm-methodology-brown: var(--color-subdued);
-  --color-subdued-bg: rgba(var(--color-subdued-rgb), 0.04);
+  --color-subdued-bg: light-dark(rgba(140, 122, 107, 0.04), rgba(168, 152, 136, 0.06));
   --dm-results-blue: var(--color-authority);
   --dm-results-tan: var(--color-subdued);
   --dm-positive: var(--color-success);
   --dm-negative: var(--color-error);
   --dm-negative-dark: var(--color-error);
-  --dm-negative-dark-bg: rgba(178, 34, 34, 0.06);
+  --dm-negative-dark-bg: light-dark(rgba(178, 34, 34, 0.06), rgba(178, 34, 34, 0.1));
   --dm-warning: var(--color-warning);
   --dm-warning-dark: var(--color-warning);
   --dm-success: var(--color-success);
@@ -225,137 +235,36 @@
   --regmap-category-industry: var(--color-distinguish);
   --regmap-category-cyber: var(--color-error);
 
-  /* TechPar — Zone Background Colors (opacity variants, kept for readability) */
-  --techpar-zone-ahead-bg: rgba(46, 168, 78, 0.08);
-  --techpar-zone-underinvest-bg: rgba(204, 136, 0, 0.08);
-  --techpar-zone-above-bg: rgba(204, 136, 0, 0.08);
-  --techpar-zone-elevated-bg: rgba(217, 54, 54, 0.08);
-  --techpar-zone-critical-bg: rgba(184, 46, 46, 0.08);
+  /* TechPar — Zone Background Colors */
+  --techpar-zone-ahead-bg: light-dark(rgba(46, 168, 78, 0.08), rgba(46, 168, 78, 0.09));
+  --techpar-zone-underinvest-bg: light-dark(rgba(204, 136, 0, 0.08), rgba(255, 170, 51, 0.09));
+  --techpar-zone-above-bg: light-dark(rgba(204, 136, 0, 0.08), rgba(255, 170, 51, 0.09));
+  --techpar-zone-elevated-bg: light-dark(rgba(217, 54, 54, 0.08), rgba(224, 80, 80, 0.09));
+  --techpar-zone-critical-bg: light-dark(rgba(184, 46, 46, 0.08), rgba(224, 80, 80, 0.09));
 
-  /* TechPar — Chart Colors (opacity-tuned, kept independently) */
-  --techpar-chart-band-fill: var(--color-primary-15);
-  --techpar-chart-band-border: var(--color-primary-50);
-  --techpar-chart-ahead-fill: rgba(33, 118, 174, 0.1);
-  --techpar-chart-ahead-border: rgba(33, 118, 174, 0.5);
-  --techpar-chart-under-fill: rgba(224, 123, 0, 0.12);
-  --techpar-chart-under-border: rgba(224, 123, 0, 0.55);
-  --techpar-chart-above-fill: rgba(217, 54, 54, 0.1);
-  --techpar-chart-above-border: rgba(217, 54, 54, 0.45);
-  --techpar-chart-revenue-line: rgba(26, 26, 26, 0.55);
+  /* TechPar — Chart Colors */
+  --techpar-chart-band-fill: light-dark(var(--color-primary-15), var(--color-primary-13));
+  --techpar-chart-band-border: light-dark(var(--color-primary-50), var(--color-primary-45));
+  --techpar-chart-ahead-fill: light-dark(rgba(33, 118, 174, 0.1), rgba(56, 152, 214, 0.11));
+  --techpar-chart-ahead-border: light-dark(rgba(33, 118, 174, 0.5), rgba(56, 152, 214, 0.5));
+  --techpar-chart-under-fill: light-dark(rgba(224, 123, 0, 0.12), rgba(255, 140, 0, 0.12));
+  --techpar-chart-under-border: light-dark(rgba(224, 123, 0, 0.55), rgba(255, 140, 0, 0.55));
+  --techpar-chart-above-fill: light-dark(rgba(217, 54, 54, 0.1), rgba(240, 70, 70, 0.12));
+  --techpar-chart-above-border: light-dark(rgba(217, 54, 54, 0.45), rgba(240, 70, 70, 0.5));
+  --techpar-chart-revenue-line: light-dark(rgba(26, 26, 26, 0.55), rgba(200, 200, 200, 0.6));
 
   /* Spacing — Extended */
   --spacing-2_5xl: 2.5rem;
 }
 
-/* Dark Theme Overrides */
+/* Dark Theme — only sets color-scheme and non-color overrides that
+ * light-dark() cannot handle (RGB triplets are not <color> values). */
 html.dark-theme {
   color-scheme: dark;
 
-  --bg-light: #0a0a0a;
-  --bg-light-alt: #141414;
-  --text-light-primary: var(--text-dark-primary);
-  --text-light-secondary: var(--text-dark-secondary);
-  --text-light-muted: var(--text-dark-muted);
-  --text-light-faded: var(--text-dark-faded);
-  --text-primary: var(--text-dark-primary);
-  --text-secondary: var(--text-dark-secondary);
-  --text-muted: var(--text-dark-muted);
-  --text-faded: var(--text-dark-faded);
-  --color-secondary: var(--color-secondary-dark);
-  --color-tertiary: var(--color-primary);
-  --color-tertiary-dark: var(--color-primary-dark);
-  --color-editors-pick: #d4923a;
-  --color-editors-pick-hover: #b26622;
-
-  /* Accent Opacity Scale (dark theme — slightly higher opacity for visibility) */
-  --accent-subtle-bg: var(--color-primary-03);
-  --accent-wash-bg: var(--color-primary-04);
-  --accent-faint-bg: var(--color-primary-05);
-  --accent-tint-bg: var(--color-primary-08);
-
-  /* Semantic Colors (dark theme) — --color-success uses light-dark() in :root */
-  --color-warning: #ffaa33;
-  --color-error: #e05050;
-
-  /* Section Backgrounds */
-  --services-bg: var(--bg-dark-tertiary);
-  --footer-bg: var(--bg-dark-tertiary);
-  --cta-box-bg: var(--bg-dark-secondary);
-  --service-card-bg: var(--bg-dark-secondary);
-  --filter-drawer-bg: var(--bg-dark-secondary);
-
-  /* Accent & UI Elements */
-  --filter-chip-bg: var(--color-primary-10);
-  --filter-chip-bg-hover: var(--color-primary-15);
-  --filter-chip-bg-active: var(--color-tertiary);
-  --filter-chip-text-active: var(--bg-light);
-  --filter-chip-border: var(--color-primary-20);
-  --filter-button-bg: var(--color-primary-10);
-  --filter-button-bg-hover: var(--color-primary-15);
-  --filter-button-border: var(--color-primary-20);
-  --search-input-bg: var(--color-primary-05);
-  --search-input-border: var(--color-primary-20);
-  --search-input-focus-bg: var(--bg-dark-secondary);
-  --search-input-focus-shadow: var(--color-primary-15);
-  --clear-filters-border: var(--color-primary-20);
-
-  /* Text Colors */
-  --filter-chip-text: rgba(200, 200, 200, 0.8);
-  --filter-button-text: rgba(200, 200, 200, 0.8);
-  --clear-filters-text: rgba(200, 200, 200, 0.6);
-  --search-input-text: rgba(245, 245, 245, 0.85);
-  --search-input-placeholder: rgba(200, 200, 200, 0.5);
-  --service-card-text: #d0d0d0;
-  --service-card-heading: var(--bg-light);
-  --footer-text: rgba(153, 153, 153, 0.85);
-  --footer-border: rgba(153, 153, 153, 0.15);
-  --cta-box-text: rgba(200, 200, 200, 0.8);
-  --stat-item-border: var(--color-primary-20);
-
-  /* Dark Border Scale */
-  --border-dark-subtle: rgba(255, 255, 255, 0.1);
-  --border-dark-default: rgba(255, 255, 255, 0.15);
-  --border-dark-prominent: rgba(255, 255, 255, 0.2);
-
-  /* Misc */
-  --checkerboard-line: rgba(255, 255, 255, 0.08);
-  --theme-toggle-color: rgba(200, 200, 200, 0.8);
-  --service-card-border: #2a2a2a;
-  --about-image-bg: var(--bg-dark-secondary);
-  --about-image-border: #2a2a2a;
-  --about-image-text: #808080;
-
-  /* Expanded Palette (dark theme) */
-  --color-authority: #7a9dbd;
+  /* RGB triplets for rgba() usage — not <color> values, cannot use light-dark() */
   --color-authority-rgb: 122, 157, 189;
-  --color-distinguish: #a78bfa;
-  --color-subdued: #a89888;
   --color-subdued-rgb: 168, 152, 136;
-
-  /* Tool derivations auto-resolve from updated core tokens above */
-
-  /* Only override opacity variants that need dark-theme tuning */
-  --color-subdued-bg: rgba(var(--color-subdued-rgb), 0.06);
-  --color-authority-bg: rgba(var(--color-authority-rgb), 0.1);
-  --dm-negative-dark-bg: rgba(178, 34, 34, 0.1);
-
-  /* TechPar — Zone Backgrounds (dark theme opacity) */
-  --techpar-zone-ahead-bg: rgba(46, 168, 78, 0.09);
-  --techpar-zone-underinvest-bg: rgba(255, 170, 51, 0.09);
-  --techpar-zone-above-bg: rgba(255, 170, 51, 0.09);
-  --techpar-zone-elevated-bg: rgba(224, 80, 80, 0.09);
-  --techpar-zone-critical-bg: rgba(224, 80, 80, 0.09);
-
-  /* TechPar — Chart Colors (dark theme) */
-  --techpar-chart-band-fill: var(--color-primary-13);
-  --techpar-chart-band-border: var(--color-primary-45);
-  --techpar-chart-ahead-fill: rgba(56, 152, 214, 0.11);
-  --techpar-chart-ahead-border: rgba(56, 152, 214, 0.5);
-  --techpar-chart-under-fill: rgba(255, 140, 0, 0.12);
-  --techpar-chart-under-border: rgba(255, 140, 0, 0.55);
-  --techpar-chart-above-fill: rgba(240, 70, 70, 0.12);
-  --techpar-chart-above-border: rgba(240, 70, 70, 0.5);
-  --techpar-chart-revenue-line: rgba(200, 200, 200, 0.6);
 }
 
 /* Utility Classes for Common Patterns */
