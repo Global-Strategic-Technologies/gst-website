@@ -805,6 +805,33 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 - Decision framework: Go (passes all 6 criteria) / No-go (archive, document findings) / Kill (requires external dependencies or exceeds 8h)
 - This is exploratory — no commitment to ship
 
+### BL-036: Haptic Feedback Easter Egg — Footer Delta Long-Press
+
+**Source**: Research spike (April 2026) | **Effort**: 2-3 hours | **Status**: Open
+
+**As a** PWA user, **I want** to long-press the footer delta icon for 7 seconds to pop out the palette panel **so that** I can access the color palette editor without navigating to the brand page (which isn't reachable when the address bar is hidden in PWA mode).
+
+#### Acceptance Criteria
+
+- [ ] Long-press (7s) on the ThemeToggle delta icon in the footer triggers palette popout
+- [ ] Short click continues to toggle light/dark theme (no regression)
+- [ ] Progressive haptic feedback during hold: vibration pulses at 1.5s intervals with increasing intensity (via `navigator.vibrate`)
+- [ ] Visual hold feedback: subtle pulse animation on the delta icon while held
+- [ ] Haptic feedback degrades gracefully on unsupported browsers (iOS Safari, Firefox) — visual feedback still works
+- [ ] `prefers-reduced-motion: reduce` disables the visual pulse animation
+- [ ] Works in both light/dark themes on desktop and mobile viewports
+
+#### Technical Context
+
+- The footer delta icon is the existing `ThemeToggle` component (`#themeToggle` in `src/components/ThemeToggle.astro`), which renders a `DeltaIcon`
+- Replace the `click` listener with pointer events (`pointerdown`/`pointerup`/`pointerleave`/`pointercancel`) to distinguish short click from long-press
+- Haptic pulse schedule: 50ms at 1.5s, 75ms at 3s, 100ms at 4.5s, 150ms at 6s, 300ms success buzz at 7s — all cancelled on early release
+- Palette popout triggered via `palettePopoutRequested` custom event on `document`, handled by `palette-manager.ts` calling `handlePopoutToggle()`
+- `touch-action: none` on the button to prevent scroll interference during mobile long-press
+- Web Vibration API: supported in Chrome/Edge (desktop + Android), NOT supported in Safari (iOS) or Firefox v129+. ~77% global coverage but iOS gap is significant
+- No permission prompt required — Vibration API only needs sticky user activation (click/tap), which is inherent to this interaction
+- This is an easter egg — intentionally undisclosed, no ARIA announcement
+
 ---
 
 _Created: April 18, 2026_
