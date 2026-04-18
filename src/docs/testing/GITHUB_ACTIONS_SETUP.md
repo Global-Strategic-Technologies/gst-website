@@ -394,6 +394,72 @@ When a PR is open and you push to the branch, both `push` and `pull_request` eve
 
 ---
 
-**Last Updated:** 2026-04-09
+## Branch Protection Rules
+
+### What This Does
+
+Prevents merging PRs to `master` unless:
+
+- All tests pass
+- Branch is up to date with master
+- At least one approval (optional)
+
+### Configuration
+
+**URL:** `https://github.com/YOUR_ORG/gst-website/settings/branches`
+
+1. Go to repo **Settings** -> **Branches**
+2. Add or edit the `master` rule
+3. Enable these settings:
+
+| Setting                                | Value    | Why                                                   |
+| -------------------------------------- | -------- | ----------------------------------------------------- |
+| Require a pull request before merging  | Yes      | Forces all changes through PR review                  |
+| Require approvals                      | 1        | Prevents mistakes, catches edge cases                 |
+| Dismiss stale approvals on new commits | Yes      | New code must be re-approved                          |
+| Require status checks to pass          | Yes      | Broken tests = blocked merge                          |
+| Require branches to be up to date      | Yes      | Prevents conflicts, ensures tests pass on latest code |
+| Require conversation resolution        | Optional | Ensures comments are addressed                        |
+
+4. Select required status checks:
+   - `Unit & Integration Tests` (required)
+   - `Lint & Type Check` (required)
+   - `Build Verification` (required)
+   - `E2E Tests` (optional — takes longer, can skip for emergency hotfixes)
+
+### Typical PR Workflow
+
+```
+1. Create PR (from feature branch)
+   ↓
+2. GitHub Actions tests start
+   ↓
+3. While tests run: assign reviewers, review code
+   ↓
+4. Tests complete (5-10 min)
+   ├─ Pass? → ✅ Merge button enabled
+   └─ Fail? → ❌ Must fix before merge
+   ↓
+5. Reviewer approves
+   ↓
+6. Merge → Vercel deploys master automatically
+```
+
+### Emergency: Bypassing Checks
+
+Admin override is available but rarely needed. Better option: create a hotfix PR, get quick approval, merge normally (tests usually pass in under 10 minutes).
+
+### Branch Protection Troubleshooting
+
+| Symptom                             | Fix                                                      |
+| ----------------------------------- | -------------------------------------------------------- |
+| "Some checks haven't completed yet" | Tests still running (5-10 min) — wait and refresh        |
+| "X check failed"                    | Click the failed check to see error; fix and push        |
+| "Can't merge due to conflicts"      | Click "Update branch" to rebase                          |
+| "Protection rule mismatch"          | Go to Actions tab, get exact check name, update the rule |
+
+---
+
+**Last Updated:** 2026-04-18
 **Status:** Ready to use
 **Questions?** Check TEST_STRATEGY.md for detailed documentation

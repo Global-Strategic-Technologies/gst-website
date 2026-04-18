@@ -6,7 +6,7 @@
 | ------------------------------------------------- | --------------------- | ------- |
 | `TEST_STRATEGY.md`                                | Complete strategy     | ✅ Done |
 | `GITHUB_ACTIONS_SETUP.md`                         | Quick start guide     | ✅ Done |
-| `BRANCH_PROTECTION_CONFIG.md`                     | Branch rules          | ✅ Done |
+| `GITHUB_ACTIONS_SETUP.md` § Branch Protection     | Branch rules          | ✅ Done |
 | `GITHUB_ACTIONS_SETUP.md` § Pipeline Architecture | Architecture overview | ✅ Done |
 | `vitest.config.ts`                                | Unit test config      | ✅ Done |
 | `playwright.config.ts`                            | E2E test config       | ✅ Done |
