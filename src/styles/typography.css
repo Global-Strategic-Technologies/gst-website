@@ -157,20 +157,5 @@
   line-height: 1;
 }
 
-/* Dark Theme — nav-link interactive states only.
-   Text color overrides are unnecessary: --text-light-* variables already
-   resolve to dark values via html.dark-theme overrides in variables.css. */
-html.dark-theme .nav-link:hover {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
-}
-
-html.dark-theme .nav-link:focus {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 0.25rem;
-}
-
-html.dark-theme .nav-link.active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
-}
+/* Dark theme nav-link overrides removed — all values were identical to base
+   rules (var(--color-primary) does not change between themes). */

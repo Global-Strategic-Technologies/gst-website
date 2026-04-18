@@ -41,14 +41,14 @@
 
 /* Button/Control Hover States */
 .control-hover {
-  background: var(--accent-light-bg-hover, rgba(26, 26, 26, 0.08));
+  background: light-dark(rgba(26, 26, 26, 0.08), rgba(var(--color-primary-rgb), 0.15));
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
 
 .control-active {
   background: var(--color-primary);
-  color: var(--bg-light);
+  color: var(--bg-dark);
   border-color: var(--color-primary);
 }
 
@@ -72,46 +72,10 @@
   outline-offset: 0.25rem;
 }
 
-/* Dark Theme Interaction States */
-html.dark-theme .interactive:hover {
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-html.dark-theme .interactive:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-html.dark-theme .link-interactive:hover {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
-}
-
-html.dark-theme .link-interactive:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 0.25rem;
-}
-
-html.dark-theme .control-hover {
-  background: rgba(var(--color-primary-rgb), 0.15);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-html.dark-theme .control-active {
-  background: var(--color-primary);
-  color: var(--bg-dark);
-  border-color: var(--color-primary);
-}
-
-html.dark-theme .accent-light-bg {
-  background: rgba(var(--color-primary-rgb), 0.1);
-}
-
-html.dark-theme .accent-light-bg-hover {
-  background: rgba(var(--color-primary-rgb), 0.15);
-}
+/* Dark theme overrides removed — interaction states use var(--color-primary)
+   which does not change between themes, so all overrides were redundant.
+   .control-hover and .control-active differ only in background/color which
+   now use light-dark() below. */
 
 /* Delta Chevron — Collapse/Expand Toggle Indicator
    Uses the brand delta triangle SVG or <img>. Points up when collapsed,
@@ -164,7 +128,7 @@ details[open] > summary .delta-chevron {
 /* Brutalist Interactive Element */
 .brutal-interactive {
   padding: var(--spacing-md) var(--spacing-xl);
-  border: 2px solid var(--border-light);
+  border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
   color: var(--text-secondary);
   font-family: monospace;
@@ -191,13 +155,8 @@ details[open] > summary .delta-chevron {
   outline: none;
 }
 
-html.dark-theme .brutal-interactive {
-  border-color: var(--border-dark-default);
-}
-
-html.dark-theme .brutal-interactive:focus-visible {
-  color: var(--bg-dark);
-}
+/* brutal-interactive:focus-visible dark override removed — color: var(--bg-dark)
+   is identical to base rule. border-color migrated to light-dark() in base. */
 
 /* Brutalist Link Interactive */
 .brutal-link-interactive {

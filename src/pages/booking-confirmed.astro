@@ -63,7 +63,7 @@ import DeltaIcon from '../components/DeltaIcon.astro';
   }
 
   .confirmation-card {
-    background: var(--bg-light);
+    background: light-dark(var(--bg-light), var(--bg-dark-secondary));
     border: 2px solid var(--color-primary);
     padding: var(--spacing-3xl) var(--spacing-2xl);
     text-align: center;
@@ -93,7 +93,7 @@ import DeltaIcon from '../components/DeltaIcon.astro';
 
   .confirmation-details {
     text-align: left;
-    border-top: 1px solid var(--border-light);
+    border-top: 1px solid light-dark(var(--border-light), var(--border-dark-subtle));
     padding-top: var(--spacing-xl);
     margin-bottom: var(--spacing-2xl);
   }
@@ -146,15 +146,6 @@ import DeltaIcon from '../components/DeltaIcon.astro';
 
   .confirmation-link:hover {
     color: var(--color-primary);
-  }
-
-  /* Dark theme */
-  :global(html.dark-theme) .confirmation-card {
-    background: var(--bg-dark-secondary);
-  }
-
-  :global(html.dark-theme) .confirmation-details {
-    border-top-color: var(--border-dark-subtle);
   }
 
   @media (max-width: 768px) {

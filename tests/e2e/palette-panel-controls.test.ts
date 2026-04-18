@@ -689,25 +689,32 @@ test.describe('Palette Panel Controls', () => {
     });
   });
 
-  test.describe('Mobile Viewport', () => {
-    test('should show palette panel edge strip at mobile viewport width', async ({ page }) => {
+  test.describe('Mobile Viewport (Bottom Sheet)', () => {
+    test('should hide edge strip on mobile', async ({ page }) => {
       await page.setViewportSize({ width: 480, height: 800 });
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
 
       const display = await page.evaluate(() => {
-        const panel = document.getElementById('palette-panel');
-        return panel ? getComputedStyle(panel).display : '';
+        const edge = document.querySelector('.palette-panel__edge');
+        return edge ? getComputedStyle(edge).display : '';
       });
-      expect(display).not.toBe('none');
-
-      const toggle = page.getByTestId('palette-panel-toggle');
-      await expect(toggle).toBeVisible();
+      expect(display).toBe('none');
     });
 
-    test('should use 2-column swatch grid on mobile', async ({ page }) => {
+    test('should use 3-column swatch grid on mobile', async ({ page }) => {
       await page.setViewportSize({ width: 480, height: 800 });
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
-      await openPanel(page);
+
+      // Open via FAB on mobile
+      await page.evaluate(() => {
+        document
+          .getElementById('panel-fab')
+          ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      await page.waitForFunction(
+        () => document.getElementById('palette-panel')?.classList.contains('is-open'),
+        { timeout: 10000 }
+      );
       await waitForSwatchControls(page);
 
       const columns = await page.evaluate(() => {
@@ -715,28 +722,35 @@ test.describe('Palette Panel Controls', () => {
         if (!grid) return '';
         return getComputedStyle(grid).gridTemplateColumns;
       });
-      // 2-column grid resolves to two pixel values (e.g. "120px 120px")
       const colCount = columns.split(/\s+/).filter(Boolean).length;
-      expect(colCount).toBe(2);
+      expect(colCount).toBe(3);
     });
 
-    test('should narrow panel body to 280px on mobile', async ({ page }) => {
+    test('should use full-width panel body on mobile', async ({ page }) => {
       await page.setViewportSize({ width: 480, height: 800 });
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
-      await openPanel(page);
+
+      await page.evaluate(() => {
+        document
+          .getElementById('panel-fab')
+          ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      await page.waitForFunction(
+        () => document.getElementById('palette-panel')?.classList.contains('is-open'),
+        { timeout: 10000 }
+      );
 
       const bodyWidth = await page.evaluate(() => {
         const body = document.getElementById('panel-body');
         return body ? body.getBoundingClientRect().width : 0;
       });
-      expect(bodyWidth).toBeLessThanOrEqual(280);
-      expect(bodyWidth).toBeGreaterThan(0);
+      // Full-width sheet: body should be close to viewport width
+      expect(bodyWidth).toBeGreaterThan(400);
     });
 
     test('should hide resize handle on mobile', async ({ page }) => {
       await page.setViewportSize({ width: 480, height: 800 });
       await page.goto('/brand', { waitUntil: 'domcontentloaded' });
-      await openPanel(page);
 
       const display = await page.evaluate(() => {
         const resize = document.getElementById('panel-resize');

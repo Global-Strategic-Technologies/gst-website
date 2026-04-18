@@ -196,7 +196,7 @@ const { projects } = Astro.props;
     justify-content: space-between;
     align-items: center;
     padding: 1.5rem;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark));
     flex-shrink: 0;
   }
 
@@ -293,7 +293,7 @@ const { projects } = Astro.props;
     padding: 0.875rem 1rem;
     background: transparent;
     color: var(--text-muted);
-    border: 2px solid var(--border-light);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark));
     cursor: pointer;
     font-size: var(--text-xs);
     font-weight: 700;
@@ -344,21 +344,6 @@ const { projects } = Astro.props;
   }
 
   /* dark theme frosted glass handled by .brutal-frosted--overlay */
-  :global(html.dark-theme) .portfolio-filter-drawer {
-    border-left-color: var(--color-primary);
-  }
-
-  :global(html.dark-theme) .drawer-header {
-    border-bottom-color: var(--border-dark);
-  }
-
-  :global(html.dark-theme) .filter-label {
-    color: var(--text-muted);
-  }
-
-  :global(html.dark-theme) .clear-filters-btn {
-    border-color: var(--border-dark);
-  }
 
   /* Responsive */
   @media (max-width: 768px) {

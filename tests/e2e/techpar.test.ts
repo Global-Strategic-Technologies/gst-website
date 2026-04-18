@@ -32,17 +32,25 @@ async function selectStage(page: Page, stage: string = 'series_bc'): Promise<voi
   await page.click(`[data-stage="${stage}"]`);
 }
 
+/** Common setup: navigate to analysis tab with required inputs filled */
+async function setupToAnalysis(page: Page): Promise<void> {
+  await gotoTool(page);
+  await selectStage(page);
+  await fillInput(page, 'arr', '10000000');
+  await clickTab(page, 'costs');
+  await fillInput(page, 'infra', '50000');
+  await clickTab(page, 'analysis');
+}
+
 // ─── Profile tab ─────────────────────────────────────────────────────────────
 
 test.describe('TechPar - Profile tab', () => {
-  test('page loads on Profile tab with stage selector visible', async ({ page }) => {
+  test('page loads on Profile tab and stage selection updates visual state', async ({ page }) => {
     await gotoTool(page);
     await expect(page.locator('[data-panel="profile"]')).toHaveClass(/tp-panel--active/);
     await expect(page.locator('[data-stage-grid]')).toBeVisible();
-  });
 
-  test('selecting a stage updates its visual state', async ({ page }) => {
-    await gotoTool(page);
+    // Selecting a stage updates its visual state
     const seedCard = page.locator('[data-stage="seed"]');
     await seedCard.click();
     await expect(seedCard).toHaveClass(/tp-stage-card--active/);
@@ -56,9 +64,9 @@ test.describe('TechPar - Profile tab', () => {
     await expect(page.locator('[data-panel="costs"]')).toHaveClass(/tp-panel--active/);
   });
 
-  test('exit multiple field is hidden on Seed, Series A, Series B-C stages', async ({ page }) => {
+  test('exit multiple field visibility depends on stage type', async ({ page }) => {
     await gotoTool(page);
-    // No stage selected — exit field should be hidden
+    // Hidden on Seed, Series A, Series B-C stages
     await expect(page.locator('[data-exit-field]')).not.toHaveClass(/tp-exit-field--vis/);
     await selectStage(page, 'series_bc');
     await expect(page.locator('[data-exit-field]')).not.toHaveClass(/tp-exit-field--vis/);
@@ -66,10 +74,8 @@ test.describe('TechPar - Profile tab', () => {
     await expect(page.locator('[data-exit-field]')).not.toHaveClass(/tp-exit-field--vis/);
     await selectStage(page, 'series_a');
     await expect(page.locator('[data-exit-field]')).not.toHaveClass(/tp-exit-field--vis/);
-  });
 
-  test('exit multiple field is visible on PE-backed and Enterprise stages', async ({ page }) => {
-    await gotoTool(page);
+    // Visible on PE-backed and Enterprise stages
     await page.click('[data-stage="pe"]');
     await expect(page.locator('[data-exit-field]')).toHaveClass(/tp-exit-field--vis/);
     await page.click('[data-stage="enterprise"]');
@@ -80,22 +86,20 @@ test.describe('TechPar - Profile tab', () => {
 // ─── Costs tab ───────────────────────────────────────────────────────────────
 
 test.describe('TechPar - Costs tab', () => {
-  test('"View analysis" button is disabled when infraHosting is 0', async ({ page }) => {
+  test('"View analysis" button is disabled when infra is 0 and enabled when filled', async ({
+    page,
+  }) => {
     await gotoTool(page);
     await selectStage(page);
     await fillInput(page, 'arr', '10000000');
     await clickTab(page, 'costs');
+
+    // Disabled when infra is 0
     const btn = page.locator('[data-btn-analysis]');
     await expect(btn).toBeDisabled();
-  });
 
-  test('"View analysis" button is enabled when ARR > 0 and infraHosting > 0', async ({ page }) => {
-    await gotoTool(page);
-    await selectStage(page);
-    await fillInput(page, 'arr', '10000000');
-    await clickTab(page, 'costs');
+    // Enabled after filling infra
     await fillInput(page, 'infra', '50000');
-    const btn = page.locator('[data-btn-analysis]');
     await expect(btn).toBeEnabled();
   });
 
@@ -121,29 +125,24 @@ test.describe('TechPar - Costs tab', () => {
     await expect(total).toContainText('$1.6M');
   });
 
-  test('CapEx toggle is hidden when rdCapEx is 0', async ({ page }) => {
-    await gotoTool(page);
-    await clickTab(page, 'costs');
-    await expect(page.locator('[data-capex-row]')).not.toHaveClass(/tp-capex-row--vis/);
-  });
-
-  test('CapEx toggle is visible when rdCapEx > 0', async ({ page }) => {
-    await gotoTool(page);
-    await clickTab(page, 'costs');
-    await fillInput(page, 'rdCapEx', '500000');
-    await expect(page.locator('[data-capex-row]')).toHaveClass(/tp-capex-row--vis/);
-  });
-
-  test('CapEx toggle changes the primary KPI value and basis label', async ({ page }) => {
+  test('CapEx toggle visibility depends on rdCapEx value and changes KPI basis', async ({
+    page,
+  }) => {
     await gotoTool(page);
     await selectStage(page);
     await fillInput(page, 'arr', '10000000');
     await clickTab(page, 'costs');
+
+    // Hidden when rdCapEx is 0
+    await expect(page.locator('[data-capex-row]')).not.toHaveClass(/tp-capex-row--vis/);
+
+    // Visible when rdCapEx > 0
+    await fillInput(page, 'rdCapEx', '500000');
+    await expect(page.locator('[data-capex-row]')).toHaveClass(/tp-capex-row--vis/);
+
+    // Fill other required inputs and check KPI basis
     await fillInput(page, 'infra', '50000');
     await fillInput(page, 'rdOpEx', '3000000');
-    await fillInput(page, 'rdCapEx', '500000');
-
-    // Navigate to analysis to see KPI
     await clickTab(page, 'analysis');
     const heroNum = page.locator('[data-hero-num]');
     const heroBasis = page.locator('[data-hero-basis]');
@@ -174,19 +173,9 @@ test.describe('TechPar - Analysis tab', () => {
     );
   });
 
-  test('Analysis tab renders primary KPI when required inputs are present', async ({ page }) => {
-    await gotoTool(page);
-    await selectStage(page);
-    await fillInput(page, 'arr', '10000000');
-    await clickTab(page, 'costs');
-    await fillInput(page, 'infra', '50000');
-    await clickTab(page, 'analysis');
-    await expect(page.locator('[data-analysis-content]')).toHaveClass(/tp-analysis-content--on/);
-    const heroNum = page.locator('[data-hero-num]');
-    await expect(heroNum).not.toHaveText('\u2014');
-  });
-
-  test('zone pill label matches the computed zone', async ({ page }) => {
+  test('Analysis tab renders primary KPI and zone pill when inputs are present', async ({
+    page,
+  }) => {
     await gotoTool(page);
     await selectStage(page);
     await fillInput(page, 'arr', '10000000');
@@ -194,18 +183,18 @@ test.describe('TechPar - Analysis tab', () => {
     await fillInput(page, 'infra', '50000');
     await fillInput(page, 'rdOpEx', '3000000');
     await clickTab(page, 'analysis');
+
+    await expect(page.locator('[data-analysis-content]')).toHaveClass(/tp-analysis-content--on/);
+    const heroNum = page.locator('[data-hero-num]');
+    await expect(heroNum).not.toHaveText('\u2014');
+
     // 36% for series_bc (healthy range 35-55%) should be "At par"
     const pill = page.locator('[data-hero-zone-pill]');
     await expect(pill).toContainText('At par');
   });
 
   test('benchmark table highlights the active stage row', async ({ page }) => {
-    await gotoTool(page);
-    await selectStage(page);
-    await fillInput(page, 'arr', '10000000');
-    await clickTab(page, 'costs');
-    await fillInput(page, 'infra', '50000');
-    await clickTab(page, 'analysis');
+    await setupToAnalysis(page);
     const activeRow = page.locator('[data-bench-row="series_bc"]');
     await expect(activeRow).toHaveClass(/bench-row--active/);
   });
@@ -220,25 +209,12 @@ test.describe('TechPar - Trajectory tab', () => {
     await expect(page.locator('[data-traj-empty]')).toBeVisible();
   });
 
-  test('Trajectory tab renders chart when costs are entered', async ({ page }) => {
-    await gotoTool(page);
-    await selectStage(page);
-    await fillInput(page, 'arr', '10000000');
-    await clickTab(page, 'costs');
-    await fillInput(page, 'infra', '50000');
+  test('Trajectory tab renders chart with convergence line for growth stages', async ({ page }) => {
+    await setupToAnalysis(page);
     await clickTab(page, 'trajectory');
     await expect(page.locator('[data-traj-content]')).toHaveClass(/tp-traj-content--on/);
     await expect(page.locator('[data-traj-canvas]')).toBeVisible();
-  });
-
-  test('Trajectory chart has convergence revenue line on Series B-C stage', async ({ page }) => {
-    await gotoTool(page);
-    await selectStage(page);
-    await fillInput(page, 'arr', '10000000');
-    await clickTab(page, 'costs');
-    await fillInput(page, 'infra', '50000');
-    await clickTab(page, 'trajectory');
-    // Legend should mention "Monthly revenue"
+    // Series B-C legend should mention "Monthly revenue"
     const legend = page.locator('[data-traj-legend]');
     await expect(legend).toContainText('Monthly revenue');
   });
@@ -299,14 +275,11 @@ test.describe('TechPar - Integrity', () => {
     await fillInput(page, 'infra', '50000');
     await fillInput(page, 'rdOpEx', '3000000');
 
-    // Check signal card and panel header copy for em dashes
     await clickTab(page, 'analysis');
     const sigBody = await page.locator('[data-sig-body]').textContent();
     expect(sigBody).not.toContain('\u2014');
     const sigHead = await page.locator('[data-sig-head]').textContent();
     expect(sigHead).not.toContain('\u2014');
-
-    // Trajectory tab has no signal cards — em dash check is scoped to analysis tab only
   });
 });
 
@@ -344,12 +317,7 @@ test.describe('TechPar - Audit fixes', () => {
   });
 
   test('baseline bar shows the percentage value', async ({ page }) => {
-    await gotoTool(page);
-    await selectStage(page);
-    await fillInput(page, 'arr', '10000000');
-    await clickTab(page, 'costs');
-    await fillInput(page, 'infra', '50000');
-    await clickTab(page, 'analysis');
+    await setupToAnalysis(page);
     await page.click('[data-action="set-baseline"]');
     const barLabel = page.locator('.tp-baseline-bar__label');
     await expect(barLabel).toContainText('Baseline:');
@@ -360,37 +328,20 @@ test.describe('TechPar - Audit fixes', () => {
 // ─── EEAT enhancements ─────────────────────────────────────────────────────
 
 test.describe('TechPar - EEAT enhancements', () => {
-  test('industry context disclaimer is visible on analysis tab', async ({ page }) => {
-    await gotoTool(page);
-    await selectStage(page);
-    await fillInput(page, 'arr', '10000000');
-    await clickTab(page, 'costs');
-    await fillInput(page, 'infra', '50000');
-    await clickTab(page, 'analysis');
+  test('industry disclaimer and methodology section on analysis tab', async ({ page }) => {
+    await setupToAnalysis(page);
+
+    // Industry context disclaimer visible
     const disc = page.locator('[data-industry-disc]');
     await expect(disc).toBeVisible();
     await expect(disc).toContainText('SaaS');
-  });
 
-  test('methodology section is collapsed by default', async ({ page }) => {
-    await gotoTool(page);
-    await selectStage(page);
-    await fillInput(page, 'arr', '10000000');
-    await clickTab(page, 'costs');
-    await fillInput(page, 'infra', '50000');
-    await clickTab(page, 'analysis');
+    // Methodology section collapsed by default
     const details = page.locator('[data-methodology]');
     await expect(details).toBeVisible();
     await expect(details).not.toHaveAttribute('open', '');
-  });
 
-  test('methodology section opens on click and shows content', async ({ page }) => {
-    await gotoTool(page);
-    await selectStage(page);
-    await fillInput(page, 'arr', '10000000');
-    await clickTab(page, 'costs');
-    await fillInput(page, 'infra', '50000');
-    await clickTab(page, 'analysis');
+    // Opens on click with correct content
     await page.click('.tool-methodology__trigger');
     const body = page.locator('.tool-methodology__body');
     await expect(body).toBeVisible();
@@ -402,40 +353,22 @@ test.describe('TechPar - EEAT enhancements', () => {
     await gotoTool(page);
     await clickTab(page, 'costs');
     await expect(page.locator('[data-fte-field]')).toBeVisible();
-    // Verify Quick mode is active (default)
     await expect(page.locator('[data-mode="quick"]')).toHaveClass(/tp-seg__btn--active/);
   });
 
-  test('Export PDF button exists on analysis tab', async ({ page }) => {
-    await gotoTool(page);
-    await selectStage(page);
-    await fillInput(page, 'arr', '10000000');
-    await clickTab(page, 'costs');
-    await fillInput(page, 'infra', '50000');
-    await clickTab(page, 'analysis');
-    const btn = page.locator('[data-action="export-pdf"]').first();
-    await expect(btn).toBeVisible();
-    await expect(btn).toContainText('Export PDF');
+  test('Export PDF and save scenario buttons exist on analysis tab', async ({ page }) => {
+    await setupToAnalysis(page);
+    const pdfBtn = page.locator('[data-action="export-pdf"]').first();
+    await expect(pdfBtn).toBeVisible();
+    await expect(pdfBtn).toContainText('Export PDF');
+    const saveBtn = page.locator('[data-action="save-scenario"]');
+    await expect(saveBtn).toBeVisible();
   });
 
-  test('save scenario button exists on analysis tab', async ({ page }) => {
-    await gotoTool(page);
-    await selectStage(page);
-    await fillInput(page, 'arr', '10000000');
-    await clickTab(page, 'costs');
-    await fillInput(page, 'infra', '50000');
-    await clickTab(page, 'analysis');
-    const btn = page.locator('[data-action="save-scenario"]');
-    await expect(btn).toBeVisible();
-  });
+  test('saving, removing, and max 3 scenario enforcement', async ({ page }) => {
+    await setupToAnalysis(page);
 
-  test('saving a scenario shows chip in list and comparison table', async ({ page }) => {
-    await gotoTool(page);
-    await selectStage(page);
-    await fillInput(page, 'arr', '10000000');
-    await clickTab(page, 'costs');
-    await fillInput(page, 'infra', '50000');
-    await clickTab(page, 'analysis');
+    // Save first scenario
     await page.click('[data-action="save-scenario"]');
     const list = page.locator('[data-scenario-list]');
     await expect(list).toBeVisible();
@@ -444,36 +377,20 @@ test.describe('TechPar - EEAT enhancements', () => {
     await expect(table).toBeVisible();
     await expect(table).toContainText('Current');
     await expect(table).toContainText('Scenario 1');
-  });
 
-  test('removing a scenario updates the list', async ({ page }) => {
-    await gotoTool(page);
-    await selectStage(page);
-    await fillInput(page, 'arr', '10000000');
-    await clickTab(page, 'costs');
-    await fillInput(page, 'infra', '50000');
-    await clickTab(page, 'analysis');
+    // Save two more
     await page.click('[data-action="save-scenario"]');
-    await expect(page.locator('[data-scenario-list]')).toContainText('Scenario 1');
-    await page.click('[data-remove-scenario="0"]');
-    await expect(page.locator('[data-scenario-list]')).not.toBeVisible();
-  });
+    await expect(list).toContainText('Scenario 2');
+    await page.click('[data-action="save-scenario"]');
+    await expect(list).toContainText('Scenario 3');
 
-  test('maximum 3 scenarios enforced', async ({ page }) => {
-    await gotoTool(page);
-    await selectStage(page);
-    await fillInput(page, 'arr', '10000000');
-    await clickTab(page, 'costs');
-    await fillInput(page, 'infra', '50000');
-    await clickTab(page, 'analysis');
-    await page.click('[data-action="save-scenario"]');
-    await expect(page.locator('[data-scenario-list]')).toContainText('Scenario 1');
-    await page.click('[data-action="save-scenario"]');
-    await expect(page.locator('[data-scenario-list]')).toContainText('Scenario 2');
-    await page.click('[data-action="save-scenario"]');
-    await expect(page.locator('[data-scenario-list]')).toContainText('Scenario 3');
+    // Max 3 enforced
     const saveBtn = page.locator('[data-action="save-scenario"]');
     await expect(saveBtn).toBeDisabled();
+
+    // Remove a scenario — after removing one, save button should re-enable
+    await page.click('[data-remove-scenario="0"]');
+    await expect(saveBtn).toBeEnabled();
   });
 });
 
@@ -481,7 +398,6 @@ test.describe('TechPar - EEAT enhancements', () => {
 
 test.describe('TechPar - Regression', () => {
   test('infrastructure value is stable across annual-mode page reload', async ({ page }) => {
-    // 1. Setup — populate inputs
     await gotoTool(page);
     await selectStage(page);
     await fillInput(page, 'arr', '10000000');
@@ -489,71 +405,52 @@ test.describe('TechPar - Regression', () => {
     await page.click('[data-infra-period="annual"]');
     await fillInput(page, 'infra', '1200000');
 
-    // 2. Wait for URL state to stabilise (debounced localStorage write)
     await page.waitForFunction(() => new URL(window.location.href).searchParams.has('h'), {
       timeout: 10000,
     });
     const hBefore = new URL(page.url()).searchParams.get('h');
     expect(hBefore).toBeTruthy();
 
-    // 3. Reload and wait for hydration to complete
     await page.reload({ waitUntil: 'load' });
-    // Wait for the page script to finish initializing (profile panel becomes active)
     await page.waitForFunction(
       () =>
         document.querySelector('[data-panel="profile"]')?.classList.contains('tp-panel--active'),
       { timeout: 15000 }
     );
 
-    // 4. Verify URL param is unchanged (no double-conversion)
     const hAfter = new URL(page.url()).searchParams.get('h');
     expect(hAfter).toBe(hBefore);
 
-    // 5. Navigate to costs tab and verify the DOM input reflects the original value
     await clickTab(page, 'costs');
     await expect(page.locator('[data-input="infra"]')).toHaveValue('1200000');
   });
 
   test('reset button clears all inputs after two-click confirmation', async ({ page }) => {
-    // 1. Setup — populate meaningful state
     await gotoTool(page);
     await selectStage(page);
     await fillInput(page, 'arr', '10000000');
     await clickTab(page, 'costs');
     await fillInput(page, 'infra', '50000');
 
-    // 2. Verify populated state before reset
     await page.waitForFunction(() => new URL(window.location.href).searchParams.has('a'), {
       timeout: 10000,
     });
 
-    // 3. First click — confirmation prompt (no state change yet)
+    // First click — confirmation prompt (no state change)
     const resetBtn = page.locator('[data-action="reset"]');
     await resetBtn.click();
     await expect(resetBtn).toContainText('Click again to reset');
-
-    // Verify state is still populated — first click must NOT reset
     expect(new URL(page.url()).searchParams.has('a')).toBe(true);
 
-    // 4. Second click — actual reset
+    // Second click — actual reset
     await resetBtn.click();
-
-    // 5. Wait for state to clear (URL params removed)
     await page.waitForFunction(() => !new URL(window.location.href).searchParams.has('a'), {
       timeout: 15000,
     });
 
-    // 6. Verify behavioral outcomes
-    // Returns to profile tab
     await expect(page.locator('[data-panel="profile"]')).toHaveClass(/tp-panel--active/);
-
-    // URL is clean
     expect(new URL(page.url()).searchParams.has('h')).toBe(false);
-
-    // Stage cards are deselected
     await expect(page.locator('.tp-stage-card--active')).toHaveCount(0);
-
-    // ARR input is cleared
     await expect(page.locator('#tp-arr')).toHaveValue('');
   });
 });

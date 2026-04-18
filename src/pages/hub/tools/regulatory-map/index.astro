@@ -275,17 +275,25 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   import { fipsToStateCode, stateCodeToName } from '../../../../utils/fipsToStateCode';
   import { provinceCodeToName } from '../../../../utils/canadianProvinceMap';
   import { trackEvent } from '../../../../utils/analytics';
+  import * as Sentry from '@sentry/browser';
 
   // Analytics: fire rm_start once per page load on first interaction
   let rmStartFired = false;
 
-  // --- Fetch geodata and regulation data in parallel ---
-  const [regionMap, topology, usTopo, caTopo] = await Promise.all([
-    fetch('/data/regulations.json').then((r) => r.json()) as Promise<Record<string, Regulation[]>>,
+  // --- Two-phase initialization ---
+  // Phase A: start regulation fetch (don't await yet), immediately await geodata only
+  const regulationPromise = fetch('/data/regulations.json').then((r) => r.json()) as Promise<
+    Record<string, Regulation[]>
+  >;
+
+  const [topology, usTopo, caTopo] = await Promise.all([
     fetch('/data/world-110m.json').then((r) => r.json()) as Promise<Topology>,
     fetch('/data/us-states-10m.json').then((r) => r.json()) as Promise<Topology>,
     fetch('/data/canada-provinces.json').then((r) => r.json()) as Promise<Topology>,
   ]);
+
+  // regionMap starts empty; Phase B populates it after paths are rendered
+  let regionMap: Record<string, Regulation[]> = {};
 
   const usStates = feature(
     usTopo as unknown as Topology<{ states: GeometryCollection }>,
@@ -408,28 +416,23 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     };
     showCopied();
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(location.href).catch(() => {});
+      navigator.clipboard.writeText(location.href).catch((err) => {
+        console.warn('Clipboard write failed:', err);
+        Sentry.captureException(err, { tags: { area: 'regulatory-map' } });
+      });
     }
   });
 
-  // --- Regulation lookup by ID ---
+  // regById and searchIndex are populated in Phase B (after regionMap is loaded)
+  // Declare them here so closure references in event handlers resolve correctly
   const regById: Record<string, Regulation> = {};
-  for (const regs of Object.values(regionMap)) {
-    for (const reg of regs) {
-      if (!regById[reg.id]) regById[reg.id] = reg;
-    }
-  }
 
-  // --- Search index ---
   interface SearchableReg {
     reg: Regulation;
     searchText: string;
   }
 
-  const searchIndex: SearchableReg[] = Object.values(regById).map((reg) => ({
-    reg,
-    searchText: [reg.name, reg.summary, ...(reg.keyRequirements ?? [])].join(' ').toLowerCase(),
-  }));
+  let searchIndex: SearchableReg[] = [];
 
   let activeSearchTerm = '';
   let searchResults: Regulation[] = [];
@@ -601,34 +604,20 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   // --- Render countries ---
   let selectedPath: SVGPathElement | null = null;
 
+  // Phase A: render paths with base classes only — no regionMap checks yet
   g.selectAll('path')
     .data(visibleCountries.features)
     .enter()
     .append('path')
     .attr('d', (d) => pathGenerator(d) ?? '')
-    .attr('class', (d) => {
-      const alpha3 = numericToAlpha3[d.id as string];
-      // USA and CAN are handled at state/province level — don't mark them active
-      if (alpha3 === 'USA' || alpha3 === 'CAN') return 'country-path';
-      const hasRegulations = alpha3 && regionMap[alpha3];
-      return `country-path${hasRegulations ? ' country-path--active' : ''}`;
-    })
+    .attr('class', 'country-path')
     .attr('data-id', (d) => d.id as string)
     .attr('data-alpha3', (d) => numericToAlpha3[d.id as string] ?? '')
     .attr('aria-label', (d) => {
       const alpha3 = numericToAlpha3[d.id as string];
       return alpha3ToName[alpha3] ?? '';
     })
-    .attr('role', (d) => {
-      const alpha3 = numericToAlpha3[d.id as string];
-      if (alpha3 === 'USA' || alpha3 === 'CAN') return 'presentation';
-      return alpha3 && regionMap[alpha3] ? 'button' : 'presentation';
-    })
-    .attr('tabindex', (d) => {
-      const alpha3 = numericToAlpha3[d.id as string];
-      if (alpha3 === 'USA' || alpha3 === 'CAN') return null;
-      return alpha3 && regionMap[alpha3] ? '0' : null;
-    })
+    .attr('role', 'presentation')
     .on('click', function (event: MouseEvent) {
       if (this.classList.contains('country-path--active')) handleCountryClick(event);
     })
@@ -645,29 +634,19 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     .on('mouseleave', handleMouseLeave);
 
   // --- Render US state paths ---
+  // Phase A: base classes only — active state applied in Phase B
   g.selectAll('path.state-path')
     .data(usStates.features)
     .enter()
     .append('path')
     .attr('d', (d) => pathGenerator(d) ?? '')
-    .attr('class', (d) => {
-      const code = fipsToStateCode[d.id as string];
-      const hasRegs = code && regionMap[code];
-      return `state-path${hasRegs ? ' state-path--active' : ''}`;
-    })
+    .attr('class', 'state-path')
     .attr('data-state-code', (d) => fipsToStateCode[d.id as string] ?? '')
     .attr('aria-label', (d) => {
       const code = fipsToStateCode[d.id as string];
       return code ? (stateCodeToName[code] ?? '') : '';
     })
-    .attr('role', (d) => {
-      const code = fipsToStateCode[d.id as string];
-      return code && regionMap[code] ? 'button' : 'presentation';
-    })
-    .attr('tabindex', (d) => {
-      const code = fipsToStateCode[d.id as string];
-      return code && regionMap[code] ? '0' : null;
-    })
+    .attr('role', 'presentation')
     .on('click', function (event: MouseEvent) {
       if (this.classList.contains('state-path--active')) handleStateClick(event);
     })
@@ -684,29 +663,19 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     .on('mouseleave', handleMouseLeave);
 
   // --- Render Canadian province paths ---
+  // Phase A: base classes only — active state applied in Phase B
   g.selectAll('path.province-path')
     .data(caProvinces.features)
     .enter()
     .append('path')
     .attr('d', (d) => pathGenerator(d) ?? '')
-    .attr('class', (d) => {
-      const code = d.properties?.iso_3166_2 ?? '';
-      const hasRegs = code && regionMap[code];
-      return `state-path${hasRegs ? ' state-path--active' : ''}`;
-    })
+    .attr('class', 'state-path')
     .attr('data-state-code', (d) => d.properties?.iso_3166_2 ?? '')
     .attr('aria-label', (d) => {
       const code = d.properties?.iso_3166_2 ?? '';
       return provinceCodeToName[code] ?? '';
     })
-    .attr('role', (d) => {
-      const code = d.properties?.iso_3166_2 ?? '';
-      return code && regionMap[code] ? 'button' : 'presentation';
-    })
-    .attr('tabindex', (d) => {
-      const code = d.properties?.iso_3166_2 ?? '';
-      return code && regionMap[code] ? '0' : null;
-    })
+    .attr('role', 'presentation')
     .on('click', function (event: MouseEvent) {
       if (this.classList.contains('state-path--active')) handleStateClick(event);
     })
@@ -721,6 +690,63 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     })
     .on('mouseenter', handleMouseEnter)
     .on('mouseleave', handleMouseLeave);
+
+  // --- Phase B: apply regulation data once the fetch resolves ---
+  // All D3 paths are now in the DOM. Await the regulation promise and enrich them.
+  try {
+    regionMap = await regulationPromise;
+  } catch (err) {
+    console.error('Failed to load regulation data:', err);
+    Sentry.captureException(err, { tags: { area: 'regulatory-map' } });
+    document.getElementById('mapContainer')?.setAttribute('data-map-ready', 'error');
+    // Map geometry is visible but non-interactive — degrade gracefully
+  }
+
+  if (Object.keys(regionMap).length > 0) {
+    // Build lookup index and search index now that regionMap is populated
+    for (const regs of Object.values(regionMap)) {
+      for (const reg of regs) {
+        if (!regById[reg.id]) regById[reg.id] = reg;
+      }
+    }
+
+    searchIndex = Object.values(regById).map((reg) => ({
+      reg,
+      searchText: [reg.name, reg.summary, ...(reg.keyRequirements ?? [])].join(' ').toLowerCase(),
+    }));
+
+    // Apply --active class, role="button", and tabindex to country paths with regulations
+    g.selectAll<SVGPathElement, unknown>('.country-path').each(function () {
+      const alpha3 = this.getAttribute('data-alpha3') ?? '';
+      if (alpha3 === 'USA' || alpha3 === 'CAN') return;
+      if (alpha3 && regionMap[alpha3]) {
+        this.classList.add('country-path--active');
+        this.setAttribute('role', 'button');
+        this.setAttribute('tabindex', '0');
+      }
+    });
+
+    // Apply --active class, role="button", and tabindex to state/province paths with regulations
+    g.selectAll<SVGPathElement, unknown>('.state-path').each(function () {
+      const code = this.getAttribute('data-state-code') ?? '';
+      if (code && regionMap[code]) {
+        this.classList.add('state-path--active');
+        this.setAttribute('role', 'button');
+        this.setAttribute('tabindex', '0');
+      }
+    });
+  }
+
+  // Category → CSS class map (used by timeline rendering and search)
+  const categoryColorMap: Record<string, string> = {
+    'data-privacy': 'privacy',
+    'ai-governance': 'ai',
+    'industry-compliance': 'industry',
+    cybersecurity: 'cyber',
+  };
+
+  // Initial timeline render (requires regionMap)
+  renderTimeline();
 
   // --- Tooltip ---
   const tooltip = document.getElementById('mapTooltip')!;
@@ -895,6 +921,51 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     }
   }) as EventListener);
 
+  // --- Restore bookmarked state from URL ---
+  // Must run AFTER the regionSelected listener is registered (above) so that
+  // dispatching regionSelected from selectRegion() actually opens the panel.
+  (function restoreFromUrl() {
+    const { region, filter } = getUrlParams();
+
+    if (filter) {
+      activeCategory = filter;
+      document.querySelectorAll('#regulation-filter-chips .brutal-filter-chip').forEach((c) => {
+        c.classList.toggle(
+          'brutal-filter-chip--active',
+          (c as HTMLElement).dataset.category === filter
+        );
+      });
+      updateMapHighlighting();
+      renderTimeline();
+    }
+
+    if (region) {
+      const isSubnational = region.includes('-');
+      const selector = isSubnational
+        ? `path[data-state-code="${CSS.escape(region)}"]`
+        : `path[data-alpha3="${CSS.escape(region)}"]`;
+      const pathEl = document.querySelector(selector) as SVGPathElement | null;
+
+      if (
+        pathEl &&
+        (pathEl.classList.contains('country-path--active') ||
+          pathEl.classList.contains('state-path--active'))
+      ) {
+        selectRegion(
+          pathEl,
+          region,
+          isSubnational ? 'state-path--selected' : 'country-path--selected'
+        );
+      }
+    }
+  })();
+
+  // Signal ready AFTER URL state restoration — consumers waiting on this
+  // attribute (e.g. E2E tests) can trust that bookmarked state is applied.
+  if (Object.keys(regionMap).length > 0) {
+    document.getElementById('mapContainer')?.setAttribute('data-map-ready', 'true');
+  }
+
   function renderRegulationCard(reg: Regulation): string {
     const date = new Date(reg.effectiveDate).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -1025,12 +1096,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   });
 
   // --- Search ---
-  const categoryColorMap: Record<string, string> = {
-    'data-privacy': 'privacy',
-    'ai-governance': 'ai',
-    'industry-compliance': 'industry',
-    cybersecurity: 'cyber',
-  };
+  // categoryColorMap declared earlier (before renderTimeline) to avoid TDZ
 
   const categoryLabelMap: Record<string, string> = {
     'data-privacy': 'Privacy',
@@ -1217,7 +1283,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
 
   function updateActiveSearchResult(items: NodeListOf<Element>): void {
     items.forEach((item, i) => {
-      item.classList.toggle('search-result-item--active', i === activeResultIndex);
+      item.classList.toggle('brutal-search__result--active', i === activeResultIndex);
       if (i === activeResultIndex) {
         (item as HTMLElement).scrollIntoView({ block: 'nearest' });
       }
@@ -1490,46 +1556,6 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     },
     true
   );
-
-  // Initial render
-  renderTimeline();
-
-  // --- Restore bookmarked state from URL ---
-  (function restoreFromUrl() {
-    const { region, filter } = getUrlParams();
-
-    if (filter) {
-      activeCategory = filter;
-      document.querySelectorAll('#regulation-filter-chips .brutal-filter-chip').forEach((c) => {
-        c.classList.toggle(
-          'brutal-filter-chip--active',
-          (c as HTMLElement).dataset.category === filter
-        );
-      });
-      updateMapHighlighting();
-      renderTimeline();
-    }
-
-    if (region) {
-      const isSubnational = region.includes('-');
-      const selector = isSubnational
-        ? `path[data-state-code="${CSS.escape(region)}"]`
-        : `path[data-alpha3="${CSS.escape(region)}"]`;
-      const pathEl = document.querySelector(selector) as SVGPathElement | null;
-
-      if (
-        pathEl &&
-        (pathEl.classList.contains('country-path--active') ||
-          pathEl.classList.contains('state-path--active'))
-      ) {
-        selectRegion(
-          pathEl,
-          region,
-          isSubnational ? 'state-path--selected' : 'country-path--selected'
-        );
-      }
-    }
-  })();
 </script>
 
 <script>
@@ -1594,11 +1620,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       z-index: 20;
       background: var(--bg-light);
       padding: var(--spacing-sm) 0;
-      border-bottom: 1px solid var(--border-light);
-    }
-
-    :global(html.dark-theme) .regulation-filters {
-      border-bottom-color: var(--border-dark);
+      border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark));
     }
   }
 
@@ -1724,7 +1746,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   .timeline-section {
     margin-top: var(--spacing-3xl);
     padding-top: var(--spacing-2xl);
-    border-top: 2px solid var(--border-light);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   }
 
   .timeline-heading {
@@ -1832,10 +1854,6 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   }
 
   /* Timeline dark theme */
-  :global(html.dark-theme) .timeline-section {
-    border-top-color: var(--border-dark-default);
-  }
-
   :global(html.dark-theme) .timeline-legend {
     color: var(--text-dark-muted);
   }
@@ -1881,7 +1899,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       align-items: flex-end;
       padding: 0 0 var(--spacing-lg);
       margin-bottom: var(--spacing-lg);
-      border-bottom: 3px solid #05cd99;
+      border-bottom: 3px solid var(--color-primary);
     }
 
     .print-report-header__brand {
@@ -1914,7 +1932,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       display: block !important;
       margin-top: var(--spacing-2xl);
       padding-top: var(--spacing-lg);
-      border-top: 1px solid #ccc;
+      border-top: 1px solid var(--border-light);
     }
 
     .print-report-footer p {
@@ -1931,7 +1949,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     }
 
     :global(.brutal-map-container) {
-      border: 1px solid #ccc !important;
+      border: 1px solid var(--border-light) !important;
       overflow: visible;
     }
 
@@ -1942,14 +1960,14 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       overflow: visible !important;
       transform: none !important;
       transition: none !important;
-      border: 1px solid #ccc !important;
-      border-top: 3px solid #05cd99 !important;
+      border: 1px solid var(--border-light) !important;
+      border-top: 3px solid var(--color-primary) !important;
       page-break-inside: avoid;
     }
 
     :global(.brutal-reg-card) {
-      border: 1px solid #ccc !important;
-      border-left: 3px solid #05cd99 !important;
+      border: 1px solid var(--border-light) !important;
+      border-left: 3px solid var(--color-primary) !important;
       break-inside: avoid;
     }
 
@@ -1965,7 +1983,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
 
     /* FAQ: readable, no collapse */
     :global(.brutal-faq__item) {
-      border: 1px solid #ccc !important;
+      border: 1px solid var(--border-light) !important;
       break-inside: avoid;
     }
 

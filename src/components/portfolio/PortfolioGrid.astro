@@ -79,17 +79,13 @@ const { projects } = Astro.props;
     grid-column: 1 / -1;
     padding: 3rem 1.5rem;
     text-align: center;
-    color: var(--text-secondary);
+    color: light-dark(var(--text-secondary), var(--text-dark-muted));
     font-size: var(--text-base);
   }
 
-  :global(html.dark-theme) .no-results-message {
-    color: var(--text-dark-muted);
-  }
-
   .project-card {
-    background: var(--bg-light);
-    border: 1px solid var(--border-light);
+    background: light-dark(var(--bg-light), var(--bg-dark-secondary));
+    border: 1px solid light-dark(var(--border-light), var(--border-dark));
     padding: 1.5rem;
     cursor: pointer;
     transition: all var(--transition-normal);
@@ -136,7 +132,7 @@ const { projects } = Astro.props;
 
   .year-badge {
     font-family: monospace;
-    background: var(--filter-chip-bg);
+    background: light-dark(var(--filter-chip-bg), var(--accent-dark-bg));
     color: var(--text-secondary);
     padding: 0.35rem 0.75rem;
     border-radius: 0;
@@ -165,7 +161,7 @@ const { projects } = Astro.props;
   .metric-label {
     font-family: monospace;
     font-size: var(--text-2xs);
-    color: var(--text-faded);
+    color: light-dark(var(--text-faded), var(--text-dark-muted));
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin-bottom: 0.35rem;
@@ -217,33 +213,6 @@ const { projects } = Astro.props;
 
   .tag.theme,
   .tag.engagement {
-    background: var(--accent-light-bg-hover);
-    color: var(--color-tertiary);
-  }
-
-  /* Dark theme */
-  :global(html.dark-theme) .project-card {
-    background: var(--bg-dark-secondary);
-    border-color: var(--border-dark);
-  }
-
-  :global(html.dark-theme) .project-card:hover {
-    border-color: var(--color-primary);
-  }
-
-  :global(html.dark-theme) .project-industry {
-    color: var(--text-muted);
-  }
-
-  :global(html.dark-theme) .year-badge {
-    background: var(--accent-dark-bg);
-  }
-
-  :global(html.dark-theme) .metric-label {
-    color: var(--text-dark-muted);
-  }
-
-  :global(html.dark-theme) .tag {
     background: var(--accent-light-bg-hover);
     color: var(--color-tertiary);
   }

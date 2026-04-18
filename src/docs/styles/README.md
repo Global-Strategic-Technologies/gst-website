@@ -23,3 +23,7 @@ CSS conventions, design tokens, brand guidelines, and typography reference for t
 - Desktop-first responsive design with `max-width` breakpoints
 - Dark theme via `html.dark-theme` class (not `body`)
 - Palette system: 6 alternatives in `src/styles/palettes.css`
+
+---
+
+← Back to [Master Documentation Index](../README.md)

@@ -87,3 +87,7 @@ See [ANALYTICS_TESTING.md](./ANALYTICS_TESTING.md) for test examples and pattern
 - Event analytics
 - Test coverage (75+ tests)
 - Cross-browser E2E validation
+
+---
+
+← Back to [Master Documentation Index](../README.md)

@@ -44,14 +44,13 @@
     display: none;
   }
 
-  /* Dark theme */
+  /* Dark theme — box-shadow is dark-only (non-color structural shadow) */
   :global(html.dark-theme) .brutal-panel {
-    background: var(--bg-dark-secondary);
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
   }
 
-  :global(html.dark-theme .brutal-reg-card) {
-    background: var(--bg-dark-tertiary);
+  :global(.brutal-reg-card) {
+    background: light-dark(transparent, var(--bg-dark-tertiary));
   }
 
   /* Desktop */
@@ -100,7 +99,7 @@
     .brutal-bottom-sheet__handle-bar {
       width: 40px;
       height: 4px;
-      background: rgba(128, 128, 128, 0.4);
+      background: var(--text-faded);
     }
   }
 </style>

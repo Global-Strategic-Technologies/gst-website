@@ -232,6 +232,7 @@ const faqItems = [
     description="Schedule a confidential consultation to discuss your objectives."
     buttonText="Schedule a Consultation"
     bookingUrl="https://calendarbridge.com/book/globalstrategictech/"
+    emailAddress="contact@globalstrategic.tech"
   />
 </BaseLayout>
 
@@ -261,7 +262,7 @@ const faqItems = [
 
   .hub-card {
     padding: var(--spacing-2xl);
-    border: 2px solid var(--border-light);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     border-top: 3px solid var(--color-primary);
     transition: all var(--transition-normal);
     display: flex;
@@ -291,17 +292,8 @@ const faqItems = [
     outline-offset: 2px;
   }
 
-  :global(html.dark-theme) .hub-card {
-    border-color: var(--border-dark-default);
-    border-top-color: var(--color-primary);
-  }
-
   .hub-card:focus:not(:focus-visible) {
     outline: none;
-  }
-
-  :global(html.dark-theme) .hub-card:hover {
-    border-color: var(--color-primary);
   }
 
   .hub-card-header {

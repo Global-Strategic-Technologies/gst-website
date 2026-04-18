@@ -187,7 +187,7 @@
 
   .step {
     padding: var(--spacing-xl);
-    border: 2px solid var(--border-light);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     border-top: 3px solid var(--color-primary);
     display: flex;
     flex-direction: column;
@@ -254,20 +254,6 @@
     color: var(--text-muted);
     line-height: 1.6;
     margin: 0;
-  }
-
-  /* Dark theme support */
-  :global(html.dark-theme) .engagement-flow {
-    background: transparent;
-  }
-
-  :global(html.dark-theme) .step {
-    border-color: var(--border-dark-default);
-    border-top-color: var(--color-primary);
-  }
-
-  :global(html.dark-theme) .step:hover {
-    border-color: var(--color-primary);
   }
 
   /* Responsive design */

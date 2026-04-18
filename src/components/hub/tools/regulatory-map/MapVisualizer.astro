@@ -114,18 +114,23 @@
     }
   }
 
-  /* Remove browser default focus outline on SVG paths; selection is shown via fill/stroke */
+  /* Replace browser focus outline with visible stroke indicator for keyboard navigation */
   :global(.country-path:focus),
-  :global(.country-path:focus-visible),
-  :global(.state-path:focus),
-  :global(.state-path:focus-visible) {
+  :global(.state-path:focus) {
     outline: none;
+  }
+
+  :global(.country-path--active:focus-visible),
+  :global(.state-path--active:focus-visible) {
+    outline: none;
+    stroke: var(--color-secondary);
+    stroke-width: 2;
   }
 
   /* Country path base state */
   :global(.country-path) {
-    fill: rgba(26, 26, 26, 0.08);
-    stroke: rgba(26, 26, 26, 0.15);
+    fill: light-dark(rgba(26, 26, 26, 0.08), rgba(255, 255, 255, 0.06));
+    stroke: light-dark(rgba(26, 26, 26, 0.15), var(--border-dark-default));
     stroke-width: 0.5;
     transition: fill var(--transition-fast);
     cursor: default;
@@ -133,37 +138,17 @@
 
   /* Country with regulation data */
   :global(.country-path--active) {
-    fill: var(--color-primary-25);
+    fill: light-dark(var(--color-primary-25), var(--color-primary-30));
     cursor: pointer;
   }
 
   :global(.country-path--active:hover) {
-    fill: var(--color-primary-45);
+    fill: light-dark(var(--color-primary-45), var(--color-primary-50));
   }
 
   /* Selected country */
   :global(.country-path--selected) {
-    fill: var(--color-primary-60);
-    stroke: var(--color-secondary);
-    stroke-width: 1.5;
-  }
-
-  /* Dark theme SVG overrides */
-  :global(html.dark-theme .country-path) {
-    fill: rgba(255, 255, 255, 0.06);
-    stroke: var(--border-dark-default);
-  }
-
-  :global(html.dark-theme .country-path--active) {
-    fill: var(--color-primary-30);
-  }
-
-  :global(html.dark-theme .country-path--active:hover) {
-    fill: var(--color-primary-50);
-  }
-
-  :global(html.dark-theme .country-path--selected) {
-    fill: var(--color-primary-65);
+    fill: light-dark(var(--color-primary-60), var(--color-primary-65));
     stroke: var(--color-secondary);
     stroke-width: 1.5;
   }
@@ -171,7 +156,7 @@
   /* US state path base state */
   :global(.state-path) {
     fill: transparent;
-    stroke: rgba(26, 26, 26, 0.12);
+    stroke: light-dark(rgba(26, 26, 26, 0.12), rgba(255, 255, 255, 0.08));
     stroke-width: 0.3;
     transition: fill var(--transition-fast);
     cursor: default;
@@ -179,62 +164,30 @@
 
   /* State with regulation data */
   :global(.state-path--active) {
-    fill: var(--color-primary-25);
+    fill: light-dark(var(--color-primary-25), var(--color-primary-30));
     cursor: pointer;
   }
 
   :global(.state-path--active:hover) {
-    fill: var(--color-primary-45);
+    fill: light-dark(var(--color-primary-45), var(--color-primary-50));
   }
 
   /* Selected state */
   :global(.state-path--selected) {
-    fill: var(--color-primary-60);
-    stroke: var(--color-secondary);
-    stroke-width: 1;
-  }
-
-  /* Dark theme state overrides */
-  :global(html.dark-theme .state-path) {
-    fill: transparent;
-    stroke: rgba(255, 255, 255, 0.08);
-  }
-
-  :global(html.dark-theme .state-path--active) {
-    fill: var(--color-primary-30);
-  }
-
-  :global(html.dark-theme .state-path--active:hover) {
-    fill: var(--color-primary-50);
-  }
-
-  :global(html.dark-theme .state-path--selected) {
-    fill: var(--color-primary-65);
+    fill: light-dark(var(--color-primary-60), var(--color-primary-65));
     stroke: var(--color-secondary);
     stroke-width: 1;
   }
 
   /* Timeline-highlighted regions (multi-region highlight) */
   :global(.country-path--highlighted) {
-    fill: var(--color-primary-50);
+    fill: light-dark(var(--color-primary-50), var(--color-primary-55));
     stroke: var(--color-secondary);
     stroke-width: 1.2;
   }
 
   :global(.state-path--highlighted) {
-    fill: var(--color-primary-50);
-    stroke: var(--color-secondary);
-    stroke-width: 0.8;
-  }
-
-  :global(html.dark-theme .country-path--highlighted) {
-    fill: var(--color-primary-55);
-    stroke: var(--color-secondary);
-    stroke-width: 1.2;
-  }
-
-  :global(html.dark-theme .state-path--highlighted) {
-    fill: var(--color-primary-55);
+    fill: light-dark(var(--color-primary-50), var(--color-primary-55));
     stroke: var(--color-secondary);
     stroke-width: 0.8;
   }

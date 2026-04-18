@@ -13,6 +13,10 @@ import ThemeToggle from './ThemeToggle.astro';
         >
         <a href="/privacy">Privacy</a>
         <a href="/terms">Terms</a>
+        <a
+          href="mailto:contact@globalstrategic.tech?subject=GST%20%7C%20Global%20Strategic%20Tech%20%7C%20https%3A%2F%2Fglobalstrategic.tech&body=Hi%20GST%2C%20I%20have%20a%20question%2Fcomment%2Finsight%20I'd%20like%20to%20share"
+          >Contact</a
+        >
       </div>
       <ThemeToggle />
     </div>
@@ -22,7 +26,7 @@ import ThemeToggle from './ThemeToggle.astro';
 <style>
   footer {
     padding: 1.25rem 0 0;
-    background: var(--bg-light-alt);
+    background: var(--footer-bg);
     border-top: 2px solid var(--color-primary);
     position: relative;
     z-index: 0;
@@ -75,16 +79,6 @@ import ThemeToggle from './ThemeToggle.astro';
 
   .footer-links a:focus:not(:focus-visible) {
     outline: none;
-  }
-
-  :global(html.dark-theme) footer {
-    background: var(--footer-bg);
-    border-top-color: var(--color-primary);
-  }
-
-  :global(html.dark-theme) .footer-links a:hover {
-    color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
   }
 
   @media (max-width: 480px) {

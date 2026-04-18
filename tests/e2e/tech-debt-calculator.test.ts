@@ -60,7 +60,7 @@ test.describe('Tech Debt Calculator', () => {
   // ── Page load ──────────────────────────────────────────────────────────────
 
   test.describe('page load', () => {
-    test('renders calculator with default values', async ({ page }) => {
+    test('renders calculator with default values and correct layout', async ({ page }) => {
       await gotoCalc(page);
 
       // Primary result is populated (not em-dash placeholder)
@@ -73,39 +73,25 @@ test.describe('Tech Debt Calculator', () => {
       expect(await getMetric(page, 'cost-per-eng')).not.toBe('—');
       expect(await getById(page, 'ctx-engs-lost')).not.toBe('—');
       expect(await getById(page, 'ctx-burden-label')).not.toBe('—');
-    });
 
-    test('contextual note is populated on load', async ({ page }) => {
-      await gotoCalc(page);
+      // Contextual note is populated
       const note = await getById(page, 'ctx-note');
       expect(note.trim().length).toBeGreaterThan(20);
-    });
 
-    test('advanced panel is collapsed on load', async ({ page }) => {
-      await gotoCalc(page);
-
+      // Advanced panel starts collapsed
       const panel = page.locator('[data-advanced-panel]');
       await expect(panel).toHaveClass(/is-hidden/);
+      await expect(page.locator('[data-advanced-toggle]')).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
+      await expect(page.locator('[data-adv-results]')).toHaveClass(/is-hidden/);
 
-      const toggle = page.locator('[data-advanced-toggle]');
-      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    });
-
-    test('advanced results are hidden on load', async ({ page }) => {
-      await gotoCalc(page);
-      const advResults = page.locator('[data-adv-results]');
-      await expect(advResults).toHaveClass(/is-hidden/);
-    });
-
-    test('results section appears below inputs', async ({ page }) => {
-      await gotoCalc(page);
-
+      // Results section appears below inputs
       const inputsBox = await page.locator('.inputs-section').boundingBox();
       const resultsBox = await page.locator('.results-section').boundingBox();
-
       expect(inputsBox).not.toBeNull();
       expect(resultsBox).not.toBeNull();
-      // Results must start below the bottom of inputs
       expect(resultsBox!.y).toBeGreaterThan(inputsBox!.y + inputsBox!.height - 1);
     });
   });
@@ -113,33 +99,24 @@ test.describe('Tech Debt Calculator', () => {
   // ── Slider interactions ────────────────────────────────────────────────────
 
   test.describe('slider interactions', () => {
-    test('changing team size updates annual cost', async ({ page }) => {
+    test('changing team size updates annual cost and display value', async ({ page }) => {
       await gotoCalc(page);
 
-      const before = await getMetric(page, 'annual-cost');
+      const costBefore = await getMetric(page, 'annual-cost');
+      const displayBefore = await page.locator('[data-display="team-size"]').textContent();
 
-      // Move team size slider from default (pos ~20) to pos 60 (larger team)
-      await setSlider(page, 'input-team-size', 60);
-
+      await setSlider(page, 'input-team-size', 90);
       await page.waitForFunction(() => {
         const el = document.querySelector('[data-metric="annual-cost"]');
         return el && el.textContent !== '—';
       });
 
-      const after = await getMetric(page, 'annual-cost');
-      expect(after).not.toBe(before);
-    });
+      const costAfter = await getMetric(page, 'annual-cost');
+      expect(costAfter).not.toBe(costBefore);
 
-    test('changing team size updates display value', async ({ page }) => {
-      await gotoCalc(page);
-
-      const before = await page.locator('[data-display="team-size"]').textContent();
-      await setSlider(page, 'input-team-size', 90);
-
-      const after = await page.locator('[data-display="team-size"]').textContent();
-      expect(after).not.toBe(before);
-      // At position 90 the team is large — display should be a number > 8
-      expect(Number(after)).toBeGreaterThan(8);
+      const displayAfter = await page.locator('[data-display="team-size"]').textContent();
+      expect(displayAfter).not.toBe(displayBefore);
+      expect(Number(displayAfter)).toBeGreaterThan(8);
     });
 
     test('changing salary updates annual cost', async ({ page }) => {
@@ -152,10 +129,10 @@ test.describe('Tech Debt Calculator', () => {
       expect(after).not.toBe(before);
     });
 
-    test('higher maintenance burden increases annual cost', async ({ page }) => {
+    test('higher maintenance burden increases FTEs lost and updates display', async ({ page }) => {
       await gotoCalc(page);
 
-      // Read the FTE count at low burden — it's a plain number we can compare
+      // Low burden
       await setSlider(page, 'input-maint-pct', 20);
       await page.waitForFunction(() => {
         const el = document.getElementById('ctx-engs-lost');
@@ -164,6 +141,7 @@ test.describe('Tech Debt Calculator', () => {
       const ftesLow =
         parseFloat((await getById(page, 'ctx-engs-lost')).replace(/[^0-9.]/g, '')) || 0;
 
+      // High burden
       await setSlider(page, 'input-maint-pct', 80);
       await page.waitForFunction(() => {
         const el = document.getElementById('ctx-engs-lost');
@@ -172,60 +150,30 @@ test.describe('Tech Debt Calculator', () => {
       const ftesHigh =
         parseFloat((await getById(page, 'ctx-engs-lost')).replace(/[^0-9.]/g, '')) || 0;
 
-      // Higher burden → more FTEs lost (plain number, no suffix ambiguity)
       expect(ftesHigh).toBeGreaterThan(ftesLow);
-    });
 
-    test('slider display value updates when slider moves', async ({ page }) => {
-      await gotoCalc(page);
-
-      const before = await page.locator('[data-display="maint-pct"]').textContent();
-      await setSlider(page, 'input-maint-pct', 70);
-
-      const after = await page.locator('[data-display="maint-pct"]').textContent();
-      expect(after).not.toBe(before);
-      expect(after).toContain('%');
+      // Display shows percentage
+      const display = await page.locator('[data-display="maint-pct"]').textContent();
+      expect(display).toContain('%');
     });
   });
 
   // ── Severity colour-coding ─────────────────────────────────────────────────
 
   test.describe('severity colour-coding', () => {
-    test('high maintenance burden (≥ 35%) colours the annual cost amber', async ({ page }) => {
-      await gotoCalc(page);
-
-      // Push burden well above the 35% threshold
-      await setSlider(page, 'input-maint-pct', 50);
-
-      const color = await page
-        .locator('[data-metric="annual-cost"]')
-        .evaluate((el) => window.getComputedStyle(el).color);
-
-      // --color-secondary is applied at ≥ 35%; it must not be the primary teal
-      // We verify the computed colour is NOT the default (primary green)
-      // and IS set (not empty / inherit only)
-      expect(color).not.toBe('');
-      // The inline style is set to var(--color-secondary) by the render fn
-      const inlineColor = await page.locator('[data-metric="annual-cost"]').getAttribute('style');
-      expect(inlineColor).toContain('--color-secondary');
-    });
-
-    test('low maintenance burden (< 35%) keeps annual cost green', async ({ page }) => {
-      await gotoCalc(page);
-
-      // Burden at 20% — healthy
-      await setSlider(page, 'input-maint-pct', 20);
-
-      const inlineColor = await page.locator('[data-metric="annual-cost"]').getAttribute('style');
-      expect(inlineColor).toContain('--color-primary');
-    });
-
-    test('burden label reflects maintenance level', async ({ page }) => {
+    test('colour-codes annual cost and burden label by maintenance level', async ({ page }) => {
       await gotoCalc(page);
 
       // Well-managed (< 10%)
       await setSlider(page, 'input-maint-pct', 5);
       expect(await getById(page, 'ctx-burden-label')).toContain('Well-managed');
+      const lowStyle = await page.locator('[data-metric="annual-cost"]').getAttribute('style');
+      expect(lowStyle).toContain('--color-primary');
+
+      // High burden (≥ 35%) — amber
+      await setSlider(page, 'input-maint-pct', 50);
+      const highStyle = await page.locator('[data-metric="annual-cost"]').getAttribute('style');
+      expect(highStyle).toContain('--color-secondary');
 
       // Deal risk (40%+)
       await setSlider(page, 'input-maint-pct', 80);
@@ -236,60 +184,21 @@ test.describe('Tech Debt Calculator', () => {
   // ── Advanced toggle ────────────────────────────────────────────────────────
 
   test.describe('advanced toggle', () => {
-    test('opens advanced panel and reveals advanced results together', async ({ page }) => {
-      await gotoCalc(page);
-
-      await jsClick(page, '[data-advanced-toggle]');
-
-      // Panel inputs become visible
-      const panel = page.locator('[data-advanced-panel]');
-      await expect(panel).not.toHaveClass(/is-hidden/);
-
-      // Advanced results section also becomes visible
-      const advResults = page.locator('[data-adv-results]');
-      await expect(advResults).not.toHaveClass(/is-hidden/);
-    });
-
-    test('toggle button aria-expanded reflects open state', async ({ page }) => {
+    test('opens panel, updates aria/label, and populates advanced metrics', async ({ page }) => {
       await gotoCalc(page);
 
       const toggle = page.locator('[data-advanced-toggle]');
-      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-
-      await jsClick(page, '[data-advanced-toggle]');
-      await page.waitForFunction(
-        () =>
-          document.querySelector('[data-advanced-toggle]')?.getAttribute('aria-expanded') === 'true'
-      );
-      await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-
-      await jsClick(page, '[data-advanced-toggle]');
-      await page.waitForFunction(
-        () =>
-          document.querySelector('[data-advanced-toggle]')?.getAttribute('aria-expanded') ===
-          'false'
-      );
-      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    });
-
-    test('toggle label text updates when opened and closed', async ({ page }) => {
-      await gotoCalc(page);
-
       const label = page.locator('[data-toggle-label]');
       await expect(label).toHaveText('Show Advanced Inputs');
 
+      // Open
       await jsClick(page, '[data-advanced-toggle]');
+      await expect(page.locator('[data-advanced-panel]')).not.toHaveClass(/is-hidden/);
+      await expect(page.locator('[data-adv-results]')).not.toHaveClass(/is-hidden/);
+      await expect(toggle).toHaveAttribute('aria-expanded', 'true');
       await expect(label).toHaveText('Hide Advanced Inputs');
 
-      await jsClick(page, '[data-advanced-toggle]');
-      await expect(label).toHaveText('Show Advanced Inputs');
-    });
-
-    test('advanced metrics are populated after opening', async ({ page }) => {
-      await gotoCalc(page);
-      await jsClick(page, '[data-advanced-toggle]');
-
-      // Wait for values to be written by render()
+      // Advanced metrics populated
       await page.waitForFunction(
         () => {
           const el = document.querySelector('[data-metric="direct-labor"]');
@@ -297,62 +206,43 @@ test.describe('Tech Debt Calculator', () => {
         },
         { timeout: 3000 }
       );
-
       expect(await getMetric(page, 'direct-labor')).not.toBe('—');
       expect(await getMetric(page, 'incident-labor')).not.toBe('—');
       expect(await getMetric(page, 'velocity')).not.toBe('—');
       expect(await getMetric(page, 'debt-pct-arr')).not.toBe('—');
       expect(await getById(page, 'payback-breakeven')).not.toBe('—');
       expect(await getById(page, 'payback-savings')).not.toBe('—');
+
+      // Close and verify reset
+      await jsClick(page, '[data-advanced-toggle]');
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-advanced-toggle]')?.getAttribute('aria-expanded') ===
+          'false'
+      );
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      await expect(label).toHaveText('Show Advanced Inputs');
     });
   });
 
   // ── Deployment frequency ───────────────────────────────────────────────────
 
   test.describe('deployment frequency', () => {
-    test('clicking a deploy button marks it active', async ({ page }) => {
+    test('clicking deploy buttons toggles active state and shows DORA warnings', async ({
+      page,
+    }) => {
       await gotoCalc(page);
       await jsClick(page, '[data-advanced-toggle]');
 
-      // Click the last deploy button (Annually — index 8, DORA Low)
-      await jsClick(page, '[data-deploy-btn="8"]');
-
-      const btn = page.locator('[data-deploy-btn="8"]');
-      await expect(btn).toHaveClass(/active/);
-    });
-
-    test('only one deploy button is active at a time', async ({ page }) => {
-      await gotoCalc(page);
-      await jsClick(page, '[data-advanced-toggle]');
-
-      await jsClick(page, '[data-deploy-btn="0"]');
-      await jsClick(page, '[data-deploy-btn="8"]');
-
-      // btn 8 active, btn 0 not
-      await expect(page.locator('[data-deploy-btn="8"]')).toHaveClass(/active/);
-      await expect(page.locator('[data-deploy-btn="0"]')).not.toHaveClass(/active/);
-    });
-
-    test('low-frequency deploy (index ≥ 6) shows DORA warning', async ({ page }) => {
-      await gotoCalc(page);
-      await jsClick(page, '[data-advanced-toggle]');
-
+      // Click low-frequency deploy — shows DORA warning
       await jsClick(page, '[data-deploy-btn="6"]');
-
-      const msg = page.locator('[data-dora-message]');
-      await expect(msg).toContainText('DORA Low');
-    });
-
-    test('high-frequency deploy (index 0) clears DORA warning', async ({ page }) => {
-      await gotoCalc(page);
-      await jsClick(page, '[data-advanced-toggle]');
-
-      // First set a low frequency to show the warning
-      await jsClick(page, '[data-deploy-btn="6"]');
+      await expect(page.locator('[data-deploy-btn="6"]')).toHaveClass(/active/);
       await expect(page.locator('[data-dora-message]')).toContainText('DORA Low');
 
-      // Switch to elite frequency
+      // Switch to high-frequency — clears warning, only new button active
       await jsClick(page, '[data-deploy-btn="0"]');
+      await expect(page.locator('[data-deploy-btn="0"]')).toHaveClass(/active/);
+      await expect(page.locator('[data-deploy-btn="6"]')).not.toHaveClass(/active/);
       const msg = await page.locator('[data-dora-message]').textContent();
       expect(msg?.trim()).toBe('');
     });
@@ -364,7 +254,6 @@ test.describe('Tech Debt Calculator', () => {
     test('back link returns to hub tools page', async ({ page }) => {
       await gotoCalc(page);
 
-      // Navigate via location.href to ensure anchor navigation works across all browsers
       await page.evaluate(() => {
         const link = document.querySelector('.back-link') as HTMLAnchorElement;
         if (link) window.location.href = link.href;
@@ -378,15 +267,6 @@ test.describe('Tech Debt Calculator', () => {
   // ── URL state persistence ──────────────────────────────────────────────────
 
   test.describe('URL state persistence', () => {
-    /**
-     * Navigate to the TDC with a pre-encoded ?s= param.
-     * The param is built from encodeState via the engine, but here we use a
-     * known-valid base64 string to avoid importing Node-side code in the test.
-     *
-     * State: teamSizePos=80, salaryPos=70, maintPct=60, deployIdx=2,
-     *        incidents=3, mttr=4, budgetPos=50, arrPos=50, advancedOpen=0
-     * Encoded via btoa(JSON.stringify({a:0,ts:80,sp:70,mp:60,di:2,in:3,mttr:4,bp:50,ap:50}))
-     */
     async function gotoCalcWithParams(page: Page, params: string): Promise<void> {
       await page.goto(`/hub/tools/tech-debt-calculator?s=${params}`);
       await page.waitForLoadState('domcontentloaded');
@@ -404,64 +284,42 @@ test.describe('Tech Debt Calculator', () => {
       JSON.stringify({ a: 0, ts: 80, sp: 70, mp: 60, di: 2, in: 3, mttr: 4, bp: 50, ap: 50 })
     );
 
-    test('URL ?s= param restores team size slider position', async ({ page }) => {
-      await gotoCalcWithParams(page, ENCODED_STATE);
-
-      // Team size slider should be at position 80 (large team)
-      const sliderVal = await page.locator('#input-team-size').inputValue();
-      expect(Number(sliderVal)).toBe(80);
-    });
-
-    test('URL ?s= param restores maint-pct display value', async ({ page }) => {
-      await gotoCalcWithParams(page, ENCODED_STATE);
-
-      // maintPct=60 → display should show "60%"
-      const display = await page.locator('[data-display="maint-pct"]').textContent();
-      expect(display).toContain('60');
-    });
-
-    test('URL ?s= param produces different results than defaults', async ({ page }) => {
+    test('URL ?s= param restores slider positions and produces different results', async ({
+      page,
+    }) => {
       // Get default result first
       await gotoCalc(page);
       const defaultCost = await getMetric(page, 'annual-cost');
 
-      // Now load with high-burden state (ts=80, mp=60)
+      // Load with custom state
       await gotoCalcWithParams(page, ENCODED_STATE);
-      const paramCost = await getMetric(page, 'annual-cost');
 
+      // Team size slider at position 80
+      const sliderVal = await page.locator('#input-team-size').inputValue();
+      expect(Number(sliderVal)).toBe(80);
+
+      // maintPct=60 → display shows "60%"
+      const display = await page.locator('[data-display="maint-pct"]').textContent();
+      expect(display).toContain('60');
+
+      // Results differ from defaults
+      const paramCost = await getMetric(page, 'annual-cost');
       expect(paramCost).not.toBe(defaultCost);
     });
 
-    test('interacting with calculator updates the URL ?s= param', async ({ page }) => {
-      await gotoCalc(page);
-
-      const initialUrl = page.url();
-
-      // Move the team size slider — this triggers render() which calls pushUrlState()
-      await setSlider(page, 'input-team-size', 75);
-
-      // URL should now have ?s= param
-      const updatedUrl = page.url();
-      expect(updatedUrl).toContain('?s=');
-      expect(updatedUrl).not.toBe(initialUrl);
-    });
-
-    test('URL ?s= param is updated when slider changes', async ({ page }) => {
+    test('slider changes update the URL ?s= param', async ({ page }) => {
       await gotoCalc(page);
 
       await setSlider(page, 'input-team-size', 30);
       const url30 = page.url();
+      expect(url30).toContain('?s=');
 
       await setSlider(page, 'input-team-size', 70);
       const url70 = page.url();
-
-      // Each slider position produces a different encoded state
-      expect(url30).not.toBe(url70);
-      expect(url70).toContain('?s=');
+      expect(url70).not.toBe(url30);
     });
 
     test('invalid ?s= param falls back to defaults gracefully', async ({ page }) => {
-      // Garbage base64 that decodes to non-JSON
       await page.goto('/hub/tools/tech-debt-calculator?s=not-valid-base64!!!');
       await page.waitForLoadState('domcontentloaded');
       await page.waitForFunction(
@@ -472,14 +330,12 @@ test.describe('Tech Debt Calculator', () => {
         { timeout: 5000 }
       );
 
-      // Calculator should still render with default values (not crash)
       const annualCost = await getMetric(page, 'annual-cost');
       expect(annualCost).not.toBe('—');
       expect(annualCost.length).toBeGreaterThan(0);
     });
 
-    // Clipboard tests — Chromium only (clipboard API not reliably available in Firefox/WebKit test environments)
-    test('Copy Link button is visible in the footer', async ({ page }) => {
+    test('Copy Link button is visible and works', async ({ page }) => {
       await gotoCalc(page);
 
       const btn = page.locator('#copy-link-btn');
@@ -503,18 +359,13 @@ test.describe('Tech Debt Calculator', () => {
 
         const btn = page.locator('#copy-link-btn');
         await expect(btn).toContainText('Copied!');
-
-        // Button should revert after 2s
         await expect(btn).toContainText('Copy Link', { timeout: 5000 });
       });
 
       test('Copy Link URL contains the ?s= state param', async ({ page }) => {
         await gotoCalc(page);
 
-        // Move slider so the URL has a non-default state
         await setSlider(page, 'input-team-size', 60);
-
-        // Verify the page URL already has ?s= (the button copies window.location.href)
         await page.waitForFunction(() => window.location.search.includes('?s='));
         const url = page.url();
         expect(url).toContain('?s=');
@@ -526,61 +377,34 @@ test.describe('Tech Debt Calculator', () => {
   // ── Currency selector ──────────────────────────────────────────────────────
 
   test.describe('currency selector', () => {
-    test('currency select is visible in the footer', async ({ page }) => {
-      await gotoCalc(page);
-      const select = page.locator('#currency-select');
-      await expect(select).toBeVisible();
-      await expect(select).toHaveValue('USD');
-    });
-
-    test('switching to EUR changes annual cost symbol to €', async ({ page }) => {
+    test('switching currencies updates symbols across all displays', async ({ page }) => {
       await gotoCalc(page);
 
+      // Default is USD
+      await expect(page.locator('#currency-select')).toHaveValue('USD');
+
+      // EUR — cost and salary show €
       await page.locator('#currency-select').selectOption('EUR');
-
-      const cost = await getMetric(page, 'annual-cost');
+      let cost = await getMetric(page, 'annual-cost');
       expect(cost).toContain('€');
       expect(cost).not.toContain('$');
-    });
+      let salary = await page.locator('[data-display="salary"]').textContent();
+      expect(salary).toContain('€');
+      const arr = await page.locator('[data-display="arr"]').textContent();
+      expect(arr).toContain('€');
 
-    test('switching to GBP changes annual cost symbol to £', async ({ page }) => {
-      await gotoCalc(page);
-
+      // GBP — cost and salary show £
       await page.locator('#currency-select').selectOption('GBP');
-
-      const cost = await getMetric(page, 'annual-cost');
+      cost = await getMetric(page, 'annual-cost');
       expect(cost).toContain('£');
-    });
+      salary = await page.locator('[data-display="salary"]').textContent();
+      expect(salary).toContain('£');
 
-    test('switching back to USD restores $ symbol', async ({ page }) => {
-      await gotoCalc(page);
-
-      await page.locator('#currency-select').selectOption('EUR');
+      // Back to USD — $ restored
       await page.locator('#currency-select').selectOption('USD');
-
-      const cost = await getMetric(page, 'annual-cost');
+      cost = await getMetric(page, 'annual-cost');
       expect(cost).toContain('$');
       expect(cost).not.toContain('€');
-    });
-
-    test('salary display value updates currency symbol on change', async ({ page }) => {
-      await gotoCalc(page);
-
-      await page.locator('#currency-select').selectOption('GBP');
-
-      const salary = await page.locator('[data-display="salary"]').textContent();
-      expect(salary).toContain('£');
-    });
-
-    test('salary and ARR display values update on currency change', async ({ page }) => {
-      await gotoCalc(page);
-
-      await page.locator('#currency-select').selectOption('EUR');
-
-      const salaryDisplay = await page.locator('[data-display="salary"]').textContent();
-      const arrDisplay = await page.locator('[data-display="arr"]').textContent();
-      expect(salaryDisplay).toContain('€');
-      expect(arrDisplay).toContain('€');
     });
 
     test('EUR annual cost is less than USD annual cost (multiplier < 1)', async ({ page }) => {
@@ -594,21 +418,18 @@ test.describe('Tech Debt Calculator', () => {
       const eurText = await getMetric(page, 'annual-cost');
       const eurVal = parseFloat(eurText.replace(/[^0-9.]/g, ''));
 
-      // EUR multiplier is 0.92 — converted value must be lower
       expect(eurVal).toBeLessThan(usdVal);
     });
 
     test('currency does not affect the ?s= URL param', async ({ page }) => {
       await gotoCalc(page);
 
-      // Move slider to ensure URL has a state param
       await setSlider(page, 'input-team-size', 50);
       const urlBefore = page.url();
 
       await page.locator('#currency-select').selectOption('GBP');
       const urlAfter = page.url();
 
-      // The encoded state should be unchanged — currency is display-only
       expect(urlAfter).toBe(urlBefore);
     });
   });

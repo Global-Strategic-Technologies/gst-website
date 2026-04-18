@@ -117,8 +117,8 @@
     width: 90%;
     max-height: 85vh;
     padding: 2rem;
-    background: var(--bg-light);
-    border: 1px solid var(--border-light);
+    background: light-dark(var(--bg-light), var(--bg-dark-secondary));
+    border: 1px solid light-dark(var(--border-light), var(--border-dark-default));
     border-radius: 0;
     clip-path: polygon(
       2.5% 0%,
@@ -162,7 +162,7 @@
 
   .modal-close:hover {
     color: var(--color-primary);
-    background: var(--accent-light-bg);
+    background: light-dark(var(--accent-light-bg), transparent);
   }
 
   .modal-close:active {
@@ -172,7 +172,7 @@
   .modal-close:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
-    background: var(--accent-light-bg);
+    background: light-dark(var(--accent-light-bg), transparent);
   }
 
   .modal-header {
@@ -206,7 +206,7 @@
     gap: 1.5rem;
     margin-bottom: 2rem;
     padding-bottom: 2rem;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark-default));
   }
 
   .modal-metric {
@@ -220,7 +220,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--text-secondary);
+    color: light-dark(var(--text-secondary), var(--text-muted));
     margin: 0 0 0.5rem;
   }
 
@@ -242,7 +242,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--text-secondary);
+    color: light-dark(var(--text-secondary), var(--text-muted));
     margin: 0 0 0.75rem;
   }
 
@@ -261,7 +261,7 @@
   }
 
   :global(.modal-tech-tags .tech-tag) {
-    background: var(--filter-chip-bg-hover);
+    background: light-dark(var(--filter-chip-bg-hover), var(--accent-dark-bg));
     color: var(--text-secondary);
     padding: 0.35rem 0.65rem;
     font-family: monospace;
@@ -281,40 +281,7 @@
   }
 
   /* Dark theme modal */
-  :global(html.dark-theme) .project-modal {
-    background: var(--bg-dark-secondary);
-    border-color: var(--border-dark-default);
-    border-top-color: var(--color-primary);
-  }
-
-  :global(html.dark-theme) .modal-close:hover {
-    color: var(--color-primary);
-    background: transparent;
-  }
-
-  :global(html.dark-theme) .modal-close:focus-visible {
-    background: transparent;
-  }
-
-  :global(html.dark-theme) .modal-industry {
-    color: var(--text-muted);
-  }
-
-  :global(html.dark-theme) .modal-metrics {
-    border-bottom-color: var(--border-dark-default);
-  }
-
-  :global(html.dark-theme) .metric-label {
-    color: var(--text-muted);
-  }
-
-  :global(html.dark-theme) .modal-section-title {
-    color: var(--text-muted);
-  }
-
-  :global(html.dark-theme) :global(.modal-tech-tags .tech-tag) {
-    background: var(--accent-dark-bg);
-  }
+  /* .project-modal background/border use light-dark() */
 
   @media (max-width: 768px) {
     .project-modal {

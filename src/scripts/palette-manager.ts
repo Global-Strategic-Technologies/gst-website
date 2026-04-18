@@ -7,6 +7,20 @@ import { PALETTE_NAMES, PALETTE_CONCEPTS, TOKEN_TIPS } from '../data/palettes';
 import { rgbToHex, hexToRgb, parseAlpha } from '../utils/palette-utils';
 import * as Sentry from '@sentry/browser';
 
+// ── Helpers ────────────────────────────────────────────────
+
+function isMobile(): boolean {
+  return window.innerWidth <= 768;
+}
+
+/** Sync active tab state across both desktop edge tabs and mobile header tabs. */
+function syncTabActiveState(id: number): void {
+  document.querySelectorAll<HTMLElement>('.palette-panel__tab').forEach((tab) => {
+    const tabId = parseInt(tab.dataset.palette || '0');
+    tab.classList.toggle('palette-panel__tab--active', tabId === id);
+  });
+}
+
 // ── Read & Populate ────────────────────────────────────────
 
 function readAndPopulate(): void {
@@ -280,11 +294,8 @@ function switchPalette(id: number) {
   const nameEl = document.getElementById('panel-palette-name');
   if (nameEl) nameEl.textContent = PALETTE_NAMES[id] || '';
 
-  // Update tab active state
-  document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach((tab) => {
-    const tabId = parseInt(tab.dataset.palette || '0');
-    tab.classList.toggle('palette-panel__tab--active', tabId === id);
-  });
+  // Update tab active state (both desktop edge tabs and mobile header tabs)
+  syncTabActiveState(id);
 
   requestAnimationFrame(() => readAndPopulate());
 }
@@ -325,82 +336,255 @@ document.addEventListener('DOMContentLoaded', () => {
   injectControls();
   readAndPopulate();
 
-  // Palette tab switching
-  document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      const id = parseInt(tab.dataset.palette || '0');
-      themeObserverPaused = true;
-      switchPalette(id);
-      themeObserverPaused = false;
-    });
-  });
-
-  // Reset all button
-  const resetBtn = document.getElementById('reset-all');
-  if (resetBtn) resetBtn.addEventListener('click', resetAllOverrides);
-
-  // Panel toggle (open/close)
-  const panelToggle = document.getElementById('panel-toggle');
+  // ── DOM references ──────────────────────────────────────
   const panel = document.getElementById('palette-panel');
   const panelBody = document.getElementById('panel-body');
   const panelResize = document.getElementById('panel-resize');
+  const fab = document.getElementById('panel-fab');
+  const backdrop = document.getElementById('panel-backdrop');
+  const grabHandle = document.getElementById('panel-grab-handle');
+  const mobileHeader = document.getElementById('panel-mobile-header');
 
-  if (panelToggle && panel && panelBody) {
-    panelToggle.addEventListener('click', () => {
-      panel.classList.toggle('is-open');
-      if (panel.classList.contains('is-open')) {
-        requestAnimationFrame(() => readAndPopulate());
+  // ── Shared action: open panel ───────────────────────────
+  function openPanel(): void {
+    if (!panel) return;
+    panel.classList.add('is-open');
+    if (isMobile()) {
+      document.body.style.overflow = 'hidden';
+      if (backdrop) {
+        backdrop.hidden = false;
+        void backdrop.offsetHeight;
+        backdrop.classList.add('is-visible');
       }
-    });
+    }
+    requestAnimationFrame(() => readAndPopulate());
   }
 
-  // Theme toggle (mirrors footer ThemeToggle)
-  const panelThemeToggle = document.getElementById('panel-theme-toggle');
-  if (panelThemeToggle) {
-    panelThemeToggle.addEventListener('click', () => {
-      themeObserverPaused = true;
-      document.documentElement.classList.toggle('dark-theme');
-      const isDark = document.documentElement.classList.contains('dark-theme');
-      try {
-        localStorage.setItem('theme', isDark ? 'dark' : 'light');
-      } catch {
-        Sentry.addBreadcrumb({
-          category: 'palette-manager',
-          message: 'localStorage write failed',
-          level: 'warning',
-        });
-      }
-      themeObserverPaused = false;
-      resetAllOverrides();
-    });
+  // ── Shared action: close panel ──────────────────────────
+  function closePanel(): void {
+    if (!panel) return;
+    panel.classList.remove('is-open');
+    if (isMobile()) {
+      document.body.style.overflow = '';
+      backdrop?.classList.remove('is-visible');
+      setTimeout(() => {
+        if (backdrop) backdrop.hidden = true;
+      }, 300);
+    }
   }
 
-  // Pop-out toggle
+  // ── Shared action: select palette ───────────────────────
+  function handlePaletteSelect(id: number): void {
+    themeObserverPaused = true;
+    switchPalette(id);
+    themeObserverPaused = false;
+  }
+
+  // ── Shared action: toggle theme ─────────────────────────
+  function handleThemeToggle(): void {
+    themeObserverPaused = true;
+    document.documentElement.classList.toggle('dark-theme');
+    const isDark = document.documentElement.classList.contains('dark-theme');
+    try {
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    } catch {
+      Sentry.addBreadcrumb({
+        category: 'palette-manager',
+        message: 'localStorage write failed',
+        level: 'warning',
+      });
+    }
+    themeObserverPaused = false;
+    resetAllOverrides();
+  }
+
+  // ── Shared action: toggle popout ────────────────────────
+  // All popout buttons (desktop edge + mobile clone) call this.
+  // The mobile label is updated by the caller after this returns.
+  function handlePopoutToggle(): void {
+    const html = document.documentElement;
+    const wasPopped = html.classList.contains('palette-popped-out');
+    themeObserverPaused = true;
+    html.classList.toggle('palette-popped-out');
+    themeObserverPaused = false;
+
+    // Sync is-active on ALL popout buttons (desktop + mobile clones)
+    document
+      .querySelectorAll<HTMLElement>(
+        '#panel-popout-toggle, .palette-panel__mobile-header .palette-panel__popout'
+      )
+      .forEach((btn) => btn.classList.toggle('is-active'));
+
+    try {
+      localStorage.setItem('palette-popped-out', wasPopped ? 'false' : 'true');
+    } catch {
+      Sentry.addBreadcrumb({
+        category: 'palette-manager',
+        message: 'localStorage write failed',
+        level: 'warning',
+      });
+    }
+
+    // On mobile non-brand pages, manage FAB visibility
+    if (isMobile()) {
+      const isBrandPage = html.hasAttribute('data-palette-always');
+      if (wasPopped && !isBrandPage) {
+        closePanel();
+        if (fab) fab.style.display = 'none';
+      } else if (!wasPopped && !isBrandPage) {
+        if (fab) fab.style.display = '';
+      }
+    }
+  }
+
+  // ── Wire desktop controls ───────────────────────────────
+
+  // Panel toggle (edge strip delta button)
+  const panelToggle = document.getElementById('panel-toggle');
+  panelToggle?.addEventListener('click', () => {
+    if (panel?.classList.contains('is-open')) {
+      closePanel();
+    } else {
+      openPanel();
+    }
+  });
+
+  // Desktop palette tabs
+  document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach((tab) => {
+    tab.addEventListener('click', () => handlePaletteSelect(parseInt(tab.dataset.palette || '0')));
+  });
+
+  // Desktop theme toggle
+  document.getElementById('panel-theme-toggle')?.addEventListener('click', handleThemeToggle);
+
+  // Desktop popout toggle
   const popoutBtn = document.getElementById('panel-popout-toggle');
   if (popoutBtn) {
-    const isPoppedOut = document.documentElement.classList.contains('palette-popped-out');
-    if (isPoppedOut) popoutBtn.classList.add('is-active');
-
-    popoutBtn.addEventListener('click', () => {
-      const html = document.documentElement;
-      const wasPopped = html.classList.contains('palette-popped-out');
-      themeObserverPaused = true;
-      html.classList.toggle('palette-popped-out');
-      themeObserverPaused = false;
-      popoutBtn.classList.toggle('is-active');
-      try {
-        localStorage.setItem('palette-popped-out', wasPopped ? 'false' : 'true');
-      } catch {
-        Sentry.addBreadcrumb({
-          category: 'palette-manager',
-          message: 'localStorage write failed',
-          level: 'warning',
-        });
-      }
-    });
+    if (document.documentElement.classList.contains('palette-popped-out')) {
+      popoutBtn.classList.add('is-active');
+    }
+    popoutBtn.addEventListener('click', handlePopoutToggle);
   }
 
-  // Resize handle (drag to resize)
+  // Reset all button
+  document.getElementById('reset-all')?.addEventListener('click', resetAllOverrides);
+
+  // ── Wire mobile controls ────────────────────────────────
+
+  // Clone tabs and controls into mobile header
+  if (mobileHeader) {
+    // Clone palette tabs
+    document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach((tab) => {
+      const clone = tab.cloneNode(true) as HTMLElement;
+      mobileHeader.appendChild(clone);
+      clone.addEventListener('click', () =>
+        handlePaletteSelect(parseInt(clone.dataset.palette || '0'))
+      );
+    });
+
+    // Clone popout (left position) with text label
+    const popoutClone = document.getElementById('panel-popout-toggle')?.cloneNode(true) as
+      | HTMLElement
+      | undefined;
+    if (popoutClone) {
+      popoutClone.removeAttribute('id');
+      mobileHeader.appendChild(popoutClone);
+      const popoutLabel = document.createElement('span');
+      popoutLabel.className = 'palette-panel__popout-label';
+      const isPopped = document.documentElement.classList.contains('palette-popped-out');
+      popoutLabel.textContent = isPopped ? 'All Pages' : 'Brand Only';
+      popoutClone.appendChild(popoutLabel);
+      popoutClone.addEventListener('click', () => {
+        handlePopoutToggle();
+        const nowPopped = document.documentElement.classList.contains('palette-popped-out');
+        popoutLabel.textContent = nowPopped ? 'All Pages' : 'Brand Only';
+      });
+    }
+
+    // Clone theme toggle (right position)
+    const themeClone = document.getElementById('panel-theme-toggle')?.cloneNode(true) as
+      | HTMLElement
+      | undefined;
+    if (themeClone) {
+      themeClone.removeAttribute('id');
+      mobileHeader.appendChild(themeClone);
+      themeClone.addEventListener('click', handleThemeToggle);
+    }
+  }
+
+  // FAB and backdrop
+  fab?.addEventListener('click', openPanel);
+  backdrop?.addEventListener('click', closePanel);
+
+  // Mobile: tap swatch to expand its controls (one at a time)
+  document.querySelectorAll<HTMLElement>('.palette-panel .brand-swatch').forEach((swatch) => {
+    swatch.addEventListener('click', (e) => {
+      if (!isMobile()) return;
+      if ((e.target as HTMLElement).closest('.swatch-controls')) return;
+      const wasExpanded = swatch.classList.contains('swatch-expanded');
+      document
+        .querySelectorAll<HTMLElement>('.palette-panel .brand-swatch.swatch-expanded')
+        .forEach((s) => s.classList.remove('swatch-expanded'));
+      if (!wasExpanded) swatch.classList.add('swatch-expanded');
+    });
+  });
+
+  // ── Touch gestures (mobile only) ───────────────────────
+  let sheetStartY = 0;
+  let sheetCurrentY = 0;
+
+  grabHandle?.addEventListener(
+    'touchstart',
+    (e) => {
+      sheetStartY = e.touches[0].clientY;
+      sheetCurrentY = sheetStartY;
+      if (panel) panel.style.transition = 'none';
+    },
+    { passive: true }
+  );
+
+  grabHandle?.addEventListener(
+    'touchmove',
+    (e) => {
+      sheetCurrentY = e.touches[0].clientY;
+      const dy = Math.max(0, sheetCurrentY - sheetStartY);
+      if (panel) panel.style.transform = `translateY(${dy}px)`;
+    },
+    { passive: true }
+  );
+
+  grabHandle?.addEventListener('touchend', () => {
+    if (panel) {
+      panel.style.transition = '';
+      panel.style.transform = '';
+    }
+    if (sheetCurrentY - sheetStartY > 80) closePanel();
+  });
+
+  // ── Footer-aware FAB positioning ────────────────────────
+  const footer = document.querySelector('footer');
+  if (footer && fab) {
+    const updateFabPosition = () => {
+      if (!isMobile()) return;
+      const footerTop = footer.getBoundingClientRect().top;
+      const viewportH = window.innerHeight;
+      fab.style.bottom = footerTop < viewportH ? `${viewportH - footerTop + 16}px` : '16px';
+    };
+    window.addEventListener('scroll', updateFabPosition, { passive: true });
+    updateFabPosition();
+  }
+
+  // ── Viewport change cleanup ─────────────────────────────
+  window.addEventListener('resize', () => {
+    if (!isMobile() && panel?.classList.contains('is-open') && backdrop) {
+      document.body.style.overflow = '';
+      backdrop.classList.remove('is-visible');
+      backdrop.hidden = true;
+      if (fab) fab.style.bottom = '16px';
+    }
+  });
+
+  // ── Desktop resize handle (mouse only) ──────────────────
   if (panelResize && panelBody && panel) {
     const MIN_WIDTH = 280;
     const MAX_WIDTH = 900;
@@ -421,8 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mousemove', (e: MouseEvent) => {
       if (!isDragging) return;
       const dx = dragStartX - e.clientX;
-      const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, dragStartWidth + dx));
-      panelBody.style.width = `${newWidth}px`;
+      panelBody.style.width = `${Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, dragStartWidth + dx))}px`;
     });
 
     document.addEventListener('mouseup', () => {
@@ -434,14 +617,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Sync active tab with persisted palette on load
+  // ── Sync persisted palette on load ──────────────────────
   const currentPalette = document.documentElement.className.match(/palette-(\d)/);
   if (currentPalette) {
     const id = parseInt(currentPalette[1]);
-    document.querySelectorAll<HTMLElement>('#palette-tabs .palette-panel__tab').forEach((tab) => {
-      const tabId = parseInt(tab.dataset.palette || '0');
-      tab.classList.toggle('palette-panel__tab--active', tabId === id);
-    });
+    syncTabActiveState(id);
     const nameEl = document.getElementById('panel-palette-name');
     if (nameEl) nameEl.textContent = PALETTE_NAMES[id] || '';
     const conceptEl = document.getElementById('palette-concept');

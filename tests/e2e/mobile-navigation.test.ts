@@ -9,16 +9,6 @@ test.describe('Mobile Navigation Journey', () => {
     await page.goto('/ma-portfolio', { waitUntil: 'domcontentloaded' });
   });
 
-  test('should display responsive layout on mobile', async ({ page }) => {
-    // Check viewport is mobile
-    const viewport = page.viewportSize();
-    expect(viewport?.width).toBeLessThan(500);
-
-    // Page should be visible
-    const body = page.locator('body');
-    await expect(body).toBeVisible();
-  });
-
   test('should have touchable buttons on mobile', async ({ page }) => {
     // Find buttons
     const buttons = page.locator('button');

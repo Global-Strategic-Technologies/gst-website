@@ -91,22 +91,13 @@ import DeltaIcon from './DeltaIcon.astro';
     line-height: 1.8;
     margin-top: var(--spacing-2xl);
     padding-top: var(--spacing-2xl);
-    border-top: 2px solid var(--border-light);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   }
 
   .closing-text::before {
     content: '// ';
     color: var(--color-primary);
     font-weight: 900;
-  }
-
-  /* Dark theme support */
-  :global(html.dark-theme) .what-we-do {
-    background: transparent;
-  }
-
-  :global(html.dark-theme) .closing-text {
-    border-top-color: var(--border-dark-default);
   }
 
   /* Responsive design */

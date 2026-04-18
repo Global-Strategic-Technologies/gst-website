@@ -89,10 +89,10 @@ const { title, subtitle, description, primaryCTA, secondaryCTA, trustLine } = As
     padding: 2rem 0;
     background: linear-gradient(
       180deg,
-      rgba(245, 245, 245, 0) 0%,
+      light-dark(rgba(245, 245, 245, 0), rgba(10, 10, 10, 0)) 0%,
       var(--bg-light-alt) 15%,
       var(--bg-light-alt) 85%,
-      rgba(245, 245, 245, 0) 100%
+      light-dark(rgba(245, 245, 245, 0), rgba(10, 10, 10, 0)) 100%
     );
     position: relative;
   }
@@ -117,7 +117,7 @@ const { title, subtitle, description, primaryCTA, secondaryCTA, trustLine } = As
     font-size: 6rem;
     font-weight: 900;
     line-height: 0.95;
-    color: var(--text-primary);
+    color: light-dark(var(--text-primary), var(--text-dark-primary));
     text-transform: uppercase;
     letter-spacing: -0.04em;
     margin-bottom: 0.5rem;
@@ -144,7 +144,7 @@ const { title, subtitle, description, primaryCTA, secondaryCTA, trustLine } = As
 
   .hero p {
     font-size: var(--text-2xl);
-    color: var(--text-secondary);
+    color: light-dark(var(--text-secondary), var(--text-dark-secondary));
     line-height: 1.6;
     font-weight: 400;
   }
@@ -172,32 +172,6 @@ const { title, subtitle, description, primaryCTA, secondaryCTA, trustLine } = As
     color: var(--text-muted);
     font-weight: 500;
     letter-spacing: 0.05em;
-  }
-
-  :global(html.dark-theme) .hero {
-    background: linear-gradient(
-      180deg,
-      rgba(10, 10, 10, 0) 0%,
-      var(--bg-dark) 15%,
-      var(--bg-dark) 85%,
-      rgba(10, 10, 10, 0) 100%
-    );
-  }
-
-  :global(html.dark-theme) .hero h1 {
-    color: var(--text-dark-primary);
-  }
-
-  :global(html.dark-theme) .hero h1 .highlight {
-    color: var(--color-primary);
-  }
-
-  :global(html.dark-theme) .hero p {
-    color: var(--text-dark-secondary);
-  }
-
-  :global(html.dark-theme) .hero p .highlight {
-    color: var(--color-primary);
   }
 
   @media (max-width: 768px) {

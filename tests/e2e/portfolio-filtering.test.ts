@@ -143,14 +143,4 @@ test.describe('Portfolio Filtering - DOM Integration Tests', () => {
     await expect(allEngagementsChip).toHaveClass(/active/);
     await expect(allThemesChip).toHaveClass(/active/);
   });
-
-  test('should render all filter chip categories', async ({ page }) => {
-    await openFilterDrawer(page);
-
-    const engagementChips = page.locator('[data-testid^="filter-chip-engagement-"]');
-    const themeChips = page.locator('[data-testid^="filter-chip-theme-"]');
-
-    expect(await engagementChips.count()).toBeGreaterThan(0);
-    expect(await themeChips.count()).toBeGreaterThan(0);
-  });
 });

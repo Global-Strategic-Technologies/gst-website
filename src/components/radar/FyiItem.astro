@@ -78,7 +78,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
 <style>
   .fyi-item {
     padding: var(--spacing-md) 0;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark-default));
   }
 
   /* Reset native details/summary styling */
@@ -173,7 +173,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     margin-left: var(--spacing-md);
     padding-top: var(--spacing-sm);
     padding-left: var(--spacing-md);
-    border-top: 1px solid var(--border-light);
+    border-top: 1px solid light-dark(var(--border-light), var(--border-dark-default));
   }
 
   .fyi-item__nested-take p {
@@ -183,19 +183,11 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     margin: 0;
   }
 
-  :global(html.dark-theme) .fyi-item__nested-take {
-    border-top-color: var(--border-dark-default);
-  }
-
   .fyi-item__take p {
     font-size: var(--text-sm);
     color: var(--text-primary);
     line-height: 1.6;
     margin: 0;
-  }
-
-  :global(html.dark-theme) .fyi-item {
-    border-bottom-color: var(--border-dark-default);
   }
 
   @media (max-width: 480px) {

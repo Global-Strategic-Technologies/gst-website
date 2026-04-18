@@ -36,7 +36,7 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     display: flex;
     gap: var(--spacing-md);
     padding: var(--spacing-md) 0;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark-default));
   }
 
   .wire-item__indicator {
@@ -75,9 +75,5 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
   .wire-item__meta .source::after {
     content: '·';
     margin: 0 var(--spacing-xs);
-  }
-
-  :global(html.dark-theme) .wire-item {
-    border-bottom-color: var(--border-dark-default);
   }
 </style>

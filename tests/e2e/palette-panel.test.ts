@@ -118,7 +118,8 @@ test.describe('Palette Panel', () => {
       });
 
       const result = await page.evaluate(() => {
-        const active = document.querySelectorAll('.palette-panel__tab--active');
+        // Scope to desktop edge tabs — mobile clones also have active state
+        const active = document.querySelectorAll('#palette-tabs .palette-panel__tab--active');
         return { count: active.length, palette: (active[0] as HTMLElement)?.dataset.palette };
       });
       expect(result).toEqual({ count: 1, palette: '3' });
@@ -228,4 +229,6 @@ test.describe('Palette Panel', () => {
       );
     });
   });
+
+  // Cross-page popout mobile tests are in palette-panel-mobile.test.ts Section E
 });

@@ -93,6 +93,12 @@ export default defineConfig({
     enabled: false, // Disable dev toolbar to prevent interference with E2E tests
   },
   vite: {
+    optimizeDeps: {
+      // Pre-bundle D3 and TopoJSON so Vite's dependency optimizer doesn't
+      // discover them lazily during page load. Without this, the optimizer
+      // may re-run mid-session and serve 504 "Outdated Optimize Dep" errors.
+      include: ['d3-geo', 'd3-selection', 'd3-zoom', 'd3-transition', 'topojson-client'],
+    },
     build: {
       // Sentry source maps. 'hidden' generates .map files without adding
       // sourceMappingURL to output JS (browsers don't request them).

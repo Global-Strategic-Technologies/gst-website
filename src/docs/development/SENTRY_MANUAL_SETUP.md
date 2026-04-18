@@ -133,4 +133,47 @@ These are the `area` tags already instrumented in the codebase:
 
 ---
 
+## 3. Consent Gating Evaluation (Phase 9 Item #16)
+
+### Decision: Keep Sentry under Legitimate Interest
+
+Sentry's current configuration runs under **legitimate interest** basis (GDPR Article 6(1)(f)) and does **not** require explicit consent gating. Rationale:
+
+| Config Property            | Value  | Privacy Impact                             |
+| -------------------------- | ------ | ------------------------------------------ |
+| `sendDefaultPii`           | false  | No IP addresses, usernames, or emails      |
+| `tracesSampleRate`         | 0      | No performance/transaction tracking        |
+| `replaysSessionSampleRate` | 0      | No session replay of normal browsing       |
+| `replaysOnErrorSampleRate` | 1.0    | Replay captured ONLY when an error occurs  |
+| `beforeSend` filter        | active | Drops browser noise (ResizeObserver, etc.) |
+
+Error monitoring is a recognized legitimate interest for website operators. The data collected is:
+
+- Stack traces (minified code, no user data)
+- Browser/OS metadata (for debugging, not profiling)
+- Error-triggered session replay (only the moments around the error)
+
+### When to Re-evaluate
+
+If the cookie consent banner (BUSINESS_ENABLEMENT_V1 Initiative 1) introduces a **"functional cookies"** or **"analytics"** consent tier, consider whether error-triggered replay crosses into the "analytics" category in your jurisdiction. Pure error capture (without replay) is unambiguously legitimate interest.
+
+A code comment in `sentry.client.config.ts` marks the integration point for future consent gating if needed.
+
+### If You Decide to Gate Sentry on Consent
+
+Add this check before `Sentry.init()` in `sentry.client.config.ts`:
+
+```typescript
+const consent = localStorage.getItem('cookie-consent');
+if (consent !== 'accepted') {
+  // Don't initialize Sentry — user hasn't consented
+  // Sentry.init() is never called, so no data is sent
+}
+```
+
+Note: this means errors occurring before or without consent will be invisible. Weigh this tradeoff against the privacy benefit.
+
+---
+
 _Created: April 13, 2026 — Platform Hardening V1 Phase 9_
+_Updated: April 17, 2026 — Added consent gating evaluation (Phase 9 item #16)_

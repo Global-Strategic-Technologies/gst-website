@@ -74,15 +74,7 @@ This document provides Claude with essential context about the GST Website proje
 - Before creating a PR, identify the last merge point and only include commits after it
 - Use `git log origin/dev..dev` to see what's actually new and unmerged
 
-### 11. Misc Cleanup Bucket (Platform Hardening Initiative)
-
-- When working on any phase of [PLATFORM_HARDENING_V1.md](../src/docs/development/PLATFORM_HARDENING_V1.md), if you discover a small drift item (legacy field name, doc count mismatch, dead helper, comment-vs-code drift) that does NOT fit the current commit's theme, **add it to Phase 9's backlog** rather than fixing it in scope
-- Inclusion criteria: ≤30 lines, isolated, mechanical, discovered as a side effect, not user-visible, not security
-- Format the entry with: file path, effort estimate, discovery context (which phase/commit), and a one-sentence description of the fix
-- This keeps phase commits focused and prevents drift items from being silently lost in commit messages
-- Phase 9 executes as its own standalone final sweep after Phase 8 completes
-
-### 12. Developer Tooling is Authoritative
+### 11. Developer Tooling is Authoritative
 
 - Before suggesting or implementing changes to linting, formatting, type-checking, pre-commit hooks, or CI, read [DEVELOPER_TOOLING.md](../src/docs/development/DEVELOPER_TOOLING.md) first
 - The authoritative local validation sequence (matches CI) is:
@@ -95,7 +87,7 @@ This document provides Claude with essential context about the GST Website proje
 - **Do not add or edit hooks, lint configs, or CI jobs without updating [DEVELOPER_TOOLING.md](../src/docs/development/DEVELOPER_TOOLING.md)** — the doc is the single source of truth for new contributors and future sessions
 - **Do not use `git commit --no-verify`** unless you are explicitly told the change is an emergency and the user has agreed to the follow-up. CI will still enforce what the hook would have caught, so `--no-verify` only defers the problem
 
-### 13. One Command Per Bash Call (Avoid Permission-Prompt Thrash)
+### 12. One Command Per Bash Call (Avoid Permission-Prompt Thrash)
 
 Claude Code's permission matcher evaluates the ENTIRE command string against the `allow` list in [`.claude/settings.local.json`](../.claude/settings.local.json). A compound command like `cd X && npm run Y | tee Z` is ONE string that matches no wildcard, even when every individual command (`cd`, `npm run`, `tee`) is pre-approved. The result: a permission prompt for work the user already authorized.
 
@@ -225,6 +217,8 @@ npm run astro                 # Run Astro CLI
 
 ## 📚 Critical Documentation
 
+**Master index**: [src/docs/README.md](src/docs/README.md) — links to all 6 documentation directories with use-case navigation. Start here when looking for any project documentation.
+
 ### Developer Tooling (Lint, Format, Hooks, CI)
 
 - **Authoritative reference**: [src/docs/development/DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md) — quick-reference table of all scripts, pre-commit hook flow, CI pipeline diagram, config file locations, troubleshooting
@@ -240,8 +234,13 @@ npm run astro                 # Run Astro CLI
 
 ### Development Roadmap
 
-- **Platform Hardening V1**: [src/docs/development/PLATFORM_HARDENING_V1.md](src/docs/development/PLATFORM_HARDENING_V1.md) - 9-phase foundation initiative (Phase 1 & 2 complete)
-- **Development Opportunities**: [src/docs/development/DEVELOPMENT_OPPORTUNITIES.md](src/docs/development/DEVELOPMENT_OPPORTUNITIES.md) - Strategic initiatives
+- **Development Backlog**: [src/docs/development/BACKLOG.md](src/docs/development/BACKLOG.md) - All open initiatives consolidated with user stories (35 items)
+- **Sentry Setup**: [src/docs/development/SENTRY_MANUAL_SETUP.md](src/docs/development/SENTRY_MANUAL_SETUP.md) - Alert rules, source maps, consent gating
+
+### Security
+
+- **Security headers & CSP**: [src/docs/security/SECURITY_HEADERS.md](src/docs/security/SECURITY_HEADERS.md) — header inventory, CSP allowlist, how to add external services
+- **Before adding any external script, API, or embed**: check the CSP allowlist and update both `vercel.json` and `src/middleware.ts`
 
 ### Analytics
 
@@ -286,18 +285,7 @@ Specialized agents in `.claude/agents/`. Use the right agent for the task:
 - **Fields**: id, codeName, industry, theme, summary, arr, arrNumeric, currency, growthStage, year, technologies
 - **Validation**: Unit tests covering schema integrity; auto-validated on commit via CI/CD
 
-### Content Management
-
-- Page content is hardcoded in Astro components
-- Consider Markdown files or CMS integration for dynamic content
-
 ## 🔍 Code Quality Standards
-
-### Linting & Formatting
-
-- ESLint for code quality
-- Prettier for code formatting
-- Git hooks for automated checks
 
 ### Testing Standards
 
@@ -323,33 +311,9 @@ Specialized agents in `.claude/agents/`. Use the right agent for the task:
 - **No hardcoded transitions** — use `--transition-fast`, `--transition-normal`, or `--transition-slow`
 - **Brand decisions** (color hierarchy, semantic colors, palettes, voice, asset rules): [src/docs/styles/BRAND_GUIDELINES.md](src/docs/styles/BRAND_GUIDELINES.md)
 
-### Performance Standards
-
-- Core Web Vitals optimization
-- Bundle size optimization
-- Image optimization
-- CSS/JS minification
-
-## 🔐 Security Considerations
-
-- Input validation on all user inputs
-- XSS prevention through proper escaping
-- CSRF protection for forms
-- No secrets in version control
-- Environment variables for sensitive data
-
 ## 🚢 Deployment
 
-**Platform**: Vercel
-
-- Automatic deployment on push to `master`
-- Preview deployments for PRs
-- Integrates with GitHub Actions
-
-**Build Settings**:
-
-- Build Command: `npm run build`
-- Output Directory: `dist`
+Vercel — auto-deploys on push to `master`, preview deploys for PRs. Build: `npm run build`, output: `dist`.
 
 ## 💡 Common Tasks
 
@@ -374,26 +338,6 @@ Specialized agents in `.claude/agents/`. Use the right agent for the task:
 2. Run: `npm run test:run` to validate schema
 3. Commit and push
 
-## 🆘 Troubleshooting
-
-### Tests Failing in CI but Passing Locally
-
-1. Check for flaky tests in E2E suite
-2. Review timing/wait conditions
-3. See [TEST_BEST_PRACTICES.md](src/docs/testing/TEST_BEST_PRACTICES.md)
-
-### Performance Issues
-
-1. Profile with Chrome DevTools
-2. Check [DEVELOPMENT_OPPORTUNITIES.md](src/docs/development/DEVELOPMENT_OPPORTUNITIES.md)
-3. Review Lighthouse metrics
-
-### Build Failures
-
-1. Check `npm run build` output
-2. Verify all dependencies installed
-3. Clear `.astro` cache and rebuild
-
 ---
 
-**Last Updated**: April 6, 2026
+**Last Updated**: April 17, 2026

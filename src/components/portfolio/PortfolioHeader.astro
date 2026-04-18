@@ -292,7 +292,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     justify-content: space-between;
     align-items: center;
     padding: 1.5rem;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark));
     flex-shrink: 0;
   }
 
@@ -366,26 +366,11 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 
   /* dark theme frosted glass handled by .brutal-frosted--heavy */
 
-  :global(html.dark-theme) .portfolio-controls-fixed .container {
-    background: transparent;
-  }
-
   :global(html.dark-theme) .controls-wrapper {
     border-bottom-color: var(--color-primary);
   }
 
   /* dark theme frosted glass handled by .brutal-frosted--overlay */
-  :global(html.dark-theme) .portfolio-filter-drawer {
-    border-left-color: var(--color-primary);
-  }
-
-  :global(html.dark-theme) .drawer-header {
-    border-bottom-color: var(--border-dark);
-  }
-
-  :global(html.dark-theme) .filter-label {
-    color: var(--text-muted);
-  }
 
   /* Responsive */
   @media (max-width: 768px) {

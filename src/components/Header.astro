@@ -57,7 +57,7 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
 <style>
   .site-header {
     padding: 1.275rem 0;
-    background: var(--bg-light-alt);
+    background: light-dark(var(--bg-light-alt), var(--bg-dark));
     border-bottom: 2px solid var(--color-primary);
     position: sticky;
     top: 0;
@@ -161,15 +161,6 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
   .site-header nav a:not(.logo).active {
     color: var(--color-primary);
     border-bottom-color: var(--color-primary);
-  }
-
-  :global(html.dark-theme) .site-header {
-    background: var(--bg-dark);
-    border-bottom-color: var(--color-primary);
-  }
-
-  :global(html.dark-theme) .logo:hover {
-    color: var(--color-primary);
   }
 
   @media (max-width: 768px) {

@@ -9,15 +9,6 @@ test.describe('Project Details Viewing Journey', () => {
     });
   });
 
-  test('should have interactive project elements', async ({ page }) => {
-    // Find project cards
-    const cards = page.locator('[data-testid="project-card"]');
-    const cardCount = await cards.count();
-
-    // Should have at least one project card
-    expect(cardCount).toBeGreaterThan(0);
-  });
-
   test('should open modal on project interaction', async ({ page }) => {
     // Find and click first project card
     const firstCard = page.locator('[data-testid="project-card"]').first();

@@ -63,7 +63,7 @@ Centralized CSS variable-based design system. Single source of truth in `variabl
 | Shadows               | `--shadow-sm`, `--shadow-md`, `--shadow-lg`                     | 3       |
 | **Total**             |                                                                 | **160** |
 
-> Note: Dark theme defines 85 variable overrides (including `--border-dark-subtle/default/prominent`), not new variables. 13 utility classes are defined across `variables.css`, `typography.css`, and `interactions.css`.
+> Note: Dark theme variables use `light-dark()` in `:root` — only `color-scheme: dark` and 2 RGB triplets remain in the `html.dark-theme` block. 13 utility classes are defined across `variables.css`, `typography.css`, and `interactions.css`.
 
 Full variable catalog: [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)
 
@@ -113,7 +113,8 @@ In stylesheets, always import in cascade order:
 | Design system tokens, resets, page layout       | Global CSS in `src/styles/`                                                   |
 | Single-component visual styles                  | Scoped `<style>` in the `.astro` file                                         |
 | Styling dynamically injected HTML (`innerHTML`) | `:global()` wrapper on the selector                                           |
-| Dark theme override for parent state            | `:global(html.dark-theme)` prefix — but prefer CSS variables that auto-switch |
+| Dark theme color switching                      | `light-dark(light, dark)` inline — preferred over `:global(html.dark-theme)`  |
+| Dark theme non-color overrides (opacity, etc.)  | `:global(html.dark-theme)` prefix — only for properties that aren't colors    |
 | Global keyframes or animations                  | `src/styles/global.css`                                                       |
 
 ### `class:list` — Conditional Classes
@@ -165,7 +166,7 @@ const accentColor = getThemeColor(category);
    }
    ```
 
-**Prefer CSS variables over `:global()`** when possible. If a value changes in dark theme, define a CSS variable with a dark override in `variables.css` rather than adding `:global(html.dark-theme)` selectors.
+**Prefer `light-dark()` over `:global(html.dark-theme)`** for color properties. Use `light-dark(light-value, dark-value)` inline or define a CSS variable with `light-dark()` in `variables.css`. Reserve `:global(html.dark-theme)` only for non-color properties (opacity, display, backdrop-filter).
 
 ### CSS Linting
 
@@ -301,49 +302,78 @@ Use this pattern only for `::before`/`::after` pseudo-elements where an Astro co
 
 ### How It Works
 
-Variables are defined in `:root` (light theme defaults). The `html.dark-theme` selector overrides only the variables that change. Components use variables and get theme switching for free.
+The theme system uses CSS `light-dark()` function — a single declaration handles both themes. LightningCSS compiles `light-dark()` to `--lightningcss-light`/`--lightningcss-dark` variable tricks for full browser support. The `html.dark-theme` class sets `color-scheme: dark` which triggers `light-dark()` to resolve to the second (dark) value.
 
 ```css
-/* variables.css */
+/* variables.css — single declaration, both themes */
 :root {
-  --filter-chip-bg: rgba(26, 26, 26, 0.05);
+  color-scheme: light;
+  --filter-chip-bg: light-dark(rgba(26, 26, 26, 0.05), rgba(5, 205, 153, 0.1));
 }
 
 html.dark-theme {
-  --filter-chip-bg: rgba(5, 205, 153, 0.1);
+  color-scheme: dark;
 }
 
-/* Component just references the variable */
+/* Component just references the variable — switches automatically */
 .filter-chip {
-  background: var(--filter-chip-bg); /* Switches automatically */
+  background: var(--filter-chip-bg);
+}
+```
+
+### Preferred: `light-dark()` (for all color properties)
+
+Use `light-dark(light-value, dark-value)` directly in base rules. Works for `color`, `background`, `border-color`, `fill`, `stroke`, `box-shadow` (color parts), and any property accepting a `<color>` value.
+
+```css
+/* In variables.css */
+--my-bg: light-dark(#ffffff, #1a1a1a);
+
+/* In scoped component styles */
+.my-card {
+  border-color: light-dark(var(--border-light), var(--border-dark-default));
+}
+```
+
+### Fallback: `html.dark-theme` selector (non-color properties only)
+
+`light-dark()` only works for `<color>` values. For non-color properties (`opacity`, `backdrop-filter`, `display`, `font-weight`, `transform`), use the `:global(html.dark-theme)` selector:
+
+```css
+/* Cannot use light-dark() for opacity */
+:global(html.dark-theme) .overlay {
+  opacity: 0.8;
 }
 ```
 
 ### Adding Dark Theme Support to New Components
 
-1. Use existing variables wherever possible (`--bg-light-alt`, `--text-primary`, `--color-primary`)
-2. If you need a new component-specific variable, define both light and dark values in `variables.css`:
+1. Use existing variables wherever possible — most already auto-switch via `light-dark()`:
+
+| Use Case        | Variable                                                    |
+| --------------- | ----------------------------------------------------------- |
+| Primary text    | `--text-primary` (auto-switches via `light-dark()`)         |
+| Secondary text  | `--text-secondary` (auto-switches)                          |
+| Muted text      | `--text-muted` (auto-switches)                              |
+| Page background | `--bg-light` (auto-switches: `#ffffff` / `#0a0a0a`)        |
+| Alt background  | `--bg-light-alt` (auto-switches: `#f5f5f5` / `#141414`)    |
+| Primary accent  | `--color-primary` (same in both themes)                     |
+| Borders         | `--border-light` (light only) or use `light-dark()` inline  |
+| Dark borders    | `--border-dark-default` (dark-specific constant)            |
+
+2. If you need a new theme-switching value, use `light-dark()` in `variables.css`:
    ```css
    :root {
-     --my-component-bg: #ffffff;
-   }
-   html.dark-theme {
-     --my-component-bg: #1a1a1a;
+     --my-component-bg: light-dark(#ffffff, #1a1a1a);
    }
    ```
-3. Toggle the theme in the browser and verify all elements are visible
-
-### Common Dark Theme Variables for New Components
-
-| Use Case        | Variable                                       |
-| --------------- | ---------------------------------------------- |
-| Primary text    | `--text-primary` (auto-switches in dark theme) |
-| Secondary text  | `--text-secondary` (auto-switches)             |
-| Muted text      | `--text-muted` (auto-switches)                 |
-| Page background | `--bg-light` (auto-switches to `#0a0a0a`)      |
-| Alt background  | `--bg-light-alt` (auto-switches to `#141414`)  |
-| Primary accent  | `--color-primary` (same in both themes)        |
-| Borders         | `--border-light` or `--color-primary`          |
+3. For inline theme-switching in scoped styles (no new variable needed):
+   ```css
+   .my-card {
+     background: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.05));
+   }
+   ```
+4. Toggle the theme in the browser and verify all elements are visible
 
 ---
 
@@ -750,7 +780,7 @@ Three tiers: `--border-dark-subtle` (0.10), `--border-dark-default` (0.15), `--b
 - [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md) — Complete design token catalog
 - [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) — Typography utility classes
 - [STYLES_REMEDIATION_ROADMAP.md](./STYLES_REMEDIATION_ROADMAP.md) — Tracked initiatives for closing convention gaps
-- [FAVICON_AND_ICONS.md](../development/FAVICON_AND_ICONS.md) — PWA icon system
+- [Development Backlog](../development/BACKLOG.md) — All open development initiatives
 
 ---
 

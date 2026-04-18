@@ -16,18 +16,14 @@ export async function clickSvgPath(page: Page, selector: string): Promise<void> 
 }
 
 /**
- * Wait for D3 map paths to finish rendering.
- *
- * Polls until at least one `.country-path` element exists in the DOM,
- * indicating D3 has completed its initial SVG render.
+ * Wait for the regulatory map to complete two-phase initialization:
+ * Phase A (geometry rendered) + Phase B (regulation data applied).
+ * The page sets data-map-ready="true" on #mapContainer after Phase B.
  */
 export async function waitForMapReady(page: Page): Promise<void> {
-  // Wait for D3 to render country paths AND for at least one to be active
-  // (regulations loaded and applied). Under parallel load, D3 init takes longer.
   await page.waitForFunction(
-    () =>
-      document.querySelectorAll('.country-path').length > 0 &&
-      document.querySelectorAll('.country-path--active').length > 0,
+    () => document.getElementById('mapContainer')?.getAttribute('data-map-ready') === 'true',
+    undefined,
     { timeout: 15000 }
   );
 }

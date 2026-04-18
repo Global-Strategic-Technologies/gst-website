@@ -46,29 +46,17 @@ const { stats } = Astro.props;
   .stat-value {
     font-size: 3.5rem;
     font-weight: 900;
-    color: var(--bg-dark);
+    color: light-dark(var(--bg-dark), var(--bg-light));
     line-height: 1;
     margin-bottom: 0.5rem;
   }
 
   .stat-label {
     font-size: var(--text-sm);
-    color: var(--bg-dark);
+    color: light-dark(var(--bg-dark), var(--bg-light));
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.15em;
-  }
-
-  :global(html.dark-theme) .stat-item {
-    border-right-color: transparent;
-  }
-
-  :global(html.dark-theme) .stat-value {
-    color: var(--bg-light);
-  }
-
-  :global(html.dark-theme) .stat-label {
-    color: var(--bg-light);
   }
 
   @media (max-width: 768px) {

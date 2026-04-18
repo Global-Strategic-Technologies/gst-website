@@ -14,10 +14,6 @@
   scrollbar-color: var(--color-primary) transparent;
 }
 
-html.dark-theme .toc {
-  border-color: var(--border-light);
-}
-
 .toc::-webkit-scrollbar {
   width: 4px;
 }

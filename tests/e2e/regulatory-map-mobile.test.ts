@@ -53,7 +53,73 @@ async function openBottomSheetFor(
   );
 }
 
-test.describe('Regulatory Map — Mobile UX', () => {
+// ── Group 1: Static Layout Tests ─────────────────────────────────────────────
+// These verify server-rendered HTML/CSS that exists at domcontentloaded.
+// No D3 rendering or regulation data needed — skip waitForMapReady entirely.
+// Per TEST_BEST_PRACTICES §25: readiness gate matches test dependencies.
+
+test.describe('Regulatory Map — Mobile Layout', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/hub/tools/regulatory-map', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('should not show CTA on mobile (tap bar provides guidance instead)', async ({ page }) => {
+    const cta = page.locator('#mapCta');
+    await expect(cta).toBeHidden();
+  });
+
+  test('should display quick-zoom buttons on mobile', async ({ page }) => {
+    const quickZoom = page.locator('#mapQuickZoom');
+    const display = await quickZoom.evaluate((el) => window.getComputedStyle(el).display);
+    expect(display).not.toBe('none');
+  });
+
+  test('should have all four region buttons', async ({ page }) => {
+    const buttons = page.locator('.brutal-quick-zoom');
+    const count = await buttons.count();
+    expect(count).toBe(4);
+
+    const texts = await buttons.allTextContents();
+    expect(texts).toContain('AMR');
+    expect(texts).toContain('EUR');
+    expect(texts).toContain('APAC');
+    expect(texts).toContain('MEA');
+  });
+
+  test('should hide +/−/reset zoom controls on mobile (quick-zoom provides navigation)', async ({
+    page,
+  }) => {
+    const controls = page.locator('.map-controls');
+    const display = await controls.evaluate((el) => window.getComputedStyle(el).display);
+    expect(display).toBe('none');
+  });
+
+  test('should have 32px minimum quick-zoom button size for touch accessibility', async ({
+    page,
+  }) => {
+    const btn = page.locator('.brutal-quick-zoom').first();
+    const box = await btn.boundingBox();
+
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(32);
+    expect(box!.height).toBeGreaterThanOrEqual(32);
+  });
+
+  test('should render legend inline (not overlapping map) on mobile', async ({ page }) => {
+    const legend = page.locator('.brutal-legend');
+    await legend.waitFor({ state: 'visible', timeout: 10000 });
+    const position = await legend.evaluate((el) => window.getComputedStyle(el).position);
+
+    // On mobile, legend should be static (inline) not absolute/fixed
+    expect(position).toBe('static');
+  });
+});
+
+// ── Group 2: Map Interaction Tests ───────────────────────────────────────────
+// These need D3 rendering + regulation data. Wait for data-map-ready signal
+// which is set after Phase B (regulation data fetched + --active classes applied).
+
+test.describe('Regulatory Map — Mobile Interactions', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/hub/tools/regulatory-map', { waitUntil: 'domcontentloaded' });
     await waitForMapReady(page);
@@ -120,33 +186,9 @@ test.describe('Regulatory Map — Mobile UX', () => {
       await expect(actionBtn).toBeVisible();
       await expect(actionBtn).toHaveText('View details');
     });
-
-    test('should not show CTA on mobile (tap bar provides guidance instead)', async ({ page }) => {
-      // CTA is hidden on mobile via CSS — tap bar covers this UX
-      const cta = page.locator('#mapCta');
-      await expect(cta).toBeHidden();
-    });
   });
 
-  test.describe('3. Quick-Zoom Buttons', () => {
-    test('should display quick-zoom buttons on mobile', async ({ page }) => {
-      const quickZoom = page.locator('#mapQuickZoom');
-      const display = await quickZoom.evaluate((el) => window.getComputedStyle(el).display);
-      expect(display).not.toBe('none');
-    });
-
-    test('should have all four region buttons', async ({ page }) => {
-      const buttons = page.locator('.brutal-quick-zoom');
-      const count = await buttons.count();
-      expect(count).toBe(4);
-
-      const texts = await buttons.allTextContents();
-      expect(texts).toContain('AMR');
-      expect(texts).toContain('EUR');
-      expect(texts).toContain('APAC');
-      expect(texts).toContain('MEA');
-    });
-
+  test.describe('3. Quick-Zoom Map Transform', () => {
     test('should zoom the map when clicking a quick-zoom button', async ({ page }) => {
       const mapGroup = page.locator('#mapSvg g').first();
       const transformBefore = await mapGroup.getAttribute('transform');
@@ -169,39 +211,7 @@ test.describe('Regulatory Map — Mobile UX', () => {
     });
   });
 
-  test.describe('4. Zoom Controls on Mobile', () => {
-    test('should hide +/−/reset zoom controls on mobile (quick-zoom provides navigation)', async ({
-      page,
-    }) => {
-      const controls = page.locator('.map-controls');
-      const display = await controls.evaluate((el) => window.getComputedStyle(el).display);
-      expect(display).toBe('none');
-    });
-
-    test('should have 32px minimum quick-zoom button size for touch accessibility', async ({
-      page,
-    }) => {
-      const btn = page.locator('.brutal-quick-zoom').first();
-      const box = await btn.boundingBox();
-
-      expect(box).not.toBeNull();
-      expect(box!.width).toBeGreaterThanOrEqual(32);
-      expect(box!.height).toBeGreaterThanOrEqual(32);
-    });
-  });
-
-  test.describe('5. Legend Positioning', () => {
-    test('should render legend inline (not overlapping map) on mobile', async ({ page }) => {
-      const legend = page.locator('.brutal-legend');
-      await legend.waitFor({ state: 'visible', timeout: 10000 });
-      const position = await legend.evaluate((el) => window.getComputedStyle(el).position);
-
-      // On mobile, legend should be static (inline) not absolute/fixed
-      expect(position).toBe('static');
-    });
-  });
-
-  test.describe('6. Filter Deselection on Mobile', () => {
+  test.describe('4. Filter Deselection on Mobile', () => {
     test('should close bottom sheet when filter removes selected region regulations', async ({
       page,
     }) => {
@@ -236,7 +246,7 @@ test.describe('Regulatory Map — Mobile UX', () => {
     });
   });
 
-  test.describe('7. FAQ / Bottom Sheet Stacking', () => {
+  test.describe('5. FAQ / Bottom Sheet Stacking', () => {
     test('should not let FAQ section paint over the compliance panel bottom sheet', async ({
       page,
     }) => {
@@ -258,7 +268,6 @@ test.describe('Regulatory Map — Mobile UX', () => {
 
       // Sample 3 horizontal points at 25%/50%/75% across the panel,
       // at 2 vertical positions (near top and midpoint).
-      // Pattern follows portfolio-drawer-scroll.test.ts §199-213.
       const xs = [0.25, 0.5, 0.75].map(
         (p) => panelRect!.left + (panelRect!.right - panelRect!.left) * p
       );

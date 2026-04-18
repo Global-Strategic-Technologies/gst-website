@@ -995,10 +995,6 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
     background: transparent;
   }
 
-  :global(html.dark-theme) .vdr-section:nth-child(even) {
-    background: transparent;
-  }
-
   .vdr-section-heading {
     font-family: monospace;
     font-size: 1.25rem;
@@ -1026,7 +1022,6 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
   }
 
   :global(html.dark-theme) .vdr-section-heading {
-    background: transparent;
     border-bottom-color: var(--border-light);
   }
 
@@ -1099,12 +1094,6 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
     transition: all var(--transition-normal);
   }
 
-  :global(html.dark-theme) .vdr-list--labeled li {
-    background: transparent;
-    border-color: var(--border-light);
-    border-left-color: var(--color-primary);
-  }
-
   .vdr-label-group {
     display: flex;
     flex-direction: column;
@@ -1131,12 +1120,6 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
     border: 2px solid var(--border-light);
     border-left: 3px solid var(--color-primary);
     transition: all var(--transition-normal);
-  }
-
-  :global(html.dark-theme) .vdr-folder-card {
-    background: transparent;
-    border-color: var(--border-light);
-    border-left-color: var(--color-primary);
   }
 
   .vdr-folder-number {
@@ -1178,24 +1161,11 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
       border-color: var(--color-primary);
     }
 
-    :global(html.dark-theme) .vdr-folder-card:hover {
-      border-color: var(--color-primary);
-    }
-
     .vdr-list li:hover {
       background: transparent;
     }
 
     .vdr-list--labeled li:hover {
-      background: transparent;
-      border-left-color: var(--color-primary);
-    }
-
-    :global(html.dark-theme) .vdr-list li:hover {
-      background: transparent;
-    }
-
-    :global(html.dark-theme) .vdr-list--labeled li:hover {
       background: transparent;
       border-left-color: var(--color-primary);
     }

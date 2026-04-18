@@ -69,7 +69,7 @@
   .trust-card {
     padding: var(--spacing-2xl);
     background: transparent;
-    border: 2px solid var(--border-light);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     border-radius: 0;
     transition: border-color var(--transition-normal);
     display: flex;
@@ -96,21 +96,6 @@
     color: var(--text-secondary);
     line-height: 1.7;
     flex-grow: 1;
-  }
-
-  /* Dark theme support */
-  :global(html.dark-theme) .why-clients-trust-us {
-    background: transparent;
-  }
-
-  :global(html.dark-theme) .trust-card {
-    background: transparent;
-    border-color: var(--border-dark-default);
-  }
-
-  :global(html.dark-theme) .trust-card:hover {
-    background: transparent;
-    border-color: var(--color-primary);
   }
 
   /* Responsive design */
