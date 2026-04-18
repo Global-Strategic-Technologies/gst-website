@@ -39,7 +39,8 @@ async function openBottomSheetFor(
     (document.getElementById('tapBarAction') as HTMLElement)?.click();
   });
 
-  // Wait for both the class AND the CSS transform to reach final value
+  // Wait for both the class AND the CSS transform to reach final value.
+  // CI mobile emulation on 2-core runners needs extra time for D3 + CSS transitions.
   await page.waitForFunction(
     () => {
       const el = document.getElementById('compliancePanel');
@@ -49,11 +50,15 @@ async function openBottomSheetFor(
       return transform === 'none' || transform === 'matrix(1, 0, 0, 1, 0, 0)';
     },
     undefined,
-    { timeout: 10000 }
+    { timeout: 20000 }
   );
 }
 
 test.describe('Regulatory Map — Mobile UX', () => {
+  // D3 map init under mobile emulation on CI 2-core runners is slow —
+  // beforeEach alone can take 20-30s. Extend per-test timeout.
+  test.setTimeout(60000);
+
   test.beforeEach(async ({ page }) => {
     await page.goto('/hub/tools/regulatory-map', { waitUntil: 'domcontentloaded' });
     await waitForMapReady(page);
