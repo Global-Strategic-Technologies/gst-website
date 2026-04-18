@@ -1326,22 +1326,12 @@ const domainCount = DOMAINS.length;
   import { DOMAINS, ANSWER_OPTIONS } from '../../../../data/infrastructure-cost-governance/domains';
   import { RECOMMENDATIONS } from '../../../../data/infrastructure-cost-governance/recommendations';
   import { copyWithFeedback } from '../../../../utils/copy-feedback';
+  import { escapeHtml } from '../../../../utils/escape-html';
 
   // ─── DOM helpers ────────────────────────────────────────────────────────────
 
   function qs<T extends HTMLElement>(sel: string): T {
     return document.querySelector(sel) as T;
-  }
-
-  const ESC_MAP: Record<string, string> = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-  };
-  function escHtml(s: string): string {
-    return s.replace(/[&<>"']/g, (c) => ESC_MAP[c]);
   }
 
   // ─── URL state ──────────────────────────────────────────────────────────────
@@ -2094,7 +2084,7 @@ const domainCount = DOMAINS.length;
           return `
         <div class="icg-snapshot-row">
           <span class="icg-snapshot-row__info">
-            <span>${escHtml(s.label)}</span>
+            <span>${escapeHtml(s.label)}</span>
             <span class="icg-snapshot-row__score">${score}/100</span>
           </span>
           <button class="icg-snapshot-row__delete" data-delete-snapshot="${s.id}" type="button" title="Delete this snapshot">&times;</button>
@@ -2155,7 +2145,7 @@ const domainCount = DOMAINS.length;
           <span class="icg-delta ${deltaClass(comparison.overallDelta)}">${deltaText(comparison.overallDelta)}</span>
         </span>
       </div>
-      <div class="brutal-tool-shell__section-label" style="margin-top:var(--spacing-md)">${escHtml(comparison.a.label)} &rarr; ${escHtml(comparison.b.label)}</div>
+      <div class="brutal-tool-shell__section-label" style="margin-top:var(--spacing-md)">${escapeHtml(comparison.a.label)} &rarr; ${escapeHtml(comparison.b.label)}</div>
       ${comparison.domainDeltas
         .map(
           (dd) => `
@@ -2203,7 +2193,7 @@ const domainCount = DOMAINS.length;
             return `
             <div class="icg-snapshot-item">
               <input type="checkbox" id="snap-sel-${i}" data-snap-select="${i}" />
-              <label for="snap-sel-${i}">${escHtml(s.label)} <span class="icg-snapshot-item__date">${score}/100</span></label>
+              <label for="snap-sel-${i}">${escapeHtml(s.label)} <span class="icg-snapshot-item__date">${score}/100</span></label>
             </div>`;
           })
           .join('')}
