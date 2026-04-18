@@ -6,12 +6,10 @@ import StickyControls from '../components/portfolio/StickyControls.astro';
 import StatsBar from '../components/StatsBar.astro';
 import PortfolioSummary from '../components/PortfolioSummary.astro';
 import PrintReportHeader from '../components/PrintReportHeader.astro';
-import { trackPageView } from '../utils/analytics';
 import { projects } from '../data/ma-portfolio';
 import type { Stat } from '../types/portfolio';
 
 // Track page view
-trackPageView('ma-portfolio', 'M&A Portfolio | Strategic Advisory & Implementation');
 
 // Calculate statistics
 const uniqueIndustries = new Set(projects.map((p) => p.industry)).size;

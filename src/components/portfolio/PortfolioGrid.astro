@@ -113,7 +113,7 @@ const { projects } = Astro.props;
   }
 
   .project-title {
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-weight: 900;
     font-size: var(--text-xl);
     color: var(--text-primary);
@@ -123,7 +123,7 @@ const { projects } = Astro.props;
   }
 
   .project-industry {
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-size: var(--text-sm);
     color: var(--text-muted);
     margin: 0;
@@ -131,7 +131,7 @@ const { projects } = Astro.props;
   }
 
   .year-badge {
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     background: light-dark(var(--filter-chip-bg), var(--accent-dark-bg));
     color: var(--text-secondary);
     padding: 0.35rem 0.75rem;
@@ -159,7 +159,7 @@ const { projects } = Astro.props;
   }
 
   .metric-label {
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-size: var(--text-2xs);
     color: light-dark(var(--text-faded), var(--text-dark-muted));
     text-transform: uppercase;
@@ -169,7 +169,7 @@ const { projects } = Astro.props;
   }
 
   .metric-value {
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-size: var(--text-base);
     font-weight: 700;
     color: var(--text-primary);
@@ -200,7 +200,7 @@ const { projects } = Astro.props;
   }
 
   .tag {
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     background: var(--accent-dark-bg);
     color: var(--color-primary);
     padding: var(--spacing-xs) var(--spacing-md);

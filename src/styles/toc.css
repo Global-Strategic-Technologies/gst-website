@@ -30,7 +30,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 1rem;
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -72,7 +72,7 @@
 }
 
 .toc__list a {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-sm);
   color: var(--text-secondary);
   text-decoration: none;
@@ -127,7 +127,7 @@
 }
 
 .toc__sublist a {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.8rem;
   text-transform: none;
   letter-spacing: normal;

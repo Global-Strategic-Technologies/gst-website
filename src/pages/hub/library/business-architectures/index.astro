@@ -2,11 +2,8 @@
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
 import PrintReportHeader from '../../../../components/PrintReportHeader.astro';
-import { trackPageView } from '../../../../utils/analytics';
 import DeltaIcon from '../../../../components/DeltaIcon.astro';
 import TableOfContents from '../../../../components/TableOfContents.astro';
-
-trackPageView('business-architectures-guide', 'Business & Technology Architectures | GST');
 ---
 
 <BaseLayout
@@ -1489,7 +1486,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
   }
 
   .arch-section-heading {
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-size: 1.25rem;
     font-weight: 700;
     color: var(--text-primary);
@@ -1520,7 +1517,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
 
   /* Layer label (e.g. "The Foundation", "Infrastructure") */
   .arch-layer-label {
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-size: 0.85rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -1561,7 +1558,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
   }
 
   .arch-business-meaning strong {
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     color: var(--color-primary);
     font-weight: 700;
     text-transform: uppercase;
@@ -1571,7 +1568,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
 
   /* Sub-headings (h3) */
   .arch-subheading {
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-size: 1.05rem;
     font-weight: 700;
     color: var(--text-primary);
@@ -1664,7 +1661,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
   }
 
   .arch-diligence-label {
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-size: 0.8rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -1706,7 +1703,7 @@ trackPageView('business-architectures-guide', 'Business & Technology Architectur
   }
 
   .arch-diligence-sublabel {
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;

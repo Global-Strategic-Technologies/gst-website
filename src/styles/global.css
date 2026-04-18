@@ -331,7 +331,7 @@ a:hover {
   font-weight: 700;
   border: 2px solid var(--color-primary);
   transition: all var(--transition-normal);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.95rem;
   cursor: pointer;
 }
@@ -429,7 +429,7 @@ main {
   border: 2px solid light-dark(var(--border-light), var(--color-primary-20));
   border-radius: 0;
   cursor: pointer;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -494,7 +494,7 @@ main {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-normal);
   white-space: nowrap;
   position: relative;
   min-height: 38px;
@@ -524,7 +524,7 @@ main {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-family: 'Helvetica Neue', Arial, sans-serif;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-normal);
   border-radius: 0;
 }
 
@@ -557,7 +557,7 @@ main {
   width: 350px;
   border-left: 2px solid var(--color-primary);
   box-shadow: -4px 0 20px -4px rgba(0, 0, 0, 0.15);
-  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: right var(--transition-slow);
   z-index: var(--z-modal-overlay);
   overflow: hidden;
   display: flex;
@@ -578,7 +578,7 @@ main {
   background: rgba(0, 0, 0, 0);
   z-index: var(--z-modal);
   display: none;
-  transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background var(--transition-slow);
   pointer-events: none;
 }
 
@@ -616,7 +616,7 @@ html.dark-theme .filter-drawer {
   padding: var(--spacing-sm) var(--spacing-xl);
   font-size: 0.7rem;
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   border-radius: 0;
@@ -667,7 +667,7 @@ html.dark-theme .filter-drawer {
 
 .brutal-breadcrumb {
   padding: var(--spacing-lg) 0 0;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-xs);
   color: var(--text-muted);
 }
@@ -748,7 +748,7 @@ html.dark-theme .filter-drawer {
 .brutal-tool-shell__authority {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-faded);
@@ -760,7 +760,7 @@ html.dark-theme .filter-drawer {
 .brutal-tool-shell__section-label {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--text-muted);
@@ -794,7 +794,7 @@ html.dark-theme .filter-drawer {
 .brutal-progress-bar__label {
   white-space: nowrap;
   font-size: var(--text-xs);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -815,14 +815,14 @@ html.dark-theme .filter-drawer {
 .brutal-stat-tile__value {
   font-size: var(--text-xl);
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-primary);
 }
 
 .brutal-stat-tile__label {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted);
@@ -837,7 +837,7 @@ html.dark-theme .filter-drawer {
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-left: 3px solid var(--color-primary);
   font-size: var(--text-sm);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-secondary);
   line-height: 1.65;
 }
@@ -846,7 +846,7 @@ html.dark-theme .filter-drawer {
   display: block;
   color: var(--text-primary);
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -888,7 +888,7 @@ html.dark-theme .filter-drawer {
 
 .brutal-bench-table td:last-child {
   text-align: right;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-weight: var(--font-weight-bold);
   color: var(--text-secondary);
 }
@@ -1018,7 +1018,7 @@ html.dark-theme .filter-drawer {
 
 .brutal-shadow__desc {
   font-size: var(--text-xs);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-muted);
   text-align: center;
 }
@@ -1049,7 +1049,7 @@ html.dark-theme .filter-drawer {
 
 .brutal-transition__hint {
   font-size: var(--text-xs);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-faded);
@@ -1102,7 +1102,7 @@ html.dark-theme .filter-drawer {
   gap: var(--spacing-sm);
   font-size: var(--text-sm);
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-primary);
@@ -1132,7 +1132,7 @@ html.dark-theme .filter-drawer {
 .brutal-option-card--compact {
   padding: var(--spacing-sm) var(--spacing-md);
   text-align: center;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -1154,7 +1154,7 @@ html.dark-theme .filter-drawer {
 .brutal-input {
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: 0.7rem;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-secondary);
   background: light-dark(transparent, rgba(255, 255, 255, 0.04));
   border: 2px dashed light-dark(var(--border-light), var(--border-dark-prominent));
@@ -1197,7 +1197,7 @@ html.dark-theme .brutal-input {
   cursor: pointer;
   font-size: 0.7rem;
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   transition:
@@ -1276,7 +1276,7 @@ html.dark-theme .brutal-input {
   cursor: pointer;
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   backdrop-filter: blur(2px);
@@ -1354,7 +1354,7 @@ html.dark-theme .brutal-input {
   border: none;
   background: transparent;
   border-bottom: 2px solid transparent;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -1387,7 +1387,7 @@ html.dark-theme .brutal-input {
 }
 
 .brutal-tab__label {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -1422,7 +1422,7 @@ html.dark-theme .brutal-input {
 .brutal-segmented__btn {
   flex: 1;
   padding: var(--spacing-sm) var(--spacing-md);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -1475,7 +1475,7 @@ html.dark-theme .brutal-input {
   align-items: center;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-xs);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -1493,7 +1493,7 @@ html.dark-theme .brutal-input {
   background: transparent;
   border: 2px dashed light-dark(var(--border-light), var(--border-dark-default));
   color: var(--text-primary);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-sm);
   padding: var(--spacing-sm) var(--spacing-md);
   outline: none;
@@ -1530,7 +1530,7 @@ html.dark-theme .brutal-input {
 .brutal-filter-drawer__title {
   font-size: 0.7rem;
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--color-primary);
@@ -1565,7 +1565,7 @@ html.dark-theme .brutal-input {
   padding: var(--spacing-xs) var(--spacing-md);
   font-size: 0.65rem;
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   cursor: pointer;
@@ -1587,7 +1587,7 @@ html.dark-theme .brutal-input {
 .brutal-filter-drawer__label {
   font-size: 0.65rem;
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted);
@@ -1616,7 +1616,7 @@ html.dark-theme .brutal-input {
 .brutal-slider__label {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -1626,7 +1626,7 @@ html.dark-theme .brutal-input {
 .brutal-slider__value {
   font-size: var(--text-sm);
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--color-primary);
   white-space: nowrap;
 }
@@ -1694,7 +1694,7 @@ html.dark-theme .brutal-input {
   border: 1px dashed light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
   padding: var(--spacing-xs) var(--spacing-sm);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
   color: var(--text-muted);
@@ -1732,7 +1732,7 @@ html.dark-theme .brutal-input {
 
 .editors-pick-tag {
   font-size: var(--text-xs);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1747,7 +1747,7 @@ html.dark-theme .brutal-input {
 
 .brutal-content-label {
   font-size: var(--text-xs);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1799,15 +1799,15 @@ html.dark-theme .brutal-frosted--blur-only {
    ============================== */
 
 .brutal-hero__title {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
 }
 
 .brutal-hero__description {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
 }
 
 .brutal-hero__trustline {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-muted);
 }
 
@@ -1816,11 +1816,11 @@ html.dark-theme .brutal-frosted--blur-only {
    ============================== */
 
 .brutal-stat__value {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
 }
 
 .brutal-stat__label {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
 }
 
 /* ==============================
@@ -1828,12 +1828,12 @@ html.dark-theme .brutal-frosted--blur-only {
    ============================== */
 
 .brutal-cta__title {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
 }
 
 .brutal-cta__description {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
 }
 
 /* ==============================
@@ -1861,7 +1861,7 @@ html.dark-theme .brutal-frosted--blur-only {
 .brutal-trust-card h3 {
   font-size: var(--text-base);
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-primary);
@@ -1904,7 +1904,7 @@ html.dark-theme .brutal-frosted--blur-only {
 .brutal-project-card__title {
   font-weight: 900;
   font-size: 1.1rem;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-primary);
@@ -1913,7 +1913,7 @@ html.dark-theme .brutal-frosted--blur-only {
 
 .brutal-project-card__industry {
   font-size: var(--text-xs);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-muted);
   margin-top: 0.25rem;
   text-transform: uppercase;
@@ -1921,7 +1921,7 @@ html.dark-theme .brutal-frosted--blur-only {
 }
 
 .brutal-project-card__year {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-muted);
@@ -1943,7 +1943,7 @@ html.dark-theme .brutal-frosted--blur-only {
 .brutal-project-card__value {
   font-size: var(--text-sm);
   font-weight: 700;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-primary);
 }
 
@@ -1953,7 +1953,7 @@ html.dark-theme .brutal-frosted--blur-only {
 
 .brutal-project-card__summary {
   font-size: 0.875rem;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-secondary);
   line-height: 1.6;
   margin: 1rem 0;
@@ -1977,7 +1977,7 @@ html.dark-theme .brutal-frosted--blur-only {
   padding: 0.25rem 0.5rem;
   font-size: 0.65rem;
   font-weight: 700;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   border: 1px solid var(--border-light);
@@ -1997,7 +1997,7 @@ html.dark-theme .brutal-frosted--blur-only {
   cursor: pointer;
   font-size: 0.7rem;
   font-weight: 700;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-top: auto;
@@ -2032,7 +2032,7 @@ html.dark-theme .brutal-frosted--blur-only {
 .brutal-teaser-card__header h2 {
   font-size: 1.1rem;
   font-weight: 700;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-primary);
@@ -2050,7 +2050,7 @@ html.dark-theme .brutal-frosted--blur-only {
 
 .brutal-teaser-card__features li {
   font-size: var(--text-sm);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-secondary);
   line-height: 1.6;
   display: flex;
@@ -2061,7 +2061,7 @@ html.dark-theme .brutal-frosted--blur-only {
 .brutal-teaser-card__badge {
   font-size: 0.65rem;
   font-weight: 700;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 2px var(--spacing-sm);
@@ -2107,7 +2107,7 @@ html.dark-theme .brutal-frosted--blur-only {
 .brutal-rec-card__title {
   font-size: var(--text-sm);
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-primary);
   display: flex;
   align-items: center;
@@ -2125,7 +2125,7 @@ html.dark-theme .brutal-frosted--blur-only {
 
 .brutal-rec-card__desc {
   font-size: var(--text-sm);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-secondary);
   line-height: 1.55;
   transition:
@@ -2153,7 +2153,7 @@ html.dark-theme .brutal-frosted--blur-only {
   align-items: center;
   font-size: 0.6rem;
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 1px var(--spacing-sm);
@@ -2180,7 +2180,7 @@ html.dark-theme .brutal-frosted--blur-only {
   margin-right: var(--spacing-xs);
   font-size: 0.6rem;
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
@@ -2360,7 +2360,7 @@ html.dark-theme .brutal-frosted--blur-only {
 .brutal-attention-card__title {
   font-size: var(--text-sm);
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-primary);
@@ -2375,7 +2375,7 @@ html.dark-theme .brutal-frosted--blur-only {
   padding: 2px var(--spacing-sm);
   font-size: 0.65rem;
   font-weight: var(--font-weight-bold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
@@ -2397,7 +2397,7 @@ html.dark-theme .brutal-frosted--blur-only {
 
 .brutal-attention-card__desc {
   font-size: var(--text-sm);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-secondary);
   line-height: 1.6;
   margin: var(--spacing-sm) 0 0;
@@ -2428,7 +2428,7 @@ html.dark-theme .brutal-frosted--blur-only {
   background: transparent;
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   transition: border-color var(--transition-fast);
   position: relative;
 }
@@ -2449,7 +2449,7 @@ html.dark-theme .brutal-frosted--blur-only {
   border: none;
   outline: none;
   background: transparent;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.8125rem;
   color: var(--text-primary);
   letter-spacing: 0.02em;
@@ -2507,7 +2507,7 @@ html.dark-theme .brutal-frosted--blur-only {
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.8125rem;
   color: var(--text-primary);
   cursor: pointer;
@@ -2541,7 +2541,7 @@ html.dark-theme .brutal-frosted--blur-only {
 .brutal-search__category {
   display: inline-block;
   padding: 1px var(--spacing-xs);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.6rem;
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -2577,7 +2577,7 @@ html.dark-theme .brutal-frosted--blur-only {
 
 .brutal-search__no-results {
   padding: var(--spacing-md);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.8125rem;
   color: var(--text-muted);
   text-align: center;
@@ -2595,7 +2595,7 @@ html.dark-theme .brutal-frosted--blur-only {
   background: light-dark(var(--bg-light), var(--bg-dark-secondary));
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
 }
 
 .brutal-legend__item {
@@ -2613,7 +2613,7 @@ html.dark-theme .brutal-frosted--blur-only {
 }
 
 .brutal-legend__label {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.7rem;
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -2642,7 +2642,7 @@ html.dark-theme .brutal-frosted--blur-only {
   background: light-dark(var(--bg-light), var(--bg-dark-secondary));
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
 }
 
 .brutal-map-cta__icon {
@@ -2651,7 +2651,7 @@ html.dark-theme .brutal-frosted--blur-only {
 }
 
 .brutal-map-cta__text {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.75rem;
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -2697,7 +2697,7 @@ html.dark-theme .brutal-frosted--blur-only {
   border-radius: 0;
   border-left: 3px solid transparent;
   cursor: pointer;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   white-space: nowrap;
   transition:
     background var(--transition-fast),
@@ -2731,7 +2731,7 @@ html.dark-theme .brutal-frosted--blur-only {
 }
 
 .brutal-timeline-entry__name {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.8rem;
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
@@ -2744,13 +2744,13 @@ html.dark-theme .brutal-frosted--blur-only {
 }
 
 .brutal-timeline-entry__date {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.7rem;
   color: var(--text-muted);
 }
 
 .brutal-timeline-year {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.75rem;
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -2790,7 +2790,7 @@ html.dark-theme .brutal-frosted--blur-only {
 }
 
 .brutal-timeline-today__label {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.65rem;
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -2828,7 +2828,7 @@ html.dark-theme .brutal-frosted--blur-only {
   align-items: center;
   width: 100%;
   padding: var(--spacing-md) var(--spacing-lg);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.875rem;
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
@@ -2850,7 +2850,7 @@ html.dark-theme .brutal-frosted--blur-only {
   font-size: var(--text-sm);
   color: var(--text-secondary);
   line-height: 1.7;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
 }
 
 .brutal-faq__answer :global(a) {
@@ -2926,7 +2926,7 @@ html.dark-theme .brutal-frosted--blur-only {
   border-radius: 0;
   color: var(--text-secondary);
   cursor: pointer;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 1rem;
   font-weight: var(--font-weight-bold);
   transition:
@@ -2946,7 +2946,7 @@ html.dark-theme .brutal-frosted--blur-only {
   background: light-dark(var(--bg-light), var(--bg-dark-secondary));
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.75rem;
   color: var(--text-primary);
   pointer-events: none;
@@ -2961,11 +2961,11 @@ html.dark-theme .brutal-frosted--blur-only {
   padding: var(--spacing-sm) var(--spacing-md);
   background: light-dark(var(--bg-light), var(--bg-dark-secondary));
   border-top: 2px solid var(--color-primary);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
 }
 
 .brutal-map-tap-bar__name {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-weight: var(--font-weight-bold);
   font-size: 0.875rem;
   color: var(--text-primary);
@@ -2976,7 +2976,7 @@ html.dark-theme .brutal-frosted--blur-only {
   background: transparent;
   border: 2px solid var(--color-primary);
   border-radius: 0;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.7rem;
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -3003,7 +3003,7 @@ html.dark-theme .brutal-frosted--blur-only {
   background: light-dark(var(--bg-light), var(--bg-dark-secondary));
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.7rem;
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -3026,7 +3026,7 @@ html.dark-theme .brutal-frosted--blur-only {
   background: light-dark(var(--bg-light), var(--bg-dark-secondary));
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.75rem;
   color: var(--text-muted);
   text-align: center;
@@ -3054,7 +3054,7 @@ html.dark-theme .brutal-frosted--blur-only {
 }
 
 .brutal-panel__title {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 1rem;
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -3063,7 +3063,7 @@ html.dark-theme .brutal-frosted--blur-only {
 }
 
 .brutal-panel__count {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.7rem;
   color: var(--text-muted);
   white-space: nowrap;
@@ -3103,7 +3103,7 @@ html.dark-theme .brutal-frosted--blur-only {
 }
 
 .brutal-reg-card__name {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.875rem;
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
@@ -3111,7 +3111,7 @@ html.dark-theme .brutal-frosted--blur-only {
 }
 
 .brutal-reg-card__date {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.7rem;
   color: var(--text-muted);
   margin-bottom: var(--spacing-sm);
@@ -3128,7 +3128,7 @@ html.dark-theme .brutal-frosted--blur-only {
   display: inline-block;
   padding: 2px var(--spacing-sm);
   border-left: 3px solid var(--color-primary);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.7rem;
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
@@ -3165,7 +3165,7 @@ html.dark-theme .brutal-frosted--blur-only {
 }
 
 .brutal-reg-card__penalties {
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-sm);
   font-style: italic;
   color: var(--text-muted);
@@ -3222,7 +3222,7 @@ html.dark-theme .brutal-frosted--blur-only {
 .slider-value {
   font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--color-primary);
   white-space: nowrap;
 }
@@ -3291,7 +3291,7 @@ html.dark-theme .brutal-frosted--blur-only {
   border: 1px dashed light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
   padding: var(--spacing-xs) var(--spacing-sm);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
   color: var(--text-muted);
@@ -3431,7 +3431,7 @@ html.dark-theme .brutal-frosted--blur-only {
   border: 1px solid var(--border-light);
   padding: 1.5rem;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-slow);
   display: flex;
   flex-direction: column;
 }
@@ -3591,7 +3591,7 @@ html.dark-theme .brutal-frosted--blur-only {
 .legal-page-header h1 {
   font-size: 2.5rem;
   font-weight: 700;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   margin-bottom: 0.5rem;
   color: var(--text-primary);
@@ -3599,20 +3599,20 @@ html.dark-theme .brutal-frosted--blur-only {
 
 .legal-page-updated {
   font-size: 0.85rem;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-muted);
 }
 
 .legal-page-body {
   line-height: 1.8;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-secondary);
 }
 
 .legal-page-body h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   text-transform: uppercase;
   margin-top: 2.5rem;
   margin-bottom: 1rem;
@@ -3690,7 +3690,7 @@ html.dark-theme .brutal-frosted--blur-only {
 
 .brutal-gateway-card h2 {
   font-size: 1.3rem;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
@@ -3709,7 +3709,7 @@ html.dark-theme .brutal-frosted--blur-only {
 
 .brutal-gateway-card__features li {
   font-size: var(--text-base);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--text-secondary);
   line-height: 1.7;
   display: flex;
@@ -3724,7 +3724,7 @@ html.dark-theme .brutal-frosted--blur-only {
 
 .brutal-gateway-card__badge {
   font-size: 0.7rem;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;

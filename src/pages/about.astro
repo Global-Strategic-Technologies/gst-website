@@ -3,10 +3,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/Hero.astro';
 import CTASection from '../components/CTASection.astro';
 import PrintReportHeader from '../components/PrintReportHeader.astro';
-import { trackPageView } from '../utils/analytics';
 
 // Track page view
-trackPageView('about', 'About | GST Leadership & Experience');
 ---
 
 <BaseLayout
@@ -141,7 +139,7 @@ trackPageView('about', 'About | GST Leadership & Experience');
 
   .about-section h2 {
     font-size: var(--text-3xl);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-weight: 700;
     color: var(--text-primary);
     text-transform: uppercase;
@@ -151,7 +149,7 @@ trackPageView('about', 'About | GST Leadership & Experience');
 
   .about-section p {
     font-size: var(--text-lg);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     color: var(--text-secondary);
     line-height: 1.8;
   }
@@ -162,7 +160,7 @@ trackPageView('about', 'About | GST Leadership & Experience');
 
   .experience-section h2 {
     font-size: var(--text-3xl);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-weight: 700;
     color: var(--text-primary);
     text-transform: uppercase;
@@ -192,7 +190,7 @@ trackPageView('about', 'About | GST Leadership & Experience');
 
   .experience-card h3 {
     font-size: var(--text-xl);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-weight: 700;
     color: var(--text-primary);
     margin-bottom: 1rem;
@@ -201,7 +199,7 @@ trackPageView('about', 'About | GST Leadership & Experience');
 
   .experience-card p {
     font-size: var(--text-sm);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     color: var(--text-secondary);
     line-height: 1.7;
   }
@@ -262,7 +260,7 @@ trackPageView('about', 'About | GST Leadership & Experience');
 
   .founder-bio h2 {
     font-size: var(--text-3xl);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-weight: 700;
     text-transform: uppercase;
     color: var(--text-primary);
@@ -272,7 +270,7 @@ trackPageView('about', 'About | GST Leadership & Experience');
 
   .founder-bio p {
     font-size: var(--text-base);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     color: var(--text-secondary);
     line-height: 1.8;
     margin-bottom: 1.5rem;
@@ -321,7 +319,7 @@ trackPageView('about', 'About | GST Leadership & Experience');
   .founder-contact a {
     color: light-dark(var(--color-tertiary-dark), var(--color-primary));
     text-decoration: none;
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-size: var(--text-sm);
     letter-spacing: 0.05em;
     transition: border-bottom var(--transition-fast);

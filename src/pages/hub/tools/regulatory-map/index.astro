@@ -4,9 +4,6 @@ import HubHeader from '../../../../components/hub/HubHeader.astro';
 import MapVisualizer from '../../../../components/hub/tools/regulatory-map/MapVisualizer.astro';
 import CompliancePanel from '../../../../components/hub/tools/regulatory-map/CompliancePanel.astro';
 import PrintReportHeader from '../../../../components/PrintReportHeader.astro';
-import { trackPageView } from '../../../../utils/analytics';
-
-trackPageView('regulatory-map', 'Regulatory Map | GST');
 
 const faqItems = [
   {
@@ -1759,7 +1756,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     justify-content: center;
     gap: var(--spacing-lg);
     margin-bottom: var(--spacing-xl);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-size: var(--text-xs);
     color: var(--text-secondary);
   }
@@ -1906,7 +1903,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       display: flex;
       align-items: center;
       gap: var(--spacing-sm);
-      font-family: monospace;
+      font-family: var(--font-family-mono);
       font-size: 14pt;
       font-weight: 700;
       letter-spacing: 0.1em;
@@ -1914,7 +1911,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     }
 
     .print-report-header__title {
-      font-family: monospace;
+      font-family: var(--font-family-mono);
       font-size: 11pt;
       font-weight: 700;
       text-transform: uppercase;
@@ -1923,7 +1920,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     }
 
     .print-report-header__date {
-      font-family: monospace;
+      font-family: var(--font-family-mono);
       font-size: 9pt;
       color: var(--text-faded);
     }
@@ -1936,7 +1933,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     }
 
     .print-report-footer p {
-      font-family: monospace;
+      font-family: var(--font-family-mono);
       font-size: 8pt;
       color: var(--text-faded);
       margin: 0 0 4px;

@@ -2,11 +2,8 @@
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
 import PrintReportHeader from '../../../../components/PrintReportHeader.astro';
-import { trackPageView } from '../../../../utils/analytics';
 import DeltaIcon from '../../../../components/DeltaIcon.astro';
 import TableOfContents from '../../../../components/TableOfContents.astro';
-
-trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
 ---
 
 <BaseLayout
@@ -996,7 +993,7 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
   }
 
   .vdr-section-heading {
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-size: 1.25rem;
     font-weight: 700;
     color: var(--text-primary);
@@ -1128,13 +1125,13 @@ trackPageView('vdr-structure-guide', 'VDR Structure Guide | GST');
     color: var(--color-primary);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     display: inline;
     margin-right: var(--spacing-sm);
   }
 
   .vdr-folder-name {
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-size: 1.1rem;
     font-weight: 700;
     color: var(--text-primary);

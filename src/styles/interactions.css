@@ -131,7 +131,7 @@ details[open] > summary .delta-chevron {
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
   color: var(--text-secondary);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
@@ -162,7 +162,7 @@ details[open] > summary .delta-chevron {
 .brutal-link-interactive {
   color: var(--text-secondary);
   text-decoration: none;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
@@ -192,7 +192,7 @@ details[open] > summary .delta-chevron {
   border: 2px solid var(--color-primary);
   border-radius: 0;
   color: var(--color-primary);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;

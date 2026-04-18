@@ -4,11 +4,9 @@ import Hero from '../components/Hero.astro';
 import CTASection from '../components/CTASection.astro';
 import EngagementFlow from '../components/EngagementFlow.astro';
 import PrintReportHeader from '../components/PrintReportHeader.astro';
-import { trackPageView } from '../utils/analytics';
 import DeltaIcon from '../components/DeltaIcon.astro';
 
 // Track page view
-trackPageView('services', 'Services | Strategic Advisory & Implementation');
 
 const faqItems = [
   {
@@ -234,7 +232,7 @@ const faqItems = [
 
   .service-card h2 {
     font-size: var(--text-2xl);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-weight: 700;
     color: var(--text-primary);
     margin-bottom: var(--spacing-sm);
@@ -243,7 +241,7 @@ const faqItems = [
 
   .service-subtitle {
     font-size: var(--text-xs);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -266,7 +264,7 @@ const faqItems = [
     align-items: flex-start;
     gap: var(--spacing-md);
     font-size: var(--text-base);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     color: var(--text-secondary);
     line-height: 1.6;
   }
@@ -306,7 +304,7 @@ const faqItems = [
 
   .audience-card h3 {
     font-size: var(--text-lg);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     font-weight: 700;
     color: var(--text-primary);
     margin-bottom: var(--spacing-md);
@@ -315,7 +313,7 @@ const faqItems = [
 
   .audience-card p {
     font-size: var(--text-sm);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     color: var(--text-secondary);
     line-height: 1.7;
     margin: 0;
