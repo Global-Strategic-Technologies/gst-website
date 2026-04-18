@@ -627,4 +627,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const conceptEl = document.getElementById('palette-concept');
     if (conceptEl) conceptEl.textContent = PALETTE_CONCEPTS[id] || '';
   }
+
+  // ── Easter egg: long-press footer delta to popout palette ─
+  document.addEventListener('palettePopoutRequested', () => {
+    if (!document.documentElement.classList.contains('palette-popped-out')) {
+      handlePopoutToggle();
+    }
+  });
 });
