@@ -173,7 +173,8 @@ gst-website/
 │       ├── palettes.css      # 6 alternative palette definitions (html.palette-N)
 │       ├── typography.css    # Semantic text utility classes
 │       ├── interactions.css  # Interactive state patterns (hover, focus, chevron)
-│       └── global.css        # Layout, components, responsive — imports all above
+│       ├── global.css        # Layout, utilities, responsive — imports component modules
+│       └── components/       # Extracted component styles (tool-ui, filter, cards, form, map, etc.)
 ├── .claude/
 │   ├── agents/               # Claude agent definitions
 │   └── ...
