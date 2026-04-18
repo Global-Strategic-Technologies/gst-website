@@ -35,6 +35,19 @@ export const onRequest = defineMiddleware(async (_context, next) => {
   const response = await next();
 
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    // In dev mode, skip headers that break the HTTP dev server:
+    // - HSTS causes browsers to cache localhost as HTTPS-only
+    // - upgrade-insecure-requests upgrades http:// sub-resources to https://,
+    //   which fails under mobile UA emulation (iPhone 12) in Playwright
+    if (import.meta.env.DEV) {
+      if (key === 'Strict-Transport-Security') continue;
+      if (key === 'Content-Security-Policy') {
+        // Depends on upgrade-insecure-requests being the last CSP directive.
+        // If the directive order in SECURITY_HEADERS changes, update this.
+        response.headers.set(key, value.replace('; upgrade-insecure-requests', ''));
+        continue;
+      }
+    }
     response.headers.set(key, value);
   }
 
