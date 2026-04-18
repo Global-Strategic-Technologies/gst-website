@@ -234,9 +234,7 @@ npm run astro                 # Run Astro CLI
 
 ### Development Roadmap
 
-- **Platform Hardening V1**: [src/docs/development/PLATFORM_HARDENING_V1.md](src/docs/development/PLATFORM_HARDENING_V1.md) - 9-phase foundation initiative (complete)
-- **Business Enablement V1**: [src/docs/development/BUSINESS_ENABLEMENT_V1.md](src/docs/development/BUSINESS_ENABLEMENT_V1.md) - Next steps: Cookie Consent, Email Capture, light-dark() migration
-- **Development Opportunities**: [src/docs/development/DEVELOPMENT_OPPORTUNITIES.md](src/docs/development/DEVELOPMENT_OPPORTUNITIES.md) - Strategic initiatives + deferred performance work
+- **Development Backlog**: [src/docs/development/BACKLOG.md](src/docs/development/BACKLOG.md) - All open initiatives consolidated with user stories (35 items)
 - **Sentry Setup**: [src/docs/development/SENTRY_MANUAL_SETUP.md](src/docs/development/SENTRY_MANUAL_SETUP.md) - Alert rules, source maps, consent gating
 
 ### Security
