@@ -1,0 +1,59 @@
+/* ==============================
+
+Brutalist Stat Tile
+
+============================== */
+
+.brutal-stat-tile {
+  flex: 1;
+  padding: var(--spacing-md);
+  border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  text-align: center;
+}
+
+.brutal-stat-tile__value {
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
+  color: var(--text-primary);
+}
+
+.brutal-stat-tile__label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+/* ==============================
+
+Brutalist Callout
+
+============================== */
+
+.brutal-callout {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  border-left: 3px solid var(--color-primary);
+  font-size: var(--text-sm);
+  font-family: var(--font-family-mono);
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.brutal-callout__title {
+  display: block;
+  color: var(--text-primary);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--spacing-xs);
+}
+
+.brutal-callout--warning {
+  border-left-color: var(--color-secondary);
+}

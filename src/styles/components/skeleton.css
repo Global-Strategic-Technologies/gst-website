@@ -1,0 +1,81 @@
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Skeleton Loading Placeholders */
+
+.skeleton-bar {
+  height: 0.875rem;
+  background: var(--accent-light-bg-hover);
+  border-radius: 4px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.skeleton-bar--sm {
+  height: 0.625rem;
+}
+
+.skeleton-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-light-bg-hover);
+  flex-shrink: 0;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ==============================
+
+Brutalist Skeleton Loading
+
+============================== */
+
+.brutal-skeleton-demo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  background: var(--bg-light);
+  border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0;
+  max-width: 400px;
+}
+
+.brutal-skeleton-bar {
+  height: 0.875rem;
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  border-radius: 0;
+  animation: brutal-blink 1.5s step-end infinite;
+}
+
+.brutal-skeleton-bar--sm {
+  height: 0.625rem;
+}
+
+.brutal-skeleton-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 0;
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  flex-shrink: 0;
+  animation: brutal-blink 1.5s step-end infinite;
+}
+
+@keyframes brutal-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
