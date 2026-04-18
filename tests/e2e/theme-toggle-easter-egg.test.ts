@@ -189,7 +189,7 @@ test.describe('Theme Toggle — Haptic Feedback (Chromium only)', () => {
     // Install a spy on navigator.vibrate to capture calls
     await page.evaluate(() => {
       (window as any).__vibrateCalls = [] as number[];
-      navigator.vibrate = (pattern: number | number[]) => {
+      (navigator as any).vibrate = (pattern: number | number[]) => {
         const ms = typeof pattern === 'number' ? pattern : pattern[0];
         (window as any).__vibrateCalls.push(ms);
         return true;
