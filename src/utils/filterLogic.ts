@@ -219,3 +219,40 @@ export function filterProjects(projects: Project[], criteria: FilterCriteria): P
     return true;
   });
 }
+
+/**
+ * Compute which filter chip values remain available given current filters.
+ * For each filter dimension, determines which values still have matching
+ * projects when all OTHER active filters are applied. This prevents users
+ * from selecting combinations that yield zero results.
+ *
+ * @param projects - All projects (unfiltered)
+ * @param criteria - Current active filter state
+ * @returns Sets of available values for each filter dimension
+ */
+export function computeAvailableChips(
+  projects: Project[],
+  criteria: FilterCriteria
+): { engagement: Set<string>; theme: Set<string> } {
+  const available = { engagement: new Set<string>(), theme: new Set<string>() };
+
+  for (const project of projects) {
+    // Apply search filter
+    if (criteria.search) {
+      const searchLower = criteria.search.toLowerCase();
+      const searchableText = createSearchableText(project);
+      if (!searchableText.includes(searchLower)) continue;
+    }
+
+    const matchesEngagement =
+      criteria.engagement === 'all' || project.engagementCategory === criteria.engagement;
+    const matchesTheme = criteria.theme === 'all' || project.theme === criteria.theme;
+
+    // Cross-dimensional availability: each dimension shows values available
+    // given the OTHER dimension's active filter
+    if (matchesTheme) available.engagement.add(project.engagementCategory ?? '');
+    if (matchesEngagement) available.theme.add(project.theme);
+  }
+
+  return available;
+}

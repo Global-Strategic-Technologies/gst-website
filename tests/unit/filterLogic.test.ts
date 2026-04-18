@@ -13,6 +13,7 @@ import {
   getUniqueEngagementCategories,
   createSearchableText,
   filterProjects,
+  computeAvailableChips,
   type FilterCriteria,
 } from '@/utils/filterLogic';
 import type { Project } from '@/types/portfolio';
@@ -306,6 +307,48 @@ describe('filterLogic', () => {
     it('should export mature keywords', () => {
       expect(MATURE_KEYWORDS).toContain('mature');
       expect(MATURE_KEYWORDS).toContain('enterprise');
+    });
+  });
+
+  describe('computeAvailableChips', () => {
+    it('returns all values when no filters are active', () => {
+      const criteria: FilterCriteria = { search: '', theme: 'all', engagement: 'all' };
+      const available = computeAvailableChips(mockProjects, criteria);
+      expect(available.theme.size).toBeGreaterThan(0);
+      expect(available.engagement.size).toBeGreaterThan(0);
+    });
+
+    it('narrows theme options when engagement filter is active', () => {
+      const allCriteria: FilterCriteria = { search: '', theme: 'all', engagement: 'all' };
+      const allAvailable = computeAvailableChips(mockProjects, allCriteria);
+
+      const filteredCriteria: FilterCriteria = { search: '', theme: 'all', engagement: 'Buy-Side' };
+      const filteredAvailable = computeAvailableChips(mockProjects, filteredCriteria);
+
+      expect(filteredAvailable.theme.size).toBeLessThanOrEqual(allAvailable.theme.size);
+    });
+
+    it('narrows engagement options when theme filter is active', () => {
+      const criteria: FilterCriteria = { search: '', theme: 'Technology', engagement: 'all' };
+      const available = computeAvailableChips(mockProjects, criteria);
+
+      // Only engagement categories that have Technology-themed projects
+      for (const cat of available.engagement) {
+        const hasMatch = mockProjects.some(
+          (p) => p.theme === 'Technology' && p.engagementCategory === cat
+        );
+        expect(hasMatch, `${cat} should have Technology-themed projects`).toBe(true);
+      }
+    });
+
+    it('narrows both dimensions when search is active', () => {
+      const criteria: FilterCriteria = { search: 'React', theme: 'all', engagement: 'all' };
+      const available = computeAvailableChips(mockProjects, criteria);
+
+      // Only projects with React in searchable text should contribute
+      const reactProjects = mockProjects.filter((p) => createSearchableText(p).includes('react'));
+      const expectedThemes = new Set(reactProjects.map((p) => p.theme));
+      expect(available.theme).toEqual(expectedThemes);
     });
   });
 });
