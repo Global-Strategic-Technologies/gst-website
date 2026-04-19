@@ -835,4 +835,50 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ---
 
+### BL-037: FilterDrawer Sub-Component Extraction
+
+**Source**: Technical debt remediation (April 2026) | **Effort**: S (2 hours) | **Status**: Open
+
+**As a** developer maintaining the portfolio page, **I want** the filter drawer markup extracted into a dedicated `FilterDrawer.astro` sub-component **so that** the PortfolioHeader component is easier to navigate and the drawer template can be reused or modified independently.
+
+#### Acceptance Criteria
+
+- [ ] Filter drawer HTML (currently PortfolioHeader.astro lines 96-177) extracted to `src/components/portfolio/FilterDrawer.astro`
+- [ ] FilterDrawer receives `uniqueThemes` and `uniqueEngagementCategories` as props
+- [ ] Event wiring (open/close, chip clicks, clear-all) remains in PortfolioHeader's script block — FilterDrawer is template-only
+- [ ] No UX change — identical HTML rendered, same filter behavior, same E2E test results
+- [ ] Portfolio E2E tests pass without modification
+
+#### Technical Context
+
+- **Prerequisite**: BL-037 depends on Initiative 1 (PortfolioHeader architecture migration) being complete — the `is:inline` to module script migration must land first, as sub-component extraction requires module-scoped script coordination
+- The drawer DOM is referenced by ID from both PortfolioHeader and StickyControls via the shared `window.portfolioFilters` API
+- The drawer's visual backdrop (`.filter-overlay`) has `pointer-events: none` — click-outside-to-close is handled at document level, not on the overlay element
+- Extraction is template-only (~120 lines of markup); the script block (main complexity source) does not shrink
+- Expected result: PortfolioHeader reduces from ~1,028 lines to ~850 lines
+
+---
+
+### BL-038: Dependency Override Governance — path-to-regexp
+
+**Source**: Technical debt remediation (April 2026) | **Effort**: S (30 min when removable) | **Status**: Monitoring
+
+**As a** platform maintainer, **I want** the `path-to-regexp` package override removed when the upstream dependency ships a fix **so that** the dependency tree has no unnecessary overrides and `npm audit` reflects the true security posture without manual intervention.
+
+#### Acceptance Criteria
+
+- [ ] Monthly CI workflow (`.github/workflows/dep-override-review.yml`) checks whether the override is still necessary
+- [ ] When `@vercel/routing-utils` ships a version requiring `path-to-regexp >= 6.3.0`, a GitHub issue is auto-created prompting removal
+- [ ] Override removal steps: delete `overrides` block from `package.json`, run `npm install`, verify `npm audit --omit=dev` reports 0 vulnerabilities, update DEVELOPER_TOOLING.md
+- [ ] After removal: CI `npm audit` step continues to catch any future advisories without the override
+
+#### Technical Context
+
+- The override pins `path-to-regexp@6.3.0` to close `GHSA-9wv6-86v2-598j` — the vulnerable `6.1.0` is a transitive dependency via `@astrojs/vercel@10.0.4` → `@vercel/routing-utils@5.3.3`
+- CI already runs `npm audit --audit-level=moderate --omit=dev` on every push/PR (`.github/workflows/test.yml`, lines 162-164) — this catches new vulnerabilities but does not check whether existing overrides are stale
+- Override documentation: DEVELOPER_TOOLING.md § npm audit policy (lines 540-542)
+- The override is zero-cost at runtime but adds cognitive overhead for dependency updates
+
+---
+
 _Created: April 18, 2026_
