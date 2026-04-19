@@ -51,24 +51,27 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ### BL-002: Sentry Source Map Upload Activation
 
-**Source**: SENTRY_MANUAL_SETUP.md | **Effort**: 30 min | **Status**: Open
+**Source**: SENTRY_MANUAL_SETUP.md | **Effort**: 30 min | **Status**: Complete (April 2026)
 
 **As a** developer, **I want** Sentry source maps uploaded on production deploys **so that** error stack traces show original TypeScript source lines instead of minified output.
 
 #### Acceptance Criteria
 
-- [ ] Organization Auth Token created at sentry.io
-- [ ] `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` environment variables set in Vercel (Production only)
-- [ ] Production deploy logs show "Uploading source maps..."
-- [ ] Source map artifacts appear in Sentry Releases dashboard
-- [ ] Error stack traces in Sentry resolve to original source files
+- [x] Organization Auth Token created at sentry.io
+- [x] `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` environment variables set in Vercel (Production only)
+- [x] Production deploy logs show source map upload (silent mode suppresses verbose output)
+- [x] Source map artifacts appear in Sentry Releases dashboard
+- [x] Error stack traces in Sentry resolve to original source files
+- [x] GitHub stack trace linking configured (code path mapping: `src/` → `src/`)
+- [x] CSP updated for Sentry US region (`*.ingest.us.sentry.io`) and replay worker (`worker-src blob:`)
 
 #### Technical Context
 
 - Sentry is already integrated in code (`sentry.client.config.ts`, `sentry.server.config.ts`)
-- Source map upload wired in `astro.config.mjs` — just needs env vars to activate
+- Source map upload wired in `astro.config.mjs` with `silent: true` to suppress inline script warnings
+- CSP fix landed in PR #95 — connect-src wildcard didn't cover US regional endpoint
+- GitHub stack trace linking configured in Sentry dashboard (Settings → Integrations → GitHub → Code Mappings)
 - Alert tag infrastructure in place (`area:inoreader-api`, `area:redis-connection`, etc.)
-- This is a manual/ops task — create token, set env vars, trigger deploy, verify
 
 ---
 
