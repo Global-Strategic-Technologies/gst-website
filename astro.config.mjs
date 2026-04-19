@@ -76,6 +76,12 @@ export default defineConfig({
             project: process.env.SENTRY_PROJECT,
             authToken: process.env.SENTRY_AUTH_TOKEN,
             telemetry: false,
+            // `silent: true` suppresses the Sentry Vite plugin's build log
+            // output, including "no sourcemap found" warnings for Astro's
+            // inline script chunks. These chunks don't go through Vite's
+            // bundler so no .map files exist — the warnings are expected
+            // and not actionable. Errors are still reported to Sentry.
+            silent: true,
           }),
         ]
       : []),

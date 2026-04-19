@@ -49,6 +49,8 @@ Source maps give Sentry readable stack traces instead of minified code. The uplo
 - **"Authentication required" or 401 error in build**: The auth token is invalid, expired, or missing. Generate a new Organization Token at sentry.io → Settings → Developer Settings → Organization Tokens.
 - **"Organization not found"**: Check the `SENTRY_ORG` slug matches exactly (case-sensitive, visible in your Sentry URL).
 - **"Sending telemetry data" warning**: Should not appear — `telemetry: false` is set in `astro.config.mjs`. If it appears, verify the config wasn't reverted.
+- **"no sourcemap found" warnings for inline scripts**: Expected and harmless. Astro's `is:inline` scripts don't go through Vite's bundler, so no `.map` files exist for them. The `silent: true` option in `astro.config.mjs` suppresses these warnings. Bundled application code still uploads source maps correctly.
+- **CSP blocking Sentry**: The Sentry ingestion endpoint must be in `connect-src`. US-region projects use `*.ingest.us.sentry.io` (not just `*.ingest.sentry.io`). The replay integration also needs `worker-src 'self' blob:`. See [SECURITY_HEADERS.md](../security/SECURITY_HEADERS.md).
 - **Source maps uploaded but traces still minified**: Verify the release version in Sentry matches what the client reports. Check that `sentry.client.config.ts` and the build output use the same release identifier.
 - **Don't add Sentry env vars to `.env` locally**: The upload should only run on Vercel production builds. Locally it slows builds and fails since there's no deployment context.
 

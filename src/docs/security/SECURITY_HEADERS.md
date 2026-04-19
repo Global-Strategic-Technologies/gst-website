@@ -16,20 +16,21 @@ HTTP security headers applied to all GST website responses. Static routes receiv
 
 ## Content-Security-Policy Breakdown
 
-| Directive                 | Value                                                                                           | Rationale                                                        |
-| ------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| default-src               | 'none'                                                                                          | Deny everything not explicitly allowed                           |
-| script-src                | 'self' 'unsafe-inline' googletagmanager.com va.vercel-scripts.com                               | GA4, Vercel Speed Insights; inline needed for theme/palette init |
-| connect-src               | 'self' googletagmanager.com google-analytics.com \*.ingest.sentry.io vitals.vercel-insights.com | GA4 beacons, Sentry error reports, Vercel vitals                 |
-| style-src                 | 'self' 'unsafe-inline'                                                                          | Inline styles for theme/palette initialization                   |
-| img-src                   | 'self' https: data:                                                                             | OG images, external link thumbnails, data URIs                   |
-| font-src                  | 'self'                                                                                          | Self-hosted fonts only                                           |
-| frame-src                 | 'self'                                                                                          | Brand responsive demo iframe only                                |
-| frame-ancestors           | 'none'                                                                                          | Nobody can embed this site (CSP-level framing protection)        |
-| manifest-src              | 'self'                                                                                          | PWA manifest                                                     |
-| form-action               | 'self'                                                                                          | Forms can only submit to same origin                             |
-| base-uri                  | 'self'                                                                                          | Prevent base tag injection                                       |
-| upgrade-insecure-requests | (present)                                                                                       | Auto-upgrade HTTP to HTTPS                                       |
+| Directive                 | Value                                                                                                                  | Rationale                                                        |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| default-src               | 'none'                                                                                                                 | Deny everything not explicitly allowed                           |
+| script-src                | 'self' 'unsafe-inline' googletagmanager.com va.vercel-scripts.com                                                      | GA4, Vercel Speed Insights; inline needed for theme/palette init |
+| connect-src               | 'self' googletagmanager.com google-analytics.com \*.ingest.sentry.io \*.ingest.us.sentry.io vitals.vercel-insights.com | GA4 beacons, Sentry error reports (US region), Vercel vitals     |
+| worker-src                | 'self' blob:                                                                                                           | Sentry replay integration Web Worker                             |
+| style-src                 | 'self' 'unsafe-inline'                                                                                                 | Inline styles for theme/palette initialization                   |
+| img-src                   | 'self' https: data:                                                                                                    | OG images, external link thumbnails, data URIs                   |
+| font-src                  | 'self'                                                                                                                 | Self-hosted fonts only                                           |
+| frame-src                 | 'self'                                                                                                                 | Brand responsive demo iframe only                                |
+| frame-ancestors           | 'none'                                                                                                                 | Nobody can embed this site (CSP-level framing protection)        |
+| manifest-src              | 'self'                                                                                                                 | PWA manifest                                                     |
+| form-action               | 'self'                                                                                                                 | Forms can only submit to same origin                             |
+| base-uri                  | 'self'                                                                                                                 | Prevent base tag injection                                       |
+| upgrade-insecure-requests | (present)                                                                                                              | Auto-upgrade HTTP to HTTPS                                       |
 
 ## How Headers Are Applied
 

@@ -18,7 +18,8 @@ export const SECURITY_HEADERS: Record<string, string> = {
   'Content-Security-Policy': [
     "default-src 'none'",
     "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://va.vercel-scripts.com https://cdn.vercel-insights.com",
-    "connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://*.ingest.sentry.io https://vitals.vercel-insights.com",
+    "connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://vitals.vercel-insights.com",
+    "worker-src 'self' blob:",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' https: data:",
     "font-src 'self'",
