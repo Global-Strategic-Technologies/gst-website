@@ -77,23 +77,24 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ### BL-003: Sentry Alert Rule Configuration
 
-**Source**: SENTRY_MANUAL_SETUP.md | **Effort**: 30 min | **Status**: Open
+**Source**: SENTRY_MANUAL_SETUP.md | **Effort**: 30 min | **Status**: Complete (April 2026)
 
 **As a** site operator, **I want** Sentry alert rules configured **so that** I am notified of new errors, error spikes, and critical subsystem failures.
 
 #### Acceptance Criteria
 
-- [ ] "New issue" alert created (triggers on all new issues)
-- [ ] "High-volume error spike" alert created (>10 events/hour)
-- [ ] "Inoreader API failure" alert created (tag: `area:inoreader-api`)
-- [ ] "Redis connection failure" alert created (tag: `area:redis-connection`)
-- [ ] Alerts tested with a manual error trigger
+- [x] "New issue" alert created (triggers on all new issues)
+- [x] "High-volume error spike" alert created (>10 events/hour)
+- [x] "Inoreader API failure" alert created (tag: `area:inoreader-api`)
+- [x] "Redis connection failure" alert created (tag: `area:redis-connection`)
+- [x] Alerts tested with a manual error trigger
 - [ ] Optional: Slack or PagerDuty integration configured
 
 #### Technical Context
 
 - All configuration happens in the Sentry dashboard, not in code
 - Alert tags are already instrumented in the codebase
+- GitHub auto-issue creation available via alert rule actions (Settings → Alerts → THEN → "Create a new GitHub issue")
 - See [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md) for tag reference table, troubleshooting guide, and consent gating evaluation
 
 ---
