@@ -134,7 +134,7 @@ jobs:
 
       - name: Setup Node.js
         if: needs.changes.outputs.should_run == 'true'
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '22.x'
           cache: 'npm'
@@ -185,7 +185,7 @@ jobs:
 
       - name: Setup Node.js
         if: needs.changes.outputs.should_run == 'true'
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '22.x'
           cache: 'npm'
@@ -236,7 +236,7 @@ jobs:
 
       - name: Setup Node.js
         if: needs.changes.outputs.should_run == 'true'
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '22.x'
           cache: 'npm'
