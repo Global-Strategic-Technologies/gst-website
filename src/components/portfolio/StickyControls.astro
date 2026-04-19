@@ -462,7 +462,7 @@ const { projects } = Astro.props;
     projectsData: JSON.stringify(projects),
   }}
 >
-  // Initialize global state
+  // Initialize global state (defensive — PortfolioHeader normally initializes first)
   if (!window.portfolioState) {
     let allProjects;
     try {

@@ -332,7 +332,7 @@ const { projects } = Astro.props;
 </style>
 
 <script is:inline define:vars={{ projectsData: JSON.stringify(projects) }}>
-  // Initialize global state if not already done
+  // Initialize global state if not already done (defensive — PortfolioHeader normally initializes first)
   if (!window.portfolioState) {
     let allProjects;
     try {
