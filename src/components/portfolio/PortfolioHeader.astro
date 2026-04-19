@@ -174,6 +174,14 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     data-testid="portfolio-filter-overlay"
   >
   </div>
+
+  <!-- Data island: server-rendered project data for client scripts -->
+  <script
+    is:inline
+    type="application/json"
+    id="portfolio-data"
+    set:html={JSON.stringify(projects)}
+  />
 </div>
 
 <style>
@@ -522,17 +530,47 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
   }
 </style>
 
-<script
-  is:inline
-  define:vars={{
-    projectsData: JSON.stringify(projects),
-  }}
->
+<script>
+  /* eslint-disable @typescript-eslint/no-explicit-any -- hasListener idiom on DOM elements */
+  // Portfolio globals shared across PortfolioHeader, StickyControls, and PortfolioGrid.
+  // Previously untyped is:inline JS — uses Record types to avoid strict typing of the
+  // project data that flows from the JSON data island. Full typed imports will replace
+  // the duplicated filter logic in Phase 2.
+  interface PortfolioFilters {
+    search: string;
+    theme: string;
+    engagement: string;
+    [key: string]: string;
+  }
+  interface PortfolioState {
+    allProjects: Record<string, unknown>[];
+    filteredProjects: Record<string, unknown>[];
+    filters: PortfolioFilters;
+  }
+  interface PortfolioAPI {
+    filterProjects: () => void;
+    updateGridDisplay: () => void;
+    attachChipListeners: () => void;
+    openFilterDrawer: () => void;
+    closeFilterDrawer: () => void;
+    updateAvailableChips: () => void;
+    getFilteredProjects: () => Record<string, unknown>[];
+    getFilters: () => PortfolioFilters;
+  }
+  declare global {
+    interface Window {
+      portfolioState: PortfolioState;
+      portfolioFilters: PortfolioAPI;
+      __portfolioInitialized: boolean;
+    }
+  }
+
   // Initialize global state if it doesn't exist
   if (!window.portfolioState) {
-    let allProjects;
+    let allProjects: Record<string, unknown>[];
     try {
-      allProjects = JSON.parse(projectsData);
+      const dataEl = document.getElementById('portfolio-data');
+      allProjects = dataEl ? JSON.parse(dataEl.textContent!) : [];
     } catch (e) {
       console.error('Failed to parse projects data:', e);
       allProjects = [];
@@ -540,7 +578,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 
     window.portfolioState = {
       allProjects: allProjects,
-      filteredProjects: [],
+      filteredProjects: [] as Record<string, unknown>[],
       filters: {
         search: '',
         theme: 'all',
@@ -591,12 +629,14 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
   }
 
   function updateGridDisplay() {
-    const cards = document.querySelectorAll('.project-card');
+    const cards = document.querySelectorAll<HTMLElement>('.project-card');
     let visibleCount = 0;
 
     cards.forEach((card) => {
       const projectId = card.dataset.projectId;
-      const isVisible = window.portfolioState.filteredProjects.some((p) => p.id === projectId);
+      const isVisible = window.portfolioState.filteredProjects.some(
+        (p: Record<string, unknown>) => p.id === projectId
+      );
 
       if (isVisible) {
         card.style.display = '';
@@ -612,7 +652,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     showNoResultsMessage(visibleCount === 0);
   }
 
-  function showNoResultsMessage(show) {
+  function showNoResultsMessage(show: boolean) {
     let message = document.getElementById('portfolio-no-results');
 
     if (show) {
@@ -637,53 +677,53 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     const themeChipsContainer = document.getElementById('theme-chips');
     const engagementChipsContainer = document.getElementById('engagement-chips');
 
-    if (themeChipsContainer && !themeChipsContainer.hasListener) {
-      themeChipsContainer.addEventListener('click', (e) => {
-        const chip = e.target.closest('.filter-chip');
+    if (themeChipsContainer && !(themeChipsContainer as any).hasListener) {
+      themeChipsContainer.addEventListener('click', (e: MouseEvent) => {
+        const chip = (e.target as HTMLElement)?.closest('.filter-chip') as HTMLElement | null;
         if (chip) {
           document
             .querySelectorAll('#theme-chips .filter-chip')
             .forEach((c) => c.classList.remove('active'));
           chip.classList.add('active');
-          filters.theme = chip.dataset.value;
+          filters.theme = chip.dataset.value ?? 'all';
           window.portfolioState.filters.theme = filters.theme;
           filterProjects();
         }
       });
-      themeChipsContainer.hasListener = true;
+      (themeChipsContainer as any).hasListener = true;
     }
 
-    if (engagementChipsContainer && !engagementChipsContainer.hasListener) {
-      engagementChipsContainer.addEventListener('click', (e) => {
-        const chip = e.target.closest('.filter-chip');
+    if (engagementChipsContainer && !(engagementChipsContainer as any).hasListener) {
+      engagementChipsContainer.addEventListener('click', (e: MouseEvent) => {
+        const chip = (e.target as HTMLElement)?.closest('.filter-chip') as HTMLElement | null;
         if (chip) {
           document
             .querySelectorAll('#engagement-chips .filter-chip')
             .forEach((c) => c.classList.remove('active'));
           chip.classList.add('active');
-          filters.engagement = chip.dataset.value;
+          filters.engagement = chip.dataset.value ?? 'all';
           window.portfolioState.filters.engagement = filters.engagement;
           filterProjects();
         }
       });
-      engagementChipsContainer.hasListener = true;
+      (engagementChipsContainer as any).hasListener = true;
     }
   }
 
   function attachSearchListener() {
     const searchInput = document.getElementById('search-input-fixed');
     if (searchInput) {
-      let searchTimeout;
-      if (!searchInput.hasListener) {
-        searchInput.addEventListener('input', (e) => {
+      let searchTimeout: ReturnType<typeof setTimeout> | undefined;
+      if (!(searchInput as any).hasListener) {
+        searchInput.addEventListener('input', (e: Event) => {
           clearTimeout(searchTimeout);
           searchTimeout = setTimeout(() => {
-            filters.search = e.target.value;
+            filters.search = (e.target as HTMLInputElement).value;
             window.portfolioState.filters.search = filters.search;
             filterProjects();
           }, 300);
         });
-        searchInput.hasListener = true;
+        (searchInput as any).hasListener = true;
       }
     }
   }
@@ -696,7 +736,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     if (headerBadge) {
       if (activeCount > 0) {
         headerBadge.style.display = 'inline-flex';
-        headerBadge.textContent = activeCount;
+        headerBadge.textContent = String(activeCount);
       } else {
         headerBadge.style.display = 'none';
       }
@@ -705,7 +745,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     if (stickyBadge) {
       if (activeCount > 0) {
         stickyBadge.style.display = 'inline-flex';
-        stickyBadge.textContent = activeCount;
+        stickyBadge.textContent = String(activeCount);
       } else {
         stickyBadge.style.display = 'none';
       }
@@ -714,15 +754,19 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 
   let isUpdatingChips = false;
 
-  function updateChipAvailability(containerId, availableValues, filterKey) {
+  function updateChipAvailability(
+    containerId: string,
+    availableValues: Set<string>,
+    filterKey: string
+  ): boolean {
     const container = document.getElementById(containerId);
     if (!container) return false;
 
     const currentValue = filters[filterKey];
     let needsReset = false;
 
-    container.querySelectorAll('.filter-chip').forEach((chip) => {
-      const value = chip.dataset.value;
+    container.querySelectorAll<HTMLElement>('.filter-chip').forEach((chip) => {
+      const value = chip.dataset.value ?? '';
       if (value === 'all') return;
 
       if (availableValues.has(value)) {
@@ -752,7 +796,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     if (isUpdatingChips) return;
     isUpdatingChips = true;
 
-    const available = { engagement: new Set(), theme: new Set() };
+    const available = { engagement: new Set<string>(), theme: new Set<string>() };
 
     for (const project of allProjects) {
       if (filters.search) {
@@ -772,8 +816,8 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
         filters.engagement === 'all' || project.engagementCategory === filters.engagement;
       const matchesTheme = filters.theme === 'all' || project.theme === filters.theme;
 
-      if (matchesTheme) available.engagement.add(project.engagementCategory);
-      if (matchesEngagement) available.theme.add(project.theme);
+      if (matchesTheme) available.engagement.add(project.engagementCategory as string);
+      if (matchesEngagement) available.theme.add(project.theme as string);
     }
 
     const r1 = updateChipAvailability('engagement-chips', available.engagement, 'engagement');
@@ -792,8 +836,8 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
   // (see global.css) so it no longer captures clicks OR scroll events — main
   // content stays scrollable when the drawer is open. Click-outside-to-close
   // is now handled here via document-level listener instead.
-  let drawerDocumentClickHandler = null;
-  let drawerDocumentKeyHandler = null;
+  let drawerDocumentClickHandler: ((event: MouseEvent) => void) | null = null;
+  let drawerDocumentKeyHandler: ((event: KeyboardEvent) => void) | null = null;
 
   function openFilterDrawer() {
     const drawer = document.getElementById('filter-drawer');
@@ -811,7 +855,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       // closeFilterDrawer is called before this deferred callback fires).
       setTimeout(() => {
         if (!drawer.classList.contains('open')) return;
-        drawerDocumentClickHandler = (event) => {
+        drawerDocumentClickHandler = (event: MouseEvent) => {
           const target = event.target;
           if (!(target instanceof Node)) return;
           // Ignore clicks inside the drawer itself.
@@ -826,7 +870,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
         document.addEventListener('click', drawerDocumentClickHandler);
       }, 0);
 
-      drawerDocumentKeyHandler = (event) => {
+      drawerDocumentKeyHandler = (event: KeyboardEvent) => {
         if (event.key === 'Escape') closeFilterDrawer();
       };
       document.addEventListener('keydown', drawerDocumentKeyHandler);
@@ -887,7 +931,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
         window.portfolioState.filters = { ...filters };
 
         const searchInput = document.getElementById('search-input-fixed');
-        if (searchInput) searchInput.value = '';
+        if (searchInput) (searchInput as HTMLInputElement).value = '';
         document
           .querySelectorAll('.filter-chip.active')
           .forEach((c) => c.classList.remove('active'));
