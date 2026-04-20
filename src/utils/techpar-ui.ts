@@ -158,7 +158,7 @@ function updateAll() {
 // ─── Event listeners ──────────────────────────────────────
 
 // Tab buttons
-$$('.tp-tab').forEach((btn) => {
+$$('.tool-tab').forEach((btn) => {
   btn.addEventListener('click', () => {
     const tab = (btn as HTMLElement).dataset.tab || 'profile';
     trackEvent({ event: 'tp_tab_change', category: 'tool', tab, page: 'techpar' });
@@ -265,7 +265,7 @@ $$('[data-currency]').forEach((btn) => {
     $$('[data-currency]').forEach((b) => b.classList.remove('tp-seg__btn--active'));
     btn.classList.add('tp-seg__btn--active');
     tp.currencySymbol = (btn as HTMLElement).dataset.currency || '$';
-    document.querySelectorAll('.tp-input-pre').forEach((pre) => {
+    document.querySelectorAll('.brutal-field__prefix').forEach((pre) => {
       pre.textContent = tp.currencySymbol;
     });
     updateChipCurrencies();

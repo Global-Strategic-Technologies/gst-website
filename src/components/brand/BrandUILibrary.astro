@@ -1011,9 +1011,9 @@ import TableOfContents from '../TableOfContents.astro';
     <h4 class="brutal-label brand-subgroup-title">Desktop Progress Bar</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div class="brand-wizard-progress">
-          <div class="brand-progress-segment brand-progress-segment--completed">
-            <svg class="brand-progress-number" viewBox="0 0 64 64" fill="none"
+        <div class="tool-wizard-progress">
+          <div class="tool-wizard-step tool-wizard-step--completed">
+            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none"
               ><path
                 d="M32 12 L52 52 L12 52 Z"
                 fill="none"
@@ -1024,13 +1024,13 @@ import TableOfContents from '../TableOfContents.astro';
                 y="40"
                 text-anchor="middle"
                 dominant-baseline="middle"
-                class="brand-progress-number-text">1</text
+                class="tool-wizard-step__number">1</text
               ></svg
             >
-            <span class="brand-progress-label">Transaction</span>
+            <span class="tool-wizard-step__label">Transaction</span>
           </div>
-          <div class="brand-progress-segment brand-progress-segment--completed">
-            <svg class="brand-progress-number" viewBox="0 0 64 64" fill="none"
+          <div class="tool-wizard-step tool-wizard-step--completed">
+            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none"
               ><path
                 d="M32 12 L52 52 L12 52 Z"
                 fill="none"
@@ -1041,13 +1041,13 @@ import TableOfContents from '../TableOfContents.astro';
                 y="40"
                 text-anchor="middle"
                 dominant-baseline="middle"
-                class="brand-progress-number-text">2</text
+                class="tool-wizard-step__number">2</text
               ></svg
             >
-            <span class="brand-progress-label">Product</span>
+            <span class="tool-wizard-step__label">Product</span>
           </div>
-          <div class="brand-progress-segment brand-progress-segment--active">
-            <svg class="brand-progress-number" viewBox="0 0 64 64" fill="none"
+          <div class="tool-wizard-step tool-wizard-step--active">
+            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none"
               ><path
                 d="M32 12 L52 52 L12 52 Z"
                 fill="none"
@@ -1058,13 +1058,13 @@ import TableOfContents from '../TableOfContents.astro';
                 y="40"
                 text-anchor="middle"
                 dominant-baseline="middle"
-                class="brand-progress-number-text">3</text
+                class="tool-wizard-step__number">3</text
               ></svg
             >
-            <span class="brand-progress-label">Tech Stack</span>
+            <span class="tool-wizard-step__label">Tech Stack</span>
           </div>
-          <div class="brand-progress-segment">
-            <svg class="brand-progress-number" viewBox="0 0 64 64" fill="none"
+          <div class="tool-wizard-step">
+            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none"
               ><path
                 d="M32 12 L52 52 L12 52 Z"
                 fill="none"
@@ -1075,13 +1075,13 @@ import TableOfContents from '../TableOfContents.astro';
                 y="40"
                 text-anchor="middle"
                 dominant-baseline="middle"
-                class="brand-progress-number-text">4</text
+                class="tool-wizard-step__number">4</text
               ></svg
             >
-            <span class="brand-progress-label">Company</span>
+            <span class="tool-wizard-step__label">Company</span>
           </div>
-          <div class="brand-progress-segment">
-            <svg class="brand-progress-number" viewBox="0 0 64 64" fill="none"
+          <div class="tool-wizard-step">
+            <svg class="tool-wizard-step__icon" viewBox="0 0 64 64" fill="none"
               ><path
                 d="M32 12 L52 52 L12 52 Z"
                 fill="none"
@@ -1092,10 +1092,10 @@ import TableOfContents from '../TableOfContents.astro';
                 y="40"
                 text-anchor="middle"
                 dominant-baseline="middle"
-                class="brand-progress-number-text">5</text
+                class="tool-wizard-step__number">5</text
               ></svg
             >
-            <span class="brand-progress-label">Geography</span>
+            <span class="tool-wizard-step__label">Geography</span>
           </div>
         </div>
         <code class="brand-code"
@@ -1108,14 +1108,14 @@ import TableOfContents from '../TableOfContents.astro';
     <h4 class="brutal-label brand-subgroup-title">Mobile Compact Progress</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div class="brand-wizard-progress-mobile">
-          <span class="brand-progress-mobile-label"
-            >Step <span class="brand-progress-mobile-current">3</span> of 5 — <span
-              class="brand-progress-mobile-name">Tech Stack</span
+        <div class="tool-wizard-progress-mobile">
+          <span class="tool-wizard-progress-mobile__label"
+            >Step <span class="tool-wizard-progress-mobile__current">3</span> of 5 — <span
+              class="tool-wizard-progress-mobile__name">Tech Stack</span
             ></span
           >
-          <div class="brand-progress-mobile-dots">
-            <button class="brand-progress-dot brand-progress-dot--completed" type="button"
+          <div class="tool-wizard-progress-mobile__dots">
+            <button class="tool-wizard-dot tool-wizard-dot--completed" type="button"
               ><svg viewBox="0 0 64 64" fill="none"
                 ><path
                   d="M32 12 L52 52 L12 52 Z"
@@ -1126,7 +1126,7 @@ import TableOfContents from '../TableOfContents.astro';
               ></button
             >
             <button
-              class="brand-progress-dot brand-progress-dot--completed brand-progress-dot--even"
+              class="tool-wizard-dot tool-wizard-dot--completed tool-wizard-dot--even"
               type="button"
               ><svg viewBox="0 0 64 64" fill="none"
                 ><path
@@ -1137,7 +1137,7 @@ import TableOfContents from '../TableOfContents.astro';
                   stroke-linejoin="miter"></path></svg
               ></button
             >
-            <button class="brand-progress-dot brand-progress-dot--active" type="button"
+            <button class="tool-wizard-dot tool-wizard-dot--active" type="button"
               ><svg viewBox="0 0 64 64" fill="none"
                 ><path
                   d="M32 12 L52 52 L12 52 Z"
@@ -1147,7 +1147,7 @@ import TableOfContents from '../TableOfContents.astro';
                   stroke-linejoin="miter"></path></svg
               ></button
             >
-            <button class="brand-progress-dot brand-progress-dot--even" type="button"
+            <button class="tool-wizard-dot tool-wizard-dot--even" type="button"
               ><svg viewBox="0 0 64 64" fill="none"
                 ><path
                   d="M32 12 L52 52 L12 52 Z"
@@ -1157,7 +1157,7 @@ import TableOfContents from '../TableOfContents.astro';
                   stroke-linejoin="miter"></path></svg
               ></button
             >
-            <button class="brand-progress-dot" type="button"
+            <button class="tool-wizard-dot" type="button"
               ><svg viewBox="0 0 64 64" fill="none"
                 ><path
                   d="M32 12 L52 52 L12 52 Z"
@@ -1884,10 +1884,10 @@ import TableOfContents from '../TableOfContents.astro';
     <h4 class="brutal-label brand-subgroup-title">Range Slider (Current)</h4>
     <div class="brand-component-row">
       <div class="brand-component-item" style="width: 300px;">
-        <div class="slider-row">
-          <div class="slider-header">
-            <label class="slider-label" for="demo-slider">Team Size</label>
-            <span class="slider-value" id="demo-slider-value">8</span>
+        <div class="brutal-slider">
+          <div class="brutal-slider__header">
+            <label class="brutal-slider__label" for="demo-slider">Team Size</label>
+            <span class="brutal-slider__value" id="demo-brutal-slider__value">8</span>
           </div>
           <input
             id="demo-slider"
@@ -1896,12 +1896,12 @@ import TableOfContents from '../TableOfContents.astro';
             max="50"
             step="1"
             value="8"
-            class="calc-slider"
+            class="brutal-slider__input"
           />
-          <div class="slider-hints">
+          <div class="brutal-slider__hints">
             <input
               type="number"
-              class="hint-input"
+              class="brutal-slider__direct"
               id="demo-slider-direct"
               min="1"
               max="50"
@@ -1912,7 +1912,7 @@ import TableOfContents from '../TableOfContents.astro';
           </div>
         </div>
         <code class="brand-code"
-          >.calc-slider — circular thumb, rounded track, rounded hint input</code
+          >.brutal-slider__input — circular thumb, rounded track, rounded hint input</code
         >
       </div>
     </div>
@@ -1948,8 +1948,8 @@ import TableOfContents from '../TableOfContents.astro';
           </div>
         </div>
         <code class="brand-code"
-          >.calc-slider (brutalist) — square thumb, hard track, no-radius direct input, monospace
-          throughout</code
+          >.brutal-slider__input (brutalist) — square thumb, hard track, no-radius direct input,
+          monospace throughout</code
         >
       </div>
     </div>

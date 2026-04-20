@@ -19,7 +19,7 @@ async function fillInput(page: Page, attr: string, value: string): Promise<void>
 }
 
 async function clickTab(page: Page, tab: string): Promise<void> {
-  await page.click(`.tp-tab[data-tab="${tab}"]`);
+  await page.click(`.tool-tab[data-tab="${tab}"]`);
   // Wait for the target panel to become active before proceeding
   await page.waitForFunction(
     (t) => document.querySelector(`[data-panel="${t}"]`)?.classList.contains('tp-panel--active'),

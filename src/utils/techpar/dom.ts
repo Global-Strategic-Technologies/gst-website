@@ -37,9 +37,9 @@ export function goTab(
   tab: string,
   deps: { runCompute: () => TechParResult | null; renderTrajectory: (r: TechParResult) => void }
 ) {
-  $$('.tp-tab').forEach((t) => t.classList.remove('tp-tab--active'));
+  $$('.tool-tab').forEach((t) => t.classList.remove('tool-tab--active'));
   $$('.tp-panel').forEach((p) => p.classList.remove('tp-panel--active'));
-  document.querySelector(`.tp-tab[data-tab="${tab}"]`)?.classList.add('tp-tab--active');
+  document.querySelector(`.tool-tab[data-tab="${tab}"]`)?.classList.add('tool-tab--active');
   document.querySelector(`[data-panel="${tab}"]`)?.classList.add('tp-panel--active');
   document.querySelector('[data-tab-bar]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   if (tab === 'trajectory') {
@@ -264,7 +264,7 @@ export function resetAll(deps: {
   $$('[data-currency]').forEach((b) => {
     b.classList.toggle('tp-seg__btn--active', (b as HTMLElement).dataset.currency === '$');
   });
-  document.querySelectorAll('.tp-input-pre').forEach((pre) => {
+  document.querySelectorAll('.brutal-field__prefix').forEach((pre) => {
     pre.textContent = '$';
   });
 
@@ -329,19 +329,19 @@ export function renderHistRows(updateAll: () => void) {
     <div class="tp-hist-row" data-hist-row="${i}">
         <div class="tp-hist-field tp-hist-field--label">
             <span class="tp-hist-field__lbl">Year</span>
-            <input data-hist-label="${i}" value="${pt.label}" placeholder="${yearHint}" class="tp-input--no-pre" />
+            <input data-hist-label="${i}" value="${pt.label}" placeholder="${yearHint}" class="brutal-field__input--no-prefix" />
         </div>
         <div class="tp-hist-field">
             <span class="tp-hist-field__lbl">ARR / Revenue</span>
-            <div class="tp-input-wrap">
-                <span class="tp-input-pre">${tp.currencySymbol}</span>
+            <div class="brutal-field__input-wrap">
+                <span class="brutal-field__prefix">${tp.currencySymbol}</span>
                 <input type="number" data-hist-arr="${i}" value="${pt.arr || ''}" placeholder="0" min="0" inputmode="numeric" />
             </div>
         </div>
         <div class="tp-hist-field">
             <span class="tp-hist-field__lbl">Total annual tech spend</span>
-            <div class="tp-input-wrap">
-                <span class="tp-input-pre">${tp.currencySymbol}</span>
+            <div class="brutal-field__input-wrap">
+                <span class="brutal-field__prefix">${tp.currencySymbol}</span>
                 <input type="number" data-hist-tech="${i}" value="${pt.totalTechSpend || ''}" placeholder="0" min="0" inputmode="numeric" />
             </div>
         </div>
@@ -584,7 +584,7 @@ export function hydrateFromUrl() {
     $$('[data-currency]').forEach((b) => {
       b.classList.toggle('tp-seg__btn--active', (b as HTMLElement).dataset.currency === u);
     });
-    document.querySelectorAll('.tp-input-pre').forEach((pre) => {
+    document.querySelectorAll('.brutal-field__prefix').forEach((pre) => {
       pre.textContent = tp.currencySymbol;
     });
     updateChipCurrencies();

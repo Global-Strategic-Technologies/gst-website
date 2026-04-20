@@ -111,6 +111,11 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
     color: var(--color-primary);
   }
 
+  .logo:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 4px;
+  }
+
   .logo span {
     color: var(--color-primary);
   }
