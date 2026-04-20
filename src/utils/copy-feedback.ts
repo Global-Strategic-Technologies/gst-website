@@ -28,10 +28,10 @@ export async function copyWithFeedback(
   const original = button.getAttribute(DATA_KEY) ?? target.textContent;
   button.setAttribute(DATA_KEY, original ?? '');
 
-  // Lock the button width so text changes don't resize it
+  // Lock the button min-width so text changes don't shrink it
   if (!button.getAttribute(WIDTH_KEY)) {
     const w = button.offsetWidth;
-    button.style.width = `${w}px`;
+    button.style.minWidth = `${w}px`;
     button.setAttribute(WIDTH_KEY, `${w}`);
   }
 
@@ -39,7 +39,7 @@ export async function copyWithFeedback(
     target.textContent = original;
     if (options?.copiedClass) button.classList.remove(options.copiedClass);
     button.removeAttribute(DATA_KEY);
-    button.style.width = '';
+    button.style.minWidth = '';
     button.removeAttribute(WIDTH_KEY);
   };
 
