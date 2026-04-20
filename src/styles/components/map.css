@@ -525,3 +525,19 @@ Brutalist Panel & Reg Card
   z-index: 50;
   background: rgba(0, 0, 0, 0.5);
 }
+
+/* ==============================
+
+SVG Map Path Focus Reset
+
+============================== */
+
+/* Suppress the browser's rectangular focus outline on SVG map paths.
+   Keyboard a11y is preserved via a stroke-based :focus-visible indicator
+   in MapVisualizer.astro. */
+
+.country-path,
+.state-path {
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}

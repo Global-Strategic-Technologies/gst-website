@@ -114,11 +114,8 @@
     }
   }
 
-  /* Replace browser focus outline with visible stroke indicator for keyboard navigation */
-  :global(.country-path:focus),
-  :global(.state-path:focus) {
-    outline: none;
-  }
+  /* Browser focus outline suppressed globally in map.css — stroke-based
+     :focus-visible indicator below provides keyboard a11y instead */
 
   :global(.country-path--active:focus-visible),
   :global(.state-path--active:focus-visible) {
