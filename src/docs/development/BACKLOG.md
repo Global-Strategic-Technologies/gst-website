@@ -201,27 +201,27 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ### BL-008: Hub Tools UX Unification Phase 1 — Quick Wins
 
-**Source**: HUB_TOOLS_UX_UNIFICATION.md | **Effort**: Small | **Status**: Open
+**Source**: HUB_TOOLS_UX_UNIFICATION.md | **Effort**: Small | **Status**: Complete (April 2026)
 
 **As a** developer, **I want** the option card and button patterns unified across hub tools **so that** I maintain one pattern instead of three independent implementations.
 
 #### Acceptance Criteria
 
-- [ ] DM's `.option-card` pattern moved to `global.css` as shared class
-- [ ] TechPar `.tp-stage-card` and ICG `.icg-stage-card`/`.icg-opt-btn` migrated to shared `.option-card` class with `.option-card--compact` modifier
-- [ ] TechPar `.tp-btn-share/back/next` replaced with `.hub-btn--secondary`/`.cta-button`
-- [ ] ICG `.icg-btn-primary/secondary` wrappers removed, uses `.hub-btn` directly
-- [ ] `.no-print` utility added to `global.css`
-- [ ] RegMap gets `@media print` block
-- [ ] Net CSS impact: ~-60 tool-specific lines
+- [x] DM's `.option-card` pattern extracted to shared `brutal-option-card` in `components/cards.css`
+- [x] TechPar `.tp-stage-card` migrated to `brutal-option-card--compact` + `brutal-option-card--selected`
+- [x] ICG already using `brutal-option-card--compact` (no `.icg-stage-card` ever existed)
+- [x] TechPar `.tp-btn-share` replaced with `brutal-btn--secondary`; `.tp-btn-next`/`.tp-btn-back` already used `brutal-btn` as base
+- [x] ICG `.icg-btn-primary--full` wrapper removed (was a 3-line padding override)
+- [x] Shared `.brutal-btn--copied` modifier added to `components/buttons.css` for copy-feedback state
+- [x] `.no-print` utility added to `global.css`
+- [x] RegMap already had `@media print` block (no change needed)
 
 #### Technical Context
 
-- Divergence map: 3 independent option/stage card implementations, 3 different button approaches
-- Target: DM's `.option-card` is the most complete (icon, label, description, selected state, dark theme, focus-visible)
-- Files: `global.css`, TechPar page, ICG page, RegMap page
-- No visual changes to end users — same appearance, shared classes
-- Verification: build, unit/integration tests, visual diff at desktop/768px/480px in both themes
+- All hub tools now use `brutal-option-card` for stage/option selection and `brutal-btn` for actions
+- TechPar JS updated in `techpar-ui.ts` and `techpar/dom.ts` (class selectors + active state toggles)
+- Copy feedback uses shared `brutal-btn--copied` modifier (reusable by any tool)
+- Net CSS impact: ~65 lines of tool-specific card/button CSS deleted
 
 ---
 
