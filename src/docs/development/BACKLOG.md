@@ -253,24 +253,25 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ### BL-010: Hub Tools UX Unification Phase 3 — Navigation and Form Patterns
 
-**Source**: HUB_TOOLS_UX_UNIFICATION.md | **Effort**: Medium | **Status**: Open
+**Source**: HUB_TOOLS_UX_UNIFICATION.md | **Effort**: Medium | **Status**: Complete ✅
 
 **As a** developer, **I want** navigation and form patterns extracted into shared classes **so that** new tools can reuse tab bars, progress indicators, and form fields without reimplementing them.
 
 #### Acceptance Criteria
 
-- [ ] TechPar `.tp-tab-bar`/`.tp-tab` extracted to shared `.tool-tabs`/`.tool-tab` in `global.css`
-- [ ] DM `.wizard-progress` renamed to `.tool-wizard-progress` in global
-- [ ] ICG `.icg-progress` renamed to `.tool-progress-bar` in global
-- [ ] TechPar `.tp-field`/`.tp-hint`/`.tp-input-wrap` extracted to `.tool-field`/`.tool-field__hint`/`.tool-field__input`
-- [ ] TDC `.calc-slider`/`.slider-row` extracted to `.tool-slider`/`.tool-slider-row`
-- [ ] Tools adopt shared classes
+- [x] TechPar `.tp-tab-bar`/`.tp-tab` extracted to shared `.tool-tab-bar`/`.tool-tab` in `tool-ui.css`
+- [x] DM `.wizard-progress`/`.progress-segment` extracted to `.tool-wizard-progress`/`.tool-wizard-step` in `progress.css`
+- [x] ICG `.icg-progress` removed — uses `.brutal-progress-bar` directly
+- [x] TechPar `.tp-field`/`.tp-hint`/`.tp-input-wrap` migrated to existing `.brutal-field` + new prefix/suffix modifiers in `form.css`
+- [x] TDC `.calc-slider`/`.slider-row` consolidated into existing `.brutal-slider` in `form.css`
+- [x] Brand page demos updated to use shared classes (removed ~140 lines of `.brand-*` duplicates)
+- [x] All tools adopt shared classes
 
 #### Technical Context
 
-- Three different navigation paradigms (tabs, segmented wizard, linear progress bar) for three different UX needs — they solve different problems and should not be merged, only named consistently
-- Form controls: only TDC has sliders, only TechPar has text inputs — document in design system but don't force consolidation until a second tool needs them
-- Estimated CSS impact: -150 tool-specific lines, +120 shared lines (net -30, major reusability gain)
+- Used existing `.brutal-field` and `.brutal-slider` patterns instead of creating `.tool-*` duplicates
+- Three navigation paradigms kept distinct (tabs, wizard, progress bar) — unified naming only
+- Brand page now serves as living reference using actual shared classes
 
 ---
 
