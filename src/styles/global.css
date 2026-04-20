@@ -116,6 +116,12 @@ a:hover {
   color: var(--color-primary);
 }
 
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
 /* Portfolio Controls — shared between StickyControls and PortfolioHeader */
 
 .controls-wrapper {

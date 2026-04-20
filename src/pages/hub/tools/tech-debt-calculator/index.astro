@@ -72,10 +72,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
           <div class="brutal-tool-shell__section-label section-label">Team & Cost</div>
 
           <div class="sliders-stack">
-            <div class="slider-row">
-              <div class="slider-header">
-                <label class="slider-label" for="input-team-size">Team Size</label>
-                <span class="slider-value" data-display="team-size">8</span>
+            <div class="brutal-slider">
+              <div class="brutal-slider__header">
+                <label class="brutal-slider__label" for="input-team-size">Team Size</label>
+                <span class="brutal-slider__value" data-display="team-size">8</span>
               </div>
               <input
                 id="input-team-size"
@@ -83,13 +83,13 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                 min="0"
                 max="100"
                 step="1"
-                class="calc-slider"
+                class="brutal-slider__input"
                 data-input="team-size"
               />
-              <div class="slider-hints">
+              <div class="brutal-slider__hints">
                 <input
                   type="number"
-                  class="hint-input"
+                  class="brutal-slider__direct"
                   data-direct="team-size"
                   min="1"
                   max="500"
@@ -100,10 +100,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
               </div>
             </div>
 
-            <div class="slider-row">
-              <div class="slider-header">
-                <label class="slider-label" for="input-salary">Avg. Salary (all-in)</label>
-                <span class="slider-value" data-display="salary">$150K</span>
+            <div class="brutal-slider">
+              <div class="brutal-slider__header">
+                <label class="brutal-slider__label" for="input-salary">Avg. Salary (all-in)</label>
+                <span class="brutal-slider__value" data-display="salary">$150K</span>
               </div>
               <input
                 id="input-salary"
@@ -111,13 +111,13 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                 min="0"
                 max="100"
                 step="1"
-                class="calc-slider"
+                class="brutal-slider__input"
                 data-input="salary"
               />
-              <div class="slider-hints">
+              <div class="brutal-slider__hints">
                 <input
                   type="text"
-                  class="hint-input hint-input--currency"
+                  class="brutal-slider__direct brutal-slider__direct--currency"
                   data-direct="salary"
                   value="150000"
                   aria-label="Average all-in salary in dollars"
@@ -125,10 +125,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
               </div>
             </div>
 
-            <div class="slider-row">
-              <div class="slider-header">
-                <label class="slider-label" for="input-maint-pct">Maintenance Burden</label>
-                <span class="slider-value" data-display="maint-pct">25%</span>
+            <div class="brutal-slider">
+              <div class="brutal-slider__header">
+                <label class="brutal-slider__label" for="input-maint-pct">Maintenance Burden</label>
+                <span class="brutal-slider__value" data-display="maint-pct">25%</span>
               </div>
               <input
                 id="input-maint-pct"
@@ -136,13 +136,13 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                 min="0"
                 max="100"
                 step="1"
-                class="calc-slider"
+                class="brutal-slider__input"
                 data-input="maint-pct"
               />
-              <div class="slider-hints">
+              <div class="brutal-slider__hints">
                 <input
                   type="number"
-                  class="hint-input"
+                  class="brutal-slider__direct"
                   data-direct="maint-pct"
                   min="0"
                   max="100"
@@ -181,10 +181,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
           <div data-advanced-panel class="advanced-panel is-hidden">
             <div class="brutal-tool-shell__section-label section-label">Delivery & Incidents</div>
             <div class="sliders-grid-2">
-              <div class="slider-row">
-                <div class="slider-header">
-                  <label class="slider-label" for="input-incidents">Incidents / Mo</label>
-                  <span class="slider-value" data-display="incidents">3</span>
+              <div class="brutal-slider">
+                <div class="brutal-slider__header">
+                  <label class="brutal-slider__label" for="input-incidents">Incidents / Mo</label>
+                  <span class="brutal-slider__value" data-display="incidents">3</span>
                 </div>
                 <input
                   id="input-incidents"
@@ -192,13 +192,13 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                   min="0"
                   max="20"
                   step="1"
-                  class="calc-slider"
+                  class="brutal-slider__input"
                   data-input="incidents"
                 />
-                <div class="slider-hints">
+                <div class="brutal-slider__hints">
                   <input
                     type="number"
-                    class="hint-input"
+                    class="brutal-slider__direct"
                     data-direct="incidents"
                     min="0"
                     max="20"
@@ -209,10 +209,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                 </div>
               </div>
 
-              <div class="slider-row">
-                <div class="slider-header">
-                  <label class="slider-label" for="input-mttr">Avg. Time to Resolve</label>
-                  <span class="slider-value" data-display="mttr">4h</span>
+              <div class="brutal-slider">
+                <div class="brutal-slider__header">
+                  <label class="brutal-slider__label" for="input-mttr">Avg. Time to Resolve</label>
+                  <span class="brutal-slider__value" data-display="mttr">4h</span>
                 </div>
                 <input
                   id="input-mttr"
@@ -220,13 +220,13 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                   min="1"
                   max="48"
                   step="1"
-                  class="calc-slider"
+                  class="brutal-slider__input"
                   data-input="mttr"
                 />
-                <div class="slider-hints">
+                <div class="brutal-slider__hints">
                   <input
                     type="number"
-                    class="hint-input"
+                    class="brutal-slider__direct"
                     data-direct="mttr"
                     min="1"
                     max="48"
@@ -260,10 +260,12 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
               ROI Analysis
             </div>
             <div class="sliders-grid-2">
-              <div class="slider-row">
-                <div class="slider-header">
-                  <label class="slider-label" for="input-arr">Annual Recurring Revenue</label>
-                  <span class="slider-value" data-display="arr">$10M</span>
+              <div class="brutal-slider">
+                <div class="brutal-slider__header">
+                  <label class="brutal-slider__label" for="input-arr"
+                    >Annual Recurring Revenue</label
+                  >
+                  <span class="brutal-slider__value" data-display="arr">$10M</span>
                 </div>
                 <input
                   id="input-arr"
@@ -271,13 +273,13 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                   min="0"
                   max="100"
                   step="1"
-                  class="calc-slider"
+                  class="brutal-slider__input"
                   data-input="arr"
                 />
-                <div class="slider-hints">
+                <div class="brutal-slider__hints">
                   <input
                     type="text"
-                    class="hint-input hint-input--currency"
+                    class="brutal-slider__direct brutal-slider__direct--currency"
                     data-direct="arr"
                     value="10000000"
                     aria-label="Annual recurring revenue in dollars"
@@ -285,10 +287,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                 </div>
               </div>
 
-              <div class="slider-row">
-                <div class="slider-header">
-                  <label class="slider-label" for="input-budget">Remediation Budget</label>
-                  <span class="slider-value" data-display="budget">$500K</span>
+              <div class="brutal-slider">
+                <div class="brutal-slider__header">
+                  <label class="brutal-slider__label" for="input-budget">Remediation Budget</label>
+                  <span class="brutal-slider__value" data-display="budget">$500K</span>
                 </div>
                 <input
                   id="input-budget"
@@ -296,13 +298,13 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                   min="0"
                   max="100"
                   step="1"
-                  class="calc-slider"
+                  class="brutal-slider__input"
                   data-input="budget"
                 />
-                <div class="slider-hints">
+                <div class="brutal-slider__hints">
                   <input
                     type="text"
-                    class="hint-input hint-input--currency"
+                    class="brutal-slider__direct brutal-slider__direct--currency"
                     data-direct="budget"
                     value="500000"
                     aria-label="Remediation budget in dollars"
@@ -552,52 +554,23 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     gap: var(--spacing-lg) var(--spacing-2xl);
   }
 
-  /* ── Slider rows ──────────────────────────────────────────────────────── */
-  .slider-row {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-
-  .slider-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: var(--gap-tight);
-  }
-
-  .slider-label {
-    font-size: var(--text-sm);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    cursor: pointer;
+  /* ── Slider overrides — base styles from shared .brutal-slider in form.css ── */
+  .brutal-slider__label {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .slider-value {
-    font-size: var(--text-sm);
-    font-weight: var(--font-weight-semibold);
-    font-family: var(--font-family-mono);
-    color: var(--color-primary);
-    white-space: nowrap;
+  .brutal-slider__value {
     flex-shrink: 0;
   }
 
-  .slider-hints {
-    display: flex;
-    justify-content: center;
-    margin-top: 2px;
+  .brutal-slider__hints {
     font-size: var(--text-xs);
     color: var(--text-muted);
     opacity: 0.7;
   }
-
-  /* .hint-input base styles, hover, focus, dark theme — all in global.css */
 
   .slider-benchmark {
     font-size: var(--text-xs);
@@ -606,58 +579,6 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     font-style: italic;
     margin-top: 2px;
   }
-
-  /* ── Slider track/thumb ───────────────────────────────────────────────── */
-  .calc-slider {
-    appearance: none;
-    width: 100%;
-    height: 24px;
-    background: transparent;
-    outline: none;
-    cursor: pointer;
-    display: block;
-    padding: 0;
-    margin: 0;
-  }
-
-  .calc-slider::-webkit-slider-runnable-track {
-    height: 2px;
-    background: var(--border-light);
-    border-radius: 0;
-  }
-
-  .calc-slider::-moz-range-track {
-    height: 2px;
-    background: var(--border-light);
-    border-radius: 0;
-  }
-
-  .calc-slider::-webkit-slider-thumb {
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    background: var(--color-primary);
-    border-radius: 0;
-    cursor: pointer;
-    margin-top: -7px;
-    transition: box-shadow var(--transition-fast);
-    box-shadow: none;
-  }
-
-  .calc-slider::-webkit-slider-thumb:hover {
-    box-shadow: 0 0 0 4px var(--color-primary-20);
-  }
-
-  .calc-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    background: var(--color-primary);
-    border-radius: 0;
-    border: none;
-    cursor: pointer;
-  }
-
-  /* .calc-slider and .hint-input dark theme overrides — in global.css */
 
   /* ── Advanced section ─────────────────────────────────────────────────── */
   .advanced-section {
@@ -920,8 +841,8 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     outline: none;
   }
 
-  :global(html.dark-theme) .currency-select option {
-    background-color: var(--bg-dark-secondary);
+  .currency-select option {
+    background-color: light-dark(inherit, var(--bg-dark-secondary));
   }
 
   /* ── Copy Link button ─────────────────────────────────────────────────── */
@@ -1032,17 +953,17 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
       grid-template-columns: repeat(2, 1fr);
     }
 
-    .calc-slider {
+    .brutal-slider__input {
       height: 28px;
     }
 
-    .calc-slider::-webkit-slider-thumb {
+    .brutal-slider__input::-webkit-slider-thumb {
       width: 24px;
       height: 24px;
       margin-top: -10.5px;
     }
 
-    .calc-slider::-moz-range-thumb {
+    .brutal-slider__input::-moz-range-thumb {
       width: 24px;
       height: 24px;
     }
@@ -1064,8 +985,8 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     .breadcrumb,
     .hub-header,
     .calc-footer,
-    .calc-slider,
-    .slider-hints,
+    .brutal-slider__input,
+    .brutal-slider__hints,
     .slider-benchmark,
     .advanced-toggle,
     .advanced-section,
@@ -1145,20 +1066,20 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
       border-bottom: 1px solid #ccc;
     }
 
-    .slider-row {
+    .brutal-slider {
       flex-direction: row;
       justify-content: space-between;
       align-items: baseline;
       padding: 4px 0;
     }
 
-    .slider-label {
+    .brutal-slider__label {
       font-size: 10pt;
       font-family: var(--font-family-mono);
       color: var(--text-primary);
     }
 
-    .slider-value {
+    .brutal-slider__value {
       font-size: 10pt;
       font-family: var(--font-family-mono);
       color: var(--color-primary);

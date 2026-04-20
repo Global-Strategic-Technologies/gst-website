@@ -157,6 +157,14 @@ Brutalist Option Cards
   color: var(--text-secondary);
 }
 
+.brutal-option-card--compact .brutal-option-card__label {
+  justify-content: center;
+}
+
+.brutal-option-card--compact .brutal-option-card__description {
+  margin-left: 0;
+}
+
 /* -- selected-outline: border + text only, no fill -- */
 
 .brutal-option-card--selected-outline {

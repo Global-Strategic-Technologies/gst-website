@@ -51,46 +51,50 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ### BL-002: Sentry Source Map Upload Activation
 
-**Source**: SENTRY_MANUAL_SETUP.md | **Effort**: 30 min | **Status**: Open
+**Source**: SENTRY_MANUAL_SETUP.md | **Effort**: 30 min | **Status**: Complete (April 2026)
 
 **As a** developer, **I want** Sentry source maps uploaded on production deploys **so that** error stack traces show original TypeScript source lines instead of minified output.
 
 #### Acceptance Criteria
 
-- [ ] Organization Auth Token created at sentry.io
-- [ ] `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` environment variables set in Vercel (Production only)
-- [ ] Production deploy logs show "Uploading source maps..."
-- [ ] Source map artifacts appear in Sentry Releases dashboard
-- [ ] Error stack traces in Sentry resolve to original source files
+- [x] Organization Auth Token created at sentry.io
+- [x] `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` environment variables set in Vercel (Production only)
+- [x] Production deploy logs show source map upload (silent mode suppresses verbose output)
+- [x] Source map artifacts appear in Sentry Releases dashboard
+- [x] Error stack traces in Sentry resolve to original source files
+- [x] GitHub stack trace linking configured (code path mapping: `src/` → `src/`)
+- [x] CSP updated for Sentry US region (`*.ingest.us.sentry.io`) and replay worker (`worker-src blob:`)
 
 #### Technical Context
 
 - Sentry is already integrated in code (`sentry.client.config.ts`, `sentry.server.config.ts`)
-- Source map upload wired in `astro.config.mjs` — just needs env vars to activate
+- Source map upload wired in `astro.config.mjs` with `silent: true` to suppress inline script warnings
+- CSP fix landed in PR #95 — connect-src wildcard didn't cover US regional endpoint
+- GitHub stack trace linking configured in Sentry dashboard (Settings → Integrations → GitHub → Code Mappings)
 - Alert tag infrastructure in place (`area:inoreader-api`, `area:redis-connection`, etc.)
-- This is a manual/ops task — create token, set env vars, trigger deploy, verify
 
 ---
 
 ### BL-003: Sentry Alert Rule Configuration
 
-**Source**: SENTRY_MANUAL_SETUP.md | **Effort**: 30 min | **Status**: Open
+**Source**: SENTRY_MANUAL_SETUP.md | **Effort**: 30 min | **Status**: Complete (April 2026)
 
 **As a** site operator, **I want** Sentry alert rules configured **so that** I am notified of new errors, error spikes, and critical subsystem failures.
 
 #### Acceptance Criteria
 
-- [ ] "New issue" alert created (triggers on all new issues)
-- [ ] "High-volume error spike" alert created (>10 events/hour)
-- [ ] "Inoreader API failure" alert created (tag: `area:inoreader-api`)
-- [ ] "Redis connection failure" alert created (tag: `area:redis-connection`)
-- [ ] Alerts tested with a manual error trigger
+- [x] "New issue" alert created (triggers on all new issues)
+- [x] "High-volume error spike" alert created (>10 events/hour)
+- [x] "Inoreader API failure" alert created (tag: `area:inoreader-api`)
+- [x] "Redis connection failure" alert created (tag: `area:redis-connection`)
+- [x] Alerts tested with a manual error trigger
 - [ ] Optional: Slack or PagerDuty integration configured
 
 #### Technical Context
 
 - All configuration happens in the Sentry dashboard, not in code
 - Alert tags are already instrumented in the codebase
+- GitHub auto-issue creation available via alert rule actions (Settings → Alerts → THEN → "Create a new GitHub issue")
 - See [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md) for tag reference table, troubleshooting guide, and consent gating evaluation
 
 ---
@@ -197,74 +201,77 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ### BL-008: Hub Tools UX Unification Phase 1 — Quick Wins
 
-**Source**: HUB_TOOLS_UX_UNIFICATION.md | **Effort**: Small | **Status**: Open
+**Source**: HUB_TOOLS_UX_UNIFICATION.md | **Effort**: Small | **Status**: Complete (April 2026)
 
 **As a** developer, **I want** the option card and button patterns unified across hub tools **so that** I maintain one pattern instead of three independent implementations.
 
 #### Acceptance Criteria
 
-- [ ] DM's `.option-card` pattern moved to `global.css` as shared class
-- [ ] TechPar `.tp-stage-card` and ICG `.icg-stage-card`/`.icg-opt-btn` migrated to shared `.option-card` class with `.option-card--compact` modifier
-- [ ] TechPar `.tp-btn-share/back/next` replaced with `.hub-btn--secondary`/`.cta-button`
-- [ ] ICG `.icg-btn-primary/secondary` wrappers removed, uses `.hub-btn` directly
-- [ ] `.no-print` utility added to `global.css`
-- [ ] RegMap gets `@media print` block
-- [ ] Net CSS impact: ~-60 tool-specific lines
+- [x] DM's `.option-card` pattern extracted to shared `brutal-option-card` in `components/cards.css`
+- [x] TechPar `.tp-stage-card` migrated to `brutal-option-card--compact` + `brutal-option-card--selected`
+- [x] ICG already using `brutal-option-card--compact` (no `.icg-stage-card` ever existed)
+- [x] TechPar `.tp-btn-share` replaced with `brutal-btn--secondary`; `.tp-btn-next`/`.tp-btn-back` already used `brutal-btn` as base
+- [x] ICG `.icg-btn-primary--full` wrapper removed (was a 3-line padding override)
+- [x] Shared `.brutal-btn--copied` modifier added to `components/buttons.css` for copy-feedback state
+- [x] `.no-print` utility added to `global.css`
+- [x] RegMap already had `@media print` block (no change needed)
 
 #### Technical Context
 
-- Divergence map: 3 independent option/stage card implementations, 3 different button approaches
-- Target: DM's `.option-card` is the most complete (icon, label, description, selected state, dark theme, focus-visible)
-- Files: `global.css`, TechPar page, ICG page, RegMap page
-- No visual changes to end users — same appearance, shared classes
-- Verification: build, unit/integration tests, visual diff at desktop/768px/480px in both themes
+- All hub tools now use `brutal-option-card` for stage/option selection and `brutal-btn` for actions
+- TechPar JS updated in `techpar-ui.ts` and `techpar/dom.ts` (class selectors + active state toggles)
+- Copy feedback uses shared `brutal-btn--copied` modifier (reusable by any tool)
+- Net CSS impact: ~65 lines of tool-specific card/button CSS deleted
 
 ---
 
 ### BL-009: Hub Tools UX Unification Phase 2 — Dark Theme Variable Migration
 
-**Source**: HUB_TOOLS_UX_UNIFICATION.md | **Effort**: Medium | **Status**: Open
+**Source**: HUB_TOOLS_UX_UNIFICATION.md | **Effort**: Medium | **Status**: Complete ✅
 
 **As a** developer, **I want** all hub tools to use CSS variables for dark theme instead of explicit `:global(html.dark-theme)` selectors **so that** theme changes require editing one variable, not 82 scattered overrides.
 
 #### Acceptance Criteria
 
-- [ ] All 82 explicit dark theme overrides audited and cataloged (DM: 27, ICG: 31, RegMap: 24)
-- [ ] Missing dark-theme variables created in `variables.css` (~5-10 new vars)
-- [ ] DM: 27 `:global(html.dark-theme)` selectors replaced with variable references
-- [ ] ICG: 31 selectors replaced
-- [ ] RegMap: 24 selectors replaced
-- [ ] Zero tool-scoped `:global(html.dark-theme)` overrides remain
+- [x] All 82 explicit dark theme overrides audited and cataloged (DM: 27, ICG: 31, RegMap: 24)
+- [x] Missing dark-theme variables created in `variables.css` (~5-10 new vars)
+- [x] DM: 27 → 2 remaining (opacity overrides — non-color, correct per STYLES_GUIDE)
+- [x] ICG: 31 → 0 remaining
+- [x] RegMap: 24 → 1 remaining (CompliancePanel box-shadow — non-color, correct per STYLES_GUIDE)
+- [x] TDC: 1 → 0 remaining
+- [x] TechPar: 1 → 0 remaining (was redundant no-op, deleted)
+- [x] All color-property overrides migrated to `light-dark()` or CSS variables
+- [x] 3 legitimate non-color overrides remain (DM opacity ×2, CompliancePanel box-shadow) — permitted by STYLES_GUIDE.md
 
 #### Technical Context
 
-- TechPar already uses zero explicit dark overrides (CSS variables only) — this is the target pattern per STYLES_GUIDE.md
-- TDC has only 1 override (near-complete)
-- Each tool page is a single file to modify
+- All hub tools now follow the target pattern: `light-dark()` for color properties, `:global(html.dark-theme)` reserved for non-color properties only
+- Original 82 overrides reduced to 3 (all non-color, all correct per STYLES_GUIDE.md)
 - Verification: build, tests, visual diff in both themes across all tools
 
 ---
 
 ### BL-010: Hub Tools UX Unification Phase 3 — Navigation and Form Patterns
 
-**Source**: HUB_TOOLS_UX_UNIFICATION.md | **Effort**: Medium | **Status**: Open
+**Source**: HUB_TOOLS_UX_UNIFICATION.md | **Effort**: Medium | **Status**: Complete ✅
 
 **As a** developer, **I want** navigation and form patterns extracted into shared classes **so that** new tools can reuse tab bars, progress indicators, and form fields without reimplementing them.
 
 #### Acceptance Criteria
 
-- [ ] TechPar `.tp-tab-bar`/`.tp-tab` extracted to shared `.tool-tabs`/`.tool-tab` in `global.css`
-- [ ] DM `.wizard-progress` renamed to `.tool-wizard-progress` in global
-- [ ] ICG `.icg-progress` renamed to `.tool-progress-bar` in global
-- [ ] TechPar `.tp-field`/`.tp-hint`/`.tp-input-wrap` extracted to `.tool-field`/`.tool-field__hint`/`.tool-field__input`
-- [ ] TDC `.calc-slider`/`.slider-row` extracted to `.tool-slider`/`.tool-slider-row`
-- [ ] Tools adopt shared classes
+- [x] TechPar `.tp-tab-bar`/`.tp-tab` extracted to shared `.tool-tab-bar`/`.tool-tab` in `tool-ui.css`
+- [x] DM `.wizard-progress`/`.progress-segment` extracted to `.tool-wizard-progress`/`.tool-wizard-step` in `progress.css`
+- [x] ICG `.icg-progress` removed — uses `.brutal-progress-bar` directly
+- [x] TechPar `.tp-field`/`.tp-hint`/`.tp-input-wrap` migrated to existing `.brutal-field` + new prefix/suffix modifiers in `form.css`
+- [x] TDC `.calc-slider`/`.slider-row` consolidated into existing `.brutal-slider` in `form.css`
+- [x] Brand page demos updated to use shared classes (removed ~140 lines of `.brand-*` duplicates)
+- [x] All tools adopt shared classes
 
 #### Technical Context
 
-- Three different navigation paradigms (tabs, segmented wizard, linear progress bar) for three different UX needs — they solve different problems and should not be merged, only named consistently
-- Form controls: only TDC has sliders, only TechPar has text inputs — document in design system but don't force consolidation until a second tool needs them
-- Estimated CSS impact: -150 tool-specific lines, +120 shared lines (net -30, major reusability gain)
+- Used existing `.brutal-field` and `.brutal-slider` patterns instead of creating `.tool-*` duplicates
+- Three navigation paradigms kept distinct (tabs, wizard, progress bar) — unified naming only
+- Brand page now serves as living reference using actual shared classes
 
 ---
 

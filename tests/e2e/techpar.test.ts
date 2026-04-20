@@ -19,7 +19,7 @@ async function fillInput(page: Page, attr: string, value: string): Promise<void>
 }
 
 async function clickTab(page: Page, tab: string): Promise<void> {
-  await page.click(`.tp-tab[data-tab="${tab}"]`);
+  await page.click(`.tool-tab[data-tab="${tab}"]`);
   // Wait for the target panel to become active before proceeding
   await page.waitForFunction(
     (t) => document.querySelector(`[data-panel="${t}"]`)?.classList.contains('tp-panel--active'),
@@ -53,9 +53,9 @@ test.describe('TechPar - Profile tab', () => {
     // Selecting a stage updates its visual state
     const seedCard = page.locator('[data-stage="seed"]');
     await seedCard.click();
-    await expect(seedCard).toHaveClass(/tp-stage-card--active/);
+    await expect(seedCard).toHaveClass(/brutal-option-card--selected/);
     const bcCard = page.locator('[data-stage="series_bc"]');
-    await expect(bcCard).not.toHaveClass(/tp-stage-card--active/);
+    await expect(bcCard).not.toHaveClass(/brutal-option-card--selected/);
   });
 
   test('"Enter technology costs" button navigates to Costs tab', async ({ page }) => {
@@ -450,7 +450,7 @@ test.describe('TechPar - Regression', () => {
 
     await expect(page.locator('[data-panel="profile"]')).toHaveClass(/tp-panel--active/);
     expect(new URL(page.url()).searchParams.has('h')).toBe(false);
-    await expect(page.locator('.tp-stage-card--active')).toHaveCount(0);
+    await expect(page.locator('.brutal-option-card--selected')).toHaveCount(0);
     await expect(page.locator('#tp-arr')).toHaveValue('');
   });
 });

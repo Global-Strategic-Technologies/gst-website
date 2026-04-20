@@ -138,8 +138,7 @@ const domainCount = DOMAINS.length;
             <button
               data-action="start"
               type="button"
-              class="brutal-btn brutal-btn--primary brutal-btn--full icg-btn-primary--full"
-              >Begin assessment</button
+              class="brutal-btn brutal-btn--primary brutal-btn--full">Begin assessment</button
             >
 
             <div class="tool-action-bar tool-action-bar--center">
@@ -164,12 +163,11 @@ const domainCount = DOMAINS.length;
         <div data-view="wizard" class="icg-view is-hidden">
           <div class="wizard-content">
             <!-- Progress bar -->
-            <div class="brutal-progress-bar icg-progress">
-              <div class="brutal-progress-bar__track icg-progress__track">
-                <div class="brutal-progress-bar__fill icg-progress__fill" data-progress-fill></div>
+            <div class="brutal-progress-bar" style="margin-bottom: var(--spacing-xl)">
+              <div class="brutal-progress-bar__track">
+                <div class="brutal-progress-bar__fill" data-progress-fill></div>
               </div>
-              <span class="brutal-progress-bar__label icg-progress__label" data-progress-label
-              ></span>
+              <span class="brutal-progress-bar__label" data-progress-label></span>
             </div>
 
             <!-- Domain header -->
@@ -568,16 +566,6 @@ const domainCount = DOMAINS.length;
   }
 
   /* stat-tile — visual treatment from global .brutal-stat-tile; no scoped overrides needed */
-
-  /* ── Button overrides (base styles from global .brutal-btn) ────────── */
-  .icg-btn-primary--full {
-    padding: var(--spacing-md) 0;
-  }
-
-  /* ── Progress bar — layout overrides only; visual treatment from .brutal-progress-bar ── */
-  .icg-progress {
-    margin-bottom: var(--spacing-xl);
-  }
 
   /* ── Domain header ────────────────────────────────────────────────────── */
   .icg-domain-header {
@@ -1208,7 +1196,7 @@ const domainCount = DOMAINS.length;
     }
 
     /* Progress bar: tighter layout */
-    .icg-progress {
+    .brutal-progress-bar {
       gap: var(--spacing-sm);
       margin-bottom: var(--spacing-lg);
     }

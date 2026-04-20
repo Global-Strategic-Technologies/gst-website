@@ -35,6 +35,7 @@ import {
   runCompute,
   syncUrlState,
   hydrateFromUrl,
+  syncRadioGroup,
 } from './techpar/dom';
 import { renderAnalysis, renderTrajectory } from './techpar/chart';
 
@@ -158,7 +159,7 @@ function updateAll() {
 // ─── Event listeners ──────────────────────────────────────
 
 // Tab buttons
-$$('.tp-tab').forEach((btn) => {
+$$('.tool-tab').forEach((btn) => {
   btn.addEventListener('click', () => {
     const tab = (btn as HTMLElement).dataset.tab || 'profile';
     trackEvent({ event: 'tp_tab_change', category: 'tool', tab, page: 'techpar' });
@@ -193,10 +194,14 @@ document.querySelectorAll('[data-action]').forEach((btn) => {
 });
 
 // Stage selector
-$$('.tp-stage-card').forEach((card) => {
+$$('.brutal-option-card[data-stage]').forEach((card) => {
   card.addEventListener('click', () => {
-    $$('.tp-stage-card').forEach((c) => c.classList.remove('tp-stage-card--active'));
-    card.classList.add('tp-stage-card--active');
+    $$('.brutal-option-card[data-stage]').forEach((c) => {
+      c.classList.remove('brutal-option-card--selected');
+      c.setAttribute('aria-checked', 'false');
+    });
+    card.classList.add('brutal-option-card--selected');
+    card.setAttribute('aria-checked', 'true');
     tp.stageKey = (card as HTMLElement).dataset.stage || 'series_bc';
     trackEvent({ event: 'tp_stage_select', category: 'tool', stage: tp.stageKey, page: 'techpar' });
     if (!tpStartFired) {
@@ -218,8 +223,7 @@ if (growthCustomInput)
 
 $$('[data-growth]').forEach((btn) => {
   btn.addEventListener('click', () => {
-    $$('[data-growth]').forEach((b) => b.classList.remove('tp-seg__btn--active'));
-    btn.classList.add('tp-seg__btn--active');
+    syncRadioGroup('[data-growth]', btn);
     tp.growthRate = parseInt((btn as HTMLElement).dataset.growth || '20', 10);
     if (growthCustomInput) growthCustomInput.value = String(tp.growthRate);
     updateAll();
@@ -229,7 +233,10 @@ $$('[data-growth]').forEach((btn) => {
 growthCustomInput?.addEventListener('input', () => {
   const val = parseFloat(growthCustomInput.value);
   if (!isNaN(val) && val > 0) {
-    $$('[data-growth]').forEach((b) => b.classList.remove('tp-seg__btn--active'));
+    $$('[data-growth]').forEach((b) => {
+      b.classList.remove('tp-seg__btn--active');
+      b.setAttribute('aria-checked', 'false');
+    });
     tp.growthRate = val;
     updateAll();
   }
@@ -238,8 +245,7 @@ growthCustomInput?.addEventListener('input', () => {
 // Mode toggle
 $$('[data-mode]').forEach((btn) => {
   btn.addEventListener('click', () => {
-    $$('[data-mode]').forEach((b) => b.classList.remove('tp-seg__btn--active'));
-    btn.classList.add('tp-seg__btn--active');
+    syncRadioGroup('[data-mode]', btn);
     tp.mode = ((btn as HTMLElement).dataset.mode || 'quick') as 'quick' | 'deepdive';
     trackEvent({ event: 'tp_mode_change', category: 'tool', mode: tp.mode, page: 'techpar' });
     const rdQuick = g('rd-quick');
@@ -260,10 +266,9 @@ $$('[data-mode]').forEach((btn) => {
 // Currency selector
 $$('[data-currency]').forEach((btn) => {
   btn.addEventListener('click', () => {
-    $$('[data-currency]').forEach((b) => b.classList.remove('tp-seg__btn--active'));
-    btn.classList.add('tp-seg__btn--active');
+    syncRadioGroup('[data-currency]', btn);
     tp.currencySymbol = (btn as HTMLElement).dataset.currency || '$';
-    document.querySelectorAll('.tp-input-pre').forEach((pre) => {
+    document.querySelectorAll('.brutal-field__prefix').forEach((pre) => {
       pre.textContent = tp.currencySymbol;
     });
     updateChipCurrencies();
@@ -285,8 +290,7 @@ $$('[data-infra-period]').forEach((btn) => {
 // Industry selector
 $$('[data-industry]').forEach((btn) => {
   btn.addEventListener('click', () => {
-    $$('[data-industry]').forEach((b) => b.classList.remove('tp-seg__btn--active'));
-    btn.classList.add('tp-seg__btn--active');
+    syncRadioGroup('[data-industry]', btn);
     tp.industry = ((btn as HTMLElement).dataset.industry || 'saas') as Industry;
     updateAll();
   });

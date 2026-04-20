@@ -121,12 +121,36 @@ These are the `area` tags already instrumented in the codebase:
 
 ---
 
+## GitHub Integration
+
+### Stack Trace Linking
+
+Configured in Sentry → Settings → Integrations → GitHub → Code Mappings:
+
+| Field            | Value                  |
+| ---------------- | ---------------------- |
+| Project          | gst-website            |
+| Repo             | reidperyam/gst-website |
+| Branch           | master                 |
+| Stack Trace Root | src/                   |
+| Source Code Root | src/                   |
+
+This makes file paths in Sentry stack traces clickable — clicking a path like `src/utils/filterLogic.ts:199` opens that file at that line in GitHub, at the commit that was running when the error occurred.
+
+### Auto-Issue Creation (Optional)
+
+Sentry can automatically create GitHub issues from alerts. Configure via Sentry → Alerts → Create Alert Rule → THEN → "Create a new GitHub issue". See BL-003 in the backlog for alert rule configuration.
+
+---
+
 ## Verification Checklist
 
-- [ ] Sentry auth token generated and stored in Vercel
-- [ ] `SENTRY_ORG` and `SENTRY_PROJECT` set in Vercel
-- [ ] Production deploy shows "Uploading source maps..." in build logs
-- [ ] Sentry Releases page shows source map artifacts
+- [x] Sentry auth token generated and stored in Vercel
+- [x] `SENTRY_ORG` and `SENTRY_PROJECT` set in Vercel
+- [x] `PUBLIC_SENTRY_DSN` set in Vercel
+- [x] CSP allows `*.ingest.us.sentry.io` (connect-src) and `blob:` (worker-src)
+- [x] Source maps uploading (silent mode suppresses inline script warnings)
+- [x] GitHub code mapping configured for stack trace linking
 - [ ] "New issue" alert rule created
 - [ ] "High-volume error spike" alert rule created
 - [ ] "Inoreader API failure" alert rule created
@@ -179,3 +203,4 @@ Note: this means errors occurring before or without consent will be invisible. W
 
 _Created: April 13, 2026 — Platform Hardening V1 Phase 9_
 _Updated: April 17, 2026 — Added consent gating evaluation (Phase 9 item #16)_
+_Updated: April 19, 2026 — CSP fixes, source map silent mode, GitHub stack trace linking, checklist refresh_

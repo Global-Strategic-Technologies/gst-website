@@ -17,6 +17,15 @@ import { LS_KEY } from './state';
 export const $$ = (sel: string) => document.querySelectorAll(sel);
 export const g = (attr: string) => document.querySelector(`[data-${attr}]`) as HTMLElement | null;
 
+/** Sync aria-checked on a radiogroup: set one button active, rest inactive. */
+export function syncRadioGroup(selector: string, active: Element): void {
+  $$(selector).forEach((b) => {
+    const isActive = b === active;
+    b.classList.toggle('tp-seg__btn--active', isActive);
+    b.setAttribute('aria-checked', String(isActive));
+  });
+}
+
 export function getInput(name: string): number {
   const el = document.querySelector(`[data-input="${name}"]`) as HTMLInputElement | null;
   const raw = el?.value?.replace(/,/g, '') || '';
@@ -37,9 +46,14 @@ export function goTab(
   tab: string,
   deps: { runCompute: () => TechParResult | null; renderTrajectory: (r: TechParResult) => void }
 ) {
-  $$('.tp-tab').forEach((t) => t.classList.remove('tp-tab--active'));
+  $$('.tool-tab').forEach((t) => {
+    t.classList.remove('tool-tab--active');
+    t.setAttribute('aria-selected', 'false');
+  });
   $$('.tp-panel').forEach((p) => p.classList.remove('tp-panel--active'));
-  document.querySelector(`.tp-tab[data-tab="${tab}"]`)?.classList.add('tp-tab--active');
+  const activeTab = document.querySelector(`.tool-tab[data-tab="${tab}"]`);
+  activeTab?.classList.add('tool-tab--active');
+  activeTab?.setAttribute('aria-selected', 'true');
   document.querySelector(`[data-panel="${tab}"]`)?.classList.add('tp-panel--active');
   document.querySelector('[data-tab-bar]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   if (tab === 'trajectory') {
@@ -51,7 +65,7 @@ export function goTab(
 // ─── Copy link ────────────────────────────────────────────
 export function copyLink(btn: HTMLButtonElement) {
   trackEvent({ event: 'tp_copy_link', category: 'tool', page: 'techpar' });
-  copyWithFeedback(window.location.href, btn, { copiedClass: 'tp-btn-share--copied' });
+  copyWithFeedback(window.location.href, btn, { copiedClass: 'brutal-btn--copied' });
 }
 
 // ─── Copy summary ─────────────────────────────────────────
@@ -68,7 +82,7 @@ export function copySummary(btn: HTMLButtonElement) {
     window.location.href,
     validHist.length ? validHist : undefined
   );
-  copyWithFeedback(text, btn, { copiedClass: 'tp-btn-share--copied' });
+  copyWithFeedback(text, btn, { copiedClass: 'brutal-btn--copied' });
 }
 
 // ─── Export PDF ───────────────────────────────────────────
@@ -262,9 +276,11 @@ export function resetAll(deps: {
   const setBtn = document.querySelector('[data-action="set-baseline"]') as HTMLElement | null;
   if (setBtn) setBtn.style.display = '';
   $$('[data-currency]').forEach((b) => {
-    b.classList.toggle('tp-seg__btn--active', (b as HTMLElement).dataset.currency === '$');
+    const isActive = (b as HTMLElement).dataset.currency === '$';
+    b.classList.toggle('tp-seg__btn--active', isActive);
+    b.setAttribute('aria-checked', String(isActive));
   });
-  document.querySelectorAll('.tp-input-pre').forEach((pre) => {
+  document.querySelectorAll('.brutal-field__prefix').forEach((pre) => {
     pre.textContent = '$';
   });
 
@@ -276,16 +292,29 @@ export function resetAll(deps: {
 
   tp.industry = 'saas';
   $$('[data-industry]').forEach((b) => {
-    b.classList.toggle('tp-seg__btn--active', (b as HTMLElement).dataset.industry === 'saas');
+    const isActive = (b as HTMLElement).dataset.industry === 'saas';
+    b.classList.toggle('tp-seg__btn--active', isActive);
+    b.setAttribute('aria-checked', String(isActive));
   });
 
-  $$('.tp-stage-card').forEach((c) => c.classList.remove('tp-stage-card--active'));
-  $$('[data-growth]').forEach((b) => b.classList.remove('tp-seg__btn--active'));
+  $$('.brutal-option-card[data-stage]').forEach((c) => {
+    c.classList.remove('brutal-option-card--selected');
+    c.setAttribute('aria-checked', 'false');
+  });
+  $$('[data-growth]').forEach((b) => {
+    b.classList.remove('tp-seg__btn--active');
+    b.setAttribute('aria-checked', 'false');
+  });
   const growthCustomEl = document.getElementById('tp-growth-custom') as HTMLInputElement | null;
   if (growthCustomEl) growthCustomEl.value = '';
 
-  $$('[data-mode]').forEach((b) => b.classList.remove('tp-seg__btn--active'));
-  document.querySelector('[data-mode="quick"]')?.classList.add('tp-seg__btn--active');
+  $$('[data-mode]').forEach((b) => {
+    b.classList.remove('tp-seg__btn--active');
+    b.setAttribute('aria-checked', 'false');
+  });
+  const quickBtn = document.querySelector('[data-mode="quick"]');
+  quickBtn?.classList.add('tp-seg__btn--active');
+  quickBtn?.setAttribute('aria-checked', 'true');
   const rdQuick = g('rd-quick');
   const rdDeep = g('rd-deep');
   if (rdQuick) rdQuick.style.display = 'block';
@@ -294,9 +323,10 @@ export function resetAll(deps: {
   const deepTotal = g('deep-total');
   if (deepTotal) deepTotal.innerHTML = '\u2014';
 
-  document
-    .querySelectorAll('.tp-arr-chip')
-    .forEach((c) => c.classList.remove('tp-arr-chip--active'));
+  document.querySelectorAll('.tp-arr-chip').forEach((c) => {
+    c.classList.remove('tp-arr-chip--active');
+    c.setAttribute('aria-pressed', 'false');
+  });
 
   if (tp.trajChart) {
     tp.trajChart.destroy();
@@ -327,19 +357,19 @@ export function renderHistRows(updateAll: () => void) {
     <div class="tp-hist-row" data-hist-row="${i}">
         <div class="tp-hist-field tp-hist-field--label">
             <span class="tp-hist-field__lbl">Year</span>
-            <input data-hist-label="${i}" value="${pt.label}" placeholder="${yearHint}" class="tp-input--no-pre" />
+            <input data-hist-label="${i}" value="${pt.label}" placeholder="${yearHint}" class="brutal-field__input--no-prefix" />
         </div>
         <div class="tp-hist-field">
             <span class="tp-hist-field__lbl">ARR / Revenue</span>
-            <div class="tp-input-wrap">
-                <span class="tp-input-pre">${tp.currencySymbol}</span>
+            <div class="brutal-field__input-wrap">
+                <span class="brutal-field__prefix">${tp.currencySymbol}</span>
                 <input type="number" data-hist-arr="${i}" value="${pt.arr || ''}" placeholder="0" min="0" inputmode="numeric" />
             </div>
         </div>
         <div class="tp-hist-field">
             <span class="tp-hist-field__lbl">Total annual tech spend</span>
-            <div class="tp-input-wrap">
-                <span class="tp-input-pre">${tp.currencySymbol}</span>
+            <div class="brutal-field__input-wrap">
+                <span class="brutal-field__prefix">${tp.currencySymbol}</span>
                 <input type="number" data-hist-tech="${i}" value="${pt.totalTechSpend || ''}" placeholder="0" min="0" inputmode="numeric" />
             </div>
         </div>
@@ -395,7 +425,9 @@ export function syncArrChips() {
   const current = getInput('arr');
   document.querySelectorAll<HTMLButtonElement>('[data-arr-val]').forEach((chip) => {
     const chipVal = Number(chip.dataset.arrVal);
-    chip.classList.toggle('tp-arr-chip--active', chipVal === current && current > 0);
+    const isActive = chipVal === current && current > 0;
+    chip.classList.toggle('tp-arr-chip--active', isActive);
+    chip.setAttribute('aria-pressed', String(isActive));
   });
 }
 
@@ -427,10 +459,9 @@ export function syncInfraPeriodUI() {
   if (monthlyChips) monthlyChips.style.display = tp.infraPeriod === 'monthly' ? 'flex' : 'none';
   if (annualChips) annualChips.style.display = tp.infraPeriod === 'annual' ? 'flex' : 'none';
   $$('[data-infra-period]').forEach((b) => {
-    b.classList.toggle(
-      'tp-seg__btn--active',
-      (b as HTMLElement).dataset.infraPeriod === tp.infraPeriod
-    );
+    const isActive = (b as HTMLElement).dataset.infraPeriod === tp.infraPeriod;
+    b.classList.toggle('tp-seg__btn--active', isActive);
+    b.setAttribute('aria-checked', String(isActive));
   });
 }
 
@@ -580,9 +611,11 @@ export function hydrateFromUrl() {
   if (u) {
     tp.currencySymbol = u;
     $$('[data-currency]').forEach((b) => {
-      b.classList.toggle('tp-seg__btn--active', (b as HTMLElement).dataset.currency === u);
+      const isActive = (b as HTMLElement).dataset.currency === u;
+      b.classList.toggle('tp-seg__btn--active', isActive);
+      b.setAttribute('aria-checked', String(isActive));
     });
-    document.querySelectorAll('.tp-input-pre').forEach((pre) => {
+    document.querySelectorAll('.brutal-field__prefix').forEach((pre) => {
       pre.textContent = tp.currencySymbol;
     });
     updateChipCurrencies();
@@ -598,27 +631,27 @@ export function hydrateFromUrl() {
   if (n && ['saas', 'fintech', 'marketplace', 'infra_hw', 'other'].includes(n)) {
     tp.industry = n as Industry;
     $$('[data-industry]').forEach((btn) => {
-      btn.classList.toggle(
-        'tp-seg__btn--active',
-        (btn as HTMLElement).dataset.industry === tp.industry
-      );
+      const isActive = (btn as HTMLElement).dataset.industry === tp.industry;
+      btn.classList.toggle('tp-seg__btn--active', isActive);
+      btn.setAttribute('aria-checked', String(isActive));
     });
   }
 
   if (state.stage) {
     tp.stageKey = state.stage;
-    $$('.tp-stage-card').forEach((c) => {
-      c.classList.toggle('tp-stage-card--active', (c as HTMLElement).dataset.stage === tp.stageKey);
+    $$('.brutal-option-card[data-stage]').forEach((c) => {
+      const isActive = (c as HTMLElement).dataset.stage === tp.stageKey;
+      c.classList.toggle('brutal-option-card--selected', isActive);
+      c.setAttribute('aria-checked', String(isActive));
     });
   }
 
   if (state.growthRate !== undefined) {
     tp.growthRate = state.growthRate;
     $$('[data-growth]').forEach((b) => {
-      b.classList.toggle(
-        'tp-seg__btn--active',
-        parseInt((b as HTMLElement).dataset.growth || '0', 10) === tp.growthRate
-      );
+      const isActive = parseInt((b as HTMLElement).dataset.growth || '0', 10) === tp.growthRate;
+      b.classList.toggle('tp-seg__btn--active', isActive);
+      b.setAttribute('aria-checked', String(isActive));
     });
     const gc = document.getElementById('tp-growth-custom') as HTMLInputElement | null;
     if (gc) gc.value = String(tp.growthRate);
@@ -627,7 +660,9 @@ export function hydrateFromUrl() {
   if (state.mode) {
     tp.mode = state.mode;
     $$('[data-mode]').forEach((b) => {
-      b.classList.toggle('tp-seg__btn--active', (b as HTMLElement).dataset.mode === tp.mode);
+      const isActive = (b as HTMLElement).dataset.mode === tp.mode;
+      b.classList.toggle('tp-seg__btn--active', isActive);
+      b.setAttribute('aria-checked', String(isActive));
     });
     const rdQuick = g('rd-quick');
     const rdDeep = g('rd-deep');
