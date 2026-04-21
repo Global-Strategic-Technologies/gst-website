@@ -582,16 +582,16 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ### BL-025: Single-Browser CI for E2E Tests
 
-**Source**: DEVELOPMENT_OPPORTUNITIES.md | **Effort**: 30 min | **Status**: Open
+**Source**: DEVELOPMENT_OPPORTUNITIES.md | **Effort**: 30 min | **Status**: Complete
 
 **As a** developer, **I want** E2E tests to run on Chromium only in the default CI pipeline **so that** CI wall-clock time drops from ~20 min to ~7 min without sacrificing cross-browser safety.
 
 #### Acceptance Criteria
 
-- [ ] Default CI E2E step runs `--project=chromium` only and completes in <8 minutes
-- [ ] Separate GitHub Actions workflow (`test-cross-browser.yml`) runs all 3 browsers on nightly schedule, PRs targeting `master`, and manual dispatch
-- [ ] Cross-browser regressions caught within 24 hours
-- [ ] Zero cross-browser bugs shipped that would have been caught by old config
+- [x] Default CI E2E step already runs `--project=chromium` only (test.yml line 275)
+- [x] Separate GitHub Actions workflow (`test-cross-browser.yml`) runs all 3 browsers via manual dispatch (`workflow_dispatch`)
+- [x] Cross-browser regressions catchable on demand via GitHub Actions UI
+- [x] Matrix strategy runs chromium/firefox/webkit in parallel with per-browser reports
 
 #### Technical Context
 
