@@ -85,6 +85,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                 step="1"
                 class="brutal-slider__input"
                 data-input="team-size"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="14"
+                aria-valuetext="8 engineers"
               />
               <div class="brutal-slider__hints">
                 <input
@@ -113,6 +117,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                 step="1"
                 class="brutal-slider__input"
                 data-input="salary"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="31"
+                aria-valuetext="$150K"
               />
               <div class="brutal-slider__hints">
                 <input
@@ -138,6 +146,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                 step="1"
                 class="brutal-slider__input"
                 data-input="maint-pct"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="25"
+                aria-valuetext="25%"
               />
               <div class="brutal-slider__hints">
                 <input
@@ -194,6 +206,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                   step="1"
                   class="brutal-slider__input"
                   data-input="incidents"
+                  aria-valuemin="0"
+                  aria-valuemax="20"
+                  aria-valuenow="3"
+                  aria-valuetext="3 per month"
                 />
                 <div class="brutal-slider__hints">
                   <input
@@ -222,6 +238,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                   step="1"
                   class="brutal-slider__input"
                   data-input="mttr"
+                  aria-valuemin="1"
+                  aria-valuemax="48"
+                  aria-valuenow="4"
+                  aria-valuetext="4 hours"
                 />
                 <div class="brutal-slider__hints">
                   <input
@@ -259,6 +279,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                     data-deploy-btn={i}
                     class={`deploy-btn${i === DEFAULT_STATE.deployIdx ? ' active' : ''}`}
                     type="button"
+                    aria-pressed={i === DEFAULT_STATE.deployIdx ? 'true' : 'false'}
                   >
                     {opt.label}
                   </button>
@@ -286,6 +307,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                   step="1"
                   class="brutal-slider__input"
                   data-input="arr"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="37"
+                  aria-valuetext="$10M"
                 />
                 <div class="brutal-slider__hints">
                   <input
@@ -311,6 +336,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                   step="1"
                   class="brutal-slider__input"
                   data-input="budget"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="33"
+                  aria-valuetext="$500K"
                 />
                 <div class="brutal-slider__hints">
                   <input
@@ -336,6 +365,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                 type="range"
                 min="0"
                 max="100"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="70"
+                aria-valuetext="70%"
                 step="1"
                 value="70"
                 class="brutal-slider__input"
@@ -349,7 +382,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
         </div>
 
         <!-- ── Results panel ───────────────────────────────────────── -->
-        <div class="results-section">
+        <div class="results-section" role="status" aria-live="polite" aria-atomic="false">
           <div class="brutal-tool-shell__section-label section-label">Results</div>
 
           <!-- Primary figure -->
@@ -1054,6 +1087,10 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
   }
 
   @media print {
+    /* Font sizes use pt (points) intentionally — pt is the correct unit for
+       print media. The project's var(--text-*) scale is rem-based and relative
+       to screen root font size, which produces unpredictable results in print. */
+
     /* ── Hide interactive chrome ─────────────────────────────────── */
     .site-header,
     .breadcrumb,
@@ -1076,7 +1113,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
       align-items: flex-end;
       padding: 0 0 var(--spacing-lg);
       margin-bottom: var(--spacing-lg);
-      border-bottom: 3px solid #05cd99;
+      border-bottom: 3px solid var(--color-primary);
     }
 
     .print-report-header__brand {
@@ -1109,7 +1146,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
       display: block !important;
       margin-top: var(--spacing-2xl);
       padding-top: var(--spacing-lg);
-      border-top: 1px solid #ccc;
+      border-top: 1px solid var(--border-light);
     }
 
     .print-report-footer p {
@@ -1137,7 +1174,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     /* ── Inputs: compact label + value rows ──────────────────────── */
     .inputs-section {
       padding: var(--spacing-md) 0;
-      border-bottom: 1px solid #ccc;
+      border-bottom: 1px solid var(--border-light);
     }
 
     .brutal-slider {
@@ -1179,7 +1216,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     /* ── Results: keep page together, strong divider ─────────────── */
     .results-section {
       background: none;
-      border-top: 3px solid #05cd99;
+      border-top: 3px solid var(--color-primary);
       padding: var(--spacing-lg) 0;
       break-inside: avoid;
     }
@@ -1205,7 +1242,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     }
 
     .result-stat {
-      border-top: 1px solid #ccc;
+      border-top: 1px solid var(--border-light);
       padding-top: 6px;
     }
 
@@ -1222,7 +1259,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     /* ── Advanced results: always show in print ──────────────────── */
     [data-adv-results] {
       display: block !important;
-      border-top: 1px solid #ccc;
+      border-top: 1px solid var(--border-light);
       padding-top: var(--spacing-md);
       break-inside: avoid;
     }
@@ -1242,7 +1279,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
       color: var(--text-primary);
       font-style: italic;
       line-height: 1.6;
-      border-left: 3px solid #05cd99;
+      border-left: 3px solid var(--color-primary);
       padding-left: 12px;
       margin-top: var(--spacing-lg);
       break-inside: avoid;
@@ -1253,7 +1290,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
       font-size: 8pt;
       color: var(--text-muted);
       padding: 8px 0;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border-light);
     }
 
     /* ── Page layout ─────────────────────────────────────────────── */
@@ -1459,7 +1496,9 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     // ── Deploy buttons ──
     document.querySelectorAll('[data-deploy-btn]').forEach((btn) => {
       const b = btn as HTMLElement;
-      b.classList.toggle('active', Number(b.dataset.deployBtn) === state.deployIdx);
+      const isActive = Number(b.dataset.deployBtn) === state.deployIdx;
+      b.classList.toggle('active', isActive);
+      b.setAttribute('aria-pressed', String(isActive));
     });
 
     // ── DORA message ──
@@ -1490,6 +1529,27 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     // ── Context-switch checkbox sync ──
     const ctxCheckbox = document.getElementById('input-context-switch') as HTMLInputElement | null;
     if (ctxCheckbox) ctxCheckbox.checked = state.contextSwitchOn;
+
+    // ── Slider ARIA (screen-reader-friendly value announcements) ──
+    const setAriaValue = (id: string, now: number, text: string) => {
+      const slider = document.getElementById(id);
+      if (slider) {
+        slider.setAttribute('aria-valuenow', String(now));
+        slider.setAttribute('aria-valuetext', text);
+      }
+    };
+    setAriaValue('input-team-size', state.teamSizePos, `${teamSize} engineers`);
+    setAriaValue('input-salary', state.salaryPos, fmtShortC(posToSalary(state.salaryPos)));
+    setAriaValue('input-maint-pct', state.maintPct, `${state.maintPct}%`);
+    setAriaValue(
+      'input-incidents',
+      state.incidents,
+      state.incidents === 0 ? 'None' : `${state.incidents} per month`
+    );
+    setAriaValue('input-mttr', state.mttr, `${state.mttr} hours`);
+    setAriaValue('input-arr', state.arrPos, fmtShortC(posToArr(state.arrPos)));
+    setAriaValue('input-budget', state.budgetPos, fmtShortC(posTobudget(state.budgetPos)));
+    setAriaValue('input-remediation', state.remediationPct, `${state.remediationPct}%`);
 
     // ── Slider endpoint hint labels (currency-sensitive) ──
     const hint = (key: string): HTMLElement | null =>
