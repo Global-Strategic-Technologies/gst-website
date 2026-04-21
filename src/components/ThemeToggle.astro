@@ -82,6 +82,7 @@ import DeltaIcon from './DeltaIcon.astro';
 
 <script>
   import { trackThemeToggle } from '../utils/analytics';
+  import * as Sentry from '@sentry/browser';
 
   const themeToggle = document.getElementById('themeToggle');
 
@@ -114,8 +115,12 @@ import DeltaIcon from './DeltaIcon.astro';
       const isDark = document.documentElement.classList.contains('dark-theme');
       try {
         localStorage.setItem('theme', isDark ? 'dark' : 'light');
-      } catch (e) {
-        console.error('Failed to save theme preference:', e);
+      } catch {
+        Sentry.addBreadcrumb({
+          category: 'theme-toggle',
+          message: 'localStorage write failed',
+          level: 'warning',
+        });
       }
       trackThemeToggle(isDark ? 'dark' : 'light');
     }

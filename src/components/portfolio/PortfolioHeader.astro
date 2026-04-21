@@ -531,6 +531,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 </style>
 
 <script>
+  import * as Sentry from '@sentry/browser';
   /* eslint-disable @typescript-eslint/no-explicit-any -- hasListener idiom on DOM elements */
   // Portfolio globals shared across PortfolioHeader, StickyControls, and PortfolioGrid.
   // Previously untyped is:inline JS — uses Record types to avoid strict typing of the
@@ -572,7 +573,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       const dataEl = document.getElementById('portfolio-data');
       allProjects = dataEl ? JSON.parse(dataEl.textContent!) : [];
     } catch (e) {
-      console.error('Failed to parse projects data:', e);
+      Sentry.captureException(e, { tags: { area: 'portfolio-data' } });
       allProjects = [];
     }
 
