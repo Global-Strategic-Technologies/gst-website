@@ -339,15 +339,15 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ### BL-014: Tech Debt Calculator — Calculation Model Improvements (P3)
 
-**Source**: TECH_DEBT_CALC_ROADMAP.md | **Effort**: S per item | **Status**: Open
+**Source**: TECH_DEBT_CALC_ROADMAP.md | **Effort**: S per item | **Status**: Complete
 
 **As a** PE advisor, **I want** more realistic calculation parameters **so that** outputs are defensible in diligence conversations.
 
 #### Acceptance Criteria
 
-- [ ] Partial remediation efficiency slider (0-100%, default 70%): `monthlySavings = totalMonthly * (efficiency/100)` instead of assuming 100% resolution
-- [ ] Context-switch overhead toggle in Deep Dive: adds ~23% overhead to direct labor cost (Weinberg's research), displayed as separate line item
-- [ ] Currency selector (USD/EUR/GBP/CAD/AUD): static multiplier applied to formatted outputs via `fmt()` and `fmtShort()` currency param
+- [x] Partial remediation efficiency slider (0-100%, default 70%): `monthlySavings = totalMonthly * (remediationPct/100)` in Advanced → ROI Analysis section
+- [x] Context-switch overhead toggle in Deep Dive: adds 23% overhead to direct labor cost (Weinberg's research), displayed as separate line item when enabled
+- [x] Currency selector (USD/EUR/GBP/CAD/AUD): already implemented — 5-currency `<select>` with static multipliers, currency-aware formatting in render and export
 
 #### Technical Context
 
