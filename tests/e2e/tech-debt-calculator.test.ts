@@ -433,4 +433,195 @@ test.describe('Tech Debt Calculator', () => {
       expect(urlAfter).toBe(urlBefore);
     });
   });
+
+  // ── Context-switch overhead toggle ────────────────────────────────────────
+
+  test.describe('context-switch overhead', () => {
+    test('enabling toggle shows context-switch cost line item and increases annual cost', async ({
+      page,
+    }) => {
+      await gotoCalc(page);
+      await jsClick(page, '[data-advanced-toggle]');
+
+      // Capture baseline
+      const baseAnnual = await getMetric(page, 'annual-cost');
+      const baseDirectLabor = await getMetric(page, 'direct-labor');
+
+      // Context-switch stat should be hidden initially
+      const ctxStat = page.locator('#ctx-switch-stat');
+      await expect(ctxStat).toBeHidden();
+
+      // Enable context-switch
+      await page.locator('#input-context-switch').check();
+
+      // Context-switch stat should now be visible with a value
+      await expect(ctxStat).toBeVisible();
+      const ctxCost = await getMetric(page, 'context-switch');
+      expect(ctxCost).not.toBe('—');
+      expect(ctxCost).toContain('/mo');
+
+      // Annual cost should have increased
+      const newAnnual = await getMetric(page, 'annual-cost');
+      const baseVal = parseFloat(baseAnnual.replace(/[^0-9.]/g, ''));
+      const newVal = parseFloat(newAnnual.replace(/[^0-9.]/g, ''));
+      expect(newVal).toBeGreaterThan(baseVal);
+
+      // Direct labor should be unchanged (context-switch is separate)
+      expect(await getMetric(page, 'direct-labor')).toBe(baseDirectLabor);
+    });
+
+    test('disabling toggle hides context-switch cost and restores annual cost', async ({
+      page,
+    }) => {
+      await gotoCalc(page);
+      await jsClick(page, '[data-advanced-toggle]');
+
+      const baseAnnual = await getMetric(page, 'annual-cost');
+
+      // Enable then disable
+      await page.locator('#input-context-switch').check();
+      const elevatedAnnual = await getMetric(page, 'annual-cost');
+      expect(elevatedAnnual).not.toBe(baseAnnual);
+
+      await page.locator('#input-context-switch').uncheck();
+
+      // Line item hidden again
+      await expect(page.locator('#ctx-switch-stat')).toBeHidden();
+
+      // Annual cost restored
+      expect(await getMetric(page, 'annual-cost')).toBe(baseAnnual);
+    });
+  });
+
+  // ── Remediation efficiency slider ─────────────────────────────────────────
+
+  test.describe('remediation efficiency', () => {
+    test('default remediation is 70% and displayed correctly', async ({ page }) => {
+      await gotoCalc(page);
+      await jsClick(page, '[data-advanced-toggle]');
+
+      const display = await page.locator('[data-display="remediation"]').textContent();
+      expect(display).toBe('70%');
+    });
+
+    test('setting remediation to 0% shows zero savings and > 5 yrs break-even', async ({
+      page,
+    }) => {
+      await gotoCalc(page);
+      await jsClick(page, '[data-advanced-toggle]');
+
+      await setSlider(page, 'input-remediation', 0);
+
+      const savings = await getById(page, 'payback-savings');
+      expect(savings).toBe('$0');
+
+      const breakeven = await getById(page, 'payback-breakeven');
+      expect(breakeven).toBe('> 5 yrs');
+    });
+
+    test('setting remediation to 100% yields higher savings than 70%', async ({ page }) => {
+      await gotoCalc(page);
+      await jsClick(page, '[data-advanced-toggle]');
+
+      // Default 70%
+      const savings70 = await getById(page, 'payback-savings');
+      const val70 = parseFloat(savings70.replace(/[^0-9.]/g, ''));
+
+      // Set to 100%
+      await setSlider(page, 'input-remediation', 100);
+      const savings100 = await getById(page, 'payback-savings');
+      const val100 = parseFloat(savings100.replace(/[^0-9.]/g, ''));
+
+      expect(val100).toBeGreaterThan(val70);
+    });
+
+    test('disclaimer reflects remediation efficiency percentage', async ({ page }) => {
+      await gotoCalc(page);
+      await jsClick(page, '[data-advanced-toggle]');
+
+      const disclaimer = await getById(page, 'payback-disclaimer');
+      expect(disclaimer).toContain('Remediation efficiency: 70%');
+      expect(disclaimer).not.toContain('Assumes full resolution');
+    });
+  });
+
+  // ── Combined features ─────────────────────────────────────────────────────
+
+  test.describe('combined model improvements', () => {
+    test('both features compose: context-switch raises cost, remediation adjusts savings', async ({
+      page,
+    }) => {
+      await gotoCalc(page);
+      await jsClick(page, '[data-advanced-toggle]');
+
+      // Baseline: 70% remediation, no context-switch
+      const baseSavings = await getById(page, 'payback-savings');
+      const baseVal = parseFloat(baseSavings.replace(/[^0-9.]/g, ''));
+
+      // Enable context-switch → total cost goes up, so savings go up too (at same %)
+      await page.locator('#input-context-switch').check();
+      const ctxSavings = await getById(page, 'payback-savings');
+      const ctxVal = parseFloat(ctxSavings.replace(/[^0-9.]/g, ''));
+      expect(ctxVal).toBeGreaterThan(baseVal);
+
+      // Drop remediation to 50% → savings should decrease from ctxVal
+      await setSlider(page, 'input-remediation', 50);
+      const reducedSavings = await getById(page, 'payback-savings');
+      const reducedVal = parseFloat(reducedSavings.replace(/[^0-9.]/g, ''));
+      expect(reducedVal).toBeLessThan(ctxVal);
+    });
+
+    test('URL state round-trips both new fields', async ({ page }) => {
+      await gotoCalc(page);
+      await jsClick(page, '[data-advanced-toggle]');
+
+      // Set both features to non-default values
+      await page.locator('#input-context-switch').check();
+      await setSlider(page, 'input-remediation', 50);
+
+      // Capture current values
+      const annualBefore = await getMetric(page, 'annual-cost');
+      const savingsBefore = await getById(page, 'payback-savings');
+
+      // Navigate away and back via URL
+      const url = page.url();
+      await page.goto('about:blank');
+      await page.goto(url);
+      await page.waitForFunction(
+        () => {
+          const el = document.querySelector('[data-metric="annual-cost"]');
+          return el && el.textContent !== '—';
+        },
+        { timeout: 5000 }
+      );
+
+      // Open advanced panel to see controls
+      await jsClick(page, '[data-advanced-toggle]');
+
+      // Verify state restored
+      const checkbox = page.locator('#input-context-switch');
+      await expect(checkbox).toBeChecked();
+
+      const remDisplay = await page.locator('[data-display="remediation"]').textContent();
+      expect(remDisplay).toBe('50%');
+
+      expect(await getMetric(page, 'annual-cost')).toBe(annualBefore);
+      expect(await getById(page, 'payback-savings')).toBe(savingsBefore);
+    });
+
+    test('currency applies to context-switch cost', async ({ page }) => {
+      await gotoCalc(page);
+      await jsClick(page, '[data-advanced-toggle]');
+      await page.locator('#input-context-switch').check();
+
+      // USD symbol
+      const usdCost = await getMetric(page, 'context-switch');
+      expect(usdCost).toMatch(/^\$/);
+
+      // Switch to EUR
+      await page.locator('#currency-select').selectOption('EUR');
+      const eurCost = await getMetric(page, 'context-switch');
+      expect(eurCost).toMatch(/^€/);
+    });
+  });
 });
