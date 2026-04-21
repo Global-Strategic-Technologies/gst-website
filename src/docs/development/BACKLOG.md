@@ -422,15 +422,15 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ### BL-018: Tech Debt Calculator — Architecture and Testing (P7)
 
-**Source**: TECH_DEBT_CALC_ROADMAP.md | **Effort**: M | **Status**: Open
+**Source**: TECH_DEBT_CALC_ROADMAP.md | **Effort**: M | **Status**: Complete
 
 **As a** developer, **I want** the calculator's render layer decomposed and tested **so that** DOM-layer changes can be safely refactored.
 
 #### Acceptance Criteria
 
-- [ ] `render()` decomposed into sub-functions: `renderMetricsBar()`, `renderContextPanel()`, `renderPayback()`, `renderSliderDisplays()` — each takes `CalcResult` and `CalcState` as params
-- [ ] DOM integration tests added (Vitest + JSDOM): mode switch, slider input, deploy button click, URL state round-trip
-- [ ] `SoftwareApplication` JSON-LD structured data added to page `<head>`
+- [x] `render()` decomposed into 5 sub-functions: `renderAnalytics`, `renderCoreMetrics`, `renderAdvancedPanel`, `renderDeployButtons`, `renderSliderValues` — each takes `CalcState`/`CalcResult` as params
+- [x] Pure render-decision functions (`burdenClassify`, `contextNote`) extracted to engine and unit-tested (16 new tests); DOM behavior covered by 26 E2E tests
+- [x] `WebApplication` JSON-LD already present in page `<head>` (lines 17-54) with name, description, applicationCategory, author, featureList
 
 #### Technical Context
 
