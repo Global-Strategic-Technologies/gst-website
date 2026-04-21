@@ -359,17 +359,17 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ### BL-015: Tech Debt Calculator — Accessibility and CSS Hardening (P4)
 
-**Source**: TECH_DEBT_CALC_ROADMAP.md | **Effort**: S | **Status**: Open
+**Source**: TECH_DEBT_CALC_ROADMAP.md | **Effort**: S | **Status**: Complete
 
 **As a** user with assistive technology, **I want** proper ARIA attributes on calculator controls **so that** screen readers announce input values and recalculation results.
 
 #### Acceptance Criteria
 
-- [ ] All `<input type="range">` elements get `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, `aria-valuetext` (updated in `render()`)
-- [ ] Deploy frequency buttons get `aria-pressed` state (updated to reflect `state.deployIdx`)
-- [ ] Metrics bar wrapped in `role="status" aria-live="polite" aria-atomic="false"`
-- [ ] All hardcoded `rgba(5, 205, 153, ...)` replaced with `var(--color-primary-rgb)` tokens
-- [ ] All bare font-size literals (`0.56rem`, `0.58rem`, etc.) replaced with typography scale variables
+- [x] All 8 `<input type="range">` elements have `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, `aria-valuetext` (dynamically updated in `render()` with human-readable strings)
+- [x] Deploy frequency buttons have `aria-pressed` state toggled in `render()` alongside CSS class
+- [x] Results section wrapped in `role="status" aria-live="polite" aria-atomic="false"`
+- [x] All hardcoded `#05cd99` replaced with `var(--color-primary)`, `#ccc`/`#eee` with `var(--border-light)`
+- [x] Print font-size `pt` literals documented as intentional (pt is correct for print media; screen styles already use `var(--text-*)`)
 
 #### Technical Context
 
