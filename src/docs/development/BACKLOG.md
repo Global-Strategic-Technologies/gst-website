@@ -286,6 +286,74 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ---
 
+### BL-039: Repository Transfer to Global Strategic Technologies GitHub Organization
+
+**Source**: Organizational governance (April 2026) | **Effort**: M (2-4 hours) | **Status**: Open
+
+**As a** platform owner, **I want** the `gst-website` repository transferred from `reidperyam/gst-website` to the `Global-Strategic-Technologies` GitHub organization **so that** the codebase is housed under the company's organizational account with proper ownership, team access controls, and professional branding on all integrations.
+
+#### Acceptance Criteria
+
+##### Repository Transfer
+
+- [ ] Repository transferred via GitHub Settings → Transfer repository → `Global-Strategic-Technologies`
+- [ ] New canonical URL: `https://github.com/Global-Strategic-Technologies/gst-website`
+- [ ] GitHub automatically redirects old URL (`reidperyam/gst-website`) to new location
+- [ ] Branch protection rulesets (master: require 3 status checks) preserved or re-created post-transfer
+- [ ] Repository secrets (`SENTRY_AUTH_TOKEN`, etc.) re-created in new org (secrets do not transfer)
+- [ ] `reidperyam` retains admin access via org team membership
+
+##### Vercel Hosting
+
+- [ ] Vercel project reconnected to new GitHub org/repo (Settings → Git → Connected Git Repository)
+- [ ] Production deploys trigger on push to `master` at new org
+- [ ] Preview deploys trigger on PRs to new org
+- [ ] Environment variables verified intact (`PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `INOREADER_APP_ID`, `INOREADER_APP_KEY`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`)
+- [ ] Custom domain (`globalstrategic.tech`) continues resolving — DNS is Cloudflare-managed, independent of GitHub org
+- [ ] Vercel Speed Insights and Web Analytics uninterrupted
+
+##### Sentry.io
+
+- [ ] Sentry GitHub integration updated: Code Mappings → change repo from `reidperyam/gst-website` to `Global-Strategic-Technologies/gst-website`
+- [ ] Source map uploads continue working on production deploys (verify in Sentry Releases)
+- [ ] GitHub stack trace linking resolves to correct source files in new org
+- [ ] Alert rules and tag infrastructure unchanged (no code-level Sentry config references the repo)
+
+##### CI/CD (GitHub Actions)
+
+- [ ] All 3 workflows functional: `test.yml`, `test-cross-browser.yml`, Dependabot
+- [ ] `${{ github.repository }}` references in `test.yml` automatically resolve to new org/repo
+- [ ] Dependabot reviewer updated from `reidperyam` to org team or member username
+- [ ] Required status checks re-enabled on `master`: `E2E Tests`, `Unit & Integration Tests`, `Lint & Type Check`
+
+##### Codebase Updates
+
+- [ ] `.github/dependabot.yml` line 18: update reviewer to org team or member
+- [ ] `src/docs/development/SENTRY_MANUAL_SETUP.md` line 133: update repo reference in config table
+- [ ] `package.json`: add `"repository"` field pointing to new org URL
+- [ ] Local developer remotes updated: `git remote set-url origin https://github.com/Global-Strategic-Technologies/gst-website.git`
+
+##### Verification
+
+- [ ] `npx astro check && npm run lint && npm run lint:css && npm run test:run` — all pass
+- [ ] Push to `dev` triggers CI at new org
+- [ ] PR from `dev` → `master` triggers all 3 required checks
+- [ ] Production deploy succeeds with source maps uploaded to Sentry
+- [ ] Radar API feed functional (Inoreader + KV tokens work from new org's Vercel project)
+
+#### Technical Context
+
+- **GitHub transfer** preserves issues, PRs, wiki, stars, watchers, and creates automatic redirects from the old URL — collaborators and forks continue to work
+- **Secrets do NOT transfer** — repository secrets (`SENTRY_AUTH_TOKEN`, any GitHub-stored tokens) must be re-created manually in the new org. Vercel environment variables are stored in Vercel (not GitHub) and persist independently
+- **Vercel reconnection** is the highest-risk step — Vercel's Git integration is tied to a specific org/repo. After transfer, the project must be manually reconnected in Vercel dashboard (Settings → Git). Build configuration (`npm run build`, output directory `dist`) carries over
+- **Sentry** references the repo only in the GitHub integration's Code Mapping config (dashboard setting, not code). The DSN, org, and project are environment variables stored in Vercel — no code changes needed
+- **GitHub Actions** use `${{ github.repository }}` (dynamic) — no hardcoded owner/repo in workflow files. Workflows run automatically after transfer
+- **No code references to `reidperyam`** exist outside documentation — LinkedIn profile URLs in page content are author attribution, not integration points
+- **DNS/domain** is managed in Cloudflare, completely independent of GitHub org. No DNS changes required
+- **Recommended order**: (1) transfer repo, (2) re-create secrets, (3) reconnect Vercel, (4) update Sentry code mapping, (5) verify CI, (6) verify production deploy, (7) commit codebase updates
+
+---
+
 ## Exploration
 
 ### BL-035: Dynamic Visual Effects Prototype
