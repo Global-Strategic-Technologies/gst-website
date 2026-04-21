@@ -545,6 +545,7 @@ Hub tools use the standardized `.brutal-tool-shell` class defined in `global.css
 .brutal-tool-shell--narrow   { max-width: 660px; }  /* ICG */
 .brutal-tool-shell--wide     { max-width: 760px; }  /* Tech Debt Calculator */
 .brutal-tool-shell--document { max-width: 800px; }  /* Diligence Machine */
+.brutal-tool-shell--fluid    { max-width: 100%; }   /* TechPar */
 ```
 
 **Content wrapper**: Use `.brutal-tool-shell__content` inside the shell for automatic responsive padding:

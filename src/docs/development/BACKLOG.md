@@ -277,15 +277,15 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ### BL-011: Hub Tools UX Unification Phase 4 — Tool Shell Alignment
 
-**Source**: HUB_TOOLS_UX_UNIFICATION.md | **Effort**: Small | **Status**: Open
+**Source**: HUB_TOOLS_UX_UNIFICATION.md | **Effort**: Small | **Status**: Complete
 
 **As a** developer, **I want** tool container naming to follow the `.tool-shell` convention **so that** the codebase uses consistent naming for layout containers.
 
 #### Acceptance Criteria
 
-- [ ] TechPar `.techpar-shell` renamed to `.tool-shell--fluid` (already exists in global)
-- [ ] DM output wrapped in `.tool-shell--document` (800px, already exists)
-- [ ] RegMap `.map-layout` unchanged (full-width map is intentional)
+- [x] TechPar `.techpar-shell` renamed to `.brutal-tool-shell--fluid` (new global variant)
+- [x] DM output wrapped in `.brutal-tool-shell--document` (800px, already existed in global)
+- [x] RegMap `.map-layout` unchanged (full-width map is intentional)
 
 #### Technical Context
 
