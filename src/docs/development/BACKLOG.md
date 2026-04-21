@@ -537,17 +537,17 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ### BL-023: E2E Test for Image Loading Regression
 
-**Source**: DEVELOPMENT_OPPORTUNITIES.md | **Effort**: 30 min | **Status**: Open
+**Source**: DEVELOPMENT_OPPORTUNITIES.md | **Effort**: 30 min | **Status**: Complete
 
 **As a** developer, **I want** an E2E test verifying `fetchpriority="high"` on About page founder images **so that** LCP optimizations don't regress during refactoring.
 
 #### Acceptance Criteria
 
-- [ ] Test added to `tests/e2e/about-page.test.ts`
-- [ ] Verifies image is not lazy-loaded
-- [ ] Verifies `fetchpriority="high"` attribute present
-- [ ] Verifies image dimensions are set (prevents CLS)
-- [ ] Test passes on every commit with no false positives
+- [x] 2 tests added to `tests/e2e/about-page.test.ts` in the Founder Photo Display describe block
+- [x] Verifies `loading` attribute is not `lazy`
+- [x] Verifies `fetchpriority="high"` attribute present
+- [x] Verifies `width` and `height` HTML attributes are set and > 0
+- [x] All 15 about-page tests pass with no false positives
 
 #### Technical Context
 

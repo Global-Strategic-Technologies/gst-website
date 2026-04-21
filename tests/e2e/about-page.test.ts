@@ -65,6 +65,28 @@ test.describe('About Page - Founder Section', () => {
       }
     });
 
+    test('should have fetchpriority="high" and not be lazy-loaded (LCP optimization)', async ({
+      page,
+    }) => {
+      const img = page.locator('.founder-image').first();
+
+      await expect(img).toHaveAttribute('fetchpriority', 'high');
+
+      const loading = await img.getAttribute('loading');
+      expect(loading).not.toBe('lazy');
+    });
+
+    test('should have explicit width and height attributes to prevent CLS', async ({ page }) => {
+      const img = page.locator('.founder-image').first();
+
+      const width = await img.getAttribute('width');
+      const height = await img.getAttribute('height');
+      expect(width).toBeTruthy();
+      expect(height).toBeTruthy();
+      expect(Number(width)).toBeGreaterThan(0);
+      expect(Number(height)).toBeGreaterThan(0);
+    });
+
     test('should render founder photo as clickable link to LinkedIn', async ({ page }) => {
       const founderLink = page.locator('#founder-photo-link');
       await expect(founderLink).toBeVisible();
