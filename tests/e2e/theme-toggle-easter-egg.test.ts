@@ -74,11 +74,11 @@ test.describe('Theme Toggle — Long-Press Easter Egg', () => {
 
     await pressDown(page);
 
-    // Wait for the actual popout state — the only observable result of a 5s hold
+    // Wait for the actual popout state — the only observable result of a 7s hold
     await page.waitForFunction(
       () => document.documentElement.classList.contains('palette-popped-out'),
       undefined,
-      { timeout: 7000 }
+      { timeout: 9000 }
     );
 
     await pressUp(page);
@@ -130,11 +130,11 @@ test.describe('Theme Toggle — Long-Press Easter Egg', () => {
       { timeout: 5000 }
     );
 
-    // Now wait for the popout to fire (at 5s) — holding class should be removed
+    // Now wait for the popout to fire (at 7s) — holding class should be removed
     await page.waitForFunction(
       () => document.documentElement.classList.contains('palette-popped-out'),
       undefined,
-      { timeout: 4000 }
+      { timeout: 6000 }
     );
 
     // Holding class should be cleaned up after popout fires
@@ -200,22 +200,24 @@ test.describe('Theme Toggle — Haptic Feedback (Chromium only)', () => {
   test('haptic pulses fire during hold and include success buzz', async ({ page }) => {
     await pressDown(page);
 
-    // Wait for the observable end state — popout class applied at 5s
+    // Wait for the observable end state — popout class applied at 7s
     await page.waitForFunction(
       () => document.documentElement.classList.contains('palette-popped-out'),
       undefined,
-      { timeout: 7000 }
+      { timeout: 9000 }
     );
 
     const calls: number[] = await page.evaluate(() => (window as any).__vibrateCalls);
 
-    // All 4 progressive pulses + 1 success buzz = 5 calls
-    expect(calls.length).toBe(5);
+    // All 6 progressive pulses + 1 success buzz = 7 calls
+    expect(calls.length).toBe(7);
     expect(calls).toContain(50); // 1s pulse
     expect(calls).toContain(75); // 2s pulse
     expect(calls).toContain(100); // 3s pulse
-    expect(calls).toContain(150); // 4s pulse
-    expect(calls).toContain(300); // 5s success buzz
+    expect(calls).toContain(125); // 4s pulse
+    expect(calls).toContain(150); // 5s pulse
+    expect(calls).toContain(200); // 6s pulse
+    expect(calls).toContain(400); // 7s success buzz
 
     await pressUp(page);
     await clickToggle(page);
