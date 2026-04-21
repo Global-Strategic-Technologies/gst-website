@@ -681,7 +681,7 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ### BL-030: Transition Rule Consolidation
 
-**Source**: DEVELOPMENT_OPPORTUNITIES.md | **Effort**: 3-5 hours | **Status**: Deferred
+**Source**: DEVELOPMENT_OPPORTUNITIES.md | **Effort**: 3-5 hours | **Status**: Will Not Implement
 
 **As a** developer, **I want** the 82 `transition:` declarations consolidated where possible **so that** CSS maintenance surface is reduced.
 
