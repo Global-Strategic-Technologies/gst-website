@@ -276,29 +276,66 @@
     <h3 class="brutal-heading-sm brand-group-title" id="comp-filter-drawer">Filter Drawer</h3>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div
-          style="border: 2px solid light-dark(var(--border-light), var(--border-dark-default)); border-top: 3px solid var(--color-primary); padding: var(--spacing-lg);"
-        >
-          <div
-            style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border-light);"
+        <div class="brand-drawer-demo" id="brand-drawer-demo">
+          <button
+            class="brutal-btn brutal-btn--primary brand-drawer-toggle"
+            id="brand-drawer-toggle"
+            type="button"
+            aria-expanded="false"
           >
-            <span
-              class="brutal-text-tiny"
-              style="font-weight:700; letter-spacing:0.12em; text-transform:uppercase;"
-              >FILTERS</span
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              style="margin-right: var(--spacing-xs);"
             >
-            <span class="brutal-text-tiny" style="color:var(--text-muted); cursor:default;">✕</span>
-          </div>
-          <div style="margin-bottom: var(--spacing-sm);">
-            <span class="filter-chip active" style="pointer-events:none;">All</span>
-            <span class="filter-chip" style="pointer-events:none;">Buy-Side</span>
-            <span class="filter-chip" style="pointer-events:none;">Sell-Side</span>
-          </div>
-          <div>
-            <span class="filter-chip active" style="pointer-events:none;">All</span>
-            <span class="filter-chip" style="pointer-events:none;">Technology</span>
-            <span class="filter-chip" style="pointer-events:none;">Healthcare</span>
-            <span class="filter-chip" style="pointer-events:none;">Finance</span>
+              <line x1="4" y1="6" x2="20" y2="6"></line>
+              <line x1="4" y1="12" x2="20" y2="12"></line>
+              <line x1="4" y1="18" x2="20" y2="18"></line>
+            </svg>
+            Filters
+          </button>
+
+          <div class="brand-drawer-panel" id="brand-drawer-panel">
+            <div class="brand-drawer-panel__header">
+              <span
+                class="brutal-text-tiny"
+                style="font-weight:700; letter-spacing:0.12em; text-transform:uppercase;"
+                >FILTERS</span
+              >
+              <button
+                class="brand-drawer-panel__close"
+                id="brand-drawer-close"
+                type="button"
+                aria-label="Close demo drawer"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div class="brand-drawer-panel__chips">
+              <div class="filter-chip active" data-brand-chip>All</div>
+              <div class="filter-chip" data-brand-chip>Buy-Side</div>
+              <div class="filter-chip" data-brand-chip>Sell-Side</div>
+            </div>
+            <div class="brand-drawer-panel__chips">
+              <div class="filter-chip active" data-brand-chip>All</div>
+              <div class="filter-chip" data-brand-chip>Technology</div>
+              <div class="filter-chip" data-brand-chip>Healthcare</div>
+              <div class="filter-chip" data-brand-chip>Finance</div>
+            </div>
           </div>
         </div>
         <code class="brand-code"
@@ -486,3 +523,96 @@
     </div>
   </div>
 </section>
+
+<style>
+  .brand-drawer-demo {
+    position: relative;
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-top: 3px solid var(--color-primary);
+    min-height: 200px;
+    overflow: hidden;
+  }
+
+  .brand-drawer-toggle {
+    margin: var(--spacing-lg);
+  }
+
+  .brand-drawer-panel {
+    position: absolute;
+    top: 0;
+    right: -280px;
+    width: 260px;
+    height: 100%;
+    background: light-dark(rgba(255, 255, 255, 0.95), rgba(20, 20, 20, 0.95));
+    backdrop-filter: blur(8px);
+    border-left: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding: var(--spacing-md);
+    transition: right var(--transition-normal) ease;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .brand-drawer-panel.open {
+    right: 0;
+  }
+
+  .brand-drawer-panel__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .brand-drawer-panel__close {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: var(--spacing-xs);
+    display: flex;
+    transition: color var(--transition-fast);
+  }
+
+  .brand-drawer-panel__close:hover {
+    color: var(--color-primary);
+  }
+
+  .brand-drawer-panel__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+  }
+
+  .brand-drawer-panel__chips .filter-chip {
+    cursor: pointer;
+  }
+</style>
+
+<script>
+  const toggle = document.getElementById('brand-drawer-toggle');
+  const panel = document.getElementById('brand-drawer-panel');
+  const close = document.getElementById('brand-drawer-close');
+
+  if (toggle && panel && close) {
+    toggle.addEventListener('click', () => {
+      const isOpen = panel.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    close.addEventListener('click', () => {
+      panel.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    });
+
+    panel.querySelectorAll('.brand-drawer-panel__chips').forEach((group) => {
+      group.querySelectorAll('[data-brand-chip]').forEach((chip) => {
+        chip.addEventListener('click', () => {
+          group.querySelectorAll('[data-brand-chip]').forEach((c) => c.classList.remove('active'));
+          (chip as HTMLElement).classList.add('active');
+        });
+      });
+    });
+  }
+</script>
