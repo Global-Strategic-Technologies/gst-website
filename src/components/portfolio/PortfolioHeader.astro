@@ -1,6 +1,7 @@
 ---
 import type { Project } from '../../types/portfolio';
 import { getUniqueEngagementCategories, getUniqueThemes } from '../../utils/filterLogic';
+import FilterDrawer from './FilterDrawer.astro';
 
 interface Props {
   portfolioType?: string;
@@ -79,101 +80,10 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     </div>
   </div>
 
-  <!--
-    Filter Drawer (Slide-out)
-
-    Uses `.brutal-frosted--blur-only` for a near-fully-transparent pane with
-    only a subtle backdrop blur (no opaque tint). This is a deliberate
-    aesthetic choice favoring transparency over the usual frosted overlay.
-
-    Revert path if readability becomes a problem: swap
-    `brutal-frosted--blur-only` → `brutal-frosted--overlay` to restore the
-    high-opacity (0.92) frosted pane. Known edge case under the current
-    choice: in light theme, the drawer's section labels can drop to marginal
-    contrast when the drawer overlaps the green stats band. Filter chips
-    themselves have their own fill and remain readable.
-  -->
-  <div
-    id="filter-drawer"
-    class="filter-drawer portfolio-filter-drawer brutal-frosted--blur-only"
-    data-testid="portfolio-filter-drawer"
-  >
-    <div class="drawer-header">
-      <h2 class="drawer-title">FILTERS</h2>
-      <button
-        id="drawer-close"
-        class="drawer-close"
-        aria-label="Close filters"
-        data-testid="portfolio-drawer-close"
-      >
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-    </div>
-
-    <div class="drawer-content">
-      <button id="clear-filters" class="clear-filters-button" data-testid="clear-filters-button"
-        >Clear All Filters</button
-      >
-
-      <div class="filter-section">
-        <div class="filter-label">Engagement</div>
-        <div class="filter-chips" id="engagement-chips" data-testid="engagement-filter-chips">
-          <div class="filter-chip active" data-value="all" data-testid="filter-chip-engagement-all">
-            All Engagements
-          </div>
-          {
-            uniqueEngagementCategories.map((cat) => (
-              <div
-                class="filter-chip"
-                data-value={cat}
-                data-testid={`filter-chip-engagement-${cat.toLowerCase().replace(/[\s&]+/g, '-')}`}
-              >
-                {cat}
-              </div>
-            ))
-          }
-        </div>
-      </div>
-
-      <div class="filter-section">
-        <div class="filter-label">Theme</div>
-        <div class="filter-chips" id="theme-chips" data-testid="theme-filter-chips">
-          <div class="filter-chip active" data-value="all" data-testid="filter-chip-theme-all">
-            All Themes
-          </div>
-          {
-            uniqueThemes.map((theme) => (
-              <div
-                class="filter-chip"
-                data-value={theme}
-                data-testid={`filter-chip-theme-${theme.toLowerCase().replace(/\s+/g, '-')}`}
-              >
-                {theme}
-              </div>
-            ))
-          }
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Drawer Overlay (Mobile & Desktop) -->
-  <div
-    id="filter-overlay"
-    class="filter-overlay portfolio-filter-overlay"
-    data-testid="portfolio-filter-overlay"
-  >
-  </div>
+  <FilterDrawer
+    uniqueThemes={uniqueThemes}
+    uniqueEngagementCategories={uniqueEngagementCategories}
+  />
 
   <!-- Data island: server-rendered project data for client scripts -->
   <script
@@ -295,80 +205,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     display: inline;
   }
 
-  .drawer-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem;
-    border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark));
-    flex-shrink: 0;
-  }
-
-  .drawer-title {
-    font-family: var(--font-family-mono);
-    font-size: var(--text-xl);
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0;
-    letter-spacing: -0.01em;
-  }
-
-  .drawer-close {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--text-muted);
-    padding: 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--transition-fast);
-  }
-
-  .drawer-close:hover {
-    color: var(--color-primary);
-  }
-
-  .drawer-close:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
-  }
-
-  .drawer-content {
-    padding: 1.5rem;
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-  }
-
-  .filter-section {
-    margin-bottom: 1.5rem;
-  }
-
-  .filter-section:last-of-type {
-    margin-bottom: 2rem;
-  }
-
-  .filter-label {
-    font-family: var(--font-family-mono);
-    font-size: var(--text-xs);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-muted);
-    margin-bottom: 0.75rem;
-  }
-
-  .filter-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-
-  .clear-filters-button {
-    width: calc(100% - 3rem);
-    margin: 0 1.5rem 1.5rem;
-  }
+  /* Drawer styles moved to FilterDrawer.astro */
 
   /* Dark Theme Component Overrides */
 
@@ -513,20 +350,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       border-top: 2px solid var(--color-primary);
     }
 
-    .drawer-header {
-      padding: 1rem;
-      flex-shrink: 0;
-    }
-
-    .drawer-content {
-      padding: 1rem;
-      max-height: calc(85vh - 60px);
-      overflow-y: auto;
-    }
-
-    .filter-chips {
-      gap: 0.625rem;
-    }
+    /* Drawer responsive styles moved to FilterDrawer.astro */
   }
 </style>
 
