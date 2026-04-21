@@ -995,24 +995,6 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     color: var(--text-muted);
   }
 
-  /* ── Filter Chips (layout container) ──────────────── */
-  .filter-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-
-  .filter-chip--active {
-    background: var(--filter-chip-bg-active);
-    color: var(--filter-chip-text-active);
-    border-color: var(--filter-chip-bg-active);
-  }
-
-  .filter-chip--active:hover {
-    background: var(--filter-chip-bg-active);
-    color: var(--filter-chip-text-active);
-  }
-
   /* ── Filter Button + Badge ─────────────────────────── */
   .filter-button {
     display: flex;
@@ -1146,83 +1128,6 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-  }
-
-  /* ── Filter Drawer Demo (inline) ───────────────────── */
-  .filter-drawer-demo {
-    max-width: 400px;
-    background: light-dark(#ffffff, #1a1a1a);
-    border: 1px solid var(--border-light);
-    border-left: 2px solid var(--color-primary);
-    box-shadow: var(--shadow-lg);
-  }
-
-  .filter-drawer-demo__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border-light);
-  }
-
-  .filter-drawer-demo__title {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-primary);
-    margin: 0;
-  }
-
-  .filter-drawer-demo__close {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--text-muted);
-    padding: 0.5rem;
-    display: flex;
-    transition: color var(--transition-fast);
-  }
-
-  .filter-drawer-demo__close:hover {
-    color: var(--color-primary);
-  }
-
-  .filter-drawer-demo__content {
-    padding: 1.5rem;
-  }
-
-  .clear-filters {
-    background: transparent;
-    border: 1px solid var(--clear-filters-border, rgba(26, 26, 26, 0.1));
-    color: var(--clear-filters-text, rgba(26, 26, 26, 0.6));
-    padding: 0.5rem 1rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    cursor: pointer;
-    margin-bottom: 1.5rem;
-    font-family: var(--font-family);
-    transition: all var(--transition-fast);
-  }
-
-  .clear-filters:hover {
-    color: var(--color-primary);
-    border-color: var(--color-primary);
-  }
-
-  .filter-section {
-    margin-bottom: 1.5rem;
-  }
-
-  .filter-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-muted);
-    margin-bottom: 0.75rem;
   }
 
   /* ── Stats Bar (current specimen) ─────────────────── */
