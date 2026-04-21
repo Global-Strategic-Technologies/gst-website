@@ -645,7 +645,7 @@ Consolidated backlog of all open development initiatives for the GST website. Ea
 
 ### BL-028: CSS Code Splitting via @layer
 
-**Source**: DEVELOPMENT_OPPORTUNITIES.md | **Effort**: 4-8 hours | **Status**: Deferred
+**Source**: DEVELOPMENT_OPPORTUNITIES.md | **Effort**: 4-8 hours | **Status**: Will Not Implement
 
 **As a** developer, **I want** non-critical CSS layers loaded with lower priority **so that** initial page render performance improves.
 
