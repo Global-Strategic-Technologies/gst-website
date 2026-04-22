@@ -288,7 +288,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-039: Repository Transfer to Global Strategic Technologies GitHub Organization
 
-**Source**: Organizational governance (April 2026) | **Effort**: S (30 min) | **Status**: Open
+**Source**: Organizational governance (April 2026) | **Effort**: S (30 min) | **Status**: Complete
 
 **As a** platform owner, **I want** the `gst-website` repository transferred from `reidperyam/gst-website` to the `Global-Strategic-Technologies` GitHub organization **so that** the codebase is housed under the company's organizational account with proper ownership, team access controls, and professional branding on all integrations.
 
