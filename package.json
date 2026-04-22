@@ -35,11 +35,11 @@
   ],
   "dependencies": {
     "@astrojs/sitemap": "^3.7.2",
-    "@astrojs/vercel": "^10.0.4",
+    "@astrojs/vercel": "^10.0.5",
     "@sentry/astro": "^10.49.0",
     "@upstash/redis": "^1.37.0",
     "@vercel/speed-insights": "^2.0.0",
-    "astro": "^6.1.8",
+    "astro": "^6.1.9",
     "chart.js": "^4.5.1",
     "d3-geo": "^3.1.1",
     "d3-selection": "^3.0.0",
