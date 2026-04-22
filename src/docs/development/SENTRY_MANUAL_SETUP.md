@@ -127,13 +127,13 @@ These are the `area` tags already instrumented in the codebase:
 
 Configured in Sentry → Settings → Integrations → GitHub → Code Mappings:
 
-| Field            | Value                  |
-| ---------------- | ---------------------- |
-| Project          | gst-website            |
-| Repo             | reidperyam/gst-website |
-| Branch           | master                 |
-| Stack Trace Root | src/                   |
-| Source Code Root | src/                   |
+| Field            | Value                                     |
+| ---------------- | ----------------------------------------- |
+| Project          | gst-website                               |
+| Repo             | Global-Strategic-Technologies/gst-website |
+| Branch           | master                                    |
+| Stack Trace Root | src/                                      |
+| Source Code Root | src/                                      |
 
 This makes file paths in Sentry stack traces clickable — clicking a path like `src/utils/filterLogic.ts:199` opens that file at that line in GitHub, at the commit that was running when the error occurred.
 
