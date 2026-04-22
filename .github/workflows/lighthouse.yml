@@ -32,30 +32,75 @@ jobs:
 
       - run: npm ci
 
-      - name: Run Lighthouse CI
-        run: npx lhci autorun --config=lighthouserc.cjs 2>&1 | tee lhci-output.txt
-        env:
-          LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Collect Lighthouse results
+        run: npx lhci collect --config=lighthouserc.cjs
+
+      - name: Assert performance budgets
+        run: npx lhci assert --config=lighthouserc.cjs 2>&1 | tee lhci-assert.txt
 
       - name: Lighthouse scores summary
         if: always()
         run: |
           echo "## Lighthouse CI Scores" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f "lhci-output.txt" ]; then
-            echo "| Page | Report |" >> $GITHUB_STEP_SUMMARY
-            echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
-            grep "Open the report at" lhci-output.txt | while read -r line; do
-              URL=$(echo "$line" | grep -oP 'https://\S+')
-              PAGE=$(echo "$line" | grep -oP 'http://localhost:4321\S*' | sed 's|http://localhost:4321||' | sed 's|^$|/|')
-              echo "| \`${PAGE}\` | [View Report](${URL}) |" >> $GITHUB_STEP_SUMMARY
-            done
+          MANIFEST=".lighthouseci/manifest.json"
+          if [ -f "$MANIFEST" ]; then
+            echo "| Page | Performance | FCP | LCP | TBT | CLS |" >> $GITHUB_STEP_SUMMARY
+            echo "|------|-------------|-----|-----|-----|-----|" >> $GITHUB_STEP_SUMMARY
+            node -e "
+              const m = JSON.parse(require('fs').readFileSync('$MANIFEST', 'utf8'));
+              m.forEach(r => {
+                const s = JSON.parse(require('fs').readFileSync(r.jsonPath, 'utf8'));
+                const perf = Math.round((s.categories.performance?.score || 0) * 100);
+                const fcp = Math.round(s.audits['first-contentful-paint'].numericValue);
+                const lcp = Math.round(s.audits['largest-contentful-paint'].numericValue);
+                const tbt = Math.round(s.audits['total-blocking-time'].numericValue);
+                const cls = s.audits['cumulative-layout-shift'].numericValue.toFixed(3);
+                const url = new URL(r.url).pathname || '/';
+                const icon = perf >= 90 ? '🟢' : perf >= 50 ? '🟠' : '🔴';
+                console.log('| ' + icon + ' \`' + url + '\` | **' + perf + '** | ' + fcp + 'ms | ' + lcp + 'ms | ' + tbt + 'ms | ' + cls + ' |');
+              });
+            " >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Assertion Results" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            grep -E "result\(s\) for|warning for|failure for|✘|⚠️" lhci-output.txt | sed 's/\x1b\[[0-9;]*m//g' >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
+            if [ -f "lhci-assert.txt" ]; then
+              ASSERTIONS=$(grep -E "result\(s\) for|warning for|failure for" lhci-assert.txt | sed 's/\x1b\[[0-9;]*m//g' || true)
+              if [ -n "$ASSERTIONS" ]; then
+                echo "### Assertion Results" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo '```' >> $GITHUB_STEP_SUMMARY
+                echo "$ASSERTIONS" >> $GITHUB_STEP_SUMMARY
+                echo '```' >> $GITHUB_STEP_SUMMARY
+              else
+                echo "✅ All assertions passed" >> $GITHUB_STEP_SUMMARY
+              fi
+            fi
           else
-            echo "⚠️ No Lighthouse output found" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ No Lighthouse results found" >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: Upload results
+        if: always()
+        run: npx lhci upload --config=lighthouserc.cjs 2>&1 | tee lhci-upload.txt
+
+      - name: Add report links
+        if: always()
+        run: |
+          if [ -f "lhci-upload.txt" ]; then
+            LINKS=$(grep "Open the report at" lhci-upload.txt | grep -oP 'https://\S+' || true)
+            if [ -n "$LINKS" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### Reports" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "$LINKS" | while read -r url; do
+                echo "- [View Report]($url)" >> $GITHUB_STEP_SUMMARY
+              done
+            fi
+          fi
+
+      - name: Upload Lighthouse artifacts
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          retention-days: 14
