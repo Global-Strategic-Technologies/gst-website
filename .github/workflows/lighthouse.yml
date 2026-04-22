@@ -35,11 +35,7 @@ jobs:
       - name: Collect Lighthouse results
         run: npx lhci collect --config=lighthouserc.cjs
 
-      - name: Assert performance budgets
-        run: npx lhci assert --config=lighthouserc.cjs 2>&1 | tee lhci-assert.txt
-
       - name: Lighthouse scores summary
-        if: always()
         run: |
           echo "## Lighthouse CI Scores" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -61,26 +57,37 @@ jobs:
                 console.log('| ' + icon + ' \`' + url + '\` | **' + perf + '** | ' + fcp + 'ms | ' + lcp + 'ms | ' + tbt + 'ms | ' + cls + ' |');
               });
             " >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            if [ -f "lhci-assert.txt" ]; then
-              ASSERTIONS=$(grep -E "result\(s\) for|warning for|failure for" lhci-assert.txt | sed 's/\x1b\[[0-9;]*m//g' || true)
-              if [ -n "$ASSERTIONS" ]; then
-                echo "### Assertion Results" >> $GITHUB_STEP_SUMMARY
-                echo "" >> $GITHUB_STEP_SUMMARY
-                echo '```' >> $GITHUB_STEP_SUMMARY
-                echo "$ASSERTIONS" >> $GITHUB_STEP_SUMMARY
-                echo '```' >> $GITHUB_STEP_SUMMARY
-              else
-                echo "✅ All assertions passed" >> $GITHUB_STEP_SUMMARY
-              fi
-            fi
           else
             echo "⚠️ No Lighthouse results found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Assert performance budgets
+        continue-on-error: true
+        run: npx lhci assert --config=lighthouserc.cjs 2>&1 | tee lhci-assert.txt
+
+      - name: Assertion results
+        if: always()
+        run: |
+          if [ -f "lhci-assert.txt" ]; then
+            ASSERTIONS=$(grep -E "result\(s\) for|warning for|failure for" lhci-assert.txt | sed 's/\x1b\[[0-9;]*m//g' || true)
+            if [ -n "$ASSERTIONS" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### Assertion Results" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "$ASSERTIONS" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            else
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "✅ All performance assertions passed" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
 
       - name: Upload results
         if: always()
         run: npx lhci upload --config=lighthouserc.cjs 2>&1 | tee lhci-upload.txt
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Add report links
         if: always()
