@@ -10,7 +10,13 @@
   <body>
     <header class="dashboard-header">
       <svg viewBox="0 0 64 64" fill="none" aria-hidden="true" width="28" height="28">
-        <path d="M32 12 L52 52 L12 52 Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="miter"/>
+        <path
+          d="M32 12 L52 52 L12 52 Z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="6"
+          stroke-linejoin="miter"
+        />
       </svg>
       <h1>Performance Dashboard</h1>
       <span class="subtitle" id="lastUpdated"></span>
@@ -87,8 +93,16 @@
     <script>
       // Color palette for chart series (10 pages max)
       const SERIES_COLORS = [
-        '#05cd99', '#ffaa33', '#e05050', '#5b8def', '#c77dff',
-        '#64dfdf', '#f77f00', '#ef476f', '#80ed99', '#ffd166',
+        '#05cd99',
+        '#ffaa33',
+        '#e05050',
+        '#5b8def',
+        '#c77dff',
+        '#64dfdf',
+        '#f77f00',
+        '#ef476f',
+        '#80ed99',
+        '#ffd166',
       ];
 
       let historyData = null;
@@ -121,8 +135,8 @@
 
         // Discover all pages across all runs
         const allPages = new Set();
-        historyData.runs.forEach(run => {
-          Object.keys(run.pages).forEach(p => allPages.add(p));
+        historyData.runs.forEach((run) => {
+          Object.keys(run.pages).forEach((p) => allPages.add(p));
         });
         activePages = new Set(allPages);
 
@@ -141,7 +155,7 @@
 
       function buildPageFilters(pages) {
         const container = document.getElementById('pageFilters');
-        pages.sort().forEach(page => {
+        pages.sort().forEach((page) => {
           const pill = document.createElement('button');
           pill.className = 'page-pill active';
           pill.textContent = page;
@@ -165,7 +179,7 @@
         const days = parseInt(document.getElementById('dateRange').value);
         if (days === 0) return historyData.runs;
         const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-        return historyData.runs.filter(r => new Date(r.timestamp).getTime() >= cutoff);
+        return historyData.runs.filter((r) => new Date(r.timestamp).getTime() >= cutoff);
       }
 
       function scoreClass(score) {
@@ -189,18 +203,34 @@
 
         Object.keys(latest.pages)
           .sort()
-          .filter(p => activePages.has(p))
-          .forEach(page => {
+          .filter((p) => activePages.has(p))
+          .forEach((page) => {
             const m = latest.pages[page];
             const tr = document.createElement('tr');
             tr.innerHTML =
-              '<td>' + scoreIcon(m.performance) + '</td>' +
-              '<td class="page-name">' + page + '</td>' +
-              '<td class="' + scoreClass(m.performance) + '">' + m.performance + '</td>' +
-              '<td>' + m.fcp + 'ms</td>' +
-              '<td>' + m.lcp + 'ms</td>' +
-              '<td>' + m.tbt + 'ms</td>' +
-              '<td>' + m.cls.toFixed(3) + '</td>';
+              '<td>' +
+              scoreIcon(m.performance) +
+              '</td>' +
+              '<td class="page-name">' +
+              page +
+              '</td>' +
+              '<td class="' +
+              scoreClass(m.performance) +
+              '">' +
+              m.performance +
+              '</td>' +
+              '<td>' +
+              m.fcp +
+              'ms</td>' +
+              '<td>' +
+              m.lcp +
+              'ms</td>' +
+              '<td>' +
+              m.tbt +
+              'ms</td>' +
+              '<td>' +
+              m.cls.toFixed(3) +
+              '</td>';
             tbody.appendChild(tr);
           });
       }
@@ -241,7 +271,7 @@
 
       function createCharts() {
         const metrics = ['Performance', 'Fcp', 'Lcp', 'Tbt', 'Cls'];
-        metrics.forEach(metric => {
+        metrics.forEach((metric) => {
           const ctx = document.getElementById('chart' + metric).getContext('2d');
           charts[metric.toLowerCase()] = new Chart(ctx, {
             type: 'line',
@@ -261,27 +291,27 @@
       }
 
       function updateCharts(runs) {
-        const labels = runs.map(r => {
+        const labels = runs.map((r) => {
           const d = new Date(r.timestamp);
           return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         });
 
         // Collect all active pages
         const pages = new Set();
-        runs.forEach(r => {
-          Object.keys(r.pages).forEach(p => {
+        runs.forEach((r) => {
+          Object.keys(r.pages).forEach((p) => {
             if (activePages.has(p)) pages.add(p);
           });
         });
         const sortedPages = Array.from(pages).sort();
 
         const metrics = ['performance', 'fcp', 'lcp', 'tbt', 'cls'];
-        metrics.forEach(metric => {
+        metrics.forEach((metric) => {
           const chart = charts[metric];
           chart.data.labels = labels;
           chart.data.datasets = sortedPages.map((page, i) => ({
             label: page,
-            data: runs.map(r => r.pages[page]?.[metric] ?? null),
+            data: runs.map((r) => r.pages[page]?.[metric] ?? null),
             borderColor: SERIES_COLORS[i % SERIES_COLORS.length],
             backgroundColor: SERIES_COLORS[i % SERIES_COLORS.length] + '20',
             ...chartStyle,
