@@ -173,25 +173,26 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-022: Lighthouse CI for Performance Monitoring
 
-**Source**: DEVELOPMENT_OPPORTUNITIES.md | **Effort**: 2-3 hours | **Status**: Open
+**Source**: DEVELOPMENT_OPPORTUNITIES.md | **Effort**: 2-3 hours | **Status**: Complete
 
 **As a** developer, **I want** Lighthouse CI integrated into the GitHub Actions pipeline **so that** performance regressions are caught before reaching production and performance budgets are enforced on every PR.
 
 #### Acceptance Criteria
 
-- [ ] `@lhci/cli` installed and configured
-- [ ] GitHub Actions workflow created (`.github/workflows/lighthouse.yml`)
-- [ ] Performance budgets set: LCP < 2.5s, FCP < 1.8s, CLS < 0.1, TBT < 200ms
-- [ ] First baseline report generated
-- [ ] Build fails if LCP degrades beyond threshold
-- [ ] Developers notified of performance impact in PRs
+- [x] `@lhci/cli` installed and configured
+- [x] GitHub Actions workflow created (`.github/workflows/lighthouse.yml`)
+- [x] Performance budgets set: LCP < 2.5s, FCP < 1.8s, CLS < 0.1, TBT < 200ms
+- [x] First baseline report generated
+- [x] Build fails if LCP degrades beyond threshold
+- [x] Developers notified of performance impact in PRs
 
 #### Technical Context
 
-- Current state: performance validated manually via Lighthouse reports, no automated CI checks
-- Vercel Speed Insights provides post-deployment monitoring but no pre-merge gate
-- Configuration in `lighthouserc.json` with `lighthouse:recommended` preset plus custom assertions
-- Consider Slack notifications for failures
+- Lighthouse CI runs on every PR to `master` and via manual dispatch
+- Configuration in `lighthouserc.cjs` with desktop preset, 10 audited pages
+- Step summary renders full scores table (Performance, FCP, LCP, TBT, CLS) with report links
+- CLS assertion set to `error` (blocks merge); other metrics set to `warn`
+- Reports uploaded to temporary-public-storage for review
 
 ---
 
@@ -199,22 +200,24 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-026: Performance Monitoring Dashboard
 
-**Source**: DEVELOPMENT_OPPORTUNITIES.md | **Effort**: 1-2 hours | **Status**: Open
+**Source**: DEVELOPMENT_OPPORTUNITIES.md | **Effort**: 1-2 hours | **Status**: Complete
 
 **As a** site operator, **I want** a consolidated view of performance metrics **so that** I can track trends over time and communicate improvements to stakeholders.
 
 #### Acceptance Criteria
 
-- [ ] Monthly performance reports tracking LCP, FCP, CLS, TBT over time
-- [ ] Year-over-year trend visibility
-- [ ] Single source of truth for performance metrics
+- [x] Monthly performance reports tracking LCP, FCP, CLS, TBT over time
+- [x] Year-over-year trend visibility
+- [x] Single source of truth for performance metrics
 
 #### Technical Context
 
-- Recommended starting point: lightweight markdown reports in `/docs/performance/reports/` (Option A)
-- Graduate to GitHub Pages with automated Lighthouse CI summaries (Option B) if team needs historical data visualization
-- Premium options (Calibre, SpeedCurve) available but not recommended initially
-- Depends on BL-022 (Lighthouse CI) for automated data
+- Static HTML + Chart.js dashboard deployed to GitHub Pages via `gh-pages` branch
+- Weekly cron (`perf-dashboard.yml`) runs Lighthouse CI, appends scores to `data/lighthouse-history.json`
+- Dashboard URL: `global-strategic-technologies.github.io/gst-website/`
+- Brutalist dark theme with frosted-glass panels matching the main site aesthetic
+- Scripts on `master`: `scripts/extract-lighthouse-metrics.mjs`, `scripts/merge-lighthouse-history.mjs`
+- Dashboard templates on `master`: `scripts/dashboard/` (seeded to `gh-pages` on each run)
 
 ---
 

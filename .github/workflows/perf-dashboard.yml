@@ -1,0 +1,79 @@
+name: Performance Dashboard
+
+on:
+  schedule:
+    - cron: '0 2 * * 0' # Weekly, Sunday 2am UTC
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual run'
+        required: false
+        default: 'Manual data collection'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: perf-dashboard
+  cancel-in-progress: false
+
+jobs:
+  collect-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Run Lighthouse CI
+        continue-on-error: true
+        run: npx lhci autorun --config=lighthouserc.cjs 2>&1 | tee lhci-output.txt
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metrics
+        run: node scripts/extract-lighthouse-metrics.mjs > /tmp/new-metrics.json
+
+      - name: Prepare gh-pages branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Try to fetch existing gh-pages, or create orphan
+          if git ls-remote --exit-code origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages
+            git worktree add gh-pages-dir origin/gh-pages
+          else
+            git worktree add --detach gh-pages-dir
+            cd gh-pages-dir
+            git checkout --orphan gh-pages
+            git rm -rf . 2>/dev/null || true
+            cd ..
+          fi
+
+      - name: Seed dashboard files
+        run: |
+          # Copy dashboard template files if they don't exist or are outdated
+          cp scripts/dashboard/index.html gh-pages-dir/index.html
+          cp scripts/dashboard/dashboard.css gh-pages-dir/dashboard.css
+          cp scripts/dashboard/.nojekyll gh-pages-dir/.nojekyll
+
+      - name: Merge metrics
+        run: node scripts/merge-lighthouse-history.mjs gh-pages-dir/data/lighthouse-history.json /tmp/new-metrics.json
+
+      - name: Commit and push
+        run: |
+          cd gh-pages-dir
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "perf: weekly lighthouse data $(date -u +%Y-%m-%d)"
+            git push origin HEAD:gh-pages
+          fi
