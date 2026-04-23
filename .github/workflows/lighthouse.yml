@@ -47,45 +47,58 @@ jobs:
             exit 0
           fi
 
-          # Extract page/report pairs from lhci output
-          grep "Uploading median LHR" lhci-output.txt | sed 's/.*http:\/\/localhost:4321//' | sed 's/\.\.\.success!//' | sed 's/^$/\//' > /tmp/lh-pages.txt
-          grep "Open the report at" lhci-output.txt | grep -oP 'https://\S+' > /tmp/lh-urls.txt
-
-          # Fetch JSON from each report URL and extract scores
+          # Build page-to-report-URL map and extract scores from local JSON files
           node -e "
             const fs = require('fs');
-            const pages = fs.readFileSync('/tmp/lh-pages.txt', 'utf8').trim().split('\n');
-            const urls = fs.readFileSync('/tmp/lh-urls.txt', 'utf8').trim().split('\n');
+            const path = require('path');
 
-            async function main() {
-              const rows = [];
-              for (let i = 0; i < pages.length; i++) {
-                const page = pages[i];
-                const reportUrl = urls[i];
-                // Replace .report.html with .report.json for the JSON version
-                const jsonUrl = reportUrl.replace('.report.html', '.report.json');
-                try {
-                  const res = await fetch(jsonUrl);
-                  const data = await res.json();
-                  const perf = Math.round((data.categories.performance?.score || 0) * 100);
-                  const fcp = Math.round(data.audits['first-contentful-paint'].numericValue);
-                  const lcp = Math.round(data.audits['largest-contentful-paint'].numericValue);
-                  const tbt = Math.round(data.audits['total-blocking-time'].numericValue);
-                  const cls = data.audits['cumulative-layout-shift'].numericValue.toFixed(3);
-                  const icon = perf >= 90 ? '🟢' : perf >= 50 ? '🟠' : '🔴';
-                  rows.push('| ' + icon + ' \`' + page + '\` | **' + perf + '** | ' + fcp + 'ms | ' + lcp + 'ms | ' + tbt + 'ms | ' + cls + ' | [View](' + reportUrl + ') |');
-                } catch (e) {
-                  rows.push('| \`' + page + '\` | — | — | — | — | — | [View](' + reportUrl + ') |');
-                }
-              }
-
-              let summary = '## Lighthouse CI Scores\n\n';
-              summary += '| Page | Performance | FCP | LCP | TBT | CLS | Report |\n';
-              summary += '|------|-------------|-----|-----|-----|-----|--------|\n';
-              summary += rows.join('\n') + '\n';
-              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+            // Build page -> report URL map from lhci output
+            const output = fs.readFileSync('lhci-output.txt', 'utf8');
+            const uploadLines = output.match(/Uploading median LHR.*?success!/g) || [];
+            const reportLines = output.match(/Open the report at https:\/\/\S+/g) || [];
+            const reportMap = {};
+            for (let i = 0; i < uploadLines.length; i++) {
+              const pageMatch = uploadLines[i].match(/http:\/\/localhost:4321(\/[^\s.]*)?/);
+              const page = pageMatch && pageMatch[1] ? pageMatch[1] : '/';
+              const urlMatch = reportLines[i]?.match(/(https:\/\/\S+)/);
+              if (urlMatch) reportMap[page] = urlMatch[1];
             }
-            main();
+
+            // Read local lhr-*.json files written by LHCI
+            const lhciDir = '.lighthouseci';
+            if (!fs.existsSync(lhciDir)) {
+              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+                '## Lighthouse CI Scores\n\n⚠️ No .lighthouseci directory found\n');
+              process.exit(0);
+            }
+            const jsonFiles = fs.readdirSync(lhciDir)
+              .filter(f => f.startsWith('lhr-') && f.endsWith('.json'))
+              .sort();
+
+            const rows = [];
+            for (const file of jsonFiles) {
+              try {
+                const data = JSON.parse(fs.readFileSync(path.join(lhciDir, file), 'utf8'));
+                const page = new URL(data.requestedUrl).pathname || '/';
+                const reportUrl = reportMap[page] || '';
+                const perf = Math.round((data.categories.performance?.score || 0) * 100);
+                const fcp = Math.round(data.audits['first-contentful-paint'].numericValue);
+                const lcp = Math.round(data.audits['largest-contentful-paint'].numericValue);
+                const tbt = Math.round(data.audits['total-blocking-time'].numericValue);
+                const cls = data.audits['cumulative-layout-shift'].numericValue.toFixed(3);
+                const icon = perf >= 90 ? '🟢' : perf >= 50 ? '🟠' : '🔴';
+                const link = reportUrl ? '[View](' + reportUrl + ')' : '—';
+                rows.push('| ' + icon + ' \`' + page + '\` | **' + perf + '** | ' + fcp + 'ms | ' + lcp + 'ms | ' + tbt + 'ms | ' + cls + ' | ' + link + ' |');
+              } catch (e) {
+                // skip non-parseable files
+              }
+            }
+
+            let summary = '## Lighthouse CI Scores\n\n';
+            summary += '| Page | Performance | FCP | LCP | TBT | CLS | Report |\n';
+            summary += '|------|-------------|-----|-----|-----|-----|--------|\n';
+            summary += rows.join('\n') + '\n';
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
           "
 
           # Assertion results
