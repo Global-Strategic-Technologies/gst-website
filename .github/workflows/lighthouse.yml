@@ -43,33 +43,61 @@ jobs:
         run: |
           if [ ! -f "lhci-output.txt" ]; then
             echo "## Lighthouse CI Scores" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
             echo "⚠️ No Lighthouse output found" >> $GITHUB_STEP_SUMMARY
             exit 0
           fi
 
-          echo "## Lighthouse CI Scores" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          # Extract page/report pairs from lhci output
+          grep "Uploading median LHR" lhci-output.txt | sed 's/.*http:\/\/localhost:4321//' | sed 's/\.\.\.success!//' | sed 's/^$/\//' > /tmp/lh-pages.txt
+          grep "Open the report at" lhci-output.txt | grep -oP 'https://\S+' > /tmp/lh-urls.txt
 
-          # Build scores table by pairing "Uploading median LHR" lines with "Open the report" lines
-          echo "| Page | Report |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
-          paste <(grep "Uploading median LHR" lhci-output.txt) <(grep "Open the report at" lhci-output.txt) | while IFS=$'\t' read -r upload_line report_line; do
-            PAGE=$(echo "$upload_line" | sed 's/.*http:\/\/localhost:4321//' | sed 's/\.\.\.success!//' | sed 's/^$/\//')
-            URL=$(echo "$report_line" | grep -oP 'https://\S+')
-            echo "| \`${PAGE}\` | [View Report](${URL}) |" >> $GITHUB_STEP_SUMMARY
-          done
+          # Fetch JSON from each report URL and extract scores
+          node -e "
+            const fs = require('fs');
+            const pages = fs.readFileSync('/tmp/lh-pages.txt', 'utf8').trim().split('\n');
+            const urls = fs.readFileSync('/tmp/lh-urls.txt', 'utf8').trim().split('\n');
 
-          echo "" >> $GITHUB_STEP_SUMMARY
+            async function main() {
+              const rows = [];
+              for (let i = 0; i < pages.length; i++) {
+                const page = pages[i];
+                const reportUrl = urls[i];
+                // Replace .report.html with .report.json for the JSON version
+                const jsonUrl = reportUrl.replace('.report.html', '.report.json');
+                try {
+                  const res = await fetch(jsonUrl);
+                  const data = await res.json();
+                  const perf = Math.round((data.categories.performance?.score || 0) * 100);
+                  const fcp = Math.round(data.audits['first-contentful-paint'].numericValue);
+                  const lcp = Math.round(data.audits['largest-contentful-paint'].numericValue);
+                  const tbt = Math.round(data.audits['total-blocking-time'].numericValue);
+                  const cls = data.audits['cumulative-layout-shift'].numericValue.toFixed(3);
+                  const icon = perf >= 90 ? '🟢' : perf >= 50 ? '🟠' : '🔴';
+                  rows.push('| ' + icon + ' \`' + page + '\` | **' + perf + '** | ' + fcp + 'ms | ' + lcp + 'ms | ' + tbt + 'ms | ' + cls + ' | [View](' + reportUrl + ') |');
+                } catch (e) {
+                  rows.push('| \`' + page + '\` | — | — | — | — | — | [View](' + reportUrl + ') |');
+                }
+              }
 
-          # Show assertion results
+              let summary = '## Lighthouse CI Scores\n\n';
+              summary += '| Page | Performance | FCP | LCP | TBT | CLS | Report |\n';
+              summary += '|------|-------------|-----|-----|-----|-----|--------|\n';
+              summary += rows.join('\n') + '\n';
+              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+            }
+            main();
+          "
+
+          # Assertion results
           ASSERTIONS=$(grep -E "result\(s\) for|warning for|failure for" lhci-output.txt | sed 's/\x1b\[[0-9;]*m//g' || true)
           if [ -n "$ASSERTIONS" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
             echo "### Assertion Results" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "$ASSERTIONS" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           else
+            echo "" >> $GITHUB_STEP_SUMMARY
             echo "✅ All performance assertions passed" >> $GITHUB_STEP_SUMMARY
           fi
