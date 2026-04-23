@@ -20,7 +20,7 @@ concurrency:
 jobs:
   collect-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
 
@@ -31,15 +31,30 @@ jobs:
 
       - run: npm ci
 
-      - name: Run Lighthouse CI
+      # ── Desktop audit ──────────────────────────────────────
+      - name: Run Lighthouse CI (desktop)
         continue-on-error: true
-        run: npx lhci autorun --config=lighthouserc.cjs 2>&1 | tee lhci-output.txt
+        run: npx lhci autorun --config=lighthouserc.cjs 2>&1 | tee lhci-output-desktop.txt
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metrics
-        run: node scripts/extract-lighthouse-metrics.mjs > /tmp/new-metrics.json
+      - name: Extract desktop metrics
+        run: node scripts/extract-lighthouse-metrics.mjs > /tmp/new-metrics-desktop.json
 
+      # ── Mobile audit ───────────────────────────────────────
+      - name: Clear desktop LHCI artifacts
+        run: rm -rf .lighthouseci
+
+      - name: Run Lighthouse CI (mobile)
+        continue-on-error: true
+        run: npx lhci autorun --config=lighthouserc.mobile.cjs 2>&1 | tee lhci-output-mobile.txt
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract mobile metrics
+        run: node scripts/extract-lighthouse-metrics.mjs > /tmp/new-metrics-mobile.json
+
+      # ── Deploy to gh-pages ─────────────────────────────────
       - name: Prepare gh-pages branch
         run: |
           git config user.name "github-actions[bot]"
@@ -65,7 +80,9 @@ jobs:
           cp scripts/dashboard/.nojekyll gh-pages-dir/.nojekyll
 
       - name: Merge metrics
-        run: node scripts/merge-lighthouse-history.mjs gh-pages-dir/data/lighthouse-history.json /tmp/new-metrics.json
+        run: |
+          node scripts/merge-lighthouse-history.mjs gh-pages-dir/data/lighthouse-history.json /tmp/new-metrics-desktop.json
+          node scripts/merge-lighthouse-history.mjs gh-pages-dir/data/lighthouse-history-mobile.json /tmp/new-metrics-mobile.json
 
       - name: Commit and push
         run: |

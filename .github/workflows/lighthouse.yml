@@ -21,7 +21,7 @@ concurrency:
 jobs:
   lighthouse:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
 
@@ -32,28 +32,21 @@ jobs:
 
       - run: npm ci
 
-      - name: Run Lighthouse CI
+      # ── Desktop audit ──────────────────────────────────────
+      - name: Run Lighthouse CI (desktop)
         continue-on-error: true
-        run: npx lhci autorun --config=lighthouserc.cjs 2>&1 | tee lhci-output.txt
+        run: npx lhci autorun --config=lighthouserc.cjs 2>&1 | tee lhci-output-desktop.txt
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate summary
+      - name: Save desktop scores
         if: always()
         run: |
-          if [ ! -f "lhci-output.txt" ]; then
-            echo "## Lighthouse CI Scores" >> $GITHUB_STEP_SUMMARY
-            echo "⚠️ No Lighthouse output found" >> $GITHUB_STEP_SUMMARY
-            exit 0
-          fi
-
-          # Build page-to-report-URL map and extract scores from local JSON files
           node -e "
             const fs = require('fs');
             const path = require('path');
 
-            // Build page -> report URL map from lhci output
-            const output = fs.readFileSync('lhci-output.txt', 'utf8');
+            const output = fs.readFileSync('lhci-output-desktop.txt', 'utf8');
             const uploadLines = output.match(/Uploading median LHR.*?success!/g) || [];
             const reportLines = output.match(/Open the report at https:\/\/\S+/g) || [];
             const reportMap = {};
@@ -64,53 +57,125 @@ jobs:
               if (urlMatch) reportMap[page] = urlMatch[1];
             }
 
-            // Read local lhr-*.json files written by LHCI
             const lhciDir = '.lighthouseci';
-            if (!fs.existsSync(lhciDir)) {
-              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-                '## Lighthouse CI Scores\n\n⚠️ No .lighthouseci directory found\n');
-              process.exit(0);
-            }
-            const jsonFiles = fs.readdirSync(lhciDir)
-              .filter(f => f.startsWith('lhr-') && f.endsWith('.json'))
-              .sort();
-
             const rows = [];
-            for (const file of jsonFiles) {
-              try {
-                const data = JSON.parse(fs.readFileSync(path.join(lhciDir, file), 'utf8'));
-                const page = new URL(data.requestedUrl).pathname || '/';
-                const reportUrl = reportMap[page] || '';
-                const perf = Math.round((data.categories.performance?.score || 0) * 100);
-                const fcp = Math.round(data.audits['first-contentful-paint'].numericValue);
-                const lcp = Math.round(data.audits['largest-contentful-paint'].numericValue);
-                const tbt = Math.round(data.audits['total-blocking-time'].numericValue);
-                const cls = data.audits['cumulative-layout-shift'].numericValue.toFixed(3);
-                const icon = perf >= 90 ? '🟢' : perf >= 50 ? '🟠' : '🔴';
-                const link = reportUrl ? '[View](' + reportUrl + ')' : '—';
-                rows.push('| ' + icon + ' \`' + page + '\` | **' + perf + '** | ' + fcp + 'ms | ' + lcp + 'ms | ' + tbt + 'ms | ' + cls + ' | ' + link + ' |');
-              } catch (e) {
-                // skip non-parseable files
+            if (fs.existsSync(lhciDir)) {
+              const jsonFiles = fs.readdirSync(lhciDir)
+                .filter(f => f.startsWith('lhr-') && f.endsWith('.json'))
+                .sort();
+              for (const file of jsonFiles) {
+                try {
+                  const data = JSON.parse(fs.readFileSync(path.join(lhciDir, file), 'utf8'));
+                  const page = new URL(data.requestedUrl).pathname || '/';
+                  const reportUrl = reportMap[page] || '';
+                  const perf = Math.round((data.categories.performance?.score || 0) * 100);
+                  const fcp = Math.round(data.audits['first-contentful-paint'].numericValue);
+                  const lcp = Math.round(data.audits['largest-contentful-paint'].numericValue);
+                  const tbt = Math.round(data.audits['total-blocking-time'].numericValue);
+                  const cls = data.audits['cumulative-layout-shift'].numericValue.toFixed(3);
+                  const icon = perf >= 90 ? '🟢' : perf >= 50 ? '🟠' : '🔴';
+                  const link = reportUrl ? '[View](' + reportUrl + ')' : '—';
+                  rows.push('| ' + icon + ' \`' + page + '\` | **' + perf + '** | ' + fcp + 'ms | ' + lcp + 'ms | ' + tbt + 'ms | ' + cls + ' | ' + link + ' |');
+                } catch (e) { /* skip */ }
+              }
+            }
+            fs.writeFileSync('/tmp/desktop-rows.json', JSON.stringify(rows));
+          "
+
+      # ── Mobile audit ───────────────────────────────────────
+      - name: Clear desktop LHCI artifacts
+        if: always()
+        run: rm -rf .lighthouseci
+
+      - name: Run Lighthouse CI (mobile)
+        continue-on-error: true
+        run: npx lhci autorun --config=lighthouserc.mobile.cjs 2>&1 | tee lhci-output-mobile.txt
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Combined summary ───────────────────────────────────
+      - name: Generate summary
+        if: always()
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+
+            // Read saved desktop rows
+            let desktopRows = [];
+            try { desktopRows = JSON.parse(fs.readFileSync('/tmp/desktop-rows.json', 'utf8')); } catch {}
+
+            // Build mobile rows from current .lighthouseci
+            const output = fs.existsSync('lhci-output-mobile.txt') ? fs.readFileSync('lhci-output-mobile.txt', 'utf8') : '';
+            const uploadLines = output.match(/Uploading median LHR.*?success!/g) || [];
+            const reportLines = output.match(/Open the report at https:\/\/\S+/g) || [];
+            const reportMap = {};
+            for (let i = 0; i < uploadLines.length; i++) {
+              const pageMatch = uploadLines[i].match(/http:\/\/localhost:4321(\/[^\s.]*)?/);
+              const page = pageMatch && pageMatch[1] ? pageMatch[1] : '/';
+              const urlMatch = reportLines[i]?.match(/(https:\/\/\S+)/);
+              if (urlMatch) reportMap[page] = urlMatch[1];
+            }
+
+            const mobileRows = [];
+            const lhciDir = '.lighthouseci';
+            if (fs.existsSync(lhciDir)) {
+              const jsonFiles = fs.readdirSync(lhciDir)
+                .filter(f => f.startsWith('lhr-') && f.endsWith('.json'))
+                .sort();
+              for (const file of jsonFiles) {
+                try {
+                  const data = JSON.parse(fs.readFileSync(path.join(lhciDir, file), 'utf8'));
+                  const page = new URL(data.requestedUrl).pathname || '/';
+                  const reportUrl = reportMap[page] || '';
+                  const perf = Math.round((data.categories.performance?.score || 0) * 100);
+                  const fcp = Math.round(data.audits['first-contentful-paint'].numericValue);
+                  const lcp = Math.round(data.audits['largest-contentful-paint'].numericValue);
+                  const tbt = Math.round(data.audits['total-blocking-time'].numericValue);
+                  const cls = data.audits['cumulative-layout-shift'].numericValue.toFixed(3);
+                  const icon = perf >= 90 ? '🟢' : perf >= 50 ? '🟠' : '🔴';
+                  const link = reportUrl ? '[View](' + reportUrl + ')' : '—';
+                  mobileRows.push('| ' + icon + ' \`' + page + '\` | **' + perf + '** | ' + fcp + 'ms | ' + lcp + 'ms | ' + tbt + 'ms | ' + cls + ' | ' + link + ' |');
+                } catch (e) { /* skip */ }
               }
             }
 
-            let summary = '## Lighthouse CI Scores\n\n';
-            summary += '| Page | Performance | FCP | LCP | TBT | CLS | Report |\n';
-            summary += '|------|-------------|-----|-----|-----|-----|--------|\n';
-            summary += rows.join('\n') + '\n';
+            const header = '| Page | Performance | FCP | LCP | TBT | CLS | Report |\n|------|-------------|-----|-----|-----|-----|--------|';
+
+            let summary = '## Lighthouse CI Scores\n\n<table><tr>\n<td valign=\"top\">\n\n';
+            summary += '### 🖥️ Desktop\n\n';
+            if (desktopRows.length > 0) {
+              summary += header + '\n' + desktopRows.join('\n') + '\n';
+            } else {
+              summary += '⚠️ No desktop results\n';
+            }
+            summary += '\n</td>\n<td valign=\"top\">\n\n';
+            summary += '### 📱 Mobile\n\n';
+            if (mobileRows.length > 0) {
+              summary += header + '\n' + mobileRows.join('\n') + '\n';
+            } else {
+              summary += '⚠️ No mobile results\n';
+            }
+            summary += '\n</td>\n</tr></table>\n';
+
+            // Assertion results from both runs
+            const assertionFiles = ['lhci-output-desktop.txt', 'lhci-output-mobile.txt'];
+            const labels = ['Desktop', 'Mobile'];
+            for (let i = 0; i < assertionFiles.length; i++) {
+              if (!fs.existsSync(assertionFiles[i])) continue;
+              const text = fs.readFileSync(assertionFiles[i], 'utf8');
+              const assertions = text.split('\n')
+                .filter(l => /result\(s\) for|warning for|failure for/.test(l))
+                .map(l => l.replace(/\x1b\[[0-9;]*m/g, ''))
+                .join('\n');
+              if (assertions) {
+                summary += '\n### ' + labels[i] + ' Assertions\n\n\`\`\`\n' + assertions + '\n\`\`\`\n';
+              }
+            }
+
+            if (!summary.includes('Assertions')) {
+              summary += '\n✅ All performance assertions passed\n';
+            }
+
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
           "
-
-          # Assertion results
-          ASSERTIONS=$(grep -E "result\(s\) for|warning for|failure for" lhci-output.txt | sed 's/\x1b\[[0-9;]*m//g' || true)
-          if [ -n "$ASSERTIONS" ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Assertion Results" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "$ASSERTIONS" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          else
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "✅ All performance assertions passed" >> $GITHUB_STEP_SUMMARY
-          fi
