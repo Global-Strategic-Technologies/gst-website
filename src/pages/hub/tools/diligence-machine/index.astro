@@ -741,7 +741,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     }
 
     updateNextButtonState();
-    saveStateDebounced();
+    saveState(); // Step transitions save immediately (debounce is for rapid option clicks)
   }
 
   /** Update the multi-region card's DOM state and sync the geographies array */

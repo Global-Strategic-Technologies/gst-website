@@ -332,26 +332,6 @@ const { projects } = Astro.props;
 </style>
 
 <script is:inline>
-  // Initialize global state if not already done (defensive — PortfolioHeader normally initializes first)
-  if (!window.portfolioState) {
-    let allProjects;
-    try {
-      const dataEl = document.getElementById('portfolio-data');
-      allProjects = dataEl ? JSON.parse(dataEl.textContent) : [];
-    } catch (e) {
-      console.error('Failed to parse projects data:', e);
-      allProjects = [];
-    }
-
-    window.portfolioState = {
-      allProjects: allProjects,
-      filteredProjects: [],
-      filters: { search: '', stage: 'all', theme: 'all', year: 'all' },
-      growthStages: [],
-      matureStages: [],
-    };
-  }
-
   function openProjectModal(projectId) {
     // Use ProjectModal component's open function
     window.projectModal.open(projectId, window.portfolioState.allProjects);

@@ -449,31 +449,11 @@
 </style>
 
 <script is:inline>
-  // Initialize global state (defensive — PortfolioHeader normally initializes first)
-  if (!window.portfolioState) {
-    let allProjects;
-    try {
-      const dataEl = document.getElementById('portfolio-data');
-      allProjects = dataEl ? JSON.parse(dataEl.textContent) : [];
-    } catch (e) {
-      console.error('Failed to parse projects data:', e);
-      allProjects = [];
-    }
-
-    window.portfolioState = {
-      allProjects: allProjects,
-      filteredProjects: [],
-      filters: {
-        search: '',
-        theme: 'all',
-        engagement: 'all',
-      },
-    };
-  }
-
-  const allProjects = window.portfolioState.allProjects;
-  let filteredProjects = window.portfolioState.filteredProjects;
-  const filters = window.portfolioState.filters;
+  // State variables — populated in init() after DOMContentLoaded guarantees
+  // the #portfolio-data island (in PortfolioHeader) is in the DOM.
+  let allProjects = [];
+  let filteredProjects = [];
+  let filters = { search: '', theme: 'all', engagement: 'all' };
 
   function filterProjects() {
     window.portfolioState.filteredProjects = allProjects.filter((project) => {
@@ -659,6 +639,26 @@
   }
 
   function init() {
+    // Defensive init — PortfolioHeader normally initializes first
+    if (!window.portfolioState) {
+      let projects;
+      try {
+        const dataEl = document.getElementById('portfolio-data');
+        projects = dataEl ? JSON.parse(dataEl.textContent) : [];
+      } catch (e) {
+        console.error('Failed to parse projects data:', e);
+        projects = [];
+      }
+      window.portfolioState = {
+        allProjects: projects,
+        filteredProjects: [],
+        filters: { search: '', theme: 'all', engagement: 'all' },
+      };
+    }
+    allProjects = window.portfolioState.allProjects;
+    filteredProjects = window.portfolioState.filteredProjects;
+    filters = window.portfolioState.filters;
+
     attachChipListeners();
     attachSearchListener();
     attachDrawerListeners();

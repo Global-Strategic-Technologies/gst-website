@@ -145,13 +145,15 @@ test.describe('Regulatory Map — Category Filters', () => {
     // Select Germany (has regulations in multiple categories)
     await clickSvgPath(page, '[data-alpha3="DEU"].country-path--active');
 
+    // Wait for panel to render regulation cards (async fetch)
     await page.waitForFunction(() => {
       const el = document.getElementById('panelRegCount');
-      return el && el.textContent && el.textContent.includes('regulation');
+      const cards = document.querySelectorAll('.brutal-reg-card:not(.brutal-reg-card--loading)');
+      return el && el.textContent && el.textContent.includes('regulation') && cards.length > 0;
     });
 
     // Get card count with "All" filter
-    const allCount = await page.locator('.brutal-reg-card').count();
+    const allCount = await page.locator('.brutal-reg-card:not(.brutal-reg-card--loading)').count();
     expect(allCount).toBeGreaterThan(0);
 
     // Switch to Data Privacy
@@ -161,13 +163,16 @@ test.describe('Regulatory Map — Category Filters', () => {
       )?.click()
     );
 
-    // Wait for panel to re-render with filtered results
+    // Wait for panel to re-render with filtered results (async fetch completes)
     await page.waitForFunction((prevCount) => {
-      return document.querySelectorAll('.brutal-reg-card').length !== prevCount;
+      const cards = document.querySelectorAll('.brutal-reg-card:not(.brutal-reg-card--loading)');
+      return cards.length > 0 && cards.length !== prevCount;
     }, allCount);
 
     // Data Privacy subset should have fewer cards than "All"
-    const privacyCount = await page.locator('.brutal-reg-card').count();
+    const privacyCount = await page
+      .locator('.brutal-reg-card:not(.brutal-reg-card--loading)')
+      .count();
     expect(privacyCount).toBeGreaterThan(0);
     expect(privacyCount).toBeLessThanOrEqual(allCount);
   });
