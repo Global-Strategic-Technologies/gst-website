@@ -331,12 +331,13 @@ const { projects } = Astro.props;
   }
 </style>
 
-<script is:inline define:vars={{ projectsData: JSON.stringify(projects) }}>
+<script is:inline>
   // Initialize global state if not already done (defensive — PortfolioHeader normally initializes first)
   if (!window.portfolioState) {
     let allProjects;
     try {
-      allProjects = JSON.parse(projectsData);
+      const dataEl = document.getElementById('portfolio-data');
+      allProjects = dataEl ? JSON.parse(dataEl.textContent) : [];
     } catch (e) {
       console.error('Failed to parse projects data:', e);
       allProjects = [];
@@ -393,29 +394,8 @@ const { projects } = Astro.props;
 
   // Listen for filter updates and track them
   window.addEventListener('portfolioFiltered', (e) => {
-    // Track the filter application
     if (e.detail && e.detail.filterType && e.detail.filterValue) {
       trackFilterApplication(e.detail.filterType, e.detail.filterValue);
     }
-    initPortfolioGrid();
   });
-
-  // Also set up a mutation observer to watch for card visibility changes
-  const observer = new MutationObserver(() => {
-    // Re-initialize when DOM changes
-    const visibleCards = document.querySelectorAll('.project-card:not([style*="display: none"])');
-    if (visibleCards.length > 0) {
-      setTimeout(() => initPortfolioGrid(), 100);
-    }
-  });
-
-  const gridContainer = document.querySelector('.grid');
-  if (gridContainer) {
-    observer.observe(gridContainer, {
-      attributes: true,
-      attributeFilter: ['style'],
-      subtree: true,
-      childList: true,
-    });
-  }
 </script>

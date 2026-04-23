@@ -1,12 +1,4 @@
 ---
-import type { Project } from '../../types/portfolio';
-
-interface Props {
-  projects: Project[];
-}
-
-const { projects } = Astro.props;
-
 // No filter logic imports needed — StickyControls delegates to PortfolioHeader's script
 ---
 
@@ -456,17 +448,13 @@ const { projects } = Astro.props;
   }
 </style>
 
-<script
-  is:inline
-  define:vars={{
-    projectsData: JSON.stringify(projects),
-  }}
->
+<script is:inline>
   // Initialize global state (defensive — PortfolioHeader normally initializes first)
   if (!window.portfolioState) {
     let allProjects;
     try {
-      allProjects = JSON.parse(projectsData);
+      const dataEl = document.getElementById('portfolio-data');
+      allProjects = dataEl ? JSON.parse(dataEl.textContent) : [];
     } catch (e) {
       console.error('Failed to parse projects data:', e);
       allProjects = [];
