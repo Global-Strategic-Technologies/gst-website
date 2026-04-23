@@ -4,6 +4,10 @@ import HubHeader from '../../../../components/hub/HubHeader.astro';
 import MapVisualizer from '../../../../components/hub/tools/regulatory-map/MapVisualizer.astro';
 import CompliancePanel from '../../../../components/hub/tools/regulatory-map/CompliancePanel.astro';
 import PrintReportHeader from '../../../../components/PrintReportHeader.astro';
+import { fetchAllRegulations, buildRegulationIndex } from '../../../../utils/fetchRegulations';
+
+const regulations = await fetchAllRegulations();
+const regIndex = buildRegulationIndex(regulations);
 
 const faqItems = [
   {
@@ -257,6 +261,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       <a href="/hub/tools" class="cta-button secondary back-link">Back to Tools</a>
     </div>
   </section>
+  <script is:inline type="application/json" id="regIndex" set:html={JSON.stringify(regIndex)} />
 </BaseLayout>
 
 <script>
@@ -275,14 +280,41 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   import { escapeHtml } from '../../../../utils/escape-html';
   import * as Sentry from '@sentry/browser';
 
+  // --- Lightweight index entry (inlined at build time) ---
+  interface RegIndexEntry {
+    id: string;
+    name: string;
+    effectiveDate: string;
+    category: string;
+    regions: string[];
+  }
+
+  // --- Parse the build-time regulation index from inline JSON ---
+  const regIndexRaw = JSON.parse(document.getElementById('regIndex')!.textContent!) as {
+    regions: Record<string, string[]>;
+    regs: RegIndexEntry[];
+  };
+
+  // --- Detail cache: full regulation objects fetched on demand ---
+  const detailCache = new Map<string, Regulation>();
+
+  async function fetchRegulationDetail(id: string): Promise<Regulation | null> {
+    if (detailCache.has(id)) return detailCache.get(id)!;
+    try {
+      const res = await fetch(`/data/regulations/${encodeURIComponent(id)}.json`);
+      if (!res.ok) return null;
+      const reg: Regulation = await res.json();
+      detailCache.set(id, reg);
+      return reg;
+    } catch (err) {
+      console.error(`Failed to fetch regulation detail: ${id}`, err);
+      Sentry.captureException(err, { tags: { area: 'regulatory-map' } });
+      return null;
+    }
+  }
+
   // Analytics: fire rm_start once per page load on first interaction
   let rmStartFired = false;
-
-  // --- Two-phase initialization ---
-  // Phase A: start regulation fetch (don't await yet), immediately await geodata only
-  const regulationPromise = fetch('/data/regulations.json').then((r) => r.json()) as Promise<
-    Record<string, Regulation[]>
-  >;
 
   const [topology, usTopo, caTopo] = await Promise.all([
     fetch('/data/world-110m.json').then((r) => r.json()) as Promise<Topology>,
@@ -290,8 +322,8 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     fetch('/data/canada-provinces.json').then((r) => r.json()) as Promise<Topology>,
   ]);
 
-  // regionMap starts empty; Phase B populates it after paths are rendered
-  let regionMap: Record<string, Regulation[]> = {};
+  // regionMap: region code → array of regulation IDs (from inline index)
+  const regionMap: Record<string, string[]> = regIndexRaw.regions;
 
   const usStates = feature(
     usTopo as unknown as Topology<{ states: GeometryCollection }>,
@@ -421,19 +453,24 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     }
   });
 
-  // regById and searchIndex are populated in Phase B (after regionMap is loaded)
-  // Declare them here so closure references in event handlers resolve correctly
-  const regById: Record<string, Regulation> = {};
+  // regById: lightweight index entries keyed by ID (populated from inline index)
+  const regById: Record<string, RegIndexEntry> = {};
+  for (const entry of regIndexRaw.regs) {
+    regById[entry.id] = entry;
+  }
 
   interface SearchableReg {
-    reg: Regulation;
+    reg: RegIndexEntry;
     searchText: string;
   }
 
-  let searchIndex: SearchableReg[] = [];
+  const searchIndex: SearchableReg[] = regIndexRaw.regs.map((reg) => ({
+    reg,
+    searchText: reg.name.toLowerCase(),
+  }));
 
   let activeSearchTerm = '';
-  let searchResults: Regulation[] = [];
+  let searchResults: RegIndexEntry[] = [];
   let activeResultIndex = -1;
 
   function clearRegionHighlights(): void {
@@ -445,7 +482,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       .classed('state-path--highlighted', false);
   }
 
-  function highlightRegulationRegions(reg: Regulation): void {
+  function highlightRegulationRegions(reg: RegIndexEntry | Regulation): void {
     clearRegionHighlights();
 
     const regionSet = new Set(reg.regions);
@@ -473,11 +510,11 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       });
   }
 
-  function getFilteredRegionMap(): Record<string, Regulation[]> {
+  function getFilteredRegionMap(): Record<string, string[]> {
     if (activeCategory === 'all') return regionMap;
-    const filtered: Record<string, Regulation[]> = {};
-    for (const [code, regs] of Object.entries(regionMap)) {
-      const matching = regs.filter((r) => r.category === activeCategory);
+    const filtered: Record<string, string[]> = {};
+    for (const [code, ids] of Object.entries(regionMap)) {
+      const matching = ids.filter((id) => regById[id]?.category === activeCategory);
       if (matching.length > 0) filtered[code] = matching;
     }
     return filtered;
@@ -689,31 +726,10 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     .on('mouseenter', handleMouseEnter)
     .on('mouseleave', handleMouseLeave);
 
-  // --- Phase B: apply regulation data once the fetch resolves ---
-  // All D3 paths are now in the DOM. Await the regulation promise and enrich them.
-  try {
-    regionMap = await regulationPromise;
-  } catch (err) {
-    console.error('Failed to load regulation data:', err);
-    Sentry.captureException(err, { tags: { area: 'regulatory-map' } });
-    document.getElementById('mapContainer')?.setAttribute('data-map-ready', 'error');
-    // Map geometry is visible but non-interactive — degrade gracefully
-  }
-
+  // --- Phase B: apply regulation data from inline index ---
+  // regById and searchIndex are already populated from the inline JSON above.
+  // Apply --active class, role="button", and tabindex to paths with regulations.
   if (Object.keys(regionMap).length > 0) {
-    // Build lookup index and search index now that regionMap is populated
-    for (const regs of Object.values(regionMap)) {
-      for (const reg of regs) {
-        if (!regById[reg.id]) regById[reg.id] = reg;
-      }
-    }
-
-    searchIndex = Object.values(regById).map((reg) => ({
-      reg,
-      searchText: [reg.name, reg.summary, ...(reg.keyRequirements ?? [])].join(' ').toLowerCase(),
-    }));
-
-    // Apply --active class, role="button", and tabindex to country paths with regulations
     g.selectAll<SVGPathElement, unknown>('.country-path').each(function () {
       const alpha3 = this.getAttribute('data-alpha3') ?? '';
       if (alpha3 === 'USA' || alpha3 === 'CAN') return;
@@ -724,7 +740,6 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       }
     });
 
-    // Apply --active class, role="button", and tabindex to state/province paths with regulations
     g.selectAll<SVGPathElement, unknown>('.state-path').each(function () {
       const code = this.getAttribute('data-state-code') ?? '';
       if (code && regionMap[code]) {
@@ -858,29 +873,40 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   const panelRegCount = document.getElementById('panelRegCount')!;
   const panelRegulations = document.getElementById('panelRegulations')!;
 
-  function renderPanel(regionId: string): void {
+  async function renderPanel(regionId: string): Promise<void> {
     const countryName =
       stateCodeToName[regionId] ??
       provinceCodeToName[regionId] ??
       alpha3ToName[regionId] ??
       regionId;
     const filteredMap = getFilteredRegionMap();
-    const regs = filteredMap[regionId] ?? [];
+    const regIds = filteredMap[regionId] ?? [];
 
     panelCountryName.textContent = countryName;
 
-    const count = regs.length;
+    const count = regIds.length;
     panelRegCount.textContent = `${count} regulation${count !== 1 ? 's' : ''}`;
-    panelRegulations.innerHTML = regs.map(renderRegulationCard).join('');
-    if (count > 0) {
-      trackEvent({
-        event: 'rm_complete',
-        category: 'tool',
-        region_id: regionId,
-        regulation_count: count,
-        page: 'regulatory-map',
-      });
+
+    if (count === 0) {
+      panelRegulations.innerHTML = '';
+      return;
     }
+
+    panelRegulations.innerHTML =
+      '<div class="brutal-reg-card brutal-reg-card--loading">Loading\u2026</div>';
+    const details = await Promise.all(regIds.map(fetchRegulationDetail));
+    panelRegulations.innerHTML = details
+      .filter((r): r is Regulation => r !== null)
+      .map(renderRegulationCard)
+      .join('');
+
+    trackEvent({
+      event: 'rm_complete',
+      category: 'tool',
+      region_id: regionId,
+      regulation_count: count,
+      page: 'regulatory-map',
+    });
   }
 
   document.addEventListener('regionSelected', ((event: CustomEvent<RegionSelectedDetail>) => {
@@ -1097,7 +1123,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     cybersecurity: 'Cyber',
   };
 
-  function performSearch(query: string): Regulation[] {
+  function performSearch(query: string): RegIndexEntry[] {
     if (!query.trim()) return [];
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
     return searchIndex
@@ -1108,7 +1134,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       .map(({ reg }) => reg);
   }
 
-  function renderSearchResults(results: Regulation[]): void {
+  function renderSearchResults(results: RegIndexEntry[]): void {
     const container = document.getElementById('searchResults')!;
 
     if (!activeSearchTerm.trim()) {
@@ -1152,7 +1178,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     activeResultIndex = -1;
   }
 
-  function updateMapForSearch(results: Regulation[], query: string): void {
+  function updateMapForSearch(results: RegIndexEntry[], query: string): void {
     if (!query.trim()) {
       updateMapHighlighting();
       return;
@@ -1185,16 +1211,17 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       });
   }
 
-  function selectSearchResult(regId: string): void {
-    const reg = regById[regId];
-    if (!reg) return;
+  async function selectSearchResult(regId: string): Promise<void> {
+    const indexEntry = regById[regId];
+    if (!indexEntry) return;
 
-    highlightRegulationRegions(reg);
+    highlightRegulationRegions(indexEntry);
 
-    const regionCount = reg.regions.length;
-    panelCountryName.textContent = reg.name;
+    const regionCount = indexEntry.regions.length;
+    panelCountryName.textContent = indexEntry.name;
     panelRegCount.textContent = `${regionCount} region${regionCount !== 1 ? 's' : ''}`;
-    panelRegulations.innerHTML = renderRegulationCard(reg);
+    panelRegulations.innerHTML =
+      '<div class="brutal-reg-card brutal-reg-card--loading">Loading\u2026</div>';
     document.getElementById('mapCta')?.remove();
     compliancePanel.hidden = false;
 
@@ -1204,11 +1231,16 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
 
     document.getElementById('searchResults')!.hidden = true;
 
+    const detail = await fetchRegulationDetail(regId);
+    if (detail) {
+      panelRegulations.innerHTML = renderRegulationCard(detail);
+    }
+
     trackEvent({
       event: 'rm_search_result_click',
       category: 'tool',
       regulation_id: regId,
-      regulation_name: reg.name,
+      regulation_name: indexEntry.name,
       search_term: activeSearchTerm,
       page: 'regulatory-map',
     });
@@ -1315,18 +1347,8 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   });
 
   // --- Timeline ---
-  function buildTimelineData(): Regulation[] {
-    const seen = new Set<string>();
-    const all: Regulation[] = [];
-    for (const regs of Object.values(regionMap)) {
-      for (const reg of regs) {
-        if (!seen.has(reg.id)) {
-          seen.add(reg.id);
-          all.push(reg);
-        }
-      }
-    }
-    return all.sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
+  function buildTimelineData(): RegIndexEntry[] {
+    return [...regIndexRaw.regs].sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
   }
 
   /**
@@ -1392,7 +1414,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     filteredRegs.sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
 
     // Group by year (Map preserves insertion order of sorted data)
-    const byYear = new Map<number, Regulation[]>();
+    const byYear = new Map<number, RegIndexEntry[]>();
     for (const reg of filteredRegs) {
       const year = parseInt(reg.effectiveDate.slice(0, 4));
       if (!byYear.has(year)) byYear.set(year, []);
@@ -1455,13 +1477,13 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   }
 
   // Timeline click handler
-  document.getElementById('timelineTrack')?.addEventListener('click', (e) => {
+  document.getElementById('timelineTrack')?.addEventListener('click', async (e) => {
     const entry = (e.target as HTMLElement).closest('.brutal-timeline-entry') as HTMLElement | null;
     if (!entry) return;
 
     const regId = entry.dataset.regId ?? '';
-    const reg = regById[regId];
-    if (!reg) return;
+    const indexEntry = regById[regId];
+    if (!indexEntry) return;
 
     // Toggle active state on timeline entry
     if (activeTimelineEntry) {
@@ -1481,15 +1503,21 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       activeTimelineEntry = entry;
 
       // Highlight regions on map
-      highlightRegulationRegions(reg);
+      highlightRegulationRegions(indexEntry);
 
-      // Show this single regulation in the panel
-      const regionCount = reg.regions.length;
-      panelCountryName.textContent = reg.name;
+      // Show this single regulation in the panel (fetch detail on demand)
+      const regionCount = indexEntry.regions.length;
+      panelCountryName.textContent = indexEntry.name;
       panelRegCount.textContent = `${regionCount} region${regionCount !== 1 ? 's' : ''}`;
-      panelRegulations.innerHTML = renderRegulationCard(reg);
+      panelRegulations.innerHTML =
+        '<div class="brutal-reg-card brutal-reg-card--loading">Loading\u2026</div>';
       document.getElementById('mapCta')?.remove();
       compliancePanel.hidden = false;
+
+      const detail = await fetchRegulationDetail(regId);
+      if (detail) {
+        panelRegulations.innerHTML = renderRegulationCard(detail);
+      }
 
       // On mobile, open the bottom sheet
       if (isMobile()) {
@@ -1501,7 +1529,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       event: 'rm_timeline_click',
       category: 'tool',
       regulation_id: regId,
-      regulation_name: reg.name,
+      regulation_name: indexEntry.name,
       page: 'regulatory-map',
     });
   });

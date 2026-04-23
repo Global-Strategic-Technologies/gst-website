@@ -432,6 +432,12 @@ Brutalist Panel & Reg Card
   margin: var(--spacing-md) var(--spacing-lg);
 }
 
+.brutal-reg-card--loading {
+  color: var(--text-muted);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-sm);
+}
+
 .brutal-reg-card__name {
   font-family: var(--font-family-mono);
   font-size: 0.875rem;

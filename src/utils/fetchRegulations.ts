@@ -1,5 +1,22 @@
 import type { Regulation } from '../types/regulatory-map';
 
+/** Lightweight regulation entry for the inline index (no summary/scope/penalties). */
+export interface RegulationIndexEntry {
+  id: string;
+  name: string;
+  effectiveDate: string;
+  category: string;
+  regions: string[];
+}
+
+/** Shape of the inline regulation index embedded in the page HTML. */
+export interface RegulationIndex {
+  /** Region code → array of regulation IDs that apply to that region. */
+  regions: Record<string, string[]>;
+  /** Deduplicated list of lightweight regulation entries (for timeline, search, map coloring). */
+  regs: RegulationIndexEntry[];
+}
+
 /**
  * Loads and validates all regulatory JSON files via Astro content collections.
  * Schema validation happens at build time via the collection definition in
@@ -32,4 +49,28 @@ export function getRegulationsByRegion(regulations: Regulation[]): Record<string
   }
 
   return map;
+}
+
+/**
+ * Builds a lightweight index for the regulatory map page.
+ * Contains only the fields needed for map coloring, timeline rendering,
+ * and search — full regulation details are fetched on demand per click.
+ */
+export function buildRegulationIndex(regulations: Regulation[]): RegulationIndex {
+  const regions: Record<string, string[]> = {};
+  const regs: RegulationIndexEntry[] = regulations.map((r) => ({
+    id: r.id,
+    name: r.name,
+    effectiveDate: r.effectiveDate,
+    category: r.category,
+    regions: r.regions,
+  }));
+
+  for (const reg of regulations) {
+    for (const code of reg.regions) {
+      (regions[code] ??= []).push(reg.id);
+    }
+  }
+
+  return { regions, regs };
 }
