@@ -5,6 +5,7 @@ import MapVisualizer from '../../../../components/hub/tools/regulatory-map/MapVi
 import CompliancePanel from '../../../../components/hub/tools/regulatory-map/CompliancePanel.astro';
 import PrintReportHeader from '../../../../components/PrintReportHeader.astro';
 import { fetchAllRegulations, buildRegulationIndex } from '../../../../utils/fetchRegulations';
+import '../../../../styles/components/filter.css';
 
 const regulations = await fetchAllRegulations();
 const regIndex = buildRegulationIndex(regulations);

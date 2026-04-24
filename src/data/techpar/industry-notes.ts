@@ -7,8 +7,7 @@
  * Validated at build time against `IndustryNotesMapSchema`.
  */
 
-import { IndustryNotesMapSchema, type Industry, type IndustryNote } from '../../schemas/techpar';
-import { validateDataSource } from '../../utils/validateData';
+import type { Industry, IndustryNote } from '../../schemas/techpar';
 
 export type { Industry, IndustryNote };
 
@@ -45,10 +44,7 @@ const industryNotesData: Record<Industry, IndustryNote> = {
   },
 };
 
-export const INDUSTRY_NOTES = validateDataSource(
-  IndustryNotesMapSchema,
-  industryNotesData,
-  'techpar/industry-notes.ts'
-);
+// Validated at build time via unit tests. Type assertion avoids shipping Zod to client bundles.
+export const INDUSTRY_NOTES = industryNotesData as Record<Industry, IndustryNote>;
 
 export { INDUSTRY_KEYS } from '../../schemas/techpar';

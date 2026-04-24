@@ -6,13 +6,7 @@
  * Validated at build time against `WizardStepsArraySchema`.
  */
 
-import {
-  WizardStepsArraySchema,
-  type WizardOption,
-  type WizardField,
-  type WizardStep,
-} from '../../schemas/diligence';
-import { validateDataSource } from '../../utils/validateData';
+import type { WizardOption, WizardField, WizardStep } from '../../schemas/diligence';
 
 export type { WizardOption, WizardField, WizardStep };
 
@@ -358,11 +352,8 @@ const wizardStepsData: WizardStep[] = [
   },
 ];
 
-export const WIZARD_STEPS = validateDataSource(
-  WizardStepsArraySchema,
-  wizardStepsData,
-  'diligence-machine/wizard-config.ts'
-);
+// Validated at build time via unit tests. Type assertion avoids shipping Zod to client bundles.
+export const WIZARD_STEPS = wizardStepsData as WizardStep[];
 
 /** Ordinal bracket ordering for comparative conditions */
 export const BRACKET_ORDER = {

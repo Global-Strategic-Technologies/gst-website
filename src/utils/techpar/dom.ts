@@ -44,7 +44,10 @@ export function fmtD(n: number): string {
 // ─── Tab navigation ───────────────────────────────────────
 export function goTab(
   tab: string,
-  deps: { runCompute: () => TechParResult | null; renderTrajectory: (r: TechParResult) => void }
+  deps: {
+    runCompute: () => TechParResult | null;
+    renderTrajectory: (r: TechParResult) => void | Promise<void>;
+  }
 ) {
   $$('.tool-tab').forEach((t) => {
     t.classList.remove('tool-tab--active');
@@ -88,7 +91,7 @@ export function copySummary(btn: HTMLButtonElement) {
 // ─── Export PDF ───────────────────────────────────────────
 export function exportPdf(deps: {
   runCompute: () => TechParResult | null;
-  renderTrajectory: (r: TechParResult) => void;
+  renderTrajectory: (r: TechParResult) => void | Promise<void>;
 }) {
   trackEvent({ event: 'tp_export_pdf', category: 'tool', page: 'techpar' });
   const result = deps.runCompute();
