@@ -3,20 +3,22 @@
 @import './interactions.css';
 @import './palettes.css';
 
-/* Component modules */
+/* Component modules — globally needed */
 @import './components/tool-ui.css';
 @import './components/tool-shell.css';
 @import './components/skeleton.css';
 @import './components/buttons.css';
-@import './components/filter.css';
 @import './components/breadcrumb.css';
-@import './components/progress.css';
 @import './components/tiles.css';
 @import './components/table.css';
-@import './components/cards.css';
 @import './components/form.css';
-@import './components/portfolio.css';
-@import './components/map.css';
+
+/* Page-specific component CSS — imported by the pages that use them:
+   filter.css     → PortfolioHeader.astro (ma-portfolio)
+   portfolio.css  → PortfolioGrid.astro (ma-portfolio)
+   map.css        → MapVisualizer.astro (regulatory-map)
+   cards.css      → brand.astro
+   progress.css   → diligence-machine/index.astro */
 
 * {
   margin: 0;
