@@ -23,6 +23,10 @@
     </header>
 
     <div class="controls">
+      <div class="device-toggle" id="deviceToggle">
+        <button class="device-btn active" data-device="desktop">🖥️ Desktop</button>
+        <button class="device-btn" data-device="mobile">📱 Mobile</button>
+      </div>
       <label for="dateRange">Date range:</label>
       <select id="dateRange">
         <option value="28">Last 4 weeks</option>
@@ -37,7 +41,11 @@
 
     <main class="dashboard-content">
       <section class="summary-section">
-        <h2>Latest Scores</h2>
+        <h2>Latest Scores <span class="summary-label">(Build Server)</span></h2>
+        <p class="summary-note">
+          Synthetic audit via Lighthouse CI — scores may differ from production (Vercel Speed
+          Insights)
+        </p>
         <table class="summary-table">
           <thead>
             <tr>
@@ -105,29 +113,73 @@
         '#ffd166',
       ];
 
+      const DATA_FILES = {
+        desktop: 'data/lighthouse-history.json',
+        mobile: 'data/lighthouse-history-mobile.json',
+      };
+
+      let currentDevice = 'desktop';
       let historyData = null;
       let charts = {};
       let activePages = new Set();
 
-      async function init() {
+      async function loadData(device) {
         try {
-          const res = await fetch('data/lighthouse-history.json');
+          const res = await fetch(DATA_FILES[device]);
           if (!res.ok) throw new Error(res.statusText);
-          historyData = await res.json();
+          return await res.json();
         } catch {
+          return null;
+        }
+      }
+
+      async function init() {
+        historyData = await loadData(currentDevice);
+
+        if (!historyData || !historyData.runs || historyData.runs.length === 0) {
           document.getElementById('emptyState').style.display = '';
           document.querySelector('.summary-section').style.display = 'none';
           document.querySelector('.charts-section').style.display = 'none';
           return;
         }
 
-        if (!historyData.runs || historyData.runs.length === 0) {
-          document.getElementById('emptyState').style.display = '';
-          document.querySelector('.summary-section').style.display = 'none';
-          document.querySelector('.charts-section').style.display = 'none';
-          return;
-        }
+        showData();
 
+        // Event listeners
+        document.getElementById('dateRange').addEventListener('change', render);
+
+        // Device toggle
+        document.getElementById('deviceToggle').addEventListener('click', async (e) => {
+          const btn = e.target.closest('.device-btn');
+          if (!btn || btn.dataset.device === currentDevice) return;
+
+          currentDevice = btn.dataset.device;
+          document.querySelectorAll('.device-btn').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          historyData = await loadData(currentDevice);
+          if (!historyData || !historyData.runs || historyData.runs.length === 0) {
+            document.getElementById('emptyState').style.display = '';
+            document.querySelector('.summary-section').style.display = 'none';
+            document.querySelector('.charts-section').style.display = 'none';
+            // Destroy existing charts
+            Object.values(charts).forEach((c) => c.destroy());
+            charts = {};
+            return;
+          }
+
+          document.getElementById('emptyState').style.display = 'none';
+          document.querySelector('.summary-section').style.display = '';
+          document.querySelector('.charts-section').style.display = '';
+
+          // Rebuild with new data
+          Object.values(charts).forEach((c) => c.destroy());
+          charts = {};
+          showData();
+        });
+      }
+
+      function showData() {
         // Show last updated
         const lastRun = historyData.runs[historyData.runs.length - 1];
         document.getElementById('lastUpdated').textContent =
@@ -148,13 +200,11 @@
 
         // Render
         render();
-
-        // Event listeners
-        document.getElementById('dateRange').addEventListener('change', render);
       }
 
       function buildPageFilters(pages) {
         const container = document.getElementById('pageFilters');
+        container.innerHTML = '';
         pages.sort().forEach((page) => {
           const pill = document.createElement('button');
           pill.className = 'page-pill active';
