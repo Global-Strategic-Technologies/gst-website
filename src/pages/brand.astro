@@ -125,6 +125,11 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   .brand-section {
     padding: var(--spacing-3xl) 0;
     border-bottom: 1px solid var(--border-light);
+  }
+
+  /* Defer rendering of below-fold sections — skip the first two
+     (BrandIdentity + BrandColors) which are at or near the fold */
+  .brand-section:nth-of-type(n + 3) {
     content-visibility: auto;
     contain-intrinsic-size: auto 500px;
   }

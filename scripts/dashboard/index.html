@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Performance Dashboard — Global Strategic Technologies</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="stylesheet" href="dashboard.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   </head>
@@ -29,12 +30,22 @@
       </div>
       <label for="dateRange">Date range:</label>
       <select id="dateRange">
+        <option value="1">Last 24 hours</option>
+        <option value="7">Last 7 days</option>
         <option value="28">Last 4 weeks</option>
         <option value="90">Last 3 months</option>
         <option value="180" selected>Last 6 months</option>
         <option value="365">Last year</option>
         <option value="0">All time</option>
       </select>
+      <a
+        class="run-now-btn"
+        href="https://github.com/Global-Strategic-Technologies/gst-website/actions/workflows/perf-dashboard.yml"
+        target="_blank"
+        rel="noopener"
+        title="Open GitHub Actions to trigger a manual run"
+        >Run Now ↗</a
+      >
     </div>
 
     <div class="page-filters" id="pageFilters"></div>
@@ -162,7 +173,6 @@
             document.getElementById('emptyState').style.display = '';
             document.querySelector('.summary-section').style.display = 'none';
             document.querySelector('.charts-section').style.display = 'none';
-            // Destroy existing charts
             Object.values(charts).forEach((c) => c.destroy());
             charts = {};
             return;
@@ -172,7 +182,6 @@
           document.querySelector('.summary-section').style.display = '';
           document.querySelector('.charts-section').style.display = '';
 
-          // Rebuild with new data
           Object.values(charts).forEach((c) => c.destroy());
           charts = {};
           showData();
@@ -180,25 +189,21 @@
       }
 
       function showData() {
-        // Show last updated
         const lastRun = historyData.runs[historyData.runs.length - 1];
+        const commitShort = (lastRun.commit || '').slice(0, 7);
         document.getElementById('lastUpdated').textContent =
-          'Last updated: ' + new Date(lastRun.timestamp).toLocaleDateString();
+          'Last updated: ' +
+          new Date(lastRun.timestamp).toLocaleDateString() +
+          (commitShort ? ' (' + commitShort + ')' : '');
 
-        // Discover all pages across all runs
         const allPages = new Set();
         historyData.runs.forEach((run) => {
           Object.keys(run.pages).forEach((p) => allPages.add(p));
         });
         activePages = new Set(allPages);
 
-        // Build page filter pills
         buildPageFilters(Array.from(allPages));
-
-        // Build charts
         createCharts();
-
-        // Render
         render();
       }
 
@@ -292,32 +297,55 @@
         tension: 0.3,
       };
 
-      const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: true,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              color: 'rgba(200,200,200,0.8)',
-              font: { family: 'monospace', size: 11 },
-              boxWidth: 12,
-              padding: 12,
+      function buildChartOptions(metric) {
+        return {
+          responsive: true,
+          maintainAspectRatio: true,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: 'rgba(200,200,200,0.8)',
+                font: { family: 'monospace', size: 11 },
+                boxWidth: 12,
+                padding: 12,
+              },
+            },
+            tooltip: {
+              callbacks: {
+                title: function (items) {
+                  if (!items.length) return '';
+                  const idx = items[0].dataIndex;
+                  const runs = getFilteredRuns();
+                  const run = runs[idx];
+                  if (!run) return items[0].label;
+                  const date = new Date(run.timestamp).toLocaleString();
+                  const sha = (run.commit || '').slice(0, 7);
+                  return sha ? date + '  \u2022  ' + sha : date;
+                },
+              },
             },
           },
-        },
-        scales: {
-          x: {
-            ticks: { color: 'rgba(200,200,200,0.6)', font: { family: 'monospace', size: 10 } },
-            grid: { color: 'rgba(255,255,255,0.05)' },
+          scales: {
+            x: {
+              ticks: {
+                color: 'rgba(200,200,200,0.6)',
+                font: { family: 'monospace', size: 10 },
+              },
+              grid: { color: 'rgba(255,255,255,0.05)' },
+            },
+            y: {
+              beginAtZero: metric === 'Tbt' || metric === 'Cls',
+              ticks: {
+                color: 'rgba(200,200,200,0.6)',
+                font: { family: 'monospace', size: 10 },
+              },
+              grid: { color: 'rgba(255,255,255,0.05)' },
+            },
           },
-          y: {
-            ticks: { color: 'rgba(200,200,200,0.6)', font: { family: 'monospace', size: 10 } },
-            grid: { color: 'rgba(255,255,255,0.05)' },
-          },
-        },
-      };
+        };
+      }
 
       function createCharts() {
         const metrics = ['Performance', 'Fcp', 'Lcp', 'Tbt', 'Cls'];
@@ -326,16 +354,7 @@
           charts[metric.toLowerCase()] = new Chart(ctx, {
             type: 'line',
             data: { labels: [], datasets: [] },
-            options: {
-              ...chartOptions,
-              scales: {
-                ...chartOptions.scales,
-                y: {
-                  ...chartOptions.scales.y,
-                  beginAtZero: metric === 'Tbt' || metric === 'Cls',
-                },
-              },
-            },
+            options: buildChartOptions(metric),
           });
         });
       }
@@ -346,7 +365,6 @@
           return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         });
 
-        // Collect all active pages
         const pages = new Set();
         runs.forEach((r) => {
           Object.keys(r.pages).forEach((p) => {

@@ -1,0 +1,10 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Delta Symbol Icon Only - Teal Stroke (Thick) -->
+
+  <!-- Delta Triangle -->
+  <path d="M32 12 L52 52 L12 52 Z"
+        fill="none"
+        stroke="#00D9B5"
+        stroke-width="6"
+        stroke-linejoin="miter"/>
+</svg>

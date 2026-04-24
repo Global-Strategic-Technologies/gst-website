@@ -50,6 +50,11 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   ogUrl="https://globalstrategic.tech/hub/tools/regulatory-map"
   faqItems={faqItems}
 >
+  {/* Preload geodata so downloads start during HTML parsing, before the D3 module executes */}
+  <link rel="preload" href="/data/world-110m.json" as="fetch" crossorigin />
+  <link rel="preload" href="/data/us-states-10m.json" as="fetch" crossorigin />
+  <link rel="preload" href="/data/canada-provinces.json" as="fetch" crossorigin />
+
   <script
     is:inline
     type="application/ld+json"

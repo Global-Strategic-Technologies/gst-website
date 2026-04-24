@@ -77,6 +77,7 @@ jobs:
           # Copy dashboard template files if they don't exist or are outdated
           cp scripts/dashboard/index.html gh-pages-dir/index.html
           cp scripts/dashboard/dashboard.css gh-pages-dir/dashboard.css
+          cp scripts/dashboard/favicon.svg gh-pages-dir/favicon.svg
           cp scripts/dashboard/.nojekyll gh-pages-dir/.nojekyll
 
       - name: Merge metrics
