@@ -1509,15 +1509,18 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
 
     track.innerHTML = html;
 
-    // Position the Today marker over the correct year group
-    positionTodayMarker(track);
+    // Defer offset reads to next frame — lets the browser render the injected
+    // content within the reserved min-height before we force a reflow.
+    requestAnimationFrame(() => {
+      positionTodayMarker(track);
 
-    // Auto-scroll to "today" marker
-    const todayMarker = document.getElementById('timelineTodayMarker');
-    if (todayMarker) {
-      const scroll = document.getElementById('timelineScroll')!;
-      scroll.scrollLeft = todayMarker.offsetLeft - scroll.clientWidth / 3;
-    }
+      // Auto-scroll to "today" marker
+      const todayMarker = document.getElementById('timelineTodayMarker');
+      if (todayMarker) {
+        const scroll = document.getElementById('timelineScroll')!;
+        scroll.scrollLeft = todayMarker.offsetLeft - scroll.clientWidth / 3;
+      }
+    });
   }
 
   // Timeline click handler
@@ -1836,6 +1839,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   }
 
   .timeline-scroll {
+    min-height: 140px; /* Reserve space to prevent CLS when renderTimeline() injects content */
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     padding-top: 14px;
