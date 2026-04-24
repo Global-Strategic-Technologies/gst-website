@@ -6,8 +6,7 @@
  * `StagesMapSchema` in `src/schemas/techpar.ts`.
  */
 
-import { StagesMapSchema, type StageConfig, type Stage } from '../../schemas/techpar';
-import { validateDataSource } from '../../utils/validateData';
+import type { StageConfig, Stage } from '../../schemas/techpar';
 
 const stagesData: Record<Stage, StageConfig> = {
   seed: {
@@ -92,6 +91,7 @@ const stagesData: Record<Stage, StageConfig> = {
   },
 };
 
-export const STAGES = validateDataSource(StagesMapSchema, stagesData, 'techpar/stages.ts');
+// Validated at build time via unit tests. Type assertion avoids shipping Zod to client bundles.
+export const STAGES = stagesData as Record<Stage, StageConfig>;
 
 export { STAGE_KEYS } from '../../schemas/techpar';

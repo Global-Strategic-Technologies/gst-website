@@ -5,8 +5,7 @@
  * Validated at build time against `SignalCopyMapSchema`.
  */
 
-import { SignalCopyMapSchema, type Stage, type Zone, type SignalCopy } from '../../schemas/techpar';
-import { validateDataSource } from '../../utils/validateData';
+import type { Stage, Zone, SignalCopy } from '../../schemas/techpar';
 
 export type { SignalCopy };
 
@@ -143,8 +142,5 @@ const signalCopyData: Record<Stage, Record<Zone, SignalCopy>> = {
   },
 };
 
-export const SIGNAL_COPY = validateDataSource(
-  SignalCopyMapSchema,
-  signalCopyData,
-  'techpar/signal-copy.ts'
-);
+// Validated at build time via unit tests. Type assertion avoids shipping Zod to client bundles.
+export const SIGNAL_COPY = signalCopyData as Record<Stage, Record<Zone, SignalCopy>>;

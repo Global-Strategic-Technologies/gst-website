@@ -6,8 +6,7 @@
  * Validated at build time against `TechParRecommendationsSchema`.
  */
 
-import { TechParRecommendationsSchema, type Stage, type Zone } from '../../schemas/techpar';
-import { validateDataSource } from '../../utils/validateData';
+import type { Stage, Zone } from '../../schemas/techpar';
 
 const recommendationsData: Record<Stage, Record<Zone, string[]>> = {
   seed: {
@@ -157,8 +156,5 @@ const recommendationsData: Record<Stage, Record<Zone, string[]>> = {
   },
 };
 
-export const RECOMMENDATIONS = validateDataSource(
-  TechParRecommendationsSchema,
-  recommendationsData,
-  'techpar/recommendations.ts'
-);
+// Validated at build time via unit tests. Type assertion avoids shipping Zod to client bundles.
+export const RECOMMENDATIONS = recommendationsData as Record<Stage, Record<Zone, string[]>>;

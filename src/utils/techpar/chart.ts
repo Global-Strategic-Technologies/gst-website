@@ -1,8 +1,7 @@
 /**
  * TechPar UI — Chart.js rendering for analysis and trajectory tabs.
  */
-import { Chart, registerables } from 'chart.js';
-import type { ChartDataset, TooltipItem } from 'chart.js';
+import type { Chart as ChartType, ChartDataset, TooltipItem } from 'chart.js';
 import {
   buildTrajectory,
   buildHistoricalTrajectory,
@@ -21,7 +20,17 @@ import { trackEvent } from '../analytics';
 import * as Sentry from '@sentry/browser';
 import { g, $$, getInput, getStyle, fmtD, buildInputs, renderScenarios } from './dom';
 
-Chart.register(...registerables);
+// Lazy-load Chart.js — only downloaded when the trajectory tab is first activated.
+// This removes ~180 KB from the initial TechPar bundle.
+let ChartCtor: typeof ChartType | null = null;
+
+async function ensureChart(): Promise<typeof ChartType> {
+  if (ChartCtor) return ChartCtor;
+  const { Chart, registerables } = await import('chart.js');
+  Chart.register(...registerables);
+  ChartCtor = Chart;
+  return Chart;
+}
 
 // ─── Analysis render ──────────────────────────────────────
 let lastReportedZone: string | null = null;
@@ -392,7 +401,7 @@ export function buildMetrics(r: TechParResult, col: string, s: StageConfig): str
 }
 
 // ─── Trajectory render ────────────────────────────────────
-export function renderTrajectory(r: TechParResult) {
+export async function renderTrajectory(r: TechParResult) {
   try {
     const s = r.stageConfig;
     const zoneCol = getStyle(zoneColorVar(r.zone));
@@ -590,7 +599,7 @@ export function renderTrajectory(r: TechParResult) {
     }
     const maxY = Math.max(...allSpend.filter((v) => !isNaN(v))) * 1.12;
 
-    function syncDot(chart: Chart) {
+    function syncDot(chart: ChartType) {
       const m = chart.getDatasetMeta(5);
       if (!m?.data?.[nowIdx]) return;
       const pt = m.data[nowIdx];
@@ -605,14 +614,15 @@ export function renderTrajectory(r: TechParResult) {
 
     const dotPlugin = {
       id: 'positionDot',
-      resize(chart: Chart) {
+      resize(chart: ChartType) {
         syncDot(chart);
       },
-      afterRender(chart: Chart) {
+      afterRender(chart: ChartType) {
         syncDot(chart);
       },
     };
 
+    const Chart = await ensureChart();
     tp.trajChart = new Chart(canvas.getContext('2d')!, {
       type: 'line',
       data: { labels, datasets },
