@@ -380,6 +380,82 @@
           "cls": 0
         }
       }
+    },
+    {
+      "timestamp": "2026-04-26T05:01:16.590Z",
+      "commit": "f5b6470b634a1a33cc0951ab6b6ee8ab72a070e5",
+      "pages": {
+        "/": {
+          "performance": 71,
+          "fcp": 4653,
+          "lcp": 4735,
+          "tbt": 0,
+          "cls": 0
+        },
+        "/about": {
+          "performance": 63,
+          "fcp": 4608,
+          "lcp": 10663,
+          "tbt": 0,
+          "cls": 0
+        },
+        "/services": {
+          "performance": 74,
+          "fcp": 1863,
+          "lcp": 10703,
+          "tbt": 46,
+          "cls": 0
+        },
+        "/ma-portfolio": {
+          "performance": 56,
+          "fcp": 9126,
+          "lcp": 11934,
+          "tbt": 0,
+          "cls": 0
+        },
+        "/brand": {
+          "performance": 47,
+          "fcp": 5929,
+          "lcp": 5929,
+          "tbt": 13,
+          "cls": 0.336
+        },
+        "/hub": {
+          "performance": 74,
+          "fcp": 4344,
+          "lcp": 4422,
+          "tbt": 0,
+          "cls": 0
+        },
+        "/hub/tools/tech-debt-calculator": {
+          "performance": 57,
+          "fcp": 8282,
+          "lcp": 11217,
+          "tbt": 0,
+          "cls": 0
+        },
+        "/hub/tools/diligence-machine": {
+          "performance": 67,
+          "fcp": 5271,
+          "lcp": 5348,
+          "tbt": 6,
+          "cls": 0
+        },
+        "/hub/tools/regulatory-map": {
+          "performance": 64,
+          "fcp": 5389,
+          "lcp": 6217,
+          "tbt": 48,
+          "cls": 0
+        },
+        "/hub/tools/techpar": {
+          "performance": 61,
+          "fcp": 6405,
+          "lcp": 6857,
+          "tbt": 0,
+          "cls": 0
+        }
+      }
     }
   ]
 }
