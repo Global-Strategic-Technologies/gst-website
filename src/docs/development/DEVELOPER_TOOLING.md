@@ -371,42 +371,14 @@ expect(results.critical).toHaveLength(0);
 
 ## Lighthouse CI (performance budgets)
 
-Lighthouse CI (`@lhci/cli`) runs automated performance audits against 10 key pages. Configuration is in `lighthouserc.cjs` at the project root.
+**See [PERFORMANCE_OBSERVABILITY.md](PERFORMANCE_OBSERVABILITY.md) — the authoritative reference for the performance observability stack** (Lighthouse CI on every PR, the historical-trend dashboard at <https://performance.globalstrategic.tech>, the GitHub Actions workflows automating both, and the supporting scripts).
 
-### When it runs
+In brief, only the bits a developer hitting this section likely needs:
 
-- **Automatically** on PRs targeting `master` (`.github/workflows/lighthouse.yml`)
-- **Manually** via GitHub Actions → Lighthouse CI → Run workflow (same as cross-browser tests)
-
-### Performance budgets
-
-| Metric | Threshold | Level |
-| --- | --- | --- |
-| First Contentful Paint | < 1800ms | warn |
-| Largest Contentful Paint | < 2500ms | warn |
-| Cumulative Layout Shift | < 0.1 | error |
-| Total Blocking Time | < 200ms | warn |
-| Time to Interactive | < 3500ms | warn |
-
-CLS violations fail the check (`error`). Other metrics produce warnings while baselines stabilize.
-
-### Running locally
-
-```bash
-npx lhci autorun
-```
-
-This starts the dev server, audits all 10 URLs, and uploads results to temporary public storage. The report link is printed at the end.
-
-### Adjusting budgets
-
-Edit `lighthouserc.cjs` → `ci.assert.assertions`. Use `'error'` to block PRs, `'warn'` for informational. Add URLs in `ci.collect.url`.
-
-### Notes
-
-- Scores are measured against the **dev server** (`npm run dev`), not a production build. Absolute scores may differ from Vercel Speed Insights — use for **regression detection**, not absolute benchmarking.
-- `/hub/radar` is excluded (SSR page that fetches external API — unreliable in CI without mocked data).
-- Job summary shows a per-page table with Performance score, FCP, LCP, TBT, CLS (same format as code coverage summary).
+- Configs: [`lighthouserc.cjs`](../../../lighthouserc.cjs) (desktop) and [`lighthouserc.mobile.cjs`](../../../lighthouserc.mobile.cjs) (mobile) at the repo root
+- PR-time workflow: [`.github/workflows/lighthouse.yml`](../../../.github/workflows/lighthouse.yml) — runs on every PR to `master`; CLS regressions are the only assertion that fails the check
+- Run locally: `npx lhci autorun --config=lighthouserc.cjs` (desktop) or `--config=lighthouserc.mobile.cjs` (mobile)
+- Adjust budgets: edit `ci.assert.assertions` in the relevant config; document the why in the commit message
 
 ---
 
