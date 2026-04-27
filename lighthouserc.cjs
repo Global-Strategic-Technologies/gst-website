@@ -15,6 +15,8 @@ module.exports = {
         'http://localhost:4321/hub/tools/diligence-machine',
         'http://localhost:4321/hub/tools/regulatory-map',
         'http://localhost:4321/hub/tools/techpar',
+        'http://localhost:4321/hub/radar',
+        'http://localhost:4321/hub/library',
       ],
       numberOfRuns: 1,
       settings: {
