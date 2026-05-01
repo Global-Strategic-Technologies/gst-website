@@ -13,7 +13,7 @@ import { registerRadarResources } from './resources/radar';
 export function createServer(): McpServer {
   const server = new McpServer({
     name: 'gst-mcp',
-    version: '0.2.0',
+    version: '0.0.1',
   });
 
   // Tools
