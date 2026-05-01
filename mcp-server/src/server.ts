@@ -9,6 +9,7 @@ import { registerRadarCacheTool } from './tools/radar-cache';
 import { registerLibraryResources } from './resources/library';
 import { registerRegulationResources } from './resources/regulations';
 import { registerRadarResources } from './resources/radar';
+import { registerPrompts } from './prompts/_registry';
 
 export function createServer(): McpServer {
   const server = new McpServer({
@@ -29,6 +30,9 @@ export function createServer(): McpServer {
   registerLibraryResources(server);
   registerRegulationResources(server);
   registerRadarResources(server);
+
+  // Prompts
+  registerPrompts(server);
 
   return server;
 }
