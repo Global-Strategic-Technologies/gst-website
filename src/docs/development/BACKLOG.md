@@ -445,6 +445,7 @@ The local MCP server MUST NOT make Inoreader API calls. The 200 req/day budget i
 - [ ] Prompt-registry invariant tests: every prompt has `version`, `lastReviewedAt` ≤ 12 months old, `orchestrates` field listing each Tool/Resource it invokes — CI fails if any registered Tool/Resource is missing
 - [ ] Golden-output snapshots per prompt (at least one representative invocation per prompt) — committed to `mcp-server/tests/examples/*.golden.md`; regression-tested on each Claude model upgrade
 - [ ] **Senior-consultant review gate**: each prompt's output on a representative input has been reviewed and signed off by a senior team member as "this reads as if I wrote it." This is a **blocking acceptance criterion**, not a nice-to-have
+- [ ] `mcp-server/src/docs/prompts/README.md` authored — conceptual reference for the registered-prompt pattern (audience: future contributors authoring or modifying a prompt). Complementary to `mcp-server/README.md`'s user-facing inventory and to the BL-031.75 planning artifact
 
 #### Technical Context
 
@@ -571,6 +572,102 @@ A prompt's behavior is determined by its message body — pure content. A senior
 - Modifications to `questions.ts` / `attention-areas.ts` — out of scope; contract doc reads them, doesn't modify them
 - Updates to existing tests; contracts are documentation, not code
 - A CI test that asserts every option ID in the contract matches the Zod tuple — nice-to-have, but the runtime trigger map already enforces this implicitly (a missing option produces a different label)
+
+---
+
+### BL-031.95: Hub Tools — URL State Restoration & MCP Deep-Link Surface
+
+**Source**: BL-031.95 — closes the deferred work from BL-031.75 Commit 0.5 (per the deep-link audit recorded in [MCP_SERVER_PROMPTS_BL-031_75.md](MCP_SERVER_PROMPTS_BL-031_75.md#commit-05--hub-tool-deep-links)) | **Architecture & plan**: `MCP_SERVER_HUB_URL_STATE_BL-031_95.md` (to be authored when scheduled) | **Effort**: 3-5 days engineering | **Status**: Open | **Depends on**: BL-031.75
+
+**As a** GST analyst running Hub tools through MCP prompts, **I want** every Hub tool that participates in a prompt to surface a populated deep-link in the prompt's output **so that** I can move from the Claude conversation to the website Hub for PDF download / export / email / share with the analysis state restored byte-for-byte — uniformly across all Hub tools, not just the three (Tech Debt, ICG, Regulatory Map) that already supported URL state in BL-031.75.
+
+> **Implementation plan**: see `MCP_SERVER_HUB_URL_STATE_BL-031_95.md` (to be authored). It will cover the per-tool URL-encoding conventions (form-wizard tools use `?s=<base64>` matching Tech Debt / ICG; filter tools use readable params matching Regulatory Map), the website-side wiring (page-load init from URL, state-change → URL sync), the MCP wrapper extensions that import each new encoder, the prompt-body updates to surface the new deep-links, and the round-trip parity test pattern established in BL-031.75.
+
+#### Planning Criteria
+
+**Use cases**
+
+- **TechPar URL state** — adds `?s=<base64>` to the 14-field TechPar wizard. Unblocks the 4th deep-link in `gst_target_quick_look`'s output (currently disclaimed as deferred); analysts can move from the MCP brief to the populated TechPar wizard for PDF export / share
+- **Diligence Machine URL state** — adds URL state augmenting (not replacing) the existing localStorage. Unblocks deep-links in `gst_diligence_kickoff` and `gst_diligence_handoff_memo`; replaces the analyst muscle-memory of "manually re-enter wizard inputs after running the prompt"
+- **Radar URL state** — adds `?category=&since=` to the deferred-island Radar feed. Unblocks the deep-link in `gst_radar_brief_today`; supports analyst hand-off of pre-meeting digests as a single URL
+- **M&A Portfolio URL state** — adds filter URL state (`?theme=&category=&engagementType=`) to the static-grid Portfolio. Unblocks the deep-link in `gst_comparable_engagements_memo`; lets the comparable-engagements memo land as a brief plus a filtered Portfolio URL stakeholders can browse
+
+**Outcomes**
+
+- All four Hub tools have URL state matching their archetype (form-wizard `?s=<base64>` for TechPar / Diligence; readable filter params for Radar / Portfolio)
+- All four MCP wrappers emit `deeplink` in tool output following the pattern established in BL-031.75 Commit 0.5
+- Five BL-031.75 prompts (`gst_target_quick_look`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, `gst_radar_brief_today`, `gst_comparable_engagements_memo`) updated to surface the new deep-links
+- BL-031.75's per-prompt "deferred deep-link" disclosure notes can be removed; every prompt's "Open in Hub" surface is uniform
+- Round-trip parity: MCP-emitted deep-link → website page load → restored state matches the MCP input byte-for-byte (the same pattern proven for Tech Debt / ICG / Regulatory Map in BL-031.75)
+
+**Business value**
+
+- **Closes the BL-031.75 design intent uniformly** — every prompt that drives a Hub tool surfaces a working deep-link. Removes the cognitive friction of "this prompt's deep-link works, this one doesn't" for analysts
+- **Validates the URL-state pattern across heterogeneous tool types** — form wizards, deferred-island feeds, filter grids. Future Hub tools have a clear convention to follow
+- **Increases the website's analytic surface area without a marketing cost** — every prompt-driven Hub-tool URL is a shareable artifact that propagates GST workflows beyond the originating analyst. Compounds the value of BL-031.75's prompt library
+- **Modest engineering investment** — 3-5 days. Each tool is half-day to a day depending on existing form complexity; MCP wrapper extensions are mechanical given the BL-031.75 pattern; prompt-body updates are one-line additions
+
+#### Acceptance Criteria
+
+**Per-tool URL state added (website work)**
+
+- [ ] **TechPar** — `?s=<base64>` URL state added; restores all 14 form fields on page load; matches the `encodeState` / `decodeState` pattern used by Tech Debt and ICG; encoder exported from `src/utils/techpar-engine.ts` (or a sibling `src/utils/techpar-url.ts`)
+- [ ] **Diligence Machine** — URL state added, augmenting (not replacing) the existing localStorage; `?s=<base64>` parameter restores all 14 wizard fields on page load; encoder exported from `src/utils/diligence-engine.ts` (or `src/utils/diligence-url.ts`)
+- [ ] **Radar** — `?category=&since=` URL state added to the deferred-island feed; CategoryFilter component reads and writes URL state on filter change; deep-linkable filter views work for both FYI and Wire categories
+- [ ] **M&A Portfolio** — filter URL state added (`?theme=&category=&engagementType=`); existing or newly-added filter UI is wired to URL state; deep-linkable filtered views work and survive page reload
+
+**MCP wrapper deep-link surface (mcp-server work)**
+
+- [ ] `compute_techpar` MCP output extended with `deeplink: z.string().url()` per the BL-031.75 Commit 0.5 wrapper-schema pattern (`TechParMcpResultSchema`); does not modify the website-facing engine result schema
+- [ ] `generate_diligence_agenda` MCP output extended with `deeplink` (wraps the diligence-script result with a populated wizard URL)
+- [ ] `search_radar_cache` MCP output extended with `deeplink` (filtered Radar URL based on `category` / `since` inputs)
+- [ ] `search_portfolio` MCP output extended with `deeplink` (filtered Portfolio URL based on facet filters)
+- [ ] Round-trip parity test per tool (encode an MCP input → produce the deep-link → simulate the website's decoder on the URL → assert deep-equal with the original input). Symmetric with the Tech Debt / ICG / Regulatory Map tests authored in BL-031.75
+
+**Prompt body updates (BL-031.75 follow-up)**
+
+- [ ] `gst_target_quick_look` body updated to surface the 4th deep-link (TechPar); the prior "TechPar deep-link will be added when the page supports URL state" disclosure is removed
+- [ ] `gst_diligence_kickoff` body updated to surface a Diligence Machine deep-link (populated wizard URL)
+- [ ] `gst_diligence_handoff_memo` body updated to surface Diligence Machine + Portfolio deep-links
+- [ ] `gst_radar_brief_today` body updated to surface a filtered Radar deep-link
+- [ ] `gst_comparable_engagements_memo` body updated to surface a filtered Portfolio deep-link
+- [ ] BL-031.75 verification rows V2 / V3 / V7 / V8 (the prompts that gain deep-links here) re-run with deep-link presence + browser state-restoration checks; recorded into `mcp-server/README.md` § "Last verified" under a new "BL-031.95 surface" stanza
+
+**Verification & docs**
+
+- [ ] `MCP_SERVER_HUB_URL_STATE_BL-031_95.md` authored with implementation plan (per the established BL-031.5 / BL-031.75 architecture-doc pattern: per-commit phasing, per-tool file lists, V<n> punch-list, risks)
+- [ ] `mcp-server/README.md` § "Last verified" extended with a "BL-031.95 surface" stanza recording deep-link evidence for each of the 4 newly-supported tools
+- [ ] `src/docs/development/MCP_SERVER_PROMPTS_BL-031_75.md` § "Deferred work (captured for BACKLOG.md BL-034)" updated to point at BL-031.95 closure rather than BL-034 (the deferred work has its own initiative now)
+- [ ] No regressions: existing URL state tests (Tech Debt, ICG, Regulatory Map) still pass; existing MCP tool parity tests still pass; existing E2E tests on the four touched pages still pass (visual + functional parity)
+
+#### Technical Context
+
+**Why this is its own initiative (not folded into BL-031.75)**
+
+- BL-031.75 ships the deep-link _pattern_ with the three tools that already had URL state. Folding the four URL-state retrofits in would have inflated the BL-031.75 scope from "Prompts surface + minor Tool extension" to "Prompts surface + four meaningful Hub-tool feature additions" — different competencies, different review surfaces, different verification cadence.
+- The retrofits each touch a different Hub tool's UI (form wizards, deferred-island feeds, filter grids); they share an encoding convention but not a code path. Splitting keeps BL-031.75 reviewable and lets BL-031.95 go through its own design pass per Hub tool.
+- The deep-link pattern itself is the BL-031.75 contribution; this initiative is the consistent application of it.
+
+**Why per-tool URL conventions vary by archetype**
+
+- **Form wizards** (TechPar, Diligence Machine) match the existing `?s=<base64>` convention used by Tech Debt and ICG. Encoded JSON is the natural shape for multi-field state where the state itself is the artifact analysts share.
+- **Filter UIs** (Radar, Portfolio) use readable params (`?category=&since=`, `?theme=&category=`) consistent with how Regulatory Map was already filtered. Filters are user-explicit selections; readable URLs aid debugging and let users hand-edit the URL.
+- Symmetry within each archetype, not forced uniformity. The convention follows the user's framing: "whatever the existing design conventions warrant."
+
+**Why Diligence Machine gets URL state augmenting localStorage rather than replacing**
+
+- localStorage preserves in-progress wizard state across page reloads — natural fit for "I closed the tab, came back tomorrow, want to pick up where I left off."
+- URL state enables share / restore — natural fit for "I ran a prompt, got a brief + deep-link, want to send the deep-link to a colleague."
+- They're complementary use cases, not competing. URL state, when present, takes precedence on page-load init; localStorage acts as the fallback.
+
+**Out of scope** (explicit)
+
+- Adding URL state to Hub tools beyond the four named — Library articles are static, the home pages and gateway pages have no analyst-facing state to encode
+- Schema changes to the underlying engines beyond what URL encoding requires (no functional behavior changes; pure additive instrumentation)
+- Performance optimization of the deep-link encoder for very-large states beyond what BL-031.75 already established (`?s=<base64>` length is bounded by the wizard's field count; no anticipated growth)
+- Adding new filters to the Radar feed or M&A Portfolio beyond what URL encoding requires — if a filter doesn't exist today, this initiative does not add it
+- Removing localStorage from Diligence Machine (it stays as the fallback persistence layer)
+- HTTP transport / remote prompt access for the new deep-link surface — BL-032 / BL-032.5
 
 ---
 
@@ -1096,6 +1193,10 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 
 - [ ] Every per-tool `CONTRACT.md` cross-referenced against its Zod schema and engine source — drift caught and fixed in the contract (the contract is canonical; the schema is the source of truth)
 - [ ] Every architectural-decision doc under `src/docs/development/MCP_SERVER_*.md` audited for prose that has become stale since authoring (e.g., "the planned URI manifest" when the URIs have shipped). Stale prose either edited to past tense ("the URI manifest authored under BL-031.5 is...") or deleted; ADRs are not maintained, so they should not contain present-tense claims about the codebase
+
+**MCP server doc structure**
+
+- [ ] Restructure `mcp-server/src/docs/` to add parent directories: `tools/`, `resources/`, `prompts/`. Move existing per-tool docs (`diligence/`, `icg/`, `techpar/`, `tech-debt/`, `regulatory-map/`) into `tools/<tool>/`. Rename `contracts/README.md` → `tools/README.md` (it's already a tool-contracts registry; the rename makes that explicit). Author placeholder `resources/README.md` (URI taxonomy + Library / Regulation / Radar conventions) and a top-level `mcp-server/src/docs/README.md` (navigator). Update all cross-references in `mcp-server/README.md`, `src/docs/README.md`, `src/schemas/<tool>.ts` top-of-file comment blocks, and any planning artifacts (e.g., [`MCP_SERVER_CONTRACTS_BL-031_85.md`](MCP_SERVER_CONTRACTS_BL-031_85.md)) referencing the old paths. Pure restructure; no behavior change. Note: BL-031.75 Commit 3 places `mcp-server/src/docs/prompts/README.md` (the registered-prompt conceptual reference) under the new structure pre-emptively — that file forces the `prompts/` parent directory to exist; this restructure simply moves the existing tool docs into `tools/` to match
 
 **Items accumulated during prior initiatives** (append as they emerge)
 

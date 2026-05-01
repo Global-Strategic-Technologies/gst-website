@@ -122,52 +122,70 @@ The new lifecycle wrinkle introduced by Prompts is **content drift**: each promp
 
 ## Implementation Plan
 
+### Confirmed pre-plan facts (verified against the live repo on 2026-04-29)
+
+Before any code, the following were verified so the plan rests on real APIs/exports rather than the architecture doc's earlier hypotheticals:
+
+| Fact                           | Source                                                               | Note                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------ | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| SDK `registerPrompt` signature | `node_modules/@modelcontextprotocol/server/dist/index.d.mts:654-659` | `server.registerPrompt(name, { description, argsSchema, title?, _meta? }, callback)`. `argsSchema` accepts a full `z.object(...)` (StandardSchemaWithJSON). Callback receives parsed args, returns `GetPromptResult` = `{ messages: [...] }`. The architecture doc's earlier hypothetical signature is accurate.               |
+| Diligence schema export name   | `src/schemas/diligence.ts:139-153`                                   | The export is **`UserInputsSchema`** — not `DiligenceUserInputsSchema` as earlier drafts of this doc proposed. All composed argsSchemas use the real name.                                                                                                                                                                     |
+| Composable Zod schemas exist   | `mcp-server/src/schemas.ts:1-83`                                     | Re-exports already in place: `UserInputsSchema`, `ICGInputsSchema`, `TechParInputsSchema`, `TechDebtInputsSchema`, `SearchPortfolioInputSchema`, `RegulationSearchInputSchema`, `ProjectSchema`, growth/engagement enums. Zero net-new schema authoring required for prompt argsSchemas.                                       |
+| Canonical Tool name list       | `mcp-server/src/server.ts:20-26`                                     | 9 Tools: `generate_diligence_agenda`, `search_portfolio`, `list_portfolio_facets`, `assess_infrastructure_cost_governance`, `compute_techpar`, `estimate_tech_debt_cost`, `search_regulations`, `list_regulation_facets`, `search_radar_cache`. Prompts reference these by name in their `orchestrates` field and prompt body. |
+| Resource URI prefixes          | `mcp-server/src/resources/{library,regulations,radar}.ts`            | `gst://library/<slug>`, `gst://regulations/<jurisdiction>/<framework-id>`, `gst://radar/{fyi,wire}/{latest,<category>}`. Prompts reference these as URI-scheme prefixes in their `orchestrates` field; the registry test resolves either a tool name or a URI prefix.                                                          |
+| `mcp-server/src/prompts/`      | (does not exist)                                                     | Greenfield directory; commit 1 creates it.                                                                                                                                                                                                                                                                                     |
+| Test paths                     | `mcp-server/tests/{unit,integration,helpers}/`                       | Existing pattern: `tests/unit/<surface>.test.ts` per primitive instance, `tests/integration/<concern>.test.ts` for cross-cutting invariants. Prompts follow: `tests/unit/prompts/<slug>.test.ts` + `tests/integration/{prompts-registry,golden-snapshots}.test.ts`.                                                            |
+
 ### File layout (extends BL-031.5's `mcp-server/`)
 
 ```
 mcp-server/
 ├── src/
-│   ├── index.ts                    # +registerPrompts(server)
-│   ├── tools/                      # (BL-031, BL-031.5 — unchanged)
-│   ├── resources/                  # (BL-031.5 — unchanged)
-│   ├── prompts/                    # NEW — one TS module per prompt
-│   │   ├── _registry.ts            # central registration; iterates all prompts
-│   │   ├── diligence-kickoff.ts
-│   │   ├── target-quick-look.ts
-│   │   ├── comparable-engagements-memo.ts
-│   │   ├── regulatory-exposure-brief.ts
-│   │   ├── vdr-audit.ts
-│   │   ├── architecture-layer-review.ts
-│   │   ├── radar-brief-today.ts
-│   │   └── diligence-handoff-memo.ts
-│   └── schemas.ts                  # +PromptArgument schemas (re-using Tool input shapes)
-└── tests/
-    ├── prompts/                    # NEW — one test file per prompt
-    │   ├── diligence-kickoff.test.ts
-    │   ├── ... (one per prompt)
-    │   └── prompt-registry.test.ts # asserts version, lastReviewedAt invariants
-    └── examples/                   # NEW — golden expected-output snapshots
-        └── *.golden.md             # one per prompt, used in regression tests
+│   ├── index.ts                          # (BL-031 — unchanged; stdio bootstrap)
+│   ├── server.ts                         # +registerPrompts(server) (version stays 0.0.1; see pre-commit chore)
+│   ├── tools/                            # (BL-031, BL-031.5 — unchanged)
+│   ├── resources/                        # (BL-031.5 — unchanged)
+│   ├── prompts/                          # NEW — one TS module per prompt
+│   │   ├── _registry.ts                  # ALL_PROMPTS array + registerPrompts(server)
+│   │   ├── types.ts                      # GstPrompt<TArgs> interface (uniform shape)
+│   │   ├── diligence-kickoff.ts          # commit 1 (proof-of-shape)
+│   │   ├── target-quick-look.ts          # commit 2
+│   │   ├── comparable-engagements-memo.ts# commit 2
+│   │   ├── regulatory-exposure-brief.ts  # commit 2
+│   │   ├── diligence-handoff-memo.ts     # commit 2
+│   │   ├── vdr-audit.ts                  # commit 3 (interactive mode)
+│   │   ├── architecture-layer-review.ts  # commit 3
+│   │   └── radar-brief-today.ts          # commit 3
+│   └── schemas.ts                        # +RadarCategoryEnum re-export (commit 3)
+├── tests/
+│   ├── unit/prompts/                     # NEW — one test file per prompt (8 total)
+│   ├── integration/
+│   │   ├── prompts-registry.test.ts      # NEW — gst_ prefix, version, lastReviewedAt ≤ 12mo, orchestrates resolves
+│   │   └── golden-snapshots.test.ts      # NEW — every ALL_PROMPTS entry has a tests/examples/<slug>.golden.md
+│   └── examples/                         # NEW — golden expected-output snapshots
+│       └── <slug>.golden.md              # one per prompt; frontmatter: promptName, version, recordedAt, model
+└── README.md                             # +"Prompts (8): GST consultant workflows" section + V1–V8 evidence
 ```
 
 ### Per-prompt module shape
 
-Every prompt module exports a standard interface:
+Every prompt module exports a `GstPrompt`-typed object satisfying a uniform interface; `_registry.ts` iterates `ALL_PROMPTS` to register them. The `orchestrates` field is the **drift backstop** the Risks table calls out — both a structural manifest and a textual contract enforced by the prompt-mentions-orchestrated-references regex test:
 
 ```ts
 // mcp-server/src/prompts/diligence-kickoff.ts
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
-import { DiligenceUserInputsSchema } from '../schemas.js';
+import { UserInputsSchema } from '../schemas.js';
 
 export const diligenceKickoffPrompt = {
   name: 'gst_diligence_kickoff',
   description:
     'Generate a starter diligence agenda for a new engagement. Use at the kickoff of a buy-side or sell-side review.',
   version: '0.1.0',
-  lastReviewedAt: '2026-04-25',
-  argsSchema: DiligenceUserInputsSchema.extend({
-    targetName: z.string().describe('Name of the target company (used in the memo header).'),
+  lastReviewedAt: '2026-04-29',
+  orchestrates: ['generate_diligence_agenda', 'gst://library/vdr-structure'] as const,
+  argsSchema: UserInputsSchema.extend({
+    targetName: z.string().min(1),
   }),
   build: (args) => ({
     messages: [
@@ -187,59 +205,250 @@ export const diligenceKickoffPrompt = {
     ],
   }),
 };
-
-export function registerDiligenceKickoffPrompt(server: McpServer) {
-  server.registerPrompt(
-    diligenceKickoffPrompt.name,
-    {
-      description: diligenceKickoffPrompt.description,
-      argsSchema: diligenceKickoffPrompt.argsSchema,
-    },
-    diligenceKickoffPrompt.build
-  );
-}
 ```
 
-This shape gives every prompt a uniform place to live — version, review date, schema, and message-builder — and lets `_registry.ts` iterate them generically.
+`_registry.ts` validates invariants at module-load time (fail-fast on server boot) and calls `server.registerPrompt(...)` for each entry. Failures throw — no silent runtime drift.
 
-### Critical files referenced (no modifications expected)
+**For a plain-English conceptual explanation of the pattern** (what the registered-prompt architecture is, how `prompts/list` and `prompts/get` work over the wire, why this beats the obvious alternatives, and an end-to-end trace) — see `mcp-server/src/docs/prompts/README.md` (authored in Commit 3). This planning artifact prescribes the implementation; that doc explains the pattern to future contributors.
 
-| File                                                                                                                                                                                                                     | Why                                                                                      |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| [src/data/diligence-machine/wizard-config.ts](../../data/diligence-machine/wizard-config.ts)                                                                                                                             | Source enum lists for prompt argument schemas (re-imports through BL-031's schema layer) |
-| [src/utils/diligence-engine.ts](../../utils/diligence-engine.ts), [techpar-engine.ts](../../utils/techpar-engine.ts), [icg-engine.ts](../../utils/icg-engine.ts), [tech-debt-engine.ts](../../utils/tech-debt-engine.ts) | Tools the prompts orchestrate (registered in BL-031 / BL-031.5)                          |
-| [src/data/regulatory-map/](../../data/regulatory-map/)                                                                                                                                                                   | Regulation Resources the regulatory-exposure prompt references                           |
-| Library articles                                                                                                                                                                                                         | Library Resources the VDR / architecture prompts reference                               |
+### Phasing — pre-commit chore + Commit 0.5 + three commits, one PR
 
-### Verification (run before marking complete)
+The work splits into a versioning chore, a Hub-tool deep-link extension shared by the prompts, and three reviewable BL-031.75 commits — mirroring the BL-031.5 cadence (engineering proof → content batch → content batch + docs/closure):
 
-1. `cd mcp-server && npm run build && npm test` — green; includes prompt-registry invariant tests and per-prompt golden-output snapshot tests.
-2. From repo root: `npx astro check && npm run lint && npm run lint:css && npm run test:run` — still green.
-3. Restart the local MCP server, confirm Claude Desktop's slash-command picker lists every `gst_*` prompt with the expected description.
-4. Invoke `/gst_diligence_kickoff` with a worked example, confirm: (a) the diligence-agenda Tool is called, (b) the VDR Structure Guide is referenced, (c) the resulting memo is one page, in GST's house style.
-5. Same shape verification for `/gst_target_quick_look` (must call ICG + TechPar + Tech Debt + regulations search), `/gst_radar_brief_today` (must read FYI snapshot Resource), `/gst_vdr_audit` (must reference the Library Resource).
-6. **Senior-consultant review.** A senior team member reads the output of each prompt against a representative example and signs off that the framing matches how they would brief the work themselves. This review is a **gating step**, not optional — the prompts exist to encode tacit consulting judgment, and that judgment is verified by the people who hold it.
-7. Run a "fresh analyst" exercise: a team member who has never used the MCP server picks one prompt cold and produces a deliverable. Capture friction points; feed into the next review cycle.
+#### Pre-commit chore — pin pre-production version to `0.0.1`
+
+Before any BL-031.75 work, a separate small chore commit lands the pre-production versioning policy. Standard semver already says `0.y.z` is pre-stable; the bumps shipped during BL-031 → BL-031.5 (`0.1.0` → `0.2.0`) were provenance markers, but they served no hard contract — there are no external consumers, the README's "Last verified" stanzas + git history are the real change log, and Claude Desktop's MCP client doesn't use the version as a cache key.
+
+**Policy**: `mcp-server` stays at `0.0.1` until the first production deployment (BL-032 or later), at which point it jumps to `1.0.0` cleanly. No further bumps inside BL-031.x.
+
+**Files**
+
+- `mcp-server/package.json` — `"version": "0.2.0"` → `"version": "0.0.1"`.
+- `mcp-server/src/server.ts:17` — `version: '0.2.0'` → `version: '0.0.1'` (this is the wire-protocol version surfaced on `initialize`; clients see it but don't cache by it).
+
+**Verification**: `npm -w @gst/mcp-server run build && test` green; restart Claude Desktop, confirm the `initialize` response shows `0.0.1`. One-line commit message: `chore(mcp): pin pre-production version to 0.0.1 until v1.0.0`.
+
+#### Commit 0.5 — Hub-tool deep-links
+
+Each MCP Tool that drives a Hub tool with URL-state-restoration support gains a `deeplink: string` field in its output. The prompts in commits 1–3 surface these deep-links in their final brief so the user can move from the Claude conversation to the Hub for PDF download / export / email / share with the analysis state restored byte-for-byte.
+
+**Approach**: Tool-output extension (Approach A from the design discussion). The URL encoder lives once — in the website's existing engine util — and is imported by both the Astro page and the MCP wrapper. No duplicated source of truth, no model URL-construction reasoning, every prompt that calls the Tool gets the URL automatically.
+
+**Per-tool URL-state-restoration audit** (read-only investigation done 2026-04-29 against the live repo):
+
+| Hub tool              | URL-state today?  | Encoder location                                                                                                       | Param shape        | Commit 0.5 in scope?                                                                                                                                                                                                                          |
+| --------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tech Debt**         | Yes               | [`src/utils/tech-debt-engine.ts:186-223`](../../utils/tech-debt-engine.ts) — exports `encodeState` / `decodeState`     | `?s=<base64>`      | **Yes — trivial.** Re-use existing exports.                                                                                                                                                                                                   |
+| **ICG**               | Yes               | [`src/utils/icg-engine.ts:160-195`](../../utils/icg-engine.ts) — exports `encodeState` / `decodeState`                 | `?s=<base64>`      | **Yes — trivial.** Re-use existing exports.                                                                                                                                                                                                   |
+| **Regulatory Map**    | Yes               | Inline in [`src/pages/hub/tools/regulatory-map/index.astro:420-435`](../../pages/hub/tools/regulatory-map/index.astro) | `?region=&filter=` | **Yes — light.** Extract ~25 lines into a new `src/utils/regulatory-map-url.ts`.                                                                                                                                                              |
+| **TechPar**           | No                | (none — state is client-init only)                                                                                     | N/A                | **No.** URL-state not yet supported on the website; deferring deep-link is consistent with "supports URL query string-driven application." Owned by [BL-031.95](BACKLOG.md#bl-03195-hub-tools--url-state-restoration--mcp-deep-link-surface). |
+| **Diligence Machine** | No (localStorage) | (state in localStorage; no URL encoding/decoding)                                                                      | N/A                | **No.** Same reasoning as TechPar; owned by [BL-031.95](BACKLOG.md#bl-03195-hub-tools--url-state-restoration--mcp-deep-link-surface).                                                                                                         |
+| **Radar**             | No                | (server-rendered ISR; CategoryFilter has no URL state today)                                                           | N/A                | **No.** Architectural mismatch — server-island feed, not form state.                                                                                                                                                                          |
+| **M&A Portfolio**     | No                | (static grid; no user-input state to encode)                                                                           | N/A                | **No.** Read-only grid; deep-link to the page itself doesn't need a feature change.                                                                                                                                                           |
+
+**Net Commit 0.5 scope**: 3 tools get `deeplink` outputs (Tech Debt, ICG, Regulatory Map). The other 4 are explicitly deferred and the rationale is documented so future readers don't re-litigate.
+
+**New files**
+
+- `src/utils/regulatory-map-url.ts` — extract `encodeFilters({ region, filter }): string` and `decodeFilters(search: string): { region?, filter? }` from the inline script in `regulatory-map/index.astro:420-435`. Keep the param shape (`?region=&filter=`) byte-compatible with what the page parses today. Update the .astro page to import from this util (zero behavior change; encoder location moves).
+- `mcp-server/src/config.ts` — `export const HUB_BASE = process.env.GST_HUB_BASE ?? 'https://globalstrategic.tech';`. Lets the MCP server emit dev URLs (`http://localhost:4321`) when `GST_HUB_BASE` is set.
+
+**Modified files**
+
+| File                                             | Change                                                                                                                                                                          |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/schemas/tech-debt.ts`                       | Add a new `TechDebtMcpResultSchema` that wraps the existing engine result with `deeplink: z.string().url()` — keeps the website-facing schema untouched                         |
+| `src/schemas/icg.ts`                             | Same pattern — `ICGMcpResultSchema` wraps the engine result with `deeplink`                                                                                                     |
+| `src/schemas/regulatory-map.ts`                  | Extend the search-result item shape with a per-framework anchor URL; extend the top-level response with an aggregate filter URL when `region` / `category` filters are supplied |
+| `mcp-server/src/tools/tech-debt.ts`              | Import `encodeState` from `src/utils/tech-debt-engine.ts` + `HUB_BASE` from `../config`; wrap result with `deeplink = ${HUB_BASE}/hub/tools/tech-debt-calculator/?s=${encoded}` |
+| `mcp-server/src/tools/icg.ts`                    | Import `encodeState` from `src/utils/icg-engine.ts`; wrap result with `deeplink = ${HUB_BASE}/hub/tools/infrastructure-cost-governance/?s=${encoded}`                           |
+| `mcp-server/src/tools/regulations.ts`            | Import the new encoder; per-result item gets a per-framework anchor URL; aggregate response gets a filter URL when `region`/`category` filters are supplied                     |
+| `src/pages/hub/tools/regulatory-map/index.astro` | Replace the inline encoder/decoder with imports from `src/utils/regulatory-map-url.ts` (refactor only; no behavior change)                                                      |
+
+**New tests**
+
+- `mcp-server/tests/unit/deeplinks/tech-debt-deeplink.test.ts` — round-trip parity: encode an MCP input → produce the deep-link → simulate the website's `decodeState` on the URL's `?s=` param → assert deep-equal with the original input. Proves the encoder is shared, not duplicated.
+- Same shape for ICG (`icg-deeplink.test.ts`) and Regulatory Map (`regulatory-map-deeplink.test.ts`).
+- `mcp-server/tests/integration/deeplink-base-url.test.ts` — asserts `HUB_BASE` defaults to the production URL and is overridable via env. Catches dev-vs-prod URL leak.
+
+**Verification (Commit 0.5)**
+
+1. `npm -w @gst/mcp-server run typecheck && build && test` green; new round-trip parity tests pass for all 3 tools.
+2. Repo-root `npx astro check && npm run lint && npm run lint:css && npm run test:run` green; the regulatory-map page extraction must not produce a visual diff.
+3. Live exercise from Claude Desktop:
+   - Invoke `mcp__gst__estimate_tech_debt_cost` with a known input set; copy the `deeplink` from the output; paste into a browser; confirm the Tech Debt Calculator page loads with all 10 inputs restored to the values you supplied.
+   - Same for `mcp__gst__assess_infrastructure_cost_governance` (20 ICG answers restored).
+   - Same for `mcp__gst__search_regulations` with `{ region: 'eu', category: 'data-privacy' }` — confirm Regulatory Map opens filtered.
+4. Manual visual check at `/hub/tools/regulatory-map/?region=eu&filter=data-privacy` after the encoder extraction — filters apply identically to before.
+
+**Per-prompt deep-link surface (downstream effect on Commits 1–3)**
+
+Once Commit 0.5 lands, the prompts pick up deep-links automatically — the model embeds them from Tool output. Commit 2 / 3 prompt bodies need a one-line instruction "include the `deeplink` field from each Tool result in the final brief, labeled clearly as 'Open in Hub'". The per-prompt verification (V2, V4 — wherever a tool with deep-link is called) gains an explicit "deep-link present and works in browser" pass criterion.
+
+| Prompt                            | Deep-links surfaced in output                                                                                                                       |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gst_diligence_kickoff`           | None (Diligence Machine has no URL state — deferred)                                                                                                |
+| `gst_target_quick_look`           | 3: ICG + Tech Debt + Regulatory Map (TechPar deferred — note this in the brief: "TechPar deep-link will be added when the page supports URL state") |
+| `gst_comparable_engagements_memo` | None (M&A Portfolio is a static grid — deferred)                                                                                                    |
+| `gst_regulatory_exposure_brief`   | Per-framework anchor URLs + a filtered Regulatory Map URL                                                                                           |
+| `gst_radar_brief_today`           | None (Radar deferred)                                                                                                                               |
+| `gst_diligence_handoff_memo`      | None on the wizard side (deferred); per-portfolio-match anchor URLs to `/ma-portfolio` rows are static `/#<id>` anchors, not stateful — keep simple |
+| `gst_vdr_audit`                   | None (Library Resource only)                                                                                                                        |
+| `gst_architecture_layer_review`   | None (Library Resource only)                                                                                                                        |
+
+**Deferred work (now owned by [BL-031.95: Hub Tools — URL State Restoration & MCP Deep-Link Surface](BACKLOG.md#bl-03195-hub-tools--url-state-restoration--mcp-deep-link-surface))**
+
+Each Hub tool currently lacking URL-state-restoration is the explicit scope of BL-031.95, which closes this gap with a dedicated initiative:
+
+- TechPar — add `?s=<base64>` URL state (multi-tab form, ~14 fields). Unblocks `gst_target_quick_look`'s 4th deep-link.
+- Diligence Machine — add `?s=<base64>` URL state (augments the existing localStorage; 14-field wizard). Unblocks `gst_diligence_kickoff` and `gst_diligence_handoff_memo` deep-links.
+- Radar — add `?category=&since=` URL state to the deferred-island feed. Unblocks `gst_radar_brief_today` deep-link.
+- M&A Portfolio — add filter URL state (`?theme=&category=&engagementType=`). Unblocks `gst_comparable_engagements_memo` deep-link.
+
+Adding these is out of scope for BL-031.75 because each is non-trivial (form-state capture + validation refactor) and the prompts deliver value without them — the deep-link is a "nice-to-have" augmentation, not a primary deliverable. BL-031.95 picks up the work as a follow-on once BL-031.75 ships and the deep-link pattern is proven in production.
+
+**Risks (specific to Commit 0.5)**
+
+| Risk                                                                                                  | Mitigation                                                                                                                                                                                                                                |
+| ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Extracting `regulatory-map-url.ts` from the inline `.astro` script breaks page-load state restoration | The round-trip parity test runs against the same util the page imports. Manual smoke: load `/hub/tools/regulatory-map/?region=eu&filter=data-privacy` after the extraction; confirm filters apply identically.                            |
+| `HUB_BASE` URL accidentally points at localhost in a deploy build                                     | Default to production (`https://globalstrategic.tech`); `GST_HUB_BASE` override is documented + a unit test asserts the default is the production URL.                                                                                    |
+| `?s=<base64>` URL exceeds practical browser length on a fully-populated ICG state (20 answers)        | Existing website encoder already round-trips this state; no growth from the MCP wrapper. If the encoded payload approaches `~2000` chars, log a warning at MCP-output time so the operator can investigate.                               |
+| Schema-extension breaks the existing BL-031.5 parity tests                                            | `deeplink` is added in a NEW MCP-result wrapper schema (`<Tool>McpResultSchema`) that wraps the engine-result schema. The website-facing schema stays untouched; existing parity tests continue to pass against the engine-result schema. |
+
+#### Commit 1 — Prompts primitive + first prompt (proof-of-shape)
+
+Stand up the prompts infrastructure end-to-end with one prompt registered, all invariant tests passing, and a working `/gst_diligence_kickoff` slash-command live in Claude Desktop. Establishes the per-prompt module shape that the remaining seven follow.
+
+**New files**
+
+- `mcp-server/src/prompts/_registry.ts` — `ALL_PROMPTS` array + `registerPrompts(server)`. Validates `name` matches `/^gst_[a-z_]+$/`, `version` is semver, `lastReviewedAt` is ISO date ≤ 12 months from now, `orchestrates` is non-empty.
+- `mcp-server/src/prompts/types.ts` — `GstPrompt<TArgs>` interface.
+- `mcp-server/src/prompts/diligence-kickoff.ts` — first prompt (shape above).
+- `mcp-server/tests/unit/prompts/diligence-kickoff.test.ts` — four-assertion shape: (a) `gst_` prefix, (b) `argsSchema.safeParse` on full + missing-field payloads, (c) `build()` returns ≥ 1 message, (d) message text mentions both `generate_diligence_agenda` and `gst://library/vdr-structure`.
+- `mcp-server/tests/integration/prompts-registry.test.ts` — boots `createServer()`; asserts every `ALL_PROMPTS` entry's `orchestrates` resolves to either a registered tool name or a Resource URI scheme prefix; asserts `lastReviewedAt` freshness.
+
+**Modified files**
+
+- `mcp-server/src/server.ts` — `registerPrompts(server)` call after the resource registrations. **No version bump** (pre-production policy; see the pre-commit chore above).
+- `mcp-server/package.json` — description string optionally updated to mention Prompts; version stays `0.0.1`.
+
+**Verification (commit 1)**
+
+- `npm -w @gst/mcp-server run typecheck && build && test` green.
+- Repo-root `npx astro check && npm run lint && npm run lint:css && npm run test:run` green.
+- Restart Claude Desktop; type `/`; `gst_diligence_kickoff` appears with description + required-argument fields.
+- Invoke with a worked example. Verify: (a) `generate_diligence_agenda` called once, (b) `gst://library/vdr-structure` referenced, (c) output structured into the four prompted sections.
+
+#### Commit 2 — Tool-orchestrating prompts (4)
+
+Ship the four prompts that orchestrate **multiple Tools**, each composing existing Zod schemas without authoring new ones. Same module shape as commit 1.
+
+| Module                                   | argsSchema (Zod composition)                                                                                                                                      | orchestrates                                                                                                                         |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `prompts/target-quick-look.ts`           | `z.object({ targetName, productType, arr, stage, hqJurisdiction })` (composes `ProductTypeSchema`, `GrowthStageSchema`). See ICG answer-population workflow below | `['assess_infrastructure_cost_governance', 'compute_techpar', 'estimate_tech_debt_cost', 'search_regulations']`                      |
+| `prompts/comparable-engagements-memo.ts` | `z.object({ targetDescription, theme?, engagementCategory? })` (composes `EngagementCategorySchema`)                                                              | `['search_portfolio', 'list_portfolio_facets']`                                                                                      |
+| `prompts/regulatory-exposure-brief.ts`   | `z.object({ targetJurisdictions[], dataCategories[], productType })` (composes `ProductTypeSchema`)                                                               | `['search_regulations', 'gst://regulations/']` (URI-scheme prefix; resolved URIs come from the model's `search_regulations` results) |
+| `prompts/diligence-handoff-memo.ts`      | `UserInputsSchema.extend({ targetName, agendaJson?, comparablesJson? })`                                                                                          | `['generate_diligence_agenda', 'search_portfolio', 'gst://library/vdr-structure']`                                                   |
+
+Plus one `mcp-server/tests/unit/prompts/<slug>.test.ts` per module (same four-assertion shape) and one new entry per prompt in `_registry.ts`.
+
+**`gst_target_quick_look` ICG answer-population workflow** (the architecture doc references "ICG (light variant)" in the surface table; this is the resolved body contract). The full ICG tool requires answers to all 20 questions (the website wizard does not allow skipping — see [BL-031.5 V1 evidence](../../../mcp-server/README.md) and the ICG hidden-semantics callout in [`mcp-server/src/docs/icg/CONTRACT.md`](../../../mcp-server/src/docs/icg/CONTRACT.md)). The prompt body therefore instructs the model to produce a complete 20-answer payload by:
+
+1. **Deriving from supplied data and conversation context first.** For each ICG question, populate the answer from `targetName` / `productType` / `arr` / `stage` / `hqJurisdiction` plus anything the user has shared earlier in the conversation. The body lists the question categories (foundational + scaling domains) so the model knows what to reach for.
+2. **Using the schema's explicit unknown value (`'not sure'`) for any answer that is not knowable from available data.** Never skip a question — `'not sure'` is the contractually correct value for "I don't know," and the ICG engine treats it as a real signal (it surfaces specific recommendations to investigate that area).
+3. **Disclosing assumptions in the brief.** Below the ICG section of the output, list every question answered as `'not sure'`. The user sees exactly where output utility was degraded by missing inputs and can either supply more context and re-run, or accept the partial read.
+4. **Nudging the user when too many answers are `'not sure'`.** If ≥ 50% of questions resolve to `'not sure'`, the brief opens with a one-line note that the ICG portion is a low-confidence baseline and suggests the user run the full wizard at `/hub/tools/infrastructure-cost-governance` for a confident read.
+
+This is the prompt's design contract — it leans on the schema and tool requirements to do their job rather than working around them. "20 × not sure" is a perfectly valid (if unhelpful) call; the prompt body makes that visible to the user rather than masking it.
+
+**Verification (commit 2)**: all commit-1 verification still green; slash-menu shows 5 `gst_*` entries; live exercise per V2–V4, V8 captured (output excerpts roll into commit 3's README stanza). V2 specifically exercises the ICG answer-population workflow on a target where some answers are derivable and others are explicitly unknown — confirms the assumption-disclosure section appears in the output.
+
+#### Commit 3 — Resource-only prompts (3) + docs + golden snapshots + AC closure
+
+Ship the three Resource-only/digest prompts, author the README "Prompts" section, snapshot golden outputs, tick acceptance criteria.
+
+**New files**
+
+- `mcp-server/src/prompts/vdr-audit.ts` — `argsSchema: z.object({ vdrInventory: z.string().optional() })`. **Interactive mode**: when `vdrInventory` is omitted, the build emits a message asking the model to prompt the user for their VDR folder list; when supplied, the message instructs an immediate audit. Both branches covered by unit tests.
+- `mcp-server/src/prompts/architecture-layer-review.ts` — `argsSchema: z.object({ targetSummary: z.string().min(20) })`. Walks the 5-layer framework using `gst://library/business-architectures`.
+- `mcp-server/src/prompts/radar-brief-today.ts` — `argsSchema: z.object({ category: RadarCategoryEnum.optional(), sinceHours: z.number().int().positive().max(168).default(24) })`. Reads `gst://radar/fyi/latest`.
+- 3 × `mcp-server/tests/unit/prompts/<slug>.test.ts`.
+- 8 × `mcp-server/tests/examples/<slug>.golden.md` — frontmatter (`promptName`, `version`, `recordedAt`, `model`) + recorded V1–V8 outputs. Regression contract; on Claude model upgrades, re-run, diff, accept-or-reject + bump prompt `version`.
+- `mcp-server/tests/integration/golden-snapshots.test.ts` — every `ALL_PROMPTS` entry has a corresponding golden file with valid frontmatter.
+- `mcp-server/src/docs/prompts/README.md` — **conceptual reference** for the registered-prompt pattern (durable doc, complementary to `mcp-server/README.md`'s user-facing inventory and to this planning artifact). Sections: (a) the pattern in one sentence, (b) the four moving parts (per-prompt module / `_registry.ts` / SDK & wire protocol / invariant tests), (c) why it beats the obvious alternatives (markdown blobs, hardcoded prompts, CMS), (d) why it scales (closed-form additions, constant-cost invariants, schema reuse), (e) end-to-end trace of `/gst_diligence_kickoff` from keystroke to model response. Audience: any new contributor authoring or modifying a prompt. **Note**: this presupposes the BL-034 `mcp-server/src/docs/` restructure (parent directories `tools/` / `resources/` / `prompts/`); if that restructure has not landed by Commit 3, place this file at `mcp-server/src/docs/prompts/README.md` anyway — it forces the new parent directory to exist, and the BL-034 restructure simply moves the existing tool docs alongside it.
+
+**Modified files**
+
+- `mcp-server/src/prompts/_registry.ts` — extend `ALL_PROMPTS` with the three new prompts; total 8.
+- `mcp-server/src/schemas.ts` — re-export `RadarCategoryEnum` from a single source of truth (move enum definition from `tools/radar-cache.ts` into `schemas.ts`; update `tools/radar-cache.ts` import path; small but real schema-reuse improvement).
+- `mcp-server/README.md` — new top-level § **"Prompts (8): GST consultant workflows"** between the existing § "Resources (~128)" and § "How Resources work in this server". Subsections: intro (what Prompts are, slash-menu UX, `gst_` prefix), table (Prompt × Args × Orchestrates × Purpose, mirroring the surface table at § The prompt library), worked invocation for `/gst_target_quick_look`, "Authoring & versioning" (~10 lines on module shape, version bump policy, 12-month freshness, senior-consultant gate), § **"Last verified (BL-031.75 surface)"** with V1–V8 evidence excerpts (≤ 6 lines per prompt; pattern parallels the BL-031.5 stanza shipped in `1ad2ba5`). Also bump the surface-count line to "9 Tools + ~128 Resources + 8 Prompts".
+- `src/docs/development/MCP_SERVER_PROMPTS_BL-031_75.md` — append "Deviations during implementation" section (e.g. actual schema name `UserInputsSchema`, `RadarCategoryEnum` relocation, anything else surfaced).
+- `src/docs/development/BACKLOG.md` § BL-031.75 — flip Status `Open` → `Complete (<close date>)`, tick all 17 acceptance-criteria checkboxes (lines 422–447). The senior-consultant sign-off line ticks only after V1–V8 are recorded **and** the user (the senior consultant on this initiative) has reviewed each prompt's output.
+
+**Verification (commit 3 — full BL-031.75 closure)**
+
+- All `mcp-server` and repo-root validation green; new registry-invariant + golden-snapshot tests run.
+- All 8 prompts exercised live per the V1–V8 punch-list below; golden snapshots recorded; README "Last verified" stanza populated.
+- Senior-consultant sign-off on each prompt.
+- AC checklist all 17 boxes ticked.
+- Branch pushed only on explicit user direction (per standing CLAUDE.md feedback — no autonomous push).
+
+### Critical files referenced (read-only sources of truth)
+
+| File                                                                                                                                                                                                                                       | Why                                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| [`node_modules/@modelcontextprotocol/server/dist/index.d.mts`](../../../node_modules/@modelcontextprotocol/server/dist/index.d.mts) lines 654–659                                                                                          | SDK `registerPrompt` signature; the contract the per-prompt module shape satisfies            |
+| [`src/schemas/diligence.ts`](../../schemas/diligence.ts) lines 139–153                                                                                                                                                                     | `UserInputsSchema` — composed by `gst_diligence_kickoff` and `gst_diligence_handoff_memo`     |
+| [`src/schemas/portfolio.ts`](../../schemas/portfolio.ts), [`icg.ts`](../../schemas/icg.ts), [`techpar.ts`](../../schemas/techpar.ts), [`tech-debt.ts`](../../schemas/tech-debt.ts), [`regulatory-map.ts`](../../schemas/regulatory-map.ts) | Source-of-truth Zod schemas re-used by Tool-orchestrating prompts via `.extend()` / `.pick()` |
+| [`src/data/diligence-machine/wizard-config.ts`](../../data/diligence-machine/wizard-config.ts)                                                                                                                                             | Source enum lists the `UserInputsSchema` extends (transactionType, productType, etc.)         |
+| [`src/utils/{diligence,techpar,icg,tech-debt}-engine.ts`](../../utils/)                                                                                                                                                                    | Tools the prompts orchestrate (registered in BL-031 / BL-031.5)                               |
+| [`src/data/regulatory-map/`](../../data/regulatory-map/)                                                                                                                                                                                   | Regulation Resources the regulatory-exposure prompt references                                |
+| [`mcp-server/src/server.ts`](../../../mcp-server/src/server.ts) lines 20–26                                                                                                                                                                | Canonical Tool name list — prompts reference these by exact name in `orchestrates` and body   |
+
+### Verification punch-list (V1–V8 — one per prompt)
+
+Mirrors the BL-031.5 V1–V7 pattern. Captured during commit-3 work, migrated into `mcp-server/README.md` § "Last verified (BL-031.75 surface)" before close. **Lesson learned BL-031.5**: do not author a transitional verification doc — README is the durable home; intermediate docs get deleted at close.
+
+| ID  | Prompt                            | Verification motion                                                                                                                                                                                                                             | Pass criteria                                                                                                                                                                                                                                                                        |
+| --- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| V1  | `gst_diligence_kickoff`           | Invoke from Claude Desktop slash menu with a complete `UserInputsSchema` + `targetName`. Compare output to a manual diligence-kickoff memo for the same target.                                                                                 | Memo has 4 sections; `generate_diligence_agenda` called once; `gst://library/vdr-structure` referenced; user signs off "reads as if I wrote it"                                                                                                                                      |
+| V2  | `gst_target_quick_look`           | Real ARR + product type + jurisdiction. Worked example records all 4 tool calls. Click each surfaced "Open in Hub" deep-link in a browser to verify state restoration.                                                                          | Output is one digestible page; ICG, TechPar, Tech Debt all called once; regulatory frameworks named for the supplied jurisdiction; **3 deep-links present and restore state** (ICG + Tech Debt + Regulatory Map); TechPar deferred-deep-link disclosure note appears; user signs off |
+| V3  | `gst_comparable_engagements_memo` | Free-text target description + theme. Worked example.                                                                                                                                                                                           | 3–5 comparable engagements named; lessons framed analogically; user signs off                                                                                                                                                                                                        |
+| V4  | `gst_regulatory_exposure_brief`   | EU + US jurisdictions, `dataCategories: ['personal-data','health-data']`, productType set. Worked example. Click the surfaced filtered Regulatory Map deep-link in a browser to verify filter restoration.                                      | `search_regulations` called; per-framework Resources read by URI; brief assembled; **per-framework anchor URLs present + filtered Regulatory Map deep-link restores `?region=&filter=` filters byte-identically**; user signs off                                                    |
+| V5  | `gst_vdr_audit`                   | Two trials: (a) supplied `vdrInventory` string, (b) omitted (interactive). Worked example for each.                                                                                                                                             | Both modes work; canonical 10-folder taxonomy referenced; gaps flagged; user signs off                                                                                                                                                                                               |
+| V6  | `gst_architecture_layer_review`   | Free-text targetSummary. Worked example.                                                                                                                                                                                                        | All 5 layers walked; risks surfaced per layer; references `gst://library/business-architectures`; user signs off                                                                                                                                                                     |
+| V7  | `gst_radar_brief_today`           | Two trials: (a) `category: 'enterprise-tech'`, (b) defaults. Pre-seed `.cache/inoreader/` via `npm run radar:seed`. Then delete cache and confirm the snapshot-missing structured error path still triggers cleanly when the prompt is invoked. | FYI snapshot read; items grouped & summarized in GST Take voice; cache-missing case produces the same structured error wired in BL-031.5; user signs off                                                                                                                             |
+| V8  | `gst_diligence_handoff_memo`      | Full `UserInputsSchema` + `targetName`. Worked example.                                                                                                                                                                                         | Agenda + comparables + VDR follow-ups all present; one-document handoff format; user signs off                                                                                                                                                                                       |
+
+Each V<n> output excerpt → recorded into `mcp-server/README.md` § "Last verified (BL-031.75 surface)" (≤ 6 lines per prompt).
 
 ### Risks & mitigations
 
-| Risk                                                                     | Mitigation                                                                                                                                                                                                                     |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Prompt outputs are unreliable across model versions                      | Maintain golden-output snapshots per prompt; on each Claude model upgrade, re-run the snapshot suite, review diffs, update if the new output is qualitatively better (and bump prompt `version`).                              |
-| Slash-command name collisions with other MCP servers in a user's setup   | All prompts use the `gst_` prefix. Document this convention in the README and lint with a regex check in `prompts/_registry.ts`.                                                                                               |
-| Argument schemas drift from the Tools they orchestrate                   | Every prompt's `argsSchema` re-uses (via Zod composition) the same source-of-truth schemas as the Tools. CI test asserts the shapes are still compatible.                                                                      |
-| Prompts encode a single consultant's style; another consultant disagrees | Annual review cycle; explicit ownership per prompt (a `owner` field in the source module); disagreements get resolved at review, not by silent edit.                                                                           |
-| Senior-consultant review is the bottleneck                               | Frame the review as 30 minutes per prompt at most. The prompts are short; the work is "would I send this to a client" judgment, not deep editing.                                                                              |
-| Prompts that reference Resources / Tools become broken when those move   | Static analysis test: each prompt module declares what Tools and Resources it invokes (e.g. an `orchestrates: ['compute_techpar', 'gst://library/vdr-structure']` field); CI asserts each named Tool / Resource is registered. |
+| Risk                                                                                             | Mitigation                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `registerPrompt` SDK behaviour in the installed alpha differs subtly from the typings            | The first prompt registration in commit 1 is the proof. If the runtime diverges, fix immediately and update the per-prompt module shape before authoring the remaining seven. Cheap to discover at commit-1 verification.             |
+| Prompt body references a Tool/Resource name that drifts (rename in a later initiative)           | The `orchestrates` field per prompt + the registry-invariant test that resolves each entry against the live tool/URI registry. Two-tiered: structural (the array) + textual (the prompt-mentions-orchestrated-references regex test). |
+| Prompt outputs are unreliable across model versions                                              | Golden-output snapshots per prompt; on each Claude model upgrade, re-run, review diffs, update if the new output is qualitatively better (and bump prompt `version`). Snapshots are advisory regression checkpoints, not gates.       |
+| Slash-command name collisions with other MCP servers                                             | All prompts use the `gst_` prefix; enforced by the `_registry.ts` regex check. Documented in README.                                                                                                                                  |
+| Argument schemas drift from the Tools they orchestrate                                           | Every prompt's `argsSchema` re-uses (via Zod composition) the same source-of-truth schemas as the Tools. Registry test asserts shape compatibility.                                                                                   |
+| Prompts encode a single consultant's style; another consultant disagrees                         | Annual review cycle; explicit ownership per prompt (`owner` field can be added if/when the team grows past one senior consultant); disagreements get resolved at review, not by silent edit.                                          |
+| Senior-consultant review (binding AC) blocks commit 3                                            | The user IS the senior consultant; review happens during V1–V8. Body revisions are short Edits + commit-3-amend, not re-spins. Keep prompt bodies tight (one user-message, ≤ 30 lines).                                               |
+| `lastReviewedAt ≤ 12 months` test fails one year after the initial commit                        | Intended — the test is a calendar-driven nudge. When it fires, re-read each prompt and bump `lastReviewedAt`. A CI annotation surfacing freshness percentage avoids the all-or-nothing failure mode.                                  |
+| Drift between prompt body strings and `orchestrates` field (someone edits one without the other) | The body-mentions-orchestrated-references regex test asserts every entry in `orchestrates` appears as a literal in the rendered message text. Symmetric: missing in either side fails the test.                                       |
+| `RadarCategoryEnum` relocation breaks a downstream import                                        | Currently used at `tools/radar-cache.ts:24` only. After moving, update that file's import path and the tool's tests. Single-file blast radius; verifiable by clean `npm test` after the move.                                         |
+| Interactive mode for `gst_vdr_audit` (all-optional argsSchema) is novel                          | `argsSchema: z.object({ vdrInventory: z.string().optional() })`. The `build` function branches on `args.vdrInventory ? <one-shot body> : <interactive body>`. Both branches covered by unit tests.                                    |
 
 ### Out of scope (deferred to BL-032 or later)
 
 - Prompts that mutate state — all BL-031.75 prompts are read/derive only
 - Per-client prompt customization (a client's white-labeled copy of `gst_diligence_kickoff` with their house style) — defer to BL-033 if a paying client asks
-- A "prompt builder" UI on the website — not needed; authoring is text-editor work in `mcp-server/src/prompts/`
+- A "prompt builder" UI on the website — authoring is text-editor work in `mcp-server/src/prompts/`
 - Telemetry on which prompts get used most — would require BL-032's logging surface; the local-stdio context has no useful place to send this
 - Localization — English only; revisit when GST signs a non-English-language client engagement
+- HTTP transport / remote prompt access — BL-032 / BL-032.5
+- Pushing the closure commits — wait for explicit user direction
 
 ---
 
-_Last updated: 2026-04-25_
+_Last updated: 2026-04-29_
