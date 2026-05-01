@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { buildIcgDeeplink } from '../../../src/tools/icg';
+import { buildIcgDeeplink, buildResultsState } from '../../../src/tools/icg';
 import { decodeState, type ICGState } from '../../../../src/utils/icg-engine';
 
 const SAMPLE_STATE: ICGState = {
@@ -53,5 +53,19 @@ describe('ICG deep-link', () => {
     const encoded = new URL(url).searchParams.get('s')!;
     const decoded = decodeState(encoded);
     expect(decoded!.companyStage).toBeUndefined();
+  });
+
+  it('buildResultsState lands the wizard on the results view (currentStep===7)', () => {
+    // Contract: a deep-link emitted by the MCP tool must skip the wizard
+    // intro and the 6 domain steps, dropping the user directly on the
+    // populated results view. Regression guard for the bug where
+    // currentStep was 0 (landing) — see verification doc V2 finding #1.
+    const state = buildResultsState({ answers: { q1_1: 2 }, companyStage: 'series-bc' });
+    expect(state.currentStep).toBe(7);
+
+    const url = buildIcgDeeplink(state);
+    const encoded = new URL(url).searchParams.get('s')!;
+    const decoded = decodeState(encoded);
+    expect(decoded!.currentStep).toBe(7);
   });
 });

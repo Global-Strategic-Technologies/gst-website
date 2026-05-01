@@ -18,8 +18,23 @@ import {
 } from '../../../src/utils/icg-engine';
 import { DOMAINS } from '../../../src/data/infrastructure-cost-governance/domains';
 import { RECOMMENDATIONS } from '../../../src/data/infrastructure-cost-governance/recommendations';
-import { ICGInputsSchema } from '../schemas';
+import { ICGInputsSchema, type ICGInputs } from '../schemas';
 import { HUB_BASE } from '../config';
+
+/**
+ * Build the ICGState that the deep-link should restore. `currentStep: 7`
+ * lands the wizard on the results view (intro=0, domains 1-6, results=7).
+ * The deep-link's purpose is to skip to the populated outcome, not the
+ * start screen.
+ */
+export function buildResultsState(inputs: ICGInputs): ICGState {
+  return {
+    answers: inputs.answers,
+    currentStep: 7,
+    dismissed: [],
+    companyStage: inputs.companyStage,
+  };
+}
 
 const TOOL_DESCRIPTION = `Assess a target company's Infrastructure Cost Governance maturity.
 
@@ -52,12 +67,7 @@ export function registerIcgTool(server: McpServer): void {
     },
     async (inputs) => {
       try {
-        const state: ICGState = {
-          answers: inputs.answers,
-          currentStep: 0,
-          dismissed: [],
-          companyStage: inputs.companyStage,
-        };
+        const state = buildResultsState(inputs);
         const result = calculateResults(state, DOMAINS);
         const recommendations = getRecommendations(state, RECOMMENDATIONS);
         const deeplink = buildIcgDeeplink(state);
