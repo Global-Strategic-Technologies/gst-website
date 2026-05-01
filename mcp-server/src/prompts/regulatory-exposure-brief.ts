@@ -13,20 +13,15 @@
 
 import { z } from 'zod';
 import type { GstPrompt } from './types';
+import { arrayFromWire } from './wire-shape';
 
 const argsSchema = z.object({
-  targetJurisdictions: z
-    .array(z.string().min(2))
-    .min(1)
-    .describe(
-      'Jurisdictions where the target operates / collects / processes data (e.g. ["eu", "us-ca"]).'
-    ),
-  dataCategories: z
-    .array(z.string().min(3))
-    .min(1)
-    .describe(
-      'Regulatory categories to assess — typically a subset of "data-privacy" / "ai-governance" / "industry-compliance" / "cybersecurity".'
-    ),
+  targetJurisdictions: arrayFromWire(z.array(z.string().min(2)).min(1)).describe(
+    'Jurisdictions where the target operates / collects / processes data (e.g. ["eu", "us-ca"]).'
+  ),
+  dataCategories: arrayFromWire(z.array(z.string().min(3)).min(1)).describe(
+    'Regulatory categories to assess — typically a subset of "data-privacy" / "ai-governance" / "industry-compliance" / "cybersecurity".'
+  ),
   productType: z
     .string()
     .min(2)

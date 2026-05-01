@@ -47,6 +47,18 @@ describe('gst_radar_brief_today', () => {
     }
   });
 
+  it('accepts sinceHours as a numeric string (Claude Desktop wire shape)', () => {
+    const r = radarBriefTodayPrompt.argsSchema.safeParse({ sinceHours: '48' });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.sinceHours).toBe(48);
+  });
+
+  it('accepts sinceHours as an actual number (forward-compat)', () => {
+    const r = radarBriefTodayPrompt.argsSchema.safeParse({ sinceHours: 48 });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.sinceHours).toBe(48);
+  });
+
   it('handles snapshot-missing path explicitly (instructs the model not to fabricate)', () => {
     const parsed = radarBriefTodayPrompt.argsSchema.parse({});
     const allText = radarBriefTodayPrompt

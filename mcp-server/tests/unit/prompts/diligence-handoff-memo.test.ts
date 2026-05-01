@@ -58,6 +58,15 @@ describe('gst_diligence_handoff_memo', () => {
     }
   });
 
+  it('accepts geographies as a JSON-encoded string (Claude Desktop wire shape)', () => {
+    const r = diligenceHandoffMemoPrompt.argsSchema.safeParse({
+      ...VALID_ARGS,
+      geographies: '["us"]',
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.geographies).toEqual(['us']);
+  });
+
   it('uses pre-generated artifacts directly when supplied (skips re-generation)', () => {
     const parsed = diligenceHandoffMemoPrompt.argsSchema.parse({
       ...VALID_ARGS,

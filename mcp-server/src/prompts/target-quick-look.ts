@@ -20,11 +20,12 @@
 import { z } from 'zod';
 import { GrowthStageSchema } from '../schemas';
 import type { GstPrompt } from './types';
+import { numberFromWire } from './wire-shape';
 
 const argsSchema = z.object({
   targetName: z.string().min(1),
   productType: z.string().min(2),
-  arr: z.number().positive(),
+  arr: numberFromWire(z.number().positive()),
   stage: GrowthStageSchema,
   hqJurisdiction: z.string().min(2),
 });

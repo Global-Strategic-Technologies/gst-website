@@ -14,9 +14,11 @@
 import { z } from 'zod';
 import { UserInputsSchema } from '../schemas';
 import type { GstPrompt } from './types';
+import { arrayFromWire } from './wire-shape';
 
 const argsSchema = UserInputsSchema.extend({
   targetName: z.string().min(1),
+  geographies: arrayFromWire(UserInputsSchema.shape.geographies),
   agendaJson: z
     .string()
     .optional()

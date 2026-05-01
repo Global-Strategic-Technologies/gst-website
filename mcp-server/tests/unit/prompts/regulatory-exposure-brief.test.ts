@@ -50,6 +50,23 @@ describe('gst_regulatory_exposure_brief', () => {
     }
   });
 
+  it('accepts arrays as JSON-encoded strings (Claude Desktop wire shape)', () => {
+    const r = regulatoryExposureBriefPrompt.argsSchema.safeParse({
+      ...VALID_ARGS,
+      targetJurisdictions: '["eu", "us-ca"]',
+      dataCategories: '["data-privacy", "ai-governance"]',
+    });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.targetJurisdictions).toEqual(['eu', 'us-ca']);
+      expect(r.data.dataCategories).toEqual(['data-privacy', 'ai-governance']);
+    }
+  });
+
+  it('accepts arrays as actual arrays (forward-compat)', () => {
+    expect(regulatoryExposureBriefPrompt.argsSchema.safeParse(VALID_ARGS).success).toBe(true);
+  });
+
   it('embeds the supplied jurisdictions in the body', () => {
     const parsed = regulatoryExposureBriefPrompt.argsSchema.parse(VALID_ARGS);
     const allText = regulatoryExposureBriefPrompt

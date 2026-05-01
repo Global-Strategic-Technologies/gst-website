@@ -46,6 +46,21 @@ describe('gst_target_quick_look', () => {
     }
   });
 
+  it('accepts arr as a numeric string (Claude Desktop wire shape)', () => {
+    const r = targetQuickLookPrompt.argsSchema.safeParse({
+      ...VALID_ARGS,
+      arr: '25000000',
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.arr).toBe(25_000_000);
+  });
+
+  it('accepts arr as an actual number (forward-compat)', () => {
+    const r = targetQuickLookPrompt.argsSchema.safeParse(VALID_ARGS);
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.arr).toBe(VALID_ARGS.arr);
+  });
+
   it("instructs the model on the 'not sure' (-1) ICG fallback", () => {
     const parsed = targetQuickLookPrompt.argsSchema.parse(VALID_ARGS);
     const allText = targetQuickLookPrompt
