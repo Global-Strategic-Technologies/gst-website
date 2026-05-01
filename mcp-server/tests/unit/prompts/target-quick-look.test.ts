@@ -71,4 +71,43 @@ describe('gst_target_quick_look', () => {
     expect(allText).toMatch(/not\s*sure/i);
     expect(allText.toLowerCase()).toContain('never skip');
   });
+
+  it('enumerates every ICG question ID by domain (regression guard for V2 finding #3)', () => {
+    // The model must use schema-canonical compound IDs (q<domain>_<index>)
+    // — the engine silently ignores unknown keys, so flat IDs (q1, q2, ...)
+    // produce a misleading no-answer baseline. Mirrors the 22 IDs declared
+    // in src/data/infrastructure-cost-governance/domains.ts.
+    const parsed = targetQuickLookPrompt.argsSchema.parse(VALID_ARGS);
+    const allText = targetQuickLookPrompt
+      .build(parsed)
+      .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
+      .join('\n');
+    const expected = [
+      'q1_1',
+      'q1_2',
+      'q1_3',
+      'q2_1',
+      'q2_2',
+      'q2_3',
+      'q2_4',
+      'q3_1',
+      'q3_2',
+      'q3_3',
+      'q4_1',
+      'q4_2',
+      'q4_3',
+      'q5_1',
+      'q5_2',
+      'q5_3',
+      'q6_1',
+      'q6_2',
+      'q6_3',
+      'q6_4',
+    ];
+    expect(expected.length).toBe(20);
+    for (const id of expected) {
+      expect(allText, `body should mention ICG question ID ${id}`).toContain(id);
+    }
+    expect(allText).toContain('20 questions');
+  });
 });
