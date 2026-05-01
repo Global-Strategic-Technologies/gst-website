@@ -437,19 +437,112 @@ Diligence priority for next 48 hours: (1) Confirm HIPAA scope + BAA inventory. (
 
 **Pass criteria**
 
-- [ ] 3–5 comparable engagements named (codeName + 1-line context + lesson per match).
-- [ ] Lessons framed analogically as guidance for the current target, not retrospective narrative.
-- [ ] Closing 2–3 sentence cross-shortlist synthesis present.
-- [ ] Senior-consultant sign-off.
+- [x] 3–5 comparable engagements named (codeName + 1-line context + lesson per match). — _Run 1: 5 (Onfray, Chariot, Wolverine, Knapsack, Regatta). Run 2: 4 (Atlas, Wellness, Tempo, Oktoberfest). Both within band._
+- [x] Lessons framed analogically as guidance for the current target, not retrospective narrative. — _Both runs use forward-looking phrasing: "scope diligence to test whether…", "LOI scope should explicitly separate…". No retrospective obituaries._
+- [x] Closing 2–3 sentence cross-shortlist synthesis present. — _Run 1: two-tier scope recommendation (pre-LOI Regatta-shaped + post-LOI Onfray/Chariot-shaped). Run 2: four-workstream scope + explicit "Healthcare hint should be treated as directional" caveat._
+- [x] Senior-consultant sign-off. — _Recorded 2026-05-01 against post-V2-fix `dist/index.js` (commits `8dd24e1` → `c89bcca`)._
+
+**Findings carried forward**:
+
+1. **`engagementCategory` strict-case rejection** — user attempted `'Buy-side'` (lowercase 's') in Run 2; argsSchema rejected via `z.enum`. Fixed by `enumFromWire` preprocessor at the MCP wire boundary (case-insensitive normalization to canonical `'Buy-Side'`); applied to every enum-typed argsSchema field across all 8 prompts. See commits following V3.
+2. **Run 1 over-searched** (6× `search_portfolio` calls vs body's "1–3 times" budget). Output quality was excellent so the body is intentionally left unchanged; this is recorded as a soft observation rather than a defect. If subsequent runs trend toward exhaustion, the "Run the search 1–3 times" sentence in the body can be tightened to a hard cap.
 
 **Evidence**
 
 <details>
-<summary>V3 input + output</summary>
+<summary>V3 Run 1 input + output (no hints — derive everything from the description)</summary>
+
+Input args:
+
+```json
+{
+  "targetDescription": "PE-sponsored bolt-on acquisition of a vertical SaaS in industrial supply chain, ARR ~$60M, scaling stage. Significant integration debt from two prior tuck-in acquisitions. North American customer base, EU expansion underway. Sponsor needs a technology DD scope for LOI by end of month."
+}
+```
+
+Tool calls observed: `list_portfolio_facets` (1×) → `search_portfolio` (6× across Logistics, Software, Operations Management, Manufacturing, plus cross-cuts).
+
+Output (excerpt):
 
 ```
-TBD
+# Comparable Engagements Memo — Target: Industrial Supply Chain Vertical SaaS (PE Bolt-On, ~$60M ARR)
+
+Search basis. Filtered the 61-engagement portfolio across Logistics, Software,
+Manufacturing, and Operations Management themes on the Buy-Side category. Five
+comparables share at least two of {industry adjacency, scaling-stage growth,
+vertical SaaS deal shape, integration-debt pattern} with the current target.
+
+## Shortlist
+- Onfray (Logistics SaaS, $180M ARR, Scaling Growth, 2022) — closest deal-shape twin; lesson on scaling-stage SaaS with monolith + heterogeneous front-ends
+- Chariot (Logistics marketplace + adjacent TMS, Scaling Growth, 2022) — analogous to NA-to-EU expansion overlay on already-scaling platform
+- Wolverine (Supply Chain Analytics, $10M ARR, Scaling Growth, 2025) — closest domain match; refactoring program for complex modules
+- Knapsack (Manufacturing scheduling, Legacy System, 2024) — integration-platform recommendation; tuck-in integration angle
+- Regatta (Data Integration SaaS, $5M ARR, Early-Stage Growth, 2024) — pre-bid light-touch assessment; procedural analog to end-of-month LOI deadline
+
+## What this means for the current deal
+The portfolio precedent points to a two-tier scope: a fast pre-LOI assessment
+(Regatta-shaped) covering stack viability, integration-debt sizing, and org-gap
+inventory, with a deeper post-LOI TDD (Onfray/Chariot-shaped) covering
+modernization roadmap, second-region readiness, and the integration-platform
+workstream Knapsack flagged. The prior tuck-ins are the dominant risk vector —
+they should be treated as a distinct diligence track.
 ```
+
+</details>
+
+<details>
+<summary>V3 Run 2 input + output (Healthcare theme hint, deliberately mismatched to target)</summary>
+
+Input args:
+
+```json
+{
+  "targetDescription": "PE-sponsored bolt-on acquisition of a vertical SaaS in industrial supply chain, ARR ~$60M, scaling stage. Significant integration debt from two prior tuck-in acquisitions. North American customer base, EU expansion underway. Sponsor needs a technology DD scope for LOI by end of month.",
+  "theme": "Healthcare"
+}
+```
+
+(Note: this run also surfaced the `engagementCategory` strict-case issue — the user attempted `'Buy-side'` in a follow-up and it was rejected. Fixed in the post-V3 enum-tolerance commits.)
+
+Tool calls observed: `list_portfolio_facets` (1×) → `search_portfolio` (2× — Healthcare/Buy-Side filtered + free-text deal-shape pass).
+
+Output (excerpt):
+
+```
+# Comparable Engagements Memo — Target: Industrial Supply Chain Vertical SaaS (PE Bolt-On, ~$60M ARR)
+
+Search basis. Filtered the portfolio on Healthcare theme (per supplied hint)
+and Buy-Side category. Note that the target's industrial supply chain domain
+does not directly align with Healthcare; however, four of the seven Healthcare
+comparables share at least two of {ARR proximity, scaling-stage profile,
+acquisition-integration question, EU exposure} with the target and analogize
+cleanly across vertical-SaaS deal mechanics. The hint itself merits a flag —
+the analogies below hold on deal shape, not domain, and a complementary cut
+against Logistics or Manufacturing themes would strengthen the working
+hypothesis.
+
+## Shortlist
+- Atlas (Healthcare RCM, $67M ARR, Mature Enterprise, 2026) — closest ARR
+  twin; legacy core + cloud peripherals; integration-compatibility lens
+- Wellness (Telehealth, $70M ARR, Scaling Growth, 2025) — closest combined
+  ARR + stage match; "Growth-Ready" SDLC verdict; framework consolidation
+- Tempo (HealthTech, $13M ARR, Scaling Growth, 2024) — directly analogous on
+  the integration question; acquirer-stack-fit deliverable pattern
+- Oktoberfest (Clinical Research, €6.5M ARR, Scaling Growth, 2023) — only
+  comparable with explicit EU regulatory profile; GDPR + data-residency
+  pattern applies to the current EU expansion
+
+## What this means for the current deal
+Four-workstream scope: (1) core platform viability + SDLC maturity rating
+sized to the $60M ARR band, (2) acquirer-stack-fit and post-tuck-in
+integration debt as an explicit deliverable, (3) EU readiness covering GDPR
+and data residency, (4) long-range platform transition cost. Healthcare hint
+should be treated as directional rather than determinative — a confirmatory
+pass against Logistics and Manufacturing themes would surface domain-native
+comparables.
+```
+
+Run 2 also exhibited a strong "honor-the-hint-but-flag-the-mismatch" behavior — the model accepted the Healthcare constraint without forcing a poor-fit comparable, instead surfacing the analogical-axis-rather-than-domain framing in both the search-basis preamble and the closing synthesis. This is the design intent: hints are advisory, not determinative.
 
 </details>
 
