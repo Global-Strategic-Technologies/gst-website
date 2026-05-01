@@ -14,6 +14,7 @@
 import { z } from 'zod';
 import type { GstPrompt } from './types';
 import { arrayFromWire } from './wire-shape';
+import { authorialIntentLine } from './embed';
 
 const argsSchema = z.object({
   targetJurisdictions: arrayFromWire(z.array(z.string().min(2)).min(1)).describe(
@@ -30,12 +31,14 @@ const argsSchema = z.object({
     ),
 });
 
+const PROMPT_NAME = 'gst_regulatory_exposure_brief';
+
 export const regulatoryExposureBriefPrompt: GstPrompt<typeof argsSchema> = {
-  name: 'gst_regulatory_exposure_brief',
+  name: PROMPT_NAME,
   description:
-    'Compile applicable regulatory frameworks for a target, with summaries pulled from the canonical Resource bodies.',
-  version: '0.1.0',
-  lastReviewedAt: '2026-04-29',
+    'Compile applicable regulatory frameworks for a target, with summaries pulled from the search-result data + per-framework Regulatory Map URIs.',
+  version: '0.0.1',
+  lastReviewedAt: '2026-05-01',
   orchestrates: ['search_regulations', 'gst://regulations/'] as const,
   argsSchema,
   build: (args) => ({
@@ -45,13 +48,15 @@ export const regulatoryExposureBriefPrompt: GstPrompt<typeof argsSchema> = {
         content: {
           type: 'text',
           text: [
+            authorialIntentLine(PROMPT_NAME),
+            '',
             `Compile a regulatory exposure brief for a ${args.productType} target operating across the following jurisdictions: ${args.targetJurisdictions.join(', ')}.`,
             '',
             `Data / regulation categories in scope: ${args.dataCategories.join(', ')}.`,
             '',
             'Step 1. For each jurisdiction × category pair, call `search_regulations` with `{ jurisdiction, category }`. If a jurisdiction id is not recognized (no matches returned), call `list_regulation_facets` to find the canonical id (e.g. is it "uk" or "gbr"? "us-ca" or "ca"?) and retry.',
             '',
-            'Step 2. For each unique framework that appears in any search result, read the full Resource body via `resources/read` using the resolved `gst://regulations/<jurisdiction>/<framework-id>` URI. The Resource body is the canonical framework text; rely on it for accuracy rather than the search-result summary.',
+            'Step 2. For each unique framework that appears in any search result, treat the search-result summary as the authoritative reference for this brief — the per-framework `gst://regulations/<jurisdiction>/<framework-id>` URI is included for the analyst to pin in their client (Claude Desktop connectors UX) when they need to read the full canonical text. The brief itself is built from the search-result data; do not attempt `resources/read` (Resources are user-pinned, not model-fetchable from prompts).',
             '',
             'Step 3. Frame the output as a structured brief with the following sections:',
             '  (1) Header — target product type + jurisdictions + categories assessed.',

@@ -67,6 +67,17 @@ describe('gst_diligence_handoff_memo', () => {
     if (r.success) expect(r.data.geographies).toEqual(['us']);
   });
 
+  it('embeds the canonical VDR Library article as a second message', () => {
+    const parsed = diligenceHandoffMemoPrompt.argsSchema.parse(VALID_ARGS);
+    const result = diligenceHandoffMemoPrompt.build(parsed);
+    expect(result.messages.length).toBeGreaterThanOrEqual(2);
+    const second = result.messages[1].content;
+    expect(second.type).toBe('resource');
+    if (second.type === 'resource') {
+      expect(second.resource.uri).toBe('gst://library/vdr-structure');
+    }
+  });
+
   it('uses pre-generated artifacts directly when supplied (skips re-generation)', () => {
     const parsed = diligenceHandoffMemoPrompt.argsSchema.parse({
       ...VALID_ARGS,

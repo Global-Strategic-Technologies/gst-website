@@ -30,6 +30,20 @@ If any prereq fails: fix before proceeding. Server-boot failures usually surface
 
 ---
 
+## ⚠ V1 was run on 2026-05-01 (pre-Commit-5) and surfaced three findings
+
+The first V1 invocation succeeded as a proof of the full prompt path (slash menu → server → schema → build → model → deliverable) but the model's deliverable was degraded by two architectural gaps and one downstream effect:
+
+1. **Resources not model-fetchable** — model couldn't read `gst://library/vdr-structure`, fell back to a generic PE-diligence VDR taxonomy. Fixed in Commit 5 via `EmbeddedResource` content blocks.
+2. **Prompt expansion read as "uploaded document"** — model hedged about prompt provenance before proceeding. Fixed in Commit 5 via standardized authorial-intent leading line in every prompt body.
+3. **VDR taxonomy substituted** — downstream effect of #1; resolves once Commit 5's embeds land.
+
+Wire-shape fix (`arrayFromWire` / `numberFromWire`) shipped in `c88b598` was also part of getting V1 attachable in the first place. Restart your client (kill orphaned `node ./mcp-server/dist/index.js` processes; reload VSCode / quit-relaunch Desktop) so the fresh `dist/index.js` from Commit 5 is loaded.
+
+**V1 must be re-run** against Commit 5's binary to verify (a) the embedded VDR Library article is used verbatim (no fallback substitution), and (b) the model proceeds without the prompt-provenance hedge.
+
+---
+
 ## V1 — `gst_diligence_kickoff`
 
 **Procedure**

@@ -37,14 +37,15 @@ describe('gst_architecture_layer_review', () => {
     }
   });
 
-  it('walks all five layers in order', () => {
+  it('embeds the canonical Library article as a second message', () => {
     const parsed = architectureLayerReviewPrompt.argsSchema.parse(VALID_ARGS);
-    const allText = architectureLayerReviewPrompt
-      .build(parsed)
-      .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
-      .join('\n');
-    for (const layer of ['Software', 'Infrastructure', 'Data', 'Organizational', 'Industry']) {
-      expect(allText).toContain(layer);
+    const result = architectureLayerReviewPrompt.build(parsed);
+    expect(result.messages.length).toBeGreaterThanOrEqual(2);
+    const second = result.messages[1].content;
+    expect(second.type).toBe('resource');
+    if (second.type === 'resource') {
+      expect(second.resource.uri).toBe('gst://library/business-architectures');
+      expect(second.resource.text).toBeTruthy();
     }
   });
 });

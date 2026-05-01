@@ -69,6 +69,28 @@ describe('gst_diligence_kickoff', () => {
     }
   });
 
+  it('embeds the canonical VDR Library article as a second message', () => {
+    const parsed = diligenceKickoffPrompt.argsSchema.parse(VALID_ARGS);
+    const result = diligenceKickoffPrompt.build(parsed);
+    expect(result.messages.length).toBeGreaterThanOrEqual(2);
+    const second = result.messages[1].content;
+    expect(second.type).toBe('resource');
+    if (second.type === 'resource') {
+      expect(second.resource.uri).toBe('gst://library/vdr-structure');
+      expect(second.resource.text).toBeTruthy();
+    }
+  });
+
+  it('opens with the authorial-intent line', () => {
+    const parsed = diligenceKickoffPrompt.argsSchema.parse(VALID_ARGS);
+    const first = diligenceKickoffPrompt.build(parsed).messages[0].content;
+    if (first.type === 'text') {
+      expect(first.text).toMatch(/^Workflow invocation:/);
+    } else {
+      throw new Error('expected first message to be text content');
+    }
+  });
+
   it('embeds the targetName argument in the body', () => {
     const parsed = diligenceKickoffPrompt.argsSchema.parse(VALID_ARGS);
     const result = diligenceKickoffPrompt.build(parsed);

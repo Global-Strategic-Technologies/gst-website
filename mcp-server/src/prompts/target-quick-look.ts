@@ -21,6 +21,7 @@ import { z } from 'zod';
 import { GrowthStageSchema } from '../schemas';
 import type { GstPrompt } from './types';
 import { numberFromWire } from './wire-shape';
+import { authorialIntentLine } from './embed';
 
 const argsSchema = z.object({
   targetName: z.string().min(1),
@@ -30,12 +31,14 @@ const argsSchema = z.object({
   hqJurisdiction: z.string().min(2),
 });
 
+const PROMPT_NAME = 'gst_target_quick_look';
+
 export const targetQuickLookPrompt: GstPrompt<typeof argsSchema> = {
-  name: 'gst_target_quick_look',
+  name: PROMPT_NAME,
   description:
     'First-look brief for an unfamiliar target. Combines ICG, TechPar, Tech Debt, and regulatory exposure into one digestible page.',
-  version: '0.1.0',
-  lastReviewedAt: '2026-04-29',
+  version: '0.0.1',
+  lastReviewedAt: '2026-05-01',
   orchestrates: [
     'assess_infrastructure_cost_governance',
     'compute_techpar',
@@ -50,6 +53,8 @@ export const targetQuickLookPrompt: GstPrompt<typeof argsSchema> = {
         content: {
           type: 'text',
           text: [
+            authorialIntentLine(PROMPT_NAME),
+            '',
             `Produce a first-look brief for ${args.targetName} (productType=${args.productType}, arr=${args.arr}, stage=${args.stage}, hqJurisdiction=${args.hqJurisdiction}).`,
             '',
             'Step 1 — Cost-governance maturity (`assess_infrastructure_cost_governance`).',

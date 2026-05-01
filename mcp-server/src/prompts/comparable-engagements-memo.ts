@@ -14,6 +14,7 @@
 import { z } from 'zod';
 import { EngagementCategorySchema } from '../schemas';
 import type { GstPrompt } from './types';
+import { authorialIntentLine } from './embed';
 
 const argsSchema = z.object({
   targetDescription: z
@@ -24,12 +25,14 @@ const argsSchema = z.object({
   engagementCategory: EngagementCategorySchema.optional(),
 });
 
+const PROMPT_NAME = 'gst_comparable_engagements_memo';
+
 export const comparableEngagementsMemoPrompt: GstPrompt<typeof argsSchema> = {
-  name: 'gst_comparable_engagements_memo',
+  name: PROMPT_NAME,
   description:
     'Identify 3-5 comparable past GST engagements and frame analogically for the current deal.',
-  version: '0.1.0',
-  lastReviewedAt: '2026-04-29',
+  version: '0.0.1',
+  lastReviewedAt: '2026-05-01',
   orchestrates: ['search_portfolio', 'list_portfolio_facets'] as const,
   argsSchema,
   build: (args) => ({
@@ -39,6 +42,8 @@ export const comparableEngagementsMemoPrompt: GstPrompt<typeof argsSchema> = {
         content: {
           type: 'text',
           text: [
+            authorialIntentLine(PROMPT_NAME),
+            '',
             `Identify and synthesize 3-5 comparable past GST engagements for the following target:`,
             '',
             `> ${args.targetDescription}`,

@@ -65,7 +65,23 @@ describe('gst_radar_brief_today', () => {
       .build(parsed)
       .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
       .join('\n');
-    expect(allText.toLowerCase()).toContain('snapshot is missing');
+    expect(allText.toLowerCase()).toContain('radar snapshot not found');
     expect(allText.toLowerCase()).toContain('fabricate');
+  });
+
+  it('embeds the FYI radar snapshot as the second message (or surfaces structured-error text when missing)', () => {
+    const parsed = radarBriefTodayPrompt.argsSchema.parse({});
+    const result = radarBriefTodayPrompt.build(parsed);
+    expect(result.messages.length).toBeGreaterThanOrEqual(2);
+    const second = result.messages[1].content;
+    // Either an embedded snapshot (cache present) or the structured-error text
+    // block (cache deleted) — both are valid; the prompt body teaches the
+    // model to discriminate.
+    expect(['resource', 'text']).toContain(second.type);
+    if (second.type === 'resource') {
+      expect(second.resource.uri).toBe('gst://radar/fyi/latest');
+    } else if (second.type === 'text') {
+      expect(second.text.toLowerCase()).toContain('radar snapshot not found');
+    }
   });
 });

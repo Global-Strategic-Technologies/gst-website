@@ -42,6 +42,19 @@ describe('gst_vdr_audit', () => {
     expect(allText.toLowerCase()).toContain('paste');
   });
 
+  it('embeds the canonical VDR Library article as a second message in both modes', () => {
+    for (const args of [{ vdrInventory: '01-Corporate' }, {}]) {
+      const result = vdrAuditPrompt.build(args);
+      expect(result.messages.length).toBeGreaterThanOrEqual(2);
+      const second = result.messages[1].content;
+      expect(second.type).toBe('resource');
+      if (second.type === 'resource') {
+        expect(second.resource.uri).toBe('gst://library/vdr-structure');
+        expect(second.resource.text).toBeTruthy();
+      }
+    }
+  });
+
   it('both modes mention every orchestrates entry literally', () => {
     for (const args of [{ vdrInventory: 'something' }, {}]) {
       const allText = vdrAuditPrompt

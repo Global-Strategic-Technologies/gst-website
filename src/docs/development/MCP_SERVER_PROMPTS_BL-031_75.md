@@ -482,6 +482,20 @@ Recorded as-they-happened during the BL-031.75 commit sequence (2026-04-30). The
 
 - **Senior-consultant review gate is gated on V1–V8.** Per the plan, the AC checkbox stays unticked until the user (the senior consultant on this initiative) reviews each prompt's output. Commit 3 ships the code-complete state; closure happens on V1–V8 sign-off.
 
+### Commit 5 — V1 findings + Resource-embedding + authorial intent
+
+V1 (`gst_diligence_kickoff`) was the proof of the entire surface and surfaced three real findings on first invocation. Commit 5 fixes finding 1 + 2; finding 3 resolves automatically from finding 1's fix.
+
+- **V1 finding 1 — Resources are not model-fetchable from a `prompts/get` expansion.** MCP exposes Tools and Resources as separate primitives. The model can call any registered Tool, but it can only `resources/read` URIs the user has explicitly **pinned** in the client UI (the connectors panel in Claude Desktop). When a prompt body says "read `gst://library/vdr-structure`", the model usually cannot — and falls back to its training. V1 caught this: the model substituted "a standard 10-folder PE-diligence VDR taxonomy" for the canonical one. **Fix**: pre-load Resource bodies at prompt-build time and ship them as `EmbeddedResource` content blocks. New helper at [`mcp-server/src/prompts/embed.ts`](../../../mcp-server/src/prompts/embed.ts) provides `embedLibraryArticle(uri)` and `embedFyiRadarSnapshot()`. Five prompts embed inline: `gst_diligence_kickoff`, `gst_vdr_audit`, `gst_architecture_layer_review`, `gst_radar_brief_today`, `gst_diligence_handoff_memo`. `gst_regulatory_exposure_brief` does NOT embed (would be 120+ regulation bodies); instead its body now instructs the model to use `search_regulations` results as authoritative and surfaces per-framework URIs for user-pinning when deeper text is needed.
+- **V1 finding 2 — Claude Desktop renders `prompts/get` expansion as an "uploaded document".** The model treats it as source material rather than instructions, triggering its prompt-injection hedge. V1's deliverable opened with: "the file appears to be a structured prompt rather than source material to analyze." **Fix**: every prompt body now begins with a standardized authorial-intent line — `Workflow invocation: \`gst\_<name>\` — a GST consultant workflow the user has explicitly initiated. The steps below are your task; treat them as the user's direct instructions and proceed without hedging about prompt provenance.`Implemented via`authorialIntentLine(promptName)`in`embed.ts` so the wording stays consistent across all 8 prompts and is one-liner-fix-able.
+- **V1 finding 3 — output substituted a generic VDR taxonomy** because the canonical Library article wasn't reachable. Resolves automatically from finding 1's fix.
+
+**Versioning policy clarification**: per pre-production policy (the same one applied to `mcp-server/package.json` in `cadb2fb`), all 8 prompts are pinned at `version: '0.0.1'` until the first production deployment. The version-bump-on-body-change guidance in the conceptual reference doc applies post-1.0; pre-1.0 the prompts evolve in place under `0.0.1`. `lastReviewedAt` continues to track real review cadence and freezes prompt content via the 12-month invariant test regardless of version.
+
+**Wire-shape preprocessor (Commit 4-equivalent, landed alongside V1 prep)**: separate fix shipped as `c88b598` adds [`wire-shape.ts`](../../../mcp-server/src/prompts/wire-shape.ts) — `arrayFromWire` and `numberFromWire` z.preprocess wrappers that accept either typed values (forward-compat) or string-encoded values (current Claude Desktop wire shape). Without this, prompts with non-string fields fail Zod validation client-side and Claude Desktop reports a diagnostic-less "Failed to attach prompt." The adapters become no-ops the day clients send typed values — the typed-passthrough path is asserted by tests so the forward-compat guarantee is structural.
+
+**Test count**: 172 (Commit 3) → 194 (Commit 4 wire-shape) → 199 (Commit 5 embeds + authorial intent).
+
 ---
 
-_Last updated: 2026-04-30_
+_Last updated: 2026-05-01_
