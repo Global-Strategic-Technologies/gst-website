@@ -4,13 +4,22 @@
  * Wraps the website's pure ICG calculation engine. Computes the maturity
  * score, per-domain breakdown, and triggered recommendations for a target
  * company's cost-governance posture.
+ *
+ * The result includes a `deeplink` that opens the ICG wizard with all
+ * answers pre-populated.
  */
 
 import type { McpServer } from '@modelcontextprotocol/server';
-import { calculateResults, getRecommendations, type ICGState } from '../../../src/utils/icg-engine';
+import {
+  calculateResults,
+  getRecommendations,
+  encodeState,
+  type ICGState,
+} from '../../../src/utils/icg-engine';
 import { DOMAINS } from '../../../src/data/infrastructure-cost-governance/domains';
 import { RECOMMENDATIONS } from '../../../src/data/infrastructure-cost-governance/recommendations';
 import { ICGInputsSchema } from '../schemas';
+import { HUB_BASE } from '../config';
 
 const TOOL_DESCRIPTION = `Assess a target company's Infrastructure Cost Governance maturity.
 
@@ -20,8 +29,14 @@ Given an \`answers\` map keyed by ICG question ID (values: 0-3 for the four matu
 - Per-domain scores with foundational-flag status
 - Sorted recommendations triggered by below-threshold answers (impact-then-effort ordering)
 - Aggregate counts (answered, total, "Not sure" responses)
+- \`deeplink\` — URL to open the ICG wizard with these answers pre-populated (for PDF / export / share via the website page)
 
 Same engine that powers https://globalstrategic.tech/hub/tools/infrastructure-cost-governance — calling it via MCP eliminates the wizard round-trip.`;
+
+export function buildIcgDeeplink(state: ICGState): string {
+  const encoded = encodeState(state);
+  return `${HUB_BASE}/hub/tools/infrastructure-cost-governance/?s=${encoded}`;
+}
 
 export function registerIcgTool(server: McpServer): void {
   server.registerTool(
@@ -45,7 +60,8 @@ export function registerIcgTool(server: McpServer): void {
         };
         const result = calculateResults(state, DOMAINS);
         const recommendations = getRecommendations(state, RECOMMENDATIONS);
-        const payload = { ...result, recommendations };
+        const deeplink = buildIcgDeeplink(state);
+        const payload = { ...result, recommendations, deeplink };
         return {
           content: [
             {
