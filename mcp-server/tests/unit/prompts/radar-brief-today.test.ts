@@ -6,12 +6,51 @@ describe('gst_radar_brief_today', () => {
     expect(radarBriefTodayPrompt.name).toMatch(/^gst_/);
   });
 
-  it('argsSchema accepts an empty payload (uses defaults)', () => {
+  it('argsSchema accepts an empty payload (sinceHours optional; default applied at build time)', () => {
     const result = radarBriefTodayPrompt.argsSchema.safeParse({});
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.sinceHours).toBe(24);
+      // sinceHours is optional in the schema; the default (24) is applied
+      // by build() rather than by .default() because Zod's .default fires
+      // only when input is undefined and our preprocess turns "" into
+      // undefined too late. See V7 trial (a) regression discussion.
+      expect(result.data.sinceHours).toBeUndefined();
     }
+  });
+
+  it('argsSchema accepts an empty-string sinceHours (Claude Desktop empty form field)', () => {
+    const result = radarBriefTodayPrompt.argsSchema.safeParse({ sinceHours: '' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sinceHours).toBeUndefined();
+    }
+  });
+
+  it('argsSchema accepts an empty-string category (Claude Desktop empty form field)', () => {
+    const result = radarBriefTodayPrompt.argsSchema.safeParse({ category: '' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.category).toBeUndefined();
+    }
+  });
+
+  it('build() applies the 24-hour default when sinceHours is undefined', () => {
+    const parsed = radarBriefTodayPrompt.argsSchema.parse({});
+    const allText = radarBriefTodayPrompt
+      .build(parsed)
+      .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
+      .join('\n');
+    expect(allText).toContain('last 24 hour');
+    expect(allText).toContain('within the last 24 hours');
+  });
+
+  it('build() respects an explicit sinceHours value', () => {
+    const parsed = radarBriefTodayPrompt.argsSchema.parse({ sinceHours: 72 });
+    const allText = radarBriefTodayPrompt
+      .build(parsed)
+      .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
+      .join('\n');
+    expect(allText).toContain('last 72 hour');
   });
 
   it('argsSchema accepts a category filter', () => {
