@@ -66,4 +66,78 @@ describe('gst_vdr_audit', () => {
       }
     }
   });
+
+  describe('Tier 1 — structured vdrFolders input', () => {
+    const STRUCTURED_INPUT = [
+      { name: '06_Tech_Stack_Inventory', files: ['stack-overview-v17.pdf', 'README_FINAL.docx'] },
+      { name: '08_HR_and_Compensation' },
+    ];
+
+    it('argsSchema accepts a structured vdrFolders array', () => {
+      const r = vdrAuditPrompt.argsSchema.safeParse({ vdrFolders: STRUCTURED_INPUT });
+      expect(r.success).toBe(true);
+    });
+
+    it('argsSchema accepts vdrFolders as a JSON-encoded string (Claude Desktop wire shape)', () => {
+      const r = vdrAuditPrompt.argsSchema.safeParse({
+        vdrFolders: JSON.stringify(STRUCTURED_INPUT),
+      });
+      expect(r.success).toBe(true);
+      if (r.success) expect(r.data.vdrFolders?.length).toBe(2);
+    });
+
+    it('argsSchema rejects a vdrFolders entry without a name', () => {
+      const r = vdrAuditPrompt.argsSchema.safeParse({
+        vdrFolders: [{ files: ['solo.pdf'] }],
+      });
+      expect(r.success).toBe(false);
+    });
+
+    it('body embeds folder names AND individual file names verbatim when supplied', () => {
+      const allText = vdrAuditPrompt
+        .build({ vdrFolders: STRUCTURED_INPUT })
+        .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
+        .join('\n');
+      expect(allText).toContain('06_Tech_Stack_Inventory');
+      expect(allText).toContain('stack-overview-v17.pdf');
+      expect(allText).toContain('README_FINAL.docx');
+      expect(allText).toContain('08_HR_and_Compensation');
+    });
+
+    it('body adds Step 2b (file-level signal) only when at least one folder has files', () => {
+      const withFiles = vdrAuditPrompt
+        .build({ vdrFolders: STRUCTURED_INPUT })
+        .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
+        .join('\n');
+      expect(withFiles).toContain('File-level signal');
+      expect(withFiles).toContain('Quality flag');
+
+      const folderNamesOnly = vdrAuditPrompt
+        .build({ vdrFolders: [{ name: '01_Corporate' }, { name: '02_Legal' }] })
+        .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
+        .join('\n');
+      expect(folderNamesOnly).not.toContain('File-level signal');
+      expect(folderNamesOnly).not.toContain('Quality flag');
+    });
+
+    it('vdrFolders takes precedence over vdrInventory when both are supplied', () => {
+      const allText = vdrAuditPrompt
+        .build({
+          vdrFolders: [{ name: 'STRUCTURED_MARKER' }],
+          vdrInventory: 'FREE_TEXT_MARKER',
+        })
+        .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
+        .join('\n');
+      expect(allText).toContain('STRUCTURED_MARKER');
+      expect(allText).not.toContain('FREE_TEXT_MARKER');
+    });
+
+    it('falls back to interactive mode when both inventory inputs are empty', () => {
+      const allText = vdrAuditPrompt
+        .build({ vdrFolders: undefined, vdrInventory: undefined })
+        .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
+        .join('\n');
+      expect(allText.toLowerCase()).toContain('paste');
+    });
+  });
 });
