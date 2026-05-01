@@ -14,15 +14,17 @@ import type { GstPrompt } from './types';
 import { enumFromWire, numberFromWire } from './wire-shape';
 import { authorialIntentLine, embedFyiRadarSnapshot } from './embed';
 
+// `.optional()` / `.default()` MUST be applied to the inner schema (not
+// chained on the wrapper) so the wrapper's empty-string-to-undefined
+// preprocess takes effect when Claude Desktop ships `""` for an unfilled
+// form field. See V7 trial (b) finding.
 const argsSchema = z.object({
-  category: enumFromWire(RadarCategoryEnum)
-    .optional()
-    .describe(
-      "Optional category filter. One of 'pe-ma' / 'enterprise-tech' / 'ai-automation' / 'security'. Omit for all categories."
-    ),
-  sinceHours: numberFromWire(z.number().int().positive().max(168))
-    .default(24)
-    .describe('Lookback window in hours. Defaults to 24; max 168 (one week).'),
+  category: enumFromWire(RadarCategoryEnum.optional()).describe(
+    "Optional category filter. One of 'pe-ma' / 'enterprise-tech' / 'ai-automation' / 'security'. Omit for all categories."
+  ),
+  sinceHours: numberFromWire(z.number().int().positive().max(168).default(24)).describe(
+    'Lookback window in hours. Defaults to 24; max 168 (one week).'
+  ),
 });
 
 const PROMPT_NAME = 'gst_radar_brief_today';

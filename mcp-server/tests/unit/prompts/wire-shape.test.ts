@@ -49,6 +49,17 @@ describe('arrayFromWire', () => {
     expect(wrapped.safeParse('[]').success).toBe(false);
   });
 
+  it('normalizes empty / whitespace strings to undefined when inner is optional (V7 trial b fix)', () => {
+    // An unfilled form field in Claude Desktop ships "" rather than dropping
+    // the key. The fix requires `.optional()` to be applied to the INNER
+    // schema (not chained on the wrapper) — otherwise Zod sees "" before
+    // the preprocess and the optional layer can't intercept the resulting
+    // rejection.
+    const innerOptional = arrayFromWire(z.array(z.string()).min(1).optional());
+    expect(innerOptional.safeParse('').success).toBe(true);
+    expect(innerOptional.safeParse('   ').success).toBe(true);
+  });
+
   it('preserves enum constraints inside the inner schema', () => {
     const enumWrapped = arrayFromWire(z.array(z.enum(['us', 'eu', 'apac'])).min(1));
     expect(enumWrapped.safeParse('["us", "eu"]').success).toBe(true);
@@ -77,8 +88,23 @@ describe('numberFromWire', () => {
     expect(wrapped.safeParse('not-a-number').success).toBe(false);
   });
 
-  it('rejects empty string', () => {
+  it('rejects empty string when the field is required', () => {
+    // Empty form field on a required number surfaces as a Required error
+    // (not "expected number, received string") — V7 trial (b) finding.
     expect(wrapped.safeParse('').success).toBe(false);
+  });
+
+  it('lets inner .default(N) kick in when the field is empty (V7 trial b fix)', () => {
+    // Default applied to the INNER schema so when the wrapper preprocess
+    // returns undefined for "", the inner default fires. Compare with
+    // chaining .default(N) on the wrapper (which doesn't work — Zod's
+    // .default check is for the OUTER input, not the preprocess result).
+    const withInnerDefault = numberFromWire(z.number().int().positive().max(168).default(24));
+    expect(withInnerDefault.safeParse('').success).toBe(true);
+    expect(withInnerDefault.parse('')).toBe(24);
+    expect(withInnerDefault.parse('   ')).toBe(24);
+    expect(withInnerDefault.parse(undefined)).toBe(24);
+    expect(withInnerDefault.parse('48')).toBe(48); // explicit value still works
   });
 
   it('preserves inner constraints (positive, integer)', () => {
@@ -135,5 +161,19 @@ describe('enumFromWire', () => {
     expect(opt.safeParse(undefined).success).toBe(true);
     expect(opt.safeParse('A').success).toBe(true);
     expect(opt.safeParse('c').success).toBe(false);
+  });
+
+  it('normalizes empty / whitespace string to undefined when inner is optional (V7 trial b fix)', () => {
+    // Empty form field on an optional enum should not reject — it should
+    // surface as "field not supplied" so the inner .optional() takes
+    // effect. This is the bug that caused gst_radar_brief_today to fail
+    // to attach when the user submitted both fields blank. .optional()
+    // must be applied to the INNER schema; chaining on the wrapper
+    // doesn't work because Zod's .optional check sees "" (not undefined)
+    // before the preprocess runs.
+    const innerOptional = enumFromWire(z.enum(['a', 'b']).optional());
+    expect(innerOptional.safeParse('').success).toBe(true);
+    expect(innerOptional.safeParse('   ').success).toBe(true);
+    expect(innerOptional.safeParse('A').success).toBe(true);
   });
 });

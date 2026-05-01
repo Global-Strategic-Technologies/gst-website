@@ -28,14 +28,23 @@ import { z } from 'zod';
 /**
  * Adapt a `z.array(...)` schema so it accepts either an actual array
  * (forward-compat) or a JSON-encoded array string (current Desktop wire shape).
- * Anything else is passed through unchanged so the inner schema's native
- * error message surfaces.
+ *
+ * Empty / whitespace-only strings normalize to `undefined`, so an unfilled
+ * form field in Claude Desktop (which ships `""` rather than dropping the
+ * key) is treated as "not supplied". For this to take effect on optional /
+ * defaulted fields, the caller must apply `.optional()` or `.default(...)`
+ * INSIDE the wrapper — `arrayFromWire(z.array(...).min(1).optional())`,
+ * not `arrayFromWire(z.array(...).min(1)).optional()` (the latter sees ''
+ * before the preprocess and mis-rejects). The widened generic accepts
+ * `ZodArray<T>` directly OR wrapped in `ZodOptional` / `ZodDefault`.
  */
-export function arrayFromWire<T extends z.ZodTypeAny>(inner: z.ZodArray<T>) {
+
+export function arrayFromWire<S extends z.ZodTypeAny>(inner: S) {
   return z.preprocess((v) => {
     if (Array.isArray(v)) return v; // forward-compat: typed array, pass through
     if (typeof v === 'string') {
       const trimmed = v.trim();
+      if (trimmed === '') return undefined; // empty form field → not supplied
       if (trimmed.startsWith('[')) {
         try {
           return JSON.parse(trimmed);
@@ -58,11 +67,18 @@ export function arrayFromWire<T extends z.ZodTypeAny>(inner: z.ZodArray<T>) {
 /**
  * Adapt a `z.number()` schema so it accepts either an actual number
  * (forward-compat) or a numeric string (current Desktop wire shape).
+ *
+ * Empty / whitespace-only strings normalize to `undefined`. As with
+ * `arrayFromWire`, `.optional()` / `.default(N)` must be applied to the
+ * inner schema (not chained on the wrapper) for the empty-string path to
+ * take effect — `numberFromWire(z.number().max(168).default(24))`, not
+ * `numberFromWire(z.number().max(168)).default(24)`.
  */
-export function numberFromWire<S extends z.ZodNumber>(inner: S) {
+export function numberFromWire<S extends z.ZodTypeAny>(inner: S) {
   return z.preprocess((v) => {
     if (typeof v === 'number') return v; // forward-compat: typed number
-    if (typeof v === 'string' && v.trim() !== '') {
+    if (typeof v === 'string') {
+      if (v.trim() === '') return undefined; // empty form field → not supplied
       const n = Number(v);
       if (!Number.isNaN(n)) return n;
     }
@@ -87,19 +103,35 @@ export function numberFromWire<S extends z.ZodNumber>(inner: S) {
  * remains protected while the agent-facing surface is ergonomic.
  */
 // `any` is the right generic constraint here — we accept any ZodEnum
-// regardless of its inner literal-tuple type; the cast on `inner.options`
-// below recovers the actual string array. Using a stricter constraint
-// (`[string, ...string[]]`, `readonly [string, ...string[]]`) doesn't
-// admit Zod 4's literal-tuple narrowing for callers that build enums
-// via `z.enum(CONST as unknown as [Lit, ...Lit[]])` (e.g.
-// RadarCategoryEnum). The function's runtime contract is enforced by
-// the cast and the typeof check, not the call-site generic.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function enumFromWire<T extends z.ZodEnum<any>>(inner: T) {
-  const options = inner.options as readonly string[];
+// (or one wrapped in ZodOptional / ZodDefault for V7-trial-(b) empty-
+// string handling). The runtime walks the wrapper chain to find the
+// underlying ZodEnum so `.options` can be enumerated. Stricter
+// compile-time constraints fight Zod 4's literal-tuple narrowing
+// for callers that build enums via
+// `z.enum(CONST as unknown as [Lit, ...Lit[]])` (e.g. RadarCategoryEnum).
+
+function unwrapToEnumOptions(schema: z.ZodTypeAny): readonly string[] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let s: any = schema;
+  for (let i = 0; i < 5; i++) {
+    if (Array.isArray(s?.options)) return s.options as readonly string[];
+    // ZodOptional / ZodDefault — Zod 4 stores the wrapped schema under
+    // `_def.innerType` (legacy) or `def.innerType` (Zod 4 classic).
+    const inner = s?._def?.innerType ?? s?.def?.innerType;
+    if (!inner) break;
+    s = inner;
+  }
+  throw new Error(
+    'enumFromWire: inner schema is not a ZodEnum (optionally wrapped in ZodOptional / ZodDefault)'
+  );
+}
+
+export function enumFromWire<T extends z.ZodTypeAny>(inner: T) {
+  const options = unwrapToEnumOptions(inner);
   const canonicalByLower = new Map<string, string>(options.map((v) => [v.toLowerCase(), v]));
   return z.preprocess((v) => {
     if (typeof v !== 'string') return v; // forward-compat / non-string fall-through
+    if (v.trim() === '') return undefined; // empty form field → not supplied (V7 trial (b) fix)
     return canonicalByLower.get(v.toLowerCase()) ?? v;
   }, inner);
 }
