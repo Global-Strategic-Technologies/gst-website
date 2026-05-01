@@ -14,6 +14,7 @@
 import { z } from 'zod';
 import { EngagementCategorySchema } from '../schemas';
 import type { GstPrompt } from './types';
+import { enumFromWire } from './wire-shape';
 import { authorialIntentLine } from './embed';
 
 const argsSchema = z.object({
@@ -22,7 +23,7 @@ const argsSchema = z.object({
     .min(10)
     .describe('Free-text description of the target — industry, theme, deal-shape signal.'),
   theme: z.string().optional(),
-  engagementCategory: EngagementCategorySchema.optional(),
+  engagementCategory: enumFromWire(EngagementCategorySchema).optional(),
 });
 
 const PROMPT_NAME = 'gst_comparable_engagements_memo';

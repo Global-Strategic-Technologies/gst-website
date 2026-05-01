@@ -61,6 +61,15 @@ describe('gst_target_quick_look', () => {
     if (r.success) expect(r.data.arr).toBe(VALID_ARGS.arr);
   });
 
+  it('normalizes case variants on the stage enum (case-tolerance contract)', () => {
+    const r = targetQuickLookPrompt.argsSchema.safeParse({
+      ...VALID_ARGS,
+      stage: 'scaling growth', // canonical: 'Scaling Growth'
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.stage).toBe('Scaling Growth');
+  });
+
   it("instructs the model on the 'not sure' (-1) ICG fallback", () => {
     const parsed = targetQuickLookPrompt.argsSchema.parse(VALID_ARGS);
     const allText = targetQuickLookPrompt

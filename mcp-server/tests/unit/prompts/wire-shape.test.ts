@@ -13,7 +13,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { arrayFromWire, numberFromWire } from '../../../src/prompts/wire-shape';
+import { arrayFromWire, enumFromWire, numberFromWire } from '../../../src/prompts/wire-shape';
 
 describe('arrayFromWire', () => {
   const inner = z.array(z.string()).min(1);
@@ -86,5 +86,54 @@ describe('numberFromWire', () => {
     expect(wrapped.safeParse('-5').success).toBe(false);
     expect(wrapped.safeParse(3.14).success).toBe(false);
     expect(wrapped.safeParse('3.14').success).toBe(false);
+  });
+});
+
+describe('enumFromWire', () => {
+  const inner = z.enum(['Buy-Side', 'Sell-Side']);
+  const wrapped = enumFromWire(inner);
+
+  it('passes through the canonical value unchanged (forward-compat)', () => {
+    const r = wrapped.safeParse('Buy-Side');
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data).toBe('Buy-Side');
+  });
+
+  it('normalizes case variants to the canonical value', () => {
+    for (const variant of ['buy-side', 'BUY-SIDE', 'Buy-side', 'bUy-SiDe']) {
+      const r = wrapped.safeParse(variant);
+      expect(r.success, `variant=${variant} should normalize to "Buy-Side"`).toBe(true);
+      if (r.success) expect(r.data).toBe('Buy-Side');
+    }
+  });
+
+  it('still rejects values that are not case variants of any option', () => {
+    const r = wrapped.safeParse('Maybe-Side');
+    expect(r.success).toBe(false);
+    // Native Zod error mentions the valid options — diagnostic stays helpful.
+    if (!r.success) {
+      const msg = r.error.issues[0].message;
+      expect(msg.toLowerCase()).toMatch(/buy-side|sell-side|invalid/);
+    }
+  });
+
+  it('passes through non-string values so inner Zod surfaces the right error', () => {
+    expect(wrapped.safeParse(42).success).toBe(false);
+    expect(wrapped.safeParse(null).success).toBe(false);
+    expect(wrapped.safeParse(undefined).success).toBe(false);
+  });
+
+  it('composes with z.array — every array element becomes case-tolerant', () => {
+    const arr = z.array(enumFromWire(z.enum(['us', 'eu', 'apac'])));
+    const r = arr.safeParse(['US', 'Eu', 'APAC']);
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data).toEqual(['us', 'eu', 'apac']);
+  });
+
+  it('composes with .optional() — undefined still skips validation', () => {
+    const opt = enumFromWire(z.enum(['a', 'b'])).optional();
+    expect(opt.safeParse(undefined).success).toBe(true);
+    expect(opt.safeParse('A').success).toBe(true);
+    expect(opt.safeParse('c').success).toBe(false);
   });
 });

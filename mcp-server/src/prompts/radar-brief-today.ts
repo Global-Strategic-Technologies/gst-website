@@ -11,13 +11,15 @@
 import { z } from 'zod';
 import { RadarCategoryEnum } from '../schemas';
 import type { GstPrompt } from './types';
-import { numberFromWire } from './wire-shape';
+import { enumFromWire, numberFromWire } from './wire-shape';
 import { authorialIntentLine, embedFyiRadarSnapshot } from './embed';
 
 const argsSchema = z.object({
-  category: RadarCategoryEnum.optional().describe(
-    "Optional category filter. One of 'pe-ma' / 'enterprise-tech' / 'ai-automation' / 'security'. Omit for all categories."
-  ),
+  category: enumFromWire(RadarCategoryEnum)
+    .optional()
+    .describe(
+      "Optional category filter. One of 'pe-ma' / 'enterprise-tech' / 'ai-automation' / 'security'. Omit for all categories."
+    ),
   sinceHours: numberFromWire(z.number().int().positive().max(168))
     .default(24)
     .describe('Lookback window in hours. Defaults to 24; max 168 (one week).'),

@@ -12,18 +12,18 @@
  */
 
 import { z } from 'zod';
-import { UserInputsSchema } from '../schemas';
 import type { GstPrompt } from './types';
-import { arrayFromWire } from './wire-shape';
+import { userInputsShapeFromWire } from './diligence-shape';
 import { authorialIntentLine, embedLibraryArticle } from './embed';
 
 // targetName comes first so it surfaces as the first form field in clients
 // (Claude Desktop renders inputs in argsSchema property order). The two
 // optional pre-generated artefacts stay last where they belong on a form.
+// The 13 UserInputs enums and the geographies array all arrive case-
+// tolerantly via userInputsShapeFromWire — see the helper for rationale.
 const argsSchema = z.object({
   targetName: z.string().min(1),
-  ...UserInputsSchema.shape,
-  geographies: arrayFromWire(UserInputsSchema.shape.geographies),
+  ...userInputsShapeFromWire(),
   agendaJson: z
     .string()
     .optional()

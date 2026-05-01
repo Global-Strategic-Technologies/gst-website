@@ -27,6 +27,16 @@ describe('gst_diligence_handoff_memo', () => {
     expect(Object.keys(diligenceHandoffMemoPrompt.argsSchema.shape)[0]).toBe('targetName');
   });
 
+  it('normalizes UserInputs enum case variants (case-tolerance contract)', () => {
+    const r = diligenceHandoffMemoPrompt.argsSchema.safeParse({
+      ...VALID_ARGS,
+      transactionType: 'FULL-ACQUISITION', // canonical: 'full-acquisition'
+      headcount: '51-200', // already canonical, just to cover the spread path
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.transactionType).toBe('full-acquisition');
+  });
+
   it('argsSchema parses a fully-populated payload', () => {
     expect(diligenceHandoffMemoPrompt.argsSchema.safeParse(VALID_ARGS).success).toBe(true);
   });
@@ -66,6 +76,15 @@ describe('gst_diligence_handoff_memo', () => {
     const r = diligenceHandoffMemoPrompt.argsSchema.safeParse({
       ...VALID_ARGS,
       geographies: '["us"]',
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.geographies).toEqual(['us']);
+  });
+
+  it('normalizes geographies case variants (US -> us)', () => {
+    const r = diligenceHandoffMemoPrompt.argsSchema.safeParse({
+      ...VALID_ARGS,
+      geographies: ['US'],
     });
     expect(r.success).toBe(true);
     if (r.success) expect(r.data.geographies).toEqual(['us']);

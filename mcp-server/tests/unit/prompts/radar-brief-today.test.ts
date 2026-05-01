@@ -26,6 +26,12 @@ describe('gst_radar_brief_today', () => {
     ).toBe(false);
   });
 
+  it('normalizes category case variants (Enterprise-Tech -> enterprise-tech)', () => {
+    const r = radarBriefTodayPrompt.argsSchema.safeParse({ category: 'Enterprise-Tech' });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.category).toBe('enterprise-tech');
+  });
+
   it('argsSchema clamps sinceHours to the documented max (168)', () => {
     expect(radarBriefTodayPrompt.argsSchema.safeParse({ sinceHours: 200 }).success).toBe(false);
     expect(radarBriefTodayPrompt.argsSchema.safeParse({ sinceHours: 168 }).success).toBe(true);

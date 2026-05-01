@@ -20,14 +20,14 @@
 import { z } from 'zod';
 import { GrowthStageSchema } from '../schemas';
 import type { GstPrompt } from './types';
-import { numberFromWire } from './wire-shape';
+import { enumFromWire, numberFromWire } from './wire-shape';
 import { authorialIntentLine } from './embed';
 
 const argsSchema = z.object({
   targetName: z.string().min(1),
   productType: z.string().min(2),
   arr: numberFromWire(z.number().positive()),
-  stage: GrowthStageSchema,
+  stage: enumFromWire(GrowthStageSchema),
   hqJurisdiction: z.string().min(2),
 });
 

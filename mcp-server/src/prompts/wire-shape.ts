@@ -69,3 +69,37 @@ export function numberFromWire<S extends z.ZodNumber>(inner: S) {
     return v;
   }, inner);
 }
+
+/**
+ * Adapt a `z.enum(...)` schema so it accepts any case-variant of an enum
+ * value. The preprocessor lower-cases the incoming value and looks it up
+ * against a case-folded map of the enum's options; on hit, the canonical
+ * (correctly-cased) value is forwarded to Zod. Misses pass through
+ * unchanged so Zod's native error message surfaces — the user still gets
+ * the helpful "Invalid enum value, expected …" diagnostic.
+ *
+ * Why preprocess at the MCP boundary instead of relaxing source-of-truth
+ * schemas: data files (e.g. `src/data/ma-portfolio/projects.json`,
+ * `src/data/diligence-machine/wizard-config.ts`) MUST stay strictly typed
+ * — a typo in those files is a real bug we want Zod to catch. Wire input
+ * from agents and form-fillers is the forgiving-by-default direction; this
+ * adapter lives in MCP-server land so the canonicality of the data
+ * remains protected while the agent-facing surface is ergonomic.
+ */
+// `any` is the right generic constraint here — we accept any ZodEnum
+// regardless of its inner literal-tuple type; the cast on `inner.options`
+// below recovers the actual string array. Using a stricter constraint
+// (`[string, ...string[]]`, `readonly [string, ...string[]]`) doesn't
+// admit Zod 4's literal-tuple narrowing for callers that build enums
+// via `z.enum(CONST as unknown as [Lit, ...Lit[]])` (e.g.
+// RadarCategoryEnum). The function's runtime contract is enforced by
+// the cast and the typeof check, not the call-site generic.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function enumFromWire<T extends z.ZodEnum<any>>(inner: T) {
+  const options = inner.options as readonly string[];
+  const canonicalByLower = new Map<string, string>(options.map((v) => [v.toLowerCase(), v]));
+  return z.preprocess((v) => {
+    if (typeof v !== 'string') return v; // forward-compat / non-string fall-through
+    return canonicalByLower.get(v.toLowerCase()) ?? v;
+  }, inner);
+}

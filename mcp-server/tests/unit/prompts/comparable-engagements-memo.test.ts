@@ -46,4 +46,15 @@ describe('gst_comparable_engagements_memo', () => {
       expect(allText).toContain(ref);
     }
   });
+
+  it('normalizes engagementCategory case variants (V3 finding — "Buy-side" → "Buy-Side")', () => {
+    for (const variant of ['Buy-side', 'buy-side', 'BUY-SIDE']) {
+      const r = comparableEngagementsMemoPrompt.argsSchema.safeParse({
+        ...VALID_ARGS,
+        engagementCategory: variant,
+      });
+      expect(r.success, `variant=${variant} should normalize to "Buy-Side"`).toBe(true);
+      if (r.success) expect(r.data.engagementCategory).toBe('Buy-Side');
+    }
+  });
 });

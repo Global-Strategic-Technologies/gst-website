@@ -64,4 +64,22 @@ describe('gst_diligence_kickoff — wire-shape', () => {
         .success
     ).toBe(false);
   });
+
+  it('normalizes case variants on every UserInputs enum (case-tolerance contract)', () => {
+    // Sample two enums + the geographies array's inner enum. Per-field
+    // exhaustive coverage lives in wire-shape.test.ts; this asserts the
+    // contract is wired through to the prompt's argsSchema.
+    const r = diligenceKickoffPrompt.argsSchema.safeParse({
+      ...BASE_TYPED_ARGS,
+      transactionType: 'MAJORITY-STAKE', // canonical: 'majority-stake'
+      productType: 'B2B-SaaS', // canonical: 'b2b-saas'
+      geographies: ['US', 'EU'], // canonical: 'us', 'eu'
+    });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.transactionType).toBe('majority-stake');
+      expect(r.data.productType).toBe('b2b-saas');
+      expect(r.data.geographies).toEqual(['us', 'eu']);
+    }
+  });
 });
