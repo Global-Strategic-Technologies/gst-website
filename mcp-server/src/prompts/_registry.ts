@@ -17,10 +17,20 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import type { GstPrompt } from './types';
 import { diligenceKickoffPrompt } from './diligence-kickoff';
+import { targetQuickLookPrompt } from './target-quick-look';
+import { comparableEngagementsMemoPrompt } from './comparable-engagements-memo';
+import { regulatoryExposureBriefPrompt } from './regulatory-exposure-brief';
+import { diligenceHandoffMemoPrompt } from './diligence-handoff-memo';
 
 /** Frozen list of every prompt the server registers. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const ALL_PROMPTS: ReadonlyArray<GstPrompt<any>> = [diligenceKickoffPrompt];
+export const ALL_PROMPTS: ReadonlyArray<GstPrompt<any>> = [
+  diligenceKickoffPrompt,
+  targetQuickLookPrompt,
+  comparableEngagementsMemoPrompt,
+  regulatoryExposureBriefPrompt,
+  diligenceHandoffMemoPrompt,
+];
 
 const NAME_PATTERN = /^gst_[a-z][a-z_]*$/;
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(-[a-z0-9.-]+)?$/;
