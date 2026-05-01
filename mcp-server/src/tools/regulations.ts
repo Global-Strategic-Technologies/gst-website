@@ -74,6 +74,85 @@ export function buildRegulatoryMapDeeplink(filters: {
   return qs ? `${HUB_BASE}${REGULATORY_MAP_PATH}?${qs}` : `${HUB_BASE}${REGULATORY_MAP_PATH}`;
 }
 
+/**
+ * Convert an MCP-side jurisdiction code (lowercase alpha-2 like 'us', or
+ * lowercase subnational like 'us-ca') to the region key the page expects
+ * in `?region=`. The page's regionMap uses ISO 3166-1 alpha-3 for countries
+ * (`USA`, `GBR`, `CAN`, ...) and uppercase ISO 3166-2 for US states / CA
+ * provinces (`US-CA`, `CA-QC`, ...). Aggregate jurisdictions (`eu`,
+ * `global`) don't correspond to a single SVG path — they return null and
+ * the caller drops the `region` param, leaving only the category filter.
+ *
+ * Without this normalization the page's URL-restoration silently fails
+ * (selector `path[data-state-code="us-ca"]` doesn't match `US-CA`), which
+ * is the V2 root cause behind "regulatory map links don't expand
+ * regulations next to the map."
+ */
+export function jurisdictionToRegion(jurisdiction: string): string | null {
+  if (!jurisdiction) return null;
+  if (AGGREGATE_JURISDICTIONS.has(jurisdiction)) return null;
+  if (SUBNATIONAL_RE.test(jurisdiction)) return jurisdiction.toUpperCase();
+  if (COUNTRY_ALPHA2_RE.test(jurisdiction)) {
+    return COUNTRY_ALPHA2_TO_ALPHA3[jurisdiction] ?? null;
+  }
+  return null;
+}
+
+const AGGREGATE_JURISDICTIONS: ReadonlySet<string> = new Set(['eu', 'global']);
+const SUBNATIONAL_RE = /^[a-z]{2}-[a-z]{2}$/;
+const COUNTRY_ALPHA2_RE = /^[a-z]{2}$/;
+
+// ISO 3166-1 alpha-2 → alpha-3 for every country code that appears as a
+// regulation jurisdiction in `src/data/regulatory-map/`. Kept inline (no
+// external lib) because the set is small and stable; if a new regulation
+// adds a previously-unseen country, this map gets one new entry plus a
+// test row in `regulatory-map-deeplink.test.ts`.
+const COUNTRY_ALPHA2_TO_ALPHA3: Readonly<Record<string, string>> = {
+  ae: 'ARE',
+  ar: 'ARG',
+  au: 'AUS',
+  bd: 'BGD',
+  bh: 'BHR',
+  br: 'BRA',
+  ca: 'CAN',
+  ch: 'CHE',
+  cl: 'CHL',
+  cn: 'CHN',
+  co: 'COL',
+  ec: 'ECU',
+  eg: 'EGY',
+  gb: 'GBR',
+  gh: 'GHA',
+  id: 'IDN',
+  il: 'ISR',
+  in: 'IND',
+  jp: 'JPN',
+  ke: 'KEN',
+  kr: 'KOR',
+  kz: 'KAZ',
+  mx: 'MEX',
+  my: 'MYS',
+  ng: 'NGA',
+  nz: 'NZL',
+  pe: 'PER',
+  ph: 'PHL',
+  pk: 'PAK',
+  qa: 'QAT',
+  rs: 'SRB',
+  rw: 'RWA',
+  sa: 'SAU',
+  sg: 'SGP',
+  th: 'THA',
+  tr: 'TUR',
+  tz: 'TZA',
+  ug: 'UGA',
+  us: 'USA',
+  uy: 'URY',
+  uz: 'UZB',
+  vn: 'VNM',
+  za: 'ZAF',
+};
+
 function toSearchResult(entry: RegulationEntry): SearchResult {
   return {
     uri: entry.uri,
@@ -84,7 +163,7 @@ function toSearchResult(entry: RegulationEntry): SearchResult {
     effectiveDate: entry.data.effectiveDate,
     summary: entry.data.summary,
     deeplink: buildRegulatoryMapDeeplink({
-      region: entry.jurisdiction,
+      region: jurisdictionToRegion(entry.jurisdiction),
       filter: entry.data.category,
     }),
   };
@@ -108,7 +187,7 @@ export function registerRegulationsTool(server: McpServer): void {
       const filterDeeplink =
         input.jurisdiction || input.category
           ? buildRegulatoryMapDeeplink({
-              region: input.jurisdiction ?? null,
+              region: input.jurisdiction ? jurisdictionToRegion(input.jurisdiction) : null,
               filter: input.category ?? null,
             })
           : undefined;
