@@ -2,13 +2,18 @@
  * Prompt: gst_regulatory_exposure_brief
  *
  * Compiles applicable regulatory frameworks for a target's jurisdictional
- * and data footprint. Surfaces per-framework summaries (read directly from
- * the Resource bodies) and the filtered Regulatory Map deep-link.
+ * and data footprint. Surfaces per-framework summaries grounded in the
+ * `search_regulations` result fields (name, summary, scope,
+ * keyRequirements, penalties) plus the filtered Regulatory Map deep-link.
  *
- * Body design contract: search regulations once per jurisdiction × data-
- * category combination; for each match, read the full Resource body via
- * `resources/read gst://regulations/...` to ground the summary in the
- * canonical framework text.
+ * Body design contract: search regulations once per jurisdiction ×
+ * data-category combination; for each match, build the per-framework
+ * summary from the search-result fields directly. Resources are user-
+ * pinned (not model-fetchable from prompt expansion in Claude Desktop —
+ * V1 finding 1) so the prompt does not call `resources/read`. The
+ * enriched search-result schema (BL-031.75 V4 follow-up) gives the
+ * model enough source data to keep prose grounded without falling back
+ * to training.
  */
 
 import { z } from 'zod';
@@ -60,9 +65,9 @@ export const regulatoryExposureBriefPrompt: GstPrompt<typeof argsSchema> = {
             '',
             'Step 3. Frame the output as a structured brief with the following sections:',
             '  (1) Header — target product type + jurisdictions + categories assessed.',
-            '  (2) Per-jurisdiction breakdown — for each jurisdiction, list the applicable frameworks with: name, effective date, enforcement authority (from the resource body), and a 1-paragraph summary of the relevant obligations FOR A ' +
+            '  (2) Per-jurisdiction breakdown — for each jurisdiction, list the applicable frameworks with: name, effective date (from `effectiveDate`), and a 1-paragraph summary of the relevant obligations FOR A ' +
               args.productType.toUpperCase() +
-              ' BUSINESS (not a generic summary — tailor to the product type).',
+              ' BUSINESS (built from the search-result `scope` + `keyRequirements` fields where present; tailored to the product type, not a generic restatement of the framework).',
             '  (3) Cross-jurisdictional themes — surface 2-3 patterns that span the supplied jurisdictions (e.g., "all three jurisdictions impose breach-notification windows under 72 hours").',
             "  (4) Open in Hub — embed the per-result `deeplink` field for each framework discussed (links into the Regulatory Map filtered to that framework's region+category) and the aggregate `filterDeeplink` from the search response when present.",
             '',
