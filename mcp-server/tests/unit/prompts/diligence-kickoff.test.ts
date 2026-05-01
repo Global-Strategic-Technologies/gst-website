@@ -33,6 +33,10 @@ describe('gst_diligence_kickoff', () => {
     expect(diligenceKickoffPrompt.name).toMatch(/^gst_/);
   });
 
+  it('exposes targetName as the first argsSchema field (form-order contract)', () => {
+    expect(Object.keys(diligenceKickoffPrompt.argsSchema.shape)[0]).toBe('targetName');
+  });
+
   it('argsSchema parses a fully-populated payload', () => {
     const result = diligenceKickoffPrompt.argsSchema.safeParse(VALID_ARGS);
     expect(result.success).toBe(true);

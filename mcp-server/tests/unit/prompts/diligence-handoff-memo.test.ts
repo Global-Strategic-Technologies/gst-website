@@ -23,6 +23,10 @@ describe('gst_diligence_handoff_memo', () => {
     expect(diligenceHandoffMemoPrompt.name).toMatch(/^gst_/);
   });
 
+  it('exposes targetName as the first argsSchema field (form-order contract)', () => {
+    expect(Object.keys(diligenceHandoffMemoPrompt.argsSchema.shape)[0]).toBe('targetName');
+  });
+
   it('argsSchema parses a fully-populated payload', () => {
     expect(diligenceHandoffMemoPrompt.argsSchema.safeParse(VALID_ARGS).success).toBe(true);
   });

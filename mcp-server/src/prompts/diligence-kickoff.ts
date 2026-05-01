@@ -13,8 +13,11 @@ import type { GstPrompt } from './types';
 import { arrayFromWire } from './wire-shape';
 import { authorialIntentLine, embedLibraryArticle } from './embed';
 
-const argsSchema = UserInputsSchema.extend({
+// targetName comes first so it surfaces as the first form field in clients
+// (Claude Desktop renders inputs in argsSchema property order).
+const argsSchema = z.object({
   targetName: z.string().min(1),
+  ...UserInputsSchema.shape,
   geographies: arrayFromWire(UserInputsSchema.shape.geographies),
 });
 
