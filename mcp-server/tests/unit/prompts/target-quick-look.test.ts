@@ -75,7 +75,7 @@ describe('gst_target_quick_look', () => {
   it('enumerates every ICG question ID by domain (regression guard for V2 finding #3)', () => {
     // The model must use schema-canonical compound IDs (q<domain>_<index>)
     // — the engine silently ignores unknown keys, so flat IDs (q1, q2, ...)
-    // produce a misleading no-answer baseline. Mirrors the 22 IDs declared
+    // produce a misleading no-answer baseline. Mirrors the 20 IDs declared
     // in src/data/infrastructure-cost-governance/domains.ts.
     const parsed = targetQuickLookPrompt.argsSchema.parse(VALID_ARGS);
     const allText = targetQuickLookPrompt
