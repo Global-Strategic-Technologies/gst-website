@@ -379,7 +379,7 @@ The local MCP server MUST NOT make Inoreader API calls. The 200 req/day budget i
 
 ### BL-031.75: MCP Server — Consultant Prompt Library
 
-**Source**: BL-031.75 — extends Phase 1 surface with Prompts | **Architecture & plan**: [MCP_SERVER_PROMPTS_BL-031_75.md](MCP_SERVER_PROMPTS_BL-031_75.md) | **Effort**: 2-3 days engineering + senior-consultant review time | **Status**: Open | **Depends on**: BL-031, BL-031.5
+**Source**: BL-031.75 — extends Phase 1 surface with Prompts | **Architecture & plan**: [MCP_SERVER_PROMPTS_BL-031_75.md](MCP_SERVER_PROMPTS_BL-031_75.md) | **Effort**: 2-3 days engineering + senior-consultant review time | **Status**: Code-complete (April 30, 2026); closure pending V1–V8 verification + senior-consultant sign-off | **Depends on**: BL-031, BL-031.5
 
 **As a** GST analyst (or onboarding new hire), **I want** GST's repeatable consultant workflows packaged as named slash-command prompts in Claude Desktop **so that** I can invoke "/gst_diligence_kickoff" or "/gst_target_quick_look" and get a templated, GST-house-style brief that orchestrates the right Tools and Resources without me needing to remember the recipe.
 
@@ -421,31 +421,31 @@ The local MCP server MUST NOT make Inoreader API calls. The 200 req/day budget i
 
 **Prompts primitive (new for this initiative)**
 
-- [ ] MCP server registers `prompts/list` and `prompts/get` handlers via the SDK's `registerPrompt` API
-- [ ] All prompts use the `gst_` name prefix (avoids slash-menu collisions with other installed MCP servers); enforced by a regex check in `mcp-server/src/prompts/_registry.ts`
-- [ ] Per-prompt module exports a uniform shape: `{ name, description, version, lastReviewedAt, argsSchema, build }` — see [MCP_SERVER_PROMPTS_BL-031_75.md § Per-prompt module shape](MCP_SERVER_PROMPTS_BL-031_75.md#per-prompt-module-shape)
-- [ ] Argument schemas re-use (via Zod composition) the same source-of-truth schemas as the Tools the prompt orchestrates — CI test asserts no drift
+- [x] MCP server registers `prompts/list` and `prompts/get` handlers via the SDK's `registerPrompt` API
+- [x] All prompts use the `gst_` name prefix (avoids slash-menu collisions with other installed MCP servers); enforced by a regex check in `mcp-server/src/prompts/_registry.ts`
+- [x] Per-prompt module exports a uniform shape: `{ name, description, version, lastReviewedAt, argsSchema, build }` (plus `orchestrates` — added during implementation as the drift backstop) — see [MCP_SERVER_PROMPTS_BL-031_75.md § Per-prompt module shape](MCP_SERVER_PROMPTS_BL-031_75.md#per-prompt-module-shape)
+- [x] Argument schemas re-use (via Zod composition) the same source-of-truth schemas as the Tools the prompt orchestrates — CI test asserts no drift
 
 **Prompt library (8 prompts)**
 
-- [ ] `gst_diligence_kickoff` — wraps `generate_diligence_agenda` Tool + references VDR Library Resource
-- [ ] `gst_target_quick_look` — orchestrates ICG + TechPar + Tech Debt + regulatory search Tools
-- [ ] `gst_comparable_engagements_memo` — wraps `search_portfolio` + `list_portfolio_facets` Tools
-- [ ] `gst_regulatory_exposure_brief` — wraps `search_regulations` Tool + reads regulation Resources by URI
-- [ ] `gst_vdr_audit` — references `gst://library/vdr-structure` Resource (interactive: argument-less mode supported)
-- [ ] `gst_architecture_layer_review` — references `gst://library/business-architectures` Resource
-- [ ] `gst_radar_brief_today` — reads `gst://radar/fyi/latest` Resource (filter by category if supplied)
-- [ ] `gst_diligence_handoff_memo` — orchestrates diligence + portfolio Tools + VDR Library Resource
+- [x] `gst_diligence_kickoff` — wraps `generate_diligence_agenda` Tool + references VDR Library Resource
+- [x] `gst_target_quick_look` — orchestrates ICG + TechPar + Tech Debt + regulatory search Tools
+- [x] `gst_comparable_engagements_memo` — wraps `search_portfolio` + `list_portfolio_facets` Tools
+- [x] `gst_regulatory_exposure_brief` — wraps `search_regulations` Tool + reads regulation Resources by URI
+- [x] `gst_vdr_audit` — references `gst://library/vdr-structure` Resource (interactive: argument-less mode supported)
+- [x] `gst_architecture_layer_review` — references `gst://library/business-architectures` Resource
+- [x] `gst_radar_brief_today` — reads `gst://radar/fyi/latest` Resource (filter by category if supplied)
+- [x] `gst_diligence_handoff_memo` — orchestrates diligence + portfolio Tools + VDR Library Resource
 
 **Verification & docs**
 
-- [ ] [MCP_SERVER_PROMPTS_BL-031_75.md](MCP_SERVER_PROMPTS_BL-031_75.md) updated with any deviations made during implementation
-- [ ] `mcp-server/README.md` extended with a "Prompts: GST consultant workflows" section listing every prompt, its arguments, an example invocation, and a sample output
-- [ ] Vitest test per prompt asserting: (a) name has `gst_` prefix, (b) `argsSchema` parses a representative payload, (c) `build()` returns at least one message, (d) the message body references the expected Tool/Resource names
-- [ ] Prompt-registry invariant tests: every prompt has `version`, `lastReviewedAt` ≤ 12 months old, `orchestrates` field listing each Tool/Resource it invokes — CI fails if any registered Tool/Resource is missing
-- [ ] Golden-output snapshots per prompt (at least one representative invocation per prompt) — committed to `mcp-server/tests/examples/*.golden.md`; regression-tested on each Claude model upgrade
-- [ ] **Senior-consultant review gate**: each prompt's output on a representative input has been reviewed and signed off by a senior team member as "this reads as if I wrote it." This is a **blocking acceptance criterion**, not a nice-to-have
-- [ ] `mcp-server/src/docs/prompts/README.md` authored — conceptual reference for the registered-prompt pattern (audience: future contributors authoring or modifying a prompt). Complementary to `mcp-server/README.md`'s user-facing inventory and to the BL-031.75 planning artifact
+- [x] [MCP_SERVER_PROMPTS_BL-031_75.md](MCP_SERVER_PROMPTS_BL-031_75.md) updated with any deviations made during implementation
+- [x] `mcp-server/README.md` extended with a "Prompts: GST consultant workflows" section listing every prompt, its arguments, an example invocation, and a sample output (last-verified stanza placeholder; populated during V1–V8)
+- [x] Vitest test per prompt asserting: (a) name has `gst_` prefix, (b) `argsSchema` parses a representative payload, (c) `build()` returns at least one message, (d) the message body references the expected Tool/Resource names
+- [x] Prompt-registry invariant tests: every prompt has `version`, `lastReviewedAt` ≤ 12 months old, `orchestrates` field listing each Tool/Resource it invokes — CI fails if any registered Tool/Resource is missing
+- [ ] Golden-output snapshots per prompt (at least one representative invocation per prompt) — committed to `mcp-server/tests/examples/*.golden.md`; regression-tested on each Claude model upgrade. **Status**: 8 frontmatter-validated placeholders shipped in Commit 3; recorded V1–V8 outputs land here during senior-consultant review.
+- [ ] **Senior-consultant review gate**: each prompt's output on a representative input has been reviewed and signed off by a senior team member as "this reads as if I wrote it." This is a **blocking acceptance criterion**, not a nice-to-have. **Status**: pending V1–V8 verification per the architecture doc's punch-list.
+- [x] `mcp-server/src/docs/prompts/README.md` authored — conceptual reference for the registered-prompt pattern (audience: future contributors authoring or modifying a prompt). Complementary to `mcp-server/README.md`'s user-facing inventory and to the BL-031.75 planning artifact
 
 #### Technical Context
 

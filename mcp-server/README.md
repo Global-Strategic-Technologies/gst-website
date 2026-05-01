@@ -79,6 +79,43 @@ Same engines, same outputs as the website — calling via MCP eliminates the bro
 
 Per-tool input contracts live alongside their domain in [`src/docs/<tool>/CONTRACT.md`](src/docs/contracts/README.md). The contracts registry at [`src/docs/contracts/README.md`](src/docs/contracts/README.md) tracks all of them and explains the pattern.
 
+### Prompts (8): GST consultant workflows
+
+Prompts ([BL-031.75](../src/docs/development/MCP_SERVER_PROMPTS_BL-031_75.md)) package GST's repeatable consulting motions as named slash-command templates. They appear in Claude Desktop's `/` picker as `/gst_*`; the user explicitly opts into a workflow at a known starting point, the prompt expands into one or more user-facing messages, and the model executes the prompt's instructions — calling Tools and reading Resources by name. The conceptual pattern reference lives at [`src/docs/prompts/README.md`](src/docs/prompts/README.md).
+
+| Prompt                            | Args                                                                                 | Orchestrates                                                                     | Purpose                                                                                                  |
+| --------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `gst_diligence_kickoff`           | full `UserInputs` payload + `targetName`                                             | `generate_diligence_agenda` + `gst://library/vdr-structure`                      | Starter agenda for a new engagement — 4-section one-page memo (context, agenda, attention areas, VDR).   |
+| `gst_target_quick_look`           | `{ targetName, productType, arr, stage, hqJurisdiction }`                            | ICG + TechPar + Tech Debt + `search_regulations`                                 | First-look brief — combines all four reads into one digestible page with Open-in-Hub deep-links.         |
+| `gst_comparable_engagements_memo` | `{ targetDescription, theme?, engagementCategory? }`                                 | `search_portfolio` + `list_portfolio_facets`                                     | 3–5 comparable past engagements with one-paragraph framing each + cross-shortlist synthesis.             |
+| `gst_regulatory_exposure_brief`   | `{ targetJurisdictions[], dataCategories[], productType }`                           | `search_regulations` + `gst://regulations/...` Resource bodies                   | Per-jurisdiction breakdown + cross-jurisdictional themes; product-type-tailored obligation summaries.    |
+| `gst_vdr_audit`                   | `{ vdrInventory? }` (interactive when omitted)                                       | `gst://library/vdr-structure`                                                    | Mapping table + gaps + prioritized follow-up requests against the canonical 10-folder taxonomy.          |
+| `gst_architecture_layer_review`   | `{ targetSummary }`                                                                  | `gst://library/business-architectures`                                           | Per-layer analysis (Software / Infra / Data / Org / Industry) + cross-layer patterns.                    |
+| `gst_radar_brief_today`           | `{ category?, sinceHours? = 24 }`                                                    | `gst://radar/fyi/latest`                                                         | Daily / pre-meeting digest of recent annotated FYI items in the GST Take voice.                          |
+| `gst_diligence_handoff_memo`      | full `UserInputs` payload + `targetName` + optional `agendaJson` / `comparablesJson` | `generate_diligence_agenda` + `search_portfolio` + `gst://library/vdr-structure` | Single coherent handoff memo — engagement context, agenda, attention areas, comparables, VDR follow-ups. |
+
+#### Worked invocation: `/gst_target_quick_look`
+
+```
+/gst_target_quick_look {
+  "targetName": "Acme Corp",
+  "productType": "b2b-saas",
+  "arr": 25000000,
+  "stage": "Scaling Growth",
+  "hqJurisdiction": "us-ca"
+}
+```
+
+Expands into a templated user message instructing the model to (1) call `assess_infrastructure_cost_governance` with a full 20-answer payload — using `-1` ("Not sure") for any unknown — and disclose every assumption-driven `-1` in the output; (2) call `compute_techpar` with the supplied ARR + stage; (3) call `estimate_tech_debt_cost` with synthesized raw inputs from product-type + stage norms; (4) call `search_regulations` filtered to `us-ca` per relevant data category; (5) frame the four reads as one digestible page with Open-in-Hub deep-links for ICG + Tech Debt + Regulatory Map (TechPar deep-link deferred to [BL-031.95](../src/docs/development/BACKLOG.md#bl-03195-hub-tools--url-state-restoration--mcp-deep-link-surface)).
+
+#### Authoring & versioning
+
+Each prompt module under [`src/prompts/`](src/prompts/) exports a uniform shape — `name`, `description`, `version`, `lastReviewedAt`, `orchestrates`, `argsSchema`, `build`. Adding a prompt: write a new TS file, add it to `ALL_PROMPTS` in [`_registry.ts`](src/prompts/_registry.ts), copy the unit-test shape from [`tests/unit/prompts/diligence-kickoff.test.ts`](tests/unit/prompts/diligence-kickoff.test.ts), add a frontmatter-only golden file at `tests/examples/<slug>.golden.md`. The registry-invariant test asserts every entry's `orchestrates` resolves to a registered Tool name or known Resource URI scheme prefix; a Vitest test fails when any prompt's `lastReviewedAt` is more than 12 months old (forces a senior-consultant review cadence). Body changes that alter outputs bump the prompt's `version` field. Senior-consultant sign-off is the binding acceptance criterion for new prompts — golden snapshots regression-test on each Claude model upgrade.
+
+#### Last verified (BL-031.75 surface)
+
+> _V1–V8 evidence will be recorded here during senior-consultant verification (each ≤ 6 lines per prompt). The verification punch-list lives in the architecture doc at [`MCP_SERVER_PROMPTS_BL-031_75.md` § Verification punch-list](../src/docs/development/MCP_SERVER_PROMPTS_BL-031_75.md#verification-punch-list-v1v8--one-per-prompt)._
+
 ---
 
 ## How Resources work in this server

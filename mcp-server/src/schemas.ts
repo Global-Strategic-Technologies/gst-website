@@ -65,6 +65,20 @@ export {
   type RegulationFacetsInput,
 } from '../../src/schemas/regulatory-map';
 
+// ─── Radar shared enums (also used by prompts/radar-brief-today.ts) ──────
+
+import { RADAR_CATEGORIES, type RadarCategory } from './content/radar-snapshot';
+
+/** Radar feed categories — matches the four GST-prefixed Inoreader folders. */
+export const RadarCategoryEnum = z.enum(
+  RADAR_CATEGORIES as unknown as [RadarCategory, ...RadarCategory[]]
+);
+export type RadarCategoryValue = z.infer<typeof RadarCategoryEnum>;
+
+/** Radar tier — FYI (annotated) vs Wire (raw). */
+export const RadarTierEnum = z.enum(['fyi', 'wire']);
+export type RadarTierValue = z.infer<typeof RadarTierEnum>;
+
 // ─── MCP tool input schemas ──────────────────────────────────────────────
 
 /** Input for the `search_portfolio` tool. */

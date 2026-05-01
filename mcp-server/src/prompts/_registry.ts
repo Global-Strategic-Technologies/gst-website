@@ -21,6 +21,9 @@ import { targetQuickLookPrompt } from './target-quick-look';
 import { comparableEngagementsMemoPrompt } from './comparable-engagements-memo';
 import { regulatoryExposureBriefPrompt } from './regulatory-exposure-brief';
 import { diligenceHandoffMemoPrompt } from './diligence-handoff-memo';
+import { vdrAuditPrompt } from './vdr-audit';
+import { architectureLayerReviewPrompt } from './architecture-layer-review';
+import { radarBriefTodayPrompt } from './radar-brief-today';
 
 /** Frozen list of every prompt the server registers. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,6 +33,9 @@ export const ALL_PROMPTS: ReadonlyArray<GstPrompt<any>> = [
   comparableEngagementsMemoPrompt,
   regulatoryExposureBriefPrompt,
   diligenceHandoffMemoPrompt,
+  vdrAuditPrompt,
+  architectureLayerReviewPrompt,
+  radarBriefTodayPrompt,
 ];
 
 const NAME_PATTERN = /^gst_[a-z][a-z_]*$/;

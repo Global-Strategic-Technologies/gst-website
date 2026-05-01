@@ -13,17 +13,13 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import {
-  RADAR_CATEGORIES,
   readFyiSnapshot,
   readWireSnapshot,
   SNAPSHOT_MISSING_MESSAGE,
   type RadarCategory,
   type SnapshotItem,
 } from '../content/radar-snapshot';
-
-const RadarCategoryEnum = z.enum(RADAR_CATEGORIES);
-
-const RadarTierEnum = z.enum(['fyi', 'wire']);
+import { RadarCategoryEnum, RadarTierEnum } from '../schemas';
 
 const SearchRadarCacheInputSchema = z.object({
   query: z.string().optional(),

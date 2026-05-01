@@ -451,4 +451,37 @@ Each V<n> output excerpt → recorded into `mcp-server/README.md` § "Last verif
 
 ---
 
-_Last updated: 2026-04-29_
+## Deviations during implementation
+
+Recorded as-they-happened during the BL-031.75 commit sequence (2026-04-30). The plan held up at 99% — the deltas below are minor implementation refinements, not strategic re-thinks.
+
+### Pre-commit chore
+
+- **`server.ts:17` was actually line 16.** Plan said line 17; the version-string field is on line 16 (the architecture doc was off by one). Cosmetic; fixed in stride during the chore commit.
+
+### Commit 0.5
+
+- **Tech Debt encoder takes `CalcState`, MCP tool takes raw inputs.** The plan's "import `encodeState`, build URL" assumed shape compatibility; in practice the website's `encodeState(state: CalcState)` requires slider-position state, while the MCP tool accepts raw business values (`RawTechDebtInputs`). **Resolution**: authored `rawToState(raw)` in `mcp-server/src/tools/tech-debt.ts` that uses the existing `teamSizeToPos` / `salaryToPos` / `budgetToPos` / `arrToPos` inverse helpers + a `DEPLOY_OPTIONS.findIndex` lookup to build a `CalcState`, then calls `encodeState(state)`. Subject to slider-granularity quantization (BL-034 cleanup item); the round-trip parity test asserts state-level equality, not raw-input equality.
+- **Schema wrapping vs extending.** The plan said "extend `TechDebtResultSchema` with `deeplink`". In practice no `<Tool>ResultSchema` exists on the website side (only input schemas live in `src/schemas/`). **Resolution**: the wrapper structures the result inline (`const payload = { ...result, deeplink };`) without adding a new Zod schema. Functionally equivalent; less ceremony.
+
+### Commit 1
+
+- **Test-fixture enum values needed correction.** The first-cut unit test used wrong enum values (e.g. `'buyside'` instead of `'full-acquisition'`, `'saas'` instead of `'b2b-saas'`). **Resolution**: cross-referenced [`wizard-config.ts`](../../data/diligence-machine/wizard-config.ts) `*_IDS` tuples and corrected. Lesson: future per-prompt unit tests should use a known-good fixture from the engine tests as a starting point.
+
+### Commit 2
+
+- **`gst_target_quick_look` body uses `-1` (number) for "Not sure," not the string `'not sure'`.** The architecture doc § Commit 2 said "Using the schema's explicit unknown value (`'not sure'`)." In practice the ICG schema encodes "Not sure" as `-1` (the integer), per [`icg-engine.ts:91-92`](../../utils/icg-engine.ts#L91-L92): `// -1 ("Not sure") and undefined both treated as 0 for triggering`. **Resolution**: the prompt body explicitly cites `-1` as the unknown sentinel and uses `'Not sure'` (Title-case, in quotes) as the human-readable label. Behavior unchanged from spec.
+
+### Commit 3
+
+- **`RadarCategoryEnum` cast required to preserve literal types after relocation.** Moving the enum from `tools/radar-cache.ts` to `schemas.ts` caused TypeScript to widen the `z.enum(RADAR_CATEGORIES)` inference to `string` (the import lost the array's literal-tuple shape). **Resolution**: cast at the enum site — `z.enum(RADAR_CATEGORIES as unknown as [RadarCategory, ...RadarCategory[]])` — preserves the literal union. Single line; no functional change.
+- **`mcp-server/src/docs/prompts/README.md` lands ahead of the BL-034 doc-structure restructure.** The plan noted this — placing the new conceptual doc under `prompts/` pre-emptively forces the parent directory to exist; BL-034 will move the existing per-tool docs into `tools/<tool>/` to match. No conflict; clean ordering.
+- **Golden-snapshot test relaxed for placeholder content.** The architecture doc described "frontmatter validity" as the assertion. In practice the placeholder files use `recordedAt: TBD` and `model: TBD` while V1-V8 are pending — the test asserts truthy values for both keys, which `'TBD'` satisfies. Once V1-V8 are recorded, the values become real ISO dates and Claude model IDs respectively.
+
+### Verification
+
+- **Senior-consultant review gate is gated on V1–V8.** Per the plan, the AC checkbox stays unticked until the user (the senior consultant on this initiative) reviews each prompt's output. Commit 3 ships the code-complete state; closure happens on V1–V8 sign-off.
+
+---
+
+_Last updated: 2026-04-30_
