@@ -30,7 +30,13 @@ const SEARCH_DESCRIPTION = `Search the GST Regulatory Map (120 frameworks across
 
 Filters by \`jurisdiction\` (e.g. "eu", "us", "us-ca", "ca-qc"), \`category\` (one of "data-privacy", "ai-governance", "industry-compliance", "cybersecurity"), and free-text \`query\` (matches name, summary, and id). Returns up to \`limit\` matches (default 20, max 120).
 
-Each match includes the resource \`uri\` (e.g. \`gst://regulations/eu/gdpr\`) plus a summary card (id, name, jurisdiction, category, effectiveDate, summary) and a \`deeplink\` that opens the Regulatory Map filtered to that framework's region (for PDF / export / share via the website page). The aggregate response includes a \`filterDeeplink\` reflecting the supplied filters when present. Use the URI with \`resources/read\` to fetch the full framework body.`;
+Each match includes:
+- \`uri\` (e.g. \`gst://regulations/eu/gdpr\`) — canonical resource URI
+- Summary card: \`id\`, \`name\`, \`jurisdiction\`, \`category\`, \`effectiveDate\`, \`summary\`
+- Richer source-data fields (when present in the underlying framework record): \`scope\` (a one-paragraph who/where applicability statement), \`keyRequirements\` (array of authored bullet-point obligations — use these directly in prose summaries to keep claims grounded), \`penalties\` (statutory penalty band)
+- \`deeplink\` — URL to open the Regulatory Map filtered to that framework's region+category (for PDF / export / share via the website page)
+
+The aggregate response includes a \`filterDeeplink\` reflecting the supplied filters when present. Use the URI with \`resources/read\` to fetch the full framework body.`;
 
 const FACETS_DESCRIPTION = `List the distinct facet values present in the GST Regulatory Map dataset.
 
@@ -44,6 +50,15 @@ interface SearchResult {
   category: string;
   effectiveDate: string;
   summary: string;
+  // Optional richer fields lifted from the underlying regulation file when
+  // present. Exposed so prompts that build per-framework summaries (e.g.
+  // gst_regulatory_exposure_brief) can ground their prose in source data
+  // instead of falling back to the agent's training. Only the high-level
+  // `summary` is guaranteed; the rest may be undefined for older or
+  // smaller-scope frameworks.
+  scope?: string;
+  keyRequirements?: readonly string[];
+  penalties?: string;
   deeplink: string;
 }
 
@@ -153,18 +168,22 @@ const COUNTRY_ALPHA2_TO_ALPHA3: Readonly<Record<string, string>> = {
   za: 'ZAF',
 };
 
-function toSearchResult(entry: RegulationEntry): SearchResult {
+export function toSearchResult(entry: RegulationEntry): SearchResult {
+  const d = entry.data;
   return {
     uri: entry.uri,
-    id: entry.data.id,
-    name: entry.data.name,
+    id: d.id,
+    name: d.name,
     jurisdiction: entry.jurisdiction,
-    category: entry.data.category,
-    effectiveDate: entry.data.effectiveDate,
-    summary: entry.data.summary,
+    category: d.category,
+    effectiveDate: d.effectiveDate,
+    summary: d.summary,
+    ...(d.scope !== undefined ? { scope: d.scope } : {}),
+    ...(d.keyRequirements !== undefined ? { keyRequirements: d.keyRequirements } : {}),
+    ...(d.penalties !== undefined ? { penalties: d.penalties } : {}),
     deeplink: buildRegulatoryMapDeeplink({
       region: jurisdictionToRegion(entry.jurisdiction),
-      filter: entry.data.category,
+      filter: d.category,
     }),
   };
 }
