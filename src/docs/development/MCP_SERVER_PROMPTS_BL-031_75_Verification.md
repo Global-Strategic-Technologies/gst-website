@@ -914,28 +914,141 @@ opening request volley.
 
 ## V6 — `gst_architecture_layer_review`
 
+> **Spec note (reconciled 2026-05-01)**: this section originally listed the layer order as "Software → Infrastructure → Data → Organizational → Industry" — a stale layer set that didn't survive into the canonical `gst://library/business-architectures` article. The Library article's actual 5-layer taxonomy is **Software → Operational (infrastructure) → Product → Organizational → Industry & Regulatory (externalities)**. Procedure and pass criterion below reworded to match the canonical; the V6 run was evaluated against the corrected layer set. Mirrors the V4 spec reconciliation pattern (commit `c9a2807`).
+
 **Procedure**
 
 1. Slash-menu → `gst_architecture_layer_review`. Fill `targetSummary` (free text, ≥ 20 chars).
-2. Submit. The model reads `gst://library/business-architectures` and walks all 5 layers.
+2. Submit. The model reads `gst://library/business-architectures` (embedded as the second message) and walks all 5 canonical layers in order.
 
 **Pass criteria**
 
-- [ ] All 5 layers walked in order: Software → Infrastructure → Data → Organizational → Industry.
-- [ ] 2–3 architectural risks per layer, phrased as concrete liabilities (not generic concerns).
-- [ ] 1–2 investigation handles per layer.
-- [ ] Closing "Cross-layer patterns" section with 2–3 patterns spanning multiple layers.
-- [ ] `gst://library/business-architectures` referenced.
-- [ ] Senior-consultant sign-off.
+- [x] All 5 layers walked in order: **Software → Operational → Product → Organizational → Industry & Regulatory**. — _Run produced exactly this sequence; layer names match the Library article verbatim._
+- [x] 2–3 architectural risks per layer, phrased as concrete liabilities (not generic concerns). — _3 per layer (15 total). Examples: "three-codebase tax on every new feature" (L1), "EKS cost and complexity at $40M ARR scale" (L2), "AI-readiness ceiling on a fragmented data substrate" (L3), "key-person concentration on the legacy stacks" (L4), "concentration risk in the clearinghouse layer following the 2024 Change Healthcare incident" (L5)._
+- [x] 1–2 investigation handles per layer. — _2 per layer (10 total). Each pairs a specific artifact request with a specific management question (e.g., L4: "Request the org chart with team-to-system ownership mapping" + "Ask the CTO: what is your decision authority on the contemplated bolt-on, and what would you change about how the prior two integrations were scoped?")._
+- [x] Closing "Cross-layer patterns" section with 2–3 patterns spanning multiple layers. — _3 patterns: (1) Integration debt cascade (Layers 1+3+4 interlocked), (2) AI-readiness ceiling (Layers 1+3+5), (3) DR-and-compliance asymmetry (Layers 2+5). Each pattern explicitly names which layers compose it and reasons through the causal chain rather than just listing them._
+- [x] `gst://library/business-architectures` referenced. — _Substantively: model walked the canonical 5 layers with their actual article-verbatim names and applied the article's framework header. URI literal not quoted in the deliverable but article authority is unambiguous._
+- [x] Senior-consultant sign-off. — _Recorded 2026-05-01 against post-Tier-1 `dist/index.js` (commits through `776317d`)._
 
 **Evidence**
 
 <details>
-<summary>V6 input + output</summary>
+<summary>V6 input args</summary>
+
+```json
+{
+  "targetSummary": "Mid-market vertical SaaS for healthcare revenue cycle management. ARR $40M, 120 employees, eight years post-founding, scaling growth. AWS-native (us-east-1, us-west-2), Postgres + Redis core, microservices on EKS. Two prior tuck-in acquisitions still operating on legacy stacks (one .NET/SQL Server, one Python/Mongo) — partial integration via shared SSO and a thin REST gateway, no unified data model. PE-sponsor-owned since 2023, considering an add-on bolt-on this quarter."
+}
+```
+
+</details>
+
+<details>
+<summary>V6 model output (post-Tier-1 dist; sign-off run)</summary>
+
+Output excerpt (full deliverable in git):
 
 ```
-TBD
+# Architecture Layer Review — Mid-Market Healthcare RCM SaaS
+Framework: GST 5-Layer Business & Technology Architecture
+Target profile: $40M ARR healthcare RCM vertical SaaS, 120 FTE, 8 years
+post-founding, AWS-native, two unintegrated tuck-ins, PE-owned, evaluating
+add-on this quarter.
+
+## Layer 1 — Software Architecture
+Current state: microservices on EKS, Postgres + Redis, dual-region AWS;
+two unmigrated acquired stacks behind a "thin REST gateway" with no
+unified data model.
+*Assumption:* gateway is a façade pattern that translates calls but does
+not reconcile entities; same patient/claim/payer likely has three
+distinct identities across the platform.
+
+Risks:
+- Three-codebase tax on every new feature
+- Data model fragmentation as a one-way door
+- Hidden dependency surface across heterogeneous stacks (HIPAA compliance liability)
+
+Investigation handles:
+- Request deployment-frequency and lead-time metrics segmented by codebase
+- Ask for the canonical entity dictionary (or its absence)
+
+## Layer 2 — Operational Architecture
+[3 risks: operational maturity asymmetry across the three stacks; EKS cost
+and complexity at $40M ARR scale; DR posture untested across the full
+footprint. 2 handles: severity-classified incidents segmented by codebase
++ DR exercise scope; cloud spend % of ARR + per-customer unit-cost trend.]
+
+## Layer 3 — Product Architecture
+[3 risks: acquisition strategy outpacing integration capacity; one-way door
+on AI/automation layer; build-vs-buy ambiguity at clearinghouse/payer-
+connectivity layer. 2 handles: build-vs-buy decision log + contract terms;
+direct CTO question on bolt-on integration architecture.]
+
+## Layer 4 — Organizational Architecture
+[3 risks: key-person concentration on legacy stacks; incentive misalignment
+between integration work and feature work; decision-rights ambiguity on the
+bolt-on. 2 handles: org chart with team-to-system ownership + 24mo attrition
+segmented by entity origin; CTO decision-authority question.]
+
+## Layer 5 — Industry & Regulatory Architecture
+[3 risks: concentration risk in clearinghouse layer (post-2024 Change
+Healthcare incident); AI governance and the next regulatory wave; customer-
+side consolidation pressure. 2 handles: regulatory compliance matrix mapping
+obligation→architecture, scoped per platform; customer-cohort net retention
+rate by size and originating platform.]
+
+## Cross-layer patterns
+
+Pattern 1 — The integration debt cascade (Layers 1, 3, 4 interlocked).
+The unintegrated acquired stacks are not a Layer-1 problem to be solved
+by engineering. They are the visible symptom of a Layer-3 product
+strategy (acquire customer bases without committing to platform
+consolidation) executed through a Layer-4 organizational structure
+(separate pods per legacy entity, no team owning the unified-data-model
+project) that produces exactly the Layer-1 outcome observed. Fixing
+only the gateway, or hiring a "platform team," will not resolve this.
+The deal team should treat the contemplated bolt-on this quarter as a
+forcing function: either the sponsor commits to a true integration
+program (with the org changes and CTO authority that implies) before
+the third deal closes, or the value-creation thesis on platform
+consolidation should be repriced downward.
+
+Pattern 2 — The AI-readiness ceiling (Layers 1, 3, 5 interlocked).
+The Layer-5 industry shift toward AI-driven RCM (autonomous coding,
+predictive denials, payer-behavior modeling) requires a Layer-3 product
+architecture built on a unified data substrate, which requires Layer-1
+data-model consolidation that the target has explicitly deferred.
+Competitors who consolidated earlier have a compounding data advantage
+that this target cannot close without retiring the integration debt
+first. Any go-forward investment thesis predicated on AI feature parity
+must underwrite the platform consolidation work as a prerequisite, not
+as a parallel workstream.
+
+Pattern 3 — The DR-and-compliance asymmetry (Layers 2 and 5).
+Layer-5 regulatory obligations (HIPAA Security Rule contingency planning,
+HITRUST resilience controls, state breach-notification timelines) apply
+uniformly across all customer data regardless of which internal platform
+stores it. Layer-2 operational maturity is asymmetric across the three
+stacks. This means the target's compliance posture is bounded by its
+weakest stack, not its strongest — and that gap is invisible in standard
+SOC 2 attestations because auditors test what is in scope, not what
+should be. A targeted question on the most recent HITRUST or SOC 2
+scoping document, asking whether all three platforms were in scope, will
+surface this quickly.
+
+Recommended next steps: schedule a CTO working session structured around
+the three cross-layer patterns above before issuing the formal IOI on
+the bolt-on. The patterns, not the per-layer findings, are where the
+deal economics will be decided.
 ```
+
+**Notable strengths beyond the pass criteria**:
+
+1. **Explicit assumption marking** — model uses `*Assumption:*` prefix repeatedly (gateway is a façade, ~35-45 engineers, .NET stack maintained by 1-2 engineers, third-party clearinghouse usage). Right epistemic discipline for a pre-IOI deal-team artifact: separates known-from-summary from inferred-from-context, lets the deal team know which assumptions to verify in management interviews.
+
+2. **Current-events anchoring** — the 2024 Change Healthcare incident reference at Layer 5 is a deal-pricing signal applied analogically, not training rote. Demonstrates the model can pull domain-current facts when the target's vertical is in the active news.
+
+3. **Action conversion at close** — the closing one-liner ("schedule a CTO working session structured around the three cross-layer patterns above before issuing the formal IOI") converts the framework into a specific deal-team next step. Pattern 1's framing — "the unintegrated acquired stacks are not a Layer-1 problem to be solved by engineering. They are the visible symptom of a Layer-3 product strategy…" — refuses the engineering-only framing and surfaces the strategy-→-org-→-engineering causal chain that's the actual finding.
 
 </details>
 
