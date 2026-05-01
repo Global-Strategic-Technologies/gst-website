@@ -826,9 +826,9 @@ Step 2 — user pasted the same VDR list as trial (a). Step 3 — model produced
 </details>
 
 <details>
-<summary>Tier 1 follow-up — re-run with structured vdrFolders + file lists</summary>
+<summary>V5 Tier 1 re-run output (post-commit `776317d`) — closes the V5 substantive critique</summary>
 
-Suggested re-run input to exercise the new Tier 1 path (post-commit):
+Input args:
 
 ```json
 {
@@ -848,15 +848,65 @@ Suggested re-run input to exercise the new Tier 1 path (post-commit):
 }
 ```
 
-Expected behavior post-Tier-1:
+Output excerpt (full deliverable in git):
 
-- Step 2b fires (at least one folder has files)
-- Mapping table includes a `Quality flag` column
-- Tech Stack Inventory: Quality flag — stale `_v17` versioning + generic `README_FINAL_REVISED` placeholder; only 2 files for what should cover diagrams + data models + integrations
-- Security: Quality flag — sole pen-test artifact dated 2022 (>3 years stale); no SOC 2 / incident history / IR procedures present
-- Vendor Agreements: no quality flag — 3 files, recent dates, named clearly per vendor
+```
+# VDR Audit Report — Target Data Room vs. GST Canonical Taxonomy
+Reference: gst://library/vdr-structure (9-folder canonical taxonomy)
+Target VDR contents reviewed: 6 folders, 5 files visible at the file level
 
-Evidence not captured here yet — re-run pending after binary refresh.
+## 1. Mapping Table
+[4-column table: Canonical / Target / Status / Quality Flag]
+
+02 Software Architecture | 06_Tech_Stack_Inventory | Partial |
+  Two files only — stack-overview-v17.pdf (v17 versioning suggests
+  uncontrolled iteration; no date) and README_FINAL_REVISED.docx
+  (classic stale-versioning anti-pattern; generic placeholder name).
+  Folder is materially too thin to cover architecture diagrams, data
+  model, APIs, code-quality, or test coverage.
+
+06 Security | 06_Security | Partial |
+  Single artifact: pen-test-executive-summary-2022.pdf. Pen test is
+  ~3-4 years stale (2022, current date May 2026). No policies, no
+  incident history, no access-control documentation, no BC/DR, no
+  compliance certifications, no vulnerability management cadence.
+
+(Non-canonical) | 01_Corporate_Overview | Out-of-scope |
+  Empty at file level — possible empty directory anti-pattern.
+
+(Non-canonical) | 07_Vendor_Agreements | Out-of-scope |
+  Three contracts: AWS MSSA 2024, Datadog MSA 2025, Snowflake MSA 2025.
+  Implied infrastructure (AWS), observability (Datadog), and data-
+  warehouse (Snowflake) presence is itself diligence signal.
+
+Numbering collision flag: target uses prefix 06_ for both
+06_Tech_Stack_Inventory and 06_Security. Canonical taxonomy reserves
+06 for Security exclusively. Sort-order ambiguity in any VDR platform.
+
+## 3. Out-of-scope content
+- 07_Vendor_Agreements: PROPOSE new canonical folder "10 — Vendor &
+  Licensing Agreements" because vendor contracts surfaced ≥3 times
+  across recent engagements and contract terms are diligence-relevant
+  signal that doesn't fit cleanly under any existing folder.
+
+## Auditor's note (closing synthesis)
+Multiple Library-documented anti-patterns: stale versioning (_v17,
+_FINAL_REVISED), generic placeholders (README.docx), prefix collisions
+(two 06_ folders), an undated 4-year-old pen test, and 6 of 9
+canonical folders entirely missing. Consistent with a rushed or
+incomplete VDR assembly. Recommend flagging operational-discipline
+concern in the IOI-stage memo and using the Section 4 list as the
+opening request volley.
+```
+
+**What the post-Tier-1 path produced beyond the spec**:
+
+1. **Prefix collision detection** — caught that target uses `06_` for both Tech Stack and Security; called out structural sort-order ambiguity. Naming-convention reasoning only possible with structured input.
+2. **Implied-stack inference from out-of-scope content** — recognized that AWS / Datadog / Snowflake vendor contracts carry inferential value for in-scope tracks (Infrastructure, Data) even though the folder itself is out-of-scope.
+3. **Taxonomy extension proposal grounded in cross-deal frequency** — proposed `10 — Vendor & Licensing Agreements` per the body's existing "extend if worth doing for ≥3 deals" rule, justified with cross-engagement evidence.
+4. **Auditor's-note synthesis composes from file-level signals** — closing paragraph aggregates the per-folder Quality flags into a behavioral conclusion ("rushed or incomplete VDR assembly") and converts to deal-team action (IOI-memo flag + opening request volley).
+
+**Confirmation that Tier 1 closes the V5 substantive critique**: pre-Tier-1, the same prompt produced a structured 7-item request list elaborated against training. Post-Tier-1, the same input shape (folder names) plus file-level signal produces audit-grade reasoning that can be defended in front of a deal team. The prompt has moved from "checklist generator" to "real audit" without any tier beyond 1.
 
 </details>
 
