@@ -695,42 +695,168 @@ Sign-off recorded 2026-05-01.
 
 ## V5 — `gst_vdr_audit` (TWO trials: one-shot + interactive)
 
+> **Spec note (2026-05-01)**: V5 sign-off triggered a substantive design conversation about the prompt's value vs. the other seven. The senior consultant flagged that operating on folder names alone produces a thin "checklist generator" rather than a real audit — most of the deliverable is the canonical taxonomy elaborated against training, with the input serving only as a "which buckets are gaps" signal. Tier 1 expansion (commit landing alongside this V5 sign-off) addresses the substantive critique by adding a structured `vdrFolders` argument that accepts file lists per folder; when present, the audit reasons about contents quality (stale versioning, single-file folders, dump-vs-curated patterns) on top of structural mapping. Tiers 2-6 are deferred — see `BACKLOG.md § BL-036` for the full prompt-quality maturity roadmap.
+
 **Procedure (a) — one-shot mode**
 
-1. Slash-menu → `gst_vdr_audit`. Fill `vdrInventory` with a representative list (e.g., copy from a real VDR you have access to, or simulate with 5–10 folders).
-2. Submit. The model reads `gst://library/vdr-structure` and produces the audit immediately.
+1. Slash-menu → `gst_vdr_audit`. Fill **either** `vdrInventory` (free-text list, one folder per line — original shape) **or** `vdrFolders` (structured array of `{ name, files? }` — Tier 1 enhancement; pasted as JSON or supplied directly by an automated caller).
+2. Submit. The model reads `gst://library/vdr-structure` and produces the audit immediately. When `vdrFolders` is supplied with at least one populated `files` list, the audit body picks up Step 2b (file-level signal) and emits a fourth `Quality flag` column in the mapping table.
 
 **Procedure (b) — interactive mode**
 
-1. Slash-menu → `gst_vdr_audit`. Leave `vdrInventory` empty / omitted.
-2. Submit. The model should ask you to paste your VDR list before proceeding.
-3. Paste the same list as (a) (or a different one to exercise variation). The model produces the audit.
+1. Slash-menu → `gst_vdr_audit`. Leave both `vdrInventory` and `vdrFolders` empty / omitted.
+2. Submit. The model should ask you to paste your VDR list before proceeding (and explicitly invite file names per folder so the audit can use Tier 1 quality flags).
+3. Paste the inventory in chat. The model produces the audit.
 
 **Pass criteria (both modes)**
 
-- [ ] Mapping table (canonical folder × target folder × Direct/Partial/Gap status).
-- [ ] Gaps flagged with 2–3 concrete document requests each.
-- [ ] Out-of-scope content surfaced with recommendations.
-- [ ] Prioritized follow-up request list (top 5–7).
-- [ ] Senior-consultant sign-off on BOTH modes.
+- [x] Mapping table (canonical folder × target folder × Direct/Partial/Gap status). — _Both runs produced a 9-row mapping table grouped by canonical folder, with target folders cited per row and Direct/Partial/Gap status._
+- [x] Gaps flagged with 2–3 concrete document requests each. — _Each Gap (SDLC, Data/AI, Security, Corporate IT) carries 3 specific requests; each Partial (Software Architecture, Infrastructure, People, Governance) carries 3-4 requests targeted at the missing-coverage delta._
+- [x] Out-of-scope content surfaced with recommendations. — _Four target folders identified as out-of-scope (Corporate Overview, Financial Statements, Customer Contracts, Marketing Materials) with disposition recommendations (one-time-receipt routing per track) and an explicit "Taxonomy extension recommendation: None" rationale._
+- [x] Prioritized follow-up request list (top 5–7). — _7-item list ordered by signal-to-effort, with rationale per item linking back to the gap it closes._
+- [x] Senior-consultant sign-off on BOTH modes. — _Recorded 2026-05-01 against `dist/index.js` v0.0.1 (pre-Tier-1). Substantive critique on the prompt's overall value led to Tier 1 expansion (this commit) + BL-036 roadmap; the existing audit-grade output stands as a sign-off-worthy V1.0 baseline._
+
+**Findings carried forward**:
+
+1. **Prompt operates on weak input signal in V1.0 (folder names only)** — the deliverable is well-structured but most of the output is the canonical taxonomy elaborated against training. Closed by Tier 1 expansion in this commit (structured `vdrFolders` with optional file lists; body adds Step 2b for file-level reasoning when present). Tier 2 (file metadata: sizes, dates), Tier 3 (cross-reference with comparable engagements), Tier 4 (VDR provider API integration), Tier 5 (audit deltas), and Tier 6 (sell-side workflow) are deferred to BL-036.
+2. **Trials (a) and (b) produced byte-identical output** — confirmed expected: trial (b) interactive mode fired correctly (model recognized empty input and asked for the list), then the audit ran on the same VDR list the user supplied for (a), so the deliverables matched. The empty-input branch in the body works as designed.
 
 **Evidence**
 
 <details>
-<summary>V5(a) input + output</summary>
+<summary>V5(a) input + output — one-shot mode</summary>
+
+Input args:
+
+```json
+{
+  "vdrInventory": "01_Corporate_Overview\n02_Financial_Statements\n03_Customer_Contracts\n04_IP_and_Patents\n05_Engineering_Org_Chart\n06_Tech_Stack_Inventory\n07_Vendor_Agreements\n08_HR_and_Compensation\n09_Marketing_Materials\n10_Legal_Holds"
+}
+```
+
+Output excerpt (full deliverable in git):
 
 ```
-TBD
+# VDR Audit Report
+Target VDR contents: 10 folders (01_Corporate_Overview through 10_Legal_Holds)
+Canonical taxonomy: GST Library — 9 folders (Product through Governance & Compliance)
+Source of authority: gst://library/vdr-structure
+
+## 1. Mapping Table
+| # | Canonical Folder | Target Folder(s) | Status |
+|---|---|---|---|
+| 01 | Product | — | Gap |
+| 02 | Software Architecture | 06_Tech_Stack_Inventory (covers stack inventory only) | Partial |
+| 03 | Infrastructure & Operations | 07_Vendor_Agreements (covers vendor/SaaS portion only) | Partial |
+| 04 | SDLC | — | Gap |
+| 05 | Data, Analytics & AI | — | Gap |
+| 06 | Security | — | Gap |
+| 07 | People & Organization | 05_Engineering_Org_Chart (eng only), 08_HR_and_Compensation (compensation, census) | Partial |
+| 08 | Corporate IT | — | Gap |
+| 09 | Governance & Compliance | 04_IP_and_Patents (IP only), 10_Legal_Holds (litigation only) | Partial |
+
+[Out-of-scope: 01_Corporate_Overview, 02_Financial_Statements, 03_Customer_Contracts,
+09_Marketing_Materials — all routed to legal/financial/commercial DD tracks; no
+taxonomy extension recommended (per Library article scope: "legal, tax, financial
+not covered here")]
+
+## 2. Gaps (per-canonical-folder requests)
+[For each Gap or Partial: "what we expect to find here" + 3 concrete requests]
+- 02 Software Architecture: C4 architecture diagrams, data model documentation,
+  technical-debt report (SonarQube/CodeClimate)
+- 03 Infrastructure: cloud account structure, SLA history (12-24mo), monthly
+  cost breakdown trailing-three-months
+- 04 SDLC: methodology + branching + CI/CD overview, test coverage report,
+  defect volume + MTTR trailing-three-months
+- 05 Data/AI: data architecture overview, ML/AI model inventory, AI implementation
+  strategy doc
+- 06 Security (CRITICAL): pen test executive summary, SOC 2 / ISO 27001 with
+  remediation status, incident history + IR procedures + BCP/DR
+- 07 People (Partial): company-wide org chart, key-personnel bios with retention
+  risk, 24mo attrition data
+- 08 Corporate IT: enterprise app inventory, IAM landscape, software licensing
+  schedule
+- 09 Governance (Partial): privacy applicability matrix (GDPR/CCPA/HIPAA),
+  cross-border transfer mechanisms, vendor-risk program
+
+## 4. Prioritized Follow-Up Request List
+1. Pen test report (Security gap) — highest single-document signal
+2. SOC 2 Type II / ISO 27001 with remediation status (Security/Governance)
+3. C4 architecture diagrams (Software Architecture partial)
+4. CI/CD pipeline + defect telemetry (SDLC gap)
+5. Company-wide org chart + retention risk + attrition (People partial)
+6. Cloud cost breakdown + SLA history (Infrastructure partial)
+7. AI/ML model inventory + implementation strategy (Data/AI gap)
+
+Summary: VDR is structured around legal/financial diligence skeleton with
+technology folders bolted on as afterthoughts. Six of nine canonical categories
+are gaps or partials, and the most material — Security — is fully absent.
+Recommend opening request cycle with items #1 and #2; response time and quality
+calibrate expectations for the rest of technology DD.
 ```
 
 </details>
 
 <details>
-<summary>V5(b) input + output</summary>
+<summary>V5(b) input + output — interactive mode</summary>
+
+Input args (form): empty.
+
+Step 1 — model's interactive prompt:
 
 ```
-TBD
+This invocation is the interactive variant of gst_vdr_audit — Step 2 explicitly
+directs me to ask for the inventory before running the audit.
+
+To run the VDR audit against GST's canonical taxonomy, I need the target's
+current folder structure.
+
+> Paste the target's current VDR folder list (or a description of what's in
+> the VDR). One line per folder is fine; sub-folders or document counts are
+> welcome but not required.
+
+Once you paste it, I'll map each folder to the canonical 9-category taxonomy
+(Direct / Partial / Gap / Out-of-scope), surface gaps with concrete document
+requests, flag any out-of-scope content, and close with a prioritized top-5–7
+follow-up request list ready for the deal team to send to the target.
 ```
+
+Step 2 — user pasted the same VDR list as trial (a). Step 3 — model produced the same audit (same input, same body, same output). Confirms the empty-input branch fires correctly and the interactive-then-audit handshake works as designed.
+
+</details>
+
+<details>
+<summary>Tier 1 follow-up — re-run with structured vdrFolders + file lists</summary>
+
+Suggested re-run input to exercise the new Tier 1 path (post-commit):
+
+```json
+{
+  "vdrFolders": [
+    { "name": "01_Corporate_Overview" },
+    { "name": "02_Financial_Statements" },
+    {
+      "name": "06_Tech_Stack_Inventory",
+      "files": ["stack-overview-v17.pdf", "README_FINAL_REVISED.docx"]
+    },
+    { "name": "06_Security", "files": ["pen-test-executive-summary-2022.pdf"] },
+    {
+      "name": "07_Vendor_Agreements",
+      "files": ["aws-mssa-2024.pdf", "datadog-msa-2025.pdf", "snowflake-msa-2025.pdf"]
+    }
+  ]
+}
+```
+
+Expected behavior post-Tier-1:
+
+- Step 2b fires (at least one folder has files)
+- Mapping table includes a `Quality flag` column
+- Tech Stack Inventory: Quality flag — stale `_v17` versioning + generic `README_FINAL_REVISED` placeholder; only 2 files for what should cover diagrams + data models + integrations
+- Security: Quality flag — sole pen-test artifact dated 2022 (>3 years stale); no SOC 2 / incident history / IR procedures present
+- Vendor Agreements: no quality flag — 3 files, recent dates, named clearly per vendor
+
+Evidence not captured here yet — re-run pending after binary refresh.
 
 </details>
 
