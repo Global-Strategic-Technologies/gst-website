@@ -14,22 +14,36 @@ import type { GstPrompt } from './types';
 import { enumFromWire, numberFromWire } from './wire-shape';
 import { authorialIntentLine, embedFyiRadarSnapshot } from './embed';
 
-// `.optional()` MUST be applied to the inner schema (not chained on the
-// wrapper) so the wrapper's empty-string-to-undefined preprocess takes
-// effect when Claude Desktop ships `""` for an unfilled form field. See
-// V7 trial (b) finding. `.default()` is intentionally NOT used here:
-// it only fires when input is undefined, but our preprocess turns `''`
-// into undefined too late (after .default has already passed control
-// downstream). Defaults are applied at use time in `build()` below.
+// Optional-field pattern for wire-shape-wrapped args — applies `.optional()`
+// at BOTH levels:
+//
+//   INNER `.optional()` (on the base Zod type) lets the wrapper's empty-
+//     string-to-undefined preprocess produce an undefined value the
+//     inner schema accepts at parse time. See V7 trial (b) fix.
+//
+//   OUTER `.optional()` (on the wrapper itself) makes the field appear
+//     optional in Claude Desktop's form rendering (JSON Schema's
+//     `required` array). The Zod-to-JSON-Schema introspection only
+//     looks at the outermost schema's typeName — it sees `ZodEffects`
+//     (preprocess) and doesn't unwrap to find the inner `ZodOptional`,
+//     so without the outer .optional() the form renders the field with
+//     a required `*` marker. See V7 trial (a) regression fix.
+//
+// `.default()` is NOT used here: it fires only when input is undefined,
+// but our preprocess turns `''` into undefined too late (after .default
+// has already passed control downstream). Defaults are applied at use
+// time in `build()` below.
 const SINCE_HOURS_DEFAULT = 24;
 
 const argsSchema = z.object({
-  category: enumFromWire(RadarCategoryEnum.optional()).describe(
-    "Optional category filter. One of 'pe-ma' / 'enterprise-tech' / 'ai-automation' / 'security'. Omit for all categories."
-  ),
-  sinceHours: numberFromWire(z.number().int().positive().max(168).optional()).describe(
-    'Lookback window in hours. Optional; defaults to 24 (max 168 = one week).'
-  ),
+  category: enumFromWire(RadarCategoryEnum.optional())
+    .optional()
+    .describe(
+      "Optional category filter. One of 'pe-ma' / 'enterprise-tech' / 'ai-automation' / 'security'. Omit for all categories."
+    ),
+  sinceHours: numberFromWire(z.number().int().positive().max(168).optional())
+    .optional()
+    .describe('Lookback window in hours. Optional; defaults to 24 (max 168 = one week).'),
 });
 
 const PROMPT_NAME = 'gst_radar_brief_today';
