@@ -1,13 +1,32 @@
 /**
- * Mock Inoreader API responses for Radar E2E tests.
+ * Mock Inoreader API responses for Radar E2E tests AND for the dev-workflow
+ * `npm run radar:seed` cache populated by `seed-radar-cache.ts`.
  *
- * Produces deterministic data that exercises all 4 categories across
- * both FYI (annotated) and Wire (folder stream) tiers.
+ * Produces data that exercises all 4 categories across both FYI (annotated)
+ * and Wire (folder stream) tiers. Item timestamps are anchored to the
+ * module-load time (BASE_TIMESTAMP below) so every published / annotation
+ * timestamp falls in the recent past relative to "now" — required for the
+ * MCP `gst_radar_brief_today` prompt's recency-window filter (default 24
+ * hours of `lastSeededAt`). E2E tests are date-agnostic (radar-page.test.ts
+ * checks for any month name, not a specific date), so anchoring to "now"
+ * doesn't affect their reproducibility.
+ *
+ * Relative ordering is preserved: items are 1 hour apart, descending from
+ * BASE_TIMESTAMP. The integration test `tests/integration/radar-data-flow.
+ * test.ts` has its own local `makeItem` factory and is unaffected by
+ * changes here.
  *
  * Factory patterns based on tests/integration/radar-data-flow.test.ts.
  */
 
 import type { InoreaderItem, InoreaderStreamResponse } from '../../../src/lib/inoreader/types';
+
+// Module-level "now" baseline. Computed once per module load — playwright
+// global-setup loads the module fresh for each E2E run, and `npm run
+// radar:seed` is a fresh process each time, so each invocation gets a
+// current baseline. All published/annotation timestamps below derive from
+// this constant so they always fall within the recent past.
+const BASE_TIMESTAMP = Math.floor(Date.now() / 1000);
 
 // ---------------------------------------------------------------------------
 // Category → folder mapping (mirrors src/lib/inoreader/transform.ts)
@@ -37,7 +56,7 @@ function makeItem(overrides: Partial<InoreaderItem> & { folder?: string } = {}):
   return {
     id,
     title: `Test Article ${id}`,
-    published: 1708000000 - counter * 3600, // each item 1 hour apart
+    published: BASE_TIMESTAMP - counter * 3600, // each item 1 hour apart, descending into the recent past
     canonical: [{ href: `https://example.com/articles/${id}` }],
     origin: {
       streamId: `feed/https://example.com/feed-${counter}`,
@@ -67,7 +86,7 @@ export function createMockAnnotatedResponse(): InoreaderStreamResponse {
           id: 1,
           start: 0,
           end: 50,
-          added_on: 1708100000,
+          added_on: BASE_TIMESTAMP - 60,
           text: 'Deal volume increased 35% quarter-over-quarter.',
           note: 'Classic late-cycle pattern. PE firms deploying dry powder before rates shift. Watch for quality degradation in deal pipelines.',
         },
@@ -82,7 +101,7 @@ export function createMockAnnotatedResponse(): InoreaderStreamResponse {
           id: 3,
           start: 0,
           end: 40,
-          added_on: 1708300000,
+          added_on: BASE_TIMESTAMP - 180,
           text: 'Enterprises report 40% cost reduction in manual processes.',
           note: 'The real ROI is in boring use cases: invoice processing, data reconciliation. Not chatbots.',
         },
@@ -99,7 +118,7 @@ export function createMockAnnotatedResponse(): InoreaderStreamResponse {
           id: 2,
           start: 0,
           end: 60,
-          added_on: 1708200000,
+          added_on: BASE_TIMESTAMP - 120,
           text: 'Mid-market SaaS companies increasingly targeted by platform players seeking vertical integration.',
           note: '',
         },
@@ -114,7 +133,7 @@ export function createMockAnnotatedResponse(): InoreaderStreamResponse {
           id: 7,
           start: 0,
           end: 55,
-          added_on: 1708650000,
+          added_on: BASE_TIMESTAMP - 360,
           text: 'Third-party dependency compromises now account for 62% of initial access vectors in enterprise breaches.',
           note: '',
         },
@@ -131,7 +150,7 @@ export function createMockAnnotatedResponse(): InoreaderStreamResponse {
           id: 4,
           start: 0,
           end: 0,
-          added_on: 1708400000,
+          added_on: BASE_TIMESTAMP - 240,
           text: '',
           note: 'Identity is the new perimeter. Every portfolio company should have MFA and SSO on the diligence checklist.',
         },
@@ -146,7 +165,7 @@ export function createMockAnnotatedResponse(): InoreaderStreamResponse {
           id: 8,
           start: 0,
           end: 0,
-          added_on: 1708700000,
+          added_on: BASE_TIMESTAMP - 420,
           text: '',
           note: 'Continuation vehicles are the new exit. LPs need to scrutinize valuation marks carefully — conflicts of interest are structural.',
         },
@@ -163,7 +182,7 @@ export function createMockAnnotatedResponse(): InoreaderStreamResponse {
           id: 6,
           start: 0,
           end: 50,
-          added_on: 1708600000,
+          added_on: BASE_TIMESTAMP - 300,
           text: 'Average enterprise overspends by 30% on cloud infrastructure.',
           note: 'FinOps is no longer optional. This directly impacts EBITDA and should be part of every tech diligence.',
         },
