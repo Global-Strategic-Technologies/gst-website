@@ -217,17 +217,17 @@ Folder labels are taken verbatim from the GST Library VDR taxonomy.
 
 ---
 
-## ⚠ V2 was run on 2026-05-01 (pre-fix) and surfaced three findings
+## ⚠ V2 was run on 2026-05-01 (pre-fix) and surfaced three findings — RESOLVED
 
 The first V2 invocation produced a substantively well-framed deliverable but the deep-links and ICG result were silently degraded by three architectural defects in the MCP layer:
 
-1. **ICG deep-link landed on the wizard intro, not the results view.** Cause: `mcp-server/src/tools/icg.ts` constructed the encoded state with `currentStep: 0` (the page's landing view), so the link reproduced the inputs but never advanced past "Start assessment." Fixed by `buildResultsState()` helper that sets `currentStep: 7` (results view) — see `tests/unit/deeplinks/icg-deeplink.test.ts` for the regression guard.
-2. **Regulatory Map deep-links did not select / expand the region's regulations.** Root cause: the page's `regionMap` is keyed by ISO 3166-1 alpha-3 for countries (`USA`, `GBR`, `CAN`) and uppercase ISO 3166-2 for subnational (`US-CA`, `CA-QC`), but MCP `entry.jurisdiction` arrives lowercase alpha-2 / lowercase subnational (`us`, `us-ca`). The selector `path[data-state-code="us-ca"]` never matched `data-state-code="US-CA"`, so `selectRegion` was never dispatched. Fixed by the new `jurisdictionToRegion()` helper in `mcp-server/src/tools/regulations.ts` that normalizes lowercase alpha-2 → uppercase alpha-3 (`us → USA`) and uppercases subnational codes (`us-ca → US-CA`); aggregate jurisdictions (`eu`, `global`) drop the `region=` param so only the category filter applies.
-3. **`gst_target_quick_look` invoked ICG with flat question IDs (`q1`–`q20`) the engine silently ignored.** The schema is `q<domain>_<index>` (22 IDs total: `q1_1`…`q6_4`), per `mcp-server/src/docs/icg/CONTRACT.md`: "Unknown keys are silently ignored." The deliverable's claim of "20 of 20 answers were `-1`" was fiction; zero answers reached the engine. Fixed by enumerating all 22 IDs by domain in the prompt body (`target-quick-look.ts`) and correcting "20" → "22" in the body and the low-confidence threshold.
+1. **ICG deep-link landed on the wizard intro, not the results view.** Cause: `mcp-server/src/tools/icg.ts` constructed the encoded state with `currentStep: 0` (the page's landing view), so the link reproduced the inputs but never advanced past "Start assessment." Fixed in commit `b9a4c3a` by a `buildResultsState()` helper that sets `currentStep: 7` (results view) — see `tests/unit/deeplinks/icg-deeplink.test.ts` for the regression guard.
+2. **Regulatory Map deep-links did not select / expand the region's regulations.** Root cause: the page's `regionMap` is keyed by ISO 3166-1 alpha-3 for countries (`USA`, `GBR`, `CAN`) and uppercase ISO 3166-2 for subnational (`US-CA`, `CA-QC`), but MCP `entry.jurisdiction` arrives lowercase alpha-2 / lowercase subnational (`us`, `us-ca`). The selector `path[data-state-code="us-ca"]` never matched `data-state-code="US-CA"`, so `selectRegion` was never dispatched. Fixed in commit `e4fe98d` by the new `jurisdictionToRegion()` helper in `mcp-server/src/tools/regulations.ts` that normalizes lowercase alpha-2 → uppercase alpha-3 (`us → USA`) and uppercases subnational codes (`us-ca → US-CA`); aggregate jurisdictions (`eu`, `global`) drop the `region=` param so only the category filter applies.
+3. **`gst_target_quick_look` invoked ICG with flat question IDs (`q1`–`q20`) the engine silently ignored.** The schema is `q<domain>_<index>` (20 IDs total: `q1_1`…`q6_4`), per `mcp-server/src/docs/icg/CONTRACT.md`: "Unknown keys are silently ignored." The deliverable's claim of "20 of 20 answers were `-1`" was fiction; zero answers reached the engine. Fixed in commit `9aaa541` by enumerating all 20 IDs by domain in the prompt body (`target-quick-look.ts`); a follow-up commit `38cffab` corrected an in-test comment that still said "22 IDs" (a counting error from an earlier draft).
 
 The Tech Debt deep-link was unaffected (already lands on the populated calculator). TechPar deferred-deep-link disclosure fired correctly.
 
-Fixes shipped in commits `<TBD>`. **V2 must be re-run** against the post-fix `dist/index.js` to verify (a) ICG link opens results view directly, (b) Regulatory Map link both highlights the region AND auto-opens the panel with category-filtered regulations, (c) deliverable's "Assumptions / unknowns" list contains the 22 schema-canonical IDs (not the fictional flat IDs).
+V2 was re-run on 2026-05-01 against the post-fix `dist/index.js` and signed off — see V2 evidence block below for the post-fix deliverable. All three findings were verified resolved.
 
 ---
 
@@ -550,32 +550,144 @@ Run 2 also exhibited a strong "honor-the-hint-but-flag-the-mismatch" behavior �
 
 ## V4 — `gst_regulatory_exposure_brief`
 
-> **Spec note (reconciled 2026-05-01)**: this section originally instructed the model to call `resources/read gst://regulations/...` for each match. Commit 5 of BL-031.75 (V1 finding 1) established that Resources are not model-fetchable from prompt expansion in Claude Desktop; the Library and Radar prompts solved this by embedding Resource bodies as `EmbeddedResource` content blocks. For the 120-framework regulation set, embedding all bodies is infeasible — instead the prompt body's design uses the `search_regulations` result fields (name, summary, keyRequirements, penalties, jurisdiction, effectiveDate) as the authoritative source for the brief. The procedure and pass criteria below have been reworded to match that design; the original "Per-framework Resources read by URI" criterion is obsolete and removed.
+> **Spec note (reconciled 2026-05-01)**: this section originally instructed the model to call `resources/read gst://regulations/...` for each match. Commit 5 of BL-031.75 (V1 finding 1) established that Resources are not model-fetchable from prompt expansion in Claude Desktop; the Library and Radar prompts solved this by embedding Resource bodies as `EmbeddedResource` content blocks. For the 120-framework regulation set, embedding all bodies is infeasible — the prompt body's design uses the `search_regulations` result fields directly. The first V4 run (commit `c9a2807` reconciliation) revealed an auditability gap: the wire `SearchResult` exposed only the high-level `summary`, forcing the model to fall back to training-derived prose for specific obligations and penalty bands. Commits `cc3b023` (enrich `SearchResult` with `scope` / `keyRequirements` / `penalties`) and `49c73ce` (drop the now-stale `resources/read` and `enforcementAuthority` references in the prompt body) closed that gap. The procedure, pass criteria, and post-enrichment evidence below reflect the final design.
 
 **Procedure**
 
 1. Slash-menu → `gst_regulatory_exposure_brief`. Fill: `{ targetJurisdictions: ['eu', 'us-ca'], dataCategories: ['data-privacy', 'ai-governance'], productType: <e.g. 'b2b-saas'> }`.
 2. Submit. The model calls `search_regulations` per jurisdiction × category and assembles the brief from the search-result fields directly (no `resources/read` calls — see spec note above).
-3. **Click the surfaced filtered Regulatory Map deep-link** in a browser to verify `?region=&filter=` filter restoration. (Should now decode to uppercase `EU` / `US-CA` per the V2 jurisdiction-normalization fix in commit `e4fe98d`.)
+3. **Click the surfaced filtered Regulatory Map deep-link** in a browser to verify `?region=&filter=` filter restoration. (Should decode to uppercase `EU` / `US-CA` per the V2 jurisdiction-normalization fix in commit `e4fe98d`.)
 
 **Pass criteria**
 
-- [ ] `search_regulations` called for each jurisdiction × category combination.
-- [ ] Per-framework summaries are sourced from the `search_regulations` result fields (name, summary, keyRequirements, penalties) — no invented prose, no `resources/read` calls. The summary may name additional context (effective date, enforcement authority) only if it appears verbatim in the search result.
-- [ ] Brief assembled with: per-jurisdiction breakdown + cross-jurisdictional themes + Open-in-Hub.
-- [ ] **Per-framework deep-links present** — each named framework cites the per-result `deeplink` field from its `search_regulations` match (Regulatory Map filtered to that framework's region+category).
-- [ ] **Aggregate filtered Regulatory Map deep-link** (the search response's `filterDeeplink`) restores `?region=&filter=` filters byte-identically when clicked.
-- [ ] Obligation summaries are tailored to the supplied `productType` (not generic).
-- [ ] Senior-consultant sign-off.
+- [x] `search_regulations` called for each jurisdiction × category combination. — _Run 2 (post-enrichment): "All four queries returned hits — no jurisdiction-id retries needed."_
+- [x] Per-framework summaries are sourced from the `search_regulations` result fields (`name`, `summary`, `scope`, `keyRequirements`, `penalties`, `jurisdiction`, `effectiveDate`) — penalty bands cited verbatim from `penalties`, obligation prose paraphrased from `keyRequirements`, scope statements anchored in `scope`. No invented prose, no `resources/read` calls. — _Run 1 (pre-enrichment) cited training-derived statute articles (e.g., "Article 28 DPA") and generic penalty references; Run 2 cites `4% of global annual turnover or EUR 20 million` (GDPR), `EUR 35M / 7%` (EU AI Act prohibited), `$7,500 / $2,500 + $100–$750 private right` (CCPA), `$5,000 per violation per day` (SB 942) — all directly traceable to the regulation files' `penalties` field._
+- [x] Brief assembled with: per-jurisdiction breakdown + cross-jurisdictional themes + Open-in-Hub.
+- [x] **Per-framework deep-links present** — each named framework cites the per-result `deeplink` field from its `search_regulations` match. EU links correctly drop `region=` (per `jurisdictionToRegion('eu')→null`); US-CA links use uppercase canonical region.
+- [x] **Aggregate filtered Regulatory Map deep-link** restores `?region=&filter=` byte-identically. — _Run 2 emitted all 4 per-search aggregate filterDeeplinks (improvement over Run 1 which collapsed to 2)._
+- [x] Obligation summaries are tailored to the supplied `productType` (not generic). — _Strongly SaaS-specific framing: "DSR rights as product features rather than ticket workflows", "non-discrimination… designed into pricing and feature gating", "watermark integrity along the entire pipeline, including downstream customer use"._
+- [x] Senior-consultant sign-off. — _Recorded 2026-05-01 against post-enrichment `dist/index.js` (commits `cc3b023` + `49c73ce`)._
+
+**Findings carried forward**:
+
+1. **`SearchResult` was under-exposing source data** — the wire shape dropped `scope`, `keyRequirements`, and `penalties` even though the underlying regulation files declared them. Closed by commit `cc3b023` (enrichment + prompt body Step 2 update + 2 unit tests).
+2. **Two stale references in the prompt body** — module-level docstring and Step 3.(2) still cited `resources/read` and a nonexistent `enforcementAuthority` field. Closed by commit `49c73ce` (cleanup, no code change).
 
 **Evidence**
 
 <details>
-<summary>V4 input + output</summary>
+<summary>V4 input args</summary>
+
+```json
+{
+  "targetJurisdictions": ["eu", "us-ca"],
+  "dataCategories": ["data-privacy", "ai-governance"],
+  "productType": "b2b-saas"
+}
+```
+
+</details>
+
+<details>
+<summary>V4 Run 1 output (pre-enrichment — captures the auditability gap)</summary>
+
+Tool calls: `search_regulations` ×4 (one per jurisdiction × category combination), no `resources/read` calls.
+
+Output excerpt (full deliverable preserved in git via `c89bcca`-era state of this doc):
 
 ```
-TBD
+# Regulatory Exposure Brief
+Target product type: B2B SaaS
+Jurisdictions assessed: EU, US-CA (California)
+Categories assessed: Data Privacy, AI Governance
+Frameworks identified: 4 (GDPR, EU AI Act, CCPA/CPRA, California AI Transparency Act / SB 942)
+
+## European Union
+### General Data Protection Regulation (GDPR)
+… GDPR applies to a B2B SaaS even when the customer relationship is with a corporate entity …
+A B2B SaaS will typically operate as a *processor* on behalf of customer-controllers
+(driving Article 28 Data Processing Agreement obligations …
+Breach notification to the lead DPA is required within 72 hours of awareness …
+
+[Specific obligations cited — Article 28, 100,000+ thresholds, B2B carve-out sunset, etc.
+— were training-derived; not directly traceable to a SearchResult field.]
 ```
+
+The deliverable was substantively excellent but the strict source path was unverifiable — the wire `SearchResult` exposed only `summary` (a high-level paragraph), so the model had no source field to ground the specific obligations and penalty bands it cited. This finding triggered the commit `cc3b023` enrichment.
+
+</details>
+
+<details>
+<summary>V4 Run 2 output (post-enrichment — sign-off run)</summary>
+
+Tool calls: `search_regulations` ×4 (one per jurisdiction × category), no `resources/read` calls.
+
+Output:
+
+```
+# Regulatory Exposure Brief
+Target product type: B2B SaaS
+Jurisdictions assessed: European Union (EU), California (US-CA)
+Categories assessed: Data Privacy, AI Governance
+Frameworks identified: 4 (GDPR, EU AI Act, CCPA/CPRA, CA SB 942)
+
+## 1. European Union
+
+### General Data Protection Regulation (GDPR) — effective 2018-05-25
+
+A B2B SaaS provider processing personal data of EU-resident end users (customer
+employees, leads, support contacts) is acting as a processor or joint controller
+and inherits the full GDPR obligation set regardless of where the SaaS is hosted.
+Practical implications: every processing activity must rest on a documented lawful
+basis, with explicit opt-in consent where consent is the chosen basis, and the
+platform must operationalize data subject rights — access, rectification, erasure,
+and portability — as product features rather than ticket workflows. Where the
+SaaS handles employee monitoring, profiling, or large-scale special-category data
+on behalf of customers, a Data Protection Impact Assessment is required before
+go-live, and a Data Protection Officer must be appointed if processing meets the
+qualifying thresholds. Breach detection and incident response must be tuned to a
+72-hour notification window to supervisory authorities, and any data flow back to
+the US (or any non-adequate jurisdiction) must be papered with Standard
+Contractual Clauses, Binding Corporate Rules, or rely on an adequacy decision —
+typically embedded in the customer DPA. Penalty exposure: up to 4% of global
+annual turnover or EUR 20 million, whichever is greater.
+
+Deeplink: https://globalstrategic.tech/hub/tools/regulatory-map/?filter=data-privacy
+
+### EU Artificial Intelligence Act (Regulation 2024/1689) — effective 2024-08-01
+
+[scope statement → prohibited practices → high-risk obligations → GPAI obligations →
+penalty bands cited verbatim from `penalties`: €35M/7%, €15M/3%, €7.5M/1%]
+
+## 2. California (US-CA)
+
+### CCPA/CPRA — effective 2020-01-01
+[two-path applicability scope → product-level rights surface → penalty band
+cited verbatim from `penalties`: $7,500 intentional / $2,500 unintentional /
+$100-$750 private right of action]
+
+### CA SB 942 — effective 2026-08-02
+[narrow applicability gate → watermark obligation chain → penalty band cited
+verbatim from `penalties`: $5,000 per violation per day]
+
+## 3. Cross-Jurisdictional Themes
+
+Theme 1 — Privacy operates as a product surface, not a policy artifact.
+Theme 2 — AI obligations bifurcate by output modality and risk class, not by
+jurisdiction.
+Theme 3 — Enforcement scales with revenue in the EU and with volume in
+California.
+[Theme 3 grounded in the penalty data — only achievable post-enrichment.]
+
+## 4. Open in Hub
+- Per-framework deeplinks (4): EU drops region= per jurisdictionToRegion;
+  US-CA uppercase ✓
+- Aggregate filter deeplinks (4): all four preserved (vs Run 1's collapse to 2)
+```
+
+The grounding shift between Run 1 and Run 2 is the cleanest signal the enrichment worked. Run 1's penalty references were generic ("statutory damages", "per-violation penalties"); Run 2's are verbatim from the `penalties` field on each regulation. Run 1's Theme 3 was prose-pattern recognition; Run 2's is a concrete comparison of two penalty regimes (turnover-indexed EU vs flat-amount California) that the model could only synthesize because the `penalties` field was now in the search response.
+
+Sign-off recorded 2026-05-01.
 
 </details>
 
