@@ -112,4 +112,19 @@ describe('gst_diligence_handoff_memo', () => {
       .join('\n');
     expect(allText).toContain('unique-marker-xyz');
   });
+
+  it('instructs the model to emit per-comparable anchor URLs (V8 sign-off contract)', () => {
+    // V8 verification surfaced that the comparable engagement library
+    // section was naming codeNames without anchor URLs to /ma-portfolio.
+    // The criterion requires per-match anchors so the deal team can click
+    // through to the portfolio detail row. Body Step 4 section (4) was
+    // updated; this test locks the contract.
+    const parsed = diligenceHandoffMemoPrompt.argsSchema.parse(VALID_ARGS);
+    const allText = diligenceHandoffMemoPrompt
+      .build(parsed)
+      .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
+      .join('\n');
+    expect(allText).toContain('https://globalstrategic.tech/ma-portfolio/');
+    expect(allText.toLowerCase()).toContain('anchor url');
+  });
 });

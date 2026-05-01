@@ -83,7 +83,7 @@ export const diligenceHandoffMemoPrompt: GstPrompt<typeof argsSchema> = {
             '  (1) Engagement context — one paragraph (target, transaction, product, stage, geography).',
             '  (2) Diligence agenda — prioritized topics from the agenda result; one bullet per topic with a 1-line "what we look for here" framing.',
             '  (3) Attention areas — surfaced from the agenda result; each one cross-referenced to applicable comparable engagements where the same area surfaced.',
-            '  (4) Comparable engagement library — for each of the 3-5 selected comparables: codeName, 1-line "why this one is relevant," 1-line lesson.',
+            '  (4) Comparable engagement library — for each of the 3-5 selected comparables: codeName, 1-line "why this one is relevant," 1-line lesson, and a static anchor URL of the form `https://globalstrategic.tech/ma-portfolio/#<codeName-lowercase>` so the deal team can click through to the portfolio detail row.',
             '  (5) VDR follow-ups — for each agenda topic and attention area, name the canonical VDR folder (verbatim from the embedded Library article) and 2 concrete document requests, prioritized by signal-to-effort.',
             '  (6) Open quesions / next steps — 3-5 bullets the deal team should resolve before the next milestone.',
             '',
