@@ -550,19 +550,21 @@ Run 2 also exhibited a strong "honor-the-hint-but-flag-the-mismatch" behavior �
 
 ## V4 — `gst_regulatory_exposure_brief`
 
+> **Spec note (reconciled 2026-05-01)**: this section originally instructed the model to call `resources/read gst://regulations/...` for each match. Commit 5 of BL-031.75 (V1 finding 1) established that Resources are not model-fetchable from prompt expansion in Claude Desktop; the Library and Radar prompts solved this by embedding Resource bodies as `EmbeddedResource` content blocks. For the 120-framework regulation set, embedding all bodies is infeasible — instead the prompt body's design uses the `search_regulations` result fields (name, summary, keyRequirements, penalties, jurisdiction, effectiveDate) as the authoritative source for the brief. The procedure and pass criteria below have been reworded to match that design; the original "Per-framework Resources read by URI" criterion is obsolete and removed.
+
 **Procedure**
 
 1. Slash-menu → `gst_regulatory_exposure_brief`. Fill: `{ targetJurisdictions: ['eu', 'us-ca'], dataCategories: ['data-privacy', 'ai-governance'], productType: <e.g. 'b2b-saas'> }`.
-2. Submit. The model calls `search_regulations` per jurisdiction × category and reads each match's Resource body via `resources/read`.
-3. **Click the surfaced filtered Regulatory Map deep-link** in a browser to verify `?region=&filter=` filter restoration.
+2. Submit. The model calls `search_regulations` per jurisdiction × category and assembles the brief from the search-result fields directly (no `resources/read` calls — see spec note above).
+3. **Click the surfaced filtered Regulatory Map deep-link** in a browser to verify `?region=&filter=` filter restoration. (Should now decode to uppercase `EU` / `US-CA` per the V2 jurisdiction-normalization fix in commit `e4fe98d`.)
 
 **Pass criteria**
 
 - [ ] `search_regulations` called for each jurisdiction × category combination.
-- [ ] Per-framework Resources read by URI (look for the model invoking `resources/read gst://regulations/...`).
+- [ ] Per-framework summaries are sourced from the `search_regulations` result fields (name, summary, keyRequirements, penalties) — no invented prose, no `resources/read` calls. The summary may name additional context (effective date, enforcement authority) only if it appears verbatim in the search result.
 - [ ] Brief assembled with: per-jurisdiction breakdown + cross-jurisdictional themes + Open-in-Hub.
-- [ ] **Per-framework anchor URLs present** in the output.
-- [ ] **Filtered Regulatory Map deep-link** restores `?region=&filter=` filters byte-identically.
+- [ ] **Per-framework deep-links present** — each named framework cites the per-result `deeplink` field from its `search_regulations` match (Regulatory Map filtered to that framework's region+category).
+- [ ] **Aggregate filtered Regulatory Map deep-link** (the search response's `filterDeeplink`) restores `?region=&filter=` filters byte-identically when clicked.
 - [ ] Obligation summaries are tailored to the supplied `productType` (not generic).
 - [ ] Senior-consultant sign-off.
 
