@@ -1275,4 +1275,108 @@ When implementing any BL-031.x / BL-032.x / BL-033 initiative:
 
 ---
 
+### BL-036: MCP Server — `gst_vdr_audit` Quality Maturity Roadmap (Tiers 2–6)
+
+**Source**: BL-036 — surfaces the substantive critique recorded during BL-031.75 V5 sign-off (`gst_vdr_audit` produces structured output but operates on weak input signal — folder names alone — so most of the deliverable is the canonical taxonomy elaborated against training, not contents-grounded audit). | **Effort**: 1-3 weeks engineering across the five tiers (each is independently shippable) | **Status**: Open · Tier 1 (file-list input) shipped in the BL-031.75 V5 sign-off commit | **Depends on**: BL-031.75 (closed); some tiers depend on BL-031.95 (URL state) and on portfolio search
+
+**As a** GST consultant running technology diligence in Claude Desktop, **I want** the `gst_vdr_audit` prompt to operate on richer VDR signal than folder names alone **so that** the audit deliverable reflects contents quality, deal-shape comparables, and (eventually) live VDR provider state — not just structural mapping against the canonical 9-folder taxonomy. This closes the "thin checklist generator" gap surfaced during V5 sign-off and matures the prompt's value-per-invocation to match V1 / V3 / V4.
+
+#### Planning Criteria
+
+**Use cases — five independent tiers, shippable in order**
+
+- **Tier 2 — File metadata accepting** (~1 day) — extend the `vdrFolders` shape from `{ name, files? }` to `{ name, files?: { name, modifiedAt?, sizeBytes? }[] }`. Body picks up staleness flags ("Security folder's pen test dated 2022 — >3 years stale"), dump-vs-curated patterns ("hundreds of files all dated within two days suggests rushed assembly"), and signed-PDF detection (size > 200KB + extension). Audit gains real "what to actually trust" judgment instead of structural-only assessment.
+
+- **Tier 3 — Comparable-engagement cross-reference** (~half-day, depends on portfolio search remaining stable) — after producing the gap list, automatically call `search_portfolio` for similar engagements and surface "in deals like this, the Security gap typically revealed X / led to Y price adjustment." Connects this prompt's structured output to the portfolio data; output becomes deal-grade rather than checklist-grade. Mirrors the cross-reference pattern used in `gst_diligence_handoff_memo`.
+
+- **Tier 4 — VDR provider API integration** (~1-2 weeks per provider; BL-031.95+ scope envelope) — direct integration with Datasite / Ansarada / Intralinks APIs so the user supplies a VDR URL or provider session token instead of pasting folder + file metadata. The prompt pulls the actual structure, file counts, last-modified timestamps, watermark/access logs. This is where it becomes a real audit, not a checklist. Likely sequenced after BL-032.5 (remote MCP) so credential handling has a place to live.
+
+- **Tier 5 — Ongoing audit deltas** (~half-day, requires Tier 4) — "Compare this snapshot to last week's snapshot — what changed?" Surfaces newly-added folders, pulled documents (red flag), late-arriving security artifacts. Becomes a process tool with state, not a one-shot. Requires snapshot persistence — likely tied to the same storage that BL-032.75 (production observability) introduces.
+
+- **Tier 6 — Sell-side workflow flip** (~1 day, repositions the prompt) — add a `mode: 'sell-side-prep' | 'buy-side-audit'` arg. Sell-side prep flips the polarity: same canonical taxonomy, but the output is "here's what you need to assemble before you open the VDR" rather than "here's what's missing." Founders preparing for exit get a different, equally-useful output from the same engine. Doubles the prompt's addressable use base.
+
+**Outcomes**
+
+- `gst_vdr_audit` value-per-invocation matches the rest of the BL-031.75 surface (V1 diligence kickoff, V3 comparable engagements, V4 regulatory exposure) — every tier completed adds verifiable signal that GST's canonical taxonomy + a Word template can't replicate
+- Tier 4 sets the technical pattern for any future "live external surface" prompt (e.g., live Slack channel summarization, live GitHub repo audit) — credential handling, snapshot persistence, delta computation become reusable primitives
+- Tier 6 doubles the addressable use base — same engine serves buy-side and sell-side workflows from one prompt
+
+**Business value**
+
+- **Closes the BL-031.75 V5 critique definitively** — the senior consultant flagged the prompt as the weakest of the eight; tiers 2-3 alone close most of that gap
+- **Converts a checklist generator into a real audit tool** — Tier 4 changes the prompt's identity from "starting point" to "deliverable." Aligns the surface with GST's "deal-team-ready output" promise
+- **The pattern generalizes** — input-quality enrichment → contents-quality heuristics → portfolio cross-ref → external-API integration → ongoing tracking is a template that applies to other prompts (e.g., a future `gst_repo_audit` over a live GitHub org)
+- **Modest engineering investment per tier** — Tiers 2, 3, 5, 6 are each ≤1 day. Tier 4 is the heavyweight (1-2 weeks) and is intentionally deferred until BL-032.5 makes credential handling viable
+
+#### Acceptance Criteria
+
+**Tier 2 — File metadata** (single-tier sub-deliverable)
+
+- [ ] `vdrFolders[].files[]` accepts `string | { name: string, modifiedAt?: string, sizeBytes?: number }` (string remains the Tier 1 shape; object adds metadata)
+- [ ] Audit body's Step 2b extended with metadata-aware signals (staleness, signed-PDF detection, dump-vs-curated)
+- [ ] At least one regression test asserting metadata flows from input to body
+- [ ] V5 re-run with metadata-rich mock; output captured in golden snapshot
+
+**Tier 3 — Comparable cross-reference**
+
+- [ ] After producing the gap list, prompt body instructs the model to call `search_portfolio` with a derived query (e.g., theme inferred from the target's product context)
+- [ ] Per-gap "in similar deals, X" annotation surfaced when ≥1 comparable matches
+- [ ] Cross-reference is opt-out via a new `crossReference: boolean` arg (default `true`) so analysts running short on tokens can skip
+- [ ] Test asserts the body mentions `search_portfolio` literally when crossReference is true
+
+**Tier 4 — VDR provider API integration**
+
+- [ ] Architecture doc authored (per BL-031.5 / BL-031.75 pattern)
+- [ ] Provider-agnostic interface: VDR provider plugged in by name (`provider: 'datasite' | 'ansarada' | 'intralinks'`), credential lookup via the BL-032.5 remote secret store
+- [ ] At least one provider integration shipped (Datasite proposed first based on M&A market share)
+- [ ] Audit input expanded to accept `{ provider, sessionRef }` in lieu of `vdrFolders` / `vdrInventory`; the tool wrapper enumerates the structure server-side
+- [ ] Round-trip parity test: a real VDR's structure produces an audit indistinguishable in shape from the structured-input path
+
+**Tier 5 — Ongoing audit deltas**
+
+- [ ] Snapshot persistence layer chosen (likely tied to BL-032.75 observability storage)
+- [ ] New input arg `compareToSnapshot: <ref>` triggers delta mode
+- [ ] Output adds a "Changes since last audit" section: added folders, removed folders / pulled documents, file-level changes within folders, staleness changes
+- [ ] Pulled-documents flag is surfaced prominently (red flag — typically signals an issue with materials previously disclosed)
+
+**Tier 6 — Sell-side workflow**
+
+- [ ] `mode: 'sell-side-prep' | 'buy-side-audit'` arg added (default `'buy-side-audit'` for backward compat)
+- [ ] Body adapter: in `'sell-side-prep'` mode, output framing flips from "what's missing" to "what to assemble" — same canonical taxonomy, polarity reversed
+- [ ] Output for sell-side mode includes a recommended assembly sequence (e.g., "weeks 1-2: Software Architecture + SDLC; weeks 3-4: Security; weeks 5+: Governance + People") tied to the canonical taxonomy
+- [ ] Test asserts the body's output framing matches the supplied mode
+
+**Verification & docs**
+
+- [ ] Each tier earns a verification entry similar to BL-031.75 V<n> with input + output + sign-off
+- [ ] `mcp-server/README.md` § "Last verified" extended with a "BL-036 surface" stanza per tier shipped
+- [ ] When all five tiers are complete, retire the V5 "Spec note (2026-05-01)" caveat in the BL-031.75 verification doc
+
+#### Technical Context
+
+**Why split into five tiers rather than ship as one initiative**
+
+- Each tier is independently valuable and validates the prior tier's assumptions before the next is committed. Shipping Tier 2 will reveal whether file metadata is sufficient signal or whether the value only unlocks at Tier 4 (live integration); knowing that informs whether to invest the 1-2 weeks Tier 4 demands
+- Tiers 4-5 depend on infrastructure that doesn't exist yet (BL-032.5 credential store, BL-032.75 observability storage); ordering ensures we don't build the prompt enhancement ahead of the platform it requires
+- The pattern is a useful proving ground for the "live external surface" prompt class — the order is essentially "input enrichment → contents heuristics → cross-portfolio reasoning → external API → ongoing state." Insights from each tier will inform similar prompts authored later
+
+**Why not BL-035 or BL-031.95 line items**
+
+- BL-035 is the dynamic visual effects prototype — unrelated surface
+- BL-031.95 is "Hub Tools URL State Restoration & MCP Deep-Link Surface" — different surface (Hub tools, not MCP prompts) and different problem class
+- BL-036 needed its own home so the V5 critique has a tracked closure path independent of the URL state work
+
+**Tier dependencies (visual)**
+
+```
+Tier 1 (DONE in BL-031.75 V5 closure)
+  └── Tier 2 (file metadata)
+        └── Tier 3 (comparable cross-ref)
+        └── Tier 4 (VDR provider API) — also requires BL-032.5
+              └── Tier 5 (audit deltas) — also requires BL-032.75
+  └── Tier 6 (sell-side workflow) — independent of Tiers 2-5
+```
+
+---
+
 _Created: April 18, 2026 | Last pruned: April 24, 2026_
