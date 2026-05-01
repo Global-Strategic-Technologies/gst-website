@@ -1262,28 +1262,151 @@ Confirms the BL-031.5 structured-error wiring (`SNAPSHOT_MISSING_MESSAGE` in `mc
 
 ## V8 — `gst_diligence_handoff_memo`
 
-**Procedure**
+> **Spec note (reconciled 2026-05-01)**: V8 sign-off triggered two layered changes:
+>
+> 1. **Anchor-URL emission added to body** — the original pass criterion required `/ma-portfolio/#<codeName>` anchors per comparable. Trial 1 (without `agendaJson` / `comparablesJson`) showed the body was not instructing the model to emit them; it just said "codeName, 1-line why-relevant, 1-line lesson." Body Step 4 section (4) updated to require the static anchor URL of the form `https://globalstrategic.tech/ma-portfolio/#<codeName-lowercase>`. New regression test in `diligence-handoff-memo.test.ts` locks the contract.
+> 2. **Claude Desktop UX limitation surfaced (informational only — no server-side fix possible)** — V8 trial 2 attempts initially appeared to fail because of the optional `agendaJson` field. The MCP server log (`%LOCALAPPDATA%\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\logs\mcp-server-gst.log`) revealed the actual server-returned error was a JSON-RPC `-32602` "invalid params" with the specific field mismatch (`productType: "b2b-saa"` instead of `"b2b-saas"` — a single-character form-state corruption). Claude Desktop collapses this structured error into a generic _"Failed to attach prompt. You can try again."_ with no field-level detail surfaced to the user. Investigation tip captured in the closure stanza below: when a prompt fails to attach, tail the MCP server log for the structured error before assuming a server-side bug.
 
-1. Slash-menu → `gst_diligence_handoff_memo`. Fill the full `UserInputs` payload + `targetName`.
-2. Optional variant: also supply `agendaJson` from a previous V1 run to exercise the "use pre-generated artifact" branch.
-3. Submit. The model orchestrates `generate_diligence_agenda` (or uses the supplied JSON) + `search_portfolio` + reads `gst://library/vdr-structure`.
+**Procedure (Trial 1 — full orchestration)**
+
+1. Slash-menu → `gst_diligence_handoff_memo`. Fill the full `UserInputs` payload + `targetName`. Leave `agendaJson` and `comparablesJson` blank.
+2. Submit. The model orchestrates `generate_diligence_agenda` once + `search_portfolio` 1–3 times + reads the embedded `gst://library/vdr-structure`.
+
+**Procedure (Trial 2 — pre-supplied artifacts)**
+
+1. Same form, also supply `agendaJson` (a real or representative `GeneratedScript` JSON) and `comparablesJson` (a real or representative `search_portfolio` matches array). Compact mocks documented in V8 evidence below.
+2. Submit. The model should SKIP both `generate_diligence_agenda` and `search_portfolio` calls, using the supplied JSON directly. Output should be substantively similar to Trial 1 with two fewer tool calls observed.
 
 **Pass criteria**
 
-- [ ] Single coherent memo (not stitched-together tool outputs).
-- [ ] All sections present: engagement context, agenda, attention areas (cross-referenced to comparables), comparable engagement library, prioritized VDR follow-ups, open questions / next steps.
-- [ ] Per-portfolio-match anchor URLs to `/ma-portfolio` rows present (static `/#<id>` anchors; not stateful — keep simple per the deep-link table).
-- [ ] When `agendaJson` is supplied, the model uses it directly instead of re-calling `generate_diligence_agenda`.
-- [ ] Senior-consultant sign-off.
+- [x] Single coherent memo (not stitched-together tool outputs). — _Both trials produced a 6-section memo where the four deal-shape facts (majority-stake / mid-migration / high data sensitivity / dual US-EU) thread through every section; readers couldn't tell where one tool's output stopped and another's began._
+- [x] All sections present: engagement context, agenda, attention areas (cross-referenced to comparables), comparable engagement library, prioritized VDR follow-ups, open questions / next steps.
+- [x] Per-portfolio-match anchor URLs to `/ma-portfolio` rows present (static `/#<codeName-lowercase>` anchors; not stateful — keep simple per the deep-link table). — _Body Step 4(4) updated; regression test asserts `https://globalstrategic.tech/ma-portfolio/` appears in the rendered body. Anchor-URL emission verified against the post-fix dist after re-running Trial 1._
+- [x] When `agendaJson` is supplied, the model uses it directly instead of re-calling `generate_diligence_agenda`. — _Trial 2 produced exactly the 8 questions from the supplied agendaJson (4 topics × 2 questions); no additional questions appeared. Same for comparablesJson — exactly the 5 codeNames (Inspire / Ecological / Shield / Gazelle / Longhorn) appeared, with industry / ARR / year metadata matching the supplied JSON byte-for-byte._
+- [x] Senior-consultant sign-off. — _Recorded 2026-05-01 against post-fix `dist/index.js` (commits through V8 anchor-URL emission)._
+
+**Findings carried forward**:
+
+1. **Anchor URLs missing from body design** — closed by adding `https://globalstrategic.tech/ma-portfolio/#<codeName-lowercase>` instruction to body Step 4(4) plus a regression test in `diligence-handoff-memo.test.ts`.
+2. **Claude Desktop "Failed to attach prompt" UX gap (informational)** — server returns structured `-32602` errors with field-level detail; Desktop collapses to a generic message. Captured as a debugging tip in the closure stanza ("tail `mcp-server-gst.log` for the structured error first"). Not a server-side bug; future Claude Desktop versions may surface the field detail directly.
 
 **Evidence**
 
 <details>
-<summary>V8 input + output</summary>
+<summary>V8 Trial 1 input + output (full orchestration, no pre-supplied artifacts)</summary>
+
+Input args:
+
+```json
+{
+  "targetName": "Helios Health",
+  "transactionType": "majority-stake",
+  "productType": "b2b-saas",
+  "techArchetype": "modern-cloud-native",
+  "headcount": "51-200",
+  "revenueRange": "25-100m",
+  "growthStage": "scaling",
+  "companyAge": "5-10yr",
+  "geographies": ["us", "eu"],
+  "businessModel": "productized-platform",
+  "scaleIntensity": "moderate",
+  "transformationState": "mid-migration",
+  "dataSensitivity": "high",
+  "operatingModel": "product-aligned-teams"
+}
+```
+
+Tool calls observed: `generate_diligence_agenda` ×1 + `search_portfolio` 2–3× (model self-corrected: "No matches on that combined string — the search is doing literal text matching. Let me try a broader search and use the engagement filter.") + embedded `gst://library/vdr-structure` referenced via folder-label-verbatim usage.
+
+Output excerpt (full deliverable in git):
 
 ```
-TBD
+# Helios Health — Diligence Handoff Memo
+
+## 1. Engagement context
+Helios Health is a B2B SaaS productized platform... The contemplated
+transaction is a majority-stake investment. The target is mid-migration
+on a material platform transition, and operates under high data-sensitivity
+conditions. These four facts — majority-stake (not full control), mid-
+migration (in-flight execution risk), high data sensitivity (regulatory
+blast radius), and dual US/EU geography — define the diligence priorities
+below.
+
+## 2. Diligence agenda
+[19 prioritized topics across architecture / operations / security /
+carve-out, each with "what we look for here" framing]
+
+## 3. Attention areas
+[5 areas, each cross-referenced to specific comparable engagements:
+Inspire, Gazelle, Ecological, Shield, Longhorn]
+
+## 4. Comparable engagement library
+[Inspire, Ecological, Shield, Gazelle, Longhorn — each with codeName,
+1-line why-relevant, 1-line lesson]
+
+## 5. VDR follow-ups
+[16 folder mappings; canonical labels verbatim from gst://library/vdr-structure]
+
+## 6. Open questions / next steps
+- Migration scope and stage
+- AI footprint
+- Majority-stake governance terms
+- Existing certification scope
+- Comparable selection for the GP review
 ```
+
+</details>
+
+<details>
+<summary>V8 Trial 2 input + output (pre-supplied artifacts; verifies skip-orchestration branch)</summary>
+
+Input args (full payload above, plus):
+
+```json
+{
+  "agendaJson": "{\"topics\":[{...4 topics × 2 questions = 8 questions...}],\"attentionAreas\":[...3 areas...],\"triggerMap\":{...},\"metadata\":{...}}",
+  "comparablesJson": "{\"matches\":[{\"id\":\"inspire\",\"codeName\":\"Inspire\",\"industry\":\"EdTech\",...},{...Ecological...},{...Shield...},{...Gazelle...},{...Longhorn...}],\"totalMatched\":5,\"returned\":5}"
+}
+```
+
+Tool calls observed: NEITHER `generate_diligence_agenda` NOR `search_portfolio` — both skipped per the body's conditional branches. `gst://library/vdr-structure` still referenced via folder labels in section 5.
+
+Output excerpt (full deliverable in git):
+
+```
+# Helios Health — Diligence Handoff Memo
+
+## 2. Diligence agenda
+Eight questions across four topic groups, priority-sorted within each.
+[exactly the 8 supplied questions: arch-01, arch-04, ops-02, ops-05,
+sec-01, sec-03, co-01, co-02 — no fabrications, no extras]
+
+## 3. Attention areas
+Three flagged by the agenda engine. [exactly the 3 supplied:
+mid-migration instability, cross-border data compliance, data
+classification maturity gap — each cross-referenced to specific
+comparables from the supplied comparablesJson]
+
+## 4. Comparable engagement library
+Five buy-side and sell-side TDDs at scaling-growth stage, all 2023–2025.
+- Inspire (EdTech, Buy-Side TDD, $30M ARR, 2023)
+- Ecological (Environmental SaaS, Buy-Side TDD, $22M ARR, 2024)
+- Shield (Public Safety, Sell-Side TDD, $18M ARR, 2024)
+- Gazelle (HealthTech, Buy-Side TDD, $45M ARR, 2025)
+- Longhorn (Industrial SaaS, Sell-Side TDD, $55M ARR, 2025)
+[each with codeName + industry + ARR + year metadata matching the
+supplied comparablesJson byte-for-byte]
+
+## 6. Open questions / next steps
+[Closing decision in section 6: "Anchor on Gazelle if the IC wants the
+regulated-data scope-expansion precedent, or Inspire if the IC wants
+the carve-out plus IAM-remediation cost envelope. Both fit; the choice
+signals which value-creation thesis we're underwriting." — converts
+the supplied comparable shortlist into an IC-narrative recommendation
+that's not derivable from the JSON alone.]
+```
+
+The Trial 2 output verifies the optimization branch end-to-end: schema accepts pre-supplied JSON → body conditionally skips the generate calls → model produces a deliverable substantively identical to Trial 1's full-orchestration path with two fewer tool calls observed.
 
 </details>
 
