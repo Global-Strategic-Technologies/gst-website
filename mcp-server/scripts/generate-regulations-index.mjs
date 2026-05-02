@@ -9,12 +9,34 @@
 // require editing the loader.
 //
 // `prebuild`, `pretypecheck`, and `pretest` all regenerate the outputs.
+//
+// The emitted output is piped through prettier (using the project's
+// `.prettierrc.json`) before write, so post-regeneration `git status` is
+// clean — the script's output round-trips byte-identically with the
+// `lint-staged` hook's prettier pass. Without this, tracked-vs-regen
+// whitespace drift made the generated files perpetually appear "modified."
 
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { format, resolveConfig } from 'prettier';
 
 const here = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Format a string of TypeScript source with the project's prettier config
+ * and write to disk. Identical input → identical output across machines as
+ * long as `.prettierrc.json` is unchanged.
+ */
+async function writeFormatted(filePath, content) {
+  const prettierConfig = await resolveConfig(filePath);
+  const formatted = await format(content, {
+    ...prettierConfig,
+    parser: 'typescript',
+    filepath: filePath,
+  });
+  writeFileSync(filePath, formatted, 'utf8');
+}
 
 // ─── Regulations ─────────────────────────────────────────────────────────────
 {
@@ -52,7 +74,7 @@ const here = dirname(fileURLToPath(import.meta.url));
   });
 
   const content = [...banner, ...body, '];', ''].join('\n');
-  writeFileSync(outFile, content, 'utf8');
+  await writeFormatted(outFile, content);
   console.log(`[gst-mcp] generated regulations-data.generated.ts (${records.length} frameworks)`);
 }
 
@@ -96,6 +118,6 @@ const here = dirname(fileURLToPath(import.meta.url));
   });
 
   const content = [...banner, ...body, '};', ''].join('\n');
-  writeFileSync(outFile, content, 'utf8');
+  await writeFormatted(outFile, content);
   console.log(`[gst-mcp] generated library-data.generated.ts (${records.length} articles)`);
 }
