@@ -8,17 +8,26 @@
 
 import type { McpServer } from '@modelcontextprotocol/server';
 import { compute } from '../../../src/utils/techpar-engine';
-import { TechParInputsSchema } from '../schemas';
+import type { TechParInputs } from '../../../src/schemas/techpar';
+import {
+  TechParMcpInputsSchema,
+  type TechParMcpInputs,
+  TECHPAR_STAGE_ADAPTER,
+  resolveTechparStageInput,
+} from '../schemas';
 
 const TOOL_DESCRIPTION = `Compute TechPar — a benchmark of a target company's technology cost ratio against stage-specific peer ranges.
 
-Given a 14-field input (ARR, growth stage, mode, capex view, growth rate, exit multiple, infra hosting/personnel, R&D OpEx/CapEx, engineering FTEs, and per-category cost breakdown), returns:
+Given a 14-field input (ARR, funding stage, mode, capex view, growth rate, exit multiple, infra hosting/personnel, R&D OpEx/CapEx, engineering FTEs, and per-category cost breakdown), returns:
 
 - \`totalTechPct\` — blended technology cost as a percentage of revenue
 - \`zone\` — one of underinvest / ahead / healthy / above / elevated / critical
 - Per-category KPIs with benchmark ranges and zone classifications
 - 36-month gap projection (cumulative excess or underinvestment)
 - Stage configuration metadata
+- \`stageContext\` — the native stage the engine used and the canonical funding-stage equivalents
+
+\`stage\` accepts either canonical values (seed | series-a | series-b | series-c | pe | enterprise — preferred) or TechPar-native values (seed | series_a | series_bc | pe | enterprise). TechPar collapses canonical series-b + series-c into series_bc; the canonical layer documents this honestly.
 
 \`infraHosting\` and \`arr\` must both be > 0 (the engine returns null otherwise — surfaced here as an error). Same engine as https://globalstrategic.tech/hub/tools/techpar.`;
 
@@ -28,14 +37,17 @@ export function registerTechparTool(server: McpServer): void {
     {
       title: 'Compute TechPar Benchmark',
       description: TOOL_DESCRIPTION,
-      inputSchema: TechParInputsSchema,
+      inputSchema: TechParMcpInputsSchema,
       annotations: {
         readOnlyHint: true,
         idempotentHint: true,
       },
     },
-    async (inputs) => {
+    async (mcpInputs: TechParMcpInputs) => {
       try {
+        // Resolve canonical-or-native stage to native (BL-031.87).
+        const nativeStage = resolveTechparStageInput(mcpInputs.stage);
+        const inputs: TechParInputs = { ...mcpInputs, stage: nativeStage };
         const result = compute(inputs);
         if (result === null) {
           return {
@@ -48,14 +60,19 @@ export function registerTechparTool(server: McpServer): void {
             isError: true,
           };
         }
+        const stageContext = {
+          native: nativeStage,
+          canonical: TECHPAR_STAGE_ADAPTER.toCanonical[nativeStage],
+        };
+        const payload = { ...result, stageContext };
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(result, null, 2),
+              text: JSON.stringify(payload, null, 2),
             },
           ],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: payload as unknown as Record<string, unknown>,
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

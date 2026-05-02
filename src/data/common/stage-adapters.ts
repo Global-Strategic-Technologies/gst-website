@@ -1,6 +1,6 @@
 import { type CompanyStage } from '../../schemas/icg';
 import { type Stage as TechParStage } from '../../schemas/techpar';
-import { type CanonicalStage } from './funding-stages';
+import { CANONICAL_STAGES, type CanonicalStage } from './funding-stages';
 
 /**
  * Adapter modules translating between the canonical funding-stage
@@ -98,4 +98,35 @@ export function techparFromCanonical(canonical: CanonicalStage): TechParStage {
 
 export function techparToCanonical(native: TechParStage): readonly CanonicalStage[] {
   return TECHPAR_STAGE_ADAPTER.toCanonical[native];
+}
+
+// ─── MCP-wrapper-boundary resolvers ──────────────────────────────────────────
+// These accept a runtime value that has been validated by Zod as either a
+// canonical funding-stage or a tool-native stage, and return the native
+// value the engine expects. Use at the MCP-wrapper boundary right after
+// schema parsing, before invoking the engine.
+
+export function isCanonicalStage(value: string): value is CanonicalStage {
+  return (CANONICAL_STAGES as readonly string[]).includes(value);
+}
+
+/**
+ * Resolve an ICG stage input (canonical or native) to the native
+ * `CompanyStage` value the ICG engine expects. Returns `undefined`
+ * when the input is `undefined` (ICG's `companyStage` is optional).
+ */
+export function resolveIcgStageInput(value: string | undefined): CompanyStage | undefined {
+  if (value === undefined) return undefined;
+  return isCanonicalStage(value) ? ICG_STAGE_ADAPTER.fromCanonical[value] : (value as CompanyStage);
+}
+
+/**
+ * Resolve a TechPar stage input (canonical or native) to the native
+ * `Stage` value the TechPar engine expects. TechPar's `stage` is
+ * required; this function does not accept `undefined`.
+ */
+export function resolveTechparStageInput(value: string): TechParStage {
+  return isCanonicalStage(value)
+    ? TECHPAR_STAGE_ADAPTER.fromCanonical[value]
+    : (value as TechParStage);
 }

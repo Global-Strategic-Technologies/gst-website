@@ -31,6 +31,9 @@ import {
   icgToCanonical,
   techparFromCanonical,
   techparToCanonical,
+  isCanonicalStage,
+  resolveIcgStageInput,
+  resolveTechparStageInput,
 } from '../../../src/data/common/stage-adapters';
 import { COMPANY_STAGE_VALUES } from '../../../src/schemas/icg';
 import { STAGE_KEYS } from '../../../src/schemas/techpar';
@@ -198,6 +201,78 @@ describe('TECHPAR_STAGE_ADAPTER', () => {
       for (const native of STAGE_KEYS) {
         expect(techparToCanonical(native)).toBe(TECHPAR_STAGE_ADAPTER.toCanonical[native]);
       }
+    });
+  });
+});
+
+describe('MCP-wrapper-boundary resolvers', () => {
+  describe('isCanonicalStage', () => {
+    it('returns true for every canonical stage', () => {
+      for (const c of CANONICAL_STAGES) {
+        expect(isCanonicalStage(c)).toBe(true);
+      }
+    });
+
+    it('returns false for ICG-native-only values', () => {
+      // Values that exist only in the ICG enum, not in CANONICAL_STAGES.
+      for (const native of ['pre-series-b', 'series-bc', 'pe-backed']) {
+        expect(isCanonicalStage(native)).toBe(false);
+      }
+    });
+
+    it('returns false for TechPar-native-only values', () => {
+      for (const native of ['series_a', 'series_bc']) {
+        expect(isCanonicalStage(native)).toBe(false);
+      }
+    });
+
+    it('returns true for values that overlap canonical and native (e.g. enterprise, pe, seed)', () => {
+      // These are in BOTH canonical and at least one tool-native enum;
+      // the resolver no-ops them because fromCanonical[x] === x.
+      expect(isCanonicalStage('enterprise')).toBe(true);
+      expect(isCanonicalStage('pe')).toBe(true);
+      expect(isCanonicalStage('seed')).toBe(true);
+    });
+  });
+
+  describe('resolveIcgStageInput', () => {
+    it('returns undefined when input is undefined', () => {
+      expect(resolveIcgStageInput(undefined)).toBeUndefined();
+    });
+
+    it('translates canonical values to ICG-native', () => {
+      expect(resolveIcgStageInput('seed')).toBe('pre-series-b');
+      expect(resolveIcgStageInput('series-a')).toBe('pre-series-b');
+      expect(resolveIcgStageInput('series-b')).toBe('series-bc');
+      expect(resolveIcgStageInput('series-c')).toBe('series-bc');
+      expect(resolveIcgStageInput('pe')).toBe('pe-backed');
+      expect(resolveIcgStageInput('enterprise')).toBe('enterprise');
+    });
+
+    it('passes ICG-native values through unchanged', () => {
+      expect(resolveIcgStageInput('pre-series-b')).toBe('pre-series-b');
+      expect(resolveIcgStageInput('series-bc')).toBe('series-bc');
+      expect(resolveIcgStageInput('pe-backed')).toBe('pe-backed');
+      expect(resolveIcgStageInput('enterprise')).toBe('enterprise');
+    });
+  });
+
+  describe('resolveTechparStageInput', () => {
+    it('translates canonical values to TechPar-native', () => {
+      expect(resolveTechparStageInput('seed')).toBe('seed');
+      expect(resolveTechparStageInput('series-a')).toBe('series_a');
+      expect(resolveTechparStageInput('series-b')).toBe('series_bc');
+      expect(resolveTechparStageInput('series-c')).toBe('series_bc');
+      expect(resolveTechparStageInput('pe')).toBe('pe');
+      expect(resolveTechparStageInput('enterprise')).toBe('enterprise');
+    });
+
+    it('passes TechPar-native values through unchanged', () => {
+      expect(resolveTechparStageInput('seed')).toBe('seed');
+      expect(resolveTechparStageInput('series_a')).toBe('series_a');
+      expect(resolveTechparStageInput('series_bc')).toBe('series_bc');
+      expect(resolveTechparStageInput('pe')).toBe('pe');
+      expect(resolveTechparStageInput('enterprise')).toBe('enterprise');
     });
   });
 });

@@ -8,6 +8,32 @@
 
 import { z } from 'zod';
 
+import { CanonicalStageSchema } from '../../src/data/common/funding-stages';
+import { CompanyStageSchema, ICGInputsSchema } from '../../src/schemas/icg';
+import { StageSchema as TechParStageSchema, TechParInputsSchema } from '../../src/schemas/techpar';
+
+// Re-export canonical funding-stage taxonomy + adapters (BL-031.87).
+// The canonical layer is the public-API stability surface for stage-aware
+// MCP tools; per-tool native enums translate via the Adapter modules.
+export {
+  CANONICAL_STAGES,
+  CanonicalStageSchema,
+  CANONICAL_STAGE_DESCRIPTIONS,
+  type CanonicalStage,
+} from '../../src/data/common/funding-stages';
+
+export {
+  ICG_STAGE_ADAPTER,
+  TECHPAR_STAGE_ADAPTER,
+  icgFromCanonical,
+  icgToCanonical,
+  techparFromCanonical,
+  techparToCanonical,
+  isCanonicalStage,
+  resolveIcgStageInput,
+  resolveTechparStageInput,
+} from '../../src/data/common/stage-adapters';
+
 // Re-export the diligence input schema and supporting tuples.
 export { UserInputsSchema, type ValidatedUserInputs } from '../../src/schemas/diligence';
 
@@ -94,3 +120,42 @@ export type SearchPortfolioInput = z.infer<typeof SearchPortfolioInputSchema>;
 /** Input for the `list_portfolio_facets` tool — no parameters. */
 export const ListPortfolioFacetsInputSchema = z.object({});
 export type ListPortfolioFacetsInput = z.infer<typeof ListPortfolioFacetsInputSchema>;
+
+// ─── MCP tool input schemas with canonical-stage backward-compat (BL-031.87)
+//
+// The wrapped ICG and TechPar tools accept either the canonical funding-
+// stage taxonomy (preferred — see `CANONICAL_STAGES`) or the per-tool
+// native enum (backward-compat). The wrapper translates canonical to
+// native via the adapter resolvers (`resolveIcgStageInput` /
+// `resolveTechparStageInput`) before invoking the engine.
+
+const ICG_STAGE_DESCRIPTION =
+  'Funding-stage cohort. Prefer canonical values (seed | series-a | series-b | series-c | pe | enterprise); ICG-native values (pre-series-b | series-bc | pe-backed | enterprise) are accepted for backward compatibility. ICG collapses canonical seed + series-a into pre-series-b and canonical series-b + series-c into series-bc — see contracts glossary in mcp-server/src/docs/contracts/README.md.';
+
+const TECHPAR_STAGE_DESCRIPTION =
+  'Funding-stage cohort. Prefer canonical values (seed | series-a | series-b | series-c | pe | enterprise); TechPar-native values (seed | series_a | series_bc | pe | enterprise) are accepted for backward compatibility. TechPar collapses canonical series-b + series-c into series_bc.';
+
+/**
+ * MCP-layer input schema for `assess_infrastructure_cost_governance`.
+ * Wraps `ICGInputsSchema` and replaces `companyStage` with a union
+ * accepting canonical or native values. Wrapper resolves to native
+ * before invoking the ICG engine.
+ */
+export const ICGMcpInputsSchema = ICGInputsSchema.extend({
+  companyStage: z
+    .union([CanonicalStageSchema, CompanyStageSchema])
+    .optional()
+    .describe(ICG_STAGE_DESCRIPTION),
+});
+export type ICGMcpInputs = z.infer<typeof ICGMcpInputsSchema>;
+
+/**
+ * MCP-layer input schema for `compute_techpar`. Wraps
+ * `TechParInputsSchema` and replaces `stage` with a union accepting
+ * canonical or native values. Wrapper resolves to native before
+ * invoking the TechPar engine.
+ */
+export const TechParMcpInputsSchema = TechParInputsSchema.extend({
+  stage: z.union([CanonicalStageSchema, TechParStageSchema]).describe(TECHPAR_STAGE_DESCRIPTION),
+});
+export type TechParMcpInputs = z.infer<typeof TechParMcpInputsSchema>;

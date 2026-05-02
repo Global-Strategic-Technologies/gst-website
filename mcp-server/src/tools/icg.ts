@@ -18,7 +18,13 @@ import {
 } from '../../../src/utils/icg-engine';
 import { DOMAINS } from '../../../src/data/infrastructure-cost-governance/domains';
 import { RECOMMENDATIONS } from '../../../src/data/infrastructure-cost-governance/recommendations';
-import { ICGInputsSchema, type ICGInputs } from '../schemas';
+import {
+  ICGMcpInputsSchema,
+  type ICGMcpInputs,
+  ICG_STAGE_ADAPTER,
+  resolveIcgStageInput,
+  type ICGInputs,
+} from '../schemas';
 import { HUB_BASE } from '../config';
 
 /**
@@ -38,13 +44,16 @@ export function buildResultsState(inputs: ICGInputs): ICGState {
 
 const TOOL_DESCRIPTION = `Assess a target company's Infrastructure Cost Governance maturity.
 
-Given an \`answers\` map keyed by ICG question ID (values: 0-3 for the four maturity levels, or -1 for "Not sure" which is penalised) and an optional \`companyStage\` ('pre-series-b' | 'series-bc' | 'pe-backed' | 'enterprise'), returns:
+Given an \`answers\` map keyed by ICG question ID (values: 0-3 for the four maturity levels, or -1 for "Not sure" which is penalised) and an optional \`companyStage\`, returns:
 
 - \`overallScore\` (0-100) and \`maturityLevel\` ('Reactive' | 'Aware' | 'Optimizing' | 'Strategic')
 - Per-domain scores with foundational-flag status
 - Sorted recommendations triggered by below-threshold answers (impact-then-effort ordering)
 - Aggregate counts (answered, total, "Not sure" responses)
 - \`deeplink\` — URL to open the ICG wizard with these answers pre-populated (for PDF / export / share via the website page)
+- \`stageContext\` — when \`companyStage\` is supplied, echoes the native value the engine used and the canonical funding-stage equivalents
+
+\`companyStage\` accepts either canonical values (seed | series-a | series-b | series-c | pe | enterprise — preferred) or ICG-native values (pre-series-b | series-bc | pe-backed | enterprise). ICG collapses canonical seed + series-a into pre-series-b and canonical series-b + series-c into series-bc; the canonical layer documents this honestly.
 
 Same engine that powers https://globalstrategic.tech/hub/tools/infrastructure-cost-governance — calling it via MCP eliminates the wizard round-trip.`;
 
@@ -59,19 +68,33 @@ export function registerIcgTool(server: McpServer): void {
     {
       title: 'Assess Infrastructure Cost Governance',
       description: TOOL_DESCRIPTION,
-      inputSchema: ICGInputsSchema,
+      inputSchema: ICGMcpInputsSchema,
       annotations: {
         readOnlyHint: true,
         idempotentHint: true,
       },
     },
-    async (inputs) => {
+    async (mcpInputs: ICGMcpInputs) => {
       try {
+        // Resolve canonical-or-native stage to native (BL-031.87).
+        const nativeStage = resolveIcgStageInput(mcpInputs.companyStage);
+        const inputs: ICGInputs = {
+          answers: mcpInputs.answers,
+          companyStage: nativeStage,
+        };
         const state = buildResultsState(inputs);
         const result = calculateResults(state, DOMAINS);
         const recommendations = getRecommendations(state, RECOMMENDATIONS);
         const deeplink = buildIcgDeeplink(state);
-        const payload = { ...result, recommendations, deeplink };
+        const stageContext = nativeStage
+          ? {
+              native: nativeStage,
+              canonical: ICG_STAGE_ADAPTER.toCanonical[nativeStage],
+            }
+          : undefined;
+        const payload = stageContext
+          ? { ...result, recommendations, deeplink, stageContext }
+          : { ...result, recommendations, deeplink };
         return {
           content: [
             {
