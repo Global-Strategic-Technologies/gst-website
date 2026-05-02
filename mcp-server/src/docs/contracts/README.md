@@ -45,7 +45,7 @@ A contract is NOT a copy of the Zod schema or the wizard-config — it cites the
 | Tech Debt Calculator | `estimate_tech_debt_cost`                      | [`../tech-debt/CONTRACT.md`](../tech-debt/CONTRACT.md)           | ✅ Authored (BL-031.5)  |
 | Regulatory Map       | `search_regulations`, `list_regulation_facets` | [`../regulatory-map/CONTRACT.md`](../regulatory-map/CONTRACT.md) | ✅ Authored (BL-031.5)  |
 | Portfolio Search     | `search_portfolio`, `list_portfolio_facets`    | (planned: `../portfolio/CONTRACT.md`)                            | ⏳ Backlog              |
-| Radar (cached)       | `search_radar_cache`                           | (planned alongside live `search_radar` in BL-032)                | ⏳ BL-032               |
+| Radar (cached)       | `search_radar_cache`                           | [`../radar/CONTRACT.md`](../radar/CONTRACT.md)                   | ✅ Authored (BL-031.95) |
 
 Contract docs are authored alongside their MCP tool wrappers. The diligence contract is the inaugural reference implementation — see `../diligence/CONTRACT.md` for the template. The four BL-031.5 contracts (ICG, TechPar, Tech Debt, Regulatory Map) follow it. The Portfolio Search contract is deferred to its own follow-up, and Radar's contract is deferred to BL-032 (when the live `search_radar` tool ships and the contract can cover both the live and snapshot variants in one place).
 

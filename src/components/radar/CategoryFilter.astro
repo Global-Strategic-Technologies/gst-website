@@ -35,12 +35,64 @@ const allD = (Math.abs(0 - center) / maxDist).toFixed(3);
 </nav>
 
 <script>
+  import {
+    serializeToParams as serializeRadarFilters,
+    deserializeFromParams as deserializeRadarFilters,
+  } from '../../utils/radar-url';
+
+  // BL-031.95 Phase 3.B: URL state ↔ category pill sync.
+  //
+  // - On init: read `?category=<X>` from the URL; if a known category is
+  //   present, activate that pill (matches the active state the user
+  //   would see by clicking) and apply the visual filter to any items
+  //   already in the DOM.
+  // - On click: write `?category=<X>` (or strip when "all") via
+  //   history.replaceState so a copied URL deep-links to the same view.
+  // - Items themselves are filtered exactly as before — server island
+  //   `data-category` attributes drive `display: none` / unset.
+
+  function applyFilterVisual(filter: string): void {
+    const items = document.querySelectorAll('[data-category]');
+    items.forEach((item) => {
+      const el = item as HTMLElement;
+      if (filter === 'all' || el.dataset.category === filter) {
+        el.style.display = '';
+      } else {
+        el.style.display = 'none';
+      }
+    });
+  }
+
+  function syncUrlState(filter: string): void {
+    try {
+      const filters = filter === 'all' ? {} : { category: filter as never };
+      const params = serializeRadarFilters(filters);
+      const queryString = params.toString();
+      const url = queryString
+        ? `${window.location.pathname}?${queryString}`
+        : window.location.pathname;
+      history.replaceState(null, '', url);
+    } catch {
+      // history API may be unavailable in sandboxed contexts; ignore.
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     const buttons = document.querySelectorAll('.filter-btn');
 
+    // Hydrate from URL: if a known category is in `?category=`, activate
+    // that pill and apply the visual filter immediately.
+    const urlFilters = deserializeRadarFilters(new URLSearchParams(window.location.search));
+    if (urlFilters.category) {
+      buttons.forEach((b) => {
+        b.classList.toggle('active', (b as HTMLElement).dataset.filter === urlFilters.category);
+      });
+      applyFilterVisual(urlFilters.category);
+    }
+
     buttons.forEach((btn) => {
       btn.addEventListener('click', () => {
-        const filter = (btn as HTMLElement).dataset.filter;
+        const filter = (btn as HTMLElement).dataset.filter ?? 'all';
 
         buttons.forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
@@ -48,15 +100,8 @@ const allD = (Math.abs(0 - center) / maxDist).toFixed(3);
         // Query items at click time — RadarFeed is a server island
         // that streams in after DOMContentLoaded, so items don't
         // exist during initial script setup.
-        const items = document.querySelectorAll('[data-category]');
-        items.forEach((item) => {
-          const el = item as HTMLElement;
-          if (filter === 'all' || el.dataset.category === filter) {
-            el.style.display = '';
-          } else {
-            el.style.display = 'none';
-          }
-        });
+        applyFilterVisual(filter);
+        syncUrlState(filter);
       });
     });
   });

@@ -243,4 +243,25 @@ Smaller phase; deferred-island feed, two filters.
 
 ---
 
-_Last updated: 2026-05-02 (Phase 1 + Phase 2 closure stanzas added; reconciliation note retained for context)_
+## Phase 3 (Radar) — closure summary
+
+**Shipped 2026-05-02.** Two sub-commits with a capability-mirror refactor wedged in front of the URL-state work.
+
+- `21e86c8` (Phase 3.A) — refactor MCP `search_radar_cache` tool + `gst_radar_brief_today` prompt to mirror the `/hub/radar` website's filter surface exactly. The tool's earlier `query` / `tier` / `since` / `limit` fields had no website counterpart; they were stripped under the capability-mirror invariant. The prompt's `sinceHours` argument was redundant against a 24h cache TTL ([`src/lib/inoreader/cache.ts:18`](../../lib/inoreader/cache.ts#L18)) and was dropped. `RadarTierEnum` re-export removed (zero consumers). `gst_radar_brief_today` bumped to v0.0.2; golden snapshot updated. README tool inventory description rewritten. 7 capability-mirror invariant tests lock the contract (4 in `radar-cache.test.ts` + 3 in `radar-brief-today.test.ts`).
+- `<this commit>` (Phase 3.B) — Phase 3 deliverables on top of the refactored tool:
+  - **URL encoder** at [`src/utils/radar-url.ts`](../../utils/radar-url.ts) — filter-grid archetype with a single readable `?category=<X>` parameter (matching Regulatory Map's convention). Round-trip parity test (`tests/unit/radar-url.test.ts`, 9 tests).
+  - **CategoryFilter wired** — [`src/components/radar/CategoryFilter.astro`](../../components/radar/CategoryFilter.astro) hydrates from URL on mount (activates the right pill + applies the visual filter to any items already in the DOM) and writes URL via `history.replaceState` on click. The encoder is the single source of truth — same module the MCP wrapper imports.
+  - **MCP wrapper extracted to `handleRadarCacheTool`** for testability; emits `deeplink` field via the shared encoder. Schema gains `.describe()` advertising the capability-mirror invariant.
+  - **Integration test** at `mcp-server/tests/integration/radar-cache-handler.test.ts` (5 tests) — exercises empty-input full-feed path, category-scoped path, deeplink encoder parity, snapshot-missing isError shape, and the capability-mirror invariant at the handler boundary.
+  - **CONTRACT.md** authored at [`mcp-server/src/docs/radar/CONTRACT.md`](../../../mcp-server/src/docs/radar/CONTRACT.md) — closes the BL-034 follow-up item that previously read "planned alongside live BL-032 search_radar." The cached tool earns its own contract because it has its own user-facing semantics; the live tool (when it ships) will get its own contract that compares/contrasts with this one.
+  - **Contracts registry** updated — `Radar (cached)` row flipped from `⏳ BL-032` to `✅ Authored (BL-031.95)`.
+
+**Engineering verification**: 1101 project tests pass (was 1091; +9 radar-url parity); 308 mcp-server tests pass (was 305; +5 radar handler integration + −2 net from Phase 3.A test surface re-shape); mcp-server typecheck + project astro check clean.
+
+**Live MCP exercise**: per the no-deferred-tech-debt principle (`.claude/CLAUDE.md` § 4a), the integration test at `radar-cache-handler.test.ts` is the engineering substitute for the live transport exercise — the running mcp-server subprocess is started at session start and cannot be reloaded mid-session. UI verification of the new URL state on `/hub/radar` will land naturally on the next page load (browser-side test runs were not added because the existing `tests/e2e/radar-page.test.ts` already exercises the category filter; URL hydration is a small-surface addition).
+
+**Phase 3 closes the BL-034 follow-up item** for `search_radar_cache` CONTRACT.md as a side effect.
+
+---
+
+_Last updated: 2026-05-02 (Phase 1 + Phase 2 + Phase 3 closure stanzas added; reconciliation note retained for context)_
