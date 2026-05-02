@@ -129,27 +129,54 @@ export const AttentionAreasArraySchema = z.array(AttentionAreaSchema);
 // ─── User inputs (consumed by The Diligence Machine wizard + MCP tool) ──────
 
 /**
+ * The 'unknown' sentinel — BL-031.95 Phase 2 mirror of ICG's `-1`
+ * ("Not sure") pattern. Every UserInputs enum accepts this value in
+ * addition to its canonical `*_IDS` set; the diligence engine's
+ * `matchesConditions` treats `'unknown'` as a non-eliminating value
+ * (only known values filter questions out — agenda widens conservatively
+ * when input is incomplete). The wizard renders 'unknown' as an "I don't
+ * know" affordance per step, NOT as an entry in each step's option grid;
+ * keeping it out of the `*_IDS` tuples preserves the wizard-config /
+ * schema subset invariant.
+ */
+export const UNKNOWN_INPUT = 'unknown' as const;
+
+/**
+ * Helper: extend a canonical `*_IDS` tuple with the `'unknown'` sentinel.
+ * Returns a new readonly tuple suitable for `z.enum(...)`.
+ */
+function withUnknown<T extends readonly [string, ...string[]]>(
+  ids: T
+): readonly [...T, typeof UNKNOWN_INPUT] {
+  return [...ids, UNKNOWN_INPUT] as readonly [...T, typeof UNKNOWN_INPUT];
+}
+
+/**
  * Runtime-validated shape of the wizard's submitted answers.
  *
  * Every enum is bound to the `*_IDS` tuple in
- * `src/data/diligence-machine/wizard-config.ts` so adding a new option to the
+ * `src/data/diligence-machine/wizard-config.ts` PLUS the `'unknown'`
+ * sentinel (see `UNKNOWN_INPUT` above). Adding a new option to the
  * wizard without updating the schema (or vice versa) trips the
  * `diligence-wizard-schema.test.ts` subset invariant.
  */
 export const UserInputsSchema = z.object({
-  transactionType: z.enum(TRANSACTION_TYPE_IDS),
-  productType: z.enum(PRODUCT_TYPE_IDS),
-  techArchetype: z.enum(TECH_ARCHETYPE_IDS),
-  headcount: z.enum(HEADCOUNT_IDS),
-  revenueRange: z.enum(REVENUE_RANGE_IDS),
-  growthStage: z.enum(GROWTH_STAGE_IDS),
-  companyAge: z.enum(COMPANY_AGE_IDS),
-  geographies: z.array(z.enum(GEOGRAPHY_IDS)).min(1),
-  businessModel: z.enum(BUSINESS_MODEL_IDS),
-  scaleIntensity: z.enum(SCALE_INTENSITY_IDS),
-  transformationState: z.enum(TRANSFORMATION_STATE_IDS),
-  dataSensitivity: z.enum(DATA_SENSITIVITY_IDS),
-  operatingModel: z.enum(OPERATING_MODEL_IDS),
+  transactionType: z.enum(withUnknown(TRANSACTION_TYPE_IDS)),
+  productType: z.enum(withUnknown(PRODUCT_TYPE_IDS)),
+  techArchetype: z.enum(withUnknown(TECH_ARCHETYPE_IDS)),
+  headcount: z.enum(withUnknown(HEADCOUNT_IDS)),
+  revenueRange: z.enum(withUnknown(REVENUE_RANGE_IDS)),
+  growthStage: z.enum(withUnknown(GROWTH_STAGE_IDS)),
+  companyAge: z.enum(withUnknown(COMPANY_AGE_IDS)),
+  // `geographies` accepts `['unknown']` as the "no signal" payload (still
+  // satisfies `.min(1)`); the engine treats that as the same widen-trigger
+  // semantic as the single-value enums.
+  geographies: z.array(z.enum(withUnknown(GEOGRAPHY_IDS))).min(1),
+  businessModel: z.enum(withUnknown(BUSINESS_MODEL_IDS)),
+  scaleIntensity: z.enum(withUnknown(SCALE_INTENSITY_IDS)),
+  transformationState: z.enum(withUnknown(TRANSFORMATION_STATE_IDS)),
+  dataSensitivity: z.enum(withUnknown(DATA_SENSITIVITY_IDS)),
+  operatingModel: z.enum(withUnknown(OPERATING_MODEL_IDS)),
 });
 
 // ─── Inferred types ──────────────────────────────────────────────────────────

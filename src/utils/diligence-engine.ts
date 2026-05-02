@@ -90,10 +90,20 @@ export function meetsMinimumBracket(
  * Check if a set of conditions matches the user's inputs.
  * Undefined condition fields are wildcards (match everything).
  * Specified arrays use OR logic within, AND logic across fields.
+ *
+ * BL-031.95 Phase 2 — `'unknown'` widening: when an input value is the
+ * `'unknown'` sentinel (or `geographies` is exactly `['unknown']`), the
+ * corresponding filter is treated as wildcard. Only KNOWN values can
+ * eliminate triggers; missing-information inputs widen the agenda
+ * conservatively, mirroring ICG's `-1` "Not sure" pattern. The
+ * `'unknown'` sentinel is documented in `src/schemas/diligence.ts`
+ * (see `UNKNOWN_INPUT`).
  */
 export function matchesConditions(conditions: QuestionCondition, inputs: UserInputs): boolean {
+  // Single-value enum fields: skip the filter if the input is 'unknown'.
   if (
     conditions.transactionTypes &&
+    inputs.transactionType !== 'unknown' &&
     !conditions.transactionTypes.includes(inputs.transactionType)
   ) {
     return false;
@@ -101,32 +111,50 @@ export function matchesConditions(conditions: QuestionCondition, inputs: UserInp
 
   if (
     conditions.excludeTransactionTypes &&
+    inputs.transactionType !== 'unknown' &&
     conditions.excludeTransactionTypes.includes(inputs.transactionType)
   ) {
     return false;
   }
 
-  if (conditions.productTypes && !conditions.productTypes.includes(inputs.productType)) {
-    return false;
-  }
-
-  if (conditions.techArchetypes && !conditions.techArchetypes.includes(inputs.techArchetype)) {
-    return false;
-  }
-
-  if (conditions.growthStages && !conditions.growthStages.includes(inputs.growthStage)) {
-    return false;
-  }
-
   if (
-    conditions.geographies &&
-    !conditions.geographies.some((g) => inputs.geographies.includes(g))
+    conditions.productTypes &&
+    inputs.productType !== 'unknown' &&
+    !conditions.productTypes.includes(inputs.productType)
   ) {
     return false;
   }
 
   if (
+    conditions.techArchetypes &&
+    inputs.techArchetype !== 'unknown' &&
+    !conditions.techArchetypes.includes(inputs.techArchetype)
+  ) {
+    return false;
+  }
+
+  if (
+    conditions.growthStages &&
+    inputs.growthStage !== 'unknown' &&
+    !conditions.growthStages.includes(inputs.growthStage)
+  ) {
+    return false;
+  }
+
+  // Geographies array: when ['unknown'], treat as wildcard.
+  if (conditions.geographies) {
+    const isUnknownOnly = inputs.geographies.length === 1 && inputs.geographies[0] === 'unknown';
+    if (!isUnknownOnly && !conditions.geographies.some((g) => inputs.geographies.includes(g))) {
+      return false;
+    }
+  }
+
+  // Ordinal fields: meetsMinimumBracket already returns true when the
+  // value isn't in the bracket order; the explicit 'unknown' guard
+  // here makes the intent self-documenting at the call site.
+  if (
     conditions.headcountMin &&
+    inputs.headcount !== 'unknown' &&
     !meetsMinimumBracket('headcount', inputs.headcount, conditions.headcountMin)
   ) {
     return false;
@@ -134,6 +162,7 @@ export function matchesConditions(conditions: QuestionCondition, inputs: UserInp
 
   if (
     conditions.revenueMin &&
+    inputs.revenueRange !== 'unknown' &&
     !meetsMinimumBracket('revenue-range', inputs.revenueRange, conditions.revenueMin)
   ) {
     return false;
@@ -141,32 +170,50 @@ export function matchesConditions(conditions: QuestionCondition, inputs: UserInp
 
   if (
     conditions.companyAgeMin &&
+    inputs.companyAge !== 'unknown' &&
     !meetsMinimumBracket('company-age', inputs.companyAge, conditions.companyAgeMin)
   ) {
     return false;
   }
 
   // v2 condition dimensions
-  if (conditions.businessModels && !conditions.businessModels.includes(inputs.businessModel)) {
+  if (
+    conditions.businessModels &&
+    inputs.businessModel !== 'unknown' &&
+    !conditions.businessModels.includes(inputs.businessModel)
+  ) {
     return false;
   }
 
-  if (conditions.scaleIntensity && !conditions.scaleIntensity.includes(inputs.scaleIntensity)) {
+  if (
+    conditions.scaleIntensity &&
+    inputs.scaleIntensity !== 'unknown' &&
+    !conditions.scaleIntensity.includes(inputs.scaleIntensity)
+  ) {
     return false;
   }
 
   if (
     conditions.transformationStates &&
+    inputs.transformationState !== 'unknown' &&
     !conditions.transformationStates.includes(inputs.transformationState)
   ) {
     return false;
   }
 
-  if (conditions.dataSensitivity && !conditions.dataSensitivity.includes(inputs.dataSensitivity)) {
+  if (
+    conditions.dataSensitivity &&
+    inputs.dataSensitivity !== 'unknown' &&
+    !conditions.dataSensitivity.includes(inputs.dataSensitivity)
+  ) {
     return false;
   }
 
-  if (conditions.operatingModels && !conditions.operatingModels.includes(inputs.operatingModel)) {
+  if (
+    conditions.operatingModels &&
+    inputs.operatingModel !== 'unknown' &&
+    !conditions.operatingModels.includes(inputs.operatingModel)
+  ) {
     return false;
   }
 
