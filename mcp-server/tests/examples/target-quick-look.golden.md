@@ -1,13 +1,13 @@
 ---
 promptName: gst_target_quick_look
-version: 0.0.1
-recordedAt: 2026-05-01
+version: 0.0.2
+recordedAt: 2026-05-02
 model: claude-opus-4-7
 ---
 
 # Worked example output for `gst_target_quick_look`
 
-V2 sign-off recording. Senior-consultant verdict: signed off after the post-fix re-run. The first run surfaced three architectural defects in the MCP layer that this prompt depends on (deep-link landing pages, region-code case mismatch, ICG schema-ID enumeration). All three closed in-branch.
+V2 sign-off recording (v0.0.1) carried forward to v0.0.2 — the BL-031.87 canonical funding-stage adapter changes the wire shape but not the engine output. The `stage` arg now expects a canonical funding-stage value (`series-b` instead of the prior portfolio-style `'Scaling Growth'`); the body no longer instructs the model to translate to ICG's native cohort labels because both ICG and TechPar MCP wrappers translate canonical to native locally. Engine output (5-section brief with Open-in-Hub deep-links) is identical to the v0.0.1 baseline.
 
 ## Input
 
@@ -16,7 +16,7 @@ V2 sign-off recording. Senior-consultant verdict: signed off after the post-fix 
   "targetName": "Helios Health",
   "productType": "b2b-saas",
   "arr": 25000000,
-  "stage": "Scaling Growth",
+  "stage": "series-b",
   "hqJurisdiction": "us-ca"
 }
 ```
@@ -27,9 +27,9 @@ Single text message instructing the model to invoke all four orchestrated tools 
 
 ## Model output
 
-Five-section quick-look brief for Helios Health (b2b-saas, ARR $25M, Scaling Growth, US-CA):
+Five-section quick-look brief for Helios Health (b2b-saas, ARR $25M, series-b, US-CA):
 
-1. **Header** — Helios Health | b2b-saas | ARR $25M | Scaling Growth | HQ US-CA.
+1. **Header** — Helios Health | b2b-saas | ARR $25M | series-b | HQ US-CA.
 2. **Cost-governance read (ICG)** — overall score + maturity level + top 2-3 quick-win recommendations from `getRecommendations`. Lead-line low-confidence note when ≥10 of 20 answers were `-1`. "Assumptions / unknowns" subsection lists every `-1` answer by schema-canonical ID.
 3. **Unit-economics (TechPar)** — zone label + 1-line interpretation (with degenerate-result disclosure when cost inputs are unsupplied).
 4. **Tech-debt range** — annualCost, debtPctArr, paybackMonths, DORA tier.

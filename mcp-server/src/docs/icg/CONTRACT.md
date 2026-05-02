@@ -80,6 +80,8 @@ The asymmetry is intentional — different surfaces, different completion semant
 
 **Downstream effect**: Optional. If supplied, the engine uses `contextualizeScore(score, stage)` to add a stage-specific benchmark band so the consumer can see whether the target is below / within / above the typical range for its stage. **Does not change the score itself** — it changes the narrative around the score. If omitted, the result is computed identically; the benchmark band is simply absent.
 
+**Canonical stage adapter (BL-031.87)**: the MCP wrapper accepts `companyStage` as either a canonical funding-stage value (preferred — see [`src/data/common/funding-stages.ts`](../../../../src/data/common/funding-stages.ts) `CANONICAL_STAGES`: `seed` | `series-a` | `series-b` | `series-c` | `pe` | `enterprise`) or one of the four ICG-native values listed above (backward-compat). Translation happens via [`ICG_STAGE_ADAPTER`](../../../../src/data/common/stage-adapters.ts) before the engine is invoked. ICG's native enum collapses canonical seed + series-a into `pre-series-b` and canonical series-b + series-c into `series-bc` — both reflect the benchmark dataset's granularity. The MCP response includes a `stageContext: { native, canonical }` field where `canonical` is array-valued, exposing the lossy collapses honestly (e.g., `pre-series-b` → `['seed', 'series-a']`). Engine and benchmark dataset untouched. See [`mcp-server/src/docs/contracts/README.md` § Cross-tool concept glossary](../contracts/README.md#funding-stage--canonical-layer--adapter-bl-03187-shipped) for the full canonical mapping table; see [BL-031.87 architecture doc](../../../../src/docs/development/MCP_SERVER_STAGE_ADAPTER_BL-031_87.md) for pattern-choice rationale.
+
 ---
 
 ## Output shape (return value)

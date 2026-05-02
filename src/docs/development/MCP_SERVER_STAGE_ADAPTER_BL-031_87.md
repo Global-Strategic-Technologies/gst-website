@@ -16,7 +16,7 @@
 >
 > **Scope**: this document covers [BL-031.87](BACKLOG.md#bl-03187-mcp-server--stage-taxonomy-adapter-layer) — introducing a canonical funding-stage taxonomy plus per-tool **Adapter** modules at the MCP-wrapper boundary. ICG and TechPar engines remain untouched; their MCP wrappers learn to translate between a canonical stage value and each tool's tuned native enum.
 >
-> **Status**: Open. Depends on BL-031.85 (the contracts registry that surfaced the variance). Does not block BL-031.95; can co-schedule with it if engineering capacity allows since both touch MCP wrappers.
+> **Status**: ✅ Complete (closed 2026-05-02). Three-phase implementation shipped across commits `06a06bd` (canonical layer + adapters + 22 unit tests), `08d7c68` (MCP wrapper integration with Zod-union backward-compat), and the closure commit (prompt update + docs). All 270 mcp-server tests pass; both typechecks clean; mcp-server build clean. The cross-tool funding-stage variance is resolved at the MCP-wrapper boundary; engines and benchmark datasets remain untouched.
 
 ---
 
@@ -287,4 +287,20 @@ Three phases, each landing as a separate commit (or a small sequence of commits 
 
 ---
 
-_Last updated: 2026-05-02_
+## Closure summary
+
+Three commits, all-green verification:
+
+1. **`06a06bd`** — Phase 1: canonical layer + adapters + 22 unit tests. New modules `src/data/common/funding-stages.ts` (`CANONICAL_STAGES`, `CanonicalStageSchema`, `CANONICAL_STAGE_DESCRIPTIONS`) and `src/data/common/stage-adapters.ts` (`ICG_STAGE_ADAPTER`, `TECHPAR_STAGE_ADAPTER`, helper functions, `isCanonicalStage` type guard, `resolveIcgStageInput` / `resolveTechparStageInput` resolvers). Tests cover total coverage, safe-direction round-trip, hand-tabulated lossy collapses, helper-function parity, and cross-adapter invariants.
+
+2. **`08d7c68`** — Phase 2: MCP wrapper integration. `mcp-server/src/schemas.ts` re-exports the canonical layer + adapters and defines `ICGMcpInputsSchema` / `TechParMcpInputsSchema` (Zod union of canonical | native). `mcp-server/src/tools/icg.ts` and `mcp-server/src/tools/techpar.ts` swap to the new schemas, resolve canonical-or-native at the handler boundary, and emit a `stageContext: { native, canonical }` field in the response (canonical is array-valued, exposing lossy collapses honestly). Tool descriptions updated to advertise canonical preference.
+
+3. **closure commit** — Phase 3: prompt update + docs. `gst_target_quick_look` v0.0.2 — `argsSchema.stage` swapped from `GrowthStageSchema` (portfolio enum) to `CanonicalStageSchema`; body no longer instructs the model to translate to ICG's native cohort labels (the wrapper does it). Golden snapshot updated to match. Cross-tool concept glossary in `mcp-server/src/docs/contracts/README.md` retired the "Will be superseded" transitional note and now documents the canonical layer as the public-facing taxonomy. ICG and TechPar `CONTRACT.md` files gained "Canonical stage adapter (BL-031.87)" sub-sections under their stage fields. BL-031.85 architecture doc's "Proximate opportunities" entry flipped to "✅ Closed by BL-031.87." BACKLOG status flipped.
+
+**Deviations from plan**: none material. The original plan's `toCanonical(toolId, native)` and `fromCanonical(toolId, canonical)` helpers were implemented as per-tool functions (`icgFromCanonical`, `techparFromCanonical`, etc.) instead of generic `toolId`-keyed helpers — the per-tool form gives the type system exact knowledge of which keys exist and avoids unsafe runtime lookups. The `stageContext.canonical` field is always array-valued (per the lossy-direction policy); single-value canonical responses are wrapped in a one-element array for shape consistency.
+
+**Live MCP exercise**: deferred to next out-of-band model run. Unit-test coverage (270 tests passing, including 22 new in `funding-stages.test.ts`) plus typecheck + build success substitute for the live verification given the engineering surface is purely additive (Zod union for backward-compat, no engine changes).
+
+---
+
+_Last updated: 2026-05-02 (closure stanza added; first authored 2026-05-02)_

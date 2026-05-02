@@ -90,30 +90,34 @@ What is explicitly out of scope for BL-031.85: the IRL generator itself, the ren
 
 ---
 
-## Cross-tool concept glossary (transitional)
+## Cross-tool concept glossary
 
-> **Will be superseded by [BL-031.87: Stage Taxonomy Adapter Layer](../../../../src/docs/development/BACKLOG.md#bl-03187-mcp-server--stage-taxonomy-adapter-layer)**. This section catalogues vocabulary variance between tools that today must be resolved by reading multiple CONTRACT.md files. Once BL-031.87 ships a canonical stage taxonomy + per-tool Adapter modules, the funding-stage portion of this glossary retires. Treat this section as a navigational pointer, not a permanent reference.
+Some concepts appear in multiple tools' input contracts under different shapes. Two cases worth distinguishing — one is _same concept, different shape_ (resolved by Adapter modules — see BL-031.87 below); the other is _different concept, similar name_ (stays as separate enums; documented for clarity).
 
-Some concepts appear in multiple tools' input contracts under different shapes. Two cases worth distinguishing — one is _same concept, different shape_ (real drift, BL-031.87 candidate); the other is _different concept, similar name_ (stays as separate enums, glossary documents the distinction).
+### Funding stage — canonical layer + Adapter (BL-031.87, shipped)
 
-### Funding stage — _same concept, different shape_
+ICG and TechPar both partition the company population by funding round to select a benchmark cohort. Their **native enum shapes differ** (different field names, different value sets, different notation), but the **canonical layer** introduced in [BL-031.87](../../../../src/docs/development/MCP_SERVER_STAGE_ADAPTER_BL-031_87.md) is the public-facing taxonomy:
 
-ICG and TechPar both partition the company population by funding round to select a benchmark cohort, but their enum shapes differ:
+```
+canonical: 'seed' | 'series-a' | 'series-b' | 'series-c' | 'pe' | 'enterprise'
+```
 
-| Concept value (canonical, BL-031.87) | ICG `companyStage` | TechPar `stage` | Notes                                                               |
-| ------------------------------------ | ------------------ | --------------- | ------------------------------------------------------------------- |
-| `seed`                               | _(absent)_         | `seed`          | ICG benchmark dataset doesn't separate seed from Series A           |
-| `series-a`                           | `pre-series-b`     | `series_a`      | ICG collapses seed + Series A into `pre-series-b`                   |
-| `series-b`                           | `series-bc`        | `series_bc`     | Both tools collapse B + C — benchmark dataset doesn't separate them |
-| `series-c`                           | `series-bc`        | `series_bc`     | (same as `series-b` for these two tools)                            |
-| `pe`                                 | `pe-backed`        | `pe`            | Naming variance only — same cohort                                  |
-| `enterprise`                         | `enterprise`       | `enterprise`    | Aligned                                                             |
+Source: [`src/data/common/funding-stages.ts`](../../../../src/data/common/funding-stages.ts) — `CANONICAL_STAGES`, `CanonicalStage`, `CanonicalStageSchema`. Per-tool Adapter modules in [`src/data/common/stage-adapters.ts`](../../../../src/data/common/stage-adapters.ts) translate canonical → native at the MCP-wrapper boundary; engines and benchmark datasets are untouched.
 
-**Notation conventions also differ:** ICG uses kebab-case (`pre-series-b`); TechPar uses snake_case (`series_a`). Surface in BL-031.87's adapter modules as explicit `toCanonical` / `fromCanonical` translation tables.
+| Canonical value | ICG `companyStage` (native) | TechPar `stage` (native) | Notes                                                               |
+| --------------- | --------------------------- | ------------------------ | ------------------------------------------------------------------- |
+| `seed`          | `pre-series-b`              | `seed`                   | ICG benchmark dataset doesn't separate seed from Series A           |
+| `series-a`      | `pre-series-b`              | `series_a`               | ICG collapses seed + Series A into `pre-series-b`                   |
+| `series-b`      | `series-bc`                 | `series_bc`              | Both tools collapse B + C — benchmark dataset doesn't separate them |
+| `series-c`      | `series-bc`                 | `series_bc`              | (same as `series-b` for these two tools)                            |
+| `pe`            | `pe-backed`                 | `pe`                     | Naming variance only — same cohort                                  |
+| `enterprise`    | `enterprise`                | `enterprise`             | Aligned                                                             |
 
-**Lossy direction:** canonical → tool-native is always safe (`series-c` → TechPar `series_bc`). Tool-native → canonical is lossy where the native enum collapses canonical values (`series_bc` → ambiguous `series-b` | `series-c`). BL-031.87 documents this as intentional information-shedding driven by benchmark-dataset granularity, not as a defect to fix.
+**MCP-wrapper input contract:** ICG and TechPar tool inputs accept canonical values (preferred) OR tool-native values (backward-compat). A Zod union renders both options in the JSON Schema; the wrapper resolves canonical to native via `resolveIcgStageInput` / `resolveTechparStageInput` before invoking the engine. Native values continue to work for one release; canonical is the going-forward public API.
 
-**Why the variance exists:** each tool's stage enum is **coupled to its benchmark dataset** — ICG's `BENCHMARK_RANGES` is keyed by ICG's enum, TechPar's `STAGES` map is keyed by TechPar's enum. Renaming either to a canonical taxonomy in-place would require benchmark re-attribution and risk silent mis-attribution. The Adapter approach (BL-031.87) keeps engines and benchmark datasets untouched; only the MCP-wrapper boundary translates.
+**Lossy direction:** canonical → tool-native is always safe (e.g., canonical `series-c` → TechPar `series_bc`). Tool-native → canonical is lossy where the native enum collapses canonical values (e.g., TechPar `series_bc` → ambiguous `['series-b', 'series-c']`). Tool responses include a `stageContext: { native, canonical: readonly CanonicalStage[] }` field that exposes the lossy direction honestly with an array — see [BL-031.87 architecture doc § Lossy-direction policy](../../../../src/docs/development/MCP_SERVER_STAGE_ADAPTER_BL-031_87.md#lossy-direction-policy) for full rationale.
+
+**Why the variance exists** (and why the Adapter is the right response): each tool's native enum is **coupled to its benchmark dataset** — ICG's `BENCHMARK_RANGES` is keyed by ICG's enum, TechPar's `STAGES` map is keyed by TechPar's enum. Renaming either to a canonical taxonomy in-place would require benchmark re-attribution and risk silent mis-attribution. The Adapter approach keeps engines and benchmark datasets untouched; only the MCP-wrapper boundary translates.
 
 ### Growth velocity vs. funding stage — _different concept, similar name_
 

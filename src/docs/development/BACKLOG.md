@@ -589,7 +589,7 @@ A prompt's behavior is determined by its message body — pure content. A senior
 
 ### BL-031.87: MCP Server — Stage Taxonomy Adapter Layer
 
-**Source**: BL-031.87 — resolves the cross-tool funding-stage vocabulary drift surfaced during BL-031.85 closure (ICG `companyStage` and TechPar `stage` use different enum shapes for the same underlying concept) | **Architecture & plan**: [MCP_SERVER_STAGE_ADAPTER_BL-031_87.md](MCP_SERVER_STAGE_ADAPTER_BL-031_87.md) | **Effort**: 2-3 days | **Status**: Open | **Depends on**: BL-031.85
+**Source**: BL-031.87 — resolves the cross-tool funding-stage vocabulary drift surfaced during BL-031.85 closure (ICG `companyStage` and TechPar `stage` use different enum shapes for the same underlying concept) | **Architecture & plan**: [MCP_SERVER_STAGE_ADAPTER_BL-031_87.md](MCP_SERVER_STAGE_ADAPTER_BL-031_87.md) | **Effort**: 2-3 days (actual: ~3 hrs across 3 commits) | **Status**: ✅ Complete (May 2, 2026) | **Depends on**: BL-031.85
 
 **As a** GST team member composing a multi-tool prompt, **I want** ICG, TechPar, and any future stage-aware tool to accept a single canonical funding-stage value **so that** prompts like `gst_target_quick_look` don't have to remember each tool's enum shape (`pre-series-b` vs `series_bc` vs `series-bc`) and external agents introspecting the JSON Schema see one canonical taxonomy rather than per-tool variance.
 

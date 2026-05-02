@@ -5,7 +5,10 @@ const VALID_ARGS = {
   targetName: 'Acme Corp',
   productType: 'b2b-saas',
   arr: 25_000_000,
-  stage: 'Scaling Growth' as const,
+  // Canonical funding stage (BL-031.87) — replaces the portfolio-style
+  // 'Scaling Growth' literal. Each downstream tool's wrapper translates
+  // this canonical value to its native enum locally.
+  stage: 'series-b' as const,
   hqJurisdiction: 'us-ca',
 };
 
@@ -61,13 +64,30 @@ describe('gst_target_quick_look', () => {
     if (r.success) expect(r.data.arr).toBe(VALID_ARGS.arr);
   });
 
-  it('normalizes case variants on the stage enum (case-tolerance contract)', () => {
+  it('normalizes case variants on the canonical stage enum (case-tolerance contract)', () => {
     const r = targetQuickLookPrompt.argsSchema.safeParse({
       ...VALID_ARGS,
-      stage: 'scaling growth', // canonical: 'Scaling Growth'
+      stage: 'Series-B', // canonical (after enumFromWire normalization): 'series-b'
     });
     expect(r.success).toBe(true);
-    if (r.success) expect(r.data.stage).toBe('Scaling Growth');
+    if (r.success) expect(r.data.stage).toBe('series-b');
+  });
+
+  it('accepts every canonical funding-stage value (BL-031.87 contract)', () => {
+    for (const canonical of ['seed', 'series-a', 'series-b', 'series-c', 'pe', 'enterprise']) {
+      const r = targetQuickLookPrompt.argsSchema.safeParse({ ...VALID_ARGS, stage: canonical });
+      expect(r.success, `canonical stage '${canonical}' should parse`).toBe(true);
+    }
+  });
+
+  it('rejects portfolio-style growth-stage values (BL-031.87 contract enforces canonical layer)', () => {
+    // Pre-BL-031.87 the prompt accepted portfolio-enum values like
+    // 'Scaling Growth'. Post-BL-031.87, the canonical layer is the
+    // contract — portfolio enum values must be rejected so callers
+    // adopt the canonical taxonomy.
+    expect(
+      targetQuickLookPrompt.argsSchema.safeParse({ ...VALID_ARGS, stage: 'Scaling Growth' }).success
+    ).toBe(false);
   });
 
   it("instructs the model on the 'not sure' (-1) ICG fallback", () => {

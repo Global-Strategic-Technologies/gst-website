@@ -18,7 +18,7 @@
  */
 
 import { z } from 'zod';
-import { GrowthStageSchema } from '../schemas';
+import { CanonicalStageSchema } from '../schemas';
 import type { GstPrompt } from './types';
 import { enumFromWire, numberFromWire } from './wire-shape';
 import { authorialIntentLine } from './embed';
@@ -27,7 +27,11 @@ const argsSchema = z.object({
   targetName: z.string().min(1),
   productType: z.string().min(2),
   arr: numberFromWire(z.number().positive()),
-  stage: enumFromWire(GrowthStageSchema),
+  // Canonical funding stage (BL-031.87). Each downstream tool's MCP
+  // wrapper translates this canonical value to its native enum locally;
+  // the prompt body passes the canonical value verbatim to ICG and
+  // TechPar.
+  stage: enumFromWire(CanonicalStageSchema),
   hqJurisdiction: z.string().min(2),
 });
 
@@ -37,8 +41,8 @@ export const targetQuickLookPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'First-look brief for an unfamiliar target. Combines ICG, TechPar, Tech Debt, and regulatory exposure into one digestible page.',
-  version: '0.0.1',
-  lastReviewedAt: '2026-05-01',
+  version: '0.0.2',
+  lastReviewedAt: '2026-05-02',
   orchestrates: [
     'assess_infrastructure_cost_governance',
     'compute_techpar',
@@ -68,9 +72,9 @@ export const targetQuickLookPrompt: GstPrompt<typeof argsSchema> = {
             '  Build a complete answers map (all 20 keys) by:',
             '    a. Deriving each answer from the supplied inputs + anything the user has shared earlier in the conversation (e.g., productType + stage gives strong signal on FinOps maturity, observability posture, multi-cloud likelihood).',
             '    b. For any answer that is NOT knowable from available data, use the schema\'s explicit unknown value `-1` ("Not sure"). NEVER skip a question — `-1` is the contractually correct value for "I don\'t know," and the engine treats it as a real signal that surfaces investigation recommendations.',
-            '    c. Pass companyStage by mapping the supplied stage to one of: pre-series-b | series-bc | pe-backed | enterprise.',
+            `    c. Pass \`companyStage: '${args.stage}'\` directly — the ICG MCP wrapper accepts the canonical funding-stage taxonomy (seed | series-a | series-b | series-c | pe | enterprise) and translates to ICG's native cohort labels locally. No manual mapping needed.`,
             '',
-            'Step 2 — Unit-economics benchmark (`compute_techpar`). Use the supplied arr and stage; choose reasonable defaults for capexView and growthRate where not derivable.',
+            `Step 2 — Unit-economics benchmark (\`compute_techpar\`). Pass \`stage: '${args.stage}'\` (the same canonical value); TechPar's MCP wrapper translates locally. Use the supplied arr; choose reasonable defaults for capexView and growthRate where not derivable.`,
             '',
             'Step 3 — Tech-debt range (`estimate_tech_debt_cost`). Synthesize raw inputs (teamSize, salary, maintenanceBurdenPct, deployFrequency, incidents, mttrHours, remediationBudget, arr=`' +
               String(args.arr) +
