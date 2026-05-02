@@ -10,6 +10,21 @@
  * `arrayFromWire` so the array itself can also arrive as a JSON-encoded
  * or comma-separated string.
  *
+ * **BL-031.95 Phase 2.D — `'unknown'` defaulting**: every field is
+ * `.optional().default('unknown')` (or `['unknown']` for `geographies`)
+ * so an analyst invoking `gst_diligence_kickoff` at deal kickoff with
+ * only the target name supplied gets a coherent, intentionally-broad
+ * agenda rather than being forced to guess. The engine treats
+ * `'unknown'` as a non-eliminating value — agendas widen conservatively
+ * when input is incomplete, mirroring ICG's `-1` "Not sure" pattern.
+ *
+ * Optional/default placement INSIDE `enumFromWire` is intentional: the
+ * preprocess turns empty form-field strings into `undefined`, and the
+ * `.default()` then catches that undefined to yield `'unknown'`. Putting
+ * the optional/default outside the wire wrapper would mis-route the
+ * empty-string path (see `wire-shape.ts` doc comments for the V7-trial-
+ * (b) discussion).
+ *
  * Spread `...userInputsShapeFromWire()` into a prompt's argsSchema
  * instead of `...UserInputsSchema.shape` so the wire-tolerant version is
  * the one the prompt validates against.
@@ -20,21 +35,29 @@ import { UserInputsSchema } from '../schemas';
 import { GEOGRAPHY_IDS } from '../../../src/data/diligence-machine/wizard-config';
 import { arrayFromWire, enumFromWire } from './wire-shape';
 
+const UNKNOWN = 'unknown' as const;
+
 export function userInputsShapeFromWire() {
   const s = UserInputsSchema.shape;
   return {
-    transactionType: enumFromWire(s.transactionType),
-    productType: enumFromWire(s.productType),
-    techArchetype: enumFromWire(s.techArchetype),
-    headcount: enumFromWire(s.headcount),
-    revenueRange: enumFromWire(s.revenueRange),
-    growthStage: enumFromWire(s.growthStage),
-    companyAge: enumFromWire(s.companyAge),
-    geographies: arrayFromWire(z.array(enumFromWire(z.enum(GEOGRAPHY_IDS))).min(1)),
-    businessModel: enumFromWire(s.businessModel),
-    scaleIntensity: enumFromWire(s.scaleIntensity),
-    transformationState: enumFromWire(s.transformationState),
-    dataSensitivity: enumFromWire(s.dataSensitivity),
-    operatingModel: enumFromWire(s.operatingModel),
+    transactionType: enumFromWire(s.transactionType.optional().default(UNKNOWN)),
+    productType: enumFromWire(s.productType.optional().default(UNKNOWN)),
+    techArchetype: enumFromWire(s.techArchetype.optional().default(UNKNOWN)),
+    headcount: enumFromWire(s.headcount.optional().default(UNKNOWN)),
+    revenueRange: enumFromWire(s.revenueRange.optional().default(UNKNOWN)),
+    growthStage: enumFromWire(s.growthStage.optional().default(UNKNOWN)),
+    companyAge: enumFromWire(s.companyAge.optional().default(UNKNOWN)),
+    geographies: arrayFromWire(
+      z
+        .array(enumFromWire(z.enum([...GEOGRAPHY_IDS, UNKNOWN] as const)))
+        .min(1)
+        .optional()
+        .default([UNKNOWN])
+    ),
+    businessModel: enumFromWire(s.businessModel.optional().default(UNKNOWN)),
+    scaleIntensity: enumFromWire(s.scaleIntensity.optional().default(UNKNOWN)),
+    transformationState: enumFromWire(s.transformationState.optional().default(UNKNOWN)),
+    dataSensitivity: enumFromWire(s.dataSensitivity.optional().default(UNKNOWN)),
+    operatingModel: enumFromWire(s.operatingModel.optional().default(UNKNOWN)),
   };
 }

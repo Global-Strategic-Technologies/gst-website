@@ -51,9 +51,17 @@ describe('gst_diligence_handoff_memo', () => {
     ).toBe(true);
   });
 
-  it('argsSchema rejects payloads missing required diligence fields', () => {
+  it("argsSchema accepts payloads missing diligence fields (BL-031.95 Phase 2.D — they default to 'unknown')", () => {
     const { transactionType: _t, ...withoutType } = VALID_ARGS;
-    expect(diligenceHandoffMemoPrompt.argsSchema.safeParse(withoutType).success).toBe(false);
+    const result = diligenceHandoffMemoPrompt.argsSchema.safeParse(withoutType);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.transactionType).toBe('unknown');
+  });
+
+  it('argsSchema still rejects payloads missing targetName (the only required field)', () => {
+    const { targetName: _t, ...withoutTarget } = VALID_ARGS;
+    expect(diligenceHandoffMemoPrompt.argsSchema.safeParse(withoutTarget).success).toBe(false);
   });
 
   it('build() returns at least one message', () => {
@@ -126,5 +134,37 @@ describe('gst_diligence_handoff_memo', () => {
       .join('\n');
     expect(allText).toContain('https://globalstrategic.tech/ma-portfolio/');
     expect(allText.toLowerCase()).toContain('anchor url');
+  });
+
+  describe("BL-031.95 Phase 2.D — 'unknown' defaulting on the 13 wizard fields", () => {
+    it("argsSchema accepts a payload with only targetName supplied (all 13 wizard fields default to 'unknown')", () => {
+      const result = diligenceHandoffMemoPrompt.argsSchema.safeParse({ targetName: 'Acme Corp' });
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(result.data.transactionType).toBe('unknown');
+      expect(result.data.geographies).toEqual(['unknown']);
+      expect(result.data.operatingModel).toBe('unknown');
+    });
+
+    it("partial payload — supplied fields keep their values; omitted fields default to 'unknown'", () => {
+      const result = diligenceHandoffMemoPrompt.argsSchema.safeParse({
+        targetName: 'Acme Corp',
+        productType: 'b2b-saas',
+      });
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(result.data.productType).toBe('b2b-saas');
+      expect(result.data.transactionType).toBe('unknown');
+    });
+
+    it('build() succeeds with a target-name-only payload and embeds unknown values verbatim', () => {
+      const parsed = diligenceHandoffMemoPrompt.argsSchema.parse({ targetName: 'Acme Corp' });
+      const result = diligenceHandoffMemoPrompt.build(parsed);
+      expect(result.messages.length).toBeGreaterThanOrEqual(1);
+      const allText = result.messages
+        .map((m) => (m.content.type === 'text' ? m.content.text : ''))
+        .join('\n');
+      expect(allText).toContain('transactionType=unknown');
+    });
   });
 });

@@ -1,13 +1,13 @@
 ---
 promptName: gst_diligence_kickoff
-version: 0.0.1
-recordedAt: 2026-05-01
+version: 0.0.2
+recordedAt: 2026-05-02
 model: claude-opus-4-7
 ---
 
 # Worked example output for `gst_diligence_kickoff`
 
-V1 sign-off recording. Senior-consultant verdict: "reads as if I wrote it."
+V1 sign-off recording (v0.0.1) carried forward to v0.0.2 — the BL-031.95 Phase 2.D `'unknown'` defaulting changes the wire shape (every wizard field is now optional with default `'unknown'`) and adds a low-confidence callout to the body when ≥ 7 of 13 dimensions are unknown. The fully-populated payload below produces engine output identical to the v0.0.1 baseline; the new contract makes the prompt usable at deal kickoff with only `targetName` supplied.
 
 ## Input
 

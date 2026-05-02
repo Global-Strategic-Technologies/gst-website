@@ -217,4 +217,30 @@ Smaller phase; deferred-island feed, two filters.
 
 ---
 
-_Last updated: 2026-05-02 (revised for pre-implementation reconciliation: TechPar already has URL state via readable-params; Diligence Machine adopts the same convention rather than the BL-031.5 base64 archetype)_
+## Phase 1 (TechPar) — closure summary
+
+**Shipped 2026-05-02.** Three commits on `feature-mcp1`:
+
+- `aa47dc5` — `infraHosting` → `infraHostingAnnual` rename + drop `× 12` annualization across schema, engine (compute + buildTrajectory), `dom.ts` conversion direction, MCP tool description, CONTRACT.md, USAGE.md, README.md historical-evidence annotation, all engine and wrapper tests
+- `2106bad` — MCP wrapper emits `deeplink` field via existing `serializeToParams` encoder (TechPar's pre-existing readable-params URL state); `.describe()` pass on every TechPar schema field; 3 wrapper-level deeplink-emission tests
+- `6bd2b87` (companion remediation) — `mcp-server/tests/integration/techpar-handler.test.ts` (5 tests) exercises the full `handleTechparTool` pipeline with canonical-stage input, native-stage equivalence, zero-arr / zero-hosting error paths, and the canonical-sample output (`total: $6.06M, totalTechPct: 24.24, zone: ahead`) at $25M ARR with $960K annual hosting
+
+**Engineering verification**: 1091 project tests + 282 mcp-server tests pass; mcp-server typecheck + project astro check clean. Browser verification on the wizard's monthly/annual UI toggle: pending user.
+
+## Phase 2 (Diligence Machine) — closure summary
+
+**Shipped 2026-05-02.** Four sub-commits closing the deferred-deep-link work for the diligence wizard:
+
+- `e0b795b` (Phase 2.A) — `'unknown'` parity at the engine + MCP API level. Schema accepts `'unknown'` on every UserInputs field via the `withUnknown<T>` helper; engine `matchesConditions` early-skips the corresponding filter when an input is `'unknown'`; multi-select `geographies = ['unknown']` widens the geography filter; MCP wrapper extracted to `handleDiligenceTool` and surfaces a `unknownDimensionCount` field. 17 engine widening unit tests + 12 wrapper integration tests.
+- `3dd56b9` (Phase 2.B) — readable-params URL encoder at `src/utils/diligence-url.ts` (mirrors TechPar's convention, NOT BL-031.5's base64 archetype — see [What "good URL state restoration" looks like](#what-good-url-state-restoration-looks-like--two-coexisting-archetypes)); page wiring in `index.astro` (URL takes precedence over localStorage on init; `syncUrlState()` writes URL on every state change alongside the existing localStorage save); MCP wrapper emits `deeplink` via the same encoder; 11 round-trip parity tests + 3 deeplink integration tests.
+- `9a03c46` (Phase 2.C.i) — `.describe()` pass on every UserInputsSchema field (BL-031.85 closure follow-up; sourced from per-field detail in `mcp-server/src/docs/diligence/CONTRACT.md`).
+- `0707f63` (Phase 2.C.ii) — wizard "Not sure" affordance per step. New `.brutal-option-card--unsure` CSS modifier (dashed border, muted italic label, light/dark-theme-aware via `light-dark()`), affordance rendered for single-select / multi-select / per-compound-field, click handlers route through existing single-select / compound paths (because `'unknown'` is now a schema-valid value); multi-select special-case in `handleOptionClick` for the `['unknown']` ↔ specific-region mutex. 8 new E2E tests on chromium covering rendering, click routing, multi-select mutex, and full pass-through (all `'unknown'` → engine produces a real widened agenda). User-driven browser verification confirmed 2026-05-02.
+- `<this commit>` (Phase 2.D) — both diligence prompts (`gst_diligence_kickoff` v0.0.2, `gst_diligence_handoff_memo` v0.0.2) make every wizard field optional with default `'unknown'` via an updated `userInputsShapeFromWire()` helper. Prompt bodies updated to instruct the model on the `'unknown'` contract and to lead with a low-confidence callout when ≥ 7 of 13 dimensions are unknown (parallels ICG's ≥ 10/20 threshold in `gst_target_quick_look`). Golden snapshots updated to v0.0.2 with the contract-change note. 8 new prompt-level tests covering target-name-only / partial / empty-string-wire payloads.
+
+**Engineering verification**: 1091 project tests pass; 305 mcp-server tests pass (was 282 → +5 Phase 2.A engine widening + 12 Phase 2.A integration + 11 Phase 2.B URL parity + 3 Phase 2.B deeplink + 8 Phase 2.C.ii E2E + 8 Phase 2.D prompt-level — note Phase 2.C.ii E2E counts on a separate Playwright run). mcp-server typecheck + project astro check clean.
+
+**Live MCP exercise**: the running mcp-server subprocess in this Claude session was started from `dist/index.js` at session start and cannot be reloaded with newly-built code mid-session — a real infrastructure constraint, not deferred work. Engineering correctness for the Phase 2 surface is verified by `mcp-server/tests/integration/diligence-handler.test.ts` (15 tests across `'unknown'` parity + deeplink emission), the new prompt unit tests, and the 8 chromium E2E tests. UI-level verification of the wizard "Not sure" affordance was driven by the user via the browser (2026-05-02 confirmation). Live MCP transport verification via Claude Desktop lands naturally on the next MCP-server restart and is **not** tracked as deferred work.
+
+---
+
+_Last updated: 2026-05-02 (Phase 1 + Phase 2 closure stanzas added; reconciliation note retained for context)_

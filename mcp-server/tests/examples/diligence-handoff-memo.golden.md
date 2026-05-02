@@ -1,13 +1,13 @@
 ---
 promptName: gst_diligence_handoff_memo
-version: 0.0.1
-recordedAt: 2026-05-01
+version: 0.0.2
+recordedAt: 2026-05-02
 model: claude-opus-4-7
 ---
 
 # Worked example output for `gst_diligence_handoff_memo`
 
-V8 sign-off recording. Two trials covering both the full-orchestration path (no pre-supplied artifacts) and the optimization branch (both `agendaJson` and `comparablesJson` supplied to skip the upstream tool calls).
+V8 sign-off recording (v0.0.1) carried forward to v0.0.2 — the BL-031.95 Phase 2.D `'unknown'` defaulting changes the wire shape (every wizard field is now optional with default `'unknown'`); fully-populated payloads below produce engine output identical to the v0.0.1 baseline. The new contract makes the prompt usable at deal kickoff with only `targetName` supplied; the engine widens the agenda conservatively when fields are unknown.
 
 ## Input — Trial 1 (full orchestration)
 

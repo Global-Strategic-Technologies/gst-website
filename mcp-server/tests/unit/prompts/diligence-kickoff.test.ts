@@ -103,4 +103,77 @@ describe('gst_diligence_kickoff', () => {
       .join('\n');
     expect(allText).toContain('Acme Corp');
   });
+
+  describe("BL-031.95 Phase 2.D — 'unknown' defaulting on the 13 wizard fields", () => {
+    it("argsSchema accepts a payload with only targetName supplied (all 13 wizard fields default to 'unknown')", () => {
+      const result = diligenceKickoffPrompt.argsSchema.safeParse({ targetName: 'Acme Corp' });
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      // Every dimension defaulted to 'unknown' / ['unknown'].
+      expect(result.data.transactionType).toBe('unknown');
+      expect(result.data.productType).toBe('unknown');
+      expect(result.data.techArchetype).toBe('unknown');
+      expect(result.data.headcount).toBe('unknown');
+      expect(result.data.revenueRange).toBe('unknown');
+      expect(result.data.growthStage).toBe('unknown');
+      expect(result.data.companyAge).toBe('unknown');
+      expect(result.data.geographies).toEqual(['unknown']);
+      expect(result.data.businessModel).toBe('unknown');
+      expect(result.data.scaleIntensity).toBe('unknown');
+      expect(result.data.transformationState).toBe('unknown');
+      expect(result.data.dataSensitivity).toBe('unknown');
+      expect(result.data.operatingModel).toBe('unknown');
+    });
+
+    it("partial payload — supplied fields keep their values; omitted fields default to 'unknown'", () => {
+      const result = diligenceKickoffPrompt.argsSchema.safeParse({
+        targetName: 'Acme Corp',
+        productType: 'b2b-saas',
+        geographies: ['us', 'eu'],
+      });
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(result.data.productType).toBe('b2b-saas');
+      expect(result.data.geographies).toEqual(['us', 'eu']);
+      // Unsupplied fields still default to 'unknown'.
+      expect(result.data.transactionType).toBe('unknown');
+      expect(result.data.headcount).toBe('unknown');
+    });
+
+    it("empty-string wire values (Claude Desktop unfilled form fields) default to 'unknown'", () => {
+      const result = diligenceKickoffPrompt.argsSchema.safeParse({
+        targetName: 'Acme Corp',
+        transactionType: '',
+        productType: '',
+        techArchetype: '',
+        headcount: '',
+        revenueRange: '',
+        growthStage: '',
+        companyAge: '',
+        geographies: '',
+        businessModel: '',
+        scaleIntensity: '',
+        transformationState: '',
+        dataSensitivity: '',
+        operatingModel: '',
+      });
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(result.data.transactionType).toBe('unknown');
+      expect(result.data.geographies).toEqual(['unknown']);
+    });
+
+    it('build() succeeds with a target-name-only payload and embeds unknown values verbatim', () => {
+      const parsed = diligenceKickoffPrompt.argsSchema.parse({ targetName: 'Acme Corp' });
+      const result = diligenceKickoffPrompt.build(parsed);
+      expect(result.messages.length).toBeGreaterThanOrEqual(1);
+      const allText = result.messages
+        .map((m) => (m.content.type === 'text' ? m.content.text : ''))
+        .join('\n');
+      // Body explicitly references each dimension's resolved value, so
+      // 'unknown' literally appears in the rendered prompt.
+      expect(allText).toContain('transactionType=unknown');
+      expect(allText).toContain('productType=unknown');
+    });
+  });
 });

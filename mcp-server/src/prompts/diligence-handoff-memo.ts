@@ -44,8 +44,8 @@ export const diligenceHandoffMemoPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Draft handoff memo for the deal team — combines agenda + comparables + VDR follow-ups in a single document.',
-  version: '0.0.1',
-  lastReviewedAt: '2026-05-01',
+  version: '0.0.2',
+  lastReviewedAt: '2026-05-02',
   orchestrates: [
     'generate_diligence_agenda',
     'search_portfolio',
@@ -68,7 +68,7 @@ export const diligenceHandoffMemoPrompt: GstPrompt<typeof argsSchema> = {
               ? '  The user supplied a pre-generated agendaJson — use it directly:\n```json\n' +
                 args.agendaJson +
                 '\n```'
-              : `  Call \`generate_diligence_agenda\` with: transactionType=${args.transactionType}, productType=${args.productType}, techArchetype=${args.techArchetype}, headcount=${args.headcount}, revenueRange=${args.revenueRange}, growthStage=${args.growthStage}, companyAge=${args.companyAge}, geographies=${JSON.stringify(args.geographies)}, businessModel=${args.businessModel}, scaleIntensity=${args.scaleIntensity}, transformationState=${args.transformationState}, dataSensitivity=${args.dataSensitivity}, operatingModel=${args.operatingModel}.`,
+              : `  Call \`generate_diligence_agenda\` with the supplied parameters. Any field defaulted to \`'unknown'\` (BL-031.95 Phase 2 sentinel) tells the engine "agent could not derive this from supplied context"; the engine widens the agenda conservatively rather than guessing. Pass \`'unknown'\` (rather than guessing) for any dimension you cannot derive from the user's prose. Parameters: transactionType=${args.transactionType}, productType=${args.productType}, techArchetype=${args.techArchetype}, headcount=${args.headcount}, revenueRange=${args.revenueRange}, growthStage=${args.growthStage}, companyAge=${args.companyAge}, geographies=${JSON.stringify(args.geographies)}, businessModel=${args.businessModel}, scaleIntensity=${args.scaleIntensity}, transformationState=${args.transformationState}, dataSensitivity=${args.dataSensitivity}, operatingModel=${args.operatingModel}.`,
             '',
             'Step 2. Comparable engagements.',
             args.comparablesJson
