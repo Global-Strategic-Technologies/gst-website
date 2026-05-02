@@ -8,6 +8,8 @@
 > - **Stage configurations & benchmarks**: [`src/data/techpar/stages.ts`](../../../../src/data/techpar/stages.ts) — `STAGES` map (per-stage zones, benchmarks, frame, note)
 > - **Engine logic**: [`src/utils/techpar-engine.ts`](../../../../src/utils/techpar-engine.ts) — `compute` (lines ~210–365), `getZone` (lines 100–110), `computeGap` / `computeUnderGap` (lines 167–192)
 >
+> **Used by prompts** (BL-031.75): [`gst_target_quick_look`](../../prompts/target-quick-look.ts) (first-look brief — combines TechPar with ICG + Tech Debt + regulatory exposure). Note the `infraHosting` monthly-vs-annual unit mismatch surfaced during V2 verification — captured for normalization in [BL-031.95](../../../../src/docs/development/BACKLOG.md#bl-03195-hub-tools--url-state-restoration--mcp-deep-link-surface) (rename to `infraHostingAnnual` so all six money fields share annual units). Schema rename will require updating `gst_target_quick_look`'s body Step 3 synthesis instructions.
+>
 > **Version**: `v1` | **Last authored**: 2026-04-28
 >
 > **Registry**: see [`../contracts/README.md`](../contracts/README.md).

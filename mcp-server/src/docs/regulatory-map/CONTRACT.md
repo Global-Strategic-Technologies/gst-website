@@ -12,7 +12,14 @@
 > - **Validation**: [`src/schemas/regulatory-map.ts`](../../../../src/schemas/regulatory-map.ts) — `RegulationSchema`, `RegulationCategorySchema`, `RegulationSearchInputSchema`, `RegulationFacetsInputSchema`
 > - **Framework dataset**: [`src/data/regulatory-map/*.json`](../../../../src/data/regulatory-map/) — 120 individual JSON files, one per framework
 > - **Engine / loader**: [`mcp-server/src/content/regulation-loader.ts`](../../content/regulation-loader.ts) — URI parsing (`SUB_REGION_RE`), slug index, `loadRegulationByUri`
-> - **Tool wrapper**: [`mcp-server/src/tools/regulations.ts`](../../tools/regulations.ts) — search filtering, facet enumeration
+> - **Tool wrapper**: [`mcp-server/src/tools/regulations.ts`](../../tools/regulations.ts) — search filtering, facet enumeration, `jurisdictionToRegion()` deep-link normalization (V2 fix: lowercase alpha-2 → uppercase alpha-3)
+>
+> **Used by prompts** (BL-031.75):
+>
+> - [`gst_target_quick_look`](../../prompts/target-quick-look.ts) — calls `search_regulations` once per relevant data category for the supplied `hqJurisdiction`; the per-result `deeplink` field surfaces in the brief's Open-in-Hub section.
+> - [`gst_regulatory_exposure_brief`](../../prompts/regulatory-exposure-brief.ts) — calls `search_regulations` per jurisdiction × category combination; builds per-framework summaries from the enriched `SearchResult` fields (`scope` / `keyRequirements` / `penalties` — added in V4 sign-off via commit `cc3b023`) rather than calling `resources/read` (Resources are user-pinned, not model-fetchable from prompt expansion).
+>
+> Both prompts surface `gst://regulations/<jurisdiction>/<framework-id>` URIs as analyst-pinnable references. Adding new fields to `SearchResult`'s wire shape (e.g., for future enrichment beyond `scope`/`keyRequirements`/`penalties`) should be reflected in the regulatory-exposure-brief body's Step 2 source-grounding instruction.
 >
 > **Version**: `v1` | **Last authored**: 2026-04-28
 >

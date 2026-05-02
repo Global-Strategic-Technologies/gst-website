@@ -8,6 +8,8 @@
 > - **Engine logic**: [`src/utils/tech-debt-engine.ts`](../../../../src/utils/tech-debt-engine.ts) — `calculateFromRawInputs` (lines ~88–120), `DEPLOY_OPTIONS` (lines 10–20), `RawTechDebtInputs` interface
 > - **Burden classification (output context)**: [`src/utils/tech-debt-engine.ts`](../../../../src/utils/tech-debt-engine.ts) — `burdenClassify` (lines 205–211), `contextNote` (lines 225–235)
 >
+> **Used by prompts** (BL-031.75): [`gst_target_quick_look`](../../prompts/target-quick-look.ts) (first-look brief — Tech Debt range section reports `annualCost`, `debtPctArr`, `paybackMonths`, DORA tier; the prompt body instructs the model to synthesize raw inputs from `productType + stage` norms biased toward conservative midpoints when uncertain). The tool's `deeplink` opens the calculator with sliders pre-positioned to reproduce the supplied raw inputs (subject to slider-granularity quantization — see BL-034 cleanup item).
+>
 > **Version**: `v1` | **Last authored**: 2026-04-28
 >
 > **Registry**: see [`../contracts/README.md`](../contracts/README.md).

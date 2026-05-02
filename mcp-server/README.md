@@ -65,15 +65,18 @@ Claude calls `list_portfolio_facets` to get the deduplicated themes / engagement
 
 ### Resources (~128)
 
-| URI pattern                             | What it is                                                                            | mimeType           | Count |
-| --------------------------------------- | ------------------------------------------------------------------------------------- | ------------------ | ----- |
-| `gst://library/<slug>`                  | GST Library reference articles (parallel to the live website pages)                   | `text/markdown`    | 2     |
-| `gst://regulations/<jurisdiction>/<id>` | Regulatory Map frameworks — one per JSON file                                         | `application/json` | 120   |
-| `gst://radar/fyi/latest`                | Latest annotated FYI items from the seeded snapshot                                   | `application/json` | 1     |
-| `gst://radar/wire/latest`               | Latest items across all categories (merged Wire feed, snapshot)                       | `application/json` | 1     |
-| `gst://radar/wire/<category>`           | Category-filtered Wire feed (`pe-ma`, `enterprise-tech`, `ai-automation`, `security`) | `application/json` | 4     |
+| URI pattern                             | What it is                                                                            | mimeType           | Count | Used by prompts (BL-031.75)                                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------------------- | ------------------ | ----- | ------------------------------------------------------------------------------------------------------------- |
+| `gst://library/business-architectures`  | GST Library reference: 5-layer business & technology architecture                     | `text/markdown`    | 1     | `gst_architecture_layer_review` (embedded as second message; layers used verbatim)                            |
+| `gst://library/vdr-structure`           | GST Library reference: canonical VDR folder taxonomy                                  | `text/markdown`    | 1     | `gst_diligence_kickoff`, `gst_vdr_audit`, `gst_diligence_handoff_memo` (folder labels)                        |
+| `gst://regulations/<jurisdiction>/<id>` | Regulatory Map frameworks — one per JSON file                                         | `application/json` | 120   | (analyst-pinnable; not embedded — see `gst_regulatory_exposure_brief` for grounding via search-result fields) |
+| `gst://radar/fyi/latest`                | Latest annotated FYI items from the seeded snapshot                                   | `application/json` | 1     | `gst_radar_brief_today` (embedded as second message; items grouped + summarized)                              |
+| `gst://radar/wire/latest`               | Latest items across all categories (merged Wire feed, snapshot)                       | `application/json` | 1     | (analyst-pinnable)                                                                                            |
+| `gst://radar/wire/<category>`           | Category-filtered Wire feed (`pe-ma`, `enterprise-tech`, `ai-automation`, `security`) | `application/json` | 4     | (analyst-pinnable)                                                                                            |
 
 URI stability is enforced by [`tests/integration/resource-uri-stability.test.ts`](tests/integration/resource-uri-stability.test.ts) — deliberate URI changes require updating the manifest and bumping `mcp-server/package.json` version (semver-as-contract).
+
+**Resource embedding pattern** (V1 finding, fixed in Commit 5): MCP Resources are not model-fetchable from prompt expansion in Claude Desktop — they're surfaced through the connectors UX as user-pinnable references. Prompts that need a Resource's body inline (canonical taxonomies, snapshots) ship it as an `EmbeddedResource` content block (second message in `build()`'s output), implemented in [`src/prompts/embed.ts`](src/prompts/embed.ts) — `embedLibraryArticle()` and `embedFyiRadarSnapshot()`. The 120-framework `gst://regulations/...` set is too large to embed; instead, the search-result `summary` / `scope` / `keyRequirements` / `penalties` fields ground the `gst_regulatory_exposure_brief` body's per-framework prose. URI changes to these patterns require updating the corresponding prompt's `orchestrates` field (the registry-invariant test catches drift).
 
 Same engines, same outputs as the website — calling via MCP eliminates the browser round-trip. Remote HTTP transport, OAuth, and Workers deployment are tracked separately as BL-032 / BL-032.5 / BL-032.75 / BL-033.
 

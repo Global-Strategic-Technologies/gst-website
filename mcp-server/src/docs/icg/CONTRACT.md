@@ -9,6 +9,8 @@
 > - **Recommendation triggers**: [`src/data/infrastructure-cost-governance/recommendations.ts`](../../../../src/data/infrastructure-cost-governance/recommendations.ts) — `RECOMMENDATIONS` (impact / effort / domain / threshold per record)
 > - **Engine logic**: [`src/utils/icg-engine.ts`](../../../../src/utils/icg-engine.ts) — `calculateResults` (lines 106–154), `getRecommendations` (lines 84–102), `getMaturityLevel` (lines 60–70), `MATURITY_THRESHOLDS` (line 49–53), `FOUNDATIONAL_THRESHOLD` (line 56), `BENCHMARK_RANGES` (lines 332–337)
 >
+> **Used by prompts** (BL-031.75): [`gst_target_quick_look`](../../prompts/target-quick-look.ts) (first-look brief — combines ICG + TechPar + Tech Debt + regulatory exposure into one digestible page). The prompt body enumerates the 20 schema-canonical question IDs (`q1_1`–`q6_4`) inline so the model uses them verbatim rather than inventing flat IDs (which the engine silently ignores per the "Unknown keys" hidden semantic below). Schema additions to `ICGInputsSchema` should be reflected in the body's enumeration. The prompt also surfaces a `deeplink` field that opens the wizard at `currentStep: 7` (results view) — see [`tools/icg.ts`](../../tools/icg.ts) `buildResultsState()`.
+>
 > **Version**: `v1` | **Last authored**: 2026-04-28
 >
 > **Registry**: see [`../contracts/README.md`](../contracts/README.md) for the "what is an input contract" narrative, cross-tool registry, and per-tool spec template.
