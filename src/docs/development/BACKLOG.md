@@ -395,7 +395,7 @@ The local MCP server MUST NOT make Inoreader API calls. The 200 req/day budget i
 - **Regulatory exposure brief** — `/gst_regulatory_exposure_brief { targetJurisdictions[], dataCategories[], productType }` compiles applicable frameworks with summaries pulled from BL-031.5's regulation Resources
 - **VDR audit** — `/gst_vdr_audit` compares a target's actual VDR contents against the canonical 10-folder taxonomy from the Library; flags gaps and surfaces follow-up requests
 - **Architecture review** — `/gst_architecture_layer_review { targetSummary }` walks the target through the 5-layer architecture framework (Software → Infrastructure → Data → Org → Industry) using the Library article
-- **Daily radar digest** — `/gst_radar_brief_today { category?, sinceHours? }` summarizes the most recent annotated radar items in GST Take voice from the local snapshot
+- **Daily radar digest** — `/gst_radar_brief_today { category? }` _[v0.0.2 — `sinceHours?` was in the original BL-031.75 v0.0.1 shape; dropped under [BL-031.95 Phase 3.A](MCP_SERVER_HUB_URL_STATE_BL-031_95.md#phase-3-radar--closure-summary) capability-mirror refactor because the cache has a 24h TTL and the website surfaces no time filter]_ summarizes the most recent annotated radar items in GST Take voice from the local snapshot
 - **Diligence handoff memo** — `/gst_diligence_handoff_memo { targetName, ... }` combines agenda + comparables + VDR follow-ups into a draft memo for the deal team
 
 **Outcomes**
