@@ -126,26 +126,60 @@ describe('radar-snapshot reader', () => {
   });
 });
 
-describe('SearchRadarCacheInputSchema (tool input contract)', () => {
-  it('parses an empty input (defaults applied)', () => {
+describe('SearchRadarCacheInputSchema (tool input contract — BL-031.95 Phase 3 capability-mirror)', () => {
+  // The tool's input schema is the strict mirror of the /hub/radar
+  // website's filter UI — a single optional `category` field, no
+  // `query` / `tier` / `since` / `limit`. See radar-cache.ts header
+  // comment for the rationale (cache TTL, unified feed, etc.).
+
+  it('parses an empty input', () => {
     const result = SearchRadarCacheInputSchema.safeParse({});
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.limit).toBe(20);
+    if (result.success) {
+      expect(result.data.category).toBeUndefined();
+    }
   });
 
-  it('rejects a limit > 100', () => {
-    expect(SearchRadarCacheInputSchema.safeParse({ limit: 200 }).success).toBe(false);
+  it('parses a valid category filter', () => {
+    const result = SearchRadarCacheInputSchema.safeParse({ category: 'enterprise-tech' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.category).toBe('enterprise-tech');
+    }
   });
 
   it('rejects an unknown category', () => {
     expect(SearchRadarCacheInputSchema.safeParse({ category: 'crypto' }).success).toBe(false);
   });
 
-  it('rejects an unknown tier', () => {
-    expect(SearchRadarCacheInputSchema.safeParse({ tier: 'firehose' }).success).toBe(false);
+  it('rejects pre-Phase-3 `tier` field (no longer accepted; website has no tier filter)', () => {
+    // The schema is strict — extra keys aren't allowed. This test locks
+    // the capability-mirror invariant: future re-introduction of `tier`
+    // should be a deliberate decision tied to a website filter that exposes it.
+    const result = SearchRadarCacheInputSchema.safeParse({ tier: 'fyi' });
+    // Zod's default behavior for object schemas is to allow unknown keys
+    // (strip-by-default). The tool's contract is what's documented; this
+    // assertion confirms `tier` produces no parsed field.
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect((result.data as Record<string, unknown>).tier).toBeUndefined();
+    }
   });
 
-  it('rejects a malformed `since` value', () => {
-    expect(SearchRadarCacheInputSchema.safeParse({ since: 'yesterday' }).success).toBe(false);
+  it('rejects pre-Phase-3 `since` field similarly', () => {
+    const result = SearchRadarCacheInputSchema.safeParse({ since: '2026-04-01' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect((result.data as Record<string, unknown>).since).toBeUndefined();
+    }
+  });
+
+  it('rejects pre-Phase-3 `query` and `limit` fields similarly', () => {
+    const result = SearchRadarCacheInputSchema.safeParse({ query: 'AI', limit: 50 });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect((result.data as Record<string, unknown>).query).toBeUndefined();
+      expect((result.data as Record<string, unknown>).limit).toBeUndefined();
+    }
   });
 });

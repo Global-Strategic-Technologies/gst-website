@@ -6,23 +6,11 @@ describe('gst_radar_brief_today', () => {
     expect(radarBriefTodayPrompt.name).toMatch(/^gst_/);
   });
 
-  it('argsSchema accepts an empty payload (sinceHours optional; default applied at build time)', () => {
+  it('argsSchema accepts an empty payload (category optional; no other fields)', () => {
     const result = radarBriefTodayPrompt.argsSchema.safeParse({});
     expect(result.success).toBe(true);
     if (result.success) {
-      // sinceHours is optional in the schema; the default (24) is applied
-      // by build() rather than by .default() because Zod's .default fires
-      // only when input is undefined and our preprocess turns "" into
-      // undefined too late. See V7 trial (a) regression discussion.
-      expect(result.data.sinceHours).toBeUndefined();
-    }
-  });
-
-  it('argsSchema accepts an empty-string sinceHours (Claude Desktop empty form field)', () => {
-    const result = radarBriefTodayPrompt.argsSchema.safeParse({ sinceHours: '' });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.sinceHours).toBeUndefined();
+      expect(result.data.category).toBeUndefined();
     }
   });
 
@@ -32,25 +20,6 @@ describe('gst_radar_brief_today', () => {
     if (result.success) {
       expect(result.data.category).toBeUndefined();
     }
-  });
-
-  it('build() applies the 24-hour default when sinceHours is undefined', () => {
-    const parsed = radarBriefTodayPrompt.argsSchema.parse({});
-    const allText = radarBriefTodayPrompt
-      .build(parsed)
-      .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
-      .join('\n');
-    expect(allText).toContain('last 24 hour');
-    expect(allText).toContain('within the last 24 hours');
-  });
-
-  it('build() respects an explicit sinceHours value', () => {
-    const parsed = radarBriefTodayPrompt.argsSchema.parse({ sinceHours: 72 });
-    const allText = radarBriefTodayPrompt
-      .build(parsed)
-      .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
-      .join('\n');
-    expect(allText).toContain('last 72 hour');
   });
 
   it('argsSchema accepts a category filter', () => {
@@ -71,11 +40,6 @@ describe('gst_radar_brief_today', () => {
     if (r.success) expect(r.data.category).toBe('enterprise-tech');
   });
 
-  it('argsSchema clamps sinceHours to the documented max (168)', () => {
-    expect(radarBriefTodayPrompt.argsSchema.safeParse({ sinceHours: 200 }).success).toBe(false);
-    expect(radarBriefTodayPrompt.argsSchema.safeParse({ sinceHours: 168 }).success).toBe(true);
-  });
-
   it('build() returns at least one message', () => {
     const parsed = radarBriefTodayPrompt.argsSchema.parse({});
     expect(radarBriefTodayPrompt.build(parsed).messages.length).toBeGreaterThanOrEqual(1);
@@ -90,18 +54,6 @@ describe('gst_radar_brief_today', () => {
     for (const ref of radarBriefTodayPrompt.orchestrates) {
       expect(allText).toContain(ref);
     }
-  });
-
-  it('accepts sinceHours as a numeric string (Claude Desktop wire shape)', () => {
-    const r = radarBriefTodayPrompt.argsSchema.safeParse({ sinceHours: '48' });
-    expect(r.success).toBe(true);
-    if (r.success) expect(r.data.sinceHours).toBe(48);
-  });
-
-  it('accepts sinceHours as an actual number (forward-compat)', () => {
-    const r = radarBriefTodayPrompt.argsSchema.safeParse({ sinceHours: 48 });
-    expect(r.success).toBe(true);
-    if (r.success) expect(r.data.sinceHours).toBe(48);
   });
 
   it('handles snapshot-missing path explicitly (instructs the model not to fabricate)', () => {
@@ -128,5 +80,42 @@ describe('gst_radar_brief_today', () => {
     } else if (second.type === 'text') {
       expect(second.text.toLowerCase()).toContain('radar snapshot not found');
     }
+  });
+
+  describe('BL-031.95 Phase 3.A — capability-mirror invariant', () => {
+    // The prompt's argsSchema mirrors the /hub/radar website's filter UI:
+    // a single optional `category` field. The earlier `sinceHours`
+    // argument was removed in v0.0.2 because the underlying cache has a
+    // 24h TTL and the website surfaces no time filter. These tests lock
+    // the contract.
+
+    it('prompt is at v0.0.2 (post-Phase-3.A capability-mirror refactor)', () => {
+      expect(radarBriefTodayPrompt.version).toBe('0.0.2');
+    });
+
+    it('argsSchema rejects pre-Phase-3 `sinceHours` field (no longer accepted)', () => {
+      // Zod by default strips unknown keys rather than rejecting outright;
+      // this assertion verifies sinceHours is dropped, locking the
+      // capability-mirror invariant.
+      const result = radarBriefTodayPrompt.argsSchema.safeParse({ sinceHours: 48 });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data as Record<string, unknown>).sinceHours).toBeUndefined();
+      }
+    });
+
+    it('body does not reference a sinceHours / time-window filter', () => {
+      const parsed = radarBriefTodayPrompt.argsSchema.parse({});
+      const allText = radarBriefTodayPrompt
+        .build(parsed)
+        .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
+        .join('\n')
+        .toLowerCase();
+      // Pre-Phase-3 body said "within the last X hours" — that phrase
+      // should be gone. The body now references the cache's natural
+      // 24h TTL via "24-hour TTL" wording.
+      expect(allText).not.toContain('within the last');
+      expect(allText).not.toContain('sincehours');
+    });
   });
 });

@@ -8,6 +8,16 @@
  *
  * Naming: the `_cache` suffix prevents collision with BL-032's `search_radar`
  * when the live remote tool ships.
+ *
+ * **BL-031.95 Phase 3 — capability mirror**: the tool's input schema is
+ * the strict mirror of the website's Radar page (`/hub/radar`). The site
+ * exposes a single filter — category — and renders an FYI+Wire-unified
+ * feed sorted by `publishedAt` newest-first; this tool does the same.
+ * Earlier versions accepted `query` / `tier` / `since` / `limit` filters
+ * that had no website counterpart; those were removed in commit
+ * <closure of Phase 3.A>. Re-extending the surface in the future is fine
+ * — the test suite + Zod schema + CONTRACT.md are the canonical contract;
+ * keep the website and tool capability sets aligned.
  */
 
 import type { McpServer } from '@modelcontextprotocol/server';
@@ -19,49 +29,24 @@ import {
   type RadarCategory,
   type SnapshotItem,
 } from '../content/radar-snapshot';
-import { RadarCategoryEnum, RadarTierEnum } from '../schemas';
+import { RadarCategoryEnum } from '../schemas';
 
 const SearchRadarCacheInputSchema = z.object({
-  query: z.string().optional(),
   category: RadarCategoryEnum.optional(),
-  tier: RadarTierEnum.optional(),
-  since: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}/, 'Must be ISO date (YYYY-MM-DD or full ISO 8601)')
-    .optional(),
-  limit: z.number().int().positive().max(100).default(20),
 });
 
 type SearchRadarCacheInput = z.infer<typeof SearchRadarCacheInputSchema>;
 
-const TOOL_DESCRIPTION = `Search the locally-cached GST Radar snapshot (FYI annotated items + Wire feed).
+const TOOL_DESCRIPTION = `Search the locally-cached GST Radar snapshot — strict mirror of the website's /hub/radar page.
 
 Reads from \`.cache/inoreader/\` populated by \`npm run radar:seed\`. Never makes live Inoreader API calls — protects the shared 200 req/day budget.
 
-Filters by free-text \`query\` (matches title and source), \`category\` (one of "pe-ma", "enterprise-tech", "ai-automation", "security"), \`tier\` ("fyi" or "wire" — defaults to both), and \`since\` (ISO date). Returns up to \`limit\` matches (default 20, max 100).
+Input: optional \`category\` (one of "pe-ma", "enterprise-tech", "ai-automation", "security"); omit for all categories. Output mirrors the website's unified FYI + Wire feed sorted by \`publishedAt\` newest-first.
 
 If the snapshot is missing, returns a structured error with instructions. Companion to the gst://radar/... Resources.`;
 
-function tierMatches(
-  item: SnapshotItem & { tier: 'fyi' | 'wire' },
-  filter?: 'fyi' | 'wire'
-): boolean {
-  return !filter || item.tier === filter;
-}
-
 function categoryMatches(item: SnapshotItem, filter?: RadarCategory): boolean {
   return !filter || item.category === filter;
-}
-
-function queryMatches(item: SnapshotItem, query?: string): boolean {
-  if (!query) return true;
-  const q = query.toLowerCase();
-  return item.title.toLowerCase().includes(q) || item.source.toLowerCase().includes(q);
-}
-
-function sinceMatches(item: SnapshotItem, since?: string): boolean {
-  if (!since) return true;
-  return item.publishedAt >= since;
 }
 
 export function registerRadarCacheTool(server: McpServer): void {
@@ -95,17 +80,13 @@ export function registerRadarCacheTool(server: McpServer): void {
       }
 
       const matched = tagged
-        .filter((item) => tierMatches(item, input.tier))
         .filter((item) => categoryMatches(item, input.category))
-        .filter((item) => queryMatches(item, input.query))
-        .filter((item) => sinceMatches(item, input.since))
         .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
 
-      const returned = matched.slice(0, input.limit);
       const payload = {
-        matches: returned,
+        matches: matched,
         totalMatched: matched.length,
-        returned: returned.length,
+        returned: matched.length,
         snapshotInfo: {
           fyiLastSeededAt: fyi?.lastSeededAt ?? null,
           wireLastSeededAt: wire?.lastSeededAt ?? null,

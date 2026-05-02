@@ -95,15 +95,24 @@ export {
 
 import { RADAR_CATEGORIES, type RadarCategory } from './content/radar-snapshot';
 
-/** Radar feed categories — matches the four GST-prefixed Inoreader folders. */
-export const RadarCategoryEnum = z.enum(
-  RADAR_CATEGORIES as unknown as [RadarCategory, ...RadarCategory[]]
-);
+/**
+ * Radar feed categories — matches the four GST-prefixed Inoreader folders
+ * AND the four filter pills on the /hub/radar page (BL-031.95 Phase 3
+ * capability-mirror invariant).
+ */
+export const RadarCategoryEnum = z
+  .enum(RADAR_CATEGORIES as unknown as [RadarCategory, ...RadarCategory[]])
+  .describe(
+    'Radar category. One of: pe-ma | enterprise-tech | ai-automation | security. Mirrors the four filter pills on the /hub/radar website page (the only filter the website surfaces; the cache itself has a 24h TTL so a `since` filter would be redundant against the website UX).'
+  );
 export type RadarCategoryValue = z.infer<typeof RadarCategoryEnum>;
 
-/** Radar tier — FYI (annotated) vs Wire (raw). */
-export const RadarTierEnum = z.enum(['fyi', 'wire']);
-export type RadarTierValue = z.infer<typeof RadarTierEnum>;
+// `RadarTierEnum` was removed under BL-031.95 Phase 3.A — the website's
+// /hub/radar page renders a unified FYI+Wire feed via mergeFeed(), so no
+// tool-level tier filter exists at the website surface. The MCP Resources
+// (`gst://radar/fyi/latest` and `gst://radar/wire/latest`) remain
+// directly addressable for prompts that need a tier-specific snapshot
+// embedding.
 
 // ─── MCP tool input schemas ──────────────────────────────────────────────
 
