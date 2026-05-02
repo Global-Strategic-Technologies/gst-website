@@ -29,7 +29,7 @@ Given a 14-field input (ARR, funding stage, mode, capex view, growth rate, exit 
 
 \`stage\` accepts either canonical values (seed | series-a | series-b | series-c | pe | enterprise — preferred) or TechPar-native values (seed | series_a | series_bc | pe | enterprise). TechPar collapses canonical series-b + series-c into series_bc; the canonical layer documents this honestly.
 
-\`infraHosting\` and \`arr\` must both be > 0 (the engine returns null otherwise — surfaced here as an error). Same engine as https://globalstrategic.tech/hub/tools/techpar.`;
+\`infraHostingAnnual\` and \`arr\` must both be > 0 (the engine returns null otherwise — surfaced here as an error). All six money fields (\`infraHostingAnnual\`, \`infraPersonnel\`, \`rdOpEx\`, \`rdCapEx\`, \`engCost\`, \`prodCost\`, \`toolingCost\`) are annual dollars. Same engine as https://globalstrategic.tech/hub/tools/techpar.`;
 
 export function registerTechparTool(server: McpServer): void {
   server.registerTool(
@@ -54,7 +54,7 @@ export function registerTechparTool(server: McpServer): void {
             content: [
               {
                 type: 'text',
-                text: 'TechPar requires both `arr` and `infraHosting` to be greater than zero.',
+                text: 'TechPar requires both `arr` and `infraHostingAnnual` to be greater than zero.',
               },
             ],
             isError: true,

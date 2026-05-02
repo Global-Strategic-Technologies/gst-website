@@ -8,7 +8,7 @@
 > - **Stage configurations & benchmarks**: [`src/data/techpar/stages.ts`](../../../../src/data/techpar/stages.ts) — `STAGES` map (per-stage zones, benchmarks, frame, note)
 > - **Engine logic**: [`src/utils/techpar-engine.ts`](../../../../src/utils/techpar-engine.ts) — `compute` (lines ~210–365), `getZone` (lines 100–110), `computeGap` / `computeUnderGap` (lines 167–192)
 >
-> **Used by prompts** (BL-031.75): [`gst_target_quick_look`](../../prompts/target-quick-look.ts) (first-look brief — combines TechPar with ICG + Tech Debt + regulatory exposure). Note the `infraHosting` monthly-vs-annual unit mismatch surfaced during V2 verification — captured for normalization in [BL-031.95](../../../../src/docs/development/BACKLOG.md#bl-03195-hub-tools--url-state-restoration--mcp-deep-link-surface) (rename to `infraHostingAnnual` so all six money fields share annual units). Schema rename will require updating `gst_target_quick_look`'s body Step 3 synthesis instructions.
+> **Used by prompts** (BL-031.75): [`gst_target_quick_look`](../../prompts/target-quick-look.ts) (first-look brief — combines TechPar with ICG + Tech Debt + regulatory exposure). The `infraHosting` monthly-vs-annual unit mismatch flagged during V2 verification was resolved under BL-031.95 (renamed to `infraHostingAnnual`; engine no longer multiplies by 12; all six money fields share annual units).
 >
 > **Version**: `v1` | **Last authored**: 2026-04-28
 >
@@ -18,24 +18,24 @@
 
 ## Field overview
 
-14 inputs. All required and validated by Zod; the engine returns `null` when `arr` or `infraHosting` is zero — the MCP wrapper surfaces this as an `isError` response with the message `TechPar requires both 'arr' and 'infraHosting' to be greater than zero.`
+14 inputs. All required and validated by Zod; the engine returns `null` when `arr` or `infraHostingAnnual` is zero — the MCP wrapper surfaces this as an `isError` response with the message `TechPar requires both 'arr' and 'infraHostingAnnual' to be greater than zero.`
 
-| Field            | Type       | Notes                                                                                  |
-| ---------------- | ---------- | -------------------------------------------------------------------------------------- |
-| `arr`            | number ≥ 0 | Annual recurring revenue, in dollars                                                   |
-| `stage`          | enum       | One of 5 growth stages                                                                 |
-| `mode`           | enum       | `quick` (use `rdOpEx` directly) or `deepdive` (sum `engCost + prodCost + toolingCost`) |
-| `capexView`      | enum       | `cash` (include CapEx in totals) or `gaap` (exclude CapEx)                             |
-| `growthRate`     | number     | Annual revenue growth rate (%); drives 36-month projection                             |
-| `exitMultiple`   | number ≥ 0 | Exit multiple used to translate cumulative gap → exit value                            |
-| `infraHosting`   | number ≥ 0 | Monthly infrastructure hosting cost (dollars)                                          |
-| `infraPersonnel` | number ≥ 0 | Annual infra personnel cost (dollars)                                                  |
-| `rdOpEx`         | number ≥ 0 | R&D OpEx — used in `quick` mode                                                        |
-| `rdCapEx`        | number ≥ 0 | R&D CapEx (capitalized R&D)                                                            |
-| `engFTE`         | number ≥ 0 | Engineering full-time-equivalent count                                                 |
-| `engCost`        | number ≥ 0 | Annual engineering personnel cost — `deepdive` only                                    |
-| `prodCost`       | number ≥ 0 | Annual product personnel cost — `deepdive` only                                        |
-| `toolingCost`    | number ≥ 0 | Annual tooling cost — `deepdive` only                                                  |
+| Field                | Type       | Notes                                                                                  |
+| -------------------- | ---------- | -------------------------------------------------------------------------------------- |
+| `arr`                | number ≥ 0 | Annual recurring revenue, in dollars                                                   |
+| `stage`              | enum       | One of 5 growth stages                                                                 |
+| `mode`               | enum       | `quick` (use `rdOpEx` directly) or `deepdive` (sum `engCost + prodCost + toolingCost`) |
+| `capexView`          | enum       | `cash` (include CapEx in totals) or `gaap` (exclude CapEx)                             |
+| `growthRate`         | number     | Annual revenue growth rate (%); drives 36-month projection                             |
+| `exitMultiple`       | number ≥ 0 | Exit multiple used to translate cumulative gap → exit value                            |
+| `infraHostingAnnual` | number ≥ 0 | Annual infrastructure / cloud hosting cost (dollars)                                   |
+| `infraPersonnel`     | number ≥ 0 | Annual infra personnel cost (dollars)                                                  |
+| `rdOpEx`             | number ≥ 0 | R&D OpEx — used in `quick` mode                                                        |
+| `rdCapEx`            | number ≥ 0 | R&D CapEx (capitalized R&D)                                                            |
+| `engFTE`             | number ≥ 0 | Engineering full-time-equivalent count                                                 |
+| `engCost`            | number ≥ 0 | Annual engineering personnel cost — `deepdive` only                                    |
+| `prodCost`           | number ≥ 0 | Annual product personnel cost — `deepdive` only                                        |
+| `toolingCost`        | number ≥ 0 | Annual tooling cost — `deepdive` only                                                  |
 
 ---
 
@@ -58,8 +58,7 @@
 
 ### Cost fields
 
-- **`infraHosting`** is **monthly**; the engine multiplies by 12 internally for annualized numbers.
-- **`infraPersonnel`, `rdOpEx`, `rdCapEx`, `engCost`, `prodCost`, `toolingCost`** are **annual**.
+- **`infraHostingAnnual`, `infraPersonnel`, `rdOpEx`, `rdCapEx`, `engCost`, `prodCost`, `toolingCost`** are all **annual** dollars (BL-031.95 normalized this; pre-BL-031.95 callers passed `infraHosting` as monthly with × 12 inside the engine).
 - **`engFTE`** is a headcount integer used to compute `revenuePerEngineer = arr / engFTE`.
 
 ---
@@ -99,7 +98,7 @@ Per-category zones use the same logic against the per-category benchmarks in `st
 
 ## Hidden semantics
 
-- **`compute` returns `null`** if `arr === 0` or `infraHosting === 0`. The MCP wrapper converts this to a structured error, never a stack trace. The website wizard handles the null state by showing a "fill in revenue / infra hosting" placeholder.
+- **`compute` returns `null`** if `arr === 0` or `infraHostingAnnual === 0`. The MCP wrapper converts this to a structured error, never a stack trace. The website wizard handles the null state by showing a "fill in revenue / infra hosting" placeholder.
 - **R&D CapEx benchmark derivation**: the per-category R&D CapEx benchmark is computed at runtime as `(rdOpEx + rdCapEx) × stageConfig.benchmarks.rdCapExOfRD / 100 / arr × 100`. The "of R&D" semantics aren't user-facing in the input — the consumer just sees the resulting % range — but they explain why the R&D CapEx benchmark depends on actual R&D spend rather than ARR alone.
 - **Mode switching does not zero unused fields** — sending all of `rdOpEx`, `engCost`, `prodCost`, `toolingCost` is fine. The engine ignores `rdOpEx` in `deepdive` and ignores `engCost/prodCost/toolingCost` in `quick`. Submitting both is harmless.
 

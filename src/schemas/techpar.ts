@@ -119,7 +119,12 @@ export const TechParInputsSchema = z.object({
   capexView: CapExViewSchema,
   growthRate: z.number(),
   exitMultiple: z.number().nonnegative(),
-  infraHosting: z.number().nonnegative(),
+  // BL-031.95: renamed from `infraHosting` (which stored monthly values
+  // and the engine multiplied by 12) to make units explicit. All six money
+  // fields now share annual units. Engine no longer multiplies; the website
+  // page's monthly/annual UI toggle does the conversion at the input
+  // boundary so the schema always sees annual.
+  infraHostingAnnual: z.number().nonnegative(),
   infraPersonnel: z.number().nonnegative(),
   rdOpEx: z.number().nonnegative(),
   rdCapEx: z.number().nonnegative(),

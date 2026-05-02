@@ -34,22 +34,22 @@ Inside any Claude client where the GST MCP server is registered (Claude Desktop,
 
 Claude reads the prose, identifies that the `mcp__gst__compute_techpar` tool fits the request, extracts the 14 inputs, and calls the tool. For orientation, here is what Claude derives — the full per-field reference is in [`CONTRACT.md`](./CONTRACT.md):
 
-| Schema field     | Resolved value | Source phrase                                   |
-| ---------------- | -------------- | ----------------------------------------------- |
-| `arr`            | `25_000_000`   | "$25M ARR"                                      |
-| `stage`          | `series_bc`    | "Series B–C SaaS"                               |
-| `mode`           | `quick`        | (default — no `engCost`/`prodCost` split given) |
-| `capexView`      | `cash`         | "Cash basis"                                    |
-| `growthRate`     | `30`           | "growing 30% YoY"                               |
-| `exitMultiple`   | `12`           | "exit multiple 12×"                             |
-| `infraHosting`   | `80_000`       | "$80K/month" (engine internally × 12)           |
-| `infraPersonnel` | `600_000`      | "$600K/year"                                    |
-| `rdOpEx`         | `4_000_000`    | "R&D OpEx $4M"                                  |
-| `rdCapEx`        | `500_000`      | "R&D CapEx $500K"                               |
-| `engFTE`         | `25`           | "25 engineers"                                  |
-| `engCost`        | `0`            | (deepdive-only — set 0 in `quick`)              |
-| `prodCost`       | `0`            | (deepdive-only — set 0 in `quick`)              |
-| `toolingCost`    | `0`            | (deepdive-only — set 0 in `quick`)              |
+| Schema field         | Resolved value | Source phrase                                           |
+| -------------------- | -------------- | ------------------------------------------------------- |
+| `arr`                | `25_000_000`   | "$25M ARR"                                              |
+| `stage`              | `series_bc`    | "Series B–C SaaS"                                       |
+| `mode`               | `quick`        | (default — no `engCost`/`prodCost` split given)         |
+| `capexView`          | `cash`         | "Cash basis"                                            |
+| `growthRate`         | `30`           | "growing 30% YoY"                                       |
+| `exitMultiple`       | `12`           | "exit multiple 12×"                                     |
+| `infraHostingAnnual` | `960_000`      | "$80K/month → $960K/year" (BL-031.95: schema is annual) |
+| `infraPersonnel`     | `600_000`      | "$600K/year"                                            |
+| `rdOpEx`             | `4_000_000`    | "R&D OpEx $4M"                                          |
+| `rdCapEx`            | `500_000`      | "R&D CapEx $500K"                                       |
+| `engFTE`             | `25`           | "25 engineers"                                          |
+| `engCost`            | `0`            | (deepdive-only — set 0 in `quick`)                      |
+| `prodCost`           | `0`            | (deepdive-only — set 0 in `quick`)                      |
+| `toolingCost`        | `0`            | (deepdive-only — set 0 in `quick`)                      |
 
 If a phrase is ambiguous, Claude asks a follow-up before calling the tool — e.g., _"You said R&D OpEx is $4M — does that include the $500K CapEx, or are they separate? TechPar treats them as separate; I'm assuming separate."_
 

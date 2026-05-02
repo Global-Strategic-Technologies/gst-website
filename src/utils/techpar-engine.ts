@@ -84,7 +84,7 @@ export const DEFAULT_INPUTS: TechParInputs = {
   capexView: 'cash',
   growthRate: 20,
   exitMultiple: 12,
-  infraHosting: 0,
+  infraHostingAnnual: 0,
   infraPersonnel: 0,
   rdOpEx: 0,
   rdCapEx: 0,
@@ -209,7 +209,7 @@ function categoryZone(pct: number, benchLo: number, benchHi: number): Zone {
 export function compute(inputs: TechParInputs): TechParResult | null {
   const {
     arr,
-    infraHosting,
+    infraHostingAnnual,
     infraPersonnel,
     rdCapEx,
     engFTE,
@@ -221,14 +221,15 @@ export function compute(inputs: TechParInputs): TechParResult | null {
     exitMultiple,
   } = inputs;
 
-  if (!arr || !infraHosting) return null;
+  if (!arr || !infraHostingAnnual) return null;
 
   const stageConfig = STAGES[inputs.stage] as StageConfig;
 
   // Compute rdOpEx based on mode
   const rdOpEx = inputs.mode === 'deepdive' ? engCost + prodCost + toolingCost : inputs.rdOpEx;
 
-  const infraAnnual = infraHosting * 12;
+  // BL-031.95: schema now provides annual hosting directly; no × 12 needed.
+  const infraAnnual = infraHostingAnnual;
   const totalCash = infraAnnual + infraPersonnel + rdOpEx + rdCapEx;
   const totalGAAP = infraAnnual + infraPersonnel + rdOpEx;
   const total = capexView === 'gaap' ? totalGAAP : totalCash;
@@ -374,7 +375,8 @@ export function buildTrajectory(inputs: TechParInputs, config: StageConfig): Tra
       ? inputs.engCost + inputs.prodCost + inputs.toolingCost
       : inputs.rdOpEx;
 
-  const infraAnnual = inputs.infraHosting * 12;
+  // BL-031.95: schema now provides annual hosting directly; no × 12 needed.
+  const infraAnnual = inputs.infraHostingAnnual;
   const totalVal =
     inputs.capexView === 'gaap'
       ? infraAnnual + inputs.infraPersonnel + rdOpEx
@@ -541,7 +543,7 @@ const PARAM_KEYS: Record<string, keyof TechParInputs | 'stage' | 'mode' | 'capex
   m: 'mode',
   c: 'capexView',
   e: 'exitMultiple',
-  h: 'infraHosting',
+  h: 'infraHostingAnnual',
   p: 'infraPersonnel',
   r: 'rdOpEx',
   x: 'rdCapEx',
@@ -576,7 +578,7 @@ export function serializeToParams(
   if (inputs.mode !== 'quick') set('mode', inputs.mode);
   if (inputs.capexView !== 'cash') set('capexView', inputs.capexView);
   if (inputs.exitMultiple !== 12) set('exitMultiple', String(inputs.exitMultiple));
-  if (inputs.infraHosting) set('infraHosting', String(inputs.infraHosting));
+  if (inputs.infraHostingAnnual) set('infraHostingAnnual', String(inputs.infraHostingAnnual));
   if (inputs.infraPersonnel) set('infraPersonnel', String(inputs.infraPersonnel));
   if (inputs.rdOpEx) set('rdOpEx', String(inputs.rdOpEx));
   if (inputs.rdCapEx) set('rdCapEx', String(inputs.rdCapEx));
@@ -606,7 +608,16 @@ export interface DeserializedState {
   mode?: Mode;
   capexView?: CapExView;
   exitMultiple?: number;
-  infraHosting?: number;
+  /**
+   * Note: stores the value present in the URL `?h=` parameter, which is
+   * the raw DOM input (whatever the user typed in their chosen monthly/
+   * annual mode). The page hydration code (`dom.ts setInput('infra', …)`)
+   * restores this value into the input field as-is; the field name is
+   * kept in sync with the schema for type-safety, but readers should not
+   * assume the value is always annual until `buildInputs()` has applied
+   * the period-based conversion.
+   */
+  infraHostingAnnual?: number;
   infraPersonnel?: number;
   rdOpEx?: number;
   rdCapEx?: number;
@@ -642,7 +653,7 @@ export function deserializeFromParams(params: URLSearchParams): DeserializedStat
   if (c && VALID_CAPEX.includes(c as CapExView)) state.capexView = c as CapExView;
 
   state.exitMultiple = num('e');
-  state.infraHosting = num('h');
+  state.infraHostingAnnual = num('h');
   state.infraPersonnel = num('p');
   state.rdOpEx = num('r');
   state.rdCapEx = num('x');

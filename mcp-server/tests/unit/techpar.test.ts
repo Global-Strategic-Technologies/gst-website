@@ -15,7 +15,7 @@ const validInputs: TechParInputs = {
   capexView: 'cash',
   growthRate: 30,
   exitMultiple: 12,
-  infraHosting: 80_000,
+  infraHostingAnnual: 960_000,
   infraPersonnel: 600_000,
   rdOpEx: 4_000_000,
   rdCapEx: 500_000,
@@ -66,8 +66,8 @@ describe('compute_techpar (engine parity)', () => {
     expect(compute({ ...validInputs, arr: 0 })).toBeNull();
   });
 
-  it('returns null when infraHosting is zero', () => {
-    expect(compute({ ...validInputs, infraHosting: 0 })).toBeNull();
+  it('returns null when infraHostingAnnual is zero', () => {
+    expect(compute({ ...validInputs, infraHostingAnnual: 0 })).toBeNull();
   });
 
   it('serializes cleanly to JSON (no circular refs)', () => {
