@@ -173,6 +173,39 @@ Brutalist Option Cards
   color: var(--color-primary);
 }
 
+/* -- unsure: BL-031.95 Phase 2.C "Not sure" affordance per wizard step --
+   Mirrors ICG's `brutal-choice-btn--unsure` pattern. Visually muted to
+   distinguish from real options without breaking layout symmetry; stays
+   in the same vertical option-grid as a sibling card so the user sees
+   "Not sure" as a peer choice rather than a side action. */
+
+.brutal-option-card--unsure {
+  border-style: dashed;
+  border-color: light-dark(var(--border-light), var(--border-dark-subtle));
+  color: var(--text-muted);
+}
+
+.brutal-option-card--unsure .brutal-option-card__label {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.brutal-option-card--unsure:hover {
+  border-color: var(--color-primary);
+  color: var(--text-secondary);
+}
+
+.brutal-option-card--unsure.brutal-option-card--selected-outline {
+  border-style: solid;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.brutal-option-card--unsure.brutal-option-card--selected-outline .brutal-option-card__label {
+  color: var(--color-primary);
+  font-style: normal;
+}
+
 /* ==============================
 
 Brutalist Editor's Pick Tag

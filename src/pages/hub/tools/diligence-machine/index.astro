@@ -222,6 +222,25 @@ import '../../../../styles/components/progress.css';
                         )}
                       </button>
                     ))}
+                    {/* BL-031.95 Phase 2.C: "Not sure" affordance — sets the
+                        dimension to the 'unknown' sentinel; engine widens
+                        triggers conservatively. Routes through the existing
+                        handleOptionClick because the schema accepts 'unknown'
+                        as a valid value (see UNKNOWN_INPUT in
+                        src/schemas/diligence.ts). */}
+                    <button
+                      class="brutal-option-card brutal-option-card--unsure"
+                      data-option-id="unknown"
+                      data-step-id={step.id}
+                      data-testid={`option-${step.id}-unknown`}
+                      type="button"
+                      aria-pressed="false"
+                    >
+                      <span class="brutal-option-card__label">
+                        <DeltaIcon class="bullet-icon" />
+                        Not sure
+                      </span>
+                    </button>
                   </div>
                 )}
 
@@ -245,6 +264,25 @@ import '../../../../styles/components/progress.css';
                         )}
                       </button>
                     ))}
+                    {/* BL-031.95 Phase 2.C: "Not sure" affordance for the
+                        multi-select geography step. Click sets
+                        inputs.geographies = ['unknown'] and clears all other
+                        selections; clicking any specific region after
+                        clears the 'unknown' state. Special case handled in
+                        handleOptionClick. */}
+                    <button
+                      class="brutal-option-card brutal-option-card--unsure"
+                      data-option-id="unknown"
+                      data-step-id={step.id}
+                      data-testid={`option-${step.id}-unknown`}
+                      type="button"
+                      aria-pressed="false"
+                    >
+                      <span class="brutal-option-card__label">
+                        <DeltaIcon class="bullet-icon" />
+                        Not sure
+                      </span>
+                    </button>
                   </div>
                 )}
 
@@ -270,6 +308,26 @@ import '../../../../styles/components/progress.css';
                               </span>
                             </button>
                           ))}
+                          {/* BL-031.95 Phase 2.C: "Not sure" per compound
+                              field. Each of the 4 compound fields
+                              (headcount/revenueRange/growthStage/companyAge)
+                              gets its own affordance — routes through
+                              handleCompoundOptionClick because the schema
+                              accepts 'unknown' on every dimension. */}
+                          <button
+                            class="brutal-option-card compound-option brutal-option-card--unsure"
+                            data-option-id="unknown"
+                            data-field-id={field.id}
+                            data-step-id={step.id}
+                            data-testid={`compound-${field.id}-unknown`}
+                            type="button"
+                            aria-pressed="false"
+                          >
+                            <span class="brutal-option-card__label">
+                              <DeltaIcon size={10} class="brutal-option-card__icon" />
+                              Not sure
+                            </span>
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -877,6 +935,43 @@ import '../../../../styles/components/progress.css';
         }
       }, 300);
     } else if (inputType === 'multi-select') {
+      // BL-031.95 Phase 2.C: 'unknown' is a sentinel — clicking it sets
+      // inputs.geographies = ['unknown'] and clears all specific selections.
+      // Clicking any specific region while 'unknown' is set clears 'unknown'
+      // and treats the click as a fresh single-region selection.
+      if (optionId === 'unknown') {
+        const isSelected = card.classList.toggle('brutal-option-card--selected-outline');
+        card.setAttribute('aria-pressed', String(isSelected));
+        if (isSelected) {
+          inputs.geographies = ['unknown'];
+          // Clear all specific-region cards visually.
+          stepEl.querySelectorAll('.brutal-option-card').forEach((el) => {
+            const id = (el as HTMLElement).dataset.optionId;
+            if (id !== 'unknown') {
+              el.classList.remove('brutal-option-card--selected-outline');
+              el.setAttribute('aria-pressed', 'false');
+            }
+          });
+        } else {
+          inputs.geographies = [];
+        }
+        updateNextButtonState();
+        saveStateDebounced();
+        return;
+      }
+
+      // Specific-region click: if 'unknown' was active, clear it first.
+      if (inputs.geographies && inputs.geographies.includes('unknown')) {
+        inputs.geographies = inputs.geographies.filter((g) => g !== 'unknown');
+        const unknownCard = stepEl.querySelector(
+          '.brutal-option-card[data-option-id="unknown"]'
+        ) as HTMLElement | null;
+        if (unknownCard) {
+          unknownCard.classList.remove('brutal-option-card--selected-outline');
+          unknownCard.setAttribute('aria-pressed', 'false');
+        }
+      }
+
       const isSelected = card.classList.toggle('brutal-option-card--selected-outline');
       card.setAttribute('aria-pressed', String(isSelected));
 
