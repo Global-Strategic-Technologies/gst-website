@@ -299,7 +299,7 @@ Three commits, all-green verification:
 
 **Deviations from plan**: none material. The original plan's `toCanonical(toolId, native)` and `fromCanonical(toolId, canonical)` helpers were implemented as per-tool functions (`icgFromCanonical`, `techparFromCanonical`, etc.) instead of generic `toolId`-keyed helpers — the per-tool form gives the type system exact knowledge of which keys exist and avoids unsafe runtime lookups. The `stageContext.canonical` field is always array-valued (per the lossy-direction policy); single-value canonical responses are wrapped in a one-element array for shape consistency.
 
-**Live MCP exercise**: deferred to next out-of-band model run. Unit-test coverage (270 tests passing, including 22 new in `funding-stages.test.ts`) plus typecheck + build success substitute for the live verification given the engineering surface is purely additive (Zod union for backward-compat, no engine changes).
+**Live MCP exercise**: the running mcp-server subprocess is started at Claude session start from `dist/index.js` and cannot be reloaded with newly-built code mid-session — a real infrastructure constraint, not deferred work. Engineering correctness is verified by [`mcp-server/tests/integration/icg-handler.test.ts`](../../../mcp-server/tests/integration/icg-handler.test.ts), which exercises the post-BL-031.87 wrapper handler with canonical / native / omitted `companyStage` inputs and asserts the `stageContext` mapping plus the engine output shape. UI-level verification through Claude Desktop lands naturally the next time the MCP server restarts (next Claude session); it is not tracked as deferred work because it adds no engineering surface beyond what the integration test already covers.
 
 ---
 

@@ -44,6 +44,55 @@ Given a 14-field input (ARR, funding stage, mode, capex view, growth rate, exit 
 
 \`infraHostingAnnual\` and \`arr\` must both be > 0 (the engine returns null otherwise — surfaced here as an error). All six money fields (\`infraHostingAnnual\`, \`infraPersonnel\`, \`rdOpEx\`, \`rdCapEx\`, \`engCost\`, \`prodCost\`, \`toolingCost\`) are annual dollars. Same engine as https://globalstrategic.tech/hub/tools/techpar.`;
 
+/**
+ * Handler for the compute_techpar MCP tool.
+ *
+ * Exported so integration tests can exercise the full wrapper pipeline
+ * (canonical stage resolution + engine call + deeplink + stageContext +
+ * isError shape) without going through the MCP transport. The MCP
+ * registration below wraps this same handler.
+ */
+export async function handleTechparTool(mcpInputs: TechParMcpInputs) {
+  try {
+    // Resolve canonical-or-native stage to native (BL-031.87).
+    const nativeStage = resolveTechparStageInput(mcpInputs.stage);
+    const inputs: TechParInputs = { ...mcpInputs, stage: nativeStage };
+    const result = compute(inputs);
+    if (result === null) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: 'TechPar requires both `arr` and `infraHostingAnnual` to be greater than zero.',
+          },
+        ],
+        isError: true,
+      };
+    }
+    const stageContext = {
+      native: nativeStage,
+      canonical: TECHPAR_STAGE_ADAPTER.toCanonical[nativeStage],
+    };
+    const deeplink = buildTechparDeeplink(inputs);
+    const payload = { ...result, stageContext, deeplink };
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(payload, null, 2),
+        },
+      ],
+      structuredContent: payload as unknown as Record<string, unknown>,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      content: [{ type: 'text' as const, text: `Failed to compute TechPar: ${message}` }],
+      isError: true,
+    };
+  }
+}
+
 export function registerTechparTool(server: McpServer): void {
   server.registerTool(
     'compute_techpar',
@@ -56,45 +105,6 @@ export function registerTechparTool(server: McpServer): void {
         idempotentHint: true,
       },
     },
-    async (mcpInputs: TechParMcpInputs) => {
-      try {
-        // Resolve canonical-or-native stage to native (BL-031.87).
-        const nativeStage = resolveTechparStageInput(mcpInputs.stage);
-        const inputs: TechParInputs = { ...mcpInputs, stage: nativeStage };
-        const result = compute(inputs);
-        if (result === null) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: 'TechPar requires both `arr` and `infraHostingAnnual` to be greater than zero.',
-              },
-            ],
-            isError: true,
-          };
-        }
-        const stageContext = {
-          native: nativeStage,
-          canonical: TECHPAR_STAGE_ADAPTER.toCanonical[nativeStage],
-        };
-        const deeplink = buildTechparDeeplink(inputs);
-        const payload = { ...result, stageContext, deeplink };
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(payload, null, 2),
-            },
-          ],
-          structuredContent: payload as unknown as Record<string, unknown>,
-        };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return {
-          content: [{ type: 'text', text: `Failed to compute TechPar: ${message}` }],
-          isError: true,
-        };
-      }
-    }
+    handleTechparTool
   );
 }

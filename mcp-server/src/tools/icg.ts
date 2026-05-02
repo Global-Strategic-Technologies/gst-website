@@ -62,6 +62,53 @@ export function buildIcgDeeplink(state: ICGState): string {
   return `${HUB_BASE}/hub/tools/infrastructure-cost-governance/?s=${encoded}`;
 }
 
+/**
+ * Handler for the assess_infrastructure_cost_governance MCP tool.
+ *
+ * Exported so integration tests can exercise the full wrapper pipeline
+ * (canonical stage resolution + engine call + deeplink + stageContext)
+ * without going through the MCP transport. The MCP registration below
+ * wraps this same handler.
+ */
+export async function handleIcgTool(mcpInputs: ICGMcpInputs) {
+  try {
+    // Resolve canonical-or-native stage to native (BL-031.87).
+    const nativeStage = resolveIcgStageInput(mcpInputs.companyStage);
+    const inputs: ICGInputs = {
+      answers: mcpInputs.answers,
+      companyStage: nativeStage,
+    };
+    const state = buildResultsState(inputs);
+    const result = calculateResults(state, DOMAINS);
+    const recommendations = getRecommendations(state, RECOMMENDATIONS);
+    const deeplink = buildIcgDeeplink(state);
+    const stageContext = nativeStage
+      ? {
+          native: nativeStage,
+          canonical: ICG_STAGE_ADAPTER.toCanonical[nativeStage],
+        }
+      : undefined;
+    const payload = stageContext
+      ? { ...result, recommendations, deeplink, stageContext }
+      : { ...result, recommendations, deeplink };
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(payload, null, 2),
+        },
+      ],
+      structuredContent: payload as unknown as Record<string, unknown>,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      content: [{ type: 'text' as const, text: `Failed to assess ICG: ${message}` }],
+      isError: true,
+    };
+  }
+}
+
 export function registerIcgTool(server: McpServer): void {
   server.registerTool(
     'assess_infrastructure_cost_governance',
@@ -74,43 +121,6 @@ export function registerIcgTool(server: McpServer): void {
         idempotentHint: true,
       },
     },
-    async (mcpInputs: ICGMcpInputs) => {
-      try {
-        // Resolve canonical-or-native stage to native (BL-031.87).
-        const nativeStage = resolveIcgStageInput(mcpInputs.companyStage);
-        const inputs: ICGInputs = {
-          answers: mcpInputs.answers,
-          companyStage: nativeStage,
-        };
-        const state = buildResultsState(inputs);
-        const result = calculateResults(state, DOMAINS);
-        const recommendations = getRecommendations(state, RECOMMENDATIONS);
-        const deeplink = buildIcgDeeplink(state);
-        const stageContext = nativeStage
-          ? {
-              native: nativeStage,
-              canonical: ICG_STAGE_ADAPTER.toCanonical[nativeStage],
-            }
-          : undefined;
-        const payload = stageContext
-          ? { ...result, recommendations, deeplink, stageContext }
-          : { ...result, recommendations, deeplink };
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(payload, null, 2),
-            },
-          ],
-          structuredContent: payload as unknown as Record<string, unknown>,
-        };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return {
-          content: [{ type: 'text', text: `Failed to assess ICG: ${message}` }],
-          isError: true,
-        };
-      }
-    }
+    handleIcgTool
   );
 }

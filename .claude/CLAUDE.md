@@ -34,6 +34,14 @@ This document provides Claude with essential context about the GST Website proje
 - Run unit and integration tests to verify correctness
 - **Do NOT run E2E tests unless explicitly told to do so** — except when the task itself is writing or fixing E2E tests, in which case running them _is_ the verification step (use `--project=chromium` for a fast single-browser check)
 
+### 4a. No Deferred Tech Debt — Fix Now, Not Later
+
+- **If a fix can be done in this session, do it in this session.** Do not write off remaining work as "deferred to next session," "future cleanup," or "follow-up needed" when the fix is in scope and reachable.
+- **Verification work counts.** A "live exercise" or "human-driven UI verification" labeled "deferred to next session" is the same anti-pattern as a code TODO. If the live exercise can't be done in-session due to a real infrastructure constraint (e.g., a long-running subprocess that pre-dates this session's commits), substitute with a comprehensive integration test that exercises the same handler code path so engineering correctness is proven now — and document the constraint transparently, not as deferred work.
+- **If you discover an existing instance of deferred tech debt while working on something else** (e.g., a closure stanza in a sibling architecture doc that says "deferred to next out-of-band run"), remediate it as part of the current task. Don't carry the bad pattern forward.
+- **For surfaces with active clients**: a rename, removal, or enum tightening must ship with a coordinated migration of every known caller OR a backward-compat shim at the same boundary. Confirm with the user whether active clients exist before scoping migration work — don't assume risk when the codebase is internal.
+- **Reason**: deferred tech debt compounds. Each "we'll handle that later" makes the next session harder, not easier. Closing the loop in the same session that opened it is the only sustainable rhythm.
+
 ### 5. Demand Elegance (Balanced)
 
 - For non-trivial changes: pause and ask "is there a more elegant way?"
