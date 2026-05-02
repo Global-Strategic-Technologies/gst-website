@@ -7,7 +7,7 @@
  */
 
 import type { McpServer } from '@modelcontextprotocol/server';
-import { compute } from '../../../src/utils/techpar-engine';
+import { compute, serializeToParams } from '../../../src/utils/techpar-engine';
 import type { TechParInputs } from '../../../src/schemas/techpar';
 import {
   TechParMcpInputsSchema,
@@ -15,6 +15,18 @@ import {
   TECHPAR_STAGE_ADAPTER,
   resolveTechparStageInput,
 } from '../schemas';
+import { HUB_BASE } from '../config';
+
+/**
+ * Build a TechPar deep-link from the resolved (native-shape) inputs by
+ * delegating to the existing `serializeToParams` encoder in the engine.
+ * The encoder is the single source of truth for URL state — same code
+ * path the website page uses for `syncUrlState()` and `hydrateFromUrl()`.
+ */
+function buildTechparDeeplink(inputs: TechParInputs): string {
+  const params = serializeToParams(inputs);
+  return `${HUB_BASE}/hub/tools/techpar/?${params.toString()}`;
+}
 
 const TOOL_DESCRIPTION = `Compute TechPar — a benchmark of a target company's technology cost ratio against stage-specific peer ranges.
 
@@ -26,6 +38,7 @@ Given a 14-field input (ARR, funding stage, mode, capex view, growth rate, exit 
 - 36-month gap projection (cumulative excess or underinvestment)
 - Stage configuration metadata
 - \`stageContext\` — the native stage the engine used and the canonical funding-stage equivalents
+- \`deeplink\` — URL to open the TechPar wizard with these inputs pre-populated (for PDF / export / share via the website page)
 
 \`stage\` accepts either canonical values (seed | series-a | series-b | series-c | pe | enterprise — preferred) or TechPar-native values (seed | series_a | series_bc | pe | enterprise). TechPar collapses canonical series-b + series-c into series_bc; the canonical layer documents this honestly.
 
@@ -64,7 +77,8 @@ export function registerTechparTool(server: McpServer): void {
           native: nativeStage,
           canonical: TECHPAR_STAGE_ADAPTER.toCanonical[nativeStage],
         };
-        const payload = { ...result, stageContext };
+        const deeplink = buildTechparDeeplink(inputs);
+        const payload = { ...result, stageContext, deeplink };
         return {
           content: [
             {

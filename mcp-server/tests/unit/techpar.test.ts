@@ -5,8 +5,13 @@
  * benchmark output for a representative payload.
  */
 
-import { compute } from '../../../src/utils/techpar-engine';
+import {
+  compute,
+  serializeToParams,
+  deserializeFromParams,
+} from '../../../src/utils/techpar-engine';
 import { TechParInputsSchema, type TechParInputs } from '../../src/schemas';
+import { HUB_BASE } from '../../src/config';
 
 const validInputs: TechParInputs = {
   arr: 25_000_000,
@@ -73,5 +78,40 @@ describe('compute_techpar (engine parity)', () => {
   it('serializes cleanly to JSON (no circular refs)', () => {
     const result = compute(validInputs);
     expect(() => JSON.stringify(result)).not.toThrow();
+  });
+});
+
+describe('compute_techpar deeplink emission (BL-031.95 Phase 1.B)', () => {
+  // The MCP wrapper builds a deep-link from the resolved native-shape
+  // inputs by delegating to the existing serializeToParams encoder.
+  // These tests assert the encoder produces a well-formed URL that the
+  // website page can hydrate via deserializeFromParams. The wrapper-
+  // level test (that the response payload includes `deeplink`) is
+  // covered by the integration smoke; here we test the encoder
+  // contract the wrapper depends on.
+
+  it('serializeToParams produces a URL that round-trips back to equivalent inputs', () => {
+    const params = serializeToParams(validInputs);
+    const restored = deserializeFromParams(params);
+    expect(restored.stage).toBe(validInputs.stage);
+    expect(restored.arr).toBe(validInputs.arr);
+    expect(restored.infraHostingAnnual).toBe(validInputs.infraHostingAnnual);
+    expect(restored.infraPersonnel).toBe(validInputs.infraPersonnel);
+    expect(restored.rdOpEx).toBe(validInputs.rdOpEx);
+    expect(restored.rdCapEx).toBe(validInputs.rdCapEx);
+    expect(restored.engFTE).toBe(validInputs.engFTE);
+  });
+
+  it('encoder emits the renamed `infraHostingAnnual` value at URL key `h`', () => {
+    const params = serializeToParams(validInputs);
+    expect(params.get('h')).toBe(String(validInputs.infraHostingAnnual));
+  });
+
+  it('full deeplink URL is well-formed and points at the techpar page', () => {
+    const params = serializeToParams(validInputs);
+    const deeplink = `${HUB_BASE}/hub/tools/techpar/?${params.toString()}`;
+    expect(deeplink).toMatch(/^https?:\/\/.+\/hub\/tools\/techpar\/\?/);
+    // URL stays under the typical browser limit even with all 14 fields.
+    expect(deeplink.length).toBeLessThan(2000);
   });
 });
