@@ -16,8 +16,13 @@
 
 import { describe, it, expect } from 'vitest';
 
-import { handleDiligenceTool, countUnknownDimensions } from '../../src/tools/diligence';
+import {
+  handleDiligenceTool,
+  countUnknownDimensions,
+  buildDiligenceDeeplink,
+} from '../../src/tools/diligence';
 import { UserInputsSchema, type ValidatedUserInputs } from '../../src/schemas';
+import { HUB_BASE } from '../../src/config';
 
 const allKnown: ValidatedUserInputs = {
   transactionType: 'majority-stake',
@@ -144,5 +149,42 @@ describe("handleDiligenceTool — BL-031.95 Phase 2 'unknown' integration", () =
     const response = await handleDiligenceTool(partial);
     const payload = response.structuredContent as Record<string, unknown>;
     expect(payload.unknownDimensionCount).toBe(4);
+  });
+});
+
+describe('handleDiligenceTool — BL-031.95 Phase 2.B deeplink emission', () => {
+  it('response payload includes a well-formed deeplink URL', async () => {
+    const parsed = UserInputsSchema.parse(allKnown);
+    const response = await handleDiligenceTool(parsed);
+    const payload = response.structuredContent as Record<string, unknown>;
+    expect(typeof payload.deeplink).toBe('string');
+    const deeplink = payload.deeplink as string;
+    expect(deeplink).toMatch(/\/hub\/tools\/diligence-machine\/\?/);
+    // All 13 fields encoded.
+    expect(deeplink).toContain('tt=majority-stake');
+    expect(deeplink).toContain('pt=b2b-saas');
+    expect(deeplink).toContain('ge=us%2Ceu'); // URL-encoded comma
+    expect(deeplink).toContain('om=product-aligned-teams');
+  });
+
+  it("deeplink encodes 'unknown' sentinels verbatim (no special casing)", async () => {
+    const parsed = UserInputsSchema.parse(allUnknown);
+    const response = await handleDiligenceTool(parsed);
+    const payload = response.structuredContent as Record<string, unknown>;
+    const deeplink = payload.deeplink as string;
+    expect(deeplink).toContain('tt=unknown');
+    expect(deeplink).toContain('ge=unknown');
+    expect(deeplink).toContain('om=unknown');
+  });
+
+  it('buildDiligenceDeeplink is the same encoder the website page uses', () => {
+    // The MCP wrapper imports the same `serializeToParams` from
+    // src/utils/diligence-url.ts that the website page imports for
+    // syncUrlState/restoreState. Round-trip parity is asserted by
+    // tests/unit/diligence-url.test.ts; this test asserts that the
+    // wrapper's deeplink prefix matches the production HUB_BASE.
+    const deeplink = buildDiligenceDeeplink(allKnown);
+    expect(deeplink.startsWith(HUB_BASE)).toBe(true);
+    expect(deeplink).toMatch(/\/hub\/tools\/diligence-machine\/\?/);
   });
 });

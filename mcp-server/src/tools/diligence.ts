@@ -9,7 +9,21 @@
 
 import type { McpServer } from '@modelcontextprotocol/server';
 import { generateScript } from '../../../src/utils/diligence-engine';
+import { serializeToParams as serializeDiligenceUrl } from '../../../src/utils/diligence-url';
 import { UserInputsSchema, type ValidatedUserInputs } from '../schemas';
+import { HUB_BASE } from '../config';
+
+/**
+ * Build a Diligence Machine deep-link by delegating to the existing
+ * `serializeToParams` encoder in `src/utils/diligence-url.ts`. The
+ * encoder is the single source of truth for diligence URL state — same
+ * code path the website page uses for `syncUrlState()` and the page-
+ * load URL hydration in `restoreState()`.
+ */
+export function buildDiligenceDeeplink(inputs: ValidatedUserInputs): string {
+  const params = serializeDiligenceUrl(inputs);
+  return `${HUB_BASE}/hub/tools/diligence-machine/?${params.toString()}`;
+}
 
 const TOOL_DESCRIPTION = `Generate a prescriptive due-diligence "Inquisitor's Script" for a target M&A or investment opportunity.
 
@@ -20,6 +34,7 @@ Given a 13-field profile of the deal (transaction type, product type, tech arche
 - A trigger map showing which input dimensions caused which questions to surface.
 - Aggregate metadata (totalQuestions, generatedAt timestamp, an inputSummary echo).
 - \`unknownDimensionCount\` — number of input dimensions where the agent supplied the \`'unknown'\` sentinel (BL-031.95 Phase 2). When ≥7 of 13 dimensions are unknown, the deliverable should lead with a low-confidence callout (parallel to ICG's ≥10/20 threshold).
+- \`deeplink\` — URL to open the diligence wizard with these inputs pre-populated (for PDF / export / share via the website page). URL state takes precedence over the wizard's localStorage on page-load init.
 
 **\`'unknown'\` value contract**: every enum field accepts the string \`'unknown'\` as a sentinel meaning "agent could not derive this from available inputs." \`'unknown'\` does NOT eliminate any trigger — it widens the agenda conservatively. For \`geographies\`, pass \`['unknown']\` (the array still must have ≥1 element). Use \`'unknown'\` rather than guessing when an input isn't derivable from supplied context; only known values should filter the agenda down.
 
@@ -59,7 +74,8 @@ export async function handleDiligenceTool(inputs: ValidatedUserInputs) {
   try {
     const result = generateScript(inputs);
     const unknownDimensionCount = countUnknownDimensions(inputs);
-    const payload = { ...result, unknownDimensionCount };
+    const deeplink = buildDiligenceDeeplink(inputs);
+    const payload = { ...result, unknownDimensionCount, deeplink };
     return {
       content: [
         {

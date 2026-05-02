@@ -571,6 +571,10 @@ import '../../../../styles/components/progress.css';
     type UserInputs,
     type GeneratedScript,
   } from '../../../../utils/diligence-engine';
+  import {
+    serializeToParams as serializeDiligenceUrl,
+    deserializeFromParams as deserializeDiligenceUrl,
+  } from '../../../../utils/diligence-url';
   import { getOptionLabel, WIZARD_STEPS } from '../../../../data/diligence-machine/wizard-config';
   import { trackCTA, trackEvent } from '../../../../utils/analytics';
   import { copyWithFeedback } from '../../../../utils/copy-feedback';
@@ -652,12 +656,35 @@ import '../../../../styles/components/progress.css';
     } catch {
       // localStorage may be unavailable in private browsing
     }
+    // BL-031.95 Phase 2: URL state sync runs alongside localStorage.
+    syncUrlState();
   }
 
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   function saveStateDebounced(): void {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(saveState, 500);
+  }
+
+  // ─── BL-031.95 Phase 2: URL state sync ────────────────────────────────
+  //
+  // URL state augments localStorage. On page-load init, URL takes
+  // precedence (so a deep-link from the MCP tool / a shared URL hydrates
+  // correctly even when localStorage has different state); localStorage
+  // is the fallback for "I closed the tab, came back tomorrow." On input
+  // change, both URL and localStorage are updated.
+
+  function syncUrlState(): void {
+    try {
+      const params = serializeDiligenceUrl(inputs);
+      const queryString = params.toString();
+      const url = queryString
+        ? `${window.location.pathname}?${queryString}`
+        : window.location.pathname;
+      history.replaceState(null, '', url);
+    } catch {
+      // history API may be unavailable in sandboxed contexts; ignore.
+    }
   }
 
   function loadState(): SavedState | null {
@@ -1449,7 +1476,30 @@ import '../../../../styles/components/progress.css';
   // ─── RESTORE STATE ───────────────────────────────────────────────────
 
   function restoreState(): void {
-    const saved = loadState();
+    // BL-031.95 Phase 2: URL state takes precedence over localStorage.
+    // A populated URL (from the MCP `deeplink` field, or from a shared
+    // wizard URL) hydrates the wizard at the results step. Empty URL →
+    // fall back to localStorage for "I closed the tab, came back tomorrow."
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlInputs = urlParams.toString() ? deserializeDiligenceUrl(urlParams) : null;
+    const hasUrlState = urlInputs !== null && Object.keys(urlInputs).length > 0;
+
+    let saved: SavedState | null;
+    if (hasUrlState) {
+      saved = {
+        version: STORAGE_VERSION,
+        currentStep: totalSteps,
+        highestStepReached: totalSteps,
+        inputs: urlInputs!,
+        targetIdentifier: 'Target',
+        dismissedAttention: [],
+        dismissedQuestions: [],
+        collapsedAttention: [],
+        collapsedQuestions: [],
+      };
+    } else {
+      saved = loadState();
+    }
     if (!saved) return;
 
     inputs = { geographies: [], ...saved.inputs };
