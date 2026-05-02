@@ -13,7 +13,61 @@
 >
 > **Scope**: this document covers [BL-031.85](BACKLOG.md#bl-03185-mcp-server--tool-input-contracts) — formalizing tool input schemas as first-class versioned documentation artifacts. The diligence-machine contract is the inaugural deliverable; the registry pattern and per-tool template are reusable for the four other Hub tools that ship in BL-031.5.
 >
-> **Status**: Open. Depends on BL-031 (the diligence MCP tool surface). Does not block BL-031.5 / BL-031.75 from shipping with their own inline argsSchemas; those initiatives can adopt the contracts pattern as their tools land.
+> **Status**: ✅ Complete (closed 2026-05-02). Diligence contract + registry shipped on schedule. Four BL-031.5 contracts (ICG, TechPar, Tech Debt, Regulatory Map) shipped during their respective BL-031.5 commits — the registry pattern proved reusable as designed. "Used by prompts" cross-references added to all 5 contracts during BL-031.75 closure (commit `8b39d78`, 2026-05-01). See [Closure & deviations from plan](#closure--deviations-from-plan) and [Proximate opportunities](#proximate-opportunities) below.
+
+---
+
+## Closure & deviations from plan
+
+**What shipped under BL-031.85 directly** (April 27-28, 2026)
+
+- `mcp-server/src/docs/diligence/CONTRACT.md` — inaugural per-tool contract, v1, all 13 fields, hidden semantics documented
+- `mcp-server/src/docs/contracts/README.md` — registry with "what is", "why", spec template, versioning discipline, IRL forward-look, transitional notes
+- Cross-references: `mcp-server/src/docs/diligence/USAGE.md`, `mcp-server/README.md` Tool Inventory, `src/schemas/diligence.ts` top-of-file comment, `src/docs/README.md` Quick Navigation
+
+**What shipped during BL-031.5 closure** (rolled into the contracts pattern as designed)
+
+- `mcp-server/src/docs/icg/CONTRACT.md`, `techpar/CONTRACT.md`, `tech-debt/CONTRACT.md`, `regulatory-map/CONTRACT.md` — all four authored to the BL-031.85 spec template, each with `version: v1`, hidden-semantics callouts, source-of-truth pointers
+- All four corresponding schema files (`src/schemas/icg.ts`, `techpar.ts`, `tech-debt.ts`, `regulatory-map.ts`) gained the diligence-style top-of-file comment block pointing at their CONTRACT.md
+- Registry table updated in-place: each tool's status flipped from `⏳ BL-031.5` to `✅ Authored (BL-031.5)` as the contracts shipped
+
+**What shipped during BL-031.75 closure** (May 1, 2026, commit `8b39d78`)
+
+- "Used by prompts (BL-031.75)" callout added to all 5 contracts — links each contract to the BL-031.75 prompts that compose its `argsSchema`, surfacing schema-level coupling at the contract level. Reverse direction also wired: `mcp-server/README.md` § Resources gained a "Used by prompts" column
+
+**Outstanding — explicitly deferred at closure**
+
+- `mcp-server/src/docs/portfolio/CONTRACT.md` — **broken README link still outstanding**; deferred to [BL-034 follow-up list](BACKLOG.md#bl-034-mcp-server--documentation-cleanup) (decision pending: author or drop the tool from the registry). The `search_portfolio` and `list_portfolio_facets` tools have shipped and are used by 2 BL-031.75 prompts but their contract was never authored
+- `mcp-server/src/docs/radar/CONTRACT.md` — registry status flipped from `⏳ Backlog` to `⏳ BL-032`; will be authored alongside live `search_radar` when BL-032 ships
+- Contract-parity Vitest test (architecture doc § Risks listed this as a future enhancement) — see [Proximate opportunities](#proximate-opportunities)
+
+---
+
+## Proximate opportunities
+
+Identified during BL-031.85 closure audit (2026-05-02). Each is a follow-on that the contracts pattern enables but doesn't itself deliver.
+
+### Closed by their own initiative
+
+- **Stage Taxonomy Adapter Layer** → [BL-031.87](BACKLOG.md#bl-03187-mcp-server--stage-taxonomy-adapter-layer). Resolves the cross-tool funding-stage vocabulary drift between ICG (`pre-series-b` / `series-bc` / `pe-backed` / `enterprise`) and TechPar (`seed` / `series_a` / `series_bc` / `pe` / `enterprise`). Pattern: Adapter (GoF) at the MCP-wrapper boundary, conceptually a lightweight Anti-Corruption Layer. Engines and website wizards untouched; per-tool translator modules sit between a canonical layer and each engine. Lossy direction (canonical `series-c` → TechPar `series_bc` cannot round-trip back unambiguously) documented as intentional information-shedding. Effort: 2-3 days
+
+### Recommended for fold-in
+
+- **`.describe()` consistency pass on tool Zod schemas** — adds JSON Schema descriptions for agent introspection. Recommended fold into [BL-031.95](BACKLOG.md#bl-03195-hub-tools--url-state-restoration--mcp-deep-link-surface) since that initiative already opens the schema files (TechPar `infraHosting` → `infraHostingAnnual` rename precedent already includes `.describe('Annual cloud hosting spend in USD')`). One-pass mechanical lift sourcing description text from each CONTRACT.md's per-field "What it asks" line
+
+### Tier 2 hardening (schedule on demand)
+
+- **Contract-parity Vitest** — structural test that walks every per-tool CONTRACT.md, parses the option-ID tables, and asserts each ID exists in the matching `*_IDS` tuple. Hardens the "discipline is conventional" risk noted in the architecture doc § Risks. ~1 hr / ~60 LOC. Schedule when drift surveillance becomes a maintenance pain point
+- **YAML frontmatter on each CONTRACT.md** — promote prose `Version: v1 \| Last authored: ...` lines to YAML frontmatter (`---\nversion: v1\nlastAuthored: 2026-04-27\nschema: src/schemas/diligence.ts\n---`). Enables (i) the parity test above to extract metadata structurally, (ii) future IRL generator consumption, (iii) a staleness-check Vitest analogous to the BL-031.75 prompt-staleness pattern. ~30 min. Bundle with the parity test
+
+### Strategic destination
+
+- **IRL generator scoping spike** — the architecture doc names the Information Request List generator as the strategic destination of the contracts pattern. With 5 contracts now stable (and a 6th canonical-stage-aware layer landing under BL-031.87), the contracts have enough variance for a 2-3 hr scoping spike to: pick a concrete consumer use case (likely "external diligence prep for offline analyst"), define the rendering format (likely JSON Schema generated from each CONTRACT.md), validate that the YAML frontmatter (Tier 2) is sufficient. Even if not built, the spike sharpens contract quality by exposing what an IRL needs
+
+### Deferred — file under BL-034 cleanup
+
+- **Cross-tool concept glossary** in `mcp-server/src/docs/contracts/README.md` — added during BL-031.85 closure as a transitional artifact with a "Will be superseded by BL-031.87" note. Once the canonical stage taxonomy ships under BL-031.87, the glossary's stage section retires; remaining content (if any) folds into the registry's main body
+- **Schema-mapping table standardization across `USAGE.md` files** — diligence/USAGE.md has a "phrase → schema field" table (lines 61-77) that's brilliant for orientation; the four BL-031.5 USAGE.md files lack it. Pure doc polish; low strategic leverage; defer
 
 ---
 
@@ -225,4 +279,4 @@ The implementation is a single PR (or a small sequence of commits in the same PR
 
 ---
 
-_Last updated: 2026-04-27_
+_Last updated: 2026-05-02 (closure stanza + proximate opportunities; status flipped to ✅ Complete; first authored 2026-04-27)_

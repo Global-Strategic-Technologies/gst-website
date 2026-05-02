@@ -90,6 +90,52 @@ What is explicitly out of scope for BL-031.85: the IRL generator itself, the ren
 
 ---
 
+## Cross-tool concept glossary (transitional)
+
+> **Will be superseded by [BL-031.87: Stage Taxonomy Adapter Layer](../../../../src/docs/development/BACKLOG.md#bl-03187-mcp-server--stage-taxonomy-adapter-layer)**. This section catalogues vocabulary variance between tools that today must be resolved by reading multiple CONTRACT.md files. Once BL-031.87 ships a canonical stage taxonomy + per-tool Adapter modules, the funding-stage portion of this glossary retires. Treat this section as a navigational pointer, not a permanent reference.
+
+Some concepts appear in multiple tools' input contracts under different shapes. Two cases worth distinguishing — one is _same concept, different shape_ (real drift, BL-031.87 candidate); the other is _different concept, similar name_ (stays as separate enums, glossary documents the distinction).
+
+### Funding stage — _same concept, different shape_
+
+ICG and TechPar both partition the company population by funding round to select a benchmark cohort, but their enum shapes differ:
+
+| Concept value (canonical, BL-031.87) | ICG `companyStage` | TechPar `stage` | Notes                                                               |
+| ------------------------------------ | ------------------ | --------------- | ------------------------------------------------------------------- |
+| `seed`                               | _(absent)_         | `seed`          | ICG benchmark dataset doesn't separate seed from Series A           |
+| `series-a`                           | `pre-series-b`     | `series_a`      | ICG collapses seed + Series A into `pre-series-b`                   |
+| `series-b`                           | `series-bc`        | `series_bc`     | Both tools collapse B + C — benchmark dataset doesn't separate them |
+| `series-c`                           | `series-bc`        | `series_bc`     | (same as `series-b` for these two tools)                            |
+| `pe`                                 | `pe-backed`        | `pe`            | Naming variance only — same cohort                                  |
+| `enterprise`                         | `enterprise`       | `enterprise`    | Aligned                                                             |
+
+**Notation conventions also differ:** ICG uses kebab-case (`pre-series-b`); TechPar uses snake_case (`series_a`). Surface in BL-031.87's adapter modules as explicit `toCanonical` / `fromCanonical` translation tables.
+
+**Lossy direction:** canonical → tool-native is always safe (`series-c` → TechPar `series_bc`). Tool-native → canonical is lossy where the native enum collapses canonical values (`series_bc` → ambiguous `series-b` | `series-c`). BL-031.87 documents this as intentional information-shedding driven by benchmark-dataset granularity, not as a defect to fix.
+
+**Why the variance exists:** each tool's stage enum is **coupled to its benchmark dataset** — ICG's `BENCHMARK_RANGES` is keyed by ICG's enum, TechPar's `STAGES` map is keyed by TechPar's enum. Renaming either to a canonical taxonomy in-place would require benchmark re-attribution and risk silent mis-attribution. The Adapter approach (BL-031.87) keeps engines and benchmark datasets untouched; only the MCP-wrapper boundary translates.
+
+### Growth velocity vs. funding stage — _different concept, similar name_
+
+[Diligence Machine](../diligence/CONTRACT.md)'s `growthStage` field (`early` / `scaling` / `mature`) is **not** a funding-stage variant. It captures **company-maturity coarse bucketing** — `early` includes both seed and Series A pre-product-market-fit; `mature` includes Series C, PE-backed, and public companies. The diligence engine's trigger map gates on this differently than ICG / TechPar gate on funding stage. **`growthStage` will not be canonicalized into the BL-031.87 funding-stage taxonomy** — it should remain its own enum because the concept itself is different.
+
+If a future tool needs both funding-stage cohort AND growth-velocity bucketing, it should declare both as separate fields with separate enums.
+
+### Other shared concepts (no current variance)
+
+The following concepts appear in only one contract today — included here so future tools that share them know to pick the existing shape rather than reinvent:
+
+| Concept        | Tool      | Contract reference                                     | Pattern                                                              |
+| -------------- | --------- | ------------------------------------------------------ | -------------------------------------------------------------------- |
+| `headcount`    | Diligence | [`../diligence/CONTRACT.md`](../diligence/CONTRACT.md) | Ordinal enum: `1-50` / `51-200` / `201-500` / `500+`                 |
+| `revenueRange` | Diligence | [`../diligence/CONTRACT.md`](../diligence/CONTRACT.md) | Ordinal enum: `0-5m` / `5-25m` / `25-100m` / `100m+`                 |
+| `companyAge`   | Diligence | [`../diligence/CONTRACT.md`](../diligence/CONTRACT.md) | Ordinal enum: `under-2yr` → `20yr+` (5 brackets)                     |
+| `engFTE`       | TechPar   | [`../techpar/CONTRACT.md`](../techpar/CONTRACT.md)     | Raw integer headcount (different shape from diligence's `headcount`) |
+
+If a second tool starts using one of these concepts, file an Adapter follow-up in the same shape as BL-031.87 rather than carrying drift.
+
+---
+
 ## How to add a new per-tool contract
 
 When BL-031.5 (or any future initiative) ships a new MCP tool:

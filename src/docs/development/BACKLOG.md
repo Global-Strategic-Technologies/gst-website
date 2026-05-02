@@ -476,7 +476,7 @@ A prompt's behavior is determined by its message body — pure content. A senior
 
 ### BL-031.85: MCP Server — Tool Input Contracts
 
-**Source**: BL-031.85 — formalizes input-schema documentation across the local-stdio surface | **Architecture & plan**: [MCP_SERVER_CONTRACTS_BL-031_85.md](MCP_SERVER_CONTRACTS_BL-031_85.md) | **Effort**: 1-2 days | **Status**: Open | **Depends on**: BL-031
+**Source**: BL-031.85 — formalizes input-schema documentation across the local-stdio surface | **Architecture & plan**: [MCP_SERVER_CONTRACTS_BL-031_85.md](MCP_SERVER_CONTRACTS_BL-031_85.md) | **Effort**: 1-2 days (actual: shipped incrementally across BL-031.85 / BL-031.5 / BL-031.75) | **Status**: ✅ Complete (May 2, 2026) | **Depends on**: BL-031
 
 **As a** GST team member (or external AI agent), **I want** every MCP tool's input schema documented as a first-class versioned contract — covering valid values, multi-select semantics, ordinal-bracket rules, downstream effects on engine output, and a registry index across all tools — **so that** I can compose calls correctly without reading the Zod schema, agents can introspect what they need before invoking a tool, and a future Information Request List (IRL) generator has a stable surface to consume.
 
@@ -512,30 +512,42 @@ A prompt's behavior is determined by its message body — pure content. A senior
 
 **Contracts authored**
 
-- [ ] `mcp-server/src/docs/diligence/CONTRACT.md` — full contract for `generate_diligence_agenda`. Each of the 13 fields has: identifier, display label (from `wizard-config.ts`), subtitle, valid-values table (id / label / description), 1-3 line downstream-effect summary, cardinality / hidden semantics where relevant
-- [ ] Hidden semantics documented: `geographies` multi-region auto-sync, `headcount` / `revenueRange` / `companyAge` ordinal bracket comparison via `meetsMinimumBracket`
-- [ ] Versioning header: `version: v1`, `lastAuthored: 2026-04-27`, schema-source line range citation
-- [ ] Source-of-truth pointers in the doc header: Zod schema file, wizard-config file, engine `CONDITION_LABELS` line range
+- [x] `mcp-server/src/docs/diligence/CONTRACT.md` — full contract for `generate_diligence_agenda`. Each of the 13 fields has: identifier, display label (from `wizard-config.ts`), subtitle, valid-values table (id / label / description), 1-3 line downstream-effect summary, cardinality / hidden semantics where relevant
+- [x] Hidden semantics documented: `geographies` multi-region auto-sync, `headcount` / `revenueRange` / `companyAge` ordinal bracket comparison via `meetsMinimumBracket`
+- [x] Versioning header: `version: v1`, `lastAuthored: 2026-04-27`, schema-source line range citation
+- [x] Source-of-truth pointers in the doc header: Zod schema file, wizard-config file, engine `CONDITION_LABELS` line range
 
 **Contracts registry**
 
-- [ ] `mcp-server/src/docs/contracts/README.md` exists with three sections: "What an input contract is", "Why the contract is its own artifact", "The contracts registry table"
-- [ ] Registry table lists all six known Hub tools (diligence ✅ Authored, ICG / TechPar / Tech Debt / Regulatory Map / Portfolio Search as `⏳ BL-031.5` or `⏳ Backlog`); no stub files for the planned entries
-- [ ] IRL forward-look section (~10 lines) explains what an Information Request List would be, that contracts make it tractable, and that IRL design is explicitly out of scope for BL-031.85
+- [x] `mcp-server/src/docs/contracts/README.md` exists with three sections: "What an input contract is", "Why the contract is its own artifact", "The contracts registry table"
+- [x] Registry table lists all six known Hub tools (diligence ✅ Authored, ICG / TechPar / Tech Debt / Regulatory Map / Portfolio Search as `⏳ BL-031.5` or `⏳ Backlog`); no stub files for the planned entries — **deviation:** the four BL-031.5 contracts (ICG / TechPar / Tech Debt / Regulatory Map) shipped during BL-031.5 closure (April 2026); registry was updated in-place to reflect their `✅ Authored (BL-031.5)` status. Portfolio Search remains `⏳ Backlog` (broken README link tracked in [BL-034 follow-up list](#bl-034-mcp-server--documentation-cleanup)). Radar's row was added with `⏳ BL-032`.
+- [x] IRL forward-look section (~10 lines) explains what an Information Request List would be, that contracts make it tractable, and that IRL design is explicitly out of scope for BL-031.85
 
 **Cross-references**
 
-- [ ] `mcp-server/src/docs/diligence/USAGE.md` — schema-mapping table linked to the new `CONTRACT.md`
-- [ ] `mcp-server/README.md` — "What's exposed" table's `Input` column links to `CONTRACT.md` for diligence; planned-contract notes for the other tools
-- [ ] `src/schemas/diligence.ts` — top-of-file comment block (4-6 lines) pointing to `mcp-server/src/docs/diligence/CONTRACT.md` as the human-readable reference. No schema changes.
-- [ ] `src/docs/README.md` — Quick Navigation row "Understand a Hub tool's input contract" → `mcp-server/src/docs/contracts/README.md`
+- [x] `mcp-server/src/docs/diligence/USAGE.md` — schema-mapping table linked to the new `CONTRACT.md`
+- [x] `mcp-server/README.md` — "What's exposed" table's `Input` column links to `CONTRACT.md` for diligence; planned-contract notes for the other tools (subsequently flipped to ✅ Authored as the four BL-031.5 contracts shipped)
+- [x] `src/schemas/diligence.ts` — top-of-file comment block (4-6 lines) pointing to `mcp-server/src/docs/diligence/CONTRACT.md` as the human-readable reference. No schema changes. **Bonus:** the four BL-031.5 schemas (`icg.ts`, `techpar.ts`, `tech-debt.ts`, `regulatory-map.ts`) gained the same top-of-file comment pointer as part of their respective BL-031.5 commits.
+- [x] `src/docs/README.md` — Quick Navigation row "Understand a Hub tool's input contract" → `mcp-server/src/docs/contracts/README.md`
 
 **Verification & docs**
 
-- [ ] [MCP_SERVER_CONTRACTS_BL-031_85.md](MCP_SERVER_CONTRACTS_BL-031_85.md) updated with any deviations made during implementation
-- [ ] Cross-check: every option ID in `CONTRACT.md` matches the corresponding tuple in `src/schemas/diligence.ts` (`TRANSACTION_TYPE_IDS`, etc.). Zero drift expected — the doc copies from the source.
-- [ ] Discoverability: from `src/docs/README.md`, a reader following links arrives at the contracts registry in ≤2 hops
-- [ ] Live MCP exercise unchanged: `mcp__gst__generate_diligence_agenda` trigger-map dimension labels match the labels in `CONTRACT.md`'s field-overview table (since `CONDITION_LABELS` at runtime is canonical)
+- [x] [MCP_SERVER_CONTRACTS_BL-031_85.md](MCP_SERVER_CONTRACTS_BL-031_85.md) updated with deviations recorded during implementation (closure stanza added May 2, 2026)
+- [x] Cross-check: every option ID in `CONTRACT.md` matches the corresponding tuple in `src/schemas/diligence.ts` (`TRANSACTION_TYPE_IDS`, etc.). Zero drift expected — the doc copies from the source. (Manually verified during BL-031.75 V1–V8 cycle; a structural Vitest is filed as a Tier 2 follow-up — see Deviations & follow-up below.)
+- [x] Discoverability: from `src/docs/README.md`, a reader following links arrives at the contracts registry in ≤2 hops
+- [x] Live MCP exercise unchanged: `mcp__gst__generate_diligence_agenda` trigger-map dimension labels match the labels in `CONTRACT.md`'s field-overview table (since `CONDITION_LABELS` at runtime is canonical) — verified during BL-031.75 V3 / V8 trials, evidence in [`mcp-server/README.md` § "Last verified (BL-031.75 surface)"](../../../mcp-server/README.md#last-verified-bl-03175-surface)
+
+**Deviations & follow-up** (added at closure, 2026-05-02)
+
+- [x] **Bonus contracts** for ICG / TechPar / Tech Debt / Regulatory Map shipped during their BL-031.5 commits rather than waiting for an explicit BL-031.85 Phase 2; the registry pattern proved reusable as designed
+- [x] **"Used by prompts" cross-references** added to all 5 contracts during BL-031.75 closure (commit `8b39d78`, May 1, 2026) — links each contract to the BL-031.75 prompts that compose its argsSchema, surfacing schema-level coupling at the contract level
+- [ ] **Cross-tool concept glossary** added to `mcp-server/src/docs/contracts/README.md` as transitional artifact — flags the funding-stage variance between ICG (`pre-series-b` / `series-bc` / `pe-backed` / `enterprise`) and TechPar (`seed` / `series_a` / `series_bc` / `pe` / `enterprise`); carries a "Will be superseded by [BL-031.87](#bl-03187-mcp-server--stage-taxonomy-adapter-layer)" note so future readers don't invest in it as a permanent reference
+- [ ] **Stage Taxonomy Adapter Layer** filed as [BL-031.87](#bl-03187-mcp-server--stage-taxonomy-adapter-layer) — concrete follow-up to retire the glossary by introducing a canonical funding-stage taxonomy plus per-tool Adapter modules at the MCP-wrapper boundary
+- [ ] **Portfolio Search `CONTRACT.md`** — broken README link still outstanding; deferred to [BL-034 follow-up list](#bl-034-mcp-server--documentation-cleanup) (decision pending: author or drop the tool from the registry)
+- [ ] **Contract-parity Vitest** — structural test asserting every CONTRACT.md option ID exists in the matching `*_IDS` tuple. Hardens the "discipline is conventional" risk noted in the architecture doc. Filed as a Tier 2 hardening item — schedule independently if drift surveillance becomes a maintenance pain point
+- [ ] **YAML frontmatter on each CONTRACT.md** — promote the prose `Version: v1 \| Last authored: ...` line to YAML frontmatter to enable machine-readable consumption (parity test, future IRL generator, staleness check). Tier 2 hardening; fold into the parity-test commit if scheduled
+- [ ] **`.describe()` consistency pass on tool Zod schemas** — adds JSON Schema descriptions for agent introspection. Recommended fold into [BL-031.95](#bl-03195-hub-tools--url-state-restoration--mcp-deep-link-surface) since that initiative already opens the schema files (TechPar `infraHosting` rename precedent)
+- [ ] **IRL generator scoping spike** — strategic destination of BL-031.85; with 5 contracts now stable, ready for a 2-3 hr scoping spike to pick a concrete consumer use case and define the rendering format. File as a new BL number when scheduled
 
 #### Technical Context
 
@@ -572,6 +584,113 @@ A prompt's behavior is determined by its message body — pure content. A senior
 - Modifications to `questions.ts` / `attention-areas.ts` — out of scope; contract doc reads them, doesn't modify them
 - Updates to existing tests; contracts are documentation, not code
 - A CI test that asserts every option ID in the contract matches the Zod tuple — nice-to-have, but the runtime trigger map already enforces this implicitly (a missing option produces a different label)
+
+---
+
+### BL-031.87: MCP Server — Stage Taxonomy Adapter Layer
+
+**Source**: BL-031.87 — resolves the cross-tool funding-stage vocabulary drift surfaced during BL-031.85 closure (ICG `companyStage` and TechPar `stage` use different enum shapes for the same underlying concept) | **Architecture & plan**: `MCP_SERVER_STAGE_ADAPTER_BL-031_87.md` (to be authored when scheduled) | **Effort**: 2-3 days | **Status**: Open | **Depends on**: BL-031.85
+
+**As a** GST team member composing a multi-tool prompt, **I want** ICG, TechPar, and any future stage-aware tool to accept a single canonical funding-stage value **so that** prompts like `gst_target_quick_look` don't have to remember each tool's enum shape (`pre-series-b` vs `series_bc` vs `series-bc`) and external agents introspecting the JSON Schema see one canonical taxonomy rather than per-tool variance.
+
+> **Pattern choice**: Adapter (GoF) at the MCP-wrapper boundary. Conceptually a lightweight Anti-Corruption Layer — each tool is a bounded context with its own stage vocabulary; small per-tool translator modules sit between the canonical layer and the engine. Engines and website wizards untouched. Lossy direction (e.g., TechPar `series_bc` cannot unambiguously round-trip back to canonical `series-c`) is documented and tested as intentional information-shedding, not a bug.
+
+#### Planning Criteria
+
+**Use cases**
+
+- **Cross-tool prompt ergonomics** — `gst_target_quick_look` passes one canonical stage value to ICG + TechPar; each tool's MCP wrapper translates locally. Today the prompt body has to know each tool's variance and either coerce or document it.
+- **Agent introspection** — agents seeing JSON Schema for the canonical layer get a single funding-stage taxonomy with familiar values (`seed`, `series-a`, `series-b`, `series-c`, `pe`, `enterprise`); tool-native enums become an internal implementation detail.
+- **Stable surface for BL-032+ remote consumers** — external agents pin to the canonical taxonomy, not to per-tool variance that may shift as benchmark datasets evolve. The canonical layer becomes the public-API stability boundary when BL-033 ships external pilots.
+- **Foundation for future stage-aware tools** — when subsequent initiatives add new stage-cohort tools (peer-cohort comparison, benchmark trend tools), they declare an Adapter mapping rather than reinventing a stage enum.
+
+**Outcomes**
+
+- Canonical stage taxonomy module at `src/data/common/funding-stages.ts` — `CANONICAL_STAGES` const tuple, `CanonicalStage` type, `CanonicalStageSchema` Zod enum
+- Per-tool Adapter modules at `src/data/common/stage-adapters.ts` — `ICG_STAGE_ADAPTER`, `TECHPAR_STAGE_ADAPTER` (each with `toCanonical` / `fromCanonical` maps and helper functions); shape mirrors the GoF Adapter pattern with explicit translation tables
+- MCP tool wrappers (`mcp-server/src/tools/icg.ts`, `mcp-server/src/tools/techpar.ts`) accept canonical stage input via Zod; translation happens before engine call; engines untouched. Backward-compat: native values continue to be accepted via Zod union, with a documented deprecation timeline
+- BL-031.75 prompts (`gst_target_quick_look` and any other prompt that composes stage-aware argsSchemas) updated to use canonical stage values; bodies updated; golden snapshots regenerated
+- Round-trip parity tests: `fromCanonical(toCanonical(native)) === native` for every native enum value (idempotent in the native direction); lossy direction collapses (`series_bc` → ambiguous `series-b` | `series-c`) hand-tabulated and tested
+- Glossary in `mcp-server/src/docs/contracts/README.md` updated to reflect the canonical layer; "Will be superseded by BL-031.87" transitional note retired
+- Per-tool CONTRACT.md files updated with a "Canonical stage adapter" sub-section under the relevant field (ICG `companyStage`, TechPar `stage`)
+
+**Business value**
+
+- **Eliminates a real ergonomic tax on cross-tool prompts** — every multi-tool prompt today (`gst_target_quick_look`) carries either documentation or workaround logic for the funding-stage variance; the adapter retires that
+- **Makes the canonical taxonomy a documented, versioned API surface** — when BL-033 ships external pilots, the canonical stages are the public-API stability boundary, not whichever native enum each tool happens to use today
+- **Low blast radius** — engines and benchmark datasets untouched; website wizards untouched; only MCP wrappers and prompt schemas change. ~2-3 days of focused engineering with structurally bounded surface area
+- **Documents an architectural principle for the team** — when future cross-tool friction emerges (e.g., growth velocity, headcount, revenue range across more tools), the Adapter pattern + MCP-wrapper boundary becomes the established response
+
+#### Acceptance Criteria
+
+**Canonical layer**
+
+- [ ] `src/data/common/funding-stages.ts` — `CANONICAL_STAGES` const tuple (`seed` → `enterprise`), `CanonicalStage` type, `CanonicalStageSchema` Zod enum, optional descriptions sourced from public funding-round conventions
+- [ ] `src/data/common/stage-adapters.ts` — `ICG_STAGE_ADAPTER`, `TECHPAR_STAGE_ADAPTER` with explicit `toCanonical: Record<NativeEnum, CanonicalStage>` and `fromCanonical: Record<CanonicalStage, NativeEnum>` tables; helper functions `toCanonical(toolId, native)` / `fromCanonical(toolId, canonical)`
+
+**MCP wrapper integration**
+
+- [ ] `mcp-server/src/tools/icg.ts` — input schema accepts canonical `stage` value via Zod union (canonical | native); wrapper translates via `ICG_STAGE_ADAPTER.fromCanonical[]` before calling the engine; output annotated with the canonical equivalent of the engine's reported stage
+- [ ] `mcp-server/src/tools/techpar.ts` — same pattern with `TECHPAR_STAGE_ADAPTER`
+- [ ] Both wrappers retain BACKWARD-COMPATIBLE acceptance of native values; deprecation timeline noted in the wrapper-level JSDoc
+
+**Prompts updated**
+
+- [ ] `gst_target_quick_look` (and any other BL-031.75 prompt that composes stage-aware argsSchemas) updated to use canonical funding-stage values; body instructions updated; per-prompt golden snapshots regenerated and recorded values match expected outputs
+
+**Tests**
+
+- [ ] Round-trip native → canonical → native is idempotent for every native enum value in both adapters (Vitest unit test)
+- [ ] Lossy direction is documented and tested explicitly: `toCanonical(fromCanonical(canonical))` collapses are listed; the test asserts each known collapse rather than blindly round-tripping (a passing test in the lossy direction would mask information loss)
+
+**Documentation**
+
+- [ ] `mcp-server/src/docs/contracts/README.md` glossary section updated to reflect the canonical layer; "Will be superseded by BL-031.87" note retired
+- [ ] `src/docs/development/MCP_SERVER_CONTRACTS_BL-031_85.md` "Proximate opportunities" section updated to mark the stage-taxonomy entry as "Closed by BL-031.87"
+- [ ] ICG and TechPar `CONTRACT.md` updated with a "Canonical stage adapter" sub-section under the relevant field
+- [ ] BL-031.87 architecture/plan doc authored (`MCP_SERVER_STAGE_ADAPTER_BL-031_87.md`) capturing the pattern-choice reasoning (Adapter chosen over Proxy, Bridge, full normalization), boundary choice (MCP-wrapper, not engine or schema), and lossy-direction policy
+
+**Verification**
+
+- [ ] `npx astro check && npm run lint && npm run lint:css && npm run test:run` continues to pass
+- [ ] `mcp-server/` workspace `npm run typecheck && npm run test && npm run build` continues to pass
+- [ ] Live MCP exercise: `gst_target_quick_look` invocation that previously required tool-native stage values now accepts canonical values; output is identical to the native-value baseline
+
+#### Technical Context
+
+**Pattern choice — Adapter, not Proxy or Bridge**
+
+- **Adapter** translates between vocabularies with different shapes (field names AND values differ across ICG, TechPar). Matches our problem precisely.
+- **Proxy** preserves the wrapped object's interface; appropriate for cross-cutting concerns like remote forwarding (will appear separately in BL-032 / BL-032.5 as a Remote Proxy for HTTP transport) but not for vocabulary translation. The two patterns compose: a future Remote Proxy would _contain_ this Adapter, not replace it.
+- **Bridge** decouples two orthogonal axes of variation (abstraction × implementation), both expected to evolve independently. We don't have parallel hierarchies; we have a single canonical layer translated by per-tool adapters. Bridge ceremony costs more than it returns at our current variation count (5 tools, 2 use stage).
+- **Anti-Corruption Layer** (DDD) is the conceptual frame — each tool is a bounded context with its own stage vocabulary; the adapter is the small translator between them. GoF Adapter is the same idea at smaller granularity.
+- **Full normalization** (rename ICG / TechPar enums to a canonical taxonomy in their schemas + benchmark datasets) was considered and rejected: would require benchmark re-attribution, may sacrifice signal quality where each engine's enum was tuned to its dataset, and has much larger blast radius (~1 day per tool with real risk of silent benchmark mis-attribution). The Adapter approach gets ~80% of the value at ~20% of the cost.
+
+**Boundary choice — MCP-wrapper, not engine or schema**
+
+- **MCP-wrapper boundary** (chosen) — engines and website wizards untouched; only MCP wrappers translate. Smallest blast radius
+- **Engine boundary** — engine accepts canonical or native; benefits website-wizard URL state too. Expands scope ~2× (touches website page logic). Defer; revisit if/when website-wizard URL canonicalization becomes a concrete need
+- **Schema boundary** (Zod `union().transform()`) — purist, but JSON Schema introspection in Claude Desktop / Cursor doesn't render unions cleanly; agents would see noise. Avoid
+
+**Information shedding is intentional**
+
+- TechPar `series_bc` deliberately collapses canonical Series B and C because the benchmark dataset doesn't separate them. Canonical `series-b` → `series_bc` is fine in one direction; recovering the original distinction back to canonical is structurally impossible
+- ICG `pre-series-b` deliberately collapses canonical seed + Series A for the same reason
+- The adapter's job is vocabulary translation, not benchmark precision the dataset doesn't support
+- Tests assert `fromCanonical(toCanonical(native)) === native` (the safe round-trip); the lossy direction is hand-tabulated as documented behavior
+
+**Why this isn't folded into BL-031.85 or BL-031.95**
+
+- **Not BL-031.85** because BL-031.85 is documentation consolidation; this is engineering work (Zod schema changes, runtime translation, tests). Different competency, different review gate
+- **Not BL-031.95** because BL-031.95 is per-tool URL-state restoration with input-ergonomics fixes; the stage adapter is a distinct cross-tool concern. Folding both would inflate BL-031.95 from "URL state across 4 tools" to "URL state + cross-tool taxonomy adapter" — heterogeneous scope with two unrelated review surfaces
+- **Could be co-scheduled with BL-031.95** if engineering capacity allows — both touch MCP wrappers, both regenerate golden snapshots — but the AC tracks remain distinct
+
+**Out of scope** (explicit)
+
+- Modifying any engine's data tables or benchmark ranges to align with the canonical taxonomy — would require benchmark re-attribution and is a much larger initiative; not BL-031.87's job
+- Modifying website wizards to use canonical input — out of scope; native enums remain the website-facing surface. URL state encoders may be revisited under BL-031.95 if the URL needs canonical encoding for cross-tool sharing
+- Adding canonical-aliasing for non-stage concepts (growth velocity, headcount brackets, revenue brackets) — these have lower variance today; revisit if/when more tools share them. Diligence Machine's `growthStage` is explicitly NOT a funding-stage variant — it's a different concept (company-maturity coarse bucketing) and should remain its own enum
+- Authoring an IRL generator that consumes the canonical layer — IRL is the strategic destination of BL-031.85's contracts; BL-031.87 does not block it but does not deliver it either
 
 ---
 
