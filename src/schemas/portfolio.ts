@@ -45,23 +45,42 @@ export const SortDirectionSchema = z.enum(SORT_DIRECTIONS);
 
 /** A single portfolio project. */
 export const ProjectSchema = z.object({
-  id: z.string().min(1),
-  codeName: z.string().min(1),
-  industry: z.string().min(1),
-  theme: z.string().min(1),
-  summary: z.string().min(1),
-  arr: z.string().min(1), // Display format (e.g., "$220,000,000")
-  arrNumeric: z.number().nonnegative(), // For sorting/calculations
-  currency: CurrencySchema,
-  growthStage: GrowthStageSchema,
-  year: z.number().int().min(1900).max(2100),
-  technologies: z.array(z.string()).readonly(),
-  engagementType: EngagementTypeSchema.optional(),
+  id: z.string().min(1).describe('Stable project identifier (slug-style).'),
+  codeName: z.string().min(1).describe('Anonymised engagement code name.'),
+  industry: z.string().min(1).describe('Free-text industry label (e.g., "Healthcare", "Fintech").'),
+  theme: z
+    .string()
+    .min(1)
+    .describe(
+      'High-level theme (e.g., "Healthcare Tech", "Financial Services"). One of the values surfaced by the website\'s Theme filter chips.'
+    ),
+  summary: z.string().min(1).describe('One-line plain-text engagement summary.'),
+  arr: z.string().min(1).describe('Display-format ARR string (e.g., "$220,000,000").'),
+  arrNumeric: z
+    .number()
+    .nonnegative()
+    .describe('Numeric ARR in source currency for sort/aggregate.'),
+  currency: CurrencySchema.describe(
+    'ISO currency code for `arrNumeric` (USD | EUR | GBP | JPY | AUD).'
+  ),
+  growthStage: GrowthStageSchema.describe(
+    'Canonical growth-stage label (Early-Stage Growth | Scaling Growth | Expansion Stage | Established Market Leader | Mature Enterprise | Legacy System).'
+  ),
+  year: z.number().int().min(1900).max(2100).describe('Engagement year (4-digit).'),
+  technologies: z
+    .array(z.string())
+    .readonly()
+    .describe('Technology / platform tags surfaced in card and used by free-text search.'),
+  engagementType: EngagementTypeSchema.optional().describe(
+    'Granular engagement type (Value Creation | Technical Assessment | Technical Diligence). Optional.'
+  ),
   // challenge and solution use .nullish() because existing records use
   // `null` to mean "field intentionally empty" (10 of 57 projects today).
-  challenge: z.string().nullish(),
-  solution: z.string().nullish(),
-  engagementCategory: EngagementCategorySchema.optional(),
+  challenge: z.string().nullish().describe('Optional engagement challenge narrative.'),
+  solution: z.string().nullish().describe('Optional engagement solution narrative.'),
+  engagementCategory: EngagementCategorySchema.optional().describe(
+    "Coarse engagement category (Buy-Side | Sell-Side). Optional. Surfaced as the website's Engagement filter chips."
+  ),
 });
 
 /** Array of projects — the shape of `src/data/ma-portfolio/projects.json`. */

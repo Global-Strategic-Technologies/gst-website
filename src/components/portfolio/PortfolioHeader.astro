@@ -357,6 +357,10 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 
 <script>
   import * as Sentry from '@sentry/browser';
+  import {
+    serializeToParams as portfolioSerializeToParams,
+    deserializeFromParams as portfolioDeserializeFromParams,
+  } from '../../utils/portfolio-url';
   /* eslint-disable @typescript-eslint/no-explicit-any -- hasListener idiom on DOM elements */
   // Portfolio globals shared across PortfolioHeader, StickyControls, and PortfolioGrid.
   // Previously untyped is:inline JS — uses Record types to avoid strict typing of the
@@ -391,6 +395,52 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     }
   }
 
+  // BL-031.95 Phase 4.B: URL state ↔ filter sync.
+  //
+  // - On init: read `?search=` / `?theme=` / `?eng=` from the URL; if any
+  //   are present, seed the initial filter state from the URL so a
+  //   deeplink lands on the correctly-filtered view (URL takes precedence
+  //   over component defaults; localStorage is not used on this page).
+  // - On change: write the URL via `history.replaceState` so a copied URL
+  //   deep-links to the same view.
+  // - The encoder lives in `src/utils/portfolio-url.ts` — single source
+  //   of truth shared with the MCP `search_portfolio` deeplink emission.
+  function getInitialFiltersFromUrl(): {
+    search: string;
+    theme: string;
+    engagement: string;
+  } {
+    const defaults = { search: '', theme: 'all', engagement: 'all' };
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const parsed = portfolioDeserializeFromParams(urlParams);
+      return {
+        search: parsed.search ?? defaults.search,
+        theme: parsed.theme ?? defaults.theme,
+        engagement: parsed.engagement ?? defaults.engagement,
+      };
+    } catch {
+      return defaults;
+    }
+  }
+
+  function syncPortfolioUrlState(currentFilters: PortfolioFilters): void {
+    try {
+      const params = portfolioSerializeToParams({
+        search: currentFilters.search,
+        theme: currentFilters.theme,
+        engagement: currentFilters.engagement,
+      });
+      const queryString = params.toString();
+      const url = queryString
+        ? `${window.location.pathname}?${queryString}`
+        : window.location.pathname;
+      history.replaceState(null, '', url);
+    } catch {
+      // history API may be unavailable in sandboxed contexts; ignore.
+    }
+  }
+
   // Initialize global state if it doesn't exist
   if (!window.portfolioState) {
     let allProjects: Record<string, unknown>[];
@@ -405,11 +455,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     window.portfolioState = {
       allProjects: allProjects,
       filteredProjects: [] as Record<string, unknown>[],
-      filters: {
-        search: '',
-        theme: 'all',
-        engagement: 'all',
-      },
+      filters: getInitialFiltersFromUrl(),
     };
   }
 
@@ -514,6 +560,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
           filters.theme = chip.dataset.value ?? 'all';
           window.portfolioState.filters.theme = filters.theme;
           filterProjects();
+          syncPortfolioUrlState(window.portfolioState.filters);
         }
       });
       (themeChipsContainer as any).hasListener = true;
@@ -530,6 +577,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
           filters.engagement = chip.dataset.value ?? 'all';
           window.portfolioState.filters.engagement = filters.engagement;
           filterProjects();
+          syncPortfolioUrlState(window.portfolioState.filters);
         }
       });
       (engagementChipsContainer as any).hasListener = true;
@@ -547,6 +595,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
             filters.search = (e.target as HTMLInputElement).value;
             window.portfolioState.filters.search = filters.search;
             filterProjects();
+            syncPortfolioUrlState(window.portfolioState.filters);
           }, 300);
         });
         (searchInput as any).hasListener = true;
@@ -765,11 +814,62 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 
         filterProjects();
         updateFilterBadge();
+        syncPortfolioUrlState(window.portfolioState.filters);
       });
     }
   }
 
+  /**
+   * Paint the URL-hydrated filter state into the DOM so a deeplink-arrival
+   * URL displays the correct search-box value and active chips. Called
+   * once at init time, before `filterProjects()` runs the visibility
+   * pass. The state object itself is already seeded by
+   * `getInitialFiltersFromUrl()` during the global-state init block at
+   * the top of this script.
+   */
+  function applyHydratedFiltersToDom(): void {
+    const current = window.portfolioState.filters;
+
+    // Search input
+    if (current.search && current.search.length > 0) {
+      const searchInput = document.getElementById('search-input-fixed');
+      if (searchInput) (searchInput as HTMLInputElement).value = current.search;
+    }
+
+    // Theme chip
+    document
+      .querySelectorAll('#theme-chips .filter-chip')
+      .forEach((c) => c.classList.remove('active'));
+    const themeChip = document.querySelector(
+      `#theme-chips .filter-chip[data-value="${CSS.escape(current.theme)}"]`
+    );
+    if (themeChip) themeChip.classList.add('active');
+    else {
+      // Unknown / removed theme falls back to "all" so the DOM remains coherent.
+      const allChip = document.querySelector('#theme-chips .filter-chip[data-value="all"]');
+      if (allChip) allChip.classList.add('active');
+      filters.theme = 'all';
+      window.portfolioState.filters.theme = 'all';
+    }
+
+    // Engagement chip
+    document
+      .querySelectorAll('#engagement-chips .filter-chip')
+      .forEach((c) => c.classList.remove('active'));
+    const engChip = document.querySelector(
+      `#engagement-chips .filter-chip[data-value="${CSS.escape(current.engagement)}"]`
+    );
+    if (engChip) engChip.classList.add('active');
+    else {
+      const allChip = document.querySelector('#engagement-chips .filter-chip[data-value="all"]');
+      if (allChip) allChip.classList.add('active');
+      filters.engagement = 'all';
+      window.portfolioState.filters.engagement = 'all';
+    }
+  }
+
   function init() {
+    applyHydratedFiltersToDom();
     attachChipListeners();
     attachSearchListener();
     attachDrawerListeners();

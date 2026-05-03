@@ -3,8 +3,13 @@
  *
  * The wrappers delegate to `filterProjects` / `getUnique*` (well-tested
  * upstream). We exercise: input parsing, facet shape, default behavior,
- * limit clamping at the schema layer, and the JSON-validation contract
- * for the bundled dataset.
+ * and the JSON-validation contract for the bundled dataset.
+ *
+ * BL-031.95 Phase 4.A: the `limit` input was removed from the schema
+ * under the capability-mirror invariant (the website's /ma-portfolio
+ * page renders all 61 projects always). The full wrapper-pipeline
+ * pathway including deeplink emission is exercised in the integration
+ * file `tests/integration/portfolio-handler.test.ts`.
  */
 
 import projectsRaw from '../../../src/data/ma-portfolio/projects.json';
@@ -46,23 +51,21 @@ describe('SearchPortfolioInputSchema', () => {
     const parsed = SearchPortfolioInputSchema.parse({ search: 'CRM' });
     expect(parsed.theme).toBe('all');
     expect(parsed.engagement).toBe('all');
-    expect(parsed.limit).toBe(20);
-  });
-
-  it('rejects limit > 61', () => {
-    const result = SearchPortfolioInputSchema.safeParse({ limit: 100 });
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects limit <= 0', () => {
-    const result = SearchPortfolioInputSchema.safeParse({ limit: 0 });
-    expect(result.success).toBe(false);
   });
 
   it('accepts an empty input object via defaults', () => {
     const parsed = SearchPortfolioInputSchema.parse({});
     expect(parsed.theme).toBe('all');
-    expect(parsed.limit).toBe(20);
+    expect(parsed.engagement).toBe('all');
+  });
+
+  it('strips unknown keys (capability-mirror invariant — `limit` removed in Phase 4.A)', () => {
+    // Zod's default object behaviour drops unknown keys silently.
+    const parsed = SearchPortfolioInputSchema.parse({
+      theme: 'all',
+      limit: 100,
+    } as Record<string, unknown>);
+    expect((parsed as Record<string, unknown>).limit).toBeUndefined();
   });
 });
 

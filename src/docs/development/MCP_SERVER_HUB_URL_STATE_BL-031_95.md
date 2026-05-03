@@ -264,4 +264,27 @@ Smaller phase; deferred-island feed, two filters.
 
 ---
 
-_Last updated: 2026-05-02 (Phase 1 + Phase 2 + Phase 3 closure stanzas added; reconciliation note retained for context)_
+## Phase 4 (M&A Portfolio) — closure summary
+
+**Shipped 2026-05-03.** Single sub-commit with a capability-mirror refactor + URL-state wiring + closing the BL-034 portfolio CONTRACT.md follow-up:
+
+- `<this commit>` (Phase 4.A + 4.B):
+  - **Capability-mirror refactor.** Audited `/ma-portfolio` filter UI: three controls (search input, Theme chip row, Engagement chip row). The MCP `search_portfolio` tool also accepted a `limit` field (default 20, max 61) with no website counterpart — the page renders all 61 projects always (CSS `display: none` hides filtered-out cards). `limit` removed from the schema under the capability-mirror invariant; existing callers passing it are not broken because Zod silently strips unknown keys on parse (asserted by `protocol-roundtrip.test.ts` + `portfolio-handler.test.ts`).
+  - **URL encoder** at [`src/utils/portfolio-url.ts`](../../utils/portfolio-url.ts) — filter-grid archetype with three readable parameters: `?search=<text>&theme=<X>&eng=<Y>` (the `eng` short alias mirrors how the website's filter chip data-value maps to `engagementCategory`). Empty / `"all"` / undefined values are dropped on serialise so a clean view yields a clean URL.
+  - **PortfolioHeader wired** — [`src/components/portfolio/PortfolioHeader.astro`](../../components/portfolio/PortfolioHeader.astro) hydrates filter state from the URL on init (URL takes precedence over the component defaults; this page does not use localStorage), and writes URL via `history.replaceState` on every search-input change, chip click, and clear-filters action. The new `applyHydratedFiltersToDom()` paints the search-box value + active chips before the first `filterProjects()` pass so the visible state matches the URL on a deeplink-arrival load. Encoder is the single source of truth — same module the MCP wrapper imports.
+  - **MCP wrapper extracted to `handleSearchPortfolioTool`** + companion `handleListPortfolioFacetsTool` for testability; both emit through the same registration block. `search_portfolio` response now includes a `deeplink` field built via the shared encoder.
+  - **`.describe()` pass** on every field of `ProjectSchema` and on every field of `SearchPortfolioInputSchema` — sources prose from the new portfolio CONTRACT.md so the MCP-introspection text stays aligned with the user-facing input contract.
+  - **Integration test** at [`mcp-server/tests/integration/portfolio-handler.test.ts`](../../../mcp-server/tests/integration/portfolio-handler.test.ts) (9 tests) — exercises empty-input full-result path, engagement / theme / search filter scoping, combined-filter AND composition, deeplink round-trip parity through the shared encoder, and the capability-mirror invariant at the handler boundary (Zod stripping pre-Phase-4 `limit`). Plus 3 facet-shape tests against `handleListPortfolioFacetsTool`.
+  - **CONTRACT.md + USAGE.md** authored at [`mcp-server/src/docs/portfolio/CONTRACT.md`](../../../mcp-server/src/docs/portfolio/CONTRACT.md) and [`mcp-server/src/docs/portfolio/USAGE.md`](../../../mcp-server/src/docs/portfolio/USAGE.md) — closes the BL-034 follow-up item that previously read "Portfolio Search contract is deferred to its own follow-up."
+  - **Contracts registry** updated — `Portfolio Search` row flipped from `⏳ Backlog` to `✅ Authored (BL-031.95)`. The narrative paragraph that called out the Portfolio + Radar deferrals now records both under their BL-031.95 phase numbers.
+  - **Existing `protocol-roundtrip.test.ts` updated** — the `search_portfolio returns matches + count summary` test no longer expects `returned === 3` (no `limit`); now asserts `returned === matches.length === totalMatched` and the `deeplink` is present. The "limit > 61 returns structured error" test was reframed as "pre-Phase-4 `limit` field is silently dropped (Zod strips unknown keys)" — the strict-error path was removed because `limit` is no longer a schema concern. Both reflect the post-refactor capability-mirror semantics.
+
+**Engineering verification**: 1101 project tests pass (no change — Phase 4 added no project-level tests because the URL encoder is exercised end-to-end via the MCP integration test); 317 mcp-server tests pass (was 308; +9 portfolio-handler integration); mcp-server typecheck + project astro check + project lint clean.
+
+**Live MCP exercise**: per the no-deferred-tech-debt principle (`.claude/CLAUDE.md` § 4a), the integration test at `portfolio-handler.test.ts` is the engineering substitute for the live transport exercise — the running mcp-server subprocess is started at session start and cannot be reloaded mid-session. UI verification of the new URL state on `/ma-portfolio` will land naturally on the next page load; the existing `tests/e2e/portfolio-page.test.ts` (if present) already exercises the chip filters, so URL hydration is a small-surface addition that round-trip parity covers at the encoder level.
+
+**Phase 4 closes the BL-034 follow-up item** for `search_portfolio` CONTRACT.md + USAGE.md as a side effect.
+
+---
+
+_Last updated: 2026-05-03 (Phase 1 + Phase 2 + Phase 3 + Phase 4 closure stanzas added; reconciliation note retained for context)_

@@ -116,12 +116,37 @@ export type RadarCategoryValue = z.infer<typeof RadarCategoryEnum>;
 
 // ─── MCP tool input schemas ──────────────────────────────────────────────
 
-/** Input for the `search_portfolio` tool. */
+/**
+ * Input for the `search_portfolio` tool.
+ *
+ * **Capability-mirror invariant (BL-031.95 Phase 4.A)**: the schema mirrors
+ * the website's three filter controls on `/ma-portfolio` exactly — a free-
+ * text `search` box, a single-select `theme` chip, and a single-select
+ * `engagement` (engagementCategory) chip. Earlier versions accepted a
+ * `limit` field that had no website counterpart (the page renders all 61
+ * projects always; CSS hides filtered-out cards). `limit` was removed
+ * under the capability-mirror invariant — see
+ * `mcp-server/src/docs/portfolio/CONTRACT.md` for the rationale.
+ */
 export const SearchPortfolioInputSchema = z.object({
-  search: z.string().optional(),
-  theme: z.string().default('all'),
-  engagement: z.string().default('all'),
-  limit: z.number().int().positive().max(61).default(20),
+  search: z
+    .string()
+    .optional()
+    .describe(
+      'Free-text query, case-insensitive. Matches against codeName, industry, summary, and the technologies array. Mirrors the website search input on /ma-portfolio. Omit or pass empty string for no search filter.'
+    ),
+  theme: z
+    .string()
+    .default('all')
+    .describe(
+      'Theme filter; pass "all" (the default) to skip. One of the values listed under `themes` in `list_portfolio_facets`. Mirrors the website Theme chip row.'
+    ),
+  engagement: z
+    .string()
+    .default('all')
+    .describe(
+      'Engagement-category filter; pass "all" (the default) to skip. One of the values listed under `engagementCategories` in `list_portfolio_facets` (typically "Buy-Side" or "Sell-Side"). Mirrors the website Engagement chip row.'
+    ),
 });
 
 export type SearchPortfolioInput = z.infer<typeof SearchPortfolioInputSchema>;

@@ -194,10 +194,10 @@ describe('protocol roundtrip', () => {
       expect(parsed.metadata.totalQuestions).toBeGreaterThan(0);
     });
 
-    it('search_portfolio returns matches + count summary', async () => {
+    it('search_portfolio returns matches + count summary + deeplink', async () => {
       const res = await rpc('tools/call', {
         name: 'search_portfolio',
-        arguments: { search: 'platform', limit: 3 },
+        arguments: { search: 'platform' },
       });
       expect(isErrorResponse(res)).toBe(false);
       if (isErrorResponse(res)) return;
@@ -205,14 +205,20 @@ describe('protocol roundtrip', () => {
       const result = res.result as unknown as CallToolResultPayload;
       expect(result.isError).not.toBe(true);
 
+      // BL-031.95 Phase 4: capability-mirror invariant. The website
+      // renders all matches; `returned === totalMatched === matches.length`
+      // (no `limit` field at the schema layer). Deeplink emits the
+      // search filter back to /ma-portfolio.
       const parsed = parseToolText<{
         matches: unknown[];
         totalMatched: number;
         returned: number;
+        deeplink: string;
       }>(result);
-      expect(parsed.returned).toBe(3);
-      expect(parsed.matches.length).toBe(3);
-      expect(parsed.totalMatched).toBeGreaterThan(parsed.returned);
+      expect(parsed.matches.length).toBeGreaterThan(0);
+      expect(parsed.returned).toBe(parsed.matches.length);
+      expect(parsed.totalMatched).toBe(parsed.returned);
+      expect(parsed.deeplink).toContain('/ma-portfolio?search=platform');
     });
 
     it('list_portfolio_facets returns themes / engagementCategories / growthStages / years', async () => {
@@ -257,18 +263,29 @@ describe('protocol roundtrip', () => {
       }
     });
 
-    it('search_portfolio — limit > 61 returns structured error', async () => {
+    it('search_portfolio — pre-Phase-4 `limit` field is silently dropped (Zod strips unknown keys)', async () => {
+      // BL-031.95 Phase 4.A removed the `limit` field under the
+      // capability-mirror invariant. A caller still passing it gets a
+      // valid response (Zod strips unknown keys on parse); the response
+      // is identical to one without `limit`.
       const res = await rpc('tools/call', {
         name: 'search_portfolio',
         arguments: { search: 'platform', limit: 100 },
       });
 
-      if (isErrorResponse(res)) {
-        expect(res.error.message).toBeTruthy();
-      } else {
-        const result = res.result as unknown as CallToolResultPayload;
-        expect(result.isError).toBe(true);
-      }
+      expect(isErrorResponse(res)).toBe(false);
+      if (isErrorResponse(res)) return;
+      const result = res.result as unknown as CallToolResultPayload;
+      expect(result.isError).not.toBe(true);
+
+      const parsed = parseToolText<{
+        matches: unknown[];
+        totalMatched: number;
+        returned: number;
+      }>(result);
+      // Full match set returned regardless of the bogus `limit` value.
+      expect(parsed.matches.length).toBeGreaterThan(0);
+      expect(parsed.returned).toBe(parsed.matches.length);
     });
 
     it('list_portfolio_facets — empty input is accepted (no error envelope)', async () => {
