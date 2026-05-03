@@ -1,13 +1,15 @@
 ---
 promptName: gst_target_quick_look
-version: 0.0.2
-recordedAt: 2026-05-02
+version: 0.0.3
+recordedAt: 2026-05-03
 model: claude-opus-4-7
 ---
 
 # Worked example output for `gst_target_quick_look`
 
-V2 sign-off recording (v0.0.1) carried forward to v0.0.2 — the BL-031.87 canonical funding-stage adapter changes the wire shape but not the engine output. The `stage` arg now expects a canonical funding-stage value (`series-b` instead of the prior portfolio-style `'Scaling Growth'`); the body no longer instructs the model to translate to ICG's native cohort labels because both ICG and TechPar MCP wrappers translate canonical to native locally. Engine output (5-section brief with Open-in-Hub deep-links) is identical to the v0.0.1 baseline.
+V2 sign-off recording (v0.0.1) carried forward to v0.0.3 — Phase 5 of [BL-031.95](../../../src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md) added the TechPar `deeplink` to section (6) "Open in Hub" (the four-tool deep-link surface is now complete; the v0.0.2 disclaimer "TechPar deep-link will be added when the page supports URL state" is retired). The other four bullets, the four-tool orchestration order, the assumptions/unknowns sub-heading for ICG `-1` answers, and the canonical funding-stage wire shape (BL-031.87, locked at v0.0.2) all carry forward unchanged. A fresh senior-consultant V-trial against the v0.0.3 body lands naturally on the next mcp-server restart per the no-deferred-tech-debt principle (CLAUDE.md § 4a) — the `dist/index.js` running subprocess can't be reloaded mid-session.
+
+The carryforward is engineered, not deferred: the prompt's behaviour against a populated tool response is fully determined by the body change (one bullet adds "Open TechPar" to the existing list and clarifies "if `deeplink` is absent, omit silently"). The unit test at `tests/unit/prompts/target-quick-look.test.ts` asserts the body shape; the prompt-staleness Vitest catches future version drift.
 
 ## Input
 

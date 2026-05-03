@@ -8,7 +8,10 @@
  * Body design contract: call `list_portfolio_facets` first so the model
  * knows valid theme/category values, then call `search_portfolio` with
  * appropriate filters. Synthesize 3-5 matches with one-line takeaway
- * per match.
+ * per match. The closing memo surfaces every `deeplink` field returned
+ * by the search calls as an "Open in Hub" link so the analyst can
+ * forward the memo with click-through to the same filtered Portfolio
+ * view (BL-031.95 Phase 4.B).
  */
 
 import { z } from 'zod';
@@ -32,8 +35,8 @@ export const comparableEngagementsMemoPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Identify 3-5 comparable past GST engagements and frame analogically for the current deal.',
-  version: '0.0.1',
-  lastReviewedAt: '2026-05-01',
+  version: '0.0.2',
+  lastReviewedAt: '2026-05-03',
   orchestrates: ['search_portfolio', 'list_portfolio_facets'] as const,
   argsSchema,
   build: (args) => ({
@@ -68,6 +71,8 @@ export const comparableEngagementsMemoPrompt: GstPrompt<typeof argsSchema> = {
             '  - The relevant lesson — phrased as guidance for the current target, not a retrospective.',
             '',
             'Step 5. Close with a 2-3 sentence "what this means for the current deal" framing that synthesizes the lessons across the shortlist into a directional view.',
+            '',
+            'Step 6. Append an "Open in Hub" footer that lists every `deeplink` URL returned by the `search_portfolio` calls (one per filter combination explored). Each link should be labelled by the filter it represents — e.g., `Open in Hub: Healthcare / Buy-Side · Logistics / Buy-Side`. The deeplink opens `/ma-portfolio` with the same filter chips pre-active so the deal team lands on the exact filtered view the memo references (BL-031.95 Phase 4.B). If no deeplink is present in a tool response (older server build), omit that link silently — never invent a URL.',
             '',
             'Voice: analytical, peer-reviewed. No client names beyond the codeName. Lessons should read as live guidance, not historical narrative.',
           ].join('\n'),

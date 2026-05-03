@@ -1,13 +1,18 @@
 ---
 promptName: gst_radar_brief_today
-version: 0.0.2
-recordedAt: 2026-05-02
+version: 0.0.3
+recordedAt: 2026-05-03
 model: claude-opus-4-7
 ---
 
 # Worked example output for `gst_radar_brief_today`
 
-V7 sign-off recording (v0.0.1) carried forward to v0.0.2 — the BL-031.95 Phase 3.A capability-mirror refactor removed the `sinceHours` argument because the underlying cache has a 24h TTL and the website (`/hub/radar`) surfaces no time filter. The prompt now mirrors the website's filter UI exactly: a single optional `category` field. Engine output (digest by category, GST Take voice, "what to watch" closings, cross-category synthesis) is unchanged from v0.0.1; the body's "filter by recency" instruction was retired because the snapshot's natural item set already covers the relevant window.
+V7 sign-off recording (v0.0.1) carried forward to v0.0.3 — two layered changes since V7:
+
+- **v0.0.2 (BL-031.95 Phase 3.A capability-mirror refactor)**: removed the `sinceHours` argument because the underlying cache has a 24h TTL and the website (`/hub/radar`) surfaces no time filter. The prompt now mirrors the website's filter UI exactly: a single optional `category` field. Engine output (digest by category, GST Take voice, "what to watch" closings, cross-category synthesis) is unchanged from v0.0.1; the body's "filter by recency" instruction was retired.
+- **v0.0.3 (BL-031.95 Phase 5, this commit)**: closing "Open in Hub" footer added — `https://globalstrategic.tech/hub/radar?category=<args.category>` (or the bare `/hub/radar` URL when no category was supplied). The footer URL is constructed deterministically by the prompt body from the input `category` since this prompt orchestrates the `gst://radar/fyi/latest` Resource directly (not the Tool); the same shape the Tool wrapper would emit via `src/utils/radar-url.ts` (BL-031.95 Phase 3.B).
+
+A fresh senior-consultant V-trial against the v0.0.3 body lands naturally on the next mcp-server restart per the no-deferred-tech-debt principle (CLAUDE.md § 4a) — the `dist/index.js` running subprocess can't be reloaded mid-session. The body change is local (one closing footer); the three pre-existing trial paths (a, b, c) all carry through unchanged.
 
 ## Input — Trial (a) category filter
 

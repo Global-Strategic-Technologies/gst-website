@@ -53,8 +53,8 @@ export const radarBriefTodayPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Daily / pre-meeting digest of the most recent annotated FYI radar items, summarized in the GST Take voice.',
-  version: '0.0.2',
-  lastReviewedAt: '2026-05-02',
+  version: '0.0.3',
+  lastReviewedAt: '2026-05-03',
   orchestrates: ['gst://radar/fyi/latest'] as const,
   argsSchema,
   build: (args) => ({
@@ -80,6 +80,10 @@ export const radarBriefTodayPrompt: GstPrompt<typeof argsSchema> = {
             'Step 4. For each item, write 2-3 sentences in the GST Take voice — declarative, anchored to the deal-team relevance, no hedging. Lead with the why-it-matters, not the source. End each item with a one-line "what to watch" framing.',
             '',
             'Step 5. Close with a "GST Take across the brief" paragraph (3-4 sentences) that surfaces the highest-signal pattern across the in-scope items — what story do these items collectively tell?',
+            '',
+            args.category
+              ? `Step 6. Append an "Open in Hub" footer with the link \`https://globalstrategic.tech/hub/radar?category=${args.category}\` — opens \`/hub/radar\` filtered to the same category so the analyst can browse the full feed (BL-031.95 Phase 3.B). Use exactly that URL — do not URL-encode the category value (the filter values are already URL-safe slugs).`
+              : 'Step 6. Append an "Open in Hub" footer with the link `https://globalstrategic.tech/hub/radar` — opens the unfiltered Radar page so the analyst can browse the full feed (BL-031.95 Phase 3.B).',
             '',
             'Voice: pre-meeting briefing. The reader has 90 seconds before walking into a deal call. The brief should leave them sounding informed, not overwhelmed.',
           ].join('\n'),

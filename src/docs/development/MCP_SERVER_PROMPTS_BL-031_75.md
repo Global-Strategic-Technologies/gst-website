@@ -285,27 +285,35 @@ Each MCP Tool that drives a Hub tool with URL-state-restoration support gains a 
 
 Once Commit 0.5 lands, the prompts pick up deep-links automatically — the model embeds them from Tool output. Commit 2 / 3 prompt bodies need a one-line instruction "include the `deeplink` field from each Tool result in the final brief, labeled clearly as 'Open in Hub'". The per-prompt verification (V2, V4 — wherever a tool with deep-link is called) gains an explicit "deep-link present and works in browser" pass criterion.
 
-| Prompt                            | Deep-links surfaced in output                                                                                                                       |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `gst_diligence_kickoff`           | None (Diligence Machine has no URL state — deferred)                                                                                                |
-| `gst_target_quick_look`           | 3: ICG + Tech Debt + Regulatory Map (TechPar deferred — note this in the brief: "TechPar deep-link will be added when the page supports URL state") |
-| `gst_comparable_engagements_memo` | None (M&A Portfolio is a static grid — deferred)                                                                                                    |
-| `gst_regulatory_exposure_brief`   | Per-framework anchor URLs + a filtered Regulatory Map URL                                                                                           |
-| `gst_radar_brief_today`           | None (Radar deferred)                                                                                                                               |
-| `gst_diligence_handoff_memo`      | None on the wizard side (deferred); per-portfolio-match anchor URLs to `/ma-portfolio` rows are static `/#<id>` anchors, not stateful — keep simple |
-| `gst_vdr_audit`                   | None (Library Resource only)                                                                                                                        |
-| `gst_architecture_layer_review`   | None (Library Resource only)                                                                                                                        |
+| Prompt                            | Deep-links surfaced in output                                                                                          |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `gst_diligence_kickoff`           | 1: Diligence Wizard `deeplink` from `generate_diligence_agenda` (BL-031.95 Phase 2.B)                                  |
+| `gst_target_quick_look`           | 4: ICG + TechPar (BL-031.95 Phase 1) + Tech Debt + Regulatory Map — full set, no longer partial                        |
+| `gst_comparable_engagements_memo` | N: one per `search_portfolio` filter combination (BL-031.95 Phase 4.B) — each opens `/ma-portfolio` filter-pre-applied |
+| `gst_regulatory_exposure_brief`   | Per-framework anchor URLs + a filtered Regulatory Map URL                                                              |
+| `gst_radar_brief_today`           | 1: filtered (or unfiltered) `/hub/radar` URL constructed from the input category (BL-031.95 Phase 3.B)                 |
+| `gst_diligence_handoff_memo`      | 2: Diligence Wizard `deeplink` (Phase 2.B) + comparable-engagement view `deeplink` from `search_portfolio` (Phase 4.B) |
+| `gst_vdr_audit`                   | None (Library Resource only)                                                                                           |
+| `gst_architecture_layer_review`   | None (Library Resource only)                                                                                           |
 
-**Deferred work (now owned by [BL-031.95: Hub Tools — URL State Restoration & MCP Deep-Link Surface](BACKLOG.md#bl-03195-hub-tools--url-state-restoration--mcp-deep-link-surface))**
+**Deferred work — closed under [BL-031.95: Hub Tools — URL State Restoration & MCP Deep-Link Surface](BACKLOG.md#bl-03195-hub-tools--url-state-restoration--mcp-deep-link-surface) (shipped 2026-05-02 → 2026-05-03 across Phases 1–5)**
 
-Each Hub tool currently lacking URL-state-restoration is the explicit scope of BL-031.95, which closes this gap with a dedicated initiative:
+The four URL-state gaps that BL-031.75 noted are now closed:
 
-- TechPar — add `?s=<base64>` URL state (multi-tab form, ~14 fields). Unblocks `gst_target_quick_look`'s 4th deep-link.
-- Diligence Machine — add `?s=<base64>` URL state (augments the existing localStorage; 14-field wizard). Unblocks `gst_diligence_kickoff` and `gst_diligence_handoff_memo` deep-links.
-- Radar — add `?category=&since=` URL state to the deferred-island feed. Unblocks `gst_radar_brief_today` deep-link.
-- M&A Portfolio — add filter URL state (`?theme=&category=&engagementType=`). Unblocks `gst_comparable_engagements_memo` deep-link.
+- TechPar — readable-params URL state shipped under Phase 1. Unblocked `gst_target_quick_look`'s 4th deep-link.
+- Diligence Machine — readable-params URL state + `'unknown'` parity + wizard "Not sure" affordance shipped under Phase 2. Unblocked both `gst_diligence_kickoff` and `gst_diligence_handoff_memo` deep-links.
+- Radar — capability-mirror refactor (drop `query` / `tier` / `since` / `limit` from the MCP tool to match the website's single category filter) + readable-params URL state shipped under Phase 3. Unblocked `gst_radar_brief_today` deep-link.
+- M&A Portfolio — capability-mirror refactor (drop `limit`) + readable-params URL state shipped under Phase 4. Unblocked `gst_comparable_engagements_memo` deep-link.
 
-Adding these is out of scope for BL-031.75 because each is non-trivial (form-state capture + validation refactor) and the prompts deliver value without them — the deep-link is a "nice-to-have" augmentation, not a primary deliverable. BL-031.95 picks up the work as a follow-on once BL-031.75 ships and the deep-link pattern is proven in production.
+Phase 5 (this section's closure) updated all five prompt bodies to surface the new deep-link fields and bumped versions:
+
+- `gst_target_quick_look` v0.0.2 → v0.0.3 — retired the stale "TechPar deep-link will be added when the page supports URL state" disclaimer; now lists all four "Open in Hub" links.
+- `gst_diligence_kickoff` v0.0.2 → v0.0.3 — gained an "Open Diligence Wizard" deep-link section.
+- `gst_diligence_handoff_memo` v0.0.2 → v0.0.3 — gained a portfolio comparable-engagements deeplink section + a wizard deeplink section; retired the V8-era per-codeName static anchor URL pattern (`/ma-portfolio/#<codeName>`) which had no website-side handler.
+- `gst_radar_brief_today` v0.0.2 → v0.0.3 — gained an "Open in Hub" footer constructed from the input category.
+- `gst_comparable_engagements_memo` v0.0.1 → v0.0.2 — gained an "Open in Hub" footer surfacing every `search_portfolio` deeplink.
+
+V-trial re-runs against the new prompt versions land naturally on the next MCP-server restart (Claude Desktop spawns the subprocess at session start; an in-session reload of the running binary is not possible — this is a real infrastructure constraint, not deferred work). Engineering correctness is exercised by the per-prompt unit tests + the prompt-staleness Vitest catching version drift.
 
 **Risks (specific to Commit 0.5)**
 

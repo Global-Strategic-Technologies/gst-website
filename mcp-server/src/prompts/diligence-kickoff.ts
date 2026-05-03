@@ -27,8 +27,8 @@ export const diligenceKickoffPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Generate a starter diligence agenda for a new engagement. Use at the kickoff of a buy-side or sell-side review.',
-  version: '0.0.2',
-  lastReviewedAt: '2026-05-02',
+  version: '0.0.3',
+  lastReviewedAt: '2026-05-03',
   orchestrates: ['generate_diligence_agenda', 'gst://library/vdr-structure'] as const,
   argsSchema,
   build: (args) => {
@@ -83,6 +83,7 @@ export const diligenceKickoffPrompt: GstPrompt<typeof argsSchema> = {
               '  (2) Prioritized agenda by topic — pull from the diligence-agenda tool result, ordered by signal-to-effort.',
               '  (3) Attention areas — the surfaced attention areas from the agenda result, with one-line "why this matters" framing.',
               '  (4) Suggested VDR requests — for each topic and attention area, name the canonical VDR folder (verbatim from the embedded Library article) and 2 concrete document requests prioritized by signal-to-effort.',
+              `  (5) Open in Hub — embed the \`deeplink\` field from the \`generate_diligence_agenda\` tool result as a single "Open Diligence Wizard" link. The deeplink opens the Diligence Machine pre-populated with the same dimensions (any \`'unknown'\` fields land as the wizard's "Not sure" affordance — BL-031.95 Phase 2). If \`deeplink\` is absent (older server build), omit this section silently — never invent a URL.`,
               '',
               'Voice: declarative, terse, deal-team-ready. Avoid hedging language and tutorial framing. The output should read as if a senior consultant wrote it.',
             ].join('\n'),

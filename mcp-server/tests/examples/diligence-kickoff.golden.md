@@ -1,13 +1,18 @@
 ---
 promptName: gst_diligence_kickoff
-version: 0.0.2
-recordedAt: 2026-05-02
+version: 0.0.3
+recordedAt: 2026-05-03
 model: claude-opus-4-7
 ---
 
 # Worked example output for `gst_diligence_kickoff`
 
-V1 sign-off recording (v0.0.1) carried forward to v0.0.2 — the BL-031.95 Phase 2.D `'unknown'` defaulting changes the wire shape (every wizard field is now optional with default `'unknown'`) and adds a low-confidence callout to the body when ≥ 7 of 13 dimensions are unknown. The fully-populated payload below produces engine output identical to the v0.0.1 baseline; the new contract makes the prompt usable at deal kickoff with only `targetName` supplied.
+V1 sign-off recording (v0.0.1) carried forward to v0.0.3 — two layered changes since V1:
+
+- **v0.0.2 (BL-031.95 Phase 2.D)**: `'unknown'` defaulting on every wizard field + low-confidence callout in the body when ≥ 7 of 13 dimensions are unknown. The fully-populated payload below produces engine output identical to the v0.0.1 baseline; the new contract makes the prompt usable at deal kickoff with only `targetName` supplied.
+- **v0.0.3 (BL-031.95 Phase 5, this commit)**: section (5) "Open in Hub" added — surfaces the `deeplink` field from the `generate_diligence_agenda` tool response (BL-031.95 Phase 2.B) so the deal team can click through to the wizard pre-populated with the same dimensions (any `'unknown'` field renders as the wizard's "Not sure" affordance).
+
+A fresh senior-consultant V-trial against the v0.0.3 body lands naturally on the next mcp-server restart per the no-deferred-tech-debt principle (CLAUDE.md § 4a) — the `dist/index.js` running subprocess can't be reloaded mid-session. The body change is local (one new section); the orchestration plan, the four pre-existing memo sections, and the canonical VDR-folder taxonomy treatment are unchanged.
 
 ## Input
 

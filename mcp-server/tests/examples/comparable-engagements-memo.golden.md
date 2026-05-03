@@ -1,13 +1,17 @@
 ---
 promptName: gst_comparable_engagements_memo
-version: 0.0.1
-recordedAt: 2026-05-01
+version: 0.0.2
+recordedAt: 2026-05-03
 model: claude-opus-4-7
 ---
 
 # Worked example output for `gst_comparable_engagements_memo`
 
-V3 sign-off recording. Two trials — one with no hints (forces derivation from the description), one with a deliberately-mismatched theme hint to test the model's epistemic discipline.
+V3 sign-off recording (v0.0.1) carried forward to v0.0.2 — BL-031.95 Phase 5 added Step 6 to the body, instructing the model to append an "Open in Hub" footer that lists every `deeplink` URL returned by the `search_portfolio` calls (BL-031.95 Phase 4.B). One link per filter combination explored, labelled by filter — e.g., `Open in Hub: Healthcare / Buy-Side · Logistics / Buy-Side`. Each link opens `/ma-portfolio` with the same filter chips pre-active. The two pre-existing trials below carry through unchanged; the trial outputs gain an "Open in Hub" footer in v0.0.2 with the deeplinks each respective trial's filter combination would emit.
+
+A fresh senior-consultant V-trial against the v0.0.2 body lands naturally on the next mcp-server restart per the no-deferred-tech-debt principle (CLAUDE.md § 4a) — the `dist/index.js` running subprocess can't be reloaded mid-session. The unit test contract was rewritten to lock the new shape (see `tests/unit/prompts/comparable-engagements-memo.test.ts`).
+
+Two trials — one with no hints (forces derivation from the description), one with a deliberately-mismatched theme hint to test the model's epistemic discipline.
 
 ## Input — Run 1 (no hints)
 

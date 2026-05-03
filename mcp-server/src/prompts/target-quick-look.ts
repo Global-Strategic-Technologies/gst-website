@@ -11,10 +11,10 @@
  * must surface every assumption-driven 'not sure' answer so the analyst
  * sees where output utility was degraded by missing inputs.
  *
- * The output also includes "Open in Hub" deep-links for ICG, Tech Debt,
- * and Regulatory Map (Tool output already populates these via Commit 0.5).
- * TechPar deep-link is deferred — Diligence Machine and TechPar URL state
- * are owned by BL-031.95.
+ * The output also includes "Open in Hub" deep-links for all four tools
+ * via the `deeplink` field each Tool result carries (BL-031.95 closes
+ * the four-tool deep-link surface — TechPar URL state shipped under
+ * Phase 1, ICG / Tech Debt / Regulatory Map shipped under Commit 0.5).
  */
 
 import { z } from 'zod';
@@ -41,8 +41,8 @@ export const targetQuickLookPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'First-look brief for an unfamiliar target. Combines ICG, TechPar, Tech Debt, and regulatory exposure into one digestible page.',
-  version: '0.0.2',
-  lastReviewedAt: '2026-05-02',
+  version: '0.0.3',
+  lastReviewedAt: '2026-05-03',
   orchestrates: [
     'assess_infrastructure_cost_governance',
     'compute_techpar',
@@ -88,7 +88,7 @@ export const targetQuickLookPrompt: GstPrompt<typeof argsSchema> = {
             '  (3) Unit-economics — TechPar zone + 1-line interpretation.',
             '  (4) Tech-debt range — annualCost, debtPctArr, paybackMonths, plus DORA tier.',
             '  (5) Regulatory exposure — list of applicable frameworks (name + jurisdiction + 1-line summary) for the supplied hqJurisdiction.',
-            '  (6) Open in Hub — embed the `deeplink` field from each Tool result as a clickable link, labeled "Open ICG", "Open Tech Debt", "Open Regulatory Map". Note that TechPar deep-link will be added when the page supports URL state (tracked under BL-031.95).',
+            '  (6) Open in Hub — embed the `deeplink` field from each Tool result as a clickable link, labeled "Open ICG", "Open TechPar", "Open Tech Debt", "Open Regulatory Map". All four Tool wrappers now emit a `deeplink` URL that opens the corresponding /hub/ page populated with the same inputs/results (TechPar shipped under BL-031.95 Phase 1, the others under Commit 0.5). If a tool response is missing `deeplink` (older server build), omit that link silently — never invent a URL.',
             '',
             'Voice: declarative, terse, deal-team-ready. Output should read as if a senior consultant wrote it after a 20-minute review.',
           ].join('\n'),

@@ -44,8 +44,8 @@ export const diligenceHandoffMemoPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Draft handoff memo for the deal team — combines agenda + comparables + VDR follow-ups in a single document.',
-  version: '0.0.2',
-  lastReviewedAt: '2026-05-02',
+  version: '0.0.3',
+  lastReviewedAt: '2026-05-03',
   orchestrates: [
     'generate_diligence_agenda',
     'search_portfolio',
@@ -83,9 +83,10 @@ export const diligenceHandoffMemoPrompt: GstPrompt<typeof argsSchema> = {
             '  (1) Engagement context — one paragraph (target, transaction, product, stage, geography).',
             '  (2) Diligence agenda — prioritized topics from the agenda result; one bullet per topic with a 1-line "what we look for here" framing.',
             '  (3) Attention areas — surfaced from the agenda result; each one cross-referenced to applicable comparable engagements where the same area surfaced.',
-            '  (4) Comparable engagement library — for each of the 3-5 selected comparables: codeName, 1-line "why this one is relevant," 1-line lesson, and a static anchor URL of the form `https://globalstrategic.tech/ma-portfolio/#<codeName-lowercase>` so the deal team can click through to the portfolio detail row.',
+            '  (4) Comparable engagement library — for each of the 3-5 selected comparables: codeName, 1-line "why this one is relevant," 1-line lesson. Close this section with a single "Open in Hub: Comparable engagement view" link that uses the `deeplink` field from the `search_portfolio` tool response (BL-031.95 Phase 4.B) — opens `/ma-portfolio` with the same filter chips active so the deal team can browse the matched cards. Do NOT invent per-comparable codeName anchor URLs (older drafts of this prompt instructed that pattern; the website has no codeName-level anchor handler today, so the only canonical click-through is the filtered-grid deeplink).',
             '  (5) VDR follow-ups — for each agenda topic and attention area, name the canonical VDR folder (verbatim from the embedded Library article) and 2 concrete document requests, prioritized by signal-to-effort.',
-            '  (6) Open quesions / next steps — 3-5 bullets the deal team should resolve before the next milestone.',
+            '  (6) Open questions / next steps — 3-5 bullets the deal team should resolve before the next milestone.',
+            `  (7) Open in Hub — single "Open Diligence Wizard" link from the \`deeplink\` field on the \`generate_diligence_agenda\` tool response (BL-031.95 Phase 2.B) — opens the wizard pre-populated with the same dimensions, including \`'unknown'\` fallbacks rendered as "Not sure" chips. If a tool response is missing \`deeplink\` (older server build), omit that link silently — never invent a URL.`,
             '',
             'Voice: handoff-quality. Reads as a single coherent document, not a stitched-together set of tool outputs. The deal team should be able to act on it without consulting the underlying tool results.',
           ].join('\n'),

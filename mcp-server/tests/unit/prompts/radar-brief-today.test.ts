@@ -89,8 +89,8 @@ describe('gst_radar_brief_today', () => {
     // 24h TTL and the website surfaces no time filter. These tests lock
     // the contract.
 
-    it('prompt is at v0.0.2 (post-Phase-3.A capability-mirror refactor)', () => {
-      expect(radarBriefTodayPrompt.version).toBe('0.0.2');
+    it('prompt is at v0.0.3 (post-Phase-5 deeplink-surface body update; v0.0.2 was the Phase-3.A capability-mirror refactor)', () => {
+      expect(radarBriefTodayPrompt.version).toBe('0.0.3');
     });
 
     it('argsSchema rejects pre-Phase-3 `sinceHours` field (no longer accepted)', () => {

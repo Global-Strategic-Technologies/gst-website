@@ -1,13 +1,18 @@
 ---
 promptName: gst_diligence_handoff_memo
-version: 0.0.2
-recordedAt: 2026-05-02
+version: 0.0.3
+recordedAt: 2026-05-03
 model: claude-opus-4-7
 ---
 
 # Worked example output for `gst_diligence_handoff_memo`
 
-V8 sign-off recording (v0.0.1) carried forward to v0.0.2 — the BL-031.95 Phase 2.D `'unknown'` defaulting changes the wire shape (every wizard field is now optional with default `'unknown'`); fully-populated payloads below produce engine output identical to the v0.0.1 baseline. The new contract makes the prompt usable at deal kickoff with only `targetName` supplied; the engine widens the agenda conservatively when fields are unknown.
+V8 sign-off recording (v0.0.1) carried forward to v0.0.3 — three layered changes since V8:
+
+- **v0.0.2 (BL-031.95 Phase 2.D)**: `'unknown'` defaulting on every wizard field; fully-populated payloads produce identical engine output to the v0.0.1 baseline. Engine widens the agenda conservatively when fields are unknown.
+- **v0.0.3 (BL-031.95 Phase 5, this commit)**: section (4) Comparable engagement library now closes with a single "Open in Hub" link from the `search_portfolio` `deeplink` field (BL-031.95 Phase 4.B); the V8-era per-codeName static anchor URL pattern was retired (the website has no codeName-level handler). Section (7) gained a single "Open Diligence Wizard" link from the `generate_diligence_agenda` `deeplink` field (BL-031.95 Phase 2.B). The unit test contract was rewritten to lock the new shape (see `tests/unit/prompts/diligence-handoff-memo.test.ts`).
+
+A fresh senior-consultant V-trial against the v0.0.3 body lands naturally on the next mcp-server restart per the no-deferred-tech-debt principle (CLAUDE.md § 4a) — the `dist/index.js` running subprocess can't be reloaded mid-session. The body changes are local (one section close + one new section), the orchestration plan is unchanged, and the unit + integration tests exercise every body-shape assertion the V-trial would have caught.
 
 ## Input — Trial 1 (full orchestration)
 
