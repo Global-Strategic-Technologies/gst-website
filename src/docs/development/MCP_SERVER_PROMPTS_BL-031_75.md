@@ -506,4 +506,4 @@ V1 (`gst_diligence_kickoff`) was the proof of the entire surface and surfaced th
 
 ---
 
-_Last updated: 2026-05-01_
+_Last updated: 2026-05-03 (BL-031.95 closure folded into § "Deferred work" — all four URL-state gaps that BL-031.75 noted are now shipped under their respective Phase numbers; first authored 2026-05-01)_
