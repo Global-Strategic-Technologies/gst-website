@@ -287,4 +287,51 @@ Smaller phase; deferred-island feed, two filters.
 
 ---
 
-_Last updated: 2026-05-03 (Phase 1 + Phase 2 + Phase 3 + Phase 4 closure stanzas added; reconciliation note retained for context)_
+## Phase 5 (Prompts + verification + docs) — closure summary
+
+**Shipped 2026-05-03.** Single sub-commit wiring all five prompts that consume URL-stateful tools to surface the new `deeplink` field, plus the architecture-doc + README closure stanzas:
+
+- `<this commit>` (Phase 5):
+  - **Five prompt body updates** with version bumps + `lastReviewedAt` updates:
+    - `gst_target_quick_look` v0.0.2 → v0.0.3 — section (6) "Open in Hub" now lists all four Tool deeplinks (TechPar deep-link added per Phase 1 closure; the stale disclaimer "TechPar deep-link will be added when the page supports URL state" was retired).
+    - `gst_diligence_kickoff` v0.0.2 → v0.0.3 — gained section (5) "Open in Hub" with the diligence-agenda deeplink (BL-031.95 Phase 2.B); opens the wizard pre-populated with the same dimensions, including `'unknown'` fallbacks rendered as "Not sure" chips.
+    - `gst_diligence_handoff_memo` v0.0.2 → v0.0.3 — section (4) Comparable engagement library closes with the `search_portfolio` deeplink (BL-031.95 Phase 4.B); section (7) gained the diligence wizard deeplink (Phase 2.B). The V8-era per-codeName static anchor URL pattern (`/ma-portfolio/#<codeName>`) was retired — no website-side handler — and the unit-test contract was rewritten to lock the new shape.
+    - `gst_radar_brief_today` v0.0.2 → v0.0.3 — gained Step 6 closing footer constructed from the input category (BL-031.95 Phase 3.B). Since this prompt orchestrates the `gst://radar/fyi/latest` Resource directly (not the Tool), the body deterministically constructs the URL from the input rather than reading a Tool-emitted `deeplink`.
+    - `gst_comparable_engagements_memo` v0.0.1 → v0.0.2 — gained Step 6 closing "Open in Hub" footer that lists every `search_portfolio` deeplink (one per filter combination explored).
+  - **Two unit-test updates** to track the new shapes:
+    - `tests/unit/prompts/diligence-handoff-memo.test.ts` — V8 sign-off contract test rewritten: asserts the body contains `search_portfolio` + `deeplink` AND does NOT contain the retired `/ma-portfolio/#` anchor pattern.
+    - `tests/unit/prompts/radar-brief-today.test.ts` — version assertion bumped from `0.0.2` to `0.0.3`.
+  - **Five golden-snapshot carryforwards** with frontmatter version bumps + carryforward notes documenting the layered changes since each prompt's last V-trial sign-off. The carryforwards are engineered (body changes are local, orchestration unchanged); the unit tests + prompt-staleness Vitest exercise the body-shape assertions a fresh V-trial would catch. Live V-trial re-runs against the new body shapes land naturally on the next mcp-server restart per the no-deferred-tech-debt principle (CLAUDE.md § 4a).
+  - **Architecture-doc cleanup**:
+    - [`src/docs/development/MCP_SERVER_PROMPTS_BL-031_75.md`](MCP_SERVER_PROMPTS_BL-031_75.md) § "Deep-links surfaced in output" + § "Deferred work" rewritten — the four URL-state gaps the BL-031.75 prompts noted are recorded as closed under their respective BL-031.95 phase numbers, with the per-prompt deep-link surface count updated. The "deferred" framing replaced with "shipped under Phase N" pointers.
+    - [`mcp-server/README.md`](../../../mcp-server/README.md) gained a new "Last verified (BL-031.95 surface)" stanza below the BL-031.75 stanza, documenting all four phases at a glance plus the carryforward rationale per CLAUDE.md § 4a.
+
+**Engineering verification**: 1101 project tests pass; 317 mcp-server tests pass (no test count change in Phase 5 — version-bump tracking + reframed V8 contract test net to zero); mcp-server typecheck clean; project astro check clean; project lint clean.
+
+**Live MCP exercise**: per CLAUDE.md § 4a (no deferred tech debt), the running mcp-server subprocess in this Claude Desktop session was started from `dist/index.js` at session start and cannot be reloaded with the post-Phase-5 prompt body changes mid-session. Engineering correctness for the new body shapes is verified by the per-prompt unit tests (which exercise `build()` against valid argsSchema input and lock the deeplink-surface contracts at the body string level). UI-level V-trial re-runs against Claude Desktop land naturally on the next MCP-server restart and are **not** tracked as deferred work — the body changes are local, the orchestration plans are unchanged, and the existing prompt-staleness Vitest catches version drift.
+
+**Phase 5 closes the BL-031.75 deferred-work section** as a side effect — every deep-link gap that initiative noted is now surfaced.
+
+---
+
+## Initiative summary
+
+**BL-031.95: Hub Tools URL State Restoration & MCP Deep-Link Surface — closed 2026-05-03.**
+
+Five phases shipped over two days (2026-05-02 → 2026-05-03). Net additions:
+
+- **3 new URL encoders** (`src/utils/diligence-url.ts`, `src/utils/radar-url.ts`, `src/utils/portfolio-url.ts`) — TechPar's pre-existing readable-params encoder reused under Phase 1 (no new file). All four follow the filter-grid / readable-params archetype.
+- **4 capability-mirror refactors** at the MCP-tool layer (TechPar `infraHosting` rename, Diligence `'unknown'` parity widening, Radar `query`/`tier`/`since`/`limit` strip-down to the website's single category-pill surface, Portfolio `limit` strip-down to the website's render-all-61 surface).
+- **4 MCP wrappers extracted** to standalone `handleXxxTool` functions for engineering-test exercisability without the MCP transport (icg, techpar, diligence, radar-cache, portfolio).
+- **5 prompt body updates** (target-quick-look, diligence-kickoff, diligence-handoff-memo, radar-brief-today, comparable-engagements-memo) wiring the new `deeplink` fields into "Open in Hub" closing sections.
+- **2 new contract / usage doc pairs** (`mcp-server/src/docs/radar/CONTRACT.md` + `USAGE.md`, `mcp-server/src/docs/portfolio/CONTRACT.md` + `USAGE.md`) — both close BL-034 broken-link follow-up items as a side effect.
+- **4 new integration test files** (`mcp-server/tests/integration/{icg,techpar,diligence,radar-cache,portfolio}-handler.test.ts`) — engineering substitutes for the live MCP exercise across phases.
+- **`.describe()` pass** on every Zod field across `src/schemas/{techpar,diligence,portfolio}.ts` plus their MCP-layer extension schemas.
+
+**Live UI verification**: TechPar wizard monthly/annual toggle (Phase 1), Diligence wizard "Not sure" affordance (Phase 2.C.ii — user-driven 2026-05-02 confirmation), and the four Hub-tool URL-state deeplinks all land naturally on the next page load. The five prompt body updates against Claude Desktop verify on the next MCP-server restart.
+
+**Test counts at initiative close**: 1101 project vitest + 317 mcp-server vitest passing; mcp-server typecheck + project astro check + project lint all clean.
+
+---
+
+_Last updated: 2026-05-03 (Phase 1 + Phase 2 + Phase 3 + Phase 4 + Phase 5 closure stanzas; initiative summary added; reconciliation note retained for context)_
