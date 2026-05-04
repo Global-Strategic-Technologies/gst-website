@@ -10,7 +10,7 @@
  * to slider-granularity quantization — see BL-034 cleanup item).
  */
 
-import type { McpServer } from '@modelcontextprotocol/server';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   calculateFromRawInputs,
   encodeState,

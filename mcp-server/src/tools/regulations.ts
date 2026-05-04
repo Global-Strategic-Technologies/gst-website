@@ -9,7 +9,7 @@
  * `category` filters when supplied.
  */
 
-import type { McpServer } from '@modelcontextprotocol/server';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   RegulationSearchInputSchema,
   RegulationFacetsInputSchema,

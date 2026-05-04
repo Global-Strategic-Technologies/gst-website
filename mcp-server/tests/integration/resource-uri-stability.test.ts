@@ -16,7 +16,7 @@ import {
   type JSONRPCRequest,
   type JSONRPCResponse,
   type JSONRPCErrorResponse,
-} from '@modelcontextprotocol/server';
+} from '@modelcontextprotocol/sdk/types.js';
 import { createServer } from '../../src/server';
 import { LIBRARY_ENTRIES } from '../../src/content/library-loader';
 import { REGULATION_ENTRIES } from '../../src/content/regulation-loader';

@@ -15,7 +15,7 @@
  * shaped TextResourceContents with instructions to run `npm run radar:seed`.
  */
 
-import type { McpServer } from '@modelcontextprotocol/server';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   RADAR_CATEGORIES,
   readFyiSnapshot,

@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/server';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerDiligenceTool } from './tools/diligence';
 import { registerPortfolioTools } from './tools/portfolio';
 import { registerIcgTool } from './tools/icg';

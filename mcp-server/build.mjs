@@ -18,7 +18,7 @@ const pkg = JSON.parse(readFileSync(resolve(here, 'package.json'), 'utf8'));
 
 const externals = [
   // Keep MCP SDK + native deps external — they ship as installed npm packages.
-  '@modelcontextprotocol/server',
+  '@modelcontextprotocol/sdk',
   '@cfworker/json-schema',
   'zod',
 ];

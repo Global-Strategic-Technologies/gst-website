@@ -7,7 +7,7 @@
  * effectiveDate, summary, category, keyRequirements, penalties) is preserved.
  */
 
-import type { McpServer } from '@modelcontextprotocol/server';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { REGULATION_ENTRIES, loadRegulationByUri } from '../content/regulation-loader';
 
 export function registerRegulationResources(server: McpServer): void {

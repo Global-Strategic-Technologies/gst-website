@@ -6,7 +6,7 @@
  * 36-month gap projection for a company's tech-spend posture.
  */
 
-import type { McpServer } from '@modelcontextprotocol/server';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { compute, serializeToParams } from '../../../src/utils/techpar-engine';
 import type { TechParInputs } from '../../../src/schemas/techpar';
 import {

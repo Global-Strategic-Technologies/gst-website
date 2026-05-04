@@ -5,7 +5,7 @@
  * inlined into the binary at build time (see content/library-loader.ts).
  */
 
-import type { McpServer } from '@modelcontextprotocol/server';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { LIBRARY_ENTRIES, loadLibraryByUri } from '../content/library-loader';
 
 export function registerLibraryResources(server: McpServer): void {

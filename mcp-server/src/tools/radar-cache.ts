@@ -20,7 +20,7 @@
  * keep the website and tool capability sets aligned.
  */
 
-import type { McpServer } from '@modelcontextprotocol/server';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import {
   readFyiSnapshot,

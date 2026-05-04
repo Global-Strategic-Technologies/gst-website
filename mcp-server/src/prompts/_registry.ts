@@ -14,7 +14,7 @@
  * message body mentions each `orchestrates` entry.
  */
 
-import type { McpServer } from '@modelcontextprotocol/server';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { GstPrompt } from './types';
 import { diligenceKickoffPrompt } from './diligence-kickoff';
 import { targetQuickLookPrompt } from './target-quick-look';

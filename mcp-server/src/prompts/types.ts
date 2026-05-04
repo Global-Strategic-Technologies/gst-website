@@ -13,7 +13,7 @@
  */
 
 import type { z } from 'zod';
-import type { GetPromptResult } from '@modelcontextprotocol/server';
+import type { GetPromptResult } from '@modelcontextprotocol/sdk/types.js';
 
 export interface GstPrompt<TArgs extends z.ZodObject<z.ZodRawShape> = z.ZodObject<z.ZodRawShape>> {
   /** Slash-menu name. Must match `/^gst_[a-z_]+$/`. */

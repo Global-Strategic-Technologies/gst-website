@@ -21,7 +21,7 @@
  * user message after the instruction message.
  */
 
-import type { EmbeddedResource, TextContent } from '@modelcontextprotocol/server';
+import type { EmbeddedResource, TextContent } from '@modelcontextprotocol/sdk/types.js';
 import { loadLibraryByUri } from '../content/library-loader';
 import { readFyiSnapshot, SNAPSHOT_MISSING_MESSAGE } from '../content/radar-snapshot';
 

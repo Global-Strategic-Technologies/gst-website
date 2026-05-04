@@ -1,10 +1,14 @@
-import type { JSONRPCMessage, Transport, TransportSendOptions } from '@modelcontextprotocol/server';
+import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
+import type {
+  Transport,
+  TransportSendOptions,
+} from '@modelcontextprotocol/sdk/shared/transport.js';
 
 /**
  * Paired-pipe Transport for in-process protocol-roundtrip tests.
  *
- * The pinned `@modelcontextprotocol/server@2.0.0-alpha.2` does not export an
- * in-memory test transport. The architecture decision lives in
+ * `@modelcontextprotocol/sdk@1.29.0` does not export an in-memory test
+ * transport. The architecture decision lives in
  * `src/docs/development/MCP_SERVER_ARCHITECTURE_BL-031_tests.md`.
  *
  * Two halves hold references to each other; `send()` on one side enqueues
