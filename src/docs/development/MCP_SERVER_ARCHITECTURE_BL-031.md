@@ -11,6 +11,7 @@
 >
 > **Phase 2 documents** (remote HTTP / Workers):
 >
+> - [MCP_SERVER_REMOTE_BL-032.md](MCP_SERVER_REMOTE_BL-032.md) — the keystone Phase 2 doc: Tools-over-HTTP substrate (Cloudflare Worker, Streamable HTTP transport, bearer-token auth, Upstash sliding-window rate limiting, live `search_radar` + `get_latest_insights` Tools, Sentry + `/health` observability, staging-then-production deploy)
 > - [MCP_SERVER_REMOTE_RESOURCES_PROMPTS_BL-032_5.md](MCP_SERVER_REMOTE_RESOURCES_PROMPTS_BL-032_5.md) — ports Resources + Prompts to remote HTTP with caching, scope gating, and URI-stability discipline
 > - [MCP_SERVER_OBSERVABILITY_BL-032_75.md](MCP_SERVER_OBSERVABILITY_BL-032_75.md) — production observability maturity (SLOs, dashboards, alerting) backing BL-033's contractual SLA
 >

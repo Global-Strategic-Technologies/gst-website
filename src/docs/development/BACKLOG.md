@@ -800,9 +800,11 @@ A prompt's behavior is determined by its message body — pure content. A senior
 
 ### BL-032: MCP Server — Internal Remote (Phase 2)
 
-**Source**: MCP_SERVER_INITIATIVE.md (archived) | **Effort**: 1 week | **Status**: Open | **Depends on**: BL-031
+**Source**: MCP_SERVER_INITIATIVE.md (archived) | **Architecture & plan**: [MCP_SERVER_REMOTE_BL-032.md](MCP_SERVER_REMOTE_BL-032.md) | **Effort**: 1 week | **Status**: Open | **Depends on**: BL-031
 
 **As a** GST team member, **I want** the MCP server deployed to a remote endpoint **so that** I can access GST tools from any machine — laptop, mobile Claude apps, ephemeral CI agents — without cloning the repo or running a local process.
+
+> **Implementation plan**: see [MCP_SERVER_REMOTE_BL-032.md](MCP_SERVER_REMOTE_BL-032.md) — covers the SDK / Streamable HTTP transport choice, the `search_radar` ↔ `search_radar_cache` capability-mirror coherence question, the Inoreader-client refactor for Workers (CacheStore + SecretSource adapters), CORS allowlist precision, the six-phase implementation arc (transport spike → auth → rate-limit → live radar tools → observability → deploy), and the open-questions punch list (Q1–Q11) that resolves through Phase 1.
 
 #### Planning Criteria
 
