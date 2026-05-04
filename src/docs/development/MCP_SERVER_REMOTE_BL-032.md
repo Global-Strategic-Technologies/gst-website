@@ -65,9 +65,52 @@ Three of the rows above represent **fundamentally new code surface**, not just c
 
 ---
 
-## Open design questions (unknown unknowns surfaced during planning)
+## Pre-Phase-1 resolutions (2026-05-03)
 
-This is the section the doc exists for. Each item is something the BACKLOG criteria touch but do not fully resolve. Each carries a recommendation; each recommendation is open to revision once Phase 1 (workspace prep) gets eyes on the actual SDK + Workers behavior. **These are the items most likely to mutate the implementation plan after first contact.**
+The Q1–Q13 punch list below was reviewed with the user before implementation began. Most questions resolved against their recommendation; two new questions (Q12, Q13) were added during code-side review of the existing Inoreader-client and radar-snapshot adapters. The summary table records the as-of-2026-05-03 state; individual Q sections retain the full reasoning + carry inline `**Resolved**` stanzas for the consequential resolutions.
+
+### Resolutions summary
+
+| #   | Question                                        | Resolution                                                                                                                                                                                                                                                                                                                                                                                                              | Lands in                                                                                                                                                                                                                 |
+| --- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Q1  | SDK package + Streamable HTTP transport         | **Cloudflare `agents` SDK, stateless `createMcpHandler` mode**. Worker entrypoint = ~10-line wrapper around existing [`createServer()`](../../../mcp-server/src/server.ts) factory. Confirmed via Context7 (`/cloudflare/agents` repo docs); Cloudflare's own production MCP servers (`docs.mcp.cloudflare.com`, `observability.mcp.cloudflare.com`) ride the same stack                                                | Phase 1 — narrowed: validate whether `agents` works with our current `@modelcontextprotocol/server@^2.0.0-alpha.2` (v2) OR requires migration back to `@modelcontextprotocol/sdk` v1.x (the path Cloudflare's docs show) |
+| Q2  | `search_radar_cache` rename                     | **Approved**: rename `search_radar_cache` → `search_radar_offline`; ship one-release deprecation alias                                                                                                                                                                                                                                                                                                                  | Phase 4                                                                                                                                                                                                                  |
+| Q3  | `get_latest_insights` as Tool                   | **Keep as Tool**, delegate through the same content adapter the FYI Resource uses                                                                                                                                                                                                                                                                                                                                       | Phase 4                                                                                                                                                                                                                  |
+| Q4  | Inoreader client refactor                       | **Generalize** via `CacheStore` + `SecretSource` adapter pattern with parity tests; fork-fallback if refactor surface > 1 day                                                                                                                                                                                                                                                                                           | Phase 4                                                                                                                                                                                                                  |
+| Q5  | CORS allowlist precision                        | Phase 1 origin audit unchanged; commit allowlist seed + audit-date comment in `src/auth/cors.ts`                                                                                                                                                                                                                                                                                                                        | Phase 1                                                                                                                                                                                                                  |
+| Q6  | Sentry SDK choice                               | `@sentry/cloudflare`; **new Sentry project** to separate concerns from the website's project; tag still `service:mcp-server`                                                                                                                                                                                                                                                                                            | Phase 5                                                                                                                                                                                                                  |
+| Q7  | Rate-limiter library                            | `@upstash/ratelimit` sliding window; custom only if per-tool tier semantics force it                                                                                                                                                                                                                                                                                                                                    | Phase 3                                                                                                                                                                                                                  |
+| Q8  | Health endpoint Inoreader liveness              | Cached Upstash read of last observed status; never burns budget                                                                                                                                                                                                                                                                                                                                                         | Phase 5                                                                                                                                                                                                                  |
+| Q9  | Schema-drift CI                                 | `tests/integration/registry-snapshot.test.ts` introspects single `createServer()` factory; fails on drift without `BREAKING_CHANGES.md` entry                                                                                                                                                                                                                                                                           | Phase 6                                                                                                                                                                                                                  |
+| Q10 | DNS provisioning for `mcp.globalstrategic.tech` | **Cloudflare DNS** — confirmed (existing `globalstrategic.tech` zone is on Cloudflare; the website's Vercel deployment is fronted by Cloudflare DNS). Worker route binding is Cloudflare-native; no Vercel coordination needed                                                                                                                                                                                          | Phase 6                                                                                                                                                                                                                  |
+| Q11 | Token rotation cadence                          | Manual rotation via `wrangler secret put`, documented in [`AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md); automation deferred to BL-033                                                                                                                                                                                                                                                                    | Operational                                                                                                                                                                                                              |
+| Q12 | Transport binding per radar tool (NEW)          | **Option A**: offline tool stays `local-only`. The renamed `search_radar_offline` is registered in the stdio entrypoint only; live `search_radar` is the canonical HTTP radar surface. Sidesteps the Workers-incompatible `node:fs` / `node:crypto` usage in [`radar-snapshot.ts`](../../../mcp-server/src/content/radar-snapshot.ts)                                                                                   | Phase 4 (registration split between stdio entrypoint and Worker)                                                                                                                                                         |
+| Q13 | Upstash project sharing (NEW)                   | **Same Upstash project as website ISR**, separate REST token for the Worker (`mcp-worker`). Worker uses `mcp:*` key prefix; shared `inoreader:*` keys (OAuth tokens) remain shared. Token-refresh race mitigation: Worker is **read-only** for `inoreader:*` — the website remains sole refresh-writer; Worker errors with structured retry hint if tokens are expired and fetches a fresh refresh from Inoreader fails | Phase 1 (`wrangler.toml` secret name); Phase 4 (token issuance + read-only-from-Worker policy)                                                                                                                           |
+
+### Operational confirmations recorded (2026-05-03)
+
+- **Cloudflare account**: free tier; user has access. Upgrade to paid only when BL-032.5's Cron Triggers land. BL-032 itself fits free tier — stateless `createMcpHandler` does NOT need Durable Objects (the only paid-only feature we'd otherwise hit)
+- **DNS zone**: Cloudflare (Q10)
+- **Upstash project**: same project as website's ISR cache; separate REST token issued for the Worker (Q13)
+- **Inoreader credentials access path**: existing values live in Vercel project env vars; copy via `vercel env pull` → `wrangler secret put` per credential. Shared values, separate stores
+- **Sentry project**: new project, separate from website's
+- **Initial bearer-key roster**: just the user (RP) for the one-week soak; full team rollout after the soak proves the surface stable
+
+### Implementation impact of these resolutions
+
+The Q1 resolution materially changes the implementation plan:
+
+- **Phase 1 effort revised down** from `1 day` → `0.5–1 day`. The discovery work is done; the spike's job is now to validate v1-vs-v2 SDK compatibility against `agents`, then scaffold the ~10-line `worker.ts`
+- **`src/transport/http.ts` deleted from the file layout** (below) — Cloudflare's `agents` SDK provides the Streamable HTTP transport adapter; we don't write our own
+- **No `node:*` polyfill / Web-API-shim work needed** — the Worker code path never imports `@modelcontextprotocol/node`; `agents` handles the Web `Request`/`Response` adaptation internally
+
+The full Q1–Q11 reasoning + the new Q12, Q13 sections remain below for future maintainers reviewing why each decision landed where it did.
+
+---
+
+## Open design questions (full reasoning — for reference)
+
+This section is the planning artifact's audit trail. Each Q below catalogs the options that were considered and why a particular resolution was chosen. Resolutions appear inline at the bottom of each consequential Q section. **The summary table above is authoritative for the as-of-2026-05-03 state**; individual Q sections may have additional reasoning that doesn't fit into a summary row.
 
 ### Q1. Streamable HTTP transport — which SDK package, exactly?
 
@@ -82,6 +125,40 @@ This is the section the doc exists for. Each item is something the BACKLOG crite
 | Custom `fetch`-handler shim that speaks the MCP HTTP framing directly              | Low — only if the official packages don't yet target Workers                                           | Significant work; only if the SDK story has gaps on Workers                                                                                      |
 
 **Recommendation**: open Phase 1 with a 1-2 hour spike that installs the candidate packages, scaffolds a hello-world Worker that registers a single trivial tool, and verifies `unstable_dev` from `wrangler` can drive it via the MCP client SDK. Pick the option that produces the smallest dependency surface that works. **Phase 1 commit message documents the choice and the reason.** This doc gets a "Resolved Phase 1" stanza appended once decided. Until then, treat the file layout below as parameterized by this choice.
+
+**Resolved (2026-05-03 — pre-Phase-1 research via Context7)**: **None of the three options above; a fourth path was found**.
+
+Cloudflare publishes an `agents` SDK ([`/cloudflare/agents`](https://github.com/cloudflare/agents) on GitHub, `agents` on npm) that provides MCP server primitives explicitly designed for Workers' Web `Request`/`Response` runtime. Two patterns ship:
+
+| Pattern                                       | When to use                                                    | Requires Durable Objects?   |
+| --------------------------------------------- | -------------------------------------------------------------- | --------------------------- |
+| **`McpAgent` class + `Class.serve("/path")`** | Stateful per-session MCP servers (per-client persistent state) | Yes — paid Workers plan     |
+| **`createMcpHandler(server)`**                | Stateless MCP servers (every tool call is a pure function)     | **No** — works on free tier |
+
+BL-032's tools are stateless (every diligence/portfolio/ICG/TechPar/etc. call is a pure function of its inputs), so **`createMcpHandler` is the right pattern**. The complete Worker entrypoint reduces to:
+
+```typescript
+import { createMcpHandler } from 'agents/mcp';
+import { createServer } from './server';
+
+export default {
+  fetch: async (request: Request, env: Env, ctx: ExecutionContext): Promise<Response> => {
+    const server = createServer();
+    return createMcpHandler(server)(request, env, ctx);
+  },
+};
+```
+
+The existing `createServer()` factory at [`mcp-server/src/server.ts`](../../../mcp-server/src/server.ts) doesn't change. This is exactly the register-once-transport-twice shape [Q9](#q9-schema-drift-ci--how-does-the-test-see-both-registries) anticipated.
+
+**One open Phase-1 sub-question remains**: the Cloudflare docs show `import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"` (the **v1 single-package** name). Our existing code uses `@modelcontextprotocol/server@^2.0.0-alpha.2` (the **v2 split-package family**). The narrow Phase 1 spike now is: **does `agents` work with v2, or do we need to migrate to v1?** Either outcome ships:
+
+- **If v2 compatible**: `npm install agents` in `mcp-server/`, write the 10-line `worker.ts`, ship — total Phase 1 effort ~1 hour
+- **If v1 required**: ~1-day migration; `mcp-server/package.json` swaps `@modelcontextprotocol/server` → `@modelcontextprotocol/sdk`; import paths in `tools/*.ts`, `resources/*.ts`, `prompts/*.ts` update; the `server.registerTool(...)`/`registerResource(...)`/`registerPrompt(...)` API surface is similar between v1 and v2 — likely mostly mechanical
+
+**No `node:*` polyfill work**: the Worker code path never imports `@modelcontextprotocol/node` (the Node-specific HTTP transport that uses `node:http`). `agents` handles the Web `Request`/`Response` adaptation internally.
+
+**Production validation already exists**: Cloudflare runs MCP servers themselves on this stack — `https://docs.mcp.cloudflare.com/mcp` (cloudflare-docs MCP) and `https://observability.mcp.cloudflare.com/mcp` (cloudflare-observability MCP). Not a bleeding-edge bet.
 
 ### Q2. `search_radar` vs. `search_radar_cache` — coexistence, replacement, or capability-mirror revisited?
 
@@ -108,7 +185,9 @@ Re-introducing `query` / `tier` / `since` / `limit` for the live tool — exactl
 - Doesn't surprise any pinned-context agent for a release window
 - Avoids the state-machine complexity of Option C
 
-**Discipline**: the rename is recorded in `mcp-server/BREAKING_CHANGES.md` (introduced in BL-032.5 — promote its introduction here if BL-032.5's timing slips); the alias is removed in `mcp-server@0.2.0`. **Confirm-with-user** before committing to a rename — per [feedback_no_unfounded_risk_claims.md](C:\Users\thefa.claude\projects\c--Code-gst-website\memory\feedback_no_unfounded_risk_claims.md), don't assume external breakage. If no client outside this repo references `search_radar_cache` by name (likely true — internal use only), the breaking-change calculus changes and the alias may be unnecessary.
+**Discipline**: the rename is recorded in `mcp-server/BREAKING_CHANGES.md` (introduced in BL-032.5 — promote its introduction here if BL-032.5's timing slips); the alias is removed in `mcp-server@0.2.0`. **Confirm-with-user** before committing to a rename — don't assume external breakage. If no client outside this repo references `search_radar_cache` by name (likely true — internal use only), the breaking-change calculus changes and the alias may be unnecessary.
+
+**Resolved (2026-05-03)**: **Approved** — rename `search_radar_cache` → `search_radar_offline` with a one-release deprecation alias. User confirmed no external clients reference the existing name (internal use only). Phase 4 ships the rename; the alias gets removed in `mcp-server@0.2.0`. `BREAKING_CHANGES.md` is introduced in Phase 4 to record the rename — promotes BL-032.5's planned introduction of that file forward into BL-032 because the rename forces it.
 
 ### Q3. `get_latest_insights` — Tool, or just a thin wrapper over the FYI Resource?
 
@@ -119,6 +198,8 @@ Re-introducing `query` / `tier` / `since` / `limit` for the live tool — exactl
 **The argument against**: schema duplication. Drift risk. Two surfaces saying the same thing.
 
 **Recommendation**: keep `get_latest_insights` as a Tool per the spec, but implement it as a **delegated fetch through the same content adapter the FYI Resource uses** (`mcp-server/src/content/radar-snapshot.ts` already has `readFyiSnapshot`). The Tool wraps the adapter; the Resource (under BL-032.5) wraps the same adapter. One source of truth. Schema reuse via Zod composition — the Tool's output type embeds the same FYI item shape the Resource serializes.
+
+**Resolved (2026-05-03)**: **Approved** — keep as Tool, delegate through shared content adapter. One subtlety: under [Q12 Option A](#q12-transport-binding-per-radar-tool-new) the Worker live-radar tool can't use `radar-snapshot.ts` (Node-only). Phase 4 introduces a Worker-compatible content adapter (call it `radar-live-store.ts` — reads from Upstash + Inoreader live, no `node:fs`); both `get_latest_insights` and `search_radar` (live) wrap that adapter; the `radar-snapshot.ts` adapter stays for the local-only `search_radar_offline`. Two adapters, but zero duplication of logic — both implement the same `RadarItem`-returning interface and differ only in source.
 
 ### Q4. Inoreader client refactor — fork, or generalize?
 
@@ -137,6 +218,8 @@ Re-introducing `query` / `tier` / `since` / `limit` for the live tool — exactl
 4. A Vitest integration test exercises the client through both adapter sets to confirm parity
 
 This is real refactor surface — flagging it as such is the doc's job. If Phase 4 reveals that the refactor is larger than 1 day of work, the implementation plan documents the actual cost in a closure stanza.
+
+**Resolved (2026-05-03)**: **Option A (generalize)** with parity tests gating the refactor. Fork-fallback path remains documented above for use if Phase 4 hits unexpected complexity. Important sub-decision recorded under [Q13](#q13-upstash-project-sharing-new): the Worker is **read-only** for `inoreader:*` Upstash keys — the website remains the sole token-refresh writer. This sidesteps the dual-refresh race condition the adapter pattern would otherwise need to coordinate via Upstash atomic locks. Worker errors with a structured retry hint if the access token is expired; the next website ISR-cache miss triggers a website-side refresh; Worker's next call gets fresh tokens.
 
 ### Q5. CORS allowlist precision — which exact origins?
 
@@ -190,6 +273,37 @@ The BACKLOG names `mcp.globalstrategic.tech` as the production subdomain. This r
 
 BACKLOG mentions weekly rotation via CI cron, leveraging Claude Desktop's env-var substitution. This is a good aspiration but adds operational surface. **Recommendation**: ship BL-032 with **manual** rotation documented in the README (one `wrangler secret put` per team member, on demand or on suspected compromise). Automated rotation is a BL-032.75 / BL-033 concern and gets its own design pass once the secrets surface is in production. Don't pre-build automation for a 5-person team that doesn't yet have a rotation policy.
 
+### Q12. Transport binding per radar tool (NEW — surfaced post-Q1-resolution review)
+
+When [Q2](#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited) was resolved as "rename `search_radar_cache` → `search_radar_offline`," a follow-on question emerged: which transport(s) does the renamed offline tool bind to?
+
+The existing snapshot reader at [`mcp-server/src/content/radar-snapshot.ts`](../../../mcp-server/src/content/radar-snapshot.ts) uses `node:crypto`, `node:fs`, `node:url`, `node:path` — none available on Cloudflare Workers (Workers use Web Crypto + no filesystem). Three options:
+
+| Option                                 | What it looks like                                                                                                                             | Trade-off                                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **A. Offline tool stays `local-only`** | `search_radar_offline` registered in stdio entrypoint only; HTTP transport never sees it. Live `search_radar` is the canonical HTTP radar tool | Cleanest scope; offline tool keeps its dev/CI/budget-exhausted-fallback role unchanged. Means the deprecated `search_radar_cache` alias only works locally — but since [Q2](#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited) confirmed no external clients reference it, this is fine |
+| **B. Move snapshot to Upstash**        | Promote BL-032.5's planned Cron-driven Upstash snapshot into BL-032; offline tool reads from Upstash and ships over HTTP too                   | Cleanest semantic but inflates BL-032 scope significantly. Cron Triggers require paid Workers plan                                                                                                                                                                                                                                   |
+| **C. Drop offline tool under BL-032**  | Remove `search_radar_offline` entirely; live tool's cache-on-degrade fallback subsumes it                                                      | Most aggressive. Loses the dev/CI/test-determinism affordance the offline tool provides today                                                                                                                                                                                                                                        |
+
+**Resolved (2026-05-03)**: **Option A** — offline tool stays `local-only`. Implementation: `mcp-server/src/index.ts` (stdio entrypoint) registers all 11 tools (9 BL-031.x + 2 BL-032 live-radar) including `search_radar_offline`; `mcp-server/src/worker.ts` registers only the 10 transport-portable tools (skips `search_radar_offline`). Phase 4 work splits the tool registration: a `registerLocalOnlyTools(server)` function in `tools/_local-only.ts` collects the offline tool; `index.ts` calls both `createServer()` and `registerLocalOnlyTools()`; `worker.ts` calls only `createServer()`. Schema-drift CI ([Q9](#q9-schema-drift-ci--how-does-the-test-see-both-registries)) snapshots both shapes — stdio = N+1 tools, HTTP = N tools — and asserts the diff is exactly the expected local-only set.
+
+### Q13. Upstash project sharing (NEW — surfaced post-Q1-resolution review)
+
+The website's [`src/lib/inoreader/client.ts`](../../lib/inoreader/client.ts) reads/writes Inoreader OAuth tokens to Upstash for cross-invocation persistence (`inoreader:access_token`, `inoreader:refresh_token`). The Worker MUST read those same tokens for live radar tool calls — otherwise it would need its own independent OAuth refresh loop, racing with the website's. Either both services share Upstash, or we accept the race.
+
+| Option                                         | Trade-off                                                                                                                                                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Same Upstash project, separate REST tokens** | Worker gets its own `mcp-worker` REST token (rotation-isolated) but reads the same KV store; key namespacing via prefix (`mcp:*` for MCP-specific keys; existing `inoreader:*` keys read-shared) |
+| **Separate Upstash project for MCP**           | Token isolation but breaks Inoreader-token sharing — both services would race on token refresh; not viable without atomic-lock coordination                                                      |
+
+**Resolved (2026-05-03)**: **Same project, separate REST token** (per user direction). Operational steps land in Phase 4:
+
+1. In the Upstash console (accessible via the Vercel dashboard's Storage tab), generate a new REST token named `mcp-worker`, scope `read+write`
+2. `wrangler secret put UPSTASH_REDIS_REST_URL` (same value as the website) and `wrangler secret put UPSTASH_REDIS_REST_TOKEN` (the new `mcp-worker` token) for both staging and production envs
+3. Worker key namespace: `mcp:*` prefix for all Worker-owned keys (rate-limit counters, radar circuit-breaker state, live-radar-tool ISR cache); the existing `inoreader:*` keys are **read-only from Worker** — the website remains the sole token-refresh writer
+
+The read-only-from-Worker policy ([Q4 Resolved stanza](#q4-inoreader-client-refactor--fork-or-generalize) records the same decision from the refactor side) sidesteps the dual-refresh race entirely. If the Worker observes an expired access token and the website hasn't refreshed yet, the Worker returns a structured `503 Service Unavailable` with a `retryAfter` hint pointing at the next website-side request that will trigger refresh; the next Worker call after that sees fresh tokens.
+
 ---
 
 ## Repo placement and lifecycle
@@ -209,14 +323,13 @@ The new lifecycle wrinkle introduced by remote deployment is **deploy-as-event**
 ```
 mcp-server/
 ├── src/
-│   ├── index.ts                       # (BL-031, unchanged) stdio entrypoint
-│   ├── server.ts                      # (existing) createServer() factory — single source of truth
-│   ├── worker.ts                      # NEW — Worker fetch handler; auth → rate-limit → MCP HTTP transport
+│   ├── index.ts                       # (BL-031.x) stdio entrypoint — calls createServer() + registerLocalOnlyTools()
+│   ├── server.ts                      # (existing) createServer() factory — single source of truth for transport-portable tools/resources/prompts
+│   ├── worker.ts                      # NEW — ~10-line Worker fetch handler; chains auth → rate-limit → createMcpHandler(createServer())
 │   ├── tools/                         # (BL-031.x — unchanged, EXCEPT:)
-│   │   ├── radar-cache.ts             # RENAMED to radar-offline.ts (Q2 resolution); deprecation alias retained
-│   │   └── radar-live.ts              # NEW — search_radar + get_latest_insights, both wrap Inoreader client
-│   ├── transport/                     # NEW — Worker-side transport plumbing
-│   │   └── http.ts                    # Streamable HTTP transport adapter (per Q1 resolution)
+│   │   ├── _local-only.ts             # NEW — registerLocalOnlyTools(server); registers search_radar_offline (Q12 — stdio-only)
+│   │   ├── radar-cache.ts             # RENAMED to radar-offline.ts (Q2); deprecation alias kept; registered ONLY by _local-only.ts
+│   │   └── radar-live.ts              # NEW — search_radar + get_latest_insights; registered by createServer() so they ride both transports
 │   ├── auth/                          # NEW — bearer-token + CORS
 │   │   ├── bearer.ts                  # Authorization header parsing; key prefix extraction; structured 401
 │   │   ├── cors.ts                    # Origin allowlist (Q5); preflight handling
@@ -245,7 +358,7 @@ mcp-server/
 │       ├── mock-upstash.ts            # NEW — in-memory shim for @upstash/redis in tests
 │       └── mock-inoreader.ts          # NEW — fixture-backed Inoreader responses (reuse tests/e2e/fixtures/radar-mock-data.ts where possible)
 ├── wrangler.toml                      # NEW — staging + production envs; Upstash + Inoreader bindings
-├── package.json                       # +deps: hono?, @upstash/redis, @upstash/ratelimit, @sentry/cloudflare, wrangler (dev); +scripts: dev:worker, deploy:staging, deploy:production
+├── package.json                       # +deps: agents (Q1), @upstash/redis, @upstash/ratelimit, @sentry/cloudflare, wrangler (dev); +scripts: dev:worker, deploy:staging, deploy:production. Possible: SDK package swap from @modelcontextprotocol/server v2 → @modelcontextprotocol/sdk v1 if Q1 sub-spike outcome B lands
 ├── BREAKING_CHANGES.md                # NEW — promoted from BL-032.5; first entry: search_radar_cache → search_radar_offline
 └── src/docs/                          # (BL-031.x — extended in BL-032)
     ├── operations/                    # NEW — runbooks + setup guides
@@ -264,15 +377,16 @@ mcp-server/
 
 Six discrete phases; each ends with a green test suite + a small, reviewable commit. Phases 1-5 happen on a feature branch; Phase 6 (deploy) is the merge-and-ship moment.
 
-#### Phase 1 — Workspace prep + transport spike (1 day)
+#### Phase 1 — Workspace prep + SDK-compat validation (0.5–1 day)
 
-**Goal**: prove the SDK + Workers transport story works end-to-end with a single trivial tool. Resolves [Q1](#q1-streamable-http-transport--which-sdk-package-exactly).
+**Goal**: validate the SDK choice locked in [Q1's pre-Phase-1 resolution](#q1-streamable-http-transport--which-sdk-package-exactly) (Cloudflare `agents` SDK + stateless `createMcpHandler`); scaffold the ~10-line Worker entrypoint; prove `unstable_dev` + the existing tool registry work end-to-end. The discovery work is already done; this phase is validation + scaffolding.
 
-- Add `wrangler.toml` with staging env only (production env added Phase 6)
-- Install candidate HTTP transport package(s); scaffold `src/worker.ts` with a hello-world Tool
-- `npx wrangler dev` and `unstable_dev` both serve the Tool
-- `tests/integration/worker-roundtrip.test.ts` written against `unstable_dev`, exercises one tool call end-to-end
-- **Docs**: skeleton [`mcp-server/src/docs/operations/DEPLOY.md`](../../../mcp-server/src/docs/operations/DEPLOY.md) committed with the "Prereqs" section authored (sections 2-10 land in later phases); [`DEVELOPER_TOOLING.md`](./DEVELOPER_TOOLING.md) gains `wrangler dev` + `unstable_dev` rows; this doc gets a `Resolved Phase 1: SDK = ...` stanza appended; Phase 1 commit message documents the SDK package choice + reasoning
+- Add `wrangler.toml` with staging env only (production env added Phase 6); declare bindings + secret names per [Q13's Upstash decision](#q13-upstash-project-sharing-new) (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, etc.) — values empty for Phase 1 spike
+- **SDK-compat sub-spike**: `npm install agents` in `mcp-server/`. Try the [Q1 Resolved stanza's 10-line Worker pattern](#q1-streamable-http-transport--which-sdk-package-exactly) against the existing `createServer()` factory. Expected outcome A (`agents` works with `@modelcontextprotocol/server` v2): proceed with v2 unchanged. Expected outcome B (`agents` requires v1): minimal migration of `mcp-server/package.json` from `@modelcontextprotocol/server` → `@modelcontextprotocol/sdk`; mechanical import-path updates across `tools/*.ts`, `resources/*.ts`, `prompts/*.ts`. If outcome B, the Phase 1 commit records the migration as a separate prep commit before the worker scaffold lands
+- Scaffold `src/worker.ts` with the `createMcpHandler(createServer())(request, env, ctx)` pattern; one health-check stub at `GET /health` (full health logic lands Phase 5)
+- `npx wrangler dev` serves the Worker locally; `unstable_dev` from `wrangler` drives it from a test harness
+- `tests/integration/worker-roundtrip.test.ts` authored against `unstable_dev` — exercises one tool call (e.g. `list_portfolio_facets`, smallest payload) end-to-end through the HTTP transport
+- **Docs**: skeleton [`mcp-server/src/docs/operations/DEPLOY.md`](../../../mcp-server/src/docs/operations/DEPLOY.md) committed with the "Prereqs" section authored (sections 2-10 land in later phases); [`DEVELOPER_TOOLING.md`](./DEVELOPER_TOOLING.md) gains `wrangler dev` + `unstable_dev` rows; this doc's [Q1 Resolved stanza](#q1-streamable-http-transport--which-sdk-package-exactly) gets one additional line appended recording outcome A or outcome B (whichever lands); Phase 1 commit message documents the SDK-compat verdict
 
 #### Phase 2 — Auth + CORS (0.5-1 day)
 
@@ -330,7 +444,7 @@ Six discrete phases; each ends with a green test suite + a small, reviewable com
 - Curl-based smoke tests per BACKLOG validation sequence (steps 3-6)
 - Production deploy: `wrangler deploy --env production` only after staging smoke tests are green
 - One-week soak: pull rate-limit metrics, confirm zero Inoreader 429s, confirm at least one team member exercised a non-dev-machine path
-- **Docs**: [`mcp-server/README.md`](../../../mcp-server/README.md) "Last verified (BL-032 surface)" stanza authored with concrete evidence (key prefix, tool, latency, log line) — same pattern as BL-031.75's V1-V8; [`REMOTE_CLIENT_SETUP.md`](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) staging-URL placeholders replaced with the production URL; [`DEPLOY.md`](../../../mcp-server/src/docs/operations/DEPLOY.md) sections 3-7 finalized with the actual run-against-production cadence; [`AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md) updated with the production secret naming actually used; [`DEVELOPER_TOOLING.md`](./DEVELOPER_TOOLING.md) deploy table extended with `wrangler deploy --env staging|production`; [`BACKLOG.md` BL-032](BACKLOG.md#bl-032-mcp-server--internal-remote-phase-2) closure stanza; this doc's Q1-Q11 resolutions appended per the [Closure pattern](#closure-pattern); team-onboarding announcement (one-line in #intel or equivalent) directs everyone at REMOTE_CLIENT_SETUP.md as the canonical entry point
+- **Docs**: [`mcp-server/README.md`](../../../mcp-server/README.md) "Last verified (BL-032 surface)" stanza authored with concrete evidence (key prefix, tool, latency, log line) — same pattern as BL-031.75's V1-V8; [`REMOTE_CLIENT_SETUP.md`](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) staging-URL placeholders replaced with the production URL; [`DEPLOY.md`](../../../mcp-server/src/docs/operations/DEPLOY.md) sections 3-7 finalized with the actual run-against-production cadence; [`AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md) updated with the production secret naming actually used; [`DEVELOPER_TOOLING.md`](./DEVELOPER_TOOLING.md) deploy table extended with `wrangler deploy --env staging|production`; [`BACKLOG.md` BL-032](BACKLOG.md#bl-032-mcp-server--internal-remote-phase-2) closure stanza; this doc's Q1-Q13 resolutions appended per the [Closure pattern](#closure-pattern); team-onboarding announcement (one-line in #intel or equivalent) directs everyone at REMOTE_CLIENT_SETUP.md as the canonical entry point
 - **Sibling MCP-arc doc closure pass**: per the [Documentation deliverables § Sibling MCP-architecture docs](#sibling-mcp-architecture-docs--closure-pass-updates-phase-6) table, the 7 BL-031.x / BL-032.x sibling docs get their forward-looking BL-032 prose flipped to past-tense. The most consequential edit is [BL-031.5 line 144](MCP_SERVER_HUB_SURFACE_BL-031_5.md) — its `search_radar_cache`/`search_radar` naming-collision prediction is invalidated by [Q2's](#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited) rename resolution and must be edited to record what actually happened
 - **MCP-doc routing**: [`mcp-server/README.md`](../../../mcp-server/README.md) gains a "MCP Documentation" section that catalogs all MCP-related docs (the 9 architecture docs at `src/docs/development/MCP_SERVER_*.md`, the 5 new operations docs, the per-tool CONTRACT/USAGE files) — making `mcp-server/README.md` the single canonical discovery entry point. Site-level indexes then route here: [master `src/docs/README.md`](../README.md) and [`src/docs/development/README.md`](./README.md) each gain a single row deferring to `mcp-server/README.md`; [`.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) gains a small "MCP Server" orientation subsection that also routes to `mcp-server/README.md`
 
@@ -548,7 +662,7 @@ Phase 6 adds:
 When BL-032 ships:
 
 1. This doc gets a closure stanza appended documenting:
-   - The Q1-Q11 resolutions actually reached (vs the recommendations above)
+   - The Q1-Q13 resolutions actually reached (vs the recommendations above)
    - Any deviations from the phase plan
    - The "Last verified (BL-032 surface)" anchor pointing at `mcp-server/README.md`'s post-deploy evidence section
 2. `mcp-server/README.md`'s "What's exposed" section gains a transport column distinguishing local-only / remote-only / both
@@ -560,4 +674,4 @@ When BL-032 ships:
 
 ---
 
-_Last updated: 2026-05-03_
+_Last updated: 2026-05-03 — pre-Phase-1 resolutions appended (Q1 SDK choice locked to Cloudflare `agents` SDK + stateless `createMcpHandler`; Q2/Q3/Q4 user-confirmed; Q12/Q13 added to surface radar-tool transport binding + Upstash sharing as explicit decisions; operational confirmations recorded). Doc is implementation-ready as of this update._
