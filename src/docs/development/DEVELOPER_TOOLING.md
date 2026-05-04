@@ -24,6 +24,12 @@ Project-specific reference for the quality tooling installed during Phase 2 of [
 | Check formatting without writing       | `npm run format:check`                                                       |
 | Build for production                   | `npm run build`                                                              |
 | Preview the production build           | `npm run preview`                                                            |
+| Run the MCP server locally (stdio)     | `cd mcp-server && npm run build` then point Claude Desktop at `dist/index.js` (see `mcp-server/README.md`) |
+| Run the MCP server as a Worker locally | `cd mcp-server && npm run dev:worker` (= `wrangler dev --env staging`)        |
+| Test the Worker locally (programmatic) | `cd mcp-server && npx vitest run tests/integration/worker-roundtrip.test.ts` (boots Worker via `unstable_dev`) |
+| Validate Worker bundle without deploy  | `cd mcp-server && npx wrangler deploy --dry-run --env staging`                |
+| Deploy MCP Worker to staging           | `cd mcp-server && npm run deploy:staging` (Phase 6 — staging URL: `mcp-staging.globalstrategic.tech`) |
+| Deploy MCP Worker to production        | `cd mcp-server && npm run deploy:production` (Phase 6 — production URL: `mcp.globalstrategic.tech`) |
 
 **Authoritative local validation sequence** (what CI runs, in the same order):
 

@@ -41,3 +41,8 @@ coverage/
 
 # dev-mode API response cache
 .cache/
+
+# wrangler local dev cache + .dev.vars (per-developer secret overrides — never committed)
+.wrangler/
+.dev.vars
+.dev.vars.*

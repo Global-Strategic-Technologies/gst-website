@@ -1,0 +1,64 @@
+# Cloudflare Worker config for the GST MCP server (BL-032).
+#
+# Phase 1 scope: staging-only; minimal config to scaffold the Worker fetch
+# handler and prove the end-to-end transport story works. Production env,
+# routes, observability bindings, custom domain, and secret manifests land
+# in Phase 6 (deploy + soak).
+#
+# Architecture & rationale: src/docs/development/MCP_SERVER_REMOTE_BL-032.md
+#
+# To run locally:
+#   npm run dev:worker          # wrangler dev --env staging
+#
+# To deploy (Phase 6):
+#   npm run deploy:staging      # wrangler deploy --env staging
+#   npm run deploy:production   # wrangler deploy --env production
+
+name = "gst-mcp"
+main = "src/worker.ts"
+compatibility_date = "2026-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+# nodejs_compat is required because the `agents` SDK pulls in `mimetext`
+# (uses node:os) and `mime-types` (uses node:path) transitively through its
+# observability module. Cloudflare's nodejs_compat layer polyfills these
+# Node built-ins on the Worker runtime — well-supported, no functional
+# impact on our code path.
+#
+# Our OWN code stays Web-API-only — we use v1 SDK's
+# WebStandardStreamableHTTPServerTransport (via agents/mcp's createMcpHandler).
+# Local-only tools/resources that DO use node:fs / node:crypto live in
+# src/tools/_local-only.ts and are registered only by the stdio entrypoint
+# (src/index.ts), never by this Worker. See BL-032 Q12.
+
+# ---------------------------------------------------------------------------
+# Staging
+# ---------------------------------------------------------------------------
+# Phase 6 will add:
+#   routes = [{ pattern = "mcp-staging.globalstrategic.tech/*", custom_domain = true }]
+#
+# Secrets (set via `wrangler secret put <NAME> --env staging`):
+#   MCP_KEY_RP                 Bearer token for thefastcat (RP) — initial soak roster (Q11/Q13)
+#   UPSTASH_REDIS_REST_URL     Same value as website's; shared Upstash project (Q13)
+#   UPSTASH_REDIS_REST_TOKEN   `mcp-worker` REST token (separate from website's; Q13)
+#   INOREADER_APP_ID           Copy from Vercel env via `vercel env pull`
+#   INOREADER_APP_KEY          Copy from Vercel env
+#   INOREADER_ACCESS_TOKEN     Copy from Vercel env (Worker reads only — website owns refresh)
+#   INOREADER_REFRESH_TOKEN    Copy from Vercel env (Worker reads only — see Q4 Resolved)
+#   SENTRY_DSN                 New Sentry project — service:mcp-server (Q6)
+#
+# Phase 1 spike runs locally via `wrangler dev` with no secrets set; the only
+# code path exercised before Phase 2 ships auth is /health (uncached, no auth).
+
+[env.staging]
+name = "gst-mcp-staging"
+
+# ---------------------------------------------------------------------------
+# Production
+# ---------------------------------------------------------------------------
+# Phase 6 will populate this block. Documented now to surface the staging→
+# production parity goal: same bindings, same secrets (with --env production
+# values), separate Worker name + route + Upstash REST token.
+
+[env.production]
+name = "gst-mcp"

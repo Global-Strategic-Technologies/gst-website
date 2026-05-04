@@ -18,6 +18,7 @@ import {
   type JSONRPCErrorResponse,
 } from '@modelcontextprotocol/sdk/types.js';
 import { createServer } from '../../src/server';
+import { registerLocalOnlyTools } from '../../src/tools/_local-only';
 import { LIBRARY_ENTRIES } from '../../src/content/library-loader';
 import { REGULATION_ENTRIES } from '../../src/content/regulation-loader';
 import { RADAR_URIS } from '../../src/resources/radar';
@@ -85,6 +86,7 @@ describe('resource URI stability', () => {
   beforeEach(async () => {
     nextId = 1;
     const server = createServer();
+    registerLocalOnlyTools(server); // mirror src/index.ts (stdio entrypoint) — BL-032 Q12
     const pair = createPairedTransports();
     client = pair.client;
     await server.connect(pair.server);

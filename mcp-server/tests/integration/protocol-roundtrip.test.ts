@@ -17,6 +17,7 @@ import {
   type JSONRPCErrorResponse,
 } from '@modelcontextprotocol/sdk/types.js';
 import { createServer } from '../../src/server';
+import { registerLocalOnlyTools } from '../../src/tools/_local-only';
 import { createPairedTransports, type PairedHalf } from '../helpers/paired-transport';
 
 interface CallToolContent {
@@ -120,6 +121,7 @@ describe('protocol roundtrip', () => {
   beforeEach(async () => {
     nextId = 1;
     const server = createServer();
+    registerLocalOnlyTools(server); // mirror src/index.ts (stdio entrypoint) — BL-032 Q12
     const pair = createPairedTransports();
     client = pair.client;
     await server.connect(pair.server);
