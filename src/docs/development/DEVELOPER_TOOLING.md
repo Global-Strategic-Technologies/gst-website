@@ -408,6 +408,7 @@ All environment variables are declared in `astro.config.mjs` → `env.schema` us
 - **Public vars** (`access: "public"`) are inlined at build time. Use the `PUBLIC_` prefix convention.
 - **`.env` file** is for local development only (loaded by Astro dev server). Production vars are set in Vercel dashboard.
 - **`.env.example`** documents all vars with placeholder values. Keep it in sync when adding new vars.
+- **`mcp-server/src/worker.ts` and `mcp-server/src/auth/**` are blocked from raw `console.*`** by ESLint's `no-console` rule (added in BL-032 Phase 2). Use [`safeLog()`](../../../mcp-server/src/auth/safe-logger.ts) — it's the only call site permitted to invoke `console.log` directly (via a single `eslint-disable-next-line`). The reason: a careless `console.log(request.headers)` on a Worker fetch handler dumps the `Authorization` bearer token into `wrangler tail` and Sentry. The stdio entrypoint (`mcp-server/src/index.ts`) is exempt — stdio MUST use `console.error` for diagnostics; `stdout` is reserved for MCP protocol traffic.
 
 ### Testing
 

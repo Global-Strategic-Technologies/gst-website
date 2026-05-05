@@ -46,7 +46,9 @@ describe('Worker roundtrip — Phase 1 transport spike', () => {
 
     const body = (await res.json()) as { ok: boolean; phase: string; version: string };
     expect(body.ok).toBe(true);
-    expect(body.phase).toContain('BL-032 Phase 1');
+    // The phase string updates as substrate matures (Phase 1 → Phase 2 → ...);
+    // assert just the BL-032 marker so this test doesn't churn on every phase bump.
+    expect(body.phase).toContain('BL-032');
     expect(body.version).toBe('0.0.1');
   });
 

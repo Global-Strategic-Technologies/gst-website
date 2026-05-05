@@ -241,6 +241,18 @@ Edit `~/.cursor/mcp.json` (or use Cursor Settings → MCP):
 }
 ```
 
+### Remote (BL-032 — bearer-token auth, in progress)
+
+Once BL-032 ships to production, the same surface is reachable over HTTPS at `mcp.globalstrategic.tech` with a per-team-member bearer token — no clone, no `npm run build`, no `dist/index.js` path. Useful for: borrowed laptops, mobile, ephemeral CI agents, Slack/Discord bots.
+
+**Phase 2 status (2026-05-04)**: bearer-token auth + CORS substrate is in place; `wrangler dev` works locally; production URL goes live in [Phase 6 deploy](../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#phase-6--staging--production-deploy--verification-05-day--soak).
+
+For team members configuring a remote client (per-client snippets, troubleshooting, rate-limit etiquette): see [`src/docs/operations/REMOTE_CLIENT_SETUP.md`](src/docs/operations/REMOTE_CLIENT_SETUP.md).
+
+For operators issuing or rotating bearer keys: see [`src/docs/operations/AUTH.md`](src/docs/operations/AUTH.md).
+
+For deploy/incident runbook: see [`src/docs/operations/DEPLOY.md`](src/docs/operations/DEPLOY.md).
+
 ---
 
 ## Worked examples
