@@ -239,6 +239,21 @@ This is real refactor surface — flagging it as such is the doc's job. If Phase
 
 **Resolved (2026-05-03)**: **Option A (generalize)** with parity tests gating the refactor. Fork-fallback path remains documented above for use if Phase 4 hits unexpected complexity. Important sub-decision recorded under [Q13](#q13-upstash-project-sharing-new): the Worker is **read-only** for `inoreader:*` Upstash keys — the website remains the sole token-refresh writer. This sidesteps the dual-refresh race condition the adapter pattern would otherwise need to coordinate via Upstash atomic locks. Worker errors with a structured retry hint if the access token is expired; the next website ISR-cache miss triggers a website-side refresh; Worker's next call gets fresh tokens.
 
+**Phase 4a outcome (2026-05-04 — pivoted to Option B)**: the Option-A refactor hit the pre-documented "unexpected complexity" threshold during execution. The decisive constraints:
+
+1. The existing `eslint.config.mjs` `no-restricted-imports` rule (added in BL-031.5 for budget-protection) blocks `mcp-server/src/**` from importing `src/lib/inoreader/client.ts`. Removing that rule to let the Worker share the client would inflate the website-regression surface significantly — the rule has been doing real work.
+2. The Worker is **read-only** (Q13 constraint, recorded above); much of the website client's complexity is in the refresh-write path that the Worker explicitly does NOT execute. A "read-only mode" flag on the shared client would hide most of the file behind a conditional — net negative for clarity.
+3. Workers have no filesystem; the website client's dev-mode `cache.ts` (filesystem ISR) doesn't apply on the Worker side anyway, so a portion of the shared surface would be Astro-only branches.
+
+**Pivoted to Option B (fork)** — Worker-specific Inoreader client at [`mcp-server/src/lib/inoreader-worker.ts`](../../../mcp-server/src/lib/inoreader-worker.ts) (~280 lines). Drift cost is bounded:
+
+- Both clients import `InoreaderStreamResponse` + `InoreaderItem` from [`src/lib/inoreader/types.ts`](../../lib/inoreader/types.ts) — single source of truth for response shapes
+- Inoreader API endpoints (`/stream/contents`, `/tag/list`) are stable; if they ever change, both clients update the URL string in the same review
+- The forked client is **simpler than the Astro one** — no token refresh, no filesystem cache, no Sentry coupling; failure modes are structured (`config-missing` / `token-stale` / `inoreader-rate-limit` / `upstream-error` / `network-timeout`) so the radar-live tools can branch on each
+- 18 unit tests via `vi.mock('@upstash/redis')` cover the resolveConfig fallback chain (Upstash → env), each failure-mode mapping, and `fetchAllStreams`'s parallel-fetch + dedupe + 429-propagation logic — no live Inoreader needed in CI
+
+The website's `client.ts` is unchanged; lint rule stays in place; website regression risk is zero. The "deviation from the plan" cost is the small ongoing maintenance burden of two API-call sites — accepted given the points above.
+
 ### Q5. CORS allowlist precision — which exact origins?
 
 [BACKLOG.md](BACKLOG.md#bl-032-mcp-server--internal-remote-phase-2) says "CORS headers restricted to known MCP client origins (`claude.ai`, `chatgpt.com`, `cursor.sh`, etc.) — no `Access-Control-Allow-Origin: *`". This is correct in spirit but the actual origin strings differ per client and per platform (desktop vs web vs mobile). Wrong-allowlist symptoms are silent in the network tab — the user just sees "tool didn't appear in the picker."
