@@ -105,4 +105,71 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 - URL encoder: [`src/utils/radar-url.ts`](../../../../src/utils/radar-url.ts)
 - Live website: <https://globalstrategic.tech/hub/radar>
 - Architecture: [BL-031.95 Hub Tools URL State Restoration & MCP Deep-Link Surface](../../../../src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md) — Phase 3 (Radar URL state) closure
-- Future: [BL-032 (MCP Server — Internal Remote, Phase 2)](../../../../src/docs/development/BACKLOG.md#bl-032-mcp-server--internal-remote-phase-2) — live `search_radar` tool will sit alongside this one; capability-mirror invariant scales to the live tool when its filter surface is decided.
+- [BL-032 Phase 4b](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited) — `search_radar_cache` rename to `search_radar_offline` (this tool's current name)
+
+---
+
+## Live tool surface (BL-032 Phase 4c)
+
+**Tools**: `search_radar` + `get_latest_insights` — live counterparts to `search_radar_offline`. Calls Inoreader directly with a 6h Upstash cache. Transport-portable (registered in `createServer()`); usable from both the remote Worker and stdio (when the operator binds Inoreader creds locally).
+
+**Implementation**:
+
+- Wrapper: [`mcp-server/src/tools/radar-live.ts`](../../tools/radar-live.ts)
+- Content adapter: [`mcp-server/src/content/radar-live-store.ts`](../../content/radar-live-store.ts) — Inoreader fetch + Upstash cache (`mcp:radar:cache:wire`, `mcp:radar:cache:fyi`, 6h TTL)
+- API client: [`mcp-server/src/lib/inoreader-worker.ts`](../../lib/inoreader-worker.ts) — Workers-compatible Inoreader client (Q4 fork-fallback)
+- Shared transform: [`mcp-server/src/content/radar-transform.ts`](../../content/radar-transform.ts) — `InoreaderItem → SnapshotItem` (single source of truth used by both offline + live)
+- Circuit breaker integration: [`mcp-server/src/ratelimit/circuit-breaker.ts`](../../ratelimit/circuit-breaker.ts) — read-side check before fetch + write-side trigger on Inoreader 429
+
+**`search_radar` schema** — same shape as `search_radar_offline` (capability mirror):
+
+```typescript
+{ category?: 'pe-ma' | 'enterprise-tech' | 'ai-automation' | 'security' }
+```
+
+**`search_radar` response shape**:
+
+```typescript
+{
+  matches: SnapshotItem[],   // FYI + Wire merged, deduped by URL, sorted newest-first
+  totalMatched: number,
+  returned: number,
+  liveInfo: {
+    wireFetchedAt: string,    // ISO 8601
+    wireCacheHit: boolean,
+    fyiFetchedAt: string,
+    fyiCacheHit: boolean,
+  },
+  deeplink: string,
+}
+```
+
+**`get_latest_insights` schema** — convenience wrapper, FYI-only:
+
+```typescript
+{ limit?: number (1-30, default 10), category?: RadarCategory }
+```
+
+**`get_latest_insights` response shape**:
+
+```typescript
+{
+  items: SnapshotItem[],     // FYI items with annotations populated
+  returned: number,
+  liveInfo: { fetchedAt: string, cacheHit: boolean },
+}
+```
+
+**Failure modes** — all return MCP `isError: true` content envelope with structured `error` field:
+
+| `error` value          | HTTP analog | Cause                                       | Breaker side-effect            |
+| ---------------------- | ----------- | ------------------------------------------- | ------------------------------ |
+| `config-missing`       | 500         | App credentials not bound                   | None                           |
+| `token-missing`        | 500         | Access token unavailable                    | None                           |
+| `token-stale`          | 401         | Inoreader returned 401 (website refreshes)  | None (token issue, not budget) |
+| `inoreader-rate-limit` | 429         | Inoreader returned 429                      | **Opens circuit (6h)**         |
+| `upstream-error`       | 5xx         | Other Inoreader 5xx or invalid response     | None                           |
+| `network-timeout`      | 504         | fetch threw / aborted (5s timeout)          | None                           |
+| `service_unavailable`  | 503         | Circuit breaker already open from prior 429 | None (read-only check)         |
+
+Walkthrough for analysts: [`USAGE_REMOTE.md`](./USAGE_REMOTE.md). Per-key + global rate-limiting reference: [`../operations/RATE_LIMITS.md`](../operations/RATE_LIMITS.md).

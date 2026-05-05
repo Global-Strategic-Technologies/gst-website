@@ -49,7 +49,9 @@ describe('Worker roundtrip — Phase 1 transport spike', () => {
     // The phase string updates as substrate matures (Phase 1 → Phase 2 → ...);
     // assert just the BL-032 marker so this test doesn't churn on every phase bump.
     expect(body.phase).toContain('BL-032');
-    expect(body.version).toBe('0.0.1');
+    // Version follows mcp-server/package.json — bumped to 0.1.0 in BL-032
+    // Phase 4b (rename); will go to 0.2.0 when the deprecated alias retires.
+    expect(body.version).toMatch(/^0\.[0-9]+\.[0-9]+$/);
   });
 
   it('non-MCP, non-health route does not throw — delegates to MCP handler which rejects', async () => {

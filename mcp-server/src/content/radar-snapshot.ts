@@ -22,41 +22,21 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
-import type { InoreaderItem, InoreaderStreamResponse } from '../../../src/lib/inoreader/types';
+import type { InoreaderStreamResponse } from '../../../src/lib/inoreader/types';
+import {
+  RADAR_CATEGORIES,
+  toSnapshotItem,
+  type RadarCategory,
+  type SnapshotItem,
+  type SnapshotTier,
+} from './radar-transform';
 
-export type RadarCategory = 'pe-ma' | 'enterprise-tech' | 'ai-automation' | 'security';
-
-const FOLDER_TO_CATEGORY: Readonly<Record<string, RadarCategory>> = {
-  'GST-PE-MA': 'pe-ma',
-  'GST-Enterprise-Tech': 'enterprise-tech',
-  'GST-AI-Automation': 'ai-automation',
-  'GST-Security': 'security',
-};
-
-export const RADAR_CATEGORIES: ReadonlyArray<RadarCategory> = [
-  'pe-ma',
-  'enterprise-tech',
-  'ai-automation',
-  'security',
-];
-
-export interface SnapshotItem {
-  readonly id: string;
-  readonly title: string;
-  readonly url: string;
-  readonly source: string;
-  readonly category: RadarCategory | null;
-  readonly publishedAt: string;
-  readonly summary?: string;
-  /** Present only for FYI items (annotated). */
-  readonly annotation?: { highlightedText?: string; gstTake?: string };
-}
-
-export interface SnapshotTier {
-  readonly tier: 'fyi' | 'wire';
-  readonly items: readonly SnapshotItem[];
-  readonly lastSeededAt: string;
-}
+// Re-export from radar-transform so callers that previously imported from
+// here continue to work. The actual definitions moved to radar-transform.ts
+// (BL-032 Phase 4c) so the Worker code path can share the transform logic
+// without pulling node:fs / node:crypto into the Worker bundle.
+export { RADAR_CATEGORIES };
+export type { RadarCategory, SnapshotItem, SnapshotTier };
 
 /**
  * Resolve the repo's `.cache/inoreader/` directory from the bundled binary's
@@ -89,40 +69,9 @@ function buildCacheKey(fn: string, ...args: unknown[]): string {
   return createHash('sha256').update(raw).digest('hex');
 }
 
-function categorizeItem(item: InoreaderItem): RadarCategory | null {
-  for (const cat of item.categories ?? []) {
-    const folder = cat.split('/').pop();
-    if (folder && FOLDER_TO_CATEGORY[folder]) {
-      return FOLDER_TO_CATEGORY[folder];
-    }
-  }
-  return null;
-}
-
-function toIsoDate(unixSeconds: number): string {
-  return new Date(unixSeconds * 1000).toISOString();
-}
-
-function toSnapshotItem(item: InoreaderItem, tier: 'fyi' | 'wire'): SnapshotItem {
-  const url = item.canonical?.[0]?.href ?? item.alternate?.[0]?.href ?? '';
-  const annotation = item.annotations?.[0];
-  return {
-    id: item.id,
-    title: item.title,
-    url,
-    source: item.origin.title,
-    category: categorizeItem(item),
-    publishedAt: toIsoDate(item.published),
-    summary: item.summary?.content,
-    annotation:
-      tier === 'fyi' && annotation
-        ? {
-            highlightedText: annotation.text || undefined,
-            gstTake: annotation.note || undefined,
-          }
-        : undefined,
-  };
-}
+// `categorizeItem`, `toIsoDate`, `toSnapshotItem` extracted to
+// `./radar-transform.ts` (BL-032 Phase 4c) so the Worker code path can
+// share them. Imported above; used below in the snapshot-building helpers.
 
 function readCacheFile(key: string): {
   entry: { timestamp: number; data: unknown } | null;

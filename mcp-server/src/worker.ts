@@ -71,10 +71,13 @@ export interface Env {
   [key: string]: unknown;
 }
 
-// The MCP handler is created once per Worker isolate (the registry is
-// stateless — every tool call is a pure function of its inputs). Each
-// inbound request shares the same `McpServer` instance.
-const mcp = createMcpHandler(createServer());
+// Note: from BL-032 Phase 4c forward, the MCP handler is built per-request
+// rather than per-isolate. The radar-live tools (`search_radar`,
+// `get_latest_insights`) capture `env` in handler closures so they can read
+// Inoreader credentials and check the circuit breaker. Worker isolates can
+// process multiple concurrent requests, so per-request `createServer(env)`
+// is the safe pattern. Construction cost is sub-millisecond (registry
+// assembly only — no I/O).
 
 const handler: ExportedHandler<Env> = {
   async fetch(request, env, ctx): Promise<Response> {
@@ -91,8 +94,8 @@ const handler: ExportedHandler<Env> = {
     if (url.pathname === '/health' && request.method === 'GET') {
       const body = JSON.stringify({
         ok: true,
-        phase: 'BL-032 Phase 2 (auth + CORS)',
-        version: '0.0.1',
+        phase: 'BL-032 Phase 4c (live radar tools)',
+        version: '0.1.0',
       });
       return withCors(
         new Response(body, { headers: { 'Content-Type': 'application/json' } }),
@@ -146,6 +149,9 @@ const handler: ExportedHandler<Env> = {
       path: url.pathname,
     });
 
+    // Build the MCP handler per-request — radar-live tools (Phase 4c) capture
+    // `env` in their closures for circuit-breaker checks + Inoreader fetches.
+    const mcp = createMcpHandler(createServer(env));
     const response = await mcp(request, env, ctx);
     const withRl = rlResult ? withRateLimitHeaders(response, rlResult) : response;
     return withCors(withRl, origin);

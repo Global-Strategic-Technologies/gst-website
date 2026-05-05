@@ -1,0 +1,150 @@
+/**
+ * Worker-side radar content adapter (BL-032 Phase 4c).
+ *
+ * Live equivalent of `radar-snapshot.ts` (the offline / dev-mode reader).
+ * Same `SnapshotItem` shape on the way out — both content adapters
+ * implement the same interface, differing only in their source:
+ *
+ *   - `radar-snapshot.ts`   reads from `<repo>/.cache/inoreader/` (Node fs)
+ *   - `radar-live-store.ts` reads from Upstash KV (mcp:radar:* keys, 6h TTL),
+ *     falling back to a fresh Inoreader fetch on cache miss
+ *
+ * **Cache strategy**: 6h TTL on the merged stream + the FYI stream.
+ * Matches the website's ISR window — both surfaces converge on the same
+ * "stop hammering Inoreader" cadence.
+ *
+ * **Failure handling**: Inoreader 429 propagates as a structured failure
+ * the caller (radar-live tool) inspects to call `openCircuit(env, ...)`
+ * before returning a 503-shaped MCP error. Other failure modes
+ * (token-stale, network-timeout, etc.) propagate without opening the
+ * breaker — the breaker is specifically for "Inoreader budget
+ * exhausted, all keys must back off."
+ */
+
+import {
+  fetchAllStreams,
+  fetchAnnotatedItems,
+  type InoreaderResult,
+} from '../lib/inoreader-worker';
+import { createCacheStore } from '../lib/upstash-cache-store';
+import { toSnapshotItem, type SnapshotItem } from './radar-transform';
+import type { Env } from '../worker';
+
+const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6h, matches website ISR window
+const CACHE_KEY_WIRE = 'mcp:radar:cache:wire';
+const CACHE_KEY_FYI = 'mcp:radar:cache:fyi';
+
+/** What the radar-live tools get back. Mirrors `SnapshotTier` shape. */
+export type LiveTierResult =
+  | {
+      readonly ok: true;
+      readonly tier: 'fyi' | 'wire';
+      readonly items: readonly SnapshotItem[];
+      readonly fetchedAt: string;
+      readonly cacheHit: boolean;
+    }
+  | {
+      readonly ok: false;
+      readonly status: number;
+      readonly reason:
+        | 'inoreader-rate-limit'
+        | 'token-stale'
+        | 'config-missing'
+        | 'token-missing'
+        | 'upstream-error'
+        | 'network-timeout';
+      readonly message: string;
+    };
+
+interface CachedTier {
+  readonly tier: 'fyi' | 'wire';
+  readonly items: readonly SnapshotItem[];
+  readonly fetchedAt: string;
+}
+
+/**
+ * Read the merged Wire stream (live, with Upstash 6h cache).
+ * On cache miss, calls Inoreader's `tag/list` + parallel folder fetches via
+ * `fetchAllStreams`. Items are tagged `tier: 'wire'`.
+ */
+export async function readWireLive(env: Env): Promise<LiveTierResult> {
+  const cache = createCacheStore(env);
+  if (cache) {
+    const cached = await cache.get<CachedTier>(CACHE_KEY_WIRE);
+    if (cached) {
+      return {
+        ok: true,
+        tier: 'wire',
+        items: cached.items,
+        fetchedAt: cached.fetchedAt,
+        cacheHit: true,
+      };
+    }
+  }
+
+  const result = await fetchAllStreams(env);
+  if (!result.ok) return mapFailure(result);
+
+  const items: SnapshotItem[] = [];
+  for (const item of result.data.items) {
+    items.push(toSnapshotItem(item, 'wire'));
+  }
+  const fetchedAt = new Date().toISOString();
+
+  if (cache) {
+    await cache.set<CachedTier>(
+      CACHE_KEY_WIRE,
+      { tier: 'wire', items, fetchedAt },
+      CACHE_TTL_SECONDS
+    );
+  }
+  return { ok: true, tier: 'wire', items, fetchedAt, cacheHit: false };
+}
+
+/**
+ * Read the FYI stream (live, with Upstash 6h cache).
+ * On cache miss, calls Inoreader's annotated-stream endpoint via
+ * `fetchAnnotatedItems`. Items are tagged `tier: 'fyi'`.
+ */
+export async function readFyiLive(env: Env, count: number = 30): Promise<LiveTierResult> {
+  const cache = createCacheStore(env);
+  if (cache) {
+    const cached = await cache.get<CachedTier>(CACHE_KEY_FYI);
+    if (cached) {
+      // Limit cached items to the requested count (cache stores up to 30,
+      // callers may request fewer; just slice rather than re-fetching).
+      const items = cached.items.slice(0, count);
+      return { ok: true, tier: 'fyi', items, fetchedAt: cached.fetchedAt, cacheHit: true };
+    }
+  }
+
+  const result = await fetchAnnotatedItems(env, count);
+  if (!result.ok) return mapFailure(result);
+
+  const items: SnapshotItem[] = [];
+  for (const item of result.data.items) {
+    items.push(toSnapshotItem(item, 'fyi'));
+  }
+  const fetchedAt = new Date().toISOString();
+
+  if (cache) {
+    await cache.set<CachedTier>(
+      CACHE_KEY_FYI,
+      { tier: 'fyi', items, fetchedAt },
+      CACHE_TTL_SECONDS
+    );
+  }
+  return { ok: true, tier: 'fyi', items, fetchedAt, cacheHit: false };
+}
+
+/** Map an InoreaderResult failure to the LiveTierResult failure shape. */
+function mapFailure(
+  result: Extract<InoreaderResult, { ok: false }>
+): Extract<LiveTierResult, { ok: false }> {
+  return {
+    ok: false,
+    status: result.status,
+    reason: result.reason,
+    message: result.message,
+  };
+}

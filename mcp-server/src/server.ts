@@ -19,11 +19,24 @@ import { registerIcgTool } from './tools/icg';
 import { registerTechparTool } from './tools/techpar';
 import { registerTechDebtTool } from './tools/tech-debt';
 import { registerRegulationsTool } from './tools/regulations';
+import { registerRadarLiveTools } from './tools/radar-live';
 import { registerLibraryResources } from './resources/library';
 import { registerRegulationResources } from './resources/regulations';
 import { registerPrompts } from './prompts/_registry';
+import type { Env } from './worker';
 
-export function createServer(): McpServer {
+/**
+ * Build a transport-portable MCP server registry.
+ *
+ * The optional `env` parameter is passed through to live radar tools
+ * (BL-032 Phase 4c) so they can read Inoreader credentials and check
+ * the circuit breaker per request. The Worker calls `createServer(env)`
+ * inside its fetch handler (env captured in tool closures, request-
+ * scoped). The stdio entrypoint calls `createServer()` with no env;
+ * radar-live tools still register but return a `config-missing` error
+ * envelope when Inoreader creds aren't bound at the runtime level.
+ */
+export function createServer(env: Env = {}): McpServer {
   const server = new McpServer({
     name: 'gst-mcp',
     version: '0.1.0',
@@ -36,6 +49,7 @@ export function createServer(): McpServer {
   registerTechparTool(server);
   registerTechDebtTool(server);
   registerRegulationsTool(server);
+  registerRadarLiveTools(server, env);
 
   // Resources (transport-portable — radar Resources are stdio-only, see _local-only.ts)
   registerLibraryResources(server);
