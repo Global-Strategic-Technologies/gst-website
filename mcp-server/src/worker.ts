@@ -53,11 +53,16 @@ export interface Env {
   // Listed explicitly only for the soak-week initial roster (Q11/Q13 — just RP).
   MCP_KEY_RP?: string;
 
-  // Upstash Redis — Q13. Worker uses these to read shared `inoreader:*` keys
-  // (read-only) and to own `mcp:*` keys (rate-limit counters, etc.). Phase 3
-  // is when these get instantiated.
-  UPSTASH_REDIS_REST_URL?: string;
-  UPSTASH_REDIS_REST_TOKEN?: string;
+  // Upstash Redis — Q13 / Path 2 (two-database architecture).
+  //   Inoreader DB:  Read-Only token; shared `inoreader:*` keys (OAuth tokens
+  //                  written by the website). Storage-layer Q4 enforcement.
+  //   MCP DB:        Standard token; Worker-owned `mcp:*` keys (rate-limit
+  //                  counters, circuit breaker, health probe, status cache).
+  // See src/lib/upstash-clients.ts for the helper factories that consume these.
+  UPSTASH_INOREADER_REST_URL?: string;
+  UPSTASH_INOREADER_REST_TOKEN?: string;
+  UPSTASH_MCP_REST_URL?: string;
+  UPSTASH_MCP_REST_TOKEN?: string;
 
   // Inoreader OAuth — copied from Vercel env. Worker reads tokens; website
   // remains sole refresh-writer (Q4 / Q13).

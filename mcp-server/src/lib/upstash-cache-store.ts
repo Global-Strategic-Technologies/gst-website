@@ -9,15 +9,14 @@
  *     instead of throwing); the caller proceeds without caching rather than
  *     failing user requests because Upstash is degraded
  *
- * **Namespace discipline (Q13)**: every key written here uses the `mcp:`
- * prefix. Keys read here are either `mcp:*` (Worker-owned data — cache
- * snapshots, rate-limit counters, circuit-breaker flags) OR shared
- * `inoreader:*` keys (read-only — OAuth tokens written by the website).
- * The convention is enforced by review, not at the type level — adding
- * a key without a prefix is a code-review red flag.
+ * **Namespace discipline (Q13 / Path 2)**: this store talks ONLY to the MCP
+ * DB via `createMcpClient(env)`. All keys written here use the `mcp:` prefix
+ * (cache snapshots, rate-limit counters, circuit-breaker flags); the Worker
+ * never reads `inoreader:*` through this store — that path goes through
+ * `inoreader-worker.ts` against the Inoreader DB's Read-Only client.
  */
 
-import { Redis } from '@upstash/redis';
+import { createMcpClient } from './upstash-clients';
 import type { Env } from '../worker';
 
 /** Cache entry shape stored in Upstash. */
@@ -43,11 +42,8 @@ export interface CacheStore {
  * graceful-skip pattern as the rate-limiter).
  */
 export function createCacheStore(env: Env): CacheStore | null {
-  const url = env.UPSTASH_REDIS_REST_URL;
-  const token = env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
-
-  const redis = new Redis({ url, token });
+  const redis = createMcpClient(env);
+  if (!redis) return null;
 
   return {
     async get<T>(key: string): Promise<T | null> {

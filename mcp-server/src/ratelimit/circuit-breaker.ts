@@ -26,10 +26,10 @@
  * limiter's null path — fail open with a safeLog warning.
  */
 
-import { Redis } from '@upstash/redis';
+import { createMcpClient } from '../lib/upstash-clients';
 import type { Env } from '../worker';
 
-/** The Upstash key holding the circuit state. */
+/** The Upstash key holding the circuit state (lives in the MCP DB). */
 const CIRCUIT_KEY = 'mcp:radar:circuit-open';
 
 /** TTL (seconds) for which the circuit stays open after an Inoreader 429. */
@@ -45,24 +45,12 @@ export interface CircuitState {
 }
 
 /**
- * Build a Redis client from the Worker env, or return null if creds
- * aren't bound. Internal helper — both circuit-breaker functions go
- * through this.
- */
-function tryRedis(env: Env): Redis | null {
-  const url = env.UPSTASH_REDIS_REST_URL;
-  const token = env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
-
-/**
- * Check whether the radar circuit is open. Returns null when Upstash is
+ * Check whether the radar circuit is open. Returns null when the MCP DB is
  * unreachable (graceful skip — caller treats as fail-open). Otherwise
  * returns `{ open: false }` or `{ open: true, retryAfterSeconds, reason }`.
  */
 export async function isCircuitOpen(env: Env): Promise<CircuitState | null> {
-  const redis = tryRedis(env);
+  const redis = createMcpClient(env);
   if (!redis) return null;
 
   try {
@@ -94,7 +82,7 @@ export async function isCircuitOpen(env: Env): Promise<CircuitState | null> {
  * Idempotent — re-calling refreshes the TTL window.
  */
 export async function openCircuit(env: Env, reason: string): Promise<void> {
-  const redis = tryRedis(env);
+  const redis = createMcpClient(env);
   if (!redis) return;
 
   try {

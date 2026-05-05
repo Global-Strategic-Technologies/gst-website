@@ -21,9 +21,14 @@
  * **TTL**: 5 minutes. Long enough that radar-tool traffic keeps the flag
  * fresh under normal load; short enough that a stale flag doesn't mask a
  * sudden Inoreader degradation for too long.
+ *
+ * **Storage location**: despite the `inoreader` in the file name, the
+ * `mcp:inoreader:last-status` key is Worker-observed state about Inoreader's
+ * responses (NOT Inoreader's own data) — it lives in the **MCP DB** under
+ * the `mcp:*` namespace, written via the MCP DB's Standard token.
  */
 
-import { Redis } from '@upstash/redis';
+import { createMcpClient } from '../lib/upstash-clients';
 import type { Env } from '../worker';
 
 const STATUS_KEY = 'mcp:inoreader:last-status';
@@ -36,13 +41,6 @@ interface StatusEntry {
   readonly observedAt: string;
   /** Optional context — error code on degraded; method name on ok. */
   readonly note?: string;
-}
-
-function tryRedis(env: Env): Redis | null {
-  const url = env.UPSTASH_REDIS_REST_URL;
-  const token = env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
-  return new Redis({ url, token });
 }
 
 /**
@@ -60,7 +58,7 @@ export async function recordInoreaderStatus(
   status: 'ok' | 'degraded',
   note?: string
 ): Promise<void> {
-  const redis = tryRedis(env);
+  const redis = createMcpClient(env);
   if (!redis) return;
 
   const entry: StatusEntry = {
@@ -88,7 +86,7 @@ export async function readInoreaderStatus(env: Env): Promise<{
   observedAt: string | null;
   note: string | null;
 }> {
-  const redis = tryRedis(env);
+  const redis = createMcpClient(env);
   if (!redis) return { status: 'unknown', observedAt: null, note: null };
 
   try {

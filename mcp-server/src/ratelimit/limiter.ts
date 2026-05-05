@@ -24,8 +24,8 @@
  * Reference: BACKLOG.md § BL-032 "Rate limiting"; this doc § Q7.
  */
 
-import { Redis } from '@upstash/redis';
 import { Ratelimit } from '@upstash/ratelimit';
+import { createMcpClient } from '../lib/upstash-clients';
 import type { Env } from '../worker';
 
 /**
@@ -78,11 +78,8 @@ const KEY_PREFIX = 'mcp:ratelimit';
  * "fail open" with a safeLog warning.
  */
 export function createLimiter(env: Env): Limiter | null {
-  const url = env.UPSTASH_REDIS_REST_URL;
-  const token = env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
-
-  const redis = new Redis({ url, token });
+  const redis = createMcpClient(env);
+  if (!redis) return null;
 
   const perMinute = new Ratelimit({
     redis,

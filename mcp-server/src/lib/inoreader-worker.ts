@@ -31,7 +31,7 @@
  */
 
 import type { InoreaderStreamResponse, InoreaderItem } from '../../../src/lib/inoreader/types';
-import { Redis } from '@upstash/redis';
+import { createInoreaderClient } from './upstash-clients';
 import type { Env } from '../worker';
 
 const API_BASE = 'https://www.inoreader.com/reader/api/0';
@@ -90,16 +90,16 @@ async function resolveConfig(env: Env): Promise<ResolvedConfig | InoreaderFailur
     };
   }
 
-  // Try Upstash first (shared `inoreader:*` keys; Q13).
+  // Try Upstash first — Inoreader DB, Read-Only access (Q13 / Path 2).
+  // This is the SOLE place in the codebase that reads `inoreader:*` keys;
+  // a leaked Read-Only token cannot mutate them (storage-layer Q4 enforcement).
   let accessToken: string | null = null;
-  const upstashUrl = env.UPSTASH_REDIS_REST_URL;
-  const upstashToken = env.UPSTASH_REDIS_REST_TOKEN;
-  if (upstashUrl && upstashToken) {
+  const inoreaderRedis = createInoreaderClient(env);
+  if (inoreaderRedis) {
     try {
-      const redis = new Redis({ url: upstashUrl, token: upstashToken });
-      accessToken = await redis.get<string>(KV_ACCESS_TOKEN_KEY);
+      accessToken = await inoreaderRedis.get<string>(KV_ACCESS_TOKEN_KEY);
     } catch {
-      // Upstash unreachable; fall through to env fallback.
+      // Inoreader DB unreachable; fall through to env fallback.
     }
   }
 
