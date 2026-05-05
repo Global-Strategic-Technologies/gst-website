@@ -1,9 +1,17 @@
 /**
- * Unit tests for the Phase 5 /health payload builder.
+ * Unit tests for the Phase 5 /health payload builder (Path 2 dual-DB).
  *
- * Mocks `@upstash/redis` so we control the Inoreader-status read +
- * the redis liveness probe deterministically. Pure-function tests over
- * `buildHealthPayload(env)` — no Worker boot, no live Inoreader.
+ * Mocks `@upstash/redis` so we control both Upstash subsystems' liveness
+ * probes + the Inoreader-status read deterministically. Pure-function
+ * tests over `buildHealthPayload(env)` — no Worker boot, no live Inoreader.
+ *
+ * The shared `MockRedis` collapses both `createMcpClient(env)` and
+ * `createInoreaderClient(env)` constructions onto the same `redisGet` spy.
+ * Tests that need to make one subsystem fail while the other passes use
+ * key-based `mockImplementation` branching:
+ *   - `mcp:health:probe`         → MCP probe key
+ *   - `inoreader:access_token`   → Inoreader probe key
+ *   - `mcp:inoreader:last-status`→ cached Inoreader status (MCP DB)
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -22,8 +30,10 @@ import { buildHealthPayload } from '../../src/observability/health';
 import type { Env } from '../../src/worker';
 
 const baseEnv: Env = {
-  UPSTASH_REDIS_REST_URL: 'https://test.upstash.io',
-  UPSTASH_REDIS_REST_TOKEN: 'test-mcp-worker-token',
+  UPSTASH_INOREADER_REST_URL: 'https://inoreader-db.upstash.io',
+  UPSTASH_INOREADER_REST_TOKEN: 'test-inoreader-readonly',
+  UPSTASH_MCP_REST_URL: 'https://mcp-db.upstash.io',
+  UPSTASH_MCP_REST_TOKEN: 'test-mcp-standard',
 };
 
 beforeEach(() => {
@@ -31,9 +41,10 @@ beforeEach(() => {
 });
 
 describe('buildHealthPayload', () => {
-  it('returns ok:true when redis is reachable and inoreader is ok', async () => {
+  it('returns ok:true when both Upstash DBs are reachable and inoreader is ok', async () => {
     redisGet.mockImplementation(async (key: string) => {
       if (key === 'mcp:health:probe') return null; // probe just needs to NOT throw
+      if (key === 'inoreader:access_token') return 'redacted-token-not-leaked'; // value discarded
       if (key === 'mcp:inoreader:last-status') {
         return { status: 'ok', observedAt: '2026-05-04T18:00:00.000Z', note: 'wire' };
       }
@@ -43,27 +54,65 @@ describe('buildHealthPayload', () => {
     const payload = await buildHealthPayload(baseEnv);
 
     expect(payload.ok).toBe(true);
-    expect(payload.redis).toBe('ok');
+    expect(payload.upstashMcp).toBe('ok');
+    expect(payload.upstashInoreader).toBe('ok');
     expect(payload.inoreader).toBe('ok');
     expect(payload.inoreaderObservedAt).toBe('2026-05-04T18:00:00.000Z');
     expect(payload.version).toMatch(/^0\.[0-9]+\.[0-9]+$/);
     expect(payload.phase).toContain('BL-032 Phase 5');
   });
 
-  it('returns ok:false when redis is degraded', async () => {
-    redisGet.mockRejectedValue(new Error('upstash unreachable'));
+  it('returns ok:false when MCP DB is degraded but Inoreader DB is fine', async () => {
+    redisGet.mockImplementation(async (key: string) => {
+      if (key === 'mcp:health:probe') throw new Error('mcp-db unreachable');
+      if (key === 'inoreader:access_token') return 'token-value';
+      if (key === 'mcp:inoreader:last-status') {
+        // Status read goes through MCP DB too → also throws → resolves to 'unknown'
+        throw new Error('mcp-db unreachable');
+      }
+      return null;
+    });
 
     const payload = await buildHealthPayload(baseEnv);
 
     expect(payload.ok).toBe(false);
-    expect(payload.redis).toBe('degraded');
+    expect(payload.upstashMcp).toBe('degraded');
+    expect(payload.upstashInoreader).toBe('ok');
     expect(payload.inoreader).toBe('unknown');
     expect(payload.inoreaderObservedAt).toBeNull();
   });
 
-  it('returns ok:false when inoreader is degraded but redis is fine', async () => {
+  it('returns ok:false when Inoreader DB is degraded but MCP DB is fine', async () => {
     redisGet.mockImplementation(async (key: string) => {
       if (key === 'mcp:health:probe') return null;
+      if (key === 'inoreader:access_token') throw new Error('inoreader-db unreachable');
+      if (key === 'mcp:inoreader:last-status') return null; // MCP DB still works for status read
+      return null;
+    });
+
+    const payload = await buildHealthPayload(baseEnv);
+
+    expect(payload.ok).toBe(false);
+    expect(payload.upstashMcp).toBe('ok');
+    expect(payload.upstashInoreader).toBe('degraded');
+    expect(payload.inoreader).toBe('unknown');
+  });
+
+  it('returns ok:false when BOTH Upstash DBs are degraded', async () => {
+    redisGet.mockRejectedValue(new Error('all upstash unreachable'));
+
+    const payload = await buildHealthPayload(baseEnv);
+
+    expect(payload.ok).toBe(false);
+    expect(payload.upstashMcp).toBe('degraded');
+    expect(payload.upstashInoreader).toBe('degraded');
+    expect(payload.inoreader).toBe('unknown');
+  });
+
+  it('returns ok:false when Inoreader API is degraded but both DBs are fine', async () => {
+    redisGet.mockImplementation(async (key: string) => {
+      if (key === 'mcp:health:probe') return null;
+      if (key === 'inoreader:access_token') return 'token-value';
       if (key === 'mcp:inoreader:last-status') {
         return {
           status: 'degraded',
@@ -77,15 +126,17 @@ describe('buildHealthPayload', () => {
     const payload = await buildHealthPayload(baseEnv);
 
     expect(payload.ok).toBe(false);
-    expect(payload.redis).toBe('ok');
+    expect(payload.upstashMcp).toBe('ok');
+    expect(payload.upstashInoreader).toBe('ok');
     expect(payload.inoreader).toBe('degraded');
   });
 
-  it('returns ok:true when inoreader is unknown but redis is fine — unknown is not degraded', async () => {
+  it('returns ok:true when inoreader API is unknown but both DBs are fine — unknown is not degraded', async () => {
     // inoreader: 'unknown' just means "no recent traffic" (TTL expired or
     // worker just cold-started). NOT a failure signal.
     redisGet.mockImplementation(async (key: string) => {
       if (key === 'mcp:health:probe') return null;
+      if (key === 'inoreader:access_token') return 'token-value';
       if (key === 'mcp:inoreader:last-status') return null; // no entry
       return null;
     });
@@ -93,21 +144,60 @@ describe('buildHealthPayload', () => {
     const payload = await buildHealthPayload(baseEnv);
 
     expect(payload.ok).toBe(true);
-    expect(payload.redis).toBe('ok');
+    expect(payload.upstashMcp).toBe('ok');
+    expect(payload.upstashInoreader).toBe('ok');
     expect(payload.inoreader).toBe('unknown');
   });
 
-  it('returns redis:degraded when Upstash creds are absent (graceful skip)', async () => {
+  it('marks upstashMcp:degraded when only MCP-DB creds are absent', async () => {
+    redisGet.mockResolvedValue(null);
+
     const env: Env = {
       ...baseEnv,
-      UPSTASH_REDIS_REST_URL: undefined,
-      UPSTASH_REDIS_REST_TOKEN: undefined,
+      UPSTASH_MCP_REST_URL: undefined,
+      UPSTASH_MCP_REST_TOKEN: undefined,
     };
 
     const payload = await buildHealthPayload(env);
 
     expect(payload.ok).toBe(false);
-    expect(payload.redis).toBe('degraded');
+    expect(payload.upstashMcp).toBe('degraded');
+    expect(payload.upstashInoreader).toBe('ok');
+    // The Inoreader-status read goes through MCP DB → returns 'unknown' on
+    // missing creds (graceful skip in inoreader-status.ts).
+    expect(payload.inoreader).toBe('unknown');
+  });
+
+  it('marks upstashInoreader:degraded when only Inoreader-DB creds are absent', async () => {
+    redisGet.mockResolvedValue(null);
+
+    const env: Env = {
+      ...baseEnv,
+      UPSTASH_INOREADER_REST_URL: undefined,
+      UPSTASH_INOREADER_REST_TOKEN: undefined,
+    };
+
+    const payload = await buildHealthPayload(env);
+
+    expect(payload.ok).toBe(false);
+    expect(payload.upstashMcp).toBe('ok');
+    expect(payload.upstashInoreader).toBe('degraded');
+  });
+
+  it('marks both degraded when ALL Upstash creds are absent (graceful skip both sides)', async () => {
+    const env: Env = {
+      ...baseEnv,
+      UPSTASH_INOREADER_REST_URL: undefined,
+      UPSTASH_INOREADER_REST_TOKEN: undefined,
+      UPSTASH_MCP_REST_URL: undefined,
+      UPSTASH_MCP_REST_TOKEN: undefined,
+    };
+
+    const payload = await buildHealthPayload(env);
+
+    expect(payload.ok).toBe(false);
+    expect(payload.upstashMcp).toBe('degraded');
+    expect(payload.upstashInoreader).toBe('degraded');
     expect(payload.inoreader).toBe('unknown');
     // Redis client should NOT have been called when creds aren't bound.
     expect(redisGet).not.toHaveBeenCalled();
@@ -116,6 +206,7 @@ describe('buildHealthPayload', () => {
   it('falls through gracefully when Inoreader-status entry is malformed', async () => {
     redisGet.mockImplementation(async (key: string) => {
       if (key === 'mcp:health:probe') return null;
+      if (key === 'inoreader:access_token') return 'token-value';
       if (key === 'mcp:inoreader:last-status') return 'not valid json';
       return null;
     });
@@ -124,8 +215,9 @@ describe('buildHealthPayload', () => {
 
     // Malformed entry → status reads as 'unknown', not crash.
     expect(payload.inoreader).toBe('unknown');
-    expect(payload.redis).toBe('ok');
-    // ok depends only on (redis === 'ok' && inoreader !== 'degraded'), so true here.
+    expect(payload.upstashMcp).toBe('ok');
+    expect(payload.upstashInoreader).toBe('ok');
+    // ok depends on (upstashMcp === 'ok' && upstashInoreader === 'ok' && inoreader !== 'degraded'), so true here.
     expect(payload.ok).toBe(true);
   });
 

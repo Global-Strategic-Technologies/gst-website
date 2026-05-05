@@ -49,7 +49,8 @@ describe('Worker roundtrip — Phase 1 transport spike', () => {
       phase: string;
       version: string;
       gitSha: string;
-      redis: string;
+      upstashMcp: string;
+      upstashInoreader: string;
       inoreader: string;
     };
     // The phase string updates as substrate matures; assert just the BL-032
@@ -58,14 +59,18 @@ describe('Worker roundtrip — Phase 1 transport spike', () => {
     // Version follows mcp-server/package.json — bumped to 0.1.0 in BL-032
     // Phase 4b (rename); will go to 0.2.0 when the deprecated alias retires.
     expect(body.version).toMatch(/^0\.[0-9]+\.[0-9]+$/);
-    // BL-032 Phase 5 health shape: redis + inoreader subsystem status.
-    // Without Upstash creds bound (unstable_dev test config), redis reports
-    // 'degraded' — that flips ok to false, which is the correct semantics.
-    expect(['ok', 'degraded']).toContain(body.redis);
+    // Path 2 health shape: two Upstash subsystems + the cached Inoreader-API
+    // status. Without Upstash creds bound (unstable_dev test config), both
+    // upstash* fields report 'degraded' — that flips ok to false, which is
+    // the correct semantics for a Worker that can't reach either DB.
+    expect(['ok', 'degraded']).toContain(body.upstashMcp);
+    expect(['ok', 'degraded']).toContain(body.upstashInoreader);
     expect(['ok', 'degraded', 'unknown']).toContain(body.inoreader);
-    // ok mirrors the subsystem state — true iff redis is reachable and
-    // inoreader isn't actively degraded.
-    expect(body.ok).toBe(body.redis === 'ok' && body.inoreader !== 'degraded');
+    // ok mirrors aggregate subsystem state — true iff BOTH Upstash DBs are
+    // reachable AND the cached Inoreader API status isn't degraded.
+    expect(body.ok).toBe(
+      body.upstashMcp === 'ok' && body.upstashInoreader === 'ok' && body.inoreader !== 'degraded'
+    );
     expect(typeof body.gitSha).toBe('string');
   });
 

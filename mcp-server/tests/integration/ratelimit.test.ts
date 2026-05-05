@@ -23,9 +23,11 @@ const TEST_KEY = 'test-token-rp';
 let worker: UnstableDevWorker;
 
 beforeAll(async () => {
-  // Note: NO UPSTASH_REDIS_REST_URL / TOKEN bindings — limiter takes the
-  // null/graceful-skip path. This is the exact configuration `wrangler dev`
-  // operates under for a developer who doesn't have Upstash creds locally.
+  // Note: NO UPSTASH_MCP_REST_URL / TOKEN bindings — limiter takes the
+  // null/graceful-skip path (Path 2: rate-limit state lives in the MCP DB,
+  // so MCP-DB creds are what the limiter checks). This is the exact
+  // configuration `wrangler dev` operates under for a developer who
+  // doesn't have Upstash creds locally.
   worker = await unstable_dev('src/worker.ts', {
     config: 'wrangler.toml',
     env: 'staging',

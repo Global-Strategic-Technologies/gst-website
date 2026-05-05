@@ -46,8 +46,13 @@ const baseEnv: Env = {
   INOREADER_APP_ID: 'test-app-id',
   INOREADER_APP_KEY: 'test-app-key',
   INOREADER_ACCESS_TOKEN: 'env-access-token',
-  UPSTASH_REDIS_REST_URL: 'https://test.upstash.io',
-  UPSTASH_REDIS_REST_TOKEN: 'test-mcp-worker-token',
+  // Inoreader DB (read-only) — only DB this module talks to.
+  UPSTASH_INOREADER_REST_URL: 'https://inoreader-db.upstash.io',
+  UPSTASH_INOREADER_REST_TOKEN: 'test-inoreader-readonly',
+  // MCP DB also bound so test fixtures look like a real prod env, even
+  // though `inoreader-worker.ts` doesn't read from this DB.
+  UPSTASH_MCP_REST_URL: 'https://mcp-db.upstash.io',
+  UPSTASH_MCP_REST_TOKEN: 'test-mcp-standard',
 };
 
 const fetchSpy = vi.fn();
@@ -147,11 +152,15 @@ describe('resolveConfig (via fetchAnnotatedItems entry point)', () => {
     expect(result.reason).toBe('token-missing');
   });
 
-  it('skips Upstash entirely when its credentials are missing (env-only path)', async () => {
+  it('skips Inoreader DB entirely when its credentials are missing (env-only path)', async () => {
     fetchSpy.mockResolvedValue(jsonResponse(makeStreamResponse([])));
 
     await fetchAnnotatedItems(
-      { ...baseEnv, UPSTASH_REDIS_REST_URL: undefined, UPSTASH_REDIS_REST_TOKEN: undefined },
+      {
+        ...baseEnv,
+        UPSTASH_INOREADER_REST_URL: undefined,
+        UPSTASH_INOREADER_REST_TOKEN: undefined,
+      },
       5
     );
 
