@@ -1,6 +1,8 @@
-# Usage — `search_radar_cache`: A Radar Brief Walkthrough
+# Usage — `search_radar_offline`: A Radar Brief Walkthrough
 
-A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../README.md) `search_radar_cache` tool for a real-shaped task: pulling the most recent items from the GST Radar to draft a one-page pre-meeting brief on a specific category.
+A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../README.md) `search_radar_offline` tool (renamed from `search_radar_cache` in [BL-032 Phase 4b](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited); the deprecated `search_radar_cache` alias still works for one release) for a real-shaped task: pulling the most recent items from the GST Radar to draft a one-page pre-meeting brief on a specific category.
+
+> **Sister tool**: [`search_radar`](../../../README.md) (live, Inoreader-touching, remote-MCP-only — ships under [BL-032 Phase 4c](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md)) — same shape, different source. Use `search_radar` when you want today's items; use `search_radar_offline` (this tool) when you want a deterministic snapshot for dev/CI/budget-exhausted contexts.
 
 This document is a **stakeholder orientation aid** — it answers "what does it actually look like to use this" without requiring the reader to install the server first. Every input and output below is reproducible by anyone with the MCP server registered in their Claude client and the local cache seeded via `npm run radar:seed`.
 
@@ -32,7 +34,7 @@ Inside any Claude client where the GST MCP server is registered (Claude Desktop,
 
 > _"Pull the latest annotated radar items in enterprise-tech and ai-automation. I want a 90-second brief on what's happening in those two spaces — give me the GST Take voice, group by category, and end with a one-paragraph through-line across both."_
 
-Claude identifies that the `mcp__gst__search_radar_cache` tool fits the request and calls it twice — once per category. For orientation, here is what Claude derives — the full per-field reference is in [`CONTRACT.md`](./CONTRACT.md):
+Claude identifies that the `mcp__gst__search_radar_offline` tool fits the request and calls it twice — once per category. For orientation, here is what Claude derives — the full per-field reference is in [`CONTRACT.md`](./CONTRACT.md):
 
 | Schema field | Resolved value                                            | Source phrase                       |
 | ------------ | --------------------------------------------------------- | ----------------------------------- |
@@ -44,7 +46,7 @@ Alternative path (single call, all categories):
 
 > _"Pull the latest radar items across all four categories — give me a quick read on whatever's hot."_
 
-Claude calls `mcp__gst__search_radar_cache` once with `{}` (no filter) and gets the full unified FYI + Wire feed sorted by `publishedAt` newest-first.
+Claude calls `mcp__gst__search_radar_offline` once with `{}` (no filter) and gets the full unified FYI + Wire feed sorted by `publishedAt` newest-first.
 
 ---
 
@@ -110,13 +112,13 @@ Returns matched portfolio engagements with codenames and ARRs. The partner close
 
 ## Why this matters (the value summary for stakeholders)
 
-| Concern                                       | Pre-MCP workflow                                          | MCP workflow                                                                                        |
-| --------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Time to a pre-meeting brief                   | 15–25 min (browse, copy-paste, synthesize manually)       | < 60 seconds (single prose prompt)                                                                  |
-| Time to re-shape the brief for a new audience | Same as initial draft                                     | Sub-second (already in context)                                                                     |
-| Anchoring in past engagements                 | Manual recall or open `/ma-portfolio` and search visually | Inline tool call in the same thread (`search_portfolio` composes with `search_radar_cache` results) |
-| Sharing the filtered view                     | Copy URL; recipient sees the unfiltered feed              | `deeplink` URL opens the same category-filtered view byte-for-byte (BL-031.95 Phase 3.B contract)   |
-| Engine drift risk                             | Two surfaces (web + MCP) → divergence possible            | Both surfaces share the same encoder + filter logic — by construction, capability-mirror invariant  |
+| Concern                                       | Pre-MCP workflow                                          | MCP workflow                                                                                          |
+| --------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Time to a pre-meeting brief                   | 15–25 min (browse, copy-paste, synthesize manually)       | < 60 seconds (single prose prompt)                                                                    |
+| Time to re-shape the brief for a new audience | Same as initial draft                                     | Sub-second (already in context)                                                                       |
+| Anchoring in past engagements                 | Manual recall or open `/ma-portfolio` and search visually | Inline tool call in the same thread (`search_portfolio` composes with `search_radar_offline` results) |
+| Sharing the filtered view                     | Copy URL; recipient sees the unfiltered feed              | `deeplink` URL opens the same category-filtered view byte-for-byte (BL-031.95 Phase 3.B contract)     |
+| Engine drift risk                             | Two surfaces (web + MCP) → divergence possible            | Both surfaces share the same encoder + filter logic — by construction, capability-mirror invariant    |
 
 The cache itself is not new. The category filter is not new. **What is new is putting both inside the conversation that's writing the meeting agenda, the deal memo, the analyst briefing** — without any context-switch to a browser tab.
 

@@ -1,11 +1,12 @@
 /**
- * Integration tests for the search_radar_cache MCP tool handler —
- * exercises the full wrapper pipeline introduced under BL-031.95
- * Phase 3.B (deeplink emission + capability-mirror schema).
+ * Integration tests for the search_radar_offline MCP tool handler
+ * (renamed from search_radar_cache in BL-032 Phase 4b) — exercises the
+ * full wrapper pipeline introduced under BL-031.95 Phase 3.B (deeplink
+ * emission + capability-mirror schema).
  *
  * Snapshot readers are mocked rather than driven via the real
  * `.cache/inoreader/` directory because vitest runs test files in
- * parallel and `tests/unit/radar-cache.test.ts` shares the same
+ * parallel and `tests/unit/radar-offline.test.ts` shares the same
  * filesystem path; both files seeding/clearing it caused races. The
  * snapshot reader is exercised end-to-end in the unit file; this
  * file's job is the wrapper pipeline (input parsing → handler →
@@ -22,7 +23,10 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { handleRadarCacheTool, SearchRadarCacheInputSchema } from '../../src/tools/radar-cache';
+import {
+  handleRadarOfflineTool,
+  SearchRadarOfflineInputSchema,
+} from '../../src/tools/radar-offline';
 import { HUB_BASE } from '../../src/config';
 import * as snapshot from '../../src/content/radar-snapshot';
 
@@ -94,10 +98,10 @@ beforeEach(() => {
   vi.spyOn(snapshot, 'readWireSnapshot').mockReturnValue(buildMockWireSnapshot());
 });
 
-describe('handleRadarCacheTool — BL-031.95 Phase 3.B integration', () => {
+describe('handleRadarOfflineTool — BL-031.95 Phase 3.B integration', () => {
   it('empty input returns the full unified FYI+Wire feed sorted newest-first; deeplink omits ?category=', async () => {
-    const parsed = SearchRadarCacheInputSchema.parse({});
-    const response = await handleRadarCacheTool(parsed);
+    const parsed = SearchRadarOfflineInputSchema.parse({});
+    const response = await handleRadarOfflineTool(parsed);
     expect(response.isError).toBeUndefined();
     const payload = response.structuredContent as Record<string, unknown>;
     const matches = payload.matches as Array<{ category: string; publishedAt: string }>;
@@ -117,8 +121,8 @@ describe('handleRadarCacheTool — BL-031.95 Phase 3.B integration', () => {
   });
 
   it('category filter scopes results and is reflected in the deeplink', async () => {
-    const parsed = SearchRadarCacheInputSchema.parse({ category: 'enterprise-tech' });
-    const response = await handleRadarCacheTool(parsed);
+    const parsed = SearchRadarOfflineInputSchema.parse({ category: 'enterprise-tech' });
+    const response = await handleRadarOfflineTool(parsed);
     expect(response.isError).toBeUndefined();
     const payload = response.structuredContent as Record<string, unknown>;
     const matches = payload.matches as Array<{ category: string }>;
@@ -129,8 +133,8 @@ describe('handleRadarCacheTool — BL-031.95 Phase 3.B integration', () => {
   });
 
   it('deeplink uses the same encoder the website page uses (round-trip via the shared module)', async () => {
-    const parsed = SearchRadarCacheInputSchema.parse({ category: 'security' });
-    const response = await handleRadarCacheTool(parsed);
+    const parsed = SearchRadarOfflineInputSchema.parse({ category: 'security' });
+    const response = await handleRadarOfflineTool(parsed);
     expect(response.isError).toBeUndefined();
     const payload = response.structuredContent as Record<string, unknown>;
     expect(payload.deeplink).toMatch(/\/hub\/radar\?category=security$/);
@@ -140,8 +144,8 @@ describe('handleRadarCacheTool — BL-031.95 Phase 3.B integration', () => {
     // Override the per-test mocks: simulate cache missing entirely.
     vi.spyOn(snapshot, 'readFyiSnapshot').mockReturnValue(null);
     vi.spyOn(snapshot, 'readWireSnapshot').mockReturnValue(null);
-    const parsed = SearchRadarCacheInputSchema.parse({});
-    const response = await handleRadarCacheTool(parsed);
+    const parsed = SearchRadarOfflineInputSchema.parse({});
+    const response = await handleRadarOfflineTool(parsed);
     expect(response.isError).toBe(true);
     const text = (response.content[0] as { type: 'text'; text: string }).text;
     expect(text).toMatch(/npm run radar:seed/);
@@ -152,15 +156,15 @@ describe('handleRadarCacheTool — BL-031.95 Phase 3.B integration', () => {
       // The schema's parse step drops unknown keys; the handler never
       // sees them. Test passes a wider shape and asserts the handler
       // returns the same payload as a clean call.
-      const parsedWithExtras = SearchRadarCacheInputSchema.parse({
+      const parsedWithExtras = SearchRadarOfflineInputSchema.parse({
         category: 'pe-ma',
         tier: 'fyi',
         since: '2026-04-01',
         limit: 50,
       });
-      const parsedClean = SearchRadarCacheInputSchema.parse({ category: 'pe-ma' });
-      const responseExtras = await handleRadarCacheTool(parsedWithExtras);
-      const responseClean = await handleRadarCacheTool(parsedClean);
+      const parsedClean = SearchRadarOfflineInputSchema.parse({ category: 'pe-ma' });
+      const responseExtras = await handleRadarOfflineTool(parsedWithExtras);
+      const responseClean = await handleRadarOfflineTool(parsedClean);
       const payloadExtras = responseExtras.structuredContent as Record<string, unknown>;
       const payloadClean = responseClean.structuredContent as Record<string, unknown>;
       // Same matches (capability-mirror: extras have no effect).

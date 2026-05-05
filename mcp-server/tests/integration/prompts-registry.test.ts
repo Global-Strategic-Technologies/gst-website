@@ -25,7 +25,11 @@ const KNOWN_TOOL_NAMES = new Set([
   'estimate_tech_debt_cost',
   'search_regulations',
   'list_regulation_facets',
+  // BL-032 Phase 4b — renamed from search_radar_cache. The deprecated
+  // alias still resolves but new prompts should orchestrate the canonical
+  // name; existing prompts may still reference the alias for one release.
   'search_radar_cache',
+  'search_radar_offline',
 ]);
 
 const KNOWN_RESOURCE_URI_PREFIXES = ['gst://library/', 'gst://regulations/', 'gst://radar/'];

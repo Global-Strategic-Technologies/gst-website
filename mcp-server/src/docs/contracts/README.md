@@ -37,15 +37,15 @@ A contract is NOT a copy of the Zod schema or the wizard-config — it cites the
 
 ## The contracts registry
 
-| Tool                 | MCP tool name                                  | Contract doc                                                     | Status                  |
-| -------------------- | ---------------------------------------------- | ---------------------------------------------------------------- | ----------------------- |
-| Diligence Machine    | `generate_diligence_agenda`                    | [`../diligence/CONTRACT.md`](../diligence/CONTRACT.md)           | ✅ Authored (BL-031.85) |
-| ICG                  | `assess_infrastructure_cost_governance`        | [`../icg/CONTRACT.md`](../icg/CONTRACT.md)                       | ✅ Authored (BL-031.5)  |
-| TechPar              | `compute_techpar`                              | [`../techpar/CONTRACT.md`](../techpar/CONTRACT.md)               | ✅ Authored (BL-031.5)  |
-| Tech Debt Calculator | `estimate_tech_debt_cost`                      | [`../tech-debt/CONTRACT.md`](../tech-debt/CONTRACT.md)           | ✅ Authored (BL-031.5)  |
-| Regulatory Map       | `search_regulations`, `list_regulation_facets` | [`../regulatory-map/CONTRACT.md`](../regulatory-map/CONTRACT.md) | ✅ Authored (BL-031.5)  |
-| Portfolio Search     | `search_portfolio`, `list_portfolio_facets`    | [`../portfolio/CONTRACT.md`](../portfolio/CONTRACT.md)           | ✅ Authored (BL-031.95) |
-| Radar (cached)       | `search_radar_cache`                           | [`../radar/CONTRACT.md`](../radar/CONTRACT.md)                   | ✅ Authored (BL-031.95) |
+| Tool                 | MCP tool name                                                                                             | Contract doc                                                     | Status                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------- |
+| Diligence Machine    | `generate_diligence_agenda`                                                                               | [`../diligence/CONTRACT.md`](../diligence/CONTRACT.md)           | ✅ Authored (BL-031.85)                                  |
+| ICG                  | `assess_infrastructure_cost_governance`                                                                   | [`../icg/CONTRACT.md`](../icg/CONTRACT.md)                       | ✅ Authored (BL-031.5)                                   |
+| TechPar              | `compute_techpar`                                                                                         | [`../techpar/CONTRACT.md`](../techpar/CONTRACT.md)               | ✅ Authored (BL-031.5)                                   |
+| Tech Debt Calculator | `estimate_tech_debt_cost`                                                                                 | [`../tech-debt/CONTRACT.md`](../tech-debt/CONTRACT.md)           | ✅ Authored (BL-031.5)                                   |
+| Regulatory Map       | `search_regulations`, `list_regulation_facets`                                                            | [`../regulatory-map/CONTRACT.md`](../regulatory-map/CONTRACT.md) | ✅ Authored (BL-031.5)                                   |
+| Portfolio Search     | `search_portfolio`, `list_portfolio_facets`                                                               | [`../portfolio/CONTRACT.md`](../portfolio/CONTRACT.md)           | ✅ Authored (BL-031.95)                                  |
+| Radar (offline)      | `search_radar_offline` (renamed from `search_radar_cache` in BL-032 Phase 4b; alias retained one release) | [`../radar/CONTRACT.md`](../radar/CONTRACT.md)                   | ✅ Authored (BL-031.95); rename recorded BL-032 Phase 4b |
 
 Contract docs are authored alongside their MCP tool wrappers. The diligence contract is the inaugural reference implementation — see `../diligence/CONTRACT.md` for the template. The four BL-031.5 contracts (ICG, TechPar, Tech Debt, Regulatory Map) follow it; Radar (BL-031.95 Phase 3.A) and Portfolio Search (BL-031.95 Phase 4.B) followed under the same template once their MCP tools became capability-mirror aligned with their respective website pages.
 

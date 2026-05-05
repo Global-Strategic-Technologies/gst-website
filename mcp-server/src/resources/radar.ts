@@ -8,8 +8,9 @@
  *
  * Per-item URIs (gst://radar/item/<id>) are NOT pre-registered as static
  * resources — there are too many cached items and the IDs change with each
- * `npm run radar:seed`. The `search_radar_cache` tool returns the items
- * directly; callers don't need to chain to a per-item Resource.
+ * `npm run radar:seed`. The `search_radar_offline` tool (BL-032 Phase 4b
+ * rename of `search_radar_cache`) returns the items directly; callers
+ * don't need to chain to a per-item Resource.
  *
  * If the snapshot file is missing, the read callback returns an `isError`-
  * shaped TextResourceContents with instructions to run `npm run radar:seed`.

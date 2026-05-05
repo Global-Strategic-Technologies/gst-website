@@ -1,10 +1,14 @@
-# Input Contract: `search_radar_cache`
+# Input Contract: `search_radar_offline`
 
-> **Tool**: `search_radar_cache` — strict mirror of the `/hub/radar` website page. Reads the locally-cached Inoreader snapshot (`npm run radar:seed`) and returns a unified FYI + Wire feed. Never makes live Inoreader API calls (protects the shared 200 req/day budget — see [`mcp-server/src/content/radar-snapshot.ts`](../../content/radar-snapshot.ts) for the budget invariant).
+> **Tool**: `search_radar_offline` (renamed from `search_radar_cache` in [BL-032 Phase 4b](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited)) — strict mirror of the `/hub/radar` website page. Reads the locally-cached Inoreader snapshot (`npm run radar:seed`) and returns a unified FYI + Wire feed. Never makes live Inoreader API calls (protects the shared 200 req/day budget — see [`mcp-server/src/content/radar-snapshot.ts`](../../content/radar-snapshot.ts) for the budget invariant).
+>
+> **Sister tool — same shape, different source**: `search_radar` (live, Inoreader-touching, remote-MCP-only) — ships under [BL-032 Phase 4c](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#phase-4--inoreader-client-refactor--live-radar-tools-15-2-days). The "Live tool surface (BL-032)" section below documents the live tool's contract once it lands.
+>
+> **Deprecated alias**: `search_radar_cache` is registered as a one-release deprecated alias that tail-calls this implementation. Removed in `mcp-server@0.2.0` per [`mcp-server/BREAKING_CHANGES.md`](../../../BREAKING_CHANGES.md).
 >
 > **Sources of truth** (the contract cites these; it does not duplicate them):
 >
-> - **Validation**: [`mcp-server/src/tools/radar-cache.ts`](../../tools/radar-cache.ts) — `SearchRadarCacheInputSchema` (single optional `category` field)
+> - **Validation**: [`mcp-server/src/tools/radar-offline.ts`](../../tools/radar-offline.ts) — `SearchRadarOfflineInputSchema` (single optional `category` field)
 > - **Category enum**: [`mcp-server/src/content/radar-snapshot.ts`](../../content/radar-snapshot.ts) — `RADAR_CATEGORIES` const tuple, `RadarCategory` type
 > - **URL encoder**: [`src/utils/radar-url.ts`](../../../../src/utils/radar-url.ts) — `serializeToParams` / `deserializeFromParams`. Imported by both the website page (`src/components/radar/CategoryFilter.astro` hydrates / syncs) and the MCP wrapper (`buildRadarDeeplink`); single source of truth for radar URL state.
 > - **Cache reader**: [`mcp-server/src/content/radar-snapshot.ts`](../../content/radar-snapshot.ts) — `readFyiSnapshot()`, `readWireSnapshot()`, `SNAPSHOT_MISSING_MESSAGE`. Cache TTL is 24h ([`src/lib/inoreader/cache.ts:18`](../../../../src/lib/inoreader/cache.ts#L18)).
@@ -67,7 +71,7 @@ The four categories mirror exactly the four filter pills on `/hub/radar` and the
 
 **Deeplink**: a URL that opens `/hub/radar` with the category filter pre-applied (matching the user's input). Empty input emits a bare `/hub/radar` URL (no query string).
 
-**Snapshot-missing path**: when `.cache/inoreader/` is missing or empty, the response is `{ isError: true, content: [{ type: 'text', text: SNAPSHOT_MISSING_MESSAGE }] }` — the message instructs the caller to run `npm run radar:seed`. No stack traces leak; engineering-correctness verified by `mcp-server/tests/integration/radar-cache-handler.test.ts`.
+**Snapshot-missing path**: when `.cache/inoreader/` is missing or empty, the response is `{ isError: true, content: [{ type: 'text', text: SNAPSHOT_MISSING_MESSAGE }] }` — the message instructs the caller to run `npm run radar:seed`. No stack traces leak; engineering-correctness verified by `mcp-server/tests/integration/radar-offline-handler.test.ts`.
 
 ---
 
@@ -96,7 +100,7 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 
 ## Related
 
-- Tool wrapper: [`mcp-server/src/tools/radar-cache.ts`](../../tools/radar-cache.ts)
+- Tool wrapper: [`mcp-server/src/tools/radar-offline.ts`](../../tools/radar-offline.ts)
 - Cache reader: [`mcp-server/src/content/radar-snapshot.ts`](../../content/radar-snapshot.ts)
 - URL encoder: [`src/utils/radar-url.ts`](../../../../src/utils/radar-url.ts)
 - Live website: <https://globalstrategic.tech/hub/radar>

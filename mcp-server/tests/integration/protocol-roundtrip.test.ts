@@ -153,6 +153,10 @@ describe('protocol roundtrip', () => {
 
       const payload = res.result as unknown as ListToolsResultPayload;
       const toolNames = payload.tools.map((t) => t.name).sort();
+      // BL-032 Phase 4b: search_radar_cache renamed to search_radar_offline;
+      // search_radar_cache remains as a deprecated alias for one release
+      // (removed in mcp-server@0.2.0 — see BREAKING_CHANGES.md). Both
+      // expected to appear in the stdio surface during the transition.
       expect(toolNames).toEqual(
         [
           'assess_infrastructure_cost_governance',
@@ -162,7 +166,8 @@ describe('protocol roundtrip', () => {
           'list_portfolio_facets',
           'list_regulation_facets',
           'search_portfolio',
-          'search_radar_cache',
+          'search_radar_cache', // deprecated alias — will be removed in 0.2.0
+          'search_radar_offline',
           'search_regulations',
         ].sort()
       );

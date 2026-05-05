@@ -4,8 +4,9 @@
  *
  * **Why this exists** (BL-032 Q12 — see
  * `src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q12-transport-binding-per-radar-tool-new`):
- * the offline radar tool (`search_radar_cache`, renamed under Q2 in Phase 4)
- * and the radar Resources (`gst://radar/...`) read from `<repo>/.cache/inoreader/`
+ * the offline radar tool (`search_radar_offline`, with the deprecated
+ * `search_radar_cache` alias for one release per Q2) and the radar
+ * Resources (`gst://radar/...`) read from `<repo>/.cache/inoreader/`
  * via [`content/radar-snapshot.ts`](../content/radar-snapshot.ts), which uses
  * `node:fs`, `node:crypto`, and `node:path` at module load time. Those APIs
  * don't exist on Cloudflare Workers' Web-API-only runtime.
@@ -29,10 +30,13 @@
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerRadarCacheTool } from './radar-cache';
+import { registerRadarOfflineTool, registerSearchRadarCacheAlias } from './radar-offline';
 import { registerRadarResources } from '../resources/radar';
 
 export function registerLocalOnlyTools(server: McpServer): void {
-  registerRadarCacheTool(server);
+  registerRadarOfflineTool(server);
+  // Deprecated alias for one release. Removed in mcp-server@0.2.0.
+  // See mcp-server/BREAKING_CHANGES.md.
+  registerSearchRadarCacheAlias(server);
   registerRadarResources(server);
 }

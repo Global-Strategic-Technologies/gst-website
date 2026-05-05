@@ -26,7 +26,7 @@ import { registerPrompts } from './prompts/_registry';
 export function createServer(): McpServer {
   const server = new McpServer({
     name: 'gst-mcp',
-    version: '0.0.1',
+    version: '0.1.0',
   });
 
   // Tools (transport-portable)
