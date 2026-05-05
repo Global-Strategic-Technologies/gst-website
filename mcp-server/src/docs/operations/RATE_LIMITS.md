@@ -138,9 +138,11 @@ In practice usage is far below the per-key caps (analytical sessions, not bot lo
 The breaker auto-closes after 6 hours via TTL. If Inoreader recovers earlier and you want to manually close the circuit (rare):
 
 ```bash
-# Connect to Upstash via the CLI or REST API and delete the key:
-redis-cli -u $UPSTASH_REDIS_REST_URL DEL mcp:radar:circuit-open
-# Or via @upstash/redis console
+# Connect to Upstash via the CLI or REST API and delete the key. Path 2:
+# the circuit-breaker flag lives in the MCP DB (mcp:* namespace), so use
+# the MCP-DB credentials, NOT the Inoreader-DB Read-Only token.
+redis-cli -u $UPSTASH_MCP_REST_URL DEL mcp:radar:circuit-open
+# Or via @upstash/redis console (MCP DB)
 ```
 
 **Don't manually reset reflexively** — if Inoreader is still degraded, you'll just trigger another circuit-open seconds later, burning more budget. Wait for Inoreader's status page to show "operational" first.

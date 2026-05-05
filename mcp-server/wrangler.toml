@@ -34,31 +34,39 @@ compatibility_flags = ["nodejs_compat"]
 # ---------------------------------------------------------------------------
 # Staging
 # ---------------------------------------------------------------------------
-# Phase 6 will add:
-#   routes = [{ pattern = "mcp-staging.globalstrategic.tech/*", custom_domain = true }]
-#
 # Secrets (set via `wrangler secret put <NAME> --env staging`):
-#   MCP_KEY_RP                 Bearer token for thefastcat (RP) — initial soak roster (Q11/Q13)
-#   UPSTASH_REDIS_REST_URL     Same value as website's; shared Upstash project (Q13)
-#   UPSTASH_REDIS_REST_TOKEN   `mcp-worker` REST token (separate from website's; Q13)
-#   INOREADER_APP_ID           Copy from Vercel env via `vercel env pull`
-#   INOREADER_APP_KEY          Copy from Vercel env
-#   INOREADER_ACCESS_TOKEN     Copy from Vercel env (Worker reads only — website owns refresh)
-#   INOREADER_REFRESH_TOKEN    Copy from Vercel env (Worker reads only — see Q4 Resolved)
-#   SENTRY_DSN                 New Sentry project — service:mcp-server (Q6)
+#   MCP_KEY_RP                    Bearer token for thefastcat (RP) — initial soak roster (Q11/Q13)
+#
+#   # Path 2 (Q13 / two-database architecture) — see DEPLOY.md § A.3 for the operator walkthrough.
+#   UPSTASH_INOREADER_REST_URL    Website's Upstash DB URL (same as website's UPSTASH_REDIS_REST_URL)
+#   UPSTASH_INOREADER_REST_TOKEN  Website-DB Read-Only token — Worker reads inoreader:* keys only
+#   UPSTASH_MCP_REST_URL          New MCP-only Upstash DB URL (Worker-owned)
+#   UPSTASH_MCP_REST_TOKEN        MCP-DB Standard token (read+write) for mcp:* keys
+#
+#   INOREADER_APP_ID              Copy from Vercel env via `vercel env pull`
+#   INOREADER_APP_KEY             Copy from Vercel env
+#   INOREADER_ACCESS_TOKEN        Copy from Vercel env (env fallback only — primary read is inoreader:access_token)
+#   INOREADER_REFRESH_TOKEN       Copy from Vercel env (Worker reads only — see Q4 Resolved)
+#   SENTRY_DSN                    Sentry project — service:mcp-server (Q6)
 #
 # Phase 1 spike runs locally via `wrangler dev` with no secrets set; the only
 # code path exercised before Phase 2 ships auth is /health (uncached, no auth).
 
 [env.staging]
 name = "gst-mcp-staging"
+routes = [
+  { pattern = "mcp-staging.globalstrategic.tech", custom_domain = true }
+]
 
 # ---------------------------------------------------------------------------
 # Production
 # ---------------------------------------------------------------------------
-# Phase 6 will populate this block. Documented now to surface the staging→
-# production parity goal: same bindings, same secrets (with --env production
-# values), separate Worker name + route + Upstash REST token.
+# Same secret matrix as staging (with `--env production` values). Path 2:
+# UPSTASH_INOREADER_REST_TOKEN = website-DB Read-Only token; UPSTASH_MCP_REST_TOKEN
+# = MCP-DB Standard token. Independent rotation cadence per DB.
 
 [env.production]
 name = "gst-mcp"
+routes = [
+  { pattern = "mcp.globalstrategic.tech", custom_domain = true }
+]

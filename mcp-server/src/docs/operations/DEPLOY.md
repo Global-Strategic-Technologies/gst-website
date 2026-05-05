@@ -87,50 +87,110 @@ The `globalstrategic.tech` zone managed by Cloudflare DNS (already confirmed dur
 
 ---
 
-## A.3 — Upstash — generate the `mcp-worker` REST token
+## A.3 — Upstash — provision two databases (Inoreader read + MCP state)
 
 ### What you need
 
-The Upstash Redis project that backs the website's ISR cache. Per [Q13](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q13-upstash-project-sharing-new), the MCP Worker shares this project (so it can read the website's Inoreader OAuth tokens) but uses a **separate REST token** scoped to `mcp-worker` for rotation isolation.
+Two Upstash Redis databases, both on free tier:
+
+| DB                                              | Owner                    | Worker uses                                                                                                  | Token type                                                                     | Holds                                                   |
+| ----------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| **Website DB** (existing — already provisioned) | Website's Vercel project | Read-only access to `inoreader:*` (OAuth tokens written by the website's token-refresh job)                  | **Read-Only** token (free, ships alongside Standard)                           | OAuth tokens, ISR cache, anything else the website owns |
+| **MCP DB** (new — provision in this section)    | MCP Worker exclusively   | Full read+write on `mcp:*` (rate-limit counters, circuit-breaker flag, health probe, inoreader-status cache) | **Standard** token (the only one needed; rotates independently of the website) | All Worker-managed state                                |
+
+This satisfies [Q13's](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q13-upstash-project-sharing-new) rotation-isolation goal AND [Q4's](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q4-inoreader-client-refactor--fork-or-generalize) read-only-on-`inoreader:*` invariant — the latter at the storage layer rather than as a code-only contract. A leaked MCP-DB token cannot corrupt website data; a leaked Inoreader-DB Read-Only token cannot mutate anything.
 
 ### Steps
 
 1. **Reach the Upstash console**, by either path:
    - **From Vercel**: <https://vercel.com/> → your project → **Storage** tab → click the linked Upstash database → "Open in Upstash" button
    - **Direct**: <https://console.upstash.com/> → Redis → select the project linked to the GST website
-2. **Generate a new REST token** for the Worker:
-   - In the project's **Details** page, scroll to **REST API** → **Tokens** section
-   - Click **Create New Token** (or equivalent — the UI is "REST Tokens" / "Tokens" depending on Upstash version)
-   - Name: `mcp-worker`
-   - Permissions: **Read and Write**
+
+2. **Copy the website DB's Read-Only credentials** (this is the database the website already uses — you're not creating anything new yet):
+   - On the website-DB's **Details** page, scroll to the **REST API** section
+   - Toggle to **Read Only** (the toggle sits at the top of the Tokens block; default is "Standard")
+   - Click the copy icon next to `UPSTASH_REDIS_REST_URL` → save it as your **Inoreader-DB URL**
+   - Click the copy icon next to `UPSTASH_REDIS_REST_TOKEN` → save it as your **Inoreader-DB Read-Only token**. Confirm the toggle is on **Read Only** before copying — copying the Standard token here defeats the purpose of Path 2
+
+3. **Create the new MCP database**:
+   - In the Upstash console: **Create Database** (or "+" / "New Database" depending on UI)
+   - Name: `gst-mcp` (or `gst-mcp-staging` if you want a per-env DB; Path 2 uses one DB shared across staging + production for simplicity — both envs hit the same `mcp:*` namespace, but namespace prefixes within `mcp:*` keep envs isolated, e.g., `mcp:staging:ratelimit:*` vs `mcp:prod:ratelimit:*`. The Worker code refactor will document the prefix scheme)
+   - Region: same as the website DB (lowest latency from Vercel + Cloudflare's edge)
+   - Type: **Regional** (Global has different pricing; Regional is fine for this scale)
+   - Eviction policy: **noeviction** (rate-limit counters and the circuit-breaker MUST NOT be silently evicted; we manage TTLs explicitly)
    - Click **Create**
-   - **Copy the token immediately** — Upstash shows it once and never again. Save in 1Password / your password manager
-3. **Note both values** — you'll set them as Wrangler secrets:
-   - `UPSTASH_REDIS_REST_URL` — the project's REST API URL (visible in the Details page; same value as the website uses)
-   - `UPSTASH_REDIS_REST_TOKEN` — the new `mcp-worker` token you just created (NOT the website's token)
-4. **Set the secrets for staging**:
+
+4. **Copy the MCP DB's Standard credentials** (just-created DB):
+   - On the new DB's **Details** page → **REST API** section
+   - Confirm the toggle is set to **Standard** (NOT Read Only — Worker writes to this DB)
+   - Click the copy icon next to `UPSTASH_REDIS_REST_URL` → save it as your **MCP-DB URL**
+   - Click the copy icon next to `UPSTASH_REDIS_REST_TOKEN` → save it as your **MCP-DB Standard token**
+
+5. **Save all four values in 1Password** with notes:
+   - "GST MCP — Inoreader-DB URL (read-only Worker access; same physical DB as website's Standard token)"
+   - "GST MCP — Inoreader-DB Read-Only token"
+   - "GST MCP — MCP-DB URL (Worker-owned; rotation-isolated from website)"
+   - "GST MCP — MCP-DB Standard token (issued: YYYY-MM-DD)"
+
+6. **Set the four secrets for staging**:
+
    ```bash
    cd mcp-server
-   npx wrangler secret put UPSTASH_REDIS_REST_URL --env staging
-   # Paste the URL at the prompt; press Enter
-   npx wrangler secret put UPSTASH_REDIS_REST_TOKEN --env staging
-   # Paste the mcp-worker token at the prompt
+   npx wrangler secret put UPSTASH_INOREADER_REST_URL --env staging
+   # Paste the Inoreader-DB URL from step 2
+   npx wrangler secret put UPSTASH_INOREADER_REST_TOKEN --env staging
+   # Paste the Inoreader-DB Read-Only token from step 2
+   npx wrangler secret put UPSTASH_MCP_REST_URL --env staging
+   # Paste the MCP-DB URL from step 4
+   npx wrangler secret put UPSTASH_MCP_REST_TOKEN --env staging
+   # Paste the MCP-DB Standard token from step 4
    ```
-5. **Set the same secrets for production** (you can do this now even though we don't deploy production until Part B § B.6):
+
+7. **Set the same four secrets for production** (you can do this now even though we don't deploy production until Part B § B.6):
+
    ```bash
-   npx wrangler secret put UPSTASH_REDIS_REST_URL --env production
-   npx wrangler secret put UPSTASH_REDIS_REST_TOKEN --env production
+   npx wrangler secret put UPSTASH_INOREADER_REST_URL --env production
+   npx wrangler secret put UPSTASH_INOREADER_REST_TOKEN --env production
+   npx wrangler secret put UPSTASH_MCP_REST_URL --env production
+   npx wrangler secret put UPSTASH_MCP_REST_TOKEN --env production
    ```
-6. **Verify the secrets are set** (lists names only — values are never retrievable):
+
+8. **Verify the secrets are set** (lists names only — values are never retrievable):
    ```bash
    npx wrangler secret list --env staging
    npx wrangler secret list --env production
    ```
-   Both should include `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
+   Both should include all four:
+   - `UPSTASH_INOREADER_REST_URL`
+   - `UPSTASH_INOREADER_REST_TOKEN`
+   - `UPSTASH_MCP_REST_URL`
+   - `UPSTASH_MCP_REST_TOKEN`
 
 ### What you've completed
 
-✅ Worker has read+write access to the Upstash project (with namespace prefix `mcp:` to avoid colliding with website-owned `inoreader:*` keys per Q13). Worker is read-only for `inoreader:*` per Q4 — the code enforces this; no token-level scoping needed.
+✅ Worker has scoped, isolated access to two Upstash databases:
+
+- **Inoreader DB**: read-only access via the Read-Only token. Q4's read-only-on-`inoreader:*` invariant is enforced **at the storage layer** — even if Worker code regresses and tries to write, Upstash returns an error
+- **MCP DB**: full read+write via Standard token. Rotation isolation is real — rotating this token doesn't affect the website; rotating the website's Standard token doesn't affect the Worker
+
+The MCP DB's Standard token is the only token the Worker holds with write capability. Compromise of the bearer key + Wrangler secret extraction would give an attacker write access ONLY to `mcp:*` keys (rate-limit counters, the circuit-breaker, etc.) — the website's data is untouched.
+
+### Reference — rotating the MCP-DB token
+
+If the MCP-DB Standard token is ever compromised, regenerate it from the Upstash console:
+
+1. Upstash console → MCP DB → **Details** → **REST API** → click **Regenerate** next to the Standard token
+2. Confirm the prompt; the old token dies immediately
+3. Update the Wrangler secret with the new value:
+   ```bash
+   cd mcp-server
+   npx wrangler secret put UPSTASH_MCP_REST_TOKEN --env staging
+   npx wrangler secret put UPSTASH_MCP_REST_TOKEN --env production
+   npm run deploy:staging && npm run deploy:production    # force isolate refresh
+   ```
+4. Update 1Password with the new value + rotation date
+
+The Inoreader-DB Read-Only token is the website's responsibility (same DB the website uses); rotation is a website-side concern that the Worker just inherits.
 
 ---
 
@@ -323,13 +383,21 @@ Expected (right after first deploy, before any radar traffic):
   "version": "0.1.0",
   "gitSha": "unknown",
   "phase": "BL-032 Phase 5 (observability)",
-  "redis": "ok",
+  "upstashMcp": "ok",
+  "upstashInoreader": "ok",
   "inoreader": "unknown",
   "inoreaderObservedAt": null
 }
 ```
 
-`ok: false` is **expected** initially because `inoreader: 'unknown'` — but `inoreader: 'unknown'` is NOT a degraded signal, just "no recent traffic." It flips to `'ok'` after the first successful radar-tool call (B.3.6 below). `redis: 'ok'` confirms Upstash is reachable.
+`ok: false` is **expected** initially because `inoreader: 'unknown'` — but `inoreader: 'unknown'` is NOT a degraded signal, just "no recent traffic." It flips to `'ok'` after the first successful radar-tool call (B.3.6 below).
+
+The two Upstash subsystems report independently per the Path 2 architecture:
+
+- `upstashMcp: 'ok'` confirms the MCP DB is reachable (rate-limiter and circuit-breaker can write)
+- `upstashInoreader: 'ok'` confirms the Inoreader DB is reachable (Worker can read OAuth tokens — read-only by design)
+
+If either is `'degraded'`, see [§ A.3](#a3--upstash--provision-two-databases-inoreader-read--mcp-state) for which secrets to verify.
 
 ### B.3.2 — Bearer auth blocks unauthenticated calls
 
@@ -392,7 +460,7 @@ RateLimit-Remaining: 59
 RateLimit-Reset: <seconds-until-window-resets>
 ```
 
-If `RateLimit-*` headers are absent, the limiter took the graceful-skip path → Upstash creds aren't bound or aren't reachable. Re-check § A.3.
+If `RateLimit-*` headers are absent, the limiter took the graceful-skip path → the **MCP DB** isn't reachable (rate-limit state lives in `mcp:*` and writes to the MCP-DB). Re-check that `UPSTASH_MCP_REST_URL` + `UPSTASH_MCP_REST_TOKEN` are set per § A.3 step 6. The Inoreader DB being unreachable would NOT cause this symptom — it'd surface in B.3.6 instead.
 
 ### B.3.6 — Invoke a radar tool (live Inoreader call)
 
@@ -458,7 +526,7 @@ The response should reference the deduplicated themes / engagement categories fr
 
 Use the staging deploy as your daily MCP. Watch for:
 
-- **Sustained `ratelimit.skipped` log lines** → Upstash unreachable; check Wrangler secrets and Upstash status
+- **Sustained `ratelimit.skipped` log lines** → MCP DB unreachable; check `UPSTASH_MCP_*` secrets and Upstash status (the Inoreader DB being unreachable would surface as `upstashInoreader: "degraded"` on `/health` instead, with radar tools failing rather than rate-limit skipping)
 - **Inoreader 429s** → circuit breaker should engage cleanly; verify with `/health` showing `inoreader: "degraded"` and the radar tools returning structured 503s
 - **Claude Desktop / Claude Code reconnects after restart** without re-prompting → connection persistence is working
 - **Sentry events** → if you set up the alert rules in § A.5, you should see baseline traffic but no error noise
@@ -601,13 +669,13 @@ The team-member's client now returns 401 on all calls. No re-issue. Update your 
 
 ### When to roll back
 
-| Symptom                                                                                      | Roll back?                                                          |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Unhandled exception storm in Sentry post-deploy                                              | **Yes**, immediately                                                |
-| Sustained 5xx rate (>1% over 15 min) post-deploy                                             | **Yes**                                                             |
-| `/health` reports `redis: 'degraded'` for >5 min post-deploy and Upstash status page is fine | **Probably yes** — config regression                                |
-| One specific tool returns wrong results                                                      | **Maybe** — depends on user impact; sometimes fix-forward is faster |
-| Performance regression but no errors                                                         | **Investigate first**; rollback if fix takes >1 hour                |
+| Symptom                                                                                                                             | Roll back?                                                          |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Unhandled exception storm in Sentry post-deploy                                                                                     | **Yes**, immediately                                                |
+| Sustained 5xx rate (>1% over 15 min) post-deploy                                                                                    | **Yes**                                                             |
+| `/health` reports `upstashMcp: 'degraded'` OR `upstashInoreader: 'degraded'` for >5 min post-deploy and Upstash status page is fine | **Probably yes** — config regression on the affected DB's secrets   |
+| One specific tool returns wrong results                                                                                             | **Maybe** — depends on user impact; sometimes fix-forward is faster |
+| Performance regression but no errors                                                                                                | **Investigate first**; rollback if fix takes >1 hour                |
 
 ### Rollback steps
 
@@ -654,15 +722,16 @@ wrangler tail --env production --search '"event":"ratelimit.exceeded"'
 
 Common fingerprints and what they mean:
 
-| Log signature                                              | Means                                                                                              | First action                                                                                                                         |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `"event":"auth.failed","reason":"bearer-rejected"`         | Wrong/missing/stale token. Could be one user with a stale config OR a probe-and-bail attempt.      | Check Sentry for the alert rule "Bearer auth failure burst." If sustained from one keyOwner, ping that team-member to confirm config |
-| `"event":"ratelimit.exceeded","reason":"tier=minute"`      | One key burst-called too fast. Per-minute (60) cap hit                                             | Usually self-recovers in 60s; check if the keyOwner has a runaway agent loop                                                         |
-| `"event":"ratelimit.exceeded","reason":"tier=day"`         | One key consumed the full daily budget                                                             | Inspect what the user did; if legitimate, consider raising their cap (see RATE_LIMITS.md)                                            |
-| `"event":"ratelimit.skipped","reason":"upstash-not-bound"` | Upstash creds missing or unreachable at request time                                               | Check Wrangler secrets; check Upstash status page                                                                                    |
-| `"event":"mcp.request","success":false`                    | Tool invocation completed with a 4xx status. Most often: invalid input or tool-side error envelope | Check the structured `errorCode` field                                                                                               |
-| Sentry: any `error.unhandled` from a Worker isolate        | Unexpected throw in handler code path                                                              | Check the stacktrace; usually indicates a bug. Capture, fix, ship                                                                    |
-| `errorCode:"inoreader-rate-limit"`                         | Inoreader returned 429 — circuit breaker just opened                                               | See § C.5 below                                                                                                                      |
+| Log signature                                                            | Means                                                                                              | First action                                                                                                                         |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `"event":"auth.failed","reason":"bearer-rejected"`                       | Wrong/missing/stale token. Could be one user with a stale config OR a probe-and-bail attempt.      | Check Sentry for the alert rule "Bearer auth failure burst." If sustained from one keyOwner, ping that team-member to confirm config |
+| `"event":"ratelimit.exceeded","reason":"tier=minute"`                    | One key burst-called too fast. Per-minute (60) cap hit                                             | Usually self-recovers in 60s; check if the keyOwner has a runaway agent loop                                                         |
+| `"event":"ratelimit.exceeded","reason":"tier=day"`                       | One key consumed the full daily budget                                                             | Inspect what the user did; if legitimate, consider raising their cap (see RATE_LIMITS.md)                                            |
+| `"event":"ratelimit.skipped","reason":"upstash-mcp-not-bound"`           | MCP DB creds missing or unreachable at request time                                                | Check `UPSTASH_MCP_*` secrets via `wrangler secret list`; check Upstash status page for the MCP DB                                   |
+| `"event":"inoreader.read.failed","reason":"upstash-inoreader-not-bound"` | Inoreader DB creds missing or unreachable when reading OAuth tokens                                | Check `UPSTASH_INOREADER_*` secrets; check Upstash status page for the website's DB                                                  |
+| `"event":"mcp.request","success":false`                                  | Tool invocation completed with a 4xx status. Most often: invalid input or tool-side error envelope | Check the structured `errorCode` field                                                                                               |
+| Sentry: any `error.unhandled` from a Worker isolate                      | Unexpected throw in handler code path                                                              | Check the stacktrace; usually indicates a bug. Capture, fix, ship                                                                    |
+| `errorCode:"inoreader-rate-limit"`                                       | Inoreader returned 429 — circuit breaker just opened                                               | See § C.5 below                                                                                                                      |
 
 `/health` reports the cached subsystem status (Q8 — never burns Inoreader budget). Useful as a pre-investigation sanity check:
 
@@ -670,7 +739,7 @@ Common fingerprints and what they mean:
 curl https://mcp.globalstrategic.tech/health | jq
 ```
 
-Surfaces `redis` reachability, last observed `inoreader` status (`ok` / `degraded` / `unknown`), `inoreaderObservedAt` timestamp, and the aggregate `ok` flag.
+Surfaces both Upstash subsystems' reachability (`upstashMcp` and `upstashInoreader`, each `'ok' | 'degraded'`), last observed Inoreader API status (`inoreader: 'ok' | 'degraded' | 'unknown'`), `inoreaderObservedAt` timestamp, and the aggregate `ok` flag (true only when MCP DB is OK, Inoreader DB is OK, and `inoreader !== 'degraded'`).
 
 ---
 
@@ -678,7 +747,7 @@ Surfaces `redis` reachability, last observed `inoreader` status (`ok` / `degrade
 
 The radar tools share a 6-hour global circuit breaker (Phase 3 substrate, Phase 4c trigger — see [RATE_LIMITS.md](./RATE_LIMITS.md) § Circuit breaker for the full design). When Inoreader returns 429:
 
-1. The first radar-tool call to see it sets `mcp:radar:circuit-open` in Upstash with a 6h TTL
+1. The first radar-tool call to see it sets `mcp:radar:circuit-open` in the **MCP DB** (Worker writes to `mcp:*` per Path 2) with a 6h TTL
 2. All subsequent radar-tool calls (any key) read the flag and return `503 Service Unavailable` with `Retry-After`
 3. Non-radar tools are unaffected
 4. The breaker auto-closes via TTL expiry — no manual intervention required for normal recovery
@@ -692,9 +761,11 @@ If the breaker just opened, **don't reset it**. Inoreader's budget hasn't recove
 Inoreader's status page reports the platform recovered within minutes (rare). The breaker would auto-close in 6h, but you want radar tools back ASAP.
 
 ```bash
-# Connect to Upstash via the REST API or console and delete the key:
-curl -X POST "$UPSTASH_REDIS_REST_URL/del/mcp:radar:circuit-open" \
-  -H "Authorization: Bearer $UPSTASH_REDIS_REST_TOKEN"
+# Use the MCP DB's REST credentials (NOT the Inoreader DB — the circuit-breaker
+# flag lives in the MCP DB per Path 2). Pull the values from your secrets store
+# (1Password); they were set in § A.3 step 6 as UPSTASH_MCP_REST_*.
+curl -X POST "$UPSTASH_MCP_REST_URL/del/mcp:radar:circuit-open" \
+  -H "Authorization: Bearer $UPSTASH_MCP_REST_TOKEN"
 ```
 
 The next radar-tool call will hit Inoreader; if it succeeds, the breaker stays closed; if Inoreader still 429s, it re-opens with a fresh 6h TTL.
@@ -721,8 +792,9 @@ A bounded decision tree for "the MCP is broken" reports. Walk through these in o
    - **200 with `ok: false`** → Worker is up but a subsystem is degraded. Continue to step 2
 
 2. **Which subsystem is degraded?** Read the `/health` JSON:
-   - `redis: 'degraded'` → Upstash unreachable or misconfigured. Check Upstash status; check Wrangler secrets via `wrangler secret list --env production`; verify `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` are set. Worker still serves auth + non-radar tools (rate-limit just falls open with a warning); radar tools may degrade when their cache writes fail
-   - `inoreader: 'degraded'` → Last Inoreader call failed (429, 5xx, or timeout). See § C.5 — usually circuit-breaker handling is correct; investigate if alerts surface this for >1 hour
+   - `upstashMcp: 'degraded'` → MCP DB unreachable or misconfigured (rate-limit, circuit-breaker, health probe, inoreader-status cache all live here). Check Upstash status for the MCP DB; check `UPSTASH_MCP_REST_URL` + `UPSTASH_MCP_REST_TOKEN` are set via `wrangler secret list --env production`. Worker still serves auth + non-radar tools (rate-limit falls open with a warning); radar tools degrade when cache writes fail
+   - `upstashInoreader: 'degraded'` → Inoreader DB unreachable (the website's DB the Worker reads OAuth tokens from). Check Upstash status for the website DB; check `UPSTASH_INOREADER_REST_URL` + `UPSTASH_INOREADER_REST_TOKEN` are set. Auth + non-radar tools work; radar tools fail at OAuth-load time
+   - `inoreader: 'degraded'` → Last Inoreader **API** call failed (429, 5xx, or timeout) — this is the upstream Inoreader service, not the Upstash DB. See § C.5 — usually circuit-breaker handling is correct; investigate if alerts surface this for >1 hour
    - `inoreader: 'unknown'` with no recent radar traffic → Not a problem. If radar traffic is expected and `inoreaderObservedAt` is null after 30+ min, something's wrong with the radar tools' status reporting (check Sentry)
 
 3. **Are users seeing 401s but the operator confirms keys are configured?**
@@ -748,4 +820,4 @@ The MCP server's blast radius is bounded — it's an internal tool, BL-033 hasn'
 
 ---
 
-_Last updated: 2026-05-04 — Phase 6 deploy runbook, end-to-end walkthrough authored. Part A (initial setup), Part B (first deploy), Part C (ongoing operations) all complete._
+_Last updated: 2026-05-05 — Path 2 Worker refactor shipped (3-commit sequence: refactor → tests → docs). § A.3 status callout removed; the two-DB architecture is now the actual code path. /health JSON returns `upstashMcp` + `upstashInoreader` separately. Doc is fully executable as the operator runbook. Earlier today: § A.3 rewritten for **Path 2 architecture** after Upstash ACL was discovered Prod-Pack-gated. Path 2 uses two free Upstash DBs: Worker reads `inoreader:*` from the website's DB via Read-Only token (storage-layer Q4 enforcement), reads/writes `mcp:*` from a new dedicated MCP DB via Standard token (rotation isolation). Phase 6 deploy runbook, end-to-end walkthrough authored. Part A (initial setup), Part B (first deploy), Part C (ongoing operations) all complete._
