@@ -160,20 +160,14 @@ The model should call `mcp__gst__search_portfolio` and return matching anonymize
 
 ## Rate-limit etiquette
 
-**Phase 3 budgets** (per-key, sliding-window):
+Full reference — per-key budget table, RFC 9331 response-header guide, circuit-breaker semantics, "what to do when 429'd" decision tree — lives in [`RATE_LIMITS.md`](./RATE_LIMITS.md). Skim it once during setup; it pays for itself the first time you see a 429.
 
-| Tool family     | Per-minute | Per-day |
-| --------------- | ---------- | ------- |
-| Non-radar tools | 60         | 1000    |
-| Radar tools     | 5          | 50      |
+Quick-reference summary:
 
-The 50/day radar cap exists because GST's Inoreader account has a 200 req/day budget shared with the website's ISR + the upcoming Cron-driven snapshot refresh. Burning through 50 calls in an hour means the next analyst paged-up to the same data hits 503.
-
-**Rules of thumb**:
-
-- Don't fire `search_radar` in agent loops. If the agent needs the same query 5× in a row, call once and reuse the result
-- The offline tool (`search_radar_offline`, local stdio only) doesn't count against the budget — use it for repeated dev / CI runs
-- The website (`/hub/radar`) is also on the budget; don't keep its tab open in the background while you're hammering radar tools
+| Tool family   | Per-minute | Per-day | Status                                       |
+| ------------- | ---------- | ------- | -------------------------------------------- |
+| General tools | 60         | 1000    | ✅ Phase 3 (active)                          |
+| Radar tools   | 5          | 50      | ⏳ Phase 4 (activated when radar tools ship) |
 
 ---
 

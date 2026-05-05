@@ -33,6 +33,8 @@ import { createServer } from './server';
 import { authenticate, authFailureResponse } from './auth/bearer';
 import { isPreflight, preflightResponse, withCors } from './auth/cors';
 import { safeLog } from './auth/safe-logger';
+import { createLimiter } from './ratelimit/limiter';
+import { tooManyRequestsResponse, withRateLimitHeaders } from './ratelimit/headers';
 
 /**
  * Worker environment bindings.
@@ -110,8 +112,34 @@ const handler: ExportedHandler<Env> = {
       return withCors(authFailureResponse(auth), origin);
     }
 
-    // 4. Authenticated — log + delegate to MCP handler. Phase 3 inserts the
-    //    rate-limiter check here. Phase 5 adds tool-name + duration to the log.
+    // 4. Per-key rate limit (Phase 3). Sliding-window check via Upstash;
+    //    null → graceful skip (Upstash creds not bound — fail open with a
+    //    warning). Phase 4 adds a stricter parallel bucket for radar tools.
+    const limiter = createLimiter(env);
+    let rlResult = null;
+    if (limiter) {
+      rlResult = await limiter.check(auth.keyOwner);
+      if (!rlResult.allowed) {
+        safeLog({
+          event: 'ratelimit.exceeded',
+          keyOwner: auth.keyOwner,
+          path: url.pathname,
+          status: 429,
+          reason: `tier=${rlResult.tier}`,
+        });
+        return withCors(tooManyRequestsResponse(rlResult), origin);
+      }
+    } else {
+      safeLog({
+        event: 'ratelimit.skipped',
+        keyOwner: auth.keyOwner,
+        path: url.pathname,
+        reason: 'upstash-not-bound',
+      });
+    }
+
+    // 5. Authenticated + within rate limit — log + delegate to MCP handler.
+    //    Phase 5 adds tool-name + duration to the log line.
     safeLog({
       event: 'mcp.request',
       keyOwner: auth.keyOwner,
@@ -119,7 +147,8 @@ const handler: ExportedHandler<Env> = {
     });
 
     const response = await mcp(request, env, ctx);
-    return withCors(response, origin);
+    const withRl = rlResult ? withRateLimitHeaders(response, rlResult) : response;
+    return withCors(withRl, origin);
   },
 };
 
