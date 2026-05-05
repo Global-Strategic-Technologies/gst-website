@@ -255,6 +255,38 @@ For operators issuing or rotating bearer keys: see [`src/docs/operations/AUTH.md
 
 For deploy/incident runbook: see [`src/docs/operations/DEPLOY.md`](src/docs/operations/DEPLOY.md).
 
+### Health endpoint (BL-032 Phase 5)
+
+The Worker exposes `GET /health` as an unauthenticated, CORS-enabled probe. Response shape:
+
+```json
+{
+  "ok": true,
+  "version": "0.1.0",
+  "gitSha": "deadbeef1234",
+  "phase": "BL-032 Phase 5 (observability)",
+  "redis": "ok",
+  "inoreader": "ok",
+  "inoreaderObservedAt": "2026-05-04T18:30:00.000Z"
+}
+```
+
+Field semantics:
+
+- **`ok`**: aggregate signal — `true` when both `redis === 'ok'` AND `inoreader !== 'degraded'`. Note: `inoreader === 'unknown'` does NOT flip `ok` to false (unknown means no recent traffic, not failure).
+- **`redis`**: `'ok'` if a single Upstash GET succeeds; `'degraded'` if it throws or creds aren't bound.
+- **`inoreader`**: `'ok'` / `'degraded'` / `'unknown'`, read from a 5-minute-TTL cache key (`mcp:inoreader:last-status`) that the radar-live tools update as a side-effect of normal traffic. **The health endpoint does NOT make a live Inoreader call** — Q8 in the BL-032 doc explicitly forbids that, since uptime monitors hammer health endpoints and would burn the 200/day Inoreader budget.
+- **`inoreaderObservedAt`**: ISO timestamp of the last cached Inoreader status, or `null` if no recent traffic. A monitoring dashboard can alert on stale values (e.g. older than 30 minutes during business hours).
+- **`gitSha`**: commit SHA injected at deploy time via `wrangler deploy --var GIT_SHA=...`; defaults to `'unknown'` locally.
+
+Example probe:
+
+```bash
+curl https://mcp.globalstrategic.tech/health | jq
+```
+
+The endpoint always returns HTTP 200 — degraded subsystems flip the `ok` field to `false` and surface their state, but a degraded Worker is still reachable. Only an actual Worker crash returns 5xx; treat 5xx from `/health` as the page-oncall signal, `ok: false` with subsystem detail as a non-pageable degraded signal.
+
 ---
 
 ## Worked examples

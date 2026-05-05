@@ -35,6 +35,8 @@ import { isPreflight, preflightResponse, withCors } from './auth/cors';
 import { safeLog } from './auth/safe-logger';
 import { createLimiter } from './ratelimit/limiter';
 import { tooManyRequestsResponse, withRateLimitHeaders } from './ratelimit/headers';
+import { sentryOptions, tagRequest, withSentry } from './observability/sentry';
+import { buildHealthPayload } from './observability/health';
 
 /**
  * Worker environment bindings.
@@ -91,16 +93,11 @@ const handler: ExportedHandler<Env> = {
 
     // 2. Health endpoint — no auth required, but does emit CORS headers so
     //    browser-based clients can probe it before attempting an MCP handshake.
+    //    Phase 5: returns the BACKLOG-specified shape with cached
+    //    Inoreader-status (never burns budget — Q8) + Upstash reachability probe.
     if (url.pathname === '/health' && request.method === 'GET') {
-      const body = JSON.stringify({
-        ok: true,
-        phase: 'BL-032 Phase 4c (live radar tools)',
-        version: '0.1.0',
-      });
-      return withCors(
-        new Response(body, { headers: { 'Content-Type': 'application/json' } }),
-        origin
-      );
+      const payload = await buildHealthPayload(env);
+      return withCors(Response.json(payload), origin);
     }
 
     // 3. Bearer-token authentication — every non-health, non-preflight path.
@@ -111,9 +108,16 @@ const handler: ExportedHandler<Env> = {
         path: url.pathname,
         status: auth.status,
         reason: 'bearer-rejected',
+        success: false,
+        errorCode: 'unauthorized',
       });
       return withCors(authFailureResponse(auth), origin);
     }
+
+    // Tag the Sentry scope with keyOwner + path. No-op when SENTRY_DSN
+    // isn't bound; per-request scope so tags only attach to THIS request's
+    // events.
+    tagRequest(auth.keyOwner, url.pathname);
 
     // 4. Per-key rate limit (Phase 3). Sliding-window check via Upstash;
     //    null → graceful skip (Upstash creds not bound — fail open with a
@@ -129,6 +133,8 @@ const handler: ExportedHandler<Env> = {
           path: url.pathname,
           status: 429,
           reason: `tier=${rlResult.tier}`,
+          success: false,
+          errorCode: 'rate-limit',
         });
         return withCors(tooManyRequestsResponse(rlResult), origin);
       }
@@ -142,20 +148,32 @@ const handler: ExportedHandler<Env> = {
     }
 
     // 5. Authenticated + within rate limit — log + delegate to MCP handler.
-    //    Phase 5 adds tool-name + duration to the log line.
-    safeLog({
-      event: 'mcp.request',
-      keyOwner: auth.keyOwner,
-      path: url.pathname,
-    });
+    //    Wall-clock timing recorded via durationMs for Phase 5 observability.
+    //    Tool-name extraction at the Worker boundary requires request.clone()
+    //    + JSON-RPC parse; deferred to BL-032.75 maturity work.
+    const startedAt = Date.now();
 
     // Build the MCP handler per-request — radar-live tools (Phase 4c) capture
     // `env` in their closures for circuit-breaker checks + Inoreader fetches.
     const mcp = createMcpHandler(createServer(env));
     const response = await mcp(request, env, ctx);
+    const durationMs = Date.now() - startedAt;
+
+    safeLog({
+      event: 'mcp.request',
+      keyOwner: auth.keyOwner,
+      path: url.pathname,
+      status: response.status,
+      durationMs,
+      success: response.status < 400,
+    });
+
     const withRl = rlResult ? withRateLimitHeaders(response, rlResult) : response;
     return withCors(withRl, origin);
   },
 };
 
-export default handler;
+// Wrap the handler with Sentry. Returns the same ExportedHandler shape;
+// when SENTRY_DSN isn't bound, sentryOptions returns undefined and
+// withSentry passes through to the underlying handler unchanged.
+export default withSentry(sentryOptions, handler);

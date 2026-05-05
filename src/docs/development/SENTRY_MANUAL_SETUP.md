@@ -204,3 +204,76 @@ Note: this means errors occurring before or without consent will be invisible. W
 _Created: April 13, 2026 — Platform Hardening V1 Phase 9_
 _Updated: April 17, 2026 — Added consent gating evaluation (Phase 9 item #16)_
 _Updated: April 19, 2026 — CSP fixes, source map silent mode, GitHub stack trace linking, checklist refresh_
+_Updated: May 4, 2026 — Added MCP Worker section (BL-032 Phase 5)_
+
+---
+
+## MCP Worker (BL-032 Phase 5)
+
+The MCP server runs as a separate Cloudflare Worker at `mcp.globalstrategic.tech` ([architecture doc](./MCP_SERVER_REMOTE_BL-032.md)). It uses `@sentry/cloudflare` (not `@sentry/node`) — different SDK, different runtime, different project.
+
+### Sentry project
+
+Per [BL-032 Q6 (resolved 2026-05-03)](./MCP_SERVER_REMOTE_BL-032.md#q6-sentry-on-cloudflare-workers--sentrycloudflare-or-sentrynode), the MCP Worker uses a **separate Sentry project** from the website's. Rationale:
+
+- **Separation of concerns**: website events and Worker events have different threat models (HTML rendering vs. JSON-RPC API), different alert thresholds, and different SLO targets
+- **Quota isolation**: a runaway agent burning through Worker errors shouldn't drown out website signal in dashboards
+- **Cleaner team filtering**: each project gets its own member access list
+
+### One-time setup
+
+1. **Create the project in the Sentry dashboard**:
+   - Platform: **Cloudflare Workers**
+   - Name: `gst-mcp-server` (or similar)
+   - Team: same team as the website project
+2. **Copy the DSN** from the project's _Client Keys_ page
+3. **Add as a Wrangler secret** for both staging and production:
+
+```bash
+cd mcp-server
+wrangler secret put SENTRY_DSN --env staging
+# Paste the DSN at the prompt.
+wrangler secret put SENTRY_DSN --env production
+```
+
+### How it's wired
+
+The Worker entrypoint wraps its handler with `withSentry(optionsCallback, handler)` from `@sentry/cloudflare`. The options callback reads `env.SENTRY_DSN`; when absent, it returns `undefined` and `withSentry` passes through to the underlying handler unchanged (graceful skip — `wrangler dev` works without Sentry creds).
+
+Key files:
+
+- [`mcp-server/src/observability/sentry.ts`](../../../mcp-server/src/observability/sentry.ts) — `sentryOptions(env)`, `tagRequest(keyOwner, path)`, `captureException(error)`, re-export of `withSentry`
+- [`mcp-server/src/worker.ts`](../../../mcp-server/src/worker.ts) — wraps the default export with `withSentry(sentryOptions, handler)`; calls `tagRequest(auth.keyOwner, url.pathname)` after bearer auth resolves so per-request Sentry events carry attribution
+
+### Tags applied automatically
+
+| Tag        | Value                                     | Source                                                                        |
+| ---------- | ----------------------------------------- | ----------------------------------------------------------------------------- |
+| `service`  | `mcp-server`                              | `initialScope` in `sentryOptions`                                             |
+| `keyOwner` | `RP` / `AB` / etc. (or `unauthenticated`) | `tagRequest()` after bearer auth                                              |
+| `path`     | `/health` / `/mcp` / etc.                 | `tagRequest()` from the request URL                                           |
+| `release`  | (Wrangler-injected if configured)         | Optional — surface deploy SHA if `wrangler deploy --var GIT_SHA=...` is wired |
+
+### Privacy / what NOT to log
+
+The same discipline as the website's `@sentry/node` setup applies, with two MCP-specific reinforcements:
+
+1. **Bearer tokens never reach Sentry.** The safe-logger's auto-redaction belt (Authorization / Cookie / X-API-Key) is plumbed through. `withSentry`'s built-in request-data scrubbing catches any header values it sees; we never `console.log(request.headers)` (ESLint blocks raw `console.*` in `mcp-server/src/worker.ts` + `src/auth/**` — see [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md))
+2. **Tool inputs / outputs are not auto-captured.** The MCP request body (which contains the tool's user input — names, financial numbers, regulatory jurisdictions) is NOT included in Sentry events by default. If a future `BL-033` audit-logging surface needs full request retention, that's a separate decision with its own privacy review
+
+### Sample rate
+
+The `tracesSampleRate: 0.1` baseline (10% of requests get traced) keeps Sentry quota cost bounded under expected volume. [BL-032.75 (Production Observability Maturity)](./MCP_SERVER_OBSERVABILITY_BL-032_75.md) tunes this against measured baselines from the BL-032 soak week.
+
+### Alert rules
+
+The MCP project's alert rules are simpler than the website's — fewer error types, different thresholds. Initial set (configure manually in the Sentry dashboard):
+
+| Rule                          | Trigger                                                          | Action |
+| ----------------------------- | ---------------------------------------------------------------- | ------ |
+| MCP unhandled exception (any) | Any `error.unhandled` event                                      | Slack  |
+| Bearer auth failure burst     | More than 50 events with `event === 'auth.failed'` in 10 minutes | Slack  |
+| Inoreader budget breach       | Any event with `errorCode === 'inoreader-rate-limit'`            | Slack  |
+| 5xx rate                      | More than 1% of requests return 5xx in a 15-minute window        | Slack  |
+
+Refine these once BL-032.75 ships SLO targets. The substrate (Sentry init, structured logs, `keyOwner` tagging) is in place from BL-032 Phase 5.

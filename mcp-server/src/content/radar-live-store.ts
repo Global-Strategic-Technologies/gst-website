@@ -27,6 +27,7 @@ import {
   type InoreaderResult,
 } from '../lib/inoreader-worker';
 import { createCacheStore } from '../lib/upstash-cache-store';
+import { recordInoreaderStatus } from '../observability/inoreader-status';
 import { toSnapshotItem, type SnapshotItem } from './radar-transform';
 import type { Env } from '../worker';
 
@@ -83,7 +84,15 @@ export async function readWireLive(env: Env): Promise<LiveTierResult> {
   }
 
   const result = await fetchAllStreams(env);
-  if (!result.ok) return mapFailure(result);
+  if (!result.ok) {
+    // BL-032 Phase 5: record observed Inoreader status for /health
+    // surfacing. Best-effort; doesn't affect the failure response shape.
+    await recordInoreaderStatus(env, 'degraded', `wire:${result.reason}`);
+    return mapFailure(result);
+  }
+
+  // BL-032 Phase 5: record OK status so /health reflects fresh signal.
+  await recordInoreaderStatus(env, 'ok', 'wire');
 
   const items: SnapshotItem[] = [];
   for (const item of result.data.items) {
@@ -119,7 +128,12 @@ export async function readFyiLive(env: Env, count: number = 30): Promise<LiveTie
   }
 
   const result = await fetchAnnotatedItems(env, count);
-  if (!result.ok) return mapFailure(result);
+  if (!result.ok) {
+    await recordInoreaderStatus(env, 'degraded', `fyi:${result.reason}`);
+    return mapFailure(result);
+  }
+
+  await recordInoreaderStatus(env, 'ok', 'fyi');
 
   const items: SnapshotItem[] = [];
   for (const item of result.data.items) {

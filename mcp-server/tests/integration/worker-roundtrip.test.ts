@@ -40,18 +40,33 @@ afterAll(async () => {
 });
 
 describe('Worker roundtrip — Phase 1 transport spike', () => {
-  it('GET /health returns the Phase-1 stub payload', async () => {
+  it('GET /health returns the BACKLOG-shaped payload', async () => {
     const res = await worker.fetch('/health');
     expect(res.status).toBe(200);
 
-    const body = (await res.json()) as { ok: boolean; phase: string; version: string };
-    expect(body.ok).toBe(true);
-    // The phase string updates as substrate matures (Phase 1 → Phase 2 → ...);
-    // assert just the BL-032 marker so this test doesn't churn on every phase bump.
+    const body = (await res.json()) as {
+      ok: boolean;
+      phase: string;
+      version: string;
+      gitSha: string;
+      redis: string;
+      inoreader: string;
+    };
+    // The phase string updates as substrate matures; assert just the BL-032
+    // marker so this test doesn't churn on every phase bump.
     expect(body.phase).toContain('BL-032');
     // Version follows mcp-server/package.json — bumped to 0.1.0 in BL-032
     // Phase 4b (rename); will go to 0.2.0 when the deprecated alias retires.
     expect(body.version).toMatch(/^0\.[0-9]+\.[0-9]+$/);
+    // BL-032 Phase 5 health shape: redis + inoreader subsystem status.
+    // Without Upstash creds bound (unstable_dev test config), redis reports
+    // 'degraded' — that flips ok to false, which is the correct semantics.
+    expect(['ok', 'degraded']).toContain(body.redis);
+    expect(['ok', 'degraded', 'unknown']).toContain(body.inoreader);
+    // ok mirrors the subsystem state — true iff redis is reachable and
+    // inoreader isn't actively degraded.
+    expect(body.ok).toBe(body.redis === 'ok' && body.inoreader !== 'degraded');
+    expect(typeof body.gitSha).toBe('string');
   });
 
   it('non-MCP, non-health route does not throw — delegates to MCP handler which rejects', async () => {

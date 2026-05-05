@@ -25,9 +25,20 @@
 const SENSITIVE_HEADER_NAMES = new Set(['authorization', 'cookie', 'x-api-key']);
 const REDACTED = '[REDACTED]';
 
-/** Phase 2 log-event shape. Phase 5 extends. */
+/**
+ * Structured log-event shape. Phase 5 extends Phase 2's minimal envelope
+ * with the BACKLOG-specified observability fields:
+ *   { timestamp, keyOwner, tool, durationMs, success, errorCode }
+ *
+ * `tool` and `durationMs` are optional in Phase 5 — the Worker boundary
+ * doesn't pre-parse the MCP body to extract the tool name (that's a
+ * BL-032.75 maturity step that requires `request.clone()` + JSON-RPC
+ * parse before delegation, with a measurable latency cost). Tool-side
+ * logging (within each tool handler) records its own `tool` name when
+ * useful; the Worker layer logs the request envelope.
+ */
 export interface LogEvent {
-  /** Short event identifier — e.g. 'auth.ok', 'auth.failed', 'mcp.delegated'. */
+  /** Short event identifier — e.g. 'auth.ok', 'auth.failed', 'mcp.request'. */
   event: string;
   /** Stripped suffix of `MCP_KEY_*` for the authenticated request, if any. */
   keyOwner?: string;
@@ -35,8 +46,16 @@ export interface LogEvent {
   path?: string;
   /** Numeric response status. */
   status?: number;
-  /** Failure reason for `auth.failed` etc. — keep prose short and non-PII. */
+  /** Failure reason — keep prose short and non-PII. */
   reason?: string;
+  /** MCP tool name, when known. Populated by tool-side handlers; Worker boundary leaves blank (see module docstring above). */
+  tool?: string;
+  /** Wall-clock duration in milliseconds. Useful at handler boundaries; Worker layer measures end-to-end. */
+  durationMs?: number;
+  /** Whether the operation succeeded. Distinct from `status` — a 401 is "successful auth-rejection," not a service success. */
+  success?: boolean;
+  /** Structured error code for failure events — e.g. 'inoreader-rate-limit', 'token-stale'. */
+  errorCode?: string;
 }
 
 /**
