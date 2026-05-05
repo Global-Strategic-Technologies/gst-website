@@ -1,84 +1,640 @@
 # MCP Server Deploy Runbook
 
-> **Status**: Phase 1 skeleton — only § 1 (Prereqs) is authored. Sections 2-10 land in their respective phases per the [BL-032 architecture doc § DEPLOY.md outline](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#deploymd-outline-operator-step-by-step). Until the full runbook is in place, defer to that outline + the per-phase commit messages.
+> **Audience**: operator (engineer running `wrangler deploy` against staging or production) + future maintainer.
 >
-> **Audience**: operator (engineer running `wrangler deploy` against staging or production) + future maintainer. The team-member-consumer step-by-step lives at [`REMOTE_CLIENT_SETUP.md`](./REMOTE_CLIENT_SETUP.md) (lands Phase 2).
+> **How to use this doc**:
+>
+> - **First time deploying?** Read top-to-bottom. Part A (Initial Setup) is one-time-per-operator infrastructure work; Part B (First Deploy) walks you through the staging → soak → production flow; Part C (Ongoing Operations) is what you come back for after the first deploy
+> - **Already deployed once and need to do an op task?** Jump to the relevant section in **Part C**
+> - **Investigating an incident?** Jump straight to **Part C § C.4 — Tail and investigate** or **Part C § C.6 — Incident triage tree**
+>
+> **Companion docs** (this doc cross-references them at the right moments — you don't need to read them ahead of time, just follow the links when they appear):
+>
+> - [`AUTH.md`](./AUTH.md) — bearer-token model, key issuance/rotation/revocation commands
+> - [`REMOTE_CLIENT_SETUP.md`](./REMOTE_CLIENT_SETUP.md) — what team-members do to connect their Claude / Cursor / etc. clients
+> - [`RATE_LIMITS.md`](./RATE_LIMITS.md) — per-key budgets, RFC 9331 headers, circuit-breaker semantics
+> - [`SENTRY_MANUAL_SETUP.md` § MCP Worker](../../../../src/docs/development/SENTRY_MANUAL_SETUP.md) — Sentry project setup specifics
+> - [`MCP_SERVER_REMOTE_BL-032.md`](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md) — architecture decisions and the Q1–Q13 design rationale
 
 ---
 
-## 1. Prereqs (one-time)
+# Part A — Initial Setup (one-time)
 
-These check-and-confirm steps happen ONCE per operator. After this section, the operator can run `wrangler deploy --env staging|production`.
+These steps stand up the infrastructure the Worker needs. Done once per operator. Each subsection is self-contained — work through them top-to-bottom.
 
-### 1.1 Cloudflare account access
+## A.1 — Cloudflare account + Wrangler CLI
 
-- [ ] You have a Cloudflare account with Workers enabled. Free tier is sufficient for BL-032 traffic volumes (BACKLOG: ~100k req/day on free tier covers any plausible team usage). Paid plan becomes necessary for [BL-032.5](../../../../src/docs/development/MCP_SERVER_REMOTE_RESOURCES_PROMPTS_BL-032_5.md)'s Cron Triggers; for BL-032 itself, free tier is fine
-- [ ] `wrangler whoami` resolves to your Cloudflare email — if not, run `wrangler login` (browser-based OAuth flow)
-- [ ] You have `Edit Cloudflare Workers` permission on the account that owns `globalstrategic.tech` — confirm via the Cloudflare dashboard's **Account Members** page
+### What you need
 
-### 1.2 DNS zone ownership
+A Cloudflare account with **Workers** enabled. Free tier is sufficient for BL-032 (100k req/day on free tier covers any plausible team usage). Paid tier becomes necessary later for [BL-032.5's](../../../../src/docs/development/MCP_SERVER_REMOTE_RESOURCES_PROMPTS_BL-032_5.md) Cron Triggers; ignore for now.
 
-- [ ] The `globalstrategic.tech` zone is on Cloudflare DNS (confirmed during BL-032 planning per [Q10](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q10-dns-provisioning--mcpglobalstrategictech--out-of-band)). The website's Vercel deployment is fronted by this same Cloudflare DNS
-- [ ] You have access to the Cloudflare zone's **DNS** tab (needed in Phase 6 to add the `mcp.globalstrategic.tech` Worker custom-domain binding)
+### Steps
 
-### 1.3 Upstash project access
+1. **Confirm or create a Cloudflare account**:
+   - Go to <https://dash.cloudflare.com/> → sign in or sign up
+   - The account needs **Edit Cloudflare Workers** permission. If you're using your team's existing account that owns `globalstrategic.tech`, confirm via **Account Members → your email → Permissions**. If you're solo on a new account, this is automatic
+2. **Authenticate Wrangler locally** (`wrangler` is already installed as a `mcp-server/` devDependency — no global install needed):
+   ```bash
+   cd mcp-server
+   npx wrangler login
+   ```
+   This opens a browser tab for OAuth approval. After confirming, return to the terminal.
+3. **Verify**:
+   ```bash
+   npx wrangler whoami
+   ```
+   Should print your Cloudflare email. If it errors with "Not logged in," repeat step 2.
 
-- [ ] You have access to the Upstash Redis project that backs the website's ISR cache (Inoreader OAuth tokens + radar response cache). The same project is shared with the MCP Worker per [Q13's resolution](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q13-upstash-project-sharing-new). Access path: Vercel dashboard → Storage tab → click through to the linked Upstash project
-- [ ] You can generate a new REST token in the Upstash console — Phase 4 issues an `mcp-worker`-scoped token (separate from the website's), stored as the `UPSTASH_REDIS_REST_TOKEN` Wrangler secret
+### What you've completed
 
-### 1.4 Inoreader credentials access
+✅ Wrangler can deploy to your Cloudflare account.
 
-- [ ] You can read the website's Vercel env vars containing the Inoreader OAuth credentials (`INOREADER_APP_ID`, `INOREADER_APP_KEY`, `INOREADER_ACCESS_TOKEN`, `INOREADER_REFRESH_TOKEN`). Access path: `vercel env pull` from the project directory, OR the Vercel dashboard → Project Settings → Environment Variables
-- [ ] These values get **copied** (not shared) to the Worker via `wrangler secret put` in Phase 4. Both Vercel and Cloudflare end up holding the same values; the Worker is a **read-only** consumer of the OAuth tokens — token refresh remains the website's responsibility (see [Q4 / Q13 resolutions](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q4-inoreader-client-refactor--fork-or-generalize))
+---
 
-### 1.5 Sentry project
+## A.2 — DNS — Worker custom-domain bindings
 
-- [ ] A separate Sentry project exists for the MCP Worker (separate from the website's project, per [Q6](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q6-sentry-on-cloudflare-workers--sentrycloudflare-or-sentrynode)). Phase 5 wires the project's DSN as the `SENTRY_DSN` Wrangler secret; runtime errors are tagged `service:mcp-server`
+### What you need
 
-### 1.6 Initial bearer-key roster
+The `globalstrategic.tech` zone managed by Cloudflare DNS (already confirmed during BL-032 planning per [Q10](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q10-dns-provisioning--mcpglobalstrategictech--out-of-band)). The website's Vercel deployment is fronted by this same zone, so this is a check-and-confirm step rather than a setup step — **as long as the zone is on Cloudflare DNS, Wrangler creates the necessary subdomain records itself when you add a `routes` block to `wrangler.toml`**.
 
-- [ ] Decide who gets a `MCP_KEY_<INITIALS>` secret issued at first deploy. BL-032 baseline is **just the operator** for the one-week soak; full team rollout happens after the soak proves the surface stable. Per-key naming convention is documented in [`AUTH.md`](./AUTH.md) (lands Phase 2)
+### Steps
 
-### 1.7 Local validation gate
+1. **Verify zone is on Cloudflare**:
+   - <https://dash.cloudflare.com/> → your account → click `globalstrategic.tech`
+   - The zone overview page should show "Active" — if it says "Pending nameserver update," DNS isn't pointed at Cloudflare yet (pause and resolve before continuing)
+2. **Add the staging custom-domain binding to `wrangler.toml`**. Open [`mcp-server/wrangler.toml`](../../../wrangler.toml) and update the `[env.staging]` block:
+   ```toml
+   [env.staging]
+   name = "gst-mcp-staging"
+   routes = [
+     { pattern = "mcp-staging.globalstrategic.tech", custom_domain = true }
+   ]
+   ```
+   `custom_domain = true` tells Wrangler to create the DNS record automatically on first deploy — no manual zone edit required.
+3. **Add the production custom-domain binding** to the `[env.production]` block:
+   ```toml
+   [env.production]
+   name = "gst-mcp"
+   routes = [
+     { pattern = "mcp.globalstrategic.tech", custom_domain = true }
+   ]
+   ```
+4. **Commit the `wrangler.toml` change** alongside the deploy commit (Part B will reference this).
 
-Before any `wrangler deploy`, verify locally:
+### What you've completed
+
+✅ `wrangler.toml` declares the staging + production routes. The DNS records will be created automatically on first deploy of each env.
+
+---
+
+## A.3 — Upstash — generate the `mcp-worker` REST token
+
+### What you need
+
+The Upstash Redis project that backs the website's ISR cache. Per [Q13](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q13-upstash-project-sharing-new), the MCP Worker shares this project (so it can read the website's Inoreader OAuth tokens) but uses a **separate REST token** scoped to `mcp-worker` for rotation isolation.
+
+### Steps
+
+1. **Reach the Upstash console**, by either path:
+   - **From Vercel**: <https://vercel.com/> → your project → **Storage** tab → click the linked Upstash database → "Open in Upstash" button
+   - **Direct**: <https://console.upstash.com/> → Redis → select the project linked to the GST website
+2. **Generate a new REST token** for the Worker:
+   - In the project's **Details** page, scroll to **REST API** → **Tokens** section
+   - Click **Create New Token** (or equivalent — the UI is "REST Tokens" / "Tokens" depending on Upstash version)
+   - Name: `mcp-worker`
+   - Permissions: **Read and Write**
+   - Click **Create**
+   - **Copy the token immediately** — Upstash shows it once and never again. Save in 1Password / your password manager
+3. **Note both values** — you'll set them as Wrangler secrets:
+   - `UPSTASH_REDIS_REST_URL` — the project's REST API URL (visible in the Details page; same value as the website uses)
+   - `UPSTASH_REDIS_REST_TOKEN` — the new `mcp-worker` token you just created (NOT the website's token)
+4. **Set the secrets for staging**:
+   ```bash
+   cd mcp-server
+   npx wrangler secret put UPSTASH_REDIS_REST_URL --env staging
+   # Paste the URL at the prompt; press Enter
+   npx wrangler secret put UPSTASH_REDIS_REST_TOKEN --env staging
+   # Paste the mcp-worker token at the prompt
+   ```
+5. **Set the same secrets for production** (you can do this now even though we don't deploy production until Part B § B.6):
+   ```bash
+   npx wrangler secret put UPSTASH_REDIS_REST_URL --env production
+   npx wrangler secret put UPSTASH_REDIS_REST_TOKEN --env production
+   ```
+6. **Verify the secrets are set** (lists names only — values are never retrievable):
+   ```bash
+   npx wrangler secret list --env staging
+   npx wrangler secret list --env production
+   ```
+   Both should include `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
+
+### What you've completed
+
+✅ Worker has read+write access to the Upstash project (with namespace prefix `mcp:` to avoid colliding with website-owned `inoreader:*` keys per Q13). Worker is read-only for `inoreader:*` per Q4 — the code enforces this; no token-level scoping needed.
+
+---
+
+## A.4 — Inoreader credentials — copy from Vercel
+
+### What you need
+
+The four Inoreader OAuth secrets the website uses, copied from Vercel's environment to Wrangler secrets. These are the **same values** stored in **separate stores** — both Vercel and Cloudflare end up holding the same data.
+
+The Worker reads OAuth tokens from Upstash first ([Q4](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q4-inoreader-client-refactor--fork-or-generalize)); these env-var copies are the seed/fallback values.
+
+### Steps
+
+1. **Pull the Inoreader env vars from Vercel** to a local file:
+   ```bash
+   # From the gst-website repo root (NOT mcp-server/):
+   npx vercel env pull .env.vercel.local
+   ```
+   This dumps the project's environment variables into `.env.vercel.local`. The file is gitignored (`.env*` already covered) but treat it as sensitive — delete it once you're done copying.
+2. **Extract the four Inoreader values**:
+   ```bash
+   grep -E '^INOREADER_' .env.vercel.local
+   ```
+   You should see `INOREADER_APP_ID`, `INOREADER_APP_KEY`, `INOREADER_ACCESS_TOKEN`, `INOREADER_REFRESH_TOKEN` — four lines. If any are missing, check the Vercel dashboard's **Settings → Environment Variables** to ensure they exist on the Vercel side first.
+3. **Set each as a Wrangler secret for both envs**:
+   ```bash
+   cd mcp-server
+   for ENV in staging production; do
+     npx wrangler secret put INOREADER_APP_ID --env $ENV         # paste the value
+     npx wrangler secret put INOREADER_APP_KEY --env $ENV
+     npx wrangler secret put INOREADER_ACCESS_TOKEN --env $ENV
+     npx wrangler secret put INOREADER_REFRESH_TOKEN --env $ENV
+   done
+   ```
+   (The bash loop is for clarity — in practice you'll paste each value individually since `wrangler secret put` is interactive. Eight `wrangler secret put` invocations total, four per env.)
+4. **Delete the local file** once you're done — it has the secrets in plaintext:
+   ```bash
+   rm .env.vercel.local
+   ```
+
+### What you've completed
+
+✅ Worker has the Inoreader app + OAuth credentials. The radar-live tools will use them to make API calls (read-only — the website remains the sole token-refresh writer per [Q4](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q4-inoreader-client-refactor--fork-or-generalize)).
+
+---
+
+## A.5 — Sentry — create new project + DSN secret
+
+### What you need
+
+A **new** Sentry project (separate from the website's per [Q6](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q6-sentry-on-cloudflare-workers--sentrycloudflare-or-sentrynode)). Full step-by-step lives in [`SENTRY_MANUAL_SETUP.md` § MCP Worker](../../../../src/docs/development/SENTRY_MANUAL_SETUP.md#mcp-worker-bl-032-phase-5).
+
+### Steps
+
+1. **Follow `SENTRY_MANUAL_SETUP.md` § MCP Worker → "One-time setup"** to:
+   - Create the project in the Sentry dashboard (platform: Cloudflare Workers, name: `gst-mcp-server`)
+   - Copy the DSN from the project's Client Keys page
+2. **Set the DSN as a Wrangler secret** for both envs (this step is in that doc, repeated here for the linear flow):
+   ```bash
+   cd mcp-server
+   npx wrangler secret put SENTRY_DSN --env staging
+   # Paste the DSN at the prompt
+   npx wrangler secret put SENTRY_DSN --env production
+   ```
+3. **Optional — alert rules** can be configured per `SENTRY_MANUAL_SETUP.md` § MCP Worker → "Alert rules" later. They aren't blocking for the first deploy.
+
+### What you've completed
+
+✅ Worker exceptions and traces flow to a dedicated MCP Sentry project. Until the first deploy actually serves traffic, no events will appear there.
+
+---
+
+## A.6 — Initial bearer key (just yourself for the soak)
+
+### What you need
+
+One bearer token for yourself, named `MCP_KEY_<INITIALS>` per the [`AUTH.md`](./AUTH.md#key-naming-convention) convention. BL-032's baseline is **only the operator** during the one-week soak; full team rollout happens in Part C § C.1 after production stabilizes.
+
+### Steps
+
+1. **Generate a cryptographically-random token**:
+   ```bash
+   openssl rand -base64 32 | tr -d '=' | tr '/+' '_-'
+   ```
+   Output is ~43 chars, base64url-encoded. Copy it.
+2. **Save the token in 1Password / your password manager** with a note like "GST MCP — RP — staging+production". You'll use this value to configure your own client (Part B § B.4) AND when production is wired up.
+3. **Set as a Wrangler secret for staging**:
+   ```bash
+   cd mcp-server
+   npx wrangler secret put MCP_KEY_RP --env staging
+   # Paste the token value at the prompt
+   ```
+   Replace `RP` with your own initials. The **suffix becomes your `keyOwner`** in logs (per [`AUTH.md` § Attribution in logs](./AUTH.md#attribution-in-logs)).
+4. **Skip production for now**. The production key is set in Part B § B.6 just before the production deploy — keeping it unset until the staging soak proves the surface stable.
+
+### What you've completed
+
+✅ One bearer key for yourself, on staging. The full [`AUTH.md`](./AUTH.md) reference covers token-value generation + the rotation/revocation runbooks for later.
+
+---
+
+## A.7 — Local validation gate
+
+Before any `wrangler deploy`, verify the local build works. This catches the most common deploy-time blocker (a broken bundle) before it reaches Cloudflare's edge.
+
+### Steps
 
 ```bash
 cd mcp-server
-npm test                         # all tests green (320+ vitest)
-npm run typecheck                # tsc --noEmit clean
-npx wrangler deploy --dry-run --env staging   # bundle builds successfully
+npm test                                                # all tests green (380+ vitest)
+npm run typecheck                                       # tsc --noEmit clean
+npx wrangler deploy --dry-run --env staging            # bundle builds successfully
 ```
 
 If any of these fail, **do not deploy** — fix locally first.
 
+### What you've completed
+
+✅ Local toolchain is green. Ready to deploy.
+
 ---
 
-## 2. Pre-deploy local checks (Phase 1+ — partial; full check sequence Phase 6)
+# Part B — First Deploy (one-time, sequential)
 
-> **Phase 1 status**: the local validation gate in § 1.7 is the only check needed for Phase 1. Sections 2-10 below are placeholders for the runbook content that lands as each subsequent phase ships.
+Work through these in order. Don't skip B.5 (the soak window) — production deploy is gated on staging being stable for one week.
 
-## 3. Deploy to staging (Phase 6)
+## B.1 — Local pre-flight
 
-_Pending Phase 6 — deploy + soak._
+Run the validation gate from § A.7 one more time as the literal pre-deploy check. Skip if you just ran it.
 
-## 4. Deploy to production (Phase 6)
+```bash
+cd mcp-server
+npm test
+npm run typecheck
+npx wrangler deploy --dry-run --env staging
+```
 
-_Pending Phase 6 — deploy + soak._
+All three green → proceed.
 
-## 5. Add a new team-member key (Phase 2 / Phase 6)
+---
 
-_Phase 2 documents the bearer-token model in [`AUTH.md`](./AUTH.md); Phase 6 documents the operational onboarding sequence here._
+## B.2 — Deploy to staging
 
-## 6. Rotate a key (Phase 2 / Phase 6)
+```bash
+cd mcp-server
+npm run deploy:staging
+```
 
-_Phase 2 documents the rotation runbook in [`AUTH.md`](./AUTH.md); Phase 6 references it here._
+Equivalent to `wrangler deploy --env staging`. Wrangler:
 
-## 7. Rollback (Phase 6)
+1. Bundles the Worker (`src/worker.ts` + dependencies, ~2.5MB / 494KB gzip)
+2. Uploads to Cloudflare
+3. **Creates the `mcp-staging.globalstrategic.tech` DNS record** because of the `custom_domain = true` declaration in `wrangler.toml` (added in § A.2). Wrangler may prompt to confirm the route binding the first time — answer yes
+4. Issues an SSL cert for the subdomain (Cloudflare handles this automatically on a Cloudflare-managed zone)
 
-_Pending Phase 6 — once the staging→production deploy flow is established._
+Expected output ends with something like:
 
-## 8. Tail and investigate
+```
+Deployed gst-mcp-staging triggers (Xs)
+  https://mcp-staging.globalstrategic.tech
+Current Version ID: <uuid>
+```
+
+If the deploy fails with a **route conflict**, the subdomain may already exist from a prior attempt — go to Cloudflare dashboard → zone → DNS, delete any existing `mcp-staging` record, retry.
+
+---
+
+## B.3 — Smoke validation
+
+A 7-step curl sequence to verify each layer of the request flow. Run these against the staging URL immediately after § B.2 completes.
+
+> Set this in your shell so you don't repeat the URL:
+>
+> ```bash
+> export MCP_URL=https://mcp-staging.globalstrategic.tech
+> export MCP_KEY=<your-MCP_KEY_RP-token-value>
+> ```
+
+### B.3.1 — Health endpoint responds
+
+```bash
+curl $MCP_URL/health | jq
+```
+
+Expected (right after first deploy, before any radar traffic):
+
+```json
+{
+  "ok": false,
+  "version": "0.1.0",
+  "gitSha": "unknown",
+  "phase": "BL-032 Phase 5 (observability)",
+  "redis": "ok",
+  "inoreader": "unknown",
+  "inoreaderObservedAt": null
+}
+```
+
+`ok: false` is **expected** initially because `inoreader: 'unknown'` — but `inoreader: 'unknown'` is NOT a degraded signal, just "no recent traffic." It flips to `'ok'` after the first successful radar-tool call (B.3.6 below). `redis: 'ok'` confirms Upstash is reachable.
+
+### B.3.2 — Bearer auth blocks unauthenticated calls
+
+```bash
+curl -i $MCP_URL/mcp -X POST -d '{}'
+```
+
+Expected: `HTTP/2 401`, `WWW-Authenticate: Bearer realm="gst-mcp"`, JSON body `{"error":"unauthorized","message":"Missing Authorization header"}`.
+
+### B.3.3 — Bearer auth accepts the valid key
+
+Use a proper MCP `tools/list` JSON-RPC request:
+
+```bash
+curl -s $MCP_URL/mcp \
+  -H "Authorization: Bearer $MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -X POST \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | jq '.result.tools[] | .name'
+```
+
+Expected output: 11 tool names (10 transport-portable + the deprecated alias):
+
+```
+"assess_infrastructure_cost_governance"
+"compute_techpar"
+"estimate_tech_debt_cost"
+"generate_diligence_agenda"
+"get_latest_insights"
+"list_portfolio_facets"
+"list_regulation_facets"
+"search_portfolio"
+"search_radar"
+"search_radar_cache"
+"search_radar_offline"
+"search_regulations"
+```
+
+(The `search_radar_cache` and `search_radar_offline` together count as one in the BACKLOG-shipped surface; the alias is one-release deprecation per [BREAKING_CHANGES.md](../../../BREAKING_CHANGES.md).)
+
+### B.3.4 — Invoke a non-radar tool
+
+```bash
+curl -s $MCP_URL/mcp \
+  -H "Authorization: Bearer $MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -X POST \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_portfolio_facets","arguments":{}}}' | jq
+```
+
+Expected: a JSON response with `result.content[0].text` containing the deduplicated themes / engagement categories / etc. for the M&A portfolio.
+
+### B.3.5 — Verify rate-limit headers
+
+The response from B.3.4 should include:
+
+```
+RateLimit-Limit: 60
+RateLimit-Remaining: 59
+RateLimit-Reset: <seconds-until-window-resets>
+```
+
+If `RateLimit-*` headers are absent, the limiter took the graceful-skip path → Upstash creds aren't bound or aren't reachable. Re-check § A.3.
+
+### B.3.6 — Invoke a radar tool (live Inoreader call)
+
+```bash
+curl -s $MCP_URL/mcp \
+  -H "Authorization: Bearer $MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -X POST \
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search_radar","arguments":{"category":"pe-ma"}}}' | jq '.result.content[0].text' | jq -r . | jq '.matches | length'
+```
+
+Expected: a non-zero integer. The first call fetches from Inoreader (~6 API calls); subsequent calls within 6h hit the Upstash cache.
+
+Re-run § B.3.1 health check — `inoreader` should now be `"ok"` and `inoreaderObservedAt` populated:
+
+```bash
+curl $MCP_URL/health | jq
+```
+
+### B.3.7 — Hammer the rate limiter
+
+100 requests in fast succession should return 429s after the 60th:
+
+```bash
+for i in $(seq 1 70); do
+  curl -s -o /dev/null -w "%{http_code}\n" \
+    -H "Authorization: Bearer $MCP_KEY" \
+    -H "Content-Type: application/json" \
+    -X POST \
+    -d '{"jsonrpc":"2.0","id":'$i',"method":"tools/list","params":{}}' \
+    $MCP_URL/mcp
+done | sort | uniq -c
+```
+
+Expected output (approximate):
+
+```
+  60 200
+  10 429
+```
+
+The 429 responses include `RateLimit-*` headers and `Retry-After: <seconds>`. Wait the `RateLimit-Reset` window before continuing.
+
+---
+
+If any of B.3.1 – B.3.7 fail unexpectedly, jump to **Part C § C.6 — Incident triage tree** for diagnosis.
+
+---
+
+## B.4 — Configure your own client against staging
+
+Use [`REMOTE_CLIENT_SETUP.md`](./REMOTE_CLIENT_SETUP.md) to point Claude Desktop / Claude Code / Cursor at the staging URL. The walkthrough has per-client snippets.
+
+For a quick smoke from inside Claude Desktop after configuring:
+
+> _"List the GST portfolio facets."_
+
+The response should reference the deduplicated themes / engagement categories from your dataset. If Claude says "I don't have access to that tool," the client config didn't pick up the new server — restart the client.
+
+---
+
+## B.5 — Soak for one week
+
+Use the staging deploy as your daily MCP. Watch for:
+
+- **Sustained `ratelimit.skipped` log lines** → Upstash unreachable; check Wrangler secrets and Upstash status
+- **Inoreader 429s** → circuit breaker should engage cleanly; verify with `/health` showing `inoreader: "degraded"` and the radar tools returning structured 503s
+- **Claude Desktop / Claude Code reconnects after restart** without re-prompting → connection persistence is working
+- **Sentry events** → if you set up the alert rules in § A.5, you should see baseline traffic but no error noise
+
+After ~7 days of routine use without surfacing real issues, proceed to § B.6.
+
+---
+
+## B.6 — Deploy to production
+
+Production secrets were already provisioned in § A.3, A.4, A.5. The remaining step is the production bearer key + the deploy.
+
+### Steps
+
+1. **Set your production bearer key** (re-using the SAME token value as staging — operator convenience for the soak; rotate later):
+   ```bash
+   cd mcp-server
+   npx wrangler secret put MCP_KEY_RP --env production
+   # Paste the SAME value from § A.6
+   ```
+2. **Deploy**:
+   ```bash
+   npm run deploy:production
+   ```
+   Equivalent to `wrangler deploy --env production`. Same flow as B.2 but against `mcp.globalstrategic.tech`.
+3. **Smoke against production**: re-run § B.3.1 through B.3.7 with `MCP_URL=https://mcp.globalstrategic.tech`. Same expectations.
+4. **End-to-end verify from Claude Desktop**: re-do § B.4 with the production URL, run the same smoke prompt.
+
+If any production smoke fails:
+
+- **Auth or rate-limit issue** → check `wrangler secret list --env production`; ensure all secrets are present
+- **DNS not resolving** → wait 1-2 minutes for the new DNS record to propagate; if persistent, check Cloudflare dashboard → DNS for `mcp.globalstrategic.tech`
+- **5xx errors** → roll back per Part C § C.3 and investigate
+
+---
+
+## B.7 — Post-deploy doc cleanup
+
+The consumer-facing setup doc has placeholder URLs that need updating once production is live.
+
+### Steps
+
+1. **Open** [`REMOTE_CLIENT_SETUP.md`](./REMOTE_CLIENT_SETUP.md)
+2. **Replace** all instances of `<PROD_URL_PLACEHOLDER>` (or whatever the staging URL was used in the file) with the actual production URL `https://mcp.globalstrategic.tech/mcp`
+3. **Update the status banner** at the top of the doc to reflect "production live as of YYYY-MM-DD"
+4. **Commit** the doc-only change and merge
+
+This unblocks team-member onboarding (Part C § C.1).
+
+---
+
+# Part C — Ongoing Operations
+
+After Part B, this is the day-to-day reference. No need to read sequentially — jump to whichever section applies.
+
+## C.1 — Add a new team-member key
+
+> See [`AUTH.md` § Issue a new key](./AUTH.md#issue-a-new-key) for the canonical command reference. This section adds the operational onboarding sequence.
+
+### When to do this
+
+A team-member (e.g., "AB") needs MCP access. Confirm with them:
+
+- They're using a Claude/Cursor client that supports remote MCP (see [`REMOTE_CLIENT_SETUP.md`](./REMOTE_CLIENT_SETUP.md))
+- They have a 1Password / password-manager vault you can share into
+
+### Steps
+
+1. **Generate a fresh token**:
+   ```bash
+   openssl rand -base64 32 | tr -d '=' | tr '/+' '_-'
+   ```
+2. **Store in 1Password** with a note "GST MCP — AB — production". Share the entry to AB's vault
+3. **Set the secret on production** (skip staging unless they specifically need staging access for testing):
+   ```bash
+   cd mcp-server
+   npx wrangler secret put MCP_KEY_AB --env production
+   # Paste the token value
+   ```
+   The Worker picks up new secrets within ~30 seconds (next isolate cold-start). For an immediate effect, force a redeploy:
+   ```bash
+   npm run deploy:production
+   ```
+4. **Notify AB**: send them a link to [`REMOTE_CLIENT_SETUP.md`](./REMOTE_CLIENT_SETUP.md) and tell them their token is in 1Password
+5. **Verify with AB**: ask them to run a smoke prompt in their client. If they see tool results, you're done. If they see 401, walk them through the troubleshooting tree in REMOTE_CLIENT_SETUP.md
+6. **Update your team-member-roster** (kept in 1Password / shared spreadsheet) with AB's `keyOwner` suffix and the date issued
+
+---
+
+## C.2 — Rotate / revoke a key
+
+> See [`AUTH.md` § Rotate a key](./AUTH.md#rotate-a-key) and [`AUTH.md` § Revoke a key (permanent)](./AUTH.md#revoke-a-key-permanent) for command reference.
+
+### Rotation triggers
+
+| Trigger                                                                                | Urgency       | Action                                                                                                                                                                 |
+| -------------------------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Suspected token compromise (pasted into wrong channel, etc.)                           | **Immediate** | Rotate now; investigate after                                                                                                                                          |
+| Team-member offboarding                                                                | **Immediate** | Revoke (delete, no re-issue)                                                                                                                                           |
+| Suspicious traffic from one keyOwner (origins not matching their normal usage pattern) | **Immediate** | Rotate; investigate via `wrangler tail`                                                                                                                                |
+| Periodic prophylactic rotation                                                         | **Eventual**  | TBD; BL-032 doesn't enforce. Automated quarterly rotation is a [BL-033](../../../../src/docs/development/BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3) concern |
+
+### Rotate (compromise)
+
+1. **Generate the new token** (`openssl rand -base64 32 | tr -d '=' | tr '/+' '_-'`)
+2. **Delete and re-set the secret** for both envs:
+
+   ```bash
+   cd mcp-server
+   npx wrangler secret delete MCP_KEY_AB --env staging
+   npx wrangler secret put MCP_KEY_AB --env staging
+   # Paste the NEW token
+
+   npx wrangler secret delete MCP_KEY_AB --env production
+   npx wrangler secret put MCP_KEY_AB --env production
+   ```
+
+3. **Update 1Password** with the new value (share to the team-member's vault)
+4. **Notify the team-member**: their old token is dead; update their client config with the new one
+5. **Force redeploy** for an immediate effect:
+   ```bash
+   npm run deploy:staging && npm run deploy:production
+   ```
+6. **Investigate the compromise**: check `wrangler tail` for the rotation window's traffic on the old `keyOwner`; check Sentry for unusual events
+
+### Revoke (offboarding)
+
+```bash
+cd mcp-server
+npx wrangler secret delete MCP_KEY_AB --env staging
+npx wrangler secret delete MCP_KEY_AB --env production
+npm run deploy:production    # force pickup
+```
+
+The team-member's client now returns 401 on all calls. No re-issue. Update your team-member-roster.
+
+---
+
+## C.3 — Rollback
+
+### When to roll back
+
+| Symptom                                                                                      | Roll back?                                                          |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Unhandled exception storm in Sentry post-deploy                                              | **Yes**, immediately                                                |
+| Sustained 5xx rate (>1% over 15 min) post-deploy                                             | **Yes**                                                             |
+| `/health` reports `redis: 'degraded'` for >5 min post-deploy and Upstash status page is fine | **Probably yes** — config regression                                |
+| One specific tool returns wrong results                                                      | **Maybe** — depends on user impact; sometimes fix-forward is faster |
+| Performance regression but no errors                                                         | **Investigate first**; rollback if fix takes >1 hour                |
+
+### Rollback steps
+
+```bash
+cd mcp-server
+npx wrangler rollback --env production
+# Wrangler shows a list of recent versions; pick the previous version
+```
+
+The rollback takes effect within seconds. Verify:
+
+```bash
+curl https://mcp.globalstrategic.tech/health | jq
+```
+
+`version` field should reflect the previous deploy's version number (or git SHA, if injected). Run § B.3 smoke again to confirm subsystems are healthy.
+
+### After rollback — investigate
+
+1. **Capture the broken state in a Sentry issue** if you haven't already (any unhandled exceptions captured by withSentry are already there)
+2. **Check the deploy diff** — `git log <previous>..<broken>` to see what shipped
+3. **Reproduce locally** with `wrangler dev` against the broken commit; identify the regression
+4. **Fix on a branch**, run the full local validation gate (§ A.7), redeploy
+
+---
+
+## C.4 — Tail and investigate
 
 `wrangler tail --env production` (or `--env staging`) attaches to the Worker's structured-log stream in real time. Every authenticated request emits one JSON line via `safeLog`; failures emit additional context. Common patterns:
 
@@ -106,7 +662,7 @@ Common fingerprints and what they mean:
 | `"event":"ratelimit.skipped","reason":"upstash-not-bound"` | Upstash creds missing or unreachable at request time                                               | Check Wrangler secrets; check Upstash status page                                                                                    |
 | `"event":"mcp.request","success":false`                    | Tool invocation completed with a 4xx status. Most often: invalid input or tool-side error envelope | Check the structured `errorCode` field                                                                                               |
 | Sentry: any `error.unhandled` from a Worker isolate        | Unexpected throw in handler code path                                                              | Check the stacktrace; usually indicates a bug. Capture, fix, ship                                                                    |
-| `errorCode:"inoreader-rate-limit"`                         | Inoreader returned 429 — circuit breaker just opened                                               | See § 9 below                                                                                                                        |
+| `errorCode:"inoreader-rate-limit"`                         | Inoreader returned 429 — circuit breaker just opened                                               | See § C.5 below                                                                                                                      |
 
 `/health` reports the cached subsystem status (Q8 — never burns Inoreader budget). Useful as a pre-investigation sanity check:
 
@@ -118,7 +674,7 @@ Surfaces `redis` reachability, last observed `inoreader` status (`ok` / `degrade
 
 ---
 
-## 9. Inoreader budget recovery
+## C.5 — Inoreader budget recovery
 
 The radar tools share a 6-hour global circuit breaker (Phase 3 substrate, Phase 4c trigger — see [RATE_LIMITS.md](./RATE_LIMITS.md) § Circuit breaker for the full design). When Inoreader returns 429:
 
@@ -155,7 +711,7 @@ At typical usage, total is well under 200/day. If the per-key cap isn't sufficie
 
 ---
 
-## 10. Incident triage tree
+## C.6 — Incident triage tree
 
 A bounded decision tree for "the MCP is broken" reports. Walk through these in order:
 
@@ -166,7 +722,7 @@ A bounded decision tree for "the MCP is broken" reports. Walk through these in o
 
 2. **Which subsystem is degraded?** Read the `/health` JSON:
    - `redis: 'degraded'` → Upstash unreachable or misconfigured. Check Upstash status; check Wrangler secrets via `wrangler secret list --env production`; verify `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` are set. Worker still serves auth + non-radar tools (rate-limit just falls open with a warning); radar tools may degrade when their cache writes fail
-   - `inoreader: 'degraded'` → Last Inoreader call failed (429, 5xx, or timeout). See § 9 — usually circuit-breaker handling is correct; investigate if alerts surface this for >1 hour
+   - `inoreader: 'degraded'` → Last Inoreader call failed (429, 5xx, or timeout). See § C.5 — usually circuit-breaker handling is correct; investigate if alerts surface this for >1 hour
    - `inoreader: 'unknown'` with no recent radar traffic → Not a problem. If radar traffic is expected and `inoreaderObservedAt` is null after 30+ min, something's wrong with the radar tools' status reporting (check Sentry)
 
 3. **Are users seeing 401s but the operator confirms keys are configured?**
@@ -175,7 +731,7 @@ A bounded decision tree for "the MCP is broken" reports. Walk through these in o
 
 4. **Are users seeing 429s on legitimate work?**
    - One user → check their tool-call pattern; if they're authoring an agent loop, raise the budget temporarily or have them switch to `search_radar_offline` (stdio-only, doesn't count against the budget)
-   - All users → see § 9 ("When the budget itself is the problem")
+   - All users → see § C.5 ("When the budget itself is the problem")
 
 5. **Worker is up, subsystems are healthy, users still complain something doesn't work.**
    - Look at the actual MCP error envelopes the user is seeing — they carry structured `error` codes that map directly to causes in [USAGE_REMOTE.md](./REMOTE_CLIENT_SETUP.md#troubleshoot)
@@ -192,4 +748,4 @@ The MCP server's blast radius is bounded — it's an internal tool, BL-033 hasn'
 
 ---
 
-_Last updated: 2026-05-04 (Phase 5 — sections 8-10 authored)_
+_Last updated: 2026-05-04 — Phase 6 deploy runbook, end-to-end walkthrough authored. Part A (initial setup), Part B (first deploy), Part C (ongoing operations) all complete._
