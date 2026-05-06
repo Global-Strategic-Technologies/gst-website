@@ -54,26 +54,110 @@ npm run dev:worker
 
 Use `http://localhost:<port>/mcp` in the snippets below until the Phase 6 URLs land.
 
-### Claude Desktop (macOS)
+### Claude Desktop
 
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
+> ⚠️ **Important — current Claude Desktop's Connectors UI is OAuth-only**
+>
+> Claude Desktop ships a **Settings → Connectors → Add custom connector** UI that looks tempting, but as of 2026-05 it only supports OAuth-authenticated remote MCP servers (the form has only `OAuth Client ID` / `OAuth Client Secret` fields under Advanced settings). Our Worker uses static bearer tokens (per [Q11](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q11-token-rotation-cadence--runbook)), so the Connectors UI **cannot authenticate against this Worker**. Instead, use the JSON config file + `mcp-remote` bridge approach below.
+>
+> (OAuth support in the Worker is deferred to BL-033 when external clients raise the auth-flow stakes; until then, all Claude Desktop access goes through the bridge.)
+
+#### Step 1 — Install the `mcp-remote` bridge globally
+
+`mcp-remote` proxies a remote HTTP/SSE MCP server as a stdio process Claude Desktop can spawn. Pre-install it globally so Claude Desktop spawns it from npm's global bin (no `npx` indirection):
+
+```bash
+npm install -g mcp-remote
+```
+
+Verify install:
+
+```bash
+# bash / zsh / Git Bash:
+which mcp-remote
+# PowerShell:
+where.exe mcp-remote
+```
+
+Should print a path like `~/.npm-global/bin/mcp-remote` (macOS/Linux) or `C:\Users\<you>\AppData\Roaming\npm\mcp-remote.cmd` (Windows). **This path must not contain spaces** — Windows users on the default `C:\Program Files\nodejs\` install can otherwise trip a known cmd.exe gotcha (see "Windows gotchas" below).
+
+#### Step 2 — Locate the config file
+
+| Platform                         | Path                                                                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| macOS                            | `~/Library/Application Support/Claude/claude_desktop_config.json`                                                              |
+| Linux                            | `~/.config/Claude/claude_desktop_config.json`                                                                                  |
+| Windows — direct installer       | `%APPDATA%\Claude\claude_desktop_config.json` (resolves to `C:\Users\<you>\AppData\Roaming\Claude\claude_desktop_config.json`) |
+| Windows — Microsoft Store / MSIX | `%LOCALAPPDATA%\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\claude_desktop_config.json`                            |
+
+> **MSIX vs direct installer**: if `Test-Path "$env:APPDATA\Claude"` is `False` on Windows but Claude Desktop is clearly installed and running, you have the MSIX (Store) variant. The Store sandbox redirects `%APPDATA%\Claude` writes into the per-package LocalCache. Use the second path. If you're unsure, search both:
+>
+> ```powershell
+> Get-ChildItem -Path "$env:APPDATA","$env:LOCALAPPDATA" -Directory -Recurse -Depth 4 -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq "Claude" -and $_.Parent.Name -match "Roaming|Claude_" }
+> ```
+
+The file may not exist yet on first MCP setup; create the directory + file as needed.
+
+#### Step 3 — Add the GST connector entry
 
 ```json
 {
   "mcpServers": {
-    "gst-tools-remote": {
-      "url": "https://mcp.globalstrategic.tech/mcp",
-      "headers": {
-        "Authorization": "Bearer YOUR_TOKEN_HERE"
-      }
+    "gst-mcp-staging": {
+      "command": "mcp-remote",
+      "args": [
+        "https://mcp-staging.globalstrategic.tech/mcp",
+        "--header",
+        "Authorization: Bearer YOUR_TOKEN_HERE"
+      ]
     }
   }
 }
 ```
 
-### Claude Desktop (Windows)
+> Replace `YOUR_TOKEN_HERE` with your `MCP_KEY_<INITIALS>` value (from your password manager). For production, use `gst-mcp` and the `mcp.globalstrategic.tech` URL — same shape.
 
-Edit `%APPDATA%\Claude\claude_desktop_config.json` — same JSON shape as macOS. The path resolves to something like `C:\Users\<you>\AppData\Roaming\Claude\claude_desktop_config.json`.
+If the file already had `mcpServers` entries (other MCP servers configured), **merge** by adding `gst-mcp-staging` as a sibling key — don't overwrite the file content.
+
+#### Step 4 — Quit + restart Claude Desktop
+
+Right-click the Claude Desktop tray icon → **Quit** (NOT just close window — Claude Desktop runs in tray after window close). Re-launch from Start menu / launcher / Applications. Config is read once at launch.
+
+#### Step 5 — Verify
+
+The Connectors menu (chat input "+" → Connectors) should now show an enabled `gst-mcp-staging` entry with an `Add from gst-mcp-staging` submenu listing the GST tools/prompts.
+
+Smoke prompt in a fresh conversation:
+
+> _Using gst-mcp-staging, list the GST portfolio facets._
+
+(Naming the connector explicitly avoids ambiguity if you also have a local stdio `gst` connector.) Expected: Claude calls `list_portfolio_facets` and returns the deduplicated themes / engagement categories from the GST M&A dataset.
+
+#### Windows gotchas
+
+Windows operators commonly hit four issues; each has a targeted workaround:
+
+1. **`%APPDATA%\Claude\` doesn't exist** — you have the MSIX/Store variant. Use the LocalCache path from the table above.
+
+2. **`'C:\Program' is not recognized as a command`** when Claude Desktop tries to spawn the bridge. Cause: Claude Desktop resolves `npx` to `C:\Program Files\nodejs\npx.cmd` and passes the unquoted path through `cmd /C`, which mis-parses the space. Fix: use the globally-installed `mcp-remote` directly (from npm's spaceless global bin) — that's why Step 1 says install globally rather than relying on `npx -y mcp-remote` in the config args.
+
+3. **Could not load app settings → "Unexpected token", "{...}" is not valid JSON** when restarting Claude Desktop after editing the config in PowerShell. Cause: PowerShell 5.1's `Set-Content -Encoding utf8` writes a UTF-8 BOM at the file start; Claude Desktop's JSON parser rejects it. Fix: write via .NET's `WriteAllText` with no-BOM encoding:
+
+   ```powershell
+   $path = "<full path to claude_desktop_config.json>"
+   $json = @'
+   { ... your JSON content ... }
+   '@
+   [System.IO.File]::WriteAllText($path, $json, [System.Text.UTF8Encoding]::new($false))
+   ```
+
+   Verify no BOM: `[System.IO.File]::ReadAllBytes($path)[0..2]` should print `123, 10, 32` (`{`, newline, space) — NOT `239, 187, 191` (BOM bytes).
+
+4. **Connector shows "Server disconnected"** in Claude Desktop's UI even though the config looks correct. Click **Open developer settings** in the error banner — it exposes the actual stderr from the failed spawn. Most common: PATH issues, Program-Files-space breakage, or stale token. Cross-check with a manual bridge test from a separate terminal:
+   ```bash
+   mcp-remote https://mcp-staging.globalstrategic.tech/mcp --header "Authorization: Bearer YOUR_TOKEN_HERE"
+   ```
+   If this prints "Connected to remote server using StreamableHTTPClientTransport" and "Proxy established successfully," the bridge itself is fine and the issue is Claude Desktop's spawn config or restart.
 
 ### Claude Code (project-level)
 
