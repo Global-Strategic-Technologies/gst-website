@@ -839,6 +839,19 @@ If radar tools 429 repeatedly across the team — and Inoreader's status page is
 
 At typical usage, total is well under 200/day. If the per-key cap isn't sufficient (regularly hitting 50 mid-day for legitimate work), escalate to Inoreader's paid tier — the per-day ceiling raises cleanly without affecting any other operational decision.
 
+### Recovery — Inoreader OAuth refresh-token expired
+
+Distinct failure mode from budget exhaustion: if the Worker's radar-tool error envelope is `{"error":"token-stale","status":401,...}` AND visiting the website's `/hub/radar` page in a browser does NOT clear it (which would normally trigger the website's automatic refresh path), the Inoreader **refresh** token itself has expired or been revoked. The Worker is read-only on `inoreader:*` keys — it can't fix this; only the website can.
+
+Recovery is fully documented website-side in [`src/docs/hub/RADAR.md` § Production Observability & Troubleshooting](../../../../src/docs/hub/RADAR.md) (search for "Token refresh failed"). The short version:
+
+```bash
+node scripts/inoreader-auth.mjs setup        # 1. Prints auth URL — open in browser, authorize
+node scripts/inoreader-auth.mjs exchange CODE # 2. Trade the auth code for a fresh access + refresh token pair
+```
+
+Then update `INOREADER_ACCESS_TOKEN` and `INOREADER_REFRESH_TOKEN` in the Vercel project settings (the website also writes the new pair to Upstash, which the Worker then reads via the Inoreader DB Read-Only token).
+
 ---
 
 ## C.6 — Incident triage tree
