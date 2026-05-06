@@ -271,11 +271,17 @@ The `tracesSampleRate: 0.1` baseline (10% of requests get traced) keeps Sentry q
 
 The MCP project's alert rules are simpler than the website's — fewer error types, different thresholds. Initial set (configure manually in the Sentry dashboard):
 
-| Rule                          | Trigger                                                          | Action |
-| ----------------------------- | ---------------------------------------------------------------- | ------ |
-| MCP unhandled exception (any) | Any `error.unhandled` event                                      | Slack  |
-| Bearer auth failure burst     | More than 50 events with `event === 'auth.failed'` in 10 minutes | Slack  |
-| Inoreader budget breach       | Any event with `errorCode === 'inoreader-rate-limit'`            | Slack  |
-| 5xx rate                      | More than 1% of requests return 5xx in a 15-minute window        | Slack  |
+| Rule                          | Trigger                                                          | Plan tier needed                                                                                                                                                        | Channel |
+| ----------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| MCP unhandled exception (any) | Any `error.unhandled` event                                      | **Free (Developer)** — Issue Alert                                                                                                                                      | Email   |
+| Bearer auth failure burst     | More than 50 events with `event === 'auth.failed'` in 10 minutes | **Free (Developer)** — Issue Alert (silent until code-side capture lands; see "Why some alerts are silent today" below)                                                 | Email   |
+| Inoreader budget breach       | Any event with `errorCode === 'inoreader-rate-limit'`            | **Free (Developer)** — Issue Alert (silent until code-side capture lands; see below)                                                                                    | Email   |
+| 5xx rate                      | More than 1% of requests return 5xx in a 15-minute window        | **Team or higher** — Performance / Failure Rate is paywalled on Developer plan. Skip on free; use Cloudflare Notifications as a substitute (Workers → Error Rate alert) | Email   |
+
+> **Channel choice (Email vs Slack)**: Sentry's "Send a notification to Member" / "Send a notification to Issue Owners" actions route through each user's notification preferences — which default to email. There is no literal "send via Email" action in current Sentry UI; pick a Member/Owner action instead.
+
+> **Why some alerts are silent today**: the Worker only captures _unhandled exceptions_ + _manually-captured errors_ to Sentry. `safeLog({ event: 'auth.failed', ... })` and rate-limit-exceeded events go to Cloudflare logs (via `wrangler tail`) but NOT to Sentry. Alerts #2 and #3 will be dormant until [worker.ts:106-115](../../../mcp-server/src/worker.ts#L106-L115) and the radar-live tools' Inoreader-429 path also call `Sentry.captureMessage(...)` / `captureException(...)`. Configuring them now is harmless — they just sit dormant until the captures land. See BL-032 closure or BL-033 for the code-side follow-up.
+
+> **5xx-rate alternative on free plan**: Cloudflare's **Notifications** (Cloudflare dashboard → Notifications → Create) supports `Workers → Error Rate` alerts on per-Worker error counts, free tier. Doesn't require Sentry plan upgrade. Different surface — Cloudflare excels at "is something wrong" (raw rate metrics); Sentry at "why is it wrong" (stack traces, breadcrumbs). Complementary, not redundant.
 
 Refine these once BL-032.75 ships SLO targets. The substrate (Sentry init, structured logs, `keyOwner` tagging) is in place from BL-032 Phase 5.
