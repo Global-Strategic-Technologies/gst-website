@@ -285,3 +285,57 @@ The MCP project's alert rules are simpler than the website's — fewer error typ
 > **5xx-rate alternative on free plan**: Cloudflare's **Notifications** (Cloudflare dashboard → Notifications → Create) supports `Workers → Error Rate` alerts on per-Worker error counts, free tier. Doesn't require Sentry plan upgrade. Different surface — Cloudflare excels at "is something wrong" (raw rate metrics); Sentry at "why is it wrong" (stack traces, breadcrumbs). Complementary, not redundant.
 
 Refine these once BL-032.75 ships SLO targets. The substrate (Sentry init, structured logs, `keyOwner` tagging) is in place from BL-032 Phase 5.
+
+#### Step-by-step UI walkthrough (current Sentry, 2026)
+
+Sentry's alert UI shifted in 2025-2026 — alerts are organized by category (Errors / Performance / Logs / Application Metrics / Uptime / Cron Monitoring) and use a conditional WHEN / IF / THEN flow. To create each MCP alert:
+
+**Common starting point** — for every alert:
+
+1. Sentry dashboard → select the `gst-mcp-server` project
+2. Left nav → **Alerts** → **Create Alert**
+3. Choose alert type from the **Errors** category (for issue-based alerts) or **Performance** (for rate-based; paywalled on Developer plan)
+
+##### Alert 1 — MCP unhandled exception (Errors → Issues)
+
+- **Section 1 — Environment + project**: All Environments, gst-mcp-server
+- **Section 2 — Set conditions**:
+  - **WHEN** an event is captured by Sentry and **any** of the following happens → leave default `A new issue is created`
+  - **IF** all/any filters match → can leave empty (every issue Sentry sees from `withSentry` is already an unhandled error). If you want to be explicit, add `The event's level equals error or fatal` with the **any** combinator (NOT **all** — `level=fatal AND level=error` is unsatisfiable since level is single-valued)
+  - **THEN** perform these actions → **Send a notification to** **Member** → pick yourself (routes to your registered email by default)
+- **Section 3 — Action interval**: 24 hours (prevents repeat-alert spam on the same issue)
+- **Section 5 — Name and owner**: Name = `MCP unhandled exception`. Save.
+
+##### Alert 2 — Bearer auth failure burst (Errors → Issues)
+
+- **Section 2 WHEN**: trash the default `A new issue is created` row → click `Add optional trigger…` → choose **The issue is seen more than {N} times in {M} minutes**. Set N=`50`, M=`10`
+- **Section 2 IF**: `Add optional filter…` → **The event's tag {key} {match} {value}** → key=`event`, match=`equal to`, value=`auth.failed`
+- **Section 2 THEN**: Member → yourself
+- **Section 3**: 24 hours
+- **Section 5**: Name = `Bearer auth failure burst`. Save.
+
+⚠️ Will fire only after the Worker is updated to capture `auth.failed` events to Sentry (currently they go to Cloudflare logs only).
+
+##### Alert 3 — Inoreader budget breach (Errors → Issues)
+
+- **Section 2 WHEN**: keep default `A new issue is created`
+- **Section 2 IF**: `Add optional filter…` → key=`errorCode`, match=`equal to`, value=`inoreader-rate-limit`
+- **Section 2 THEN**: Member → yourself
+- **Section 5**: Name = `Inoreader budget breach`. Save.
+
+⚠️ Same dormant-until-code-change caveat as #2.
+
+##### Alert 4 — 5xx rate (Performance → Failure Rate; paywalled)
+
+If you have Sentry Team plan or higher:
+
+- Select **Performance → Failure Rate** in the alert-type chooser → click **Set Conditions**
+- Filter (optional): scope to specific transaction names or HTTP status families
+- **Critical Status threshold**: `Above 1%` (1% failure rate over the time window)
+- **Time window**: 15 minutes
+- **Action**: Member → yourself
+- Name: `5xx rate`. Save.
+
+If you're on Developer plan, **Set Conditions** is greyed out with "Upgrade your plan to create this type of alert." Skip this alert and use Cloudflare Notifications instead (per the table above) — same operational signal, different surface.
+
+> **Action format**: Sentry's actions are strings like `Send a notification to Member <username>` (routes to that member's notification preferences — email by default) or `Send a notification to Team <team-name>` (routes via the team's per-user preferences). For solo-operator soaks, **Member → yourself** is simplest. Once you onboard team-members and want shared alerting, switch to **Team** actions.
