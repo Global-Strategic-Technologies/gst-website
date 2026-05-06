@@ -215,14 +215,30 @@ The Worker reads OAuth tokens from Upstash first ([Q4](../../../../src/docs/deve
 ### Steps
 
 1. **Pull the Inoreader env vars from Vercel** to a local file:
+
    ```bash
    # From the gst-website repo root (NOT mcp-server/):
    npx vercel env pull .env.vercel.local
    ```
-   This dumps the project's environment variables into `.env.vercel.local`. The file is gitignored (`.env*` already covered) but treat it as sensitive — delete it once you're done copying.
-2. **Extract the four Inoreader values**:
+
+   This dumps the project's environment variables into `.env.vercel.local`. **Treat as sensitive — delete after step 4.**
+
+   > **Prerequisite — `vercel link` (first-time only)**: if Vercel CLI errors with `Your codebase isn't linked to a project on Vercel. Run 'vercel link' to begin.`, run this first:
+   >
+   > ```bash
+   > npx vercel link
+   > ```
+   >
+   > Interactive — answer **Y** to "set up and develop", pick your scope, and choose **Existing project** → `gst-website`. Creates a `.vercel/` directory that subsequent `vercel env pull` commands depend on.
+
+2. **Extract the four Inoreader values** — pick the snippet for your shell:
    ```bash
+   # bash / zsh / Git Bash:
    grep -E '^INOREADER_' .env.vercel.local
+   ```
+   ```powershell
+   # PowerShell (Windows-native — `grep` isn't on PATH):
+   Select-String -Path .env.vercel.local -Pattern '^INOREADER_'
    ```
    You should see `INOREADER_APP_ID`, `INOREADER_APP_KEY`, `INOREADER_ACCESS_TOKEN`, `INOREADER_REFRESH_TOKEN` — four lines. If any are missing, check the Vercel dashboard's **Settings → Environment Variables** to ensure they exist on the Vercel side first.
 3. **Set each as a Wrangler secret for both envs**:
