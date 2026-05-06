@@ -231,10 +231,12 @@ Per [BL-032 Q6 (resolved 2026-05-03)](./MCP_SERVER_REMOTE_BL-032.md#q6-sentry-on
 
 ```bash
 cd mcp-server
-wrangler secret put SENTRY_DSN --env staging
+npx wrangler secret put SENTRY_DSN --env staging
 # Paste the DSN at the prompt.
-wrangler secret put SENTRY_DSN --env production
+npx wrangler secret put SENTRY_DSN --env production
 ```
+
+> `wrangler` is a `mcp-server/` devDependency, not globally installed — invoke via `npx wrangler` (matching DEPLOY.md's convention). Same DSN value goes to both envs; staging-vs-production separation is configured via Sentry environment tags inside the Worker, not separate DSNs.
 
 ### How it's wired
 
