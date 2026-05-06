@@ -126,7 +126,7 @@ This satisfies [Q13's](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032
    - Click the copy icon next to `UPSTASH_REDIS_REST_URL` → save it as your **MCP-DB URL**
    - Click the copy icon next to `UPSTASH_REDIS_REST_TOKEN` → save it as your **MCP-DB Standard token**
 
-5. **Save all four values in 1Password** with notes:
+5. **Save all four values in your password manager** with notes:
    - "GST MCP — Inoreader-DB URL (read-only Worker access; same physical DB as website's Standard token)"
    - "GST MCP — Inoreader-DB Read-Only token"
    - "GST MCP — MCP-DB URL (Worker-owned; rotation-isolated from website)"
@@ -198,7 +198,7 @@ If the MCP-DB Standard token is ever compromised, regenerate it from the Upstash
    npx wrangler secret put UPSTASH_MCP_REST_TOKEN --env production
    npm run deploy:staging && npm run deploy:production    # force isolate refresh
    ```
-4. Update 1Password with the new value + rotation date
+4. Update your password manager with the new value + rotation date
 
 The Inoreader-DB Read-Only token is the website's responsibility (same DB the website uses); rotation is a website-side concern that the Worker just inherits.
 
@@ -302,7 +302,7 @@ One bearer token for yourself, named `MCP_KEY_<INITIALS>` per the [`AUTH.md`](./
    openssl rand -base64 32 | tr -d '=' | tr '/+' '_-'
    ```
    Output is ~43 chars, base64url-encoded. Copy it.
-2. **Save the token in 1Password / your password manager** with a note like "GST MCP — RP — staging+production". You'll use this value to configure your own client (Part B § B.4) AND when production is wired up.
+2. **Save the token in your password manager** (1Password, Bitwarden, KeePass, browser-built-in — any secrets store you trust) with a note like "GST MCP — RP — staging+production". You'll use this value to configure your own client (Part B § B.4) AND when production is wired up. The doc references "your password manager" generically throughout the rest of A.6 / C.1 / C.2.
 3. **Set as a Wrangler secret for staging**:
    ```bash
    cd mcp-server
@@ -617,7 +617,7 @@ After Part B, this is the day-to-day reference. No need to read sequentially —
 A team-member (e.g., "AB") needs MCP access. Confirm with them:
 
 - They're using a Claude/Cursor client that supports remote MCP (see [`REMOTE_CLIENT_SETUP.md`](./REMOTE_CLIENT_SETUP.md))
-- They have a 1Password / password-manager vault you can share into
+- They have a password-manager vault you can share into (1Password, Bitwarden, etc. all work)
 
 ### Steps
 
@@ -625,7 +625,7 @@ A team-member (e.g., "AB") needs MCP access. Confirm with them:
    ```bash
    openssl rand -base64 32 | tr -d '=' | tr '/+' '_-'
    ```
-2. **Store in 1Password** with a note "GST MCP — AB — production". Share the entry to AB's vault
+2. **Store in your password manager** with a note "GST MCP — AB — production". Share the entry to AB's vault
 3. **Set the secret on production** (skip staging unless they specifically need staging access for testing):
    ```bash
    cd mcp-server
@@ -636,9 +636,9 @@ A team-member (e.g., "AB") needs MCP access. Confirm with them:
    ```bash
    npm run deploy:production
    ```
-4. **Notify AB**: send them a link to [`REMOTE_CLIENT_SETUP.md`](./REMOTE_CLIENT_SETUP.md) and tell them their token is in 1Password
+4. **Notify AB**: send them a link to [`REMOTE_CLIENT_SETUP.md`](./REMOTE_CLIENT_SETUP.md) and tell them their token is in your password manager
 5. **Verify with AB**: ask them to run a smoke prompt in their client. If they see tool results, you're done. If they see 401, walk them through the troubleshooting tree in REMOTE_CLIENT_SETUP.md
-6. **Update your team-member-roster** (kept in 1Password / shared spreadsheet) with AB's `keyOwner` suffix and the date issued
+6. **Update your team-member-roster** (kept in your password manager / shared spreadsheet) with AB's `keyOwner` suffix and the date issued
 
 ---
 
@@ -670,7 +670,7 @@ A team-member (e.g., "AB") needs MCP access. Confirm with them:
    npx wrangler secret put MCP_KEY_AB --env production
    ```
 
-3. **Update 1Password** with the new value (share to the team-member's vault)
+3. **Update your password manager** with the new value (share the entry to the team-member's vault)
 4. **Notify the team-member**: their old token is dead; update their client config with the new one
 5. **Force redeploy** for an immediate effect:
    ```bash
@@ -789,7 +789,7 @@ Inoreader's status page reports the platform recovered within minutes (rare). Th
 ```bash
 # Use the MCP DB's REST credentials (NOT the Inoreader DB — the circuit-breaker
 # flag lives in the MCP DB per Path 2). Pull the values from your secrets store
-# (1Password); they were set in § A.3 step 6 as UPSTASH_MCP_REST_*.
+# (your password manager); they were set in § A.3 step 6 as UPSTASH_MCP_REST_*.
 curl -X POST "$UPSTASH_MCP_REST_URL/del/mcp:radar:circuit-open" \
   -H "Authorization: Bearer $UPSTASH_MCP_REST_TOKEN"
 ```
