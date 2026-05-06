@@ -146,7 +146,17 @@ This satisfies [Q13's](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032
    # Paste the MCP-DB Standard token from step 4
    ```
 
-7. **Set the same four secrets for production** (you can do this now even though we don't deploy production until Part B § B.6):
+   > **First-time prompt**: on the **first** secret you put against an env, Wrangler will prompt:
+   >
+   > ```
+   > 🌀 Creating the secret for the Worker "gst-mcp-staging"
+   > ? There doesn't seem to be a Worker called "gst-mcp-staging".
+   >   Do you want to create a new Worker with that name and add secrets to it? » (Y/n)
+   > ```
+   >
+   > Answer **Y**. Wrangler creates an empty placeholder Worker entity (no code, no routes — just a name + secret store). When you `npm run deploy:staging` later in B.2, the actual Worker bundle uploads into that placeholder. The remaining 3 staging secrets won't prompt — Wrangler sees the Worker now exists.
+
+7. **Set the same four secrets for production** (you can do this now even though we don't deploy production until Part B § B.6). **First production secret will prompt to create the `gst-mcp` Worker — answer Y, same as step 6.**
 
    ```bash
    npx wrangler secret put UPSTASH_INOREADER_REST_URL --env production
