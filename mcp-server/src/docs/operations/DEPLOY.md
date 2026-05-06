@@ -480,7 +480,7 @@ curl -s $MCP_URL/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | jq '.result.tools[] | .name'
 ```
 
-Expected output: 11 tool names (10 transport-portable + the deprecated alias):
+Expected output: **10 tool names** — the transport-portable surface (no `search_radar_offline` and no `search_radar_cache` alias on the Worker; per [Q12](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q12-transport-binding-per-radar-tool-new), both are stdio-only and registered exclusively by `_local-only.ts`):
 
 ```
 "assess_infrastructure_cost_governance"
@@ -492,12 +492,10 @@ Expected output: 11 tool names (10 transport-portable + the deprecated alias):
 "list_regulation_facets"
 "search_portfolio"
 "search_radar"
-"search_radar_cache"
-"search_radar_offline"
 "search_regulations"
 ```
 
-(The `search_radar_cache` and `search_radar_offline` together count as one in the BACKLOG-shipped surface; the alias is one-release deprecation per [BREAKING_CHANGES.md](../../../BREAKING_CHANGES.md).)
+If you see `search_radar_offline` or `search_radar_cache` in this list, that's a real bug — they should not register on the Worker. Stdio-only entries appearing on the Worker would indicate `_local-only.ts` got pulled into the Worker bundle (regression).
 
 ### B.3.4 — Invoke a non-radar tool
 
