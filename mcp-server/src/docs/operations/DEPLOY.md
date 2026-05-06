@@ -388,7 +388,42 @@ If the deploy fails with a **route conflict**, the subdomain may already exist f
 
 A 7-step curl sequence to verify each layer of the request flow. Run these against the staging URL immediately after § B.2 completes.
 
-> Set this in your shell so you don't repeat the URL:
+> **Shell adaptation note**: snippets below are bash-flavored. Translate as needed:
+>
+> | Concern           | bash / Git Bash      | Windows PowerShell                                                                                                                                     |
+> | ----------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+> | Set env var       | `export MCP_URL=...` | `$env:MCP_URL = "..."`                                                                                                                                 |
+> | Reference env var | `$MCP_URL`           | `$env:MCP_URL`                                                                                                                                         |
+> | Real curl         | `curl`               | `curl.exe` (PowerShell's `curl` is an alias for `Invoke-WebRequest` — different syntax)                                                                |
+> | Pretty-print JSON | `\| jq`              | If no jq: drop the pipe and view raw, OR `\| ConvertFrom-Json \| ConvertTo-Json -Depth 4`. Install jq via `winget install jqlang.jq` for parity        |
+> | Line continuation | `\` at end of line   | backtick `` ` `` at end of line                                                                                                                        |
+> | JSON body in `-d` | works directly       | PowerShell mangles inner quotes — put body in a `$body = '...'` variable first, or use `Invoke-RestMethod` instead of curl.exe (handles JSON natively) |
+>
+> **PowerShell-native helper for the rest of B.3** — paste this once, then every test collapses to a one-liner:
+>
+> ```powershell
+> $env:MCP_URL = "https://mcp-staging.globalstrategic.tech"
+> $env:MCP_KEY = "<your-MCP_KEY_RP-token-value>"
+>
+> function Invoke-McpRequest {
+>   param(
+>     [Parameter(Mandatory)] [string] $Method,
+>     [hashtable] $Params = @{},
+>     [int] $Id = 1
+>   )
+>   $body = @{ jsonrpc = "2.0"; id = $Id; method = $Method; params = $Params } | ConvertTo-Json -Compress -Depth 10
+>   $headers = @{ Authorization = "Bearer $env:MCP_KEY"; Accept = "application/json, text/event-stream" }
+>   $resp = Invoke-WebRequest -Uri "$env:MCP_URL/mcp" -Method Post -Headers $headers -ContentType "application/json" -Body $body
+>   # MCP Streamable HTTP returns SSE format ("event: message\ndata: {...}") — extract the data: line
+>   $dataLine = $resp.Content -split "`n" | Where-Object { $_ -like "data:*" } | Select-Object -First 1
+>   if (-not $dataLine) { throw "No data: line in SSE response. Raw: $($resp.Content)" }
+>   return $dataLine.Substring(5).Trim() | ConvertFrom-Json
+> }
+> ```
+>
+> With this helper, B.3.3 becomes `(Invoke-McpRequest -Method "tools/list").result.tools.name`, B.3.4 becomes `Invoke-McpRequest -Method "tools/call" -Params @{name="list_portfolio_facets"; arguments=@{}}`, etc. PowerShell-flavored examples are inlined per-step below.
+
+> bash one-time setup:
 >
 > ```bash
 > export MCP_URL=https://mcp-staging.globalstrategic.tech
