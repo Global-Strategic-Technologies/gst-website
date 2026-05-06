@@ -297,11 +297,20 @@ One bearer token for yourself, named `MCP_KEY_<INITIALS>` per the [`AUTH.md`](./
 
 ### Steps
 
-1. **Generate a cryptographically-random token**:
+1. **Generate a cryptographically-random token** (~43 chars, base64url-encoded — pick the snippet for your shell):
    ```bash
+   # bash / zsh / Git Bash / macOS / Linux:
    openssl rand -base64 32 | tr -d '=' | tr '/+' '_-'
    ```
-   Output is ~43 chars, base64url-encoded. Copy it.
+   ```bash
+   # Node.js (cross-platform — works wherever you have Node):
+   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+   ```
+   ```powershell
+   # PowerShell (Windows-native — no openssl required):
+   $b=[byte[]]::new(32); [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b).TrimEnd('=').Replace('+','-').Replace('/','_')
+   ```
+   All three produce the same shape of output. Copy the value.
 2. **Save the token in your password manager** (1Password, Bitwarden, KeePass, browser-built-in — any secrets store you trust) with a note like "GST MCP — RP — staging+production". You'll use this value to configure your own client (Part B § B.4) AND when production is wired up. The doc references "your password manager" generically throughout the rest of A.6 / C.1 / C.2.
 3. **Set as a Wrangler secret for staging**:
    ```bash
@@ -654,7 +663,7 @@ A team-member (e.g., "AB") needs MCP access. Confirm with them:
 
 ### Steps
 
-1. **Generate a fresh token**:
+1. **Generate a fresh token** (use any of the snippets from § A.6 step 1 — `openssl`, Node, or PowerShell — they all produce equivalent output):
    ```bash
    openssl rand -base64 32 | tr -d '=' | tr '/+' '_-'
    ```
@@ -690,7 +699,7 @@ A team-member (e.g., "AB") needs MCP access. Confirm with them:
 
 ### Rotate (compromise)
 
-1. **Generate the new token** (`openssl rand -base64 32 | tr -d '=' | tr '/+' '_-'`)
+1. **Generate the new token** (per § A.6 step 1 — `openssl rand -base64 32 | tr -d '=' | tr '/+' '_-'`, or Node/PowerShell equivalents on Windows)
 2. **Delete and re-set the secret** for both envs:
 
    ```bash
