@@ -800,7 +800,7 @@ A prompt's behavior is determined by its message body — pure content. A senior
 
 ### BL-032: MCP Server — Internal Remote (Phase 2)
 
-**Source**: MCP_SERVER_INITIATIVE.md (archived) | **Architecture & plan**: [MCP_SERVER_REMOTE_BL-032.md](MCP_SERVER_REMOTE_BL-032.md) | **Effort**: 1 week | **Status**: Open | **Depends on**: BL-031
+**Source**: MCP_SERVER_INITIATIVE.md (archived) | **Architecture & plan**: [MCP_SERVER_REMOTE_BL-032.md](MCP_SERVER_REMOTE_BL-032.md) | **Effort**: 1 week (actual: ~6 days across 2026-05-03 → 2026-05-06; Phase 5.5 [Path 2 dual-client refactor] added mid-flight when Q13's "separate REST token within one DB" plan hit Upstash ACL paywall) | **Status**: Phases 1–5.5 ✅ Complete (May 6, 2026); Phase 6 staging deployed + smoke-validated end-to-end (B.3 curl sequence + Claude Desktop client) and entered one-week soak. **Phase 6 production deploy (B.6) pending soak completion**. See [BL-032 design doc § Phase 5.5](MCP_SERVER_REMOTE_BL-032.md#phase-55--path-2-dual-client-refactor-phase-6-prerequisite-1-2-days--shipped-2026-05-05) for the dual-client refactor narrative + [Q13 Resolved-revision](MCP_SERVER_REMOTE_BL-032.md#q13-upstash-project-sharing-new) for the Path 2 architectural decision history. **Closure pending soak finalization + production deploy + sibling-doc closure pass per BL-034.** | **Depends on**: BL-031
 
 **As a** GST team member, **I want** the MCP server deployed to a remote endpoint **so that** I can access GST tools from any machine — laptop, mobile Claude apps, ephemeral CI agents — without cloning the repo or running a local process.
 
@@ -836,54 +836,49 @@ A prompt's behavior is determined by its message body — pure content. A senior
 
 **Transport & deployment**
 
-- [ ] MCP server deployed to **Cloudflare Workers** (rationale below) at a stable subdomain such as `mcp.globalstrategic.tech`
-- [ ] **Streamable HTTP transport** (not the deprecated SSE-only transport) — required for compatibility with Claude Desktop, Claude Code, mobile clients, and ChatGPT's MCP support
-- [ ] Worker built with `wrangler` and `@modelcontextprotocol/server` (v2 split-package family); `mcp-server/` workspace from BL-031 grows a second entrypoint `src/worker.ts` that registers the same tools but binds them to the HTTP transport
-- [ ] Tool registry is shared between stdio (BL-031) and HTTP (BL-032) entrypoints — register-once, transport-twice; CI guarantees they stay in sync
-- [ ] CORS headers restricted to known MCP client origins (`claude.ai`, `chatgpt.com`, `cursor.sh`, etc.) — no `Access-Control-Allow-Origin: *`
+- [x] MCP server deployed to **Cloudflare Workers** (rationale below) — staging live at `mcp-staging.globalstrategic.tech` (May 6, 2026); production at `mcp.globalstrategic.tech` pending soak completion
+- [x] **Streamable HTTP transport** — validated end-to-end against staging in B.3 smoke (`Content-Type: text/event-stream` SSE responses parsed correctly via Claude Desktop + curl + Invoke-WebRequest)
+- [x] Worker built with `wrangler` + Cloudflare's `agents/mcp` `createMcpHandler` — Q1 resolved against `agents`+`@modelcontextprotocol/sdk@^1.29.0` (NOT v2 alpha — `agents` requires v1). `mcp-server/` workspace grew a second entrypoint `src/worker.ts` registering shared tools per Q12
+- [x] Tool registry shared between stdio (BL-031) and HTTP (BL-032) entrypoints — register-once-transport-twice via `createServer(env)` factory; offline radar tool stays stdio-only via `_local-only.ts` (Q12)
+- [x] CORS headers restricted to known MCP client origins via `auth/cors.ts` allowlist — no wildcard
 
 **Authentication**
 
-- [ ] **Bearer-token API key auth** — simplest scheme that keeps the bar above zero; OAuth deferred to BL-033
-- [ ] Keys generated via `wrangler secret` (one secret per team member, named `MCP_KEY_<INITIALS>`); revocation = `wrangler secret delete`
-- [ ] Server returns MCP-spec-compliant `401 Unauthorized` with `WWW-Authenticate` header when key is missing/invalid
-- [ ] Key prefix logged on every request (e.g. `key=rp_...`) for attribution, full key never logged
-- [ ] README documents the Claude Desktop / Claude Code config snippet including the `Authorization: Bearer <key>` header
+- [x] **Bearer-token API key auth** — `MCP_KEY_<INITIALS>` per Q11; OAuth deferred to BL-033 per the design doc
+- [x] Keys generated via `wrangler secret`; revocation = `wrangler secret delete` (documented in `AUTH.md`)
+- [x] Server returns MCP-spec-compliant `401 Unauthorized` with `WWW-Authenticate: Bearer realm="gst-mcp"` (validated in B.3.2 smoke)
+- [x] Key prefix logged on every request via `safeLog` — full key never logged (Authorization + Cookie headers stripped)
+- [x] [`REMOTE_CLIENT_SETUP.md`](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) documents per-client config snippets (Claude Desktop incl. mcp-remote bridge for static-bearer auth, Claude Code, Cursor, ChatGPT)
 
 **Rate limiting (critical — Inoreader has a 200 req/day cap)**
 
-- [ ] Sliding-window rate limiter backed by **Upstash Redis** (already in use for radar token persistence — see [src/docs/hub/RADAR.md](../hub/RADAR.md#upstash-redis-persistence))
-- [ ] Per-key limits: 60 req/min and 1000 req/day for non-radar tools; **5 req/min and 50 req/day for radar tools** (Inoreader budget is shared with the live site's ISR which already consumes ~28 calls/day)
-- [ ] Global circuit breaker: if Inoreader returns 429, all radar tool calls return cached results for 6h before retrying — same window the website ISR uses
-- [ ] Standard `RateLimit-*` response headers (RFC 9331) so clients can self-throttle
-- [ ] Rate-limit decisions emit a structured log entry; threshold breaches surface in observability (see below)
+- [x] Sliding-window rate limiter backed by **Upstash Redis** — Path 2 splits this into MCP DB (Worker-owned `mcp:*` keys via Standard token) and Inoreader DB (shared `inoreader:*` keys via website-DB Read-Only token) per [Q13 Resolved-revision (2026-05-05)](MCP_SERVER_REMOTE_BL-032.md#q13-upstash-project-sharing-new)
+- [x] Per-key limits: 60 req/min + 1000 req/day general; 5 req/min + 50 req/day radar (validated in B.3.7 hammer test — 60/200 + 10/429 split)
+- [x] Global circuit breaker: 6h Upstash TTL on `mcp:radar:circuit-open` after Inoreader 429
+- [x] Standard `RateLimit-*` response headers (RFC 9331) — visible in B.3 curl outputs
+- [x] Rate-limit decisions emit structured log entries (`event: ratelimit.exceeded` / `ratelimit.skipped`); threshold breaches alert via Sentry
 
 **New tools (radar surface)**
 
-- [ ] `search_radar` — full-text search over the unified Wire+FYI feed
-  - Wraps `fetchAllStreams('GST-', N)` + `fetchAnnotatedItems(N)` from [src/lib/inoreader/client.ts](../../lib/inoreader/client.ts) and the merge logic from `src/lib/inoreader/transform.ts`
-  - Input: `{ query?: string, category?: 'pe-ma' | 'enterprise-tech' | 'ai-automation' | 'security', tier?: 'wire' | 'fyi' | 'both', limit?: number (default 20, max 50), since?: ISO-8601 timestamp }`
-  - Returns matched items with title, source, publishedAt, category, url, and (for FYI items) the highlight + GST Take
-  - Results MUST go through the same 6h ISR-style cache as the website to share the API budget — implement via Upstash Redis with the radar client's existing `buildCacheKey()` strategy
-- [ ] `get_latest_insights` — convenience wrapper returning the N most recent FYI items (the high-signal annotated tier)
-  - Input: `{ limit?: number (default 10, max 30), category?: string }`
-  - Returns FYI items sorted by `annotatedAt` descending — the same shape `RadarFeed.astro` renders
-- [ ] Both new tools share a single Inoreader-client instance per worker invocation; tokens read from Upstash Redis using the existing token-resolution chain (in-memory → Redis → env vars)
+- [x] `search_radar` — live Inoreader fetch with 6h Upstash cache; structured failure envelopes for token-stale / inoreader-rate-limit / network-timeout (validated in B.3.6 smoke against real Inoreader after refresh-token recovery)
+- [x] `get_latest_insights` — FYI-tier convenience wrapper, sister to `search_radar`
+- [x] Both share Inoreader-client per Worker invocation; token resolution: Inoreader-DB Read-Only token (Path 2) → env-var fallback. Path 2 also enforces Q4 read-only invariant at the storage layer
 
 **Observability**
 
-- [ ] Every tool invocation logged as a structured JSON line: `{ timestamp, keyPrefix, tool, durationMs, success, errorCode? }` — no input/output payloads (those are reserved for BL-033's compliance audit log)
-- [ ] Logs flow to Cloudflare's `tail`-able stream and are also pushed to Sentry (already configured for the site — see [src/docs/development/SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md))
-- [ ] Health endpoint `GET /health` returns `{ ok: true, version, gitSha, redis: 'ok' | 'degraded', inoreader: 'ok' | 'degraded' }` — uncached, no auth required
-- [ ] Wrangler `wrangler tail` documented in README for live-tailing during incidents
+- [x] Structured JSON logs per request via `safeLog`; flow to Cloudflare `wrangler tail` + Sentry (`@sentry/cloudflare` `withSentry` wrapper)
+- [x] Sentry breadcrumb-discipline: Authorization + Cookie headers auto-scrubbed; per-request `keyOwner` + `path` tags via `tagRequest`
+- [x] Health endpoint `GET /health` — returns `{ ok, upstashMcp, upstashInoreader, inoreader, inoreaderObservedAt, version, gitSha, phase }` per Path 2 (split single `redis` field into two upstream subsystems for failure-mode disambiguation)
+- [x] `wrangler tail --env staging|production` documented in `DEPLOY.md` § C.4 (Tail and investigate)
 
 **Verification & docs**
 
-- [ ] `mcp-server/README.md` extended with: Cloudflare Worker deploy command, secret-management workflow, two example client configurations (Claude Desktop with HTTP transport, Claude Code), curl-based health-check command
-- [ ] Vitest test suite includes: auth happy/missing/wrong-key paths, rate-limit enforcement, radar tool end-to-end with mocked Inoreader responses (reuse `tests/e2e/fixtures/radar-mock-data.ts`)
-- [ ] Worker integration test using `unstable_dev` from `wrangler` exercises the HTTP transport against the in-memory MCP test client
-- [ ] `wrangler.toml` checked into `mcp-server/`; production secrets never committed
-- [ ] One-week post-deploy review: pull rate-limit metrics, confirm no Inoreader 429s, confirm at least one team member used it from a non-dev machine
+- [x] [`mcp-server/src/docs/operations/DEPLOY.md`](../../../mcp-server/src/docs/operations/DEPLOY.md) — operator end-to-end runbook (Part A initial setup, Part B first deploy + soak, Part C ongoing operations); revised 2026-05-06 from Phase 6 first-deploy learnings
+- [x] [`mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md`](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) — consumer step-by-step (Claude Desktop incl. MSIX-path + Windows gotchas, Claude Code, Cursor, ChatGPT)
+- [x] Vitest test suite — 399/399 passing (auth happy/missing/wrong-key, rate-limit enforcement, radar live + circuit-breaker, registry-snapshot, CORS, plus new constructor-routing tests for Path 2's dual-client factories)
+- [x] Worker integration test via `unstable_dev` (wrangler) exercises the HTTP transport against in-memory MCP client
+- [x] `wrangler.toml` checked into `mcp-server/` with `nodejs_compat` flag (Q1 sub-finding — `agents` SDK transitively imports node:os/node:path)
+- [⏳] One-week post-deploy review (soak just began 2026-05-06; closure expected ~2026-05-13)
 
 #### Technical Context
 
@@ -926,13 +921,13 @@ A prompt's behavior is determined by its message body — pure content. A senior
 
 **Validation sequence before marking done**
 
-1. `cd mcp-server && npm test` — green (includes new auth + rate-limit + radar tool tests)
-2. `wrangler deploy --env staging` — Worker deploys without errors
-3. `curl https://mcp-staging.globalstrategic.tech/health` returns `{ ok: true, ... }` with both Redis and Inoreader checks passing
-4. `curl -H "Authorization: Bearer <key>" ...` against the streamable HTTP transport returns the tool list including the two new radar tools
-5. From Claude Desktop pointed at staging: invoke `search_radar { query: "kubernetes" }`, confirm results return in <2s and a corresponding log entry appears in `wrangler tail`
-6. Hammer the staging endpoint with 100 requests in 60s → confirm rate limiter returns 429 with `RateLimit-*` headers after the threshold
-7. `wrangler deploy --env production` only after all six steps pass on staging
+1. ✅ `cd mcp-server && npm test` — 399/399 green
+2. ✅ `wrangler deploy --env staging` — Worker deploys cleanly; DNS auto-created via `custom_domain = true` in wrangler.toml
+3. ✅ `curl https://mcp-staging.globalstrategic.tech/health` returns expected payload with both Upstash subsystems (`upstashMcp`, `upstashInoreader`) reachable
+4. ✅ Streamable HTTP `tools/list` returns the 10 transport-portable tool names (the deprecated `search_radar_cache` alias and stdio-only `search_radar_offline` correctly DON'T appear on the Worker per Q12)
+5. ✅ Claude Desktop client end-to-end via mcp-remote bridge: `search_radar` returns matches in ~1.5s; logs flow to `wrangler tail`. Required Inoreader OAuth refresh-token recovery once during smoke (token-stale → resolved by visiting website /hub/radar to trigger refresh write to Upstash) — recovery flow now documented in DEPLOY.md § C.5
+6. ✅ Rate-limiter hammer test (70 req burst): 60-68 × 200 + 2-10 × 429 split (sliding window), `RateLimit-*` headers + `Retry-After` on the 429s
+7. ⏳ `wrangler deploy --env production` — gated on one-week soak completion (~2026-05-13)
 
 ---
 
