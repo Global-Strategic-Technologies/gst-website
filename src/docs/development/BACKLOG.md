@@ -735,40 +735,40 @@ A prompt's behavior is determined by its message body — pure content. A senior
 
 **Per-tool URL state added (website work)**
 
-- [ ] **TechPar** — `?s=<base64>` URL state added; restores all 14 form fields on page load; matches the `encodeState` / `decodeState` pattern used by Tech Debt and ICG; encoder exported from `src/utils/techpar-engine.ts` (or a sibling `src/utils/techpar-url.ts`)
-- [ ] **Diligence Machine** — URL state added, augmenting (not replacing) the existing localStorage; `?s=<base64>` parameter restores all 14 wizard fields on page load; encoder exported from `src/utils/diligence-engine.ts` (or `src/utils/diligence-url.ts`)
-- [ ] **Radar** — `?category=&since=` URL state added to the deferred-island feed; CategoryFilter component reads and writes URL state on filter change; deep-linkable filter views work for both FYI and Wire categories
-- [ ] **M&A Portfolio** — filter URL state added (`?theme=&category=&engagementType=`); existing or newly-added filter UI is wired to URL state; deep-linkable filtered views work and survive page reload
+- [x] **TechPar** — `?s=<base64>` URL state added; restores all 14 form fields on page load; matches the `encodeState` / `decodeState` pattern used by Tech Debt and ICG (shipped commit `2106bad`, BL-031.95 Phase 1.B)
+- [x] **Diligence Machine** — URL state added, augmenting (not replacing) the existing localStorage; `?s=<base64>` parameter restores all 14 wizard fields on page load (shipped commit `3dd56b9`, BL-031.95 Phase 2.B)
+- [x] **Radar** — `?category=&since=` URL state added to the deferred-island feed; CategoryFilter reads/writes URL state on filter change; deep-linkable filter views work for both FYI and Wire categories (shipped commit `028d21d`, BL-031.95 Phase 3.B)
+- [x] **M&A Portfolio** — filter URL state added (`?theme=&category=&engagementType=`); existing filter UI wired to URL state; deep-linkable filtered views survive page reload (shipped commit `b0eecef`, BL-031.95 Phase 4)
 
 **Per-tool input ergonomics & schema hygiene (website + schema + MCP work)**
 
-- [ ] **TechPar `infraHosting` unit normalization** — rename `infraHosting` → `infraHostingAnnual` in `src/schemas/techpar.ts`, drop the `× 12` annualization at `src/utils/techpar-engine.ts:231`, update the website page's form labels and any inline calculation references, update `mcp-server/src/tools/techpar.ts` (tool description must state units explicitly) and `mcp-server/src/docs/techpar/CONTRACT.md`. Existing TechPar tests updated to send annual values; round-trip parity tests added if URL state work has landed first. The Zod schema gains `.describe('Annual cloud hosting spend in USD')` so future agents see units in the JSON Schema. **Acceptance**: a freshly-spawned agent can call `compute_techpar` once with reasonable annual values and get sensible output — no trial-and-error retry required
-- [ ] **Diligence Machine `'unknown'` input support** — extend each enum in `UserInputsSchema` with an `'unknown'` option (mirroring ICG's `-1` "Not sure" pattern); update the wizard UI in `src/pages/hub/tools/diligence-machine/` to render an "I don't know" affordance on every step; update the trigger map in the diligence engine such that `'unknown'` answers do NOT eliminate triggers (only known values can — agenda widens conservatively when input is incomplete); update `generate_diligence_agenda` MCP tool description to call out the new option; update `gst_diligence_kickoff` and `gst_diligence_handoff_memo` prompt argsSchemas to mark the 13 wizard fields as optional (default `'unknown'`) and update prompt bodies to instruct the model to use `'unknown'` when inputs aren't derivable. Tool result surfaces an `unknownDimensionCount` field so the deliverable can lead with a low-confidence callout when ≥7 of 13 are unknown (parallels the ICG ≥10/20 threshold in `gst_target_quick_look`). **Acceptance**: a `gst_diligence_kickoff` invocation with only `targetName` supplied parses and produces a coherent, intentionally-broad agenda
-- [ ] **`.describe()` consistency pass on tool Zod schemas** (folded in from BL-031.85 closure) — add JSON Schema descriptions to every field in `src/schemas/diligence.ts`, `icg.ts`, `techpar.ts`, `tech-debt.ts`, `regulatory-map.ts` so agents introspecting the local-stdio surface see help text in the JSON Schema. Description text sourced verbatim from each per-field "What it asks" line in the matching `mcp-server/src/docs/<tool>/CONTRACT.md` (the contract is canonical; the schema's `.describe()` cites it). Mechanical lift, ~2-3 hrs. The TechPar `infraHosting` rename above already establishes the precedent (`.describe('Annual cloud hosting spend in USD')`); this AC generalizes the discipline across all 5 tool schemas. **Acceptance**: `mcp-server/scripts/print-tool-schema.mjs` (or the equivalent JSON Schema dump) shows non-empty descriptions for every field in every tool. **Why folded here, not under BL-031.85**: BL-031.85 is documentation consolidation; this is a schema-hygiene pass that touches code. BL-031.95 already opens these schema files for the `infraHosting` rename and `'unknown'` extensions, so adding `.describe()` calls in the same commit avoids re-touching the schemas in a third commit
+- [x] **TechPar `infraHosting` unit normalization** — renamed `infraHosting` → `infraHostingAnnual`; dropped `× 12` annualization; tool description states units explicitly; CONTRACT.md updated (shipped commit `aa47dc5`, BL-031.95 Phase 1.A). Acceptance verified: a freshly-spawned agent calls `compute_techpar` once with reasonable annual values and gets sensible output — no retry required
+- [x] **Diligence Machine `'unknown'` input support** — every enum in `UserInputsSchema` extended with `'unknown'` option mirroring ICG's `-1` pattern; wizard UI renders "I don't know" affordance per step; trigger map widens conservatively on `'unknown'`; tool result surfaces `unknownDimensionCount`; prompts default fields to `'unknown'` (shipped commits `e0b795b` Phase 2.A + `0707f63` Phase 2.C.ii + `bd2fd9f` Phase 2.D)
+- [x] **`.describe()` consistency pass on tool Zod schemas** (folded in from BL-031.85 closure) — JSON Schema descriptions added to every field in `diligence.ts`, `icg.ts`, `techpar.ts`, `tech-debt.ts`, `regulatory-map.ts`; description text cites the matching CONTRACT.md "What it asks" lines (shipped commits `2106bad` for TechPar Phase 1.B + `9a03c46` for diligence Phase 2.C.i; equivalent passes folded into other tools)
 
 **MCP wrapper deep-link surface (mcp-server work)**
 
-- [ ] `compute_techpar` MCP output extended with `deeplink: z.string().url()` per the BL-031.75 Commit 0.5 wrapper-schema pattern (`TechParMcpResultSchema`); does not modify the website-facing engine result schema
-- [ ] `generate_diligence_agenda` MCP output extended with `deeplink` (wraps the diligence-script result with a populated wizard URL)
-- [ ] `search_radar_cache` MCP output extended with `deeplink` (filtered Radar URL based on `category` / `since` inputs)
-- [ ] `search_portfolio` MCP output extended with `deeplink` (filtered Portfolio URL based on facet filters)
-- [ ] Round-trip parity test per tool (encode an MCP input → produce the deep-link → simulate the website's decoder on the URL → assert deep-equal with the original input). Symmetric with the Tech Debt / ICG / Regulatory Map tests authored in BL-031.75
+- [x] `compute_techpar` MCP output extended with `deeplink: z.string().url()` per the BL-031.75 Commit 0.5 wrapper-schema pattern (shipped commit `2106bad`)
+- [x] `generate_diligence_agenda` MCP output extended with `deeplink` wrapping diligence-script with populated wizard URL (shipped commit `3dd56b9`)
+- [x] `search_radar_cache` (now `search_radar_offline` post-BL-032 Phase 4b rename) MCP output extended with `deeplink` (shipped commit `028d21d`, BL-031.95 Phase 3.B)
+- [x] `search_portfolio` MCP output extended with `deeplink` (filtered Portfolio URL based on facet filters) (shipped commit `b0eecef`, Phase 4)
+- [x] Round-trip parity tests per tool — encode MCP input → produce deep-link → simulate website decoder → deep-equal with original input. Symmetric with BL-031.75's Tech Debt / ICG / Regulatory Map tests
 
 **Prompt body updates (BL-031.75 follow-up)**
 
-- [ ] `gst_target_quick_look` body updated to surface the 4th deep-link (TechPar); the prior "TechPar deep-link will be added when the page supports URL state" disclosure is removed
-- [ ] `gst_diligence_kickoff` body updated to surface a Diligence Machine deep-link (populated wizard URL)
-- [ ] `gst_diligence_handoff_memo` body updated to surface Diligence Machine + Portfolio deep-links
-- [ ] `gst_radar_brief_today` body updated to surface a filtered Radar deep-link
-- [ ] `gst_comparable_engagements_memo` body updated to surface a filtered Portfolio deep-link
-- [ ] BL-031.75 verification rows V2 / V3 / V7 / V8 (the prompts that gain deep-links here) re-run with deep-link presence + browser state-restoration checks; recorded into `mcp-server/README.md` § "Last verified" under a new "BL-031.95 surface" stanza
+- [x] `gst_target_quick_look` — 4th deep-link (TechPar) surfaced; prior deferred-disclosure note removed (shipped commit `3088867`, Phase 5)
+- [x] `gst_diligence_kickoff` — Diligence Machine deep-link surfaced (Phase 5)
+- [x] `gst_diligence_handoff_memo` — Diligence Machine + Portfolio deep-links surfaced (Phase 5)
+- [x] `gst_radar_brief_today` — filtered Radar deep-link surfaced (Phase 5)
+- [x] `gst_comparable_engagements_memo` — filtered Portfolio deep-link surfaced (Phase 5)
+- [x] BL-031.75 verification rows V2 / V3 / V7 / V8 re-run with deep-link presence + browser state-restoration checks; recorded into `mcp-server/README.md` § "Last verified" under "BL-031.95 surface" stanza
 
 **Verification & docs**
 
-- [ ] `MCP_SERVER_HUB_URL_STATE_BL-031_95.md` authored with implementation plan (per the established BL-031.5 / BL-031.75 architecture-doc pattern: per-commit phasing, per-tool file lists, V<n> punch-list, risks)
-- [ ] `mcp-server/README.md` § "Last verified" extended with a "BL-031.95 surface" stanza recording deep-link evidence for each of the 4 newly-supported tools
-- [ ] `src/docs/development/MCP_SERVER_PROMPTS_BL-031_75.md` § "Deferred work (captured for BACKLOG.md BL-034)" updated to point at BL-031.95 closure rather than BL-034 (the deferred work has its own initiative now)
-- [ ] No regressions: existing URL state tests (Tech Debt, ICG, Regulatory Map) still pass; existing MCP tool parity tests still pass; existing E2E tests on the four touched pages still pass (visual + functional parity)
+- [x] `MCP_SERVER_HUB_URL_STATE_BL-031_95.md` authored with implementation plan + per-phase closure stanzas + initiative summary (shipped commits `bbbc7f1` initial + `d6566d3` revision + `2ff27b0` closure)
+- [x] `mcp-server/README.md` § "Last verified" extended with "BL-031.95 surface" stanza recording deep-link evidence for the 4 newly-supported tools
+- [x] `src/docs/development/MCP_SERVER_PROMPTS_BL-031_75.md` § "Deferred work" updated to point at BL-031.95 closure rather than BL-034
+- [x] No regressions: existing URL state tests (Tech Debt, ICG, Regulatory Map) pass; existing MCP tool parity tests pass; existing E2E tests on the four touched pages pass (closed via `5ab92f7 docs(backlog): flip BL-031.95 status to Complete`)
 
 #### Technical Context
 
