@@ -14,7 +14,7 @@
 > - [`mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md`](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) — consumer setup
 > - [`mcp-server/src/docs/operations/RATE_LIMITS.md`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md) — rate-limit + circuit-breaker design
 >
-> **Test ID convention**: `T.<section>.<n>` — section letters group by area (A=Auth, B=Tools, C=Rate-limit, D=Inoreader, E=Observability, F=Onboarding, G=DR, H=Performance, I=Security, J=Schema). IDs are stable; new tests append, deprecated tests get `~~strikethrough~~` rather than removal so historical results stay decodable.
+> **Test ID convention**: `T.<section>.<n>` — section letters group by area (A=Auth, B=Tools, C=Rate-limit, D=Inoreader, E=Observability, F=Onboarding, G=DR, H=Performance, I=Security, J=Schema, **K=Claude workflow consumption**). IDs are stable; new tests append, deprecated tests get `~~strikethrough~~` rather than removal so historical results stay decodable.
 
 ---
 
@@ -496,6 +496,209 @@ These regression checks ensure tools' input/output schemas stay in lockstep with
 
 ---
 
+## Section K — Claude workflow consumption
+
+The other sections test "does the Worker behave correctly when called." This section tests **"does Claude USE it well in real conversations."** Different signal — qualitative, non-deterministic, surfaces tool-description quality, prompt-library design, error-message UX, and the consumption patterns that determine whether GST team-members and (post-BL-033) external consumers actually get value out of the surface.
+
+**Why this section is structured differently**:
+
+- **Outcomes are qualitative, not pass/fail**. Claude's behavior is non-deterministic; a single prompt run is a sample, not a proof. Findings are scored on a 1-5 rubric (below).
+- **Prose-consumption matters more than protocol correctness**. A Worker that returns perfect JSON is useless if Claude can't translate that JSON into prose a consultant would actually paste into a deal memo. The most valuable findings here surface in _what Claude writes back_, not in HTTP status codes.
+- **Improvement opportunities outnumber defects**. Each unsatisfying response is a candidate for: clearer tool description, better Zod `.describe()` text, BL-031.75-style prompt-library expansion, schema simplification, or — if a workflow is genuinely impossible — a feature gap to log against BL-033.
+
+### Scoring rubric
+
+For each prose prompt or workflow scenario, score these dimensions 1-5:
+
+| Score              | Meaning                                                                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **5 — Excellent**  | Claude picked the right tool(s), gathered inputs cleanly, produced prose a consultant would paste into client work without edits   |
+| **4 — Good**       | Right tool, mostly-right inputs, useful prose with minor edits needed                                                              |
+| **3 — Acceptable** | Right tool eventually, some friction (extra clarifying prompts, light hallucination, awkward synthesis) but the user gets value    |
+| **2 — Poor**       | Wrong tool initially OR significant hallucination OR prose that misrepresents tool output. Recoverable with re-prompting           |
+| **1 — Failing**    | Did not use the MCP tool when it should have, OR fabricated tool output, OR prose-synthesis introduced false claims about GST data |
+
+**Scoring dimensions** (score each 1-5 per applicable):
+
+- **Tool selection accuracy** — picked the right tool (or right tool first, then refined)
+- **Input completeness** — gathered required inputs without hallucinating; asked for missing ones rather than guessing
+- **Result synthesis** — converted JSON tool output to useful prose (not just dumped the JSON)
+- **Composition** (multi-tool only) — chained tools correctly, passed data between them faithfully
+- **Failure handling** — when a tool errored or returned empty, recovered gracefully (vs hiding it from user)
+- **Overall workflow value** — would a real consultant in this situation be satisfied?
+
+A finding worth logging is anything where any score < 4 — those are improvement signals, not just defects.
+
+### K.1 — Structured workflow scenarios
+
+These are protocol-level checks of conversational behavior — closer in shape to the rest of the playbook but still qualitative. Run from Claude Desktop with the `gst-mcp-staging` connector enabled.
+
+| ID           | Scenario                                                | How to run                                                                                                                                                                         | Expected                                                                                                                                                                                                         | Failure mode                                                                                                            |
+| ------------ | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **T.K.1.1**  | Tool discoverability without explicit naming            | Prompt: _"What kind of due-diligence work has GST done in healthcare?"_                                                                                                            | Claude calls `search_portfolio` with `theme = "Healthcare Tech"` (or equivalent), returns prose summary                                                                                                          | Claude reaches for web search, or asks "I don't have access to GST's portfolio" — means tool description is too narrow  |
+| **T.K.1.2**  | Required-field handling — graceful elicitation          | Prompt: _"Generate a diligence agenda for a SaaS company"_ (only 1 of 13 required inputs provided)                                                                                 | Claude either (a) asks for the missing 12 inputs in a structured way, OR (b) uses `'unknown'` sentinel for unknowable fields per BL-031.95. Does NOT hallucinate values                                          | Claude fabricates inputs ("I'll assume 51-200 headcount") — silently fills gaps without flagging                        |
+| **T.K.1.3**  | Multi-step chain composition                            | Prompt: _"Find recent radar items about kubernetes from the last week, then for the most discussed one, generate a quick due-diligence question list as if it were a deal target"_ | Claude calls `search_radar` first, evaluates results, then calls `generate_diligence_agenda` with reasonable inferred inputs from the radar item                                                                 | Single-tool only; or skips the radar call and hallucinates "kubernetes news"                                            |
+| **T.K.1.4**  | Long-conversation tool-result memory                    | Turn 1: call `list_portfolio_facets`. Turn 5 (after unrelated chat): _"Search portfolio for the first engagement-category we listed earlier"_                                      | Claude reuses the earlier result without re-calling the tool (or re-calls only if it correctly identifies that the data could have changed — neither is wrong, but Claude shouldn't pretend the result is novel) | Re-calls unnecessarily AND treats result as fresh; or worse, fabricates the earlier list                                |
+| **T.K.1.5**  | Error-message UX (503 circuit-open)                     | Pre-test: open the circuit breaker per Strategy 1 in Section D. Then prompt: _"What's in the radar today?"_                                                                        | Claude renders the 503/Retry-After to the user clearly: "the radar tool is temporarily unavailable due to upstream rate limits; try again after X minutes"                                                       | Claude says "no radar items today" — silently suppresses the error, leaving the user with a falsely-empty answer        |
+| **T.K.1.6**  | Cross-client parity                                     | Run T.K.1.1 from Claude Desktop, Claude Code, and Cursor in turn (if all three are configured)                                                                                     | Same tool selection; comparable result quality (some prose-style variation is fine)                                                                                                                              | One client picks a different tool, or one client returns markedly different result quality                              |
+| **T.K.1.7**  | Connector disambiguation (local stdio + remote staging) | With both `gst` (local stdio) and `gst-mcp-staging` (remote) configured, prompt: _"Search the radar"_ (no connector named)                                                         | Document which one Claude picks and why. Verify whichever it picks gives the right answer                                                                                                                        | Claude calls BOTH (wasteful), or randomly picks one without ability to predict                                          |
+| **T.K.1.8**  | Token / context window cost                             | Run a 5-turn conversation that exercises 3 different tools; estimate tokens consumed by tool descriptions + JSON results in Claude's context                                       | Tool descriptions <500 tokens combined; max-output JSON <2k tokens per response                                                                                                                                  | Tool result JSONs are bloated (>5k tokens for typical use) — surfaces as a request to add `summary`-mode flags to tools |
+| **T.K.1.9**  | Hallucination detection — fake project                  | Prompt: _"What did GST find during the diligence on Acme Corp's $40M Series C?"_ (no such engagement exists)                                                                       | Claude calls `search_portfolio`, returns empty, says "I don't see an Acme Corp engagement in GST's portfolio"                                                                                                    | Claude fabricates engagement details, possibly mixing data from unrelated real engagements                              |
+| **T.K.1.10** | Stale-data / freshness signaling                        | Prompt: _"What did the radar surface today?"_ — twice, ~10 min apart                                                                                                               | Claude either re-calls each time (right answer for time-sensitive radar data) OR explicitly notes "based on data from X minutes ago, do you want me to re-check?"                                                | Claude treats the cached first call as freshly-current                                                                  |
+
+### K.2 — Golden prose prompts (organic consumption)
+
+Run each prompt verbatim in a fresh Claude Desktop conversation (don't pre-load context). Score per the rubric above. The prompts are intentionally consultant-flavored — they reflect actual usage patterns rather than test-rig probes.
+
+#### K.2.a — Discovery prompts (does Claude find the right tool?)
+
+These prompts deliberately do NOT name a tool. Claude's job is to navigate the registry on tool descriptions alone.
+
+```
+T.K.2.a.1 — "Does GST have any past work in regulated industries — financial services or healthcare?"
+T.K.2.a.2 — "What does the GST radar show in the past few days about AI agent governance?"
+T.K.2.a.3 — "Help me think through what a tech-debt assessment for a 200-person SaaS engineering org would cost annually if 30% of dev time is going to maintenance."
+T.K.2.a.4 — "What are the GDPR requirements for a B2B SaaS company headquartered in the US but with EU customers?"
+T.K.2.a.5 — "How would I assess whether a target company's infrastructure cost discipline is mature enough for a PE roll-up?"
+```
+
+For each: did Claude pick the right tool first try? If not, where did it default to (web search? hallucination? "I don't have access"?) — that's a tool-description gap to log.
+
+#### K.2.b — Single-tool natural prompts (one per tool)
+
+Exercise each of the 10 transport-portable tools through a natural-language path, not a parameter-passing path. The point is to verify the tool description is good enough that Claude knows when AND how to call it.
+
+```
+T.K.2.b.1  list_portfolio_facets    "What categories of M&A engagements has GST worked on?"
+T.K.2.b.2  search_portfolio         "Pull GST's relevant engagements involving SaaS marketplaces sold to PE."
+T.K.2.b.3  generate_diligence_agenda "Draft a diligence agenda for a Series B B2B SaaS target — modern cloud-native stack, ~150 engineers, EU+US presence, healthcare-adjacent data."
+T.K.2.b.4  assess_infrastructure_cost_governance "Run an ICG assessment for a Series B PE-backed SaaS company; here are my answers to the standard ICG questions: [paste a few real answers]"
+T.K.2.b.5  compute_techpar          "Run a TechPar benchmark — Series B SaaS, $20M ARR, $4M annual cloud + infra, 75 engineers, 30% growth, deepdive mode."
+T.K.2.b.6  estimate_tech_debt_cost  "Estimate the carrying cost of tech debt for a 100-person eng org at $200K/eng, 35% maintenance burden, weekly deploys, 6 incidents/mo, $40M ARR."
+T.K.2.b.7  search_regulations       "What are the key data-residency requirements I need to think about for a SaaS company expanding into Quebec?"
+T.K.2.b.8  list_regulation_facets   "What jurisdictions does GST's regulatory map cover?"
+T.K.2.b.9  search_radar             "Pull recent radar items in the AI/automation category."
+T.K.2.b.10 get_latest_insights      "Show me GST's most recent annotated radar items — the FYI tier."
+```
+
+For each, score: tool selection (1-5), input completeness (1-5), result synthesis (1-5), overall (1-5).
+
+#### K.2.c — Multi-tool chain workflows (real-work scenarios)
+
+These are the load-bearing prose tests. Each prompt deliberately requires composing 2+ tools to answer. The signal is whether Claude orchestrates them correctly.
+
+```
+T.K.2.c.1 — Deal-target intake
+"I'm meeting tomorrow with a target: B2B SaaS, healthcare-RCM, $30M ARR, Series B, hybrid-legacy with active modernization in flight, 180 engineers across US+EU. Pull any comparable past GST engagements, then draft the diligence agenda I should walk in with."
+[Expects: search_portfolio → generate_diligence_agenda. Score: tool selection, composition, synthesis, overall.]
+
+T.K.2.c.2 — Radar-driven thesis development
+"Find recent radar items in the PE/M&A category from the last week. For any deals or themes that might intersect with GST's past tech-due-diligence work, surface the comparable engagements."
+[Expects: search_radar → search_portfolio. Score multi-tool composition + synthesis quality.]
+
+T.K.2.c.3 — Cost-governance assessment + roll-up suggestion
+"For a Series B PE-backed SaaS company in financial services where my client is hitting elevated tech costs (above the healthy benchmark), give me both a TechPar benchmark and an ICG maturity assessment, then suggest the top 3 remediation areas across both lenses."
+[Expects: compute_techpar + assess_infrastructure_cost_governance run in parallel; synthesis combines both. Score composition + synthesis.]
+
+T.K.2.c.4 — Regulatory-blast-radius scoping
+"My target operates in the US, Canada (including Quebec), and the EU; processes patient data; uses LLM-based features. What are the regulatory frameworks I need to flag in my diligence memo, and any past GST work I can reference?"
+[Expects: search_regulations (multi-jurisdiction) → search_portfolio (healthcare/AI). Score: multi-jurisdiction handling, AI/healthcare regulatory awareness, GST-engagement linking.]
+
+T.K.2.c.5 — Tech-debt + roadmap argument
+"For a 250-engineer org spending 40% of capacity on maintenance with $80M ARR, calculate tech-debt carrying cost AND show me ICG questions where they're likely failing. Then draft a one-paragraph board pitch for why a remediation budget is necessary."
+[Expects: estimate_tech_debt_cost + assess_infrastructure_cost_governance + synthesis to consultant prose. Score across all dimensions.]
+```
+
+#### K.2.d — Edge cases & error recovery
+
+```
+T.K.2.d.1 — Compute techpar with deliberately invalid input
+"Run a TechPar benchmark with $0 ARR." [Expect: Zod rejection; Claude either re-asks or surfaces the error clearly.]
+
+T.K.2.d.2 — Search portfolio with 0 results
+"Find GST engagements in agriculture-vertical SaaS for sub-$1M ARR seed-stage targets." [Expect: empty result; Claude doesn't fabricate engagements.]
+
+T.K.2.d.3 — Radar during budget exhaustion (run when circuit is open per Section D Strategy 1)
+"What's in the radar today?" [Expect: Claude renders 503; user sees "temporarily unavailable + retry later."]
+
+T.K.2.d.4 — Generate agenda with all 13 fields = 'unknown'
+"Generate a diligence agenda but I have no information about the target yet — just early-stage curiosity." [Expect: Claude uses 'unknown' sentinel per BL-031.95; result is a wide, low-confidence agenda with the unknownDimensionCount callout.]
+
+T.K.2.d.5 — Mixed valid + invalid enum
+"Generate an agenda for a target with productType='vaporware' and revenueRange='5-25m'." [Expect: clear Zod rejection on productType; Claude either asks for clarification or proceeds with the rest.]
+```
+
+#### K.2.e — Mid-engagement consultant scenarios
+
+These are the highest-fidelity simulations of real GST work. They reflect actual time-pressured consulting moments.
+
+```
+T.K.2.e.1 — Pre-call prep (under time pressure)
+"I'm in 5 min on a call with a target's CTO. They make B2B inventory-management software, ~$8M ARR, growing 50% YoY, hybrid cloud + on-prem. Give me my top 5 questions for the architecture portion of the call."
+
+T.K.2.e.2 — Mid-call lookup
+"The target just told me they have 'patchwork microservices on K8s with some legacy monoliths'. What follow-up questions does that signal?"
+
+T.K.2.e.3 — Post-call synthesis
+"From this call, I learned: Series C, $50M ARR, modern cloud-native, 220 engineers, EU+US, multi-region, healthcare data, low data-sensitivity processing model, recently modernized. What attention areas should appear in my diligence memo?"
+
+T.K.2.e.4 — Investor-facing summary
+"For a partner update tomorrow, summarize GST's most relevant work in B2B SaaS / financial services / regulatory diligence over the last 18 months."
+
+T.K.2.e.5 — Triage hot lead
+"A founder just sent me their pitch — they're a $15M-ARR Series B AI-tooling company looking for tech advisory. Pull any radar items + past engagements that would inform whether this is a fit, and tell me if I should take the call."
+```
+
+### K.3 — Findings template (for prose tests)
+
+For any prompt where overall score < 4, log a finding using this template (in addition to the standard finding block from earlier in the doc):
+
+```
+## T.K.<id> — <prompt summary>
+- Date: <date>
+- Tester: <initials>
+- Client used: Claude Desktop / Claude Code / Cursor / ChatGPT / [other]
+- Prompt verbatim:
+  > [exact text used]
+
+- Tool selection: <1-5> — <which tool did Claude pick? right one?>
+- Input completeness: <1-5> — <did it ask for missing fields, or hallucinate?>
+- Result synthesis: <1-5> — <did the prose answer feel like a useful consultant artifact?>
+- Composition (multi-tool): <1-5 or N/A>
+- Failure handling: <1-5 or N/A>
+- Overall workflow value: <1-5>
+
+- Improvement opportunity: <which knob to turn?>
+  - [ ] Tool description gap — `<tool name>`'s description doesn't make its applicability clear → revise in `mcp-server/src/tools/<file>.ts`
+  - [ ] Zod `.describe()` gap on field `<field>` — Claude couldn't infer how to format the input → expand the `.describe()` text
+  - [ ] BL-031.75 prompt-library candidate — this exact pattern recurs; should ship as a saved Prompt
+  - [ ] Schema simplification — input shape forces Claude into too many clarifying questions
+  - [ ] Result-shape simplification — JSON output too verbose for the conversational context
+  - [ ] Error-envelope copy — Claude renders our error envelopes badly; revise the `message` field text
+  - [ ] BL-033 feature gap — workflow is genuinely impossible without OAuth / per-user scoping / [other future feature]
+  - [ ] Other: <free text>
+
+- Notes: <anything else, including verbatim Claude response excerpts if helpful>
+```
+
+### K.4 — Acting on findings
+
+Findings flow back to specific change-points in the codebase. Match each finding to the right artifact:
+
+| Finding type                           | Where to fix                                                            | Example                                                                                                                                           |
+| -------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tool description too vague             | `mcp-server/src/tools/<tool>.ts` `description` field                    | "search_portfolio works for any company name" → narrow to "GST's anonymized M&A portfolio"                                                        |
+| Zod field description unclear          | `mcp-server/src/tools/<tool>.ts` `.describe()` strings                  | A field where Claude consistently asks for clarification                                                                                          |
+| Workflow recurs across testers         | New entry in BL-031.75 prompt library (`mcp-server/src/prompts/`)       | T.K.2.e.1's "pre-call prep in 5 min" pattern                                                                                                      |
+| Result JSON bloat                      | Tool's response shape (consider adding a `summary`-mode flag)           | Default `search_radar` returns 30 full items × ~500 tokens each = 15k tokens                                                                      |
+| Error message UX bad                   | `mcp-server/src/lib/inoreader-worker.ts` error-envelope `message` field | "Inoreader access token is stale" → "I couldn't fetch radar data right now; the website's token-refresh job will recover this within ~5 minutes." |
+| Cross-client behavior diverges         | Document the divergence in `REMOTE_CLIENT_SETUP.md`                     | One client renders SSE differently from another                                                                                                   |
+| Genuine feature gap (not BL-032 scope) | New entry in `BACKLOG.md` referencing the test ID                       | T.K.1.5's "Claude can't tell user when budget is exhausted because there's no UX surface for that" → BL-033 issue                                 |
+
+**Cadence**: aim for ≥3 prose-test sessions across the soak week (one per day for the first three days; revisit after fixes if the surface gets adjusted mid-soak). Each session: pick 5-10 prompts from K.2; run; score; capture findings. After the soak, the aggregated K-section findings should produce a prioritized list of: (a) quick-fix tool-description PRs, (b) BL-031.75 prompt-library expansion candidates, (c) BL-033 inputs for the external-pilot scope discussion.
+
+---
+
 ## Pre-production gate checklist
 
 These scenarios are **must-pass** before clicking `npm run deploy:production`. Anything failing here is a hard blocker. Non-blocking scenarios from the broader playbook can ship with documented known-issues.
@@ -533,6 +736,11 @@ These scenarios are **must-pass** before clicking `npm run deploy:production`. A
 - [ ] T.E.4 — Sentry captures unhandled exceptions
 - [ ] T.F.1.\* — internal team-member onboarding (no real team-member needs to be added pre-prod, but the dry-run should pass)
 - [ ] T.H.2, T.H.4 — warm-path latency targets
+- [ ] T.K.1.1 — Tool discoverability (≥3/5 across testers)
+- [ ] T.K.1.2 — Required-field handling (≥4/5 — hallucinated inputs are a real defect, not a usability concern)
+- [ ] T.K.1.5 — Error-message UX during 503 (≥4/5 — silent error suppression IS a defect)
+- [ ] T.K.1.9 — Hallucination-detection on fake project (≥4/5 — fabricated GST data is a quality gate)
+- [ ] At least 1 prose session run (5+ prompts from K.2.b/c with average overall ≥3/5)
 
 ### Can defer to post-prod soak (Minor / Cosmetic)
 
@@ -543,6 +751,9 @@ These scenarios are **must-pass** before clicking `npm run deploy:production`. A
 - T.G.4, T.G.5 — Hard DB recovery (destructive; test in next BL-035-style substrate change instead)
 - T.H.1 — Cold-isolate latency (acceptable to be slow on first call after a quiet period)
 - T.J.2 — Wizard parity (regression check; do during BL-031.95 follow-ups, not soak)
+- T.K.1.6 — Cross-client parity (only Claude Desktop is required for BL-032 baseline; Cursor + ChatGPT are nice-to-have signal for BL-033)
+- T.K.1.8 — Token / context window cost analysis (not blocking; informs BL-032.75 observability + BL-033 cost-modeling)
+- T.K.2.\* — Most golden prose prompts are improvement-opportunity capture, not deploy-blocking. Findings flow to BL-032 closure / BL-031.75 prompt-library expansion / BL-033 input
 
 ---
 
@@ -576,9 +787,12 @@ A simple "scoreboard" you can keep alongside the per-finding blocks. Update as y
 |  3  | C, D  |  18           |  17  |  0   |  1           | T.D.6 inconclusive — refresh-token simulation deferred |
 |  4  | E, F  |  15           |  14  |  1   |  0           | T.F.1.c — discoverability gap; AB couldn't find the doc |
 |  5  | G, H  |  11           |  10  |  0   |  1           | T.H.5 inconclusive — couldn't generate enough concurrent load |
-|  6  | I, J  |  15           |  15  |  0   |  0           |  |
-|  7  | gates |  per checklist|  ... |  ... |  ...         | If gates pass, deploy production; else triage and re-soak |
+|  6  | I, J, K.1 |  25       |  24  |  0   |  1           | T.K.1.6 cross-client deferred (Cursor not configured) |
+|  7  | K.2 prose | 10 prompts | avg overall: 3.6/5 | -- | -- | 4 improvement opportunities logged: 2 tool descriptions, 1 BL-031.75 candidate, 1 BL-033 feature-gap |
+|  8  | gates |  per checklist|  ... |  ... |  ...         | If gates pass, deploy production; else triage and re-soak |
 ```
+
+Note: Section K's prose tests use a different scoring axis — average overall score (1-5) instead of pass/fail counts. Track them separately so the scoreboard's pass/fail columns stay meaningful for the deterministic-test sections.
 
 ---
 
