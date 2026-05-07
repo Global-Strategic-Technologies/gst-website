@@ -537,17 +537,20 @@ A prompt's behavior is determined by its message body — pure content. A senior
 - [x] Discoverability: from `src/docs/README.md`, a reader following links arrives at the contracts registry in ≤2 hops
 - [x] Live MCP exercise unchanged: `mcp__gst__generate_diligence_agenda` trigger-map dimension labels match the labels in `CONTRACT.md`'s field-overview table (since `CONDITION_LABELS` at runtime is canonical) — verified during BL-031.75 V3 / V8 trials, evidence in [`mcp-server/README.md` § "Last verified (BL-031.75 surface)"](../../../mcp-server/README.md#last-verified-bl-03175-surface)
 
-**Deviations & follow-up** (added at closure, 2026-05-02)
+**Deviations** (added at closure, 2026-05-02 — items completed AS PART OF BL-031.85 work, even where they overflowed sibling initiatives)
 
 - [x] **Bonus contracts** for ICG / TechPar / Tech Debt / Regulatory Map shipped during their BL-031.5 commits rather than waiting for an explicit BL-031.85 Phase 2; the registry pattern proved reusable as designed
 - [x] **"Used by prompts" cross-references** added to all 5 contracts during BL-031.75 closure (commit `8b39d78`, May 1, 2026) — links each contract to the BL-031.75 prompts that compose its argsSchema, surfacing schema-level coupling at the contract level
-- [ ] **Cross-tool concept glossary** added to `mcp-server/src/docs/contracts/README.md` as transitional artifact — flags the funding-stage variance between ICG (`pre-series-b` / `series-bc` / `pe-backed` / `enterprise`) and TechPar (`seed` / `series_a` / `series_bc` / `pe` / `enterprise`); carries a "Will be superseded by [BL-031.87](#bl-03187-mcp-server--stage-taxonomy-adapter-layer)" note so future readers don't invest in it as a permanent reference
-- [ ] **Stage Taxonomy Adapter Layer** filed as [BL-031.87](#bl-03187-mcp-server--stage-taxonomy-adapter-layer) — concrete follow-up to retire the glossary by introducing a canonical funding-stage taxonomy plus per-tool Adapter modules at the MCP-wrapper boundary
-- [ ] **Portfolio Search `CONTRACT.md`** — broken README link still outstanding; deferred to [BL-034 follow-up list](#bl-034-mcp-server--documentation-cleanup) (decision pending: author or drop the tool from the registry)
-- [ ] **Contract-parity Vitest** — structural test asserting every CONTRACT.md option ID exists in the matching `*_IDS` tuple. Hardens the "discipline is conventional" risk noted in the architecture doc. Filed as a Tier 2 hardening item — schedule independently if drift surveillance becomes a maintenance pain point
-- [ ] **YAML frontmatter on each CONTRACT.md** — promote the prose `Version: v1 \| Last authored: ...` line to YAML frontmatter to enable machine-readable consumption (parity test, future IRL generator, staleness check). Tier 2 hardening; fold into the parity-test commit if scheduled
-- [ ] **`.describe()` consistency pass on tool Zod schemas** — adds JSON Schema descriptions for agent introspection. Recommended fold into [BL-031.95](#bl-03195-hub-tools--url-state-restoration--mcp-deep-link-surface) since that initiative already opens the schema files (TechPar `infraHosting` rename precedent)
-- [ ] **IRL generator scoping spike** — strategic destination of BL-031.85; with 5 contracts now stable, ready for a 2-3 hr scoping spike to pick a concrete consumer use case and define the rendering format. File as a new BL number when scheduled
+- [x] **Cross-tool concept glossary** added to `mcp-server/src/docs/contracts/README.md` as transitional artifact — flagged the funding-stage variance between ICG (`pre-series-b` / `series-bc` / `pe-backed` / `enterprise`) and TechPar (`seed` / `series_a` / `series_bc` / `pe` / `enterprise`); carried a "Will be superseded by [BL-031.87](#bl-03187-mcp-server--stage-taxonomy-adapter-layer)" note. Glossary subsequently retired by BL-031.87 closure (May 2, 2026)
+- [x] **Stage Taxonomy Adapter Layer** filed as [BL-031.87](#bl-03187-mcp-server--stage-taxonomy-adapter-layer) and shipped May 2, 2026 — retired the transitional glossary by introducing a canonical funding-stage taxonomy plus per-tool Adapter modules at the MCP-wrapper boundary
+- [x] **`.describe()` consistency pass on tool Zod schemas** — adds JSON Schema descriptions for agent introspection. Folded into [BL-031.95](#bl-03195-hub-tools--url-state-restoration--mcp-deep-link-surface) closure (commit `2106bad` for TechPar; equivalent passes across the other tools as part of the BL-031.95 5-phase arc)
+
+**Follow-ups deferred to future work** (intentionally NOT done as part of BL-031.85; tracked as separate items here for handoff visibility — none block BL-031.85 closure)
+
+- **Deferred** — **Portfolio Search `CONTRACT.md`** — broken README link still outstanding; tracked under [BL-034 follow-up list](#bl-034-mcp-server--documentation-cleanup) (decision pending: author or drop the tool from the registry)
+- **Deferred** — **Contract-parity Vitest** — structural test asserting every CONTRACT.md option ID exists in the matching `*_IDS` tuple. Hardens the "discipline is conventional" risk noted in the architecture doc. Filed as a Tier 2 hardening item — schedule independently if drift surveillance becomes a maintenance pain point
+- **Deferred** — **YAML frontmatter on each CONTRACT.md** — promote the prose `Version: v1 \| Last authored: ...` line to YAML frontmatter to enable machine-readable consumption (parity test, future IRL generator, staleness check). Tier 2 hardening; fold into the parity-test commit if scheduled
+- **Deferred** — **IRL generator scoping spike** — strategic destination of BL-031.85; with 5 contracts now stable, ready for a 2-3 hr scoping spike to pick a concrete consumer use case and define the rendering format. File as a new BL number when scheduled
 
 #### Technical Context
 
@@ -625,36 +628,36 @@ A prompt's behavior is determined by its message body — pure content. A senior
 
 **Canonical layer**
 
-- [ ] `src/data/common/funding-stages.ts` — `CANONICAL_STAGES` const tuple (`seed` → `enterprise`), `CanonicalStage` type, `CanonicalStageSchema` Zod enum, optional descriptions sourced from public funding-round conventions
-- [ ] `src/data/common/stage-adapters.ts` — `ICG_STAGE_ADAPTER`, `TECHPAR_STAGE_ADAPTER` with explicit `toCanonical: Record<NativeEnum, CanonicalStage>` and `fromCanonical: Record<CanonicalStage, NativeEnum>` tables; helper functions `toCanonical(toolId, native)` / `fromCanonical(toolId, canonical)`
+- [x] `src/data/common/funding-stages.ts` — `CANONICAL_STAGES` const tuple (`seed` → `enterprise`), `CanonicalStage` type, `CanonicalStageSchema` Zod enum, optional descriptions sourced from public funding-round conventions (shipped in commit `06a06bd`, BL-031.87 Phase 1)
+- [x] `src/data/common/stage-adapters.ts` — `ICG_STAGE_ADAPTER`, `TECHPAR_STAGE_ADAPTER` with explicit `toCanonical: Record<NativeEnum, CanonicalStage>` and `fromCanonical: Record<CanonicalStage, NativeEnum>` tables; helper functions `toCanonical(toolId, native)` / `fromCanonical(toolId, canonical)` (shipped in commit `06a06bd`, BL-031.87 Phase 1)
 
 **MCP wrapper integration**
 
-- [ ] `mcp-server/src/tools/icg.ts` — input schema accepts canonical `stage` value via Zod union (canonical | native); wrapper translates via `ICG_STAGE_ADAPTER.fromCanonical[]` before calling the engine; output annotated with the canonical equivalent of the engine's reported stage
-- [ ] `mcp-server/src/tools/techpar.ts` — same pattern with `TECHPAR_STAGE_ADAPTER`
-- [ ] Both wrappers retain BACKWARD-COMPATIBLE acceptance of native values; deprecation timeline noted in the wrapper-level JSDoc
+- [x] `mcp-server/src/tools/icg.ts` — input schema accepts canonical `stage` value via Zod union (canonical | native); wrapper translates via `ICG_STAGE_ADAPTER.fromCanonical[]` before calling the engine; output annotated with the canonical equivalent of the engine's reported stage (shipped in commit `08d7c68`, BL-031.87 Phase 2)
+- [x] `mcp-server/src/tools/techpar.ts` — same pattern with `TECHPAR_STAGE_ADAPTER` (shipped in commit `08d7c68`, BL-031.87 Phase 2)
+- [x] Both wrappers retain BACKWARD-COMPATIBLE acceptance of native values; deprecation timeline noted in the wrapper-level JSDoc
 
 **Prompts updated**
 
-- [ ] `gst_target_quick_look` (and any other BL-031.75 prompt that composes stage-aware argsSchemas) updated to use canonical funding-stage values; body instructions updated; per-prompt golden snapshots regenerated and recorded values match expected outputs
+- [x] `gst_target_quick_look` (and any other BL-031.75 prompt that composes stage-aware argsSchemas) updated to use canonical funding-stage values; body instructions updated; per-prompt golden snapshots regenerated and recorded values match expected outputs
 
 **Tests**
 
-- [ ] Round-trip native → canonical → native is idempotent for every native enum value in both adapters (Vitest unit test)
-- [ ] Lossy direction is documented and tested explicitly: `toCanonical(fromCanonical(canonical))` collapses are listed; the test asserts each known collapse rather than blindly round-tripping (a passing test in the lossy direction would mask information loss)
+- [x] Round-trip native → canonical → native is idempotent for every native enum value in both adapters (Vitest unit test)
+- [x] Lossy direction is documented and tested explicitly: `toCanonical(fromCanonical(canonical))` collapses are listed; the test asserts each known collapse rather than blindly round-tripping (a passing test in the lossy direction would mask information loss)
 
 **Documentation**
 
-- [ ] `mcp-server/src/docs/contracts/README.md` glossary section updated to reflect the canonical layer; "Will be superseded by BL-031.87" note retired
-- [ ] `src/docs/development/MCP_SERVER_CONTRACTS_BL-031_85.md` "Proximate opportunities" section updated to mark the stage-taxonomy entry as "Closed by BL-031.87"
-- [ ] ICG and TechPar `CONTRACT.md` updated with a "Canonical stage adapter" sub-section under the relevant field
-- [ ] BL-031.87 architecture/plan doc authored (`MCP_SERVER_STAGE_ADAPTER_BL-031_87.md`) capturing the pattern-choice reasoning (Adapter chosen over Proxy, Bridge, full normalization), boundary choice (MCP-wrapper, not engine or schema), and lossy-direction policy
+- [x] `mcp-server/src/docs/contracts/README.md` glossary section updated to reflect the canonical layer; "Will be superseded by BL-031.87" note retired
+- [x] `src/docs/development/MCP_SERVER_CONTRACTS_BL-031_85.md` "Proximate opportunities" section updated to mark the stage-taxonomy entry as "Closed by BL-031.87"
+- [x] ICG and TechPar `CONTRACT.md` updated with a "Canonical stage adapter" sub-section under the relevant field
+- [x] BL-031.87 architecture/plan doc authored (`MCP_SERVER_STAGE_ADAPTER_BL-031_87.md`) capturing the pattern-choice reasoning (Adapter chosen over Proxy, Bridge, full normalization), boundary choice (MCP-wrapper, not engine or schema), and lossy-direction policy
 
 **Verification**
 
-- [ ] `npx astro check && npm run lint && npm run lint:css && npm run test:run` continues to pass
-- [ ] `mcp-server/` workspace `npm run typecheck && npm run test && npm run build` continues to pass
-- [ ] Live MCP exercise: `gst_target_quick_look` invocation that previously required tool-native stage values now accepts canonical values; output is identical to the native-value baseline
+- [x] `npx astro check && npm run lint && npm run lint:css && npm run test:run` continues to pass
+- [x] `mcp-server/` workspace `npm run typecheck && npm run test && npm run build` continues to pass
+- [x] Live MCP exercise: `gst_target_quick_look` invocation that previously required tool-native stage values now accepts canonical values; output is identical to the native-value baseline
 
 #### Technical Context
 
