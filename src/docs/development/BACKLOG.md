@@ -957,7 +957,7 @@ The acceptance criteria for BL-032.25 are dynamic — populated as soak findings
 
 **Anchor items** (authored at initiative creation, 2026-05-06):
 
-- [ ] **§ 1 — Schema normalization across Hub Tools** — investigate retiring [BL-031.87](#bl-03187-mcp-server--stage-taxonomy-adapter-layer)'s adapter pattern by normalizing the underlying schemas. **Severity: P1**. Investigation completed 2026-05-06 (see [MCP_SERVER_REMOTE_BL-032_25.md § 1](./MCP_SERVER_REMOTE_BL-032_25.md#§-1--schema-normalization-across-hub-tools-investigation--p1-deferred)); recommendation defers normalization to post-launch given the real benchmark-re-attribution and URL-state-migration costs vs purely architectural benefit. Adapter pattern stays in place for B.6 production deploy
+- [ ] **§ 1 — Schema normalization across Hub Tools** — investigate retiring [BL-031.87](#bl-03187-mcp-server--stage-taxonomy-adapter-layer)'s adapter pattern by normalizing the underlying schemas. **Severity: P1**. Investigation completed 2026-05-06; revised same day after operator clarification that URL backward-compat is NOT a business requirement (see [MCP_SERVER_REMOTE_BL-032_25.md § 1](./MCP_SERVER_REMOTE_BL-032_25.md#§-1--schema-normalization-across-hub-tools-investigation--p1-deferred)). Cost dropped from 3-5 days to 2-3 days with URL-shim work removed; remaining dominant risk is **benchmark re-attribution**. Two-step recommendation: (1) ship B.6 with adapter pattern intact; (2) schedule a 2-4 hour benchmark-audit spike post-launch to determine if collapses (`pre-series-b`, `series_bc`) are by-design (then close § 1 as rejected) or lazy modeling (then graduate § 1 to scheduled normalization with audit + 2-3 day engineering)
 
 **Soak-week additions** (filled as findings emerge):
 

@@ -86,55 +86,76 @@ If schema normalization were attempted (i.e., rename ICG and TechPar's native st
 | **Engine stage type definitions** | [`src/utils/icg-engine.ts:13`](../../utils/icg-engine.ts), [`src/utils/techpar-engine.ts`](../../utils/techpar-engine.ts)                                                        | MODERATE — TypeScript enum rename, but downstream usages in benchmark validation must update simultaneously                                                                                                                                                                                                                                                                                                                                                        |
 | **Zod schemas**                   | [`src/schemas/icg.ts:75-81`](../../schemas/icg.ts), [`src/schemas/techpar.ts:18-19`](../../schemas/techpar.ts)                                                                   | HIGH — validation contract; upstream callers passing native values would fail until they update                                                                                                                                                                                                                                                                                                                                                                    |
 | **Benchmark data re-keying**      | [`src/utils/icg-engine.ts:332-346`](../../utils/icg-engine.ts), [`src/data/techpar/stages.ts:11-95`](../../data/techpar/stages.ts)                                               | **CRITICAL** — re-keying is mechanical, but the tradeoff is: (a) ICG's `pre-series-b` deliberately collapses canonical seed + series-a because the benchmark population doesn't separate them (small sample size at seed). After normalization to canonical-direct keys, do we duplicate the row to seed (invents precision the data doesn't support), or leave seed unbenchmarked (invalid input that previously worked)? Same for TechPar's `series_bc` collapse |
-| **URL state validation**          | [`src/utils/icg-engine.ts:207-209`](../../utils/icg-engine.ts), [`src/utils/techpar-engine.ts:644`](../../utils/techpar-engine.ts)                                               | MODERATE — every shared assessment URL today encodes native values. Normalization without backward-compat shim breaks every link. With backward-compat shim, must accept BOTH old and new values for some deprecation window                                                                                                                                                                                                                                       |
+| **URL state validation**          | [`src/utils/icg-engine.ts:207-209`](../../utils/icg-engine.ts), [`src/utils/techpar-engine.ts:644`](../../utils/techpar-engine.ts)                                               | LOW — find/replace the hardcoded validation lists with the new canonical values. **URL backward-compat is explicitly NOT a business requirement** (operator confirmed 2026-05-06), so existing shared URLs simply become invalid. Acceptable one-time breakage; no shim or deprecation window needed. Operator-notebook entries / case-study URLs containing the old values become dead links — costed-in                                                          |
 | **MCP wrapper input validation**  | [`mcp-server/src/tools/icg.ts`](../../../mcp-server/src/tools/icg.ts), [`mcp-server/src/tools/techpar.ts`](../../../mcp-server/src/tools/techpar.ts)                             | LOW — adapters retire; wrappers just pass canonical values directly to the engine                                                                                                                                                                                                                                                                                                                                                                                  |
 | **Website wizard UI / labels**    | [`src/pages/hub/tools/infrastructure-cost-governance/`](../../pages/hub/tools/infrastructure-cost-governance/), [`src/pages/hub/tools/techpar/`](../../pages/hub/tools/techpar/) | LOW — labels are data-driven from enum keys                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | **Adapter modules**               | [`src/data/common/stage-adapters.ts`](../../data/common/stage-adapters.ts)                                                                                                       | MOOT — modules become transparent pass-throughs and eventually retire                                                                                                                                                                                                                                                                                                                                                                                              |
 
-**Engineering cost estimate**: 3-5 days, broken down:
+**Engineering cost estimate** (revised 2026-05-06 after operator confirmed URL backward-compat is NOT a business requirement): **2-3 days** (was 3-5 with shim work). Broken down:
 
-- Day 1: ICG engine + schema + benchmark re-key + URL backward-compat shim + tests
-- Day 2: TechPar engine + schema + benchmark re-key + URL backward-compat shim + tests
-- Day 3: MCP wrapper updates + adapter retirement + cross-tool prompt verification
-- Day 4: Website wizard QA (labels, dropdowns, URL round-trips for both tools at both new and old values)
-- Day 5: Full project CI-equivalent gate, golden-snapshot regeneration for affected prompts, doc updates
+- Day 1: ICG engine + schema + benchmark re-key + URL validation list rewrite + tests
+- Day 2: TechPar engine + schema + benchmark re-key + URL validation list rewrite + tests + MCP wrapper updates + adapter retirement + cross-tool prompt verification + golden snapshot regen
+- Day 3: Website wizard QA (labels, dropdowns, fresh URL round-trips), full project CI-equivalent gate, doc updates
 
-**Real risks**:
+The URL-shim work that previously dominated Day 1 + Day 2 + half of Day 4 evaporates. With backward-compat off the table, the URL validation update is a single hardcoded-list find/replace per engine.
 
-1. **Silent benchmark mis-attribution** — if the re-key step gets the seed / series-a / series-b / series-c granularity wrong (e.g., copies series-a benchmarks into seed without questioning whether they apply), users see plausible-but-incorrect benchmark scores. Worse than the current adapter-collapses-to-known-coarseness behavior because at least under the adapter, the user sees the collapsed name (`pre-series-b`) and understands they're in a coarse bucket
-2. **URL backward-compat lifetime** — every shared URL is potentially permanent in someone's notes/PDFs/inbox. The shim has to live "for a long time" — likely permanently or until a planned URL-format-version-bump. Code complexity persists indefinitely
-3. **Wizard-page disruption during migration** — until both URL formats decode, in-flight users could see broken wizard states
-4. **Re-attribution audit cost** — beyond the mechanical re-key, the right thing to do is re-audit the benchmark dataset's source (where did these numbers come from? do they actually merit splitting back to canonical granularity?). That audit is bigger than the rename itself
+**Real risks** (post-revision):
 
-**Real benefit**: agents introspecting the JSON Schema for ICG's `companyStage` or TechPar's `stage` see canonical values directly rather than via Zod-union. Slightly cleaner DX for AI consumers. **No new functionality enabled**; this is purely architectural housekeeping.
+1. **Silent benchmark mis-attribution** ← **DOMINANT REMAINING RISK.** If the re-key step gets the seed / series-a / series-b / series-c granularity wrong (e.g., copies series-a benchmarks into seed without questioning whether they apply), users see plausible-but-incorrect benchmark scores. Worse than the current adapter-collapses-to-known-coarseness behavior because at least under the adapter, the user sees the collapsed name (`pre-series-b`) and understands they're in a coarse bucket
+2. **Re-attribution audit cost** — beyond the mechanical re-key, the right thing to do is re-audit the benchmark dataset's source (where did these numbers come from? do they actually merit splitting back to canonical granularity?). The audit itself is its own multi-day initiative if done seriously
+3. **Stale-URL dead-link discovery** — every previously-shared URL becomes invalid. Operator-notebook entries with shared URLs become dead. Case-study URLs become dead. **Costed-in per operator confirmation**, but worth flagging that the dead-link discovery happens over weeks (as people open old URLs), not at the moment of deploy
 
-#### Decision criteria checklist
+**Real benefit**: agents introspecting the JSON Schema for ICG's `companyStage` or TechPar's `stage` see canonical values directly rather than via Zod-union. Slightly cleaner DX for AI consumers. **No new functionality enabled**; this is purely architectural housekeeping. **However**, the cleanliness gain is real — the canonical layer becomes the actual source of truth instead of a layer that translates to a different source of truth. Conceptually clearer for everyone touching the code.
+
+#### The benchmark-audit question (now the dominant gating factor)
+
+With URL compat off the table, the cost analysis collapses to a single dominant question: **does the benchmark dataset actually support finer granularity than the current collapsed shape?**
+
+There are three possible answers, each with different implications:
+
+| Audit finding                                                                                                                                                                                         | Implication                                                                                                                                                                                                                                                     | Recommendation                                                                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **A. Collapses are by-design** — ICG's `pre-series-b` and TechPar's `series_bc` reflect real data-signal limits (small sample sizes at finer granularity; benchmark numbers genuinely don't separate) | Normalization preserves the collapses (e.g., canonical seed + series-a both still resolve to ICG's now-renamed-but-collapsed row). Net: ~2-3 days engineering for cosmetic rename; no functional benefit; same data limitations expressed at different boundary | **Defer indefinitely**. The adapter pattern at MCP-wrapper boundary is functionally equivalent to a collapse-aware engine; relocating the collapse logic without changing the data is pure churn |
+| **B. Collapses are lazy modeling** — the dataset's source data actually supports finer granularity, but BL-031.87's predecessor work elected coarse buckets for simplicity                            | Normalization with a real benchmark audit IS the right thing — it both improves the data integrity and removes the adapter conceptual tax                                                                                                                       | **Schedule a 2-4 hour benchmark-audit spike.** If the audit confirms B, scheduling normalization (~2-3 days) becomes defensible during a future capacity window                                  |
+| **C. Mixed / unclear** — some collapses are by-design, others might be lazy                                                                                                                           | Audit on a per-collapse basis; normalize what can be split, preserve what can't                                                                                                                                                                                 | **Schedule the audit anyway**; outcome will be incremental rather than wholesale                                                                                                                 |
+
+**Audit cost**: estimated 2-4 hours of someone with domain expertise (the original ICG / TechPar benchmark authors, or a senior consultant who can speak to whether the dataset's coarseness reflects reality). Cheap.
+
+#### Decision criteria checklist (revised)
 
 A normalization initiative becomes worth doing if AND only if:
 
-- [ ] At least one of these triggers fires:
-  - **A new third tool** is being added that needs stage-cohort binning AND its dataset doesn't naturally collapse into ICG's or TechPar's native shape (i.e., a real cross-tool ergonomic tax that adapters can't sand down). **Status today: no such tool planned through BL-033**
-  - **Website-wizard URL canonicalization** becomes a stated requirement (e.g., for cross-tool URL sharing — share an ICG URL → site recognizes the stage and pre-fills TechPar). **Status today: no such feature requested**
+- [ ] **Benchmark audit completed** — answers whether the existing collapses are by-design or lazy. **This is the new dominant question.** Cheap to answer (2-4 hours); expensive to skip
+- [ ] **At least one architectural trigger has fired** (any of):
+  - **A new third tool** is being added that needs stage-cohort binning AND its dataset doesn't naturally collapse into ICG's or TechPar's native shape. **Status today: no such tool planned through BL-033**
   - **External-pilot scoping (BL-033)** flags the adapter pattern as confusing for paying customers' compliance review. **Status today: speculative; will surface in BL-033's design discussion**
-- [ ] **Benchmark audit completed**: someone with domain expertise has reviewed whether ICG's `pre-series-b` and TechPar's `series_bc` actually collapse for good reason (data signal) or accidentally (lazy modeling). If accidentally, normalization is more justifiable. If by-design, the adapter approach respects the data
-- [ ] **URL-format versioning decision made**: separate from the normalization, the team decides whether to introduce a URL-format version field (`?v=2`) that allows clean future migrations. With this in place, normalization becomes routine; without it, every breaking change to URL formats is a major event
-- [ ] **Engineering capacity allocated**: minimum 5-day uninterrupted block; not interleaved with other shipping work since the affected surface is large enough that intermediate states are fragile
+  - **Audit comes back finding B (lazy modeling)** — in which case the cleanliness gain stacks with a real data-integrity gain, justifying the work on its own
+- [ ] **Engineering capacity allocated** — minimum 2-3 day uninterrupted block (revised down from 5 with URL-shim work removed)
 
-If 2+ checkmarks fire, this initiative graduates from P1 to "schedule for execution" — likely under a new BL number rather than under BL-032.25.
+If audit comes back A (by-design) AND no architectural trigger has fired, the recommendation is "leave the adapter pattern alone; it's encoding a real data limitation and renaming where the limitation lives gains nothing." If audit comes back B (lazy modeling), the recommendation flips to "schedule normalization as a coordinated initiative with the benchmark audit."
 
-### Recommendation
+### Recommendation (revised 2026-05-06 after URL-compat clarification)
 
-**Defer to post-launch (P1, no scheduled execution).** Reasons:
+**Two-step recommendation**:
 
-1. **The Adapter pattern shipped 2026-05-02 and is operationally stable.** The tax it imposes is conceptual (a canonical layer + adapters), not user-facing — agents see canonical input + canonical output via the MCP wrappers; the native enums are an internal implementation detail
-2. **Benchmark re-attribution risk is not speculative — it's structural.** Both engines' datasets are genuinely tuned to the collapsed enums; rejecting the adapter pattern means either (a) accepting that the canonical layer's `seed` + `series-a` granularity is fictional for ICG's benchmark output (since both would resolve to the same row), or (b) committing to a benchmark audit that's its own multi-day initiative
-3. **URL-state migration cost is real and persistent.** Backward-compat shims for URL parsers tend to live forever. Normalizing now adds permanent complexity to the URL parsers for purely architectural cleanliness
-4. **No identified user-visible benefit.** This investigation found zero unsatisfied use cases that the adapter pattern doesn't already serve. Cross-tool prompts work, single-tool prompts work, agent introspection works (agents see the canonical taxonomy through the MCP wrappers' Zod input schemas)
-5. **BL-031.87 explicitly defers, doesn't reject.** The original initiative documented the choice + the criteria for revisiting (line 137 of [`MCP_SERVER_STAGE_ADAPTER_BL-031_87.md`](./MCP_SERVER_STAGE_ADAPTER_BL-031_87.md)). Honoring that staged decision is preferable to relitigating it without new data
+**Step 1 — Defer normalization for B.6 production deploy (P1).** The Adapter pattern (BL-031.87) shipped May 2 and is operationally stable; gating Go-Live on schema cleanliness is the wrong tradeoff. The B.6 deploy ships with adapters intact.
+
+**Step 2 — Schedule the benchmark-audit spike (2-4 hours) post-launch.** This is the cheap, high-information action. Outcome determines what BL-032.25 § 1 actually becomes:
+
+- **If audit returns finding A (collapses are by-design)** → § 1 closes formally with "rejected — relocating the collapse logic without changing the data is pure churn"
+- **If audit returns finding B (collapses are lazy modeling)** → § 1 graduates to a scheduled initiative: 2-3 days engineering + the audit-driven re-attribution + adapter retirement, all coordinated as one piece of work
+- **If audit returns finding C (mixed)** → § 1 splits into per-collapse decisions; partial normalization where data supports it
+
+**Reasons defer-for-B.6 still holds even with reduced cost**:
+
+1. **The Adapter pattern is operationally stable** — proven through BL-031.95's 5-phase verification, BL-031.75's V8 sign-off, and now Phase 6 staging deploy
+2. **Benchmark re-attribution risk is now the dominant remaining cost driver.** The benchmark-audit spike (Step 2) is the right way to clarify it. Doing the audit in-soak conflicts with the soak's primary purpose (validate the substrate, not redo Hub-tool data work)
+3. **No identified user-visible benefit during BL-032 scope.** Cross-tool prompts work, single-tool prompts work, agent introspection works
+4. **BL-031.87 explicitly defers.** The original initiative documented the choice + the criteria for revisiting. Honoring that staged decision is preferable to relitigating it during a deploy soak
 
 **What this means for B.6 production deploy**: ships with the adapter pattern intact. No code changes required for Go-Live.
 
-**What this means for post-launch**: § 1 stays in BL-032.25 with a periodic-revisit cadence (suggested: re-evaluate at BL-033 design-doc time, when external-pilot constraints become concrete). If any of the decision-criteria triggers fires, the initiative graduates to a scheduled BL number with the plan above as a starting point.
+**What this means for post-launch**: schedule the benchmark-audit spike (2-4 hours, can be done off-soak). Outcome drives whether § 1 closes (audit finding A), graduates (B), or splits (C). The formerly-listed "URL-format versioning decision" is no longer relevant since URL backward-compat isn't a requirement.
 
 ### Closure stanza placeholder
 
