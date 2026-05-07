@@ -930,7 +930,68 @@ A prompt's behavior is determined by its message body — pure content. A senior
 4. ✅ Streamable HTTP `tools/list` returns the 10 transport-portable tool names (the deprecated `search_radar_cache` alias and stdio-only `search_radar_offline` correctly DON'T appear on the Worker per Q12)
 5. ✅ Claude Desktop client end-to-end via mcp-remote bridge: `search_radar` returns matches in ~1.5s; logs flow to `wrangler tail`. Required Inoreader OAuth refresh-token recovery once during smoke (token-stale → resolved by visiting website /hub/radar to trigger refresh write to Upstash) — recovery flow now documented in DEPLOY.md § C.5
 6. ✅ Rate-limiter hammer test (70 req burst): 60-68 × 200 + 2-10 × 429 split (sliding window), `RateLimit-*` headers + `Retry-After` on the 429s
-7. ⏳ `wrangler deploy --env production` — gated on one-week soak completion (~2026-05-13)
+7. ⏳ **Soak findings triaged via [BL-032.25](#bl-03225-mcp-revisions-prior-to-go-live)** — all P0 (blocks-Go-Live) items closed with verification evidence; P1 items recorded for post-launch follow-up. New step added 2026-05-06 to formalize the soak → triage → deploy gate
+8. ⏳ `wrangler deploy --env production` — gated on soak completion + step 7 closure (~2026-05-13)
+
+---
+
+### BL-032.25: MCP Revisions prior to Go-Live
+
+**Source**: BL-032.25 — bucket for soak-week findings discovered during BL-032 § B.5 (staging soak window 2026-05-06 → ~2026-05-13). Items here are triaged as **P0** (blocks Phase 6 § B.6 production deploy) or **P1** (filed for post-launch follow-up). | **Architecture & plan**: [MCP_SERVER_REMOTE_BL-032_25.md](MCP_SERVER_REMOTE_BL-032_25.md) | **Effort**: variable per-item; total scoped at triage | **Status**: Open — soak in progress | **Depends on**: BL-032 (Phase 6 staging deployed and entered B.5)
+
+**As a** GST team member responsible for the BL-032 production launch, **I want** every soak-week finding to land in a defined bucket with explicit severity-triage **so that** P0 issues close before users see them in production AND P1 issues are recorded honestly rather than silently dropped or lost in operator notebooks.
+
+> **Implementation plan**: see [MCP_SERVER_REMOTE_BL-032_25.md](MCP_SERVER_REMOTE_BL-032_25.md) — per-item investigation, plan, severity rationale, closure flow, and the P0/P1 triage convention. § 1 (anchor item, authored at initiative-creation time) covers schema normalization across Hub Tools — the candidate fix for retiring BL-031.87's adapter pattern.
+
+#### How this works
+
+- During the BL-032 soak (Phase 6 § B.5), any defect, inconsistency, improvement opportunity, or pain point discovered gets logged here as a sub-item under the matching § number in the sibling doc
+- Findings come from: the [Soak-Week Testing Playbook](MCP_SERVER_REMOTE_BL-032_TESTING.md) (Sections A-K), team-member usage during the soak, Sentry alerts, operator observation while tailing `wrangler tail`, and ad-hoc bug reports
+- Each item is tagged **P0** (blocks production deploy) or **P1** (post-launch follow-up). Triage convention is documented in the sibling doc; default tag for new items is P1 unless the discoverer explicitly classifies as P0
+- BL-032's "Validation sequence before marking done" (above) gained step #7 (added 2026-05-06): all P0 items here closed before B.6 deploy. P1 items get either folded into BL-032.5 / BL-032.75 / BL-033 by topic, or remain logged here as standalone follow-ups
+- BL-032.25 itself stays Open as long as it has unclosed P1 items — closes when bucket empties OR when the remaining items get re-filed under successor initiatives
+
+#### Acceptance Criteria
+
+The acceptance criteria for BL-032.25 are dynamic — populated as soak findings get logged. Each item under the sibling doc gets its own section + severity tag + plan + closure stanza. The TOC of items lives in the sibling doc; the line-item summary is here for at-a-glance triage.
+
+**Anchor items** (authored at initiative creation, 2026-05-06):
+
+- [ ] **§ 1 — Schema normalization across Hub Tools** — investigate retiring [BL-031.87](#bl-03187-mcp-server--stage-taxonomy-adapter-layer)'s adapter pattern by normalizing the underlying schemas. **Severity: P1**. Investigation completed 2026-05-06 (see [MCP_SERVER_REMOTE_BL-032_25.md § 1](./MCP_SERVER_REMOTE_BL-032_25.md#§-1--schema-normalization-across-hub-tools-investigation--p1-deferred)); recommendation defers normalization to post-launch given the real benchmark-re-attribution and URL-state-migration costs vs purely architectural benefit. Adapter pattern stays in place for B.6 production deploy
+
+**Soak-week additions** (filled as findings emerge):
+
+- [ ] **§ 2** — TBD (next soak finding)
+
+**Closure flow per item**: investigation → plan → severity tag → (if P0) execution → closure stanza with commit-SHA pointer. Each item's full lifecycle lives in the sibling doc; BACKLOG.md tracks just the line-item summary.
+
+#### Technical Context
+
+**Why a separate initiative, not just additions to BL-032**
+
+- BL-032 has fixed scope: ship the substrate. Adding "and also fix every issue surfaced during soak" inflates BL-032 unboundedly, and the soak loses its time-boxed function as a quality gate
+- BL-032.25 is the explicit catch-all so no soak finding falls through the cracks, while letting the soak's primary deliverable (validate / catch issues) and BL-032's primary deliverable (ship the substrate) stay distinct
+- A separate initiative also gives a clean handoff target for findings that turn out to belong elsewhere: P1 items get re-filed under BL-032.5 / BL-032.75 / BL-033 by topic without polluting BL-032's closure
+
+**Why P0/P1, not "everything blocks"**
+
+- Some findings are genuinely deploy-blocking (token leak, unhandled crash, broken auth) — these MUST close before users see them
+- Other findings are real but acceptable-with-caveat (cosmetic UX, edge-case error messages, minor doc gaps) — gating production on these would push Go-Live indefinitely without proportional value
+- The triage convention forces the distinction explicitly. A "everything must be P0" stance often masks low-value gold-plating as critical — discipline is preferred over reflexive blocking
+
+**Closure flow**
+
+- During soak: items added with P0/P1 tag + brief description + investigation
+- At triage (~Day 5-6 of soak): operator reviews bucket; converts any P0 items to active development tasks
+- Before B.6: P0 items must show closure stanza (commit SHA / PR link / verification evidence)
+- After B.6 ships: P1 items either get re-filed under specific successor initiatives (BL-032.5 / BL-032.75 / BL-033) or remain in BL-032.25 as ongoing follow-ups
+- BL-032.25 itself stays Open as long as it has unclosed P1 items; closes when bucket empties
+
+**Out of scope**
+
+- Items outside the BL-032 surface (e.g., website regressions, post-closure issues in BL-031.x) — those go to their own initiatives or directly into BACKLOG.md as new entries
+- Major new feature work — that's BL-032.5 / BL-033 territory; BL-032.25 is for "issues with what BL-032 already shipped"
+- Long-term architectural concerns where the cost vastly exceeds the deploy timeline — those get filed as future BL numbers rather than padded into the soak window
 
 ---
 
