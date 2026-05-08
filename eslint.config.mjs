@@ -172,6 +172,24 @@ export default [
     },
   },
 
+  // ── GoogleAnalytics: gtag pattern requires `arguments`, not rest-spread ────
+  // gtag.js's runtime monkey-patches dataLayer.push and inspects pushed values,
+  // requiring the Arguments object specifically. A real Array (rest-spread)
+  // silently routes through a code path that does NOT execute the gtag command,
+  // so no /g/collect beacons fire. The component also has an inline
+  // `eslint-disable-next-line prefer-rest-params` directive on the gtag function
+  // for in-file discoverability — this file-level off is the second line of
+  // defense. See:
+  //   - src/components/GoogleAnalytics.astro (the canonical pattern)
+  //   - tests/integration/google-analytics-wiring.test.ts (the regression test)
+  //   - commits 9bce902 (fix) and 26abba3 (test)
+  {
+    files: ['src/components/GoogleAnalytics.astro'],
+    rules: {
+      'prefer-rest-params': 'off',
+    },
+  },
+
   // ── Prettier compatibility: MUST be last ───────────────────────────
   prettier,
 ];
