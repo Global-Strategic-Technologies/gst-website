@@ -32,7 +32,10 @@
 
 ```powershell
 $env:MCP_URL = "https://mcp-staging.globalstrategic.tech"
-$env:MCP_KEY = "<your MCP_KEY_RP value from password manager>"
+# Read-Host prompts interactively so the secret doesn't enter PSReadLine history.
+# (Avoid `$env:MCP_KEY = "..."` — that records the value in plaintext to
+#  %APPDATA%\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt.)
+$env:MCP_KEY = Read-Host -Prompt "Paste MCP_KEY_RP value (input will be visible)"
 
 # Reusable PowerShell helper (also documented in DEPLOY.md § B.3):
 function Invoke-McpRequest {
