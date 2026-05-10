@@ -127,15 +127,37 @@ describe('filterLogic', () => {
   });
 
   describe('getUniqueGrowthStages', () => {
-    it('should extract unique growth stages from projects', () => {
+    it('returns the four mock-dataset stages in canonical maturity-progression order', () => {
       const stages = getUniqueGrowthStages(mockProjects);
-      expect(stages).toContain('Early-Stage Growth');
-      expect(stages).toContain('Mature Enterprise');
-      expect(stages).toContain('Scaling Growth');
-      expect(stages).toHaveLength(4);
+      expect(stages).toEqual([
+        'Early-Stage Growth',
+        'Scaling Growth',
+        'Mature Enterprise',
+        'Established Market Leader',
+      ]);
     });
 
-    it('should handle empty project list', () => {
+    it('deduplicates stages that appear in multiple projects', () => {
+      const duped = [...mockProjects, ...mockProjects];
+      const stages = getUniqueGrowthStages(duped);
+      expect(stages.length).toBe(new Set(stages).size);
+    });
+
+    it('appends unknown (out-of-progression) stages alphabetically after the known order', () => {
+      // Inject two stages that aren't in GROWTH_STAGE_PROGRESSION_ORDER so we
+      // can exercise the fallback branch without changing the canonical list.
+      const extended: Project[] = [
+        ...mockProjects,
+        { ...mockProjects[0], id: 'x1', growthStage: 'Zeta Phase' as Project['growthStage'] },
+        { ...mockProjects[0], id: 'x2', growthStage: 'Alpha Phase' as Project['growthStage'] },
+      ];
+      const stages = getUniqueGrowthStages(extended);
+      // Known stages preserve progression order; unknowns trail in alpha order.
+      const knownTail = stages.slice(-2);
+      expect(knownTail).toEqual(['Alpha Phase', 'Zeta Phase']);
+    });
+
+    it('handles empty project list', () => {
       expect(getUniqueGrowthStages([])).toEqual([]);
     });
   });

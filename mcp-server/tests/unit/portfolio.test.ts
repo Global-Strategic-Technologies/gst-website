@@ -139,6 +139,22 @@ describe('list_portfolio_facets (deterministic output)', () => {
     const stages = getUniqueGrowthStages(PROJECTS);
     expect(stages.length).toBe(new Set(stages).size);
   });
+
+  it('returns growthStages in canonical maturity-progression order', () => {
+    // Regression for the BL-032 soak T.B.1.a finding (2026-05-10): the
+    // helper previously returned Set-iteration order, which is neither
+    // sorted nor maturity-meaningful. The contract is now progression
+    // order per GROWTH_STAGE_PROGRESSION_ORDER in filterLogic.ts.
+    const stages = getUniqueGrowthStages(PROJECTS);
+    expect(stages).toEqual([
+      'Early-Stage Growth',
+      'Scaling Growth',
+      'Expansion Stage',
+      'Mature Enterprise',
+      'Established Market Leader',
+      'Legacy System',
+    ]);
+  });
 });
 
 describe('ListPortfolioFacetsInputSchema', () => {
