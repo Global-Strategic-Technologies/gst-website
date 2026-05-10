@@ -127,21 +127,36 @@ Copy-paste this block per finding. Date format is ISO-8601. Tester is initials (
 
 ## T.A.6 — Token with leading/trailing whitespace
 
-- Date:
-- Tester:
+- Date: 5/10/2026
+- Tester: Reid Peryam
 - Client: direct curl
 - Command/Action: `curl.exe -i $env:MCP_URL/mcp -X POST -H "Authorization: Bearer  $env:MCP_KEY  "` (note extra spaces around the token)
-- Outcome:
+- Outcome: FAIL
 - Observed:
+
+HTTP/1.1 401 Unauthorized
+Date: Sun, 10 May 2026 16:34:41 GMT
+Content-Type: application/json
+Content-Length: 57
+Connection: keep-alive
+WWW-Authenticate: Bearer realm="gst-mcp"
+Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=ijAIloij3U5SLjRls3LPlWln19LkqxrPT2Fiusnbxs0IxOcxw5sJjATADRcgd8xVtYwcV4rzEyOTR7bsfybmN8ZF7b%2BkdRQDVu0CAOC4LB27eXIVi1istbNiBWEPSE2E%2BVPx%2FfNoevyiLDK4xx7BovOdRonUULKw8t4me3Vw2w%3D%3D"}]}
+Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+Server: cloudflare
+CF-RAY: 9f9a5a511c2e01cf-GRU
+alt-svc: h3=":443"; ma=86400
+
+{"error":"unauthorized","message":"Invalid Bearer token"}
+
 - Expected: Either accepts (after trim) or rejects cleanly with 401. **Whichever it does, behavior must be deterministic** (no inconsistent intermittent results)
-- Severity (if fail):
+- Severity (if fail): IMPORTANT
 - Remediation:
-- Notes:
+- Notes: the output of the command is exactly as stated in the observed field, even after removing the whitespace from the token and retrying.
 
 ## T.A.7 — Multiple Authorization headers
 
-- Date:
-- Tester:
+- Date: 5/10/2026
+- Tester: Reid Peryam
 - Client: direct curl
 - Command/Action: Send two `Authorization` headers in the same request — one valid (`Bearer $env:MCP_KEY`), one bogus (`Bearer not-a-real-token`). Vary order across runs.
 - Outcome:
@@ -149,7 +164,7 @@ Copy-paste this block per finding. Date format is ISO-8601. Tester is initials (
 - Expected: RFC 9110-compliant — server picks one and either honors it or rejects. Document which deterministically.
 - Severity (if fail):
 - Remediation:
-- Notes:
+- Notes: Did not test, cannot repro the required test query myself (don't know how), please provide the test query for follow-up testing
 
 ## T.A.8 — Token in lowercase header (`authorization` not `Authorization`)
 
