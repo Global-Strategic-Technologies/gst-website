@@ -18,6 +18,45 @@
 
 ---
 
+## Soak terminal setup (PowerShell — Windows)
+
+Almost every Section A / B / C / E test below references `Invoke-McpRequest` or `Invoke-McpTool`. Those functions are checked in at [`mcp-server/scripts/Invoke-McpRequest.ps1`](../../../mcp-server/scripts/Invoke-McpRequest.ps1). **Dot-source the helper once per soak terminal** before running any test:
+
+```powershell
+cd c:\Code\gst-website\mcp-server
+. .\scripts\Invoke-McpRequest.ps1
+```
+
+What you get:
+
+| Function                                                        | Use for                                                  | Returns                                                                           |
+| --------------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `Invoke-McpRequest -Method <m> [-Params <hash>] [-Id <n>]`      | `tools/list`, `prompts/list`, raw JSON-RPC introspection | Full JSON-RPC envelope (`{ jsonrpc, id, result \| error }`)                       |
+| `Invoke-McpTool -Name <toolName> [-Arguments <hash>] [-Id <n>]` | Any T.B._ tool-call test (or T.K._ tool exercise)        | Parsed tool-response payload — `result.content[0].text` already JSON-deserialized |
+
+**Why both** — `Invoke-McpRequest` exposes the protocol envelope (useful for T.A._ / T.E._ protocol-shape tests). `Invoke-McpTool` short-circuits the `result.content[0].text | ConvertFrom-Json` chain that every tool test would otherwise repeat.
+
+**Env-var bootstrap** — on dot-source:
+
+- `$env:MCP_URL` defaults to `https://mcp-staging.globalstrategic.tech` if unset (with a console note)
+- `$env:MCP_KEY` is prompted via `Read-Host` (input visible) if unset
+- Both can be re-set explicitly per session (e.g., `$env:MCP_URL = "https://mcp.globalstrategic.tech"` for production probes — rare during BL-032)
+
+**Quick example — what T.B.1.a becomes:**
+
+```powershell
+# Before (manual unwrap):
+$resp = Invoke-McpRequest -Method "tools/call" -Params @{ name = "list_portfolio_facets"; arguments = @{} }
+$facets = $resp.result.content[0].text | ConvertFrom-Json
+
+# After (with the helper):
+$facets = Invoke-McpTool -Name "list_portfolio_facets"
+```
+
+**For tests that need bare `curl.exe`** (T.A.2 through T.A.8 — auth-shape probes that intentionally bypass the helper) the helper is a no-op overhead. Dot-source it anyway and use `curl.exe` for those specific tests; the env vars it sets up are still useful.
+
+---
+
 ## Findings template
 
 Copy-paste this block per finding. Date format is ISO-8601. Tester is initials (e.g., `RP`). The `Command/Action` field captures the exact invocation (curl/PowerShell snippet) or operator action (e.g., "rotate `MCP_KEY_RP`") so the finding stays decodable without round-tripping back to the playbook — copy from the playbook's "How to run" column and adjust if your run deviated.
@@ -289,7 +328,7 @@ alt-svc: h3=":443"; ma=86400
 - Remediation: n/a — PASS
 - Notes: Behavior is deterministic — `MCP_KEY_AB` consistently wins when both secrets share the same value. `wrangler secret list --env staging` returns secrets alphabetically (AB before RP), suggesting the Worker's `Object.entries(env)` iteration sees AB first and first-match wins; confirming this requires inspecting `auth/bearer.ts`. Either way, the soak's deterministic-attribution requirement is satisfied. Worth adding to AUTH.md as a documented edge case so future operators understand duplicate-value secrets attribute to the alphabetically-earlier suffix. Bonus signal incidentally observed during this test — a `"event":"auth.failed","path":"/sitemap.xml","reason":"bearer-rejected"` line fired on an unrelated probe, which is the post-AC behavior T.E.11 expects (worth re-checking T.E.11 once the captureMessage AC closes — see Known Gaps in playbook).
 
-  **CLEANUP performed**: `npx wrangler secret delete MCP_KEY_AB --env staging` then `npm run deploy:staging` to force isolate pickup. `npx wrangler secret list --env staging` confirmed `MCP_KEY_AB` is gone (10 secrets remain: 1× MCP*KEY_RP, 4× INOREADER*_, 4× UPSTASH\__, 1× SENTRY_DSN).
+  **CLEANUP performed**: `npx wrangler secret delete MCP_KEY_AB --env staging` then `npm run deploy:staging` to force isolate pickup. `npx wrangler secret list --env staging` confirmed `MCP_KEY_AB` is gone (10 secrets remain: 1× MCP*KEY_RP, 4× INOREADER*\_, 4× UPSTASH\_\_, 1× SENTRY_DSN).
 
 ## T.A.15 — Token comparison timing-safe
 
