@@ -642,16 +642,19 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.4.c — Use `-1` "Not sure" answer
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Same as T.B.4.a but include at least one `q* = -1` answer (e.g., `answers = @{ q1_1 = -1; q1_2 = 1; q1_3 = 0; q2_1 = 3 }`)
-- Outcome:
+- Command/Action: `Invoke-McpTool -Name "assess_infrastructure_cost_governance" -Arguments @{ answers = @{ q1_1 = -1; q1_2 = 1; q1_3 = 0; q2_1 = 3 }; companyStage = "series-b" }`
+- Outcome: PASS for tracking; INCONCLUSIVE for "doesn't penalize like 0" (needs A/B follow-up)
 - Observed:
+  - Top-level: `overallScore = 5`, `skippedCount = 1` ✓, `answeredCount = 4` (counts every supplied ID including the -1 sentinel).
+  - Per-domain (d1, "Visibility and Tagging" — the domain containing q1_1, q1_2, q1_3): `rawScore = 0`, `skippedCount = 1`.
+  - Runs were deterministic across two consecutive identical invocations.
 - Expected: Tracked separately; doesn't penalize the way `0` does
-- Severity (if fail):
-- Remediation:
-- Notes: Not yet run during the 2026-05-10 session — operator skipped this variant. Return to it; the discriminator vs. `0` is whether the response surfaces a `skippedCount` / `notSureCount` field that increments without dragging the domain `rawScore` down.
+- Severity (if fail): Inconclusive — see Notes
+- Remediation: Run the A/B test in Notes to disambiguate. If A == B in d1.rawScore, log as soft FAIL on the "doesn't penalize" criterion and file an engine-side follow-up.
+- Notes: The `skippedCount` is correctly tracked both at the top level and per-domain — that half of the criterion is unambiguously met. But `d1.rawScore = 0` raised a question — with `q1_2 = 1` and `q1_3 = 0` both supplied in the same domain, the expected `rawScore` would be 1 (sum of the two valid answers). Two plausible explanations: (a) by design — when the foundational anchor question (q1_1) is skipped, the engine refuses to credit subsequent answers because the domain assessment lacks a credible baseline; (b) bug — the other answers aren't contributing. The discriminator A/B test (not yet run): compare `answers = @{ q1_1 = -1; q1_2 = 1; ... }` against `answers = @{ q1_1 = 0; q1_2 = 1; ... }` — if d1.rawScore differs, `-1` is correctly distinguished from `0`; if identical, `-1` is being treated as `0` in scoring (violating the "doesn't penalize" criterion).
 
 #### T.B.4.d — Empty answers map
 
@@ -698,81 +701,81 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.5.a — Quick mode, canonical stage
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpTool -Name "compute_techpar" -Arguments @{ mode = "quick"; companyStage = "series-b"; arr = 20000000; infraHostingAnnual = 4000000 }` (fill in remaining required fields per Zod schema)
-- Outcome:
-- Observed:
+- Command/Action: `Invoke-McpTool -Name "compute_techpar" -Arguments @{ arr = 20000000; stage = "series-b"; mode = "quick"; capexView = "cash"; growthRate = 30; exitMultiple = 12; infraHostingAnnual = 4000000; infraPersonnel = 800000; rdOpEx = 5000000; rdCapEx = 1000000; engFTE = 75; engCost = 0; prodCost = 0; toolingCost = 0 }` (14 required fields — note the input field is `stage`, not `companyStage` as the original stub had it)
+- Outcome: PASS (with one observation to chase)
+- Observed: `totalTechPct = 54`, `zone = "healthy"` ✓, `stageContext = { native: "series_bc", canonical: ["series-b", "series-c"] }` ✓, `deeplink` present ✓. **Caveat**: `revenuePerEngineer` interpolated as blank (`"rev/eng: "`) — the engine SHOULD compute `arr / engFTE = 20000000 / 75 ≈ 266666.67` per `techpar-engine.ts:311`. Either the field is `null` (engFTE not flowing through) or PowerShell's `$($a.revenuePerEngineer)` dropped a non-null value. Worth a 5-second sanity check (`$a | ConvertTo-Json -Depth 2 | Select-String revenuePerEngineer`).
 - Expected: Returns `totalTechPct`, `zone` ∈ {underinvest, ahead, healthy, above, elevated, critical}, KPIs, gap projection, `deeplink`
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): Minor — pending the `revenuePerEngineer` sanity check
+- Remediation: Sanity-check the field in a follow-up run. If genuinely null, investigate the engine/wrapper path; if just PowerShell rendering, mark fully clean PASS.
+- Notes: Original stub command used `companyStage` (incorrect — the techpar tool's input field is `stage`, not `companyStage`; verified at `mcp-server/src/tools/techpar.ts:57-59` and the schema at `src/schemas/techpar.ts:115-184`). Original stub also omitted 10 of the 14 required fields. The corrected 14-field command above is now the canonical T.B.5.a invocation. Worth a separate playbook update so the snippet matches what the tool actually accepts.
 
 #### T.B.5.b — Deepdive mode
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Same shape as T.B.5.a but `mode = "deepdive"` and supply `engCost`, `prodCost`, `toolingCost` (and a stale `rdOpEx` to confirm it's ignored)
-- Outcome:
-- Observed:
+- Command/Action: Same as T.B.5.a but `mode = "deepdive"`, `engCost = 7000000`, `prodCost = 1500000`, `toolingCost = 500000`, `rdOpEx = 99999999` (the 99M is a stale value that should be ignored per the deepdive contract)
+- Outcome: PASS
+- Observed: `totalTechPct = 74`, `zone = "elevated"`. The 99M stale `rdOpEx` was correctly ignored — if it had been used, `totalTechPct` would have been catastrophic (~500%+). Instead the engine synthesized R&D OpEx from `engCost + prodCost + toolingCost = $9M`, producing a sensible 74% ratio. Increase from T.B.5.a's 54% reflects the synthesized $9M being ~$4M higher than T.B.5.a's $5M `rdOpEx`.
 - Expected: `engCost + prodCost + toolingCost` synthesized as R&D OpEx; raw `rdOpEx` ignored
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Confirms BL-031.95 deepdive synthesis works correctly. The 99M-as-stale-canary pattern is reusable for future regression checks (any future regression that silently passes `rdOpEx` through would push `totalTechPct` into the hundreds of percent).
 
 #### T.B.5.c — Cash vs GAAP capex view
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Run T.B.5.a then run again with `rdCapEx > 0`; compare `total` and `zone` between the two responses
-- Outcome:
-- Observed:
+- Command/Action: Two runs with identical inputs except `capexView` (`cash` vs `gaap`), both with `rdCapEx = 2000000`.
+- Outcome: PASS
+- Observed: `cash: total = 11800000, zone = "above"` vs `gaap: total = 9800000, zone = "healthy"`. Diff is exactly `2000000` — the rdCapEx value, precisely the contract. Zone differs because the rdCapEx push crosses the `healthy` → `above` threshold under cash but not gaap.
 - Expected: Different `total` and `zone` values when `rdCapEx > 0`
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Very clean differential. The 2M difference is exactly attributable; demonstrates the capexView toggle's contract is correctly wired through the engine.
 
 #### T.B.5.d — `arr = 0`
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: Take T.B.5.a inputs; set `arr = 0`
-- Outcome:
-- Observed:
+- Outcome: PASS
+- Observed: Engine correctly rejected. Helper raised `ConvertFrom-Json` exception (the `result.content[0].text` starts with `"T"` — matches the rejection string `"TechPar requires both \`arr\` and \`infraHostingAnnual\` to be greater than zero."`from`techpar.ts:66`). `$r1.totalTechPct` is empty, confirming no valid result was returned.
 - Expected: Engine returns null in JS — surfaced as MCP error per BL-031.95
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Operator's terminal had dot-sourced the pre-patch helper (the `try`/`catch` around `ConvertFrom-Json` landed in commit `2cf028b` AFTER this test session started), so the rejection surfaced as a raw exception rather than the cleaner Write-Warning. Re-dot-sourcing the helper picks up the patched behavior for future runs. PASS for the Zod-rejection contract; helper-rendering improvement is already in commit history.
 
 #### T.B.5.e — `infraHostingAnnual = 0`
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: Take T.B.5.a inputs; set `infraHostingAnnual = 0`
-- Outcome:
-- Observed:
+- Outcome: PASS
+- Observed: Same rejection path as T.B.5.d — engine refused, helper raised `ConvertFrom-Json` exception on the "T..." rejection string. `$r2.totalTechPct` empty.
 - Expected: Same null → MCP error
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Confirms the joint-precondition: both `arr > 0` AND `infraHostingAnnual > 0` must hold for the engine to return a usable result. Either zero triggers the same rejection text.
 
 #### T.B.5.f — TechPar-native stage `series_bc` (underscore) accepted
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Take T.B.5.a inputs; set `companyStage = "series_bc"` (underscore form)
-- Outcome:
-- Observed:
+- Command/Action: Take T.B.5.a inputs; set `stage = "series_bc"` (underscore form, TechPar-native)
+- Outcome: PASS
+- Observed: Identical numeric results to T.B.5.a's canonical `series-b` run: `totalTechPct = 54`, `zone = "healthy"`. Confirms the BL-031.87 stage-adapter collapses canonical `series-b` (and `series-c`) into TechPar-native `series_bc` cleanly in both directions.
 - Expected: Treated identically to canonical `series-b` / `series-c`
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Bidirectional adapter parity confirmed. The original stub used `companyStage = "series_bc"` (wrong field name); corrected to `stage = "series_bc"` per the techpar schema.
 
 ### T.B.6 — `estimate_tech_debt_cost`
 
