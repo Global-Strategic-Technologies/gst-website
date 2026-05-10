@@ -62,23 +62,61 @@ interface SearchResult {
   deeplink: string;
 }
 
-function matchesQuery(entry: RegulationEntry, query: string): boolean {
+/**
+ * Compute a relevance score for an entry against the free-text query.
+ *
+ * The match buckets are weighted so that the canonical framework for a
+ * given short-name surfaces first when an operator queries by that name.
+ * Without weighting (the prior implementation just returned a boolean),
+ * iteration order through `REGULATION_ENTRIES` decided the top result —
+ * which is alphabetical-by-filename in the generated module. So a query
+ * for "GDPR" returned `bh-pdpl` first (its summary mentions GDPR), with
+ * `eu-gdpr` buried further down. Surfaced during BL-032 soak T.B.7.a on
+ * 2026-05-10.
+ *
+ * Returns 0 when the query doesn't match — callers treat 0 as filtered-out.
+ */
+function scoreQuery(entry: RegulationEntry, query: string): number {
   const q = query.toLowerCase();
   const d = entry.data;
-  return (
-    d.id.toLowerCase().includes(q) ||
-    d.name.toLowerCase().includes(q) ||
-    d.summary.toLowerCase().includes(q)
-  );
+  const id = d.id.toLowerCase();
+  const name = d.name.toLowerCase();
+  const summary = d.summary.toLowerCase();
+
+  let score = 0;
+
+  if (id === q)
+    score += 100; // exact id match
+  else if (id.includes(q)) score += 50; // id-contains-query
+
+  if (name === q)
+    score += 80; // exact name match (case-insensitive)
+  else if (name.startsWith(q))
+    score += 40; // name-starts-with-query
+  else if (name.includes(q)) score += 20; // name-contains-query
+
+  if (summary.includes(q)) score += 5; // summary mention is a weak signal
+
+  return score;
 }
 
-function applyFilters(input: RegulationSearchInput): RegulationEntry[] {
-  return REGULATION_ENTRIES.filter((entry) => {
+export function applyFilters(input: RegulationSearchInput): RegulationEntry[] {
+  const facetFiltered = REGULATION_ENTRIES.filter((entry) => {
     if (input.jurisdiction && entry.jurisdiction !== input.jurisdiction) return false;
     if (input.category && entry.data.category !== input.category) return false;
-    if (input.query && !matchesQuery(entry, input.query)) return false;
     return true;
   });
+
+  if (!input.query) return facetFiltered;
+
+  // Score, drop zero-score entries, sort highest first. Ties keep the
+  // upstream filename-alphabetic order from REGULATION_ENTRIES (stable
+  // Array.prototype.sort).
+  return facetFiltered
+    .map((entry) => ({ entry, score: scoreQuery(entry, input.query as string) }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(({ entry }) => entry);
 }
 
 export function buildRegulatoryMapDeeplink(filters: {

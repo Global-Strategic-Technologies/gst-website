@@ -10,7 +10,7 @@ import {
   listCategories,
 } from '../../src/content/regulation-loader';
 import { RegulationSearchInputSchema } from '../../src/schemas';
-import { toSearchResult } from '../../src/tools/regulations';
+import { applyFilters, toSearchResult } from '../../src/tools/regulations';
 
 describe('regulation-loader URI taxonomy', () => {
   it('parses the EU jurisdiction from id "eu-gdpr"', () => {
@@ -127,6 +127,46 @@ describe('toSearchResult — enriched fields propagate to the wire shape', () =>
     expect('scope' in result).toBe(false);
     expect('keyRequirements' in result).toBe(false);
     expect('penalties' in result).toBe(false);
+  });
+});
+
+describe('applyFilters relevance ranking (search_regulations)', () => {
+  it('returns eu-gdpr as the top match for query="GDPR" (regression for T.B.7.a / 2026-05-10)', () => {
+    // Background: prior boolean-match implementation iterated REGULATION_ENTRIES
+    // in filename-alphabetical order, so BH-PDPL (whose summary mentions GDPR)
+    // outranked EU-GDPR for the query "GDPR". The current implementation scores
+    // by match quality so the canonical framework wins.
+    const results = applyFilters({ query: 'GDPR', limit: 10 });
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].data.id).toBe('eu-gdpr');
+  });
+
+  it('returns eu-gdpr as the top match for query="gdpr" (case-insensitive)', () => {
+    const results = applyFilters({ query: 'gdpr', limit: 10 });
+    expect(results[0].data.id).toBe('eu-gdpr');
+  });
+
+  it('exact id match outranks summary-only mentions', () => {
+    // ccpa is an id; many EU/UK regulations reference CCPA in their summaries.
+    // The exact-id match must win.
+    const results = applyFilters({ query: 'ccpa', limit: 10 });
+    expect(results[0].data.id).toBe('us-ca-ccpa');
+  });
+
+  it('preserves the deterministic stable order for ties (no query)', () => {
+    const all = applyFilters({ limit: 200 });
+    const ids = all.map((r) => r.data.id);
+    // No-query → no ranking pass; result is the upstream REGULATION_ENTRIES
+    // order (filename-alphabetical).
+    expect(ids).toEqual([...REGULATION_ENTRIES].map((r) => r.data.id));
+  });
+
+  it('returns an empty array when query matches nothing', () => {
+    const results = applyFilters({
+      query: 'xyzzy-does-not-exist-anywhere',
+      limit: 10,
+    });
+    expect(results).toEqual([]);
   });
 });
 

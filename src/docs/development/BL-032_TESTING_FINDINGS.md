@@ -646,19 +646,19 @@ alt-svc: h3=":443"; ma=86400
 - Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "assess_infrastructure_cost_governance" -Arguments @{ answers = @{ q1_1 = -1; q1_2 = 1; q1_3 = 0; q2_1 = 3 }; companyStage = "series-b" }`
-- Outcome: PASS (tracking) + FAIL (doesn't-penalize-like-0 criterion)
+- Outcome: PASS
 - Observed: A/B disambiguation completed 2026-05-10. Two consecutive identical-shape runs, varying only `q1_1`:
   - **A — `q1_1 = -1`** (skip sentinel): `d1.rawScore = 0`, `d1.skippedCount = 1`, `overallScore = 5`
   - **B — `q1_1 = 0`** (zero answer): `d1.rawScore = 1`, `d1.skippedCount = 0`, `overallScore = 8`
-  - A.rawScore (0) is LOWER than B.rawScore (1) — so `-1` is NOT tracked-neutrally for the per-domain rawScore. The valid sibling answers (`q1_2 = 1`, `q1_3 = 0`) that would otherwise contribute to d1.rawScore are also being zeroed when the foundational anchor question is skipped.
-  - Top-level `skippedCount = 1` (T.B.4.c-A) and per-domain `d1.skippedCount = 1` are populated correctly — the tracking half of the criterion is unambiguously met.
-- Expected: Tracked separately; doesn't penalize the way `0` does
-- Severity (if fail): **Important** — `-1` ("Not sure") currently penalizes MORE than `0` ("Not in place"), the opposite of what an operator UI would intuitively expect. A user choosing "Not sure" gets a _worse_ score than if they had answered "Not in place" — counterintuitive and arguably misleading.
-- Remediation: Decision needed from the ICG engine owner. Two coherent design intents:
-  1. **Conservative-on-skip** (current behavior): "If you can't credibly score the foundational question, we score the whole domain at 0." Makes diligence sense but contradicts the playbook's "doesn't penalize like 0".
-  2. **Skip-is-neutral** (playbook expectation): non-foundational answers in the same domain should still contribute even when the foundational is skipped. Would require an engine change.
-     Either path requires either updating the playbook expected-text or the engine logic. Deferring to BACKLOG.md (engine-design call) — not a soak-week blocker.
-- Notes: Per the discriminator: A.rawScore < B.rawScore in this specific case. The fact that skipping zeroes the whole domain (not just the question) is the surprising-behavior bit — not pure-bug, more design-intent that contradicts the documented contract. Worth filing under BACKLOG.md (BL-036 or fresh) for the ICG engine owner.
+  - rawScore formula (verified at `src/utils/icg-engine.ts:114-117`) sums each answer literally: A's d1 → (-1) + 1 + 0 = 0; B's d1 → 0 + 1 + 0 = 1. There is no foundational-anchor short-circuit and no domain-zeroing special case. `-1` is _literally added_ to the sum.
+  - The engine's documented design (per comment at `icg-engine.ts:112-113` and explicit unit-test contract at `tests/unit/icg-engine.test.ts:700-718` titled "scores -1 worse than 'Not in place' (0)") is that "Not sure" actively penalizes — _ignorance is worse than known absence_. So `-1` < `0` < positive scores. The engine is behaving exactly as designed.
+- Expected: `skippedCount` increments (per-domain and top-level); `-1` is scored as a literal `-1` contribution to `rawScore`, intentionally penalizing MORE than `0` ("Not in place") per `icg-engine.ts:112-113` + `tests/unit/icg-engine.test.ts:700-718`. The "ignorance is worse than known absence" design is honest about not-knowing.
+- Severity (if fail): n/a
+- Remediation: n/a — PASS for the engine's documented contract
+- Notes: Initial playbook expectation was wrong ("doesn't penalize the way `0` does") — actual engine behavior is "penalizes MORE than `0` does" by intentional design. Fixed in three places in this session:
+  1. Playbook `MCP_SERVER_REMOTE_BL-032_TESTING.md` T.B.4.c row corrected to match engine intent.
+  2. `src/utils/icg-engine.ts:239` summary-text label corrected from "scored as zero" (misleading) to "scored as -1, penalised below 'Not in place'".
+  3. This finding's Expected/Outcome reframed to match the engine's documented contract. The MCP tool's response shape (`skippedCount` field) is purely diagnostic — counts the -1 sentinels separately for UI/audit purposes, but those answers DO contribute negatively to `rawScore`.
 
 #### T.B.4.d — Empty answers map
 
@@ -843,12 +843,12 @@ alt-svc: h3=":443"; ma=86400
 - Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "search_regulations" -Arguments @{ query = "GDPR" }` (note: input field is `query`, NOT `search` as in original stub — see `src/schemas/regulatory-map.ts:50-55`)
-- Outcome: PARTIAL PASS — search returns 10 matches but ranking surprises
-- Observed: `matches.Count = 10`, top match is `bh-pdpl` (Bahrain Personal Data Protection Law), NOT `eu-gdpr` or `gdpr`. Playbook expected `id: 'gdpr'` first or near-first. EU GDPR likely IS in the result set (just not first) — full ranking not captured this run.
-- Expected: Returns matches with `id: 'gdpr'` first (or near-first); each match has `uri`, `summary`, `keyRequirements`
-- Severity (if fail): Minor — search relevance ranking, not a correctness issue
-- Remediation: Inspect the full match list with `$b7a.matches | Select-Object id, name | Format-Table` to determine whether eu-gdpr appears in the top 10. If yes → playbook expected calibration ("EU GDPR within top 10" instead of "first or near-first"). If no → real search-relevance gap worth tracking, given "GDPR" is the most-referenced regulation in the dataset. Worth tightening the ranker (e.g., id-exact-match boost, name-prefix-match boost).
-- Notes: Original stub used `search` field name (wrong — schema uses `query`). The `bh-pdpl` (Bahrain PDPL) likely scored high because GDPR is referenced multiple times in its summary text (most non-EU privacy laws reference GDPR as a comparative). A relevance-tuning pass on the ranker would surface the canonical match first.
+- Outcome: PASS (after ranker fix in this session)
+- Observed: Initial run returned `bh-pdpl` (Bahrain Personal Data Protection Law) as top match for query="GDPR" — `eu-gdpr` was buried in the 10-result page. Root cause was traced to `mcp-server/src/tools/regulations.ts:65-82` — the prior `matchesQuery` returned a boolean substring match against `id` / `name` / `summary` with no relevance score; `applyFilters` then returned results in `REGULATION_ENTRIES` iteration order, which is filename-alphabetical (`BH-PDPL.json` precedes `EU-GDPR.json`). `bh-pdpl`'s summary contains the literal string "GDPR" once, satisfying the boolean and winning by iteration order. Fix landed in the same session: replaced `matchesQuery` with a weighted `scoreQuery` that boosts exact-id-match (100), id-includes (50), exact-name (80), name-starts-with (40), name-includes (20), and weak summary-only mention (5); `applyFilters` now sorts descending by score. Stable sort preserves filename-alphabetic order for tie-break. Five regression tests added to `mcp-server/tests/unit/regulations.test.ts` asserting eu-gdpr-first for "GDPR" (and "gdpr"), us-ca-ccpa-first for "ccpa", no-query preserves upstream order, and no-match returns empty. All 19 regulations tests pass.
+- Expected: Returns matches with `id: 'gdpr'` (or canonical equivalent like `eu-gdpr`) first; each match has `uri`, `summary`, `keyRequirements`
+- Severity (if fail): n/a
+- Remediation: Fixed in this session — see Notes for the commit linking the ranker + regression tests.
+- Notes: Original stub used `search` field name (wrong — schema at `src/schemas/regulatory-map.ts:50-55` uses `query`); corrected during the helper rewrite earlier today. The ranker fix is a real engine improvement, not just a doc calibration — the prior behavior would surface the wrong canonical regulation for any short-name query (CCPA, GDPR, etc.), measurably degrading T.K.\* prose-prompt result quality.
 
 #### T.B.7.b — Jurisdiction `eu` filter
 
