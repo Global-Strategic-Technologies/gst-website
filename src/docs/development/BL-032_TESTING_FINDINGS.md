@@ -505,7 +505,17 @@ alt-svc: h3=":443"; ma=86400
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "generate_diligence_agenda" -Arguments $inputs` (using `$inputs` from above)
 - Outcome: PASS
-- Observed: 4 topics (architecture, operations, carveout-integration, security-risk); 20 triggerMap entries; 2 attentionAreas (GDPR cross-border, AI moat erosion); `metadata.totalQuestions = 20`; `unknownDimensionCount = 0`; `deeplink` populated with all 13 dimensions encoded in query string.
+- Observed: All 6 acceptance criteria met.
+  - **4 topics** with per-topic question distribution totaling 20:
+    - `architecture` (6 questions): arch-01, arch-02, arch-03, arch-04, arch-09, arch-12
+    - `operations` (7 questions): ops-01, ops-02, ops-03, ops-04, ops-05, ops-07, ops-13
+    - `carveout-integration` (2 questions): ci-08, ci-10
+    - `security-risk` (5 questions): sec-01, sec-05, sec-07, sec-08, sec-17
+  - **20 triggerMap entries** with trigger attribution: Geography drove 3 (ci-10, sec-05, sec-17); Revenue drove 2 (arch-09, ops-13); Company Size drove 2 (arch-02, ops-03); Product Type drove 2 (arch-03, ops-04); Transaction Type drove 1 (ci-08); Tech Stack drove 1 (arch-04); Company Age drove 1 (ops-05); Product Type + Growth Stage drove 1 (arch-12). Unconditional questions (no triggers): arch-01, ops-01, ops-02, ops-07, sec-01, sec-07, sec-08.
+  - **2 attentionAreas**: `attention-gdpr-multi` (Cross-Border Data Compliance — triggered by `geographies` ∋ {eu, uk, apac, latam, africa}; here matched on eu), `attention-moat-erosion` (AI Commodity Risk — triggered by `productType = "b2b-saas"`).
+  - **`metadata.totalQuestions = 20`**, at the upper bound of the engine invariant [15, 20].
+  - **`unknownDimensionCount = 0`** (all 13 dimensions resolved to concrete values).
+  - **`deeplink`** populated; full URL captured: `https://globalstrategic.tech/hub/tools/diligence-machine/?tt=majority-stake&pt=b2b-saas&ta=modern-cloud-native&hc=51-200&rr=5-25m&gs=scaling&ca=5-10yr&ge=us%2Ceu&bm=productized-platform&si=moderate&ts=stable&ds=moderate&om=product-aligned-teams`. All 13 dimensions present in query string (`tt`, `pt`, `ta`, `hc`, `rr`, `gs`, `ca`, `ge`, `bm`, `si`, `ts`, `ds`, `om`); array `geographies` correctly URL-encoded as `us%2Ceu`.
 - Expected: Response has `topics[]`, `attentionAreas[]`, `triggerMap`, `15 ≤ metadata.totalQuestions ≤ 20` (engine invariant per `tests/unit/diligence-engine.test.ts:757`), `unknownDimensionCount = 0`, `deeplink`
 - Severity (if fail): n/a
 - Remediation: n/a — PASS
@@ -593,14 +603,14 @@ alt-svc: h3=":443"; ma=86400
 
 - Date:
 - Tester:
-- Client: direct curl (PowerShell helper) + browser
-- Command/Action: From T.B.3.a's response, copy the `deeplink` URL and open it in a browser
+- Client: browser
+- Command/Action: Open the deeplink captured during T.B.3.a's 2026-05-10 PASS run in a browser: `https://globalstrategic.tech/hub/tools/diligence-machine/?tt=majority-stake&pt=b2b-saas&ta=modern-cloud-native&hc=51-200&rr=5-25m&gs=scaling&ca=5-10yr&ge=us%2Ceu&bm=productized-platform&si=moderate&ts=stable&ds=moderate&om=product-aligned-teams`. Verify the wizard pre-fills with the same 13 inputs.
 - Outcome:
 - Observed:
 - Expected: Wizard pre-fills with the same 13 input values
 - Severity (if fail):
 - Remediation:
-- Notes:
+- Notes: T.B.3.a's response already confirms the deeplink is generated correctly and contains all 13 dimensions in the query string (`tt`/`pt`/`ta`/`hc`/`rr`/`gs`/`ca`/`ge`/`bm`/`si`/`ts`/`ds`/`om`). This test verifies the OTHER half of the round-trip — that the wizard's URL-state restoration (BL-031.95) reads those query params back into the form correctly.
 
 ### T.B.4 — `assess_infrastructure_cost_governance`
 
