@@ -1071,35 +1071,1618 @@ Copy-paste this block per finding. Date format is ISO-8601. Tester is initials (
 
 ## Section D — Inoreader integration
 
-_No findings logged yet._
+> Many of these tests touch the circuit breaker. Section D Strategy 1 in the playbook (direct Upstash `set/mcp:radar:circuit-open/inoreader-rate-limit` with EX=21600) is the recommended way to simulate post-429 state without burning Inoreader budget. Strategy 2 (natural budget burn) is operator-approval-only.
+
+## T.D.1 — Cache HIT amortizes Inoreader calls
+
+- Date:
+- Tester:
+- Client: direct curl (PowerShell helper)
+- Command/Action: Call `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }` twice with identical args within 6h. Inspect `cacheHit` on each response and check Inoreader access logs (Cloudflare access logs or website's traffic) for the corresponding outbound calls.
+- Outcome:
+- Observed:
+- Expected: First call: `cacheHit: false`, ~6 Inoreader calls. Second call: `cacheHit: true`, 0 Inoreader calls.
+- Severity (if fail): Caching broken would be a budget regression
+- Remediation:
+- Notes:
+
+## T.D.2 — Cache key includes category
+
+- Date:
+- Tester:
+- Client: direct curl (PowerShell helper)
+- Command/Action: Call once with `category = "pe-ma"` then once with `category = "enterprise-tech"`; inspect both responses' `cacheHit` and the returned items
+- Outcome:
+- Observed:
+- Expected: Two separate cache entries; both fetch from Inoreader on first call of each (cache key is category-aware)
+- Severity (if fail): If second call returns `pe-ma` results, cache key isn't category-aware
+- Remediation:
+- Notes:
+
+## T.D.3 — Force circuit-open via direct Upstash set (Strategy 1)
+
+- Date:
+- Tester:
+- Client: Upstash REST + direct curl (PowerShell helper)
+- Command/Action: First set `$env:UPSTASH_MCP_REST_URL` and `$env:UPSTASH_MCP_REST_TOKEN` from password manager. Then `curl.exe -X POST "$env:UPSTASH_MCP_REST_URL/set/mcp:radar:circuit-open/inoreader-rate-limit" -H "Authorization: Bearer $env:UPSTASH_MCP_REST_TOKEN" -d "EX=21600"`. Then call `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }` and `curl.exe $env:MCP_URL/health`.
+- Outcome:
+- Observed:
+- Expected: Subsequent radar tool calls return 503 with `Retry-After`; `/health` shows `inoreader: 'degraded'` after the cached status TTL refreshes; non-radar tools unaffected.
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+## T.D.4 — Recovery from circuit-open
+
+- Date:
+- Tester:
+- Client: Upstash REST + direct curl (PowerShell helper)
+- Command/Action: After T.D.3, delete the flag: `curl.exe -X POST "$env:UPSTASH_MCP_REST_URL/del/mcp:radar:circuit-open" -H "Authorization: Bearer $env:UPSTASH_MCP_REST_TOKEN"`. Then call radar and `/health`.
+- Outcome:
+- Observed:
+- Expected: Inoreader hit; if successful, `cacheHit: false`, breaker stays closed; `/health` `inoreader: 'ok'` after next status refresh.
+- Severity (if fail): Stale 503 keeps returning means cache layer isn't invalidating
+- Remediation:
+- Notes:
+
+## T.D.5 — Inoreader access-token-stale recovery (already observed once)
+
+- Date:
+- Tester:
+- Client: direct curl (PowerShell helper)
+- Command/Action: Wait until website's access token expires (don't trigger website refresh during the wait); then call `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }`
+- Outcome:
+- Observed:
+- Expected: Returns `{"error":"token-stale", "status":401, ...}` envelope
+- Severity (if fail): Returns success despite stale token (using env fallback indefinitely is bad sign), or hard crash
+- Remediation:
+- Notes:
+
+## T.D.6 — Refresh-token-expiry path (rare; paper-test)
+
+- Date:
+- Tester:
+- Client: shell (Node)
+- Command/Action: Cannot easily simulate without wrecking the website. From a clean machine, cd to website root and run `node scripts/inoreader-auth.mjs setup`; verify it prints an auth URL.
+- Outcome:
+- Observed:
+- Expected: Script prints an auth URL and is reachable from a clean machine
+- Severity (if fail): Recovery path is broken if script errors before printing URL
+- Remediation:
+- Notes: Defer the full token-refresh round-trip to DEPLOY.md § C.5 walkthrough; this stub only validates that the recovery script runs
+
+## T.D.7 — Inoreader timeout
+
+- Date:
+- Tester:
+- Client: direct curl (PowerShell helper) — naturally observed OR with injected delay
+- Command/Action: Either inject a network delay against Inoreader (hard) or capture a natural-occurrence finding during soak. Re-run radar call after the timeout signal triggers.
+- Outcome:
+- Observed:
+- Expected: `{"error":"network-timeout", "status":504}` after `FETCH_TIMEOUT_MS = 5000`
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+## T.D.8 — Inoreader 5xx (other than 429)
+
+- Date:
+- Tester:
+- Client: direct curl (PowerShell helper) — naturally observed
+- Command/Action: Hard to simulate; observe naturally during soak. When a 5xx happens, capture the envelope returned to the caller and verify the breaker did NOT open (check `mcp:radar:circuit-open` in Upstash).
+- Outcome:
+- Observed:
+- Expected: `{"error":"upstream-error", "status":<5xx>}` envelope; circuit breaker NOT opened (5xx ≠ 429)
+- Severity (if fail): Breaker opens unnecessarily, or 5xx propagates raw
+- Remediation:
+- Notes:
+
+## T.D.9 — `/health` `inoreaderObservedAt` updates on radar call
+
+- Date:
+- Tester:
+- Client: direct curl (PowerShell helper) + direct curl
+- Command/Action: Call `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }` (success). Wait 30s. Then `curl.exe $env:MCP_URL/health` and inspect `inoreaderObservedAt`.
+- Outcome:
+- Observed:
+- Expected: `inoreaderObservedAt` reflects the recent call's timestamp (within seconds)
+- Severity (if fail): Stale timestamp means status cache isn't updating
+- Remediation:
+- Notes:
+
+## T.D.10 — Worker reads OAuth token from Inoreader DB read-only
+
+- Date:
+- Tester:
+- Client: wrangler CLI + direct curl (PowerShell helper)
+- Command/Action: `npx wrangler secret put INOREADER_ACCESS_TOKEN --env staging` (paste a gibberish value); `npx wrangler deploy --env staging`; then call `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }`.
+- Outcome:
+- Observed:
+- Expected: Worker reads from `inoreader:access_token` Upstash key (Path 2 read-only token), gets the website's actual token, succeeds
+- Severity (if fail): Critical — if radar fails with bad-token error, Worker is using env fallback when it shouldn't (Path 2 invariant broken)
+- Remediation:
+- Notes: Restore the real `INOREADER_ACCESS_TOKEN` after the test
 
 ## Section E — Observability
 
-_No findings logged yet._
+## T.E.1 — `wrangler tail` shows every request
+
+- Date:
+- Tester:
+- Client: wrangler tail + direct curl (PowerShell helper)
+- Command/Action: Open one terminal: `npx wrangler tail --env staging`. In another, run any tool call (e.g., a smoke prompt or `Invoke-McpRequest -Method "tools/list"`). Observe the tail output.
+- Outcome:
+- Observed:
+- Expected: Each request logs `event: mcp.request` with `keyOwner`, `path`, `status`, `durationMs`
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+## T.E.2 — Authorization header NEVER logged
+
+- Date:
+- Tester:
+- Client: wrangler tail
+- Command/Action: After issuing a normal authenticated request: `npx wrangler tail --env staging --search "Bearer"`
+- Outcome:
+- Observed:
+- Expected: No matches (zero log lines containing `Bearer`)
+- Severity (if fail): Critical — token in logs would be a safeLog regression
+- Remediation:
+- Notes:
+
+## T.E.3 — Cookie header NEVER logged
+
+- Date:
+- Tester:
+- Client: wrangler tail
+- Command/Action: After issuing a request that carried a `Cookie` header: `npx wrangler tail --env staging --search "Cookie"`
+- Outcome:
+- Observed:
+- Expected: No matches
+- Severity (if fail): Privacy leak
+- Remediation:
+- Notes:
+
+## T.E.4 — Sentry captures unhandled exception
+
+- Date:
+- Tester:
+- Client: deliberate-crash deploy + Sentry UI
+- Command/Action: Deploy a temporary endpoint that throws (e.g., add a route in `worker.ts` that does `throw new Error("e2e-trigger")`), call it, then revert. OR wait for natural occurrence. Inspect Sentry → Issues for the new event.
+- Outcome:
+- Observed:
+- Expected: Sentry receives exception with `keyOwner` + `path` tags; alert rule "MCP unhandled exception" fires email
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+## T.E.5 — Sentry breadcrumbs preserve request context
+
+- Date:
+- Tester:
+- Client: deliberate-crash deploy + Sentry UI
+- Command/Action: Same as T.E.4; in Sentry UI inspect the breadcrumb chain on the captured event
+- Outcome:
+- Observed:
+- Expected: Breadcrumbs include the relevant tool calls leading to the crash
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+## T.E.6 — `/health` shape matches Path 2 spec
+
+- Date:
+- Tester:
+- Client: direct curl
+- Command/Action: `curl.exe $env:MCP_URL/health`
+- Outcome:
+- Observed:
+- Expected: Fields: `ok`, `version`, `gitSha`, `phase`, `upstashMcp`, `upstashInoreader`, `inoreader`, `inoreaderObservedAt`
+- Severity (if fail): Missing fields, or pre-Path-2 single `redis` field present
+- Remediation:
+- Notes:
+
+## T.E.7 — `/health` doesn't leak access token
+
+- Date:
+- Tester:
+- Client: direct curl
+- Command/Action: `curl.exe $env:MCP_URL/health`; scan raw response body for token-like strings (long base64/hex sequences, anything resembling `oauth_token` / `access_token`)
+- Outcome:
+- Observed:
+- Expected: No values resembling Inoreader OAuth tokens (per `health.ts` PRIVACY note — probe-result discarded)
+- Severity (if fail): Critical — implementation regression on the privacy comment
+- Remediation:
+- Notes:
+
+## T.E.8 — Health probes are cheap (no Inoreader API call)
+
+- Date:
+- Tester:
+- Client: direct curl (loop) + Inoreader dev portal
+- Command/Action: `1..100 | ForEach-Object { curl.exe -s $env:MCP_URL/health > $null }`. Then check Inoreader's daily-call counter (Inoreader dev portal) for movement.
+- Outcome:
+- Observed:
+- Expected: Daily Inoreader call count unchanged from `/health` traffic alone
+- Severity (if fail): Each `/health` call burns Inoreader budget (Q8 violated)
+- Remediation:
+- Notes:
+
+## T.E.9 — `/health` ok semantics
+
+- Date:
+- Tester:
+- Client: Upstash REST + direct curl
+- Command/Action: Set `mcp:inoreader:last-status` to a fresh `degraded` entry via Upstash REST API; then `curl.exe $env:MCP_URL/health`
+- Outcome:
+- Observed:
+- Expected: `inoreader: 'degraded'`, `ok: false`
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+## T.E.10 — Sentry alert rules fire
+
+- Date:
+- Tester:
+- Client: Sentry UI + email inbox
+- Command/Action: Per SENTRY_MANUAL_SETUP.md, trigger conditions for Rule #1 (unhandled exception, see T.E.4) and Rule #4 (5xx rate, if Sentry plan supports). Watch the configured email inbox for ~5 min.
+- Outcome:
+- Observed:
+- Expected: Email arrives within ~5 min of trigger
+- Severity (if fail): Alerts silent — verify alert config wasn't lost on Sentry-side
+- Remediation:
+- Notes:
+
+## T.E.11 — `auth.failed` captures to Sentry
+
+- Date:
+- Tester:
+- Client: direct curl + Sentry UI
+- Command/Action: Send 5+ requests with `Authorization: Bearer wrong-key` over a 10-minute window: `1..6 | ForEach-Object { curl.exe -i $env:MCP_URL/mcp -X POST -H "Authorization: Bearer wrong-key" -H "Content-Type: application/json" -d '{}'; Start-Sleep -Seconds 90 }`. Inspect Sentry → Issues for the `auth.failed` group.
+- Outcome:
+- Observed:
+- Expected: Sentry receives the `auth.failed` event(s) with `path` tag + `reason: bearer-rejected`; Alert #2 fires email
+- Severity (if fail): Sentry shows nothing → BL-032 captureMessage AC not closed (see "Known gaps" — expected to FAIL until AC closes)
+- Remediation:
+- Notes:
+
+## T.E.12 — `inoreader-rate-limit` captures to Sentry
+
+- Date:
+- Tester:
+- Client: Upstash REST + direct curl (PowerShell helper) + Sentry UI
+- Command/Action: Force the breaker open via T.D.3's "direct breaker-flag set" technique (or wait for natural Inoreader 429). Trigger one radar tool call after: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }`. Inspect Sentry → Issues.
+- Outcome:
+- Observed:
+- Expected: Sentry receives the `inoreader-rate-limit` event with `keyOwner` + `path` tags; Alert #3 fires email
+- Severity (if fail): Sentry shows nothing → BL-032 captureMessage AC not closed (see "Known gaps" — expected to FAIL until AC closes)
+- Remediation:
+- Notes:
 
 ## Section F — Onboarding flow
 
-_No findings logged yet._
+> Section F has two distinct flows: T.F.1 (internal team-member dry-run) and T.F.2 (external consumer rehearsal — BL-033 input). Operator soak onboarding is documented in DEPLOY.md Part A § A.1-A.7 and is not re-tested here.
+
+### T.F.1 — Internal team-member onboarding (happy path)
+
+> The full happy-path narrative (operator + team-member steps) lives in the playbook. Stubs below are the **post-onboarding verification scenarios** (T.F.1.a-d) for the operator to run after AB completes setup.
+
+#### T.F.1.a — AB's calls show `keyOwner: "AB"` in logs
+
+- Date:
+- Tester:
+- Client: wrangler tail (operator) — after AB makes a call from Claude Desktop
+- Command/Action: Operator runs `npx wrangler tail --env staging --search '"keyOwner":"AB"'` while AB issues at least one tool call from their Claude Desktop session
+- Outcome:
+- Observed:
+- Expected: Tail line(s) appear with `keyOwner: "AB"`
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+#### T.F.1.b — AB's rate-limit counter independent of RP's
+
+- Date:
+- Tester:
+- Client: direct curl (PowerShell helper) — AB hammers, RP probes
+- Command/Action: AB runs a hammer loop (`1..70 | ForEach-Object { Invoke-McpRequest -Method "tools/list" -Id $_ }` with the AB token). RP simultaneously calls a tool with the RP token.
+- Outcome:
+- Observed:
+- Expected: AB hits 429 around req 60; RP's calls still get 200
+- Severity (if fail): Critical if cross-key counter contamination (mirrors T.C.5)
+- Remediation:
+- Notes:
+
+#### T.F.1.c — AB's documentation discoverability
+
+- Date:
+- Tester:
+- Client: n/a (AB self-report)
+- Command/Action: After onboarding completes, ask AB: "Could you find the doc to set up your config without help?" Capture verbatim response.
+- Outcome:
+- Observed:
+- Expected: AB found `REMOTE_CLIENT_SETUP.md` without operator hand-holding
+- Severity (if fail): Discoverability gap — log a doc improvement task (e.g., README link, in-app link from Claude Desktop)
+- Remediation:
+- Notes:
+
+#### T.F.1.d — First-blocker-to-fix time
+
+- Date:
+- Tester:
+- Client: n/a (stopwatch on AB's onboarding)
+- Command/Action: Stopwatch from "AB receives token" to "first successful tool call". Record total elapsed time and any blockers encountered.
+- Outcome:
+- Observed:
+- Expected: <15 min target. Anything over 30 min indicates onboarding friction.
+- Severity (if fail): >30 min — log specific friction points (which doc step blocked? OS-specific path bug? mcp-remote install issue?)
+- Remediation:
+- Notes:
+
+### T.F.2 — External consumer onboarding (soak rehearsal for BL-033)
+
+> Hypothetical "ExtCo" rehearsal. Verification stubs (T.F.2.a-e) capture observations against the operator checklist; outcomes feed BL-033's external-pilot scope discussion.
+
+#### T.F.2.a — All-the-docs-they-need are public
+
+- Date:
+- Tester:
+- Client: n/a (manual review)
+- Command/Action: From an unauthenticated browser session, attempt to view `REMOTE_CLIENT_SETUP.md`, `RATE_LIMITS.md`, and `AUTH.md` in the `mcp-server/` tree. Confirm each is reachable without login.
+- Outcome:
+- Observed:
+- Expected: All three accessible without auth gating
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+#### T.F.2.b — Sensitive operational details aren't in those docs
+
+- Date:
+- Tester:
+- Client: n/a (manual review from external-reader perspective)
+- Command/Action: Re-skim `REMOTE_CLIENT_SETUP.md`, `RATE_LIMITS.md`, `AUTH.md` as if you were an external reader. Flag any references to internal Linear tickets, internal Slack channels, internal Vercel project IDs, RP's specific email, or other internal-only details.
+- Outcome:
+- Observed:
+- Expected: No internal-only references; if any are found, log them for redaction before sharing externally
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+#### T.F.2.c — Token has clear scope at issuance
+
+- Date:
+- Tester:
+- Client: n/a (operator notebook check)
+- Command/Action: Write a notebook entry for the hypothetical `MCP_KEY_EXTCO`: who can use it, what tools, what budget, when to review. Confirm the entry is durable (not just in chat / ephemeral).
+- Outcome:
+- Observed:
+- Expected: Operator notebook captures the scope; documented as paper-only for BL-032 (BL-033 enforces in code)
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+#### T.F.2.d — Bearer key compromise simulation
+
+- Date:
+- Tester:
+- Client: wrangler CLI + Claude Desktop (rotation drill)
+- Command/Action: Mid-rehearsal, simulate "ExtCo accidentally pasted token in Slack". Operator triggers rotation per AUTH.md § Rotate (`npx wrangler secret put MCP_KEY_EXTCO --env staging`); ExtCo updates client config with new token. Measure time-to-rotate-and-restore.
+- Outcome:
+- Observed:
+- Expected: <10 min from compromise-detection to ExtCo's first successful call with the new token
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+#### T.F.2.e — Revocation simulation
+
+- Date:
+- Tester:
+- Client: wrangler CLI + Claude Desktop
+- Command/Action: Simulate end-of-engagement. Operator: `npx wrangler secret delete MCP_KEY_EXTCO --env staging`. ExtCo continues calling for ~60s; capture the consumer-side experience (error message text, client UI behavior).
+- Outcome:
+- Observed:
+- Expected: ExtCo's calls return 401 within ~30s. Document whether the consumer client surfaces a clear message vs. cryptic Claude/Cursor output.
+- Severity (if fail):
+- Remediation:
+- Notes:
 
 ## Section G — Disaster recovery
 
-_No findings logged yet._
+## T.G.1 — Wrangler rollback works
+
+- Date:
+- Tester:
+- Client: wrangler CLI + direct curl
+- Command/Action: After a deploy, list versions with `npx wrangler deployments list --env staging`; pick the previous version; `npx wrangler rollback --env staging <version-id>`. Then `curl.exe $env:MCP_URL/health` and any tool call.
+- Outcome:
+- Observed:
+- Expected: Rollback completes in <30s; `/health` returns previous version's `gitSha`; tools still work
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+## T.G.2 — Secrets persist through rollback
+
+- Date:
+- Tester:
+- Client: wrangler CLI
+- Command/Action: After T.G.1: `npx wrangler secret list --env staging`
+- Outcome:
+- Observed:
+- Expected: All 9 secrets present and correct (per the deploy baseline)
+- Severity (if fail): If secrets are lost, this is a Cloudflare bug — flag in Sentry
+- Remediation:
+- Notes:
+
+## T.G.3 — Sentry continues capturing post-rollback
+
+- Date:
+- Tester:
+- Client: deliberate-crash deploy + Sentry UI
+- Command/Action: Post-rollback, trigger an exception (same shape as T.E.4) and inspect Sentry → Issues for the new event
+- Outcome:
+- Observed:
+- Expected: Sentry receives it; alert fires
+- Severity (if fail): Sentry connection broken (DSN secret lost during rollback)
+- Remediation:
+- Notes:
+
+## T.G.4 — MCP DB hard-delete recovery
+
+- Date:
+- Tester:
+- Client: Upstash dashboard + wrangler CLI + direct curl
+- Command/Action: **DESTRUCTIVE — only on a throwaway DB, NOT the real MCP DB during soak.** Delete the throwaway DB in Upstash console; recreate; update `UPSTASH_MCP_REST_URL` and `UPSTASH_MCP_REST_TOKEN` via `npx wrangler secret put`; redeploy.
+- Outcome:
+- Observed:
+- Expected: After recovery, `/health` shows `upstashMcp: 'ok'`; rate limiter starts from empty counters (acceptable since per-day window resets); circuit breaker reset (acceptable)
+- Severity (if fail): Worker permanently broken, or stale-state behavior
+- Remediation:
+- Notes:
+
+## T.G.5 — Inoreader DB Read-Only token rotated by website team
+
+- Date:
+- Tester:
+- Client: cross-team coordination (Vercel owner) + wrangler CLI + direct curl
+- Command/Action: Coordinate with whoever owns the Vercel project: regenerate Read-Only token in Upstash; update Worker's `UPSTASH_INOREADER_REST_TOKEN` via `npx wrangler secret put`; `npx wrangler deploy --env staging`. Then `curl.exe $env:MCP_URL/health` and call radar.
+- Outcome:
+- Observed:
+- Expected: `/health` `upstashInoreader: 'ok'`; radar tools resume after redeploy
+- Severity (if fail): Coordination gap surfaced (e.g., website team didn't know Worker shared the DB; Q13 Resolved-revision context wasn't communicated)
+- Remediation:
+- Notes:
+
+## T.G.6 — Cloudflare account compromise — operator can revoke fast
+
+- Date:
+- Tester:
+- Client: wrangler CLI (throwaway account)
+- Command/Action: Spin up a throwaway Cloudflare account; deploy a minimal Worker there; document the revocation steps (token rotation, account-key revocation) and time them.
+- Outcome:
+- Observed:
+- Expected: Operator can `wrangler logout`, rotate Cloudflare API tokens, and redeploy elsewhere within ~30 min
+- Severity (if fail): Recovery requires Cloudflare-side support tickets (deploy keys not under operator's direct control)
+- Remediation:
+- Notes:
 
 ## Section H — Performance
 
-_No findings logged yet._
+> All H stubs use the playbook's `Measure-McpLatency` helper. Paste once per soak session before running these tests (definition in playbook § Section H — "Latency-measurement helper").
+
+## T.H.1 — Cold-isolate latency
+
+- Date:
+- Tester:
+- Client: direct curl (PowerShell helper, single sample)
+- Command/Action: Wait 5+ min after last call (lets Workers isolate spin down). Then `Measure-McpLatency -Method "tools/list" -N 1` (single sample — first call is the cold one).
+- Outcome:
+- Observed:
+- Expected: <800ms (cold start adds ~200-300ms over warm)
+- Severity (if fail): >2s consistently
+- Remediation:
+- Notes:
+
+## T.H.2 — Warm-isolate non-radar latency
+
+- Date:
+- Tester:
+- Client: direct curl (PowerShell helper, N=10)
+- Command/Action: Right after T.H.1's cold call: `Measure-McpLatency -Method "tools/call" -Params @{ name = "list_portfolio_facets"; arguments = @{} } -N 10`. Samples 2-10 represent warm-isolate latency.
+- Outcome:
+- Observed:
+- Expected: p95 <500ms
+- Severity (if fail): Substantially over (>1s) — investigate via Sentry tracing
+- Remediation:
+- Notes:
+
+## T.H.3 — Radar cold (cache miss)
+
+- Date:
+- Tester:
+- Client: direct curl (PowerShell helper, single sample)
+- Command/Action: Use a category not called within 6h to force cache miss: `Measure-McpLatency -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "ai-automation" } } -N 1`
+- Outcome:
+- Observed:
+- Expected: <2s
+- Severity (if fail): >5s — Inoreader is slow OR our fetch path is regressed
+- Remediation:
+- Notes:
+
+## T.H.4 — Radar warm (cache hit)
+
+- Date:
+- Tester:
+- Client: direct curl (PowerShell helper, N=10)
+- Command/Action: Same call as T.H.3 within 6h: `Measure-McpLatency -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "ai-automation" } } -N 10`
+- Outcome:
+- Observed:
+- Expected: p95 <200ms
+- Severity (if fail): >500ms — Upstash latency, or cache deserialization regression
+- Remediation:
+- Notes:
+
+## T.H.5 — Latency under concurrent load
+
+- Date:
+- Tester:
+- Client: direct curl (PowerShell helper, multi-window)
+- Command/Action: Open 5 PowerShell windows; in each: `1..20 | ForEach-Object { Invoke-McpRequest -Method "tools/list" -Id $_ }`. Capture per-window latency samples and compare median against T.H.2's solo run.
+- Outcome:
+- Observed:
+- Expected: No latency cliff (p95 holds within target ±20%)
+- Severity (if fail): p95 doubles → Worker has a hidden serialization point
+- Remediation:
+- Notes:
+
+## T.H.6 — `/health` latency budget
+
+- Date:
+- Tester:
+- Client: direct curl (loop)
+- Command/Action: `1..100 | ForEach-Object { (Measure-Command { curl.exe -s $env:MCP_URL/health > $null }).TotalMilliseconds } | Measure-Object -Average -Maximum`
+- Outcome:
+- Observed:
+- Expected: Median <50ms (Promise.all over 3 cheap probes); p95 <150ms
+- Severity (if fail): Substantially over → Upstash REST latency from Cloudflare's edge unexpectedly slow
+- Remediation:
+- Notes:
 
 ## Section I — Security
 
-_No findings logged yet._
+## T.I.1 — Authorization header strip in logs
+
+- Date:
+- Tester:
+- Client: wrangler tail
+- Command/Action: Same as T.E.2 — `npx wrangler tail --env staging --search "Bearer"` after issuing a normal authenticated request
+- Outcome:
+- Observed:
+- Expected: No matches
+- Severity (if fail): Critical — token leak
+- Remediation:
+- Notes: Security framing of T.E.2; record both findings if running once
+
+## T.I.2 — CORS preflight rejects unknown origin
+
+- Date:
+- Tester:
+- Client: direct curl
+- Command/Action: `curl.exe -i -X OPTIONS $env:MCP_URL/mcp -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST"`
+- Outcome:
+- Observed:
+- Expected: 403 (or 204 with CORS headers absent — depending on cors.ts impl)
+- Severity (if fail): Critical if 204 with `Access-Control-Allow-Origin: *` (would let any site relay user's bearer token)
+- Remediation:
+- Notes:
+
+## T.I.3 — CORS preflight accepts known origin
+
+- Date:
+- Tester:
+- Client: direct curl
+- Command/Action: `curl.exe -i -X OPTIONS $env:MCP_URL/mcp -H "Origin: https://claude.ai" -H "Access-Control-Request-Method: POST"`
+- Outcome:
+- Observed:
+- Expected: 204 with `Access-Control-Allow-Origin: https://claude.ai` (echoed back, not wildcard)
+- Severity (if fail): Wildcard or no-CORS-headers
+- Remediation:
+- Notes:
+
+## T.I.4 — Bearer keyOwner extraction is pinned
+
+- Date:
+- Tester:
+- Client: n/a (code review)
+- Command/Action: Open `mcp-server/src/auth/bearer.ts`. Confirm the regex/parser strips just the `MCP_KEY_` prefix and uses the suffix verbatim (no lowercase, no further `_` splits).
+- Outcome:
+- Observed:
+- Expected: Code review pass — extraction matches the documented behavior in T.A.13
+- Severity (if fail): Off-by-one in suffix extraction (could let a token leak via misattributed logs)
+- Remediation:
+- Notes:
+
+## T.I.5 — Token comparison is constant-time
+
+- Date:
+- Tester:
+- Client: n/a (code review) OR direct curl (timing — cross-reference T.A.15)
+- Command/Action: Either: (a) inspect `mcp-server/src/auth/bearer.ts` for `crypto.timingSafeEqual` (or equivalent); (b) cross-reference T.A.15's measured timing diff
+- Outcome:
+- Observed:
+- Expected: Constant-time comparison (`crypto.timingSafeEqual` or equivalent)
+- Severity (if fail): Plain `===` comparison — Important; not Critical at internal-soak-scope, matters for BL-033
+- Remediation:
+- Notes:
+
+## T.I.6 — No raw `console.log` in worker code
+
+- Date:
+- Tester:
+- Client: n/a (lint)
+- Command/Action: `npm run lint` from repo root; verify `no-console` rule covers `mcp-server/src/worker.ts`
+- Outcome:
+- Observed:
+- Expected: Lint passes; if a raw `console.log` were introduced it would fail
+- Severity (if fail): Lint rule disabled or removed
+- Remediation:
+- Notes:
+
+## T.I.7 — Health probe doesn't leak access token
+
+- Date:
+- Tester:
+- Client: direct curl
+- Command/Action: `curl.exe $env:MCP_URL/health`; scan response body for token-like strings
+- Outcome:
+- Observed:
+- Expected: No token in response body
+- Severity (if fail): Critical — token leak
+- Remediation:
+- Notes: Security framing of T.E.7; if both are run, can cross-reference
+
+## T.I.8 — wrangler.toml has no plaintext secrets
+
+- Date:
+- Tester:
+- Client: PowerShell (Select-String)
+- Command/Action: `Select-String -Path mcp-server/wrangler.toml -Pattern '(?i)token|secret|key'`
+- Outcome:
+- Observed:
+- Expected: Only secret NAMES in comments; no plaintext values
+- Severity (if fail): Critical if plaintext secret in committed file
+- Remediation:
+- Notes:
+
+## T.I.9 — Production deploy doesn't include source maps
+
+- Date:
+- Tester:
+- Client: Cloudflare dashboard (post-deploy bundle inspector)
+- Command/Action: After `npm run deploy:production`, open Cloudflare dashboard → Workers & Pages → gst-mcp → bundle inspector
+- Outcome:
+- Observed:
+- Expected: No `.map` files in the deployed bundle
+- Severity (if fail): Source maps exposed (would aid an attacker — moderate severity)
+- Remediation:
+- Notes:
+
+## T.I.10 — Worker bundle doesn't ship `_local-only.ts` content
+
+- Date:
+- Tester:
+- Client: direct curl (PowerShell helper)
+- Command/Action: After deploy, `Invoke-McpRequest -Method "tools/list"` and inspect the returned tool names
+- Outcome:
+- Observed:
+- Expected: 10 transport-portable tools only; `search_radar_offline` and `search_radar_cache` MUST NOT appear
+- Severity (if fail): Stdio-only tools registered → would attempt to read files (404s, but a regression worth catching)
+- Remediation:
+- Notes:
 
 ## Section J — Schema
 
-_No findings logged yet._
+## T.J.1 — Tool registry parity (stdio vs Worker)
+
+- Date:
+- Tester:
+- Client: vitest
+- Command/Action: `npm run test:run -- tests/integration/registry-snapshot.test.ts` (BL-031.85)
+- Outcome:
+- Observed:
+- Expected: Test passes — snapshot match between stdio and Worker tool registries
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+## T.J.2 — Each tool's input schema matches its website-page filter UI
+
+- Date:
+- Tester:
+- Client: n/a (manual UI comparison)
+- Command/Action: Pick a tool (e.g., `search_portfolio`); compare its zod schema in `mcp-server/src/tools/search-portfolio.ts` to the actual filter chips on `/ma-portfolio` in a browser
+- Outcome:
+- Observed:
+- Expected: No drift between Zod schema enum values and the filter UI options
+- Severity (if fail): Drift signals require a BACKLOG entry for the next BL-031.95-style alignment pass
+- Remediation:
+- Notes:
+
+## T.J.3 — Each tool's deeplink reproduces filter state
+
+- Date:
+- Tester:
+- Client: cross-reference T.B.2.f and T.B.3.h
+- Command/Action: Use the deeplink captured in T.B.2.f and T.B.3.h; open in a browser; verify the page reproduces the filter state
+- Outcome:
+- Observed:
+- Expected: Round-trip works — deeplink → page state matches the original tool inputs
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+## T.J.4 — `'unknown'` sentinel coverage (BL-031.95 Phase 2)
+
+- Date:
+- Tester:
+- Client: cross-reference T.B.3.b
+- Command/Action: Verify per T.B.3.b that every enum field accepts `'unknown'`; engine widens conservatively when sentinel is passed
+- Outcome:
+- Observed:
+- Expected: Every enum field in `generate_diligence_agenda` accepts `'unknown'`; widened-agenda response when all 13 fields are `'unknown'`
+- Severity (if fail):
+- Remediation:
+- Notes:
+
+## T.J.5 — Path 2 Env interface declares all 4 new secrets typed
+
+- Date:
+- Tester:
+- Client: n/a (code review)
+- Command/Action: Open `mcp-server/src/worker.ts`; inspect the Env interface declarations
+- Outcome:
+- Observed:
+- Expected: Each of the 4 Path 2 secrets is declared as `?: string` (not `unknown`) for better autocomplete + lint signal
+- Severity (if fail):
+- Remediation:
+- Notes:
 
 ## Section K — Claude workflow consumption
 
-_No findings logged yet._
+> Section K uses a different template — outcomes are qualitative (1-5 rubric per playbook § K.3), not pass/fail. Run prompts in a fresh client session (don't pre-load context). Score each dimension; log a finding for any prompt where any score < 4. Prompts and expected behaviors are quoted from the playbook so the operator can paste verbatim.
+
+### K.1 — Structured workflow scenarios
+
+#### T.K.1.1 — Tool discoverability without explicit naming
+
+- Date:
+- Tester:
+- Client: Claude Desktop (gst-mcp-staging connector)
+- Prompt verbatim:
+  > "What kind of due-diligence work has GST done in healthcare?"
+- Expected: Claude calls `search_portfolio` with `theme = "Healthcare Tech"` (or equivalent), returns prose summary
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap — `<tool>` description doesn't make applicability clear
+  - [ ] Zod `.describe()` gap on field `<field>`
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Schema simplification
+  - [ ] Result-shape simplification
+  - [ ] Error-envelope copy
+  - [ ] BL-033 feature gap
+  - [ ] Other:
+- Notes:
+
+#### T.K.1.2 — Required-field handling — graceful elicitation
+
+- Date:
+- Tester:
+- Client: Claude Desktop
+- Prompt verbatim:
+  > "Generate a diligence agenda for a SaaS company"
+- Expected: Claude either (a) asks for the missing 12 inputs in a structured way, OR (b) uses `'unknown'` sentinel for unknowable fields per BL-031.95. Does NOT hallucinate values.
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Zod `.describe()` gap
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Schema simplification
+  - [ ] Result-shape simplification
+  - [ ] Error-envelope copy
+  - [ ] BL-033 feature gap
+  - [ ] Other:
+- Notes:
+
+#### T.K.1.3 — Multi-step chain composition
+
+- Date:
+- Tester:
+- Client: Claude Desktop
+- Prompt verbatim:
+  > "Find recent radar items about kubernetes from the last week, then for the most discussed one, generate a quick due-diligence question list as if it were a deal target"
+- Expected: Claude calls `search_radar` first, evaluates results, then calls `generate_diligence_agenda` with reasonable inferred inputs from the radar item
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5):
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Zod `.describe()` gap
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Schema simplification
+  - [ ] Result-shape simplification
+  - [ ] Error-envelope copy
+  - [ ] BL-033 feature gap
+  - [ ] Other:
+- Notes:
+
+#### T.K.1.4 — Long-conversation tool-result memory
+
+- Date:
+- Tester:
+- Client: Claude Desktop (5-turn conversation)
+- Prompt verbatim:
+  > Turn 1: "List the GST portfolio facets."
+  > [Turns 2-4: unrelated chat]
+  > Turn 5: "Search portfolio for the first engagement-category we listed earlier"
+- Expected: Claude reuses the earlier result without re-calling the tool (or re-calls only if it correctly identifies that the data could have changed). Claude does NOT pretend the result is novel.
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Zod `.describe()` gap
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Schema simplification
+  - [ ] Result-shape simplification
+  - [ ] Error-envelope copy
+  - [ ] BL-033 feature gap
+  - [ ] Other:
+- Notes:
+
+#### T.K.1.5 — Error-message UX (503 circuit-open)
+
+- Date:
+- Tester:
+- Client: Claude Desktop (with circuit pre-opened per Section D Strategy 1)
+- Pre-test setup: Force the circuit open per T.D.3 (Upstash REST `/set/mcp:radar:circuit-open/inoreader-rate-limit` with EX=21600)
+- Prompt verbatim:
+  > "What's in the radar today?"
+- Expected: Claude renders the 503/Retry-After to the user clearly (e.g., "the radar tool is temporarily unavailable due to upstream rate limits; try again after X minutes")
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5):
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Zod `.describe()` gap
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Schema simplification
+  - [ ] Result-shape simplification
+  - [ ] Error-envelope copy — Claude renders error envelope badly
+  - [ ] BL-033 feature gap
+  - [ ] Other:
+- Notes:
+
+#### T.K.1.6 — Cross-client parity
+
+- Date:
+- Tester:
+- Client: Claude Desktop + Claude Code + Cursor (run T.K.1.1 prompt in each)
+- Prompt verbatim:
+  > "What kind of due-diligence work has GST done in healthcare?"
+- Expected: Same tool selection across all three clients; comparable result quality (some prose-style variation is fine)
+- Tool selection (1-5): Desktop= , Code= , Cursor=
+- Input completeness (1-5): Desktop= , Code= , Cursor=
+- Result synthesis (1-5): Desktop= , Code= , Cursor=
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5): Desktop= , Code= , Cursor=
+- Improvement opportunity:
+  - [ ] Cross-client behavior diverges — document in REMOTE_CLIENT_SETUP.md
+  - [ ] Other:
+- Notes: Per playbook deferral list, only Claude Desktop is required for BL-032 baseline; Cursor + ChatGPT are nice-to-have signal for BL-033
+
+#### T.K.1.7 — Connector disambiguation (local stdio + remote staging)
+
+- Date:
+- Tester:
+- Client: Claude Desktop (with both `gst` local stdio and `gst-mcp-staging` remote configured)
+- Prompt verbatim:
+  > "Search the radar"
+- Expected: Document which connector Claude picks and why; verify whichever it picks gives the right answer
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Cross-client behavior diverges (connector ambiguity)
+  - [ ] Tool description gap
+  - [ ] Other:
+- Notes:
+
+#### T.K.1.8 — Token / context window cost
+
+- Date:
+- Tester:
+- Client: Claude Desktop (5-turn conversation across 3 tools)
+- Prompt verbatim:
+  > Run a 5-turn conversation that exercises 3 different tools (e.g., turn 1: list facets; turn 2: search portfolio; turn 3: generate diligence agenda; turns 4-5: synthesis questions). Estimate tokens consumed by tool descriptions + JSON results in Claude's context.
+- Expected: Tool descriptions <500 tokens combined; max-output JSON <2k tokens per response
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5):
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Result-shape simplification — JSON output too verbose; consider `summary`-mode flag
+  - [ ] Tool description gap
+  - [ ] Other:
+- Notes: Token-bloat findings inform BL-032.75 observability + BL-033 cost-modeling
+
+#### T.K.1.9 — Hallucination detection — fake project
+
+- Date:
+- Tester:
+- Client: Claude Desktop
+- Prompt verbatim:
+  > "What did GST find during the diligence on Acme Corp's $40M Series C?"
+- Expected: Claude calls `search_portfolio`, returns empty, says "I don't see an Acme Corp engagement in GST's portfolio" — does NOT fabricate engagement details
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5):
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap — should make "anonymized portfolio" scope explicit
+  - [ ] Result-shape simplification
+  - [ ] Other:
+- Notes:
+
+#### T.K.1.10 — Stale-data / freshness signaling
+
+- Date:
+- Tester:
+- Client: Claude Desktop (two prompts ~10 min apart)
+- Prompt verbatim:
+  > "What did the radar surface today?"
+  > [Wait 10 minutes]
+  > "What did the radar surface today?"
+- Expected: Claude either re-calls each time OR explicitly notes "based on data from X minutes ago, do you want me to re-check?"
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap — should signal time-sensitive data
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Other:
+- Notes:
+
+### K.2.a — Discovery prompts
+
+#### T.K.2.a.1 — Regulated industries
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "Does GST have any past work in regulated industries — financial services or healthcare?"
+- Expected: Claude reaches for `search_portfolio` (theme/category filter) — not web search, not "I don't have access"
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap on `search_portfolio`
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.a.2 — Radar AI agent governance
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "What does the GST radar show in the past few days about AI agent governance?"
+- Expected: Claude calls `search_radar` with the AI/automation category (or equivalent free-text)
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap on `search_radar`
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.a.3 — Tech-debt assessment narrative
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "Help me think through what a tech-debt assessment for a 200-person SaaS engineering org would cost annually if 30% of dev time is going to maintenance."
+- Expected: Claude calls `estimate_tech_debt_cost` with reasonable inferred inputs
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap on `estimate_tech_debt_cost`
+  - [ ] Zod `.describe()` gap
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.a.4 — GDPR for B2B SaaS
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "What are the GDPR requirements for a B2B SaaS company headquartered in the US but with EU customers?"
+- Expected: Claude calls `search_regulations` with `search = "GDPR"` (or `jurisdiction = "eu"`)
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap on `search_regulations`
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.a.5 — ICG maturity for PE roll-up
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "How would I assess whether a target company's infrastructure cost discipline is mature enough for a PE roll-up?"
+- Expected: Claude calls `assess_infrastructure_cost_governance` (potentially asking for ICG question answers first)
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap on `assess_infrastructure_cost_governance`
+  - [ ] Zod `.describe()` gap
+  - [ ] Other:
+- Notes:
+
+### K.2.b — Single-tool natural prompts (one per tool)
+
+#### T.K.2.b.1 — `list_portfolio_facets`
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "What categories of M&A engagements has GST worked on?"
+- Expected: Claude calls `list_portfolio_facets`
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.b.2 — `search_portfolio`
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "Pull GST's relevant engagements involving SaaS marketplaces sold to PE."
+- Expected: Claude calls `search_portfolio` with appropriate theme/engagement filters
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Zod `.describe()` gap
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.b.3 — `generate_diligence_agenda`
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "Draft a diligence agenda for a Series B B2B SaaS target — modern cloud-native stack, ~150 engineers, EU+US presence, healthcare-adjacent data."
+- Expected: Claude calls `generate_diligence_agenda` with the provided inputs mapped to schema fields; uses `'unknown'` for missing dimensions
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Zod `.describe()` gap
+  - [ ] Schema simplification
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.b.4 — `assess_infrastructure_cost_governance`
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "Run an ICG assessment for a Series B PE-backed SaaS company; here are my answers to the standard ICG questions: [paste a few real answers]"
+- Expected: Claude calls `assess_infrastructure_cost_governance` with the answers map
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Zod `.describe()` gap
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.b.5 — `compute_techpar`
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "Run a TechPar benchmark — Series B SaaS, $20M ARR, $4M annual cloud + infra, 75 engineers, 30% growth, deepdive mode."
+- Expected: Claude calls `compute_techpar` with the provided inputs (note `infraHostingAnnual` field name)
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Zod `.describe()` gap (annual vs monthly money fields)
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.b.6 — `estimate_tech_debt_cost`
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "Estimate the carrying cost of tech debt for a 100-person eng org at $200K/eng, 35% maintenance burden, weekly deploys, 6 incidents/mo, $40M ARR."
+- Expected: Claude calls `estimate_tech_debt_cost` with the inputs
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Zod `.describe()` gap
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.b.7 — `search_regulations`
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "What are the key data-residency requirements I need to think about for a SaaS company expanding into Quebec?"
+- Expected: Claude calls `search_regulations` with `jurisdiction = "ca-qc"` (or free-text "Quebec")
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Zod `.describe()` gap (jurisdiction codes)
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.b.8 — `list_regulation_facets`
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "What jurisdictions does GST's regulatory map cover?"
+- Expected: Claude calls `list_regulation_facets`
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.b.9 — `search_radar`
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "Pull recent radar items in the AI/automation category."
+- Expected: Claude calls `search_radar` with `category = "ai-automation"`
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Zod `.describe()` gap
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.b.10 — `get_latest_insights`
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "Show me GST's most recent annotated radar items — the FYI tier."
+- Expected: Claude calls `get_latest_insights`
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Other:
+- Notes:
+
+### K.2.c — Multi-tool chain workflows
+
+#### T.K.2.c.1 — Deal-target intake
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "I'm meeting tomorrow with a target: B2B SaaS, healthcare-RCM, $30M ARR, Series B, hybrid-legacy with active modernization in flight, 180 engineers across US+EU. Pull any comparable past GST engagements, then draft the diligence agenda I should walk in with."
+- Expected: `search_portfolio` → `generate_diligence_agenda`. Score tool selection, composition, synthesis, overall.
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5):
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Tool description gap
+  - [ ] Schema simplification
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.c.2 — Radar-driven thesis development
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "Find recent radar items in the PE/M&A category from the last week. For any deals or themes that might intersect with GST's past tech-due-diligence work, surface the comparable engagements."
+- Expected: `search_radar` → `search_portfolio`. Score multi-tool composition + synthesis quality.
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5):
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.c.3 — Cost-governance assessment + roll-up suggestion
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "For a Series B PE-backed SaaS company in financial services where my client is hitting elevated tech costs (above the healthy benchmark), give me both a TechPar benchmark and an ICG maturity assessment, then suggest the top 3 remediation areas across both lenses."
+- Expected: `compute_techpar` + `assess_infrastructure_cost_governance` run in parallel; synthesis combines both. Score composition + synthesis.
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5):
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.c.4 — Regulatory-blast-radius scoping
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "My target operates in the US, Canada (including Quebec), and the EU; processes patient data; uses LLM-based features. What are the regulatory frameworks I need to flag in my diligence memo, and any past GST work I can reference?"
+- Expected: `search_regulations` (multi-jurisdiction) → `search_portfolio` (healthcare/AI). Score multi-jurisdiction handling, AI/healthcare regulatory awareness, GST-engagement linking.
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5):
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Tool description gap (multi-jurisdiction handling)
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.c.5 — Tech-debt + roadmap argument
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "For a 250-engineer org spending 40% of capacity on maintenance with $80M ARR, calculate tech-debt carrying cost AND show me ICG questions where they're likely failing. Then draft a one-paragraph board pitch for why a remediation budget is necessary."
+- Expected: `estimate_tech_debt_cost` + `assess_infrastructure_cost_governance` + synthesis to consultant prose. Score across all dimensions.
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5):
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Other:
+- Notes:
+
+### K.2.d — Edge cases & error recovery
+
+#### T.K.2.d.1 — Compute techpar with deliberately invalid input
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "Run a TechPar benchmark with $0 ARR."
+- Expected: Zod rejection; Claude either re-asks or surfaces the error clearly
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5):
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Error-envelope copy
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.d.2 — Search portfolio with 0 results
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "Find GST engagements in agriculture-vertical SaaS for sub-$1M ARR seed-stage targets."
+- Expected: Empty result; Claude doesn't fabricate engagements
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5):
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.d.3 — Radar during budget exhaustion
+
+- Date:
+- Tester:
+- Client: Claude Desktop (with circuit pre-opened per Section D Strategy 1)
+- Pre-test setup: Force the circuit open per T.D.3
+- Prompt verbatim:
+  > "What's in the radar today?"
+- Expected: Claude renders 503; user sees "temporarily unavailable + retry later"
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5):
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Error-envelope copy
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.d.4 — Generate agenda with all 13 fields = 'unknown'
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "Generate a diligence agenda but I have no information about the target yet — just early-stage curiosity."
+- Expected: Claude uses `'unknown'` sentinel per BL-031.95; result is a wide, low-confidence agenda with the unknownDimensionCount callout
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Tool description gap (unknown sentinel)
+  - [ ] Result-shape simplification
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.d.5 — Mixed valid + invalid enum
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "Generate an agenda for a target with productType='vaporware' and revenueRange='5-25m'."
+- Expected: Clear Zod rejection on productType; Claude either asks for clarification or proceeds with the rest
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A): N/A
+- Failure handling (1-5):
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] Error-envelope copy
+  - [ ] Zod `.describe()` gap
+  - [ ] Other:
+- Notes:
+
+### K.2.e — Mid-engagement consultant scenarios
+
+#### T.K.2.e.1 — Pre-call prep (under time pressure)
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "I'm in 5 min on a call with a target's CTO. They make B2B inventory-management software, ~$8M ARR, growing 50% YoY, hybrid cloud + on-prem. Give me my top 5 questions for the architecture portion of the call."
+- Expected: Calls `generate_diligence_agenda` (or similar) with reasonable inferred inputs; produces 5 prioritized questions; tone matches time-pressured consultant
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A):
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.e.2 — Mid-call lookup
+
+- Date:
+- Tester:
+- Client: Claude Desktop (continued from T.K.2.e.1 or fresh)
+- Prompt verbatim:
+  > "The target just told me they have 'patchwork microservices on K8s with some legacy monoliths'. What follow-up questions does that signal?"
+- Expected: Claude responds quickly with architecture-tradeoff probes; possibly references comparable engagements via `search_portfolio`
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A):
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.e.3 — Post-call synthesis
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "From this call, I learned: Series C, $50M ARR, modern cloud-native, 220 engineers, EU+US, multi-region, healthcare data, low data-sensitivity processing model, recently modernized. What attention areas should appear in my diligence memo?"
+- Expected: Calls `generate_diligence_agenda` with the captured dimensions; output `attentionAreas[]` reads as memo content
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A):
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Result-shape simplification
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.e.4 — Investor-facing summary
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "For a partner update tomorrow, summarize GST's most relevant work in B2B SaaS / financial services / regulatory diligence over the last 18 months."
+- Expected: Calls `search_portfolio` (multi-filter); synthesizes into investor-update prose
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5 or N/A):
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Tool description gap (date-range filtering)
+  - [ ] Other:
+- Notes:
+
+#### T.K.2.e.5 — Triage hot lead
+
+- Date:
+- Tester:
+- Client: Claude Desktop (fresh conversation)
+- Prompt verbatim:
+  > "A founder just sent me their pitch — they're a $15M-ARR Series B AI-tooling company looking for tech advisory. Pull any radar items + past engagements that would inform whether this is a fit, and tell me if I should take the call."
+- Expected: `search_radar` (AI category) + `search_portfolio` (Series B / AI / advisory engagements); synthesis includes a fit recommendation
+- Tool selection (1-5):
+- Input completeness (1-5):
+- Result synthesis (1-5):
+- Composition (1-5):
+- Failure handling (1-5 or N/A): N/A
+- Overall workflow value (1-5):
+- Improvement opportunity:
+  - [ ] BL-031.75 prompt-library candidate
+  - [ ] Other:
+- Notes:
 
 ## Section X — Ad-hoc / unscheduled
 
