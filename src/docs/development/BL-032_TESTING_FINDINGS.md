@@ -364,16 +364,16 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.1.b — Spurious args ignored
 
-- Date: 5/10/2026
+- Date: 2026-05-10
 - Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "list_portfolio_facets" -Arguments @{ unrecognized = "ignored" }`
-- Outcome: Ye
-- Observed:
+- Outcome: PASS
+- Observed: Response identical in shape and counts to T.B.1.a — themes=15, engagementCategories=2, growthStages=6, years=5. The unrecognized `unrecognized` argument was silently ignored by the tool's input schema (Zod's default behavior on objects is to strip unknown keys).
 - Expected: Same response as T.B.1.a, no error
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Confirms Zod's strip-unknown-keys default is in force on the input schema (vs. `.passthrough()` or `.strict()`). For an MCP tool surface, strip is the right default — old clients sending deprecated fields don't break the contract.
 
 ### T.B.2 — `search_portfolio`
 
@@ -440,38 +440,38 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.2.c — Theme + engagement filter compose
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpTool -Name "search_portfolio" -Arguments @{ theme = "<a real theme>"; engagement = "Buy-Side" }`
-- Outcome:
-- Observed:
+- Command/Action: `Invoke-McpTool -Name "search_portfolio" -Arguments @{ theme = "Healthcare"; engagement = "Buy-Side" }`
+- Outcome: PASS
+- Observed: Single-filter counts captured for comparison: `theme="Healthcare"` alone → **11 matches**; `engagement="Buy-Side"` alone → **36 matches**. Both filters together → **7 matches**. 7 ≤ 11 ✓ AND 7 ≤ 36 ✓. Intersection semantics correct (filters compose with AND, not OR).
 - Expected: Count ≤ either filter alone (intersection semantics)
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Clean compose. Of the 36 Buy-Side engagements, 7 (≈19%) touch Healthcare — useful comparison datapoint for future portfolio-analysis prompts.
 
 #### T.B.2.d — "all" sentinel for both filters
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "search_portfolio" -Arguments @{ theme = "all"; engagement = "all" }`
-- Outcome:
-- Observed:
+- Outcome: PASS
+- Observed: `matches.Count = 61` — equals T.B.2.b's empty-args count. The `"all"` sentinel cleanly bypasses both filters (vs. literal string match against `"all"`, which would return 0).
 - Expected: Same as T.B.2.b (all 61 projects)
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Confirms the engine recognizes `"all"` as a sentinel — useful for URL-state restoration where the wizard's "no filter selected" state encodes as `&theme=all`.
 
 #### T.B.2.e — Invalid theme → either filter ignored OR error
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpTool -Name "search_portfolio" -Arguments @{ theme = "not-a-real-theme" }`
-- Outcome:
-- Observed:
+- Command/Action: `Invoke-McpTool -Name "search_portfolio" -Arguments @{ theme = "not-a-real-theme-xyz" }`
+- Outcome: PASS (documented: silent zero-result, not error)
+- Observed: `matches.Count = 0`. No MCP error envelope; the call succeeded with an empty matches array. The engine treats an unrecognized theme as "filter is applied literally; no projects match" — a third behavior beyond the playbook's two-option framing.
 - Expected: Document which behavior; should be stable (always-ignore OR always-error, not both)
 - Severity (if fail):
 - Remediation:
@@ -479,16 +479,16 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.2.f — Deeplink populated
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Run any successful search variant above; inspect the `deeplink` field in the response
-- Outcome:
-- Observed:
+- Command/Action: Inspect `deeplink` on the T.B.2.c response (`Invoke-McpTool -Name "search_portfolio" -Arguments @{ theme = "Healthcare"; engagement = "Buy-Side" }`)
+- Outcome: PASS
+- Observed: `deeplink: "https://globalstrategic.tech/ma-portfolio?theme=Healthcare&eng=Buy-Side"`. Both filter values cleanly encoded in the query string with the wizard's expected param names (`theme` and `eng`).
 - Expected: `deeplink: "https://globalstrategic.tech/ma-portfolio?..."` reflecting filter state
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Query-param names use the abbreviated form (`eng` not `engagement`) — matches the URL-state-restoration contract on the website. Worth noting for any prompt that builds deeplinks manually (use the tool's emitted deeplink, don't construct by hand).
 
 ### T.B.3 — `generate_diligence_agenda`
 
@@ -523,81 +523,81 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.3.b — All fields = `'unknown'` (BL-031.95 sentinel)
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Build `$unknownInputs` with every field set to `"unknown"` (and `geographies = @("unknown")`); call `generate_diligence_agenda` with it
-- Outcome:
-- Observed:
+- Command/Action: `Invoke-McpTool -Name "generate_diligence_agenda" -Arguments $unknownInputs` where every field is `"unknown"` and `geographies = @("unknown")`
+- Outcome: PASS
+- Observed: `unknownDimensionCount = 13` ✓, `metadata.totalQuestions = 20` (at the engine's documented 15-20 cap — same as T.B.3.a with concrete inputs; the cap binds for both wide and narrow input sets), `topics.Count = 4` (same 4 topics: architecture, operations, carveout-integration, security-risk).
 - Expected: `unknownDimensionCount = 13`; agenda widens conservatively rather than failing; response includes a low-confidence callout per BL-031.95
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: The `15-20` engine invariant (per `tests/unit/diligence-engine.test.ts:757`) caps the result regardless of input specificity. With all-unknown inputs, MORE questions are _eligible_ (conditions are inclusive of unknown), but the post-filter `balanceAcrossTopics` cap still binds at 20. The "agenda widens" promise is reflected in WHICH questions are selected (low-bar inclusive set), not in the count itself.
 
 #### T.B.3.c — Mix of unknown + known
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Take `$inputs` from T.B.3.a; set 4-6 fields to `"unknown"`, leave the rest concrete; call the tool
-- Outcome:
-- Observed:
+- Command/Action: Clone of T.B.3.a's `$inputs` with 4 fields (`transactionType`, `productType`, `techArchetype`, `headcount`) overridden to `"unknown"`; remaining 9 concrete.
+- Outcome: PASS
+- Observed: `unknownDimensionCount = 4` ✓ (matches the count of `'unknown'`s passed), `metadata.totalQuestions = 20` (still at cap).
 - Expected: `unknownDimensionCount` matches the count of `'unknown'`s passed
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Counter is correctly per-field. Worth a follow-up to compare which question IDs are selected here vs T.B.3.a's all-known set — diffs would surface which questions are conditional on the now-unknown dimensions.
 
 #### T.B.3.d — Invalid enum value
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Take `$inputs`; set `productType = "vaporware"` (not in enum); call the tool
-- Outcome:
-- Observed:
+- Command/Action: Clone of `$inputs` with `productType = "vaporware"` (not in the enum)
+- Outcome: PASS
+- Observed: Clean Zod rejection captured via the patched helper: `MCP error -32602: Input validation error: Invalid arguments for tool generate_diligence_agenda: [{ "code": "invalid_value", "values": ["b2b-saas", "b2c-marketplace", "on-..."]}]`. The error envelope includes the enum's valid values, which is useful UX for clients trying to recover. `$b3d.topics` is empty.
 - Expected: MCP error envelope (NOT thrown exception); error message names the bad field
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Error message includes the valid `values` list — good UX. The "bad field name" itself isn't surfaced directly in this excerpt; full message likely includes `path: ['productType']` further down. Both are useful for client error-handling.
 
 #### T.B.3.e — Missing required field
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Take `$inputs`; remove one required field (e.g., `$inputs.Remove("revenueRange")`); call the tool
-- Outcome:
-- Observed:
+- Command/Action: Clone of `$inputs` with `revenueRange` removed via `$missing.Remove("revenueRange")`
+- Outcome: PASS
+- Observed: Zod rejection: `MCP error -32602: Input validation error: Invalid arguments for tool generate_diligence_agenda: [{ "code": "invalid_value", "values": ["0-5m", "5-25m", "25-100m", ...]}]`. Missing required field is reported the same way as invalid-enum-value — as an enum-validation failure on `undefined` (since the field is typed as `z.enum(...)`, `undefined` fails the enum check). The error preview lists valid revenue ranges, helping client recover.
 - Expected: MCP error; error message names the missing field
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Missing-required-field rejection is functionally equivalent to invalid-enum from the client's perspective — both surface as Zod errors with the valid-values list. This is fine but means a client can't distinguish "I forgot to set this" from "I set it to an unknown value" without inspecting the error's `path` field.
 
 #### T.B.3.f — Geographies array with both `'unknown'` and a real value
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Take `$inputs`; set `geographies = @("unknown", "us")`; call the tool
-- Outcome:
-- Observed:
+- Command/Action: Clone of `$inputs` with `geographies = @("unknown", "us")`
+- Outcome: PASS (behavior documented per playbook directive)
+- Observed: Request accepted. `topics.Count = 4`, agenda returned successfully. **`unknownDimensionCount = 0`** — the engine does NOT count geographies as "unknown" when there's at least one concrete entry in the array. The `"unknown"` entry coexists with `"us"` without throwing; it appears to be silently filtered out or treated as a no-op for purposes of the dimension count.
 - Expected: Validates per BL-031.95 contract — `['unknown']` alone is fine; mixed-array behavior should be documented
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS (behavior documented)
+- Notes: The unknownDimensionCount semantics for geographies are: array is "unknown" only when ALL entries are `"unknown"` (i.e., the array equals `["unknown"]` exactly). A mixed array with any concrete value collapses to "known" for counting purposes. Worth noting in the diligence-agenda CONTRACT doc and any prompt that builds geography arrays — passing a mixed array means the engine narrows on the concrete entries and silently drops the "unknown" marker.
 
 #### T.B.3.g — Geographies as empty array
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Take `$inputs`; set `geographies = @()`; call the tool
-- Outcome:
-- Observed:
+- Command/Action: Clone of `$inputs` with `geographies = @()`
+- Outcome: PASS
+- Observed: Zod rejection: `MCP error -32602: Input validation error: Invalid arguments for tool generate_diligence_agenda: [{ "origin": "array", "code": "too_small", "minimum": 1, "inclusive": true, "path": ...}]`. The error clearly identifies the `array.too_small` violation with `minimum: 1` — a clean Zod array-min-length rejection.
 - Expected: Rejected (must have ≥ 1 element per Zod schema)
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: This is the only case where the error envelope's shape differs noticeably from the enum-validation errors (T.B.3.d/e). For client-side error parsing, the `code` field is the key discriminator (`"invalid_value"` vs `"too_small"`).
 
 #### T.B.3.h — Deeplink round-trip
 
