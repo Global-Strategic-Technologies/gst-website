@@ -74,6 +74,12 @@ export interface Env {
   // Sentry — new project for service:mcp-server (Q6).
   SENTRY_DSN?: string;
 
+  // Build provenance — short SHA injected by `scripts/deploy.mjs` via
+  // `wrangler deploy --var GIT_SHA:<sha>`. Surfaced on /health so operators
+  // can verify which commit is running on the edge after a deploy.
+  // Falls back to 'unknown' when missing (e.g., local `wrangler dev` runs).
+  GIT_SHA?: string;
+
   // Forward-compat: any additional MCP_KEY_* secrets get matched by name.
   [key: string]: unknown;
 }

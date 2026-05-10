@@ -119,7 +119,7 @@ export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
   return {
     ok,
     version: VERSION,
-    gitSha: (env.GIT_SHA as string | undefined) ?? 'unknown',
+    gitSha: env.GIT_SHA ?? 'unknown',
     phase: 'BL-032 Phase 5 (observability)',
     upstashMcp,
     upstashInoreader,

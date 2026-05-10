@@ -19,8 +19,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dev:worker": "wrangler dev --env staging",
-    "deploy:staging": "wrangler deploy --env staging",
-    "deploy:production": "wrangler deploy --env production"
+    "deploy:staging": "node scripts/deploy.mjs staging",
+    "deploy:production": "node scripts/deploy.mjs production"
   },
   "engines": {
     "node": ">=22"

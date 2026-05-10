@@ -374,7 +374,11 @@ cd mcp-server
 npm run deploy:staging
 ```
 
-Equivalent to `wrangler deploy --env staging`. Wrangler:
+Wraps `wrangler deploy --env staging --var GIT_SHA:$(git rev-parse --short HEAD)` via [`scripts/deploy.mjs`](../../../scripts/deploy.mjs) so the deployed Worker can surface its commit SHA on `/health` (read by [`health.ts`](../../observability/health.ts) line 122). The wrapper script is cross-platform (Windows/macOS/Linux); a bare `wrangler deploy` works too but leaves `gitSha: "unknown"` on `/health`.
+
+Pass extra wrangler flags through `--`, e.g. `npm run deploy:staging -- --dry-run`.
+
+Wrangler:
 
 1. Bundles the Worker (`src/worker.ts` + dependencies, ~2.5MB / 494KB gzip)
 2. Uploads to Cloudflare
@@ -451,7 +455,7 @@ Expected (right after first deploy, before any radar traffic):
 {
   "ok": false,
   "version": "0.1.0",
-  "gitSha": "unknown",
+  "gitSha": "abc1234",
   "phase": "BL-032 Phase 5 (observability)",
   "upstashMcp": "ok",
   "upstashInoreader": "ok",
@@ -459,6 +463,8 @@ Expected (right after first deploy, before any radar traffic):
   "inoreaderObservedAt": null
 }
 ```
+
+`gitSha` shows the 7-character short SHA of the commit you deployed (matches `git rev-parse --short HEAD` at deploy time). If it shows `"unknown"`, the deploy bypassed the `npm run deploy:staging` wrapper script — `npx wrangler deploy --env staging` directly skips the GIT_SHA injection.
 
 `ok: false` is **expected** initially because `inoreader: 'unknown'` — but `inoreader: 'unknown'` is NOT a degraded signal, just "no recent traffic." It flips to `'ok'` after the first successful radar-tool call (B.3.6 below).
 
@@ -619,7 +625,7 @@ Production secrets were already provisioned in § A.3, A.4, A.5. The remaining s
    ```bash
    npm run deploy:production
    ```
-   Equivalent to `wrangler deploy --env production`. Same flow as B.2 but against `mcp.globalstrategic.tech`.
+   Wraps `wrangler deploy --env production --var GIT_SHA:$(git rev-parse --short HEAD)` via [`scripts/deploy.mjs`](../../../scripts/deploy.mjs). Same flow as B.2 but against `mcp.globalstrategic.tech`.
 3. **Smoke against production**: re-run § B.3.1 through B.3.7 with `MCP_URL=https://mcp.globalstrategic.tech`. Same expectations.
 4. **End-to-end verify from Claude Desktop**: re-do § B.4 with the production URL, run the same smoke prompt.
 
