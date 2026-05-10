@@ -1136,16 +1136,20 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.C.5 — Independent counters per key
 
-- Date:
-- Tester:
-- Client: direct curl (PowerShell helper) — two keys
-- Command/Action: With `MCP_KEY_RP` and `MCP_KEY_AB` both set as wrangler secrets, hammer one key (`1..70 | ForEach-Object { ... }` using the RP token), then make a single call with the AB token
-- Outcome:
+- Date: 2026-05-10
+- Tester: RP
+- Client: direct curl (PowerShell `Invoke-WebRequest`) — two keys, RP and AB
+- Command/Action: (a) generate fresh AB token via `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`, (b) install as `MCP_KEY_AB` via `$abToken | npx wrangler secret put MCP_KEY_AB --env staging`, (c) `npm run deploy:staging` to force isolate refresh, (d) hammer 70 requests using `$env:MCP_KEY` (RP), (e) make one call with `$abToken` (AB) and inspect status + rate-limit headers, (f) `npx wrangler secret delete MCP_KEY_AB --env staging` + redeploy to clean up.
+- Outcome: **PASS** (Critical contract verified)
 - Observed:
+  - **RP hammer** (70 requests in 27.9s): status distribution `60 × 200, 10 × 429` — cap holds precisely at the 60/min limit.
+  - **AB probe immediately after RP exhaustion**: status **200** ✓, `RateLimit-Remaining = 59`, `RateLimit-Limit = 60`. AB's per-minute counter started fresh — 59 remaining after 1 call confirms zero cross-pollination from RP's hammer.
+  - **Cleanup verified** via `wrangler secret list --env staging`: 10 secrets remain (MCP*KEY_RP + 4× INOREADER*_ + 4× UPSTASH\__ + SENTRY_DSN). `MCP_KEY_AB` is fully removed.
+  - **Test deploy traceability**: install-AB deploy version-id `0b1451ee-445e-4a5a-865e-5be80ee7d54f`, cleanup-AB deploy version-id `905abede-2bef-4f30-9b01-6e087d151318`. Both at gitSha `26afa71`.
 - Expected: Other key still gets 200 (counters are per-key)
-- Severity (if fail): Critical if counters cross-pollinate
-- Remediation:
-- Notes:
+- Severity (if fail): n/a — Critical contract holds
+- Remediation: n/a — PASS
+- Notes: This was a Critical-tier test for the multi-key rate-limit story. Any cross-pollination here would mean a single noisy user could throttle the entire team. Worker correctly per-keys both the auth path (per T.A.13 + T.A.14) AND the rate-limit counter path. Test infrastructure observation worth noting: the 60s cooldown + redeploy at the start ensured RP started with a fresh per-minute window — the resulting `60 × 200` distribution is cleaner than T.C.1's `59 × 200` (which was 59 because T.C.2's preceding probe ate one token). With dedicated cooldown, the rate-limiter's arithmetic is dead precise.
 
 ## T.C.6 — Radar tools tighter limits (5/min, 50/day)
 
