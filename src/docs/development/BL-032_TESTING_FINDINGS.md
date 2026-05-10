@@ -84,30 +84,6 @@ Copy-paste this block per finding. Date format is ISO-8601. Tester is initials (
 - Remediation:
 - Notes:
 
-## T.A.2 — Valid token
-
-- Date: 2026-05-09
-- Tester: RP
-- Outcome: PASS
-- Observed:
-
-  HTTP/1.1 401 Unauthorized
-  Date: Sun, 10 May 2026 01:57:37 GMT
-  Content-Type: application/json
-  Content-Length: 65
-  Connection: keep-alive
-  WWW-Authenticate: Bearer realm="gst-mcp"
-  Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=1Es3zvbpZi43zVW4R7rZk4aARjYMimLEHcWxUdkBLkAQk7umW35jdhMaR5dm4EoHsF9FGeeggUUkDGPB6zzszptJgHXh37gjwg6CYg5zHnNWrUAS2fYmM54aW9sDRdQictQAcWrXs0MWshTRSCiA1Tvast%2Bveej4iniaJbFwBQ%3D%3D"}]}
-  Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
-  Server: cloudflare
-  CF-RAY: 9f95558c0a09f1ff-GRU
-  alt-svc: h3=":443"; ma=86400
-
-- Expected: unauthorized error, missing authorization header
-- Severity (if fail):
-- Remediation:
-- Notes:
-
 ## T.A.3 — Wrong Bearer schema
 
 - Date: 2026-05-09
