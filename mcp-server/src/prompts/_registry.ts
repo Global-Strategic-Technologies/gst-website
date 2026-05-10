@@ -85,11 +85,18 @@ function assertPromptInvariants(prompt: GstPrompt, now: Date = new Date()): void
 export function registerPrompts(server: McpServer): void {
   for (const prompt of ALL_PROMPTS) {
     assertPromptInvariants(prompt);
+    // SDK v1.29's `registerPrompt` expects `argsSchema` to be a ZodRawShape
+    // (the `{ key: ZodType }` map), not a wrapped `z.object({...})`. Passing
+    // the wrapped object causes the SDK to enumerate ZodObject's prototype
+    // methods (keyof / catchall / passthrough / loose / strict / strip) as
+    // if they were arguments — surfacing in Claude Desktop as bogus form
+    // fields. `.shape` extracts the raw map. See registry-shape regression
+    // test alongside this file.
     server.registerPrompt(
       prompt.name,
       {
         description: prompt.description,
-        argsSchema: prompt.argsSchema,
+        argsSchema: prompt.argsSchema.shape,
       },
       prompt.build
     );
