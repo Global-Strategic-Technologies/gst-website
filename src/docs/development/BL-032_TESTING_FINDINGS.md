@@ -616,16 +616,16 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.4.a — Answers map (canonical stage `series-b`)
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpTool -Name "assess_infrastructure_cost_governance" -Arguments @{ answers = @{ q1 = 2; q2 = 1; q3 = 0; q4 = 3 }; companyStage = "series-b" }` (use real ICG question IDs)
-- Outcome:
-- Observed:
+- Command/Action: `Invoke-McpTool -Name "assess_infrastructure_cost_governance" -Arguments @{ answers = @{ q1_1 = 2; q1_2 = 1; q1_3 = 0; q2_1 = 3 }; companyStage = "series-b" }` (real ICG question IDs from `src/data/infrastructure-cost-governance/domains.ts` follow `q<domain>_<n>` pattern)
+- Outcome: PASS
+- Observed: Operator confirmed response payload matched the expected shape (overallScore in range, maturityLevel in the enum, sorted recommendations, stageContext mapping `series-b` → ICG-native `series-bc`). Full payload not captured to the finding by operator preference — "It's a lot of data, just mark it as pass." Behavioral correctness verified by visual inspection on 2026-05-10.
 - Expected: `overallScore` 0-100, `maturityLevel` ∈ {Reactive, Aware, Optimizing, Strategic}, sorted recommendations, `stageContext` shows ICG-native equivalent (`series-bc`)
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Playbook's original snippet used placeholder `q1`/`q2`/`q3`/`q4` IDs with a `# use real ICG question IDs` comment; the four IDs above (`q1_1`, `q1_2`, `q1_3`, `q2_1`) are the actual first four questions in the canonical ordering. Worth a follow-up to update the playbook snippet to use real IDs so future operators don't need to look them up.
 
 #### T.B.4.b — ICG-native stage value (`series-bc`)
 
