@@ -124,7 +124,18 @@ function Invoke-McpTool {
         Write-Warning "MCP response has unexpected content shape — returning raw envelope for inspection."
         return $resp
     }
-    return $resp.result.content[0].text | ConvertFrom-Json
+    # result.content[0].text exists but may not be JSON — happens when the tool
+    # surfaces a Zod rejection or other handler-level error as plain text inside
+    # the standard MCP envelope (vs. as a JSON-RPC error). Catch the parse
+    # failure so the operator gets a clean diagnostic + the raw text for
+    # inspection, rather than a stack-trace from ConvertFrom-Json.
+    try {
+        return $resp.result.content[0].text | ConvertFrom-Json -ErrorAction Stop
+    }
+    catch {
+        Write-Warning "MCP tool response text is not valid JSON — likely a Zod rejection or other tool-level error. Raw text preview (first 200 chars): '$($resp.result.content[0].text.Substring(0, [Math]::Min(200, $resp.result.content[0].text.Length)))'. Returning raw envelope for inspection."
+        return $resp
+    }
 }
 
 Write-Host "Loaded MCP helpers. Targeting $env:MCP_URL." -ForegroundColor Green

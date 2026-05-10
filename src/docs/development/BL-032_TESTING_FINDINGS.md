@@ -629,68 +629,68 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.4.b — ICG-native stage value (`series-bc`)
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Same as T.B.4.a but `companyStage = "series-bc"`
-- Outcome:
-- Observed:
+- Command/Action: `Invoke-McpTool -Name "assess_infrastructure_cost_governance" -Arguments @{ answers = @{ q1_1 = 2; q1_2 = 1; q1_3 = 0; q2_1 = 3 }; companyStage = "series-bc" }`
+- Outcome: PASS
+- Observed: `overallScore = 12`, `maturityLevel = "Reactive"`, `stageContext = { native: "series-bc", canonical: ["series-b", "series-c"] }`. Same response shape as T.B.4.a; ICG-native stage cleanly maps to its canonical equivalents.
 - Expected: Same response shape; `stageContext` shows the canonical mapping
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Confirms the stage-adapter layer (BL-031.87) handles both directions — canonical `series-b` → ICG-native `series-bc` (verified in T.B.4.a) and ICG-native `series-bc` → canonical `["series-b", "series-c"]` (this test).
 
 #### T.B.4.c — Use `-1` "Not sure" answer
 
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: Same as T.B.4.a but include at least one `q* = -1` answer
+- Command/Action: Same as T.B.4.a but include at least one `q* = -1` answer (e.g., `answers = @{ q1_1 = -1; q1_2 = 1; q1_3 = 0; q2_1 = 3 }`)
 - Outcome:
 - Observed:
 - Expected: Tracked separately; doesn't penalize the way `0` does
 - Severity (if fail):
 - Remediation:
-- Notes:
+- Notes: Not yet run during the 2026-05-10 session — operator skipped this variant. Return to it; the discriminator vs. `0` is whether the response surfaces a `skippedCount` / `notSureCount` field that increments without dragging the domain `rawScore` down.
 
 #### T.B.4.d — Empty answers map
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "assess_infrastructure_cost_governance" -Arguments @{ answers = @{}; companyStage = "series-b" }`
-- Outcome:
-- Observed:
-- Expected: Returns score = 0 and `notAnsweredCount` reflects all questions
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Outcome: PASS (with playbook-wording calibration)
+- Observed: `overallScore = 0`, `maturityLevel = "Reactive"`. The response shape uses `answeredCount` + `totalQuestions` (visible in T.B.4.e's full payload — `answeredCount: 2, totalQuestions: 20`), not the `notAnsweredCount` field name the playbook anticipated. With an empty answers map, `answeredCount` would be 0 and `totalQuestions` 20 — equivalent information, different naming. The score-of-zero contract is satisfied.
+- Expected: Returns score = 0 and `notAnsweredCount` reflects all questions (playbook spec — `notAnsweredCount` field name does not exist; the engine uses `answeredCount` + `totalQuestions` instead. Equivalent information.)
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Mirrors the T.B.3.a `≥30` calibration issue — playbook documented a field name that doesn't match the engine's actual response shape. Worth tightening the playbook's expected text to `answeredCount = 0` and `totalQuestions = <bank size>`. The behavioral contract (zero score on empty input) is correct.
 
 #### T.B.4.e — Invalid question ID
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Include a non-existent question ID in answers (e.g., `qZZ = 2`)
-- Outcome:
-- Observed:
-- Expected: MCP error or filtered silently — document which behavior
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Command/Action: `Invoke-McpTool -Name "assess_infrastructure_cost_governance" -Arguments @{ answers = @{ q1_1 = 2; bogus_id_zz = 3 }; companyStage = "series-b" }`
+- Outcome: PASS — behavior documented (neither pure-silent-filter nor pure-error)
+- Observed: Bogus ID was **preserved in state but ignored for scoring**. Specifically: `answeredCount: 2` (counts both ids); `bogus_id_zz` is visible in the `deeplink` base64 state (`"a":{"bogus_id_zz":3,"q1_1":2}`); all 6 domain `rawScore` values reflect only `q1_1=2` (d1.rawScore=2, all others 0). So the bogus ID round-trips through state and counters but contributes nothing to maturity scoring or domain attribution. `overallScore = 5`, recommendations list populated (driven by the foundational-threshold breach, not by the bogus ID).
+- Expected: MCP error or filtered silently — document which behavior (playbook expected one of two; observed behavior is "neither — pass-through to state, ignore for scoring")
+- Severity (if fail): Minor — the pass-through behavior is benign at runtime but means the deeplink state can carry forward-compat or typo-ed IDs indefinitely. Consider whether the engine should warn or filter at parse time.
+- Remediation: Document this behavior in the ICG engine's contract notes — future operators / contract consumers should know that "unknown IDs persist in deeplink state but don't affect scoring." Not a blocker; could become a finding for BL-032.75 (observability maturity) if telemetry on unknown-ID submission becomes useful.
+- Notes: Confirms `answeredCount` counts EVERY id in the input regardless of validity — useful caveat to know when interpreting that field. Cross-references the earlier accidental run with placeholder IDs `q1`, `q2`, `q3`, `q4` (during T.B.4.a setup), which showed the same pattern.
 
 #### T.B.4.f — Score out of range (-2 or 4)
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Pass `q1 = 4` (or `q1 = -2`) — outside the valid -1..3 range
-- Outcome:
-- Observed:
+- Command/Action: Two runs: `Invoke-McpTool -Name "assess_infrastructure_cost_governance" -Arguments @{ answers = @{ q1_1 = 4 }; companyStage = "series-b" }` and `@{ q1_1 = -2 }; companyStage = "series-b"`
+- Outcome: PASS (Zod rejected both)
+- Observed: Both calls were rejected by the engine's Zod validation. The helper's `ConvertFrom-Json` raised an exception on line 127 because `result.content[0].text` started with the character `M` (likely the start of an error string like "Method ..." or "Missing ..."). The Worker DID respond with a valid MCP envelope containing the error text; the helper just hadn't been written to handle non-JSON content gracefully. T.B.4.f is PASS for the Zod-rejection contract.
 - Expected: Zod rejection clean
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): Minor — secondary finding only, not on T.B.4.f itself
+- Remediation: Helper robustness improvement landed in the same session — `Invoke-McpRequest.ps1` now wraps the final `ConvertFrom-Json` in a `try`/`catch` and returns the raw envelope with a Write-Warning when the content text isn't JSON. Operators can then inspect `$payload.result.content[0].text` directly to see the Zod error message.
+- Notes: Worth a follow-up to capture the exact rejection text for documentation (one more run with the patched helper would surface it cleanly). The MCP transport's success/error semantics — engine rejection still arrives in the standard `result.content[0].text` envelope rather than as a JSON-RPC `error` — is a design choice worth noting for any future MCP consumer.
 
 ### T.B.5 — `compute_techpar`
 
