@@ -367,7 +367,7 @@ alt-svc: h3=":443"; ma=86400
 - Date: 5/10/2026
 - Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "list_portfolio_facets"; arguments = @{ unrecognized = "ignored" } }`
+- Command/Action: `Invoke-McpTool -Name "list_portfolio_facets" -Arguments @{ unrecognized = "ignored" }`
 - Outcome: Ye
 - Observed:
 - Expected: Same response as T.B.1.a, no error
@@ -379,12 +379,38 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.2.a — Free-text matches multiple fields
 
-- Date:
-- Tester:
+- Date: 5/10/2026you
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_portfolio"; arguments = @{ search = "kubernetes" } }`
-- Outcome:
+- Command/Action: # In a fresh terminal — setup once
+  cd c:\Code\gst-website\mcp-server
+  . .\scripts\Invoke-McpRequest.ps1
+
+          # T.B.2.a — search "kubernetes"
+          $payload = Invoke-McpTool -Name "search_portfolio" -Arguments @{ search = "kubernetes" }
+
+          # Verify the three things T.B.2.a expects
+          "matches.Count: $($payload.matches.Count)"
+
+          $payload.matches | Select-Object codeName, theme, technologies | Format-Table -AutoSize
+
+          $payload.matches | ForEach-Object {
+            $hit = ($_.summary -match 'kubernetes|k8s') -or (($_.technologies -join ' ') -match 'kubernetes|k8s')
+            "$($_.codeName): kubernetes-mention=$hit"
+          }
+
+- Outcome: PASS
 - Observed:
+  Legis: kubernetes-mention=True
+  Wolverine: kubernetes-mention=True
+  Maverick: kubernetes-mention=True
+  Vanguard SASE: kubernetes-mention=True
+  Knapsack: kubernetes-mention=True
+  Eagle: kubernetes-mention=True
+  Ace: kubernetes-mention=True
+  Luminate: kubernetes-mention=True
+  PS C:\Code\gst-website\mcp-server>
+
 - Expected: Returns projects mentioning K8s in `summary`, `technologies`, or other indexed fields. Verify against `src/data/ma-portfolio/projects.json`
 - Severity (if fail):
 - Remediation:
@@ -395,7 +421,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_portfolio"; arguments = @{} }`
+- Command/Action: `Invoke-McpTool -Name "search_portfolio"`
 - Outcome:
 - Observed:
 - Expected: `matches.Count = 61` (per BACKLOG.md BL-031 + BL-031.95)
@@ -408,7 +434,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_portfolio"; arguments = @{ theme = "<a real theme>"; engagement = "Buy-Side" } }`
+- Command/Action: `Invoke-McpTool -Name "search_portfolio" -Arguments @{ theme = "<a real theme>"; engagement = "Buy-Side" }`
 - Outcome:
 - Observed:
 - Expected: Count ≤ either filter alone (intersection semantics)
@@ -421,7 +447,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_portfolio"; arguments = @{ theme = "all"; engagement = "all" } }`
+- Command/Action: `Invoke-McpTool -Name "search_portfolio" -Arguments @{ theme = "all"; engagement = "all" }`
 - Outcome:
 - Observed:
 - Expected: Same as T.B.2.b (all 61 projects)
@@ -434,7 +460,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_portfolio"; arguments = @{ theme = "not-a-real-theme" } }`
+- Command/Action: `Invoke-McpTool -Name "search_portfolio" -Arguments @{ theme = "not-a-real-theme" }`
 - Outcome:
 - Observed:
 - Expected: Document which behavior; should be stable (always-ignore OR always-error, not both)
@@ -468,7 +494,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "generate_diligence_agenda"; arguments = $inputs }` (using `$inputs` from above)
+- Command/Action: `Invoke-McpTool -Name "generate_diligence_agenda" -Arguments $inputs` (using `$inputs` from above)
 - Outcome:
 - Observed:
 - Expected: Response has `topics[]`, `attentionAreas[]`, `triggerMap`, `metadata.totalQuestions ≥ 30`, `unknownDimensionCount = 0`, `deeplink`
@@ -574,7 +600,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "assess_infrastructure_cost_governance"; arguments = @{ answers = @{ q1 = 2; q2 = 1; q3 = 0; q4 = 3 }; companyStage = "series-b" } }` (use real ICG question IDs)
+- Command/Action: `Invoke-McpTool -Name "assess_infrastructure_cost_governance" -Arguments @{ answers = @{ q1 = 2; q2 = 1; q3 = 0; q4 = 3 }; companyStage = "series-b" }` (use real ICG question IDs)
 - Outcome:
 - Observed:
 - Expected: `overallScore` 0-100, `maturityLevel` ∈ {Reactive, Aware, Optimizing, Strategic}, sorted recommendations, `stageContext` shows ICG-native equivalent (`series-bc`)
@@ -613,7 +639,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "assess_infrastructure_cost_governance"; arguments = @{ answers = @{}; companyStage = "series-b" } }`
+- Command/Action: `Invoke-McpTool -Name "assess_infrastructure_cost_governance" -Arguments @{ answers = @{}; companyStage = "series-b" }`
 - Outcome:
 - Observed:
 - Expected: Returns score = 0 and `notAnsweredCount` reflects all questions
@@ -656,7 +682,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "compute_techpar"; arguments = @{ mode = "quick"; companyStage = "series-b"; arr = 20000000; infraHostingAnnual = 4000000 } }` (fill in remaining required fields per Zod schema)
+- Command/Action: `Invoke-McpTool -Name "compute_techpar" -Arguments @{ mode = "quick"; companyStage = "series-b"; arr = 20000000; infraHostingAnnual = 4000000 }` (fill in remaining required fields per Zod schema)
 - Outcome:
 - Observed:
 - Expected: Returns `totalTechPct`, `zone` ∈ {underinvest, ahead, healthy, above, elevated, critical}, KPIs, gap projection, `deeplink`
@@ -736,7 +762,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "estimate_tech_debt_cost"; arguments = @{ teamSize = 50; avgSalary = 200000; maintenanceBurden = 0.30; deployFrequency = "weekly"; incidents = 5; mttrHours = 4; budget = 500000; arr = 50000000; remediationEfficiency = 0.80; contextSwitchOn = $true } }`
+- Command/Action: `Invoke-McpTool -Name "estimate_tech_debt_cost" -Arguments @{ teamSize = 50; avgSalary = 200000; maintenanceBurden = 0.30; deployFrequency = "weekly"; incidents = 5; mttrHours = 4; budget = 500000; arr = 50000000; remediationEfficiency = 0.80; contextSwitchOn = $true }`
 - Outcome:
 - Observed:
 - Expected: Returns `annualCost`, `paybackMonths`, `doraLabel = "High"`, decomposed monthly costs
@@ -790,7 +816,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_regulations"; arguments = @{ search = "GDPR" } }`
+- Command/Action: `Invoke-McpTool -Name "search_regulations" -Arguments @{ search = "GDPR" }`
 - Outcome:
 - Observed:
 - Expected: Returns matches with `id: 'gdpr'` first (or near-first); each match has `uri`, `summary`, `keyRequirements`
@@ -803,7 +829,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_regulations"; arguments = @{ jurisdiction = "eu" } }`
+- Command/Action: `Invoke-McpTool -Name "search_regulations" -Arguments @{ jurisdiction = "eu" }`
 - Outcome:
 - Observed:
 - Expected: All matches scoped to EU regulations
@@ -816,7 +842,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_regulations"; arguments = @{ category = "data-privacy" } }`
+- Command/Action: `Invoke-McpTool -Name "search_regulations" -Arguments @{ category = "data-privacy" }`
 - Outcome:
 - Observed:
 - Expected: All matches in data-privacy category
@@ -829,7 +855,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_regulations"; arguments = @{ limit = 5 } }`
+- Command/Action: `Invoke-McpTool -Name "search_regulations" -Arguments @{ limit = 5 }`
 - Outcome:
 - Observed:
 - Expected: Max 5 results
@@ -842,7 +868,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_regulations"; arguments = @{ limit = 200 } }`
+- Command/Action: `Invoke-McpTool -Name "search_regulations" -Arguments @{ limit = 200 }`
 - Outcome:
 - Observed:
 - Expected: Capped at 120 (max per schema) — verify Zod enforces
@@ -870,7 +896,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "list_regulation_facets"; arguments = @{} }`
+- Command/Action: `Invoke-McpTool -Name "list_regulation_facets"`
 - Outcome:
 - Observed:
 - Expected: Returns deduplicated `jurisdictions[]` (e.g., `eu`, `us`, `us-ca`, `ca-qc`, `uk`) and `categories[]` (4 known values)
@@ -885,7 +911,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }`
+- Command/Action: `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }`
 - Outcome:
 - Observed:
 - Expected: Non-zero matches; `cacheHit: false` on first call within 6h window
@@ -911,7 +937,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{} }`
+- Command/Action: `Invoke-McpTool -Name "search_radar"`
 - Outcome:
 - Observed:
 - Expected: Larger match set; cache key differs from category-specific calls
@@ -924,7 +950,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: Loop the four categories: `foreach ($cat in @("pe-ma","enterprise-tech","ai-automation","cyber-data")) { Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = $cat } } }`
+- Command/Action: Loop the four categories: `foreach ($cat in @("pe-ma","enterprise-tech","ai-automation","cyber-data")) { Invoke-McpTool -Name "search_radar" -Arguments @{ category = $cat } }`
 - Outcome:
 - Observed:
 - Expected: All return non-zero; each populates own cache entry
@@ -937,7 +963,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper) + manual recovery flow
-- Command/Action: Follow DEPLOY.md C.5 token-refresh recovery flow; after, call `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }` then `curl.exe $env:MCP_URL/health`
+- Command/Action: Follow DEPLOY.md C.5 token-refresh recovery flow; after, call `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }` then `curl.exe $env:MCP_URL/health`
 - Outcome:
 - Observed:
 - Expected: `inoreader: 'ok'` in `/health` after recovery; radar call succeeds
@@ -950,7 +976,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper) + Upstash REST
-- Command/Action: First force the breaker open via Section D Strategy 1 (`/set/mcp:radar:circuit-open/inoreader-rate-limit` with EX=21600); then call `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }`
+- Command/Action: First force the breaker open via Section D Strategy 1 (`/set/mcp:radar:circuit-open/inoreader-rate-limit` with EX=21600); then call `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }`
 - Outcome:
 - Observed:
 - Expected: See Section D § T.D.3 — radar tools return 503 with `Retry-After`
@@ -965,7 +991,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "get_latest_insights"; arguments = @{} }`
+- Command/Action: `Invoke-McpTool -Name "get_latest_insights"`
 - Outcome:
 - Observed:
 - Expected: Returns 10 FYI items, `published`-sorted newest-first; each has GST-annotation fields populated
@@ -978,7 +1004,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "get_latest_insights"; arguments = @{ limit = 30 } }`
+- Command/Action: `Invoke-McpTool -Name "get_latest_insights" -Arguments @{ limit = 30 }`
 - Outcome:
 - Observed:
 - Expected: Up to 30 items
@@ -991,7 +1017,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "get_latest_insights"; arguments = @{ limit = 31 } }`
+- Command/Action: `Invoke-McpTool -Name "get_latest_insights" -Arguments @{ limit = 31 }`
 - Outcome:
 - Observed:
 - Expected: Zod rejection (max: 30)
@@ -1004,7 +1030,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "get_latest_insights"; arguments = @{ limit = 0 } }`
+- Command/Action: `Invoke-McpTool -Name "get_latest_insights" -Arguments @{ limit = 0 }`
 - Outcome:
 - Observed:
 - Expected: Zod rejection (min: 1)
@@ -1017,7 +1043,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "get_latest_insights"; arguments = @{ category = "ai-automation" } }`
+- Command/Action: `Invoke-McpTool -Name "get_latest_insights" -Arguments @{ category = "ai-automation" }`
 - Outcome:
 - Observed:
 - Expected: Only items matching that category
@@ -1097,7 +1123,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper, in a loop)
-- Command/Action: Hammer `search_radar` calls varying category to bust cache: `foreach ($i in 1..10) { Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma"; _bust = $i } } -Id $i }`
+- Command/Action: Hammer `search_radar` calls varying category to bust cache: `foreach ($i in 1..10) { Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma"; _bust = $i } -Id $i }`
 - Outcome:
 - Observed:
 - Expected: Hits 429 at 5/min before reaching the 60-cap general limit
@@ -1166,7 +1192,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: Call `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }` twice with identical args within 6h. Inspect `cacheHit` on each response and check Inoreader access logs (Cloudflare access logs or website's traffic) for the corresponding outbound calls.
+- Command/Action: Call `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }` twice with identical args within 6h. Inspect `cacheHit` on each response and check Inoreader access logs (Cloudflare access logs or website's traffic) for the corresponding outbound calls.
 - Outcome:
 - Observed:
 - Expected: First call: `cacheHit: false`, ~6 Inoreader calls. Second call: `cacheHit: true`, 0 Inoreader calls.
@@ -1192,7 +1218,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: Upstash REST + direct curl (PowerShell helper)
-- Command/Action: First set `$env:UPSTASH_MCP_REST_URL` and `$env:UPSTASH_MCP_REST_TOKEN` from password manager. Then `curl.exe -X POST "$env:UPSTASH_MCP_REST_URL/set/mcp:radar:circuit-open/inoreader-rate-limit" -H "Authorization: Bearer $env:UPSTASH_MCP_REST_TOKEN" -d "EX=21600"`. Then call `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }` and `curl.exe $env:MCP_URL/health`.
+- Command/Action: First set `$env:UPSTASH_MCP_REST_URL` and `$env:UPSTASH_MCP_REST_TOKEN` from password manager. Then `curl.exe -X POST "$env:UPSTASH_MCP_REST_URL/set/mcp:radar:circuit-open/inoreader-rate-limit" -H "Authorization: Bearer $env:UPSTASH_MCP_REST_TOKEN" -d "EX=21600"`. Then call `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }` and `curl.exe $env:MCP_URL/health`.
 - Outcome:
 - Observed:
 - Expected: Subsequent radar tool calls return 503 with `Retry-After`; `/health` shows `inoreader: 'degraded'` after the cached status TTL refreshes; non-radar tools unaffected.
@@ -1218,7 +1244,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: Wait until website's access token expires (don't trigger website refresh during the wait); then call `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }`
+- Command/Action: Wait until website's access token expires (don't trigger website refresh during the wait); then call `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }`
 - Outcome:
 - Observed:
 - Expected: Returns `{"error":"token-stale", "status":401, ...}` envelope
@@ -1270,7 +1296,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper) + direct curl
-- Command/Action: Call `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }` (success). Wait 30s. Then `curl.exe $env:MCP_URL/health` and inspect `inoreaderObservedAt`.
+- Command/Action: Call `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }` (success). Wait 30s. Then `curl.exe $env:MCP_URL/health` and inspect `inoreaderObservedAt`.
 - Outcome:
 - Observed:
 - Expected: `inoreaderObservedAt` reflects the recent call's timestamp (within seconds)
@@ -1283,7 +1309,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: wrangler CLI + direct curl (PowerShell helper)
-- Command/Action: `npx wrangler secret put INOREADER_ACCESS_TOKEN --env staging` (paste a gibberish value); `npx wrangler deploy --env staging`; then call `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }`.
+- Command/Action: `npx wrangler secret put INOREADER_ACCESS_TOKEN --env staging` (paste a gibberish value); `npm run deploy:staging`; then call `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }`.
 - Outcome:
 - Observed:
 - Expected: Worker reads from `inoreader:access_token` Upstash key (Path 2 read-only token), gets the website's actual token, succeeds
@@ -1441,7 +1467,7 @@ alt-svc: h3=":443"; ma=86400
 - Date:
 - Tester:
 - Client: Upstash REST + direct curl (PowerShell helper) + Sentry UI
-- Command/Action: Force the breaker open via T.D.3's "direct breaker-flag set" technique (or wait for natural Inoreader 429). Trigger one radar tool call after: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "search_radar"; arguments = @{ category = "pe-ma" } }`. Inspect Sentry → Issues.
+- Command/Action: Force the breaker open via T.D.3's "direct breaker-flag set" technique (or wait for natural Inoreader 429). Trigger one radar tool call after: `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }`. Inspect Sentry → Issues.
 - Outcome:
 - Observed:
 - Expected: Sentry receives the `inoreader-rate-limit` event with `keyOwner` + `path` tags; Alert #3 fires email
