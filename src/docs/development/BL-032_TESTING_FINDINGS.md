@@ -418,12 +418,21 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.2.b — Empty search → all 61 projects
 
-- Date:
-- Tester:
+- Date: 5/10/2026
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "search_portfolio"`
-- Outcome:
+- Outcome: PASS
 - Observed:
+
+      PS C:\Code\gst-website\mcp-server> Invoke-McpTool -Name "search_portfolio"
+
+      matches
+      -------
+      {@{id=voss; codeName=Voss; industry=Cross-Border Payments & FinTech; theme=Finance; summary=Integrated cross-bord…
+
+      PS C:\Code\gst-website\mcp-server>
+
 - Expected: `matches.Count = 61` (per BACKLOG.md BL-031 + BL-031.95)
 - Severity (if fail):
 - Remediation:
@@ -491,16 +500,16 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.3.a — All 13 fields valid
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "generate_diligence_agenda" -Arguments $inputs` (using `$inputs` from above)
-- Outcome:
-- Observed:
-- Expected: Response has `topics[]`, `attentionAreas[]`, `triggerMap`, `metadata.totalQuestions ≥ 30`, `unknownDimensionCount = 0`, `deeplink`
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Outcome: PASS
+- Observed: 4 topics (architecture, operations, carveout-integration, security-risk); 20 triggerMap entries; 2 attentionAreas (GDPR cross-border, AI moat erosion); `metadata.totalQuestions = 20`; `unknownDimensionCount = 0`; `deeplink` populated with all 13 dimensions encoded in query string.
+- Expected: Response has `topics[]`, `attentionAreas[]`, `triggerMap`, `15 ≤ metadata.totalQuestions ≤ 20` (engine invariant per `tests/unit/diligence-engine.test.ts:757`), `unknownDimensionCount = 0`, `deeplink`
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Initial run on 2026-05-10 surfaced an apparent discrepancy — playbook stub originally documented `totalQuestions ≥ 30`, observed 20. Investigation traced the engine to `src/utils/diligence-engine.ts:425` where `balanceAcrossTopics(pivotedQuestions, 15, 20)` has had `maxTotal = 20` since the initial Diligence Machine commit (`3dcbc6c`). The `15–20` range is the documented invariant — enforced by `tests/unit/diligence-engine.test.ts:757-764` (and a sibling assertion at line 993). The playbook's `≥ 30` was never grounded in actual engine behavior; it was introduced unverified in commit `ab6fdbc` (BL-032 playbook authoring). No regression; the spec was wrong, not the implementation. Playbook expected-text and this stub corrected in the same commit that logs this PASS.
 
 #### T.B.3.b — All fields = `'unknown'` (BL-031.95 sentinel)
 
