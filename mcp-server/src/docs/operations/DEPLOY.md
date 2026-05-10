@@ -412,29 +412,23 @@ A 7-step curl sequence to verify each layer of the request flow. Run these again
 > | Line continuation | `\` at end of line   | backtick `` ` `` at end of line                                                                                                                        |
 > | JSON body in `-d` | works directly       | PowerShell mangles inner quotes — put body in a `$body = '...'` variable first, or use `Invoke-RestMethod` instead of curl.exe (handles JSON natively) |
 >
-> **PowerShell-native helper for the rest of B.3** — paste this once, then every test collapses to a one-liner:
+> **PowerShell-native helpers — checked in at [`mcp-server/scripts/Invoke-McpRequest.ps1`](../../../scripts/Invoke-McpRequest.ps1).** Dot-source it once per soak terminal:
 >
 > ```powershell
-> $env:MCP_URL = "https://mcp-staging.globalstrategic.tech"
-> $env:MCP_KEY = "<your-MCP_KEY_RP-token-value>"
->
-> function Invoke-McpRequest {
->   param(
->     [Parameter(Mandatory)] [string] $Method,
->     [hashtable] $Params = @{},
->     [int] $Id = 1
->   )
->   $body = @{ jsonrpc = "2.0"; id = $Id; method = $Method; params = $Params } | ConvertTo-Json -Compress -Depth 10
->   $headers = @{ Authorization = "Bearer $env:MCP_KEY"; Accept = "application/json, text/event-stream" }
->   $resp = Invoke-WebRequest -Uri "$env:MCP_URL/mcp" -Method Post -Headers $headers -ContentType "application/json" -Body $body
->   # MCP Streamable HTTP returns SSE format ("event: message\ndata: {...}") — extract the data: line
->   $dataLine = $resp.Content -split "`n" | Where-Object { $_ -like "data:*" } | Select-Object -First 1
->   if (-not $dataLine) { throw "No data: line in SSE response. Raw: $($resp.Content)" }
->   return $dataLine.Substring(5).Trim() | ConvertFrom-Json
-> }
+> cd c:\Code\gst-website\mcp-server
+> . .\scripts\Invoke-McpRequest.ps1
+> # MCP_URL defaults to staging if unset; MCP_KEY is prompted (visible) if unset.
+> # Both env vars can be re-set explicitly per session, e.g.:
+> #   $env:MCP_URL = "https://mcp-staging.globalstrategic.tech"
+> #   $env:MCP_KEY = "<your-MCP_KEY_RP-token-value>"
 > ```
 >
-> With this helper, B.3.3 becomes `(Invoke-McpRequest -Method "tools/list").result.tools.name`, B.3.4 becomes `Invoke-McpRequest -Method "tools/call" -Params @{name="list_portfolio_facets"; arguments=@{}}`, etc. PowerShell-flavored examples are inlined per-step below.
+> Two helpers land in the session:
+>
+> - **`Invoke-McpRequest -Method <m> [-Params <hash>] [-Id <n>]`** — raw JSON-RPC call; returns the full envelope. Use for `tools/list`, `prompts/list`, etc., or when you need to see the protocol envelope.
+> - **`Invoke-McpTool -Name <toolName> [-Arguments <hash>] [-Id <n>]`** — convenience wrapper around `tools/call`. Issues the call, unwraps `result.content[0].text` automatically, and returns the parsed tool-response payload directly.
+>
+> With these, B.3.3 becomes `(Invoke-McpRequest -Method "tools/list").result.tools.name`, B.3.4 becomes `Invoke-McpTool -Name "list_portfolio_facets"`, T.B.2.a becomes `Invoke-McpTool -Name "search_portfolio" -Arguments @{ search = "kubernetes" }`. PowerShell-flavored examples are inlined per-step below.
 
 > bash one-time setup:
 >
