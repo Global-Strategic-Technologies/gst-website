@@ -131,7 +131,7 @@ Copy-paste this block per finding. Date format is ISO-8601. Tester is initials (
 - Tester: Reid Peryam
 - Client: direct curl
 - Command/Action: `curl.exe -i $env:MCP_URL/mcp -X POST -H "Authorization: Bearer  $env:MCP_KEY  "` (note extra spaces around the token)
-- Outcome: FAIL
+- Outcome: PASS
 - Observed:
 
 HTTP/1.1 401 Unauthorized
@@ -168,12 +168,31 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.A.8 — Token in lowercase header (`authorization` not `Authorization`)
 
-- Date:
-- Tester:
+- Date: 5/10/2026
+- Tester: RP
 - Client: direct curl
 - Command/Action: `curl.exe -i $env:MCP_URL/mcp -X POST -H "authorization: Bearer $env:MCP_KEY"`
-- Outcome:
+- Outcome: PASS
 - Observed:
+
+      HTTP/1.1 406 Not Acceptable
+      Date: Sun, 10 May 2026 17:02:36 GMT
+      Content-Type: application/json
+      Content-Length: 142
+      Connection: keep-alive
+      Access-Control-Allow-Origin: *
+      Access-Control-Expose-Headers: mcp-session-id
+      RateLimit-Limit: 60
+      RateLimit-Remaining: 59
+      RateLimit-Reset: 24
+      Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=ufCTbwFWjeDfFfM%2FgpG9Rnq0CHzjoKCBnzOJy8jIIKSRxzD7kor4JVpqG%2FCPvhsO2fkvOJtoCrHyBY6k4SWIIJ%2FP0uTFNtuelxrtXyi6Bar6PR4HOlmthLWGZcHQa8m7vfDNMGfoe87TsU9Htwv%2FJuxNOJiwnta0TUli0K4Cog%3D%3D"}]}
+      Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+      Server: cloudflare
+      CF-RAY: 9f9a833789bf6229-GRU
+      alt-svc: h3=":443"; ma=86400
+
+      {"jsonrpc":"2.0","error":{"code":-32000,"message":"Not Acceptable: Client must accept both application/json and text/event-stream"},"id":null}
+
 - Expected: 200 (HTTP headers are case-insensitive per RFC)
 - Severity (if fail):
 - Remediation:
@@ -181,12 +200,17 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.A.9 — keyOwner attribution accuracy
 
-- Date:
-- Tester:
+- Date: 5/10/2026
+- Tester: RP
 - Client: direct curl + wrangler tail
 - Command/Action: Make any successful tool call, then in another terminal: `npx wrangler tail --env staging --search '"keyOwner":"RP"'`
-- Outcome:
+- Outcome: Pass
 - Observed:
+
+  curl.exe -s $env:MCP_URL/mcp -X POST `-H "Authorization: Bearer $env:MCP_KEY"`
+  -H "Content-Type: application/json" `-H "Accept: application/json, text/event-stream"`
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+
 - Expected: Tail line shows `keyOwner: "RP"` (suffix from `MCP_KEY_RP`). Authorization header value MUST NOT appear anywhere in the log line.
 - Severity (if fail): Critical if full token leaks via Authorization header logging (would mean safeLog regression)
 - Remediation:
@@ -194,11 +218,11 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.A.10 — Token rotation mid-session
 
-- Date:
-- Tester:
+- Date: 5/10/2026
+- Tester: RP
 - Client: Claude Desktop (post operator-rotation)
 - Command/Action: Operator rotates `MCP_KEY_RP` per AUTH.md Rotate procedure. Tester continues issuing tool calls from Claude Desktop using the OLD token value (do not restart the client).
-- Outcome:
+- Outcome: Pass
 - Observed:
 - Expected: Old token starts returning 401 within ~30s (next isolate cold start)
 - Severity (if fail):
@@ -207,11 +231,11 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.A.11 — After rotation, new token works
 
-- Date:
-- Tester:
+- Date: 5/10/2026
+- Tester: RP
 - Client: Claude Desktop
 - Command/Action: After T.A.10, configure Claude Desktop with the NEW token value (update `claude_desktop_config.json`, restart). Run a smoke prompt that triggers any tool call.
-- Outcome:
+- Outcome: Pass
 - Observed:
 - Expected: 200, tools work normally
 - Severity (if fail):
@@ -220,7 +244,8 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.A.12 — Revoked key behavior
 
-- Date:
+- Date: 5/10/2026
+
 - Tester:
 - Client: wrangler CLI + direct curl
 - Command/Action: `npx wrangler secret delete MCP_KEY_RP --env staging`, then call any tool with the deleted key value.
@@ -278,11 +303,11 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.1.a — Happy path (no args)
 
-- Date:
-- Tester:
+- Date: 5/10/2026
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "list_portfolio_facets"; arguments = @{} }`
-- Outcome:
+- Outcome: PASSED
 - Observed:
 - Expected: Returns `{ themes, engagementCategories, growthStages, years }` arrays — non-empty, deduplicated, sorted
 - Severity (if fail):
@@ -291,11 +316,11 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.1.b — Spurious args ignored
 
-- Date:
-- Tester:
+- Date: 5/10/2026
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpRequest -Method "tools/call" -Params @{ name = "list_portfolio_facets"; arguments = @{ unrecognized = "ignored" } }`
-- Outcome:
+- Outcome: Ye
 - Observed:
 - Expected: Same response as T.B.1.a, no error
 - Severity (if fail):
