@@ -271,16 +271,25 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.A.14 — Same token value reused across keys
 
-- Date:
-- Tester:
-- Client: wrangler CLI + direct curl
-- Command/Action: Operator sets `MCP_KEY_RP = X` and `MCP_KEY_AB = X` (identical value). Make a call with that value and observe attribution.
-- Outcome:
-- Observed:
+- Date: 2026-05-10
+- Tester: RP
+- Client: wrangler CLI + direct curl + wrangler tail
+- Command/Action: Set `MCP_KEY_AB` to the existing `MCP_KEY_RP` value (`$env:MCP_KEY | npx wrangler secret put MCP_KEY_AB --env staging`); force isolate pickup via `npm run deploy:staging`; issue 5 authenticated `tools/list` calls in a loop and observe `keyOwner` attribution in `wrangler tail --env staging`.
+- Outcome: PASS
+- Observed: All 5 calls (Ids 1-5) returned HTTP 200 and logged `"keyOwner":"AB"` deterministically — no mixed attribution, no 5xx, no crash. Excerpt from tail:
+
+      {"event":"mcp.request","keyOwner":"AB","path":"/mcp","status":200,"durationMs":0,"success":true}
+      {"event":"mcp.request","keyOwner":"AB","path":"/mcp","status":200,"durationMs":0,"success":true}
+      {"event":"mcp.request","keyOwner":"AB","path":"/mcp","status":200,"durationMs":0,"success":true}
+      {"event":"mcp.request","keyOwner":"AB","path":"/mcp","status":200,"durationMs":0,"success":true}
+      {"event":"mcp.request","keyOwner":"AB","path":"/mcp","status":200,"durationMs":0,"success":true}
+
 - Expected: Behavior is documented one way or the other (e.g., first-match wins, or rejected as duplicate). Consistency matters more than which choice.
-- Severity (if fail): Critical if crashes or randomly attributes to either keyOwner
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Behavior is deterministic — `MCP_KEY_AB` consistently wins when both secrets share the same value. `wrangler secret list --env staging` returns secrets alphabetically (AB before RP), suggesting the Worker's `Object.entries(env)` iteration sees AB first and first-match wins; confirming this requires inspecting `auth/bearer.ts`. Either way, the soak's deterministic-attribution requirement is satisfied. Worth adding to AUTH.md as a documented edge case so future operators understand duplicate-value secrets attribute to the alphabetically-earlier suffix. Bonus signal incidentally observed during this test — a `"event":"auth.failed","path":"/sitemap.xml","reason":"bearer-rejected"` line fired on an unrelated probe, which is the post-AC behavior T.E.11 expects (worth re-checking T.E.11 once the captureMessage AC closes — see Known Gaps in playbook).
+
+  **CLEANUP performed**: `npx wrangler secret delete MCP_KEY_AB --env staging` then `npm run deploy:staging` to force isolate pickup. `npx wrangler secret list --env staging` confirmed `MCP_KEY_AB` is gone (10 secrets remain: 1× MCP*KEY_RP, 4× INOREADER*_, 4× UPSTASH\__, 1× SENTRY_DSN).
 
 ## T.A.15 — Token comparison timing-safe
 
