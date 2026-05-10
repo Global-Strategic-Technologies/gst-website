@@ -30,11 +30,16 @@ function promptToSlug(name: string): string {
 const REQUIRED_FRONTMATTER_KEYS = ['promptName', 'version', 'recordedAt', 'model'] as const;
 
 function parseFrontmatter(body: string): Record<string, string> | null {
-  if (!body.startsWith('---\n')) return null;
-  const end = body.indexOf('\n---\n', 4);
+  // Normalize CRLF → LF so this works on Windows checkouts where git's
+  // `core.autocrlf=true` (the default) rewrites text files to CRLF on
+  // disk. Without this, every assertion fails on Windows even though
+  // the goldens are correctly formatted.
+  const normalized = body.replace(/\r\n/g, '\n');
+  if (!normalized.startsWith('---\n')) return null;
+  const end = normalized.indexOf('\n---\n', 4);
   if (end < 0) return null;
   const out: Record<string, string> = {};
-  for (const line of body.slice(4, end).split('\n')) {
+  for (const line of normalized.slice(4, end).split('\n')) {
     const idx = line.indexOf(':');
     if (idx < 0) continue;
     const key = line.slice(0, idx).trim();
