@@ -2839,6 +2839,23 @@ alt-svc: h3=":443"; ma=86400
 
 ## Section X — Ad-hoc / unscheduled
 
+## T.X.2 — Read-only vs Standard Upstash REST token confusion during T.C.7 recovery
+
+- Date: 2026-05-10
+- Tester: RP
+- Client: Upstash console + wrangler CLI + wrangler tail
+- Outcome: FAIL (operator-experience defect; partial system-side gap on `/health` semantics)
+- Observed: During T.C.7 corruption-recovery, operator pasted a value labeled in the Upstash console that turned out to be the **Read-only** REST token (not the Standard read+write token). Worker recovery appeared successful at the time — `/health` returned `ok: True, upstashMcp: 'ok', upstashInoreader: 'ok'` — but the next batch of T.B.\* tool calls all failed with HTTP 500. Cloudflare Error 1101 surfaced via the browser-readable error envelope. Wrangler tail captured the root cause: `UpstashError: Command failed: NOPERM this user has no permissions to run the 'evalsha' command or its subcommand` at `RegionRatelimit.getRatelimitResponse`. The Read-only token has read permission (enough for `/health`'s GET-based probe) but lacks `evalsha` permission (required by `@upstash/ratelimit`'s atomic counter scripts). Every `/mcp` POST therefore threw an unhandled exception inside the rate limiter, mid-request, AFTER auth and BEFORE the tool handler. Outage duration: ~30 min until diagnosed via tail and the Standard token was installed. Worker fully restored in version `30de6516-b46c-4477-91dd-c98af393f449`.
+- Expected: T.C.7's recovery step should leave the Worker in a fully functional state, or — if Read-only is installed by mistake — `/health` should detect the write-permission gap and report `upstashMcp: 'degraded'` so the operator catches the error immediately rather than 30 minutes later.
+- Severity: **Important** — operator-experience defect that masquerades as a successful recovery. The `/health` false-positive is the load-bearing issue; without it, the operator would have realized the wrong token was in place immediately.
+- Remediation:
+  1. **Playbook**: tighten T.C.7's restore step to be explicit: "paste the **Standard** (read+write) token — Upstash labels both tokens in the REST API tab; pick the one that DOES NOT have 'read-only' in its label". Add a post-restore verification step that calls `tools/list` (not just `/health`) to confirm the rate limiter actually works.
+  2. **Engine improvement candidate** (engineering follow-up): extend `/health`'s `upstashMcp` probe to do a write-then-delete (e.g., `SET mcp:health:probe $ts EX 60` followed by `DEL mcp:health:probe`). A Read-only token would fail the SET and surface `upstashMcp: 'degraded'` correctly. Cheap probe; one extra round-trip per `/health`. File under BACKLOG.md if BL-032.75 (production observability maturity) hasn't already absorbed this.
+  3. **Upstash console UX gap** (out of our control): operator reported the console does not surface a "Roll/Regenerate" button for the Standard token on the current account tier. This means rotating leaked tokens requires either deleting and recreating the database OR using the Upstash API directly. Document this in the recovery runbook so the next operator knows in advance.
+- Notes: Compounds with the security-follow-up flagged in T.C.7 — two distinct token values were pasted into the chat session during recovery; both should be treated as compromised. Combined with the no-roll-button observation above, rotation will need to happen via the Upstash account-recovery path (support ticket OR database recreation) rather than a one-click roll. **Important enough to consider blocking BL-032 production deploy until rotation is complete.** The actual technical issue (Read-only token installed) is fixed as of `30de6516-b46c-4477-91dd-c98af393f449`. The credential-hygiene followup is separate and tracked here.
+
+---
+
 ## T.X.1 — Setup snippet placeholder is a copy-paste trap
 
 - Date: 2026-05-07
