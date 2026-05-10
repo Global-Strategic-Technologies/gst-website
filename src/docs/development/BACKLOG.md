@@ -1565,4 +1565,114 @@ Tier 1 (DONE in BL-031.75 V5 closure)
 
 ---
 
+### BL-037: MCP Server — CI/CD Deploy Workflows
+
+**Source**: BL-037 — surfaced during BL-032 soak (2026-05-10) when the operator asked why Cloudflare deploys aren't CI/CD-driven. The current BL-032 ops model (operator-driven `npx wrangler deploy --env staging` per [DEPLOY.md](../../../mcp-server/src/docs/operations/DEPLOY.md)) is a deliberate phase choice for soak-velocity, not best practice for steady state. | **Effort**: ~2-3 days engineering | **Status**: Open · pre-conditioned on BL-032 soak closure | **Depends on**: BL-032 (must close first — soak iteration speed is a real constraint), BL-033 (production deploys earn CI gating once external consumers depend on uptime)
+
+**As a** GST operator running the MCP server, **I want** Cloudflare Workers deploys to be triggered by CI/CD on push to long-lived branches **so that** the deploy story is reproducible, auditable, secret-free on developer machines, and gated on test pass — without giving up the operator-direct path needed for emergency rollback. This closes the "wrangler runs from my laptop" pattern that's acceptable during BL-032 soak but doesn't scale beyond it.
+
+#### Planning Criteria
+
+**Use cases — phased rollout**
+
+- **Phase A — Staging auto-deploy on push** (~half-day) — Add `.github/workflows/deploy-mcp-staging.yml` triggered on push to `feature-mcp1` and `dev`. Uses `cloudflare/wrangler-action@v3` with `CLOUDFLARE_API_TOKEN` in GitHub Secrets. Gates on lint + typecheck + `test:run` passing. Posts a `/health` smoke probe against the deployed URL and fails the workflow if the new `gitSha` doesn't propagate within 60s. **Operator still has `npx wrangler deploy` for emergencies** — CI is additive, not exclusive.
+
+- **Phase B — Production deploy on merge to master** (~half-day, after BL-033 ships) — Add `.github/workflows/deploy-mcp-production.yml` triggered on push to `master`. Same gating as Phase A plus an explicit GitHub Environment with required reviewers (so a human approves each production promotion). Production deploys never trigger from feature branches. Aligns with BL-033's external-consumer commitment — by the time externals depend on the surface, "Reid pushed at 4pm" is no longer an acceptable answer to "who deployed this?"
+
+- **Phase C — Rollback automation** (~half-day) — A workflow_dispatch-only `rollback-mcp.yml` that takes a `version-id` input, runs `wrangler rollback`, and posts the result. Means rollback no longer requires someone with the Cloudflare API token configured locally. The DR runbook in [DEPLOY.md § C](../../../mcp-server/src/docs/operations/DEPLOY.md) still documents the operator-direct path for the case where GitHub itself is down.
+
+- **Phase D — Wrangler secret sync** (~1 day, optional) — A workflow that reads from a chosen secret manager (1Password Connect, Doppler, AWS Secrets Manager — pick one) and pushes wrangler secrets idempotently. Closes the "operator has to remember to run `wrangler secret put` after rotating MCP_KEY_RP" gap. Phase D is not blocking — operator-direct secret rotation is fine at single-operator scale; this earns its keep when there are multiple operators or compliance audit requirements.
+
+**Outcomes**
+
+- A `git push origin feature-mcp1` deploys to staging with no manual `wrangler` invocation; CI logs show what was deployed when by whom
+- A merge to `master` deploys to production behind a required-reviewer gate (BL-033 phase)
+- Cloudflare API token lives only in GitHub Secrets; no developer machine carries it after the migration
+- Operator-direct deploy path remains documented and functional for emergency use (the DR runbook stays valid)
+
+**Business value**
+
+- **Reproducibility & audit trail** — every production deploy traces to a commit + a CI run + a reviewer; no "what did we ship at 4pm Friday" mystery
+- **Secret hygiene** — Cloudflare API tokens stop sitting on individual developer machines (security improvement, surfaces in BL-033's external-consumer compliance review)
+- **Test-pass gating in the path** — currently, an operator could deploy with failing tests if they ignored CI; CI-gated deploys make this a workflow violation, not a habit choice
+- **Predictable hotfix latency** — a documented "operator-direct path is allowed when CI is unavailable" caveat preserves the BL-032 hotfix story while making CI the default
+- **Standard pattern** — most production-grade Cloudflare Workers deploys use this exact shape; aligns the project with industry norms before BL-033 brings external auditability into scope
+
+#### Acceptance Criteria
+
+**Phase A — Staging auto-deploy**
+
+- [ ] `.github/workflows/deploy-mcp-staging.yml` created
+- [ ] Triggered on push to `feature-mcp1` and `dev` (path-filtered to `mcp-server/**` so unrelated commits don't redeploy)
+- [ ] Uses `cloudflare/wrangler-action@v3` (or current equivalent)
+- [ ] Gates on (in order): `npm ci` in `mcp-server/`, `npx tsc --noEmit`, `npm run lint`, `npm run test:run`
+- [ ] Cloudflare credentials sourced from GitHub Secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`)
+- [ ] Post-deploy `/health` smoke probe; fails the workflow if `gitSha` doesn't match the commit SHA within 60s
+- [ ] First successful run produces an audit entry in the GitHub Actions log
+- [ ] Operator-direct path still works (`npx wrangler deploy --env staging` documented as the emergency path)
+
+**Phase B — Production deploy on master**
+
+- [ ] `.github/workflows/deploy-mcp-production.yml` created with same gates as Phase A
+- [ ] Triggered on push to `master` only
+- [ ] GitHub Environment `mcp-production` configured with required reviewers (≥1 approval before deploy proceeds)
+- [ ] Same smoke-probe shape as Phase A; failure aborts the deploy and notifies (Slack webhook or GitHub Issue)
+- [ ] Doesn't run for non-master branches even if pushed accidentally
+
+**Phase C — Rollback automation**
+
+- [ ] `.github/workflows/rollback-mcp.yml` with `workflow_dispatch` trigger only
+- [ ] Inputs: `environment` (staging | production), `version-id` (Cloudflare deployment ID)
+- [ ] Runs `npx wrangler rollback --env <env> <version-id>` and posts the result
+- [ ] Production rollback requires approver gate; staging rollback does not
+- [ ] DR runbook in DEPLOY.md updated with both the CI rollback path and the operator-direct path (for when GitHub is unavailable)
+
+**Phase D — Secret sync (optional, deferred)**
+
+- [ ] Secret manager chosen and documented in DEPLOY.md
+- [ ] Workflow reads secrets and runs `wrangler secret put` idempotently
+- [ ] Triggered manually or on rotation event
+- [ ] Audit log in GitHub Actions shows which secrets were synced when (without revealing values)
+
+**Verification & docs**
+
+- [ ] [DEPLOY.md](../../../mcp-server/src/docs/operations/DEPLOY.md) updated with both deploy paths (CI-driven default + operator-direct fallback) and the rollback automation
+- [ ] [DEVELOPER_TOOLING.md](DEVELOPER_TOOLING.md) updated to reference the deploy workflows alongside the existing test workflows (the "single source of truth" rule per CLAUDE.md § 11)
+- [ ] At least one staging deploy and one production deploy run end-to-end through the CI path before the BL-032 soak's "operator-direct only" pattern is retired
+
+#### Technical Context
+
+**Why this isn't BL-032 scope**
+
+- BL-032's design (Q11) explicitly chose static-bearer + operator-driven ops as the soak phase. The BL-032 architecture doc treats "soak first, harden later" as the position; CI-driven deploys are the "harden later" half. Adding them mid-soak interleaves architecture work with active testing — bad rhythm and high risk of breaking the iteration loop the soak depends on.
+- The BL-032 closure stanza will note this initiative as the natural follow-up. After soak closes and the first BL-033 external-pilot conversation begins, the audit/reproducibility argument gains teeth.
+
+**Why phased rather than all-at-once**
+
+- Phase A unblocks the immediate "deploys aren't auditable" gap with the lowest engineering investment. Worth shipping standalone if Phase B turns out to need more cross-team coordination than expected.
+- Phase B specifically requires BL-033's phase boundary because production-deploy gating only earns its keep once external consumers depend on uptime. Before BL-033, a production deploy is "internal change to the surface RP uses"; after BL-033, it's "change to a surface ExtCo's contract requires uptime on."
+- Phase C (rollback automation) is independently valuable and can ship anytime after Phase A. Decoupled because the DR story under BL-032 already documents `wrangler rollback` as operator-direct; CI automation is additive, not blocking.
+- Phase D (secret sync) is the most operator-experience-improving phase but the least critical to ship — single-operator scale doesn't strictly need it. Honest acknowledgment that this might never ship if BL-033 brings a different secret-management substrate.
+
+**Why not extend BL-032.75 instead**
+
+- BL-032.75 is "production observability maturity" — Sentry alert-rule expansion, structured-log aggregation, latency dashboards. Different surface (observability) and different problem class (post-deploy state visibility, not deploy automation).
+- BL-037's natural sibling is CI/CD pipeline maturity, which is its own domain. Cross-cutting it into BL-032.75 would obscure both initiatives.
+
+**Why not BL-034 (MCP doc cleanup)**
+
+- BL-034 is documentation-only; this entry has engineering work (workflow YAML, smoke-probe script, environment config). Different effort class and different verification shape.
+
+**Phase dependencies (visual)**
+
+```
+BL-032 soak closes
+  └── Phase A (staging auto-deploy) — anytime after BL-032 closes
+        └── Phase C (rollback automation) — anytime after Phase A
+        └── Phase B (production gating) — requires BL-033 ramp
+              └── Phase D (secret sync) — optional; multi-operator or compliance trigger
+```
+
+---
+
 _Created: April 18, 2026 | Last pruned: April 24, 2026_
