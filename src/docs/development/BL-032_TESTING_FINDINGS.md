@@ -1002,16 +1002,16 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.9.f — During simulated Inoreader 429
 
-- Date: 2026-05-11 (attempted; not executed)
+- Date: 2026-05-11 (PASS on second attempt after preflight gate added)
 - Tester: RP
 - Client: direct curl (PowerShell helper) + Upstash REST
-- Command/Action: First force the breaker open via Section D Strategy 1 (`/set/mcp:radar:circuit-open/inoreader-rate-limit` with EX=21600); then call `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }`
-- Outcome: NOT EXECUTED — preconditions missing
-- Observed: First attempt 2026-05-11: `$env:UPSTASH_MCP_REST_URL` and `$env:UPSTASH_MCP_REST_TOKEN` were not present in the shell when the test ran. Step 1 (force breaker open) errored with `Invoke-RestMethod: Invalid URI: The hostname could not be parsed` because the URI template resolved to `/set/...` (no host). The breaker was therefore never opened. Step 2's `search_radar` call returned the normal 78-match cached response (both cache hits True) — the system was working correctly, but the test of the 503 short-circuit path didn't actually happen. Step 4 cleanup failed identically; nothing to clean up. Step 5 sanity returned the expected 16 pe-ma matches, confirming the system is in a normal post-T.B.9.d state. No collateral damage; just no T.B.9.f result.
-- Expected: See Section D § T.D.3 — radar tools return 503 with `Retry-After`
-- Severity (if fail): n/a (not a test failure — a test that didn't run)
-- Remediation: Re-run with Upstash env vars set. Operator must paste `UPSTASH_MCP_REST_URL` (the MCP Upstash DB REST URL, e.g. `https://big-armadillo-12345.upstash.io`) and `UPSTASH_MCP_REST_TOKEN` (the **Standard** read+write token — Read-only won't work because SET/DEL are needed; per T.X.2 lesson). Both are in the operator password manager from T.C.7 recovery.
-- Notes: This is the same operator-experience risk family as T.X.1 (placeholder pasted as-is) and T.X.2 (Read-only vs Standard token confusion). Worth promoting to a checklist gate in the playbook: "Before running ANY Section D / T.B.9.f / T.B.10.f test that needs Upstash REST: confirm `$env:UPSTASH_MCP_REST_URL` and `$env:UPSTASH_MCP_REST_TOKEN` are non-empty, AND the token is Standard not Read-only." See T.B.9.f re-run prompt for the preflight pattern.
+- Command/Action: Preflight (set + verify `UPSTASH_MCP_REST_URL` / `UPSTASH_MCP_REST_TOKEN`, probe write-permission via temp SET/DEL); Step 1 force breaker open (`/set/mcp:radar:circuit-open/inoreader-rate-limit?EX=21600`); Step 2 `Invoke-McpRequest` → `tools/call` → `search_radar`; Step 3 same for `get_latest_insights`; Step 4 cleanup `/del/mcp:radar:circuit-open`; Step 5 sanity `search_radar` pe-ma.
+- Outcome: PASS
+- Observed: **First attempt** (logged for posterity): preflight env vars were empty; `Invoke-RestMethod` errored with `Invalid URI: hostname could not be parsed`; breaker was never opened; `search_radar` returned the normal 78-match response. No collateral — just no T.B.9.f result. Re-ran with preflight gate. **Second attempt (PASS)**: preflight reported "Standard token confirmed"; breaker SET returned `result: OK`; `search_radar` returned the full 503 envelope — `error: "service_unavailable"`, `status: 503`, `reason: "inoreader-rate-limit"`, `retryAfterSeconds: 21599` (right at the 21600 TTL), `message: "Radar tools temporarily unavailable — Inoreader budget circuit is open. Retry after 21599."` ✓ all five fields match the [radar-live.ts:144-160](../../../mcp-server/src/tools/radar-live.ts#L144-L160) `checkCircuitBreaker` envelope shape exactly. `get_latest_insights` short-circuited with identical `error`/`status`/`reason` — both tools share the same breaker check. Cleanup `result: 1` (key deleted). Sanity recovery: 16 matches, `wireCacheHit: True` — system fully restored.
+- Expected: See Section D § T.D.3 — radar tools return 503 with `Retry-After`-equivalent payload
+- Severity (if fail): n/a — PASS
+- Remediation: n/a — PASS
+- Notes: Tool-level circuit-breaker design verified end-to-end. The breaker's `retryAfterSeconds` returns the actual remaining TTL from Upstash (matched 21599 ≤ 21600 TTL exactly — Upstash reports remaining seconds at point-of-read). When both `search_radar` and `get_latest_insights` see the breaker, neither calls Inoreader — pure budget protection. The preflight pattern (env-var check + write-probe via temp SET/DEL) is the recommended template for any future T.X.\* test that needs Upstash REST creds; see [Invoke-McpRequest.ps1 (helper)](../../../mcp-server/scripts/Invoke-McpRequest.ps1) for the future home. **Security follow-up**: a third Upstash Standard token was inadvertently committed to chat history during this run (operator prompt used `Read-Host` without `-AsSecureString`, value echoed visibly to scrollback, scrollback was pasted to share results). Logged separately as T.X.4. Rotation list grows from 2 tokens → 3.
 
 ### T.B.10 — `get_latest_insights`
 
@@ -2838,6 +2838,23 @@ alt-svc: h3=":443"; ma=86400
 - Notes:
 
 ## Section X — Ad-hoc / unscheduled
+
+## T.X.4 — Third Upstash Standard token leaked to chat during T.B.9.f preflight
+
+- Date: 2026-05-11
+- Tester: RP
+- Client: PowerShell 7.x + chat transcript
+- Outcome: FAIL (operator-experience / credential-hygiene defect)
+- Observed: T.B.9.f preflight needed `UPSTASH_MCP_REST_URL` + `UPSTASH_MCP_REST_TOKEN` available in shell. The Claude-authored preflight block prompted for them via plain `Read-Host "..."` (without `-AsSecureString`). PowerShell echoed the typed values visibly to the terminal scrollback. When the operator pasted the post-run scrollback back to Claude to share test results, the full token value travelled with it. Compromised token value: `gQAAAAAAAcTkAAIgcDJmZjBhNDBlNTE2OWQ0NWY0YWQyOTg3MDkyMzZiY2M2Mw` (Standard read+write — verified by the preflight SET/DEL probe). Same operator-experience risk family as T.X.1 (literal-placeholder paste) — root cause is `Read-Host` defaulting to visible input. Combined rotation list now: **three** Upstash tokens — two from T.C.7 recovery (Standard + Read-only candidates flagged via T.X.2) and this third Standard token from T.B.9.f.
+- Expected: Preflight should gather Upstash creds without leaking them to the terminal scrollback, so the operator can paste the result-bearing transcript back without also pasting the secret.
+- Severity: Important — credential-hygiene defect compounding two prior leaks. Token rotation is now blocking BL-032 production deploy more firmly than before.
+- Remediation:
+  1. **Immediate**: rotate (database-recreation path per T.X.2 — Upstash console reportedly has no Roll button on the operator's tier).
+  2. **Process**: any future Claude-authored prompt that needs an Upstash REST token or MCP_KEY must use `Read-Host -AsSecureString` and then `[Net.NetworkCredential]::new('', $secure).Password` to extract the plain text only into the local variable, never to the screen. The bootstrap snippet at the top of `Invoke-McpRequest.ps1` (the helper) for `MCP_KEY` already does this since the T.X.1 fix (commit `3bacd0e`); Section D / T.B.9.f / T.B.10.f-style ad-hoc prompts had not been migrated. Worth a single sweep through all credential-prompt patterns in `MCP_SERVER_REMOTE_BL-032_TESTING.md` to enforce `-AsSecureString` everywhere.
+  3. **Anti-pattern documented**: when in doubt — if a prompt asks you to type a secret, sanitize the scrollback before pasting it back, even if it took you down the happy path.
+- Notes: Token #3 confirmed live-valid at time of leak via the preflight SET probe returning `result: OK`. Treat T.B.9.f result as fully PASS (the test itself succeeded) even though the operator-flow around it leaked the credential — they are separable issues.
+
+---
 
 ## T.X.3 — Inoreader `token-stale` envelope captured live (T.B.10.a precondition)
 
