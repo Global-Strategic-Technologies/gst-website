@@ -1017,68 +1017,68 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.10.a — Default limit (10)
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "get_latest_insights"`
-- Outcome:
-- Observed:
+- Outcome: PASS (after in-session fix + staging redeploy)
+- Observed: **First attempt (pre-fix)** returned `token-stale` envelope — recovered per T.X.3. Subsequent pre-fix run: 10 items returned, **annotation contract PASS** (10/10 items had `annotation` populated; sample item carried `highlightedText: "What Anthropic says Opus 4.7 does better"`); **sort contract FAIL** — within-day inversion: rows 1–2 were 4/16 5:56 PM then 4/16 7:56 PM (latter is newer, wrong order); rows 5–6 were 3/11 4:57 PM then 3/11 5:38 PM (same pattern). Across-day descending was correct. **Post-fix run** (same cached items, `cacheHit=True`, no cache bust needed because sort happens in handler post-cache): same 4/16 same-day pair now ordered 7:56 PM → 5:56 PM ✓; rest of array descending. Sort contract now met.
 - Expected: Returns 10 FYI items, `published`-sorted newest-first; each has GST-annotation fields populated
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): Low. Across-day order was correct, intra-day order inconsistent. Affected "show me the freshest item" use case for same-day annotations only.
+- Remediation: Root cause: `handleGetLatestInsights` did `filter().slice()` with no `.sort()` ([mcp-server/src/tools/radar-live.ts:227-229](../../../mcp-server/src/tools/radar-live.ts#L227-L229)). `search_radar` next door sorts at [line 194](../../../mcp-server/src/tools/radar-live.ts#L194) — asymmetric oversight. Fix applied in-session: inserted `.sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1))` between filter and slice, mirroring search_radar. Added regression test in [tests/integration/radar-live.test.ts](../../../mcp-server/tests/integration/radar-live.test.ts) with same-day-inversion fixture (`older-same-day` ts=100, `newer-same-day` ts=150, `next-day` ts=200) asserting descending order. Full mcp-server suite 410/410 passes locally. Staging redeploy verified the fix against live Inoreader-cached data.
+- Notes: Verified cache invalidation NOT required — the sort happens in the handler after `fyiResult.items` is returned, so cached payloads come out sorted on the next call regardless. Useful precedent for any future "fix a transform inside the handler" change: cache TTL doesn't gate verification.
 
 #### T.B.10.b — Limit = 30 (max)
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "get_latest_insights" -Arguments @{ limit = 30 }`
-- Outcome:
-- Observed:
+- Outcome: PASS
+- Observed: 18 items returned (≤ 30 ✓), `liveInfo.cacheHit = True` (shares cache with T.B.10.a as designed — `Math.max(limit, 30)` always fetches 30 so subsequent calls hit cache), no Zod rejection.
 - Expected: Up to 30 items
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: 18 reflects current FYI tier population; not a cap.
 
 #### T.B.10.c — Limit = 31
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "get_latest_insights" -Arguments @{ limit = 31 }`
-- Outcome:
-- Observed:
+- Outcome: PASS
+- Observed: Helper warned "no result" with MCP error -32602 preview. Raw envelope shows Zod payload: `origin: "number"`, `code: "too_big"`, `maximum: 30`, `inclusive: true`. Exact contract.
 - Expected: Zod rejection (max: 30)
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Zod rejections come back as `result.isError = true` with the Zod JSON inside `result.content[0].text` (not as a top-level JSON-RPC `error` field). `Invoke-McpTool` unwraps and warns; `Invoke-McpRequest` returns the raw envelope — useful capture point for future Zod-rejection tests.
 
 #### T.B.10.d — Limit = 0
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "get_latest_insights" -Arguments @{ limit = 0 }`
-- Outcome:
-- Observed:
+- Outcome: PASS
+- Observed: Helper warned "no result" with MCP error -32602 preview. Raw envelope shows Zod payload: `origin: "number"`, `code: "too_small"`, `minimum: 1`, `inclusive: true`. Exact contract.
 - Expected: Zod rejection (min: 1)
-- Severity (if fail):
-- Remediation:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
 - Notes:
 
 #### T.B.10.e — Category filter
 
-- Date:
-- Tester:
+- Date: 2026-05-10
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "get_latest_insights" -Arguments @{ category = "ai-automation" }`
-- Outcome:
-- Observed:
+- Outcome: PASS
+- Observed: 5 items returned; `$e.items | ForEach-Object { $_.category } | Sort-Object -Unique` → single value `ai-automation`. Filter applied correctly; no leakage of other categories.
 - Expected: Only items matching that category
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Counts vary with FYI tier population — 5 of 18 annotated items fell in ai-automation at the time of the test.
 
 ## Section C — Rate-limit & circuit-breaker
 
@@ -2838,6 +2838,20 @@ alt-svc: h3=":443"; ma=86400
 - Notes:
 
 ## Section X — Ad-hoc / unscheduled
+
+## T.X.3 — Inoreader `token-stale` envelope captured live (T.B.10.a precondition)
+
+- Date: 2026-05-10
+- Tester: RP
+- Client: direct curl (PowerShell helper)
+- Outcome: PASS (contract — failure envelope is correct) / environmental recovery required
+- Observed: First T.B.10.a / T.B.10.b / T.B.10.e attempts all returned the documented `token-stale` envelope: `{ error: "token-stale", status: 401, message: "Inoreader access token is stale. The website-side ISR will refresh on its next call; retry the Worker call after that." }`. Helper unwrapped to a non-`items` object, which is why `$a.items.Count` returned 0 (PowerShell yields 0 for `$null.Count`) and `$a.liveInfo` printed empty — both consistent with `$a` actually being the error envelope. Recovery procedure followed: opened `https://globalstrategic.tech/hub/radar` in browser to trigger the website's ISR-side token refresh, waited ~10s, re-ran the paste block. All three live calls succeeded on retry (T.B.10.a 10 items, T.B.10.b 18 items, T.B.10.e 5 items). The captured envelope matches [radar-live.ts:115-132](../../../mcp-server/src/tools/radar-live.ts#L115-L132) `failureResponse` shape exactly.
+- Expected: When Inoreader returns 401, MCP `get_latest_insights` returns a structured envelope with `error: "token-stale"`, `status: 401`, an actionable `message`, and `isError: true` at the JSON-RPC tool level (not a JSON-RPC protocol error). Website-side ISR refreshes the token without operator intervention.
+- Severity: n/a — contract met
+- Remediation: n/a. Worth noting in operator guidance: if a radar tool returns `token-stale`, hit `/hub/radar` in a browser to trigger refresh; do not retry the Worker call in a tight loop.
+- Notes: Confirms the Path 2 token-handoff design — the Worker reads the Inoreader access token from Upstash on each request and gracefully surfaces stale-token state rather than attempting to refresh it itself. Refresh responsibility lives with the website (the OAuth credential holder), which the Worker only reads.
+
+---
 
 ## T.X.2 — Read-only vs Standard Upstash REST token confusion during T.C.7 recovery
 

@@ -345,7 +345,7 @@ describe('search_radar — failure modes', () => {
 // ---------------------------------------------------------------------------
 
 describe('get_latest_insights', () => {
-  it('returns FYI items only, respects limit + category filter', async () => {
+  it('returns FYI items only, respects limit + category filter, newest-first', async () => {
     const fyi = [
       makeInoreaderItem('fyi-pema-1', 100, 'GST-PE-MA', true),
       makeInoreaderItem('fyi-pema-2', 200, 'GST-PE-MA', true),
@@ -360,8 +360,31 @@ describe('get_latest_insights', () => {
       items: Array<{ id: string }>;
       returned: number;
     };
-    expect(payload.items.map((i) => i.id)).toEqual(['fyi-pema-1', 'fyi-pema-2']);
+    // Descending by publishedAt: fyi-pema-2 (200) before fyi-pema-1 (100).
+    expect(payload.items.map((i) => i.id)).toEqual(['fyi-pema-2', 'fyi-pema-1']);
     expect(payload.returned).toBe(2);
+  });
+
+  it('sorts strictly newest-first even when feed order disagrees (T.B.10.a regression)', async () => {
+    // Inoreader's "annotated" stream returned same-day items in arrival
+    // order, not publication order — soak T.B.10.a / 2026-05-10 caught
+    // 4/16 5:56pm appearing before 4/16 7:56pm in the response. The handler
+    // must sort by publishedAt descending, mirroring search_radar.
+    const fyi = [
+      makeInoreaderItem('older-same-day', 100, 'GST-PE-MA', true),
+      makeInoreaderItem('newer-same-day', 150, 'GST-PE-MA', true),
+      makeInoreaderItem('next-day', 200, 'GST-PE-MA', true),
+    ];
+    setupHappyInoreaderResponses(fyi, []);
+
+    const result = await handleGetLatestInsights(baseEnv, {});
+
+    const payload = result.structuredContent as { items: Array<{ id: string }> };
+    expect(payload.items.map((i) => i.id)).toEqual([
+      'next-day',
+      'newer-same-day',
+      'older-same-day',
+    ]);
   });
 
   it('default limit is 10', async () => {

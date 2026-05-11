@@ -226,6 +226,8 @@ export async function handleGetLatestInsights(env: Env, input: GetLatestInsights
 
   const filtered = fyiResult.items
     .filter((item) => categoryMatches(item, input.category))
+    .slice()
+    .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1))
     .slice(0, limit);
 
   const payload = {
