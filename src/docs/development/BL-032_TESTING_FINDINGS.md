@@ -194,48 +194,29 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.A.7 — Multiple Authorization headers
 
-- Date: 5/10/2026
-- Tester: Reid Peryam
+- Date: 2026-05-11
+- Tester: RP
 - Client: direct curl
-- Command/Action: Send two `Authorization` headers in the same request — one valid (`Bearer $env:MCP_KEY`), one bogus (`Bearer not-a-real-token`). Vary order across runs.
-- Outcome:
-- Observed:
+- Command/Action: `curl.exe -i -s "$env:MCP_URL/mcp" -X POST -H "Authorization: Bearer $env:MCP_KEY" -H "Authorization: Bearer not-a-real-token" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'` — then repeat with the two `Authorization` headers swapped in order to check for order-sensitivity.
+- Outcome: PASS
+- Observed: Both header orderings returned **`HTTP/1.1 400 Bad Request`** from Cloudflare's edge (`Server: cloudflare`, `Content-Type: text/html`, `Content-Length: 155` — Cloudflare's standard 400 error page). The request never reached the Worker; Cloudflare's L7 rejects duplicate `Authorization` headers as malformed before forwarding. Deterministic across orderings (no flakes), not 5xx, no auth-bypass leak — the failure mode panel calls out exactly the bad behaviors we'd be worried about and none materialized.
 - Expected: RFC 9110-compliant — server picks one and either honors it or rejects. Document which deterministically.
-- Severity (if fail):
-- Remediation:
-- Notes: Did not test, cannot repro the required test query myself (don't know how), please provide the test query for follow-up testing
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: The rejection happens at the Cloudflare edge, not in the Worker — a Worker-side test would see this as "the request didn't arrive." That's actually defensive depth: an attacker can't smuggle a header-confusion attack past the edge. RFC 9110 §5.3 technically allows combining duplicate fields with commas, but combining `Bearer X, Bearer Y` is semantically nonsense, so a 400 is a reasonable defensive read. If the contract ever needs to lean on Worker-level handling here (e.g. multi-tenant scenarios where header-combining is meaningful), this test would need re-running against a Worker-direct URL.
 
 ## T.A.8 — Token in lowercase header (`authorization` not `Authorization`)
 
-- Date: 5/10/2026
+- Date: 2026-05-11 (re-run; original 5/10 attempt was inconclusive due to missing Accept header)
 - Tester: RP
 - Client: direct curl
-- Command/Action: `curl.exe -i $env:MCP_URL/mcp -X POST -H "authorization: Bearer $env:MCP_KEY"`
+- Command/Action: `curl.exe -i -s "$env:MCP_URL/mcp" -X POST -H "authorization: Bearer $env:MCP_KEY" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'`
 - Outcome: PASS
-- Observed:
-
-      HTTP/1.1 406 Not Acceptable
-      Date: Sun, 10 May 2026 17:02:36 GMT
-      Content-Type: application/json
-      Content-Length: 142
-      Connection: keep-alive
-      Access-Control-Allow-Origin: *
-      Access-Control-Expose-Headers: mcp-session-id
-      RateLimit-Limit: 60
-      RateLimit-Remaining: 59
-      RateLimit-Reset: 24
-      Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=ufCTbwFWjeDfFfM%2FgpG9Rnq0CHzjoKCBnzOJy8jIIKSRxzD7kor4JVpqG%2FCPvhsO2fkvOJtoCrHyBY6k4SWIIJ%2FP0uTFNtuelxrtXyi6Bar6PR4HOlmthLWGZcHQa8m7vfDNMGfoe87TsU9Htwv%2FJuxNOJiwnta0TUli0K4Cog%3D%3D"}]}
-      Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
-      Server: cloudflare
-      CF-RAY: 9f9a833789bf6229-GRU
-      alt-svc: h3=":443"; ma=86400
-
-      {"jsonrpc":"2.0","error":{"code":-32000,"message":"Not Acceptable: Client must accept both application/json and text/event-stream"},"id":null}
-
+- Observed: Status code `200`. The lowercase `authorization` header was accepted exactly as if it had been capitalized — HTTP header case-insensitivity holds end-to-end through Cloudflare's edge and into the Worker's bearer-auth check.
 - Expected: 200 (HTTP headers are case-insensitive per RFC)
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: The earlier 5/10 attempt returned 406 because the request was missing the `Accept: application/json, text/event-stream` header required by the MCP Streamable HTTP transport — that 406 was an Accept-negotiation failure, not a real test of lowercase-header behavior, since the request never reached the auth layer. Today's run with the correct Accept header is the actual case-insensitivity verification.
 
 ## T.A.9 — keyOwner attribution accuracy
 
