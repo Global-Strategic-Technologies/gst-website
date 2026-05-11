@@ -1390,29 +1390,29 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.E.4 — Sentry captures unhandled exception
 
-- Date: 2026-05-11
-- Tester: RP
-- Client: temporary `/_throw` route in `worker.ts` + direct curl + Sentry UI
-- Command/Action: Added a temporary `/_throw` POST route after `tagRequest()` that throws `new Error('BL-032 T.E.4 deliberate crash — keyOwner=${auth.keyOwner}, at=${ISO timestamp}')`. Deployed via `npm run deploy:staging`. Triggered with `curl -X POST $env:MCP_URL/_throw -H "Authorization: Bearer $env:MCP_KEY"`. Observed Sentry UI within ~5 min.
-- Outcome: PASS
-- Observed: HTTP 500 returned by Cloudflare's runtime catching the throw. Sentry captured the event with title `"BL-032 T.E.4 deliberate crash — keyOwner=RP, at=2026-05-11T19:23:03.193Z"` — exact match to the runtime-formatted Error message. The `withSentry` wrap at [`worker.ts:202`](../../../mcp-server/src/worker.ts#L202) caught the unhandled exception correctly without needing explicit `captureException`.
+- Date:
+- Tester:
+- Client: deliberate-crash deploy + Sentry UI
+- Command/Action: Deploy a temporary endpoint that throws (e.g., add a route in `worker.ts` that does `throw new Error("e2e-trigger")`), call it, then revert. OR wait for natural occurrence. Inspect Sentry → Issues for the new event.
+- Outcome:
+- Observed:
 - Expected: Sentry receives exception with `keyOwner` + `path` tags; alert rule "MCP unhandled exception" fires email
-- Severity (if fail): n/a
-- Remediation: n/a — PASS. **Cleanup**: The temporary `/_throw` block has been removed from `worker.ts` and a clean redeploy issued post-verification — production-equivalent code is back in place.
-- Notes: The throw was placed AFTER `tagRequest()` at line 131 so the per-request Sentry scope had `keyOwner` and `path` tags attached before the exception fired — closes T.E.5 in the same operation. The `withSentry` wrapper is the load-bearing piece — without it, unhandled exceptions would still produce 500s but Sentry would never see them.
+- Severity (if fail):
+- Remediation:
+- Notes:
 
 ## T.E.5 — Sentry breadcrumbs preserve request context
 
-- Date: 2026-05-11
-- Tester: RP
-- Client: Same as T.E.4 — same captured event, Sentry UI tag inspection
-- Command/Action: On the T.E.4 captured event in Sentry, inspected the Tags panel.
-- Outcome: PASS
-- Observed: `keyOwner: RP` and `path: /_throw` both present in the Tags panel. These come from [`sentry.ts:76-77`](../../../mcp-server/src/observability/sentry.ts#L76-L77) — `tagRequest()` calls `Sentry.setTag()` for each, scoped per-request, which propagates onto any event captured within that request's lifecycle.
+- Date:
+- Tester:
+- Client: deliberate-crash deploy + Sentry UI
+- Command/Action: Same as T.E.4; in Sentry UI inspect the breadcrumb chain on the captured event
+- Outcome:
+- Observed:
 - Expected: Breadcrumbs include the relevant tool calls leading to the crash
-- Severity (if fail): n/a
-- Remediation: n/a — PASS
-- Notes: The playbook expectation specifically said "breadcrumbs" but the load-bearing capability is the **tags**. Tags answer "WHO made the call that crashed?" and "WHICH PATH crashed?" — that's the diagnostic primitive operators need first. Breadcrumbs (auto-collected by Sentry SDK during the request) would add tool-call-level granularity but weren't separately inspected in this test. The `_throw` test path is simple enough (single throw, no tool calls before it) that there wouldn't be much breadcrumb content to verify anyway. For a deeper breadcrumb verification, would need a test that calls a tool, then throws.
+- Severity (if fail):
+- Remediation:
+- Notes:
 
 ## T.E.6 — `/health` shape matches Path 2 spec
 
@@ -1476,42 +1476,42 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.E.10 — Sentry alert rules fire
 
-- Date: 2026-05-11
-- Tester: RP
-- Client: Sentry UI + operator email inbox
-- Command/Action: Triggered Rule #1 condition via T.E.4's deliberate throw; verified email inbox within ~5 min.
-- Outcome: PASS (Rule #1 — "MCP unhandled exception" — confirmed working)
-- Observed: Email arrived from Sentry in the operator's inbox within minutes of the T.E.4 throw. Subject + body matched the captured event's title and tags. Confirms Rule #1 is correctly configured per SENTRY_MANUAL_SETUP.md and is wired to the operator email destination.
+- Date:
+- Tester:
+- Client: Sentry UI + email inbox
+- Command/Action: Per SENTRY_MANUAL_SETUP.md, trigger conditions for Rule #1 (unhandled exception, see T.E.4) and Rule #4 (5xx rate, if Sentry plan supports). Watch the configured email inbox for ~5 min.
+- Outcome:
+- Observed:
 - Expected: Email arrives within ~5 min of trigger
 - Severity (if fail): Alerts silent — verify alert config wasn't lost on Sentry-side
-- Remediation: n/a — PASS for Rule #1. Rules #2 (auth.failed) and #3 (inoreader-rate-limit) cannot be tested in this soak because the underlying events don't reach Sentry — see T.E.11/T.E.12 FAIL findings (captureMessage not wired). Once those AC gaps close, Rules #2/#3 should also be verifiable end-to-end.
-- Notes: This is the production-observability-maturity load-bearing test — proves the operator gets notified for the highest-stakes failure mode (unhandled exception). The other alert rules are no-ops in the current build because their triggering events never hit Sentry.
+- Remediation:
+- Notes:
 
 ## T.E.11 — `auth.failed` captures to Sentry
 
-- Date: 2026-05-11
-- Tester: RP
-- Client: direct curl + Sentry UI + code review
-- Command/Action: Triggered T.E.4 / T.E.12 in the same session and inspected Sentry UI for all expected events. Cross-referenced the codebase: `Grep "captureMessage|captureException|Sentry\." mcp-server/src` to find the captureMessage call sites.
-- Outcome: **FAIL** — known BL-032 captureMessage AC gap
-- Observed: After triggering T.E.4 (unhandled throw) + T.E.11 (5× bad-bearer requests via the corrected loop) + T.E.12 (forced breaker → radar call), Sentry UI showed exactly ONE event — the T.E.4 unhandled exception. Zero `auth.failed` events captured. Code review confirms the gap: the auth-fail path at [`worker.ts:117-126`](../../../mcp-server/src/worker.ts#L117-L126) calls `safeLog({ event: 'auth.failed', ... })` (structured log → Cloudflare logs only), but does **not** call `Sentry.captureMessage()` or any equivalent. `Sentry.captureException` exists as a helper at [`sentry.ts:88-89`](../../../mcp-server/src/observability/sentry.ts#L88-L89) but is unused. The `withSentry` wrap only catches **thrown** exceptions, not structured log events.
+- Date:
+- Tester:
+- Client: direct curl + Sentry UI
+- Command/Action: Send 5+ requests with `Authorization: Bearer wrong-key` over a 10-minute window: `1..6 | ForEach-Object { curl.exe -i $env:MCP_URL/mcp -X POST -H "Authorization: Bearer wrong-key" -H "Content-Type: application/json" -d '{}'; Start-Sleep -Seconds 90 }`. Inspect Sentry → Issues for the `auth.failed` group.
+- Outcome:
+- Observed:
 - Expected: Sentry receives the `auth.failed` event(s) with `path` tag + `reason: bearer-rejected`; Alert #2 fires email
-- Severity (if fail): Per playbook hint — "Sentry shows nothing → BL-032 captureMessage AC not closed (expected to FAIL until AC closes)". This is a **known documented gap** in BL-032's observability surface; not a regression, not a critical defect.
-- Remediation: **File for BL-032.75 (MCP Server — Production Observability Maturity).** Wire `Sentry.captureMessage('auth.failed', { level: 'warning', tags: { path, reason } })` (or `captureException` with a synthetic Error) into the auth-fail branch of `worker.ts`. Estimated effort: ~30 min code change + a small integration test using the existing Sentry mock pattern. Once shipped, T.E.11 and Alert #2 should both close.
-- Notes: The captureMessage gap is the same root cause as T.E.12 — both are "logical-failure events that the operator wants in Sentry but the codebase routes only to structured logs." Closing both at once is cleaner than separate PRs. This finding is the strongest single argument for BL-032.75 prioritization.
+- Severity (if fail): Sentry shows nothing → BL-032 captureMessage AC not closed (see "Known gaps" — expected to FAIL until AC closes)
+- Remediation:
+- Notes:
 
 ## T.E.12 — `inoreader-rate-limit` captures to Sentry
 
-- Date: 2026-05-11
-- Tester: RP
-- Client: Upstash REST + direct curl (PowerShell helper) + Sentry UI + code review
-- Command/Action: Forced breaker open via `SET mcp:radar:circuit-open inoreader-rate-limit EX 60` against Upstash MCP DB; called `search_radar`; verified envelope; checked Sentry UI; cleared breaker via DEL.
-- Outcome: **FAIL** — same captureMessage gap as T.E.11
-- Observed: Forced breaker successfully (Upstash returned `result: OK`). The `search_radar` call returned the structured `{ reason: "inoreader-rate-limit" }` envelope as expected (T.B.9.f-equivalent path). Inspected Sentry → no `inoreader-rate-limit` event. Code review confirms: at [`radar-live.ts:115-132`](../../../mcp-server/src/tools/radar-live.ts#L115-L132), `failureResponse()` builds a structured error envelope and returns it as an MCP tool result (`isError: true`); it does NOT call `Sentry.captureMessage()`. The Worker treats this as a successful HTTP response (200 with error body), so `withSentry` never sees it. Cleared the breaker afterwards (Upstash returned `result: 1`) — staging back to clean state.
+- Date:
+- Tester:
+- Client: Upstash REST + direct curl (PowerShell helper) + Sentry UI
+- Command/Action: Force the breaker open via T.D.3's "direct breaker-flag set" technique (or wait for natural Inoreader 429). Trigger one radar tool call after: `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }`. Inspect Sentry → Issues.
+- Outcome:
+- Observed:
 - Expected: Sentry receives the `inoreader-rate-limit` event with `keyOwner` + `path` tags; Alert #3 fires email
-- Severity (if fail): Same as T.E.11 — known captureMessage AC gap, documented in the playbook's expected-FAIL hints, not a regression.
-- Remediation: **Same BL-032.75 ticket as T.E.11.** Wire `Sentry.captureMessage('inoreader-rate-limit', { level: 'warning', tags: { keyOwner, path } })` into `failureResponse()` at [`radar-live.ts:115`](../../../mcp-server/src/tools/radar-live.ts#L115) (only for the `inoreader-rate-limit` reason, not for transient `network-timeout` / `upstream-error` which are noisier). Estimated effort: ~15 min on top of the T.E.11 work since both edits touch the same Sentry helper module.
-- Notes: This event is the operator's **early warning** for "Inoreader budget is about to be exhausted across all consumers." Currently it only reaches Cloudflare logs (via safeLog inside the openCircuit path) — operator has to be actively reading wrangler tail to catch it. Wiring to Sentry + email alert closes the operational-awareness loop.
+- Severity (if fail): Sentry shows nothing → BL-032 captureMessage AC not closed (see "Known gaps" — expected to FAIL until AC closes)
+- Remediation:
+- Notes:
 
 ## Section F — Onboarding flow
 
@@ -1682,16 +1682,16 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.G.3 — Sentry continues capturing post-rollback
 
-- Date: 2026-05-11
-- Tester: RP
-- Client: PASS-by-implication from T.G.1 + T.G.2 + T.E.4 + T.E.10 chain
-- Command/Action: T.G.1 rollback occurred at ~T.G.1's timestamp; T.G.2 confirmed SENTRY_DSN persisted in the secret list. The roll-forward deploy + T.E.4 trigger happened AFTER the rollback cycle (~17:14 deploy → 19:23 throw). The captured Sentry event proves Sentry was functional post-rollback-cycle.
-- Outcome: PASS (by implication)
-- Observed: The full chain runs cleanly: rollback to a previous Worker version (T.G.1), secret persistence including SENTRY_DSN (T.G.2), roll-forward redeploy, deliberate-throw trigger (T.E.4), Sentry captures the event with full tags (T.E.5), alert email fires (T.E.10). At no point in this sequence did Sentry connectivity degrade. The Worker has been deployed and re-deployed multiple times in the soak day, and Sentry has remained connected throughout.
+- Date: 2026-05-11 (DEFERRED — depends on T.G.1 + deliberate exception trigger)
+- Tester: n/a
+- Client: n/a (depends on rollback being done first)
+- Command/Action: Originally planned: post-rollback, deploy a deliberate-crash endpoint OR wait for natural exception; inspect Sentry for the event.
+- Outcome: DEFERRED — preconditions unmet
+- Observed: Not executed. Two compounding preconditions: (a) requires T.G.1 to have run first (paired in the playbook), (b) requires triggering a Worker-side exception (deliberate handler crash or natural-occurrence). The Sentry-event tests in Section E (T.E.4/E.5) are similarly deferred for the same exception-triggering reason — easier to address them as a single Sentry-event observation cluster than piecemeal.
 - Expected: Sentry receives the post-rollback exception; alert fires
 - Severity (if fail): Sentry DSN secret lost during rollback would be a real but recoverable issue
-- Remediation: n/a — PASS
-- Notes: The Cloudflare Workers secret model decouples secret state from Worker code versions — rollbacks don't touch secrets (T.G.2 PASS) — so SENTRY_DSN survives. The `withSentry` wrap initialization happens on every request from the secret at request-time, so as long as the secret persists, Sentry instrumentation works on every deploy. A stricter T.G.3 (rollback → exception in immediate post-rollback window WITHOUT rolling forward first) wasn't separately run because it would have required leaving the Worker on the older version for the duration of the test — disruptive and offering no additional signal beyond what we have.
+- Remediation: Pair with the Section E Sentry-event tests. Either: deploy a temporary `/_throw` endpoint that intentionally crashes (delete-after-test), or wait for natural exception occurrence over the next ~week of soak traffic. Sentry observability is a hardened part of the stack (BL-032 Phase 5 ran the alert-rule setup); regression risk is low.
+- Notes: Pre-rollback Sentry is already proven by virtue of `SENTRY_DSN` being a wrangler secret that's part of the standard secret list (T.G.2 verifies persistence). The post-rollback aspect is the increment.
 
 ## T.G.4 — MCP DB hard-delete recovery
 
@@ -2086,55 +2086,57 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.K.1.3 — Multi-step chain composition
 
-- Date:
-- Tester:
-- Client: Claude Desktop
+- Date: 2026-05-11
+- Tester: RP
+- Client: Claude Desktop (`gst-mcp-staging` connector)
 - Prompt verbatim:
   > "Find recent radar items about kubernetes from the last week, then for the most discussed one, generate a quick due-diligence question list as if it were a deal target"
 - Expected: Claude calls `search_radar` first, evaluates results, then calls `generate_diligence_agenda` with reasonable inferred inputs from the radar item
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
-- Composition (1-5):
+- Tool selection (1-5): 5 — `search_radar` (twice, across `enterprise-tech` and `security` categories) → `generate_diligence_agenda`. Exactly the right chain. Notably, Claude **correctly read the tool schema** and identified that `search_radar` has no free-text `query` filter — adapted by category-scan + client-side keyword filtering. No hallucinated tool parameters.
+- Input completeness (1-5): 4 — `generate_diligence_agenda` was called with 13 of 13 fields specified (no `'unknown'` sentinels). For K.1.3 the rubric explicitly allows "reasonable inferred inputs from the radar item" so the bar is lower than K.1.2; the inferences (B2B SaaS, 51–200 eng, $5–25M ARR, modern-cloud-native, multi-region US+EU, scaling, 5–10yr, productized-platform, high scale intensity, stable transformation, moderate sensitivity, centralized-eng, majority-stake) are defensible for a "CNCF-heavy platform team" archetype derived from the postmortem essay. Slight ding because some fields (specific ARR bucket, headcount bracket, company age) are genuinely uninferrable from a generic TheNewStack article and could have been `'unknown'` to widen the agenda conservatively.
+- Result synthesis (1-5): 5 — exceptional. The synthesis genuinely connects engine output back to article evidence: `arch-13` (observability) ↔ "Cilium-invisible-to-Prometheus failure mode"; `arch-04` (IaC maturity) ↔ "Cluster API / GitOps maturity"; `ops-13` (DR validation) ↔ "every project works as documented is meaningless without integration-level validation"; `ops-03` (key-person) ↔ "CNCF integration knowledge tends to concentrate in 1–2 platform engineers"; `sec-07` (secrets management) ↔ "cert-manager DNS-01 IAM scoping". These cross-references show Claude isn't just printing the engine output — it's tying questions to specific risk signals from the source article.
+- Composition (1-5): 5 — clean multi-step: scan category 1 → noticed thin results → scan category 2 to be sure → fetched article detail → inferred archetype → called diligence agenda → produced cross-referenced synthesis with deeplink. Also offered a sensible follow-up ("only one kubernetes hit; want me to broaden to 'cloud-native' or run uncategorized?").
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): 5 — flagship-quality result. This is the kind of agent behavior the MCP surface was designed to enable: real synthesis across two tools, not just relayed outputs.
 - Improvement opportunity:
   - [ ] Tool description gap
   - [ ] Zod `.describe()` gap
-  - [ ] BL-031.75 prompt-library candidate
+  - [x] BL-031.75 prompt-library candidate — "radar-driven thesis development" is a high-value pattern; this prompt's structure ("find radar items about X, then generate diligence for the most relevant as if it were a deal") would be a strong starter prompt
   - [ ] Schema simplification
   - [ ] Result-shape simplification
   - [ ] Error-envelope copy
-  - [ ] BL-033 feature gap
+  - [x] BL-033 feature gap — `search_radar` lacks free-text query parameter (only category filter). Claude correctly worked around it by fan-out + client-side filter, but for natural conversational use ("find radar items about kubernetes / cilium / langchain / etc.") a free-text param would eliminate two unnecessary tool calls per query. Mirror of /hub/radar's UX is faithful but limiting. Likely BL-033 territory, since adding it changes the website page's filter UI as well.
   - [ ] Other:
-- Notes:
+- Notes: Confirmed remote-Worker path via tool-call prefix. The K.1.2 problem (silent inference) is technically present here too — 13 of 13 fields specified instead of using sentinel for genuinely uninferrable ones — but the rubric's "reasonable inferred inputs" hedge for K.1.3 makes this acceptable. The article being a postmortem essay rather than a company profile means even the "inferable" fields are leaning hard on archetype-priors. Worth flagging as a tension between BL-031.95 sentinel-discipline (K.1.2) and "infer from context" expectations (K.1.3) — the contract should clarify _when_ indirect inference is licit. Suggest schema/description language like: "When the user supplies a hypothetical or archetype prompt ('as if it were a deal target'), inference is encouraged for fields the archetype implies; when the user supplies a real target with named attributes, sentinel-fill is required for omitted dimensions." Currently the contract is silent on this distinction. Result quality was high enough that this is a polishing observation, not a blocking gap.
 
 #### T.K.1.4 — Long-conversation tool-result memory
 
-- Date:
-- Tester:
-- Client: Claude Desktop (5-turn conversation)
+- Date: 2026-05-11
+- Tester: RP
+- Client: Claude Desktop (5-turn conversation, `gst-mcp-staging` connector)
 - Prompt verbatim:
   > Turn 1: "List the GST portfolio facets."
-  > [Turns 2-4: unrelated chat]
+  > [Turns 2-4: unrelated chat — book on systems thinking, entropy in 2 sentences, Rust vs Zig]
   > Turn 5: "Search portfolio for the first engagement-category we listed earlier"
 - Expected: Claude reuses the earlier result without re-calling the tool (or re-calls only if it correctly identifies that the data could have changed). Claude does NOT pretend the result is novel.
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): 5 — Turn 1 called `list_portfolio_facets`; Turn 5 called `search_portfolio` directly with `{ "engagement": "Buy-Side" }` WITHOUT re-calling `list_portfolio_facets`. Correctly retained the Turn 1 result across 3 intervening turns of unrelated chat (~150 lines of context).
+- Input completeness (1-5): 5 — "Buy-Side" is in fact the first engagement-category in Turn 1's output (Engagement Categories: Buy-Side, Sell-Side). Claude resolved the back-reference correctly.
+- Result synthesis (1-5): 4 — produced a competent breakdown identical in shape to the K.1.1 result (36 engagements, by-year, by-theme, ARR headliners). Useful, but missed a small opportunity to acknowledge the back-reference explicitly (see Notes / improvement opp).
 - Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): 4 — passed the core memory test (no redundant re-call, no pretense of novelty); minor transparency miss in how it framed the result.
 - Improvement opportunity:
   - [ ] Tool description gap
   - [ ] Zod `.describe()` gap
-  - [ ] BL-031.75 prompt-library candidate
+  - [x] BL-031.75 prompt-library candidate — "long-conversation cross-reference" is a useful demonstration of MCP context retention; would make a strong onboarding example showing the tools persist across mid-conversation digressions
   - [ ] Schema simplification
   - [ ] Result-shape simplification
   - [ ] Error-envelope copy
   - [ ] BL-033 feature gap
-  - [ ] Other:
-- Notes:
+  - [x] Other: **Transparency nudge** — Claude could have prefaced Turn 5 with a one-line back-reference acknowledgment (e.g., "Pulling Buy-Side, the first engagement-category from the list earlier…") so the user can confirm Claude resolved the reference correctly rather than guessed. Without it, the user has to mentally cross-check whether "Buy-Side" matches what they remember. This is a coaching nudge for prompt-library or system-prompt guidance, not a code/schema defect.
+- Notes: Core memory test PASSED — Claude correctly retained the Turn 1 facets through 3 unrelated turns. Two **side observations** worth flagging once:
+  1. **Cross-conversation context leak**: In Turns 2 and 4, Claude referenced user-context not introduced in this conversation ("the agent-architecture and feedback-loop work you've been doing on Wintermute/OpenClaw", "Given your stack — Python, TypeScript, agent orchestration, MLX/vllm-adjacent work"). This is Claude Desktop's project-memory / persistent-user-profile feature operating across chats. Doesn't affect K.1.4 scoring but means scenarios in K.2.e (consultant scenarios) may inherit persona/context the tester hasn't explicitly set in-conversation. Worth declaring tester's Claude Desktop project-memory state once (on / off / which project) for repeatability of K results.
+  2. **Tool-call param name verified**: `SearchPortfolioInputSchema.engagement` is the input field name (vs. output record's `engagementCategory` and output facet-list's `engagementCategories` — a three-form vocabulary asymmetry that's intentional per the schema's leading comment). Claude's `{ "engagement": "Buy-Side" }` matched the input schema cleanly. The `.describe()` text guides agents to "one of the values listed under `engagementCategories` in `list_portfolio_facets`", which paid off in this exact scenario.
 
 #### T.K.1.5 — Error-message UX (503 circuit-open)
 
@@ -2267,100 +2269,100 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.K.2.a.1 — Regulated industries
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-11
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
 - Prompt verbatim:
   > "Does GST have any past work in regulated industries — financial services or healthcare?"
 - Expected: Claude reaches for `search_portfolio` (theme/category filter) — not web search, not "I don't have access"
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): 5 — called `search_portfolio` THREE times (`search=financial services`, `search=healthcare`, then `theme=Healthcare` as a refinement). Smart fan-out driven by the tool's `.describe()` warning about single high-signal terms. K.1.9 hallucination pattern did NOT reproduce — every named engagement (Tempo, Oktoberfest, Atlas, Wellness, Trident, Blue Water, Voss, Titan, Eagle) was verified against `src/data/ma-portfolio/projects.json` and exists.
+- Input completeness (1-5): 5 — chose appropriate single-term queries; followed the schema hint about strict-match behavior.
+- Result synthesis (1-5): 5 — strong synthesis tied to compliance frameworks (HIPAA / HITRUST r2 for Tempo, GDPR / MPDG for Oktoberfest, SOC 2 Type 2 for Atlas). Specifically called out Eagle as straddling both themes (fintech-into-healthcare proof point) — useful insight Claude derived from the data rather than memory. Deeplinks included.
 - Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): 5 — flagship result. Direct counter to K.1.9: when the prompt is ABOUT the portfolio (not a specific named engagement), Claude calls the tool first and the hallucination defect doesn't surface. This is useful signal for the BL-031.75 / BL-032.75 mitigations: the K.1.9 failure mode is **specifically triggered by named-but-unfamiliar entities**, not by portfolio-search prompts in general.
 - Improvement opportunity:
-  - [ ] Tool description gap on `search_portfolio`
-  - [ ] Other:
-- Notes:
+  - [ ] Tool description gap on `search_portfolio` — current description sufficient for this prompt class
+  - [x] Other: This finding usefully bounds the K.1.9 defect scope — open portfolio queries work fine; only named-entity lookups risk memory contamination. Mitigation work should focus on the "what did GST find on <Name>?" prompt class, not all portfolio interactions.
+- Notes: Verified named codeNames (Trident, Voss, Eagle) against `projects.json` — all real. Full attribute-level fact-check (ARR, theme, year, summary content) not performed; characterizations match the data file's actual record shapes to the level of detail visible in the response.
 
 #### T.K.2.a.2 — Radar AI agent governance
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-11
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
 - Prompt verbatim:
   > "What does the GST radar show in the past few days about AI agent governance?"
 - Expected: Claude calls `search_radar` with the AI/automation category (or equivalent free-text)
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): 5 — called `gst-mcp-staging:search_radar` with `{ "category": "ai-automation" }`. Right tool, right category. Returned 10 Wire-tier items from May 11 (today). No `query` parameter used (correctly — schema has no free-text query, per K.1.3 schema audit).
+- Input completeness (1-5): 5 — clean single-arg category filter.
+- Result synthesis (1-5): DEFERRED — paste was truncated mid-response by the 50k char limit; final synthesis section not visible. Tool-call evidence + raw radar response is clean, so the result quality depends on whether Claude's downstream synthesis tied items to "AI agent governance" theme specifically (vs just dumping the category feed).
 - Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): DEFERRED pending synthesis visibility
 - Improvement opportunity:
   - [ ] Tool description gap on `search_radar`
-  - [ ] Other:
-- Notes:
+  - [x] Other: **Cross-validates K.1.10 FYI staleness finding** — `ai-automation` Wire tier had items dated 2026-05-11 (today), confirming Inoreader feed is active and the K.1.10 staleness is specifically about FYI curation cadence, not feed velocity. This is direct corroboration that the BL-032.75 result-shape enrichment (`oldestItemDaysAgo`) and FYI/Wire description disambiguation should land together.
+- Notes: Tool-call trace included an unusual rendering of "Loaded 5 tools" with the full schemas of search_radar / get_latest_insights / search_regulations / assess_infrastructure_cost_governance / Vercel:search_vercel_documentation displayed inline in the assistant's message. This is Claude Desktop showing the tool registry mid-conversation — appears to be triggered by Claude internally calling a "list tools" introspection step before answering. Worth a check whether this is a Desktop UI quirk or actual extra tool calls (and budget consumption) per K-prompt; if the latter, every K test is consuming 2x tool calls (introspection + actual). Should re-check rate-limit headers from a fresh K test to see if introspection counts against the 60/min cap.
 
 #### T.K.2.a.3 — Tech-debt assessment narrative
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-11
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
 - Prompt verbatim:
   > "Help me think through what a tech-debt assessment for a 200-person SaaS engineering org would cost annually if 30% of dev time is going to maintenance."
 - Expected: Claude calls `estimate_tech_debt_cost` with reasonable inferred inputs
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): **2** — Claude did **NOT call `estimate_tech_debt_cost`** despite the prompt providing usable inputs (200 engineers, 30% maintenance). Reasoned through the math from training-knowledge instead ($13.2M gross at $220K/eng blended, $6.6M-$8.8M debt-attributable after subtracting baseline hygiene). Mentioned the tool **only at the very end** as a follow-up: _"I could also run it through the `compute_techpar` or `estimate_tech_debt_cost` tools in the GST suite to benchmark against the portfolio."_ This is the **K.1.9/K.2.a.5 family** but a softer variant — no fabricated structural claims about the tool, just "narrate first, offer tool as follow-up" rather than "call first, narrate around result."
+- Input completeness (1-5): N/A (no tool call)
+- Result synthesis (1-5): **4** — strong reasoning quality in isolation: useful decomposition of "maintenance" into hygiene vs workaround tax vs comprehension tax vs velocity drag; three-numbers framing (gross / debt-attributable / opportunity cost); honest sanity checks (self-reported-vs-measured, age-appropriate baseline, concentration analysis, denominator caveats). The advice would land well with a CFO or PE buyer. The defect is that the math is **un-grounded in the tool's actual cost model** — running the tool would have produced a defensible engine-blessed number that the prose could ride on.
 - Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **3** — useful answer that produces plausible numbers, but bypasses the GST-blessed cost model and substitutes training-knowledge benchmarks. Workflow value gap = the user can't easily compare this answer to a GST portfolio-benchmark-based answer without re-prompting.
 - Improvement opportunity:
-  - [ ] Tool description gap on `estimate_tech_debt_cost`
-  - [ ] Zod `.describe()` gap
-  - [ ] Other:
-- Notes:
+  - [x] Tool description gap on `estimate_tech_debt_cost` — current description (per the worker.ts listing) is brief: "Estimate the carrying cost of accumulated technical debt for a target organization." Could add a prescriptive line: "Call this tool whenever a user prompt mentions engineering headcount + maintenance/debt percentage, even when framed as a thought experiment. Narrate around the tool's output rather than producing numbers from training-knowledge."
+  - [x] Zod `.describe()` gap — should signal that the tool accepts the typical inputs from a casual conversational prompt (headcount, debt %, ARR, cost-per-engineer), so Claude recognizes the inputs are usable.
+  - [x] **BL-031.75 prompt-library candidate** — "thought-experiment with usable inputs" starter prompt: demonstrate calling estimate_tech_debt_cost on the prompt's inputs, then layering qualitative decomposition on the engine's number.
+- Notes: This is the **K-section's third "describe-from-memory" instance**, but materially less severe than K.1.9 and K.2.a.5 — Claude didn't claim familiarity with the tool's schema or fabricate facts. It just made a workflow choice to narrate first. The fix is the same broad category (system-prompt addendum + tool description nudge) but doesn't independently warrant a Critical-gate entry; it strengthens the case for the consolidated K.1.9/K.2.a.5 mitigation already filed.
 
 #### T.K.2.a.4 — GDPR for B2B SaaS
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-11
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
 - Prompt verbatim:
   > "What are the GDPR requirements for a B2B SaaS company headquartered in the US but with EU customers?"
 - Expected: Claude calls `search_regulations` with `search = "GDPR"` (or `jurisdiction = "eu"`)
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): **1** — Claude did **NOT call `search_regulations`** and did NOT mention the tool even as a follow-up. Produced a comprehensive GDPR explainer from training knowledge: Article 3(2) extraterritorial scope, Article 27 EU representative, EU-US Data Privacy Framework + 2021 SCCs + BCRs, Article 28 DPAs, Article 30 RoPA, Article 32 security, Article 13-14 privacy notices, 72-hour breach notification, DPIA for high-risk, optional DPO. Worse than K.2.a.3 in that Claude didn't even offer to consult GST's regulatory map afterward.
+- Input completeness (1-5): N/A (no tool call)
+- Result synthesis (1-5): **4** — high-quality regulatory advice that is accurate to my knowledge of GDPR (specific articles cited correctly, transfer-mechanism breakdown is current, processor/controller distinction handled cleanly, practical sequencing reasonable). The advice would survive a privacy-counsel sanity check. The defect is purely that it bypasses GST's regulatory-map authoritative source.
 - Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **2** — useful general regulatory guidance, but the user querying through GST's MCP surface presumably wants GST's view (the curated 120-framework regulatory map content), not Claude's training-knowledge view. A follow-up prompt would be needed to get the GST-grounded answer.
 - Improvement opportunity:
-  - [ ] Tool description gap on `search_regulations`
-  - [ ] Other:
-- Notes:
+  - [x] Tool description gap on `search_regulations` — current description says "Search the GST Regulatory Map (120 frameworks across data privacy, AI governance, cybersecurity, and industry compliance)". Could add prescriptive line: "Call this tool for ANY question about a named regulation (GDPR, CCPA, HIPAA, EU AI Act, etc.) or any compliance question that intersects a known regulatory domain — even when the question is framed as a general industry question rather than a GST-specific lookup."
+  - [x] Other: **Fourth K-section instance of "describe-from-memory."** Pattern crystallizes: Claude calls GST tools only when prompts explicitly name GST or its data. Of the 5 K.2.a tests, the 2 that fired tools (a.1, a.2) both named "GST" in the prompt; the 3 that did NOT fire (a.3, a.4, a.5) were framed as general industry questions even though each had a directly relevant GST tool. This is **the BL-032.75 mitigation target**: a connector-level system-prompt addendum that says "For any question intersecting a GST tool's domain (regulations, ICG, techdebt, techpar, diligence, radar, portfolio), call the tool first — don't substitute training-knowledge for the GST-authoritative source even when the prompt doesn't explicitly name GST."
+- Notes: K.2.a aggregate signal **prompts the BL-032.75 mitigation framing**: tool descriptions alone may not be enough — Claude's behavior shows it interprets "GST tool" as "tool for GST-specific lookups" rather than "tool to use whenever this domain comes up." Suggest the mitigation be tested by re-running K.2.a.3, K.2.a.4, K.2.a.5 with a system-prompt addendum like: "For every user question, scan the available tools for one whose domain matches the question's subject. If found, call that tool (with empty or minimal args for structure-discovery prompts) before producing prose."
 
 #### T.K.2.a.5 — ICG maturity for PE roll-up
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-11
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
 - Prompt verbatim:
   > "How would I assess whether a target company's infrastructure cost discipline is mature enough for a PE roll-up?"
 - Expected: Claude calls `assess_infrastructure_cost_governance` (potentially asking for ICG question answers first)
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): **1** — Claude did **NOT call `assess_infrastructure_cost_governance`**. Produced a 6-dimension framework from memory and **explicitly claimed**: "You have the `assess_infrastructure_cost_governance` tool in your GST suite that maps to this exact framework — six categories with 3-4 questions each." Verification against `src/data/infrastructure-cost-governance/domains.ts` shows the real ICG schema has 6 domains (Visibility and Tagging / Account Structure and Attribution / Right-Sizing and Utilization / Lifecycle and Waste / Architectural Efficiency / Governance and Alerting) — Claude's 6 dimensions match 3 cleanly, 1 partially (optimization-cadence straddles 2 real domains), 2 are **fabricated** (Forecasting and budgeting; Vendor and contract management) and 1 real domain (Account Structure and Attribution) is omitted. Same K.1.9 failure mode: confident structural claims about a tool's schema, made without calling the tool.
+- Input completeness (1-5): N/A (no tool call)
+- Result synthesis (1-5): **2** — the prose framework is well-written and useful in isolation; the defect is the false-precision claim that this prose matches the tool's "exact framework" when it doesn't. A user reading this would form an inaccurate mental model of the ICG tool's actual structure.
 - Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **2** — produces plausible-looking advice but contains specific structural claims that are 50% wrong about a tool the user might next consult. Trust-undermining in the same way as K.1.9.
 - Improvement opportunity:
-  - [ ] Tool description gap on `assess_infrastructure_cost_governance`
-  - [ ] Zod `.describe()` gap
-  - [ ] Other:
-- Notes:
+  - [x] Tool description gap on `assess_infrastructure_cost_governance` — current description is descriptive ("Assess a target company's Infrastructure Cost Governance maturity. Given an `answers` map..."). Could add a prescriptive line: "When a user asks ABOUT the framework's structure (categories, dimensions, questions), call this tool with `answers: {}` to receive the canonical question registry rather than describing it from memory."
+  - [x] Zod `.describe()` gap — `answers` parameter's description doesn't signal that an empty object is acceptable and useful for "show me the framework" prompts. Suggest adding: "Pass empty `{}` to discover the question set without committing to scores. The response includes the full domain/question taxonomy so you can describe the framework accurately."
+  - [x] Other: **Same root cause as K.1.9** — Claude treats "describing a tool" and "calling a tool" as separate workflows, then describes from memory when calling would be cheap. The K.1.9 mitigation (tool description discipline + system-prompt addendum) needs to extend to "Don't describe tool schemas from memory — call them. Even empty-arg calls return useful structural information."
+- Notes: **Second instance of the K.1.9 failure class.** K.1.9 was "fabricates engagement details without calling search_portfolio"; T.K.2.a.5 is "fabricates framework structure without calling assess_infrastructure_cost_governance." Pattern: when the prompt invites Claude to talk ABOUT something the MCP surface exposes, Claude reaches for training-knowledge instead of the authoritative source. Suggests the BL-032.75 mitigation should apply broadly — not just to `search_portfolio` — and likely needs to be a connector-level system-prompt addendum, not per-tool description tightening.
 
 ### K.2.b — Single-tool natural prompts (one per tool)
 
@@ -2931,4 +2933,10 @@ alt-svc: h3=":443"; ma=86400
 
 > Mirror any **Critical** finding here as a one-line pointer until resolved. The production deploy gate ([§ Pre-production gate checklist](MCP_SERVER_REMOTE_BL-032_TESTING.md#pre-production-gate-checklist)) requires this list to be empty.
 
-_No open Critical findings._
+- **K-section "describe-from-memory instead of call-the-tool" failure class** — 2 confirmed instances:
+  - **T.K.1.9**: "What did GST find on Acme Corp?" → Claude answered from project memory, fabricating 3 engagement names ("Sugarbeast", "Fingerpaint/Project George") and misattributing 3 real ones ("Helios Health" — actually Public Sector, not Health; "Atlas/Arrow" as "infrastructure integration" — actually both Healthcare RCM). Correct outcome ("no Acme Corp") reached by accident.
+  - **T.K.2.a.5**: "How would I assess ICG maturity for a PE roll-up?" → Claude described a 6-dimension framework from memory and claimed it "maps to this exact framework" of the `assess_infrastructure_cost_governance` tool. Verification: 3 of 6 dimensions match real schema, 2 are fabricated (Forecasting and budgeting; Vendor and contract management), 1 real domain (Account Structure and Attribution) omitted. False precision about a tool one MCP call away.
+
+  Common root cause: when prompts invite Claude to talk ABOUT something the MCP surface exposes (a named entity, a tool's structure), Claude reaches for training-knowledge instead of the authoritative source. T.K.2.a.1 demonstrates the inverse — for open portfolio-search prompts (not named-entity lookups), Claude calls the tool first and produces accurate output. The defect is **prompt-class-specific**: triggered by "describe-shape" and "named-entity-lookup" framings, not by general tool use.
+
+  Remediation path is non-code: tool description tightening + client-side system-prompt addendum ("call empty-arg tools to describe their structure; call lookup tools for any named entity") + project-memory-disabled test standard. Achievable in BL-032.75 or BL-033 scope. Mitigation should apply across the connector, not per-tool.
