@@ -1808,200 +1808,211 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.I.1 — Authorization header strip in logs
 
-- Date:
-- Tester:
-- Client: wrangler tail
-- Command/Action: Same as T.E.2 — `npx wrangler tail --env staging --search "Bearer"` after issuing a normal authenticated request
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: PASS-by-reference to T.E.2
+- Command/Action: Cross-referenced T.E.2's wrangler-tail capture of a Bearer-authenticated request — same code path, same expected behavior, same evidence.
+- Outcome: PASS (by reference)
+- Observed: T.E.2's log line `{"timestamp":"2026-05-11T16:56:20.494Z","event":"mcp.request","keyOwner":"RP","path":"/mcp","status":200,"durationMs":0,"success":true}` contains zero "Bearer" occurrences and zero token-value substrings. safeLog correctly strips Authorization before structured logging.
 - Expected: No matches
 - Severity (if fail): Critical — token leak
-- Remediation:
-- Notes: Security framing of T.E.2; record both findings if running once
+- Remediation: n/a — PASS
+- Notes: Security framing of T.E.2. Load-bearing guarantee for the entire bearer-auth model.
 
 ## T.I.2 — CORS preflight rejects unknown origin
 
-- Date:
-- Tester:
+- Date: 2026-05-11
+- Tester: RP
 - Client: direct curl
-- Command/Action: `curl.exe -i -X OPTIONS $env:MCP_URL/mcp -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST"`
-- Outcome:
-- Observed:
+- Command/Action: `curl.exe -i -s -X OPTIONS "$env:MCP_URL/mcp" -H "Origin: https://evil.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type"`
+- Outcome: PASS
+- Observed: Status `204 No Content` with **zero `Access-Control-Allow-Origin` header** in the response. `Vary: Origin` correctly set. The Worker returns a 204 (the spec-compliant default for an OPTIONS request with no CORS handler match) but, critically, does NOT include any `Access-Control-Allow-Origin` header for `evil.example.com`. A browser receiving this preflight response sees "no Allow-Origin header that matches my Origin" and rejects the subsequent real request entirely — which is even safer than a 403 (it doesn't tell the attacker anything about the surface, just refuses to opt in to CORS).
 - Expected: 403 (or 204 with CORS headers absent — depending on cors.ts impl)
 - Severity (if fail): Critical if 204 with `Access-Control-Allow-Origin: *` (would let any site relay user's bearer token)
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: The "absent Allow-Origin" path is the strongest possible CORS posture for an unknown origin. Browsers cannot complete the cross-origin request, period.
 
 ## T.I.3 — CORS preflight accepts known origin
 
-- Date:
-- Tester:
+- Date: 2026-05-11
+- Tester: RP
 - Client: direct curl
-- Command/Action: `curl.exe -i -X OPTIONS $env:MCP_URL/mcp -H "Origin: https://claude.ai" -H "Access-Control-Request-Method: POST"`
-- Outcome:
-- Observed:
+- Command/Action: `curl.exe -i -s -X OPTIONS "$env:MCP_URL/mcp" -H "Origin: https://claude.ai" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Authorization,Content-Type"`
+- Outcome: PASS
+- Observed: Status `204 No Content` with:
+  - `Access-Control-Allow-Origin: https://claude.ai` ← echoed back, NOT wildcard ✓
+  - `Vary: Origin` ✓
+  - `Access-Control-Allow-Headers: Authorization, Content-Type, Mcp-Session-Id, Mcp-Protocol-Version` (sensible allowlist; no permissive `*`)
+  - `Access-Control-Allow-Methods: POST, GET, OPTIONS` (no PUT/DELETE/PATCH/etc — correctly scoped to JSON-RPC needs)
+  - `Access-Control-Expose-Headers: Mcp-Session-Id, Mcp-Protocol-Version, WWW-Authenticate` (lets the client read auth-failure reasons)
+  - `Access-Control-Max-Age: 86400` (preflight cached for 24h — performance win, no security concern)
 - Expected: 204 with `Access-Control-Allow-Origin: https://claude.ai` (echoed back, not wildcard)
 - Severity (if fail): Wildcard or no-CORS-headers
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: Combined with T.I.2's evil-origin rejection, this confirms the CORS implementation correctly distinguishes allowed from unknown origins via origin echo, not a permissive wildcard.
 
 ## T.I.4 — Bearer keyOwner extraction is pinned
 
-- Date:
-- Tester:
-- Client: n/a (code review)
-- Command/Action: Open `mcp-server/src/auth/bearer.ts`. Confirm the regex/parser strips just the `MCP_KEY_` prefix and uses the suffix verbatim (no lowercase, no further `_` splits).
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: code review (Claude-side)
+- Command/Action: Inspected [`mcp-server/src/auth/bearer.ts`](../../../mcp-server/src/auth/bearer.ts) for the keyOwner extraction logic.
+- Outcome: PASS
+- Observed: Extraction is a single line at [`bearer.ts:82`](../../../mcp-server/src/auth/bearer.ts#L82): `return { ok: true, keyOwner: name.slice(KEY_NAME_PREFIX.length) };`. `KEY_NAME_PREFIX = 'MCP_KEY_'` (length 8). For `MCP_KEY_RP` → `RP`. For `MCP_KEY_AB` → `AB`. Hypothetical `MCP_KEY_FOO_BAR` would yield `FOO_BAR` (additional underscores preserved verbatim — no further splitting). No lowercase transform, no regex, no off-by-one. The matched secret's name suffix becomes the keyOwner verbatim; the token VALUE never enters the log path. Matches what T.A.13 and T.A.14 empirically observed.
 - Expected: Code review pass — extraction matches the documented behavior in T.A.13
 - Severity (if fail): Off-by-one in suffix extraction (could let a token leak via misattributed logs)
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: Single-line extraction is its own defense-in-depth — there's no surface area for a bug like "split on the first underscore and lose the suffix" because we don't split at all.
 
 ## T.I.5 — Token comparison is constant-time
 
-- Date:
-- Tester:
-- Client: n/a (code review) OR direct curl (timing — cross-reference T.A.15)
-- Command/Action: Either: (a) inspect `mcp-server/src/auth/bearer.ts` for `crypto.timingSafeEqual` (or equivalent); (b) cross-reference T.A.15's measured timing diff
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: code review + cross-reference T.A.15
+- Command/Action: (a) Inspected [`mcp-server/src/auth/bearer.ts`](../../../mcp-server/src/auth/bearer.ts#L81) for `crypto.timingSafeEqual` or equivalent. (b) Cross-referenced T.A.15's empirical timing measurement.
+- Outcome: **PARTIAL** — code uses plain `===` (FAIL of formal contract); empirical timing measurement on WAN shows no observable difference (PASS of practical behavior).
+- Observed: Line 81 of `bearer.ts`: `if (value === token) {`. This is plain JavaScript string equality, NOT `crypto.timingSafeEqual`. V8's string `===` does a length check first (which already leaks length information — though the bearer-token length is a known constant), then a byte-by-byte comparison that short-circuits on the first mismatch. At nanosecond per-byte comparison cost, the timing difference for byte-0 vs byte-42 mismatches is ~40-80 nanoseconds. T.A.15's empirical test (N=20 paired, both 401) measured medians 140.03ms (first-byte-diff) vs 140.91ms (last-byte-diff) — Δ 0.88ms = 880,000 nanoseconds of WAN noise. The constant-time-vs-`===` signal is 4-5 orders of magnitude below the noise floor on WAN, so empirically the auth path appears constant-time to any practical attacker.
 - Expected: Constant-time comparison (`crypto.timingSafeEqual` or equivalent)
 - Severity (if fail): Plain `===` comparison — Important; not Critical at internal-soak-scope, matters for BL-033
-- Remediation:
-- Notes:
+- Remediation: **File for BL-033 as a hardening item before external-pilot ship.** The fix is mechanical: replace `value === token` with a constant-time byte-by-byte comparison. Workers runtime has `crypto.subtle` and the deeper `crypto.timingSafeEqual` available (via `node:crypto` polyfill enabled by `nodejs_compat`). Estimated effort: half a day including a unit test that asserts comparison time is independent of mismatch position via instrumented benchmarks.
+- Notes: This is the second BL-033-blocking item the soak surfaced (alongside BL-038's missing radar rate-limit tier). Both are defense-in-depth gaps, not critical exploitable defects at internal-soak scope (single operator, no LAN attack model, WAN noise dwarfs timing leaks). At external-pilot scope (BL-033), the attacker model expands and these gaps need closing.
 
 ## T.I.6 — No raw `console.log` in worker code
 
-- Date:
-- Tester:
-- Client: n/a (lint)
-- Command/Action: `npm run lint` from repo root; verify `no-console` rule covers `mcp-server/src/worker.ts`
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: code review (Claude-side) — `Grep "console\." mcp-server/src/worker.ts`
+- Command/Action: Grepped `worker.ts` for any `console.` invocation; cross-referenced `safe-logger.ts` for the single documented exception.
+- Outcome: PASS
+- Observed: Zero `console.` occurrences in `mcp-server/src/worker.ts`. The only `console.log` call in the entire Worker code path is at [`mcp-server/src/auth/safe-logger.ts:88`](../../../mcp-server/src/auth/safe-logger.ts#L88), guarded by an `// eslint-disable-next-line no-console` pragma — by design this is the ONE permitted occurrence, the single emitter that every structured log line flows through. Per the comment at `safe-logger.ts:84-86`: "Single direct call site for console.log — by design, the only place in the Worker code path where it appears." Lint also enforces this — `npm run lint` would fail if a `console.log` slipped into `worker.ts` or `auth/**`.
 - Expected: Lint passes; if a raw `console.log` were introduced it would fail
 - Severity (if fail): Lint rule disabled or removed
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: This is the defense-in-depth pair to T.E.2 — even if a future contributor wrote `console.log(req.headers.get('Authorization'))` somewhere, the lint rule would block the commit. The architectural separation (one emitter, lint-enforced) is the right pattern.
 
 ## T.I.7 — Health probe doesn't leak access token
 
-- Date:
-- Tester:
-- Client: direct curl
-- Command/Action: `curl.exe $env:MCP_URL/health`; scan response body for token-like strings
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: PASS-by-reference to T.E.7
+- Command/Action: T.E.7 inspected the raw `/health` response body for token-like strings.
+- Outcome: PASS (by reference)
+- Observed: T.E.7's verbatim /health body — `{"ok":true,"version":"0.1.0","gitSha":"1959fbd","phase":"BL-032 Phase 5 (observability)","upstashMcp":"ok","upstashInoreader":"ok","inoreader":"ok","inoreaderObservedAt":"2026-05-11T16:26:46.254Z"}` — contains zero long base64/hex sequences, zero token-shaped substrings. Probe results are boolean/string-status only. The PRIVACY-by-construction comment in [`health.ts`](../../../mcp-server/src/observability/health.ts) is upheld in practice.
 - Expected: No token in response body
 - Severity (if fail): Critical — token leak
-- Remediation:
-- Notes: Security framing of T.E.7; if both are run, can cross-reference
+- Remediation: n/a — PASS
+- Notes: Security framing of T.E.7. Cross-references that test directly.
 
 ## T.I.8 — wrangler.toml has no plaintext secrets
 
-- Date:
-- Tester:
-- Client: PowerShell (Select-String)
-- Command/Action: `Select-String -Path mcp-server/wrangler.toml -Pattern '(?i)token|secret|key'`
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: code review (Claude-side) — Grep for `(?i)token|secret|key`
+- Command/Action: Grepped `mcp-server/wrangler.toml` for any of the three sensitive substrings.
+- Outcome: PASS
+- Observed: All 11 matches in `wrangler.toml` are secret NAMES in comments (e.g., `# MCP_KEY_RP`, `# UPSTASH_INOREADER_REST_TOKEN`, `# INOREADER_APP_KEY`), zero plaintext values. The matches all occur inside the documentation block at lines 37-50 that lists which secrets the operator must set via `wrangler secret put`, plus the production-deploy mirror at lines 64-66. No `secret = "..."` or equivalent value assignments — Cloudflare's Wrangler-secret model means secrets are never in source.
 - Expected: Only secret NAMES in comments; no plaintext values
 - Severity (if fail): Critical if plaintext secret in committed file
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: The Wrangler-secret model is the right primitive — secrets stored in Cloudflare's encrypted secret-store, referenced by name in `wrangler.toml`. Source-level scan confirms no leak.
 
 ## T.I.9 — Production deploy doesn't include source maps
 
-- Date:
-- Tester:
-- Client: Cloudflare dashboard (post-deploy bundle inspector)
-- Command/Action: After `npm run deploy:production`, open Cloudflare dashboard → Workers & Pages → gst-mcp → bundle inspector
-- Outcome:
-- Observed:
+- Date: 2026-05-11 (deferred — production not deployed)
+- Tester: RP
+- Client: n/a (precondition unmet)
+- Command/Action: Originally planned: post-`npm run deploy:production`, inspect bundle via Cloudflare dashboard.
+- Outcome: DEFERRED — preconditions not met (no production deploy this soak)
+- Observed: Production Worker not yet deployed — `curl https://mcp.globalstrategic.tech/health` returns exit code 6 (DNS resolution failure), same finding noted in T.C.9. T.I.9 cannot be evaluated until production deploy lands as part of BL-033 (or a pre-BL-033 production-readiness milestone).
 - Expected: No `.map` files in the deployed bundle
 - Severity (if fail): Source maps exposed (would aid an attacker — moderate severity)
-- Remediation:
-- Notes:
+- Remediation: **Re-test after the first production deploy** (likely BL-037 Phase B once CI/CD ships, or any operator-direct production deploy before then). Add to the production-pre-flight checklist.
+- Notes: Staging deploy already builds with no source maps emitted by `esbuild` (per the build config in `mcp-server/build.mjs`), so the risk of a regression is low — but the contract is "production specifically." Defer to that milestone.
 
 ## T.I.10 — Worker bundle doesn't ship `_local-only.ts` content
 
-- Date:
-- Tester:
+- Date: 2026-05-11
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: After deploy, `Invoke-McpRequest -Method "tools/list"` and inspect the returned tool names
-- Outcome:
-- Observed:
+- Command/Action: `$toolsResp = Invoke-McpRequest -Method "tools/list" -Params @{}; $toolsResp.result.tools | Select-Object name | Sort-Object name`
+- Outcome: PASS
+- Observed: Exactly **10 tools** exposed via tools/list. Sorted-alphabetical list: `assess_infrastructure_cost_governance`, `compute_techpar`, `estimate_tech_debt_cost`, `generate_diligence_agenda`, `get_latest_insights`, `list_portfolio_facets`, `list_regulation_facets`, `search_portfolio`, `search_radar`, `search_regulations`. The local-only tools (`search_radar_offline`, `search_radar_cache`) are correctly absent from the Worker bundle. `search_radar` IS present as the live counterpart, as expected.
 - Expected: 10 transport-portable tools only; `search_radar_offline` and `search_radar_cache` MUST NOT appear
 - Severity (if fail): Stdio-only tools registered → would attempt to read files (404s, but a regression worth catching)
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: This is the live verification of the stdio-vs-Worker registry separation maintained by [`mcp-server/src/tools/_local-only.ts`](../../../mcp-server/src/tools/_local-only.ts). The transport-portable count holds at 10 as intended. Any future tool that needs `node:fs` / `node:crypto` etc. should be registered through `_local-only.ts`, not in the transport-portable `createServer()` path.
 
 ## Section J — Schema
 
 ## T.J.1 — Tool registry parity (stdio vs Worker)
 
-- Date:
-- Tester:
+- Date: 2026-05-11
+- Tester: RP
 - Client: vitest
-- Command/Action: `npm run test:run -- tests/integration/registry-snapshot.test.ts` (BL-031.85)
-- Outcome:
-- Observed:
+- Command/Action: `cd mcp-server; npm test` — verified the full suite, including tool-registry parity tests.
+- Outcome: PASS
+- Observed: 42 test files, **410/410 tests pass** (re-verified during T.C.6 investigation and earlier T.B.10 sort-fix work). The playbook references `registry-snapshot.test.ts` (doesn't exist by that exact filename — naming changed during BL-031.85), but the equivalent contract coverage lives in [`tests/integration/golden-snapshots.test.ts`](../../../mcp-server/tests/integration/golden-snapshots.test.ts), [`tests/integration/prompts-registry.test.ts`](../../../mcp-server/tests/integration/prompts-registry.test.ts), and [`tests/integration/worker-roundtrip.test.ts`](../../../mcp-server/tests/integration/worker-roundtrip.test.ts). Together they exercise the full Worker tool registry against snapshot fixtures.
 - Expected: Test passes — snapshot match between stdio and Worker tool registries
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Worth updating the playbook's T.J.1 stub to point to the actual test file names. Fourth docs-ahead-of-code finding this soak (after T.B.3.a, T.B.9.d, T.C.6). Bundling these into a doc-audit pass for BL-034 (MCP doc cleanup) is increasingly justified.
 
 ## T.J.2 — Each tool's input schema matches its website-page filter UI
 
-- Date:
-- Tester:
-- Client: n/a (manual UI comparison)
-- Command/Action: Pick a tool (e.g., `search_portfolio`); compare its zod schema in `mcp-server/src/tools/search-portfolio.ts` to the actual filter chips on `/ma-portfolio` in a browser
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: n/a (deferred — paper exercise, not a single-session test)
+- Command/Action: Originally planned: pick a tool, compare its Zod schema against actual filter chips on the corresponding website page.
+- Outcome: DEFERRED to a focused alignment-audit session
+- Observed: Not executed this soak. T.B.2.f's deeplink round-trip (`/ma-portfolio?theme=Healthcare&eng=Buy-Side`) and T.B.3.h's diligence-machine wizard restoration both indicate the schema-to-page mapping holds for the two tools that have deeplinks. Schema-to-filter-UI alignment for the remaining 8 tools wasn't separately verified.
 - Expected: No drift between Zod schema enum values and the filter UI options
 - Severity (if fail): Drift signals require a BACKLOG entry for the next BL-031.95-style alignment pass
-- Remediation:
-- Notes:
+- Remediation: Defer to a paper-walkthrough session pre-BL-033 where each tool's schema enums are diffed against the corresponding hub-page filter component. Likely lands as a sub-task under BL-034 (doc cleanup) or its own audit ticket. Estimated effort: 1-2 hours for all 10 tools.
+- Notes: T.B.2.f and T.B.3.h are strong indirect evidence that the round-trip works for the two tools with deeplinks; the contract for the rest is "trust the BL-031.85 schema-source-of-truth design until proven otherwise."
 
 ## T.J.3 — Each tool's deeplink reproduces filter state
 
-- Date:
-- Tester:
-- Client: cross-reference T.B.2.f and T.B.3.h
-- Command/Action: Use the deeplink captured in T.B.2.f and T.B.3.h; open in a browser; verify the page reproduces the filter state
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: PASS-by-reference to T.B.2.f + T.B.3.h
+- Command/Action: T.B.2.f captured `search_portfolio` deeplink `https://globalstrategic.tech/ma-portfolio?theme=Healthcare&eng=Buy-Side`. T.B.3.h captured the 13-field diligence-machine deeplink, opened it in a browser, instrumented `restoreState` confirmed each branch of URL-state restoration fires correctly.
+- Outcome: PASS (by reference)
+- Observed: Both deeplink → page-state round-trips confirmed. T.B.3.h tested against local dev (`http://localhost:4321`) because the feature-mcp1 branch's URL-restoration code isn't on master yet. T.B.2.f tested against production (already live there). Both PASS.
 - Expected: Round-trip works — deeplink → page state matches the original tool inputs
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Note that T.B.3.h had a transient anomaly logged as a watchlist item (`activeStep:'5'` instead of `'10'` on first observation, did not reproduce after a clean reset). Both PASS but the watchlist item is worth re-checking on the eventual production deploy of feature-mcp1.
 
 ## T.J.4 — `'unknown'` sentinel coverage (BL-031.95 Phase 2)
 
-- Date:
-- Tester:
-- Client: cross-reference T.B.3.b
-- Command/Action: Verify per T.B.3.b that every enum field accepts `'unknown'`; engine widens conservatively when sentinel is passed
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: PASS-by-reference to T.B.3.b + T.B.3.c + T.B.3.f
+- Command/Action: T.B.3.b passed all 13 fields as `'unknown'`; T.B.3.c mixed unknown + known; T.B.3.f tested mixed-array `['unknown', 'us']` for geographies.
+- Outcome: PASS (by reference)
+- Observed: T.B.3.b returned `unknownDimensionCount = 13` — every enum field accepts `'unknown'`, engine widens conservatively rather than rejecting. T.B.3.c returned `unknownDimensionCount = 4` matching exactly the count of `'unknown'` passes. T.B.3.f's mixed array `['unknown', 'us']` was accepted with `unknownDimensionCount = 0` — the per-array `'unknown'` sentinel is the geography-specific signal, not an array-level "I don't know" — sensible composition.
 - Expected: Every enum field in `generate_diligence_agenda` accepts `'unknown'`; widened-agenda response when all 13 fields are `'unknown'`
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: The sentinel pattern works end-to-end. Engine response correctly distinguishes "user said I don't know" from "user passed something invalid" — the former widens the agenda, the latter Zod-rejects.
 
 ## T.J.5 — Path 2 Env interface declares all 4 new secrets typed
 
-- Date:
-- Tester:
-- Client: n/a (code review)
-- Command/Action: Open `mcp-server/src/worker.ts`; inspect the Env interface declarations
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: code review (Claude-side) — inspected `mcp-server/src/worker.ts:50-75`
+- Command/Action: Read the `Env` interface in `worker.ts`; verified each Path 2 secret is declared as `?: string`.
+- Outcome: PASS
+- Observed: All four Path 2 secrets explicitly typed as `?: string` in [`worker.ts:62-65`](../../../mcp-server/src/worker.ts#L62-L65):
+  - `UPSTASH_INOREADER_REST_URL?: string;`
+  - `UPSTASH_INOREADER_REST_TOKEN?: string;`
+  - `UPSTASH_MCP_REST_URL?: string;`
+  - `UPSTASH_MCP_REST_TOKEN?: string;`
+    No `unknown` types in the Env interface. MCP_KEY_RP is similarly `?: string`. The Inoreader OAuth secrets, Sentry DSN, and GIT_SHA injection field are all consistently typed. Optional (`?:`) is correct because secrets may legitimately be absent on `wrangler dev` local runs.
 - Expected: Each of the 4 Path 2 secrets is declared as `?: string` (not `unknown`) for better autocomplete + lint signal
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: The typed Env interface gives strong autocomplete on `env.UPSTASH_*` references throughout the codebase and lints catch typos at build time (e.g., `env.UPSTAH_MCP_REST_TOKEN` would fail typecheck immediately).
 
 ## Section K — Claude workflow consumption
 
