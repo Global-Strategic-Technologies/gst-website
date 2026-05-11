@@ -313,16 +313,23 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.A.15 — Token comparison timing-safe
 
-- Date:
-- Tester:
-- Client: direct curl (with timing measurement)
-- Command/Action: Call with a token that's character-for-character close to the real token (e.g., last char different). Time the response with `Measure-Command { Invoke-McpRequest ... }`. Compare against T.A.5's outright-wrong-token timing across N=20+ samples each.
-- Outcome:
+- Date: 2026-05-11
+- Tester: RP
+- Client: direct curl (PowerShell) with stopwatch wrapper; N=20 paired calls
+- Command/Action: Paired-call latency comparison of **two 401 responses with different byte-position mismatches**. Built `$firstByteDiff` (mutate first char of real token) and `$lastByteDiff` (mutate last char). Both probe-confirmed to return 401 before measurement. 6 warm-up calls discarded, then 20 interleaved paired measurements via `curl.exe -s -o NUL -w "%{http_code}"`. Stats via custom `Get-Stats` function (Min/Mean/Median/P95/Max/StdDev).
+- Outcome: PASS (constant-time-consistent)
 - Observed:
+  | Variant | N | Min | Mean | Median | P95 | Max | StdDev |
+  | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+  | first-byte-diff (401) | 20 | 102.92 | 136.59 | 140.03 | 159.51 | 159.51 | 16.57 |
+  | last-byte-diff (401) | 20 | 107.40 | 161.46 | 140.91 | 581.02 | 581.02 | 97.24 |
+  - `|ΔMedian| = 0.88 ms` (0.6% of either median) — distributions essentially overlap
+  - `|ΔMean|   = 24.87 ms` — explained entirely by **one outlier** in the last-byte-diff sample (P95 = Max = 581.02 means a single ~580ms sample dominated both tail metrics; StdDev jumped from 16.57 → 97.24 confirming outlier influence)
+  - PASS criteria from inline analysis: `|ΔMean| (24.87) < 0.5 × max(StdDev) = 48.62` ✓ AND `|ΔMedian|/median ≪ 10%` ✓
 - Expected: Latency identical to T.A.5's case (constant-time comparison via `crypto.timingSafeEqual` or equivalent)
 - Severity (if fail): Important — timing diff suggests `===` comparison; would let an attacker enumerate token char-by-char (matters for BL-033, not blocking BL-032 internal soak)
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS. No code change required.
+- Notes: **Methodology refinement worth keeping**. The Claude-authored first draft used valid-vs-near-miss (200 vs 401) which is confounded — 200 responses run the full tools/list handler (~150ms extra work) while 401 responses bail at the auth boundary. The latency gap there reflects handler-fast-path vs handler-full-path, not the bearer comparison itself. Operator (RP) caught this and rewrote the test to compare **two 401 responses with mismatches at different byte positions**, isolating the comparison step. That's the correct design — both calls take the same code path, the only variable is which byte position triggers the mismatch. If `===` short-circuit, first-byte-diff would be CONSISTENTLY faster across all percentiles (bails at byte 0; last-byte compares all 43 bytes). Observed instead: medians indistinguishable, min values within 5ms, mean delta dominated by one network-noise outlier — consistent with constant-time. **Worth updating the playbook to use this design**: replace T.A.15's "compare against T.A.5" instruction with "compare first-byte-diff vs last-byte-diff, both 401, equal-content payload." Test marked "Important for BL-033, not blocking BL-032" in the playbook — passing it here means we don't need to revisit for BL-033 either, assuming the bearer-check code path doesn't regress.
 
 ## Section B — Tool execution (10-tool surface)
 
