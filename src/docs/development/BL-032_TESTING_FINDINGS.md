@@ -582,16 +582,16 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.3.h — Deeplink round-trip
 
-- Date:
-- Tester:
-- Client: browser
-- Command/Action: Open the deeplink captured during T.B.3.a's 2026-05-10 PASS run in a browser: `https://globalstrategic.tech/hub/tools/diligence-machine/?tt=majority-stake&pt=b2b-saas&ta=modern-cloud-native&hc=51-200&rr=5-25m&gs=scaling&ca=5-10yr&ge=us%2Ceu&bm=productized-platform&si=moderate&ts=stable&ds=moderate&om=product-aligned-teams`. Verify the wizard pre-fills with the same 13 inputs.
-- Outcome:
-- Observed:
-- Expected: Wizard pre-fills with the same 13 input values
-- Severity (if fail):
-- Remediation:
-- Notes: T.B.3.a's response already confirms the deeplink is generated correctly and contains all 13 dimensions in the query string (`tt`/`pt`/`ta`/`hc`/`rr`/`gs`/`ca`/`ge`/`bm`/`si`/`ts`/`ds`/`om`). This test verifies the OTHER half of the round-trip — that the wizard's URL-state restoration (BL-031.95) reads those query params back into the form correctly.
+- Date: 2026-05-11
+- Tester: RP
+- Client: browser (local dev server `http://localhost:4321`) + DevTools console
+- Command/Action: Open the deeplink in a browser; capture wizard state via DevTools: `({ activeStep: document.querySelector('.wizard-step.active, [data-step].active')?.dataset.step, generateBtnVisible: document.querySelector('#btnGenerate, [data-action="generate"]')?.style.display !== 'none', outputVisible: document.querySelector('#outputContainer, .output-container')?.style.display !== 'none', selectedCards: [...document.querySelectorAll('.brutal-option-card--selected-outline')].map(el => ({ stepId: el.dataset.stepId || el.dataset.fieldId, optionId: el.dataset.optionId })) })`
+- Outcome: PASS (local dev) / NOT TESTABLE on production (deploy-cadence)
+- Observed: **Local dev**: with localStorage cleared first, DevTools returned `activeStep: '10'`, `generateBtnVisible: true`, `outputVisible: false` — exactly the contract (wizard sitting at the last data step with Generate ready). All 13 input cards correctly hydrated as `selected-outline` (transactionType, productType, techArchetype, headcount, revenueRange, growthStage, companyAge, geographies us+eu, businessModel, scaleIntensity, transformationState, dataSensitivity, operatingModel). Multi-region card auto-selected as a derived indicator when ≥2 specific regions are picked (per `syncMultiRegion` in `diligence-engine.ts`). Confirmed via instrumented `console.log` in `restoreState`: `hasUrlState: true, savedCurrentStep: 10, modCurrentStep: 10 (post-showStep), activeStepInDOM: '10'`. **Production**: not testable in this soak — the URL-restoration code ([`src/utils/diligence-url.ts`](../../../src/utils/diligence-url.ts) + page wiring in [`index.astro`](../../../src/pages/hub/tools/diligence-machine/index.astro)) is in feature-mcp1 and not yet on master; `git log master -- src/utils/diligence-url.ts` returns empty.
+- Expected: Wizard pre-fills with the same 13 input values and lands at the last data step (10/10) with the Generate button visible.
+- Severity (if fail): n/a — local PASS; prod not yet eligible (no deploy)
+- Remediation: n/a for the test itself. Production verification deferred until feature-mcp1 merges to master and Vercel redeploys.
+- Notes: A **transient anomaly** was observed mid-debug: with pre-existing localStorage from earlier soak sessions (`currentStep:5`, `highestStepReached:10`), the DevTools snapshot showed `activeStep: '5'` instead of `'10'` — suggesting localStorage was poisoning URL-state restoration. After clearing localStorage and re-populating with the exact same content via `localStorage.setItem(...)`, then reloading with the same deeplink, the bug did NOT reproduce — `activeStep: '10'` returned cleanly. Instrumented `restoreState` with `console.log` confirmed every step of the URL-state path fires correctly (URL path taken, `saved.currentStep = totalSteps`, `showStep(10)` called, DOM active step = 10). Best explanation: **Vite HMR state-leak during the day's editing**. The dev server was hot-reloading throughout the testing session, and the module-level `currentStep` `let` likely retained a stale value from a partial HMR update on a previous code edit. A full dev-server restart would have flushed it. The bug was not reproducible in a clean test cycle, so I am not claiming a code defect — but logging this as a **watchlist note** in case the symptom recurs against a freshly-built static deploy. Next time the operator does cross-day testing of this wizard, restart `npm run dev` before re-testing T.B.3.h.
 
 ### T.B.4 — `assess_infrastructure_cost_governance`
 
