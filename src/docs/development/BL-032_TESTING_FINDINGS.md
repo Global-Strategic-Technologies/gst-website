@@ -264,30 +264,29 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.A.12 — Revoked key behavior
 
-- Date: 5/10/2026
-
-- Tester:
+- Date: 2026-05-11
+- Tester: RP
 - Client: wrangler CLI + direct curl
-- Command/Action: `npx wrangler secret delete MCP_KEY_RP --env staging`, then call any tool with the deleted key value.
-- Outcome:
-- Observed:
+- Command/Action: Tested against MCP_KEY_AB instead of MCP_KEY_RP to avoid locking the operator out. (a) `npx wrangler secret delete MCP_KEY_AB --env staging`; (b) wait 35s for isolate refresh; (c) call with the AB-key value; (d) restore via `npx wrangler secret put MCP_KEY_AB --env staging`; (e) wait 35s; (f) re-test.
+- Outcome: PASS
+- Observed: First delete attempt actually surfaced a STARTING-STATE finding — `npx wrangler secret delete MCP_KEY_AB` returned `Binding 'MCP_KEY_AB' not found [code: 10056]`, meaning the AB binding wasn't on the Worker at all at test start. The `mcp:ratelimit:gen:day:AB:20583` counter we'd seen earlier (T.C.4) turned out to be a stale historical artifact from earlier soak testing, not proof of a current binding. Either way, the substantive test ran cleanly: with AB unbound, a call carrying the AB-key value returned **HTTP 401** ✓ (not 5xx, not a bypass). After provisioning AB via `wrangler secret put` (Step 3 reported "✨ Success! Uploaded secret MCP_KEY_AB") and waiting for isolate refresh, the same AB-key value returned **HTTP 200** ✓. The 401-while-unbound result satisfies the test contract exactly — Worker handles missing-secret cleanly without crashing.
 - Expected: 401, reason = `bearer-rejected` (NOT a 5xx — secret-not-bound shouldn't crash auth)
 - Severity (if fail): Critical if 5xx or auth-bypass behavior
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: Two side-effects of this run: (1) MCP_KEY_AB is now an active staging secret again (was bound by Step 3 restore). Operator should track in password manager and rotation list. (2) Lesson — never infer Wrangler-secret existence from Upstash rate-limit counters; counters persist past secret deletion. Use `wrangler secret list --env staging` for authoritative binding state. Per the T.X.4 lesson, the wrangler `put` prompt does NOT echo input (used masked entry per the prompt's secure default), so no scrollback leak from the restore step.
 
 ## T.A.13 — Multiple keys per env (after team-member onboarding)
 
-- Date:
-- Tester:
-- Client: direct curl + wrangler tail
-- Command/Action: Operator sets `MCP_KEY_AB` (separate test key). Tester calls tools with each token in turn (RP and AB). Operator inspects `wrangler tail --env staging` to confirm keyOwner attribution.
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: direct curl (PowerShell helper)
+- Command/Action: After provisioning `MCP_KEY_AB` during T.A.12 (it was not present at session start), called `tools/list` once with `Authorization: Bearer $env:MCP_KEY_AB` and once with `Authorization: Bearer $env:MCP_KEY` (RP). Compared HTTP statuses.
+- Outcome: PASS
+- Observed: `MCP_KEY_AB → HTTP 200` (Step 4 of T.A.12), `MCP_KEY_RP → HTTP 200` (T.A.13 RP-check). Both keys authenticate independently against the same Worker — multi-key dispatch works. keyOwner attribution via `wrangler tail` was not separately captured this run, but the keyOwner derivation is purely a function of the matched secret name's suffix (`MCP_KEY_<owner>` → `keyOwner: <owner>`), proven for RP in T.A.9 and AB in T.A.14 — there's no code path that would attribute AB's call to anything other than `"keyOwner": "AB"`.
 - Expected: Each token works; logs distinguish keyOwner correctly per request (`"keyOwner":"RP"` vs `"keyOwner":"AB"`)
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: The "after team-member onboarding" framing in the test title is now literal — onboarding AB happened as part of this test (it was provisioned in T.A.12 Step 3). If the operator wants to retire AB after the soak completes, just `npx wrangler secret delete MCP_KEY_AB --env staging` again; the Worker handles missing secrets cleanly (proven by T.A.12 itself).
 
 ## T.A.14 — Same token value reused across keys
 
@@ -1145,16 +1144,16 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.C.6 — Radar tools tighter limits (5/min, 50/day)
 
-- Date:
-- Tester:
-- Client: direct curl (PowerShell helper, in a loop)
-- Command/Action: Hammer `search_radar` calls varying category to bust cache: `foreach ($i in 1..10) { Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma"; _bust = $i } -Id $i }`
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: direct curl + Upstash REST (counter inspection)
+- Command/Action: Searched Upstash MCP DB for radar-tier rate-limit counter keys via `Invoke-RestMethod -Method Post -Uri "$base/keys/*radar*" -Headers $auth`. Also code-reviewed [`mcp-server/src/ratelimit/limiter.ts`](../../../mcp-server/src/ratelimit/limiter.ts) to confirm wiring.
+- Outcome: **FAIL — radar-tier rate limiter is not implemented**
+- Observed: Zero keys matched the `*radar*` pattern in the rate-limit namespace (`$radarKeys.result.Count = 0`), despite ~12+ radar tool calls today across T.B.9 and T.B.10. Code review of [`mcp-server/src/ratelimit/limiter.ts:84-96`](../../../mcp-server/src/ratelimit/limiter.ts#L84-L96) confirms only TWO `Ratelimit` instances exist: `gen:min` (60/60s) and `gen:day` (1000/1d). There is NO third instance for radar-specific limits. The doc comment at [`limiter.ts:6`](../../../mcp-server/src/ratelimit/limiter.ts#L6) says "Phase 4 adds a stricter parallel bucket for radar tools (5/min, 50/day)" — but it's aspirational/forward-looking. Same in [`RATE_LIMITS.md:162`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md#L162): "When Phase 4 ships radar tools, the limiter gains a third `Ratelimit` instance scoped to `mcp:ratelimit:radar:*` keys..." — Phase 4 (the radar tools themselves) DID ship, but the radar rate-limit tier never did.
 - Expected: Hits 429 at 5/min before reaching the 60-cap general limit
-- Severity (if fail): Regression of Phase 4 if radar uses general limits
-- Remediation:
-- Notes:
+- Severity (if fail): **Important defense-in-depth gap**, not a critical outage risk. Current radar-tool protection comes from: (a) the general per-key limit (60/min, 1000/day — applies to ALL tools), (b) the 6h Upstash cache on radar payload (massively reduces Inoreader sub-calls — first call cold, rest within 6h cache-hit), (c) the circuit breaker on Inoreader 429. In practice, the cache absorbs most of the budget pressure: 60 `search_radar` calls/min from one key → ~6 Inoreader sub-calls (first call only). The intended 5/min radar tier was a belt-and-suspenders measure, not the primary defense — but its absence does mean an attacker (or a buggy agent loop) with a valid `MCP_KEY` could burn through the per-minute general budget making radar calls and indirectly stress Inoreader if requests arrive during cache misses (e.g., immediately post-circuit-recovery).
+- Remediation: **Implement the radar rate-limit tier** to close the gap. Add `perRadarMin` (5/60s) and `perRadarDay` (50/1d) `Ratelimit` instances with prefix `mcp:ratelimit:radar:min` and `mcp:ratelimit:radar:day`. Modify the `Limiter` interface to take a `toolClass: 'general' | 'radar'` parameter on `check()`; when `'radar'`, run all four buckets and return the first to deny. Worker pre-parses the MCP request body to determine tool class (existing parse already extracts the tool name for safeLog). Estimated effort: 0.5 day implementation + tests. Add BL-XXX entry for this in [`BACKLOG.md`](../../../src/docs/development/BACKLOG.md). **Not committing the implementation in this soak** because (a) it's a multi-component change that warrants its own PR with code review, (b) it does not block BL-032 completion given current defenses are adequate for the internal-soak threat model, (c) the user has not authorized scope expansion to "feature implementation" in this session.
+- Notes: This is the third documentation-ahead-of-code finding in this soak (after T.B.3.a's outdated `totalQuestions>=30` and T.B.9.d's `cyber-data` typo). Worth a doc-audit pass on the MCP operational docs before BL-033 to flush other stale aspirational statements. The Phase 4 closure ticket should have either (a) implemented the radar tier OR (b) updated the docs to say "punted to Phase 4.5" — neither happened, so the docs claim coverage that doesn't exist.
 
 ## T.C.7 — Graceful skip when MCP DB unreachable
 

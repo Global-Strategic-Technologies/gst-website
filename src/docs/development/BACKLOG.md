@@ -1675,4 +1675,59 @@ BL-032 soak closes
 
 ---
 
+### BL-038: MCP Server — Radar Rate-Limit Tier (5/min, 50/day)
+
+**Source**: BL-038 — surfaced during BL-032 soak T.C.6 (2026-05-11). The documentation in [`mcp-server/src/ratelimit/limiter.ts:6`](../../../mcp-server/src/ratelimit/limiter.ts#L6) and [`RATE_LIMITS.md:162`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md#L162) claims a radar-specific rate-limit tier (5/min, 50/day) was to ship with Phase 4. Phase 4 (the radar tools themselves — `search_radar`, `get_latest_insights`) DID ship, but the third `Ratelimit` instance scoped to `mcp:ratelimit:radar:*` never made it into the code. T.C.6's counter inspection confirmed: zero radar-pattern keys in Upstash despite ~12 radar calls in the soak. | **Effort**: ~0.5 day engineering + tests | **Status**: Open · defense-in-depth gap, not critical | **Depends on**: nothing (can ship independently)
+
+**As a** GST operator running the MCP server, **I want** radar-tool calls to be capped at 5/min and 50/day per key, separate from the 60/min and 1000/day general bucket, **so that** a buggy agent loop or low-privilege key with an abuse pattern can't burn through the per-minute general budget making radar calls and indirectly stress the shared Inoreader 200 req/day budget during cache-miss windows.
+
+#### Planning Criteria
+
+**Current state**
+
+- Radar tools are protected today by: (a) per-key general limit (60/min, 1000/day), (b) 6h Upstash cache on radar payload — first call cold, rest within 6h cache-hit, (c) circuit breaker on Inoreader 429 (6h TTL).
+- In practice, the cache absorbs most budget pressure: 60 `search_radar` calls/min from one key → ~6 Inoreader sub-calls (first call only, rest cache hits).
+- Failure mode the radar tier is meant to protect against: an attacker (or buggy agent) with a valid `MCP_KEY` making radar calls during cache misses — e.g., immediately post-circuit-recovery, or right after a cache TTL roll. Without the radar tier, 60 cold radar calls/min are possible if cache is miss-aligned, which CAN exhaust Inoreader's 200/day budget in ~3.3 minutes.
+
+**Use cases — implementation**
+
+- Add two new `Ratelimit` instances to [`limiter.ts`](../../../mcp-server/src/ratelimit/limiter.ts): `perRadarMin` (5/60s) and `perRadarDay` (50/1d). Use `slidingWindow` algorithm matching the general buckets. Key prefixes: `mcp:ratelimit:radar:min` and `mcp:ratelimit:radar:day`.
+- Modify the `Limiter` interface — `check()` takes a new `toolClass: 'general' | 'radar'` parameter. When `'radar'`, run all four buckets in parallel and return the first to deny.
+- Worker's tool-dispatch layer pre-parses the MCP request body to determine tool class. The Worker already extracts the tool name for safeLog — add a `radarTools = new Set(['search_radar', 'get_latest_insights'])` lookup and pass `'radar'` when matched.
+- The 429 envelope's `reason` field gets a third value: `radar-rate-limit-per-minute` / `radar-rate-limit-per-day` (distinct from `bearer-rejected` and the existing rate-limit reasons). Agents can distinguish "I'm hitting the radar-specific limit, slow my radar polling" from "I'm hitting the general limit, slow everything."
+
+**Outcomes**
+
+- 5/min and 50/day caps enforced on radar tools per key, observable via `mcp:ratelimit:radar:*` Upstash keys
+- General buckets remain unaffected for non-radar tools (no regression)
+- 429 envelope correctly identifies which tier denied
+- Test coverage: unit tests for `chooseBindingTier` extended to handle 4 buckets; integration test asserting `search_radar` 429s at request 6 while `list_portfolio_facets` continues to work
+
+**Business value**
+
+- **Defense-in-depth for Inoreader budget** — the cache + breaker pair protects against the common case; this tier protects against the cache-miss-aligned abuse pattern. Cheap insurance against an Inoreader account suspension that would affect both the MCP surface AND the public `/hub/radar` page.
+- **Closes a documentation-ahead-of-code gap** — surfaces a "documented coverage that doesn't exist" pattern that BL-034's doc cleanup pass should systematically check for. Implementing this here is faster than rewriting the docs to admit the gap.
+- **Cleanly composes with BL-032.75 observability work** — separate counter prefix means radar-tier usage will show in any future per-tier dashboard without code changes.
+
+#### Acceptance Criteria
+
+- [ ] `perRadarMin` (5/60s) and `perRadarDay` (50/1d) `Ratelimit` instances added to `createLimiter()`
+- [ ] `Limiter.check()` accepts `toolClass: 'general' | 'radar'`; runs 4 buckets when `'radar'`
+- [ ] Worker tool-dispatch pre-parses MCP request body to determine tool class; passes correctly to `check()`
+- [ ] 429 envelope distinguishes radar-tier denial from general-tier denial in the `reason` field
+- [ ] Unit tests cover 4-bucket priority logic in `chooseBindingTier`
+- [ ] Integration test asserts `search_radar` 429s at request 6 within 60s while `list_portfolio_facets` continues to accept calls
+- [ ] [`RATE_LIMITS.md`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md) updated from "Phase 4 will add" to "implemented in BL-038"
+- [ ] Removed the "Phase 4 adds" aspirational comment at `limiter.ts:6` and replace with a description of the implemented behavior
+
+**Why not roll into BL-032.75 (production observability)**
+
+- BL-032.75 is observability; this is enforcement. Different code paths, different review surface.
+
+**Why not roll into BL-034 (doc cleanup)**
+
+- BL-034 is doc-only. This has engineering work that's faster than rewriting docs to say "we don't have this."
+
+---
+
 _Created: April 18, 2026 | Last pruned: April 24, 2026_
