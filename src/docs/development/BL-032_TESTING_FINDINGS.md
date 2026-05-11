@@ -937,49 +937,49 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.9.a — Category `pe-ma` happy path
 
-- Date:
-- Tester:
+- Date: 2026-05-11
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }`
-- Outcome:
-- Observed:
+- Outcome: PASS
+- Observed: 16 matches; deeplink correct (`https://globalstrategic.tech/hub/radar?category=pe-ma`); top 3 returned `wire` tier sorted descending by `publishedAt` (5/10 04:00 → 5/8 20:48 → 5/8 20:47). `liveInfo.wireCacheHit = False` (fresh fetch — wire cache was empty), `liveInfo.fyiCacheHit = True` (FYI cache was warmed earlier by T.B.10.a). Within-tier sort holds: pe-ma category items came back newest-first across-day **and** within-day.
 - Expected: Non-zero matches; `cacheHit: false` on first call within 6h window
-- Severity (if fail):
-- Remediation:
-- Notes: Caveat — burns ~6 Inoreader calls; do once per soak day
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Cross-tool cache sharing confirmed in action: T.B.10.a populated `mcp:radar:cache:fyi` at 5/10 23:48, and T.B.9.a 30 minutes later reused it (fyiCacheHit=True) while having to fetch wire fresh. This is by design — `readFyiLive` / `readWireLive` cache by tier only, not by category, so cross-tool calls amortize. Budget cost of this call: ~6 Inoreader calls for wire (one per category folder), 0 for FYI.
 
 #### T.B.9.b — Same call again within 6h
 
-- Date:
-- Tester:
+- Date: 2026-05-11
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: Repeat T.B.9.a's call within 6h of the first
-- Outcome:
-- Observed:
+- Outcome: PASS
+- Observed: Both `wireCacheHit` and `fyiCacheHit` = True (full cache hit). `totalMatched = 16`, identical to T.B.9.a. `$a.liveInfo.wireFetchedAt -eq $b.liveInfo.wireFetchedAt` evaluated to `True` — same cached payload returned, no fresh fetch. Zero Inoreader calls.
 - Expected: `cacheHit: true`; same matches as T.B.9.a; `fetchedAt` unchanged
-- Severity (if fail): If cache is broken, this would be a budget regression
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Cache is doing its job. Budget protection holds.
 
 #### T.B.9.c — No category (all four)
 
-- Date:
-- Tester:
+- Date: 2026-05-11
+- Tester: RP
 - Client: direct curl (PowerShell helper)
 - Command/Action: `Invoke-McpTool -Name "search_radar"`
-- Outcome:
-- Observed:
+- Outcome: PASS (with corrected understanding of cache-key design)
+- Observed: 78 matches (vs 16 for pe-ma alone — confirms larger superset). `liveInfo.wireCacheHit = True` AND `fyiCacheHit = True` — **both hits**, no Inoreader call.
 - Expected: Larger match set; cache key differs from category-specific calls
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS. The "cache key differs from category-specific calls" expectation in the stub was incorrect: the cache is **tier-keyed**, not filter-keyed. `readFyiLive` and `readWireLive` both cache the full tier payload, and the category filter is applied in the handler **after** the cache read. This is intentional per the design comment at [mcp-server/src/content/radar-live-store.ts:120-128](../../../mcp-server/src/content/radar-live-store.ts#L120-L128) — it lets every filter variation share one cache entry, dramatically reducing Inoreader budget burn.
+- Notes: Significant design verification: any combination of filtered/unfiltered `search_radar` + `get_latest_insights` calls within the 6h window cost **zero** additional Inoreader budget after the first wire fetch. Strong signal for promoting these tools in agent prompts — the budget downside is much lower than it looks at first glance.
 
 #### T.B.9.d — Each of 4 categories
 
 - Date:
 - Tester:
 - Client: direct curl (PowerShell helper)
-- Command/Action: Loop the four categories: `foreach ($cat in @("pe-ma","enterprise-tech","ai-automation","cyber-data")) { Invoke-McpTool -Name "search_radar" -Arguments @{ category = $cat } }`
+- Command/Action: Loop the four categories: `foreach ($cat in @("pe-ma","enterprise-tech","ai-automation","security")) { Invoke-McpTool -Name "search_radar" -Arguments @{ category = $cat } }`
 - Outcome:
 - Observed:
 - Expected: All return non-zero; each populates own cache entry
