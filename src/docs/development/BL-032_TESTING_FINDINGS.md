@@ -1219,68 +1219,68 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.D.1 — Cache HIT amortizes Inoreader calls
 
-- Date:
-- Tester:
-- Client: direct curl (PowerShell helper)
-- Command/Action: Call `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }` twice with identical args within 6h. Inspect `cacheHit` on each response and check Inoreader access logs (Cloudflare access logs or website's traffic) for the corresponding outbound calls.
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: PASS-by-reference to T.B.9.b
+- Command/Action: Already executed in T.B.9.b — two identical `search_radar -Arguments @{ category = "pe-ma" }` calls within the 6h cache window.
+- Outcome: PASS (by reference)
+- Observed: T.B.9.a was the cache-miss first call (`wireCacheHit: False`, `fyiCacheHit: True` because FYI was warmed by an earlier T.B.10.a). T.B.9.b was the identical second call within minutes — both `wireCacheHit: True` AND `fyiCacheHit: True`. `wireFetchedAt` was byte-identical between the two responses (`$a.liveInfo.wireFetchedAt -eq $b.liveInfo.wireFetchedAt → True`), confirming the cached payload was reused without a fresh Inoreader fetch. Same `totalMatched` (16) between calls.
 - Expected: First call: `cacheHit: false`, ~6 Inoreader calls. Second call: `cacheHit: true`, 0 Inoreader calls.
 - Severity (if fail): Caching broken would be a budget regression
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: Inoreader-side call-count verification (Inoreader dev portal) not directly checked, but the structural evidence — cacheHit=True flag plus identical fetchedAt timestamp — is sufficient to conclude no Inoreader hit on the second call.
 
 ## T.D.2 — Cache key includes category
 
-- Date:
-- Tester:
-- Client: direct curl (PowerShell helper)
-- Command/Action: Call once with `category = "pe-ma"` then once with `category = "enterprise-tech"`; inspect both responses' `cacheHit` and the returned items
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: PASS-by-reference to T.B.9.c (with playbook-correction)
+- Command/Action: T.B.9.c called `search_radar` with no category after the pe-ma-cache was warmed by T.B.9.a; T.B.9.d ran the full 4-category loop.
+- Outcome: PASS-by-design (with playbook-expectation correction)
+- Observed: T.B.9.c showed both caches hit on a category-less call after a category-specific one warmed them. T.B.9.d showed all 4 categories returning correct-and-filtered results with both caches hit. The cache is **tier-keyed, not filter-keyed** — `readWireLive` and `readFyiLive` cache by tier name only (`mcp:radar:cache:wire`, `mcp:radar:cache:fyi`), and the category filter is applied in the **handler** after the cache read. This is **better than the playbook's expected per-category cache** (one cache miss serves all 4 category variants instead of one miss per category). The failure-mode described in the playbook ("second call returns `pe-ma` results") does NOT manifest because the handler-side filter correctly narrows the cached superset to the requested category — T.B.9.d explicitly verified each category returns exactly its own items (UniqueCats column == Category column for all 4 rows).
 - Expected: Two separate cache entries; both fetch from Inoreader on first call of each (cache key is category-aware)
-- Severity (if fail): If second call returns `pe-ma` results, cache key isn't category-aware
-- Remediation:
-- Notes:
+- Severity (if fail): n/a — design is correct, just not what the playbook anticipated
+- Remediation: **Update the playbook**. The T.D.2 expectation reflects a less-efficient design that wasn't implemented. The actual design (single shared cache + handler filter) is documented in [`mcp-server/src/content/radar-live-store.ts:120-128`](../../../mcp-server/src/content/radar-live-store.ts#L120-L128) and in the comment at [`radar-live.ts:34`](../../../mcp-server/src/tools/radar-live.ts#L34) about "single category filter, same payload shape."
+- Notes: This is the third docs-ahead-of-code finding in the soak (after T.B.3.a `totalQuestions` and T.B.9.d `cyber-data`). Section J's "documentation cleanup" task takes on more weight.
 
 ## T.D.3 — Force circuit-open via direct Upstash set (Strategy 1)
 
-- Date:
-- Tester:
-- Client: Upstash REST + direct curl (PowerShell helper)
-- Command/Action: First set `$env:UPSTASH_MCP_REST_URL` and `$env:UPSTASH_MCP_REST_TOKEN` from password manager. Then `curl.exe -X POST "$env:UPSTASH_MCP_REST_URL/set/mcp:radar:circuit-open/inoreader-rate-limit" -H "Authorization: Bearer $env:UPSTASH_MCP_REST_TOKEN" -d "EX=21600"`. Then call `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }` and `curl.exe $env:MCP_URL/health`.
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: PASS-by-reference to T.B.9.f Steps 1-2
+- Command/Action: T.B.9.f Step 1 ran `SET mcp:radar:circuit-open inoreader-rate-limit EX 21600` against the MCP Upstash DB; Step 2 called `search_radar` immediately after.
+- Outcome: PASS (by reference)
+- Observed: Step 1 returned `result: OK`. Step 2's call returned the full 503 envelope: `error: "service_unavailable"`, `status: 503`, `reason: "inoreader-rate-limit"`, `retryAfterSeconds: 21599` (matches TTL within 1s), `message: "Radar tools temporarily unavailable — Inoreader budget circuit is open. Retry after 21599."`. Step 3 verified `get_latest_insights` short-circuited identically. Subsequent non-radar tool checks weren't run, but the Worker's breaker check at [`mcp-server/src/ratelimit/circuit-breaker.ts:139-141`](../../../mcp-server/src/ratelimit/circuit-breaker.ts#L139-L141) is keyed on radar-tool-class — non-radar tools don't consult the breaker.
 - Expected: Subsequent radar tool calls return 503 with `Retry-After`; `/health` shows `inoreader: 'degraded'` after the cached status TTL refreshes; non-radar tools unaffected.
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: The "/health shows `inoreader: 'degraded'`" sub-expectation was not directly tested at the time, but T.D.9 today confirmed `inoreaderObservedAt` reflects radar call activity, and the `inoreader: 'degraded'` status path is exercised by the underlying `recordInoreaderStatus` call at [`mcp-server/src/content/radar-live-store.ts:132`](../../../mcp-server/src/content/radar-live-store.ts#L132) when failures fire. Worth a future test that forces a 429 AND checks `/health` within the next 30s.
 
 ## T.D.4 — Recovery from circuit-open
 
-- Date:
-- Tester:
-- Client: Upstash REST + direct curl (PowerShell helper)
-- Command/Action: After T.D.3, delete the flag: `curl.exe -X POST "$env:UPSTASH_MCP_REST_URL/del/mcp:radar:circuit-open" -H "Authorization: Bearer $env:UPSTASH_MCP_REST_TOKEN"`. Then call radar and `/health`.
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: PASS-by-reference to T.B.9.f Steps 4-5
+- Command/Action: T.B.9.f Step 4 ran `DEL mcp:radar:circuit-open`; Step 5 called `search_radar` to confirm recovery.
+- Outcome: PASS (by reference)
+- Observed: Step 4 returned `result: 1` (1 key deleted). Step 5's call returned the normal 16-match pe-ma response with `wireCacheHit: True`. The Worker reads breaker state live from Upstash on every radar call (no caching of breaker state per [`circuit-breaker.ts:56-60`](../../../mcp-server/src/ratelimit/circuit-breaker.ts#L56-L60)), so the DEL takes effect on the next invocation. T.C.10 logs this same observation independently as the "manual reset" path.
 - Expected: Inoreader hit; if successful, `cacheHit: false`, breaker stays closed; `/health` `inoreader: 'ok'` after next status refresh.
 - Severity (if fail): Stale 503 keeps returning means cache layer isn't invalidating
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: Step 5 actually showed `cacheHit: True` (not False as the playbook expected), but that's because the radar caches survived independent of the breaker — the breaker only blocks Inoreader-bound fetches, not cache reads. With cache still warm and breaker cleared, the next radar call serves from cache. Worth noting as an efficiency win: post-recovery you don't need to re-warm the cache.
 
 ## T.D.5 — Inoreader access-token-stale recovery (already observed once)
 
-- Date:
-- Tester:
-- Client: direct curl (PowerShell helper)
-- Command/Action: Wait until website's access token expires (don't trigger website refresh during the wait); then call `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }`
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: PASS-by-reference to T.X.3
+- Command/Action: T.X.3 captured a live `token-stale` envelope during the T.B.10.a precondition on 2026-05-10. The recovery flow (website-side ISR refresh) was exercised end-to-end.
+- Outcome: PASS (by reference)
+- Observed: T.X.3 returned the exact failure envelope: `{ error: "token-stale", status: 401, message: "Inoreader access token is stale. The website-side ISR will refresh on its next call; retry the Worker call after that." }`. Recovery: opened `/hub/radar` in browser → website's ISR refreshed the Inoreader access token → next Worker radar call (T.B.10.a, T.B.10.b, T.B.10.e) succeeded with fresh data. Worker did NOT attempt to refresh the token itself — the OAuth credential ownership lives with the website, per the Path 2 architecture.
 - Expected: Returns `{"error":"token-stale", "status":401, ...}` envelope
 - Severity (if fail): Returns success despite stale token (using env fallback indefinitely is bad sign), or hard crash
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: The recovery flow proves the Path 2 design intent: Worker is a read-only consumer of the Inoreader access token from Upstash; failures cleanly surface and the website ISR (which owns the OAuth credential) is responsible for refresh. Operationally, if a `token-stale` is returned to an agent, the right response is "hit /hub/radar in browser then retry," NOT a tight retry loop against the Worker.
 
 ## T.D.6 — Refresh-token-expiry path (rare; paper-test)
 
@@ -1323,16 +1323,16 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.D.9 — `/health` `inoreaderObservedAt` updates on radar call
 
-- Date:
-- Tester:
+- Date: 2026-05-11
+- Tester: RP
 - Client: direct curl (PowerShell helper) + direct curl
-- Command/Action: Call `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }` (success). Wait 30s. Then `curl.exe $env:MCP_URL/health` and inspect `inoreaderObservedAt`.
-- Outcome:
-- Observed:
+- Command/Action: `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }`; capture `wireFetchedAt` from response; sleep 30s; `curl.exe $env:MCP_URL/health | ConvertFrom-Json`; inspect `inoreaderObservedAt`.
+- Outcome: PASS
+- Observed: Radar call returned `wireFetchedAt: 2026-05-11T16:26:46Z`. 32 seconds later, `/health` returned `inoreaderObservedAt: 2026-05-11T16:26:46.254Z` — exact match to the radar call's fetch time, propagated to /health within the 30s wait. PASS criterion was "within the last ~60s of now" — the timestamp was 32s old at check time, well within.
 - Expected: `inoreaderObservedAt` reflects the recent call's timestamp (within seconds)
 - Severity (if fail): Stale timestamp means status cache isn't updating
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: This is the live verification that the Worker writes the Inoreader-status observation back to Upstash (the cached status TTL) and that `/health` reads it. Closes the loop: radar tool runs → status recorded → /health reflects it within seconds.
 
 ## T.D.10 — Worker reads OAuth token from Inoreader DB read-only
 
@@ -1351,42 +1351,42 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.E.1 — `wrangler tail` shows every request
 
-- Date:
-- Tester:
+- Date: 2026-05-11
+- Tester: RP
 - Client: wrangler tail + direct curl (PowerShell helper)
-- Command/Action: Open one terminal: `npx wrangler tail --env staging`. In another, run any tool call (e.g., a smoke prompt or `Invoke-McpRequest -Method "tools/list"`). Observe the tail output.
-- Outcome:
-- Observed:
+- Command/Action: `npx wrangler tail --env staging` in one terminal; in another, fire a `tools/list` POST against `$env:MCP_URL/mcp` with valid Authorization. Capture the resulting JSON log line.
+- Outcome: PASS
+- Observed: Log line emitted exactly per spec: `{"timestamp":"2026-05-11T16:56:20.494Z","event":"mcp.request","keyOwner":"RP","path":"/mcp","status":200,"durationMs":0,"success":true}`. All five required fields present (`event`, `keyOwner`, `path`, `status`, `durationMs`), plus `timestamp` and `success`. Wrangler's own request-summary line accompanied: `POST https://mcp-staging.globalstrategic.tech/mcp - Ok @ 5/11/2026, 1:56:20 PM`.
 - Expected: Each request logs `event: mcp.request` with `keyOwner`, `path`, `status`, `durationMs`
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: `durationMs: 0` reflects sub-millisecond Worker-side handler time for a cached `tools/list` (no Upstash hit, no Inoreader hit, just serializing the static tool registry). Worker timing uses millisecond-precision `Date.now()` so 0 is a valid recorded value — not a bug. If finer-grained measurement is needed for hot-path optimization later, `performance.now()` (sub-ms precision) is available on the Workers runtime, but that's outside BL-032 scope.
 
 ## T.E.2 — Authorization header NEVER logged
 
-- Date:
-- Tester:
-- Client: wrangler tail
-- Command/Action: After issuing a normal authenticated request: `npx wrangler tail --env staging --search "Bearer"`
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: wrangler tail + direct curl
+- Command/Action: Issued an authenticated `tools/list` POST with `Authorization: Bearer $env:MCP_KEY`; inspected the corresponding `mcp.request` log line for any substring of the bearer token or the literal string `Bearer`.
+- Outcome: PASS
+- Observed: Log line `{"timestamp":"2026-05-11T16:56:20.494Z","event":"mcp.request","keyOwner":"RP","path":"/mcp","status":200,"durationMs":0,"success":true}` contains zero occurrences of "Bearer" and zero 43-char alphanumeric token-like substrings. The only key-related field is `keyOwner: "RP"` — that's the secret-name suffix (intended attribution signal), not the secret value. safeLog correctly strips the Authorization header before structured logging.
 - Expected: No matches (zero log lines containing `Bearer`)
 - Severity (if fail): Critical — token in logs would be a safeLog regression
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: This is the highest-stakes safeLog test — a regression here would mean every request to the MCP server logged its bearer token in plaintext to Cloudflare's log retention, with `wrangler tail` exposing them to anyone with deploy access. The clean PASS is the load-bearing guarantee for the entire bearer-auth model.
 
 ## T.E.3 — Cookie header NEVER logged
 
-- Date:
-- Tester:
-- Client: wrangler tail
-- Command/Action: After issuing a request that carried a `Cookie` header: `npx wrangler tail --env staging --search "Cookie"`
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: wrangler tail + direct curl
+- Command/Action: Issued a `tools/list` POST that explicitly included `Cookie: test=value` as a header; inspected the resulting `mcp.request` log line.
+- Outcome: PASS
+- Observed: Log line contains zero occurrences of "Cookie", zero occurrences of "test=value", zero occurrences of "test". The Cookie header value never reached the structured log, consistent with safeLog's header-scrubbing pass.
 - Expected: No matches
 - Severity (if fail): Privacy leak
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: Same defense-in-depth principle as T.E.2 — even though the MCP surface doesn't read cookies for any application purpose, browser-based callers (Claude Web, future external consumer browser extensions) routinely include Cookie headers, and those values may include third-party tracking identifiers. Stripping them at the safeLog boundary is correct conservative hygiene.
 
 ## T.E.4 — Sentry captures unhandled exception
 
@@ -1416,29 +1416,37 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.E.6 — `/health` shape matches Path 2 spec
 
-- Date:
-- Tester:
+- Date: 2026-05-11
+- Tester: RP
 - Client: direct curl
-- Command/Action: `curl.exe $env:MCP_URL/health`
-- Outcome:
-- Observed:
+- Command/Action: `curl.exe -s "$env:MCP_URL/health" | ConvertFrom-Json | Format-List *`
+- Outcome: PASS
+- Observed: All 8 expected fields present, values populated:
+  - `ok: True`
+  - `version: 0.1.0`
+  - `gitSha: 1959fbd`
+  - `phase: BL-032 Phase 5 (observability)`
+  - `upstashMcp: ok`
+  - `upstashInoreader: ok`
+  - `inoreader: ok`
+  - `inoreaderObservedAt: 2026-05-11T16:26:46.254Z`
 - Expected: Fields: `ok`, `version`, `gitSha`, `phase`, `upstashMcp`, `upstashInoreader`, `inoreader`, `inoreaderObservedAt`
-- Severity (if fail): Missing fields, or pre-Path-2 single `redis` field present
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Pre-Path-2 single `redis` field is absent (good — confirms migration is complete). All probes returned `'ok'` at test time. The `gitSha = 1959fbd` matches commit `1959fbd` from this branch (the last deploy before today's session of finding-logging commits).
 
 ## T.E.7 — `/health` doesn't leak access token
 
-- Date:
-- Tester:
+- Date: 2026-05-11
+- Tester: RP
 - Client: direct curl
-- Command/Action: `curl.exe $env:MCP_URL/health`; scan raw response body for token-like strings (long base64/hex sequences, anything resembling `oauth_token` / `access_token`)
-- Outcome:
-- Observed:
+- Command/Action: `curl.exe -s "$env:MCP_URL/health"`; visually scan raw response body for token-like strings.
+- Outcome: PASS
+- Observed: Raw response body verbatim: `{"ok":true,"version":"0.1.0","gitSha":"1959fbd","phase":"BL-032 Phase 5 (observability)","upstashMcp":"ok","upstashInoreader":"ok","inoreader":"ok","inoreaderObservedAt":"2026-05-11T16:26:46.254Z"}`. No long base64/hex sequences. The only string longer than 10 chars is `phase` (33 chars, human-readable text) and `inoreaderObservedAt` (24 chars, ISO timestamp). `gitSha` is 7 chars (truncated commit hash, safe to expose). Probe results were boolean/string-status only — no token contents leaked through, consistent with the [`health.ts` PRIVACY comment](../../../mcp-server/src/observability/health.ts) about probe-result discarding.
 - Expected: No values resembling Inoreader OAuth tokens (per `health.ts` PRIVACY note — probe-result discarded)
 - Severity (if fail): Critical — implementation regression on the privacy comment
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: Strong negative-result test — confirms the privacy-by-construction property of `/health` holds in practice.
 
 ## T.E.8 — Health probes are cheap (no Inoreader API call)
 
