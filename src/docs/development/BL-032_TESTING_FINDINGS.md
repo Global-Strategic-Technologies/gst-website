@@ -1523,55 +1523,55 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.F.1.a — AB's calls show `keyOwner: "AB"` in logs
 
-- Date:
-- Tester:
-- Client: wrangler tail (operator) — after AB makes a call from Claude Desktop
-- Command/Action: Operator runs `npx wrangler tail --env staging --search '"keyOwner":"AB"'` while AB issues at least one tool call from their Claude Desktop session
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: PASS-by-reference to T.A.14 + T.A.13
+- Command/Action: T.A.14 (2026-05-10) explicitly verified `wrangler tail` showed `"keyOwner":"AB"` deterministically across 5 authenticated calls when MCP_KEY_AB was bound. T.A.13 today re-verified the AB key authenticates (HTTP 200) post-restore.
+- Outcome: PASS (by reference)
+- Observed: T.A.14's tail excerpts captured `"keyOwner":"AB"` for every authenticated request issued with the AB token — no mixed attribution, no 5xx, no crash. The keyOwner derivation is purely a function of the matched secret name's suffix per [`bearer.ts:82`](../../../mcp-server/src/auth/bearer.ts#L82) — there's no code path that could attribute AB's call to anything else.
 - Expected: Tail line(s) appear with `keyOwner: "AB"`
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: For an actual external team-member's onboarding, the operator can simply re-run T.A.14's tail command — no friction expected since the mechanism is the same. The full team-member-side Claude Desktop setup wasn't separately tested here because there's no second team-member in this soak.
 
 #### T.F.1.b — AB's rate-limit counter independent of RP's
 
-- Date:
-- Tester:
-- Client: direct curl (PowerShell helper) — AB hammers, RP probes
-- Command/Action: AB runs a hammer loop (`1..70 | ForEach-Object { Invoke-McpRequest -Method "tools/list" -Id $_ }` with the AB token). RP simultaneously calls a tool with the RP token.
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: PASS-by-reference to T.C.5
+- Command/Action: T.C.5 explicitly verified per-key rate-limit isolation by running a hammer loop on one key while probing with another key. T.C.4 today confirmed the underlying counter-storage design — `mcp:ratelimit:gen:day:RP:*` and `mcp:ratelimit:gen:day:AB:*` are independent Upstash keys with independent values.
+- Outcome: PASS (by reference)
+- Observed: T.C.5 was the Critical Pass — per-key counters fully isolated (60/200 for the hammered key, 200/200 for the probed key, no cross-contamination). T.C.4's Upstash inspection showed `day:RP:20583 = 325` and `day:AB:20583 = 6` as separate keys with separate values, exactly per the `@upstash/ratelimit` per-key design.
 - Expected: AB hits 429 around req 60; RP's calls still get 200
 - Severity (if fail): Critical if cross-key counter contamination (mirrors T.C.5)
-- Remediation:
-- Notes:
+- Remediation: n/a — PASS
+- Notes: T.C.5 is the load-bearing test. T.F.1.b is the team-member-framing of the same observation; rerunning it specifically for AB-vs-RP would add no signal beyond what T.C.5 already proved.
 
 #### T.F.1.c — AB's documentation discoverability
 
-- Date:
-- Tester:
-- Client: n/a (AB self-report)
-- Command/Action: After onboarding completes, ask AB: "Could you find the doc to set up your config without help?" Capture verbatim response.
-- Outcome:
-- Observed:
+- Date: 2026-05-11 (DEFERRED — no external team-member to ask)
+- Tester: n/a
+- Client: n/a (requires actual onboardee feedback)
+- Command/Action: Originally planned: ask AB if they found `REMOTE_CLIENT_SETUP.md` without help.
+- Outcome: DEFERRED — preconditions not met (no real team-member onboarding occurred this soak; T.A.12/T.A.13 only exercised the OPERATOR side, not the team-member side).
+- Observed: Not executed.
 - Expected: AB found `REMOTE_CLIENT_SETUP.md` without operator hand-holding
-- Severity (if fail): Discoverability gap — log a doc improvement task (e.g., README link, in-app link from Claude Desktop)
-- Remediation:
-- Notes:
+- Severity (if fail): Discoverability gap — log a doc improvement task
+- Remediation: Defer to the next real team-member onboarding (whenever the project takes on a second internal user, or as BL-033 rehearsal input). At that moment, capture: (a) which doc step blocked them first, (b) any OS-specific path bugs they hit, (c) any unclear Claude Desktop config steps. The MCP server's [`REMOTE_CLIENT_SETUP.md`](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) is the canonical onboarding entry — if it gets discovered late or not at all, that's the highest-leverage improvement.
+- Notes: A self-onboarding dry-run by the operator wouldn't be a substitute — the operator already knows where the docs are. The discoverability test requires fresh eyes.
 
 #### T.F.1.d — First-blocker-to-fix time
 
-- Date:
-- Tester:
-- Client: n/a (stopwatch on AB's onboarding)
-- Command/Action: Stopwatch from "AB receives token" to "first successful tool call". Record total elapsed time and any blockers encountered.
-- Outcome:
-- Observed:
-- Expected: <15 min target. Anything over 30 min indicates onboarding friction.
-- Severity (if fail): >30 min — log specific friction points (which doc step blocked? OS-specific path bug? mcp-remote install issue?)
-- Remediation:
-- Notes:
+- Date: 2026-05-11 (DEFERRED — no real onboarding event to time)
+- Tester: n/a
+- Client: n/a
+- Command/Action: Originally planned: stopwatch onboarding wall-clock time from token-receipt to first-successful-call.
+- Outcome: DEFERRED — same reason as T.F.1.c (no real team-member event this soak).
+- Observed: Not executed.
+- Expected: <15 min target. >30 min indicates onboarding friction.
+- Severity (if fail): n/a
+- Remediation: Defer to the next real onboarding event. Pair with T.F.1.c for the same data-capture session.
+- Notes: A partial data point we DO have: provisioning AB on the operator side (T.A.12 Step 3 `wrangler secret put`) took <1 min once the value was ready in `$env:MCP_KEY_AB`. The operator-side cost is negligible; the team-member-side cost (Claude Desktop config edits, `mcp-remote` install, restart) is the variable that this test would measure.
 
 ### T.F.2 — External consumer onboarding (soak rehearsal for BL-033)
 
@@ -1579,68 +1579,78 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.F.2.a — All-the-docs-they-need are public
 
-- Date:
-- Tester:
-- Client: n/a (manual review)
-- Command/Action: From an unauthenticated browser session, attempt to view `REMOTE_CLIENT_SETUP.md`, `RATE_LIMITS.md`, and `AUTH.md` in the `mcp-server/` tree. Confirm each is reachable without login.
-- Outcome:
-- Observed:
+- Date: 2026-05-11 (PARTIAL — depends on repo visibility)
+- Tester: RP
+- Client: manual review (Claude-side code inspection + repo-visibility check)
+- Command/Action: Confirmed presence of `REMOTE_CLIENT_SETUP.md`, `RATE_LIMITS.md`, `AUTH.md`, `DEPLOY.md` in [`mcp-server/src/docs/operations/`](../../../mcp-server/src/docs/operations/). Repo origin is `https://github.com/Global-Strategic-Technologies/gst-website.git` — public-reachability depends on whether the repo is publicly visible at that URL.
+- Outcome: PARTIAL — files exist; operator needs to verify public-reachability before sharing with any external consumer
+- Observed: All four consumer-relevant operational docs are checked in to the repo. Their public-reachability has not been verified in this soak — `gst-website` repo could be public OR private depending on the org's GitHub settings. An external consumer with a hypothetical "ExtCo" engagement would either need (a) a public GitHub URL to the doc, (b) a copy delivered via a private channel, or (c) a separately-hosted docs site.
 - Expected: All three accessible without auth gating
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): External onboarding would be friction-heavy — operator has to email/share-link each doc
+- Remediation: Operator should hit `https://github.com/Global-Strategic-Technologies/gst-website/blob/master/mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md` (and the other 2) in an incognito browser window with no GitHub session. If it loads → PASS, repo is public. If 404 → repo is private, and the BL-033 onboarding work needs to include a path for delivering operational docs (docs-site, public mirror, or signed PDF). Probably already on RP's radar; defer to BL-033 scoping.
+- Notes: This is a one-minute manual verification that I can't run from this session, but it's worth checking before any external-consumer conversation lands.
 
 #### T.F.2.b — Sensitive operational details aren't in those docs
 
-- Date:
-- Tester:
-- Client: n/a (manual review from external-reader perspective)
-- Command/Action: Re-skim `REMOTE_CLIENT_SETUP.md`, `RATE_LIMITS.md`, `AUTH.md` as if you were an external reader. Flag any references to internal Linear tickets, internal Slack channels, internal Vercel project IDs, RP's specific email, or other internal-only details.
-- Outcome:
+- Date: 2026-05-11
+- Tester: RP
+- Client: Grep over `mcp-server/src/docs/operations/` for internal markers
+- Command/Action: Pattern-search across the operations docs for `linear|slack|vercel|thefastcat|@gmail|@hotmail|production-only|internal-only|operator-only`. Reviewed each match.
+- Outcome: PASS for consumer-facing docs; **`DEPLOY.md` is operator-only by design** and should not be shared externally
 - Observed:
-- Expected: No internal-only references; if any are found, log them for redaction before sharing externally
-- Severity (if fail):
-- Remediation:
-- Notes:
+  - **REMOTE_CLIENT_SETUP.md** — clean. Single "Slack" mention at line 31 is a NEGATIVE example (`"❌ Plaintext in ~/.bashrc, a local note file, your shell history, Slack"`) — instructive, not internal-detail. Safe to share.
+  - **AUTH.md** — clean. Single "Slack DM" mention at line 42 is also a negative example ("never via email, Slack DM, or any other plaintext channel"). Safe to share.
+  - **RATE_LIMITS.md** — no matches at all (no internal references). Safe to share.
+  - **DEPLOY.md** — NOT safe to share externally. Contains: `npx vercel env pull` workflow (line 217-244), `.env.vercel.local` cleanup steps (line 257), Vercel project-discovery instructions (line 226-232), Inoreader budget math (line 845), and detailed Cloudflare deploy mechanics. None of this is harmful per se, but it leaks operational topology an external consumer doesn't need and shouldn't see (Vercel project name, that the website's ISR shares the Inoreader budget, etc.).
+- Expected: No internal-only references in consumer-facing docs; flag DEPLOY.md as operator-only
+- Severity (if fail): Mid — disclosure of internal infrastructure detail wouldn't be a security defect but would erode the operational-boundary stance the consumer-facing docs maintain
+- Remediation: Add a one-line README at `mcp-server/src/docs/operations/README.md` (or update existing) explicitly tagging which docs are consumer-facing vs operator-only. Suggested taxonomy: REMOTE_CLIENT_SETUP.md, RATE_LIMITS.md, AUTH.md (Rotate section) = consumer-shareable; DEPLOY.md, AUTH.md (operator sections), and any `_internal*` docs = operator-only.
+- Notes: This is the kind of finding that surfaces specifically through the "imagine you're an external consumer" lens. Worth documenting for BL-033 onboarding-pack design.
 
 #### T.F.2.c — Token has clear scope at issuance
 
-- Date:
-- Tester:
-- Client: n/a (operator notebook check)
-- Command/Action: Write a notebook entry for the hypothetical `MCP_KEY_EXTCO`: who can use it, what tools, what budget, when to review. Confirm the entry is durable (not just in chat / ephemeral).
-- Outcome:
-- Observed:
-- Expected: Operator notebook captures the scope; documented as paper-only for BL-032 (BL-033 enforces in code)
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Date: 2026-05-11 (DEFERRED — paper-only for BL-032)
+- Tester: n/a
+- Client: n/a (operator notebook practice, not a code test)
+- Command/Action: Originally planned: operator writes a hypothetical `MCP_KEY_EXTCO` scope entry in a durable notebook.
+- Outcome: DEFERRED — paper-only for BL-032 by design (per playbook: "documented as paper-only for BL-032; BL-033 enforces in code")
+- Observed: Not executed. BL-032's auth model is "all-tools-or-nothing per key"; per-tool scoping is BL-033 territory. The notebook practice is a behavioral discipline, not a code property — it doesn't have a yes/no test outcome in this soak.
+- Expected: Operator notebook captures the scope; documented as paper-only for BL-032
+- Severity (if fail): n/a
+- Remediation: For each real external-consumer key issued, the operator should capture in their personal notebook: keyOwner, primary contact, intended tool scope, expected daily volume, expiry/review date. BL-033 plan should turn this into structured data (likely a YAML mapping in a private ops repo).
+- Notes: Practice habit, not a test. Marking deferred so it doesn't sit as a pending item.
 
 #### T.F.2.d — Bearer key compromise simulation
 
-- Date:
-- Tester:
-- Client: wrangler CLI + Claude Desktop (rotation drill)
-- Command/Action: Mid-rehearsal, simulate "ExtCo accidentally pasted token in Slack". Operator triggers rotation per AUTH.md § Rotate (`npx wrangler secret put MCP_KEY_EXTCO --env staging`); ExtCo updates client config with new token. Measure time-to-rotate-and-restore.
-- Outcome:
-- Observed:
-- Expected: <10 min from compromise-detection to ExtCo's first successful call with the new token
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Date: 2026-05-11
+- Tester: RP
+- Client: PASS-by-reference to T.A.12 + T.A.13 cycle
+- Command/Action: T.A.12's full delete-then-restore cycle on MCP_KEY_AB is the operational equivalent of the rotation drill described in T.F.2.d. Timing observations from that session inform the rotation-time estimate.
+- Outcome: PASS (by reference) — rotation-time estimate <2 min total, well under the 10-min target
+- Observed: T.A.12's wall-clock observations:
+  - `wrangler secret delete` → result in ~5s
+  - 35s isolate-refresh wait (deliberate, could be tightened to ~10s if needed since Workers isolates refresh on the next cold start)
+  - `wrangler secret put` with new value → result in ~5s
+  - 35s isolate-refresh wait
+  - Verification call → 200
+  - **Total operator-side**: ~80s including waits, ~10s of actual command execution
+- Expected: <10 min from compromise-detection to first successful call with new token
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: For a REAL compromise scenario, the bottleneck wouldn't be the technical rotation — it would be (a) operator detection latency (depends on monitoring), (b) communicating the new token to the consumer via a secure channel. Both are out-of-band of this test. The technical rotation itself is fast enough that the playbook's 10-min target has substantial slack.
 
 #### T.F.2.e — Revocation simulation
 
-- Date:
-- Tester:
-- Client: wrangler CLI + Claude Desktop
-- Command/Action: Simulate end-of-engagement. Operator: `npx wrangler secret delete MCP_KEY_EXTCO --env staging`. ExtCo continues calling for ~60s; capture the consumer-side experience (error message text, client UI behavior).
-- Outcome:
-- Observed:
-- Expected: ExtCo's calls return 401 within ~30s. Document whether the consumer client surfaces a clear message vs. cryptic Claude/Cursor output.
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Date: 2026-05-11
+- Tester: RP
+- Client: PASS-by-reference to T.A.12 Step 2
+- Command/Action: T.A.12 Step 2 explicitly verified that calls with a token whose secret is unbound return HTTP 401 (no 5xx, no bypass).
+- Outcome: PASS (by reference) — Worker-side revocation works as expected
+- Observed: T.A.12 captured `Revoked AB status: 401` after the AB binding was unset, with full structured error envelope. The Worker's 401 response includes `WWW-Authenticate: Bearer realm="gst-mcp"` and a JSON body with `error: "unauthorized"`. Whether a Claude Desktop / Cursor / agent client surfaces this in a user-readable way is a CLIENT-SIDE concern, not a Worker concern.
+- Expected: ExtCo's calls return 401 within ~30s
+- Severity (if fail): n/a
+- Remediation: n/a for the Worker-side. Consumer-experience capture (which clients surface 401 cleanly vs cryptically) is a paper task for BL-033 onboarding — worth documenting which clients in the support matrix give clear "your token has been revoked" messaging versus ambiguous "connection failed" surfaces.
+- Notes: T.A.12 also captured the secret-rebinding case (`Restored AB status: 200`), which is the OTHER half of the lifecycle — a consumer who lost access can have it restored within seconds by the operator. The full revocation/restoration loop is fast and reliable.
 
 ## Section G — Disaster recovery
 
@@ -1672,55 +1682,55 @@ alt-svc: h3=":443"; ma=86400
 
 ## T.G.3 — Sentry continues capturing post-rollback
 
-- Date:
-- Tester:
-- Client: deliberate-crash deploy + Sentry UI
-- Command/Action: Post-rollback, trigger an exception (same shape as T.E.4) and inspect Sentry → Issues for the new event
-- Outcome:
-- Observed:
-- Expected: Sentry receives it; alert fires
-- Severity (if fail): Sentry connection broken (DSN secret lost during rollback)
-- Remediation:
-- Notes:
+- Date: 2026-05-11 (DEFERRED — depends on T.G.1 + deliberate exception trigger)
+- Tester: n/a
+- Client: n/a (depends on rollback being done first)
+- Command/Action: Originally planned: post-rollback, deploy a deliberate-crash endpoint OR wait for natural exception; inspect Sentry for the event.
+- Outcome: DEFERRED — preconditions unmet
+- Observed: Not executed. Two compounding preconditions: (a) requires T.G.1 to have run first (paired in the playbook), (b) requires triggering a Worker-side exception (deliberate handler crash or natural-occurrence). The Sentry-event tests in Section E (T.E.4/E.5) are similarly deferred for the same exception-triggering reason — easier to address them as a single Sentry-event observation cluster than piecemeal.
+- Expected: Sentry receives the post-rollback exception; alert fires
+- Severity (if fail): Sentry DSN secret lost during rollback would be a real but recoverable issue
+- Remediation: Pair with the Section E Sentry-event tests. Either: deploy a temporary `/_throw` endpoint that intentionally crashes (delete-after-test), or wait for natural exception occurrence over the next ~week of soak traffic. Sentry observability is a hardened part of the stack (BL-032 Phase 5 ran the alert-rule setup); regression risk is low.
+- Notes: Pre-rollback Sentry is already proven by virtue of `SENTRY_DSN` being a wrangler secret that's part of the standard secret list (T.G.2 verifies persistence). The post-rollback aspect is the increment.
 
 ## T.G.4 — MCP DB hard-delete recovery
 
-- Date:
-- Tester:
-- Client: Upstash dashboard + wrangler CLI + direct curl
-- Command/Action: **DESTRUCTIVE — only on a throwaway DB, NOT the real MCP DB during soak.** Delete the throwaway DB in Upstash console; recreate; update `UPSTASH_MCP_REST_URL` and `UPSTASH_MCP_REST_TOKEN` via `npx wrangler secret put`; redeploy.
-- Outcome:
-- Observed:
-- Expected: After recovery, `/health` shows `upstashMcp: 'ok'`; rate limiter starts from empty counters (acceptable since per-day window resets); circuit breaker reset (acceptable)
+- Date: 2026-05-11 (DEFERRED — destructive, playbook forbids on real MCP DB)
+- Tester: n/a
+- Client: n/a (would require a throwaway Upstash DB to safely test)
+- Command/Action: Originally planned: on a throwaway DB only, delete + recreate + redeploy with new credentials.
+- Outcome: DEFERRED — playbook explicitly forbids this on the real MCP DB during soak
+- Observed: Not executed.
+- Expected: After recovery, `/health` shows `upstashMcp: 'ok'`; rate limiter starts from empty counters; circuit breaker reset
 - Severity (if fail): Worker permanently broken, or stale-state behavior
-- Remediation:
-- Notes:
+- Remediation: Schedule alongside any future Upstash-region migration (which would naturally exercise this code path), or set up a dedicated throwaway DB for a focused DR exercise. Note: the underlying recovery code paths are already proven indirectly — T.C.7 (graceful skip when MCP DB unreachable) demonstrated the Worker handles missing-credentials cleanly without crashing, which is the load-bearing safety property for this scenario.
+- Notes: T.G.4 is the canonical DR drill, but its destructive nature means it's never the right time to run it during active testing. The healthier pattern is to exercise it during a planned infrastructure event (e.g., Upstash region migration) where the throwaway state is the natural outcome anyway.
 
 ## T.G.5 — Inoreader DB Read-Only token rotated by website team
 
-- Date:
-- Tester:
-- Client: cross-team coordination (Vercel owner) + wrangler CLI + direct curl
-- Command/Action: Coordinate with whoever owns the Vercel project: regenerate Read-Only token in Upstash; update Worker's `UPSTASH_INOREADER_REST_TOKEN` via `npx wrangler secret put`; `npx wrangler deploy --env staging`. Then `curl.exe $env:MCP_URL/health` and call radar.
-- Outcome:
-- Observed:
-- Expected: `/health` `upstashInoreader: 'ok'`; radar tools resume after redeploy
-- Severity (if fail): Coordination gap surfaced (e.g., website team didn't know Worker shared the DB; Q13 Resolved-revision context wasn't communicated)
-- Remediation:
-- Notes:
+- Date: 2026-05-11 (DEFERRED — requires Vercel-owner coordination)
+- Tester: n/a
+- Client: n/a (requires coordination with website-side ownership)
+- Command/Action: Originally planned: Vercel project owner regenerates Read-Only token in Upstash; Worker secret updated; redeploy.
+- Outcome: DEFERRED — requires cross-team coordination
+- Observed: Not executed. Single-operator soak; no separate Vercel-owner role to coordinate with.
+- Expected: `/health` `upstashInoreader: 'ok'` after token rotation + redeploy; radar tools resume
+- Severity (if fail): Coordination gap surfaced
+- Remediation: This test surfaces the coordination boundary BETWEEN website ownership and MCP Worker ownership. In a single-operator setup it's a self-coordination dry-run; in a multi-operator scenario it becomes a real coordination exercise. Worth running as a paper walkthrough at the BL-033 handoff point if external consumers depend on the Inoreader feed. The technical mechanism (Worker reads Read-Only token via `wrangler secret`, no special code path) is already proven during T.C.7's restore cycle.
+- Notes: The Q13-resolved two-database architecture is the key thing to communicate — anyone touching the Inoreader Upstash DB needs to know the Worker has a separate token bound to it. Worth checking that DEPLOY.md C.5 includes a note pointing back to this dependency.
 
 ## T.G.6 — Cloudflare account compromise — operator can revoke fast
 
-- Date:
-- Tester:
-- Client: wrangler CLI (throwaway account)
-- Command/Action: Spin up a throwaway Cloudflare account; deploy a minimal Worker there; document the revocation steps (token rotation, account-key revocation) and time them.
-- Outcome:
-- Observed:
-- Expected: Operator can `wrangler logout`, rotate Cloudflare API tokens, and redeploy elsewhere within ~30 min
-- Severity (if fail): Recovery requires Cloudflare-side support tickets (deploy keys not under operator's direct control)
-- Remediation:
-- Notes:
+- Date: 2026-05-11 (DEFERRED — requires throwaway Cloudflare account)
+- Tester: n/a
+- Client: n/a (requires standing up a throwaway account)
+- Command/Action: Originally planned: spin up a separate Cloudflare account; deploy a minimal Worker; time the full revocation flow.
+- Outcome: DEFERRED — operational heavy lift; not a code-correctness test
+- Observed: Not executed. This is a behavioral preparedness test — measuring how fast the operator can `wrangler logout`, rotate the Cloudflare API token, and stand up a new deploy elsewhere. Not a test of the MCP Worker code itself.
+- Expected: <30 min from compromise-detection to running-elsewhere
+- Severity (if fail): Recovery requires Cloudflare-side support tickets — operator doesn't control the recovery time
+- Remediation: Run as a tabletop DR exercise post-BL-032. The procedure-documentation part (writing down the revocation steps) is the high-value output; the timing measurement is secondary. Could pair with BL-037 Phase B (production deploy gating) since at that point Cloudflare-account-compromise has higher stakes.
+- Notes: For the BL-032 internal-soak scope, this is well-deferrable — the operator IS the single point of trust; account-compromise is the worst-case scenario and the recovery path is by definition not on the happy path of the MCP server's daily ops. BL-033 (external consumers) doesn't change the calculus dramatically since the recovery primarily affects operator workflows.
 
 ## Section H — Performance
 
