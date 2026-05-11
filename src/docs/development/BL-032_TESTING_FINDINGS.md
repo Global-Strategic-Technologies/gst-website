@@ -976,42 +976,42 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.B.9.d — Each of 4 categories
 
-- Date:
-- Tester:
+- Date: 2026-05-11
+- Tester: RP
 - Client: direct curl (PowerShell helper)
-- Command/Action: Loop the four categories: `foreach ($cat in @("pe-ma","enterprise-tech","ai-automation","security")) { Invoke-McpTool -Name "search_radar" -Arguments @{ category = $cat } }`
-- Outcome:
-- Observed:
+- Command/Action: Loop the four categories: `foreach ($cat in @("pe-ma","enterprise-tech","ai-automation","security")) { Invoke-McpTool -Name "search_radar" -Arguments @{ category = $cat } }` — tabulate Matches, cache hits, returned-category uniqueness, deeplink
+- Outcome: PASS
+- Observed: All four categories returned non-zero matches with both caches hit (zero additional Inoreader budget burn, per T.B.9.c finding). Per-category counts: pe-ma=16, enterprise-tech=22, ai-automation=20, security=19 (78 total — matches T.B.9.c). For every row, the unique categories in returned matches exactly equals the requested category (clean filter). Deeplinks correctly encode `?category=<cat>` for all four.
 - Expected: All return non-zero; each populates own cache entry
-- Severity (if fail):
-- Remediation:
-- Notes: Caveat — burns 4 × 6 = 24 Inoreader calls; only do once during soak to map cache keys
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: Original "caveat — burns 24 Inoreader calls" in the stub is wrong given the cache-key-is-tier-keyed design (T.B.9.c). Real budget cost: zero, as long as wire+fyi caches are warm. Worth correcting in the playbook.
 
 #### T.B.9.e — After Inoreader access-token refresh
 
-- Date:
-- Tester:
-- Client: direct curl (PowerShell helper) + manual recovery flow
-- Command/Action: Follow DEPLOY.md C.5 token-refresh recovery flow; after, call `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }` then `curl.exe $env:MCP_URL/health`
-- Outcome:
-- Observed:
+- Date: 2026-05-11
+- Tester: RP
+- Client: PASS-by-reference (no fresh terminal work)
+- Command/Action: Cross-reference to T.X.3 captured during T.B.10.a precondition (5/10). Sanity probe: `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }` returned 16 matches with `wireCacheHit=True`, confirming token is currently healthy.
+- Outcome: PASS (by reference)
+- Observed: T.X.3 documents the exact `token-stale` envelope (status 401, `error: "token-stale"`, structured message pointing to website-side ISR refresh) captured live during the T.B.10.a precondition. `search_radar` uses the same `readWireLive` + `readFyiLive` code paths that produced that envelope, routed through the same `failureResponse()` helper at [mcp-server/src/tools/radar-live.ts:115-132](../../../mcp-server/src/tools/radar-live.ts#L115-L132) — contract is identical between the two tools, no benefit to a fresh repro for `search_radar` specifically.
 - Expected: `inoreader: 'ok'` in `/health` after recovery; radar call succeeds
-- Severity (if fail):
-- Remediation:
-- Notes: Already observed once during initial deploy
+- Severity (if fail): n/a
+- Remediation: n/a — PASS
+- Notes: If a future incident or audit requires a `search_radar`-specific repro, the path is: delete `inoreader:access_token` from the Inoreader Upstash DB → call `search_radar` → expect token-stale envelope → hit `/hub/radar` in browser to trigger ISR refresh → call `search_radar` again → expect success. Not run here because it would force a real token-refresh cycle without operational value above what T.X.3 already proved.
 
 #### T.B.9.f — During simulated Inoreader 429
 
-- Date:
-- Tester:
+- Date: 2026-05-11 (attempted; not executed)
+- Tester: RP
 - Client: direct curl (PowerShell helper) + Upstash REST
 - Command/Action: First force the breaker open via Section D Strategy 1 (`/set/mcp:radar:circuit-open/inoreader-rate-limit` with EX=21600); then call `Invoke-McpTool -Name "search_radar" -Arguments @{ category = "pe-ma" }`
-- Outcome:
-- Observed:
+- Outcome: NOT EXECUTED — preconditions missing
+- Observed: First attempt 2026-05-11: `$env:UPSTASH_MCP_REST_URL` and `$env:UPSTASH_MCP_REST_TOKEN` were not present in the shell when the test ran. Step 1 (force breaker open) errored with `Invoke-RestMethod: Invalid URI: The hostname could not be parsed` because the URI template resolved to `/set/...` (no host). The breaker was therefore never opened. Step 2's `search_radar` call returned the normal 78-match cached response (both cache hits True) — the system was working correctly, but the test of the 503 short-circuit path didn't actually happen. Step 4 cleanup failed identically; nothing to clean up. Step 5 sanity returned the expected 16 pe-ma matches, confirming the system is in a normal post-T.B.9.d state. No collateral damage; just no T.B.9.f result.
 - Expected: See Section D § T.D.3 — radar tools return 503 with `Retry-After`
-- Severity (if fail):
-- Remediation:
-- Notes:
+- Severity (if fail): n/a (not a test failure — a test that didn't run)
+- Remediation: Re-run with Upstash env vars set. Operator must paste `UPSTASH_MCP_REST_URL` (the MCP Upstash DB REST URL, e.g. `https://big-armadillo-12345.upstash.io`) and `UPSTASH_MCP_REST_TOKEN` (the **Standard** read+write token — Read-only won't work because SET/DEL are needed; per T.X.2 lesson). Both are in the operator password manager from T.C.7 recovery.
+- Notes: This is the same operator-experience risk family as T.X.1 (placeholder pasted as-is) and T.X.2 (Read-only vs Standard token confusion). Worth promoting to a checklist gate in the playbook: "Before running ANY Section D / T.B.9.f / T.B.10.f test that needs Upstash REST: confirm `$env:UPSTASH_MCP_REST_URL` and `$env:UPSTASH_MCP_REST_TOKEN` are non-empty, AND the token is Standard not Read-only." See T.B.9.f re-run prompt for the preflight pattern.
 
 ### T.B.10 — `get_latest_insights`
 
