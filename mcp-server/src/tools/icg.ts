@@ -44,10 +44,14 @@ export function buildResultsState(inputs: ICGInputs): ICGState {
 
 const TOOL_DESCRIPTION = `Assess a target company's Infrastructure Cost Governance maturity.
 
+**Structure-discovery usage (READ FIRST)**: When the user asks ABOUT the ICG framework rather than asking you to assess a specific company — e.g. "what does the ICG framework cover?", "what are the ICG domains?", "how would I assess ICG maturity?" — call this tool with \`answers: {}\` (empty object, no \`companyStage\`). The response's \`domainScores[].name\` field returns the canonical 6 domain names (with all scores at 0). Use this to ground framework descriptions in the actual taxonomy. **Do NOT describe the framework from memory** — GST's ICG framework has 6 specific domains, and describing them from training-knowledge has produced fabricated domain names in soak testing.
+
+---
+
 Given an \`answers\` map keyed by ICG question ID (values: 0-3 for the four maturity levels, or -1 for "Not sure" which is penalised) and an optional \`companyStage\`, returns:
 
 - \`overallScore\` (0-100) and \`maturityLevel\` ('Reactive' | 'Aware' | 'Optimizing' | 'Strategic')
-- Per-domain scores with foundational-flag status
+- Per-domain scores with foundational-flag status — each entry's \`name\` field is the canonical domain name (use these names verbatim; do not paraphrase or substitute)
 - Sorted recommendations triggered by below-threshold answers (impact-then-effort ordering)
 - Aggregate counts (answered, total, "Not sure" responses)
 - \`deeplink\` — URL to open the ICG wizard with these answers pre-populated (for PDF / export / share via the website page)

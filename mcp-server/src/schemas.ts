@@ -145,7 +145,7 @@ export const SearchPortfolioInputSchema = z.object({
     .string()
     .default('all')
     .describe(
-      'Engagement-category filter; pass "all" (the default) to skip. One of the values listed under `engagementCategories` in `list_portfolio_facets` (typically "Buy-Side" or "Sell-Side"). Mirrors the website Engagement chip row.'
+      'Engagement-category filter; pass "all" (the default) to skip. One of the values listed under `engagementCategories` in `list_portfolio_facets` (typically "Buy-Side" or "Sell-Side"). Mirrors the website Engagement chip row. **Natural-language mapping**: "GST advised on selling X" / "X was sold to Y" / "X exited to Y" → `Sell-Side`; "GST did diligence on X for an acquirer" / "X was acquired by Y" / "we bought X" / "we are evaluating acquiring X" → `Buy-Side`. When the user\'s phrasing is genuinely ambiguous about which side GST was on (e.g. "GST worked on the X transaction"), run TWO separate searches with `Buy-Side` and `Sell-Side` and surface the split in synthesis — do NOT default to one side.'
     ),
 });
 
