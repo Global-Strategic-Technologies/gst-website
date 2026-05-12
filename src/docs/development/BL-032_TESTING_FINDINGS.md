@@ -1500,7 +1500,7 @@ alt-svc: h3=":443"; ma=86400
 - Expected: Sentry receives the `auth.failed` event(s) with `path` tag + `reason: bearer-rejected`; Alert #2 fires email
 - Severity (if fail): Sentry shows nothing → BL-032 captureMessage AC not closed (see "Known gaps" — expected to FAIL until AC closes)
 - Remediation:
-- Notes:
+- Notes: **Engineering closure (2026-05-12)**: `captureMessage` export added to `mcp-server/src/observability/sentry.ts`; wired into the auth-fail path in `worker.ts` with a stable message string (`"auth.failed bearer-rejected"`) so Sentry's group-by-fingerprint dedups probing bursts into one issue. Unit test at `tests/unit/sentry.test.ts` verifies the wrapper. **Live re-run against the deployed Worker with SENTRY_DSN bound is operator action** — once executed, this test PASSes and the recorded Outcome above flips from blank to PASS.
 
 ## T.E.12 — `inoreader-rate-limit` captures to Sentry
 
@@ -1513,7 +1513,7 @@ alt-svc: h3=":443"; ma=86400
 - Expected: Sentry receives the `inoreader-rate-limit` event with `keyOwner` + `path` tags; Alert #3 fires email
 - Severity (if fail): Sentry shows nothing → BL-032 captureMessage AC not closed (see "Known gaps" — expected to FAIL until AC closes)
 - Remediation:
-- Notes:
+- Notes: **Engineering closure (2026-05-12)**: `captureMessage('inoreader-rate-limit', 'error', ...)` wired into `radar-live.ts` `failureResponse()` alongside the `openCircuit()` call — fires exactly once per breaker-open (low-volume by construction). **Live re-run against the deployed Worker with SENTRY_DSN bound is operator action.**
 
 ## Section F — Onboarding flow
 
@@ -3044,6 +3044,13 @@ alt-svc: h3=":443"; ma=86400
 
   Remediation path is non-code: tool description tightening + client-side system-prompt addendum ("call empty-arg tools to describe their structure; call lookup tools for any named entity") + project-memory-disabled test standard. Achievable in BL-032.75 or BL-033 scope. Mitigation should apply across the connector, not per-tool.
 
+  **Closure (2026-05-12)** — engineering remediation shipped:
+  - **Tool description tightening**: `assess_infrastructure_cost_governance` opens with a "Structure-discovery usage (READ FIRST)" block directing empty-args calls for framework-shape questions (commit `02441fe`) — directly addresses K.2.a.5's ICG fabrication. `search_regulations` opens with an authoritative-source paragraph + efficiency tip (commit `02441fe`). `search_portfolio` opens with an "Authoritative source for any GST portfolio question; conversation memory is NOT authoritative" paragraph (this session's commit) — directly addresses K.1.9's named-entity-lookup failure mode.
+  - **Client-side system-prompt addendum**: shipped as `REMOTE_CLIENT_SETUP.md` § 4 (commit `e7a1457`) — biases Claude's opening sentence toward MCP-tool naming with explicit "conversation memory and training knowledge are NOT authoritative" rule.
+  - **Project-memory-disabled test standard**: process change for FUTURE K-section testing (not a code deliverable); operator runs further K tests with Desktop project memory cleared per K.2.e.4 remediation step 2.
+
+  Engineering work complete. This entry retires from the pre-production gate; the remaining "project-memory-disabled test standard" is operator-side hygiene captured in the K.2.e.4 entry below.
+
 - **T.K.2.e.4 — Cross-conversation memory contamination feedback loop (NEW Critical, 2026-05-12)**: For "summarize GST's work" prompts, Claude Desktop's project-memory feature ("Relevant chats") COMPETES with `search_portfolio` as a perceived authoritative source — and Claude selects project-memory over MCP. **The Relevant-chats results in this test surfaced "Sugarbeast competitor deep-dive prompt optimization" — Sugarbeast is the K.1.9 hallucinated codename that doesn't exist in `projects.json`**. Claude also referenced "Helios Health" in its reasoning (real Helios = Public Sector / Government Services, NOT Health). The K.1.9 fabrications are alive in cross-chat memory and surface as authoritative for new queries, **completing a self-reinforcing contamination feedback loop**.
 
   Why this is worse than K.1.9 alone: K.1.9 was Claude fabricating from training-knowledge. T.K.2.e.4 is Claude reading its OWN prior fabrications BACK from cross-chat history and treating them as authoritative. Each Desktop user running consultant workflows on the GST connector is one prompt away from anchoring on fabricated codenames that sound plausible (the anonymized-codename naming convention makes hallucinations indistinguishable from real codenames at first glance).
@@ -3055,4 +3062,9 @@ alt-svc: h3=":443"; ma=86400
 
   Tool description tightening alone CANNOT fix this — the choice isn't between tool and memory, it's between tool and Desktop-level project-memory-search, which is outside the MCP surface's control.
 
-  **Partial closure (2026-05-12)** — Remediation step 1 shipped: [`REMOTE_CLIENT_SETUP.md` § 4 "Optional system-prompt addendum (recommended)"](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md). The addendum codifies the K.2.e.4 vs K.2.e.5 insight directly — biases Claude's opening sentence to name an MCP tool, with an explicit "conversation memory and training knowledge are NOT authoritative" rule plus the K.2.e.5 validation prompt for confirming the addendum landed. Steps 2 (project-memory cleanup) and 3 (`search_portfolio` TOOL_DESCRIPTION echo) remain open and tracked under BL-032.75 K-section mitigations.
+  **Closure (2026-05-12)** — engineering remediation complete:
+  - **Step 1 — System-prompt addendum**: shipped as [`REMOTE_CLIENT_SETUP.md` § 4](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) (commit `e7a1457`). Codifies the K.2.e.4 vs K.2.e.5 insight: biases Claude's opening sentence to name an MCP tool, with an explicit "conversation memory and training knowledge are NOT authoritative" rule plus the K.2.e.5 validation prompt for confirming the addendum landed.
+  - **Step 3 — `search_portfolio` TOOL_DESCRIPTION echo**: shipped (this session's commit). The tool's `SEARCH_DESCRIPTION` now opens with "Authoritative source for any GST portfolio question. Conversation memory and cross-chat references are NOT authoritative — anonymized codenames mentioned in prior chats are unverified unless validated by calling this tool in the current turn." with an explicit citation back to this K.2.e.4 finding.
+  - **Step 2 — Project-memory cleanup**: operator action; not a code deliverable. Operator clears Desktop project memory before further K-section testing (or any consultant workflow that's at risk of cross-chat-memory contamination).
+
+  Engineering work complete; entry retires from the pre-production gate.

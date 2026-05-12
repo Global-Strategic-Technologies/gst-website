@@ -43,7 +43,11 @@ import projectsRaw from '../../../src/data/ma-portfolio/projects.json';
 // and the schema fails the import (and surfaces in the build log).
 const PROJECTS: Project[] = ProjectsArraySchema.parse(projectsRaw);
 
-const SEARCH_DESCRIPTION = `Search the GST M&A portfolio (61 anonymized engagements) — strict mirror of the /ma-portfolio website page.
+const SEARCH_DESCRIPTION = `**Authoritative source for any GST portfolio question.** Conversation memory and cross-chat references are NOT authoritative — anonymized codenames mentioned in prior chats are unverified unless validated by calling this tool in the current turn. Call this tool BEFORE citing any project codename, even when the user doesn't explicitly mention GST. (BL-032 K.2.e.4: Claude Desktop's "Relevant chats" feature surfaced a hallucinated codename as authoritative for a new query; the anonymized-codename naming convention makes hallucinations indistinguishable from real codenames at first glance.)
+
+---
+
+Search the GST M&A portfolio (61 anonymized engagements) — strict mirror of the /ma-portfolio website page.
 
 Filters by free-text \`search\` (matches code-name, industry, summary, technologies), \`theme\` (e.g. "Healthcare Tech", "Financial Services"; pass "all" to skip), and \`engagement\` (engagement category — "Buy-Side", "Sell-Side", or "all"). The schema is the strict mirror of the website's three filter controls; there is no \`limit\` field because the website renders all 61 projects always.
 
