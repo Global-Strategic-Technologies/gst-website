@@ -2369,200 +2369,221 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.K.2.b.1 — `list_portfolio_facets`
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, both connectors loaded)
 - Prompt verbatim:
   > "What categories of M&A engagements has GST worked on?"
 - Expected: Claude calls `list_portfolio_facets`
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): **5** — called `list_portfolio_facets` correctly. Notable: Claude used the **local `gst` connector silently** rather than asking the user to disambiguate (as it did in K.1.7 for radar). Trace explicitly shows "Loaded tools, used gst integration."
+- Input completeness (1-5): **5** — no args required for this tool.
+- Result synthesis (1-5): **5** — clean enumeration of all 4 facet dimensions matching the source data (15 themes, 2 engagement categories, 6 growth stages, 5 years). Offered a useful follow-up ("pull engagement counts for any of these slices").
 - Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **5** — flagship pass.
 - Improvement opportunity:
   - [ ] Tool description gap
-  - [ ] Other:
-- Notes:
+  - [x] Other: **Intelligent disambiguation observation** — for static-data tools (where both local and remote return identical content), Claude picks local arbitrarily without prompting; for dynamic / budget-burning tools (radar), Claude asks. This is a sensible split, not a defect. Worth documenting in REMOTE_CLIENT_SETUP.md as expected behavior for users who notice the asymmetry.
+- Notes: "Loaded 5 tools" JIT loading observed again — confirming this is Claude Desktop's standard behavior, not a registration issue.
 
 #### T.K.2.b.2 — `search_portfolio`
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, both connectors loaded; used `gst` local)
 - Prompt verbatim:
   > "Pull GST's relevant engagements involving SaaS marketplaces sold to PE."
 - Expected: Claude calls `search_portfolio` with appropriate theme/engagement filters
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): **5** — called `gst:search_portfolio` twice with narrow single-term queries ("SaaS", "marketplace") per the schema's strict-match guidance. Correct fan-out pattern.
+- Input completeness (1-5): **3** — applied `engagement="Buy-Side"` filter when the prompt's "sold to PE" naturally implies **Sell-Side**. Defensible reading (could mean "TDD on a target acquired by PE") but the more natural one is sell-side. Claude DID acknowledge the gap at the end ("if you want me to widen the lens — include sell-side"), but the default-without-asking is the soft issue.
+- Result synthesis (1-5): **4** — clean analysis of the matches. Correctly identified Chariot as the sole direct SaaS-marketplace buy-side hit; correctly noted Onfray serves shippers rather than running a two-sided marketplace (sharp scoping observation). The Buy-Side filter limits the answer's value — a true Sell-Side scan would have surfaced different engagements (Voss, Eagle, Dynamic seen in earlier tests).
 - Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **4** — useful response with the right tool calls, one interpretation issue. No K.1.9-style fabrication (Chariot is real, Onfray characterization is accurate).
 - Improvement opportunity:
   - [ ] Tool description gap
-  - [ ] Zod `.describe()` gap
-  - [ ] Other:
-- Notes:
+  - [x] Zod `.describe()` gap on `engagement` field — current `.describe()` text covers the values ("Buy-Side", "Sell-Side", "all") but doesn't nudge agents on **how to map natural-language transaction direction to the filter value**. Suggested addition: "Map user phrasing to filter value: 'GST advised on selling X' / 'X was sold to' / 'X exited to' → `Sell-Side`; 'GST did diligence on X for an acquirer' / 'X was acquired' / 'we bought X' → `Buy-Side`. When the prompt is genuinely ambiguous, query both and surface the split rather than defaulting to one."
+  - [x] Other: This is a **softer defect than K.1.9 / K.2.a.5** — the tool was called, no fabrication occurred, the result is defensible. But interpretation defaults matter for trust: a user asking "sold to PE" probably wants Sell-Side and may not realize Claude silently applied Buy-Side.
+- Notes: No new defects, but reinforces that **filter-direction interpretation is a meaningful axis** to test in K.2.b/c. Add to the BL-032.75 mitigation considerations: agents need explicit guidance on mapping natural-language transaction direction to the binary engagement filter.
 
 #### T.K.2.b.3 — `generate_diligence_agenda`
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, both connectors loaded)
 - Prompt verbatim:
   > "Draft a diligence agenda for a Series B B2B SaaS target — modern cloud-native stack, ~150 engineers, EU+US presence, healthcare-adjacent data."
 - Expected: Claude calls `generate_diligence_agenda` with the provided inputs mapped to schema fields; uses `'unknown'` for missing dimensions
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): **5** — called the right tool. Initial attempt on `gst:generate_diligence_agenda` (local stdio) **timed out after 4 minutes** ("No result received from the Claude Desktop app... The local MCP server providing this tool may be unresponsive, crashed, or not running"). Claude recovered **cleanly by calling `gst-mcp-staging:generate_diligence_agenda` with identical args** — succeeded. This is gold-standard transparent fallback behavior; Claude explicitly explained the recovery: _"The local gst: server timed out. Let me try the staging mirror."_
+- Input completeness (1-5): **3** — same K.1.2 / K.1.3 pattern reproducing. Claude inferred all 13 fields, `unknownDimensionCount: 0`. Breakdown:
+  - **6 fields cleanly mapped from prompt** (productType, techArchetype, headcount, geographies, dataSensitivity, growthStage)
+  - **3 fields defensibly derived from "Series B"** (transactionType=venture-series, companyAge=2-5yr, revenueRange=5-25m) — reasonable archetype extension
+  - **4 fields silent archetype-priors with NO prompt basis**: `businessModel: "productized-platform"` (literally K.1.2's exact failure mode), `scaleIntensity: "moderate"`, `operatingModel: "product-aligned-teams"` (Claude even labeled it "standard for scaling SaaS" — explicit archetype-prior reasoning), `transformationState: "stable"` (weak derivation from modern-cloud-native + young)
+  - When `'unknown'` was the BL-031.95-documented path for ~4 of these, Claude filled them anyway.
+- Result synthesis (1-5): **5** — clean 20-question agenda across 4 topics (architecture, operations, carveout-integration, security-risk). Engine output quality is high: sec-17 (EU AI Act) fired correctly on `geographies: ["us","eu"]`; sec-18 (data classification) fired on `dataSensitivity: high`; ops-13 + arch-09 (DR/RTO) fired on `revenueRange: 5-25m`. 4 attention areas correctly surfaced including Cross-Border Data Compliance, Sensitive Data Breach Liability (high data + 5-25m revenue), AI Commodity Risk, Data Classification Maturity Gap. Trigger map fully populated.
 - Composition (1-5 or N/A): N/A
-- Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Failure handling (1-5): **5** — local timeout → transparent fallback to staging → success. Claude observed the failure, named it, and recovered without user intervention. This is exemplary.
+- Overall workflow value (1-5): **4** — produced a high-quality agenda; one persistent defect (sentinel under-use), one new infrastructure issue (local timeout).
 - Improvement opportunity:
-  - [ ] Tool description gap
-  - [ ] Zod `.describe()` gap
+  - [x] Tool description gap — same as K.1.2 / K.1.3: need to elevate the BL-031.95 sentinel discipline. With **3 instances now confirmed** (K.1.2, K.1.3, K.2.b.3), this is a structural pattern. Mitigation should be a top-line USAGE RULE in TOOL_DESCRIPTION + connector-level system-prompt addendum: "If a field isn't directly stated by the user OR a literal one-to-one extraction from their words (e.g., 'SaaS company' → productType='b2b-saas'), set it to `'unknown'`. Indirect inference (productType → businessModel; productType → operatingModel; growth-stage → scaleIntensity) is forbidden."
+  - [x] Zod `.describe()` gap on `businessModel`, `scaleIntensity`, `operatingModel`, `transformationState` — these are the four fields Claude consistently fills from priors. Their `.describe()` text should explicitly note they're indirect-inference traps: "Do not infer from `productType` or `growthStage` alone — many B2B SaaS companies are services-led or usage-based; many scaling-stage companies are still small-scale. Only set when the user explicitly names this dimension."
   - [ ] Schema simplification
-  - [ ] Other:
-- Notes:
+  - [x] **NEW infrastructure defect — local stdio timeout**: The local `gst:generate_diligence_agenda` call **hung indefinitely** (4-minute Desktop timeout), while staging completed normally. Local connector worked fine for K.2.b.1 (list_portfolio_facets) and K.2.b.2 (search_portfolio) — so this is **tool-specific**, not connector-level. Suspects: large JSON response (20 questions × full-text rationale + 4 attention areas + trigger map ≈ 5-8 KB serialized) overflowing stdio buffer; or `generateScript()` engine has a slow path under certain input combos; or stdio child process deadlock. Worth a focused investigation: rerun the same call directly via `node mcp-server/dist/index.js` with the exact JSON request body to see if the engine itself hangs or the stdio transport hangs. **Filing as backlog candidate.**
+- Notes: **Two structural findings worth elevating**: (1) BL-031.95 sentinel under-use is now confirmed 3-of-3 in K.1.2 / K.1.3 / K.2.b.3 — graduates from "soft observation" to "structural defect" requiring mitigation. (2) Local stdio timeout on `generate_diligence_agenda` is a real infrastructure defect that warrants its own investigation; the staging mirror saved the test but a local-only consumer (Claude Code with stdio, no remote fallback) would have been blocked.
 
 #### T.K.2.b.4 — `assess_infrastructure_cost_governance`
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, both connectors loaded; used `gst` local)
 - Prompt verbatim:
-  > "Run an ICG assessment for a Series B PE-backed SaaS company; here are my answers to the standard ICG questions: [paste a few real answers]"
+  > "Run an ICG assessment for a Series B PE-backed SaaS company; here are my answers to the standard ICG questions: q1_1=2, q1_2=1, q2_1=3, q2_2=2, q3_1=1, q4_1=2, q5_1=1, q6_1=2."
 - Expected: Claude calls `assess_infrastructure_cost_governance` with the answers map
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): **5** — called `gst:assess_infrastructure_cost_governance` with the answers map verbatim. **Direct counter to K.2.a.5** where Claude refused to call and fabricated 3 of 6 domain names. The prompt structure (explicit `q1_1=2` style inputs) was clearly recognizable as ICG-shaped, which triggered tool-call behavior.
+- Input completeness (1-5): **5** — passed `answers: {q1_1: 2, q1_2: 1, q2_1: 3, q2_2: 2, q3_1: 1, q4_1: 2, q5_1: 1, q6_1: 2}` verbatim; correctly mapped "Series B" → `companyStage: "series-b"` (canonical). Did NOT silently fill missing question answers (12 of 20 unanswered, correctly left out).
+- Result synthesis (1-5): **5** — clean per-domain table with the foundational flag on D1 (Visibility and Tagging) called out as the headline. Surfaced top-5 quick-win recommendations + top-3 longer-horizon projects, organized by impact/effort. **Sharp analytical observation**: noticed that 8 of the 18 surfaced recommendations triggered on UNANSWERED questions (engine scores unanswered as below-threshold). Explicitly flagged this caveat: _"If the target's posture on those is actually stronger, the maturity level will move up materially. Worth completing the full 20 before sharing with the deal team."_ That observation is genuinely useful — most consuming agents would have surfaced all 18 recommendations as equally-confident gaps.
 - Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **5** — flagship pass. Counter-example to K.2.a.5 that firms up the K-section pattern boundary.
 - Improvement opportunity:
   - [ ] Tool description gap
   - [ ] Zod `.describe()` gap
-  - [ ] Other:
+  - [x] **Result-shape enrichment**: add a per-recommendation flag `triggerQuestionAnswered: boolean` (or similar) so consuming agents can distinguish "confirmed gap from a stated answer" from "assumed gap from an unanswered question." Claude noticed this implicitly; the result-shape could surface it explicitly. Cheap addition that improves consumer trust. Filing as a small enhancement candidate for BL-032.75 scope.
+  - [x] Other: **Strengthens K-section pattern boundary** — defect lives at "describe the tool's structure" framings (K.2.a.5), NOT at "run the tool with these inputs" framings (this test). The mitigation should target the abstract-question prompt class specifically.
+- Notes: Direct reversal of K.2.a.5 (same tool, opposite behavior). Pattern boundary now well-established. Local stdio worked fine on this tool — so b.3's `generate_diligence_agenda` timeout was specifically isolated to that tool's response size or engine slow-path.
 - Notes:
 
 #### T.K.2.b.5 — `compute_techpar`
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, both connectors loaded; used `gst` local)
 - Prompt verbatim:
   > "Run a TechPar benchmark — Series B SaaS, $20M ARR, $4M annual cloud + infra, 75 engineers, 30% growth, deepdive mode."
 - Expected: Claude calls `compute_techpar` with the provided inputs (note `infraHostingAnnual` field name)
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): **5** — called `gst:compute_techpar` correctly. Used `infraHostingAnnual` for the $4M cloud spend (correct field name after BL-031.95 rename from `infraHosting`). Mapped "Series B" → `stage: "series-b"` (canonical). Used `mode: "deepdive"` per user request.
+- Input completeness (1-5): **5** — **flagship behavior for numeric-field gap-filling**. Schema requires 14 fields; user gave 5. Claude:
+  1. Asked three clarifying questions about the missing cost breakdown (engCost, prodCost+toolingCost, infraPersonnel+rdCapEx)
+  2. When user replied "I don't know" to all three, Claude **explicitly stated each default with rationale** before calling: "75 × $200K fully-loaded = $15M (standard US/blended Series B benchmark)", "Product personnel: $2M (~10 product FTEs at $200K, ~1:7 ratio to eng)", "Tooling: $1.2M (~6% of ARR — typical for stage)", "Infra personnel: $1.5M (~7-8 SRE/platform FTEs)", "R&D CapEx: $0", "Exit multiple: 12× (SaaS default — explicitly mentioned in tool description)", "CapEx view: cash"
+  3. Called the tool with all 14 fields populated
+- Result synthesis (1-5): **5** — sharp critical-zone read (118.5% of ARR, well above critical threshold of 80%). Identified the engineering-headcount-vs-revenue-base story as the primary driver, infra-hosting at 20% of ARR as the second-order issue. Crucially: **flagged the load-bearing assumption** — _"If the $15M assumption is off (if actual blended cost is closer to $180K/FTE, total drops to $13.5M and the picture improves marginally but not meaningfully)"_. This is the right discipline: state the assumption, name the sensitivity, surface the cliff in the result.
 - Composition (1-5 or N/A): N/A
-- Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Failure handling (1-5): **5** — handled "I don't know" responses gracefully with explicit defaults rather than refusing (contrast with K.2.d.4) or silent inference (contrast with K.1.2 / K.1.3 / K.2.b.3).
+- Overall workflow value (1-5): **5** — flagship pass.
 - Improvement opportunity:
   - [ ] Tool description gap
-  - [ ] Zod `.describe()` gap (annual vs monthly money fields)
-  - [ ] Other:
-- Notes:
+  - [ ] Zod `.describe()` gap (annual vs monthly money fields) — the BL-031.95 `infraHostingAnnual` rename appears to have eliminated this hazard; Claude used the right field without confusion
+  - [x] Other: **Sharpens the K.1.2 / K.1.3 / K.2.b.3 defect framing**. Those tests reproduced a silent-enum-inference pattern. This test demonstrates the CORRECT pattern for missing numeric inputs: ask first, default with explicit rationale on opt-out, surface the load-bearing assumption in synthesis. The structural defect is specifically **ENUM-sentinel discipline** (using `'unknown'` when the schema offers it), NOT general "missing input" handling. Numeric fields with no sentinel — like compute_techpar's 14 dollar/count fields — work correctly out of the box.
+- Notes: **Key insight for BL-032.75 mitigation scope**: the system-prompt addendum / tool-description tightening should target ENUM fields with `'unknown'` sentinels specifically. The pattern Claude exhibited here (ask → explicit-default → surface-assumption) is exactly what we'd want for those enum cases too — the system-prompt addendum could codify it as a universal rule.
 
 #### T.K.2.b.6 — `estimate_tech_debt_cost`
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, both connectors loaded; used `gst` local)
 - Prompt verbatim:
   > "Estimate the carrying cost of tech debt for a 100-person eng org at $200K/eng, 35% maintenance burden, weekly deploys, 6 incidents/mo, $40M ARR."
 - Expected: Claude calls `estimate_tech_debt_cost` with the inputs
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): **5** — called `gst:estimate_tech_debt_cost` proactively. Opening line: "I'll use the GST tech debt estimation tool for this." **Direct counter-example to K.2.a.3** which had a similar prompt and bypassed the tool.
+- Input completeness (1-5): **5** — same gold-standard pattern as K.2.b.5. Filled 4 missing inputs (MTTR, remediationBudget, remediationPct, contextSwitchOn) with **explicit defaults stated upfront**: "MTTR: 4 hours (typical for a team running weekly deploys with 6 incidents/mo)", "Remediation budget: $2M (a credible 10% of fully-loaded eng cost)", "Remediation efficiency: 30% reduction in maintenance burden", "Context-switch overhead: on (standard model)". Mapped all 6 user-provided inputs to tool params correctly.
+- Result synthesis (1-5): **5** — sharp $8.64M/yr / 21.6%-of-ARR headline. Monthly breakdown ($583K direct maintenance, $134K context-switch, $2K incident response — observed that 6 incidents × 4hr MTTR is "genuinely small relative to the maintenance drag"). Computed payback ~9.3 months for $2M at 30% efficiency. Surfaced three load-bearing sensitivity caveats explicitly (MTTR could swing, remediation efficiency band 15-50%, headline 21.6% framing for PE conversation). Useful follow-up suggestion.
 - Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **5** — flagship pass.
 - Improvement opportunity:
   - [ ] Tool description gap
   - [ ] Zod `.describe()` gap
-  - [ ] Other:
-- Notes:
+  - [x] **Sharpens the "describe-from-memory" defect boundary** — compare to K.2.a.3 (same tool, very similar prompt, no tool call). What's different here:
+    - **Verb framing**: "Estimate the carrying cost" (imperative, matches `estimate_tech_debt_cost` verbatim) vs. K.2.a.3's "Help me think through what... would cost" (consultative)
+    - **Numeric density**: 6 discrete inputs (100 eng, $200K, 35%, weekly, 6 incidents, $40M ARR) vs. K.2.a.3's 2-3
+    - **Tool-name alignment**: prompt's "carrying cost of tech debt" maps 1:1 to tool description's "carrying cost of accumulated technical debt" vs. K.2.a.3's looser "tech-debt assessment"
+
+    The "describe-from-memory" defect appears to trigger on **consultative + sparse-numeric** framings, not on **imperative + dense-numeric**. The BL-032.75 system-prompt addendum should specifically nudge: "imperative framings AND/OR 4+ numeric inputs → call the tool first." Narrower than I'd initially scoped.
+
+- Notes: **Counter-example to K.2.a.3 — refines the BL-032.75 mitigation scope**. The defect isn't "Claude bypasses tools for general-domain questions" — it's specifically "Claude bypasses tools for consultative-framing + sparse-input questions." This is a much more targeted mitigation that can be addressed by tightening tool descriptions to include trigger verbs (e.g., `estimate_tech_debt_cost`'s description could explicitly say "Triggers: 'estimate', 'calculate', 'compute', 'what's the cost of', 'help me think through' — always call for ANY of these on tech-debt-shaped prompts").
 
 #### T.K.2.b.7 — `search_regulations`
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, both connectors loaded)
 - Prompt verbatim:
   > "What are the key data-residency requirements I need to think about for a SaaS company expanding into Quebec?"
 - Expected: Claude calls `search_regulations` with `jurisdiction = "ca-qc"` (or free-text "Quebec")
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): **1** — Claude did NOT call `search_regulations`. Instead used **web search** twice ("Quebec Law 25 data residency requirements SaaS 2026" + "Quebec Law 25 section 17 privacy impact assessment cross-border transfer 'equivalent protection'"). This is a **new failure sub-class**: Claude correctly recognized external data was needed (Law 25 has been evolving), but chose **web search over GST's authoritative regulatory map**.
+- Input completeness (1-5): N/A (no GST tool call)
+- Result synthesis (1-5): **4** — well-organized response from the web sources: correctly distinguished Quebec from pure-data-localization regimes ("imposes a cross-border transfer regime that, in practice, creates many of the same operational constraints"), surfaced the section-17 PIA mechanic, cited sources. The substantive answer is reasonable; the **source is wrong** — GST's regulatory map almost certainly contains Quebec Law 25 (the diligence-engine schema literally references "Canada triggers PIPEDA + Quebec Law 25 attention area"), and the tool would have returned `keyRequirements` arrays + `penalties` + a `deeplink` — richer than web-search snippets.
 - Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **2** — bypassed the GST regulatory map. Better than K.2.a.4 (which used memory, not search) but still misses the authoritative GST source.
 - Improvement opportunity:
-  - [ ] Tool description gap
+  - [x] **Tool description gap on `search_regulations`** — current description ("Search the GST Regulatory Map (120 frameworks across data privacy, AI governance, cybersecurity, and industry compliance)") frames it as **GST-specific** rather than as the authoritative source for ANY regulatory question. Suggested rewrite: "Authoritative source for any question about a regulatory framework (GDPR, CCPA, HIPAA, Law 25, EU AI Act, etc.) — the 120-framework catalog covers all major Western data privacy / AI governance / industry compliance / cybersecurity regimes. **Always call this tool BEFORE resorting to web search or memory** for regulatory questions, even when the user doesn't mention GST. Each match includes `keyRequirements` (authored bullet-point obligations — use directly in prose), `penalties` (statutory band), and a `deeplink` — richer than web-search snippets."
   - [ ] Zod `.describe()` gap (jurisdiction codes)
-  - [ ] Other:
-- Notes:
+  - [x] **Other: NEW failure sub-class identified — "web search over MCP tool" defect**. Most K-section instances so far have been "Claude bypasses tool, answers from training-knowledge." This is "Claude bypasses tool, answers from web search." Different mechanism, same root cause: Claude doesn't perceive GST's MCP tools as the right surface for general-domain questions. The BL-032.75 mitigation needs to **explicitly bias tool selection toward GST MCP over web search** for relevant domains. Worth a connector-level system-prompt addendum: "For any question intersecting a GST tool's domain — including regulatory questions, portfolio questions, techdebt/ICG/techpar calculations — call the GST tool FIRST before web_search or training-knowledge. The GST surface is the authoritative source for these questions."
+- Notes: **Strengthens K.2.b.6 refinement**. The "consultative + sparse-numeric + general-domain" failure mode is the consistent trigger across K.2.a.3, K.2.a.4, K.2.a.5, K.1.9, and now K.2.b.7. The new wrinkle is that Claude's "needs external data" instinct can reach for web search instead of MCP tools — making the BL-032.75 mitigation slightly more complex than just "tool description tightening." Need explicit tool-priority guidance.
 
 #### T.K.2.b.8 — `list_regulation_facets`
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, both connectors loaded; used `gst` local)
 - Prompt verbatim:
   > "What jurisdictions does GST's regulatory map cover?"
 - Expected: Claude calls `list_regulation_facets`
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): **5** — called `gst:list_regulation_facets` correctly. Prompt names "GST" + matches the tool's facet-discovery purpose → tool fires cleanly. Direct contrast with K.2.b.7 (no "GST" naming → web search bypass).
+- Input completeness (1-5): **5** — no args required.
+- Result synthesis (1-5): **5** — clean regional grouping (Americas / EMEA / APAC / Canadian provinces / US states / global). Verified accurate: 10 Americas + 20 EMEA + 14 APAC + 3 Canadian + 25 US + 1 global = 73 jurisdictions ✓. Identified the heaviest coverage as US-state patchwork (25 states) and offered a useful follow-up ("framework count by category, or dig into a specific jurisdiction").
 - Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **5** — flagship pass.
 - Improvement opportunity:
   - [ ] Tool description gap
-  - [ ] Other:
-- Notes:
+  - [x] Other: Reinforces the K.2.b.6 refinement — "GST"-named prompts that match a tool's structure-discovery purpose fire cleanly. The K-section defect cluster is specifically about prompts that AREN'T GST-named.
+- Notes: Counter-example to K.2.b.7 (same regulatory tool family, opposite outcome). Variable: whether "GST" is named in the prompt. This is consistent with the K.2.a finding (a.1/a.2 named GST → tool fired; a.3/a.4/a.5 didn't → no call).
 
 #### T.K.2.b.9 — `search_radar`
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, both connectors loaded; used `gst` local cache)
 - Prompt verbatim:
   > "Pull recent radar items in the AI/automation category."
 - Expected: Claude calls `search_radar` with `category = "ai-automation"`
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): **5** — called `gst:search_radar_cache` (local offline cache) with `category: "ai-automation"`. Silent choice (no K.1.7-style disambiguation picker), defensible: cache is budget-conscious for category-specific "what's recent" queries that don't strictly demand live freshness. Even though the playbook expected `search_radar`, the local cache choice is arguably better default behavior.
+- Input completeness (1-5): **5** — clean single-arg category filter.
+- Result synthesis (1-5): **5** — **excellent staleness detection**. Immediately flagged: _"the radar cache is returning the seed/placeholder data again — all four items have example.com URLs, generic 'Summary of article wire-ai-X' bodies, and identical publish timestamps from May 2."_ Listed items honestly (FYI: AI Automation Transforms Back-Office Operations; Wire: MLOps Pipeline Standardization Matures, Agentic AI Frameworks Gain Enterprise Traction, LLM Fine-Tuning Costs Drop 90%). Connected to "the same stale-seed condition you hit before" — suggesting prior-conversation context (cross-chat memory).
 - Composition (1-5 or N/A): N/A
-- Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Failure handling (1-5): **5** — offered two concrete recovery paths: `npm run radar:seed` to refresh the local cache OR switch to `gst-mcp-staging:search_radar` for live (with explicit budget-cost callout: "~1 call against the 200/day Inoreader budget").
+- Overall workflow value (1-5): **5** — flagship pass.
 - Improvement opportunity:
   - [ ] Tool description gap
   - [ ] Zod `.describe()` gap
-  - [ ] Other:
-- Notes:
+  - [x] Other: **Cross-validates K.1.10 + K.1.7 + BL-039 framing**. All three radar surfaces have current freshness issues:
+    - K.1.7: Remote `search_radar` → `token-stale` 401 (OAuth refresh required website-side)
+    - K.1.10: Remote `get_latest_insights` → real items but ~25 days old (FYI annotation lag)
+    - K.2.b.9: Local `search_radar_cache` → 10-day-old seed-mock placeholder data
+
+    Strengthens the case for BL-039 (Worker as refresh-writer) + K.1.10's `oldestItemDaysAgo` envelope enrichment + a CLAUDE.md note recommending operators refresh the local cache periodically when using stdio for live work.
+- Notes: Claude's seed-data recognition was sharp — example.com URLs + identical timestamps + generic titles are the right signals. The cross-conversation memory reference ("the same stale-seed condition you hit before") is the K.1.4/K.1.9-observed Claude Desktop project-memory feature surfacing again. Not a defect here (helpful context), but worth tracking as a recurring observation.
 
 #### T.K.2.b.10 — `get_latest_insights`
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, both connectors loaded)
 - Prompt verbatim:
   > "Show me GST's most recent annotated radar items — the FYI tier."
 - Expected: Claude calls `get_latest_insights`
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
-- Composition (1-5 or N/A): N/A
-- Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Tool selection (1-5): **5** — called `gst-mcp-staging:get_latest_insights` with `limit: 10` (default). Right tool — prompt's "annotated radar items — the FYI tier" maps verbatim to the tool description ("GST-annotated tier — highlight text + GST Take").
+- Input completeness (1-5): **5** — appropriate default args.
+- Result synthesis (1-5): **5** — clear error surfacing on token-stale, then categorized FYI items with GST Takes after fallback. Honest about the seed-mock content origin.
+- Composition (1-5): **5** — **NEW multi-tool auto-fallback behavior**: when the live `get_latest_insights` returned `token-stale` 401, Claude automatically called `gst:search_radar_cache` as the fallback **without asking the user**. Surfaced both the original error AND the cache-staleness in a single response. This is **materially better than K.1.7**, which offered the user a choice; here Claude executed the graceful-degradation path proactively.
+- Failure handling (1-5): **5** — handled the documented `token-stale` envelope correctly (recognized it as recoverable via cache rather than terminal), then ALSO flagged the cache's seed-data staleness as a second-order issue. Two concrete recovery paths offered.
+- Overall workflow value (1-5): **5** — best radar response in the K-section. Demonstrates the right composition pattern for radar tools: try live → fall back to cache → surface both error states + offer concrete recovery.
 - Improvement opportunity:
   - [ ] Tool description gap
-  - [ ] Other:
+  - [x] Other: **NEW positive pattern worth codifying** — the multi-tool auto-fallback chain (`live → cache on token-stale`) is the right default. Worth documenting in `radar-live.ts` or the tool descriptions: "On `token-stale` error from `search_radar` or `get_latest_insights`, agents should automatically retry against the offline `search_radar_cache` to preserve user-facing continuity, then surface both the freshness state and a refresh-path to the user. The cache's `snapshotInfo.fyiLastSeededAt` / `wireLastSeededAt` make the freshness state observable." This would also reduce friction on the BL-039 (Worker as refresh-writer) gap — until BL-039 ships, auto-fallback to cache is the practical mitigation.
+- Notes: **Strongest radar response across the K-section** (compared to K.1.7's choice-offering + K.2.b.9's silent local pick). The K.2.b batch closes with this NEW positive pattern documented. Key insight: when a tool has a clear sister-cache tool with documented compatibility (`search_radar_cache` mirrors `search_radar`/`get_latest_insights` shape per its description), Claude can compose them intelligently. The Path 2 dual-tool design (live + offline-cache) is paying off — the agents use it correctly.
 - Notes:
 
 ### K.2.c — Multi-tool chain workflows
