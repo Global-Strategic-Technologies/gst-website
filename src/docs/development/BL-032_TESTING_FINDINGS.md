@@ -2185,23 +2185,24 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.K.1.7 — Connector disambiguation (local stdio + remote staging)
 
-- Date:
-- Tester:
-- Client: Claude Desktop (with both `gst` local stdio and `gst-mcp-staging` remote configured)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (with both `gst` local stdio and `gst-mcp-staging` remote configured — both loaded after Desktop full-quit-and-restart)
 - Prompt verbatim:
   > "Search the radar"
 - Expected: Document which connector Claude picks and why; verify whichever it picks gives the right answer
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): **5** — Claude did NOT silently pick. Surfaced a three-option disambiguation picker: (1) Live radar full FYI+Wire → `gst-mcp-staging:search_radar`, (2) Latest FYI insights only → `gst-mcp-staging:get_latest_insights`, (3) Offline cache → `gst:search_radar_cache` (local stdio). Correctly identified that the local `gst` connector exposes the offline-cache variant while remote `gst-mcp-staging` has the live versions. Cited the right rationale: _"To make sure I hit the right one without burning Inoreader budget unnecessarily."_
+- Input completeness (1-5): **5** — after user picked Option 1 (Live radar), Claude called `gst-mcp-staging:search_radar` with no args (default = all categories), matching the prompt's lack of specificity.
+- Result synthesis (1-5): **5** — the underlying call returned the documented `token-stale` 401 error envelope. Claude surfaced it cleanly: _"Live radar returned token-stale (401) — Inoreader access token needs the website-side ISR to refresh it. Two options: Wait and retry the live call after the website refreshes the token / Hit the offline cache now via `gst:search_radar_cache`."_ Honest about the architectural cause + two concrete recovery paths.
 - Composition (1-5 or N/A): N/A
-- Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Failure handling (1-5): **5** — the `isError: true` envelope from `failureResponse()` in `radar-live.ts` worked as designed. Claude distinguished `token-stale` (recoverable via website refresh) from circuit-open (would have suggested wait-21600s) correctly.
+- Overall workflow value (1-5): **5** — **flagship behavior across both disambiguation AND error handling**. Materially better than the playbook's expected ("document which connector Claude picks"). Silently picking would have been worse: might have burned Inoreader budget when cache would serve, or returned stale data when live was needed.
 - Improvement opportunity:
   - [ ] Cross-client behavior diverges (connector ambiguity)
   - [ ] Tool description gap
-  - [ ] Other:
-- Notes:
+  - [x] Other: **Side observation** — "Loaded 5 tools" / "Loaded 4 tools" annotations seen earlier in K runs are Claude Desktop's **just-in-time tool loading** (filters registry by relevance per prompt). NOT a registration regression. Worth documenting in REMOTE_CLIENT_SETUP.md so future testers don't worry about it.
+  - [x] **Other: Filed product gap** — the `token-stale` recovery currently requires website-side ISR to refresh Inoreader OAuth. BL-032.5 partially addresses this by adding hourly Worker Cron pre-warm (~24 Inoreader calls/day from 200/day budget), but doesn't eliminate the website dependency. Fully eliminating it requires Worker-side OAuth refresh capability — candidate BL-039 (see BACKLOG).
+- Notes: Initial 2026-05-11 deferral was due to Claude Desktop reporting "cannot load connectors directory" on restart. **Retracted** — actual cause was that **Claude Desktop only spawns stdio connector subprocesses at app startup**; closing the window doesn't kill them, and reopening the window doesn't re-spawn them. A full system-tray Quit + relaunch resolved it. Documentation gap, not a defect. Worth a one-line note in REMOTE_CLIENT_SETUP.md: "If a stdio connector shows as not-loaded after enabling, fully quit Claude Desktop from the system tray and relaunch — closing the window is insufficient." 2026-05-12 retest succeeded immediately after Desktop full-restart with no further changes.
 
 #### T.K.1.8 — Token / context window cost
 
@@ -2732,7 +2733,7 @@ alt-svc: h3=":443"; ma=86400
 - Prompt verbatim:
   > "Generate a diligence agenda but I have no information about the target yet — just early-stage curiosity."
 - Expected: Claude uses `'unknown'` sentinel per BL-031.95; result is a wide, low-confidence agenda with the unknownDimensionCount callout
-- Tool selection (1-5): **1** — Claude **refused to call the tool**. Response framing: _"Without any of that, I'd be generating something so generic it wouldn't beat a blank template."_ Asked the user to supply either a placeholder profile or "minimum viable signal" before calling. This contradicts the tool's documented BL-031.95 sentinel path which explicitly supports the all-unknown case: TOOL_DESCRIPTION says _"When ≥7 of 13 dimensions are unknown, the deliverable should lead with a low-confidence callout (parallel to ICG's ≥10/20 threshold)"_ — the all-unknown path IS the supported behavior for exactly this prompt.
+- Tool selection (1-5): **1** — Claude **refused to call the tool**. Response framing: _"Without any of that, I'd be generating something so generic it wouldn't beat a blank template."_ Asked the user to supply either a placeholder profile or "minimum viable signal" before calling. This contradicts the tool's documented BL-031.95 sentinel path which explicitly supports the all-unknown case: TOOL*DESCRIPTION says *"When ≥7 of 13 dimensions are unknown, the deliverable should lead with a low-confidence callout (parallel to ICG's ≥10/20 threshold)"\_ — the all-unknown path IS the supported behavior for exactly this prompt.
 - Input completeness (1-5): N/A (no tool call)
 - Result synthesis (1-5): **2** — well-written consultative response in isolation; the workflow is wrong. Claude treats the tool as "needs real inputs" when the tool explicitly supports the all-unknown sentinel and the prompt is a textbook trigger for that path ("I have no information yet — just early-stage curiosity").
 - Composition (1-5 or N/A): N/A

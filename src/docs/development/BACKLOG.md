@@ -1730,4 +1730,78 @@ BL-032 soak closes
 
 ---
 
+### BL-039: MCP Server — Worker as Inoreader OAuth refresh-writer
+
+**Source**: BL-039 — surfaced during BL-032 soak T.K.1.7 (2026-05-12). The `gst-mcp-staging:search_radar` call returned `{"error":"token-stale","status":401,"message":"Inoreader access token is stale. The website-side ISR will refresh on its next call; retry the Worker call after that."}` — meaning the MCP-only consumer is blocked until someone visits the website to trigger ISR's refresh write to Upstash. Direct user-facing complaint: _"The MCP shouldn't require manual website refresh to use the radar."_ | **Effort**: ~1-2 days engineering + tests + Inoreader OAuth flow review | **Status**: Open · UX gap, not safety-critical | **Depends on**: BL-032.5 (Cron pre-warm) partial overlap
+
+**As an** MCP-only consumer of the GST radar (Claude Desktop, Claude Code, or any future remote MCP client), **I want** the Worker to handle Inoreader OAuth token refresh autonomously when access tokens expire, **so that** the radar tools remain usable without requiring a human to visit the website to trigger a refresh write.
+
+#### Planning Criteria
+
+**Current state (Path 2, BL-032)**
+
+- Website is the **sole refresh-writer** for Inoreader OAuth — owns the token lifecycle via ISR. When ISR calls Inoreader and gets 401, the website's refresh path fires, writes the new access token to `inoreader:access-token` in the Upstash Inoreader DB.
+- Worker is a **read-only consumer** — reads tokens from `inoreader:*` keys in the read-only Upstash DB binding. Doesn't refresh.
+- When access token TTL expires AND nothing has visited the website's radar page recently, the Worker reads a stale token → Inoreader returns 401 → Worker surfaces the documented `token-stale` envelope.
+- Recovery today: a human visits `/hub/radar`, which triggers ISR's refresh path, which writes a fresh token, which the Worker sees on next call.
+
+**Partial mitigation already filed: BL-032.5 (Resources & Prompts)**
+
+- Adds hourly Worker Cron pre-warm (~24 Inoreader calls/day from the 200/day budget). Reduces the failure window from "whenever-it-happens" to "every-hour-at-most."
+- Does NOT eliminate the website refresh dependency — the Cron still triggers ISR's refresh path when it hits a stale token, just at predictable hourly cadence.
+
+**Use cases — implementation**
+
+Three architectural options, in order of preference:
+
+- **Option B — Worker triggers website-side refresh on demand (RECOMMENDED)**:
+  - Worker on `token-stale` Inoreader 401 makes ONE retry after calling a new `/api/inoreader/refresh` endpoint on the website.
+  - The refresh endpoint is auth-gated (Worker-only — uses a shared secret or signed JWT).
+  - Preserves the single-writer invariant from Q4 (no two systems racing to refresh).
+  - Adds one HTTP hop on cold-token recovery; subsequent calls hit the warm cache.
+  - Failure semantics: if the refresh endpoint also fails, return the original `token-stale` envelope to the agent (current behavior).
+
+- **Option A — Shared refresh-token, Worker becomes secondary writer**:
+  - Worker holds the same refresh-token as the website (shared Upstash key with read+write binding).
+  - On `token-stale`, Worker performs OAuth refresh itself, writes back to `inoreader:access-token`.
+  - Requires coordination to avoid two writers racing (Upstash atomic SETNX with TTL, or a leader-election lock with `mcp:lock:inoreader-refresh`).
+  - More resilient but more complex; tightens the trust boundary.
+
+- **Option C — Worker has independent Inoreader OAuth credentials**:
+  - Separate Inoreader app registration, separate refresh-token.
+  - Doubles the Inoreader refresh load (each system refreshes independently) but each is fully independent.
+  - Requires re-registering an app with Inoreader and provisioning the Worker with its own credentials.
+
+**Outcomes**
+
+- MCP-only consumers (no website traffic) can use the radar tools indefinitely without manual intervention
+- Token-stale failures become a rare transient (refresh-endpoint-failure during the retry window) rather than a routine blocker
+- Telemetry distinguishes "Worker-initiated refresh succeeded" vs "website-initiated refresh succeeded" vs "refresh failed"
+- BL-032.5's Cron pre-warm still acts as defense-in-depth — the two work together: Cron keeps tokens warm, on-demand refresh handles edge cases
+
+**Business value**
+
+- **Eliminates a real user-facing UX gap** — current state is "MCP works until token expires, then you have to visit a website to fix it." That's untenable for an MCP-first workflow (Claude Desktop, Claude Code, future remote clients).
+- **Unblocks remote-client trust** — until this lands, any reliability guarantee for the MCP surface carries the asterisk "as long as someone is also hitting the website." That asterisk makes the MCP surface feel second-class.
+- **Cleanly composes with BL-032.5 + BL-033** — Cron pre-warm reduces frequency, on-demand refresh handles edge cases, future OAuth work in BL-033 can build on either Option A or B.
+
+#### Acceptance Criteria
+
+- [ ] Decision recorded on Option A / B / C with rationale (likely Option B per the planning analysis)
+- [ ] If Option B: `/api/inoreader/refresh` endpoint on the website, auth-gated, triggers ISR's refresh path
+- [ ] Worker `failureResponse()` in [`radar-live.ts`](../../../mcp-server/src/tools/radar-live.ts) updated: on `token-stale` envelope, call the refresh endpoint, retry once, only then surface the original error
+- [ ] Sentry breadcrumb distinguishes Worker-initiated refresh from website-initiated refresh
+- [ ] Test coverage: Worker integration test with a mocked stale-token scenario asserts the refresh endpoint is called and the retry succeeds
+- [ ] Documentation update in [DEPLOY.md § C.5](../../../mcp-server/src/docs/operations/DEPLOY.md) — replace the "visit /hub/radar to recover" runbook step with "the Worker now self-heals on token-stale; manual recovery only needed if the refresh endpoint itself is down"
+
+**Why not roll into BL-032.5 (Resources & Prompts / Cron pre-warm)**
+
+- BL-032.5's Cron is a frequency-reduction approach; this is a failure-mode-elimination approach. Both are needed.
+
+**Why not roll into BL-033 (broader OAuth scope)**
+
+- BL-033 is undefined scope; this is a discrete fix with a clean acceptance criteria. Worth shipping independently rather than waiting for the broader OAuth initiative.
+
+---
+
 _Created: April 18, 2026 | Last pruned: April 24, 2026_
