@@ -48,6 +48,12 @@ export function sentryOptions(env: Env): CloudflareOptions | undefined {
 
   return {
     dsn: env.SENTRY_DSN,
+    // Release identifier (git short SHA) used by Sentry to match events to
+    // uploaded source maps. Injected by scripts/deploy.mjs via `wrangler
+    // deploy --var SENTRY_RELEASE:<sha>`; when missing (e.g. `wrangler
+    // dev`), omit the field rather than send a placeholder — Sentry treats
+    // an undefined release differently from a wrong one.
+    ...(env.SENTRY_RELEASE ? { release: env.SENTRY_RELEASE } : {}),
     // Phase 5 baseline. BL-032.75 tunes against measured production rates.
     tracesSampleRate: 0.1,
     // Apply tags to every event; per-request tags get layered on top via

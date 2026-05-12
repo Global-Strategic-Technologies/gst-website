@@ -80,6 +80,14 @@ export interface Env {
   // Falls back to 'unknown' when missing (e.g., local `wrangler dev` runs).
   GIT_SHA?: string;
 
+  // Sentry release identifier — injected by `scripts/deploy.mjs` via
+  // `wrangler deploy --var SENTRY_RELEASE:<sha>`. Tells Sentry which
+  // uploaded source-map bundle matches the running Worker so stack traces
+  // resolve to original TypeScript instead of minified `dist/index.js`.
+  // Matches GIT_SHA value by convention; separate Env field so the Sentry
+  // SDK's `release` option reads from a Sentry-namespaced var.
+  SENTRY_RELEASE?: string;
+
   // Forward-compat: any additional MCP_KEY_* secrets get matched by name.
   [key: string]: unknown;
 }

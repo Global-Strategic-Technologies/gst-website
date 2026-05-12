@@ -19,6 +19,16 @@ main = "src/worker.ts"
 compatibility_date = "2026-05-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Emit source maps alongside the bundled Worker so deploy.mjs can ship them
+# to Sentry via sentry-cli (Sentry → Cloudflare integration). Without this,
+# Sentry stack traces show minified output (`dist/index.js:1:482718`); with
+# it, traces resolve back to original TypeScript file:line. Source maps land
+# in the `dist/` directory after `wrangler deploy --outdir dist
+# --upload-source-maps` runs. Source-map upload itself is opt-in via
+# SENTRY_AUTH_TOKEN in the deploy env; deploy.mjs warns + continues if
+# missing so the chain doesn't break when the token isn't bound.
+upload_source_maps = true
+
 # nodejs_compat is required because the `agents` SDK pulls in `mimetext`
 # (uses node:os) and `mime-types` (uses node:path) transitively through its
 # observability module. Cloudflare's nodejs_compat layer polyfills these
