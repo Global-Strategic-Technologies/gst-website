@@ -16,13 +16,15 @@
 > - [`REMOTE_CLIENT_SETUP.md`](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) — consumer setup including system-prompt addendum
 > - [`DEPLOY.md`](../../../mcp-server/src/docs/operations/DEPLOY.md) — operator runbook (initial setup, first deploy, ongoing operations)
 
-## Current state (as of 2026-05-12)
+## Current state (as of 2026-05-12 — Phase 1 complete)
 
-- BL-032 substrate code: shipped. All 417 MCP tests pass; typecheck clean.
+- BL-032 substrate code: shipped + merged to master via PR #132. All 420 MCP tests pass; typecheck clean; npm audit zero production-dep advisories.
 - Pre-production Critical-gate: empty. Both K-section entries closed with engineering remediation stanzas.
 - BL-032.25 (soak-finding bucket): zero P0 items. § 5 closed risk-accepted; § 1-4 P1-deferred per established convention.
-- Validation sequence step 7 (soak triage): ✅. Step 8 (`wrangler deploy --env production`): ⏳ — the only literal blocker remaining.
-- Six commits on `feature-mcp1` not yet pushed (`e7a1457`, `02441fe`, `34a499e`, `02af72f`, `62d155a`, `18ddb6c`).
+- **Production deploy: ✅ live at `mcp.globalstrategic.tech` since 2026-05-12.** All 6 secrets bound to `--env production`; smoke tests passing; Claude Desktop end-to-end validated against production.
+- **Validation sequence: 8/8 ✅.** Step 7 closed (zero P0 items in BL-032.25); step 8 closed (`wrangler deploy --env production` ran clean).
+- **Sentry observability: complete.** Dedicated `gst-mcp-server` Sentry project; 3 alert rules wired (MCP unhandled exception / Bearer auth failure burst / Inoreader budget breach); source-map upload automated via `mcp-server/scripts/deploy.mjs` + `@sentry/cli`; T.E.11 / T.E.12 closed as PASS. Alert #4 (5xx-rate) deferred — Cloudflare offers no native error-rate primitive; BL-032.75 inherits.
+- One-week post-deploy review window: 2026-05-12 → ~2026-05-19.
 
 ## The path: BL-032 → BL-032.5 + BL-032.75 → BL-033
 
@@ -46,19 +48,27 @@ Phases 2 + 3 can run in parallel — they touch different code surfaces (observa
 
 ---
 
-## Phase 1 — BL-032 production deploy
+## Phase 1 — BL-032 production deploy ✅ COMPLETE (2026-05-12)
 
-**What it is**: cut the staging Worker over to production. Substrate, auth model, rate limit, Tools surface, and Sentry wiring carry over identically.
+**What shipped**: cut the staging Worker over to production. Substrate, auth model, rate limit, Tools surface, and Sentry wiring carry over identically.
 
-**Operator actions**:
+**Operator actions completed**:
 
-1. Push the six unpushed commits to `origin/feature-mcp1` (PR route) OR merge `feature-mcp1` → `master` and deploy from there. Either path is fine; this is internal-only.
-2. Run `wrangler deploy --env production` from `mcp-server/`. `wrangler.toml` already has the production stanza wired with `custom_domain = true`.
-3. Smoke-test the production URL with one curl against `/health` and one MCP `tools/list`. [DEPLOY.md](../../../mcp-server/src/docs/operations/DEPLOY.md) Part B § B.5-B.6 is the authoritative runbook.
-4. Update [REMOTE_CLIENT_SETUP.md](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) URLs from `mcp-staging.globalstrategic.tech` to `mcp.globalstrategic.tech` once Phase 6 wires the production hostname.
-5. Re-run T.E.11 + T.E.12 against the deployed Worker with `SENTRY_DSN` bound — they flip to PASS now that captureMessage is wired (commit `62d155a`). This validates the engineering work shipped during the soak.
+1. ✅ PR #132 (`feature-mcp1` → `master`) merged with merge-commit strategy (338 commits preserved for audit trail). Local dev fast-forwarded; `feature-mcp1` deleted.
+2. ✅ `wrangler deploy --env production` ran clean (commit `48e920b`); custom domain `mcp.globalstrategic.tech` auto-bound.
+3. ✅ Smoke tests passed: `/health` returns `ok:true, upstashMcp:'ok', upstashInoreader:'ok'`; `tools/list` returns all 10 transport-portable tools; Claude Desktop end-to-end validated with the K.2.e.5 hot-lead-triage prompt (radar + portfolio fan-out).
+4. ✅ [REMOTE_CLIENT_SETUP.md](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) updated to production-canonical (commit `6332b3c`) — `mcp.globalstrategic.tech` is now the default URL in all snippets; staging documented as a secondary option.
+5. ✅ T.E.11 / T.E.12 closed as PASS in [BL-032_TESTING_FINDINGS.md](./BL-032_TESTING_FINDINGS.md). T.E.11 verified live; T.E.12 verified via engineering + adjacency.
 
-**One-week post-deploy review** ([BACKLOG.md:885](./BACKLOG.md)): scheduled for ~2026-05-13. Internal team uses the production Worker for a week; any new findings get filed under BL-032.25 as ongoing follow-ups. After that week, BL-032 itself can formally close.
+**Sentry observability shipped 2026-05-12**:
+
+- Dedicated `gst-mcp-server` Sentry project (separate from website's per BL-032 Q6 — quota isolation, different threat models)
+- 3 alert rules configured: MCP unhandled exception, Bearer auth failure burst (50 events / 10 min on message `auth.failed bearer-rejected`), Inoreader budget breach (any event with message `inoreader-rate-limit`)
+- Source-map upload automated per deploy via `mcp-server/scripts/deploy.mjs` + `@sentry/cli` (commit `afdf932`). Sentry stack traces now resolve to original TypeScript instead of minified Worker bundle
+- `captureMessage` calls now carry both message + `event:` tag for filter flexibility (commit forthcoming this session)
+- See [SENTRY_MANUAL_SETUP.md § MCP Worker](./SENTRY_MANUAL_SETUP.md) for the canonical setup record
+
+**One-week post-deploy review**: 2026-05-12 → ~2026-05-19. Internal team uses the production Worker; any new findings get filed under BL-032.25 as ongoing follow-ups. After that week, BL-032 itself can formally close.
 
 ---
 

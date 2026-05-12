@@ -133,10 +133,18 @@ const handler: ExportedHandler<Env> = {
       // Sentry breadcrumb so SENTRY_MANUAL_SETUP.md Alert #2 fires.
       // Message intentionally stable so Sentry groups all auth.failed
       // events together — a probing burst becomes one issue, not N.
-      captureMessage('auth.failed bearer-rejected', 'warning', {
-        path: url.pathname,
-        status: auth.status,
-      });
+      // `eventTag: 'auth.failed'` mirrors safeLog's `event` field so
+      // alert rules can filter via tag (`The event's tag {event} equals
+      // {auth.failed}`) instead of message-content match.
+      captureMessage(
+        'auth.failed bearer-rejected',
+        'warning',
+        {
+          path: url.pathname,
+          status: auth.status,
+        },
+        'auth.failed'
+      );
       return withCors(authFailureResponse(auth), origin);
     }
 

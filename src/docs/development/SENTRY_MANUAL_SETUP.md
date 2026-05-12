@@ -145,6 +145,8 @@ Sentry can automatically create GitHub issues from alerts. Configure via Sentry 
 
 ## Verification Checklist
 
+**Website project (`gst-website`)**:
+
 - [x] Sentry auth token generated and stored in Vercel
 - [x] `SENTRY_ORG` and `SENTRY_PROJECT` set in Vercel
 - [x] `PUBLIC_SENTRY_DSN` set in Vercel
@@ -156,6 +158,19 @@ Sentry can automatically create GitHub issues from alerts. Configure via Sentry 
 - [ ] "Inoreader API failure" alert rule created
 - [ ] "Redis connection failure" alert rule created
 - [ ] Test error triggers email notification
+
+**MCP Worker project (`gst-mcp-server`)** — completed 2026-05-12:
+
+- [x] Sentry project created — platform `Cloudflare Workers`, same team as gst-website
+- [x] `SENTRY_DSN` bound via `wrangler secret put SENTRY_DSN --env production` (and staging)
+- [x] Alert #1 — MCP unhandled exception (new-issue trigger, no filter)
+- [x] Alert #2 — Bearer auth failure burst (50 events / 10 min, filtered on message `auth.failed bearer-rejected`)
+- [x] Alert #3 — Inoreader budget breach (new-issue trigger, filtered on message `inoreader-rate-limit`)
+- [x] Email notification preferences verified (issue alerts on, primary email verified)
+- [x] Sentry Org Token generated (`GST MCP Source Maps`)
+- [x] `SENTRY_AUTH_TOKEN` bound in deployer's shell — `npm run deploy:*` now uploads source maps automatically
+- [x] Source-map upload verified end-to-end against staging + production deploys
+- [ ] Alert #4 (5xx rate) — deferred. Cloudflare offers no native error-rate alert; BL-032.75's status-page work owns this
 
 ---
 
@@ -205,6 +220,7 @@ _Created: April 13, 2026 — Platform Hardening V1 Phase 9_
 _Updated: April 17, 2026 — Added consent gating evaluation (Phase 9 item #16)_
 _Updated: April 19, 2026 — CSP fixes, source map silent mode, GitHub stack trace linking, checklist refresh_
 _Updated: May 4, 2026 — Added MCP Worker section (BL-032 Phase 5)_
+_Updated: May 12, 2026 — MCP project fully wired post-production-deploy: corrected misleading Cloudflare Workers error-rate claim, switched Alerts #2/#3 to message-based filters (matches shipped captureMessage calls), added source-map upload setup section, verification checklist split into website + MCP halves, MCP half all green except Alert #4 (deferred to BL-032.75)_
 
 ---
 
@@ -271,20 +287,46 @@ The `tracesSampleRate: 0.1` baseline (10% of requests get traced) keeps Sentry q
 
 The MCP project's alert rules are simpler than the website's — fewer error types, different thresholds. Initial set (configure manually in the Sentry dashboard):
 
-| Rule                          | Trigger                                                          | Plan tier needed                                                                                                                                                        | Channel |
-| ----------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| MCP unhandled exception (any) | Any `error.unhandled` event                                      | **Free (Developer)** — Issue Alert                                                                                                                                      | Email   |
-| Bearer auth failure burst     | More than 50 events with `event === 'auth.failed'` in 10 minutes | **Free (Developer)** — Issue Alert (silent until code-side capture lands; see "Why some alerts are silent today" below)                                                 | Email   |
-| Inoreader budget breach       | Any event with `errorCode === 'inoreader-rate-limit'`            | **Free (Developer)** — Issue Alert (silent until code-side capture lands; see below)                                                                                    | Email   |
-| 5xx rate                      | More than 1% of requests return 5xx in a 15-minute window        | **Team or higher** — Performance / Failure Rate is paywalled on Developer plan. Skip on free; use Cloudflare Notifications as a substitute (Workers → Error Rate alert) | Email   |
+| Rule                          | Trigger                                                                               | Plan tier needed                                                                                                                                                                                                                                                                                             | Channel |
+| ----------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| MCP unhandled exception (any) | Any `error.unhandled` event (`A new issue is created`)                                | **Free (Developer)** — Issue Alert                                                                                                                                                                                                                                                                           | Email   |
+| Bearer auth failure burst     | More than 50 events grouped under message `auth.failed bearer-rejected` in 10 minutes | **Free (Developer)** — Issue Alert                                                                                                                                                                                                                                                                           | Email   |
+| Inoreader budget breach       | Any new issue with message `inoreader-rate-limit`                                     | **Free (Developer)** — Issue Alert                                                                                                                                                                                                                                                                           | Email   |
+| 5xx rate                      | More than 1% of requests return 5xx in a 15-minute window                             | **Team or higher** — Performance / Failure Rate is paywalled on Developer plan. **No native Cloudflare equivalent exists** (verified 2026-05-12 — Cloudflare's Workers notifications cover usage anomalies, not error-rate alerts). Defer to BL-032.75's external uptime probe + status page when that ships | Email   |
 
 > **Channel choice (Email vs Slack)**: Sentry's "Send a notification to Member" / "Send a notification to Issue Owners" actions route through each user's notification preferences — which default to email. There is no literal "send via Email" action in current Sentry UI; pick a Member/Owner action instead.
 
-> **Why some alerts are silent today**: the Worker only captures _unhandled exceptions_ + _manually-captured errors_ to Sentry. `safeLog({ event: 'auth.failed', ... })` and rate-limit-exceeded events go to Cloudflare logs (via `wrangler tail`) but NOT to Sentry. Alerts #2 and #3 will be dormant until [worker.ts:106-115](../../../mcp-server/src/worker.ts#L106-L115) and the radar-live tools' Inoreader-429 path also call `Sentry.captureMessage(...)` / `captureException(...)`. Configuring them now is harmless — they just sit dormant until the captures land. See BL-032 closure or BL-033 for the code-side follow-up.
+> **Filter syntax mismatch (resolved 2026-05-12)**: the original walkthrough below specified `event` and `errorCode` tag-based filters for Alerts #2 and #3. The shipped `captureMessage` calls in [worker.ts](../../../mcp-server/src/worker.ts) and [radar-live.ts](../../../mcp-server/src/tools/radar-live.ts) put that information in the message **string** (`auth.failed bearer-rejected` / `inoreader-rate-limit`), not in event tags. Filter on `The event's message contains/equals "..."` instead. A code-polish follow-up to add the matching tags is tracked separately.
 
-> **5xx-rate alternative on free plan**: Cloudflare's **Notifications** (Cloudflare dashboard → Notifications → Create) supports `Workers → Error Rate` alerts on per-Worker error counts, free tier. Doesn't require Sentry plan upgrade. Different surface — Cloudflare excels at "is something wrong" (raw rate metrics); Sentry at "why is it wrong" (stack traces, breadcrumbs). Complementary, not redundant.
+> **5xx-rate has no native Cloudflare substitute**: an earlier version of this doc claimed Cloudflare Notifications offered a "Workers → Error Rate" alert. **That alert type does not exist** (verified 2026-05-12). Cloudflare's actual Workers notifications are: `Weekly Summary` (digest, weekly) and `Usage Report` (CPU-time anomaly, not error rate). Neither alerts on errors. The right home for an error-rate signal on free-plan accounts is BL-032.75's external probe + status page work; until that lands, the three Sentry alerts above are the operational coverage.
 
 Refine these once BL-032.75 ships SLO targets. The substrate (Sentry init, structured logs, `keyOwner` tagging) is in place from BL-032 Phase 5.
+
+### Source-map upload (added 2026-05-12)
+
+Without source maps, Sentry stack traces for Worker errors show minified output (`dist/index.js:1:482718`) — basically useless for debugging. With them, traces resolve back to original TypeScript file:line.
+
+The upload is wired into [`mcp-server/scripts/deploy.mjs`](../../../mcp-server/scripts/deploy.mjs) — after a successful `wrangler deploy --upload-source-maps`, the script runs `sentry-cli` to register a release tagged with the git short SHA and upload the source maps from `dist/`. The release ID matches the `SENTRY_RELEASE` env var the Worker reads via [`sentryOptions()`](../../../mcp-server/src/observability/sentry.ts), so Sentry events automatically match the right source-map bundle.
+
+**One-time operator setup**:
+
+1. Create a Sentry Organization Token:
+   - Sentry → Settings → Developer Settings → Organization Tokens → Create New Token
+   - Name: `GST MCP Source Maps` (mirrors the website's `GST Website Source Maps` token convention)
+   - Copy the token (`sntrys_...`) immediately — shown once only
+2. Store the token in your password manager (treat like any other secret — don't check in)
+3. Before running `npm run deploy:staging` or `:production`, set in your shell:
+   ```powershell
+   $env:SENTRY_AUTH_TOKEN = "sntrys_..."     # PowerShell
+   export SENTRY_AUTH_TOKEN="sntrys_..."     # bash / zsh
+   ```
+   Or persist via `[Environment]::SetEnvironmentVariable("SENTRY_AUTH_TOKEN", "...", "User")` on Windows.
+
+`SENTRY_ORG` (`gst-7o`) and `SENTRY_PROJECT` (`gst-mcp-server`) are hardcoded defaults in `deploy.mjs`; override via env vars only if those values change.
+
+**If `SENTRY_AUTH_TOKEN` is not set**, the deploy.mjs script prints a warning and continues — the Worker still deploys successfully, only source-map upload is skipped. Source maps are a debug-experience nicety, not a runtime correctness gate.
+
+**Verification after a deploy**: the deploy script's tail output reads `> source maps uploaded for release <sha>; Sentry stack traces will resolve to original TypeScript.` Sentry → gst-mcp-server → Releases → click the new release → "Artifacts" tab should list `.map` files.
 
 #### Step-by-step UI walkthrough (current Sentry, 2026)
 
@@ -309,21 +351,21 @@ Sentry's alert UI shifted in 2025-2026 — alerts are organized by category (Err
 ##### Alert 2 — Bearer auth failure burst (Errors → Issues)
 
 - **Section 2 WHEN**: trash the default `A new issue is created` row → click `Add optional trigger…` → choose **The issue is seen more than {N} times in {M} minutes**. Set N=`50`, M=`10`
-- **Section 2 IF**: `Add optional filter…` → **The event's tag {key} {match} {value}** → key=`event`, match=`equal to`, value=`auth.failed`
+- **Section 2 IF**: `Add optional filter…` → **The event's message** → match `contains` (or `equals`), value=`auth.failed bearer-rejected`
 - **Section 2 THEN**: Member → yourself
 - **Section 3**: 24 hours
 - **Section 5**: Name = `Bearer auth failure burst`. Save.
 
-⚠️ Will fire only after the Worker is updated to capture `auth.failed` events to Sentry (currently they go to Cloudflare logs only).
+The Worker captures `auth.failed` events to Sentry via `captureMessage('auth.failed bearer-rejected', 'warning', ...)` — wired in commit `62d155a`. Filter on **message** rather than tag because the captureMessage call puts the event-id information in the message string. The 50/10min threshold is intentionally high: 5-6 auth failures is one user fat-fingering a token; 50 in 10 min is probing or runaway-agent territory.
 
 ##### Alert 3 — Inoreader budget breach (Errors → Issues)
 
 - **Section 2 WHEN**: keep default `A new issue is created`
-- **Section 2 IF**: `Add optional filter…` → key=`errorCode`, match=`equal to`, value=`inoreader-rate-limit`
+- **Section 2 IF**: `Add optional filter…` → **The event's message** → match `equals`, value=`inoreader-rate-limit`
 - **Section 2 THEN**: Member → yourself
 - **Section 5**: Name = `Inoreader budget breach`. Save.
 
-⚠️ Same dormant-until-code-change caveat as #2.
+The Worker captures `inoreader-rate-limit` events via `captureMessage('inoreader-rate-limit', 'error', ...)` in [radar-live.ts:failureResponse](../../../mcp-server/src/tools/radar-live.ts) alongside the circuit-breaker `openCircuit()` call. Fires at most once per 6h breaker-open window, so no volume threshold needed — single events are operationally important.
 
 ##### Alert 4 — 5xx rate (Performance → Failure Rate; paywalled)
 
