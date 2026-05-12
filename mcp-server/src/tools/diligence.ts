@@ -27,6 +27,20 @@ export function buildDiligenceDeeplink(inputs: ValidatedUserInputs): string {
 
 const TOOL_DESCRIPTION = `Generate a prescriptive due-diligence "Inquisitor's Script" for a target M&A or investment opportunity.
 
+**USAGE RULE — \`'unknown'\` sentinel discipline (READ FIRST)**
+
+For every one of the 13 input dimensions, follow this hierarchy:
+
+1. If the user **directly states** the value, map it to the enum and pass it (e.g., "B2B SaaS" → \`productType: "b2b-saas"\`).
+2. If the value is a **literal one-to-one extraction** from the user's words (e.g., "Series B" → \`transactionType: "venture-series"\`, "modern cloud-native stack" → \`techArchetype: "modern-cloud-native"\`), map and pass.
+3. **Otherwise, pass \`'unknown'\`.** The engine treats \`'unknown'\` as a non-eliminating value that widens the agenda conservatively. This is the supported design.
+
+**Indirect inference is forbidden.** Specifically: do NOT infer \`businessModel\` from \`productType\` ("b2b-saas" does not imply "productized-platform" — many B2B SaaS companies are services-led or usage-based); do NOT infer \`scaleIntensity\` from \`growthStage\` (many scaling-stage companies are still small-scale); do NOT infer \`transformationState\` from \`techArchetype\` ("modern-cloud-native" does not imply "stable"); do NOT infer \`operatingModel\` from anything (org structure is not derivable from product or stage). When in doubt, pass \`'unknown'\`.
+
+**Low-context prompts** ("no info yet", "early-stage curiosity", "hypothetical target", "draft something I can show a prospect"): set ALL 13 fields to \`'unknown'\` (and \`geographies: ['unknown']\`) and call the tool. Do NOT refuse, do NOT ask for more info first. The engine returns a wide low-confidence agenda specifically for this case, with an \`unknownDimensionCount\` ≥7 callout. This is by design.
+
+---
+
 Given a 13-field profile of the deal (transaction type, product type, tech archetype, company size/age/stage/revenue/geography, business model, scale intensity, transformation state, data sensitivity, operating model), returns a structured agenda containing:
 
 - Topic-grouped diligence questions (architecture, operations, carve-out, security/risk) — already balanced and priority-sorted.
@@ -36,7 +50,7 @@ Given a 13-field profile of the deal (transaction type, product type, tech arche
 - \`unknownDimensionCount\` — number of input dimensions where the agent supplied the \`'unknown'\` sentinel (BL-031.95 Phase 2). When ≥7 of 13 dimensions are unknown, the deliverable should lead with a low-confidence callout (parallel to ICG's ≥10/20 threshold).
 - \`deeplink\` — URL to open the diligence wizard with these inputs pre-populated (for PDF / export / share via the website page). URL state takes precedence over the wizard's localStorage on page-load init.
 
-**\`'unknown'\` value contract**: every enum field accepts the string \`'unknown'\` as a sentinel meaning "agent could not derive this from available inputs." \`'unknown'\` does NOT eliminate any trigger — it widens the agenda conservatively. For \`geographies\`, pass \`['unknown']\` (the array still must have ≥1 element). Use \`'unknown'\` rather than guessing when an input isn't derivable from supplied context; only known values should filter the agenda down.
+**\`'unknown'\` value contract** (technical detail): every enum field accepts the string \`'unknown'\` as a sentinel. \`'unknown'\` does NOT eliminate any trigger — it widens the agenda conservatively. For \`geographies\`, pass \`['unknown']\` (the array still must have ≥1 element).
 
 This is the same engine that powers https://globalstrategic.tech/hub/tools/diligence-machine — calling it via MCP eliminates the browser round-trip.`;
 

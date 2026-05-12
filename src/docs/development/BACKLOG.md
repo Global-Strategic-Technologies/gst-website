@@ -1129,6 +1129,44 @@ The acceptance criteria for BL-032.25 are dynamic — populated as soak findings
 - **Foundation for capacity planning** — once measured, easy to project when Cloudflare/Upstash/Sentry tiers will need an upgrade; budget conversations have data instead of guesswork
 - **Cost**: Cloudflare Analytics Engine free tier covers projected volume (~30× headroom); Grafana Cloud free tier sufficient for 3 users + 10k metric series; Slack webhook + PagerDuty starter tier ($25/mo) covers a single on-call rotation. Total ongoing: <$50/mo through pilot scale
 
+#### K-section evidence-driven mitigations (added 2026-05-12)
+
+BL-032's Section K soak (31 of 40 tests recorded as of 2026-05-12) surfaced a tight cluster of agent-consumption gaps that warrant focused mitigation alongside the broader observability work. Each item below cites the K finding(s) that justify it.
+
+**Tool description tightening**
+
+- [ ] `generate_diligence_agenda` — elevate the BL-031.95 `'unknown'` sentinel paragraph to a top-line USAGE RULE. Specifically target `businessModel`, `scaleIntensity`, `operatingModel`, and `transformationState` as the persistent silent-inference traps. Evidence: K.1.2 (businessModel inferred from productType), K.1.3 (all 13 fields filled when 4 should have been `'unknown'`), K.2.b.3 (same pattern reproducing), K.2.c.1 (improvement — 3 sentinels used correctly, but businessModel still inferred). Add explicit guidance: "If a dimension is not directly stated by the user OR a literal one-to-one extraction from their words, set it to `'unknown'`. Indirect inference (productType → businessModel; growthStage → scaleIntensity; techArchetype → transformationState) is forbidden." Also: codify the K.2.d.4 path — "When prompt has low/no specificity ('no info yet', 'early-stage curiosity', 'hypothetical target'), set all 13 fields to `'unknown'` and call the tool. Do NOT refuse." Estimated effort: 30 min.
+
+- [ ] `search_regulations` — nudge toward broader-filter + synthesis-side filtering. Evidence: K.2.c.4 (~11 sequential per-jurisdiction fan-out calls when 3 would have sufficed). Add: "**For multi-jurisdiction or multi-category queries, prefer omitting one filter and filtering in synthesis.** The 120-framework full response is bounded and won't overflow context. Sequential per-jurisdiction fan-out is wasteful — `{category: 'data-privacy', limit: 120}` returns all jurisdictions for that category in one call." Estimated effort: 15 min.
+
+- [ ] `search_regulations` — assert authoritative-source priority. Evidence: K.2.a.4 (Claude answered GDPR from training-knowledge), K.2.b.7 (Claude used web search instead of MCP tool). Add: "Authoritative source for any question about a regulatory framework — call this tool BEFORE resorting to web search or memory, even when the user doesn't mention GST." Estimated effort: 10 min (part of same edit as above).
+
+- [ ] `search_portfolio` — add natural-language-to-engagement-filter mapping. Evidence: K.2.b.2 (user said "sold to PE" — Claude defaulted to Buy-Side instead of Sell-Side). Add to `engagement` field `.describe()`: "Map user phrasing: 'GST advised on selling X' / 'X was sold to' / 'X exited to' → `Sell-Side`; 'GST did diligence on X for an acquirer' / 'X was acquired' / 'we bought X' → `Buy-Side`. When the prompt is genuinely ambiguous, query both and surface the split rather than defaulting to one." Estimated effort: 15 min.
+
+- [ ] `assess_infrastructure_cost_governance` — encourage empty-arg structure-discovery. Evidence: K.2.a.5 (Claude described ICG framework from memory, fabricated 2 of 6 domain names). Add: "When user asks ABOUT the framework's structure (categories, dimensions, questions), call this tool with `answers: {}` to receive the canonical question registry rather than describing it from memory. Empty-args call is supported and returns the full domain/question taxonomy." Estimated effort: 15 min.
+
+- [ ] Connector-level system-prompt addendum (REMOTE_CLIENT_SETUP.md update). Evidence: K.1.9, K.2.a.3, K.2.a.4, K.2.a.5, K.2.b.7 — recurring pattern of Claude bypassing GST MCP tools for general-domain or consultative-framing prompts. Document a recommended system-prompt addendum for client configs: "For any question intersecting a GST tool's domain — regulatory, portfolio, techdebt, ICG, techpar, diligence, radar — call the GST tool FIRST. Don't substitute training-knowledge or web search even when the prompt doesn't explicitly name GST. The GST surface is the authoritative source for these questions." Estimated effort: 30 min.
+
+**Result-shape enrichments**
+
+- [ ] Add `oldestItemDaysAgo` (or `latestItemAgeDays`) to `search_radar` + `get_latest_insights` response envelopes. Evidence: K.1.10 (FYI tier returned items ~25 days old without surfacing the freshness gap; user had to notice it manually), K.2.c.2 retry (FYI most recent was 78 days old). Let consuming agents proactively warn the user "the freshest item is N days old" without manual inspection. Estimated effort: 30 min.
+
+- [ ] Add per-recommendation `triggerQuestionAnswered: boolean` to `assess_infrastructure_cost_governance` response. Evidence: K.2.b.4 (Claude noticed implicitly that several recommendations triggered on unanswered questions, surfaced this as a caveat). Make the distinction explicit so consuming agents can distinguish "confirmed gap" from "assumed gap pending more info." Estimated effort: 20 min.
+
+- [ ] Fix `assess_infrastructure_cost_governance` accounting math. Evidence: K.2.c.3 + K.2.c.5 (two confirmed instances of `answeredCount: 24, totalQuestions: 20, skippedCount: 0-2` — math doesn't reconcile). Engine accepts unknown question keys (q3_4, q4_4, q5_4 when domain has only 3 questions) and inflates `answeredCount`. Fix: validate input keys against schema strictly (reject extras), OR drop unknown keys silently and don't count them toward `answeredCount`. Document the chosen semantics. Estimated effort: 1 hour.
+
+**Sentry captureMessage wiring** (carried over from soak T.E.11/E.12 FAILs)
+
+- [ ] Wire `Sentry.captureMessage` into the auth-fail path (worker.ts:117-126) so unauthorized requests emit a Sentry breadcrumb beyond the structured-log line. Evidence: T.E.11 FAIL (Sentry didn't capture auth.failed events because only captureException is wired, not captureMessage). Estimated effort: 30 min.
+
+- [ ] Wire `Sentry.captureMessage` into the inoreader-rate-limit failure path (radar-live.ts:115-132) so circuit-open events emit Sentry breadcrumbs. Evidence: T.E.12 FAIL (same root cause as T.E.11). Estimated effort: 15 min (part of same edit).
+
+**Schema-simplification candidate (BL-040 if filed separately)**
+
+- [ ] `search_regulations.jurisdiction` and `.category` — accept arrays in addition to single strings. Evidence: K.2.c.4 (fan-out forced by single-string filters). Would reduce multi-jurisdiction queries from N×M calls to 1. Worth weighing against the "capability mirror" invariant (the website's UI has single-select chips by design) — but input flexibility on the MCP surface doesn't break the mirror if the output stays identical. Estimated effort: 1 day (schema + handler + tests + docs).
+
+**Total estimated effort for K-section mitigations**: ~4 days engineering, sequenceable independently of the broader observability work. Each item ships as a standalone PR.
+
 #### Acceptance Criteria
 
 **Phase 1 — Instrumentation**
