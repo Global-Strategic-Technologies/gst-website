@@ -162,7 +162,7 @@ The integration suite is opinion-aligned with the doc's "Red Flags — Tests to 
 
 ### One pattern this work introduces that isn't in the existing convention docs
 
-**The `tests/helpers/` directory.** The site's TEST_STRATEGY mentions `tests/fixtures/` for test data; the workspace testing README doesn't address helpers explicitly. Placing `paired-transport.ts` in `tests/helpers/` (rather than `tests/fixtures/` or co-located with the test file) is a small extension of the documented convention. The justification: the file is a _test helper_ (executable code that supports tests), not a _fixture_ (static data). Once this lands, a one-line addition to the workspace testing README's "File organization" section will codify the pattern for future helpers.
+**The `tests/helpers/` directory.** The site's TEST*STRATEGY mentions `tests/fixtures/` for test data; the workspace testing README doesn't address helpers explicitly. Placing `paired-transport.ts` in `tests/helpers/` (rather than `tests/fixtures/` or co-located with the test file) is a small extension of the documented convention. The justification: the file is a \_test helper* (executable code that supports tests), not a _fixture_ (static data). Once this lands, a one-line addition to the workspace testing README's "File organization" section will codify the pattern for future helpers.
 
 ---
 

@@ -78,7 +78,7 @@ Same three-section deliverable PLUS a 4th Quality Flag column in the mapping tab
 2. **Implied-stack inference from out-of-scope content** — recognized that AWS / Datadog / Snowflake vendor contracts carry inferential value for in-scope tracks (Infrastructure, Data) even though the folder is out-of-scope.
 3. **Taxonomy extension proposal grounded in cross-deal frequency** — proposed a new canonical folder `10 — Vendor & Licensing Agreements` per the body's existing "extend if worth doing for ≥3 deals" rule.
 
-**Auditor's note (closing synthesis):** _"Multiple Library-documented anti-patterns: stale versioning (`_v17`, `_FINAL_REVISED`), generic placeholders (`README.docx`), prefix collisions (two `06_` folders), an undated 4-year-old pen test, and 6 of 9 canonical folders entirely missing. Consistent with a rushed or incomplete VDR assembly. Recommend flagging operational-discipline concern in the IOI-stage memo and using the Section 4 list as the opening request volley."_
+**Auditor's note (closing synthesis):** _"Multiple Library-documented anti-patterns: stale versioning (`_v17`, `_FINAL_REVISED`), generic placeholders (`README.docx`), prefix collisions (two `06_` folders), an undated 4-year-old pen test, and 6 of 9 canonical folders entirely missing. Consistent with a rushed or incomplete VDR assembly. Recommend flagging operational-discipline concern in the IOI-stage memo and using the Section 4 list as the opening request volley."\_
 
 ## Verification notes
 
