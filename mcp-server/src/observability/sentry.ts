@@ -89,6 +89,35 @@ export function captureException(error: unknown, context?: Record<string, unknow
   Sentry.captureException(error, context ? { extra: context } : undefined);
 }
 
+/**
+ * Manual message capture — for handled-error paths that don't have an
+ * Error instance to capture but still need to surface a breadcrumb to
+ * Sentry so configured alert rules fire (per
+ * [SENTRY_MANUAL_SETUP.md](../../../src/docs/development/SENTRY_MANUAL_SETUP.md)).
+ *
+ * Two known callers (BL-032 T.E.11 / T.E.12 closure):
+ *   - worker.ts auth-fail path — every 401 emits one breadcrumb. Sentry's
+ *     group-by-fingerprint handles dedup so a probing burst doesn't
+ *     flood quota; the message is intentionally stable ("auth.failed
+ *     bearer-rejected") so events group cleanly across paths.
+ *   - radar-live.ts failureResponse path — Inoreader 429 / circuit-open
+ *     events emit one breadcrumb. Low-volume by construction (once per
+ *     6h breaker-open) so no rate-limit concern.
+ *
+ * No-op when Sentry isn't initialized — `@sentry/cloudflare`'s
+ * captureMessage returns early if `getClient()` is undefined.
+ */
+export function captureMessage(
+  message: string,
+  level: 'info' | 'warning' | 'error' = 'warning',
+  context?: Record<string, unknown>
+): void {
+  Sentry.captureMessage(message, {
+    level,
+    ...(context ? { extra: context } : {}),
+  });
+}
+
 // Re-export `withSentry` so worker.ts has a single import surface for
 // observability rather than reaching into @sentry/cloudflare directly.
 export { withSentry } from '@sentry/cloudflare';

@@ -35,7 +35,7 @@ import { isPreflight, preflightResponse, withCors } from './auth/cors';
 import { safeLog } from './auth/safe-logger';
 import { createLimiter } from './ratelimit/limiter';
 import { tooManyRequestsResponse, withRateLimitHeaders } from './ratelimit/headers';
-import { sentryOptions, tagRequest, withSentry } from './observability/sentry';
+import { captureMessage, sentryOptions, tagRequest, withSentry } from './observability/sentry';
 import { buildHealthPayload } from './observability/health';
 
 /**
@@ -121,6 +121,13 @@ const handler: ExportedHandler<Env> = {
         reason: 'bearer-rejected',
         success: false,
         errorCode: 'unauthorized',
+      });
+      // Sentry breadcrumb so SENTRY_MANUAL_SETUP.md Alert #2 fires.
+      // Message intentionally stable so Sentry groups all auth.failed
+      // events together — a probing burst becomes one issue, not N.
+      captureMessage('auth.failed bearer-rejected', 'warning', {
+        path: url.pathname,
+        status: auth.status,
       });
       return withCors(authFailureResponse(auth), origin);
     }

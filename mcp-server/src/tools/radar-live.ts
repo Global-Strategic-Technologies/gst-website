@@ -39,6 +39,7 @@ import { z } from 'zod';
 import type { Env } from '../worker';
 import { readWireLive, readFyiLive, type LiveTierResult } from '../content/radar-live-store';
 import { isCircuitOpen, openCircuit } from '../ratelimit/circuit-breaker';
+import { captureMessage } from '../observability/sentry';
 import { serializeToParams as serializeRadarUrl } from '../../../src/utils/radar-url';
 import { RadarCategoryEnum } from '../schemas';
 import { HUB_BASE } from '../config';
@@ -115,6 +116,13 @@ function categoryMatches(item: SnapshotItem, filter?: RadarCategory): boolean {
 async function failureResponse(env: Env, failure: Extract<LiveTierResult, { ok: false }>) {
   if (failure.reason === 'inoreader-rate-limit') {
     await openCircuit(env, 'inoreader-429');
+    // Sentry breadcrumb so SENTRY_MANUAL_SETUP.md Alert #3 fires. Low-
+    // volume by construction (fires at most once per 6h breaker-open),
+    // so no rate-limit concern — every event is informative.
+    captureMessage('inoreader-rate-limit', 'error', {
+      status: failure.status,
+      message: failure.message,
+    });
   }
   return {
     content: [
