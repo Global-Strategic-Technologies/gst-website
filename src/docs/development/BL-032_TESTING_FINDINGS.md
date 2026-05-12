@@ -152,7 +152,7 @@ Copy-paste this block per finding. Date format is ISO-8601. Tester is initials (
 - Expected: 401 with reason indicating empty token
 - Severity (if fail): Minor
 - Remediation:
-- Notes:
+- Notes: **Tracked (2026-05-12)**: filed as [BL-032.25 § 2](./MCP_SERVER_REMOTE_BL-032_25.md#§-2--ta4-empty-bearer-error-message-p1) — P1 cosmetic error-disambiguation gap; status code is correct, only the human-readable message is imprecise.
 
 ## T.A.5 — Wrong token value rejected with 401 + bearer-rejected reason
 
@@ -329,6 +329,8 @@ alt-svc: h3=":443"; ma=86400
 - Severity (if fail): Important — timing diff suggests `===` comparison; would let an attacker enumerate token char-by-char (matters for BL-033, not blocking BL-032 internal soak)
 - Remediation: n/a — PASS. No code change required.
 - Notes: **Methodology refinement worth keeping**. The Claude-authored first draft used valid-vs-near-miss (200 vs 401) which is confounded — 200 responses run the full tools/list handler (~150ms extra work) while 401 responses bail at the auth boundary. The latency gap there reflects handler-fast-path vs handler-full-path, not the bearer comparison itself. Operator (RP) caught this and rewrote the test to compare **two 401 responses with mismatches at different byte positions**, isolating the comparison step. That's the correct design — both calls take the same code path, the only variable is which byte position triggers the mismatch. If `===` short-circuit, first-byte-diff would be CONSISTENTLY faster across all percentiles (bails at byte 0; last-byte compares all 43 bytes). Observed instead: medians indistinguishable, min values within 5ms, mean delta dominated by one network-noise outlier — consistent with constant-time. **Worth updating the playbook to use this design**: replace T.A.15's "compare against T.A.5" instruction with "compare first-byte-diff vs last-byte-diff, both 401, equal-content payload." Test marked "Important for BL-033, not blocking BL-032" in the playbook — passing it here means we don't need to revisit for BL-033 either, assuming the bearer-check code path doesn't regress.
+
+  **Tracked (2026-05-12)**: the empirical PASS does not retire the formal contract gap. `bearer.ts:81` still uses plain `===`; T.I.5's code review confirmed this. Filed as a BL-033 AC bullet — see [BL-033 § Authentication & authorization → Bearer-comparison constant-time hardening](./BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3). Half-day swap to `crypto.timingSafeEqual` before external-pilot ship.
 
 ## Section B — Tool execution (10-tool surface)
 
@@ -1792,6 +1794,8 @@ alt-svc: h3=":443"; ma=86400
      Most likely fit: a BL-033 prerequisite item to measure latency from the actual external-consumer regions and choose accordingly.
 - Notes: Important separation in this finding: code is fine, infrastructure topology is the cost-driver. The Worker would meet the 200ms target if Upstash were co-regional. Worth adding a BACKLOG entry for "Regional latency assessment and remediation" once we know external-consumer regions in BL-033.
 
+  **Tracked (2026-05-12)**: filed as a BL-033 AC bullet — see [BL-033 § Pilot operations → Regional latency assessment + remediation](./BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3). Three remediation options recorded: (a) move MCP Upstash DB to a closer region, (b) add Cloudflare KV global-replicating layer, (c) set region-aware SLA. Decision deferred until pilot consumer regions are known.
+
 ## T.H.5 — Latency under concurrent load
 
 - Date: 2026-05-11
@@ -1817,6 +1821,8 @@ alt-svc: h3=":443"; ma=86400
 - Severity (if fail): "Substantially over → Upstash REST latency from Cloudflare's edge unexpectedly slow" — playbook expected this exact case. Investigation completed.
 - Remediation: Same as T.H.4 — regional infrastructure topology, not code. The 3-probe Promise.all pattern is correct; what makes the targets unachievable is the transcontinental Upstash hop. Note that for monitoring/alerting purposes, the 769ms max is well below any reasonable health-check timeout (typically 5-10s), so /health remains usable for liveness checks even from GRU.
 - Notes: Cross-references T.H.4's regional-latency analysis. Both findings point to the same architectural property — and both would resolve by closing the geography gap or revising targets. Combined remediation: one ticket for "BL-033 prerequisite — measure-and-co-locate latency assessment."
+
+  **Tracked (2026-05-12)**: covered by the same BL-033 AC bullet as T.H.4 — see [BL-033 § Pilot operations → Regional latency assessment + remediation](./BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3).
 
 ## Section I — Security
 
@@ -1890,6 +1896,8 @@ alt-svc: h3=":443"; ma=86400
 - Severity (if fail): Plain `===` comparison — Important; not Critical at internal-soak-scope, matters for BL-033
 - Remediation: **File for BL-033 as a hardening item before external-pilot ship.** The fix is mechanical: replace `value === token` with a constant-time byte-by-byte comparison. Workers runtime has `crypto.subtle` and the deeper `crypto.timingSafeEqual` available (via `node:crypto` polyfill enabled by `nodejs_compat`). Estimated effort: half a day including a unit test that asserts comparison time is independent of mismatch position via instrumented benchmarks.
 - Notes: This is the second BL-033-blocking item the soak surfaced (alongside BL-038's missing radar rate-limit tier). Both are defense-in-depth gaps, not critical exploitable defects at internal-soak scope (single operator, no LAN attack model, WAN noise dwarfs timing leaks). At external-pilot scope (BL-033), the attacker model expands and these gaps need closing.
+
+  **Tracked (2026-05-12)**: same as T.A.15 — filed as [BL-033 § Authentication & authorization → Bearer-comparison constant-time hardening](./BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3).
 
 ## T.I.6 — No raw `console.log` in worker code
 
@@ -2431,6 +2439,8 @@ alt-svc: h3=":443"; ma=86400
   - [x] **NEW infrastructure defect — local stdio timeout**: The local `gst:generate_diligence_agenda` call **hung indefinitely** (4-minute Desktop timeout), while staging completed normally. Local connector worked fine for K.2.b.1 (list_portfolio_facets) and K.2.b.2 (search_portfolio) — so this is **tool-specific**, not connector-level. Suspects: large JSON response (20 questions × full-text rationale + 4 attention areas + trigger map ≈ 5-8 KB serialized) overflowing stdio buffer; or `generateScript()` engine has a slow path under certain input combos; or stdio child process deadlock. Worth a focused investigation: rerun the same call directly via `node mcp-server/dist/index.js` with the exact JSON request body to see if the engine itself hangs or the stdio transport hangs. **Filing as backlog candidate.**
 - Notes: **Two structural findings worth elevating**: (1) BL-031.95 sentinel under-use is now confirmed 3-of-3 in K.1.2 / K.1.3 / K.2.b.3 — graduates from "soft observation" to "structural defect" requiring mitigation. (2) Local stdio timeout on `generate_diligence_agenda` is a real infrastructure defect that warrants its own investigation; the staging mirror saved the test but a local-only consumer (Claude Code with stdio, no remote fallback) would have been blocked.
 
+  **Tracked (2026-05-12)**: local-stdio timeout filed as [BL-032.25 § 3](./MCP_SERVER_REMOTE_BL-032_25.md#§-3--tk2b3-local-stdio-diligence-timeout-p1) — P1 deferred; investigation needs 2-4 hours to narrow root cause (large JSON / engine slow-path / stdio deadlock). Sentinel under-use is tracked separately under [BL-032.75 K-section mitigations → tool description tightening for `generate_diligence_agenda`](./BACKLOG.md#bl-03275-mcp-server--production-observability-maturity) — already shipped in commit `e472be9`.
+
 #### T.K.2.b.4 — `assess_infrastructure_cost_governance`
 
 - Date: 2026-05-12
@@ -2967,6 +2977,8 @@ alt-svc: h3=":443"; ma=86400
   3. **Anti-pattern documented**: when in doubt — if a prompt asks you to type a secret, sanitize the scrollback before pasting it back, even if it took you down the happy path.
 - Notes: Token #3 confirmed live-valid at time of leak via the preflight SET probe returning `result: OK`. Treat T.B.9.f result as fully PASS (the test itself succeeded) even though the operator-flow around it leaked the credential — they are separable issues.
 
+  **Tracked (2026-05-12)**: filed as [BL-032.25 § 5](./MCP_SERVER_REMOTE_BL-032_25.md#§-5--tx4-credential-prompt--assecurestring-sweep-p0) — P0 (blocks B.6 alongside the rotation work). Sweep all `Read-Host` patterns in the playbook to enforce `-AsSecureString` everywhere; rotate the three leaked Upstash tokens; add an "Anti-pattern documented" note to the playbook header.
+
 ---
 
 ## T.X.3 — Inoreader `token-stale` envelope captured live (T.B.10.a precondition)
@@ -2998,6 +3010,8 @@ alt-svc: h3=":443"; ma=86400
   3. **Upstash console UX gap** (out of our control): operator reported the console does not surface a "Roll/Regenerate" button for the Standard token on the current account tier. This means rotating leaked tokens requires either deleting and recreating the database OR using the Upstash API directly. Document this in the recovery runbook so the next operator knows in advance.
 - Notes: Compounds with the security-follow-up flagged in T.C.7 — two distinct token values were pasted into the chat session during recovery; both should be treated as compromised. Combined with the no-roll-button observation above, rotation will need to happen via the Upstash account-recovery path (support ticket OR database recreation) rather than a one-click roll. **Important enough to consider blocking BL-032 production deploy until rotation is complete.** The actual technical issue (Read-only token installed) is fixed as of `30de6516-b46c-4477-91dd-c98af393f449`. The credential-hygiene followup is separate and tracked here.
 
+  **Tracked (2026-05-12)**: the `/health` write-then-delete probe enhancement (Remediation step 2) filed under [BL-032.75 K-section mitigations → `/health` probe depth](./BACKLOG.md#bl-03275-mcp-server--production-observability-maturity). The credential-hygiene process sweep (Remediation step 1 + cross-cutting with T.X.4) tracked under [BL-032.25 § 5](./MCP_SERVER_REMOTE_BL-032_25.md#§-5--tx4-credential-prompt--assecurestring-sweep-p0) — P0 alongside the rotation work.
+
 ---
 
 ## T.X.1 — Setup snippet placeholder is a copy-paste trap
@@ -3013,6 +3027,8 @@ alt-svc: h3=":443"; ma=86400
 - Notes: Two follow-ups worth considering for future polish (not blocking this soak):
   1. The bash equivalent in [DEPLOY.md § B.3](../../../mcp-server/src/docs/operations/DEPLOY.md) likely has the same placeholder hazard — review and convert to `read -s MCP_KEY` if so.
   2. The `Invoke-McpRequest` helper's SSE-only parser silently returns the raw HTTP response when the body isn't SSE — operators who run `(call).result.foo` get `$null` with no obvious cause. Consider having the helper raise a clearer error on non-2xx responses, OR document the diagnostic incantation (`$resp.GetType()` + `$resp.Content.Substring(0,200)`) prominently in the playbook's "How to use this doc" section.
+
+  **Tracked (2026-05-12)**: both secondary follow-ups filed as [BL-032.25 § 4](./MCP_SERVER_REMOTE_BL-032_25.md#§-4--tx1-secondary-playbook-polish-p1) — P1 deferred; primary fix (PowerShell placeholder → `Read-Host`) already shipped in commit `3bacd0e`. Bundle with BL-034 doc cleanup if convenient.
 
 ---
 

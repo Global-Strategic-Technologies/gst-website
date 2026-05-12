@@ -163,45 +163,153 @@ If audit comes back A (by-design) AND no architectural trigger has fired, the re
 
 ---
 
-## § 2 — TBD (next soak finding)
-
-_(filled as soak progresses)_
-
-Each new finding gets:
-
-```markdown
-## § N — <short title>
+## § 2 — T.A.4 empty-bearer error message (P1)
 
 ### Status
 
-- Authored: <date>
-- Severity: **P0** / **P1** with one-sentence rationale
-- Recommendation: <execute now / defer / cancel>
-- Investigation evidence: this section
-- Closure stanza: [pending or linked]
+- **Authored**: 2026-05-12 (filed retroactively from soak findings during BL-032.25 closure audit)
+- **Severity**: **P1** — cosmetic error-disambiguation gap; correct status code returned, only the human-readable message is imprecise
+- **Recommendation**: defer; ship B.6 as-is; revisit if external pilot (BL-033) compliance review flags the message
+- **Investigation evidence**: this section
+- **Closure stanza**: [pending]
 
 ### What it asks
 
-<one paragraph framing>
+A request with `Authorization: Bearer ` (empty token after the scheme) returns `HTTP 401` with body `{"error":"unauthorized","message":"Authorization header must use Bearer scheme"}`. The status code is correct; the message is wrong — it suggests the scheme was rejected when in fact the scheme parsed fine and the token slot was empty.
 
 ### Investigation findings
 
-<concrete code findings, file paths, observed behavior, evidence>
+- Reproduction: [TESTING_FINDINGS § T.A.4](./BL-032_TESTING_FINDINGS.md#ta4--empty-bearer-schema)
+- Likely site of fix: [`mcp-server/src/auth/bearer.ts`](../../../mcp-server/src/auth/bearer.ts) — the scheme-validation branch fires on empty token because the value-extraction step probably returns the empty string for `Bearer ` (single trailing space) and an earlier check rejects the falsy value
+- No leak / no auth bypass surfaced — the 401 is returned correctly, only the disambiguation in the response body is off
 
 ### Plan
 
-- For P0: concrete remediation steps + verification path + commit-SHA placeholder
-- For P1: deferred-but-documented analysis + revisit criteria
+P1, deferred. Trivial fix: add an empty-after-trim check between the scheme-parse and the token-lookup so the empty case returns `"Authorization header has empty Bearer token"` (or similar). Estimated effort: 30 min including a unit test. Not blocking B.6.
 
 ### Recommendation
 
-<defensible recommendation with reasoning>
+Defer. The defect is cosmetic — an attacker probing with `Bearer ` learns the same thing they learn from `Bearer wrong-value` (the request was rejected). The message imprecision only matters for legitimate operators debugging their config, and the operator workflow already proves itself out in T.A.5 / T.A.6.
 
 ### Closure stanza
 
-<filled when resolved>
-```
+(Pending — fix-time.)
 
 ---
 
-_Last updated: 2026-05-06 — initial authoring at start of BL-032 staging soak. § 1 (schema normalization, P1 deferred) is the anchor finding. Soak-week additions populate § 2 onward as discovered._
+## § 3 — T.K.2.b.3 local stdio diligence timeout (P1)
+
+### Status
+
+- **Authored**: 2026-05-12 (filed retroactively from K-section soak)
+- **Severity**: **P1** — affects only the local stdio connector path for one tool; staging (remote HTTP) completed normally; Claude Desktop's transparent fallback recovered the user-facing workflow
+- **Recommendation**: defer; schedule an investigation when stdio-only consumption becomes a higher-volume path
+- **Investigation evidence**: this section
+- **Closure stanza**: [pending]
+
+### What it asks
+
+A Claude Desktop call to `gst:generate_diligence_agenda` over the local stdio connector hung for the full 4-minute Desktop timeout, while the same call over the remote staging connector completed in normal time. Other local stdio tool calls in the same session (`list_portfolio_facets`, `search_portfolio`) worked fine — so the defect is tool-specific, not connector-level.
+
+### Investigation findings
+
+- Reproduction: [TESTING_FINDINGS § T.K.2.b.3](./BL-032_TESTING_FINDINGS.md#tk2b3--generate_diligence_agenda)
+- Three live hypotheses:
+  1. Large JSON response (20 questions × full-text rationale + 4 attention areas + trigger map ≈ 5-8 KB serialized) overflowing the stdio buffer in `mcp-server/dist/index.js` or in Desktop's stdio reader
+  2. `generateScript()` engine has a slow path triggered by the specific input combo used in K.2.b.3 (`growthStage: scaling, geographies: ['us', 'eu'], dataSensitivity: high` etc.)
+  3. stdio child-process deadlock — Worker or Desktop reads/writes blocking on each other for this response shape
+- Diagnostic next step: rerun the same call directly via `node mcp-server/dist/index.js` with the exact JSON request body from the K.2.b.3 transcript, instrumented for engine-side timing. If the engine returns fast, the issue is stdio transport; if the engine itself hangs, it's a logic bug
+
+### Plan
+
+P1, deferred. Stdio-only consumers exist (Claude Code, single-machine workflows) but Claude Desktop's transparent fallback to the remote staging connector makes this latent for Desktop users. Investigation effort estimated 2-4 hours including narrowing to root cause; remediation depends on which hypothesis fires.
+
+### Recommendation
+
+Defer. Two reasons: (1) the user-facing workflow recovered via Desktop's fallback, and (2) the K-section soak captured only one instance — possible flake, possible specific-input-only. Re-prioritize if the bug reproduces on a different input, or if Claude Code (no fallback) usage of `generate_diligence_agenda` increases.
+
+### Closure stanza
+
+(Pending — investigation-time.)
+
+---
+
+## § 4 — T.X.1 secondary playbook polish (P1)
+
+### Status
+
+- **Authored**: 2026-05-12 (filed retroactively from soak; two follow-ups noted in T.X.1's Notes that weren't formally tracked)
+- **Severity**: **P1** — both are operator-experience polish; T.X.1's primary fix (PowerShell placeholder replaced with `Read-Host`) already shipped in commit `3bacd0e`
+- **Recommendation**: defer until next operator-facing doc revision pass
+- **Investigation evidence**: this section
+- **Closure stanza**: [pending]
+
+### What it asks
+
+T.X.1's resolution surfaced two adjacent follow-ups that didn't make the original fix:
+
+1. The bash equivalent in [`DEPLOY.md` § B.3](../../../mcp-server/src/docs/operations/DEPLOY.md) may have the same literal-placeholder hazard the PowerShell setup snippet did; review and convert to `read -s MCP_KEY` if so
+2. The `Invoke-McpRequest` helper's SSE-only parser silently returns the raw HTTP response when the body isn't SSE (e.g., a 401 returns JSON, which the parser doesn't recognize and falls through). Operators running `(call).result.foo` get `$null` with no obvious cause. Either raise a clearer error on non-2xx OR document the diagnostic incantation (`$resp.GetType()` + `$resp.Content.Substring(0,200)`) prominently in the playbook's "How to use this doc" section
+
+### Investigation findings
+
+- Source: [TESTING_FINDINGS § T.X.1](./BL-032_TESTING_FINDINGS.md#tx1--setup-snippet-placeholder-is-a-copy-paste-trap), Notes section, points 1 and 2
+- Both items are doc / helper changes, not server-side code
+
+### Plan
+
+P1, deferred. Each item ~15-30 min on its own. Best bundled with the next operator-doc revision pass.
+
+### Recommendation
+
+Defer. Bundle with BL-034 (MCP doc cleanup) if convenient.
+
+### Closure stanza
+
+(Pending — fix-time.)
+
+---
+
+## § 5 — T.X.4 credential-prompt `-AsSecureString` sweep (P0)
+
+### Status
+
+- **Authored**: 2026-05-12 (filed retroactively from T.X.4)
+- **Severity**: **P0** — token-rotation work was already blocking B.6 per T.X.4's own assessment; the process-hygiene sweep is the prevent-recurrence half of the same blocker
+- **Recommendation**: execute before B.6 alongside the rotation work
+- **Investigation evidence**: this section
+- **Closure stanza**: [pending]
+
+### What it asks
+
+Three Upstash REST tokens leaked to chat transcripts during the soak: two from T.C.7's recovery flow (Standard + Read-only candidates, see T.X.2) and one from T.B.9.f's preflight (T.X.4 itself). The root cause is the same in all three: Claude-authored PowerShell preflight blocks used plain `Read-Host "..."` rather than `Read-Host -AsSecureString`, so PowerShell echoed the typed values visibly to the terminal scrollback. The operator then pasted the post-run scrollback back to Claude to share test results, taking the secret along for the ride.
+
+The T.X.1 fix migrated `Invoke-McpRequest.ps1`'s `MCP_KEY` prompt to a no-echo pattern in commit `3bacd0e`. Section D / T.B.9.f / T.B.10.f / T.C.7-style ad-hoc snippets were NOT migrated; this finding's remediation is a single sweep through all credential-prompt patterns in the playbook to enforce `-AsSecureString` everywhere.
+
+### Investigation findings
+
+- Reproduction: [TESTING_FINDINGS § T.X.4](./BL-032_TESTING_FINDINGS.md#tx4--third-upstash-standard-token-leaked-to-chat-during-tb9f-preflight)
+- Related: [TESTING_FINDINGS § T.X.2](./BL-032_TESTING_FINDINGS.md#tx2--read-only-vs-standard-upstash-rest-token-confusion-during-tc7-recovery) (first two leaks)
+- Surface to sweep: [`MCP_SERVER_REMOTE_BL-032_TESTING.md`](./MCP_SERVER_REMOTE_BL-032_TESTING.md) — search for `Read-Host` without `-AsSecureString` across all Section A-K test blocks; identify any block that prompts for a credential (UPSTASH\_\*, MCP_KEY, INOREADER\_\*, SENTRY_DSN, etc.)
+- Pattern to enforce: `Read-Host -AsSecureString -Prompt "..."` followed by `$plain = [Net.NetworkCredential]::new('', $secure).Password` — keeps plaintext only in the local variable, never to the screen
+
+### Plan
+
+P0, execute before B.6:
+
+1. Grep the playbook for `Read-Host` and identify every block that prompts for a secret (acceptance: zero `Read-Host` lines that don't either use `-AsSecureString` or prompt for a non-secret value)
+2. Migrate each to the secure pattern; verify the post-run scrollback shows no secret material
+3. Rotate the three leaked Upstash tokens (T.X.2 lists the recreation path; Upstash console reportedly has no Roll button on the operator's tier)
+4. Add an "Anti-pattern documented" note to the playbook's "How to use this doc" header: "if a prompt asks you to type a secret, sanitize the scrollback before pasting it back, even if it took you down the happy path"
+
+### Recommendation
+
+Execute. Three leaks in one soak is a structural signal that the prompt-authoring pattern needs to change at the playbook level, not per-incident.
+
+### Closure stanza
+
+(Pending — execution + rotation.)
+
+---
+
+_Last updated: 2026-05-12 — soak findings § 2–§ 5 filed during BL-032.25 closure audit. § 1 (schema normalization, P1 deferred) remains the anchor finding._
