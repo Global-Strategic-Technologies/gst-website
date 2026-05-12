@@ -2,7 +2,7 @@
 
 > **Audience**: GST team member (consumer) who wants to use the GST MCP server from a Claude / Cursor / ChatGPT client running on any machine.
 >
-> **Status**: BL-032 Phase 2 skeleton — bearer-token auth is in place; the remote URL still points at staging because [Phase 6 deploy](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#phase-6--staging--production-deploy--verification-05-day--soak) has not run yet. The production URL (`mcp.globalstrategic.tech`) replaces the staging URL throughout this doc when Phase 6 ships.
+> **Status**: BL-032 production deploy shipped 2026-05-12. The canonical URL is now `https://mcp.globalstrategic.tech/mcp`. Staging (`https://mcp-staging.globalstrategic.tech/mcp`) remains for testing changes before they reach production — most consumers should point at production.
 >
 > **For operators issuing keys**: see [`AUTH.md`](./AUTH.md). This doc is for the people RECEIVING those keys.
 
@@ -39,20 +39,12 @@ If you lose the token, ask the operator to rotate it (see [`AUTH.md`](./AUTH.md)
 
 The MCP endpoint URLs:
 
-| Environment | URL                                                              | Status |
-| ----------- | ---------------------------------------------------------------- | ------ |
-| Staging     | `https://mcp-staging.globalstrategic.tech/mcp` _(Phase 6 wires)_ | TBD    |
-| Production  | `https://mcp.globalstrategic.tech/mcp` _(Phase 6 wires)_         | TBD    |
+| Environment | URL                                            | Status                                      |
+| ----------- | ---------------------------------------------- | ------------------------------------------- |
+| Production  | `https://mcp.globalstrategic.tech/mcp`         | ✅ Live (deployed 2026-05-12) — use this    |
+| Staging     | `https://mcp-staging.globalstrategic.tech/mcp` | ✅ Live — testing changes before production |
 
-For Phase 2 (now), the only way to exercise the remote setup is via local `wrangler dev`:
-
-```bash
-cd mcp-server
-npm run dev:worker
-# Worker now serves at http://localhost:8787 (or whatever wrangler picks)
-```
-
-Use `http://localhost:<port>/mcp` in the snippets below until the Phase 6 URLs land.
+**Use the production URL unless you have a specific reason to use staging.** The snippets below all show the production URL; to point at staging, swap the host (`mcp` → `mcp-staging`) and rename the connector (e.g. `gst-mcp` → `gst-mcp-staging`).
 
 ### Claude Desktop
 
@@ -103,10 +95,10 @@ The file may not exist yet on first MCP setup; create the directory + file as ne
 ```json
 {
   "mcpServers": {
-    "gst-mcp-staging": {
+    "gst-mcp": {
       "command": "mcp-remote",
       "args": [
-        "https://mcp-staging.globalstrategic.tech/mcp",
+        "https://mcp.globalstrategic.tech/mcp",
         "--header",
         "Authorization: Bearer YOUR_TOKEN_HERE"
       ]
@@ -115,9 +107,9 @@ The file may not exist yet on first MCP setup; create the directory + file as ne
 }
 ```
 
-> Replace `YOUR_TOKEN_HERE` with your `MCP_KEY_<INITIALS>` value (from your password manager). For production, use `gst-mcp` and the `mcp.globalstrategic.tech` URL — same shape.
+> Replace `YOUR_TOKEN_HERE` with your `MCP_KEY_<INITIALS>` value (from your password manager). To also configure a staging connector for testing un-shipped changes, add a second entry `"gst-mcp-staging"` with the `mcp-staging.globalstrategic.tech` URL — same shape, distinct connector name. Most consumers only need the production entry.
 
-If the file already had `mcpServers` entries (other MCP servers configured), **merge** by adding `gst-mcp-staging` as a sibling key — don't overwrite the file content.
+If the file already had `mcpServers` entries (other MCP servers configured), **merge** by adding `gst-mcp` as a sibling key — don't overwrite the file content.
 
 #### Step 4 — Quit + restart Claude Desktop
 
@@ -125,13 +117,13 @@ Right-click the Claude Desktop tray icon → **Quit** (NOT just close window —
 
 #### Step 5 — Verify
 
-The Connectors menu (chat input "+" → Connectors) should now show an enabled `gst-mcp-staging` entry with an `Add from gst-mcp-staging` submenu listing the GST tools/prompts.
+The Connectors menu (chat input "+" → Connectors) should now show an enabled `gst-mcp` entry with an `Add from gst-mcp` submenu listing the GST tools/prompts.
 
 Smoke prompt in a fresh conversation:
 
-> _Using gst-mcp-staging, list the GST portfolio facets._
+> _Using gst-mcp, list the GST portfolio facets._
 
-(Naming the connector explicitly avoids ambiguity if you also have a local stdio `gst` connector.) Expected: Claude calls `list_portfolio_facets` and returns the deduplicated themes / engagement categories from the GST M&A dataset.
+(Naming the connector explicitly avoids ambiguity if you also have a local stdio `gst` connector or a `gst-mcp-staging` entry.) Expected: Claude calls `list_portfolio_facets` and returns the deduplicated themes / engagement categories from the GST M&A dataset.
 
 #### Windows gotchas
 
@@ -155,7 +147,7 @@ Windows operators commonly hit four issues; each has a targeted workaround:
 
 4. **Connector shows "Server disconnected"** in Claude Desktop's UI even though the config looks correct. Click **Open developer settings** in the error banner — it exposes the actual stderr from the failed spawn. Most common: PATH issues, Program-Files-space breakage, or stale token. Cross-check with a manual bridge test from a separate terminal:
    ```bash
-   mcp-remote https://mcp-staging.globalstrategic.tech/mcp --header "Authorization: Bearer YOUR_TOKEN_HERE"
+   mcp-remote https://mcp.globalstrategic.tech/mcp --header "Authorization: Bearer YOUR_TOKEN_HERE"
    ```
    If this prints "Connected to remote server using StreamableHTTPClientTransport" and "Proxy established successfully," the bridge itself is fine and the issue is Claude Desktop's spawn config or restart.
 
@@ -281,15 +273,16 @@ Expect Claude's opening sentence to explicitly name `search_portfolio` and `sear
 
 ## Troubleshoot
 
-| Symptom                                                    | Likely cause                                                                                                                                    | Fix                                                                                                                                                                                             |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tool list empty / no GST tools appear                      | Client didn't reach the MCP endpoint at all. Check spelling of the URL; check `Authorization` header is present in the snippet                  | Re-paste the config; restart the client. Check your client's MCP debug log if it has one                                                                                                        |
-| `401 Unauthorized` on every tool call                      | Wrong / expired / mistyped token; or the operator rotated your key without telling you                                                          | Verify the token value in your config matches the value the operator gave you. If you're sure it does, ask the operator to confirm the key is still active (see `AUTH.md` § List active keys)   |
-| `403 Forbidden` (Phase 5+)                                 | Your key lacks a scope that the request needs. Phase 2 always grants full scope; this only applies once BL-032.5+ ships per-key scope variation | Ask the operator to broaden your scope or use a different key. The 403 body's `missingScope` field names the missing entry                                                                      |
-| `429 Too Many Requests`                                    | You hit a per-key rate limit. Phase 3 limits: 60 req/min and 1000 req/day for non-radar tools; 5 req/min and 50 req/day for radar tools         | Wait for the `Retry-After` window (returned in headers). If you're hitting limits doing legitimate work, escalate — see § When to escalate                                                      |
-| `503 Service Unavailable` on radar tools                   | Inoreader API is degraded; the global circuit breaker is open. Cached results return where possible; missing-cache returns 503                  | Wait the `Retry-After` window (default 6h). Use the offline radar tool (`search_radar_offline`) if you have a local stdio MCP installed too                                                     |
-| `502 Bad Gateway` / Cloudflare error page                  | Upstream (Worker isolate) crashed                                                                                                               | Retry; if persistent, escalate to operator. Check Cloudflare's status page                                                                                                                      |
-| Browser console: `No 'Access-Control-Allow-Origin' header` | Your client's browser fetches from an origin that's not on the allowlist                                                                        | If you're using a web client (claude.ai, ChatGPT web), the origin is fixed. If you're an in-browser developer, the operator can add your origin to `mcp-server/src/auth/cors.ts` after auditing |
+| Symptom                                                    | Likely cause                                                                                                                                                                                                                                                          | Fix                                                                                                                                                                                                                                                                           |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tool list empty / no GST tools appear                      | Client didn't reach the MCP endpoint at all. Check spelling of the URL; check `Authorization` header is present in the snippet                                                                                                                                        | Re-paste the config; restart the client. Check your client's MCP debug log if it has one                                                                                                                                                                                      |
+| `401 Unauthorized` on every tool call                      | Wrong / expired / mistyped token; or the operator rotated your key without telling you                                                                                                                                                                                | Verify the token value in your config matches the value the operator gave you. If you're sure it does, ask the operator to confirm the key is still active (see `AUTH.md` § List active keys)                                                                                 |
+| `403 Forbidden` (Phase 5+)                                 | Your key lacks a scope that the request needs. Phase 2 always grants full scope; this only applies once BL-032.5+ ships per-key scope variation                                                                                                                       | Ask the operator to broaden your scope or use a different key. The 403 body's `missingScope` field names the missing entry                                                                                                                                                    |
+| `429 Too Many Requests`                                    | You hit a per-key rate limit. Phase 3 limits: 60 req/min and 1000 req/day for non-radar tools; 5 req/min and 50 req/day for radar tools                                                                                                                               | Wait for the `Retry-After` window (returned in headers). If you're hitting limits doing legitimate work, escalate — see § When to escalate                                                                                                                                    |
+| `503 Service Unavailable` on radar tools                   | Inoreader API is degraded; the global circuit breaker is open. Cached results return where possible; missing-cache returns 503                                                                                                                                        | Wait the `Retry-After` window (default 6h). Use the offline radar tool (`search_radar_offline`) if you have a local stdio MCP installed too                                                                                                                                   |
+| `token-stale` error envelope from radar tools              | The Inoreader OAuth access token in Upstash has expired. Per the Path 2 / Q4 invariant, the website is the sole refresh-writer — the Worker can't refresh on its own. Mitigated long-term by BL-039 (Worker-as-refresh-writer) and BL-032.5 (Worker Cron pre-warming) | Visit `https://globalstrategic.tech/hub/radar` in a browser; the page's ISR triggers a refresh that writes a new access token to Upstash within ~10s. Retry the radar tool call after that. Documented as the operator recovery procedure in [`DEPLOY.md` § C.5](./DEPLOY.md) |
+| `502 Bad Gateway` / Cloudflare error page                  | Upstream (Worker isolate) crashed                                                                                                                                                                                                                                     | Retry; if persistent, escalate to operator. Check Cloudflare's status page                                                                                                                                                                                                    |
+| Browser console: `No 'Access-Control-Allow-Origin' header` | Your client's browser fetches from an origin that's not on the allowlist                                                                                                                                                                                              | If you're using a web client (claude.ai, ChatGPT web), the origin is fixed. If you're an in-browser developer, the operator can add your origin to `mcp-server/src/auth/cors.ts` after auditing                                                                               |
 
 ---
 
@@ -299,10 +292,10 @@ Full reference — per-key budget table, RFC 9331 response-header guide, circuit
 
 Quick-reference summary:
 
-| Tool family   | Per-minute | Per-day | Status                                       |
-| ------------- | ---------- | ------- | -------------------------------------------- |
-| General tools | 60         | 1000    | ✅ Phase 3 (active)                          |
-| Radar tools   | 5          | 50      | ⏳ Phase 4 (activated when radar tools ship) |
+| Tool family   | Per-minute | Per-day | Status                                                                                                |
+| ------------- | ---------- | ------- | ----------------------------------------------------------------------------------------------------- |
+| General tools | 60         | 1000    | ✅ Active in production (BL-032 Phase 3)                                                              |
+| Radar tools   | 5          | 50      | ⚠️ Documented; enforcement tracked under [BL-038](../../../../src/docs/development/BACKLOG.md#bl-038) |
 
 ---
 
@@ -317,4 +310,4 @@ Contact the operator (see your team's escalation channel) when:
 
 ---
 
-_Last updated: 2026-05-04 (Phase 2 skeleton — production URL placeholder; Phase 6 fills in the real values)_
+_Last updated: 2026-05-12 (BL-032 production deploy shipped; canonical URL flipped from staging to `mcp.globalstrategic.tech`; token-stale recovery + BL-038 radar-tier enforcement note added)_
