@@ -2564,6 +2564,7 @@ alt-svc: h3=":443"; ma=86400
     - K.2.b.9: Local `search_radar_cache` → 10-day-old seed-mock placeholder data
 
     Strengthens the case for BL-039 (Worker as refresh-writer) + K.1.10's `oldestItemDaysAgo` envelope enrichment + a CLAUDE.md note recommending operators refresh the local cache periodically when using stdio for live work.
+
 - Notes: Claude's seed-data recognition was sharp — example.com URLs + identical timestamps + generic titles are the right signals. The cross-conversation memory reference ("the same stale-seed condition you hit before") is the K.1.4/K.1.9-observed Claude Desktop project-memory feature surfacing again. Not a defect here (helpful context), but worth tracking as a recurring observation.
 
 #### T.K.2.b.10 — `get_latest_insights`
@@ -2590,39 +2591,60 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.K.2.c.1 — Deal-target intake
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
 - Prompt verbatim:
   > "I'm meeting tomorrow with a target: B2B SaaS, healthcare-RCM, $30M ARR, Series B, hybrid-legacy with active modernization in flight, 180 engineers across US+EU. Pull any comparable past GST engagements, then draft the diligence agenda I should walk in with."
 - Expected: `search_portfolio` → `generate_diligence_agenda`. Score tool selection, composition, synthesis, overall.
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
-- Composition (1-5):
+- Tool selection (1-5): **5** — clean two-step chain. Used 5 parallel `search_portfolio` queries to fan out across the dimensions (HealthTech / RCM / SaaS+Healthcare / modernization / legacy) — efficient pattern, surfaced Tempo (HealthTech) and Oktoberfest (Healthcare-SaaS) as comparables. Then called `generate_diligence_agenda` with the 13-field profile mapped.
+- Input completeness (1-5): **4** — **major improvement on sentinel discipline vs K.1.2 / K.1.3 / K.2.b.3** (which used 0 sentinels each):
+  - ✅ `transactionType: unknown` (user didn't name deal type)
+  - ✅ `companyAge: unknown` (not stated)
+  - ✅ `operatingModel: unknown` (not stated)
+  - ✅ All 7 explicit fields correctly mapped (productType, dataSensitivity, geographies, growthStage, headcount, revenueRange, techArchetype, transformationState)
+  - ⚠️ `scaleIntensity: high` (inferred from healthcare-RCM + $30M ARR — defensible)
+  - ⚠️ `businessModel: productized-platform` (K.1.2 pattern, silent inference — same defect class)
+
+  Net: 3 sentinels correctly used (up from 0 in prior tests), 1 defensible inference, 1 reproducing K.1.2 defect. **The sentinel discipline is partially landing** — `transactionType: unknown` correctly widened the agenda to include 5 carve-out-conditional questions (ci-01/02/07/09/12), demonstrating the BL-031.95 non-eliminating semantic working as designed.
+
+- Result synthesis (1-5): **truncated** — final Claude synthesis cut off at the 50k char limit mid-attention-areas. Tool-call evidence + raw agenda response visible: 20 questions across 4 topics (architecture / operations / carveout-integration / security-risk) including arch-13 (observability — triggered by scaleIntensity=high), sec-17 (EU AI Act — geographies=eu), sec-18 (data classification — dataSensitivity=high), ops-13 + arch-09 (DR/RTO — revenueMin=5-25m). 4 attention areas including Carve-out Technology Entanglement, Cross-Border Data Compliance, AI Commodity Risk, and (truncated) likely Sensitive Data Breach Liability. Score as **4** based on visible evidence; full synthesis would have to be re-paste-verified.
+- Composition (1-5): **5** — parallel portfolio-search fan-out (5 calls) followed by sequential diligence-agenda call. Right pattern for this prompt shape ("find comparables, then build agenda").
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **4** — strong composition + improved sentinel use; the persistent `businessModel` silent inference is the only material defect, and the rest of the workflow is exemplary.
 - Improvement opportunity:
-  - [ ] BL-031.75 prompt-library candidate
+  - [x] **BL-031.75 prompt-library candidate** — "deal-target intake" pattern (find comparables → generate agenda) is a high-value workflow that this test demonstrates working well. Worth codifying as a starter prompt.
   - [ ] Tool description gap
   - [ ] Schema simplification
-  - [ ] Other:
-- Notes:
+  - [x] Other: **Confirms sentinel discipline is improving across the K-section** — first test where Claude used `'unknown'` for multiple unstated enum fields. The remaining `businessModel` silent inference is now the most isolated instance of the K.1.2 pattern. BL-032.75 mitigation can target this specific field (and possibly `scaleIntensity`) rather than the entire schema.
+- Notes: Notable that Claude used staging-only (no local fallback attempt) — possibly because the K.2.b.3 local stdio timeout is being avoided implicitly. Or coincidence. Worth re-checking in K.2.c.5 (which also calls multiple compute tools).
 
 #### T.K.2.c.2 — Radar-driven thesis development
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, both connectors loaded — but only `gst-mcp-staging` tools surfaced in JIT-load for this query)
 - Prompt verbatim:
   > "Find recent radar items in the PE/M&A category from the last week. For any deals or themes that might intersect with GST's past tech-due-diligence work, surface the comparable engagements."
 - Expected: `search_radar` → `search_portfolio`. Score multi-tool composition + synthesis quality.
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
-- Composition (1-5):
-- Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Tool selection (1-5): **4** — tried `gst-mcp-staging:search_radar` with `{ category: "pe-ma" }` → `token-stale` 401. Sensibly fell back to `gst-mcp-staging:get_latest_insights` (different tool, same Inoreader dependency) → same `token-stale`. Recognized from `search_radar`'s description that a sister tool `search_radar_offline` exists for budget-exhausted contexts, but **it wasn't in the JIT-loaded toolset** so couldn't be called. Half-credit for trying both Inoreader-dependent tools before giving up.
+- Input completeness (1-5): **5** — clean `category: "pe-ma"` and `limit: 15`.
+- Result synthesis (1-5): **4** — couldn't complete the radar→portfolio cross-reference workflow; **outlined the workflow** Claude _would_ have run ("pull the last week of pe-ma items, then for each deal/theme that names a sector, hit search_portfolio with high-signal single-term queries"). Articulated the failure modes correctly: distinguished "needs refresh" vs "refresh token revoked" + suggested wrangler log inspection for the actual upstream Inoreader status.
+- Composition (1-5): **2** — workflow was BLOCKED by token-stale. Not Claude's fault. Score reflects test outcome, not Claude behavior.
+- Failure handling (1-5): **5** — gold-standard recovery enumeration: (1) trigger website-side refresh via /hub/radar visit, (2) manual token rotation if refresh-token is dead, (3) try `search_radar_offline` if available. Acknowledged the sister tool's absence from the loaded set honestly.
+- Overall workflow value (1-5): **3** — blocked workflow with excellent failure handling; cannot evaluate cross-reference quality.
+- Improvement opportunity:
+  - [x] **BL-031.75 prompt-library candidate** — "radar-driven thesis development" workflow shape, paired with retry-after-refresh recovery guidance.
+  - [ ] Tool description gap
+  - [x] **NEW critical observation — auto-fallback pattern is JIT-load-conditional**: K.2.b.10 successfully auto-fell-back to `search_radar_cache` because that tool happened to be in the JIT-loaded subset. K.2.c.2 didn't because `search_radar_offline` wasn't loaded. **This makes the auto-fallback unreliable as a production mitigation** — works probabilistically based on Claude Desktop's tool-loading heuristic. Two remediation paths:
+    1. Co-locate the offline sister tool on the remote `gst-mcp-staging` connector (not just local stdio), so it's always available alongside `search_radar`. The deployed Worker currently only exposes `search_radar` / `get_latest_insights`; adding `search_radar_offline` to the Worker would eliminate this gap.
+    2. Update `search_radar`'s description to instruct: "On `token-stale` error, IF `search_radar_offline` is not in the loaded toolset, surface the 3-option recovery (browser-refresh / token-rotation / manual retry) immediately rather than waiting for the user to ask."
+  - [x] **BL-039 case strengthens** — 4th K-section instance of token-stale blocking (after K.1.7, K.2.b.9 (cache stale), K.2.b.10). BL-039 (Worker as refresh-writer) is now clearly load-bearing for the radar surface. Without it, every soak-week / production session risks blocking on this.
+  - [ ] Other:
+- Notes: **Diagnostic observation**: Claude reached for `search_radar_offline` (the canonical name per docs since BL-032 Phase 4b rename) rather than `search_radar_cache` (the deprecated alias). This is correct behavior given current docs; **need to verify the deployed `dist/index.js` actually exposes `search_radar_offline` and not just the legacy `search_radar_cache`** — if dist is out of date relative to source, even local-loaded sessions would only see `_cache`. K.2.b.10 trace showed `gst:search_radar_cache` (alias name), suggesting the deployed local build is pre-rename. Recommend `cd mcp-server && npm run build` to refresh dist with the canonical name.
+
+  **2026-05-12 SUCCESSFUL RETRY**: Token-stale resolved ~30-60 min after the initial attempt (either via ISR refresh from a manual `/hub/radar` visit or via the 6h cache window elapsing). On retry, `gst-mcp-staging:search_radar { category: "pe-ma" }` returned 16 real items (15 Wire-tier from 2026-05-12, 1 FYI-tier from 2026-02-23). Claude correctly identified three strongest signal candidates for portfolio cross-reference: HealthScape/PayerAlly healthcare M&A, Lorient/PeterMD health platform investment, and the Franklin Templeton "AI threatens enterprise software" FYI piece. Synthesis was truncated mid-portfolio-search by the 50k char limit. **K.1.10 FYI staleness reproduces a 3rd time**: Wire dated 2026-05-12 (fresh today), FYI most recent is 2026-02-23 (~78 days old). This is the strongest evidence yet that FYI annotation cadence is the bottleneck for the radar's "what GST cares about" signal — Wire feed is healthy, GST curation is the lag. **Updated scoring under healthy radar**: when the radar surface IS available, this workflow executes correctly (5/5/4/5/N/A/5 — flagship). Under token-stale (initial attempt), it's blocked (4/5/4/2/5/3 — see above).
+
 - Improvement opportunity:
   - [ ] BL-031.75 prompt-library candidate
   - [ ] Other:
@@ -2630,24 +2652,22 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.K.2.c.3 — Cost-governance assessment + roll-up suggestion
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
 - Prompt verbatim:
   > "For a Series B PE-backed SaaS company in financial services where my client is hitting elevated tech costs (above the healthy benchmark), give me both a TechPar benchmark and an ICG maturity assessment, then suggest the top 3 remediation areas across both lenses."
 - Expected: `compute_techpar` + `assess_infrastructure_cost_governance` run in parallel; synthesis combines both. Score composition + synthesis.
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
-- Composition (1-5):
+- Tool selection (1-5): **5** — called both expected tools (`compute_techpar` + `assess_infrastructure_cost_governance`) via the local `gst-mcp-staging` connector. No local stdio attempt (consistent with K.2.c.1's pattern).
+- Input completeness (1-5): **5** — same gold-standard K.2.b.5 pattern: announced all 14 TechPar defaults upfront with rationale ("ARR $25M (typical late Series B FinServ); Growth 60% YoY; Infra hosting $3M — elevated, this is what's pushing the zone...") and explicitly modeled the ICG persona ("a Series B company exhibiting the classic 'elevated tech costs' pattern: decent ops hygiene but weak FinOps discipline, no unit economics, reactive procurement, no tagging governance. I'll mark a handful of items as -1 ('Not sure') to reflect realistic diligence gaps"). ICG had 24 explicit answers including 2 `-1` sentinels. Mapped "Series B" → `stage: "series-b"` / `companyStage: "series-b"` consistently.
+- Result synthesis (1-5): **5** (visible portion) — TechPar zone = "above" (58.8% of ARR). ICG maturity = "Reactive" (18/100), 2 foundational domains below threshold (D1 Visibility, D2 Account Structure). **Exemplary truthful framing in the closing**: _"TechPar landed at 'above' rather than 'elevated' — the model places 'elevated' between zones I didn't quite hit. If your client's real ratio is higher than 58.8%, send me the actual ARR and cost lines and I'll re-run."_ Claude refused to fudge inputs to match the user's word choice — let the engine speak. The actual top-3 cross-lens remediation synthesis was truncated by the 50k char limit, but the framing demonstrates high integrity.
+- Composition (1-5): **5** — **parallel execution**: both tools fired back-to-back with no intermediate text. This is the right pattern for "give me both X and Y" prompts. Claude correctly recognized the parallelism.
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **5** — flagship pass.
 - Improvement opportunity:
-  - [ ] BL-031.75 prompt-library candidate
-  - [ ] Other:
-- Notes:
-
-#### T.K.2.c.4 — Regulatory-blast-radius scoping
+  - [x] **BL-031.75 prompt-library candidate** — "TechPar + ICG dual-lens for cost governance assessment" is exactly the kind of high-value workflow that demonstrates the platform's competitive value. Worth codifying.
+  - [x] **Other — NEW engine accounting inconsistency in ICG**: response shows `answeredCount: 24, totalQuestions: 20, skippedCount: 2`. Math doesn't reconcile (20 - 2 = 18, not 24). Likely the engine counts `-1` ("Not sure") as both answered AND skipped, or the metadata field definitions are inconsistent. Worth a focused investigation in `infrastructure-cost-governance/engine.ts` or wherever the accounting is computed. Suggested fix: clarify `answeredCount` semantics in the tool description (does -1 count as answered?) and/or align the metadata math with what `totalQuestions` represents. Not blocking, but undermines the result's interpretability.
+- Notes: **Reinforces K.2.b.5 pattern**: for tools requiring multiple non-sentinel inputs (numeric / answer-map), Claude's "announce defaults upfront + offer correction + run" pattern is gold-standard. Combined with the K.2.c.1 sentinel discipline improvement (3 of 13 fields correctly `'unknown'`), this suggests the **BL-032.75 mitigation can be narrower than initially scoped**: focus on the `businessModel` / `operatingModel` silent-inference traps in `generate_diligence_agenda` specifically, not the entire schema universe.
 
 - Date:
 - Tester:
@@ -2655,36 +2675,43 @@ alt-svc: h3=":443"; ma=86400
 - Prompt verbatim:
   > "My target operates in the US, Canada (including Quebec), and the EU; processes patient data; uses LLM-based features. What are the regulatory frameworks I need to flag in my diligence memo, and any past GST work I can reference?"
 - Expected: `search_regulations` (multi-jurisdiction) → `search_portfolio` (healthcare/AI). Score multi-jurisdiction handling, AI/healthcare regulatory awareness, GST-engagement linking.
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
-- Composition (1-5):
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
+- Tool selection (1-5): **5** — called `search_regulations` (counter to K.2.a.4 / K.2.b.7 web-search-bypass pattern). The "GST" + "diligence memo" + "regulatory frameworks I need to flag" framing was imperative + tool-name-aligned enough to fire correctly. Also called `list_regulation_facets` to disambiguate jurisdiction codes (smart) and `search_portfolio` for cross-reference precedents.
+- Input completeness (1-5): **3** — **inefficient fan-out**: ~11 `search_regulations` calls (3 returned empty) where 3 calls would have sufficed. The schema's single-string `jurisdiction` and `category` filters forced sequential per-jurisdiction calls. Better path: `{category: "data-privacy", limit: 120}` returns all 4 privacy regimes in one shot; same for `ai-governance`; plus one `{query: "HIPAA"}` for sectoral. Filter jurisdictions in synthesis. **Tester explicitly observed this**: "it seems like it could have done many fewer tool uses by just combining the query arguments, right?"
+- Result synthesis (1-5): **4** (visible portion) — surfaced 7+ relevant regulations correctly: HIPAA, CCPA (CA), PIPEDA (CA federal), Quebec Law 25, GDPR (EU), EU AI Act, US EO 14110, California AI Transparency Act. **Honest gap-flagging**: "EU industry-compliance is finance-focused — no EU healthcare-specific framework (EHDS / MDR) in the dataset, worth flagging." This is excellent diligence-memo discipline — naming what's missing matters. Found relevant portfolio precedents: Oktoberfest (GDPR/EU clinical research) + Colors (healthcare AI marketing, $186M ARR with Google Gemini) — both verified real in `projects.json`. No K.1.9-style hallucination. Synthesis truncated at the start of the per-jurisdiction memo flagging.
+- Composition (1-5): **3** — chained search_regulations across multi-jurisdiction → list_regulation_facets (course-correction) → more search_regulations → search_portfolio. Right overall pattern but wasteful execution. 11+ calls cost more than the equivalent 3-call broader-filter approach.
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **3** — answered correctly but at high tool-call cost. The result is right; the workflow burns budget unnecessarily.
 - Improvement opportunity:
-  - [ ] BL-031.75 prompt-library candidate
-  - [ ] Tool description gap (multi-jurisdiction handling)
+  - [x] **BL-031.75 prompt-library candidate** — "regulatory blast radius for diligence memo" workflow shape. Worth codifying once the schema/description issues below are addressed.
+  - [x] **Tool description gap (multi-jurisdiction handling)** — `search_regulations` description should explicitly recommend the broader-filter approach: "**For multi-jurisdiction or multi-category queries, prefer omitting one filter and filtering in synthesis.** The 120-framework full response is bounded and won't overflow context. Sequential per-jurisdiction fan-out is wasteful — `{category: 'data-privacy', limit: 120}` returns all jurisdictions for that category in one call."
+  - [x] **NEW finding — schema simplification candidate**: change `jurisdiction: string` and `category: string` to `jurisdiction: string | string[]` and `category: string | string[]`. Would let Claude pass `{jurisdictions: ["us", "ca", "ca-qc", "eu"], categories: ["data-privacy", "ai-governance"]}` in a single call. Reduces fan-out from N×M to 1. Worth a focused look during BL-032.75 ergonomics work, OR a fresh backlog entry (BL-040 candidate).
   - [ ] Other:
-- Notes:
+- Notes: **Two cross-cutting observations**: (1) Confirms K.2.b.6 pattern — when "GST" is named in the prompt AND the framing is imperative ("flag in my diligence memo"), Claude calls the tool. Different from K.2.a.4's general-domain framing where Claude bypassed entirely. (2) Tester's efficiency observation surfaces an ergonomics gap that's likely affecting other multi-filter scenarios — the tool's strict-mirror-of-website-UI schema may be holding back agent ergonomics. Worth weighing the "capability mirror" invariant against "agent efficiency" — the website's UI has single-select chips by design, but the MCP surface could support arrays without breaking the mirror (input flexibility, output identical).
 
 #### T.K.2.c.5 — Tech-debt + roadmap argument
 
 - Date:
 - Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
 - Prompt verbatim:
   > "For a 250-engineer org spending 40% of capacity on maintenance with $80M ARR, calculate tech-debt carrying cost AND show me ICG questions where they're likely failing. Then draft a one-paragraph board pitch for why a remediation budget is necessary."
 - Expected: `estimate_tech_debt_cost` + `assess_infrastructure_cost_governance` + synthesis to consultant prose. Score across all dimensions.
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
-- Composition (1-5):
+- Tool selection (1-5): **5** — called both expected tools. Smart `companyStage: "series-c"` mapping for $80M ARR (correctly past Series B range; not the lazy "Series B" default).
+- Input completeness (1-5): **5** — same K.2.b.5 / K.2.c.3 pattern. Announced defaults inline before each call: "I'll run the tech debt calc with reasonable defaults for a $80M ARR / 250-eng org at 40% maintenance burden. For ICG, I'll model a 'likely failing' state — answering at the Reactive/Aware level (0-1) on the questions where a maintenance-heavy org typically struggles." Tech debt inputs: 250 eng / $175K / 40% / Weekly / 8 incidents / 6hr MTTR / $2M / 25% / context-switch-on. ICG: 24 explicit answers, no -1 sentinels.
+- Result synthesis (1-5): **4** (truncated synthesis) — tech debt result was crisp: $21.57M annual carrying cost / 27% of ARR / 16 hrs/eng/week lost / $2M budget payback at 4.45 months. Well past the 15% PE-conversation threshold. ICG: 17/100 Reactive, D1 + D2 foundationals below threshold. Visible portion shows the engine outputs cleanly but synthesis prose was truncated mid-flow. Board-pitch quality not directly observable.
+- Composition (1-5): **4** — sequential rather than parallel, despite Claude's opening line _"I'll run these in parallel"_. Minor transparency gap vs K.2.c.3 (which actually parallelized). Both tools were independent and could have run in parallel. Functional but a small "said it would, didn't" inconsistency.
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **4** — strong workflow with one minor composition inconsistency and truncated synthesis prose.
 - Improvement opportunity:
-  - [ ] BL-031.75 prompt-library candidate
-  - [ ] Other:
-- Notes:
+  - [x] **BL-031.75 prompt-library candidate** — "tech-debt + ICG cost-discipline board pitch" is a high-value workflow pattern worth codifying.
+  - [x] Other: **ICG accounting inconsistency reproduces (2nd instance)** — `answeredCount: 24, totalQuestions: 20, skippedCount: 0`. Strengthens K.2.c.3's filed finding. Now confirmed across two independent test runs. The engine accepts 24 input keys when only 20 are valid per the schema (`maxScore` reconciliation: d1=9 → 3 questions, d2=12 → 4 questions, d3=9 → 3 questions, d4=9 → 3 questions, d5=9 → 3 questions, d6=12 → 4 questions = 20 total). Claude's extra keys (e.g., q3_4, q4_4, q5_4) are silently accepted but inflate `answeredCount`. Fix: engine should either drop unknown keys (and not count them) OR validate the input schema strictly and reject extras.
+  - [x] **Minor transparency observation** — Claude announced "I'll run these in parallel" but executed sequentially. Not material but worth noting. Possibly the JIT-loading sequence forced a serial pattern, or Claude's "parallel" was a casual phrasing not a literal commitment. Either way, K.2.c.3 demonstrated true parallel composition is achievable on the same tool pair — this test just didn't reproduce it.
+- Notes: This closes K.2.c with 4 of 5 flagships (c.1 strong-with-c1.2-pattern, c.2 retry-flagship, c.3 true-parallel-flagship, c.5 sequential-but-strong). c.4 was the inefficient-fan-out finding. **Aggregate K.2.c**: multi-tool composition works well; the BL-032.75 mitigation focus should be on (1) `businessModel`/`scaleIntensity` silent-inference traps and (2) `search_regulations` multi-jurisdiction ergonomics. The composition primitives are sound.
 
 ### K.2.d — Edge cases & error recovery
 
