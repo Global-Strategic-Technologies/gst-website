@@ -127,3 +127,48 @@ export function deserializeFromParams(params: URLSearchParams): Partial<UserInpu
 
   return out;
 }
+
+/**
+ * The 13 single-value UserInputs dimensions a URL must carry to count
+ * as a "complete" results-deeplink. Centralised here so `restoreState()`
+ * in the wizard page and any future MCP-side validator agree on the set.
+ */
+const REQUIRED_DIMS = [
+  'transactionType',
+  'productType',
+  'techArchetype',
+  'headcount',
+  'revenueRange',
+  'growthStage',
+  'companyAge',
+  'businessModel',
+  'scaleIntensity',
+  'transformationState',
+  'dataSensitivity',
+  'operatingModel',
+] as const satisfies readonly (keyof UserInputs)[];
+
+/**
+ * Predicate: is the supplied (partial) UserInputs shape "complete" —
+ * i.e. carries all 13 single-value dimensions PLUS at least one
+ * geography? Complete URL state is the deeplink-to-results signal
+ * (from the MCP wrapper's `deeplink` field, or a shared results URL);
+ * incomplete state is mid-wizard progress that should NOT jump to the
+ * results step.
+ *
+ * Returns `false` for `null` (no URL state) and `false` for any subset
+ * missing at least one required dim or with an empty/missing
+ * `geographies` array.
+ *
+ * Extracted from the wizard's inline `restoreState()` per the BL-032
+ * pre-production audit (`src/docs/testing/TEST_STRATEGY.md` §1: pure-
+ * logic predicates belong at the unit-test tier; `tests/unit/
+ * diligence-url.test.ts` covers the truth-table).
+ */
+export function isCompleteUrlState(inputs: Partial<UserInputs> | null): boolean {
+  if (!inputs) return false;
+  if (!REQUIRED_DIMS.every((k) => (inputs as Record<string, unknown>)[k] !== undefined)) {
+    return false;
+  }
+  return (inputs.geographies?.length ?? 0) > 0;
+}

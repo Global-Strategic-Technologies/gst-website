@@ -632,6 +632,7 @@ import '../../../../styles/components/progress.css';
   import {
     serializeToParams as serializeDiligenceUrl,
     deserializeFromParams as deserializeDiligenceUrl,
+    isCompleteUrlState,
   } from '../../../../utils/diligence-url';
   import { getOptionLabel, WIZARD_STEPS } from '../../../../data/diligence-machine/wizard-config';
   import { trackCTA, trackEvent } from '../../../../utils/analytics';
@@ -1572,7 +1573,7 @@ import '../../../../styles/components/progress.css';
 
   function restoreState(): void {
     // BL-031.95 Phase 2: URL state takes precedence over localStorage —
-    // but only when the URL is COMPLETE (all 13 input dimensions set).
+    // but only when the URL is COMPLETE (all 13 dimensions + ≥1 geography).
     // A complete URL is the deeplink-to-results case (from the MCP
     // `deeplink` field, or a shared results URL) → hydrate at results.
     // A PARTIAL URL (user mid-wizard whose syncUrlState() wrote their
@@ -1580,26 +1581,14 @@ import '../../../../styles/components/progress.css';
     // to results with incomplete data; fall through to localStorage so
     // they land on their actual step. Empty URL → standard localStorage
     // fallback for "I closed the tab, came back tomorrow."
-    const REQUIRED_DIMS = [
-      'transactionType',
-      'productType',
-      'techArchetype',
-      'headcount',
-      'revenueRange',
-      'growthStage',
-      'companyAge',
-      'businessModel',
-      'scaleIntensity',
-      'transformationState',
-      'dataSensitivity',
-      'operatingModel',
-    ] as const;
+    //
+    // Completeness predicate is the canonical export from
+    // `src/utils/diligence-url.ts` — pure-logic so it lives at the
+    // unit-test tier (`tests/unit/diligence-url.test.ts`) per the
+    // project test pyramid; this Astro inline script just imports it.
     const urlParams = new URLSearchParams(window.location.search);
     const urlInputs = urlParams.toString() ? deserializeDiligenceUrl(urlParams) : null;
-    const hasCompleteUrlState =
-      urlInputs !== null &&
-      REQUIRED_DIMS.every((k) => (urlInputs as Record<string, unknown>)[k] !== undefined) &&
-      (urlInputs.geographies?.length ?? 0) > 0;
+    const hasCompleteUrlState = isCompleteUrlState(urlInputs);
 
     let saved: SavedState | null;
     if (hasCompleteUrlState) {

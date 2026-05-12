@@ -15,7 +15,11 @@
 
 import { describe, it, expect } from 'vitest';
 
-import { serializeToParams, deserializeFromParams } from '../../src/utils/diligence-url';
+import {
+  serializeToParams,
+  deserializeFromParams,
+  isCompleteUrlState,
+} from '../../src/utils/diligence-url';
 import type { UserInputs } from '../../src/utils/diligence-engine';
 
 const fullInputs: UserInputs = {
@@ -131,5 +135,77 @@ describe('diligence-url — deserialization edge cases', () => {
     expect(restored.transactionType).toBeUndefined();
     expect(restored.productType).toBe('b2b-saas');
     expect(restored.geographies).toBeUndefined();
+  });
+});
+
+// Regression coverage for the bug fixed in 25c1f97 / 18ddb6c: partial URL
+// state was incorrectly treated as a deeplink-to-results signal,
+// causing mid-wizard refreshes to jump to step 10 with incomplete data.
+// The predicate now lives in src/utils/diligence-url.ts as an exported
+// pure function so it can be tested at the unit tier (per test pyramid
+// in src/docs/testing/TEST_STRATEGY.md §1).
+describe('diligence-url — isCompleteUrlState completeness predicate', () => {
+  // The 12 single-value dims (geographies handled separately). Used to
+  // build "missing one" cases programmatically.
+  const SCALAR_DIMS = [
+    'transactionType',
+    'productType',
+    'techArchetype',
+    'headcount',
+    'revenueRange',
+    'growthStage',
+    'companyAge',
+    'businessModel',
+    'scaleIntensity',
+    'transformationState',
+    'dataSensitivity',
+    'operatingModel',
+  ] as const;
+
+  it('returns false for null (no URL state at all)', () => {
+    expect(isCompleteUrlState(null)).toBe(false);
+  });
+
+  it('returns false for an empty object', () => {
+    expect(isCompleteUrlState({})).toBe(false);
+  });
+
+  it('returns false when any single scalar dimension is missing', () => {
+    // Drop each scalar dim in turn — the predicate must reject every variant.
+    for (const dropped of SCALAR_DIMS) {
+      const partial: Partial<UserInputs> = { ...fullInputs };
+      delete partial[dropped];
+      expect(isCompleteUrlState(partial), `missing ${dropped} should be incomplete`).toBe(false);
+    }
+  });
+
+  it('returns false when all 12 scalars are set but geographies is missing', () => {
+    const partial: Partial<UserInputs> = { ...fullInputs };
+    delete partial.geographies;
+    expect(isCompleteUrlState(partial)).toBe(false);
+  });
+
+  it('returns false when all 12 scalars are set but geographies is an empty array', () => {
+    expect(isCompleteUrlState({ ...fullInputs, geographies: [] })).toBe(false);
+  });
+
+  it('returns true for the full 13-field shape (regression case)', () => {
+    expect(isCompleteUrlState(fullInputs)).toBe(true);
+  });
+
+  it('returns true with a single geography ("any URL with all 12 scalars + ≥1 geography is complete")', () => {
+    expect(isCompleteUrlState({ ...fullInputs, geographies: ['us'] })).toBe(true);
+  });
+
+  it('regression: 3-of-13 partial URL state (the bug repro) is NOT complete', () => {
+    // After clicking 3 options in the wizard, syncUrlState writes
+    // tt/pt/ta to the URL. Pre-fix this counted as a deeplink and
+    // jumped to step 10; post-fix it must be rejected.
+    const partial: Partial<UserInputs> = {
+      transactionType: 'carve-out',
+      productType: 'on-premise-enterprise',
+      techArchetype: 'hybrid-legacy',
+    };
+    expect(isCompleteUrlState(partial)).toBe(false);
   });
 });
