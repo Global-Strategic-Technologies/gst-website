@@ -2977,7 +2977,7 @@ alt-svc: h3=":443"; ma=86400
   3. **Anti-pattern documented**: when in doubt — if a prompt asks you to type a secret, sanitize the scrollback before pasting it back, even if it took you down the happy path.
 - Notes: Token #3 confirmed live-valid at time of leak via the preflight SET probe returning `result: OK`. Treat T.B.9.f result as fully PASS (the test itself succeeded) even though the operator-flow around it leaked the credential — they are separable issues.
 
-  **Tracked (2026-05-12)**: filed as [BL-032.25 § 5](./MCP_SERVER_REMOTE_BL-032_25.md#§-5--tx4-credential-prompt--assecurestring-sweep-p0) — P0 (blocks B.6 alongside the rotation work). Sweep all `Read-Host` patterns in the playbook to enforce `-AsSecureString` everywhere; rotate the three leaked Upstash tokens; add an "Anti-pattern documented" note to the playbook header.
+  **Closed — risk accepted (2026-05-12)**: filed as [BL-032.25 § 5](./MCP_SERVER_REMOTE_BL-032_25.md#§-5--tx4-credential-prompt--assecurestring-sweep-closed--risk-accepted), then closed same-day. Operator accepted the risk: the three leaked Upstash tokens will not be rotated and the `-AsSecureString` playbook sweep will not be performed. B.6 production deploy is no longer gated on this item. Reopening criterion: external evidence of token misuse OR Upstash account incident.
 
 ---
 
@@ -3010,7 +3010,7 @@ alt-svc: h3=":443"; ma=86400
   3. **Upstash console UX gap** (out of our control): operator reported the console does not surface a "Roll/Regenerate" button for the Standard token on the current account tier. This means rotating leaked tokens requires either deleting and recreating the database OR using the Upstash API directly. Document this in the recovery runbook so the next operator knows in advance.
 - Notes: Compounds with the security-follow-up flagged in T.C.7 — two distinct token values were pasted into the chat session during recovery; both should be treated as compromised. Combined with the no-roll-button observation above, rotation will need to happen via the Upstash account-recovery path (support ticket OR database recreation) rather than a one-click roll. **Important enough to consider blocking BL-032 production deploy until rotation is complete.** The actual technical issue (Read-only token installed) is fixed as of `30de6516-b46c-4477-91dd-c98af393f449`. The credential-hygiene followup is separate and tracked here.
 
-  **Tracked (2026-05-12)**: the `/health` write-then-delete probe enhancement (Remediation step 2) filed under [BL-032.75 K-section mitigations → `/health` probe depth](./BACKLOG.md#bl-03275-mcp-server--production-observability-maturity). The credential-hygiene process sweep (Remediation step 1 + cross-cutting with T.X.4) tracked under [BL-032.25 § 5](./MCP_SERVER_REMOTE_BL-032_25.md#§-5--tx4-credential-prompt--assecurestring-sweep-p0) — P0 alongside the rotation work.
+  **Tracked / closed (2026-05-12)**: the `/health` write-then-delete probe enhancement (Remediation step 2) filed and remains tracked under [BL-032.75 K-section mitigations → `/health` probe depth](./BACKLOG.md#bl-03275-mcp-server--production-observability-maturity). The credential-hygiene process sweep and rotation (Remediation step 1, cross-cutting with T.X.4) filed as [BL-032.25 § 5](./MCP_SERVER_REMOTE_BL-032_25.md#§-5--tx4-credential-prompt--assecurestring-sweep-closed--risk-accepted) and closed same-day as **risk accepted** — operator decision: no rotation, no sweep. The two leaked Upstash tokens noted in this finding remain live by design.
 
 ---
 

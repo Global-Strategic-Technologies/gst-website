@@ -270,45 +270,47 @@ Defer. Bundle with BL-034 (MCP doc cleanup) if convenient.
 
 ---
 
-## § 5 — T.X.4 credential-prompt `-AsSecureString` sweep (P0)
+## § 5 — T.X.4 credential-prompt `-AsSecureString` sweep (CLOSED — risk accepted)
 
 ### Status
 
 - **Authored**: 2026-05-12 (filed retroactively from T.X.4)
-- **Severity**: **P0** — token-rotation work was already blocking B.6 per T.X.4's own assessment; the process-hygiene sweep is the prevent-recurrence half of the same blocker
-- **Recommendation**: execute before B.6 alongside the rotation work
+- **Initial severity**: **P0** — token-rotation work was already blocking B.6 per T.X.4's own assessment; the process-hygiene sweep was the prevent-recurrence half of the same blocker
+- **Final severity**: **Closed — risk accepted by operator 2026-05-12**
+- **Recommendation**: do not execute (neither the sweep nor the rotation); item closed as risk-accepted
 - **Investigation evidence**: this section
-- **Closure stanza**: [pending]
+- **Closure stanza**: see below
 
 ### What it asks
 
 Three Upstash REST tokens leaked to chat transcripts during the soak: two from T.C.7's recovery flow (Standard + Read-only candidates, see T.X.2) and one from T.B.9.f's preflight (T.X.4 itself). The root cause is the same in all three: Claude-authored PowerShell preflight blocks used plain `Read-Host "..."` rather than `Read-Host -AsSecureString`, so PowerShell echoed the typed values visibly to the terminal scrollback. The operator then pasted the post-run scrollback back to Claude to share test results, taking the secret along for the ride.
 
-The T.X.1 fix migrated `Invoke-McpRequest.ps1`'s `MCP_KEY` prompt to a no-echo pattern in commit `3bacd0e`. Section D / T.B.9.f / T.B.10.f / T.C.7-style ad-hoc snippets were NOT migrated; this finding's remediation is a single sweep through all credential-prompt patterns in the playbook to enforce `-AsSecureString` everywhere.
+The T.X.1 fix migrated `Invoke-McpRequest.ps1`'s `MCP_KEY` prompt to a no-echo pattern in commit `3bacd0e`. Section D / T.B.9.f / T.B.10.f / T.C.7-style ad-hoc snippets were NOT migrated; the originally-proposed remediation was a single sweep through all credential-prompt patterns in the playbook to enforce `-AsSecureString` everywhere PLUS rotation of the three leaked tokens.
 
 ### Investigation findings
 
 - Reproduction: [TESTING_FINDINGS § T.X.4](./BL-032_TESTING_FINDINGS.md#tx4--third-upstash-standard-token-leaked-to-chat-during-tb9f-preflight)
 - Related: [TESTING_FINDINGS § T.X.2](./BL-032_TESTING_FINDINGS.md#tx2--read-only-vs-standard-upstash-rest-token-confusion-during-tc7-recovery) (first two leaks)
-- Surface to sweep: [`MCP_SERVER_REMOTE_BL-032_TESTING.md`](./MCP_SERVER_REMOTE_BL-032_TESTING.md) — search for `Read-Host` without `-AsSecureString` across all Section A-K test blocks; identify any block that prompts for a credential (UPSTASH\_\*, MCP_KEY, INOREADER\_\*, SENTRY_DSN, etc.)
-- Pattern to enforce: `Read-Host -AsSecureString -Prompt "..."` followed by `$plain = [Net.NetworkCredential]::new('', $secure).Password` — keeps plaintext only in the local variable, never to the screen
+- Originally-proposed surface to sweep: [`MCP_SERVER_REMOTE_BL-032_TESTING.md`](./MCP_SERVER_REMOTE_BL-032_TESTING.md) — every `Read-Host` block prompting for a secret (UPSTASH\_\*, MCP_KEY, INOREADER\_\*, SENTRY_DSN, etc.)
+- Originally-proposed pattern to enforce: `Read-Host -AsSecureString -Prompt "..."` followed by `$plain = [Net.NetworkCredential]::new('', $secure).Password`
 
 ### Plan
 
-P0, execute before B.6:
+**Not executing.** Operator accepted the risk on 2026-05-12: the three leaked Upstash tokens will not be rotated, and the playbook `-AsSecureString` sweep will not be performed. Operator's rationale lives outside this doc; this section captures only the decision and its scope.
 
-1. Grep the playbook for `Read-Host` and identify every block that prompts for a secret (acceptance: zero `Read-Host` lines that don't either use `-AsSecureString` or prompt for a non-secret value)
-2. Migrate each to the secure pattern; verify the post-run scrollback shows no secret material
-3. Rotate the three leaked Upstash tokens (T.X.2 lists the recreation path; Upstash console reportedly has no Roll button on the operator's tier)
-4. Add an "Anti-pattern documented" note to the playbook's "How to use this doc" header: "if a prompt asks you to type a secret, sanitize the scrollback before pasting it back, even if it took you down the happy path"
+What this means operationally:
+
+- The three leaked Upstash REST tokens remain live with their current permissions. They are present in Claude conversation transcripts from the soak (T.C.7 recovery sessions and the T.B.9.f preflight chat).
+- Future credential-prompt blocks in the playbook will continue to use plain `Read-Host` unless individually migrated as part of unrelated work. Future tokens prompted via the unmigrated patterns are at the same risk of the same leak path.
+- B.6 production deploy is no longer gated on this item. BL-032.25 now has zero P0 items in its bucket.
 
 ### Recommendation
 
-Execute. Three leaks in one soak is a structural signal that the prompt-authoring pattern needs to change at the playbook level, not per-incident.
+Close as risk-accepted. Do not re-open absent new evidence (e.g., a leaked token observed being used by a third party, or an Upstash account compromise that forces rotation regardless).
 
 ### Closure stanza
 
-(Pending — execution + rotation.)
+**Closed (2026-05-12)** — risk accepted by operator. No rotation, no sweep. The original `Read-Host` → `-AsSecureString` migration in `Invoke-McpRequest.ps1` (commit `3bacd0e`) remains in place for the MCP_KEY prompt; ad-hoc playbook snippets continue to use the plain pattern by design. Reopening criterion: external evidence of token misuse OR Upstash account incident.
 
 ---
 
