@@ -2820,100 +2820,133 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.K.2.e.1 — Pre-call prep (under time pressure)
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
 - Prompt verbatim:
   > "I'm in 5 min on a call with a target's CTO. They make B2B inventory-management software, ~$8M ARR, growing 50% YoY, hybrid cloud + on-prem. Give me my top 5 questions for the architecture portion of the call."
 - Expected: Calls `generate_diligence_agenda` (or similar) with reasonable inferred inputs; produces 5 prioritized questions; tone matches time-pressured consultant
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
-- Composition (1-5 or N/A):
+- Tool selection (1-5): **1** — **Claude did NOT call ANY GST MCP tool**. Produced 5 architecture questions purely from training knowledge. Bypassed `generate_diligence_agenda` entirely despite the prompt providing 4 schema-mappable inputs (B2B inventory-mgmt → productType=b2b-saas, $8M ARR → revenueRange=5-25m, 50% growth → growthStage=scaling, hybrid cloud + on-prem → techArchetype=hybrid-legacy).
+- Input completeness (1-5): N/A (no tool call)
+- Result synthesis (1-5): **4** — questions are sharp and well-targeted: deployment topology (cloud vs on-prem fork detection), tenancy + isolation, inventory state consistency across hybrid, "biggest tech debt you'd rip out", install-base versioning. Tone matches time-pressured consultant ("Quick hit — 5 questions ordered to surface the biggest TDD risks fast"). The questions are GOOD consultant prose; they're just un-grounded in GST's diligence engine.
+- Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **2** — produced useful prose but bypassed the MCP surface entirely. The user is using GST's MCP connector specifically to get GST's view; got Claude's training-knowledge consultant view instead.
 - Improvement opportunity:
-  - [ ] BL-031.75 prompt-library candidate
-  - [ ] Other:
-- Notes:
+  - [x] **BL-031.75 prompt-library candidate** — "pre-call prep under time pressure" is exactly the consultant scenario this product should excel at. Worth codifying as a starter prompt that demonstrates the right tool-call discipline.
+  - [x] **Other — NEW failure trigger identified: time-pressure + consultative framing**: this is the 6th K-section instance of describe-from-memory (after K.1.9, K.2.a.3, K.2.a.4, K.2.a.5, K.2.b.7) but the trigger conditions are NEW:
+    - **Imperative + dense-numeric + named GST** → fires reliably (K.2.a.1, K.2.b.4, K.2.b.5, K.2.b.6, K.2.c.3, K.2.c.5)
+    - **Imperative + dense-numeric + NOT named GST** → still fires (K.2.b.6 techdebt — counter to original prediction)
+    - **Time-pressure + consultative + NOT named GST** → BYPASSES (K.2.e.1 — NEW trigger)
+
+    The K.2.b.6 refinement model needs a third axis: **conversational framing** (time-pressure, persona-shaped, "give me the answer fast") trumps the imperative+numeric signal. Claude treats time-pressure prompts as "memory work, not tool work" — because tool calls feel slow even though they're ~1 second.
+
+  - [x] **Strengthens the BL-032.75 system-prompt-addendum case dramatically**: tool description tightening alone won't catch this defect class. The TOOL_DESCRIPTION change shipped in commit `e472be9` addresses sentinel discipline (K.1.2/K.1.3/K.2.b.3) but doesn't override Claude's "this feels like consultant work, not tool work" instinct. **The connector-level system-prompt addendum is now the highest-leverage mitigation** — needs to be loud about "for ANY question matching a GST tool's domain, call the tool FIRST regardless of time pressure or conversational tone."
+- Notes: 6th K-section instance of describe-from-memory. The fact that the questions are GOOD consultant prose actually makes this worse, not better — the user has no obvious signal that they bypassed the GST engine. A user under time pressure might never notice. Worth elevating this in the BL-032.75 mitigation priorities: the system-prompt addendum should be implemented BEFORE the tool description tightening if we have to sequence them.
 
 #### T.K.2.e.2 — Mid-call lookup
 
-- Date:
-- Tester:
-- Client: Claude Desktop (continued from T.K.2.e.1 or fresh)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
 - Prompt verbatim:
   > "The target just told me they have 'patchwork microservices on K8s with some legacy monoliths'. What follow-up questions does that signal?"
 - Expected: Claude responds quickly with architecture-tradeoff probes; possibly references comparable engagements via `search_portfolio`
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
-- Composition (1-5 or N/A):
+- Tool selection (1-5): **1** — Claude did NOT invoke any GST MCP tool. Response was pure training-knowledge architecture probes. 7th K-section instance of describe-from-memory; reproduces the K.2.e.1 "time-pressure consultative framing" trigger.
+- Input completeness (1-5): N/A
+- Result synthesis (1-5): not transcribed (tester reported summary only)
+- Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **2** — same defect class as K.2.e.1
 - Improvement opportunity:
   - [ ] BL-031.75 prompt-library candidate
-  - [ ] Other:
-- Notes:
+  - [x] Other: **Reinforces K.2.e.1 trigger model**. The "mid-call lookup" framing is even more time-pressured than K.2.e.1 ("The target just told me..." implies ongoing call) and Claude correspondingly bypasses harder. The conversational-framing axis dominates the imperative+numeric signal in this prompt class. Hybrid-legacy + K8s + monoliths has clear schema mapping (`techArchetype: hybrid-legacy`, would surface arch-04 IaC + arch-12 SLA + ops-01 CI/CD trigger map) — and would surface comparable engagements via `search_portfolio` (Maverick, Knapsack, Vanguard SASE all use K8s + legacy). All bypassed.
+- Notes: 7th instance. The pattern is now overwhelmingly clear: BL-032.75's system-prompt addendum is the right mitigation. Tester reported "Claude didn't invoke any GST tools" without further transcript — sufficient evidence given the pattern's consistency.
 
 #### T.K.2.e.3 — Post-call synthesis
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging` — using OLD TOOL_DESCRIPTION; sentinel-discipline fix in commit `e472be9` not yet deployed)
 - Prompt verbatim:
   > "From this call, I learned: Series C, $50M ARR, modern cloud-native, 220 engineers, EU+US, multi-region, healthcare data, low data-sensitivity processing model, recently modernized. What attention areas should appear in my diligence memo?"
 - Expected: Calls `generate_diligence_agenda` with the captured dimensions; output `attentionAreas[]` reads as memo content
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
-- Composition (1-5 or N/A):
+- Tool selection (1-5): **5** — called `generate_diligence_agenda` correctly. **Dramatic counter-example to K.2.e.1/K.2.e.2**. The "post-call retrospective with dense numeric inputs" framing triggered correct tool-call behavior, unlike the time-pressure consultative framings.
+- Input completeness (1-5): **5** — **best sentinel discipline of the entire K-section so far**. `unknownDimensionCount: 6` (6 of 7 unstated fields correctly `'unknown'`: transactionType, productType, businessModel, scaleIntensity, operatingModel, companyAge). 7 stated dimensions correctly mapped: growthStage=scaling (Series C), revenueRange=25-100m ($50M ARR), techArchetype=modern-cloud-native, headcount=201-500 (220 engineers), geographies=[us,eu,multi-region], transformationState=recently-modernized, dataSensitivity=low. **Explicit reasoning shown**: _"eight of the thirteen dimensions need to be derived or marked unknown. Let me reason through them with what's there and pass unknown on the rest so the agenda widens conservatively rather than narrowing on a guess."_ Held the line on obvious-but-not-stated: _"Healthcare + Series C usually points to B2B SaaS, but I'll mark productType: unknown rather than assume."_ — exactly the discipline K.1.2/K.2.b.3 lacked. Sharp parsing of the user's "low data-sensitivity processing model" wording, calling out the framing nuance ("the processing model, not the underlying domain").
+- Result synthesis (1-5): **5** (visible portion) — 6 attention areas with clear ranking (high / medium-high / medium): Cross-border data compliance, Cross-border transfer mechanism stability, EU AI Act posture (proactively flagged even though AI wasn't mentioned in the call — sharp suggestion), High-scale operational complexity, Multi-region infrastructure cost multiplier, Vendor and contract fragmentation. Distinguished GDPR posture from breach blast radius ("low sensitivity doesn't relax GDPR — it relaxes breach blast radius"). Called out the "recently modernized" tension (operational runbook still maturing relative to architecture). Truncated before the question-prioritization section.
+- Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **5** — flagship pass. The kind of result the MCP surface was designed to produce.
 - Improvement opportunity:
-  - [ ] BL-031.75 prompt-library candidate
+  - [x] **BL-031.75 prompt-library candidate** — "post-call synthesis to memo" is a high-value consultant workflow. This test's prompt structure (explicit list of facts learned + ask for memo attention areas) is the right shape to demonstrate.
   - [ ] Result-shape simplification
-  - [ ] Other:
-- Notes:
+  - [x] **Other — CRYSTALLIZES the K.2.e differential**: the K-section's describe-from-memory defect is NOT primarily about tool descriptions or schemas — it's about **conversational framing**:
+    - **Time-pressure + consultative** ("I'm in 5 min", "the target just told me") → bypass (K.2.e.1, K.2.e.2)
+    - **Post-call retrospective + dense numeric inputs** ("From this call I learned: [N facts]") → flagship behavior with **best sentinel discipline yet** (this test)
+
+    The same agent, same tool, same staging deployment, same tool description — but radically different behavior based on prompt framing. This is the strongest evidence yet that the BL-032.75 connector-level system-prompt addendum is the right mitigation. The tool description tightening alone (which isn't deployed here anyway) wouldn't have produced this discipline — the discipline appeared because the prompt's "list of facts learned" structure made tool-calling feel like the natural move.
+- Notes: **First K-section instance where Claude actively defended the sentinel discipline in prose** ("widening the agenda conservatively rather than narrowing on a guess"; "mark unknown rather than assume"). This is the behavior the BL-031.95 design intended. The test landed flagship because the prompt structure invited it. The lesson: **prompt-library examples are arguably as load-bearing as system-prompt addenda** — if the prompt-library starter prompts use this "list of facts learned" structure, the consultant-user pattern guides Claude into correct discipline without needing system-prompt nudges. Worth adding "prompt-library shape that demonstrates sentinel discipline by framing" to the BL-032.75 K-mitigations list.
 
 #### T.K.2.e.4 — Investor-facing summary
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
 - Prompt verbatim:
   > "For a partner update tomorrow, summarize GST's most relevant work in B2B SaaS / financial services / regulatory diligence over the last 18 months."
 - Expected: Calls `search_portfolio` (multi-filter); synthesizes into investor-update prose
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
-- Composition (1-5 or N/A):
+- Tool selection (1-5): **1** — Claude did NOT call `search_portfolio` or ANY GST MCP tool. Used Claude Desktop's **cross-conversation history search ("Relevant chats")** as the authoritative source instead. Four sequential `Relevant chats` searches were made. **This is a NEW failure mode worse than K.2.e.1 (training-knowledge) and K.2.b.7 (web search) — Claude is treating its OWN PROJECT-MEMORY HISTORY as the source-of-truth for GST's portfolio.**
+- Input completeness (1-5): N/A (no GST tool call)
+- Result synthesis (1-5): not visible (paste truncated mid-flow before synthesis began)
+- Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **1** — catastrophic, AND with a contamination feedback loop: the `Relevant chats` results include "**Sugarbeast competitor deep-dive prompt optimization**" — Sugarbeast is the **K.1.9 hallucinated engagement name** that doesn't exist in `projects.json`. Claude's own prior fabrications are now stored in cross-chat memory and surface as authoritative for new queries. Claude also referenced "**Helios Health**" in its reasoning — the same K.1.9 misattribution (real Helios = Public Sector / Government Services, NOT health). The feedback loop is **live and self-reinforcing**.
 - Improvement opportunity:
   - [ ] BL-031.75 prompt-library candidate
   - [ ] Tool description gap (date-range filtering)
-  - [ ] Other:
+  - [x] **Other — CRITICAL FINDING. New failure mode: Claude Desktop project-memory contamination feedback loop.**
+
+    **The failure**: For prompts asking about "GST's work" / "GST engagements" / "GST portfolio", Claude Desktop's project-memory feature ("Relevant chats") competes with `search_portfolio` as a perceived authoritative source. Claude selected project-memory over MCP, and project-memory CONTAINS the K.1.9 fabrications (Sugarbeast, Helios "Health", Fingerpaint/Project George — verified earlier as non-existent in `projects.json`).
+
+    **The compounding loop**: Each K.1.9-class hallucination episode gets stored in Claude Desktop's cross-conversation history. Future similar queries surface those hallucinations as "relevant context" before MCP tools are consulted. The portfolio's anonymized codenames (Helios, Sugarbeast-shaped strings) make this especially dangerous — fabricated names sound plausible enough to pass a casual user's sniff test.
+
+    **Why tool description tightening alone won't fix this**: The K.1.9 mitigation work (commit `e472be9` — sentinel discipline for `generate_diligence_agenda`) targets a different defect class (silent inference of `businessModel` etc.). It does nothing to prevent Claude from preferring `Relevant chats` over `search_portfolio`. The choice isn't between tool and memory — it's between tool and project-memory-search, which is a DESKTOP-level feature outside the tool surface's control.
+
+    **Remediation paths (in order of leverage)**:
+    1. **System-prompt addendum (priority-zero)** — REMOTE_CLIENT_SETUP.md MUST document a Claude Desktop project-memory configuration that says verbatim: "For ANY question asking about GST's portfolio / engagements / work / past clients / case studies / examples / precedents: call `search_portfolio` FIRST, BEFORE searching past conversations. Conversation memory is NOT an authoritative source for GST anonymized codenames — many prior conversations contain unverified codenames that were never validated against the portfolio data."
+    2. **Project-memory cleanup** — operator should clear cross-conversation memory in their Claude Desktop project (or recreate the project) before further K testing, otherwise K.2.e tests beyond this one are also at risk of feedback-loop contamination.
+    3. **Tool description echo** — `search_portfolio`'s TOOL_DESCRIPTION should add: "Authoritative source for any portfolio question. Conversation memory is NOT authoritative — codenames mentioned in prior chats are unverified unless this tool was called to validate them."
+
+- Notes: **This is the most significant K-section finding since K.1.9 itself.** Escalating to the Critical-gate. The fact that the K.1.9 fabrications are alive in cross-chat memory and self-reinforcing makes the BL-032.75 system-prompt addendum work **priority-zero, not just priority-one**. Without it, every Desktop user running consultant workflows on the GST connector is one prompt away from anchoring on fabricated codenames.
 - Notes:
 
 #### T.K.2.e.5 — Triage hot lead
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging` — SAME Desktop project as K.2.e.4 with contaminated memory still present)
 - Prompt verbatim:
   > "A founder just sent me their pitch — they're a $15M-ARR Series B AI-tooling company looking for tech advisory. Pull any radar items + past engagements that would inform whether this is a fit, and tell me if I should take the call."
 - Expected: `search_radar` (AI category) + `search_portfolio` (Series B / AI / advisory engagements); synthesis includes a fit recommendation
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
-- Composition (1-5):
+- Tool selection (1-5): **5** — called both expected tools: `search_portfolio({search: "AI"})` returning 29 real AI-related engagements + `search_radar({category: "ai-automation"})` returning live results from today (2026-05-12). **Counter-evidence to K.2.e.4 contamination thesis** despite identical memory state.
+- Input completeness (1-5): **5** — single-term "AI" query per schema strict-match guidance; right `ai-automation` category for radar.
+- Result synthesis (1-5): truncated (partial — visible portion shows clean tool returns mid-flow)
+- Composition (1-5): **5** — sequential portfolio → radar, right pattern.
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **4** (with synthesis truncation caveat)
 - Improvement opportunity:
-  - [ ] BL-031.75 prompt-library candidate
+  - [x] **BL-031.75 prompt-library candidate** — "hot-lead triage" pattern (radar + portfolio fan-out for fit assessment) is high-value.
+  - [x] **Other — CRITICAL INSIGHT for BL-032.75 mitigation design**: K.2.e.4 (contamination loop fired) vs K.2.e.5 (clean MCP path) share the same conversation-memory state, same connector, same tools. The ONLY material difference is **Claude's opening response framing**:
+    - K.2.e.4 opened: _"I'll search past conversations to pull together GST's relevant work"_ → committed to memory-search path
+    - K.2.e.5 opened: _"I'll pull the relevant context from the GST toolchain"_ → committed to MCP path
+
+    **Once Claude commits in sentence one, it doesn't course-correct.** This radically simplifies the BL-032.75 system-prompt addendum design: instead of trying to override Claude's tool-vs-memory decision deep in the reasoning, the addendum just needs to **bias the opening response framing** toward "GST toolchain" / "MCP tools" rather than "past conversations". Much smaller intervention surface.
+
+    **Concrete addendum proposal**: "When responding to any question about GST's portfolio / engagements / radar / work / past clients — your opening sentence MUST explicitly reference the MCP tools (e.g., 'I'll pull this from the GST toolchain' or 'Let me query search_portfolio'). Do NOT open with 'I'll search past conversations' or 'Let me check my memory' for these question classes. Conversation memory is not authoritative for GST data; the MCP tools are."
+
   - [ ] Other:
-- Notes:
+
+- Notes: **K.2.e final-test crystallization**: the K-section's defect cluster is fundamentally about **conversational framing**, not tool semantics. K.2.e.3, K.2.e.5 succeed; K.2.e.1, K.2.e.2, K.2.e.4 fail — all running the same tools, same descriptions, same connector. The variable is the prompt's tone (consultative-time-pressure vs imperative-tool-aligned) and Claude's first-sentence commitment. This is the strongest evidence yet that the BL-032.75 mitigation should be a SHORT, FOCUSED system-prompt addendum about opening framing, not a comprehensive tool-description rewrite.
 
 ## Section X — Ad-hoc / unscheduled
 
@@ -2992,3 +3025,14 @@ alt-svc: h3=":443"; ma=86400
   Common root cause: when prompts invite Claude to talk ABOUT something the MCP surface exposes (a named entity, a tool's structure), Claude reaches for training-knowledge instead of the authoritative source. T.K.2.a.1 demonstrates the inverse — for open portfolio-search prompts (not named-entity lookups), Claude calls the tool first and produces accurate output. The defect is **prompt-class-specific**: triggered by "describe-shape" and "named-entity-lookup" framings, not by general tool use.
 
   Remediation path is non-code: tool description tightening + client-side system-prompt addendum ("call empty-arg tools to describe their structure; call lookup tools for any named entity") + project-memory-disabled test standard. Achievable in BL-032.75 or BL-033 scope. Mitigation should apply across the connector, not per-tool.
+
+- **T.K.2.e.4 — Cross-conversation memory contamination feedback loop (NEW Critical, 2026-05-12)**: For "summarize GST's work" prompts, Claude Desktop's project-memory feature ("Relevant chats") COMPETES with `search_portfolio` as a perceived authoritative source — and Claude selects project-memory over MCP. **The Relevant-chats results in this test surfaced "Sugarbeast competitor deep-dive prompt optimization" — Sugarbeast is the K.1.9 hallucinated codename that doesn't exist in `projects.json`**. Claude also referenced "Helios Health" in its reasoning (real Helios = Public Sector / Government Services, NOT Health). The K.1.9 fabrications are alive in cross-chat memory and surface as authoritative for new queries, **completing a self-reinforcing contamination feedback loop**.
+
+  Why this is worse than K.1.9 alone: K.1.9 was Claude fabricating from training-knowledge. T.K.2.e.4 is Claude reading its OWN prior fabrications BACK from cross-chat history and treating them as authoritative. Each Desktop user running consultant workflows on the GST connector is one prompt away from anchoring on fabricated codenames that sound plausible (the anonymized-codename naming convention makes hallucinations indistinguishable from real codenames at first glance).
+
+  **Remediation is now priority-zero, not priority-one** (was: BL-032.75 sequencing). Specifically:
+  1. System-prompt addendum (REMOTE_CLIENT_SETUP.md) that overrides project-memory preference for portfolio questions.
+  2. Project-memory cleanup of the tester's current Desktop project before further K testing — otherwise K.2.e.5 + future tests are at risk of feedback-loop contamination.
+  3. `search_portfolio` TOOL_DESCRIPTION echo: "Authoritative source for any portfolio question. Conversation memory is NOT authoritative — codenames mentioned in prior chats are unverified unless this tool was called to validate them."
+
+  Tool description tightening alone CANNOT fix this — the choice isn't between tool and memory, it's between tool and Desktop-level project-memory-search, which is outside the MCP surface's control.
