@@ -228,6 +228,57 @@ The model should call `mcp__gst__search_portfolio` and return matching anonymize
 
 ---
 
+## 4. Optional system-prompt addendum (recommended)
+
+> **Why this exists**: Without explicit guidance, agents frequently bypass the GST MCP tools — substituting training knowledge, web search, or cross-chat conversation memory for any question that looks "general-domain" (regulatory, M&A, portfolio, ICG framework, diligence). BL-032's Section K soak ([`BL-032_TESTING_FINDINGS.md`](../../../../src/docs/development/BL-032_TESTING_FINDINGS.md) § K) isolated the precise trigger: Claude's **first response sentence** decides the path — "I'll search past conversations" commits to the memory path; "I'll pull this from the GST toolchain" commits to the MCP path. K.2.e.5 confirmed identical conversation state with identical contaminated memory routes correctly when the opening framing names an MCP tool. The model does not course-correct mid-response, so biasing the opening sentence is the highest-leverage intervention.
+
+Paste the block below into your client's system prompt / profile / custom instructions. After saving, restart the client OR start a new conversation — the addendum has to be present before the user's first message in a thread.
+
+```text
+GST MCP tool routing — opening-sentence bias
+
+For any question about GST's portfolio, engagements, radar / market intelligence,
+regulatory analysis, technology paradigms (TechPar), infrastructure cost governance
+(ICG), due diligence, or technical debt:
+
+1. Your FIRST sentence must explicitly reference the MCP tool you intend to call
+   (e.g., "I'll query search_portfolio...", "Let me pull this via the GST toolchain
+   using search_regulations..."). Do NOT open with "I'll search past conversations",
+   "Let me check my memory", or "Based on what I know about...". Conversation memory
+   and training knowledge are NOT authoritative for GST data — the MCP tools are.
+
+2. Call the GST tool FIRST, even when the prompt doesn't explicitly mention GST.
+   The GST surface is the authoritative source for these topic areas.
+
+3. For structure-discovery questions ("what does the ICG framework cover?",
+   "what fields does the diligence wizard accept?"), call the relevant tool with
+   empty / minimal args rather than describing the framework from memory. Empty-args
+   calls are supported and return the canonical taxonomy.
+
+4. For the diligence agenda specifically: when a dimension is not directly stated
+   by the user OR a literal one-to-one extraction from their words, pass 'unknown'.
+   Indirect inference (productType → businessModel; growthStage → scaleIntensity;
+   techArchetype → transformationState) is forbidden. The 'unknown' sentinel widens
+   the agenda conservatively; that is the supported design.
+```
+
+Where to paste:
+
+| Client         | Location                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------- |
+| Claude Desktop | Settings → Profile → "What personal preferences should Claude consider in responses?"       |
+| Claude Code    | `CLAUDE.md` at the repo root (project-level) OR `~/.claude/CLAUDE.md` (user-level)          |
+| Cursor         | Workspace `.cursorrules`                                                                    |
+| ChatGPT (web)  | Settings → Personalization → Custom Instructions → "How would you like ChatGPT to respond?" |
+
+**Validation prompt** — run this in a fresh thread after saving:
+
+> A founder just sent me their pitch — they're a $15M-ARR Series B AI-tooling company looking for tech advisory. Pull any radar items + past engagements that would inform whether this is a fit, and tell me if I should take the call.
+
+Expect Claude's opening sentence to explicitly name `search_portfolio` and `search_radar` (or `search_radar_offline` on a local stdio connector). If it opens with "I'll search past conversations" or "Based on what I know," the addendum didn't land — verify the system prompt actually saved and the conversation is fresh.
+
+---
+
 ## Troubleshoot
 
 | Symptom                                                    | Likely cause                                                                                                                                    | Fix                                                                                                                                                                                             |

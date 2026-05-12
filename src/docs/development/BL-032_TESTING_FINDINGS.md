@@ -2842,6 +2842,7 @@ alt-svc: h3=":443"; ma=86400
     The K.2.b.6 refinement model needs a third axis: **conversational framing** (time-pressure, persona-shaped, "give me the answer fast") trumps the imperative+numeric signal. Claude treats time-pressure prompts as "memory work, not tool work" — because tool calls feel slow even though they're ~1 second.
 
   - [x] **Strengthens the BL-032.75 system-prompt-addendum case dramatically**: tool description tightening alone won't catch this defect class. The TOOL_DESCRIPTION change shipped in commit `e472be9` addresses sentinel discipline (K.1.2/K.1.3/K.2.b.3) but doesn't override Claude's "this feels like consultant work, not tool work" instinct. **The connector-level system-prompt addendum is now the highest-leverage mitigation** — needs to be loud about "for ANY question matching a GST tool's domain, call the tool FIRST regardless of time pressure or conversational tone."
+
 - Notes: 6th K-section instance of describe-from-memory. The fact that the questions are GOOD consultant prose actually makes this worse, not better — the user has no obvious signal that they bypassed the GST engine. A user under time pressure might never notice. Worth elevating this in the BL-032.75 mitigation priorities: the system-prompt addendum should be implemented BEFORE the tool description tightening if we have to sequence them.
 
 #### T.K.2.e.2 — Mid-call lookup
@@ -2885,6 +2886,7 @@ alt-svc: h3=":443"; ma=86400
     - **Post-call retrospective + dense numeric inputs** ("From this call I learned: [N facts]") → flagship behavior with **best sentinel discipline yet** (this test)
 
     The same agent, same tool, same staging deployment, same tool description — but radically different behavior based on prompt framing. This is the strongest evidence yet that the BL-032.75 connector-level system-prompt addendum is the right mitigation. The tool description tightening alone (which isn't deployed here anyway) wouldn't have produced this discipline — the discipline appeared because the prompt's "list of facts learned" structure made tool-calling feel like the natural move.
+
 - Notes: **First K-section instance where Claude actively defended the sentinel discipline in prose** ("widening the agenda conservatively rather than narrowing on a guess"; "mark unknown rather than assume"). This is the behavior the BL-031.95 design intended. The test landed flagship because the prompt structure invited it. The lesson: **prompt-library examples are arguably as load-bearing as system-prompt addenda** — if the prompt-library starter prompts use this "list of facts learned" structure, the consultant-user pattern guides Claude into correct discipline without needing system-prompt nudges. Worth adding "prompt-library shape that demonstrates sentinel discipline by framing" to the BL-032.75 K-mitigations list.
 
 #### T.K.2.e.4 — Investor-facing summary
@@ -3036,3 +3038,5 @@ alt-svc: h3=":443"; ma=86400
   3. `search_portfolio` TOOL_DESCRIPTION echo: "Authoritative source for any portfolio question. Conversation memory is NOT authoritative — codenames mentioned in prior chats are unverified unless this tool was called to validate them."
 
   Tool description tightening alone CANNOT fix this — the choice isn't between tool and memory, it's between tool and Desktop-level project-memory-search, which is outside the MCP surface's control.
+
+  **Partial closure (2026-05-12)** — Remediation step 1 shipped: [`REMOTE_CLIENT_SETUP.md` § 4 "Optional system-prompt addendum (recommended)"](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md). The addendum codifies the K.2.e.4 vs K.2.e.5 insight directly — biases Claude's opening sentence to name an MCP tool, with an explicit "conversation memory and training knowledge are NOT authoritative" rule plus the K.2.e.5 validation prompt for confirming the addendum landed. Steps 2 (project-memory cleanup) and 3 (`search_portfolio` TOOL_DESCRIPTION echo) remain open and tracked under BL-032.75 K-section mitigations.
