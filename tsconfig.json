@@ -14,6 +14,7 @@
     "test-results",
     "public",
     ".vercel",
-    ".cache"
+    ".cache",
+    "mcp-server"
   ]
 }

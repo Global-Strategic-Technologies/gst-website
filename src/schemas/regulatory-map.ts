@@ -6,6 +6,11 @@ import { z } from 'zod';
  * This schema is the single source of truth for regulation data shape.
  * The TypeScript `Regulation` type is re-exported from `src/types/regulatory-map.ts`
  * and `RegulationCategory` is derived from the enum below.
+ *
+ * The human-readable reference for the `search_regulations` /
+ * `list_regulation_facets` MCP tools (jurisdiction code conventions,
+ * URI taxonomy, sub-region detection rules) lives at:
+ *   `mcp-server/src/docs/regulatory-map/CONTRACT.md`
  */
 export const RegulationCategorySchema = z.enum([
   'data-privacy',
@@ -37,3 +42,19 @@ export const RegulationSchema = z.object({
 
 export type RegulationCategory = z.infer<typeof RegulationCategorySchema>;
 export type Regulation = z.infer<typeof RegulationSchema>;
+
+// ─── MCP tool inputs ─────────────────────────────────────────────────────────
+//
+// Used by the `search_regulations` and `list_regulation_facets` MCP tools.
+
+export const RegulationSearchInputSchema = z.object({
+  jurisdiction: z.string().optional(),
+  category: RegulationCategorySchema.optional(),
+  query: z.string().optional(),
+  limit: z.number().int().positive().max(120).default(20),
+});
+
+export const RegulationFacetsInputSchema = z.object({});
+
+export type RegulationSearchInput = z.infer<typeof RegulationSearchInputSchema>;
+export type RegulationFacetsInput = z.infer<typeof RegulationFacetsInputSchema>;

@@ -204,3 +204,138 @@ Note: this means errors occurring before or without consent will be invisible. W
 _Created: April 13, 2026 — Platform Hardening V1 Phase 9_
 _Updated: April 17, 2026 — Added consent gating evaluation (Phase 9 item #16)_
 _Updated: April 19, 2026 — CSP fixes, source map silent mode, GitHub stack trace linking, checklist refresh_
+_Updated: May 4, 2026 — Added MCP Worker section (BL-032 Phase 5)_
+
+---
+
+## MCP Worker (BL-032 Phase 5)
+
+The MCP server runs as a separate Cloudflare Worker at `mcp.globalstrategic.tech` ([architecture doc](./MCP_SERVER_REMOTE_BL-032.md)). It uses `@sentry/cloudflare` (not `@sentry/node`) — different SDK, different runtime, different project.
+
+### Sentry project
+
+Per [BL-032 Q6 (resolved 2026-05-03)](./MCP_SERVER_REMOTE_BL-032.md#q6-sentry-on-cloudflare-workers--sentrycloudflare-or-sentrynode), the MCP Worker uses a **separate Sentry project** from the website's. Rationale:
+
+- **Separation of concerns**: website events and Worker events have different threat models (HTML rendering vs. JSON-RPC API), different alert thresholds, and different SLO targets
+- **Quota isolation**: a runaway agent burning through Worker errors shouldn't drown out website signal in dashboards
+- **Cleaner team filtering**: each project gets its own member access list
+
+### One-time setup
+
+1. **Create the project in the Sentry dashboard**:
+   - Platform: **Cloudflare Workers**
+   - Name: `gst-mcp-server` (or similar)
+   - Team: same team as the website project
+2. **Copy the DSN** from the project's _Client Keys_ page
+3. **Add as a Wrangler secret** for both staging and production:
+
+```bash
+cd mcp-server
+npx wrangler secret put SENTRY_DSN --env staging
+# Paste the DSN at the prompt.
+npx wrangler secret put SENTRY_DSN --env production
+```
+
+> `wrangler` is a `mcp-server/` devDependency, not globally installed — invoke via `npx wrangler` (matching DEPLOY.md's convention). Same DSN value goes to both envs; staging-vs-production separation is configured via Sentry environment tags inside the Worker, not separate DSNs.
+
+### How it's wired
+
+The Worker entrypoint wraps its handler with `withSentry(optionsCallback, handler)` from `@sentry/cloudflare`. The options callback reads `env.SENTRY_DSN`; when absent, it returns `undefined` and `withSentry` passes through to the underlying handler unchanged (graceful skip — `wrangler dev` works without Sentry creds).
+
+Key files:
+
+- [`mcp-server/src/observability/sentry.ts`](../../../mcp-server/src/observability/sentry.ts) — `sentryOptions(env)`, `tagRequest(keyOwner, path)`, `captureException(error)`, re-export of `withSentry`
+- [`mcp-server/src/worker.ts`](../../../mcp-server/src/worker.ts) — wraps the default export with `withSentry(sentryOptions, handler)`; calls `tagRequest(auth.keyOwner, url.pathname)` after bearer auth resolves so per-request Sentry events carry attribution
+
+### Tags applied automatically
+
+| Tag        | Value                                     | Source                                                                        |
+| ---------- | ----------------------------------------- | ----------------------------------------------------------------------------- |
+| `service`  | `mcp-server`                              | `initialScope` in `sentryOptions`                                             |
+| `keyOwner` | `RP` / `AB` / etc. (or `unauthenticated`) | `tagRequest()` after bearer auth                                              |
+| `path`     | `/health` / `/mcp` / etc.                 | `tagRequest()` from the request URL                                           |
+| `release`  | (Wrangler-injected if configured)         | Optional — surface deploy SHA if `wrangler deploy --var GIT_SHA=...` is wired |
+
+### Privacy / what NOT to log
+
+The same discipline as the website's `@sentry/node` setup applies, with two MCP-specific reinforcements:
+
+1. **Bearer tokens never reach Sentry.** The safe-logger's auto-redaction belt (Authorization / Cookie / X-API-Key) is plumbed through. `withSentry`'s built-in request-data scrubbing catches any header values it sees; we never `console.log(request.headers)` (ESLint blocks raw `console.*` in `mcp-server/src/worker.ts` + `src/auth/**` — see [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md))
+2. **Tool inputs / outputs are not auto-captured.** The MCP request body (which contains the tool's user input — names, financial numbers, regulatory jurisdictions) is NOT included in Sentry events by default. If a future `BL-033` audit-logging surface needs full request retention, that's a separate decision with its own privacy review
+
+### Sample rate
+
+The `tracesSampleRate: 0.1` baseline (10% of requests get traced) keeps Sentry quota cost bounded under expected volume. [BL-032.75 (Production Observability Maturity)](./MCP_SERVER_OBSERVABILITY_BL-032_75.md) tunes this against measured baselines from the BL-032 soak week.
+
+### Alert rules
+
+The MCP project's alert rules are simpler than the website's — fewer error types, different thresholds. Initial set (configure manually in the Sentry dashboard):
+
+| Rule                          | Trigger                                                          | Plan tier needed                                                                                                                                                        | Channel |
+| ----------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| MCP unhandled exception (any) | Any `error.unhandled` event                                      | **Free (Developer)** — Issue Alert                                                                                                                                      | Email   |
+| Bearer auth failure burst     | More than 50 events with `event === 'auth.failed'` in 10 minutes | **Free (Developer)** — Issue Alert (silent until code-side capture lands; see "Why some alerts are silent today" below)                                                 | Email   |
+| Inoreader budget breach       | Any event with `errorCode === 'inoreader-rate-limit'`            | **Free (Developer)** — Issue Alert (silent until code-side capture lands; see below)                                                                                    | Email   |
+| 5xx rate                      | More than 1% of requests return 5xx in a 15-minute window        | **Team or higher** — Performance / Failure Rate is paywalled on Developer plan. Skip on free; use Cloudflare Notifications as a substitute (Workers → Error Rate alert) | Email   |
+
+> **Channel choice (Email vs Slack)**: Sentry's "Send a notification to Member" / "Send a notification to Issue Owners" actions route through each user's notification preferences — which default to email. There is no literal "send via Email" action in current Sentry UI; pick a Member/Owner action instead.
+
+> **Why some alerts are silent today**: the Worker only captures _unhandled exceptions_ + _manually-captured errors_ to Sentry. `safeLog({ event: 'auth.failed', ... })` and rate-limit-exceeded events go to Cloudflare logs (via `wrangler tail`) but NOT to Sentry. Alerts #2 and #3 will be dormant until [worker.ts:106-115](../../../mcp-server/src/worker.ts#L106-L115) and the radar-live tools' Inoreader-429 path also call `Sentry.captureMessage(...)` / `captureException(...)`. Configuring them now is harmless — they just sit dormant until the captures land. See BL-032 closure or BL-033 for the code-side follow-up.
+
+> **5xx-rate alternative on free plan**: Cloudflare's **Notifications** (Cloudflare dashboard → Notifications → Create) supports `Workers → Error Rate` alerts on per-Worker error counts, free tier. Doesn't require Sentry plan upgrade. Different surface — Cloudflare excels at "is something wrong" (raw rate metrics); Sentry at "why is it wrong" (stack traces, breadcrumbs). Complementary, not redundant.
+
+Refine these once BL-032.75 ships SLO targets. The substrate (Sentry init, structured logs, `keyOwner` tagging) is in place from BL-032 Phase 5.
+
+#### Step-by-step UI walkthrough (current Sentry, 2026)
+
+Sentry's alert UI shifted in 2025-2026 — alerts are organized by category (Errors / Performance / Logs / Application Metrics / Uptime / Cron Monitoring) and use a conditional WHEN / IF / THEN flow. To create each MCP alert:
+
+**Common starting point** — for every alert:
+
+1. Sentry dashboard → select the `gst-mcp-server` project
+2. Left nav → **Alerts** → **Create Alert**
+3. Choose alert type from the **Errors** category (for issue-based alerts) or **Performance** (for rate-based; paywalled on Developer plan)
+
+##### Alert 1 — MCP unhandled exception (Errors → Issues)
+
+- **Section 1 — Environment + project**: All Environments, gst-mcp-server
+- **Section 2 — Set conditions**:
+  - **WHEN** an event is captured by Sentry and **any** of the following happens → leave default `A new issue is created`
+  - **IF** all/any filters match → can leave empty (every issue Sentry sees from `withSentry` is already an unhandled error). If you want to be explicit, add `The event's level equals error or fatal` with the **any** combinator (NOT **all** — `level=fatal AND level=error` is unsatisfiable since level is single-valued)
+  - **THEN** perform these actions → **Send a notification to** **Member** → pick yourself (routes to your registered email by default)
+- **Section 3 — Action interval**: 24 hours (prevents repeat-alert spam on the same issue)
+- **Section 5 — Name and owner**: Name = `MCP unhandled exception`. Save.
+
+##### Alert 2 — Bearer auth failure burst (Errors → Issues)
+
+- **Section 2 WHEN**: trash the default `A new issue is created` row → click `Add optional trigger…` → choose **The issue is seen more than {N} times in {M} minutes**. Set N=`50`, M=`10`
+- **Section 2 IF**: `Add optional filter…` → **The event's tag {key} {match} {value}** → key=`event`, match=`equal to`, value=`auth.failed`
+- **Section 2 THEN**: Member → yourself
+- **Section 3**: 24 hours
+- **Section 5**: Name = `Bearer auth failure burst`. Save.
+
+⚠️ Will fire only after the Worker is updated to capture `auth.failed` events to Sentry (currently they go to Cloudflare logs only).
+
+##### Alert 3 — Inoreader budget breach (Errors → Issues)
+
+- **Section 2 WHEN**: keep default `A new issue is created`
+- **Section 2 IF**: `Add optional filter…` → key=`errorCode`, match=`equal to`, value=`inoreader-rate-limit`
+- **Section 2 THEN**: Member → yourself
+- **Section 5**: Name = `Inoreader budget breach`. Save.
+
+⚠️ Same dormant-until-code-change caveat as #2.
+
+##### Alert 4 — 5xx rate (Performance → Failure Rate; paywalled)
+
+If you have Sentry Team plan or higher:
+
+- Select **Performance → Failure Rate** in the alert-type chooser → click **Set Conditions**
+- Filter (optional): scope to specific transaction names or HTTP status families
+- **Critical Status threshold**: `Above 1%` (1% failure rate over the time window)
+- **Time window**: 15 minutes
+- **Action**: Member → yourself
+- Name: `5xx rate`. Save.
+
+If you're on Developer plan, **Set Conditions** is greyed out with "Upgrade your plan to create this type of alert." Skip this alert and use Cloudflare Notifications instead (per the table above) — same operational signal, different surface.
+
+> **Action format**: Sentry's actions are strings like `Send a notification to Member <username>` (routes to that member's notification preferences — email by default) or `Send a notification to Team <team-name>` (routes via the team's per-user preferences). For solo-operator soaks, **Member → yourself** is simplest. Once you onboard team-members and want shared alerting, switch to **Team** actions.

@@ -222,6 +222,25 @@ import '../../../../styles/components/progress.css';
                         )}
                       </button>
                     ))}
+                    {/* BL-031.95 Phase 2.C: "Not sure" affordance — sets the
+                        dimension to the 'unknown' sentinel; engine widens
+                        triggers conservatively. Routes through the existing
+                        handleOptionClick because the schema accepts 'unknown'
+                        as a valid value (see UNKNOWN_INPUT in
+                        src/schemas/diligence.ts). */}
+                    <button
+                      class="brutal-option-card brutal-option-card--unsure"
+                      data-option-id="unknown"
+                      data-step-id={step.id}
+                      data-testid={`option-${step.id}-unknown`}
+                      type="button"
+                      aria-pressed="false"
+                    >
+                      <span class="brutal-option-card__label">
+                        <DeltaIcon class="bullet-icon" />
+                        Not sure
+                      </span>
+                    </button>
                   </div>
                 )}
 
@@ -245,6 +264,25 @@ import '../../../../styles/components/progress.css';
                         )}
                       </button>
                     ))}
+                    {/* BL-031.95 Phase 2.C: "Not sure" affordance for the
+                        multi-select geography step. Click sets
+                        inputs.geographies = ['unknown'] and clears all other
+                        selections; clicking any specific region after
+                        clears the 'unknown' state. Special case handled in
+                        handleOptionClick. */}
+                    <button
+                      class="brutal-option-card brutal-option-card--unsure"
+                      data-option-id="unknown"
+                      data-step-id={step.id}
+                      data-testid={`option-${step.id}-unknown`}
+                      type="button"
+                      aria-pressed="false"
+                    >
+                      <span class="brutal-option-card__label">
+                        <DeltaIcon class="bullet-icon" />
+                        Not sure
+                      </span>
+                    </button>
                   </div>
                 )}
 
@@ -270,6 +308,26 @@ import '../../../../styles/components/progress.css';
                               </span>
                             </button>
                           ))}
+                          {/* BL-031.95 Phase 2.C: "Not sure" per compound
+                              field. Each of the 4 compound fields
+                              (headcount/revenueRange/growthStage/companyAge)
+                              gets its own affordance — routes through
+                              handleCompoundOptionClick because the schema
+                              accepts 'unknown' on every dimension. */}
+                          <button
+                            class="brutal-option-card compound-option brutal-option-card--unsure"
+                            data-option-id="unknown"
+                            data-field-id={field.id}
+                            data-step-id={step.id}
+                            data-testid={`compound-${field.id}-unknown`}
+                            type="button"
+                            aria-pressed="false"
+                          >
+                            <span class="brutal-option-card__label">
+                              <DeltaIcon size={10} class="brutal-option-card__icon" />
+                              Not sure
+                            </span>
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -571,6 +629,11 @@ import '../../../../styles/components/progress.css';
     type UserInputs,
     type GeneratedScript,
   } from '../../../../utils/diligence-engine';
+  import {
+    serializeToParams as serializeDiligenceUrl,
+    deserializeFromParams as deserializeDiligenceUrl,
+    isCompleteUrlState,
+  } from '../../../../utils/diligence-url';
   import { getOptionLabel, WIZARD_STEPS } from '../../../../data/diligence-machine/wizard-config';
   import { trackCTA, trackEvent } from '../../../../utils/analytics';
   import { copyWithFeedback } from '../../../../utils/copy-feedback';
@@ -652,12 +715,35 @@ import '../../../../styles/components/progress.css';
     } catch {
       // localStorage may be unavailable in private browsing
     }
+    // BL-031.95 Phase 2: URL state sync runs alongside localStorage.
+    syncUrlState();
   }
 
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   function saveStateDebounced(): void {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(saveState, 500);
+  }
+
+  // ─── BL-031.95 Phase 2: URL state sync ────────────────────────────────
+  //
+  // URL state augments localStorage. On page-load init, URL takes
+  // precedence (so a deep-link from the MCP tool / a shared URL hydrates
+  // correctly even when localStorage has different state); localStorage
+  // is the fallback for "I closed the tab, came back tomorrow." On input
+  // change, both URL and localStorage are updated.
+
+  function syncUrlState(): void {
+    try {
+      const params = serializeDiligenceUrl(inputs);
+      const queryString = params.toString();
+      const url = queryString
+        ? `${window.location.pathname}?${queryString}`
+        : window.location.pathname;
+      history.replaceState(null, '', url);
+    } catch {
+      // history API may be unavailable in sandboxed contexts; ignore.
+    }
   }
 
   function loadState(): SavedState | null {
@@ -850,6 +936,43 @@ import '../../../../styles/components/progress.css';
         }
       }, 300);
     } else if (inputType === 'multi-select') {
+      // BL-031.95 Phase 2.C: 'unknown' is a sentinel — clicking it sets
+      // inputs.geographies = ['unknown'] and clears all specific selections.
+      // Clicking any specific region while 'unknown' is set clears 'unknown'
+      // and treats the click as a fresh single-region selection.
+      if (optionId === 'unknown') {
+        const isSelected = card.classList.toggle('brutal-option-card--selected-outline');
+        card.setAttribute('aria-pressed', String(isSelected));
+        if (isSelected) {
+          inputs.geographies = ['unknown'];
+          // Clear all specific-region cards visually.
+          stepEl.querySelectorAll('.brutal-option-card').forEach((el) => {
+            const id = (el as HTMLElement).dataset.optionId;
+            if (id !== 'unknown') {
+              el.classList.remove('brutal-option-card--selected-outline');
+              el.setAttribute('aria-pressed', 'false');
+            }
+          });
+        } else {
+          inputs.geographies = [];
+        }
+        updateNextButtonState();
+        saveStateDebounced();
+        return;
+      }
+
+      // Specific-region click: if 'unknown' was active, clear it first.
+      if (inputs.geographies && inputs.geographies.includes('unknown')) {
+        inputs.geographies = inputs.geographies.filter((g) => g !== 'unknown');
+        const unknownCard = stepEl.querySelector(
+          '.brutal-option-card[data-option-id="unknown"]'
+        ) as HTMLElement | null;
+        if (unknownCard) {
+          unknownCard.classList.remove('brutal-option-card--selected-outline');
+          unknownCard.setAttribute('aria-pressed', 'false');
+        }
+      }
+
       const isSelected = card.classList.toggle('brutal-option-card--selected-outline');
       card.setAttribute('aria-pressed', String(isSelected));
 
@@ -1449,7 +1572,40 @@ import '../../../../styles/components/progress.css';
   // ─── RESTORE STATE ───────────────────────────────────────────────────
 
   function restoreState(): void {
-    const saved = loadState();
+    // BL-031.95 Phase 2: URL state takes precedence over localStorage —
+    // but only when the URL is COMPLETE (all 13 dimensions + ≥1 geography).
+    // A complete URL is the deeplink-to-results case (from the MCP
+    // `deeplink` field, or a shared results URL) → hydrate at results.
+    // A PARTIAL URL (user mid-wizard whose syncUrlState() wrote their
+    // 3-of-13 progress to the URL, then they refreshed) must NOT jump
+    // to results with incomplete data; fall through to localStorage so
+    // they land on their actual step. Empty URL → standard localStorage
+    // fallback for "I closed the tab, came back tomorrow."
+    //
+    // Completeness predicate is the canonical export from
+    // `src/utils/diligence-url.ts` — pure-logic so it lives at the
+    // unit-test tier (`tests/unit/diligence-url.test.ts`) per the
+    // project test pyramid; this Astro inline script just imports it.
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlInputs = urlParams.toString() ? deserializeDiligenceUrl(urlParams) : null;
+    const hasCompleteUrlState = isCompleteUrlState(urlInputs);
+
+    let saved: SavedState | null;
+    if (hasCompleteUrlState) {
+      saved = {
+        version: STORAGE_VERSION,
+        currentStep: totalSteps,
+        highestStepReached: totalSteps,
+        inputs: urlInputs!,
+        targetIdentifier: 'Target',
+        dismissedAttention: [],
+        dismissedQuestions: [],
+        collapsedAttention: [],
+        collapsedQuestions: [],
+      };
+    } else {
+      saved = loadState();
+    }
     if (!saved) return;
 
     inputs = { geographies: [], ...saved.inputs };
@@ -1624,6 +1780,12 @@ import '../../../../styles/components/progress.css';
   // ─── INITIALIZE ───────────────────────────────────────────────────────
 
   restoreState();
+  // Signal to E2E tests that the wizard has finished hydrating. The static
+  // HTML marks step 1 active by default; `restoreState()` may advance to
+  // a later step from localStorage / URL. Tests that reload the page need
+  // to wait for this attribute before asserting which step is active —
+  // otherwise they race the script and see the pre-restoration state.
+  document.querySelector('[data-testid="wizard-container"]')?.setAttribute('data-restored', 'true');
 </script>
 
 <style>

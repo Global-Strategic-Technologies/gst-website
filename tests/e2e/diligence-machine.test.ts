@@ -1466,4 +1466,267 @@ test.describe('Diligence Machine E2E', () => {
       await expectWizardOnStep(page, 4);
     });
   });
+
+  test.describe('12. "Not sure" affordance — BL-031.95 Phase 2.C', () => {
+    // The wizard renders a "Not sure" card per dimension (mirrors ICG's
+    // -1 "Not sure" pattern). Clicking it sets the dimension to the
+    // 'unknown' sentinel; the engine treats 'unknown' as a non-eliminating
+    // value, widening the agenda conservatively. These tests verify the
+    // affordance is rendered, click-routed, and persisted correctly across
+    // all three input archetypes (single-select, multi-select, compound).
+
+    test('Not sure card is rendered on every single-select step', async ({ page }) => {
+      const singleSelectStepIds = [
+        'transaction-type',
+        'product-type',
+        'tech-archetype',
+        'business-model',
+        'scale-intensity',
+        'transformation-state',
+        'data-sensitivity',
+        'operating-model',
+      ];
+      for (const stepId of singleSelectStepIds) {
+        const card = page.locator(`[data-testid="option-${stepId}-unknown"]`);
+        await expect(card).toHaveCount(1);
+        await expect(card).toHaveClass(/brutal-option-card--unsure/);
+      }
+    });
+
+    test('Not sure card is rendered on the multi-select geography step', async ({ page }) => {
+      const card = page.locator('[data-testid="option-geography-unknown"]');
+      await expect(card).toHaveCount(1);
+      await expect(card).toHaveClass(/brutal-option-card--unsure/);
+    });
+
+    test('Not sure card is rendered for each of the 4 compound fields', async ({ page }) => {
+      const compoundFieldIds = ['headcount', 'revenue-range', 'growth-stage', 'company-age'];
+      for (const fieldId of compoundFieldIds) {
+        const card = page.locator(`[data-testid="compound-${fieldId}-unknown"]`);
+        await expect(card).toHaveCount(1);
+        await expect(card).toHaveClass(/brutal-option-card--unsure/);
+      }
+    });
+
+    test("clicking Not sure on a single-select step records 'unknown' and auto-advances", async ({
+      page,
+    }) => {
+      // Step 1: click "Not sure" on transaction-type.
+      await clickElement(page, '[data-testid="option-transaction-type-unknown"]');
+
+      // Auto-advance fires 300ms after click; wait for step 2 to be active.
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '2';
+        },
+        { timeout: 3000 }
+      );
+
+      // localStorage should record the 'unknown' value.
+      const state = await getLocalStorageState(page);
+      expect(state.inputs.transactionType).toBe('unknown');
+    });
+
+    test("clicking Not sure on multi-select sets geographies to ['unknown'] and clears specific selections", async ({
+      page,
+    }) => {
+      // Navigate to step 5 (geography) by completing prior steps with valid choices.
+      await completeWizardToStep(page, 5, {
+        transactionType: 'full-acquisition',
+        productType: 'b2b-saas',
+        techArchetype: 'modern-cloud-native',
+        headcount: '51-200',
+        revenueRange: '5-25m',
+        growthStage: 'scaling',
+        companyAge: '5-10yr',
+      } as Partial<UserInputs>);
+
+      // First select a specific region.
+      await clickElement(page, '[data-testid="option-geography-us"]');
+      await expect(page.locator('[data-testid="option-geography-us"]')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+
+      // Now click "Not sure" — should set ['unknown'] and clear 'us'.
+      await clickElement(page, '[data-testid="option-geography-unknown"]');
+      await expect(page.locator('[data-testid="option-geography-unknown"]')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+      await expect(page.locator('[data-testid="option-geography-us"]')).toHaveAttribute(
+        'aria-pressed',
+        'false'
+      );
+
+      // Multi-select uses saveStateDebounced (500ms); wait for the timer to flush.
+      await page.waitForTimeout(600);
+      const state = await getLocalStorageState(page);
+      expect(state.inputs.geographies).toEqual(['unknown']);
+    });
+
+    test("clicking a specific region after Not sure clears 'unknown' and selects the region", async ({
+      page,
+    }) => {
+      await completeWizardToStep(page, 5, {
+        transactionType: 'full-acquisition',
+        productType: 'b2b-saas',
+        techArchetype: 'modern-cloud-native',
+        headcount: '51-200',
+        revenueRange: '5-25m',
+        growthStage: 'scaling',
+        companyAge: '5-10yr',
+      } as Partial<UserInputs>);
+
+      // Click "Not sure" first.
+      await clickElement(page, '[data-testid="option-geography-unknown"]');
+      await expect(page.locator('[data-testid="option-geography-unknown"]')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+
+      // Click a specific region — 'unknown' should clear, region selected.
+      await clickElement(page, '[data-testid="option-geography-eu"]');
+      await expect(page.locator('[data-testid="option-geography-unknown"]')).toHaveAttribute(
+        'aria-pressed',
+        'false'
+      );
+      await expect(page.locator('[data-testid="option-geography-eu"]')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+
+      // Multi-select uses saveStateDebounced (500ms); wait for the timer to flush.
+      await page.waitForTimeout(600);
+      const state = await getLocalStorageState(page);
+      expect(state.inputs.geographies).toEqual(['eu']);
+      expect(state.inputs.geographies).not.toContain('unknown');
+    });
+
+    test("clicking Not sure on a single compound field records 'unknown' for that field only", async ({
+      page,
+    }) => {
+      await completeWizardToStep(page, 4, {
+        transactionType: 'full-acquisition',
+        productType: 'b2b-saas',
+        techArchetype: 'modern-cloud-native',
+      } as Partial<UserInputs>);
+
+      // Click "Not sure" on headcount only.
+      await clickElement(page, '[data-testid="compound-headcount-unknown"]');
+      await expect(page.locator('[data-testid="compound-headcount-unknown"]')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+
+      // Pick known values for the other 3 fields.
+      await clickElement(page, '[data-testid="compound-revenue-range-5-25m"]');
+      await clickElement(page, '[data-testid="compound-growth-stage-scaling"]');
+      await clickElement(page, '[data-testid="compound-company-age-5-10yr"]');
+
+      // Auto-advance to step 5.
+      await page.waitForFunction(
+        () => {
+          const activeStep = document.querySelector('.wizard-step.active');
+          return activeStep?.getAttribute('data-step') === '5';
+        },
+        { timeout: 3000 }
+      );
+
+      const state = await getLocalStorageState(page);
+      expect(state.inputs.headcount).toBe('unknown');
+      expect(state.inputs.revenueRange).toBe('5-25m');
+      expect(state.inputs.growthStage).toBe('scaling');
+      expect(state.inputs.companyAge).toBe('5-10yr');
+    });
+
+    test('full wizard pass-through with Not sure on every dimension generates a result with unknownDimensionCount semantics', async ({
+      page,
+    }) => {
+      // Walk every step clicking Not sure. Single-select steps auto-advance.
+      // Compound step needs all 4 fields filled (we click Not sure on each).
+      // Multi-select needs Next click after.
+
+      const singleSelectStepIds = ['transaction-type', 'product-type', 'tech-archetype'];
+      for (const stepId of singleSelectStepIds) {
+        await clickElement(page, `[data-testid="option-${stepId}-unknown"]`);
+        // Wait for auto-advance.
+        await page.waitForTimeout(400);
+      }
+
+      // Compound step (4): click Not sure on all 4 fields.
+      await page.waitForFunction(
+        () => document.querySelector('.wizard-step.active')?.getAttribute('data-step') === '4',
+        { timeout: 3000 }
+      );
+      await clickElement(page, '[data-testid="compound-headcount-unknown"]');
+      await clickElement(page, '[data-testid="compound-revenue-range-unknown"]');
+      await clickElement(page, '[data-testid="compound-growth-stage-unknown"]');
+      await clickElement(page, '[data-testid="compound-company-age-unknown"]');
+
+      // Auto-advance to step 5.
+      await page.waitForFunction(
+        () => document.querySelector('.wizard-step.active')?.getAttribute('data-step') === '5',
+        { timeout: 3000 }
+      );
+
+      // Multi-select (5): click Not sure, then Next.
+      await clickElement(page, '[data-testid="option-geography-unknown"]');
+      await expect(page.locator('[data-testid="btn-next"]')).toBeEnabled();
+      await clickElement(page, '[data-testid="btn-next"]');
+
+      // Steps 6-10: click Not sure (auto-advance each).
+      const remainingStepIds = [
+        'business-model',
+        'scale-intensity',
+        'transformation-state',
+        'data-sensitivity',
+        'operating-model',
+      ];
+      for (const stepId of remainingStepIds) {
+        await page.waitForTimeout(400);
+        await clickElement(page, `[data-testid="option-${stepId}-unknown"]`);
+      }
+
+      // Generate.
+      await page.waitForFunction(
+        () => document.querySelector('.wizard-step.active')?.getAttribute('data-step') === '10',
+        { timeout: 3000 }
+      );
+      // Wait for Generate button to be enabled.
+      const generateBtn = page.locator('[data-testid="btn-generate"]');
+      await expect(generateBtn).toBeEnabled();
+      await clickElement(page, '[data-testid="btn-generate"]');
+
+      // Output container should appear (engine widens, produces a real agenda).
+      await expect(page.locator('[data-testid="output-container"]')).toBeVisible({
+        timeout: 5000,
+      });
+
+      // The agenda is non-empty — engine widening means questions still surface.
+      const questionCount = await page.locator('.doc-question').count();
+      expect(questionCount).toBeGreaterThan(0);
+
+      // Wait for any pending saveStateDebounced (final-step click → no auto-
+      // advance step transition → no immediate saveState; rely on debounce).
+      await page.waitForTimeout(600);
+
+      // localStorage records every dimension as 'unknown'.
+      const state = await getLocalStorageState(page);
+      expect(state.inputs.transactionType).toBe('unknown');
+      expect(state.inputs.productType).toBe('unknown');
+      expect(state.inputs.techArchetype).toBe('unknown');
+      expect(state.inputs.headcount).toBe('unknown');
+      expect(state.inputs.revenueRange).toBe('unknown');
+      expect(state.inputs.growthStage).toBe('unknown');
+      expect(state.inputs.companyAge).toBe('unknown');
+      expect(state.inputs.geographies).toEqual(['unknown']);
+      expect(state.inputs.businessModel).toBe('unknown');
+      expect(state.inputs.scaleIntensity).toBe('unknown');
+      expect(state.inputs.transformationState).toBe('unknown');
+      expect(state.inputs.dataSensitivity).toBe('unknown');
+      expect(state.inputs.operatingModel).toBe('unknown');
+    });
+  });
 });

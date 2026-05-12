@@ -1346,3 +1346,182 @@ describe('syncMultiRegion', () => {
     expect(syncMultiRegion(['us', 'multi-region'])).toEqual(['us']);
   });
 });
+
+// ─── TESTS: 'unknown' input widening (BL-031.95 Phase 2) ────────────────────
+
+describe("matchesConditions — 'unknown' input widening (BL-031.95 Phase 2)", () => {
+  // The 'unknown' sentinel mirrors ICG's `-1` "Not sure" pattern: when the
+  // agent supplies 'unknown' for a dimension, that dimension's filter is
+  // treated as wildcard. Only KNOWN values can eliminate triggers; missing-
+  // information inputs widen the agenda conservatively.
+
+  describe('single-value enum fields', () => {
+    it('transactionType: unknown does NOT eliminate a question with transactionTypes filter', () => {
+      const question = makeQuestion({
+        conditions: { transactionTypes: ['carve-out'] },
+      });
+      const inputs: UserInputs = { ...baseInputs, transactionType: 'unknown' };
+      // Pre-BL-031.95: filter would eliminate (unknown not in [carve-out]).
+      // Post-BL-031.95: 'unknown' widens — filter is skipped.
+      expect(matchesConditions(question.conditions, inputs)).toBe(true);
+    });
+
+    it('transactionType: unknown bypasses excludeTransactionTypes too', () => {
+      const question = makeQuestion({
+        conditions: { excludeTransactionTypes: ['venture-series'] },
+      });
+      const inputs: UserInputs = { ...baseInputs, transactionType: 'unknown' };
+      expect(matchesConditions(question.conditions, inputs)).toBe(true);
+    });
+
+    it('productType: unknown does NOT eliminate', () => {
+      const question = makeQuestion({ conditions: { productTypes: ['b2b-saas'] } });
+      const inputs: UserInputs = { ...baseInputs, productType: 'unknown' };
+      expect(matchesConditions(question.conditions, inputs)).toBe(true);
+    });
+
+    it('techArchetype: unknown does NOT eliminate', () => {
+      const question = makeQuestion({
+        conditions: { techArchetypes: ['modern-cloud-native'] },
+      });
+      const inputs: UserInputs = { ...baseInputs, techArchetype: 'unknown' };
+      expect(matchesConditions(question.conditions, inputs)).toBe(true);
+    });
+
+    it('growthStage: unknown does NOT eliminate', () => {
+      const question = makeQuestion({ conditions: { growthStages: ['scaling'] } });
+      const inputs: UserInputs = { ...baseInputs, growthStage: 'unknown' };
+      expect(matchesConditions(question.conditions, inputs)).toBe(true);
+    });
+
+    it('businessModel: unknown does NOT eliminate', () => {
+      const question = makeQuestion({
+        conditions: { businessModels: ['productized-platform'] },
+      });
+      const inputs: UserInputs = { ...baseInputs, businessModel: 'unknown' };
+      expect(matchesConditions(question.conditions, inputs)).toBe(true);
+    });
+
+    it('scaleIntensity: unknown does NOT eliminate', () => {
+      const question = makeQuestion({ conditions: { scaleIntensity: ['high'] } });
+      const inputs: UserInputs = { ...baseInputs, scaleIntensity: 'unknown' };
+      expect(matchesConditions(question.conditions, inputs)).toBe(true);
+    });
+
+    it('transformationState: unknown does NOT eliminate', () => {
+      const question = makeQuestion({
+        conditions: { transformationStates: ['actively-modernizing'] },
+      });
+      const inputs: UserInputs = { ...baseInputs, transformationState: 'unknown' };
+      expect(matchesConditions(question.conditions, inputs)).toBe(true);
+    });
+
+    it('dataSensitivity: unknown does NOT eliminate', () => {
+      const question = makeQuestion({ conditions: { dataSensitivity: ['high'] } });
+      const inputs: UserInputs = { ...baseInputs, dataSensitivity: 'unknown' };
+      expect(matchesConditions(question.conditions, inputs)).toBe(true);
+    });
+
+    it('operatingModel: unknown does NOT eliminate', () => {
+      const question = makeQuestion({
+        conditions: { operatingModels: ['centralized-eng'] },
+      });
+      const inputs: UserInputs = { ...baseInputs, operatingModel: 'unknown' };
+      expect(matchesConditions(question.conditions, inputs)).toBe(true);
+    });
+  });
+
+  describe('ordinal fields (headcount / revenueRange / companyAge)', () => {
+    it('headcount: unknown does NOT eliminate via headcountMin', () => {
+      const question = makeQuestion({ conditions: { headcountMin: '500+' } });
+      const inputs: UserInputs = { ...baseInputs, headcount: 'unknown' };
+      expect(matchesConditions(question.conditions, inputs)).toBe(true);
+    });
+
+    it('revenueRange: unknown does NOT eliminate via revenueMin', () => {
+      const question = makeQuestion({ conditions: { revenueMin: '100m+' } });
+      const inputs: UserInputs = { ...baseInputs, revenueRange: 'unknown' };
+      expect(matchesConditions(question.conditions, inputs)).toBe(true);
+    });
+
+    it('companyAge: unknown does NOT eliminate via companyAgeMin', () => {
+      const question = makeQuestion({ conditions: { companyAgeMin: '20yr+' } });
+      const inputs: UserInputs = { ...baseInputs, companyAge: 'unknown' };
+      expect(matchesConditions(question.conditions, inputs)).toBe(true);
+    });
+  });
+
+  describe("geographies: ['unknown'] widens", () => {
+    it("['unknown'] does NOT eliminate via geographies filter", () => {
+      const question = makeQuestion({ conditions: { geographies: ['eu', 'uk'] } });
+      const inputs: UserInputs = { ...baseInputs, geographies: ['unknown'] };
+      expect(matchesConditions(question.conditions, inputs)).toBe(true);
+    });
+
+    it("['us', 'unknown'] still filters by 'us' (mixed array uses normal logic)", () => {
+      // If the array has at least one known value, the filter applies as
+      // usual (any-of OR semantic). 'unknown' mixed in doesn't widen.
+      const question = makeQuestion({ conditions: { geographies: ['eu'] } });
+      const inputs: UserInputs = { ...baseInputs, geographies: ['us', 'unknown'] };
+      // 'us' isn't in conditions.geographies=['eu'], 'unknown' isn't either,
+      // so the filter eliminates this question. Mixed-with-unknown does
+      // NOT trigger the widening — only ['unknown'] alone does.
+      expect(matchesConditions(question.conditions, inputs)).toBe(false);
+    });
+  });
+
+  describe('full-unknown payload', () => {
+    it('a payload where all 13 dimensions are unknown matches any condition set', () => {
+      const allUnknown: UserInputs = {
+        transactionType: 'unknown',
+        productType: 'unknown',
+        techArchetype: 'unknown',
+        headcount: 'unknown',
+        revenueRange: 'unknown',
+        growthStage: 'unknown',
+        companyAge: 'unknown',
+        geographies: ['unknown'],
+        businessModel: 'unknown',
+        scaleIntensity: 'unknown',
+        transformationState: 'unknown',
+        dataSensitivity: 'unknown',
+        operatingModel: 'unknown',
+      };
+      // A question with multiple conditions still matches because every
+      // dimension is unknown — agenda widens to maximum coverage.
+      const question = makeQuestion({
+        conditions: {
+          transactionTypes: ['full-acquisition'],
+          productTypes: ['b2b-saas'],
+          techArchetypes: ['modern-cloud-native'],
+          headcountMin: '500+',
+          revenueMin: '100m+',
+          geographies: ['eu'],
+          dataSensitivity: ['high'],
+          operatingModels: ['centralized-eng'],
+        },
+      });
+      expect(matchesConditions(question.conditions, allUnknown)).toBe(true);
+    });
+  });
+
+  describe('mixed known/unknown payload', () => {
+    it('known dimension still filters; unknown dimension widens', () => {
+      // transactionType='unknown' (widens) but productType='b2c-marketplace'
+      // (known, doesn't match conditions.productTypes=['b2b-saas']) →
+      // the known mismatch eliminates the question.
+      const question = makeQuestion({
+        conditions: {
+          transactionTypes: ['carve-out'],
+          productTypes: ['b2b-saas'],
+        },
+      });
+      const inputs: UserInputs = {
+        ...baseInputs,
+        transactionType: 'unknown',
+        productType: 'b2c-marketplace',
+      };
+      expect(matchesConditions(question.conditions, inputs)).toBe(false);
+    });
+  });
+});

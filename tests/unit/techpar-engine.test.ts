@@ -34,7 +34,7 @@ function makeInputs(overrides: Partial<TechParInputs> = {}): TechParInputs {
 const STANDARD_INPUTS: TechParInputs = {
   ...DEFAULT_INPUTS,
   arr: 10_000_000,
-  infraHosting: 50_000,
+  infraHostingAnnual: 600_000,
   rdOpEx: 3_000_000,
   infraPersonnel: 500_000,
   rdCapEx: 500_000,
@@ -44,11 +44,11 @@ const STANDARD_INPUTS: TechParInputs = {
 
 describe('compute() null guards', () => {
   it('returns null when arr is 0', () => {
-    expect(compute(makeInputs({ arr: 0, infraHosting: 5000 }))).toBeNull();
+    expect(compute(makeInputs({ arr: 0, infraHostingAnnual: 60_000 }))).toBeNull();
   });
 
-  it('returns null when infraHosting is 0', () => {
-    expect(compute(makeInputs({ arr: 10_000_000, infraHosting: 0 }))).toBeNull();
+  it('returns null when infraHostingAnnual is 0', () => {
+    expect(compute(makeInputs({ arr: 10_000_000, infraHostingAnnual: 0 }))).toBeNull();
   });
 });
 
@@ -59,14 +59,14 @@ describe('compute() basis calculations', () => {
     const result = compute(
       makeInputs({
         arr: 10_000_000,
-        infraHosting: 50_000,
+        infraHostingAnnual: 600_000,
         rdOpEx: 2_000_000,
         rdCapEx: 500_000,
         capexView: 'cash',
       })
     );
     expect(result).not.toBeNull();
-    // total = (50000*12) + 0 + 2000000 + 500000 = 3100000
+    // total = 600000 + 0 + 2000000 + 500000 = 3100000 (BL-031.95: annual hosting direct)
     expect(result!.totalCash).toBe(3_100_000);
     expect(result!.total).toBe(3_100_000);
   });
@@ -75,14 +75,14 @@ describe('compute() basis calculations', () => {
     const result = compute(
       makeInputs({
         arr: 10_000_000,
-        infraHosting: 50_000,
+        infraHostingAnnual: 600_000,
         rdOpEx: 2_000_000,
         rdCapEx: 500_000,
         capexView: 'gaap',
       })
     );
     expect(result).not.toBeNull();
-    // totalGAAP = (50000*12) + 0 + 2000000 = 2600000
+    // totalGAAP = 600000 + 0 + 2000000 = 2600000 (BL-031.95: annual hosting direct)
     expect(result!.totalGAAP).toBe(2_600_000);
     expect(result!.total).toBe(2_600_000);
   });
@@ -95,7 +95,7 @@ describe('compute() KPI formulas', () => {
     const result = compute(
       makeInputs({
         arr: 10_000_000,
-        infraHosting: 50_000,
+        infraHostingAnnual: 600_000,
         rdOpEx: 3_000_000,
       })
     );
@@ -103,14 +103,14 @@ describe('compute() KPI formulas', () => {
     expect(result!.totalTechPct).toBeCloseTo(36, 1);
   });
 
-  it('infraHostingPct annualizes monthly correctly', () => {
+  it('infraHostingPct = infraHostingAnnual / arr × 100', () => {
     const result = compute(
       makeInputs({
         arr: 10_000_000,
-        infraHosting: 50_000,
+        infraHostingAnnual: 600_000,
       })
     );
-    // (50000 * 12) / 10M * 100 = 6%
+    // 600000 / 10M * 100 = 6%
     expect(result!.kpis.infraHostingPct).toBeCloseTo(6, 1);
   });
 
@@ -118,7 +118,7 @@ describe('compute() KPI formulas', () => {
     const result = compute(
       makeInputs({
         arr: 10_000_000,
-        infraHosting: 50_000,
+        infraHostingAnnual: 600_000,
         infraPersonnel: 400_000,
       })
     );
@@ -130,7 +130,7 @@ describe('compute() KPI formulas', () => {
     const result = compute(
       makeInputs({
         arr: 10_000_000,
-        infraHosting: 50_000,
+        infraHostingAnnual: 600_000,
         engFTE: 0,
       })
     );
@@ -141,7 +141,7 @@ describe('compute() KPI formulas', () => {
     const result = compute(
       makeInputs({
         arr: 10_000_000,
-        infraHosting: 50_000,
+        infraHostingAnnual: 600_000,
         rdOpEx: 0,
         rdCapEx: 0,
       })
@@ -153,7 +153,7 @@ describe('compute() KPI formulas', () => {
     const result = compute(
       makeInputs({
         arr: 10_000_000,
-        infraHosting: 50_000,
+        infraHostingAnnual: 600_000,
         mode: 'deepdive',
         engCost: 1_500_000,
         prodCost: 500_000,
@@ -349,7 +349,7 @@ describe('R&D CapEx benchmark range', () => {
     const inputs = makeInputs({
       arr: 10_000_000,
       stage: 'pe',
-      infraHosting: 50_000,
+      infraHostingAnnual: 600_000,
       rdOpEx: 3_000_000,
       rdCapEx: 1_000_000,
     });
@@ -369,7 +369,7 @@ describe('R&D CapEx benchmark range', () => {
     const inputs = makeInputs({
       arr: 10_000_000,
       stage: 'series_bc',
-      infraHosting: 50_000,
+      infraHostingAnnual: 600_000,
       rdOpEx: 3_000_000,
       rdCapEx: 100_000, // very small CapEx
     });
@@ -396,7 +396,7 @@ describe('serializeToParams / deserializeFromParams', () => {
       capexView: 'gaap',
       growthRate: 30,
       exitMultiple: 15,
-      infraHosting: 80_000,
+      infraHostingAnnual: 960_000,
       infraPersonnel: 600_000,
       rdOpEx: 4_000_000,
       rdCapEx: 500_000,
@@ -415,7 +415,7 @@ describe('serializeToParams / deserializeFromParams', () => {
     expect(restored.mode).toBe(inputs.mode);
     expect(restored.capexView).toBe(inputs.capexView);
     expect(restored.exitMultiple).toBe(inputs.exitMultiple);
-    expect(restored.infraHosting).toBe(inputs.infraHosting);
+    expect(restored.infraHostingAnnual).toBe(inputs.infraHostingAnnual);
     expect(restored.infraPersonnel).toBe(inputs.infraPersonnel);
     expect(restored.rdOpEx).toBe(inputs.rdOpEx);
     expect(restored.rdCapEx).toBe(inputs.rdCapEx);
@@ -426,7 +426,7 @@ describe('serializeToParams / deserializeFromParams', () => {
   });
 
   it('should omit default values from URL', () => {
-    const inputs = makeInputs({ arr: 10_000_000, infraHosting: 50_000 });
+    const inputs = makeInputs({ arr: 10_000_000, infraHostingAnnual: 600_000 });
     const params = serializeToParams(inputs);
     // mode=quick is default, should not be in URL
     expect(params.has('m')).toBe(false);
@@ -437,11 +437,11 @@ describe('serializeToParams / deserializeFromParams', () => {
   });
 
   it('should use compact single-letter keys', () => {
-    const inputs = makeInputs({ arr: 10_000_000, stage: 'seed', infraHosting: 50_000 });
+    const inputs = makeInputs({ arr: 10_000_000, stage: 'seed', infraHostingAnnual: 600_000 });
     const params = serializeToParams(inputs);
     expect(params.get('s')).toBe('seed');
     expect(params.get('a')).toBe('10000000');
-    expect(params.get('h')).toBe('50000');
+    expect(params.get('h')).toBe('600000');
   });
 
   it('should handle missing params gracefully', () => {
@@ -477,7 +477,7 @@ describe('serializeToParams / deserializeFromParams', () => {
       capexView: 'gaap',
       growthRate: 50,
       exitMultiple: 20,
-      infraHosting: 500_000,
+      infraHostingAnnual: 6_000_000,
       infraPersonnel: 2_000_000,
       rdOpEx: 15_000_000,
       rdCapEx: 3_000_000,
@@ -499,7 +499,7 @@ describe('buildSummaryText', () => {
     const inputs = makeInputs({
       arr: 10_000_000,
       stage: 'series_bc',
-      infraHosting: 50_000,
+      infraHostingAnnual: 600_000,
       rdOpEx: 3_000_000,
       infraPersonnel: 500_000,
     });
@@ -519,7 +519,7 @@ describe('buildSummaryText', () => {
     const inputs = makeInputs({
       arr: 10_000_000,
       stage: 'pe',
-      infraHosting: 50_000,
+      infraHostingAnnual: 600_000,
     });
     const result = compute(inputs);
     const text = buildSummaryText(inputs, result!, 'https://example.com/techpar?s=pe');
@@ -530,7 +530,7 @@ describe('buildSummaryText', () => {
     const inputs = makeInputs({
       arr: 10_000_000,
       stage: 'pe',
-      infraHosting: 200_000,
+      infraHostingAnnual: 2_400_000,
       rdOpEx: 5_000_000,
       infraPersonnel: 1_000_000,
     });
@@ -545,7 +545,7 @@ describe('buildSummaryText', () => {
   });
 
   it('should include a Generated date in ISO format', () => {
-    const inputs = makeInputs({ arr: 10_000_000, stage: 'pe', infraHosting: 50_000 });
+    const inputs = makeInputs({ arr: 10_000_000, stage: 'pe', infraHostingAnnual: 600_000 });
     const result = compute(inputs);
     const text = buildSummaryText(inputs, result!);
     expect(text).toMatch(/Generated: \d{4}-\d{2}-\d{2}/);
@@ -556,12 +556,12 @@ describe('buildSummaryText', () => {
 
 describe('gap.annualExcess', () => {
   it('is positive when totalTechPct exceeds the stage ceiling', () => {
-    // PE ceiling is 40%. $50K/mo infra + $3M R&D + $500K pers + $500K capex on $10M ARR
+    // PE ceiling is 40%. $600K annual infra + $3M R&D + $500K pers + $500K capex on $10M ARR
     // = ($600K + $3M + $500K + $500K) / $10M = 46% → above 40%
     const inputs = makeInputs({
       arr: 10_000_000,
       stage: 'pe',
-      infraHosting: 50_000,
+      infraHostingAnnual: 600_000,
       rdOpEx: 3_000_000,
       infraPersonnel: 500_000,
       rdCapEx: 500_000,
@@ -573,11 +573,11 @@ describe('gap.annualExcess', () => {
   });
 
   it('is zero when totalTechPct is at or below the stage ceiling', () => {
-    // PE ceiling is 40%. $20K/mo infra on $10M ARR = 2.4% → well below 40%
+    // PE ceiling is 40%. $240K annual infra on $10M ARR = 2.4% → well below 40%
     const inputs = makeInputs({
       arr: 10_000_000,
       stage: 'pe',
-      infraHosting: 20_000,
+      infraHostingAnnual: 240_000,
     });
     const result = compute(inputs)!;
     expect(result.totalTechPct).toBeLessThanOrEqual(40);

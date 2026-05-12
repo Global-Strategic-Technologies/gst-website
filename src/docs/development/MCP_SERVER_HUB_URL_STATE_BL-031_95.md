@@ -1,0 +1,337 @@
+# Hub Tools — URL State Restoration & MCP Deep-Link Surface (BL-031.95)
+
+> **Backlog initiative**: [BL-031.95: Hub Tools — URL State Restoration & MCP Deep-Link Surface](BACKLOG.md#bl-03195-hub-tools--url-state-restoration--mcp-deep-link-surface)
+>
+> **Predecessors**:
+>
+> - [MCP_SERVER_ARCHITECTURE_BL-031.md](MCP_SERVER_ARCHITECTURE_BL-031.md) — overall MCP architecture, repo placement, lifecycle. Read first.
+> - [MCP_SERVER_HUB_SURFACE_BL-031_5.md](MCP_SERVER_HUB_SURFACE_BL-031_5.md) — shipped URL state for Tech Debt, ICG, and Regulatory Map. Established the encoder pattern and the MCP-wrapper-emits-deeplink convention. The four tools this initiative touches were deferred from that initiative's scope.
+> - [MCP_SERVER_PROMPTS_BL-031_75.md](MCP_SERVER_PROMPTS_BL-031_75.md) — shipped the prompt library that consumes the deep-links. Five prompts in particular currently emit "deep-link will be added when…" disclaimers that this initiative retires.
+> - [MCP_SERVER_CONTRACTS_BL-031_85.md](MCP_SERVER_CONTRACTS_BL-031_85.md) — formalized the per-tool `CONTRACT.md` registry. The `.describe()` consistency pass under this initiative sources its description text from the contracts.
+> - [MCP_SERVER_STAGE_ADAPTER_BL-031_87.md](MCP_SERVER_STAGE_ADAPTER_BL-031_87.md) — shipped the canonical funding-stage taxonomy. The `.describe()` text for `companyStage` / `stage` fields can now reference the canonical layer; the deep-link encoders for ICG and TechPar URL state must accept canonical-or-native input through the same Adapter pathway.
+>
+> **Sequels**:
+>
+> - [BL-032 in BACKLOG.md](BACKLOG.md#bl-032-mcp-server--internal-remote-phase-2) — when MCP tools serve over HTTP, the deep-links remain in the same emitted shape; the Remote Proxy in front of each tool composes orthogonally with the URL encoders this initiative adds.
+> - [BL-031.95.5 (TBD)](#) — if a future initiative wants to canonicalize URL-state payloads (so a URL produced by one surface can be loaded by another), the encoders gain canonical-aware variants. Out of scope today.
+>
+> **Scope**: this document covers [BL-031.95](BACKLOG.md#bl-03195-hub-tools--url-state-restoration--mcp-deep-link-surface) — closing the deferred work from BL-031.75 by adding URL state restoration to the four remaining Hub tools (TechPar, Diligence Machine, Radar, M&A Portfolio), wiring corresponding `deeplink` fields into their MCP tool wrappers, and updating the BL-031.75 prompts that surface the new deep-links. Two input-ergonomics fixes surfaced during BL-031.75 V2 verification land in the same initiative because they touch the same schema and wrapper files. A `.describe()` consistency pass on tool Zod schemas is folded in (originally filed under BL-031.85 closure).
+>
+> **Status**: Open. Depends on BL-031.75 (already complete) and BL-031.87 (already complete — the `.describe()` text for stage fields references the canonical taxonomy). Co-scheduling with BL-031.87 was considered and rejected (different review surfaces).
+
+---
+
+## Context
+
+[BL-031.75](MCP_SERVER_PROMPTS_BL-031_75.md) shipped the consultant prompt library — eight named workflows orchestrating the Tools and Resources delivered in BL-031 and BL-031.5. As part of that initiative's "Commit 0.5," three Hub tools (Tech Debt, ICG, Regulatory Map) gained the ability to emit a `deeplink` field in their MCP responses — a populated URL that opens the website's wizard with the analysis state restored byte-for-byte. Analysts moving from a Claude conversation to the website Hub for PDF download / export / email / share could pick up exactly where the MCP tool left off.
+
+That worked for three of the seven active MCP tools. The other four — `compute_techpar`, `generate_diligence_agenda`, `search_radar_cache`, `search_portfolio` — could not emit working deep-links because their MCP wrappers didn't surface the URL even when one was reachable. Five of the eight BL-031.75 prompts (`gst_target_quick_look`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, `gst_radar_brief_today`, `gst_comparable_engagements_memo`) carry "deep-link will be added when the page supports URL state (tracked under BL-031.95)" disclaimers in their bodies as a result.
+
+> **Pre-implementation reconciliation (2026-05-02)**: an earlier draft of this doc claimed TechPar had no URL state and proposed adding `?s=<base64>` encoding. **That was wrong** — TechPar already has full URL state plumbing using readable query params (`serializeToParams` / `deserializeFromParams` in [`src/utils/techpar-engine.ts:563`](../../utils/techpar-engine.ts#L563), wired via `syncUrlState()` and `hydrateFromUrl()` in [`src/utils/techpar/dom.ts`](../../utils/techpar/dom.ts)). The actual gap for TechPar is at the MCP-wrapper layer: the wrapper doesn't emit a `deeplink` field. This doc has been revised to respect the existing convention — TechPar's URL state is the de facto pattern this initiative aligns Diligence Machine to, rather than reinventing TechPar to match BL-031.5's Tech Debt / ICG `?s=<base64>` choice.
+
+This initiative closes that gap. It also handles two input-ergonomics fixes surfaced during BL-031.75 V2 verification — both inflict their pain at the same schema-and-wrapper boundary URL state restoration touches, so folding them in saves a third pass over the same files:
+
+1. **TechPar `infraHosting` unit normalization.** The engine annualizes `infraHosting` via `× 12` (`src/utils/techpar-engine.ts:231`) while every other money field is annual. An agent emitting reasonable annual figures gets 12× output for hosting and has to retry. A clean rename to `infraHostingAnnual` plus dropping the multiplier eliminates the trial-and-error.
+2. **Diligence Machine `'unknown'` parity with ICG `-1`.** Today the diligence wizard requires every dimension. ICG is more honest — `-1` ("Not sure") is a first-class value that widens the agenda conservatively. Mirroring that on diligence lets `gst_diligence_kickoff` work at deal kickoff (when much is unknown) without the model being forced to guess.
+
+The `.describe()` consistency pass on tool Zod schemas (originally filed under BL-031.85 closure as a Tier 2 hardening item) is also folded in. BL-031.95 already opens every relevant schema file for the URL-state and ergonomics work; adding `.describe()` calls in the same commits avoids a third schema-touching pass.
+
+---
+
+## What "good URL state restoration" looks like — two coexisting archetypes
+
+The Hub-tool URL-encoding surface today has two coexisting conventions, each suited to a different UX. BL-031.95 respects the existing per-tool choices rather than imposing uniformity.
+
+### Compact base64 archetype — `?s=<base64>` (BL-031.5 form wizards)
+
+**Used by**: Tech Debt Calculator and ICG (both shipped under BL-031.5).
+
+The encoder serializes a compact key map of wizard inputs as JSON, base64-encodes the result, and writes it as a single `?s=<base64>` parameter. The decoder reverses: parses the base64, JSON-decodes, validates each field (silently dropping invalid values), and returns a `Partial<State>`.
+
+**Reference implementations**: [`src/utils/icg-engine.ts`](../../utils/icg-engine.ts) `encodeState` / `decodeState` (lines 160–225); [`src/utils/tech-debt-engine.ts`](../../utils/tech-debt-engine.ts) `encodeState` / `decodeState` (lines 186–230).
+
+### Readable-params archetype — separate `?key=value` per filter or field
+
+**Used by**: Regulatory Map (BL-031.5), TechPar (pre-existing), and **Diligence Machine / Radar / M&A Portfolio** (this initiative).
+
+The encoder writes each field or filter as a separate readable query parameter. The decoder uses `URLSearchParams`, validates each value against a known set or numeric range, and silently drops unknowns. No base64; no compaction.
+
+**Why readable**: aids debugging (analysts can hand-edit individual params to test variants), aids discoverability (a teammate seeing `?theme=Cloud%20Migration` understands what's filtered without decoding), and survives URL-shortener / social-share unfurl mutations more gracefully than opaque base64 blobs.
+
+**Reference implementations**:
+
+- [`src/utils/regulatory-map-url.ts`](../../utils/regulatory-map-url.ts) `encodeFilters` / `decodeFilters` (filter-grid)
+- [`src/utils/techpar-engine.ts:563`](../../utils/techpar-engine.ts#L563) `serializeToParams` / `deserializeFromParams` (multi-field wizard with readable params — the de facto convention this initiative aligns with for Diligence Machine)
+
+### Per-tool archetype assignments
+
+| Tool                  | Archetype                     | Encoder location                                                                                                      | Status                                                                                                                        |
+| --------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **TechPar**           | Readable-params (multi-field) | [`src/utils/techpar-engine.ts:563`](../../utils/techpar-engine.ts#L563) `serializeToParams` / `deserializeFromParams` | ✅ Pre-existing; this initiative adds MCP wrapper `deeplink` emission only                                                    |
+| **Diligence Machine** | Readable-params (multi-field) | `src/utils/diligence-url.ts` (new)                                                                                    | ⏳ This initiative; mirrors TechPar's convention. URL augments existing localStorage (URL takes precedence on page-load init) |
+| **Radar**             | Readable-params (filter-grid) | `src/utils/radar-url.ts` (new)                                                                                        | ⏳ This initiative; 2 filters (`category`, `since`)                                                                           |
+| **M&A Portfolio**     | Readable-params (filter-grid) | `src/utils/portfolio-url.ts` (new)                                                                                    | ⏳ This initiative; 3 filters (`theme`, `category`, `engagementType`)                                                         |
+
+**Why this initiative does not migrate Tech Debt / ICG to readable-params**: the BL-031.5 base64 encoders work; existing URLs in the wild rely on them; migration would be invasive without solving a real problem. The two-archetype split is the de facto state. If/when consolidation becomes worthwhile, it gets its own initiative; not BL-031.95's job. Filed under [BL-034](BACKLOG.md#bl-034-mcp-server--documentation-cleanup) doc-cleanup as an audit item if the inconsistency becomes a friction point.
+
+**Why TechPar's existing convention is treated as canonical for Diligence Machine** (vs. base64): TechPar's encoder works in production today; analysts share TechPar URLs via Slack/email and the readable params survive copy-paste cleanly. The architectural choice the original TechPar author made — multi-field readable params for a 14-field wizard — turned out to be a sound trade. Mirroring it for the 13-field diligence wizard means analysts and engineers see the same URL-state shape across two structurally similar tools.
+
+---
+
+## Why this earns its own initiative (rather than folding in elsewhere)
+
+**Not BL-031.5** because BL-031.5 already shipped. The four deferred Hub tools were left out of BL-031.5's scope intentionally — the URL-state pattern was the deliverable, not its uniform application across every tool. Applying the pattern to four more tools is a follow-on, not a continuation.
+
+**Not BL-031.75** because BL-031.75's competency is content design — what does a senior consultant actually do step-by-step on a recurring motion. Folding URL-state engineering work into a content-design initiative would have inflated scope across two cognitive modes with different review gates. BL-031.75 wisely shipped the deep-link _pattern_ with the three tools that already had URL state and deferred the retrofits.
+
+**Not BL-031.85** because BL-031.85 is documentation consolidation. The `.describe()` AC item that landed in BL-031.85's closure list is a schema-hygiene pass (code, not docs); it folds into BL-031.95 because BL-031.95 already opens those schema files.
+
+**Not BL-031.87** because BL-031.87 is a focused, single-pattern initiative (Adapter at the MCP-wrapper boundary for funding-stage vocabulary translation). Folding URL state in would have inflated it from "one pattern, two tools, ~3 hrs" to "one pattern, two tools, plus URL state across four tools, plus two ergonomics fixes" — heterogeneous scope, two unrelated review surfaces.
+
+**Its own initiative** because:
+
+1. The competency is **product engineering across four heterogeneous Hub tools** — form wizards, deferred-island feeds, filter grids. Each tool is a half-day to a day depending on existing state-management complexity; the surface is wide enough that the design pass benefits from explicit treatment.
+2. The output is **a uniform deep-link surface** across every prompt-driven Hub-tool URL — closes the BL-031.75 design intent that "every prompt's Open-in-Hub link should restore state byte-for-byte." Deferred work has a real ergonomic cost (analysts learn that some prompts' deep-links work and some don't); closing it uniformly is a separately-trackable deliverable.
+3. The work is sequenced by **the prompts being in production**, not by code dependencies. With BL-031.75 shipped and the prompts in active use, the deferred deep-links become visible friction; BL-031.95 is the right response.
+4. The downstream value (BL-032+ remote consumers see uniform deep-link emission across tools; future Hub tools have a clear convention; the four input-ergonomics retrofits ship together) is concrete and worth a separately-tracked deliverable.
+
+---
+
+## Implementation plan
+
+Five phases, each landing as a separate commit (or a small sequence of commits in the same PR). Phases 1–4 are independent and could co-schedule; phase 5 (verification + docs) runs at the end.
+
+### Phase 1 — TechPar `infraHosting` rename + `.describe()` pass + MCP wrapper deeplink emission
+
+TechPar's URL state is pre-existing (see [Per-tool archetype assignments](#per-tool-archetype-assignments)). Phase 1 does not introduce new URL encoder code; it fixes the `infraHosting` units misalignment surfaced during BL-031.75 V2 verification, adds JSON Schema descriptions, and surfaces the existing URL state via the MCP wrapper.
+
+1. **`infraHosting` → `infraHostingAnnual` rename.** Rename the field in `src/schemas/techpar.ts`; drop the `× 12` annualization at `src/utils/techpar-engine.ts:231` and at `src/utils/techpar-engine.ts:377` (`buildTrajectory`); update [`src/utils/techpar/dom.ts:551`](../../utils/techpar/dom.ts#L551) where `buildInputs()` converts annual→monthly to instead pass the value through (and let `infraPeriod === 'monthly'` users multiply by 12 in the wrapper); update the website page form labels and any inline references; update `mcp-server/src/tools/techpar.ts` tool description; update `mcp-server/src/docs/techpar/CONTRACT.md`; update existing TechPar tests to send annual values. Existing serialized URLs in the wild break — there's no migration shim because the URL state is `?h=<rawDOMValue>&b=<period>` so the values are recoverable from the period flag, but stale localStorage state under `LS_KEY = 'techpar-state'` carrying the old assumption (monthly-default) is treated as zero-cost loss; users with stale localStorage simply re-enter their values.
+2. **MCP wrapper deeplink.** Extend `mcp-server/src/tools/techpar.ts` to emit `deeplink: z.string().url()` per the BL-031.75 wrapper-schema pattern. The wrapper imports the existing `serializeToParams` from `src/utils/techpar-engine.ts` and constructs the deep-link as `${HUB_BASE}/hub/tools/techpar/?${serializeToParams(inputs).toString()}`.
+3. **`.describe()` pass on `src/schemas/techpar.ts`.** Add JSON Schema descriptions to every field in `TechParInputsSchema`, sourcing text from `mcp-server/src/docs/techpar/CONTRACT.md`. The `stage` field's `.describe()` references the canonical funding-stage taxonomy from BL-031.87.
+4. **Round-trip parity test.** Vitest unit test asserting `deserializeFromParams(serializeToParams(input))` reconstructs an equivalent `TechParInputs` for representative payloads. Symmetric with the BL-031.5 Tech Debt / ICG round-trip tests, applied to the existing TechPar serializer.
+
+**Acceptance**: a freshly-spawned agent calls `compute_techpar` once with reasonable annual values and gets sensible output; the response's `deeplink` opens the TechPar wizard with all 14 inputs restored via the existing `hydrateFromUrl()` flow; no trial-and-error retry needed.
+
+**Engineering verification**: covered by [`mcp-server/tests/integration/techpar-handler.test.ts`](../../../mcp-server/tests/integration/techpar-handler.test.ts), which exercises the full wrapper handler (`handleTechparTool`) with canonical-stage input, native-stage input, zero-arr / zero-hosting error paths, and asserts that the post-BL-031.95-Phase-1 engine math (no × 12 internal annualization) produces the canonical sample output (`total: $6.06M, totalTechPct: 24.24, zone: ahead`). UI-level verification through Claude Desktop lands naturally on the next MCP-server restart and is **not** tracked as deferred work — the integration test proves engineering correctness now.
+
+### Phase 2 — Diligence Machine URL state + `'unknown'` input support + `.describe()` pass on diligence schema
+
+Larger phase because `'unknown'` parity ripples through the engine, the wizard UI, the MCP tool, and two prompts.
+
+1. **`'unknown'` enum extension.** Extend each enum in `src/schemas/diligence.ts` `UserInputsSchema` with an `'unknown'` option (mirroring ICG `-1` "Not sure" pattern). Update `src/data/diligence-machine/wizard-config.ts` to include the new option label/description.
+2. **Wizard UI.** Update `src/pages/hub/tools/diligence-machine/` to render an "I don't know" affordance on every step.
+3. **Engine trigger map.** Update `src/utils/diligence-engine.ts` so `'unknown'` answers do NOT eliminate triggers (only known values can — agenda widens conservatively when input is incomplete).
+4. **MCP tool.** Update `mcp-server/src/tools/diligence.ts` tool description to call out the new option. Tool result surfaces an `unknownDimensionCount` field so deliverables can lead with a low-confidence callout when ≥7 of 13 are unknown (parallels the ICG ≥10/20 threshold in `gst_target_quick_look`).
+5. **URL encoder + page wiring.** Author `src/utils/diligence-url.ts` exporting `serializeToParams(inputs: UserInputs): URLSearchParams` and `deserializeFromParams(params: URLSearchParams): Partial<UserInputs>` — readable-params shape mirroring TechPar's existing convention (see [Per-tool archetype assignments](#per-tool-archetype-assignments)). URL state augments (does NOT replace) the existing localStorage layer. Page-load init: URL state takes precedence; localStorage is the fallback for "I closed the tab, came back tomorrow." Update `src/pages/hub/tools/diligence-machine/` to wire encode/decode.
+6. **MCP wrapper deep-link.** Extend `mcp-server/src/tools/diligence.ts` to emit `deeplink` (wraps the diligence-script result with a populated wizard URL).
+7. **Prompt argsSchemas.** Mark the 13 wizard fields as optional with default `'unknown'` in `gst_diligence_kickoff` and `gst_diligence_handoff_memo`. Update prompt bodies to instruct the model to use `'unknown'` when inputs aren't derivable.
+8. **`.describe()` pass on `src/schemas/diligence.ts`.** As with Phase 1.
+9. **Round-trip parity test.**
+
+**Acceptance**: a `gst_diligence_kickoff` invocation with only `targetName` supplied parses and produces a coherent, intentionally-broad agenda; the response's `deeplink` opens the diligence wizard with the supplied dimensions populated and all unsupplied dimensions defaulted to `'unknown'`.
+
+### Phase 3 — Radar URL state
+
+Smaller phase; deferred-island feed, two filters.
+
+1. **URL encoder.** Author `src/utils/radar-url.ts` with `encodeFilters` / `decodeFilters` (filter-grid archetype). Filters: `category` (RADAR_CATEGORIES enum) and `since` (hours, integer 1–168).
+2. **Component wiring.** Update `src/components/radar/CategoryFilter.tsx` (or equivalent) to read URL state on mount and write URL state on filter change. Deep-linkable filter views work for both FYI and Wire categories.
+3. **MCP wrapper deep-link.** Extend `mcp-server/src/tools/radar-cache.ts` to emit `deeplink` (filtered Radar URL based on `category` / `sinceHours` inputs).
+4. **`.describe()` pass on `src/schemas/regulatory-map.ts`** (Radar shares the regulatory-map schema for category typing — confirm during implementation; if Radar has its own schema, add `.describe()` there instead).
+5. **Round-trip parity test.**
+
+**Acceptance**: a `gst_radar_brief_today` invocation with `category: 'ai-governance'` produces a `deeplink` that opens the Radar feed pre-filtered to that category.
+
+### Phase 4 — M&A Portfolio URL state + `.describe()` pass on portfolio schema
+
+1. **URL encoder.** Author `src/utils/portfolio-url.ts` with `encodeFilters` / `decodeFilters`. Filters: `theme`, `category` (engagement category), `engagementType`.
+2. **Component wiring.** Update `src/components/portfolio/` filter UI to read URL state on mount and write URL state on filter change.
+3. **MCP wrapper deep-link.** Extend `mcp-server/src/tools/portfolio.ts` to emit `deeplink`.
+4. **`.describe()` pass on `src/schemas/portfolio.ts`.**
+5. **Round-trip parity test.**
+
+**Acceptance**: a `gst_comparable_engagements_memo` invocation produces a `deeplink` that opens the Portfolio grid pre-filtered to the matched engagements.
+
+### Phase 5 — Prompt body updates + verification + docs
+
+1. **Prompt body updates** (5 prompts): `gst_target_quick_look`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, `gst_radar_brief_today`, `gst_comparable_engagements_memo`. Each gains the new `deeplink` surface and retires the "deep-link will be added when the page supports URL state" disclaimer. Per-prompt golden snapshots regenerated.
+2. **Verification re-run.** Re-run BL-031.75 V2 / V3 / V7 / V8 trials with deep-link presence + browser state-restoration checks. Recorded into `mcp-server/README.md` § "Last verified" under a new "BL-031.95 surface" stanza.
+3. **Doc updates.** `MCP_SERVER_PROMPTS_BL-031_75.md` § "Deferred work" updated to point at BL-031.95 closure rather than BL-034 (the deferred work has its own initiative now). This architecture doc updated with any deviations made during implementation.
+
+---
+
+## Critical files to read or modify
+
+| File                                                                                                                                                         | Action                                                                                                                | Why                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `src/schemas/techpar.ts`                                                                                                                                     | Edit — rename `infraHosting` → `infraHostingAnnual`; add `.describe()` to every field                                 | Schema is canonical; the website wizard and MCP tool both validate against it |
+| [`src/utils/techpar-engine.ts:231`](../../utils/techpar-engine.ts#L231) and [`:377`](../../utils/techpar-engine.ts#L377)                                     | Edit — drop `× 12` annualization in both `compute` and `buildTrajectory`                                              | The math change that makes the rename meaningful                              |
+| [`src/utils/techpar/dom.ts:551`](../../utils/techpar/dom.ts#L551)                                                                                            | Edit — `buildInputs()` flips conversion direction (monthly UI → multiply by 12 to annual)                             | UI's monthly/annual toggle now produces annual values for the engine          |
+| `mcp-server/src/tools/techpar.ts`                                                                                                                            | Edit — emit `deeplink` (imports existing `serializeToParams` from `techpar-engine.ts`); update tool description       | The MCP wrapper that now surfaces the URL                                     |
+| `src/schemas/diligence.ts`                                                                                                                                   | Edit — add `'unknown'` enum value to every UserInput field; add `.describe()` to every field                          | Mirrors ICG `-1` parity                                                       |
+| `src/data/diligence-machine/wizard-config.ts`                                                                                                                | Edit — add `'unknown'` option label/description per field                                                             | UI source of truth                                                            |
+| `src/utils/diligence-engine.ts`                                                                                                                              | Edit — trigger map: `'unknown'` does not eliminate triggers                                                           | The semantics that make `'unknown'` useful                                    |
+| `src/utils/diligence-url.ts` (new)                                                                                                                           | Create — `serializeToParams` / `deserializeFromParams`, readable-params shape mirroring TechPar's existing convention | Multi-field URL encoder; URL augments existing localStorage                   |
+| `src/pages/hub/tools/diligence-machine/`                                                                                                                     | Edit — wire URL state alongside localStorage                                                                          | URL takes precedence on page-load init                                        |
+| `mcp-server/src/tools/diligence.ts`                                                                                                                          | Edit — emit `deeplink`; surface `unknownDimensionCount`                                                               | Wrapper-level instrumentation                                                 |
+| `src/utils/radar-url.ts` (new)                                                                                                                               | Create                                                                                                                | Filter-grid encoder for Radar                                                 |
+| `src/components/radar/CategoryFilter.tsx` (or equivalent)                                                                                                    | Edit — wire URL state                                                                                                 | Component-level integration                                                   |
+| `mcp-server/src/tools/radar-cache.ts`                                                                                                                        | Edit — emit `deeplink`                                                                                                | Wrapper                                                                       |
+| `src/utils/portfolio-url.ts` (new)                                                                                                                           | Create                                                                                                                | Filter-grid encoder for Portfolio                                             |
+| `src/components/portfolio/` filter UI                                                                                                                        | Edit — wire URL state                                                                                                 | Component-level integration                                                   |
+| `mcp-server/src/tools/portfolio.ts`                                                                                                                          | Edit — emit `deeplink`                                                                                                | Wrapper                                                                       |
+| `src/schemas/portfolio.ts`, `src/schemas/icg.ts`, `src/schemas/tech-debt.ts`, `src/schemas/regulatory-map.ts`                                                | Edit — `.describe()` pass                                                                                             | Schema-hygiene; sources text from each per-tool CONTRACT.md                   |
+| `mcp-server/src/prompts/target-quick-look.ts`, `diligence-kickoff.ts`, `diligence-handoff-memo.ts`, `radar-brief-today.ts`, `comparable-engagements-memo.ts` | Edit — body updates surfacing new deep-links; retire disclaimers                                                      | Prompt bodies that consumed the deferred deep-links                           |
+| `mcp-server/tests/examples/*.golden.md`                                                                                                                      | Edit — regenerate snapshots for the 5 updated prompts                                                                 | V verification trail                                                          |
+| `mcp-server/README.md` § "Last verified"                                                                                                                     | Edit — add "BL-031.95 surface" stanza                                                                                 | Verification evidence trail (matches BL-031.75 closure pattern)               |
+
+---
+
+## Risks & mitigations
+
+| Risk                                                                                                                                   | Mitigation                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **TechPar `infraHosting` rename breaks production users with bookmarked wizard URLs**                                                  | TechPar has no URL state today, so there's no production URL state to migrate. The wizard form gets a one-line label change. The schema rename is a Zod-level breaking change; existing tests update in the same commit.                                                                                                                                                                                                                                       |
+| **Diligence Machine `'unknown'` extension breaks existing trigger-map behavior**                                                       | Comprehensive engine test refresh in Phase 2: `'unknown'` answers must not eliminate any trigger that a missing answer would have eliminated; ≥7-of-13 unknowns must NOT silently produce a degenerate "no triggers" output.                                                                                                                                                                                                                                   |
+| **URL state takes precedence over localStorage in Diligence — silently overwrites in-progress wizard state**                           | Page-load init explicitly checks for URL state first; if no `?s=` parameter is present, falls through to localStorage. Documented in the encoder JSDoc and in [`mcp-server/src/docs/diligence/CONTRACT.md`](../../../mcp-server/src/docs/diligence/CONTRACT.md).                                                                                                                                                                                               |
+| **Two new URL-encoder files (`techpar-url.ts`, `diligence-url.ts`) inconsistent with BL-031.5's pattern of extending the engine file** | Documented in this doc § "Per-tool archetype assignments" as an intentional choice. BL-031.5 Tech Debt / ICG migration to the same pattern flagged for BL-034 if it becomes a friction point.                                                                                                                                                                                                                                                                  |
+| **`.describe()` text sourced from CONTRACT.md becomes stale when CONTRACT.md updates**                                                 | The contract is canonical; `.describe()` text cites the contract. A future BL-034 contract-parity Vitest (Tier 2 hardening) would catch drift; today the discipline is conventional.                                                                                                                                                                                                                                                                           |
+| **Prompt body updates ripple through to existing pinned prompts in long-running conversations**                                        | All five updated prompts bump version (e.g., `0.0.2` → `0.0.3`); the lastReviewedAt date updates; the BL-031.75 prompt-staleness Vitest catches future drift. Prior versions remain reachable via `git log`.                                                                                                                                                                                                                                                   |
+| **Five prompt golden snapshots regenerated at once — risk of accepting a degraded output as the new baseline**                         | Each regeneration recorded with senior-consultant verdict in the snapshot's body (matches the BL-031.75 V<n> evidence pattern); diff vs prior baseline reviewed at PR time.                                                                                                                                                                                                                                                                                    |
+| **Five tools' MCP wrappers gain `deeplink` emission simultaneously — risk of inconsistent shape**                                      | The wrapper-schema pattern (`*MCPResultSchema`) is established in BL-031.75 Commit 0.5; phases 1–4 each follow it. A unit test per tool asserts the `deeplink` field shape at the wrapper level.                                                                                                                                                                                                                                                               |
+| **BL-031.75 V2/V3/V7/V8 trials need re-running on the closure session's MCP-server build**                                             | Phase 5 includes the re-runs; if the running mcp-server subprocess pre-dates this initiative's commits at session start (a real infrastructure constraint, not deferred work), integration-test substitutes per `mcp-server/tests/integration/*-handler.test.ts` exercise the same wrapper code paths and prove engineering correctness. UI-level verification on Claude Desktop lands naturally on the next MCP-server restart; not tracked as deferred work. |
+
+---
+
+## Out of scope (explicit)
+
+- **Adding URL state to Hub tools beyond the four named** — Library articles are static; the home pages and gateway pages have no analyst-facing state to encode. If a future tool surfaces analytical state, it picks a BL-031.5/BL-031.95 archetype based on its UX.
+- **Schema changes to underlying engines beyond what URL encoding requires** — no functional behavior changes; pure additive instrumentation. The `'unknown'` extension to diligence is the one engine-touching change, and it's a conservative widening (only known values eliminate triggers; missing values were already treated similarly).
+- **Performance optimization of the deep-link encoder for very-large states** — `?s=<base64>` length is bounded by the wizard's field count; no anticipated growth. If the URL exceeds typical browser limits in the future (~2000 chars), revisit with a server-side state-storage layer.
+- **Adding new filters to Radar or M&A Portfolio beyond what URL encoding requires** — if a filter doesn't exist in the UI today, this initiative does not add it.
+- **Removing localStorage from Diligence Machine** — it stays as the fallback persistence layer for "closed the tab, came back tomorrow." URL state is the share/restore layer; both serve.
+- **HTTP transport / remote prompt access for the new deep-link surface** — BL-032 / BL-032.5 own the remote substrate. Deep-links continue to be HTTP URLs to `globalstrategic.tech/hub/...` regardless of the MCP transport.
+- **Canonical-aware URL state across tools** — a TechPar URL state encoded on the website would still encode the native `stage` value (not the canonical equivalent), because the URL state is the engine's input shape. If cross-tool URL sharing becomes a concrete need (TechPar URL → ICG URL with the same canonical stage), a future initiative gains canonical-aware encoders. Not promised here.
+- **Migration of Tech Debt / ICG encoders from `*-engine.ts` into sibling `*-url.ts` files** — flagged for [BL-034](BACKLOG.md#bl-034-mcp-server--documentation-cleanup) if pattern inconsistency becomes a friction point.
+- **An IRL generator that consumes the URL-state encoders** — IRL is BL-031.85's strategic destination; URL state is independent. The encoders may be useful to a future IRL implementation but BL-031.95 does not deliver IRL.
+
+---
+
+## Phase 1 (TechPar) — closure summary
+
+**Shipped 2026-05-02.** Three commits on `feature-mcp1`:
+
+- `aa47dc5` — `infraHosting` → `infraHostingAnnual` rename + drop `× 12` annualization across schema, engine (compute + buildTrajectory), `dom.ts` conversion direction, MCP tool description, CONTRACT.md, USAGE.md, README.md historical-evidence annotation, all engine and wrapper tests
+- `2106bad` — MCP wrapper emits `deeplink` field via existing `serializeToParams` encoder (TechPar's pre-existing readable-params URL state); `.describe()` pass on every TechPar schema field; 3 wrapper-level deeplink-emission tests
+- `6bd2b87` (companion remediation) — `mcp-server/tests/integration/techpar-handler.test.ts` (5 tests) exercises the full `handleTechparTool` pipeline with canonical-stage input, native-stage equivalence, zero-arr / zero-hosting error paths, and the canonical-sample output (`total: $6.06M, totalTechPct: 24.24, zone: ahead`) at $25M ARR with $960K annual hosting
+
+**Engineering verification**: 1091 project tests + 282 mcp-server tests pass; mcp-server typecheck + project astro check clean. Browser verification on the wizard's monthly/annual UI toggle: pending user.
+
+## Phase 2 (Diligence Machine) — closure summary
+
+**Shipped 2026-05-02.** Four sub-commits closing the deferred-deep-link work for the diligence wizard:
+
+- `e0b795b` (Phase 2.A) — `'unknown'` parity at the engine + MCP API level. Schema accepts `'unknown'` on every UserInputs field via the `withUnknown<T>` helper; engine `matchesConditions` early-skips the corresponding filter when an input is `'unknown'`; multi-select `geographies = ['unknown']` widens the geography filter; MCP wrapper extracted to `handleDiligenceTool` and surfaces a `unknownDimensionCount` field. 17 engine widening unit tests + 12 wrapper integration tests.
+- `3dd56b9` (Phase 2.B) — readable-params URL encoder at `src/utils/diligence-url.ts` (mirrors TechPar's convention, NOT BL-031.5's base64 archetype — see [What "good URL state restoration" looks like](#what-good-url-state-restoration-looks-like--two-coexisting-archetypes)); page wiring in `index.astro` (URL takes precedence over localStorage on init; `syncUrlState()` writes URL on every state change alongside the existing localStorage save); MCP wrapper emits `deeplink` via the same encoder; 11 round-trip parity tests + 3 deeplink integration tests.
+- `9a03c46` (Phase 2.C.i) — `.describe()` pass on every UserInputsSchema field (BL-031.85 closure follow-up; sourced from per-field detail in `mcp-server/src/docs/diligence/CONTRACT.md`).
+- `0707f63` (Phase 2.C.ii) — wizard "Not sure" affordance per step. New `.brutal-option-card--unsure` CSS modifier (dashed border, muted italic label, light/dark-theme-aware via `light-dark()`), affordance rendered for single-select / multi-select / per-compound-field, click handlers route through existing single-select / compound paths (because `'unknown'` is now a schema-valid value); multi-select special-case in `handleOptionClick` for the `['unknown']` ↔ specific-region mutex. 8 new E2E tests on chromium covering rendering, click routing, multi-select mutex, and full pass-through (all `'unknown'` → engine produces a real widened agenda). User-driven browser verification confirmed 2026-05-02.
+- `<this commit>` (Phase 2.D) — both diligence prompts (`gst_diligence_kickoff` v0.0.2, `gst_diligence_handoff_memo` v0.0.2) make every wizard field optional with default `'unknown'` via an updated `userInputsShapeFromWire()` helper. Prompt bodies updated to instruct the model on the `'unknown'` contract and to lead with a low-confidence callout when ≥ 7 of 13 dimensions are unknown (parallels ICG's ≥ 10/20 threshold in `gst_target_quick_look`). Golden snapshots updated to v0.0.2 with the contract-change note. 8 new prompt-level tests covering target-name-only / partial / empty-string-wire payloads.
+
+**Engineering verification**: 1091 project tests pass; 305 mcp-server tests pass (was 282 → +5 Phase 2.A engine widening + 12 Phase 2.A integration + 11 Phase 2.B URL parity + 3 Phase 2.B deeplink + 8 Phase 2.C.ii E2E + 8 Phase 2.D prompt-level — note Phase 2.C.ii E2E counts on a separate Playwright run). mcp-server typecheck + project astro check clean.
+
+**Live MCP exercise**: the running mcp-server subprocess in this Claude session was started from `dist/index.js` at session start and cannot be reloaded with newly-built code mid-session — a real infrastructure constraint, not deferred work. Engineering correctness for the Phase 2 surface is verified by `mcp-server/tests/integration/diligence-handler.test.ts` (15 tests across `'unknown'` parity + deeplink emission), the new prompt unit tests, and the 8 chromium E2E tests. UI-level verification of the wizard "Not sure" affordance was driven by the user via the browser (2026-05-02 confirmation). Live MCP transport verification via Claude Desktop lands naturally on the next MCP-server restart and is **not** tracked as deferred work.
+
+---
+
+## Phase 3 (Radar) — closure summary
+
+**Shipped 2026-05-02.** Two sub-commits with a capability-mirror refactor wedged in front of the URL-state work.
+
+- `21e86c8` (Phase 3.A) — refactor MCP `search_radar_cache` tool + `gst_radar_brief_today` prompt to mirror the `/hub/radar` website's filter surface exactly. The tool's earlier `query` / `tier` / `since` / `limit` fields had no website counterpart; they were stripped under the capability-mirror invariant. The prompt's `sinceHours` argument was redundant against a 24h cache TTL ([`src/lib/inoreader/cache.ts:18`](../../lib/inoreader/cache.ts#L18)) and was dropped. `RadarTierEnum` re-export removed (zero consumers). `gst_radar_brief_today` bumped to v0.0.2; golden snapshot updated. README tool inventory description rewritten. 7 capability-mirror invariant tests lock the contract (4 in `radar-cache.test.ts` + 3 in `radar-brief-today.test.ts`).
+- `<this commit>` (Phase 3.B) — Phase 3 deliverables on top of the refactored tool:
+  - **URL encoder** at [`src/utils/radar-url.ts`](../../utils/radar-url.ts) — filter-grid archetype with a single readable `?category=<X>` parameter (matching Regulatory Map's convention). Round-trip parity test (`tests/unit/radar-url.test.ts`, 9 tests).
+  - **CategoryFilter wired** — [`src/components/radar/CategoryFilter.astro`](../../components/radar/CategoryFilter.astro) hydrates from URL on mount (activates the right pill + applies the visual filter to any items already in the DOM) and writes URL via `history.replaceState` on click. The encoder is the single source of truth — same module the MCP wrapper imports.
+  - **MCP wrapper extracted to `handleRadarCacheTool`** for testability; emits `deeplink` field via the shared encoder. Schema gains `.describe()` advertising the capability-mirror invariant.
+  - **Integration test** at `mcp-server/tests/integration/radar-cache-handler.test.ts` (5 tests) — exercises empty-input full-feed path, category-scoped path, deeplink encoder parity, snapshot-missing isError shape, and the capability-mirror invariant at the handler boundary.
+  - **CONTRACT.md** authored at [`mcp-server/src/docs/radar/CONTRACT.md`](../../../mcp-server/src/docs/radar/CONTRACT.md) — closes the BL-034 follow-up item that previously read "planned alongside live BL-032 search_radar." The cached tool earns its own contract because it has its own user-facing semantics; the live tool (when it ships) will get its own contract that compares/contrasts with this one.
+  - **Contracts registry** updated — `Radar (cached)` row flipped from `⏳ BL-032` to `✅ Authored (BL-031.95)`.
+
+**Engineering verification**: 1101 project tests pass (was 1091; +9 radar-url parity); 308 mcp-server tests pass (was 305; +5 radar handler integration + −2 net from Phase 3.A test surface re-shape); mcp-server typecheck + project astro check clean.
+
+**Live MCP exercise**: per the no-deferred-tech-debt principle (`.claude/CLAUDE.md` § 4a), the integration test at `radar-cache-handler.test.ts` is the engineering substitute for the live transport exercise — the running mcp-server subprocess is started at session start and cannot be reloaded mid-session. UI verification of the new URL state on `/hub/radar` will land naturally on the next page load (browser-side test runs were not added because the existing `tests/e2e/radar-page.test.ts` already exercises the category filter; URL hydration is a small-surface addition).
+
+**Phase 3 closes the BL-034 follow-up item** for `search_radar_cache` CONTRACT.md as a side effect.
+
+---
+
+## Phase 4 (M&A Portfolio) — closure summary
+
+**Shipped 2026-05-03.** Single sub-commit with a capability-mirror refactor + URL-state wiring + closing the BL-034 portfolio CONTRACT.md follow-up:
+
+- `<this commit>` (Phase 4.A + 4.B):
+  - **Capability-mirror refactor.** Audited `/ma-portfolio` filter UI: three controls (search input, Theme chip row, Engagement chip row). The MCP `search_portfolio` tool also accepted a `limit` field (default 20, max 61) with no website counterpart — the page renders all 61 projects always (CSS `display: none` hides filtered-out cards). `limit` removed from the schema under the capability-mirror invariant; existing callers passing it are not broken because Zod silently strips unknown keys on parse (asserted by `protocol-roundtrip.test.ts` + `portfolio-handler.test.ts`).
+  - **URL encoder** at [`src/utils/portfolio-url.ts`](../../utils/portfolio-url.ts) — filter-grid archetype with three readable parameters: `?search=<text>&theme=<X>&eng=<Y>` (the `eng` short alias mirrors how the website's filter chip data-value maps to `engagementCategory`). Empty / `"all"` / undefined values are dropped on serialise so a clean view yields a clean URL.
+  - **PortfolioHeader wired** — [`src/components/portfolio/PortfolioHeader.astro`](../../components/portfolio/PortfolioHeader.astro) hydrates filter state from the URL on init (URL takes precedence over the component defaults; this page does not use localStorage), and writes URL via `history.replaceState` on every search-input change, chip click, and clear-filters action. The new `applyHydratedFiltersToDom()` paints the search-box value + active chips before the first `filterProjects()` pass so the visible state matches the URL on a deeplink-arrival load. Encoder is the single source of truth — same module the MCP wrapper imports.
+  - **MCP wrapper extracted to `handleSearchPortfolioTool`** + companion `handleListPortfolioFacetsTool` for testability; both emit through the same registration block. `search_portfolio` response now includes a `deeplink` field built via the shared encoder.
+  - **`.describe()` pass** on every field of `ProjectSchema` and on every field of `SearchPortfolioInputSchema` — sources prose from the new portfolio CONTRACT.md so the MCP-introspection text stays aligned with the user-facing input contract.
+  - **Integration test** at [`mcp-server/tests/integration/portfolio-handler.test.ts`](../../../mcp-server/tests/integration/portfolio-handler.test.ts) (9 tests) — exercises empty-input full-result path, engagement / theme / search filter scoping, combined-filter AND composition, deeplink round-trip parity through the shared encoder, and the capability-mirror invariant at the handler boundary (Zod stripping pre-Phase-4 `limit`). Plus 3 facet-shape tests against `handleListPortfolioFacetsTool`.
+  - **CONTRACT.md + USAGE.md** authored at [`mcp-server/src/docs/portfolio/CONTRACT.md`](../../../mcp-server/src/docs/portfolio/CONTRACT.md) and [`mcp-server/src/docs/portfolio/USAGE.md`](../../../mcp-server/src/docs/portfolio/USAGE.md) — closes the BL-034 follow-up item that previously read "Portfolio Search contract is deferred to its own follow-up."
+  - **Contracts registry** updated — `Portfolio Search` row flipped from `⏳ Backlog` to `✅ Authored (BL-031.95)`. The narrative paragraph that called out the Portfolio + Radar deferrals now records both under their BL-031.95 phase numbers.
+  - **Existing `protocol-roundtrip.test.ts` updated** — the `search_portfolio returns matches + count summary` test no longer expects `returned === 3` (no `limit`); now asserts `returned === matches.length === totalMatched` and the `deeplink` is present. The "limit > 61 returns structured error" test was reframed as "pre-Phase-4 `limit` field is silently dropped (Zod strips unknown keys)" — the strict-error path was removed because `limit` is no longer a schema concern. Both reflect the post-refactor capability-mirror semantics.
+
+**Engineering verification**: 1101 project tests pass (no change — Phase 4 added no project-level tests because the URL encoder is exercised end-to-end via the MCP integration test); 317 mcp-server tests pass (was 308; +9 portfolio-handler integration); mcp-server typecheck + project astro check + project lint clean.
+
+**Live MCP exercise**: per the no-deferred-tech-debt principle (`.claude/CLAUDE.md` § 4a), the integration test at `portfolio-handler.test.ts` is the engineering substitute for the live transport exercise — the running mcp-server subprocess is started at session start and cannot be reloaded mid-session. UI verification of the new URL state on `/ma-portfolio` will land naturally on the next page load; the existing `tests/e2e/portfolio-page.test.ts` (if present) already exercises the chip filters, so URL hydration is a small-surface addition that round-trip parity covers at the encoder level.
+
+**Phase 4 closes the BL-034 follow-up item** for `search_portfolio` CONTRACT.md + USAGE.md as a side effect.
+
+---
+
+## Phase 5 (Prompts + verification + docs) — closure summary
+
+**Shipped 2026-05-03.** Single sub-commit wiring all five prompts that consume URL-stateful tools to surface the new `deeplink` field, plus the architecture-doc + README closure stanzas:
+
+- `<this commit>` (Phase 5):
+  - **Five prompt body updates** with version bumps + `lastReviewedAt` updates:
+    - `gst_target_quick_look` v0.0.2 → v0.0.3 — section (6) "Open in Hub" now lists all four Tool deeplinks (TechPar deep-link added per Phase 1 closure; the stale disclaimer "TechPar deep-link will be added when the page supports URL state" was retired).
+    - `gst_diligence_kickoff` v0.0.2 → v0.0.3 — gained section (5) "Open in Hub" with the diligence-agenda deeplink (BL-031.95 Phase 2.B); opens the wizard pre-populated with the same dimensions, including `'unknown'` fallbacks rendered as "Not sure" chips.
+    - `gst_diligence_handoff_memo` v0.0.2 → v0.0.3 — section (4) Comparable engagement library closes with the `search_portfolio` deeplink (BL-031.95 Phase 4.B); section (7) gained the diligence wizard deeplink (Phase 2.B). The V8-era per-codeName static anchor URL pattern (`/ma-portfolio/#<codeName>`) was retired — no website-side handler — and the unit-test contract was rewritten to lock the new shape.
+    - `gst_radar_brief_today` v0.0.2 → v0.0.3 — gained Step 6 closing footer constructed from the input category (BL-031.95 Phase 3.B). Since this prompt orchestrates the `gst://radar/fyi/latest` Resource directly (not the Tool), the body deterministically constructs the URL from the input rather than reading a Tool-emitted `deeplink`.
+    - `gst_comparable_engagements_memo` v0.0.1 → v0.0.2 — gained Step 6 closing "Open in Hub" footer that lists every `search_portfolio` deeplink (one per filter combination explored).
+  - **Two unit-test updates** to track the new shapes:
+    - `tests/unit/prompts/diligence-handoff-memo.test.ts` — V8 sign-off contract test rewritten: asserts the body contains `search_portfolio` + `deeplink` AND does NOT contain the retired `/ma-portfolio/#` anchor pattern.
+    - `tests/unit/prompts/radar-brief-today.test.ts` — version assertion bumped from `0.0.2` to `0.0.3`.
+  - **Five golden-snapshot carryforwards** with frontmatter version bumps + carryforward notes documenting the layered changes since each prompt's last V-trial sign-off. The carryforwards are engineered (body changes are local, orchestration unchanged); the unit tests + prompt-staleness Vitest exercise the body-shape assertions a fresh V-trial would catch. Live V-trial re-runs against the new body shapes land naturally on the next mcp-server restart per the no-deferred-tech-debt principle (CLAUDE.md § 4a).
+  - **Architecture-doc cleanup**:
+    - [`src/docs/development/MCP_SERVER_PROMPTS_BL-031_75.md`](MCP_SERVER_PROMPTS_BL-031_75.md) § "Deep-links surfaced in output" + § "Deferred work" rewritten — the four URL-state gaps the BL-031.75 prompts noted are recorded as closed under their respective BL-031.95 phase numbers, with the per-prompt deep-link surface count updated. The "deferred" framing replaced with "shipped under Phase N" pointers.
+    - [`mcp-server/README.md`](../../../mcp-server/README.md) gained a new "Last verified (BL-031.95 surface)" stanza below the BL-031.75 stanza, documenting all four phases at a glance plus the carryforward rationale per CLAUDE.md § 4a.
+
+**Engineering verification**: 1101 project tests pass; 317 mcp-server tests pass (no test count change in Phase 5 — version-bump tracking + reframed V8 contract test net to zero); mcp-server typecheck clean; project astro check clean; project lint clean.
+
+**Live MCP exercise**: per CLAUDE.md § 4a (no deferred tech debt), the running mcp-server subprocess in this Claude Desktop session was started from `dist/index.js` at session start and cannot be reloaded with the post-Phase-5 prompt body changes mid-session. Engineering correctness for the new body shapes is verified by the per-prompt unit tests (which exercise `build()` against valid argsSchema input and lock the deeplink-surface contracts at the body string level). UI-level V-trial re-runs against Claude Desktop land naturally on the next MCP-server restart and are **not** tracked as deferred work — the body changes are local, the orchestration plans are unchanged, and the existing prompt-staleness Vitest catches version drift.
+
+**Phase 5 closes the BL-031.75 deferred-work section** as a side effect — every deep-link gap that initiative noted is now surfaced.
+
+---
+
+## Initiative summary
+
+**BL-031.95: Hub Tools URL State Restoration & MCP Deep-Link Surface — closed 2026-05-03.**
+
+Five phases shipped over two days (2026-05-02 → 2026-05-03). Net additions:
+
+- **3 new URL encoders** (`src/utils/diligence-url.ts`, `src/utils/radar-url.ts`, `src/utils/portfolio-url.ts`) — TechPar's pre-existing readable-params encoder reused under Phase 1 (no new file). All four follow the filter-grid / readable-params archetype.
+- **4 capability-mirror refactors** at the MCP-tool layer (TechPar `infraHosting` rename, Diligence `'unknown'` parity widening, Radar `query`/`tier`/`since`/`limit` strip-down to the website's single category-pill surface, Portfolio `limit` strip-down to the website's render-all-61 surface).
+- **4 MCP wrappers extracted** to standalone `handleXxxTool` functions for engineering-test exercisability without the MCP transport (icg, techpar, diligence, radar-cache, portfolio).
+- **5 prompt body updates** (target-quick-look, diligence-kickoff, diligence-handoff-memo, radar-brief-today, comparable-engagements-memo) wiring the new `deeplink` fields into "Open in Hub" closing sections.
+- **2 new contract / usage doc pairs** (`mcp-server/src/docs/radar/CONTRACT.md` + `USAGE.md`, `mcp-server/src/docs/portfolio/CONTRACT.md` + `USAGE.md`) — both close BL-034 broken-link follow-up items as a side effect.
+- **4 new integration test files** (`mcp-server/tests/integration/{icg,techpar,diligence,radar-cache,portfolio}-handler.test.ts`) — engineering substitutes for the live MCP exercise across phases.
+- **`.describe()` pass** on every Zod field across `src/schemas/{techpar,diligence,portfolio}.ts` plus their MCP-layer extension schemas.
+
+**Live UI verification**: TechPar wizard monthly/annual toggle (Phase 1), Diligence wizard "Not sure" affordance (Phase 2.C.ii — user-driven 2026-05-02 confirmation), and the four Hub-tool URL-state deeplinks all land naturally on the next page load. The five prompt body updates against Claude Desktop verify on the next MCP-server restart.
+
+**Test counts at initiative close**: 1101 project vitest + 317 mcp-server vitest passing; mcp-server typecheck + project astro check + project lint all clean.
+
+---
+
+_Last updated: 2026-05-03 (Phase 1 + Phase 2 + Phase 3 + Phase 4 + Phase 5 closure stanzas; initiative summary added; reconciliation note retained for context)_

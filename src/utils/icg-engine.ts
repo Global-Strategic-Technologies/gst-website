@@ -236,7 +236,14 @@ export function buildSummaryText(
   ];
 
   if (result.skippedCount > 0) {
-    lines.push(`"Not sure" responses: ${result.skippedCount} (scored as zero)`);
+    // "Not sure" answers are stored as -1 and contribute -1 to rawScore —
+    // they penalize MORE than "Not in place" (0). See the engine comment
+    // above the rawScore reducer and tests/unit/icg-engine.test.ts:700-718
+    // for the contract. Earlier copy here ("scored as zero") was misleading
+    // — surfaced during BL-032 soak T.B.4.c on 2026-05-10.
+    lines.push(
+      `"Not sure" responses: ${result.skippedCount} (scored as -1, penalised below "Not in place")`
+    );
   }
 
   if (result.showFoundationalFlag) {

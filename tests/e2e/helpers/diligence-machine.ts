@@ -16,11 +16,18 @@ export async function clickElement(page: Page, selector: string): Promise<void> 
 }
 
 /**
- * Wait for the Diligence Machine wizard to be fully initialized and ready
+ * Wait for the Diligence Machine wizard to be fully initialized and ready —
+ * specifically, for the inline init script to have run `restoreState()` and
+ * applied any persisted state. Without this, tests that reload the page can
+ * race the init script and see the static-HTML "step 1 active" state instead
+ * of the restored later step (E2E flake fixed via the `data-restored`
+ * attribute the script sets at the end of init).
  */
 export async function waitForWizardReady(page: Page): Promise<void> {
   await page.waitForLoadState('domcontentloaded');
-  await expect(page.locator('[data-testid="wizard-container"]')).toBeVisible();
+  await expect(
+    page.locator('[data-testid="wizard-container"][data-restored="true"]')
+  ).toBeVisible();
 }
 
 /**

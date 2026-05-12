@@ -5,6 +5,11 @@ import { z } from 'zod';
  *
  * Single source of truth for the shape of files in
  * `src/data/infrastructure-cost-governance/`.
+ *
+ * The human-readable reference for the `assess_infrastructure_cost_governance`
+ * MCP tool (per-field labels, valid values, downstream-effect summaries,
+ * hidden-semantics callouts like the foundational-domain flag) lives at:
+ *   `mcp-server/src/docs/icg/CONTRACT.md`
  */
 
 // ─── domains.ts ──────────────────────────────────────────────────────────────
@@ -59,3 +64,28 @@ export type Domain = z.infer<typeof DomainSchema>;
 export type ICGImpact = z.infer<typeof ImpactSchema>;
 export type ICGEffort = z.infer<typeof EffortSchema>;
 export type ICGRecommendation = z.infer<typeof ICGRecommendationSchema>;
+
+// ─── MCP tool input ──────────────────────────────────────────────────────────
+//
+// Used by the `assess_infrastructure_cost_governance` MCP tool. Mirrors the
+// engine's `ICGState` minus wizard-only fields (`currentStep`, `dismissed`,
+// `expanded`). Answer values are 0–3 for the four maturity levels, or -1
+// for "Not sure" (penalised).
+
+export const COMPANY_STAGE_VALUES = [
+  'pre-series-b',
+  'series-bc',
+  'pe-backed',
+  'enterprise',
+] as const;
+export const CompanyStageSchema = z.enum(COMPANY_STAGE_VALUES);
+
+export const ICGAnswerScoreSchema = z.number().int().min(-1).max(3);
+
+export const ICGInputsSchema = z.object({
+  answers: z.record(z.string().min(1), ICGAnswerScoreSchema),
+  companyStage: CompanyStageSchema.optional(),
+});
+
+export type CompanyStage = z.infer<typeof CompanyStageSchema>;
+export type ICGInputs = z.infer<typeof ICGInputsSchema>;

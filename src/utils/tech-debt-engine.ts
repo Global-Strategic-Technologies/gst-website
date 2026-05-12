@@ -62,6 +62,27 @@ export interface CalcState {
   contextSwitchOn: boolean;
 }
 
+/** Deployment-frequency label union — derived from DEPLOY_OPTIONS so additions stay in sync. */
+export type DeployFrequency = (typeof DEPLOY_OPTIONS)[number]['label'];
+
+/**
+ * Raw business-meaningful inputs to the tech-debt engine. Used by callers
+ * that don't speak slider positions — namely the MCP tool wrapper. The
+ * website continues to call `calculate(state)` and gets the same result.
+ */
+export interface RawTechDebtInputs {
+  teamSize: number;
+  salary: number;
+  maintenanceBurdenPct: number;
+  deployFrequency: DeployFrequency;
+  incidents: number;
+  mttrHours: number;
+  remediationBudget: number;
+  arr: number;
+  remediationPct: number;
+  contextSwitchOn: boolean;
+}
+
 export interface CalcResult {
   totalMonthly: number;
   annualCost: number;
@@ -79,30 +100,36 @@ export interface CalcResult {
 
 // ─── Core calculation ─────────────────────────────────────────────────────────
 
-export function calculate(state: CalcState): CalcResult {
-  const teamSize = posToTeamSize(state.teamSizePos);
-  const salary = posToSalary(state.salaryPos);
-  const budgetVal = posTobudget(state.budgetPos);
-  const arrVal = posToArr(state.arrPos);
-  const hourlyRate = salary / 2080;
-  const deploy = DEPLOY_OPTIONS[state.deployIdx];
+/**
+ * Compute carrying-cost results from raw business values. Used by both the
+ * website's `calculate(state)` (after slider→value conversion) and the MCP
+ * tool wrapper (which receives raw values from the agent). Refactored out
+ * of `calculate` so the engine has a clean entry point that doesn't depend
+ * on the wizard's slider domain.
+ */
+export function calculateFromRawInputs(raw: RawTechDebtInputs): CalcResult {
+  const deploy = DEPLOY_OPTIONS.find((d) => d.label === raw.deployFrequency);
+  if (!deploy) {
+    throw new Error(`Unknown deployFrequency: ${raw.deployFrequency}`);
+  }
   const V = deploy.V;
+  const hourlyRate = raw.salary / 2080;
 
-  const directMonthly = teamSize * (salary / 12) * (state.maintPct / 100) * V;
-  const contextSwitchMonthly = state.contextSwitchOn ? directMonthly * 0.23 : 0;
-  const incidentMonthly = state.incidents * state.mttr * hourlyRate;
-  const hoursLostPerEng = 40 * (state.maintPct / 100);
+  const directMonthly = raw.teamSize * (raw.salary / 12) * (raw.maintenanceBurdenPct / 100) * V;
+  const contextSwitchMonthly = raw.contextSwitchOn ? directMonthly * 0.23 : 0;
+  const incidentMonthly = raw.incidents * raw.mttrHours * hourlyRate;
+  const hoursLostPerEng = 40 * (raw.maintenanceBurdenPct / 100);
   const totalMonthly = directMonthly + contextSwitchMonthly + incidentMonthly;
   const annualCost = totalMonthly * 12;
-  const debtPctArr = arrVal > 0 ? (annualCost / arrVal) * 100 : 0;
-  const monthlySavings = totalMonthly * (state.remediationPct / 100);
-  const paybackMonths = monthlySavings > 0 ? budgetVal / monthlySavings : Infinity;
+  const debtPctArr = raw.arr > 0 ? (annualCost / raw.arr) * 100 : 0;
+  const monthlySavings = totalMonthly * (raw.remediationPct / 100);
+  const paybackMonths = monthlySavings > 0 ? raw.remediationBudget / monthlySavings : Infinity;
 
   return {
     totalMonthly,
     annualCost,
     hoursLostPerEng,
-    costPerEng: totalMonthly / teamSize,
+    costPerEng: totalMonthly / raw.teamSize,
     directMonthly,
     contextSwitchMonthly,
     incidentMonthly,
@@ -112,6 +139,22 @@ export function calculate(state: CalcState): CalcResult {
     paybackMonths,
     monthlySavings,
   };
+}
+
+export function calculate(state: CalcState): CalcResult {
+  const deploy = DEPLOY_OPTIONS[state.deployIdx];
+  return calculateFromRawInputs({
+    teamSize: posToTeamSize(state.teamSizePos),
+    salary: posToSalary(state.salaryPos),
+    maintenanceBurdenPct: state.maintPct,
+    deployFrequency: deploy.label,
+    incidents: state.incidents,
+    mttrHours: state.mttr,
+    remediationBudget: posTobudget(state.budgetPos),
+    arr: posToArr(state.arrPos),
+    remediationPct: state.remediationPct,
+    contextSwitchOn: state.contextSwitchOn,
+  });
 }
 
 // ─── Formatting utilities ─────────────────────────────────────────────────────

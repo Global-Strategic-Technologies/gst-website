@@ -24,6 +24,12 @@ Project-specific reference for the quality tooling installed during Phase 2 of [
 | Check formatting without writing       | `npm run format:check`                                                       |
 | Build for production                   | `npm run build`                                                              |
 | Preview the production build           | `npm run preview`                                                            |
+| Run the MCP server locally (stdio)     | `cd mcp-server && npm run build` then point Claude Desktop at `dist/index.js` (see `mcp-server/README.md`) |
+| Run the MCP server as a Worker locally | `cd mcp-server && npm run dev:worker` (= `wrangler dev --env staging`)        |
+| Test the Worker locally (programmatic) | `cd mcp-server && npx vitest run tests/integration/worker-roundtrip.test.ts` (boots Worker via `unstable_dev`) |
+| Validate Worker bundle without deploy  | `cd mcp-server && npx wrangler deploy --dry-run --env staging`                |
+| Deploy MCP Worker to staging           | `cd mcp-server && npm run deploy:staging` (Phase 6 — staging URL: `mcp-staging.globalstrategic.tech`) |
+| Deploy MCP Worker to production        | `cd mcp-server && npm run deploy:production` (Phase 6 — production URL: `mcp.globalstrategic.tech`) |
 
 **Authoritative local validation sequence** (what CI runs, in the same order):
 
@@ -402,6 +408,7 @@ All environment variables are declared in `astro.config.mjs` → `env.schema` us
 - **Public vars** (`access: "public"`) are inlined at build time. Use the `PUBLIC_` prefix convention.
 - **`.env` file** is for local development only (loaded by Astro dev server). Production vars are set in Vercel dashboard.
 - **`.env.example`** documents all vars with placeholder values. Keep it in sync when adding new vars.
+- **`mcp-server/src/worker.ts` and `mcp-server/src/auth/**` are blocked from raw `console.*`** by ESLint's `no-console` rule (added in BL-032 Phase 2). Use [`safeLog()`](../../../mcp-server/src/auth/safe-logger.ts) — it's the only call site permitted to invoke `console.log` directly (via a single `eslint-disable-next-line`). The reason: a careless `console.log(request.headers)` on a Worker fetch handler dumps the `Authorization` bearer token into `wrangler tail` and Sentry. The stdio entrypoint (`mcp-server/src/index.ts`) is exempt — stdio MUST use `console.error` for diagnostics; `stdout` is reserved for MCP protocol traffic.
 
 ### Testing
 

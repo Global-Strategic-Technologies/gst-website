@@ -133,13 +133,13 @@ Radar exposes two streams:
 
 **Solution**: read **only** from the seed snapshot produced by `npm run radar:seed` (already documented in [RADAR.md](../hub/RADAR.md) and called out in CLAUDE.md). The MCP server treats the local cache file as the authoritative source. If the cache is missing, the relevant Resources return an `isError`-style empty content set with a message instructing the user to run `npm run radar:seed`.
 
-| Surface                           | Primitive                                                                                               | URI                                                   |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Latest FYI items                  | **Resource**: `gst://radar/fyi/latest` (returns the most recent N annotated items as a single document) |                                                       |
-| Latest Wire items                 | **Resource**: `gst://radar/wire/latest`                                                                 |                                                       |
-| Per-category Wire                 | **Resource**: `gst://radar/wire/<category>` (e.g. `gst://radar/wire/pe-ma`)                             |                                                       |
-| Per-item full body                | **Resource**: `gst://radar/item/<itemId>`                                                               |                                                       |
-| Search across the cached snapshot | **Tool**: `search_radar_cache` with `{ query?, category?, tier?, since?, limit? }`                      | Local-only equivalent of BL-032's live `search_radar` |
+| Surface                           | Primitive                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | URI                                                   |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| Latest FYI items                  | **Resource**: `gst://radar/fyi/latest` (returns the most recent N annotated items as a single document)                                                                                                                                                                                                                                                                                                                                                                                                      |                                                       |
+| Latest Wire items                 | **Resource**: `gst://radar/wire/latest`                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |                                                       |
+| Per-category Wire                 | **Resource**: `gst://radar/wire/<category>` (e.g. `gst://radar/wire/pe-ma`)                                                                                                                                                                                                                                                                                                                                                                                                                                  |                                                       |
+| Per-item full body                | **Resource**: `gst://radar/item/<itemId>`                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |                                                       |
+| Search across the cached snapshot | **Tool**: `search_radar_cache` with `{ category? }` _[refactored under [BL-031.95 Phase 3.A](MCP_SERVER_HUB_URL_STATE_BL-031_95.md#phase-3-radar--closure-summary) — original BL-031.5 surface was `{ query?, category?, tier?, since?, limit? }`; stripped under the capability-mirror invariant because the website surfaces only a category filter and the cache has a 24h TTL. See [`mcp-server/src/docs/radar/CONTRACT.md`](../../../mcp-server/src/docs/radar/CONTRACT.md) for the current contract.]_ | Local-only equivalent of BL-032's live `search_radar` |
 
 The naming explicitly signals the snapshot-based nature (`search_radar_cache`, not `search_radar`) so that when BL-032 ships the live remote version there is no naming collision.
 
@@ -203,16 +203,18 @@ mcp-server/
 
 ### Verification (run before marking complete)
 
-1. `cd mcp-server && npm run build && npm test` — green.
-2. From repo root: `npx astro check && npm run lint && npm run lint:css && npm run test:run` — still green.
-3. `npm run radar:seed` from repo root — populates the local snapshot.
-4. Restart the local MCP server, confirm Claude Desktop's resource picker lists all expected URIs (Library × 2, Regulations × 120+, Radar items).
-5. Pin `gst://library/vdr-structure` into a Claude Desktop conversation, confirm the model treats it as available context.
-6. Invoke `assess_infrastructure_cost_governance` with a worked example, compare output to the website wizard at `/hub/tools/infrastructure-cost-governance/` for the same answers — must be identical.
-7. Same parity check for `compute_techpar` and `estimate_tech_debt_cost`.
-8. Invoke `search_regulations { domain: 'privacy', jurisdiction: 'eu' }`, confirm GDPR appears with a working URI; read that URI, confirm full framework body returns.
-9. With the radar snapshot deleted, invoke a radar Resource — confirm a clean "snapshot missing, run `npm run radar:seed`" error rather than a stack trace.
-10. Run `npx tsc --noEmit` from `mcp-server/` AND from repo root — confirm no cross-workspace type leakage.
+All ten steps **completed and verified 2026-04-29** — recorded evidence is in [`mcp-server/README.md` § Smoke test](../../../mcp-server/README.md#smoke-test-manual-parity-check) (the "Last verified (BL-031.5 surface)" stanza). UX findings surfaced during verification are logged under [BL-034](BACKLOG.md#bl-034-mcp-server--documentation-cleanup) for end-of-sequence resolution. (A transitional verification punch-list doc was authored to operationalize this work; it has been deleted post-closure since its evidence migrated to the README — see `git log` for the history.)
+
+1. ✅ `cd mcp-server && npm run build && npm test` — green (93/93 vitest cases).
+2. ✅ From repo root: `npx astro check && npm run lint && npm run lint:css && npm run test:run` — green (1063/1063 vitest cases).
+3. ✅ `npm run radar:seed` from repo root — populates the local snapshot (`.cache/inoreader/`).
+4. ✅ Claude Desktop MCP log (`mcp-server-gst.log`) confirms `tools/list` returned 9 tools and `resources/list` returned 128 URIs at handshake; user-visible enumeration via the Claude Desktop "connectors" UX confirmed Library × 2 + Regulations × 120 + Radar × 6.
+5. ✅ Library Resource pinning: `gst://library/vdr-structure` brought into a conversation; model returned all 9 folder categories verbatim. Regulation Resource pinning: `gst://regulations/eu/gdpr` brought into a conversation; model cited 72-hour breach window + 4%/€20M penalty verbatim.
+6. ✅ ICG parity: byte-for-byte match (overallScore 32 / Aware / 6 domain scores / 13 recommendations in identical order) between MCP tool call and the Series B–C wizard with the canonical 20-answer payload.
+7. ✅ TechPar parity: byte-for-byte match (total $6.06M / 24.24% / `ahead` zone / 4 category percentages) and Tech Debt parity ($340,384.62 annualCost / High DORA tier / 26.29 paybackMonths) — both at slider-quantized inputs to ensure wizard reachability.
+8. ✅ `search_regulations { jurisdiction: "eu", category: "data-privacy" }` returned GDPR with `uri: gst://regulations/eu/gdpr`; `resources/read` returned the full Regulation JSON body.
+9. ✅ Snapshot-missing error path: with `.cache/inoreader/` moved aside, `search_radar_cache` returned the structured `isError: true` envelope with the documented message; no stack trace; restore confirmed normal operation.
+10. ✅ `npx tsc --noEmit` clean at both `mcp-server/` (via `prebuild` hook) and repo root (via `astro check`) — no cross-workspace type leakage.
 
 ### Risks & mitigations
 
@@ -236,4 +238,37 @@ mcp-server/
 
 ---
 
-_Last updated: 2026-04-25_
+_Last updated: 2026-04-28_
+
+---
+
+## Implementation history & deviations
+
+### Deviation — Library content source (BL-031.5)
+
+The original plan offered three options for sourcing Library article bodies (architecture doc § "Content-source question"). The execution discovered that the live Library Astro pages are heavier than the planning anticipated — both pages are >29k tokens, with embedded `<DeltaIcon>` components throughout, custom CSS classes (`arch-section`, `arch-body`, `arch-list--labeled`), and TableOfContents components that depend on explicit `id="layer-1"` etc. anchors on `<section>` tags.
+
+Refactoring the Astro pages to import a markdown body via Astro's `<Content />` would have:
+
+- Required extracting ~30k tokens of prose into markdown for each article
+- Broken the TOC anchors (auto-slugified markdown headings would change the IDs from `layer-1` to `layer-1-software-architecture`)
+- Removed the inline `<DeltaIcon>` decorations next to each `<h2>`
+
+Instead, BL-031.5 ships **parallel canonical digests** at `src/data/library/<slug>/article.md`. Each `.md` is a substantial markdown rendering at ~25–33% of the original Astro page length — preserving section structure, key insights, diligence callouts, and reference lists without attempting 1:1 fidelity. The Astro pages are unchanged; the website continues to render the long-form text.
+
+**Drift policy** (documented in each article frontmatter): if the two sources drift, the website Astro page is authoritative. The article.md digest is MCP-canonical; updating the Astro page should trigger a digest refresh, but the runtime invariant is the website. A future BL-031.5 follow-up may revisit Option A (Astro content-collection migration) if/when the Library grows enough to justify the website refactor.
+
+This is the architecture doc's documented "drift accepted only as a last resort" path — chosen deliberately because the alternatives (parallel summaries breaking parity invariants, or a heavyweight Astro refactor outside BL-031.5 scope) had worse trade-offs.
+
+### Deviation — Radar per-item URIs deferred
+
+The original plan included `gst://radar/item/<itemId>` per-cached-item Resources. Implementation deferred this for two reasons:
+
+1. **ID volatility.** Cached item IDs change every time `npm run radar:seed` runs (the mock fixtures regenerate them), and would also change against live Inoreader data. A Resource manifest that mutates between snapshots breaks the URI-stability invariant the test suite enforces.
+2. **Search is sufficient.** `search_radar_cache` returns items directly with all the per-item fields (id, title, url, source, category, publishedAt, summary, annotation). Adding a per-item Resource layer above that would force agents to make two calls (search → resource read) when one suffices.
+
+The per-item Resource pattern can land later if a use case emerges — most likely under BL-032 when live data has stable item IDs.
+
+### Build pipeline addition — codegen for inlined data
+
+The plan called for inlining the 120 regulation JSON files and the 2 Library article markdowns into the bundled binary. The chosen mechanism is a small pre-build script (`mcp-server/scripts/generate-regulations-index.mjs`) that emits two `.generated.ts` files: `regulations-data.generated.ts` and `library-data.generated.ts`. Both vitest (Vite-backed; no `.md` text loader by default) and esbuild (production bundle) consume plain TS imports, removing the need for environment-specific loaders. The generated files are committed for self-contained fresh-clone builds; the `.generated.ts` filename suffix is the audit signal.

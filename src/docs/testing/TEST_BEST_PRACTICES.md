@@ -677,6 +677,7 @@ If your test has any of these, it's likely a false positive:
 25. ✗ Relies on implicit UI defaults (pre-selected stage, pre-filled growth rate) instead of explicitly setting required state — breaks when defaults are removed or changed
 26. ✗ Queries `body` for a class that lives on `document.documentElement` (or vice versa) — silently returns `false`, making conditional setup fire incorrectly
 27. ✗ Waits for a CSS class change but asserts on a computed style property (`display`, `visibility`) that lags behind in the rendering pipeline — passes in Chromium, fails in Firefox
+28. ✗ Source emits a `data-*-ready` / `__*Initialized` signal before all `addEventListener` / D3 `.on()` calls have run — passes in isolation, fails under parallel worker load
 
 ## E2E Cross-Browser Pitfalls
 
@@ -1338,6 +1339,79 @@ test('should display description', async ({ page }) => {
 - Static SSG pages under `domcontentloaded` (no hydration to blame — it's pure DOM construction timing)
 - Firefox and WebKit under parallel worker contention (Chromium is faster at DOM attachment)
 - Tests that use non-retrying snapshot calls (`textContent()`, `getAttribute()`, `isVisible()`) immediately after a container-level readiness gate
+
+---
+
+### 26. ❌ Source-Side Readiness Signals Emitted Before All Handlers Are Bound
+
+A page that exposes a `data-*-ready` attribute (or `window.__*Initialized` flag) for tests to consume must emit it **only after every interactive surface the tests rely on is wired up**. Setting the signal mid-bootstrap — when later script lines still need to run `addEventListener`, register D3 handlers, etc. — produces a flake category that's invisible in isolation: the signal lies, the test believes it, the test interacts before the handler binds, the interaction is silently dropped.
+
+This is the **source-code mirror** of #25 (shallow readiness gates in tests). #25 is "the test waited on the wrong element"; this one is "the page told the test it was ready when it wasn't."
+
+**Bad (source code):**
+
+```typescript
+// ❌ Signal fires after URL state restoration, but the timeline click handler
+//    (~500 lines below) hasn't been attached yet. Tests that wait for this
+//    signal and then click a timeline entry can fire before the handler binds.
+(function restoreFromUrl() {
+  /* ... */
+})();
+
+document.getElementById('mapContainer')?.setAttribute('data-map-ready', 'true');
+
+// ... 500 more lines of script, including:
+function renderTimeline(): void {
+  /* ... */
+}
+document.getElementById('regulation-filter-chips')?.addEventListener('click' /* ... */);
+searchInput.addEventListener('input' /* ... */);
+document.getElementById('timelineTrack')?.addEventListener('click' /* ... */); // ← bound after signal
+timelineScroll.addEventListener('mousedown' /* ... */);
+```
+
+**Good (source code):**
+
+```typescript
+// ✅ All event handlers attached first, signal fires last.
+//    The signal's contract: "every interactive surface is bound."
+(function restoreFromUrl() {
+  /* ... */
+})();
+
+function renderTimeline(): void {
+  /* ... */
+}
+document.getElementById('regulation-filter-chips')?.addEventListener('click' /* ... */);
+searchInput.addEventListener('input' /* ... */);
+document.getElementById('timelineTrack')?.addEventListener('click' /* ... */);
+timelineScroll.addEventListener('mousedown' /* ... */);
+
+// Signal interactivity ready AFTER all event handlers are wired up.
+document.getElementById('mapContainer')?.setAttribute('data-map-ready', 'true');
+```
+
+**Diagnostic signature:**
+
+- Test passes when run in isolation (`npx playwright test myfile.test.ts --project=chromium -g "name"`)
+- Test passes when run across all 3 browsers in isolation (`npx playwright test myfile.test.ts -g "name"`)
+- Test fails intermittently in the full suite (`npm run test:e2e`) under parallel worker contention
+- Failure mode: `waitForFunction` times out waiting for a side effect of a click that never produced a DOM mutation
+
+**Why isolation hides it:** the readiness signal fires synchronously a few microtasks before the trailing `addEventListener` calls. On a fast machine running one worker, the entire script tail finishes within a single frame — well under the test's 2-RAF settle wait. Under heavy parallel contention, the dev server's response slows the JS execution arbitrarily, widening the window between signal-emit and final-handler-bind. The test's wait succeeds inside that gap, then the test clicks an element whose handler is still queued in the script's tail.
+
+**Key principle:** A readiness signal is a contract. Whatever its name implies — `data-map-ready`, `__portfolioInitialized`, `appReady` — it must be true the moment it fires. Audit by reading from the signal-emit line **forward** to end-of-script: if any `addEventListener`, D3 `.on()` binding, or other handler attachment runs after the signal, the signal is lying. Move the signal emit to be the last meaningful statement in the script.
+
+**When auditing:**
+
+```bash
+# Find every readiness signal in source code
+grep -rn 'setAttribute.*data-.*-ready\|window\.__\w*Initialized' src/
+
+# For each match, check: does an addEventListener (or D3 .on) run AFTER it?
+```
+
+If yes, move the signal to fire after all handler attachments. If the signal currently fires inside an early lifecycle hook, refactor so the hook completes the _full_ initialization sequence before emitting.
 
 ---
 

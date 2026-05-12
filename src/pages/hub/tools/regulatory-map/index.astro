@@ -281,6 +281,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   import { feature } from 'topojson-client';
   import type { Topology, GeometryCollection } from 'topojson-specification';
   import type { FeatureCollection, Geometry } from 'geojson';
+  import { encodeFilters, decodeFilters } from '../../../../utils/regulatory-map-url';
   import type { Regulation, RegionSelectedDetail } from '../../../../types/regulatory-map';
   import { numericToAlpha3, alpha3ToName } from '../../../../utils/countryCodeMap';
   import { fipsToStateCode, stateCodeToName } from '../../../../utils/fipsToStateCode';
@@ -410,28 +411,16 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   let activeTimelineEntry: HTMLElement | null = null;
 
   // --- URL bookmarking helpers ---
-  const VALID_FILTERS = new Set([
-    'data-privacy',
-    'ai-governance',
-    'industry-compliance',
-    'cybersecurity',
-  ]);
+  // Shared encoder/decoder lives at src/utils/regulatory-map-url.ts so the MCP
+  // tool emits byte-compatible deep-links.
 
   function syncUrlParams(): void {
-    const params = new URLSearchParams();
-    if (currentRegionId) params.set('region', currentRegionId);
-    if (activeCategory !== 'all') params.set('filter', activeCategory);
-    const qs = params.toString();
+    const qs = encodeFilters({ region: currentRegionId, filter: activeCategory });
     history.replaceState(null, '', qs ? `${location.pathname}?${qs}` : location.pathname);
   }
 
   function getUrlParams(): { region: string | null; filter: string | null } {
-    const params = new URLSearchParams(location.search);
-    const filter = params.get('filter');
-    return {
-      region: params.get('region'),
-      filter: filter && VALID_FILTERS.has(filter) ? filter : null,
-    };
+    return decodeFilters(location.search);
   }
 
   // --- Copy link button ---
@@ -1028,12 +1017,6 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     }
   })();
 
-  // Signal ready AFTER URL state restoration — consumers waiting on this
-  // attribute (e.g. E2E tests) can trust that bookmarked state is applied.
-  if (Object.keys(regionMap).length > 0) {
-    document.getElementById('mapContainer')?.setAttribute('data-map-ready', 'true');
-  }
-
   function renderRegulationCard(reg: Regulation): string {
     const date = new Date(reg.effectiveDate).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -1623,6 +1606,19 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
     },
     true
   );
+
+  // Signal interactivity ready AFTER all event handlers are wired up.
+  // Consumers (e.g. E2E tests via waitForMapReady) can trust that the map
+  // is rendered, regulation data is applied, URL state is restored, AND
+  // every interactive surface (filter chips, search, map paths, timeline
+  // entries, timeline drag-scroll) has its handler bound. Emitting earlier
+  // produced a flake under parallel test contention: the timeline click
+  // handler is attached ~500 lines after URL state restoration, and tests
+  // that observed `data-map-ready=true` could click a timeline entry
+  // before the handler bound, missing the highlight.
+  if (Object.keys(regionMap).length > 0) {
+    document.getElementById('mapContainer')?.setAttribute('data-map-ready', 'true');
+  }
 </script>
 
 <script>

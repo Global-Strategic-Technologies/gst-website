@@ -48,6 +48,56 @@ npx playwright test --timeout=60000
 npx playwright test --workers=1
 ```
 
+### "Test passes in isolation but fails in the full suite (parallel-load flake)"
+
+**Symptom:** A specific test fails when running `npm run test:e2e` (or `npm run test:all`), but passes when run alone:
+
+```bash
+# This passes (1 worker, no contention)
+npx playwright test myfile.test.ts -g "name" --project=chromium
+
+# This passes too (3 browsers in isolation)
+npx playwright test myfile.test.ts -g "name"
+
+# This fails intermittently
+npm run test:e2e
+```
+
+**Likely cause:** A source-side **readiness signal that lies**. The page sets a `data-*-ready` attribute (or `window.__*Initialized` flag) for tests to consume, but emits it **before** all `addEventListener` / D3 `.on()` calls have run. On fast isolated runs the trailing handler attachments finish in the same frame, so it works by luck. Under parallel contention the gap widens and the test clicks before its handler binds.
+
+See [TEST_BEST_PRACTICES.md #26](./TEST_BEST_PRACTICES.md#26--source-side-readiness-signals-emitted-before-all-handlers-are-bound) for the full pattern, examples, and the audit grep.
+
+**Triage steps:**
+
+1. **Confirm it's parallel-load, not browser-specific:**
+
+   ```bash
+   # If this passes consistently, it's parallel-load
+   npx playwright test myfile.test.ts -g "name" --repeat-each=10
+   ```
+
+2. **Check the failure mode.** Does `waitForFunction` time out waiting for a DOM change that should follow a click? That's the classic signature.
+
+3. **Audit the page's readiness signal:**
+
+   ```bash
+   # Find readiness signals
+   grep -rn 'setAttribute.*data-.*-ready\|window\.__\w*Initialized' src/
+
+   # For each match, check whether ANY addEventListener runs after it in the same script
+   ```
+
+   If yes, the signal is the bug. Move its emit-point to be the last meaningful statement in the script.
+
+4. **Fix at the source, not the test.** Don't add `waitForTimeout` or extra RAF waits in the test as a workaround — that papers over the lie. Move the readiness signal so it tells the truth.
+
+**Other parallel-load patterns to consider** if the readiness-signal audit comes up clean:
+
+- `waitUntil: 'networkidle'` in `page.goto()` — see [TEST_BEST_PRACTICES.md #12](./TEST_BEST_PRACTICES.md#12--using-waituntil-networkidle-under-parallel-worker-load).
+- A `beforeEach` waiting for a parent element when the test asserts on children — see [TEST_BEST_PRACTICES.md #25](./TEST_BEST_PRACTICES.md#25--shallow-readiness-gates-in-beforeeach-that-dont-match-test-dependencies).
+
+---
+
 ### "Single test fails randomly (flaky test)"
 
 **Likely cause:** Race condition or timing-dependent assertion

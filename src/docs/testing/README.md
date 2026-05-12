@@ -34,12 +34,17 @@ Complete reference for testing setup and continuous integration on the GST Websi
 ## Common Commands
 
 ```bash
-npm run test:run              # Unit/integration (single run)
+npm run test:run              # Unit/integration (single run, site only)
 npm run test:e2e              # E2E tests (all browsers)
-npm run test:all              # Everything
+npm run test:mcp              # MCP server workspace suite (delegates to mcp-server/)
+npm run test:all              # Everything: site unit/integration + e2e + mcp-server
 npm run test:coverage         # With coverage report
 npm run test:a11y             # Accessibility scan (chromium)
 ```
+
+## Workspace test suites
+
+The MCP server (`mcp-server/`) ships a separate vitest suite that lives outside this site's test pipeline. It runs in its own GitHub Actions workflow ([`.github/workflows/test-mcp-server.yml`](../../../.github/workflows/test-mcp-server.yml)) and is invoked locally via `npm run test:mcp` (also chained into `npm run test:all`). For its conventions, coverage targets, file layout, and how to add new tests, see [mcp-server/src/docs/testing/README.md](../../../mcp-server/src/docs/testing/README.md).
 
 ---
 

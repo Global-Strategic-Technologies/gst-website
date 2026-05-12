@@ -10,6 +10,78 @@ import type { WizardOption, WizardField, WizardStep } from '../../schemas/dilige
 
 export type { WizardOption, WizardField, WizardStep };
 
+/**
+ * Canonical option ID tuples — the source of truth for valid input values
+ * consumed by `UserInputsSchema` in `src/schemas/diligence.ts`.
+ *
+ * Adding an option here without mirroring it in `WIZARD_STEPS` (or vice versa)
+ * fails the subset-invariant test in `tests/unit/diligence-wizard-schema.test.ts`.
+ */
+export const TRANSACTION_TYPE_IDS = [
+  'full-acquisition',
+  'majority-stake',
+  'business-integration',
+  'carve-out',
+  'venture-series',
+] as const;
+
+export const PRODUCT_TYPE_IDS = [
+  'b2b-saas',
+  'b2c-marketplace',
+  'on-premise-enterprise',
+  'deep-tech-ip',
+  'tech-enabled-service',
+] as const;
+
+export const TECH_ARCHETYPE_IDS = [
+  'modern-cloud-native',
+  'hybrid-legacy',
+  'self-managed-infra',
+  'datacenter-vendor',
+] as const;
+
+export const HEADCOUNT_IDS = ['1-50', '51-200', '201-500', '500+'] as const;
+export const REVENUE_RANGE_IDS = ['0-5m', '5-25m', '25-100m', '100m+'] as const;
+export const GROWTH_STAGE_IDS = ['early', 'scaling', 'mature'] as const;
+export const COMPANY_AGE_IDS = ['under-2yr', '2-5yr', '5-10yr', '10-20yr', '20yr+'] as const;
+
+export const GEOGRAPHY_IDS = [
+  'us',
+  'canada',
+  'eu',
+  'uk',
+  'latam',
+  'africa',
+  'apac',
+  'multi-region',
+] as const;
+
+export const BUSINESS_MODEL_IDS = [
+  'productized-platform',
+  'customized-deployments',
+  'services-led',
+  'usage-based',
+  'ip-licensing',
+] as const;
+
+export const SCALE_INTENSITY_IDS = ['low', 'moderate', 'high'] as const;
+
+export const TRANSFORMATION_STATE_IDS = [
+  'stable',
+  'mid-migration',
+  'actively-modernizing',
+  'recently-modernized',
+] as const;
+
+export const DATA_SENSITIVITY_IDS = ['low', 'moderate', 'high'] as const;
+
+export const OPERATING_MODEL_IDS = [
+  'centralized-eng',
+  'product-aligned-teams',
+  'outsourced-heavy',
+  'hybrid',
+] as const;
+
 const wizardStepsData: WizardStep[] = [
   {
     id: 'transaction-type',

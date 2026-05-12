@@ -35,6 +35,28 @@ export const MATURE_KEYWORDS = [
 ];
 
 /**
+ * Canonical maturity-progression order for the dataset's growth-stage strings.
+ *
+ * Used by `getUniqueGrowthStages` to produce a deal-team-meaningful sort.
+ * Plain alphabetical ordering doesn't reflect maturity progression — for
+ * example, `'Established Market Leader'` would land between `'Early-Stage'`
+ * and `'Expansion Stage'`, which violates the natural growth → mature
+ * sequence consultants expect when scanning a filter dropdown or facet list.
+ *
+ * Stages absent from this list fall back to alphabetical ordering AFTER the
+ * known progression, so the contract degrades gracefully when new stage
+ * values are added to `projects.json` before the constant is updated.
+ */
+export const GROWTH_STAGE_PROGRESSION_ORDER = [
+  'Early-Stage Growth',
+  'Scaling Growth',
+  'Expansion Stage',
+  'Mature Enterprise',
+  'Established Market Leader',
+  'Legacy System',
+] as const;
+
+/**
  * Filter criteria interface
  */
 export interface FilterCriteria {
@@ -105,12 +127,23 @@ export function categorizeEngagementType(
 }
 
 /**
- * Gets all unique growth stages from a list of projects
+ * Gets all unique growth stages from a list of projects, sorted by the
+ * canonical maturity progression in `GROWTH_STAGE_PROGRESSION_ORDER`.
+ * Stages not present in that constant are appended alphabetically after
+ * the known progression.
  * @param projects - Array of projects to analyze
- * @returns Array of unique growth stages
+ * @returns Deduplicated, progression-ordered array of growth stages
  */
 export function getUniqueGrowthStages(projects: Project[]): string[] {
-  return [...new Set(projects.map((p) => p.growthStage))];
+  const unique = [...new Set(projects.map((p) => p.growthStage))];
+  return unique.sort((a, b) => {
+    const ai = (GROWTH_STAGE_PROGRESSION_ORDER as readonly string[]).indexOf(a);
+    const bi = (GROWTH_STAGE_PROGRESSION_ORDER as readonly string[]).indexOf(b);
+    if (ai >= 0 && bi >= 0) return ai - bi;
+    if (ai >= 0) return -1;
+    if (bi >= 0) return 1;
+    return a.localeCompare(b);
+  });
 }
 
 /**

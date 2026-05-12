@@ -548,7 +548,9 @@ export function buildInputs(): TechParInputs | null {
     capexView: gaapEl?.checked ? 'gaap' : 'cash',
     growthRate: tp.growthRate || 0,
     exitMultiple: getInput('exitMult') || 12,
-    infraHosting: tp.infraPeriod === 'annual' ? getInput('infra') / 12 : getInput('infra'),
+    // BL-031.95: schema field is `infraHostingAnnual` (always annual). UI's
+    // monthly mode multiplies by 12 here; annual mode passes through.
+    infraHostingAnnual: tp.infraPeriod === 'monthly' ? getInput('infra') * 12 : getInput('infra'),
     infraPersonnel: getInput('infraPers'),
     rdOpEx: getInput('rdOpEx'),
     rdCapEx: getInput('rdCapEx'),
@@ -690,7 +692,11 @@ export function hydrateFromUrl() {
   }
 
   setInput('exitMult', state.exitMultiple);
-  setInput('infra', state.infraHosting);
+  // BL-031.95: state.infraHostingAnnual carries the raw DOM value (URL `?h=`
+  // is overridden in syncUrlState to preserve what the user typed). Restore
+  // as-is; period flag has already been applied by `tp.infraPeriod`
+  // hydration above.
+  setInput('infra', state.infraHostingAnnual);
   setInput('infraPers', state.infraPersonnel);
   setInput('rdOpEx', state.rdOpEx);
   setInput('rdCapEx', state.rdCapEx);

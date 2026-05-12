@@ -67,4 +67,29 @@ When you add a third-party script, API, or embed:
 
 ---
 
+## MCP Worker subdomain (BL-032)
+
+The MCP server runs on a separate Cloudflare Workers deployment at `mcp.globalstrategic.tech` (production) and `mcp-staging.globalstrategic.tech` (staging) — see [MCP_SERVER_REMOTE_BL-032.md](../development/MCP_SERVER_REMOTE_BL-032.md). It does NOT inherit the website's CSP, since:
+
+- The Worker serves a JSON-RPC API to MCP clients, not HTML pages with scripts/styles. CSP doesn't meaningfully apply
+- Different threat model — auth is bearer-token (Phase 2), not session-based
+- Different runtime — Cloudflare Workers, not Vercel; managed via `wrangler.toml` rather than `vercel.json`
+
+**What it DOES enforce** (configured in [`mcp-server/src/auth/cors.ts`](../../../mcp-server/src/auth/cors.ts)):
+
+- **CORS allowlist** — explicit origin list (`https://claude.ai`, `https://chatgpt.com`, `https://cursor.sh`); never `*`
+- **Bearer-token auth** on every non-health endpoint — see [`mcp-server/src/docs/operations/AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md)
+- **WWW-Authenticate** header on 401 responses (RFC 6750-compliant)
+- **Header-stripping logger** — Authorization / Cookie / X-API-Key never reach `wrangler tail` or Sentry
+
+**What it explicitly does NOT have**:
+
+- HSTS — Cloudflare's edge enforces HTTPS at the platform level; the Worker doesn't add its own header (would be redundant)
+- X-Frame-Options / frame-ancestors — the Worker's responses are not HTML; framing is a non-concern
+- CSP — see above
+
+When BL-033 ships OAuth 2.1 for external clients, the Worker gains additional headers (token-introspection responses, audit-log envelopes); they get documented here at that time.
+
+---
+
 ← Back to [Security Documentation](README.md)

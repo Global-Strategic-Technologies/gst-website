@@ -19,6 +19,7 @@ export default [
   {
     ignores: [
       'dist/**',
+      '**/dist/**',
       '.astro/**',
       '.vercel/**',
       'coverage/**',
@@ -26,6 +27,7 @@ export default [
       'test-results/**',
       '.cache/**',
       'node_modules/**',
+      '**/node_modules/**',
       'public/**',
       // Generated / vendored
       '**/*.min.js',
@@ -99,7 +101,11 @@ export default [
     // Vitest globals (describe, it, expect, beforeAll, afterEach, vi)
     // are declared via the "vitest/globals" types entry in tsconfig
     // but ESLint also needs them declared to avoid no-undef.
-    files: ['tests/unit/**/*.{ts,tsx}', 'tests/integration/**/*.{ts,tsx}'],
+    files: [
+      'tests/unit/**/*.{ts,tsx}',
+      'tests/integration/**/*.{ts,tsx}',
+      'mcp-server/tests/**/*.{ts,tsx}',
+    ],
     languageOptions: {
       globals: {
         describe: 'readonly',
@@ -169,6 +175,53 @@ export default [
             'See DEVELOPER_TOOLING.md § Environment variables.',
         },
       ],
+    },
+  },
+
+  // ── Inoreader budget protection (BL-031.5) ─────────────────────────
+  // The local MCP server MUST NOT make live Inoreader API calls — they
+  // would burn the shared 200 req/day budget. Radar tools/resources read
+  // exclusively from the seeded snapshot. Enforced structurally here:
+  // mcp-server/src/** cannot import the live client.
+  {
+    files: ['mcp-server/src/**/*.{ts,mts}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '**/lib/inoreader/client',
+                '**/lib/inoreader/client.ts',
+                '../../src/lib/inoreader/client*',
+                '../../../src/lib/inoreader/client*',
+              ],
+              message:
+                'mcp-server/src/** must not import the live Inoreader client. Read from the cached snapshot via mcp-server/src/content/radar-snapshot.ts instead. See MCP_SERVER_HUB_SURFACE_BL-031_5.md § Radar.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // ── BL-032 Phase 2: Worker code path must use safeLog() ──────────
+  // Cloudflare's `wrangler tail` and Sentry both surface anything written
+  // to console.log / console.error. A careless console.log(request.headers)
+  // on a Worker fetch handler dumps the Authorization header to those
+  // streams. The safe-logger module accepts only structured fields and
+  // auto-redacts known-sensitive keys; this rule forces its use.
+  //
+  // Exempt: src/index.ts (stdio entrypoint — stdout is reserved for MCP
+  // protocol traffic, so console.error to stderr is the correct diagnostic
+  // channel; no Authorization headers exist on the stdio path).
+  // Exempt: src/auth/safe-logger.ts (the one file that wraps console.log
+  // — uses an `eslint-disable-next-line no-console` at the call site).
+  {
+    files: ['mcp-server/src/worker.ts', 'mcp-server/src/auth/**/*.ts'],
+    rules: {
+      'no-console': 'error',
     },
   },
 

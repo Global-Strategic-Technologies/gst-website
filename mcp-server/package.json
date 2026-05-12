@@ -1,0 +1,45 @@
+{
+  "name": "@gst/mcp-server",
+  "version": "0.1.0",
+  "description": "Local stdio MCP server exposing the GST Hub surface (diligence, portfolio, ICG, TechPar, Tech Debt, Regulations, Radar) and Library + Regulation + Radar Resources.",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "gst-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prebuild": "node scripts/generate-regulations-index.mjs",
+    "build": "tsc --noEmit && node build.mjs",
+    "pretypecheck": "node scripts/generate-regulations-index.mjs",
+    "typecheck": "tsc --noEmit",
+    "pretest": "node scripts/generate-regulations-index.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev:worker": "wrangler dev --env staging",
+    "deploy:staging": "node scripts/deploy.mjs staging",
+    "deploy:production": "node scripts/deploy.mjs production"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@cfworker/json-schema": "^4.1.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@sentry/cloudflare": "^10.51.0",
+    "@upstash/ratelimit": "^2.0.5",
+    "@upstash/redis": "^1.35.0",
+    "agents": "^0.12.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251024.0",
+    "@types/node": "^25.6.0",
+    "esbuild": "^0.27.7",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "wrangler": "^4.45.0"
+  }
+}

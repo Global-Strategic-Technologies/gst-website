@@ -1,0 +1,104 @@
+name: MCP Server Test Suite
+
+permissions:
+  contents: read
+
+# Standalone workflow for the @gst/mcp-server workspace. Runs in parallel to
+# the main Test Suite (test.yml) so MCP regressions are immediately
+# attributable rather than commingled with site failures.
+#
+# Path filters (top-level) keep this workflow inert when changes don't affect
+# the MCP surface — editing only Astro pages, components, or styles will not
+# trigger this workflow. The trade-off vs the test.yml gate-job pattern: a
+# skipped status is acceptable here because this workflow is NOT a required
+# branch-protection check.
+
+on:
+  push:
+    branches: [master, dev, 'feat/**', 'fix/**', 'feature-*']
+    paths:
+      - 'mcp-server/**'
+      - '!mcp-server/**/*.md'
+      - 'src/utils/diligence-engine.ts'
+      - 'src/utils/filterLogic.ts'
+      - 'src/schemas/diligence.ts'
+      - 'src/schemas/portfolio.ts'
+      - 'src/data/ma-portfolio/projects.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/test-mcp-server.yml'
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'mcp-server/**'
+      - '!mcp-server/**/*.md'
+      - 'src/utils/diligence-engine.ts'
+      - 'src/utils/filterLogic.ts'
+      - 'src/schemas/diligence.ts'
+      - 'src/schemas/portfolio.ts'
+      - 'src/data/ma-portfolio/projects.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/test-mcp-server.yml'
+
+concurrency:
+  # Distinct group from test.yml so the two workflows run truly in parallel.
+  # event_name in the key prevents push/PR cross-cancellation on the same ref.
+  group: mcp-server-${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Typecheck, Build & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm -w @gst/mcp-server run typecheck
+
+      - name: Build
+        run: npm -w @gst/mcp-server run build
+
+      - name: Run tests with coverage
+        run: |
+          npm -w @gst/mcp-server run test -- --coverage 2>&1 | tee coverage-output.txt
+          SUMMARY=$(grep "^All files" coverage-output.txt || echo "")
+          if [ -n "$SUMMARY" ]; then
+            STMTS=$(echo "$SUMMARY" | awk -F'|' '{gsub(/ /,"",$2); print $2}')
+            BRANCH=$(echo "$SUMMARY" | awk -F'|' '{gsub(/ /,"",$3); print $3}')
+            FUNCS=$(echo "$SUMMARY" | awk -F'|' '{gsub(/ /,"",$4); print $4}')
+            LINES=$(echo "$SUMMARY" | awk -F'|' '{gsub(/ /,"",$5); print $5}')
+            echo "## MCP Server Coverage" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Coverage |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|----------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Statements | ${STMTS}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Branches | ${BRANCH}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Functions | ${FUNCS}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Lines | ${LINES}% |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Smoke test compiled binary
+        run: node mcp-server/dist/index.js < /dev/null
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mcp-server-coverage
+          path: mcp-server/coverage/
+          retention-days: 7
