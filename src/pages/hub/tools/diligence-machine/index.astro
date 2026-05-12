@@ -1571,16 +1571,38 @@ import '../../../../styles/components/progress.css';
   // ─── RESTORE STATE ───────────────────────────────────────────────────
 
   function restoreState(): void {
-    // BL-031.95 Phase 2: URL state takes precedence over localStorage.
-    // A populated URL (from the MCP `deeplink` field, or from a shared
-    // wizard URL) hydrates the wizard at the results step. Empty URL →
-    // fall back to localStorage for "I closed the tab, came back tomorrow."
+    // BL-031.95 Phase 2: URL state takes precedence over localStorage —
+    // but only when the URL is COMPLETE (all 13 input dimensions set).
+    // A complete URL is the deeplink-to-results case (from the MCP
+    // `deeplink` field, or a shared results URL) → hydrate at results.
+    // A PARTIAL URL (user mid-wizard whose syncUrlState() wrote their
+    // 3-of-13 progress to the URL, then they refreshed) must NOT jump
+    // to results with incomplete data; fall through to localStorage so
+    // they land on their actual step. Empty URL → standard localStorage
+    // fallback for "I closed the tab, came back tomorrow."
+    const REQUIRED_DIMS = [
+      'transactionType',
+      'productType',
+      'techArchetype',
+      'headcount',
+      'revenueRange',
+      'growthStage',
+      'companyAge',
+      'businessModel',
+      'scaleIntensity',
+      'transformationState',
+      'dataSensitivity',
+      'operatingModel',
+    ] as const;
     const urlParams = new URLSearchParams(window.location.search);
     const urlInputs = urlParams.toString() ? deserializeDiligenceUrl(urlParams) : null;
-    const hasUrlState = urlInputs !== null && Object.keys(urlInputs).length > 0;
+    const hasCompleteUrlState =
+      urlInputs !== null &&
+      REQUIRED_DIMS.every((k) => (urlInputs as Record<string, unknown>)[k] !== undefined) &&
+      (urlInputs.geographies?.length ?? 0) > 0;
 
     let saved: SavedState | null;
-    if (hasUrlState) {
+    if (hasCompleteUrlState) {
       saved = {
         version: STORAGE_VERSION,
         currentStep: totalSteps,
@@ -1769,6 +1791,12 @@ import '../../../../styles/components/progress.css';
   // ─── INITIALIZE ───────────────────────────────────────────────────────
 
   restoreState();
+  // Signal to E2E tests that the wizard has finished hydrating. The static
+  // HTML marks step 1 active by default; `restoreState()` may advance to
+  // a later step from localStorage / URL. Tests that reload the page need
+  // to wait for this attribute before asserting which step is active —
+  // otherwise they race the script and see the pre-restoration state.
+  document.querySelector('[data-testid="wizard-container"]')?.setAttribute('data-restored', 'true');
 </script>
 
 <style>
