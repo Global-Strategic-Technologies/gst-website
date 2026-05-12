@@ -2668,22 +2668,22 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.K.2.d.1 — Compute techpar with deliberately invalid input
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
 - Prompt verbatim:
   > "Run a TechPar benchmark with $0 ARR."
 - Expected: Zod rejection; Claude either re-asks or surfaces the error clearly
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): 5 — Claude **called the tool with the literal user input** ($0 ARR) rather than pre-validating and refusing. Correct behavior: let the engine surface the rejection, then explain it.
+- Input completeness (1-5): 5 — passed exactly what the user asked; no pre-emptive rewrite.
+- Result synthesis (1-5): 5 — explained the WHY of the rejection ("TechPar is a ratio benchmark — every output is `cost / revenue`, undefined at zero. There's no sensible 'pre-revenue' answer the engine could return without silently degrading the meaning of the benchmark.") and proactively distinguished the engine-level hard-gate vs. the Zod schema layer. Surfaced the design rationale, not just the error code.
 - Composition (1-5 or N/A): N/A
-- Failure handling (1-5):
-- Overall workflow value (1-5):
+- Failure handling (1-5): 5 — three useful follow-up paths offered (minimum viable ARR for boundary testing, seed-stage smallest realistic ARR, stage-only context without computing), and pivoted back to ask the user what they were actually after ("testing the validation, or a pre-revenue seed-stage scenario?").
+- Overall workflow value (1-5): 5 — flagship error-handling. This is the gold standard for surfacing tool-engine rejections: let it happen, explain it cleanly, offer constructive alternatives.
 - Improvement opportunity:
-  - [ ] Error-envelope copy
-  - [ ] Other:
-- Notes:
+  - [ ] Error-envelope copy — current envelope is clear enough for Claude to translate well
+  - [x] Other: **Direct counter-example to the K.1.9 / K.2.a.5 pattern.** When the prompt asks Claude to RUN the tool (not describe its framework or look up a named entity), Claude calls cleanly and handles errors well. Pattern boundary is firming up: the defect lives at "describe-shape" and "named-entity-lookup" framings, NOT at "run this tool" framings.
+- Notes: No new defects surfaced. This test is a clean PASS and a useful data point for bounding the K.1.9/K.2.a.5 defect scope.
 
 #### T.K.2.d.2 — Search portfolio with 0 results
 
@@ -2693,16 +2693,16 @@ alt-svc: h3=":443"; ma=86400
 - Prompt verbatim:
   > "Find GST engagements in agriculture-vertical SaaS for sub-$1M ARR seed-stage targets."
 - Expected: Empty result; Claude doesn't fabricate engagements
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): 5 — called `search_portfolio` twice with single-term queries ("agriculture", "agtech") respecting the schema's strict-match-narrow-term guidance. When both returned empty, **called `list_portfolio_facets` to verify** ag isn't in the theme list. Then probed adjacent theme `Food & Beverage` for stage-adjacent candidates. Clean multi-step pivot driven by data, not memory.
+- Input completeness (1-5): 5 — schema-respecting single-term queries; correct fallback to facets lookup; legitimate adjacent-theme probe.
+- Result synthesis (1-5): 5 — surfaced the honest negative result with two F&B candidates accurately characterized (Dynamic — $220M sell-side manufacturer, Epicurean — Early-Stage Growth food-safety SaaS). Added a sharp consultant observation: "Pure seed-stage targets with sub-$1M ARR are likely below the threshold of what's shown up in GST engagements historically — PE buy-side diligence rarely fires at that pre-revenue tier." Offered three useful pivots (stage-filtered cross-theme, radar for ag M&A signal, regulatory map for ag frameworks).
 - Composition (1-5 or N/A): N/A
-- Failure handling (1-5):
-- Overall workflow value (1-5):
+- Failure handling (1-5): 5 — handled empty result with verification rather than fabrication. No K.1.9-style invented engagements.
+- Overall workflow value (1-5): 5 — flagship behavior. When Claude CALLS the tool and gets zero, it handles it correctly.
 - Improvement opportunity:
   - [ ] Tool description gap
-  - [ ] Other:
-- Notes:
+  - [x] Other: **Reinforces the K.2.a.1 finding and refines the K.1.9 / K.2.a.5 defect boundary.** The hallucination defect lives specifically at "named-entity lookup WHERE Claude doesn't call the tool" — when Claude DOES call and gets empty, it handles it correctly. The fix is to make Claude call the tool first; the empty-handling path is already healthy.
+- Notes: No new defects. This is a clean PASS that strengthens the BL-032.75 mitigation framing: the fix is "call first," not "handle errors better." Three named codeNames in response (Dynamic, Epicurean) verified to exist in `projects.json`.
 
 #### T.K.2.d.3 — Radar during budget exhaustion
 
@@ -2726,23 +2726,23 @@ alt-svc: h3=":443"; ma=86400
 
 #### T.K.2.d.4 — Generate agenda with all 13 fields = 'unknown'
 
-- Date:
-- Tester:
-- Client: Claude Desktop (fresh conversation)
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
 - Prompt verbatim:
   > "Generate a diligence agenda but I have no information about the target yet — just early-stage curiosity."
 - Expected: Claude uses `'unknown'` sentinel per BL-031.95; result is a wide, low-confidence agenda with the unknownDimensionCount callout
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Tool selection (1-5): **1** — Claude **refused to call the tool**. Response framing: _"Without any of that, I'd be generating something so generic it wouldn't beat a blank template."_ Asked the user to supply either a placeholder profile or "minimum viable signal" before calling. This contradicts the tool's documented BL-031.95 sentinel path which explicitly supports the all-unknown case: TOOL_DESCRIPTION says _"When ≥7 of 13 dimensions are unknown, the deliverable should lead with a low-confidence callout (parallel to ICG's ≥10/20 threshold)"_ — the all-unknown path IS the supported behavior for exactly this prompt.
+- Input completeness (1-5): N/A (no tool call)
+- Result synthesis (1-5): **2** — well-written consultative response in isolation; the workflow is wrong. Claude treats the tool as "needs real inputs" when the tool explicitly supports the all-unknown sentinel and the prompt is a textbook trigger for that path ("I have no information yet — just early-stage curiosity").
 - Composition (1-5 or N/A): N/A
 - Failure handling (1-5 or N/A): N/A
-- Overall workflow value (1-5):
+- Overall workflow value (1-5): **2** — produced a reasonable-sounding dialogue turn, but bypassed the BL-031.95-blessed path. The tool's `'unknown'` sentinel feature is effectively dead from Claude's perspective if Claude won't invoke it even when explicitly invited.
 - Improvement opportunity:
-  - [ ] Tool description gap (unknown sentinel)
+  - [x] **Tool description gap (unknown sentinel)** — the BL-031.95 `'unknown'` paragraph is currently near the end of TOOL_DESCRIPTION as a value-contract note. Should be promoted to a top-line USAGE RULE: "When the user prompt has low or no specificity ('early-stage curiosity', 'no info yet', 'hypothetical target', etc.), set all 13 fields to `'unknown'` / `['unknown']` for `geographies` and call the tool. The engine returns a wide, low-confidence agenda specifically for this case — do NOT refuse or ask for more info first."
   - [ ] Result-shape simplification
-  - [ ] Other:
-- Notes:
+  - [x] Other: **Third class of "describe-from-memory" defect** — not fabrication (K.1.9), not false-precision (K.2.a.5), not missed-call (K.2.a.3) — but **"refuse-to-use-documented-edge-case-path."** Claude reads the tool's happy path but doesn't apply the schema's explicit support for edge cases. The fix is tool-description prominence + the connector-level system-prompt addendum already filed for the consolidated K.1.9/K.2.a.5 mitigation.
+- Notes: **Fifth K-section instance of "Claude bypasses the MCP tool when it should call it."** Different sub-class than K.1.9/K.2.a.3/K.2.a.4/K.2.a.5 — this is "tool refusal where the schema explicitly supports the prompt's case." Significant because BL-031.95 Phase 2 was specifically built for this scenario (low-context early-stage curiosity). If Claude won't use it, the feature is shipping but unused. Worth thinking about whether the engine could be exposed via a second tool (e.g., `generate_agenda_for_archetype` that takes ONLY a single seed parameter and fills the rest with sentinels) so the all-unknown path has a more obvious entry point. Filed as a candidate addition to BL-032.75 scope.
 
 #### T.K.2.d.5 — Mixed valid + invalid enum
 
@@ -2752,17 +2752,20 @@ alt-svc: h3=":443"; ma=86400
 - Prompt verbatim:
   > "Generate an agenda for a target with productType='vaporware' and revenueRange='5-25m'."
 - Expected: Clear Zod rejection on productType; Claude either asks for clarification or proceeds with the rest
-- Tool selection (1-5):
-- Input completeness (1-5):
-- Result synthesis (1-5):
+- Date: 2026-05-12
+- Tester: RP
+- Client: Claude Desktop (fresh conversation, `gst-mcp-staging`)
+- Tool selection (1-5): 4 — Claude did NOT call the tool, but for a defensible reason: the explicitly-invalid value (`productType='vaporware'`) warranted clarification before substitution. Critically, Claude did NOT silently normalize "vaporware" to a valid enum — it surfaced the rejection cleanly with the full valid-values list (`b2b-saas`, `b2c-marketplace`, `on-premise-enterprise`, `deep-tech-ip`, `tech-enabled-service`, `unknown`). Would have been 5 if Claude had run option 1 (its own suggestion — substitute `unknown` for invalid + 11 missing) without an extra dialogue turn.
+- Input completeness (1-5): N/A (no tool call)
+- Result synthesis (1-5): 5 — clear, three concrete options offered, explicit sentinel path mentioned, honest about the 12/13-unknown threshold. Did NOT silently swap "vaporware" for a similar-sounding enum (silent normalization would have been the bad outcome).
 - Composition (1-5 or N/A): N/A
-- Failure handling (1-5):
-- Overall workflow value (1-5):
+- Failure handling (1-5): 5 — surfaced the schema mismatch with full context, no silent substitution, asked the user to pick the resolution path.
+- Overall workflow value (1-5): 4 — useful dialogue turn that protects the user from silent data-corruption (Claude inventing a valid enum). One extra round-trip vs. ideal (option 1 + tool call) but the safety trade is reasonable.
 - Improvement opportunity:
-  - [ ] Error-envelope copy
+  - [x] Error-envelope copy — Claude pre-empted the actual Zod rejection envelope. Worth a side-test that confirms what the engine returns when an invalid enum reaches it (does Zod's error message include the valid-values list, or just `Invalid enum value: 'vaporware'`?). If the latter, error-envelope enrichment would help non-Claude clients understand the available substitutions.
   - [ ] Zod `.describe()` gap
-  - [ ] Other:
-- Notes:
+  - [x] Other: **Notable contrast with K.2.d.4** — Claude clearly READ the BL-031.95 ≥7-threshold from TOOL_DESCRIPTION here ("well past the ≥7 threshold"). Which means K.2.d.4's refusal-to-use-all-unknown is even more surprising: Claude had the same context available in that test and still chose to refuse. The distinguishing variable is the prompt's explicit-invalid value — K.2.d.5 had an invalid input warranting clarification; K.2.d.4 had a low-context-but-valid prompt warranting the documented all-unknown path. The fix for K.2.d.4 needs to be sharper: the sentinel path should be invoked WITHOUT requiring the user to explicitly request it.
+- Notes: This is the "good cousin" of T.K.2.d.4. Both are sub-class "Claude refuses to call when calling was an option," but the rationale differs: invalid-input-warranting-clarification (defensible) vs. low-context-warranting-sentinel-fill (defect per BL-031.95 design intent). Recording as a SOFT PASS — no new defect, useful contrast with d.4.
 
 ### K.2.e — Mid-engagement consultant scenarios
 
