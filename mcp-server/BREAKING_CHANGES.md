@@ -4,7 +4,54 @@
 >
 > Tool names, prompt names, and Resource URIs are part of the package's public contract — pinned client conversations, agent code, and external clients (BL-033) all reference them by name. A rename or removal here is a breaking change for every consumer.
 >
-> **Every entry in this file ships with a corresponding `version` bump in [`package.json`](./package.json) and is mirrored in the [BL-032 architecture doc](../src/docs/development/MCP_SERVER_REMOTE_BL-032.md) Q-section that triggered it.** Future CI may enforce this with a hash-comparison test (BL-032.5 introduces the discipline formally — promoted to BL-032 here because the rename forced it).
+> **Every entry in this file ships with a corresponding `version` bump in [`package.json`](./package.json) and is mirrored in the [BL-032 architecture doc](../src/docs/development/MCP_SERVER_REMOTE_BL-032.md) Q-section that triggered it.** BL-032.5 Phase 4 formalizes the discipline with the **manifest-hash test** at [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) — the hash is computed over the registered Library/Regulation/Radar URIs + prompt `name@version` tuples; any drift fails the test and surfaces the new hash in the error message.
+
+---
+
+## Current manifest hash
+
+```
+2d155d19ea7a2e37f29a2c405cb65c2f18def7f5adc5968550f02348a117b6a0
+```
+
+Computed over (sorted):
+
+- 2 Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`)
+- 120 Regulation URIs (`gst://regulations/<jurisdiction>/<framework-id>`)
+- 6 Radar URIs (FYI latest + Wire latest + 4 Wire categories)
+- 8 prompt `name@version` tuples (`gst_*`)
+
+If this hash differs from the value in
+[`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
+the test will fail with a remediation message. Update **both** values
+in lockstep when the registry shape changes.
+
+---
+
+## 0.1.0 — 2026-05-13 — BL-032.5 Phase 4 manifest-hash discipline
+
+**Theme**: formalize the URI / prompt-name stability discipline that
+BL-032 Phase 4b introduced informally.
+
+**What changed**:
+
+- New CI test at [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts)
+  computes a sha256 over the sorted Library / Regulation / Radar URIs +
+  prompt `name@version` tuples. Fails when the registry shape drifts
+  from the value committed here.
+- `BREAKING_CHANGES.md` gains a `## Current manifest hash` section
+  (above) that operators update in lockstep with the test constant
+  when a manifest-affecting change ships.
+
+**Operator semantics**:
+
+- URI / prompt-name **rename** or **removal** → major bump (breaks pinned conversations)
+- URI / prompt-name **addition** → minor bump
+- prompt **`version` field** bump (same name, behavior change) → patch bump
+
+**Architecture context**: [BL-032.5 design doc § Repo placement and lifecycle](../src/docs/development/MCP_SERVER_REMOTE_RESOURCES_PROMPTS_BL-032_5.md#repo-placement-and-lifecycle).
+
+This is not a breaking change in itself (no Tool / prompt / Resource was renamed); it's documented here so the discipline's introduction is auditable.
 
 ---
 

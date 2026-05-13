@@ -37,6 +37,7 @@ import { createLimiter } from './ratelimit/limiter';
 import { tooManyRequestsResponse, withRateLimitHeaders } from './ratelimit/headers';
 import { captureMessage, sentryOptions, tagRequest, withSentry } from './observability/sentry';
 import { buildHealthPayload } from './observability/health';
+import { refreshRadarSnapshot } from './cron/radar-refresh';
 
 /**
  * Worker environment bindings.
@@ -101,6 +102,18 @@ export interface Env {
 // assembly only — no I/O).
 
 const handler: ExportedHandler<Env> = {
+  /**
+   * Hourly Cron handler (BL-032.5 Phase 4). Refreshes the Upstash radar
+   * snapshot cache so MCP Resource consumers see snapshots that are at
+   * most 60 minutes stale, independent of read traffic. Budget guards
+   * (circuit breaker + daily soft cap) live inside `refreshRadarSnapshot`;
+   * we just delegate here. The scheduled handler has no response surface
+   * — return value is ignored by Cloudflare.
+   */
+  async scheduled(_event, env, ctx): Promise<void> {
+    ctx.waitUntil(refreshRadarSnapshot(env));
+  },
+
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin');

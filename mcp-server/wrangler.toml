@@ -68,6 +68,14 @@ routes = [
   { pattern = "mcp-staging.globalstrategic.tech", custom_domain = true }
 ]
 
+# BL-032.5 Phase 4: hourly radar snapshot refresh. The `scheduled` handler
+# in `src/worker.ts` delegates to `cron/radar-refresh.ts`, which force-
+# refreshes `mcp:radar:cache:wire` and `mcp:radar:cache:fyi`. Budget
+# protection (circuit breaker + day-counter soft cap) lives in the
+# handler so this trigger is the only place the cadence is declared.
+[env.staging.triggers]
+crons = ["0 * * * *"]
+
 # ---------------------------------------------------------------------------
 # Production
 # ---------------------------------------------------------------------------
@@ -80,3 +88,7 @@ name = "gst-mcp"
 routes = [
   { pattern = "mcp.globalstrategic.tech", custom_domain = true }
 ]
+
+# Same hourly radar refresh as staging — see commentary above.
+[env.production.triggers]
+crons = ["0 * * * *"]
