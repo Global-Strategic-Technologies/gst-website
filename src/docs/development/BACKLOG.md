@@ -1834,16 +1834,18 @@ Three architectural options, in order of preference:
 
 #### Acceptance Criteria
 
-- [ ] Decision recorded on Option A / B / C with rationale (likely Option B per the planning analysis)
-- [ ] If Option B: `/api/inoreader/refresh` endpoint on the website, auth-gated, triggers ISR's refresh path
-- [ ] Worker `failureResponse()` in [`radar-live.ts`](../../../mcp-server/src/tools/radar-live.ts) updated: on `token-stale` envelope, call the refresh endpoint, retry once, only then surface the original error
-- [ ] Sentry breadcrumb distinguishes Worker-initiated refresh from website-initiated refresh
-- [ ] Test coverage: Worker integration test with a mocked stale-token scenario asserts the refresh endpoint is called and the retry succeeds
-- [ ] Documentation update in [DEPLOY.md § C.5](../../../mcp-server/src/docs/operations/DEPLOY.md) — replace the "visit /hub/radar to recover" runbook step with "the Worker now self-heals on token-stale; manual recovery only needed if the refresh endpoint itself is down"
+- [x] Decision recorded on Option A / B / C with rationale (Option B chosen — preserves Q4 single-writer invariant)
+- [x] If Option B: `/api/inoreader/refresh` endpoint on the website, auth-gated, triggers ISR's refresh path (shipped in commit `143cd05`)
+- [x] Worker `authenticatedFetch` in [`inoreader-worker.ts`](../../../mcp-server/src/lib/inoreader-worker.ts) updated: on Inoreader 401, call the refresh endpoint, retry once, only then surface the original `token-stale` envelope (shipped in commit `143cd05`)
+- [x] Sentry breadcrumb distinguishes Worker-initiated refresh from website-initiated refresh (`area:bl-039`, `source:worker` tags on the website-side captureMessage)
+- [x] Test coverage: Worker integration test with a mocked stale-token scenario asserts the refresh endpoint is called and the retry succeeds (9 new BL-039 cases in `mcp-server/tests/unit/inoreader-worker.test.ts` + 10 cases in `tests/unit/inoreader-refresh-endpoint.test.ts`)
+- [x] Documentation update in [DEPLOY.md § C.5](../../../mcp-server/src/docs/operations/DEPLOY.md) — manual `/hub/radar` recovery now only required when the refresh-TOKEN itself is dead; telemetry signals distinguish that from a recoverable access-token-expiry
+
+**Status**: ✅ **DELIVERED 2026-05-13** — merged via PR #134 (commit `3c84ee8`); soak-verified end-to-end against real services (see [`BL-032_5_TESTING_FINDINGS.md`](BL-032_5_TESTING_FINDINGS.md) § T.Y.4); production-deployed Worker (version `143c2ab3`); production-deployed website (Vercel auto-deploy from master).
 
 **Why not roll into BL-032.5 (Resources & Prompts / Cron pre-warm)**
 
-- BL-032.5's Cron is a frequency-reduction approach; this is a failure-mode-elimination approach. Both are needed.
+- BL-032.5's Cron is a frequency-reduction approach; this is a failure-mode-elimination approach. Both are needed. Both delivered together in the same merge for clean closure of the T.Y.3 architectural-gap escalation.
 
 **Why not roll into BL-033 (broader OAuth scope)**
 
@@ -1851,4 +1853,69 @@ Three architectural options, in order of preference:
 
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026_
+### BL-040: MCP Server — Debounce parallel BL-039 refresh calls under fan-out
+
+**Source**: BL-040 — surfaced during BL-039's T.Y.4 verification soak (2026-05-13). A single `search_radar` Tool call triggered **6 parallel POSTs** to `/api/inoreader/refresh` because `fetchAllStreams` fans out into 5 parallel Inoreader calls (1 tags-list + 4 folder streams), each independently hitting the bad token's 401 and each independently invoking `triggerWebsiteRefresh`. The endpoint is idempotent so this is correct behavior, but wasteful — every BL-039 self-heal under fan-out hammers the Inoreader refresh-token exchange N+1 times. | **Effort**: ~half-day engineering + tests | **Status**: Open · Optimization, non-blocking | **Depends on**: BL-039 (delivered)
+
+**As an** operator of the MCP Worker, **I want** parallel BL-039 refresh attempts coalesced into a single refresh + N retries, **so that** a fan-out workload (radar's parallel folder fetches; future parallel resource reads; concurrent client traffic) doesn't multiply load on the Inoreader refresh-token exchange and the website's `/api/inoreader/refresh` endpoint.
+
+#### Planning Criteria
+
+**Current state (BL-039, delivered 2026-05-13)**
+
+- Each `authenticatedFetch` call independently runs the refresh-on-401 path
+- A single `search_radar(tier='wire')` call triggers 5 parallel Inoreader calls → 5 parallel 401s → 5 parallel refresh POSTs (plus the FYI tier if both fetched, scaling to 6+)
+- The refresh endpoint runs sequentially per request: each call exchanges the refresh-token → writes a new access token to Upstash → the LAST write wins (others are overwritten but their work was wasted)
+
+**Why this matters**
+
+- Inoreader's refresh-token endpoint isn't aggressively rate-limited but isn't free either; burning N exchanges where 1 would suffice eats budget that production-rare paths (future BL-033 OAuth flows, BL-038 strict tier enforcement) might depend on
+- The website's `/api/inoreader/refresh` runs the full OAuth exchange every call — N×serverless invocations on Vercel that we pay for
+- Sentry signal-to-noise: a single token-stale event currently logs 5+ "BL-039 refresh succeeded" breadcrumbs, making it harder to spot real anomalies
+- Under genuine high-concurrency client traffic (post-BL-033), the fan-out multiplier becomes problematic
+
+**Use cases — implementation options**
+
+- **Option A (recommended) — Upstash distributed lock with debounce window**:
+  - On 401, Worker attempts `SETNX mcp:lock:inoreader-refresh = <isolate-id>` with a short TTL (e.g., 10s)
+  - If SETNX succeeds → this isolate runs the refresh; on completion, deletes the lock
+  - If SETNX fails → another isolate is already refreshing; sleep ~200ms, re-resolve config from Upstash (the other refresh writes there), retry the original Inoreader call directly
+  - Bounded wait: after 3 sleep+retry cycles, fall back to running the refresh independently (handles lock-holder crash without leaving callers stuck)
+  - Pattern is well-trodden — same lock approach proposed for `mcp:lock:` keys in BACKLOG § BL-038 strict-tier enforcement
+
+- **Option B — Worker-local memoization**:
+  - Cache the in-flight `triggerWebsiteRefresh()` Promise in module scope
+  - Concurrent calls within the SAME isolate share the same Promise
+  - Doesn't help across isolates (a single Worker request can spawn parallel fetches in one isolate, but separate requests still each refresh independently)
+  - Simpler but only handles part of the problem — kept here as a stepping stone if Option A's lock complexity is unwarranted
+
+- **Option C — Refactor `fetchAllStreams` to share one resolved config**:
+  - Resolve config ONCE before the fan-out, then have all 5 parallel calls use it
+  - On 401 from ANY of them, trigger ONE refresh, then re-run all 5 with the new token
+  - Loses parallelism benefits on the retry path
+  - Most invasive refactor; least clear it's better than A
+
+**Outcomes**
+
+- A single token-stale event triggers exactly ONE refresh, regardless of how many parallel Inoreader calls hit the 401
+- Sentry breadcrumbs: 1 "BL-039 refresh succeeded" per stale-token event, not 5-6
+- Inoreader refresh-token exchange called once per stale event (vs N+1 today)
+- Cleaner Worker logs; better signal-to-noise for future debugging
+
+#### Acceptance Criteria
+
+- [ ] Decision recorded on Option A / B / C with rationale
+- [ ] Implementation lands behind a feature flag OR with regression tests that prove no regression under non-staled conditions
+- [ ] New unit test: stale token + fan-out scenario (e.g., 5 parallel calls) results in exactly 1 refresh-endpoint POST
+- [ ] Existing 19 BL-039 tests still pass
+- [ ] Re-soak T.Y.4 (deliberately-stale token + cache flush + `search_radar`): observe exactly 1 POST in Vercel runtime logs, not 5-6
+
+**Why now**
+
+- Not blocking — BL-039 works correctly today, just inefficiently under fan-out
+- Worth doing before BL-033 (broader OAuth / public MCP clients) lands, since that initiative will multiply the fan-out frequency
+- Cheap to ship; the Upstash lock pattern is reusable for other coalescing needs
+
+---
+
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026_
