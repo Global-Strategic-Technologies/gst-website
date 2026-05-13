@@ -57,6 +57,11 @@ upload_source_maps = true
 #   INOREADER_APP_KEY             Copy from Vercel env
 #   INOREADER_ACCESS_TOKEN        Copy from Vercel env (env fallback only — primary read is inoreader:access_token)
 #   INOREADER_REFRESH_TOKEN       Copy from Vercel env (Worker reads only — see Q4 Resolved)
+#   INOREADER_REFRESH_SECRET      BL-039 — shared secret for Worker → /api/inoreader/refresh.
+#                                  SAME value must be bound on the website (Vercel env var).
+#                                  Generate fresh per env: `openssl rand -hex 32`
+#                                  When absent, Worker falls back to legacy token-stale envelope
+#                                  (the BL-032 / pre-BL-039 behavior — operator visits /hub/radar).
 #   SENTRY_DSN                    Sentry project — service:mcp-server (Q6)
 #
 # Phase 1 spike runs locally via `wrangler dev` with no secrets set; the only

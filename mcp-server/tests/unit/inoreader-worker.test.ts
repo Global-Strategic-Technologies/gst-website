@@ -355,3 +355,215 @@ describe('fetchFolderStream', () => {
     expect(url).toContain('n=25');
   });
 });
+
+// ---------------------------------------------------------------------------
+// BL-039 — self-healing refresh on Inoreader 401
+// ---------------------------------------------------------------------------
+//
+// The Worker's authenticatedFetch should:
+//   1. On Inoreader 401 + INOREADER_REFRESH_SECRET set → POST the website
+//      refresh endpoint, then retry the original Inoreader request ONCE.
+//   2. On any failure of the refresh path (endpoint 503/502/4xx, network
+//      error, missing secret) → surface the original 401 as `token-stale`.
+//   3. Never retry more than once (no infinite loops).
+//   4. Never invoke the refresh path on non-401 responses (no unnecessary
+//      website calls).
+
+const REFRESH_URL = 'https://globalstrategic.tech/api/inoreader/refresh';
+
+const bl039Env: Env = {
+  ...baseEnv,
+  INOREADER_REFRESH_SECRET: 'test-shared-secret',
+};
+
+/** Helper: route fetch calls by URL — Inoreader vs refresh endpoint. */
+function routeFetch(opts: {
+  inoreader: Response[]; // consumed in order
+  refresh?: Response | Error; // single response (refresh is called at most once)
+}) {
+  let inoreaderIdx = 0;
+  fetchSpy.mockImplementation(async (url: string) => {
+    if (url === REFRESH_URL) {
+      if (!opts.refresh) {
+        throw new Error('Unexpected refresh call — no refresh response configured');
+      }
+      if (opts.refresh instanceof Error) throw opts.refresh;
+      return opts.refresh;
+    }
+    const next = opts.inoreader[inoreaderIdx++];
+    if (!next) throw new Error(`Inoreader call ${inoreaderIdx} unmocked`);
+    return next;
+  });
+}
+
+describe('BL-039 — self-healing refresh on 401', () => {
+  beforeEach(() => {
+    mockGet.mockResolvedValue('upstash-token');
+  });
+
+  it('on 401 + secret bound: calls refresh endpoint, then retries Inoreader once and succeeds', async () => {
+    const stream = makeStreamResponse([
+      { id: 'item-1', published: 1000, canonicalHref: 'https://example.com/1' },
+    ]);
+    routeFetch({
+      inoreader: [
+        new Response('unauthorized', { status: 401 }),
+        jsonResponse(stream), // retry succeeds
+      ],
+      refresh: new Response('{"ok":true}', { status: 200 }),
+    });
+
+    const result = await fetchAnnotatedItems(bl039Env, 5);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.items[0].id).toBe('item-1');
+
+    // 3 fetch calls in order: Inoreader (401) → refresh (200) → Inoreader (retry 200)
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    const calls = fetchSpy.mock.calls.map((c) => c[0]);
+    expect(calls[0]).toContain('inoreader.com');
+    expect(calls[1]).toBe(REFRESH_URL);
+    expect(calls[2]).toContain('inoreader.com');
+  });
+
+  it('passes the shared secret as Bearer Authorization to the refresh endpoint', async () => {
+    routeFetch({
+      inoreader: [
+        new Response('unauthorized', { status: 401 }),
+        jsonResponse(makeStreamResponse([])),
+      ],
+      refresh: new Response('{"ok":true}', { status: 200 }),
+    });
+
+    await fetchAnnotatedItems(bl039Env, 5);
+
+    const refreshCall = fetchSpy.mock.calls.find((c) => c[0] === REFRESH_URL)!;
+    expect(refreshCall[1].method).toBe('POST');
+    expect(refreshCall[1].headers.Authorization).toBe('Bearer test-shared-secret');
+  });
+
+  it('on 401 without INOREADER_REFRESH_SECRET: no refresh attempt, surfaces token-stale', async () => {
+    fetchSpy.mockResolvedValue(new Response('unauthorized', { status: 401 }));
+
+    const result = await fetchAnnotatedItems(baseEnv, 5); // baseEnv has NO refresh secret
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('token-stale');
+    // ONE Inoreader call only — no refresh attempt.
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('on 401 + refresh endpoint 503 (BL-039 disabled on website): no retry, surfaces token-stale', async () => {
+    routeFetch({
+      inoreader: [new Response('unauthorized', { status: 401 })],
+      refresh: new Response('{"ok":false,"reason":"endpoint-disabled"}', { status: 503 }),
+    });
+
+    const result = await fetchAnnotatedItems(bl039Env, 5);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('token-stale');
+    // Inoreader (401) + refresh (503) — but NO retry of Inoreader.
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('on 401 + refresh endpoint 502 (Inoreader rejected refresh): no retry, surfaces token-stale', async () => {
+    routeFetch({
+      inoreader: [new Response('unauthorized', { status: 401 })],
+      refresh: new Response('{"ok":false,"reason":"inoreader-rejected"}', { status: 502 }),
+    });
+
+    const result = await fetchAnnotatedItems(bl039Env, 5);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('token-stale');
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('on 401 + refresh 200 + retry ALSO 401: no second retry, surfaces token-stale', async () => {
+    routeFetch({
+      inoreader: [
+        new Response('unauthorized', { status: 401 }),
+        new Response('still unauthorized', { status: 401 }),
+      ],
+      refresh: new Response('{"ok":true}', { status: 200 }),
+    });
+
+    const result = await fetchAnnotatedItems(bl039Env, 5);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('token-stale');
+    // First Inoreader + refresh + second Inoreader = 3 calls; no THIRD Inoreader.
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it('on 401 + refresh endpoint network error: no retry, surfaces token-stale', async () => {
+    routeFetch({
+      inoreader: [new Response('unauthorized', { status: 401 })],
+      refresh: new Error('network unreachable'),
+    });
+
+    const result = await fetchAnnotatedItems(bl039Env, 5);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('token-stale');
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('on non-401 Inoreader response: refresh endpoint is NOT called', async () => {
+    fetchSpy.mockResolvedValue(new Response('rate-limited', { status: 429 }));
+
+    const result = await fetchAnnotatedItems(bl039Env, 5);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('inoreader-rate-limit');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    // Refresh URL never appears in the call log.
+    expect(fetchSpy.mock.calls.some((c) => c[0] === REFRESH_URL)).toBe(false);
+  });
+
+  it('on 200 OK: refresh endpoint is NOT called (happy path unaffected)', async () => {
+    fetchSpy.mockResolvedValue(jsonResponse(makeStreamResponse([])));
+
+    const result = await fetchAnnotatedItems(bl039Env, 5);
+
+    expect(result.ok).toBe(true);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy.mock.calls.some((c) => c[0] === REFRESH_URL)).toBe(false);
+  });
+
+  it('after successful refresh, retry uses freshly-resolved access token from Upstash', async () => {
+    // First mockGet returns the stale token. After refresh, Upstash has
+    // been updated by the website, so the second mockGet returns the new
+    // token. authenticatedFetch must re-resolve config before the retry.
+    mockGet
+      .mockResolvedValueOnce('stale-token-from-upstash') // initial resolveConfig
+      .mockResolvedValueOnce('fresh-token-from-upstash'); // re-resolve after refresh
+
+    routeFetch({
+      inoreader: [
+        new Response('unauthorized', { status: 401 }),
+        jsonResponse(makeStreamResponse([])),
+      ],
+      refresh: new Response('{"ok":true}', { status: 200 }),
+    });
+
+    await fetchAnnotatedItems(bl039Env, 5);
+
+    const inoreaderCalls = fetchSpy.mock.calls.filter((c) =>
+      (c[0] as string).includes('inoreader.com')
+    );
+    expect(inoreaderCalls).toHaveLength(2);
+    const firstAuth = (inoreaderCalls[0]![1].headers as Record<string, string>).Authorization;
+    const retryAuth = (inoreaderCalls[1]![1].headers as Record<string, string>).Authorization;
+    expect(firstAuth).toBe('Bearer stale-token-from-upstash');
+    expect(retryAuth).toBe('Bearer fresh-token-from-upstash');
+  });
+});

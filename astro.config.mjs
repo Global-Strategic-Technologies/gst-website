@@ -29,6 +29,14 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
+      // BL-039: shared secret authenticating Worker → /api/inoreader/refresh
+      // POST calls. Marked optional so the endpoint can return 503 when
+      // unconfigured rather than crashing at module load.
+      INOREADER_REFRESH_SECRET: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
       INOREADER_FOLDER_PREFIX: envField.string({
         context: 'server',
         access: 'public',

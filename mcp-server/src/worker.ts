@@ -72,6 +72,13 @@ export interface Env {
   INOREADER_ACCESS_TOKEN?: string;
   INOREADER_REFRESH_TOKEN?: string;
 
+  // BL-039: shared secret used to authenticate Worker → website
+  // /api/inoreader/refresh POST calls. Same value bound on both sides
+  // (wrangler secret put on Worker; Vercel env var on website). The Worker
+  // only TRIGGERS refresh via this endpoint — the website remains the sole
+  // refresh-writer (Q4 invariant preserved).
+  INOREADER_REFRESH_SECRET?: string;
+
   // Sentry — new project for service:mcp-server (Q6).
   SENTRY_DSN?: string;
 
