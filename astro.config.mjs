@@ -101,6 +101,12 @@ export default defineConfig({
     webAnalytics: { enabled: true },
     isr: {
       expiration: 60 * 60 * 6, // 6 hours — revalidation interval for SSR pages (Radar)
+      // Exclude /api/* routes from ISR routing. Without this, POST requests
+      // to API endpoints get misrouted through Vercel's /_isr pipeline,
+      // which doesn't support POST and returns 403 FUNCTION_INVOCATION_FAILED.
+      // Discovered while wiring BL-039's /api/inoreader/refresh (POST-only).
+      // Regex support requires @astrojs/vercel >= 8.1.0 (current: 10.x).
+      exclude: [/^\/api\/.+/],
     },
   }),
   devToolbar: {
