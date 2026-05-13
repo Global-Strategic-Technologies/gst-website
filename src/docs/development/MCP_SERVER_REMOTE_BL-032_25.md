@@ -4,7 +4,7 @@
 >
 > **BACKLOG entry**: [BL-032.25 in BACKLOG.md](./BACKLOG.md#bl-03225-mcp-revisions-prior-to-go-live)
 >
-> **Status**: Open — close-out. Zero P0 items (substrate shipped). Four P1 items open (§§ 1–4); § 5 closed risk-accepted 2026-05-12. New findings from the post-deploy review window will be appended under their own § numbers. § 1 authored at initiative-creation time as the anchor finding (schema normalization → adapter retirement question); §§ 2–4 filed retroactively 2026-05-12 from the soak.
+> **Status**: Open — close-out. Zero P0 items (substrate shipped). **Two P1 items open** (§§ 1, 3); § 2 closed 2026-05-13 (commit `e97650d`); § 4 closed 2026-05-13 (commit `170f1d0`); § 5 closed risk-accepted 2026-05-12. New findings from the post-deploy review window will be appended under their own § numbers. § 1 authored at initiative-creation time as the anchor finding (schema normalization → adapter retirement question); §§ 2–4 filed retroactively 2026-05-12 from the soak.
 >
 > **Title note**: the "prior to Go-Live" phrasing in the title is now historical — Go-Live happened 2026-05-12. Title retained for backlog-ID stability; the initiative's functional role is **close-out of substrate-soak follow-ups**.
 >
@@ -254,7 +254,7 @@ P1 — operator picks Option A or B during execution. Default recommendation: **
 
 ### Closure stanza
 
-(Pending — operator's Option A vs B selection.)
+**Closed (2026-05-13)** — operator chose **Option B** (5-line surgical fix), shipped in commit `e97650d` `fix(mcp): close BL-032.25 § 2 — empty Bearer header returns clearer 401 message`. The fix adds a precondition to `mcp-server/src/auth/bearer.ts:71-76` that detects bare-`Bearer` and `Bearer\s+` (the shapes produced by HTTP-runtime whitespace normalization of `Authorization: Bearer `) and routes those cases to the empty-token branch. Paired update to `mcp-server/tests/integration/auth.test.ts:73-89` pins the expected message (`/empty bearer token/i`) and removes the prior "Both are correct rejections" hedge. All 420 MCP tests pass; typecheck clean. Operator-visible effect: `Bearer ` now returns `"Empty Bearer token"` instead of the misleading `"Authorization header must use Bearer scheme"`.
 
 ---
 
@@ -433,7 +433,12 @@ Standalone shippable commit. Doesn't require coordination with BL-034 unless the
 
 ### Closure stanza
 
-(Pending — fix-time.)
+**Closed (2026-05-13)** — both follow-ups shipped in commit `170f1d0` `fix(mcp): close BL-032.25 § 4 — DEPLOY bash setup + Invoke-McpRequest fails loudly on HTTP errors`.
+
+- **(a) DEPLOY.md § B.3** bash setup snippet rewritten to use `read -rsp "MCP_KEY (input hidden): " MCP_KEY` so the operator paste-hazard (`<your-MCP_KEY_RP-token-value>`) is gone. Default `MCP_URL` flipped from `mcp-staging.globalstrategic.tech` to `mcp.globalstrategic.tech` (production-canonical, mirroring REMOTE_CLIENT_SETUP.md's 2026-05-12 flip). PowerShell-helper comment-block at the matching location also updated to default to production + demonstrate `Read-Host -AsSecureString | ConvertFrom-SecureString -AsPlainText` for explicit overrides
+- **(b) Invoke-McpRequest.ps1** refactored to **fail loudly**: throws on `StatusCode >= 400` with `HTTP $status from $url. Body excerpt: ...` AND throws on "2xx response but no SSE data line" with `protocol unexpected. Body excerpt: ...`. Bootstrap MCP_KEY prompt also flipped to `Read-Host -AsSecureString` to keep the value out of scrollback. The now-unreachable `if (-not $resp.PSObject.Properties.Match('result').Count)` guard in `Invoke-McpTool` removed; the legitimate-2xx-but-Zod-rejection text-parse guard retained. Operator confirmed no external callers; no backwards-compat needed
+
+All 420 MCP tests pass; typecheck clean.
 
 ---
 
@@ -489,8 +494,8 @@ This section is the operator-facing close-out plan for the four open P1 items, w
 
 | Item | Effort                                                                                        | Risk                | Ships as                                                     | Status                                                                                                       |
 | ---- | --------------------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| § 2  | 30 min (Option B: 5-line surgical fix + test update)                                          | Very low            | Standalone commit                                            | **Ready to execute** — operator chose Option B (2026-05-13)                                                  |
-| § 4  | ~30 min (bundled (a) + (b): bash placeholder + URL flip + Invoke-McpRequest throw refactor)   | Low                 | Standalone commit                                            | **Ready to execute** — operator chose throw-on-error (2026-05-13)                                            |
+| § 2  | 30 min (Option B: 5-line surgical fix + test update)                                          | Very low            | Standalone commit                                            | **✅ Closed 2026-05-13** — commit `e97650d`                                                                  |
+| § 4  | ~30 min (bundled (a) + (b): bash placeholder + URL flip + Invoke-McpRequest throw refactor)   | Low                 | Standalone commit                                            | **✅ Closed 2026-05-13** — commit `170f1d0`                                                                  |
 | § 1  | 2–4 hrs benchmark-audit spike; then 0 days OR 2–3 days engineering depending on audit outcome | Schedule / data     | Deferred until BL-032.75 Phase 2 closes (~3–5 weeks)         | **Deferred** — operator chose to wait (2026-05-13). Re-surface as agenda item at Phase 2 close-out           |
 | § 3  | 1 hr reproduction script + 1–2 hrs root-cause narrow + 0–2 hrs fix                            | Unknown until repro | Bundle with BL-032.75 Phase 2a/2c when instrumentation lands | **Blocked** on reproduction-script construction; suggested timing tied to BL-032.75 Phase 2a metric emitters |
 
@@ -523,4 +528,4 @@ This section is the operator-facing close-out plan for the four open P1 items, w
 
 ---
 
-_Last updated: 2026-05-13 — post-Go-Live re-investigation. § 2 root-cause analysis corrected (HTTP whitespace normalization, not in-code logic). § 3 reproduction-script template added. § 4 line refs confirmed; bundled fix plan + adjacent-sweep notes recorded. § 1 audit findings restated with 2026-05-13 confirmation. Implementation-order section added._
+_Last updated: 2026-05-13 — post-Go-Live re-investigation + first close-out wave. § 2 (commit `e97650d`) and § 4 (commit `170f1d0`) closed; § 1 deferred until BL-032.75 Phase 2 closes; § 3 blocked on reproduction-script construction (timed with BL-032.75 Phase 2a metric emitters). Two P1 items remain open in the bucket._
