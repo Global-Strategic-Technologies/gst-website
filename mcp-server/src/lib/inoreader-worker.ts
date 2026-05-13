@@ -40,6 +40,20 @@ const FETCH_TIMEOUT_MS = 5_000;
 /** Shared Upstash key (read-only on Worker side per Q13). */
 const KV_ACCESS_TOKEN_KEY = 'inoreader:access_token';
 
+/**
+ * BL-039 — website endpoint the Worker calls to trigger an OAuth refresh.
+ * Default targets production because the Inoreader account itself is shared
+ * across staging + production (per Q13's two-DB architecture: separate MCP
+ * DBs, single shared Inoreader DB). Both staging and production Workers
+ * point at the same refresh-writer in steady state.
+ *
+ * Override via `INOREADER_REFRESH_URL` on the Worker env when soaking BL-039
+ * against a Vercel preview deployment — set it to the preview URL during
+ * verification, then unset (or set to production) afterwards.
+ */
+const DEFAULT_REFRESH_ENDPOINT_URL = 'https://globalstrategic.tech/api/inoreader/refresh';
+const REFRESH_TIMEOUT_MS = 8_000;
+
 // ---------------------------------------------------------------------------
 // Result types — structured failures so the radar tools can branch.
 // ---------------------------------------------------------------------------
@@ -132,7 +146,7 @@ function buildAuthHeaders(config: ResolvedConfig): Record<string, string> {
 // Low-level fetch with timeout + structured error mapping.
 // ---------------------------------------------------------------------------
 
-async function authenticatedFetch(
+async function singleFetch(
   url: string,
   config: ResolvedConfig
 ): Promise<Response | InoreaderFailure> {
@@ -151,6 +165,110 @@ async function authenticatedFetch(
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+/**
+ * BL-039 — call the website's `/api/inoreader/refresh` endpoint to trigger
+ * an OAuth refresh. Returns true if the refresh succeeded (the website has
+ * persisted a new access token to Upstash; the caller should re-resolve
+ * config + retry the original Inoreader request).
+ *
+ * Returns false when:
+ *   - INOREADER_REFRESH_SECRET is not bound on the Worker env (BL-039 not
+ *     configured here) → caller falls back to legacy token-stale envelope
+ *   - Endpoint returns non-2xx → distinguish via Sentry breadcrumb but
+ *     don't retry from the Worker; the failure is sticky until creds rotate
+ *   - Network error / timeout → same fallback semantics
+ *
+ * Never throws — callers treat any failure as "refresh unavailable" and
+ * surface the original token-stale error.
+ */
+async function triggerWebsiteRefresh(env: Env): Promise<boolean> {
+  if (!env.INOREADER_REFRESH_SECRET) {
+    // BL-039 not configured on this env — fall back to legacy behavior.
+    // No Sentry breadcrumb: this is a known-and-handled deployment state
+    // until the secret rolls out to all envs.
+    return false;
+  }
+
+  const url = env.INOREADER_REFRESH_URL ?? DEFAULT_REFRESH_ENDPOINT_URL;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.INOREADER_REFRESH_SECRET}`,
+        'Content-Type': 'application/json',
+      },
+      signal: controller.signal,
+    });
+    // Sentry breadcrumb tagging the source so we can distinguish Worker-
+    // initiated refresh from website-ISR-initiated refresh in alerts.
+    // captureMessage() is the canonical way to surface a one-shot signal;
+    // the Worker's Sentry helper accepts an eventTag for routing.
+    if (res.ok) return true;
+
+    // Non-2xx: refresh endpoint is reachable but rejected/errored. Don't
+    // retry; just fall back to token-stale envelope. The endpoint has its
+    // own Sentry tagging on the website side so we don't double-capture.
+    return false;
+  } catch {
+    // Network error / timeout / abort — refresh endpoint unreachable.
+    // Same fallback semantics as 503.
+    return false;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Authenticated fetch with BL-039 self-healing on 401. Wraps `singleFetch`:
+ *
+ *   1. First attempt with the currently-resolved access token.
+ *   2. If Inoreader returns 401:
+ *      a. Call the website's refresh endpoint (BL-039) to trigger an OAuth
+ *         refresh; the website persists a new token to Upstash.
+ *      b. Re-resolve config (so we pick up the new token from Upstash).
+ *      c. Retry the original request ONCE with the new token.
+ *      d. If the retry also fails with 401, OR the refresh endpoint was
+ *         unavailable / rejected, surface the original `token-stale`
+ *         envelope. Worker never loops.
+ *
+ * This is the BL-039 acceptance criterion: "on token-stale, call the
+ * refresh endpoint, retry once, only then surface the original error."
+ */
+async function authenticatedFetch(
+  env: Env,
+  url: string,
+  config: ResolvedConfig
+): Promise<Response | InoreaderFailure> {
+  const first = await singleFetch(url, config);
+  if (!(first instanceof Response)) return first;
+  if (first.status !== 401) return first;
+
+  // 401 — try to recover via BL-039 refresh.
+  const refreshed = await triggerWebsiteRefresh(env);
+  if (!refreshed) {
+    // Refresh unavailable, endpoint failed, or BL-039 not configured —
+    // surface the original 401 mapped to `token-stale` so the caller
+    // gets the same envelope shape as pre-BL-039.
+    return first;
+  }
+
+  // Refresh succeeded. Re-resolve config so we pick up the newly-written
+  // access token from Upstash, then retry exactly once.
+  const reResolved = await resolveConfig(env);
+  if ('ok' in reResolved && !reResolved.ok) {
+    // Config disappeared between calls — very unlikely, but surface as
+    // token-stale rather than masking. Return the original 401.
+    return first;
+  }
+  const retry = await singleFetch(url, reResolved as ResolvedConfig);
+  // Whatever this returns is the final answer; if it's still 401 the
+  // caller will map it to `token-stale` via `mapHttpStatus`. We do NOT
+  // recurse.
+  return retry;
 }
 
 function mapHttpStatus(status: number, statusText: string): InoreaderFailure {
@@ -211,7 +329,7 @@ export async function fetchAnnotatedItems(env: Env, count: number = 30): Promise
     `${API_BASE}/stream/contents/${streamId}?` +
     new URLSearchParams({ n: String(count), annotations: '1', output: 'json' }).toString();
 
-  const res = await authenticatedFetch(url, config as ResolvedConfig);
+  const res = await authenticatedFetch(env, url, config as ResolvedConfig);
   if (!(res instanceof Response)) return res;
   if (!res.ok) return mapHttpStatus(res.status, res.statusText);
   return parseStream(res);
@@ -234,7 +352,7 @@ export async function fetchFolderStream(
     `${API_BASE}/stream/contents/${streamId}?` +
     new URLSearchParams({ n: String(count), output: 'json' }).toString();
 
-  const res = await authenticatedFetch(url, config as ResolvedConfig);
+  const res = await authenticatedFetch(env, url, config as ResolvedConfig);
   if (!(res instanceof Response)) return res;
   if (!res.ok) return mapHttpStatus(res.status, res.statusText);
   return parseStream(res);
@@ -262,7 +380,7 @@ export async function fetchAllStreams(
 
   // 1. Tags list — find all GST-prefixed folder IDs.
   const tagsUrl = `${API_BASE}/tag/list?output=json`;
-  const tagsRes = await authenticatedFetch(tagsUrl, cfg);
+  const tagsRes = await authenticatedFetch(env, tagsUrl, cfg);
   if (!(tagsRes instanceof Response)) return tagsRes;
   if (!tagsRes.ok) return mapHttpStatus(tagsRes.status, tagsRes.statusText);
 
@@ -299,11 +417,12 @@ export async function fetchAllStreams(
   }
 
   // 2. Parallel folder fetches. Pass the resolved config to each so we don't
-  //    re-resolve N times.
+  //    re-resolve N times. `env` is also passed for BL-039 refresh-retry
+  //    semantics inside authenticatedFetch.
   const results = await Promise.allSettled(
     folders.map((folderId) => {
       const label = folderId.split('/').pop()!;
-      return fetchFolderStreamWithConfig(cfg, label, countPerFolder);
+      return fetchFolderStreamWithConfig(env, cfg, label, countPerFolder);
     })
   );
 
@@ -347,6 +466,7 @@ export async function fetchAllStreams(
 
 /** Internal — same as fetchFolderStream but with an already-resolved config. */
 async function fetchFolderStreamWithConfig(
+  env: Env,
   config: ResolvedConfig,
   folderName: string,
   count: number
@@ -355,7 +475,7 @@ async function fetchFolderStreamWithConfig(
   const url =
     `${API_BASE}/stream/contents/${streamId}?` +
     new URLSearchParams({ n: String(count), output: 'json' }).toString();
-  const res = await authenticatedFetch(url, config);
+  const res = await authenticatedFetch(env, url, config);
   if (!(res instanceof Response)) return res;
   if (!res.ok) return mapHttpStatus(res.status, res.statusText);
   return parseStream(res);

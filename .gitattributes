@@ -1,0 +1,10 @@
+# Generated files — written by tooling, force LF in the repo regardless of
+# the checkout platform. Without this, Windows operators see persistent
+# `LF will be replaced by CRLF` warnings + git showing the files as
+# modified after every `npm run build` / `npm run test` (which invokes
+# `prebuild` / `pretest` hooks that regenerate them).
+#
+# Narrowly scoped to the .generated.ts files in mcp-server/src/content/
+# (regulations + library indices) to keep this rule's blast radius small.
+# Extend if/when other generated files appear with the same pattern.
+mcp-server/src/content/*.generated.ts text eol=lf

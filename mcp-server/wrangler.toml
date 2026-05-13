@@ -19,6 +19,16 @@ main = "src/worker.ts"
 compatibility_date = "2026-05-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Emit source maps alongside the bundled Worker so deploy.mjs can ship them
+# to Sentry via sentry-cli (Sentry → Cloudflare integration). Without this,
+# Sentry stack traces show minified output (`dist/index.js:1:482718`); with
+# it, traces resolve back to original TypeScript file:line. Source maps land
+# in the `dist/` directory after `wrangler deploy --outdir dist
+# --upload-source-maps` runs. Source-map upload itself is opt-in via
+# SENTRY_AUTH_TOKEN in the deploy env; deploy.mjs warns + continues if
+# missing so the chain doesn't break when the token isn't bound.
+upload_source_maps = true
+
 # nodejs_compat is required because the `agents` SDK pulls in `mimetext`
 # (uses node:os) and `mime-types` (uses node:path) transitively through its
 # observability module. Cloudflare's nodejs_compat layer polyfills these
@@ -47,6 +57,17 @@ compatibility_flags = ["nodejs_compat"]
 #   INOREADER_APP_KEY             Copy from Vercel env
 #   INOREADER_ACCESS_TOKEN        Copy from Vercel env (env fallback only — primary read is inoreader:access_token)
 #   INOREADER_REFRESH_TOKEN       Copy from Vercel env (Worker reads only — see Q4 Resolved)
+#   INOREADER_REFRESH_SECRET      BL-039 — shared secret for Worker → /api/inoreader/refresh.
+#                                  SAME value must be bound on the website (Vercel env var).
+#                                  Generate fresh per env: `openssl rand -hex 32`
+#                                  When absent, Worker falls back to legacy token-stale envelope
+#                                  (the BL-032 / pre-BL-039 behavior — operator visits /hub/radar).
+#   INOREADER_REFRESH_URL         BL-039 — OPTIONAL override of the refresh endpoint URL.
+#                                  Defaults to https://globalstrategic.tech/api/inoreader/refresh.
+#                                  Set on staging Worker during BL-039 soak verification to point
+#                                  at a Vercel preview deployment (e.g. the feature-branch preview
+#                                  URL before merging to master). Unset / restore-to-default once
+#                                  the production website endpoint is live.
 #   SENTRY_DSN                    Sentry project — service:mcp-server (Q6)
 #
 # Phase 1 spike runs locally via `wrangler dev` with no secrets set; the only
@@ -57,6 +78,14 @@ name = "gst-mcp-staging"
 routes = [
   { pattern = "mcp-staging.globalstrategic.tech", custom_domain = true }
 ]
+
+# BL-032.5 Phase 4: hourly radar snapshot refresh. The `scheduled` handler
+# in `src/worker.ts` delegates to `cron/radar-refresh.ts`, which force-
+# refreshes `mcp:radar:cache:wire` and `mcp:radar:cache:fyi`. Budget
+# protection (circuit breaker + day-counter soft cap) lives in the
+# handler so this trigger is the only place the cadence is declared.
+[env.staging.triggers]
+crons = ["0 * * * *"]
 
 # ---------------------------------------------------------------------------
 # Production
@@ -70,3 +99,7 @@ name = "gst-mcp"
 routes = [
   { pattern = "mcp.globalstrategic.tech", custom_domain = true }
 ]
+
+# Same hourly radar refresh as staging — see commentary above.
+[env.production.triggers]
+crons = ["0 * * * *"]

@@ -53,6 +53,34 @@ describe('captureMessage', () => {
     const callArgs = sentryCaptureMessage.mock.calls[0]?.[1] as Record<string, unknown>;
     expect(callArgs).not.toHaveProperty('extra');
   });
+
+  it('sets event tag when eventTag argument is supplied (alert-rule filter parity)', () => {
+    captureMessage(
+      'auth.failed bearer-rejected',
+      'warning',
+      { path: '/mcp', status: 401 },
+      'auth.failed'
+    );
+    expect(sentryCaptureMessage).toHaveBeenCalledWith('auth.failed bearer-rejected', {
+      level: 'warning',
+      extra: { path: '/mcp', status: 401 },
+      tags: { event: 'auth.failed' },
+    });
+  });
+
+  it('omits the tags field entirely when eventTag is not supplied', () => {
+    captureMessage('plain', 'info', { foo: 'bar' });
+    const callArgs = sentryCaptureMessage.mock.calls[0]?.[1] as Record<string, unknown>;
+    expect(callArgs).not.toHaveProperty('tags');
+  });
+
+  it('supports eventTag together with no extras (tag only, no payload)', () => {
+    captureMessage('inoreader-rate-limit', 'error', undefined, 'inoreader-rate-limit');
+    expect(sentryCaptureMessage).toHaveBeenCalledWith('inoreader-rate-limit', {
+      level: 'error',
+      tags: { event: 'inoreader-rate-limit' },
+    });
+  });
 });
 
 describe('captureException', () => {

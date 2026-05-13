@@ -40,6 +40,9 @@ import type { Env } from '../worker';
 
 const VERSION = '0.1.0'; // bumped in lockstep with mcp-server/package.json (see BREAKING_CHANGES.md)
 
+/** Upstash key written by `radar-live-store.ts` (and refreshed hourly by `cron/radar-refresh.ts`). */
+const RADAR_FYI_CACHE_KEY = 'mcp:radar:cache:fyi';
+
 interface HealthResponse {
   ok: boolean;
   version: string;
@@ -49,6 +52,14 @@ interface HealthResponse {
   upstashInoreader: 'ok' | 'degraded';
   inoreader: InoreaderStatus;
   inoreaderObservedAt: string | null;
+  /**
+   * Age of the FYI radar snapshot in seconds (BL-032.5 Phase 4). `null` when
+   * the snapshot has never been populated or when MCP DB is unreachable.
+   * BL-032.75 alert rules trip when this exceeds 2× the Cron interval
+   * (~7200 s = 2 h). Picked FYI (not Wire) because it's the more
+   * user-visible tier and refreshes from the same Cron tick.
+   */
+  radarSnapshotAgeSeconds: number | null;
 }
 
 /**
@@ -95,6 +106,39 @@ async function probeInoreader(env: Env): Promise<'ok' | 'degraded'> {
 }
 
 /**
+ * Compute the age (seconds) of the FYI radar snapshot from its Upstash
+ * cache entry. Returns null when:
+ *   - MCP DB unreachable
+ *   - Snapshot key missing (Cron hasn't run yet)
+ *   - Cache value is malformed (no `fetchedAt`)
+ *
+ * Implementation note: `radar-live-store.ts` writes the entry wrapped in
+ * the `upstash-cache-store` Entry envelope (`{ storedAt, data }`). We read
+ * the same shape and pull `data.fetchedAt`. Falls back to `storedAt` if
+ * `fetchedAt` is missing for any reason. The cost is one cheap GET.
+ */
+async function probeRadarSnapshotAge(env: Env): Promise<number | null> {
+  const redis = createMcpClient(env);
+  if (!redis) return null;
+  try {
+    const raw = await redis.get<
+      { storedAt: number; data?: { fetchedAt?: string } } | string | null
+    >(RADAR_FYI_CACHE_KEY);
+    if (raw == null) return null;
+    const entry =
+      typeof raw === 'string'
+        ? (JSON.parse(raw) as { storedAt: number; data?: { fetchedAt?: string } })
+        : raw;
+    const fetchedAtMs =
+      entry.data?.fetchedAt != null ? new Date(entry.data.fetchedAt).getTime() : entry.storedAt;
+    if (!Number.isFinite(fetchedAtMs)) return null;
+    return Math.max(0, Math.floor((Date.now() - fetchedAtMs) / 1000));
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Build the health response payload from the current env state. Pure
  * data — no Response wrapping; that's the worker.ts layer's job (it
  * also adds CORS headers).
@@ -104,16 +148,19 @@ async function probeInoreader(env: Env): Promise<'ok' | 'degraded'> {
  * single-DB shape.
  */
 export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
-  const [upstashMcp, upstashInoreader, inoreader] = await Promise.all([
+  const [upstashMcp, upstashInoreader, inoreader, radarSnapshotAgeSeconds] = await Promise.all([
     probeMcp(env),
     probeInoreader(env),
     readInoreaderStatus(env),
+    probeRadarSnapshotAge(env),
   ]);
 
   // ok: true iff both Upstash DBs are reachable AND the last observed
   // Inoreader API call was not degraded. `inoreader: 'unknown'` is
   // intentionally NOT a degraded signal — it just means we haven't seen
   // recent traffic. Worker cold-starts begin in this state.
+  // `radarSnapshotAgeSeconds` is informational on /health — staleness
+  // alerts live in BL-032.75 (Sentry alert rule on the cron events).
   const ok = upstashMcp === 'ok' && upstashInoreader === 'ok' && inoreader.status !== 'degraded';
 
   return {
@@ -125,5 +172,6 @@ export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
     upstashInoreader,
     inoreader: inoreader.status,
     inoreaderObservedAt: inoreader.observedAt,
+    radarSnapshotAgeSeconds,
   };
 }

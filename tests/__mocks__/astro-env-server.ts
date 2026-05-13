@@ -6,6 +6,7 @@ export const INOREADER_APP_ID: string | undefined = undefined;
 export const INOREADER_APP_KEY: string | undefined = undefined;
 export const INOREADER_ACCESS_TOKEN: string | undefined = undefined;
 export const INOREADER_REFRESH_TOKEN: string | undefined = undefined;
+export const INOREADER_REFRESH_SECRET: string | undefined = undefined;
 export const INOREADER_FOLDER_PREFIX = 'GST-';
 export const KV_REST_API_URL: string | undefined = undefined;
 export const KV_REST_API_TOKEN: string | undefined = undefined;

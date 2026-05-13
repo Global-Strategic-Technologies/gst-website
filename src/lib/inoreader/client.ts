@@ -164,6 +164,63 @@ function buildHeaders(config: ClientConfig): Record<string, string> {
 }
 
 /**
+ * Trigger a standalone Inoreader OAuth refresh — load the current config,
+ * exchange the refresh-token, persist new tokens to KV. Exported so the
+ * BL-039 `/api/inoreader/refresh` endpoint can invoke the refresh path
+ * without going through `authenticatedFetch`.
+ *
+ * Returns a structured outcome (not the raw token — the new access token is
+ * already persisted to KV and read by the next caller; the endpoint just
+ * needs to confirm success/failure).
+ */
+export interface RefreshOutcome {
+  readonly ok: boolean;
+  readonly reason?:
+    | 'no-refresh-token'
+    | 'inoreader-rejected'
+    | 'config-missing'
+    | 'network-error'
+    | 'persist-failed';
+  readonly inoreaderStatus?: number;
+  readonly message?: string;
+}
+
+export async function triggerInoreaderRefresh(): Promise<RefreshOutcome> {
+  let config: ClientConfig;
+  try {
+    config = await getConfig();
+  } catch (e) {
+    return {
+      ok: false,
+      reason: 'config-missing',
+      message: (e as Error).message,
+    };
+  }
+
+  if (!config.refreshToken) {
+    return {
+      ok: false,
+      reason: 'no-refresh-token',
+      message: 'No refresh token available. Run: node scripts/inoreader-auth.mjs setup',
+    };
+  }
+
+  const newToken = await refreshAccessToken(config);
+  if (!newToken) {
+    // refreshAccessToken already logged + sent to Sentry; surface a coarse
+    // outcome to the caller. The endpoint should not retry — Inoreader's
+    // refresh failure is sticky until creds are rotated.
+    return {
+      ok: false,
+      reason: 'inoreader-rejected',
+      message: 'Inoreader rejected the refresh-token exchange. See Sentry for details.',
+    };
+  }
+
+  return { ok: true };
+}
+
+/**
  * Attempt to refresh the access token using the refresh token.
  * Persists both new tokens to KV for future invocations.
  * Returns the new access token or null on failure.

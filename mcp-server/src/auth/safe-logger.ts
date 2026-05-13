@@ -56,6 +56,8 @@ export interface LogEvent {
   success?: boolean;
   /** Structured error code for failure events — e.g. 'inoreader-rate-limit', 'token-stale'. */
   errorCode?: string;
+  /** MCP Resource URI (e.g. `gst://library/vdr-structure`). Carried on `resource_cache_*` events from BL-032.5 Phase 1; safe to log (URIs are public identifiers). */
+  uri?: string;
 }
 
 /**

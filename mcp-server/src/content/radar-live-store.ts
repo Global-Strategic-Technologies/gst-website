@@ -67,10 +67,17 @@ interface CachedTier {
  * Read the merged Wire stream (live, with Upstash 6h cache).
  * On cache miss, calls Inoreader's `tag/list` + parallel folder fetches via
  * `fetchAllStreams`. Items are tagged `tier: 'wire'`.
+ *
+ * `opts.forceRefresh`: skip the cache lookup and always fetch from Inoreader.
+ * Used by the BL-032.5 Phase 4 Worker Cron to refresh the snapshot on a
+ * schedule independent of read traffic.
  */
-export async function readWireLive(env: Env): Promise<LiveTierResult> {
+export async function readWireLive(
+  env: Env,
+  opts: { forceRefresh?: boolean } = {}
+): Promise<LiveTierResult> {
   const cache = createCacheStore(env);
-  if (cache) {
+  if (cache && !opts.forceRefresh) {
     const cached = await cache.get<CachedTier>(CACHE_KEY_WIRE);
     if (cached) {
       return {
@@ -114,10 +121,17 @@ export async function readWireLive(env: Env): Promise<LiveTierResult> {
  * Read the FYI stream (live, with Upstash 6h cache).
  * On cache miss, calls Inoreader's annotated-stream endpoint via
  * `fetchAnnotatedItems`. Items are tagged `tier: 'fyi'`.
+ *
+ * `opts.forceRefresh`: skip the cache lookup and always fetch from Inoreader.
+ * Used by the BL-032.5 Phase 4 Worker Cron.
  */
-export async function readFyiLive(env: Env, count: number = 30): Promise<LiveTierResult> {
+export async function readFyiLive(
+  env: Env,
+  count: number = 30,
+  opts: { forceRefresh?: boolean } = {}
+): Promise<LiveTierResult> {
   const cache = createCacheStore(env);
-  if (cache) {
+  if (cache && !opts.forceRefresh) {
     const cached = await cache.get<CachedTier>(CACHE_KEY_FYI);
     if (cached) {
       // Limit cached items to the requested count (cache stores up to 30,

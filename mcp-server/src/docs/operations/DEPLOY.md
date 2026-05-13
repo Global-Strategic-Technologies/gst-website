@@ -417,10 +417,10 @@ A 7-step curl sequence to verify each layer of the request flow. Run these again
 > ```powershell
 > cd c:\Code\gst-website\mcp-server
 > . .\scripts\Invoke-McpRequest.ps1
-> # MCP_URL defaults to staging if unset; MCP_KEY is prompted (visible) if unset.
+> # MCP_URL defaults to https://mcp.globalstrategic.tech (production); MCP_KEY is prompted if unset.
 > # Both env vars can be re-set explicitly per session, e.g.:
-> #   $env:MCP_URL = "https://mcp-staging.globalstrategic.tech"
-> #   $env:MCP_KEY = "<your-MCP_KEY_RP-token-value>"
+> #   $env:MCP_URL = "https://mcp-staging.globalstrategic.tech"  # override for staging probes
+> #   $env:MCP_KEY = (Read-Host -AsSecureString "MCP_KEY" | ConvertFrom-SecureString -AsPlainText)  # prompt without echoing into scrollback
 > ```
 >
 > Two helpers land in the session:
@@ -430,12 +430,14 @@ A 7-step curl sequence to verify each layer of the request flow. Run these again
 >
 > With these, B.3.3 becomes `(Invoke-McpRequest -Method "tools/list").result.tools.name`, B.3.4 becomes `Invoke-McpTool -Name "list_portfolio_facets"`, T.B.2.a becomes `Invoke-McpTool -Name "search_portfolio" -Arguments @{ search = "kubernetes" }`. PowerShell-flavored examples are inlined per-step below.
 
-> bash one-time setup:
+> bash one-time setup (production is the default; override `MCP_URL` to staging if needed). The `read -rsp` prompts for the key without echoing — paste the real value at the prompt:
 >
 > ```bash
-> export MCP_URL=https://mcp-staging.globalstrategic.tech
-> export MCP_KEY=<your-MCP_KEY_RP-token-value>
+> export MCP_URL=https://mcp.globalstrategic.tech    # or https://mcp-staging.globalstrategic.tech for staging probes
+> read -rsp "MCP_KEY (input hidden): " MCP_KEY && export MCP_KEY && echo
 > ```
+>
+> **Avoid** literally pasting `export MCP_KEY=<your-MCP_KEY_RP-token-value>` — bash treats `<...>` as input redirection and you'll either get "no such file" or a literal-string value depending on shell. The `read -rsp` pattern sidesteps the placeholder-paste hazard entirely.
 
 ### B.3.1 — Health endpoint responds
 
@@ -850,7 +852,13 @@ At typical usage, total is well under 200/day. If the per-key cap isn't sufficie
 
 ### Recovery — Inoreader OAuth refresh-token expired
 
-Distinct failure mode from budget exhaustion: if the Worker's radar-tool error envelope is `{"error":"token-stale","status":401,...}` AND visiting the website's `/hub/radar` page in a browser does NOT clear it (which would normally trigger the website's automatic refresh path), the Inoreader **refresh** token itself has expired or been revoked. The Worker is read-only on `inoreader:*` keys — it can't fix this; only the website can.
+**Update (BL-039 — 2026-05-13)**: the Worker now self-heals on Inoreader 401 by calling the website's `/api/inoreader/refresh` endpoint and retrying the original request once. Manual recovery is only needed when the **refresh-token itself** is dead (expired, revoked at Inoreader) — at that point neither the website ISR nor the Worker's BL-039 retry can recover, and an operator must mint new tokens via the OAuth setup flow.
+
+**Telemetry to distinguish the two cases**:
+
+- `inoreader: 'degraded'` in `/health` followed by `inoreader: 'ok'` within 1-2 Cron ticks → BL-039 self-heal succeeded. No action needed
+- `inoreader: 'degraded'` persists across multiple Cron ticks AND Sentry shows `BL-039 refresh failed: inoreader-rejected` from the website endpoint → refresh-token is dead; operator action required (steps below)
+- `inoreader: 'degraded'` persists AND Sentry is silent on the BL-039 endpoint → either the Worker's `INOREADER_REFRESH_SECRET` isn't bound, or the endpoint returned 503 endpoint-disabled. Check secret presence on both sides (`wrangler secret list --env <env>` for Worker; Vercel project env vars for website)
 
 Recovery is fully documented website-side in [`src/docs/hub/RADAR.md` § Production Observability & Troubleshooting](../../../../src/docs/hub/RADAR.md) (search for "Token refresh failed"). The short version:
 

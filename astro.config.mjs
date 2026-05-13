@@ -29,6 +29,14 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
+      // BL-039: shared secret authenticating Worker → /api/inoreader/refresh
+      // POST calls. Marked optional so the endpoint can return 503 when
+      // unconfigured rather than crashing at module load.
+      INOREADER_REFRESH_SECRET: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
       INOREADER_FOLDER_PREFIX: envField.string({
         context: 'server',
         access: 'public',
@@ -93,6 +101,12 @@ export default defineConfig({
     webAnalytics: { enabled: true },
     isr: {
       expiration: 60 * 60 * 6, // 6 hours — revalidation interval for SSR pages (Radar)
+      // Exclude /api/* routes from ISR routing. Without this, POST requests
+      // to API endpoints get misrouted through Vercel's /_isr pipeline,
+      // which doesn't support POST and returns 403 FUNCTION_INVOCATION_FAILED.
+      // Discovered while wiring BL-039's /api/inoreader/refresh (POST-only).
+      // Regex support requires @astrojs/vercel >= 8.1.0 (current: 10.x).
+      exclude: [/^\/api\/.+/],
     },
   }),
   devToolbar: {

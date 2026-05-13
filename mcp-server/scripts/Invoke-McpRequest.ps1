@@ -51,12 +51,13 @@
 
 # --- Env-var bootstrap ---
 if (-not $env:MCP_URL) {
-    $env:MCP_URL = 'https://mcp-staging.globalstrategic.tech'
+    $env:MCP_URL = 'https://mcp.globalstrategic.tech'
     Write-Host "MCP_URL defaulted to: $env:MCP_URL" -ForegroundColor Cyan
 }
 
 if (-not $env:MCP_KEY) {
-    $env:MCP_KEY = Read-Host -Prompt 'Paste MCP_KEY value (input will be visible)'
+    $secure = Read-Host -AsSecureString -Prompt 'Paste MCP_KEY value (input hidden)'
+    $env:MCP_KEY = [Net.NetworkCredential]::new('', $secure).Password
 }
 
 # --- Raw JSON-RPC call ---
@@ -89,11 +90,25 @@ function Invoke-McpRequest {
         -Body $body `
         -SkipHttpErrorCheck
 
+    # Fail loudly on HTTP errors with status + URL + body excerpt for diagnosis.
+    # `-SkipHttpErrorCheck` above suppresses PowerShell's default exception so
+    # we can attach a clearer message than the framework default.
+    if ($resp.StatusCode -ge 400) {
+        $bodyExcerpt = if ($resp.Content) {
+            $resp.Content.Substring(0, [Math]::Min(500, $resp.Content.Length))
+        }
+        else { '<empty body>' }
+        throw "Invoke-McpRequest: HTTP $($resp.StatusCode) from $($env:MCP_URL)/mcp. Body excerpt: $bodyExcerpt"
+    }
+
     # MCP Streamable-HTTP returns SSE format ("event: message\ndata: {...}").
-    # On non-SSE responses (e.g., 401 / 406 / 5xx with plain JSON body),
-    # return the raw HTTP response so the caller can inspect status + body.
+    # A 2xx response without a data line is a protocol-unexpected state, not
+    # a normal failure mode — fail loudly so the operator notices.
     $dataLine = $resp.Content -split "`n" | Where-Object { $_ -like 'data:*' } | Select-Object -First 1
-    if (-not $dataLine) { return $resp }
+    if (-not $dataLine) {
+        $bodyExcerpt = $resp.Content.Substring(0, [Math]::Min(500, $resp.Content.Length))
+        throw "Invoke-McpRequest: 2xx response but no SSE data line found (protocol unexpected). Body excerpt: $bodyExcerpt"
+    }
     return $dataLine.Substring(5).Trim() | ConvertFrom-Json
 }
 
@@ -105,9 +120,10 @@ function Invoke-McpTool {
 
     .DESCRIPTION
         Wraps Invoke-McpRequest -Method "tools/call" and unwraps result.content[0].text
-        to JSON-deserialize the tool's response. If the response is an error envelope
-        (no .result) or has unexpected shape, returns the raw envelope/response with a
-        warning so the caller can inspect.
+        to JSON-deserialize the tool's response. Invoke-McpRequest throws on HTTP
+        errors and on protocol-unexpected responses, so this wrapper only handles
+        the legitimate-2xx-but-unexpected-MCP-envelope cases (e.g., a Zod rejection
+        surfaced as plain text inside an otherwise valid envelope).
     #>
     param(
         [Parameter(Mandatory)] [string] $Name,
@@ -116,10 +132,6 @@ function Invoke-McpTool {
     )
     $resp = Invoke-McpRequest -Method 'tools/call' -Params @{ name = $Name; arguments = $Arguments } -Id $Id
 
-    if (-not $resp.PSObject.Properties.Match('result').Count) {
-        Write-Warning "MCP response has no .result — likely an error envelope or non-SSE response. Returning raw object for inspection."
-        return $resp
-    }
     if (-not $resp.result.content -or -not $resp.result.content[0].text) {
         Write-Warning "MCP response has unexpected content shape — returning raw envelope for inspection."
         return $resp

@@ -22,25 +22,57 @@ import { registerRegulationsTool } from './tools/regulations';
 import { registerRadarLiveTools } from './tools/radar-live';
 import { registerLibraryResources } from './resources/library';
 import { registerRegulationResources } from './resources/regulations';
+import { registerRadarResources } from './resources/radar';
+import { createWorkerSnapshotReader } from './content/radar-snapshot-reader-worker';
 import { registerPrompts } from './prompts/_registry';
+import { DEFAULT_SCOPES } from './auth/scopes';
 import type { Env } from './worker';
+
+/**
+ * Per-request context threaded into the server registry by the
+ * Worker fetch handler. Stdio callers pass `{}` (defaults below).
+ */
+export interface ServerContext {
+  /**
+   * Scope set granted to this request's caller. Defaults to
+   * `DEFAULT_SCOPES` (full grant — stdio entrypoint, single user).
+   * The Worker passes `auth.scopes` from the bearer-auth result so
+   * scope-gated handlers can `assertScope()` at the top of their bodies.
+   */
+  scopes?: readonly string[];
+  /**
+   * Whether to register radar Resources on this server instance.
+   *
+   *   - `'worker'`: register radar Resources using the Upstash-backed
+   *     reader (`createWorkerSnapshotReader`). Used by the Worker fetch
+   *     handler.
+   *   - omitted / `undefined`: skip radar Resource registration here.
+   *     The stdio path registers them in `tools/_local-only.ts` with
+   *     the node:fs-backed reader instead.
+   *
+   * Avoids double-registration in stdio + Upstash-bound dev runs.
+   */
+  radarSource?: 'worker';
+}
 
 /**
  * Build a transport-portable MCP server registry.
  *
  * The optional `env` parameter is passed through to live radar tools
  * (BL-032 Phase 4c) so they can read Inoreader credentials and check
- * the circuit breaker per request. The Worker calls `createServer(env)`
- * inside its fetch handler (env captured in tool closures, request-
- * scoped). The stdio entrypoint calls `createServer()` with no env;
- * radar-live tools still register but return a `config-missing` error
- * envelope when Inoreader creds aren't bound at the runtime level.
+ * the circuit breaker per request. The Worker calls
+ * `createServer(env, { scopes, radarSource: 'worker' })` inside its
+ * fetch handler (env + per-request scopes captured in handler closures).
+ * The stdio entrypoint calls `createServer()` with no env; radar Tools
+ * still register but return a `config-missing` error envelope when
+ * Inoreader creds aren't bound at the runtime level.
  */
-export function createServer(env: Env = {}): McpServer {
+export function createServer(env: Env = {}, ctx: ServerContext = {}): McpServer {
   const server = new McpServer({
     name: 'gst-mcp',
     version: '0.1.0',
   });
+  const scopes = ctx.scopes ?? DEFAULT_SCOPES;
 
   // Tools (transport-portable)
   registerDiligenceTool(server);
@@ -51,9 +83,19 @@ export function createServer(env: Env = {}): McpServer {
   registerRegulationsTool(server);
   registerRadarLiveTools(server, env);
 
-  // Resources (transport-portable — radar Resources are stdio-only, see _local-only.ts)
-  registerLibraryResources(server);
-  registerRegulationResources(server);
+  // Resources (transport-portable). `env` is threaded so handlers can
+  // consult the BL-032.5 server-side cache (see `cache/resource-cache.ts`).
+  // Cache is a no-op when Upstash isn't bound.
+  registerLibraryResources(server, env);
+  registerRegulationResources(server, env);
+
+  // BL-032.5 Phase 3: radar Resources are now transport-portable. The
+  // Worker passes radarSource='worker' so they register with the Upstash-
+  // backed reader. Stdio omits the option; `tools/_local-only.ts`
+  // registers them with the node:fs-backed reader separately.
+  if (ctx.radarSource === 'worker') {
+    registerRadarResources(server, createWorkerSnapshotReader(env), env, scopes);
+  }
 
   // Prompts
   registerPrompts(server);

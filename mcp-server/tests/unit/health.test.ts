@@ -236,4 +236,68 @@ describe('buildHealthPayload', () => {
 
     expect(payload.gitSha).toBe('unknown');
   });
+
+  describe('radarSnapshotAgeSeconds (BL-032.5 Phase 4)', () => {
+    it('reports null when the FYI radar cache key is missing', async () => {
+      redisGet.mockImplementation(async (key: string) => {
+        if (key === 'mcp:health:probe') return null;
+        if (key === 'inoreader:access_token') return 'token';
+        if (key === 'mcp:inoreader:last-status') return null;
+        if (key === 'mcp:radar:cache:fyi') return null;
+        return null;
+      });
+
+      const payload = await buildHealthPayload(baseEnv);
+      expect(payload.radarSnapshotAgeSeconds).toBeNull();
+    });
+
+    it("reports age in seconds based on the cache entry's fetchedAt", async () => {
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      redisGet.mockImplementation(async (key: string) => {
+        if (key === 'mcp:health:probe') return null;
+        if (key === 'inoreader:access_token') return 'token';
+        if (key === 'mcp:inoreader:last-status') return null;
+        if (key === 'mcp:radar:cache:fyi') {
+          // upstash-cache-store Entry envelope shape — { storedAt, data }
+          return { storedAt: Date.now(), data: { fetchedAt: tenMinutesAgo, items: [] } };
+        }
+        return null;
+      });
+
+      const payload = await buildHealthPayload(baseEnv);
+      // ~600 seconds; allow ±5s for wall-clock drift during the test
+      expect(payload.radarSnapshotAgeSeconds).toBeGreaterThanOrEqual(595);
+      expect(payload.radarSnapshotAgeSeconds).toBeLessThanOrEqual(605);
+    });
+
+    it('falls back to storedAt when fetchedAt is missing on the cache value', async () => {
+      const storedAtMs = Date.now() - 30 * 60 * 1000; // 30 minutes ago
+      redisGet.mockImplementation(async (key: string) => {
+        if (key === 'mcp:health:probe') return null;
+        if (key === 'inoreader:access_token') return 'token';
+        if (key === 'mcp:inoreader:last-status') return null;
+        if (key === 'mcp:radar:cache:fyi') {
+          return { storedAt: storedAtMs, data: { items: [] } }; // no fetchedAt
+        }
+        return null;
+      });
+
+      const payload = await buildHealthPayload(baseEnv);
+      expect(payload.radarSnapshotAgeSeconds).toBeGreaterThanOrEqual(1795);
+      expect(payload.radarSnapshotAgeSeconds).toBeLessThanOrEqual(1805);
+    });
+
+    it('returns null on Upstash read error (fail-open)', async () => {
+      redisGet.mockImplementation(async (key: string) => {
+        if (key === 'mcp:health:probe') return null;
+        if (key === 'inoreader:access_token') return 'token';
+        if (key === 'mcp:inoreader:last-status') return null;
+        if (key === 'mcp:radar:cache:fyi') throw new Error('upstash unreachable');
+        return null;
+      });
+
+      const payload = await buildHealthPayload(baseEnv);
+      expect(payload.radarSnapshotAgeSeconds).toBeNull();
+    });
+  });
 });

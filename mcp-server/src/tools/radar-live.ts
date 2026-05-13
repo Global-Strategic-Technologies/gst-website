@@ -118,11 +118,19 @@ async function failureResponse(env: Env, failure: Extract<LiveTierResult, { ok: 
     await openCircuit(env, 'inoreader-429');
     // Sentry breadcrumb so SENTRY_MANUAL_SETUP.md Alert #3 fires. Low-
     // volume by construction (fires at most once per 6h breaker-open),
-    // so no rate-limit concern — every event is informative.
-    captureMessage('inoreader-rate-limit', 'error', {
-      status: failure.status,
-      message: failure.message,
-    });
+    // so no rate-limit concern — every event is informative. The
+    // `eventTag` argument sets an `event:` tag matching safeLog's
+    // structured-log field, so alert rules can filter via tag (preferred)
+    // OR message-content match (current SENTRY_MANUAL_SETUP.md walkthrough).
+    captureMessage(
+      'inoreader-rate-limit',
+      'error',
+      {
+        status: failure.status,
+        message: failure.message,
+      },
+      'inoreader-rate-limit'
+    );
   }
   return {
     content: [

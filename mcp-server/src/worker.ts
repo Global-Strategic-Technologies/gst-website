@@ -37,6 +37,7 @@ import { createLimiter } from './ratelimit/limiter';
 import { tooManyRequestsResponse, withRateLimitHeaders } from './ratelimit/headers';
 import { captureMessage, sentryOptions, tagRequest, withSentry } from './observability/sentry';
 import { buildHealthPayload } from './observability/health';
+import { refreshRadarSnapshot } from './cron/radar-refresh';
 
 /**
  * Worker environment bindings.
@@ -71,6 +72,19 @@ export interface Env {
   INOREADER_ACCESS_TOKEN?: string;
   INOREADER_REFRESH_TOKEN?: string;
 
+  // BL-039: shared secret used to authenticate Worker → website
+  // /api/inoreader/refresh POST calls. Same value bound on both sides
+  // (wrangler secret put on Worker; Vercel env var on website). The Worker
+  // only TRIGGERS refresh via this endpoint — the website remains the sole
+  // refresh-writer (Q4 invariant preserved).
+  INOREADER_REFRESH_SECRET?: string;
+
+  // BL-039: optional override for the refresh endpoint URL. Defaults to
+  // production (https://globalstrategic.tech/api/inoreader/refresh). Set
+  // this on staging Worker during BL-039 soak verification to target a
+  // Vercel preview deployment; unset / restore-to-default after verification.
+  INOREADER_REFRESH_URL?: string;
+
   // Sentry — new project for service:mcp-server (Q6).
   SENTRY_DSN?: string;
 
@@ -79,6 +93,14 @@ export interface Env {
   // can verify which commit is running on the edge after a deploy.
   // Falls back to 'unknown' when missing (e.g., local `wrangler dev` runs).
   GIT_SHA?: string;
+
+  // Sentry release identifier — injected by `scripts/deploy.mjs` via
+  // `wrangler deploy --var SENTRY_RELEASE:<sha>`. Tells Sentry which
+  // uploaded source-map bundle matches the running Worker so stack traces
+  // resolve to original TypeScript instead of minified `dist/index.js`.
+  // Matches GIT_SHA value by convention; separate Env field so the Sentry
+  // SDK's `release` option reads from a Sentry-namespaced var.
+  SENTRY_RELEASE?: string;
 
   // Forward-compat: any additional MCP_KEY_* secrets get matched by name.
   [key: string]: unknown;
@@ -93,6 +115,18 @@ export interface Env {
 // assembly only — no I/O).
 
 const handler: ExportedHandler<Env> = {
+  /**
+   * Hourly Cron handler (BL-032.5 Phase 4). Refreshes the Upstash radar
+   * snapshot cache so MCP Resource consumers see snapshots that are at
+   * most 60 minutes stale, independent of read traffic. Budget guards
+   * (circuit breaker + daily soft cap) live inside `refreshRadarSnapshot`;
+   * we just delegate here. The scheduled handler has no response surface
+   * — return value is ignored by Cloudflare.
+   */
+  async scheduled(_event, env, ctx): Promise<void> {
+    ctx.waitUntil(refreshRadarSnapshot(env));
+  },
+
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin');
@@ -125,10 +159,18 @@ const handler: ExportedHandler<Env> = {
       // Sentry breadcrumb so SENTRY_MANUAL_SETUP.md Alert #2 fires.
       // Message intentionally stable so Sentry groups all auth.failed
       // events together — a probing burst becomes one issue, not N.
-      captureMessage('auth.failed bearer-rejected', 'warning', {
-        path: url.pathname,
-        status: auth.status,
-      });
+      // `eventTag: 'auth.failed'` mirrors safeLog's `event` field so
+      // alert rules can filter via tag (`The event's tag {event} equals
+      // {auth.failed}`) instead of message-content match.
+      captureMessage(
+        'auth.failed bearer-rejected',
+        'warning',
+        {
+          path: url.pathname,
+          status: auth.status,
+        },
+        'auth.failed'
+      );
       return withCors(authFailureResponse(auth), origin);
     }
 
@@ -173,7 +215,12 @@ const handler: ExportedHandler<Env> = {
 
     // Build the MCP handler per-request — radar-live tools (Phase 4c) capture
     // `env` in their closures for circuit-breaker checks + Inoreader fetches.
-    const mcp = createMcpHandler(createServer(env));
+    // BL-032.5 Phase 3: pass `scopes` from the auth result so scope-gated
+    // handlers (radar Resources) can assertScope at the top of their bodies,
+    // and `radarSource: 'worker'` so radar Resources register with the
+    // Upstash-backed reader (the stdio reader uses node:fs and isn't bundled
+    // for the Worker).
+    const mcp = createMcpHandler(createServer(env, { scopes: auth.scopes, radarSource: 'worker' }));
     const response = await mcp(request, env, ctx);
     const durationMs = Date.now() - startedAt;
 

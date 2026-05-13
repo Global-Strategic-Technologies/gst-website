@@ -48,6 +48,12 @@ export function sentryOptions(env: Env): CloudflareOptions | undefined {
 
   return {
     dsn: env.SENTRY_DSN,
+    // Release identifier (git short SHA) used by Sentry to match events to
+    // uploaded source maps. Injected by scripts/deploy.mjs via `wrangler
+    // deploy --var SENTRY_RELEASE:<sha>`; when missing (e.g. `wrangler
+    // dev`), omit the field rather than send a placeholder — Sentry treats
+    // an undefined release differently from a wrong one.
+    ...(env.SENTRY_RELEASE ? { release: env.SENTRY_RELEASE } : {}),
     // Phase 5 baseline. BL-032.75 tunes against measured production rates.
     tracesSampleRate: 0.1,
     // Apply tags to every event; per-request tags get layered on top via
@@ -104,17 +110,27 @@ export function captureException(error: unknown, context?: Record<string, unknow
  *     events emit one breadcrumb. Low-volume by construction (once per
  *     6h breaker-open) so no rate-limit concern.
  *
+ * `eventTag` parameter (added 2026-05-12): callers should pass a short
+ * stable identifier ('auth.failed', 'inoreader-rate-limit', etc.) that
+ * gets set as an `event:` tag on the Sentry event. This matches the
+ * structured-log `event` field used by safeLog and lets Sentry alert
+ * rules filter via `The event's tag {event} equals {value}` instead of
+ * (or in addition to) the message-content filter. Falls back to no tag
+ * if omitted, preserving the prior behavior.
+ *
  * No-op when Sentry isn't initialized — `@sentry/cloudflare`'s
  * captureMessage returns early if `getClient()` is undefined.
  */
 export function captureMessage(
   message: string,
   level: 'info' | 'warning' | 'error' = 'warning',
-  context?: Record<string, unknown>
+  context?: Record<string, unknown>,
+  eventTag?: string
 ): void {
   Sentry.captureMessage(message, {
     level,
     ...(context ? { extra: context } : {}),
+    ...(eventTag ? { tags: { event: eventTag } } : {}),
   });
 }
 
