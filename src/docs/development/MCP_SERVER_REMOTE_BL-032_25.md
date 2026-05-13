@@ -1,16 +1,19 @@
 # BL-032.25 — MCP Revisions prior to Go-Live: Per-Item Implementation Plan
 
-> **Source**: BL-032.25 — bucket for soak-findings discovered during BL-032 § B.5 (staging soak window 2026-05-06 → ~2026-05-13)
+> **Source**: BL-032.25 — bucket for soak-findings discovered during BL-032 § B.5 (staging soak window 2026-05-06 → 2026-05-12). **As of 2026-05-12 BL-032 has shipped to production** at `mcp.globalstrategic.tech`; this initiative is now in **post-Go-Live close-out mode**, tracking the remaining P1 follow-ups + any new findings surfaced during the one-week post-deploy review window (2026-05-12 → ~2026-05-19).
 >
 > **BACKLOG entry**: [BL-032.25 in BACKLOG.md](./BACKLOG.md#bl-03225-mcp-revisions-prior-to-go-live)
 >
-> **Status**: Open — soak in progress; items added as discovered. § 1 authored at initiative-creation time as the anchor finding (schema normalization → adapter retirement question)
+> **Status**: Open — close-out. Zero P0 items (substrate shipped). Four P1 items open (§§ 1–4); § 5 closed risk-accepted 2026-05-12. New findings from the post-deploy review window will be appended under their own § numbers. § 1 authored at initiative-creation time as the anchor finding (schema normalization → adapter retirement question); §§ 2–4 filed retroactively 2026-05-12 from the soak.
+>
+> **Title note**: the "prior to Go-Live" phrasing in the title is now historical — Go-Live happened 2026-05-12. Title retained for backlog-ID stability; the initiative's functional role is **close-out of substrate-soak follow-ups**.
 >
 > **Companion docs**:
 >
 > - [BL-032 design doc](./MCP_SERVER_REMOTE_BL-032.md) — substrate this initiative responds to
 > - [BL-031.87 design doc](./MCP_SERVER_STAGE_ADAPTER_BL-031_87.md) — the original adapter-pattern decision § 1 revisits
 > - [BL-032 Soak-Week Testing Playbook](./MCP_SERVER_REMOTE_BL-032_TESTING.md) — primary source of findings populating this doc
+> - [IMMEDIATE_NEXT_STEPS.md](./IMMEDIATE_NEXT_STEPS.md) — phase ordering through BL-033 (BL-032.25 sits in the "anytime during baselining window" lane)
 
 ## Triage convention
 
@@ -157,6 +160,17 @@ If audit comes back A (by-design) AND no architectural trigger has fired, the re
 
 **What this means for post-launch**: schedule the benchmark-audit spike (2-4 hours, can be done off-soak). Outcome drives whether § 1 closes (audit finding A), graduates (B), or splits (C). The formerly-listed "URL-format versioning decision" is no longer relevant since URL backward-compat isn't a requirement.
 
+### 2026-05-13 post-Go-Live confirmation
+
+Re-audited the variance landscape one day post-Go-Live to confirm the 2026-05-06 investigation is still accurate:
+
+- **Adapter pattern shipped + operationally stable**: canonical taxonomy at [`src/data/common/funding-stages.ts:19-26`](../../data/common/funding-stages.ts), adapters at [`src/data/common/stage-adapters.ts`](../../data/common/stage-adapters.ts) (ICG lines 38–54, TechPar lines 62–79), MCP wrapper integration at [`mcp-server/src/schemas.ts:166-194`](../../../mcp-server/src/schemas.ts) — all in place per BL-031.87 closure (2026-05-02). Production deploy 2026-05-12 exercises these on every ICG / TechPar tool call
+- **No native-schema drift since 2026-05-06**: `git log --since="2026-05-06" -- src/data/common/* mcp-server/src/tools/* src/schemas/icg.ts src/schemas/techpar.ts src/data/techpar/* src/utils/icg-engine.ts src/utils/techpar-engine.ts` returns only description-string refinements (commit `02441fe`); no structural changes to enums, adapters, or benchmark data
+- **Real-data check**: `src/data/ma-portfolio/projects.json`'s `growthStage` field uses its own 6-value vocabulary (`Early-Stage Growth`, `Scaling Growth`, `Mature Enterprise`, `Expansion Stage`, `Established Market Leader`, `Legacy System`) — no overlap with ICG / TechPar funding-stage values, confirming portfolio's `growthStage` is intentionally a distinct concept (already noted in BL-031.87 § Out of scope)
+- **Collapses appear by-design**: BL-031.87 § Why we kept ICG's pre-series-b explicitly says _"ICG's `pre-series-b` deliberately collapses canonical seed + series-a because the benchmark population doesn't separate them (small sample size at seed)"_. TechPar's `series_bc` row at [`src/data/techpar/stages.ts:44-58`](../../data/techpar/stages.ts) is similarly labeled "Series B–C" with a documented convergence rationale. **This is suggestive evidence for finding A** (collapses are by-design) but is NOT a substitute for the formal benchmark-audit spike — the spike is the audit OF the dataset, not the engine's framing of it
+
+**Status**: investigation conclusions hold. The benchmark-audit spike (2–4 hours, original ICG / TechPar benchmark authors or a senior consultant) remains the next concrete action. Spike is **not yet scheduled** as of 2026-05-13.
+
 ### Closure stanza placeholder
 
 (Closure stanza added when this item is formally resolved — either by execution after a trigger fires, or by formal cancellation if BL-033 scope confirms the adapter pattern is BL-033-acceptable too.)
@@ -168,32 +182,79 @@ If audit comes back A (by-design) AND no architectural trigger has fired, the re
 ### Status
 
 - **Authored**: 2026-05-12 (filed retroactively from soak findings during BL-032.25 closure audit)
+- **Re-investigated**: 2026-05-13 (post-Go-Live close-out — original root-cause analysis was incomplete; see below)
 - **Severity**: **P1** — cosmetic error-disambiguation gap; correct status code returned, only the human-readable message is imprecise
-- **Recommendation**: defer; ship B.6 as-is; revisit if external pilot (BL-033) compliance review flags the message
+- **Recommendation (revised 2026-05-13)**: close as **resolved-by-design** OR ship a 5-line surgical fix; the original "add an empty-after-trim check" plan is moot because that check already exists. See **Mitigation options** below
 - **Investigation evidence**: this section
-- **Closure stanza**: [pending]
+- **Closure stanza**: [pending — operator decision on mitigation option]
 
 ### What it asks
 
 A request with `Authorization: Bearer ` (empty token after the scheme) returns `HTTP 401` with body `{"error":"unauthorized","message":"Authorization header must use Bearer scheme"}`. The status code is correct; the message is wrong — it suggests the scheme was rejected when in fact the scheme parsed fine and the token slot was empty.
 
-### Investigation findings
+### Investigation findings (revised 2026-05-13)
 
-- Reproduction: [TESTING_FINDINGS § T.A.4](./BL-032_TESTING_FINDINGS.md#ta4--empty-bearer-schema)
-- Likely site of fix: [`mcp-server/src/auth/bearer.ts`](../../../mcp-server/src/auth/bearer.ts) — the scheme-validation branch fires on empty token because the value-extraction step probably returns the empty string for `Bearer ` (single trailing space) and an earlier check rejects the falsy value
-- No leak / no auth bypass surfaced — the 401 is returned correctly, only the disambiguation in the response body is off
+The **original 2026-05-12 root-cause hypothesis was wrong**. Re-reading the code:
+
+- The empty-token check **already exists** in [`mcp-server/src/auth/bearer.ts:75-76`](../../../mcp-server/src/auth/bearer.ts):
+  ```typescript
+  const token = auth.slice(BEARER_PREFIX.length).trim();
+  if (!token) return unauthorized('Empty Bearer token');
+  ```
+- That check has been present since BL-032 Phase 2 (commit `a2bf819`) — i.e., it was there when T.A.4 was tested 2026-05-09. The original plan ("trivial fix: add an empty-after-trim check") proposed adding code that was already there
+- **Actual root cause**: HTTP runtimes (curl, fetch, undici, the Cloudflare Workers HTTP parser) **normalize trailing whitespace on header values**. The header `Authorization: Bearer ` arrives at the handler as the literal string `"Bearer"` (no trailing space)
+- Code path under that normalization:
+  1. `auth = request.headers.get('Authorization')` → `"Bearer"` (7 chars, no trailing space)
+  2. `auth.startsWith('Bearer ')` (8 chars including space) → **false**
+  3. Scheme-rejection branch fires → returns `"Authorization header must use Bearer scheme"`
+  4. Empty-token check at line 76 is **unreachable** in this scenario
+- The existing integration test [`mcp-server/tests/integration/auth.test.ts:73-89`](../../../mcp-server/tests/integration/auth.test.ts) **already documents this behavior as correct-by-design** — it explicitly does not pin the message and comments: _"HTTP runtimes may normalize trailing whitespace on header values, so 'Bearer ' can arrive as 'Bearer' — which trips the scheme check rather than the empty-token check. Both are correct rejections of 'no token provided'."_
+
+So the T.A.4 "FAIL" was the soak's discovery of a behavior the auth-test author already knew about and accepted. The disambiguation gap is real (the message is imprecise) but the fix is not where the original plan said it was.
+
+### Mitigation options
+
+**Option A — Close as resolved-by-design (zero code, zero risk)**
+
+- The existing integration test (auth.test.ts:73-89) is the canonical record that this behavior is intentional
+- Update the testing-findings doc T.A.4 entry to point at this section's revised analysis (currently the T.A.4 entry just says "P1 cosmetic error-disambiguation gap; status code is correct")
+- Close § 2 with a closure stanza pointing at auth.test.ts:73-89 as the by-design record
+- **Effort**: 10 minutes (doc updates only)
+- **Risk**: zero
+- **What operators see**: unchanged — `Bearer ` still returns the scheme-rejected message. The doc record is improved
+
+**Option B — Ship the 5-line surgical fix (cosmetic improvement)**
+
+- Detect the bare-`Bearer` and `Bearer + only-whitespace` cases explicitly and route them to the empty-token-error branch:
+  ```typescript
+  // Distinguish empty-token-after-normalization from a non-Bearer scheme.
+  // HTTP runtimes strip trailing whitespace on header values, so
+  // `Authorization: Bearer ` arrives as `"Bearer"` (no trailing space) —
+  // route those to the empty-token branch for clearer 401 messages.
+  if (auth === 'Bearer' || auth.match(/^Bearer\s*$/)) {
+    return unauthorized('Empty Bearer token');
+  }
+  if (!auth.startsWith(BEARER_PREFIX)) {
+    return unauthorized('Authorization header must use Bearer scheme');
+  }
+  ```
+- Replace the conditional in [bearer.ts:72-73](../../../mcp-server/src/auth/bearer.ts) with the above
+- Update auth.test.ts:73-89 to pin the message (`expect(body.message).toMatch(/empty bearer/i)`) and remove the "Both are correct rejections" hedge
+- **Effort**: 30 min including the test update + a typecheck + a `cd mcp-server && npm test`
+- **Risk**: very low — the change is additive (a new precondition routes to an existing branch); no auth path widens
+- **What operators see**: `Bearer ` (and `Bearer\t`, `Bearer  `, etc.) now return `"Empty Bearer token"` instead of `"Authorization header must use Bearer scheme"`. Slightly clearer debugging signal for operators who paste `Bearer ` into curl by accident
 
 ### Plan
 
-P1, deferred. Trivial fix: add an empty-after-trim check between the scheme-parse and the token-lookup so the empty case returns `"Authorization header has empty Bearer token"` (or similar). Estimated effort: 30 min including a unit test. Not blocking B.6.
+P1 — operator picks Option A or B during execution. Default recommendation: **Option A**. Reasoning: the gap is cosmetic, the existing test already records the by-design call, and the operator-workflow signal (T.A.5 / T.A.6) proves an honest config error surfaces a clear distinct message (`Invalid Bearer token`). Option B is a fine improvement if the operator wants the polish, but it's pure aesthetics.
 
 ### Recommendation
 
-Defer. The defect is cosmetic — an attacker probing with `Bearer ` learns the same thing they learn from `Bearer wrong-value` (the request was rejected). The message imprecision only matters for legitimate operators debugging their config, and the operator workflow already proves itself out in T.A.5 / T.A.6.
+**Option A — close as resolved-by-design**. If operator wants polish, Option B costs 30 min.
 
 ### Closure stanza
 
-(Pending — fix-time.)
+(Pending — operator's Option A vs B selection.)
 
 ---
 
@@ -202,8 +263,9 @@ Defer. The defect is cosmetic — an attacker probing with `Bearer ` learns the 
 ### Status
 
 - **Authored**: 2026-05-12 (filed retroactively from K-section soak)
-- **Severity**: **P1** — affects only the local stdio connector path for one tool; staging (remote HTTP) completed normally; Claude Desktop's transparent fallback recovered the user-facing workflow
-- **Recommendation**: defer; schedule an investigation when stdio-only consumption becomes a higher-volume path
+- **Re-investigated**: 2026-05-13 (post-Go-Live close-out — see "Current state" below)
+- **Severity**: **P1** — affects only the local stdio connector path for one tool; remote HTTP (staging at the time, production now) completed normally; Claude Desktop's transparent fallback to the remote connector recovered the user-facing workflow
+- **Recommendation**: defer until the reproduction script returns a clean root-cause classification; **do not attempt a fix without a reproduction first**
 - **Investigation evidence**: this section
 - **Closure stanza**: [pending]
 
@@ -211,22 +273,57 @@ Defer. The defect is cosmetic — an attacker probing with `Bearer ` learns the 
 
 A Claude Desktop call to `gst:generate_diligence_agenda` over the local stdio connector hung for the full 4-minute Desktop timeout, while the same call over the remote staging connector completed in normal time. Other local stdio tool calls in the same session (`list_portfolio_facets`, `search_portfolio`) worked fine — so the defect is tool-specific, not connector-level.
 
+### Current state (2026-05-13)
+
+- **No post-soak code changes** in the call path: `git log --since="2026-05-10" -- mcp-server/src/index.ts mcp-server/src/tools/diligence.ts mcp-server/src/server.ts` returns only description-string refinements (commits `02441fe`, `e472be9`). The handler that timed out 2026-05-10 is byte-identical to current HEAD
+- **Test coverage gap**: existing tests at [`mcp-server/tests/integration/diligence-handler.test.ts`](../../../mcp-server/tests/integration/diligence-handler.test.ts) (191 lines) and [`mcp-server/tests/unit/diligence.test.ts`](../../../mcp-server/tests/unit/diligence.test.ts) (91 lines) **do not** measure response size, exercise the worst-case all-13-fields-supplied input, or stress the stdio transport with large payloads. The bug's reproduction is not gated by anything in CI
+- **Response-size estimate (refined)**: handler at [`mcp-server/src/tools/diligence.ts:87-109`](../../../mcp-server/src/tools/diligence.ts) returns both `content[0].text` (pretty-printed JSON) AND `structuredContent` (parsed object) — doubling the wire size. Estimated worst-case ~15–20 KB on the wire (twice the 5–8 KB compact-JSON estimate in the original soak finding). Still well inside a 64 KB default pipe buffer, but pretty-print + structured-content duplication makes it closer to the edge than the original finding implied
+- **MCP SDK unchanged**: `@modelcontextprotocol/sdk` still pinned at `^1.29.0`. No upgrade in the post-soak window
+
 ### Investigation findings
 
 - Reproduction: [TESTING_FINDINGS § T.K.2.b.3](./BL-032_TESTING_FINDINGS.md#tk2b3--generate_diligence_agenda)
-- Three live hypotheses:
-  1. Large JSON response (20 questions × full-text rationale + 4 attention areas + trigger map ≈ 5-8 KB serialized) overflowing the stdio buffer in `mcp-server/dist/index.js` or in Desktop's stdio reader
-  2. `generateScript()` engine has a slow path triggered by the specific input combo used in K.2.b.3 (`growthStage: scaling, geographies: ['us', 'eu'], dataSensitivity: high` etc.)
-  3. stdio child-process deadlock — Worker or Desktop reads/writes blocking on each other for this response shape
-- Diagnostic next step: rerun the same call directly via `node mcp-server/dist/index.js` with the exact JSON request body from the K.2.b.3 transcript, instrumented for engine-side timing. If the engine returns fast, the issue is stdio transport; if the engine itself hangs, it's a logic bug
+- Three live hypotheses (refined 2026-05-13):
+
+  | #   | Hypothesis                                                                                                                                                                                                                              | Estimated likelihood (2026-05-13)                                                                                                                                                                                                |
+  | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | 1   | Large JSON response overflowing the stdio pipe buffer (15–20 KB doubled by content/structuredContent duplication) — Desktop's reader pauses mid-stream and the Worker's `process.stdout.write()` blocks waiting for backpressure relief | **Moderate-to-low**. 15–20 KB is well below a 64 KB pipe buffer, but the duplication is a real wart and could matter under specific Desktop reader implementations. Cheap to test by stripping the `structuredContent` duplicate |
+  | 2   | `generateScript()` engine slow path triggered by the K.2.b.3 input combo (`growthStage: scaling`, `geographies: ['us', 'eu']`, `dataSensitivity: high`, all 13 fields supplied)                                                         | **Low**. No algorithmic pathologies documented; existing unit tests assert <100 ms generation. But tests use partial inputs; the all-13-fields combo is unexercised                                                              |
+  | 3   | stdio child-process deadlock — Desktop's stdio reader hangs on a specific message-boundary edge case in MCP SDK 1.29.0's `StdioServerTransport`                                                                                         | **Low-moderate**. The 4-minute exactly-Desktop-timeout suggests a hung consumer rather than a hung producer. But this is an upstream SDK issue if true — not directly fixable in this repo                                       |
+
+- **Diagnostic next step** (concrete): build + run a reproduction script that replays the K.2.b.3 input combo against the local stdio entrypoint, with timing instrumentation. The script should:
+
+  ```powershell
+  # Pseudocode — implement under mcp-server/scripts/repro-k2b3.ts (Phase 1)
+  # 1. Start `node mcp-server/dist/index.js` as a child process, piping stdio
+  # 2. Send the exact JSON-RPC envelope from the K.2.b.3 transcript via stdin
+  # 3. Time three checkpoints:
+  #    a. Engine returns (handler.ts:89 generateScript completes) — instrument with console.error
+  #    b. Worker writes response to stdout — instrument before/after the write
+  #    c. Desktop reader (or our script) finishes consuming the response
+  # 4. Variants to try:
+  #    - With and without structuredContent duplication
+  #    - With and without pretty-print (JSON.stringify(p, null, 2) vs JSON.stringify(p))
+  #    - Worst-case all-13-fields input vs minimal-fields input
+  ```
+
+  Classifications:
+  - If (a) is slow → hypothesis 2 (engine bug) → profile the `generateScript()` hot path
+  - If (a) is fast and (b–c) gap is large → hypothesis 1 or 3 → strip duplicate `structuredContent`, retest; if still slow, escalate to MCP SDK
+  - If all three checkpoints fire promptly and our script returns clean → was a Desktop-specific flake; mark INCONCLUSIVE and watch for recurrence
 
 ### Plan
 
-P1, deferred. Stdio-only consumers exist (Claude Code, single-machine workflows) but Claude Desktop's transparent fallback to the remote staging connector makes this latent for Desktop users. Investigation effort estimated 2-4 hours including narrowing to root cause; remediation depends on which hypothesis fires.
+P1, deferred until reproduction script exists. **Estimated effort**:
+
+- **Reproduction script**: 1 hour (write `mcp-server/scripts/repro-k2b3.ts`, parse the K.2.b.3 transcript for the exact input, run with logging)
+- **Root-cause narrowing**: 1–2 hours (variants + instrumentation)
+- **Fix**: 0–2 hours depending on which hypothesis fires (Hypothesis 1: 30 min strip the structured-content duplicate; Hypothesis 2: 2 hours engine profile + fix; Hypothesis 3: 0 hours in-repo, escalate)
+- **Total**: 2–5 hours including the fix
 
 ### Recommendation
 
-Defer. Two reasons: (1) the user-facing workflow recovered via Desktop's fallback, and (2) the K-section soak captured only one instance — possible flake, possible specific-input-only. Re-prioritize if the bug reproduces on a different input, or if Claude Code (no fallback) usage of `generate_diligence_agenda` increases.
+Defer until either (a) the reproduction script is scheduled (suggest a 2-hour timebox in Phase 2c work alongside BL-032.75 instrumentation — the metrics emitters from Phase 2a will surface a tool_invocation duration that catches recurrence cheaply), or (b) the bug reproduces on a different input / a different consumer (Claude Code, where there's no remote fallback). **Do not attempt a fix without a reproduction first** — one-instance / one-input observations are flaky-evidence territory.
 
 ### Closure stanza
 
@@ -239,30 +336,100 @@ Defer. Two reasons: (1) the user-facing workflow recovered via Desktop's fallbac
 ### Status
 
 - **Authored**: 2026-05-12 (filed retroactively from soak; two follow-ups noted in T.X.1's Notes that weren't formally tracked)
+- **Re-investigated**: 2026-05-13 (post-Go-Live close-out — both hazards confirmed with exact line numbers; adjacent sweep clean)
 - **Severity**: **P1** — both are operator-experience polish; T.X.1's primary fix (PowerShell placeholder replaced with `Read-Host`) already shipped in commit `3bacd0e`
-- **Recommendation**: defer until next operator-facing doc revision pass
+- **Recommendation**: bundle both fixes in a single 30-min commit; clean enough to ship standalone or roll into the next operator-doc revision pass (BL-034)
 - **Investigation evidence**: this section
-- **Closure stanza**: [pending]
+- **Closure stanza**: [pending — fix-time]
 
 ### What it asks
 
 T.X.1's resolution surfaced two adjacent follow-ups that didn't make the original fix:
 
 1. The bash equivalent in [`DEPLOY.md` § B.3](../../../mcp-server/src/docs/operations/DEPLOY.md) may have the same literal-placeholder hazard the PowerShell setup snippet did; review and convert to `read -s MCP_KEY` if so
-2. The `Invoke-McpRequest` helper's SSE-only parser silently returns the raw HTTP response when the body isn't SSE (e.g., a 401 returns JSON, which the parser doesn't recognize and falls through). Operators running `(call).result.foo` get `$null` with no obvious cause. Either raise a clearer error on non-2xx OR document the diagnostic incantation (`$resp.GetType()` + `$resp.Content.Substring(0,200)`) prominently in the playbook's "How to use this doc" section
+2. The `Invoke-McpRequest` helper's SSE-only parser silently returns the raw HTTP response when the body isn't SSE (e.g., a 401 returns JSON, which the parser doesn't recognize and falls through). Operators running `(call).result.foo` get `$null` with no obvious cause. Either raise a clearer error on non-2xx OR document the diagnostic incantation prominently
 
-### Investigation findings
+### Investigation findings (2026-05-13)
 
-- Source: [TESTING_FINDINGS § T.X.1](./BL-032_TESTING_FINDINGS.md#tx1--setup-snippet-placeholder-is-a-copy-paste-trap), Notes section, points 1 and 2
-- Both items are doc / helper changes, not server-side code
+**(a) Bash placeholder hazard — CONFIRMED**
+
+File: [`mcp-server/src/docs/operations/DEPLOY.md` § B.3 lines 435–438](../../../mcp-server/src/docs/operations/DEPLOY.md). Setup snippet:
+
+```bash
+export MCP_URL=https://mcp-staging.globalstrategic.tech
+export MCP_KEY=<your-MCP_KEY_RP-token-value>
+```
+
+Line 437 contains the literal placeholder `<your-MCP_KEY_RP-token-value>`. An operator who copy-pastes the block verbatim sets `MCP_KEY` to the literal string and subsequent `curl` calls fail with 401 — identical hazard to the pre-T.X.1 PowerShell snippet. Fix: rewrite as a `read -s -p` prompt, mirroring the PowerShell `Read-Host` pattern:
+
+```bash
+export MCP_URL=https://mcp.globalstrategic.tech
+read -rsp "MCP_KEY for $MCP_URL (input hidden): " MCP_KEY
+export MCP_KEY
+echo  # newline after the hidden prompt
+```
+
+Additionally: the `MCP_URL` default in line 435 still references `mcp-staging.globalstrategic.tech` — update to `mcp.globalstrategic.tech` (production-canonical, mirroring REMOTE_CLIENT_SETUP.md's 2026-05-12 flip).
+
+**(b) SSE-parser fallthrough — CONFIRMED**
+
+File: [`mcp-server/scripts/Invoke-McpRequest.ps1` lines 92–97](../../../mcp-server/scripts/Invoke-McpRequest.ps1). Parser:
+
+```powershell
+$dataLine = $resp.Content -split "`n" | Where-Object { $_ -like 'data:*' } | Select-Object -First 1
+if (-not $dataLine) { return $resp }
+return $dataLine.Substring(5).Trim() | ConvertFrom-Json
+```
+
+When the Worker returns a non-SSE response (401 JSON, 5xx JSON, network error converted to a response object), no `data:*` line matches, and the function returns the raw `Invoke-WebRequest` response object — NOT parsed JSON. An operator running `(Invoke-McpRequest …).result.foo` accesses `.result` on a response object (which has no `.result` property) and gets `$null` with no error thrown. The diagnostic incantation `$resp.GetType().FullName` + `$resp.Content.Substring(0, 200)` exposes the situation but is not documented.
+
+**Decision (operator, 2026-05-13)**: ship the **correct fix** — replace the silent-fallthrough with explicit `throw` statements on HTTP error and on the "200 OK but no SSE data line" protocol-unexpected path. Backwards-compat for existing callers is NOT a constraint (no active external clients of `Invoke-McpRequest` outside this repo).
+
+**Implementation**:
+
+```powershell
+# In Invoke-McpRequest, after the Invoke-WebRequest call:
+
+if ($resp.StatusCode -ge 400) {
+    $bodyExcerpt = if ($resp.Content) {
+        $resp.Content.Substring(0, [Math]::Min(500, $resp.Content.Length))
+    } else { '<empty body>' }
+    throw "Invoke-McpRequest: HTTP $($resp.StatusCode) from $($env:MCP_URL)/mcp. Body excerpt: $bodyExcerpt"
+}
+
+$dataLine = $resp.Content -split "`n" | Where-Object { $_ -like 'data:*' } | Select-Object -First 1
+if (-not $dataLine) {
+    $bodyExcerpt = $resp.Content.Substring(0, [Math]::Min(500, $resp.Content.Length))
+    throw "Invoke-McpRequest: 2xx response but no SSE data line in body (protocol unexpected). Body excerpt: $bodyExcerpt"
+}
+return $dataLine.Substring(5).Trim() | ConvertFrom-Json
+```
+
+In `Invoke-McpTool`, the `if (-not $resp.PSObject.Properties.Match('result').Count)` guard (lines 119–122) becomes unreachable — `Invoke-McpRequest` now throws on those paths — so it's removed. The `result.content[0].text` shape check stays (different concern: MCP envelope shape on a legitimate 200), and the try/catch around `ConvertFrom-Json` stays (Zod-rejection-as-text is a legitimate 200 case).
+
+Net change: ~10 lines added, ~6 lines removed, loud failures with diagnostic context on every error path. Effort still ~30 min including verification round-trips against a 401.
+
+### Adjacent doc-sweep findings (2026-05-13)
+
+Swept `mcp-server/src/docs/operations/*.md` for similar placeholder hazards and stale references. Findings:
+
+- **No stale production URL references**: REMOTE_CLIENT_SETUP.md was flipped to production-canonical in commit `6332b3c` 2026-05-12; all snippets reference `mcp.globalstrategic.tech` (staging shown as alternative for testing only)
+- **`YOUR_TOKEN_HERE` markers** in REMOTE_CLIENT_SETUP.md (lines 103, 110, 150, 164, 187, 199) — all six are intentional placeholders in client-config JSON snippets; surrounding text explicitly tells the operator to replace. Not a hazard but inconsistent notation; could optionally wrap as `<YOUR_TOKEN_HERE>` for extra visual salience. Low value — defer
+- **Two intentional TBD markers**: prophylactic key rotation (DEPLOY.md lines 96, 698 — deferred to BL-033) and radar-tier rate-limit enforcement (REMOTE_CLIENT_SETUP.md line 298 — deferred to BL-038). Both clearly attributed; leave as-is
 
 ### Plan
 
-P1, deferred. Each item ~15-30 min on its own. Best bundled with the next operator-doc revision pass.
+P1, ready to ship as a standalone commit (operator chose **ship separately** from § 2 in the 2026-05-13 implementation-order decision):
+
+1. DEPLOY.md § B.3 lines 435–438: replace bash export block with `read -rsp` pattern + update default URL to production
+2. DEPLOY.md elsewhere: sweep for any remaining `mcp-staging` defaults
+3. Invoke-McpRequest.ps1: replace silent-fallthrough at lines 92–97 with `throw` statements on HTTP error + on no-SSE-data-line; bootstrap default at line 54 (`mcp-staging.globalstrategic.tech`) also flipped to production-canonical
+4. Invoke-McpTool: remove the now-unreachable no-`.result` guard (lines 119–122)
+5. Verify: `cd mcp-server && npm test` clean; manually round-trip `Invoke-McpRequest` against a 401 to confirm the throw fires with diagnostic context
 
 ### Recommendation
 
-Defer. Bundle with BL-034 (MCP doc cleanup) if convenient.
+Standalone shippable commit. Doesn't require coordination with BL-034 unless the operator wants to batch with broader doc cleanup.
 
 ### Closure stanza
 
@@ -314,4 +481,46 @@ Close as risk-accepted. Do not re-open absent new evidence (e.g., a leaked token
 
 ---
 
-_Last updated: 2026-05-12 — soak findings § 2–§ 5 filed during BL-032.25 closure audit. § 1 (schema normalization, P1 deferred) remains the anchor finding._
+## Implementation order and execution plan (close-out)
+
+This section is the operator-facing close-out plan for the four open P1 items, written 2026-05-13 after the post-Go-Live re-investigation above. **Read this section before opening a feature branch** — it captures the dependency order, risk callouts, and the questions that need an answer before each item starts.
+
+### Effort summary
+
+| Item | Effort                                                                                        | Risk                | Ships as                                                     | Status                                                                                                       |
+| ---- | --------------------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| § 2  | 30 min (Option B: 5-line surgical fix + test update)                                          | Very low            | Standalone commit                                            | **Ready to execute** — operator chose Option B (2026-05-13)                                                  |
+| § 4  | ~30 min (bundled (a) + (b): bash placeholder + URL flip + Invoke-McpRequest throw refactor)   | Low                 | Standalone commit                                            | **Ready to execute** — operator chose throw-on-error (2026-05-13)                                            |
+| § 1  | 2–4 hrs benchmark-audit spike; then 0 days OR 2–3 days engineering depending on audit outcome | Schedule / data     | Deferred until BL-032.75 Phase 2 closes (~3–5 weeks)         | **Deferred** — operator chose to wait (2026-05-13). Re-surface as agenda item at Phase 2 close-out           |
+| § 3  | 1 hr reproduction script + 1–2 hrs root-cause narrow + 0–2 hrs fix                            | Unknown until repro | Bundle with BL-032.75 Phase 2a/2c when instrumentation lands | **Blocked** on reproduction-script construction; suggested timing tied to BL-032.75 Phase 2a metric emitters |
+
+### Execution plan (operator decisions, 2026-05-13)
+
+1. **§ 2 first, standalone commit** — Option B (5-line bearer.ts surgical fix):
+   - Edit `mcp-server/src/auth/bearer.ts:72-73`: prepend a bare-`Bearer` / `Bearer\s*` detection that routes those cases to the empty-token branch
+   - Update `mcp-server/tests/integration/auth.test.ts:73-89`: pin the message (`expect(body.message).toMatch(/empty bearer/i)`); remove the "Both are correct rejections" hedge comment
+   - Verify: `cd mcp-server && npm test` clean; typecheck clean
+   - Commit message: `fix(mcp): close BL-032.25 § 2 — empty Bearer header returns clearer 401 message`
+2. **§ 4 second, standalone commit** — throw-on-error refactor + bash polish:
+   - DEPLOY.md § B.3 lines 435–438: replace bash export block with a hidden-prompt pattern; flip default `MCP_URL` to production
+   - DEPLOY.md elsewhere: sweep for any other `mcp-staging` defaults (none expected based on the 2026-05-12 REMOTE_CLIENT_SETUP.md flip; verify during execution)
+   - `mcp-server/scripts/Invoke-McpRequest.ps1`:
+     - Line 54: flip the `$env:MCP_URL` default to `mcp.globalstrategic.tech`
+     - Lines 85–97: keep `-SkipHttpErrorCheck`, then `throw` on `StatusCode >= 400` with `HTTP $status from $url. Body excerpt: ...` AND `throw` on no-SSE-data-line on a 2xx response with `protocol unexpected. Body excerpt: ...`
+     - Lines 119–122 (`Invoke-McpTool`): remove the now-unreachable no-`.result` guard
+   - Verify: `cd mcp-server && npm test` clean; manual round-trip `Invoke-McpRequest` against a known 401 to confirm the throw fires with diagnostic context
+   - Commit message: `fix(mcp): close BL-032.25 § 4 — DEPLOY bash setup + Invoke-McpRequest fails loudly on HTTP errors`
+3. **§ 1 deferred** until BL-032.75 Phase 2 closes — re-surface as a Phase 2 close-out agenda item; no action this cycle
+4. **§ 3 deferred** until reproduction-script construction is timed with BL-032.75 Phase 2a/2c — the metric emitters from Phase 2a will give the reproduction script free recurrence detection
+
+### Risk callouts (pre-emption)
+
+- **§ 2 — interaction with auth.test.ts**: changing the conditional in bearer.ts requires updating the existing integration test at auth.test.ts:73-89 to pin the message. If the test update is missed, the test will still pass (current assertion `expect(body.message.length).toBeGreaterThan(0)` is satisfied by either message), creating a silent gap. Pair the bearer.ts edit with the test edit in the same commit
+- **§ 4 (b) — caller audit before refactor**: any internal soak script that did `($resp = Invoke-McpRequest ...); if ($resp -is [Microsoft.PowerShell.Commands.WebResponseObject]) { ... }` (reads the raw response) breaks under the throw refactor. Audit before shipping: search `mcp-server/` and `src/docs/` for `Invoke-McpRequest` callers and review for response-type assumptions. Operator has confirmed no external callers
+- **§ 4 (a) — verifying the hidden-prompt pattern**: a `read -rsp` block has subtle quoting hazards in bash vs zsh and copy-paste from PDF readers. Test the new block in a fresh shell before committing
+- **§ 1 — when the audit eventually runs**: if it returns finding B (lazy modeling), BL-031.87 is no longer the canonical answer for stage taxonomy. Update BL-031.87's status from Closed to Superseded and add a redirect note. Do NOT delete BL-031.87's content — it's the historical record of why the adapter pattern was chosen
+- **§ 3 — reproduction not landing in CI**: when the bug is reproduced + fixed, ADD a stdio-transport stress test under `mcp-server/tests/integration/diligence-handler.stdio.test.ts` that exercises the worst-case input combo end-to-end. Without this, the regression door stays open
+
+---
+
+_Last updated: 2026-05-13 — post-Go-Live re-investigation. § 2 root-cause analysis corrected (HTTP whitespace normalization, not in-code logic). § 3 reproduction-script template added. § 4 line refs confirmed; bundled fix plan + adjacent-sweep notes recorded. § 1 audit findings restated with 2026-05-13 confirmation. Implementation-order section added._
