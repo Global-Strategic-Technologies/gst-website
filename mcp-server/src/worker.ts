@@ -79,6 +79,12 @@ export interface Env {
   // refresh-writer (Q4 invariant preserved).
   INOREADER_REFRESH_SECRET?: string;
 
+  // BL-039: optional override for the refresh endpoint URL. Defaults to
+  // production (https://globalstrategic.tech/api/inoreader/refresh). Set
+  // this on staging Worker during BL-039 soak verification to target a
+  // Vercel preview deployment; unset / restore-to-default after verification.
+  INOREADER_REFRESH_URL?: string;
+
   // Sentry — new project for service:mcp-server (Q6).
   SENTRY_DSN?: string;
 

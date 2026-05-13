@@ -62,6 +62,12 @@ upload_source_maps = true
 #                                  Generate fresh per env: `openssl rand -hex 32`
 #                                  When absent, Worker falls back to legacy token-stale envelope
 #                                  (the BL-032 / pre-BL-039 behavior — operator visits /hub/radar).
+#   INOREADER_REFRESH_URL         BL-039 — OPTIONAL override of the refresh endpoint URL.
+#                                  Defaults to https://globalstrategic.tech/api/inoreader/refresh.
+#                                  Set on staging Worker during BL-039 soak verification to point
+#                                  at a Vercel preview deployment (e.g. the feature-branch preview
+#                                  URL before merging to master). Unset / restore-to-default once
+#                                  the production website endpoint is live.
 #   SENTRY_DSN                    Sentry project — service:mcp-server (Q6)
 #
 # Phase 1 spike runs locally via `wrangler dev` with no secrets set; the only

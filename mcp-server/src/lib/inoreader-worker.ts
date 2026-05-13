@@ -42,12 +42,16 @@ const KV_ACCESS_TOKEN_KEY = 'inoreader:access_token';
 
 /**
  * BL-039 — website endpoint the Worker calls to trigger an OAuth refresh.
- * Hardcoded to production because the Inoreader account itself is shared
+ * Default targets production because the Inoreader account itself is shared
  * across staging + production (per Q13's two-DB architecture: separate MCP
  * DBs, single shared Inoreader DB). Both staging and production Workers
- * point at the same refresh-writer.
+ * point at the same refresh-writer in steady state.
+ *
+ * Override via `INOREADER_REFRESH_URL` on the Worker env when soaking BL-039
+ * against a Vercel preview deployment — set it to the preview URL during
+ * verification, then unset (or set to production) afterwards.
  */
-const REFRESH_ENDPOINT_URL = 'https://globalstrategic.tech/api/inoreader/refresh';
+const DEFAULT_REFRESH_ENDPOINT_URL = 'https://globalstrategic.tech/api/inoreader/refresh';
 const REFRESH_TIMEOUT_MS = 8_000;
 
 // ---------------------------------------------------------------------------
@@ -187,10 +191,11 @@ async function triggerWebsiteRefresh(env: Env): Promise<boolean> {
     return false;
   }
 
+  const url = env.INOREADER_REFRESH_URL ?? DEFAULT_REFRESH_ENDPOINT_URL;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
   try {
-    const res = await fetch(REFRESH_ENDPOINT_URL, {
+    const res = await fetch(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${env.INOREADER_REFRESH_SECRET}`,
