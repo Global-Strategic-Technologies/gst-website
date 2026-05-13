@@ -51,9 +51,11 @@ export function createServer(env: Env = {}): McpServer {
   registerRegulationsTool(server);
   registerRadarLiveTools(server, env);
 
-  // Resources (transport-portable — radar Resources are stdio-only, see _local-only.ts)
-  registerLibraryResources(server);
-  registerRegulationResources(server);
+  // Resources (transport-portable — radar Resources are stdio-only, see _local-only.ts).
+  // `env` is threaded so handlers can consult the BL-032.5 server-side cache
+  // (see `cache/resource-cache.ts`). Cache is a no-op when Upstash isn't bound.
+  registerLibraryResources(server, env);
+  registerRegulationResources(server, env);
 
   // Prompts
   registerPrompts(server);

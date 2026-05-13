@@ -3,12 +3,20 @@
  *
  * Exposes the GST Library articles as readable Resources. The body is
  * inlined into the binary at build time (see content/library-loader.ts).
+ *
+ * BL-032.5 Phase 1: every read goes through `readThroughCache` so hot
+ * Library Resources serve from Upstash on subsequent reads (24h TTL).
+ * Cache is invisible to clients; when Upstash isn't bound (stdio dev
+ * paths) the read-through fails open and the handler returns the
+ * computed body directly.
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { LIBRARY_ENTRIES, loadLibraryByUri } from '../content/library-loader';
+import { readThroughCache, RESOURCE_TTL_SECONDS } from '../cache/resource-cache';
+import type { Env } from '../worker';
 
-export function registerLibraryResources(server: McpServer): void {
+export function registerLibraryResources(server: McpServer, env: Env = {}): void {
   for (const entry of LIBRARY_ENTRIES) {
     server.registerResource(
       entry.name,
@@ -19,16 +27,24 @@ export function registerLibraryResources(server: McpServer): void {
         mimeType: entry.mimeType,
       },
       async (uri: URL) => {
-        const found = loadLibraryByUri(uri.href);
-        if (!found) {
-          throw new Error(`Unknown library URI: ${uri.href}`);
-        }
+        const { body, mimeType } = await readThroughCache(
+          env,
+          uri.href,
+          RESOURCE_TTL_SECONDS.LIBRARY,
+          async () => {
+            const found = loadLibraryByUri(uri.href);
+            if (!found) {
+              throw new Error(`Unknown library URI: ${uri.href}`);
+            }
+            return { body: found.body, mimeType: found.mimeType };
+          }
+        );
         return {
           contents: [
             {
-              uri: found.uri,
-              mimeType: found.mimeType,
-              text: found.body,
+              uri: uri.href,
+              mimeType,
+              text: body,
             },
           ],
         };
