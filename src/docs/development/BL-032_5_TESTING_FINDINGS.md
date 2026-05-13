@@ -265,6 +265,47 @@ For scenarios not in the playbook that surface during operator usage. Assign fre
 - Remediation: discuss with project lead before production deploy. **Do NOT promote BL-032.5 to production without addressing this** — the substrate is fine, but the operational guarantee that radar is "always fresh" is currently false. File as a new BACKLOG.md item if BL-039 is not the right priority; otherwise promote BL-039 to must-ship-before-prod.
 - Notes: The Phase 4 Cron handler is doing exactly the right thing (detect degraded → don't write garbage). The gap is at the architecture boundary, not the code. This finding does NOT invalidate the Phase 1-4 substrate — every other test passed.
 
+### T.Y.4-prod — BL-039 autonomous self-heal verified AGAINST PRODUCTION
+
+- Date: 2026-05-13
+- Tester: RP
+- Client: PowerShell Invoke-McpRequest + curl /health + Vercel runtime-logs MCP tool
+- Severity: PASS (live production verification on top of T.Y.4 staging)
+- Command/Action: Same protocol as T.Y.4 (staging) but executed against production: corrupted `inoreader:access_token` in `gst-radar-tokens` Upstash DB → `INVALID_TOKEN_PROD_BL039_TEST`; deleted `mcp:radar:cache:fyi` + `mcp:radar:cache:wire` in `gst-mcp` Upstash DB; triggered `search_radar` against `mcp.globalstrategic.tech` (production Worker version `4ca681a4`, gitSha `e86dcaa`).
+- Outcome: PASS — production autonomous recovery in ~3 seconds; populated radar payload returned with real Inoreader item titles.
+- Observed:
+  - PowerShell tool call result: `PASS — populated payload. Matches: 76 | First: "What It Will Take to Make AI Sustainable"`
+  - `/health` BEFORE (19:22:37 UTC): `ok:true, inoreader:"unknown", radarSnapshotAgeSeconds:1298` (cache from 19:00 UTC Cron)
+  - `/health` DURING corruption (19:28:35 UTC): `inoreader:"unknown", radarSnapshotAgeSeconds:null` (cache cleared, no Inoreader traffic yet)
+  - `/health` AFTER self-heal (post-19:29:53 UTC): `ok:true, inoreader:"ok", inoreaderObservedAt:"2026-05-13T19:29:53.026Z", radarSnapshotAgeSeconds:18`
+  - Vercel production runtime logs: **6 POSTs to `/api/inoreader/refresh` between 19:29:49-19:29:52 UTC, all HTTP 200, all logging "[Radar] Access token refreshed"**
+  - Bad token in `gst-radar-tokens.inoreader:access_token` was overwritten with a fresh valid one by the BL-039 path itself; no operator cleanup needed.
+- Expected: same chain as T.Y.4 (staging) — Worker hits Inoreader 401 → calls production's `/api/inoreader/refresh` → website endpoint refreshes OAuth → Worker re-resolves config → retries Inoreader → succeeds.
+- Notes:
+  - **This is the definitive proof that BL-039 works against the production code path** — same Worker code as staging, but routed against the production website URL (`globalstrategic.tech/api/inoreader/refresh`) instead of the Vercel preview URL. The full production wire path (Cloudflare → Vercel production → Inoreader OAuth → Upstash → Cloudflare retry) verified end-to-end.
+  - The 6-POST fan-out reproduces in production (matches staging T.Y.4 finding) — confirms BL-040 (debounce parallel refreshes) is a real opportunity and not a staging-environment artifact.
+  - Inoreader `inoreader:access_token` lifetime appears to be ~30 days based on observed refresh cadence — natural BL-039 firings in production are expected roughly monthly.
+
+### Sentry alert configuration (Layer 2 — passive observability)
+
+- Configured: 2026-05-13 by RP in `gst-7o.sentry.io → gst-website project → Alerts`
+- Alert #1 — success path:
+  - Source: Alert on all issues in selected projects
+  - Project: `gst-website`
+  - Environment: `production`
+  - WHEN: A new issue is created
+  - IF: `The event's message contains "BL-039 refresh succeeded"`
+  - Action interval: 60 minutes (debounces the parallel-refresh fan-out)
+  - Notify: Reid Peryam (email)
+- Alert #2 — failure path:
+  - Same source / project / environment / WHEN
+  - IF: `The event's message contains "BL-039 refresh failed"`
+  - Action interval: 0 minutes (failures rare + important — no throttling)
+  - Notify: Reid Peryam (email)
+- Rationale for two separate alerts: success and failure are operationally distinct signals — success is informational (the system is working; ~monthly cadence expected), failure is urgent (the auto-recovery itself broke; needs operator attention). Lumping them into one alert would hide the severity distinction.
+- Filter approach: message-based (`contains`) instead of tag-based (`area:bl-039`) because Sentry's tag autocomplete dropdown didn't yet have `area` indexed for the project. Same pattern documented in `SENTRY_MANUAL_SETUP.md` § "Filter syntax mismatch resolved 2026-05-12" for the existing `inoreader-rate-limit` alert.
+- First natural firing expected: roughly 30 days out (next Inoreader access-token expiry).
+
 ### T.Y.4 — BL-039 autonomous self-heal verified end-to-end (closes T.Y.3 gate)
 
 - Date: 2026-05-13
