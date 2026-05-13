@@ -265,6 +265,28 @@ For scenarios not in the playbook that surface during operator usage. Assign fre
 - Remediation: discuss with project lead before production deploy. **Do NOT promote BL-032.5 to production without addressing this** — the substrate is fine, but the operational guarantee that radar is "always fresh" is currently false. File as a new BACKLOG.md item if BL-039 is not the right priority; otherwise promote BL-039 to must-ship-before-prod.
 - Notes: The Phase 4 Cron handler is doing exactly the right thing (detect degraded → don't write garbage). The gap is at the architecture boundary, not the code. This finding does NOT invalidate the Phase 1-4 substrate — every other test passed.
 
+### T.Y.4 — BL-039 autonomous self-heal verified end-to-end (closes T.Y.3 gate)
+
+- Date: 2026-05-13
+- Tester: RP
+- Client: PowerShell Invoke-McpRequest + curl /health + Vercel runtime-logs MCP tool
+- Severity: PASS (highest-confidence verification — proves T.Y.3 gate is closed)
+- Command/Action: Deliberately staled `inoreader:access_token` in the `gst-radar-tokens` Upstash DB (value: `INVALID_TOKEN_BL039_TEST`), deleted `mcp:radar:cache:fyi` + `mcp:radar:cache:wire` in the `gst-mcp` Upstash DB to force a cache-miss, then triggered `search_radar` (tier=fyi, limit=3) against staging Worker (commit `5ff5cb2`, version `4ca681a4`).
+- Outcome: PASS — autonomous recovery completed in ~3 seconds; populated radar payload returned to operator with real Inoreader-sourced item title ("AI chatbots are giving out people's real phone numbers").
+- Expected: Worker hits Inoreader 401 → calls preview's `/api/inoreader/refresh` → website endpoint refreshes OAuth → Worker re-resolves config → retries Inoreader → succeeds; cache populates; client never sees the underlying 401
+- Observed (full evidence chain):
+  - `/health` BEFORE (18:23:59 UTC): `ok: true, inoreader: "unknown", radarSnapshotAgeSeconds: null` (cache cleared, no Inoreader traffic yet)
+  - First Tool call attempted at 18:25 UTC FAILED with legacy `token-stale` envelope — `INOREADER_REFRESH_URL` had not been bound on the Worker (operator skipped a wrangler-secret-put step), so the Worker fell back to the production default `https://globalstrategic.tech/api/inoreader/refresh` which 404'd (endpoint not deployed to production yet). `/health` at 18:25:12 UTC: `ok: false, inoreader: "degraded"`. Diagnosed via Vercel runtime-logs MCP showing zero traffic on preview + production showing 404 on POST.
+  - Recovery: operator ran `wrangler secret put INOREADER_REFRESH_URL --env staging` with the preview branch-alias URL.
+  - Second Tool call at 18:30 UTC PASSED — populated `matches` array with real radar items.
+  - `/health` AFTER (18:30:43 UTC): `ok: true, inoreader: "ok", inoreaderObservedAt: "2026-05-13T18:30:24Z", radarSnapshotAgeSeconds: 19`
+  - Vercel preview runtime logs: 6 POST hits to `/api/inoreader/refresh` between 18:30:20-18:30:23 UTC, all HTTP 200, all log "[Radar] Access token refreshed".
+  - The bad token in `gst-radar-tokens.inoreader:access_token` was overwritten with a fresh valid one by the BL-039 path itself — no operator cleanup needed.
+- Notes:
+  - **This closes T.Y.3 — the production-deploy gate** for BL-032.5. The autonomous self-heal works against real Cloudflare Workers + real Vercel Astro endpoint + real Upstash + real Inoreader. With BL-039 in place, the BL-032.5 Cron's dependency on human visits to `/hub/radar` is eliminated.
+  - **Optimization-opportunity follow-up**: `search_radar` triggered 6 parallel refresh POSTs because `fetchAllStreams` fans out into 5 parallel Inoreader calls (1 tags-list + 4 folder streams), each independently hitting 401 and each independently calling the refresh endpoint. The endpoint is idempotent so this is correct but wasteful. File as a separate BACKLOG.md item: debounce parallel BL-039 refresh calls via an Upstash lock so a single search_radar call triggers at most 1 refresh.
+  - **Operator-misstep finding**: surfaced that `wrangler secret put` is silent if the operator skips a command in a multi-step setup (no error, no warning, just absence in the secret list). Worth adding a verification step to `REMOTE_CLIENT_SETUP.md` / deployment runbooks: after secret-bind, always run `wrangler secret list --env <env>` and grep for the expected secret names. Filed as a doc nit; not blocking.
+
 ### T.Y.2 — Inoreader token-stale at first staging Cron tick (recoverable, not a substrate defect)
 
 - Date: 2026-05-13
@@ -317,13 +339,20 @@ For scenarios not in the playbook that surface during operator usage. Assign fre
 - T.Y.1 ✅ PASS — Tool path regression check via staging Claude Desktop connector (Phase 3 `createServer` refactor did not break Tool registration)
 - T.Y.2 ✅ Resolved in-session — first Cron tick hit a stale Inoreader OAuth token; recovered via documented `REMOTE_CLIENT_SETUP.md` § token-stale procedure (visit `/hub/radar` + force-refresh via radar Tool call)
 
-### 🔴 Production-deploy gate
+### ✅ Production-deploy gate — CLEARED 2026-05-13T18:30 UTC
 
-**BL-032.5 is NOT cleared for production deploy** until BL-039 (Worker-as-refresh-writer) lands.
+**BL-032.5 + BL-039 are cleared for production deploy.**
 
-T.Y.3 surfaced a structural gap that BL-032.5's Phase 4 hourly Cron exposes more painfully than the BL-032 Tools-only path: Resources serve cache-or-nothing (no fall-through to Inoreader), so when the Inoreader OAuth access token expires AND no one visits `/hub/radar` to refresh it via website ISR, radar Resources go cold and stay cold. MCP-only consumers see snapshot-missing errors and have no in-product path to recovery.
+The T.Y.3 architectural gap has been closed by BL-039 (Option B — Worker self-heals on Inoreader 401 by calling website's `/api/inoreader/refresh` endpoint). T.Y.4 verified the full autonomous-recovery chain end-to-end against real services (real Cloudflare Worker, real Vercel Astro endpoint, real Upstash, real Inoreader OAuth):
 
-The Phase 4 Cron handler does everything correctly (detects degraded, refuses to corrupt cache, surfaces state via `/health` and `mcp:inoreader:last-status`). The gap is at the architecture boundary — the Worker is the wrong layer to own its own token refresh today (per the Q4 invariant established in BL-032). BL-039 is the canonical resolution; its BACKLOG.md entry is now flagged `MUST-SHIP-BEFORE-PROD for BL-032.5` (see commit `50acbf8`).
+- Deliberately staled `inoreader:access_token` + flushed radar cache
+- `search_radar` Tool call → cache miss → Inoreader 401 → BL-039 refresh path → fresh OAuth token written → retry succeeded
+- End-to-end latency ~3 seconds; populated radar payload returned to client
+- Bad token self-healed (overwritten with fresh value); no operator cleanup needed
+
+The Phase 4 Cron handler does everything correctly (detects degraded, refuses to corrupt cache, surfaces state via `/health` and `mcp:inoreader:last-status`). Combined with BL-039's failure-mode-elimination, MCP-only consumers no longer depend on website-side traffic to keep radar fresh.
+
+**Historical note**: at soak-open (2026-05-13T15:00 UTC), the production-deploy gate was 🔴 BLOCKED on T.Y.3. Promoting BL-039 to MUST-SHIP-BEFORE-PROD (commit `50acbf8`), implementing it (commit `143cd05`), and verifying autonomous recovery (T.Y.4) closed the gate within the same session — 2026-05-13T18:30 UTC.
 
 ### Re-soak triggers
 
