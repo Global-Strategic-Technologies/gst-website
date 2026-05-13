@@ -70,12 +70,13 @@ describe('bearer-token auth — Phase 2', () => {
     expect(body.message).toMatch(/bearer scheme/i);
   });
 
-  it('POST /mcp with empty Bearer token returns 401', async () => {
-    // Note: HTTP runtimes may normalize trailing whitespace on header values,
-    // so "Bearer " can arrive as "Bearer" — which trips the scheme check
-    // rather than the empty-token check. Both are correct rejections of
-    // "no token provided"; we assert the structured-401 envelope without
-    // pinning the specific message.
+  it('POST /mcp with empty Bearer token returns 401 with empty-bearer message', async () => {
+    // HTTP runtimes normalize trailing whitespace on header values, so
+    // `Authorization: Bearer ` arrives as `"Bearer"` (no trailing space).
+    // The authenticate() function routes the bare-`Bearer` and whitespace-
+    // only-token cases to the empty-token branch so operators see a clear
+    // message instead of the misleading "must use Bearer scheme" one
+    // (BL-032.25 § 2).
     const res = await worker.fetch('/mcp', {
       method: 'POST',
       body: '{}',
@@ -85,7 +86,7 @@ describe('bearer-token auth — Phase 2', () => {
     expect(res.headers.get('www-authenticate')).toContain('Bearer');
     const body = (await res.json()) as { error: string; message: string };
     expect(body.error).toBe('unauthorized');
-    expect(body.message.length).toBeGreaterThan(0);
+    expect(body.message).toMatch(/empty bearer token/i);
   });
 
   it('POST /mcp with wrong Bearer token returns 401', async () => {

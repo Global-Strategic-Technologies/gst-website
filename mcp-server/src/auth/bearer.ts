@@ -69,6 +69,11 @@ function unauthorized(reason: string): AuthFailure {
 export function authenticate(request: Request, env: Record<string, unknown>): AuthResult {
   const auth = request.headers.get('Authorization');
   if (!auth) return unauthorized('Missing Authorization header');
+  // HTTP runtimes normalize trailing whitespace on header values, so
+  // `Authorization: Bearer ` arrives as `"Bearer"` (no trailing space).
+  // Route the bare-scheme and whitespace-only-token cases to the empty-
+  // token branch so operators see a clearer 401 message.
+  if (auth === 'Bearer' || /^Bearer\s+$/.test(auth)) return unauthorized('Empty Bearer token');
   if (!auth.startsWith(BEARER_PREFIX))
     return unauthorized('Authorization header must use Bearer scheme');
 
