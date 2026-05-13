@@ -165,21 +165,27 @@ Invoke-Test -Id 'T.C.3' -Section 'C' -Title 'Cached body byte-identical to fresh
 }
 
 Invoke-Test -Id 'T.C.4' -Section 'C' -Title 'Cache wrapper transparent to error paths' -Body {
-    # An unknown URI should produce a JSON-RPC error; the helper throws.
-    # We catch and treat the throw as PASS so long as the message names
-    # the unknown URI.
-    try {
-        Invoke-McpRequest -Method 'resources/read' -Params @{ uri = 'gst://library/__not-a-real-slug__' } | Out-Null
-        return 'Expected an error response for an unknown URI; got success'
-    } catch {
-        if ($_.Exception.Message -match 'library' -or $_.Exception.Message -match 'not.found' -or $_.Exception.Message -match 'unknown') {
-            return $null
-        }
-        # Some MCP errors come through as JSON-RPC error envelope (not throw)
-        # — fall through to a less-strict check below.
-        if ($_.Exception.Message -match 'HTTP 4') { return $null }
-        return "Error fired but message didn't name the URI / unknown: $($_.Exception.Message)"
+    # An unknown URI should produce a JSON-RPC error envelope (HTTP 200
+    # with .error block — that's the MCP / JSON-RPC 2.0 spec; only
+    # transport-layer failures surface as throws). The cache wrapper
+    # must NOT cache the error response — but that side is invisible to
+    # the client; we just verify the protocol-shape contract here.
+    $resp = Invoke-McpRequest -Method 'resources/read' -Params @{ uri = 'gst://library/__not-a-real-slug__' }
+    if ($resp.result) {
+        return "Expected a JSON-RPC error envelope for an unknown URI; got a success result with $($resp.result.contents.Count) contents item(s)"
     }
+    if (-not $resp.error) {
+        return 'Response had neither result nor error — protocol-unexpected envelope'
+    }
+    # MCP SDK uses code -32602 (Invalid params) for unknown Resources.
+    # We accept any negative code so future SDK changes don't churn the test.
+    if ($resp.error.code -ge 0) {
+        return "Expected a negative JSON-RPC error code, got $($resp.error.code) — message: $($resp.error.message)"
+    }
+    if (-not ($resp.error.message -match 'library' -or $resp.error.message -match 'not.found' -or $resp.error.message -match 'unknown')) {
+        return "Error message didn't name the URI or 'not found': $($resp.error.message)"
+    }
+    return $null
 }
 
 # T.C.1 and T.C.2 require `wrangler tail` running in parallel — they're
