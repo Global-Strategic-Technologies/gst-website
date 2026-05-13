@@ -417,10 +417,10 @@ A 7-step curl sequence to verify each layer of the request flow. Run these again
 > ```powershell
 > cd c:\Code\gst-website\mcp-server
 > . .\scripts\Invoke-McpRequest.ps1
-> # MCP_URL defaults to staging if unset; MCP_KEY is prompted (visible) if unset.
+> # MCP_URL defaults to https://mcp.globalstrategic.tech (production); MCP_KEY is prompted if unset.
 > # Both env vars can be re-set explicitly per session, e.g.:
-> #   $env:MCP_URL = "https://mcp-staging.globalstrategic.tech"
-> #   $env:MCP_KEY = "<your-MCP_KEY_RP-token-value>"
+> #   $env:MCP_URL = "https://mcp-staging.globalstrategic.tech"  # override for staging probes
+> #   $env:MCP_KEY = (Read-Host -AsSecureString "MCP_KEY" | ConvertFrom-SecureString -AsPlainText)  # prompt without echoing into scrollback
 > ```
 >
 > Two helpers land in the session:
@@ -430,12 +430,14 @@ A 7-step curl sequence to verify each layer of the request flow. Run these again
 >
 > With these, B.3.3 becomes `(Invoke-McpRequest -Method "tools/list").result.tools.name`, B.3.4 becomes `Invoke-McpTool -Name "list_portfolio_facets"`, T.B.2.a becomes `Invoke-McpTool -Name "search_portfolio" -Arguments @{ search = "kubernetes" }`. PowerShell-flavored examples are inlined per-step below.
 
-> bash one-time setup:
+> bash one-time setup (production is the default; override `MCP_URL` to staging if needed). The `read -rsp` prompts for the key without echoing — paste the real value at the prompt:
 >
 > ```bash
-> export MCP_URL=https://mcp-staging.globalstrategic.tech
-> export MCP_KEY=<your-MCP_KEY_RP-token-value>
+> export MCP_URL=https://mcp.globalstrategic.tech    # or https://mcp-staging.globalstrategic.tech for staging probes
+> read -rsp "MCP_KEY (input hidden): " MCP_KEY && export MCP_KEY && echo
 > ```
+>
+> **Avoid** literally pasting `export MCP_KEY=<your-MCP_KEY_RP-token-value>` — bash treats `<...>` as input redirection and you'll either get "no such file" or a literal-string value depending on shell. The `read -rsp` pattern sidesteps the placeholder-paste hazard entirely.
 
 ### B.3.1 — Health endpoint responds
 
