@@ -4,7 +4,7 @@
 >
 > **BACKLOG entry**: [BL-032.25 in BACKLOG.md](./BACKLOG.md#bl-03225-mcp-revisions-prior-to-go-live)
 >
-> **Status**: Open — close-out. Zero P0 items (substrate shipped). **Two P1 items open** (§§ 1, 3); § 2 closed 2026-05-13 (commit `e97650d`); § 4 closed 2026-05-13 (commit `170f1d0`); § 5 closed risk-accepted 2026-05-12. New findings from the post-deploy review window will be appended under their own § numbers. § 1 authored at initiative-creation time as the anchor finding (schema normalization → adapter retirement question); §§ 2–4 filed retroactively 2026-05-12 from the soak.
+> **Status**: Open — close-out. Zero P0 items (substrate shipped). **One P1 item open (§ 1, deferred until BL-032.75 Phase 2 closes)**; § 2 closed 2026-05-13 (commit `e97650d`); § 3 closed inconclusive 2026-05-13 (reproduction tool + instrumentation retained); § 4 closed 2026-05-13 (commit `170f1d0`); § 5 closed risk-accepted 2026-05-12. New findings from the post-deploy review window will be appended under their own § numbers. § 1 authored at initiative-creation time as the anchor finding (schema normalization → adapter retirement question); §§ 2–4 filed retroactively 2026-05-12 from the soak.
 >
 > **Title note**: the "prior to Go-Live" phrasing in the title is now historical — Go-Live happened 2026-05-12. Title retained for backlog-ID stability; the initiative's functional role is **close-out of substrate-soak follow-ups**.
 >
@@ -258,16 +258,17 @@ P1 — operator picks Option A or B during execution. Default recommendation: **
 
 ---
 
-## § 3 — T.K.2.b.3 local stdio diligence timeout (P1)
+## § 3 — T.K.2.b.3 local stdio diligence timeout (P1 — Closed inconclusive)
 
 ### Status
 
 - **Authored**: 2026-05-12 (filed retroactively from K-section soak)
-- **Re-investigated**: 2026-05-13 (post-Go-Live close-out — see "Current state" below)
+- **Re-investigated**: 2026-05-13 (post-Go-Live close-out)
+- **Reproduction attempted**: 2026-05-13 via `mcp-server/scripts/repro-k2b3.mjs` (committed this cycle) — **bug does NOT reproduce against a plain Node stdio reader**. 10/10 consecutive K.2.b.3 runs complete in 192–239 ms wall time with 36 KB response; even the larger 61.5 KB minimal-input variant runs clean
 - **Severity**: **P1** — affects only the local stdio connector path for one tool; remote HTTP (staging at the time, production now) completed normally; Claude Desktop's transparent fallback to the remote connector recovered the user-facing workflow
-- **Recommendation**: defer until the reproduction script returns a clean root-cause classification; **do not attempt a fix without a reproduction first**
+- **Recommendation**: **close inconclusive** — H1 (buffer) and H2 (engine slow path) eliminated with hard data; H3 (Claude Desktop client-side artifact) is unfalsifiable from in-repo tooling. Keep the reproduction script + handler instrumentation in the repo as a regression-detection tool; revisit only if the bug surfaces again with Claude Desktop logs or with a non-Desktop consumer (Claude Code via stdio, no remote fallback)
 - **Investigation evidence**: this section
-- **Closure stanza**: [pending]
+- **Closure stanza**: see below
 
 ### What it asks
 
@@ -312,22 +313,59 @@ A Claude Desktop call to `gst:generate_diligence_agenda` over the local stdio co
   - If (a) is fast and (b–c) gap is large → hypothesis 1 or 3 → strip duplicate `structuredContent`, retest; if still slow, escalate to MCP SDK
   - If all three checkpoints fire promptly and our script returns clean → was a Desktop-specific flake; mark INCONCLUSIVE and watch for recurrence
 
+### 2026-05-13 reproduction findings
+
+Built `mcp-server/scripts/repro-k2b3.mjs` (this cycle, committed alongside). Replays the K.2.b.3 input combo against `node dist/index.js` over piped stdio with timing instrumentation. The handler at `mcp-server/src/tools/diligence.ts:87-126` was extended with env-gated (`MCP_REPRO_TIMING=1`) `[REPRO]` markers around `generateScript` and the JSON-stringify step so the script can derive engine / serialize / wire timings.
+
+**Results across 10 consecutive runs of the K.2.b.3 worst-case input** (all 13 fields supplied):
+
+| Metric                    | Range / value                                                        |
+| ------------------------- | -------------------------------------------------------------------- |
+| Wall time                 | 192–239 ms                                                           |
+| Engine (`generateScript`) | 1–2 ms                                                               |
+| Serialize                 | 0 ms                                                                 |
+| Response size             | 36.0 KB (full JSON-RPC envelope; 19.8 KB pretty-printed text inside) |
+| Timeouts                  | **0 / 10**                                                           |
+
+**Minimal-input variant** (all 13 fields = `'unknown'`) for the size-effect check:
+
+| Metric        | Value                                                                                               |
+| ------------- | --------------------------------------------------------------------------------------------------- |
+| Wall time     | 194–258 ms                                                                                          |
+| Engine        | 1 ms                                                                                                |
+| Response size | **61.5 KB** (engine widens the agenda when fields are unknown — produces MORE questions, not fewer) |
+| Timeouts      | 0 / 3                                                                                               |
+
+**Hypothesis verdicts**:
+
+| #   | Hypothesis                                                                         | Verdict                                                                                                                                                                                                                                                                                                                            |
+| --- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H1  | Large JSON response overflowing stdio pipe buffer                                  | **Eliminated.** 61.5 KB response (larger than worst-case K.2.b.3's 36 KB) still completes in 194–258 ms with a plain Node reader. Default pipe buffer is 64 KB; we're at most 96% full and have no issue                                                                                                                           |
+| H2  | `generateScript()` engine slow path on this input combo                            | **Eliminated.** Engine returns in 1–2 ms across both worst-case and minimal-input variants. No algorithmic pathology                                                                                                                                                                                                               |
+| H3  | Claude Desktop stdio-reader artifact (back-pressure, msg-boundary edge case, etc.) | **Unfalsifiable from in-repo tooling.** Our Node reader consumes bytes promptly; Claude Desktop's MCP client may have a different consumption pattern that interacts poorly with rapid 36 KB writes. To advance H3 we'd need either Claude Desktop's stdio-side logs OR a recurrence with another consumer (Claude Code via stdio) |
+
 ### Plan
 
-P1, deferred until reproduction script exists. **Estimated effort**:
+**Close as inconclusive — bug not reproducible in-repo; remaining hypothesis is upstream.** Two artifacts stay in the repo as the regression-detection net:
 
-- **Reproduction script**: 1 hour (write `mcp-server/scripts/repro-k2b3.ts`, parse the K.2.b.3 transcript for the exact input, run with logging)
-- **Root-cause narrowing**: 1–2 hours (variants + instrumentation)
-- **Fix**: 0–2 hours depending on which hypothesis fires (Hypothesis 1: 30 min strip the structured-content duplicate; Hypothesis 2: 2 hours engine profile + fix; Hypothesis 3: 0 hours in-repo, escalate)
-- **Total**: 2–5 hours including the fix
+- `mcp-server/scripts/repro-k2b3.mjs` — runnable any time; if the bug ever surfaces in CI / locally / production, this is the first thing to run
+- `mcp-server/src/tools/diligence.ts:87-126` env-gated `MCP_REPRO_TIMING` instrumentation — zero cost in normal operation; flip the env var to get engine/serialize timing in real Worker invocations
+
+**Recurrence-trigger criteria** (when to reopen):
+
+1. Bug reproduces against the local stdio entrypoint with a NON–Claude-Desktop consumer (Claude Code stdio, raw `node dist/index.js` interactive session) — would falsify H3 and reopen H1/H2 with new evidence
+2. Bug reproduces with Claude Desktop AND the operator captures the Claude Desktop MCP logs (Settings → Developer → Open MCP Log Folder) — would let us interrogate H3 with upstream-side data
+3. BL-032.75 Phase 2a metric emitters surface a `tool_invocation` duration outlier for `generate_diligence_agenda` — would indicate the bug exists in production traffic, not just on Claude Desktop stdio
 
 ### Recommendation
 
-Defer until either (a) the reproduction script is scheduled (suggest a 2-hour timebox in Phase 2c work alongside BL-032.75 instrumentation — the metrics emitters from Phase 2a will surface a tool_invocation duration that catches recurrence cheaply), or (b) the bug reproduces on a different input / a different consumer (Claude Code, where there's no remote fallback). **Do not attempt a fix without a reproduction first** — one-instance / one-input observations are flaky-evidence territory.
+Close inconclusive. The reproduction script + instrumentation are the right artifacts to leave behind — they make a recurrence cheap to investigate, but don't require a code change today (because we don't have evidence of a bug WE can fix).
 
 ### Closure stanza
 
-(Pending — investigation-time.)
+**Closed (2026-05-13) — Inconclusive in-repo; H1/H2 eliminated; H3 upstream-only.**
+
+Built `mcp-server/scripts/repro-k2b3.mjs` to replay the K.2.b.3 input against the local stdio entrypoint with engine / serialize / wire timing. Extended `handleDiligenceTool` (`mcp-server/src/tools/diligence.ts:87-126`) with env-gated `MCP_REPRO_TIMING` markers. 10/10 K.2.b.3 runs and 3/3 minimal-input runs (the latter producing a LARGER 61.5 KB response) all complete in 192–258 ms wall time with 1–2 ms engine time. H1 (buffer) and H2 (engine slow path) eliminated. H3 (Claude Desktop client-side artifact) remains the only viable hypothesis and is not reproducible from in-repo tooling. Script + instrumentation retained as a regression-detection net; recurrence criteria documented above.
 
 ---
 
@@ -492,12 +530,12 @@ This section is the operator-facing close-out plan for the four open P1 items, w
 
 ### Effort summary
 
-| Item | Effort                                                                                        | Risk                | Ships as                                                     | Status                                                                                                       |
-| ---- | --------------------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| § 2  | 30 min (Option B: 5-line surgical fix + test update)                                          | Very low            | Standalone commit                                            | **✅ Closed 2026-05-13** — commit `e97650d`                                                                  |
-| § 4  | ~30 min (bundled (a) + (b): bash placeholder + URL flip + Invoke-McpRequest throw refactor)   | Low                 | Standalone commit                                            | **✅ Closed 2026-05-13** — commit `170f1d0`                                                                  |
-| § 1  | 2–4 hrs benchmark-audit spike; then 0 days OR 2–3 days engineering depending on audit outcome | Schedule / data     | Deferred until BL-032.75 Phase 2 closes (~3–5 weeks)         | **Deferred** — operator chose to wait (2026-05-13). Re-surface as agenda item at Phase 2 close-out           |
-| § 3  | 1 hr reproduction script + 1–2 hrs root-cause narrow + 0–2 hrs fix                            | Unknown until repro | Bundle with BL-032.75 Phase 2a/2c when instrumentation lands | **Blocked** on reproduction-script construction; suggested timing tied to BL-032.75 Phase 2a metric emitters |
+| Item | Effort                                                                                        | Risk            | Ships as                                             | Status                                                                                                                          |
+| ---- | --------------------------------------------------------------------------------------------- | --------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| § 2  | 30 min (Option B: 5-line surgical fix + test update)                                          | Very low        | Standalone commit                                    | **✅ Closed 2026-05-13** — commit `e97650d`                                                                                     |
+| § 4  | ~30 min (bundled (a) + (b): bash placeholder + URL flip + Invoke-McpRequest throw refactor)   | Low             | Standalone commit                                    | **✅ Closed 2026-05-13** — commit `170f1d0`                                                                                     |
+| § 1  | 2–4 hrs benchmark-audit spike; then 0 days OR 2–3 days engineering depending on audit outcome | Schedule / data | Deferred until BL-032.75 Phase 2 closes (~3–5 weeks) | **Deferred** — operator chose to wait (2026-05-13). Re-surface as agenda item at Phase 2 close-out                              |
+| § 3  | Reproduction script + instrumentation shipped 2026-05-13                                      | n/a             | Bug not reproducible in-repo                         | **✅ Closed inconclusive 2026-05-13** — H1/H2 eliminated, H3 upstream-only; reproduction tool retained for recurrence detection |
 
 ### Execution plan (operator decisions, 2026-05-13)
 
@@ -528,4 +566,4 @@ This section is the operator-facing close-out plan for the four open P1 items, w
 
 ---
 
-_Last updated: 2026-05-13 — post-Go-Live re-investigation + first close-out wave. § 2 (commit `e97650d`) and § 4 (commit `170f1d0`) closed; § 1 deferred until BL-032.75 Phase 2 closes; § 3 blocked on reproduction-script construction (timed with BL-032.75 Phase 2a metric emitters). Two P1 items remain open in the bucket._
+_Last updated: 2026-05-13 — post-Go-Live re-investigation + close-out waves. § 2 (commit `e97650d`) and § 4 (commit `170f1d0`) closed via fixes; § 3 closed inconclusive (H1+H2 eliminated by 10-run reproduction; H3 upstream-only — reproduction tool + handler instrumentation retained for recurrence detection); § 1 deferred until BL-032.75 Phase 2 closes. One P1 item remains open in the bucket._

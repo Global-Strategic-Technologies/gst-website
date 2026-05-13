@@ -85,16 +85,29 @@ export function countUnknownDimensions(inputs: ValidatedUserInputs): number {
  * same handler.
  */
 export async function handleDiligenceTool(inputs: ValidatedUserInputs) {
+  // BL-032.25 § 3 instrumentation: when MCP_REPRO_TIMING=1, emit three
+  // high-resolution checkpoints to stderr so the repro-k2b3.mjs script can
+  // classify the timing distribution (engine / serialization / wire).
+  // Off by default; zero cost in normal operation.
+  const trace = process.env.MCP_REPRO_TIMING === '1';
+  const mark = (label: string): void => {
+    if (trace) console.error(`[REPRO] ${label} t=${performance.now().toFixed(2)}ms`);
+  };
+  mark('handler:enter');
   try {
     const result = generateScript(inputs);
+    mark('engine:returned');
     const unknownDimensionCount = countUnknownDimensions(inputs);
     const deeplink = buildDiligenceDeeplink(inputs);
     const payload = { ...result, unknownDimensionCount, deeplink };
+    const text = JSON.stringify(payload, null, 2);
+    if (trace) console.error(`[REPRO] serialized text bytes=${text.length}`);
+    mark('handler:returning');
     return {
       content: [
         {
           type: 'text' as const,
-          text: JSON.stringify(payload, null, 2),
+          text,
         },
       ],
       structuredContent: payload as unknown as Record<string, unknown>,
