@@ -21,6 +21,8 @@
  * OAuth 2.1 is BL-033's external-pilot concern.
  */
 
+import { DEFAULT_SCOPES } from './scopes';
+
 const BEARER_PREFIX = 'Bearer ';
 const KEY_NAME_PREFIX = 'MCP_KEY_';
 
@@ -29,6 +31,13 @@ export interface AuthSuccess {
   readonly ok: true;
   /** Stripped suffix of the matched secret name. E.g. `MCP_KEY_RP` → `RP`. */
   readonly keyOwner: string;
+  /**
+   * Scope set granted to this key. For BL-032.5 every matched key
+   * receives `DEFAULT_SCOPES` (full grant). BL-033 introduces per-key
+   * variation via OAuth-issued tokens; the field shape stays the same.
+   * Handlers gate access via `assertScope(auth.scopes, required)`.
+   */
+  readonly scopes: readonly string[];
 }
 
 /** Failed auth — Worker should respond with the carried 401 envelope. */
@@ -84,7 +93,11 @@ export function authenticate(request: Request, env: Record<string, unknown>): Au
     if (typeof value !== 'string') continue;
     if (!name.startsWith(KEY_NAME_PREFIX)) continue;
     if (value === token) {
-      return { ok: true, keyOwner: name.slice(KEY_NAME_PREFIX.length) };
+      return {
+        ok: true,
+        keyOwner: name.slice(KEY_NAME_PREFIX.length),
+        scopes: DEFAULT_SCOPES,
+      };
     }
   }
 
