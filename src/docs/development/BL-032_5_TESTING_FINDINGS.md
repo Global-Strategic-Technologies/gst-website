@@ -168,6 +168,8 @@ Copy-paste this block per finding. Date format is ISO-8601. Tester is initials.
 - Remediation: Apply token-stale recovery (see T.Y.2 below). Re-verify after recovery + next radar Tool call to confirm cache populates and `/health` flips to `ok: true`.
 - Notes: This is **graceful upstream-failure handling working correctly** — the Phase 4 Cron handler distinguished "Inoreader degraded" from "code defect" and bailed without corrupting state. The same code path would pass T.X.2's strict success criteria once Inoreader is healthy. Crucially: no crash, no partial writes, no incorrect status — the system degraded safely.
 
+**2026-05-13T17:02 UTC update — success-side verified at the 17:00 UTC natural Cron tick.** After the T.Y.2 recovery refreshed the Inoreader access token at 16:12, the next natural Cron tick at 17:00:55 UTC ran successfully end-to-end: `/health` returned `ok:true, inoreader:'ok', inoreaderObservedAt:'2026-05-13T17:00:55.269Z', radarSnapshotAgeSeconds:69`. Cron mechanism + outcome both PASS. The substrate behavior under the happy path is now fully verified.
+
 ### T.X.1 — Cron trigger registered in wrangler.toml
 
 - Date: 2026-05-13
@@ -291,6 +293,56 @@ For scenarios not in the playbook that surface during operator usage. Assign fre
 
 ## Soak closure
 
-When the soak window closes (typically after the production deploy lands and a one-week post-deploy review passes), summarize the outcomes here. Any unresolved P1 items get re-filed under a new BL-032.5-style close-out bucket (mirroring the BL-032.25 pattern) or under successor initiatives.
+**Soak window**: opened 2026-05-13T15:00 UTC (post-deploy of staging `7e53b0b0` / commit `be942a8`); pre-production-gate phase closed 2026-05-13T17:02 UTC.
 
-_(soak still open as of 2026-05-13)_
+**Substrate verdict**: ✅ **PASS** — every BL-032.5 Phase 1-4 component verified working as designed against real Cloudflare Workers + real Upstash + real Inoreader. 15 findings logged across sections C / W / X / H / M / K / Y.
+
+### Critical-gate scorecard
+
+| Test          | Outcome                  | Notes                                                                                                                                                                               |
+| ------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T.H.1         | ✅ PASS                  | `/health` exposes `radarSnapshotAgeSeconds`                                                                                                                                         |
+| T.M.1         | ✅ PASS                  | manifest-stability test passes; no canonical-hash drift                                                                                                                             |
+| T.W.1 / T.W.2 | ✅ PASS                  | `resources/list` returns the canonical 6 radar URIs                                                                                                                                 |
+| T.W.3 / T.W.4 | ✅ PASS                  | both core radar URIs return populated bodies after recovery                                                                                                                         |
+| T.X.1         | ✅ PASS                  | Cron trigger registered (`0 * * * *`) on staging                                                                                                                                    |
+| T.X.2         | ✅ PASS (after recovery) | Mechanism verified at 16:00 UTC tick (degraded outcome handled gracefully); success-side verified at 17:00:55 UTC tick (clean run, cache populated, `/health` flipped to `ok:true`) |
+| T.X.4         | ✅ PASS                  | `radarSnapshotAgeSeconds` tracks cache age correctly                                                                                                                                |
+| T.K.1 / T.K.2 | ✅ PASS                  | Claude Desktop reads pinned Library + radar Resources; voice consistent with GST Take addendum                                                                                      |
+
+### Important & Optional coverage
+
+- T.C.3 / T.C.4 ✅ PASS — Resource cache wrapper transparent (and T.C.4 surfaced + fixed a test-framing bug in `Test-Bl0325.ps1` mid-soak, committed `5adfa18`)
+- T.W.5 ✅ PASS — 4 Wire categories filter cleanly (0 wrong-category items across all)
+- T.Y.1 ✅ PASS — Tool path regression check via staging Claude Desktop connector (Phase 3 `createServer` refactor did not break Tool registration)
+- T.Y.2 ✅ Resolved in-session — first Cron tick hit a stale Inoreader OAuth token; recovered via documented `REMOTE_CLIENT_SETUP.md` § token-stale procedure (visit `/hub/radar` + force-refresh via radar Tool call)
+
+### 🔴 Production-deploy gate
+
+**BL-032.5 is NOT cleared for production deploy** until BL-039 (Worker-as-refresh-writer) lands.
+
+T.Y.3 surfaced a structural gap that BL-032.5's Phase 4 hourly Cron exposes more painfully than the BL-032 Tools-only path: Resources serve cache-or-nothing (no fall-through to Inoreader), so when the Inoreader OAuth access token expires AND no one visits `/hub/radar` to refresh it via website ISR, radar Resources go cold and stay cold. MCP-only consumers see snapshot-missing errors and have no in-product path to recovery.
+
+The Phase 4 Cron handler does everything correctly (detects degraded, refuses to corrupt cache, surfaces state via `/health` and `mcp:inoreader:last-status`). The gap is at the architecture boundary — the Worker is the wrong layer to own its own token refresh today (per the Q4 invariant established in BL-032). BL-039 is the canonical resolution; its BACKLOG.md entry is now flagged `MUST-SHIP-BEFORE-PROD for BL-032.5` (see commit `50acbf8`).
+
+### Re-soak triggers
+
+This findings log should be re-run when any of these land:
+
+1. **BL-039 implementation** — once Worker can refresh its own token, re-run the BL-032.5 soak with a deliberately stale-token scenario to confirm the Cron now recovers autonomously. T.X.2 / T.X.4 / T.W.3 / T.W.4 + a new T.Y.4 (autonomous recovery) need to land cleanly before production deploy.
+2. **Substrate-touching changes** — Resource cache logic (`mcp-server/src/cache/resource-cache.ts`), scope catalog (`auth/scopes.ts`), radar SnapshotReader (`content/radar-snapshot-reader-*.ts`), Cron schedule (`wrangler.toml` triggers), `/health` shape, or manifest hash discipline.
+3. **Pre-each-production-deploy** that touches any BL-032.5 surface — quick re-run of the Critical-gate scorecard above suffices; full Section K is overkill unless prompts/Resources changed.
+
+### Next session — BL-039 implementation (separate initiative)
+
+Recommended sequencing per the 2026-05-13 planning conversation:
+
+1. Confirm Option B from `BACKLOG.md` § BL-039 § Use cases (Worker calls a new website-side `/api/inoreader/refresh` endpoint on token-stale; preserves Q4 single-writer invariant)
+2. Implement + tests on a fresh branch off `feature-mcp2` (or its successor)
+3. Deploy to staging
+4. Re-soak BL-032.5 per § Re-soak triggers above
+5. Then — and only then — promote BL-032.5 + BL-039 together to production
+
+---
+
+_Soak closed pre-production-gate: 2026-05-13T17:02 UTC. Final closure (post-production-deploy review) deferred until BL-039 lands and the re-soak passes._
