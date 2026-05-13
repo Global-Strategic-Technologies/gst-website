@@ -17,11 +17,12 @@
  * `createServer()` and `registerLocalOnlyTools(server)`; the Worker entrypoint
  * (`src/worker.ts`) calls only `createServer()`.
  *
- * **Forward path** (BL-032.5): the radar Resources will move to Upstash-backed
- * HTTP delivery via a Worker Cron snapshot refresh. At that point the radar
- * Resources migrate from this module back into `createServer()` and become
- * transport-portable. The offline tool (`search_radar_offline` post-rename)
- * remains here as the dev/CI/budget-exhausted fallback.
+ * **BL-032.5 Phase 3 update**: radar Resources are now transport-portable
+ * — see `resources/radar.ts`. This file still registers them for the stdio
+ * path (using the node:fs-backed `stdioSnapshotReader`); the Worker path
+ * registers them inside `createServer()` using `createWorkerSnapshotReader`.
+ * The offline tool (`search_radar_offline`) remains stdio-only as the
+ * dev/CI/budget-exhausted fallback.
  *
  * **CI invariant** (Phase 6): the schema-drift test
  * (`tests/integration/registry-snapshot.test.ts`) snapshots both the stdio
@@ -32,11 +33,16 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerRadarOfflineTool, registerSearchRadarCacheAlias } from './radar-offline';
 import { registerRadarResources } from '../resources/radar';
+import { stdioSnapshotReader } from '../content/radar-snapshot-reader-stdio';
 
 export function registerLocalOnlyTools(server: McpServer): void {
   registerRadarOfflineTool(server);
   // Deprecated alias for one release. Removed in mcp-server@0.2.0.
   // See mcp-server/BREAKING_CHANGES.md.
   registerSearchRadarCacheAlias(server);
-  registerRadarResources(server);
+  // BL-032.5 Phase 3: pass the stdio reader explicitly. The Worker path
+  // registers radar Resources separately in `server.ts` via the Upstash-
+  // backed reader; this stdio site is the only place the node:fs-backed
+  // reader is wired up.
+  registerRadarResources(server, stdioSnapshotReader);
 }

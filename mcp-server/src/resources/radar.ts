@@ -12,20 +12,28 @@
  * rename of `search_radar_cache`) returns the items directly; callers
  * don't need to chain to a per-item Resource.
  *
- * If the snapshot file is missing, the read callback returns an `isError`-
- * shaped TextResourceContents with instructions to run `npm run radar:seed`.
+ * BL-032.5 Phase 3 refactor: this module is **transport-portable** — it
+ * holds no node:* imports and accepts a `SnapshotReader` from the caller.
+ * The stdio entrypoint passes the file-system-backed reader (via
+ * `_local-only.ts`); the Worker passes the Upstash-backed reader (via
+ * `server.ts`). The handler bodies are identical across transports
+ * because both readers implement the same interface.
+ *
+ * If the snapshot source returns null, the handler returns the
+ * `SNAPSHOT_MISSING_MESSAGE` shape wrapped in a 200 OK response body.
+ * The same shape ships on both transports so client UX is consistent.
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   RADAR_CATEGORIES,
-  readFyiSnapshot,
-  readWireSnapshot,
-  readWireSnapshotByCategory,
-  SNAPSHOT_MISSING_MESSAGE,
   type RadarCategory,
   type SnapshotTier,
-} from '../content/radar-snapshot';
+} from '../content/radar-transform';
+import { readThroughCache, RESOURCE_TTL_SECONDS } from '../cache/resource-cache';
+import { assertScope, SCOPES, MissingScopeError, DEFAULT_SCOPES } from '../auth/scopes';
+import type { SnapshotReader } from '../content/radar-snapshot-reader';
+import type { Env } from '../worker';
 
 const CATEGORY_LABELS: Readonly<Record<RadarCategory, string>> = {
   'pe-ma': 'PE & M&A',
@@ -33,6 +41,9 @@ const CATEGORY_LABELS: Readonly<Record<RadarCategory, string>> = {
   'ai-automation': 'AI & Automation',
   security: 'Security',
 };
+
+const SNAPSHOT_MISSING_MESSAGE =
+  'Radar snapshot is not yet populated. On the local stdio path: run `npm run radar:seed`. On the Worker path: wait for the next hourly Cron (or the next radar Tool call) to refresh the Upstash cache.';
 
 function buildBody(uri: string, tier: SnapshotTier | null): string {
   if (!tier) {
@@ -51,7 +62,55 @@ function buildBody(uri: string, tier: SnapshotTier | null): string {
   );
 }
 
-export function registerRadarResources(server: McpServer): void {
+/**
+ * Register the six static radar Resources on the given server.
+ *
+ * @param server - MCP server (transport-agnostic at this layer)
+ * @param reader - Snapshot source; injected by the caller so this module
+ *                doesn't transitively pull in node:fs OR the Upstash client
+ * @param env - Worker env, threaded through to the BL-032.5 cache layer.
+ *              For stdio (no Upstash), pass `{}` — the cache fails open.
+ * @param scopes - Scope set from the request's auth; checked per call via
+ *                 `assertScope(scopes, RESOURCE_RADAR_READ)`. Defaults to
+ *                 `DEFAULT_SCOPES` (full grant) for stdio.
+ */
+export function registerRadarResources(
+  server: McpServer,
+  reader: SnapshotReader,
+  env: Env = {},
+  scopes: readonly string[] = DEFAULT_SCOPES
+): void {
+  const readSnapshot = async (
+    uri: string,
+    fetch: () => Promise<SnapshotTier | null>
+  ): Promise<{ body: string; mimeType: string }> => {
+    const tier = await fetch();
+    return { body: buildBody(uri, tier), mimeType: 'application/json' };
+  };
+
+  // Wrap a handler with scope-check + cache. Returns the MCP contents
+  // envelope or surfaces MissingScopeError to the SDK (which converts
+  // it to a JSON-RPC error response).
+  const buildHandler =
+    (fetch: () => Promise<SnapshotTier | null>) =>
+    async (
+      uri: URL
+    ): Promise<{ contents: Array<{ uri: string; mimeType: string; text: string }> }> => {
+      assertScope(scopes, SCOPES.RESOURCE_RADAR_READ);
+      const cached = await readThroughCache(env, uri.href, RESOURCE_TTL_SECONDS.RADAR, () =>
+        readSnapshot(uri.href, fetch)
+      );
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: cached.mimeType,
+            text: cached.body,
+          },
+        ],
+      };
+    };
+
   // gst://radar/fyi/latest
   server.registerResource(
     'GST Radar — FYI (latest annotated items)',
@@ -59,18 +118,10 @@ export function registerRadarResources(server: McpServer): void {
     {
       title: 'GST Radar — FYI (latest annotated)',
       description:
-        'Latest annotated highlights from the GST Radar feed (snapshot-backed; refreshed via `npm run radar:seed`).',
+        'Latest annotated highlights from the GST Radar feed (snapshot-backed; refreshed via `npm run radar:seed` on stdio or hourly Worker Cron on HTTP).',
       mimeType: 'application/json',
     },
-    async (uri) => ({
-      contents: [
-        {
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: buildBody(uri.href, readFyiSnapshot()),
-        },
-      ],
-    })
+    buildHandler(() => reader.readFyi())
   );
 
   // gst://radar/wire/latest
@@ -80,18 +131,10 @@ export function registerRadarResources(server: McpServer): void {
     {
       title: 'GST Radar — Wire (latest across all categories)',
       description:
-        'Latest items from the merged GST Radar Wire feed (snapshot-backed; refreshed via `npm run radar:seed`).',
+        'Latest items from the merged GST Radar Wire feed (snapshot-backed; refreshed via `npm run radar:seed` on stdio or hourly Worker Cron on HTTP).',
       mimeType: 'application/json',
     },
-    async (uri) => ({
-      contents: [
-        {
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: buildBody(uri.href, readWireSnapshot()),
-        },
-      ],
-    })
+    buildHandler(() => reader.readWire())
   );
 
   // gst://radar/wire/<category> for each of the four canonical categories.
@@ -105,15 +148,7 @@ export function registerRadarResources(server: McpServer): void {
         description: `${CATEGORY_LABELS[category]} items from the GST Radar Wire feed (snapshot-backed).`,
         mimeType: 'application/json',
       },
-      async (resourceUri) => ({
-        contents: [
-          {
-            uri: resourceUri.href,
-            mimeType: 'application/json',
-            text: buildBody(resourceUri.href, readWireSnapshotByCategory(category)),
-          },
-        ],
-      })
+      buildHandler(() => reader.readWireByCategory(category))
     );
   }
 }
@@ -124,3 +159,7 @@ export const RADAR_URIS: ReadonlyArray<string> = [
   'gst://radar/wire/latest',
   ...RADAR_CATEGORIES.map((c) => `gst://radar/wire/${c}`),
 ];
+
+// Re-exports for backward-compat with callers that previously imported
+// from this module (the offline-tool registration site, tests).
+export { MissingScopeError };

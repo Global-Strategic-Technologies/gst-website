@@ -189,7 +189,12 @@ const handler: ExportedHandler<Env> = {
 
     // Build the MCP handler per-request — radar-live tools (Phase 4c) capture
     // `env` in their closures for circuit-breaker checks + Inoreader fetches.
-    const mcp = createMcpHandler(createServer(env));
+    // BL-032.5 Phase 3: pass `scopes` from the auth result so scope-gated
+    // handlers (radar Resources) can assertScope at the top of their bodies,
+    // and `radarSource: 'worker'` so radar Resources register with the
+    // Upstash-backed reader (the stdio reader uses node:fs and isn't bundled
+    // for the Worker).
+    const mcp = createMcpHandler(createServer(env, { scopes: auth.scopes, radarSource: 'worker' }));
     const response = await mcp(request, env, ctx);
     const durationMs = Date.now() - startedAt;
 
