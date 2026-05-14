@@ -174,6 +174,112 @@ The MedSig Health notes are engineered to populate **6 of 13** typed dimensions 
 
 If during the demo Claude opts to derive `companyAge` ('5-10yr' is a defensible read from "Series-B closed late 2024" → typically ~4-7 years founded), the count drops to 6 and the callout suppresses. Both paths are legitimate outcomes; both make for a credible demo. **The point of the engineered scenario is showing the threshold mechanism working, not pinning it to a specific count.**
 
+##### § 1.B — Architecture under the hood (demonstrator narration reference)
+
+This section is the **narration cheat-sheet** for when stakeholders ask _"so what's actually happening when Claude does that?"_ Read top-to-bottom; each block is a phrase you can speak verbatim while pointing at the relevant moment in the Claude Desktop UI.
+
+###### Wire-level call sequence — Claude Desktop ↔ GST MCP Worker
+
+Three round-trips happen over the Streamable HTTP transport (single TCP-connection-per-request; bearer-authenticated):
+
+```
+       Claude Desktop                              GST MCP Worker
+            │                                  (mcp.globalstrategic.tech/mcp)
+            │                                            │
+   ① At connector load (once per session):               │
+            ├─── POST initialize ─────────────────────►  │  auth: MCP_KEY_RP bearer
+            │                                            │  registers: 12 Tools + 8 Prompts + ~130 Resources
+            │ ◄──── capabilities ────────────────────────┤
+            │                                            │
+   ② User submits the input prompt:                      │
+       (Claude infers "use gst_diligence_kickoff")       │
+            ├─── POST prompts/get ─────────────────────► │  prompt name + 14 inferred args
+            │     name: gst_diligence_kickoff            │  → diligenceKickoffPrompt.build(args)
+            │     args: {targetName, 13 dimensions}      │  → returns 2 messages:
+            │                                            │      msg-1: instruction text w/ args inlined
+            │ ◄──── { messages: [msg-1, msg-2] } ────────┤      msg-2: EmbeddedResource (VDR Library article)
+            │                                            │
+   ③ Claude reads the messages, then issues:             │
+            ├─── POST tools/call ──────────────────────► │  tool name + structured args
+            │     name: generate_diligence_agenda        │  → handleDiligenceTool(inputs)
+            │     args: {13 typed dimensions}            │  → calls generateScript() — the shared engine
+            │                                            │  → countUnknownDimensions()
+            │                                            │  → buildDiligenceDeeplink()
+            │ ◄──── { agenda, unknown count, deeplink } ─┤
+            │                                            │
+   ④ Claude composes the 1-page memo using:              │
+      msg-1's section template +                         │
+      msg-2's VDR taxonomy +                             │
+      tools/call response                                │
+            │                                            │
+```
+
+**Talking points keyed to each round-trip**:
+
+- **① initialize** — _"When Claude Desktop opened, it shook hands with our MCP server once. From that moment, Claude knows the names + input shapes of all 12 GST tools, all 8 GST prompt workflows, and all 130-odd Resources. The bearer key over there is what attributes everything you're about to see to me — every call shows up in our logs tagged `keyOwner=RP`."_
+- **② prompts/get** — _"That's not Claude calling a tool yet — that's Claude asking our server "what does the `gst_diligence_kickoff` workflow want me to do?" The server returns a templated set of instructions PLUS our canonical VDR-folder taxonomy embedded inline. Claude didn't have to make a separate call to fetch the taxonomy — we ship it bundled with the prompt response so it can't accidentally substitute a generic one from its training data."_
+- **③ tools/call** — _"Now Claude calls our actual diligence engine — same code path that powers the website's [Diligence Machine](https://globalstrategic.tech/hub/tools/diligence-machine) wizard. It returns a structured JSON payload: the topic-grouped agenda, the attention areas, an unknown-dimensions count, and a deeplink URL that opens the wizard pre-populated with the same inputs."_
+- **④ memo composition** — _"Claude then assembles the final 1-page memo using the prompt template from step 2, the VDR taxonomy from step 2, and the engine output from step 3. That's why it reads in our house voice — the prompt instruction layer enforces that, not Claude's general training."_
+
+###### Worker-internal pipeline (steps ② + ③ in detail)
+
+When the Worker receives `prompts/get` or `tools/call`, the request flows through the same auth + scope + rate-limit pipeline before it reaches the prompt or tool handler:
+
+```
+HTTP request
+   ↓
+auth gate (compare bearer against MCP_KEY_* secrets) ── [mcp-server/src/auth/bearer.ts]
+   ↓ keyOwner attribution attached
+scope check (assert resource:* / tool:* / prompt:* scope) ── [mcp-server/src/auth/scopes.ts]
+   ↓
+rate-limit decrement (per-key 5/min radar; default tier for diligence) ── [mcp-server/src/ratelimit/limiter.ts]
+   ↓
+circuit-breaker check (Inoreader breaker; not load-bearing for diligence) ── [mcp-server/src/ratelimit/circuit-breaker.ts]
+   ↓
+SDK dispatch → MCP method handler
+   ├─ prompts/get → diligenceKickoffPrompt.build(args) ── [mcp-server/src/prompts/diligence-kickoff.ts]
+   │                  ↓
+   │              embedLibraryArticle('gst://library/vdr-structure')  ── [mcp-server/src/prompts/embed.ts]
+   │                  ↓
+   │              loadLibraryByUri()  ── [mcp-server/src/content/library-loader.ts] (codegen index, built at npm run prebuild)
+   │                  ↓
+   │              returns { messages: [instruction-text, EmbeddedResource] }
+   │
+   └─ tools/call(generate_diligence_agenda) → handleDiligenceTool(inputs) ── [mcp-server/src/tools/diligence.ts]
+                  ↓
+              generateScript(inputs) ── [src/utils/diligence-engine.ts:417]  ◄── SAME ENGINE AS THE HUB UI
+                  ↓
+              countUnknownDimensions(inputs) ── [mcp-server/src/tools/diligence.ts:61]
+                  ↓
+              buildDiligenceDeeplink(inputs)
+                  ↓
+              serializeToParams(inputs) ── [src/utils/diligence-url.ts:67]  ◄── SAME URL ENCODER AS THE HUB UI
+                  ↓
+              returns { ...agenda, unknownDimensionCount, deeplink }
+```
+
+###### The shared-engine architecture — the key story for the demo
+
+This is the line that lands hardest with a stakeholder who's seen too many "AI-wrapper" demos. **The MCP server doesn't reimplement the diligence logic — it imports the exact same `generateScript()` function the hub wizard imports**:
+
+| Surface                | What it does                                                      | Code path                                                                                |
+| ---------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **Hub wizard** (web)   | User fills 13-dim wizard → JS calls `generateScript()` in-browser | [`src/utils/diligence-engine.ts:417`](../../../src/utils/diligence-engine.ts#L417)       |
+| **MCP tool** (Claude)  | Claude calls `tools/call` → handler calls the **same** function   | [`mcp-server/src/tools/diligence.ts:98`](../../../mcp-server/src/tools/diligence.ts#L98) |
+| **Deeplink URL state** | Hub wizard restores from URL; MCP builds the same URL on response | [`src/utils/diligence-url.ts:67`](../../../src/utils/diligence-url.ts#L67) (encoder)     |
+
+**Demonstrator phrasing**: _"This isn't a chatbot that learned how to do diligence. This is the same code module that powers the website wizard — `src/utils/diligence-engine.ts`. Claude is calling a function. The function returns a structured agenda. Claude composes a memo around it. Two different surfaces — the hub wizard and the MCP — share one engine. That's why the agenda Claude just generated is byte-for-byte identical to what you'd get if you typed these same dimensions into the wizard yourself."_
+
+This is also why the **deeplink round-trip works**: the same `serializeToParams()` encoder builds the URL state on the MCP side and parses it on the hub side. Click the deeplink at the end of the memo, land in the hub wizard with all 13 dimensions (including the 7 `'unknown'` sentinels) pre-populated.
+
+###### Reading order for the demonstrator
+
+If you have 30 seconds to articulate the architecture mid-demo, use this:
+
+> _"Three things happened. One — Claude asked our server for the prompt template, and got back a templated workflow plus our canonical VDR taxonomy embedded inline. Two — Claude called our diligence tool, which runs the same engine that powers the hub wizard you can see on the website. Three — Claude composed the memo using the template plus the tool output. The deeplink at the bottom opens the hub wizard with these same inputs pre-populated, because both surfaces share one URL encoder. The MCP isn't a parallel implementation; it's the conversational surface of the same engines you already use."_
+
+If you have 5 seconds: _"Same engine as the hub wizard, Claude on top, with our prompt template enforcing the GST voice."_
+
 #### Scenario 2 — Cross-jurisdictional deal review (Claude Desktop, 7 min)
 
 - **Input**: hypothetical target operating in EU + US-CA + UK
@@ -181,6 +287,98 @@ If during the demo Claude opts to derive `companyAge` ('5-10yr' is a defensible 
 - **Prompt** (typed live): _"Using only the pinned regulations, generate a compliance-risk matrix for this target..."_
 - **Output**: cross-jurisdictional risk matrix with verbatim citations to pinned Resource content
 - **Showcase**: BL-032.5 Resources-over-HTTP, cross-jurisdictional pinning (a core BL-032.5 deliverable), citation grounding to prevent hallucinated regulatory text
+
+##### § 2.A — Architecture under the hood (Resources path)
+
+The story arc for Scenario 2 is **citation grounding**: the model never has to "remember" GDPR text — we hand it verbatim regulation content via the Resources primitive and tell it to reason over what we handed it. Here's what happens at the wire level.
+
+###### Wire-level call sequence — Resource pin → query
+
+Two distinct phases. Pin-time fetches happen once per session per Resource; the prompt-time call has no `resources/read` activity because the content is already in Claude's conversation context.
+
+```
+       Claude Desktop                              GST MCP Worker
+            │                                  (mcp.globalstrategic.tech/mcp)
+            │                                            │
+   ① initialize (once per session, same as Scenario 1)   │
+            ├─── POST initialize ─────────────────────►  │
+            │ ◄──── capabilities (incl. ~130 Resources) ─┤
+            │                                            │
+   ② Operator clicks the + → Resources → picks 3 URIs:   │
+      gst://regulations/eu/gdpr                          │
+      gst://regulations/us-ca/ccpa                       │
+      gst://regulations/uk/dpa-2018                      │
+            │                                            │
+            ├─── POST resources/read (uri 1) ──────────► │  assertScope(RESOURCE_REGULATION_READ)
+            │ ◄──── { contents: [...GDPR text...] } ─────┤  readThroughCache(env, uri, 24h TTL)
+            │                                            │  → loadRegulationByUri(...) (codegen)
+            ├─── POST resources/read (uri 2) ──────────► │
+            │ ◄──── { contents: [...CCPA text...] } ─────┤
+            ├─── POST resources/read (uri 3) ──────────► │
+            │ ◄──── { contents: [...DPA-2018 text...] } ─┤
+            │                                            │
+            │  Claude renders each URI as a pinned "pill"
+            │  above the chat input — verbatim content
+            │  now lives in Claude's conversation context
+            │                                            │
+   ③ User types the query — NO new MCP calls fire:       │
+      "Using only the pinned regulations, generate
+       a compliance-risk matrix..."                      │
+            │                                            │
+      Claude reasons over the pinned content (already    │
+      cached client-side) + composes the risk matrix.    │
+            │                                            │
+```
+
+**Talking points keyed to each step**:
+
+- **② resources/read** (three times) — _"When I click the + menu and pin a regulation, Claude Desktop makes one HTTP call per pin to fetch the canonical text. Each call goes through our auth gate — `keyOwner=RP` in our logs — and through a scope check for `resource:regulation:read`. The Worker reads the regulation through a 24-hour cache, so this is sub-100ms on a warm cache. The text Claude pins is **verbatim** what's in our regulatory corpus on the server — not whatever GDPR Claude remembers from training."_
+- **③ query** — _"Now I type the prompt. Notice — no new MCP calls fire. Claude is reasoning over the regulation text it already received in step 2. The risk matrix it produces is therefore grounded in our text, not in training data. If the model tried to cite an article that doesn't appear in the pinned content, that would be hallucination — and we built the demo this way precisely so you can spot-check that. Look at the citations: every article number maps to a line in the pinned content above."_
+
+###### Worker-internal pipeline — resources/read
+
+```
+HTTP POST /mcp (method=resources/read, uri=gst://regulations/<jurisdiction>/<framework>)
+   ↓
+auth gate (compare bearer against MCP_KEY_* secrets) ── [mcp-server/src/auth/bearer.ts]
+   ↓ keyOwner attribution attached
+scope check: assertScope(scopes, RESOURCE_REGULATION_READ) ── [mcp-server/src/auth/scopes.ts]
+   ↓
+SDK dispatch → resource handler registered in [mcp-server/src/resources/regulations.ts]
+   ↓
+readThroughCache(env, uri.href, REGULATION_TTL_SECONDS, fetcher) ── [mcp-server/src/cache/resource-cache.ts]
+   ├── cache HIT  → return cached body (~50ms p95)
+   └── cache MISS → invoke fetcher:
+                       loadRegulationByUri(uri)  ── [mcp-server/src/content/regulation-loader.ts]
+                          ↓ codegen index built at `npm run prebuild`
+                       returns { uri, mimeType: 'application/json', text: <regulation body> }
+                       ↓
+                    cache writes through with 24h TTL
+                       ↓
+                    return body to handler
+   ↓
+{ contents: [{ uri, mimeType, text }] } back to Claude Desktop
+```
+
+###### The pinning architecture — the key story for the demo
+
+Three things distinguish this from "have Claude look up GDPR":
+
+| Layer                  | What it guarantees                                                                                                                                  | Code path                                                                                                                                            |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Canonical source**   | Regulation text is codegened at server build time from our regulatory corpus — single source of truth, deployed atomically with each Worker release | [`mcp-server/src/content/regulation-loader.ts`](../../../mcp-server/src/content/regulation-loader.ts)                                                |
+| **24h cache**          | The same regulation pinned by 10 users in a session hits Inoreader-bandwidth-free reads after the first fetch                                       | [`mcp-server/src/cache/resource-cache.ts`](../../../mcp-server/src/cache/resource-cache.ts)                                                          |
+| **Scoped attribution** | Every read goes through bearer auth + `resource:regulation:read` scope check; logged with `keyOwner`; counted against rate limits                   | [`mcp-server/src/auth/bearer.ts`](../../../mcp-server/src/auth/bearer.ts), [`mcp-server/src/auth/scopes.ts`](../../../mcp-server/src/auth/scopes.ts) |
+
+**Demonstrator phrasing**: _"This isn't Claude looking up GDPR on the internet. We've shipped a verbatim copy of our regulatory corpus inside the MCP server itself. When I pin a regulation, the server reads the canonical text from that bundled corpus and hands it to Claude over the wire. The model reasons over the text we gave it, and if it cites Article 32 of GDPR, it's citing the exact words we shipped — not whatever it absorbed during training. That's why this demo can actually be trusted for compliance work."_
+
+###### Reading order for the demonstrator
+
+30-second version:
+
+> _"Two phases. One — at pin time, Claude Desktop calls our server's `resources/read` endpoint once per pin and pulls the canonical regulation text into its conversation context. Two — when I type the query, no new MCP calls fire; Claude is reasoning over text we handed it, not text it trained on. That's why every citation in the output traces back to a verbatim line in the pinned content above. We didn't ask Claude to remember the law; we handed it the law and asked it to reason."_
+
+5-second version: _"Verbatim regulatory text pinned into Claude's context — no training-data citations, no hallucinated articles. Pure citation grounding."_
 
 #### Scenario 3 — OpenClaw radar pull on command (5 min, hints at the cherry)
 
@@ -203,6 +401,116 @@ The **first taste of agentic autonomy** in the demo. A single OpenClaw agent, on
   - If OpenClaw's agent runtime hangs or errors — gracefully fall back to a pre-recorded screencast of a successful run
   - If radar cache is cold (unlikely given BL-032.5 Phase 4 hourly Cron) — show `/health` and either wait ~3s for repopulate or move to scenario 4 first and circle back
   - Backup: pre-recorded screencap of a successful radar pull, queued at hand
+
+##### § 3.A — Architecture under the hood (OpenClaw → Tools path, cache, OAuth self-heal)
+
+The story arc for Scenario 3 is **operational substrate**: an agent issues one command, and three pieces of substrate quietly collaborate — bearer auth + per-key rate limit + Cron-pre-warmed Upstash cache + autonomous OAuth refresh — to make the response feel instant. Below the fold there are 4 systems working in concert.
+
+###### Wire-level call sequence — OpenClaw agent → radar tool
+
+```
+       OpenClaw agent runtime (cloud-hosted)             GST MCP Worker
+            │                                  (mcp.globalstrategic.tech/mcp)
+            │                                            │
+   ① initialize (once per agent boot)                    │
+            ├─── POST initialize ─────────────────────►  │  auth: MCP_KEY_OC bearer
+            │ ◄──── capabilities (Tools + Resources) ────┤  (Prompts ignored — OpenClaw doesn't consume them)
+            │                                            │
+   ② Demonstrator types in OpenClaw:                     │
+      "Pull today's radar items relevant to AI infra
+       deals and give me a 3-bullet briefing in the
+       GST Take voice."                                  │
+            │                                            │
+      OpenClaw routes to `radar-analyst` agent.          │
+      Agent's system prompt instructs: "call search_radar  │
+       with category=ai-automation; compose 3 bullets."  │
+            │                                            │
+            ├─── POST tools/call ──────────────────────► │  tool: search_radar
+            │     name: search_radar                     │     args: { category: 'ai-automation' }
+            │     args: { category: 'ai-automation' }    │
+            │                                            │
+            │                                            │  → checkCircuitBreaker(env)  [closed]
+            │                                            │  → readWireLive(env)  ── cache HIT
+            │                                            │  → readFyiLive(env, 30)  ── cache HIT
+            │                                            │  → merge + dedupe + filter + sort
+            │                                            │  → buildRadarDeeplink(category)
+            │ ◄──── { matches: [...], deeplink, ... } ───┤
+            │                                            │
+   ③ Agent composes 3-bullet briefing in GST Take voice  │
+      using the returned items + system-prompt addendum. │
+      Output renders in OpenClaw's UI.                   │
+            │                                            │
+```
+
+**Talking points keyed to each step**:
+
+- **① initialize** — _"OpenClaw doesn't run on my laptop — it's a cloud agent. When it boots, it shakes hands with our MCP server using a separate bearer key, `MCP_KEY_OC`, that I issued specifically for this integration. Every call this agent makes will show up in our logs tagged `keyOwner=OC`, distinct from `keyOwner=RP` for the Claude Desktop scenarios. That gives us clean per-integration attribution."_
+- **② tools/call** — _"The agent's system prompt tells it: when asked for a radar briefing, call our `search_radar` tool with the appropriate category. So that's exactly what happens — one structured tool call, with structured args. You see the tool call render in OpenClaw's UI; that's our MCP being hit. Inside the Worker, the request goes through auth, scope check, rate-limit accounting (this counts against the radar tier's 5-per-minute budget on `MCP_KEY_OC`), and then a circuit-breaker check before we touch the data."_
+- **③ data return path** — _"The interesting bit: 99% of the time we don't actually call Inoreader here. Our radar cache is pre-warmed every hour by a Worker Cron — so when the agent asks, we serve a sub-100ms response from Upstash, not a 2-second Inoreader fetch. If the cache happens to be cold or the underlying OAuth token is stale, BL-039 self-heals: the Worker calls our website's refresh endpoint, gets a fresh token, and retries — all without operator intervention. You won't see this happen on stage because the substrate is healthy, but I can show the `/health` endpoint after the demo if you want the receipts."_
+
+###### Worker-internal pipeline — tools/call(search_radar)
+
+```
+HTTP POST /mcp (method=tools/call, name=search_radar, args={category})
+   ↓
+auth gate ── [mcp-server/src/auth/bearer.ts]                    keyOwner=OC
+   ↓
+scope check ── [mcp-server/src/auth/scopes.ts]                  TOOL_RADAR_READ
+   ↓
+rate-limit decrement (radar tier: 5/min, 50/day per key)        [mcp-server/src/ratelimit/limiter.ts]
+   ↓
+SDK dispatch → handleSearchRadar(env, input) ── [mcp-server/src/tools/radar-live.ts:183]
+   ↓
+checkCircuitBreaker(env)
+   ├── breaker OPEN  → return 503 envelope with retryAfterSeconds (no Inoreader call)
+   └── breaker CLOSED → continue
+   ↓
+Promise.all([readWireLive(env), readFyiLive(env, 30)]) ── [mcp-server/src/content/radar-live-store.ts:75]
+   │
+   ├── readWireLive:
+   │      cache HIT (mcp:radar:cache:wire, 6h TTL)
+   │         → return { items, fetchedAt, cacheHit: true }    ← typical path (Cron pre-warmed)
+   │      cache MISS
+   │         → fetchAllStreams() — calls Inoreader 5 times    [mcp-server/src/lib/inoreader-worker.ts]
+   │           ├── 401 from Inoreader
+   │           │      → triggerWebsiteRefresh() — BL-039 self-heal
+   │           │         → POST https://gst-website/api/inoreader/refresh
+   │           │            (shared-secret bearer)
+   │           │         → retry once with fresh token
+   │           └── 429 from Inoreader
+   │                  → openCircuit(env, 'inoreader-429')  → return 503 envelope
+   │
+   └── readFyiLive: same shape, separate cache key (mcp:radar:cache:fyi)
+   ↓
+merge + dedupe (by url || id) + filter by category + sort by publishedAt
+   ↓
+buildRadarDeeplink(category) ── serializeToParams from [src/utils/radar-url.ts]   ◄── SAME ENCODER AS HUB PAGE
+   ↓
+{ matches, totalMatched, liveInfo: { wireCacheHit, fyiCacheHit, fetchedAt × 2 }, deeplink }
+   ↓
+return to OpenClaw agent
+```
+
+###### The substrate stack — the key story for the demo
+
+Four cooperating systems, none of which the agent has to know about:
+
+| Layer                        | What it does                                                                                                               | Code path                                                                                                                                                                                 |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Per-key rate limit**       | 5/min, 50/day radar tier on `MCP_KEY_OC` — separate from other key budgets                                                 | [`mcp-server/src/ratelimit/limiter.ts`](../../../mcp-server/src/ratelimit/limiter.ts)                                                                                                     |
+| **Cron-pre-warmed cache**    | Worker Cron every hour calls `readWireLive(forceRefresh:true)` + `readFyiLive`; cache stays ≤60min stale                   | [`mcp-server/src/cron/radar-refresh.ts`](../../../mcp-server/src/cron/radar-refresh.ts) (BL-032.5 Phase 4)                                                                                |
+| **OAuth self-heal (BL-039)** | On 401 from Inoreader: Worker calls the website's refresh endpoint with a shared secret, retries once with the fresh token | [`mcp-server/src/lib/inoreader-worker.ts`](../../../mcp-server/src/lib/inoreader-worker.ts) (BL-039), [`src/pages/api/inoreader/refresh.ts`](../../../src/pages/api/inoreader/refresh.ts) |
+| **Circuit breaker**          | On 429 from Inoreader: 6h breaker stops all radar tool calls + Cron refreshes; protects the 200/day Inoreader budget       | [`mcp-server/src/ratelimit/circuit-breaker.ts`](../../../mcp-server/src/ratelimit/circuit-breaker.ts)                                                                                     |
+
+**Demonstrator phrasing**: _"What you just saw was one tool call. Underneath it, four systems collaborated to make that call feel instant and safe — rate limiting that protects this OpenClaw key separately from my own Claude Desktop key, a cache that gets pre-warmed by a Cron so the agent never waits on Inoreader, an autonomous OAuth refresh that healed our token last week without me noticing, and a circuit breaker that protects the upstream Inoreader budget from cascading failures. None of that is in the agent. It's all in the substrate. The agent just asked for radar, and got radar."_
+
+###### Reading order for the demonstrator
+
+30-second version:
+
+> _"Three pieces. One — the agent calls our `search_radar` tool, identified to us by the `MCP_KEY_OC` bearer key. Two — the Worker rate-limits the call against this key's separate budget, then reads from a 6-hour Upstash cache that's pre-warmed every hour by a Cron. Three — the agent gets structured items back and composes the briefing in the GST Take voice from its system prompt. If the underlying OAuth token had been stale, BL-039 would have refreshed it autonomously between the request and the response, and you wouldn't have known. That's the substrate — operationally honest by construction."_
+
+5-second version: _"Tool call from the agent, served from a Cron-pre-warmed cache, separately rate-limited, with autonomous OAuth refresh if needed."_
 
 #### Scenario 4 — "What else?" open-ended interactive session (Claude Desktop, open-ended length)
 
@@ -234,6 +542,80 @@ The credible MD challenge to this scenario is: _"how do I know this isn't just C
 3. Read Claude's reply and call out the specifics: _"Notice it's citing engagement code names, not generic case studies — that's the GST data showing through."_
 
 If stakeholders push harder (rare but possible): pull up the actual tool source file in a side window — see scenario 5 § 5.A for the canonical tool→source mappings.
+
+##### § 4.B — Architecture under the hood (general routing for any tool / prompt / resource)
+
+Scenario 4 is the open-ended one — any stakeholder question could trigger any combination of Tools, Prompts, or Resources. The architectural story here is therefore the **shared pipeline** that every MCP method routes through. Three primitives, three call patterns, **one auth + scope + rate-limit gauntlet** they all share.
+
+###### The three MCP call patterns Claude Desktop can fire
+
+| Method           | Triggered when                                                     | Example                                                     |
+| ---------------- | ------------------------------------------------------------------ | ----------------------------------------------------------- |
+| `tools/call`     | Claude decides it needs to query a structured engine               | `search_portfolio`, `compute_techpar`, `search_regulations` |
+| `prompts/get`    | Stakeholder (or Claude) names a `gst_*` workflow                   | `gst_target_quick_look`, `gst_comparable_engagements_memo`  |
+| `resources/read` | Stakeholder pins a Resource, OR Claude is asked to "look at" a URI | `gst://library/vdr-structure`, `gst://regulations/<*>`      |
+
+All three flow through the same Worker pipeline before reaching their respective handlers — that's why a stakeholder asking _"can you guarantee every interaction is logged + budgeted + authorized?"_ has a single, clean answer.
+
+###### Worker-internal pipeline — shared across all three methods
+
+```
+HTTP POST /mcp (method=tools/call | prompts/get | resources/read)
+   ↓
+auth gate ── [mcp-server/src/auth/bearer.ts]
+   ├── 401 if no bearer / unknown bearer (request never reaches a handler)
+   └── keyOwner attribution attached  (e.g. keyOwner=RP)
+   ↓
+scope check ── [mcp-server/src/auth/scopes.ts]
+   ├── method-specific scope required:
+   │     tools/call         → TOOL_<family>_INVOKE
+   │     prompts/get        → PROMPT_<workflow>_RENDER
+   │     resources/read     → RESOURCE_<family>_READ
+   └── MissingScopeError if not granted (request never reaches the handler)
+   ↓
+rate-limit decrement ── [mcp-server/src/ratelimit/limiter.ts]
+   ├── per-key bucket; radar tools on their own 5/min·50/day tier
+   └── 429 with RFC 9331 Retry-After if budget exhausted
+   ↓
+SDK dispatch → handler:
+   ├── tools/call(<name>)        → register-time handler in mcp-server/src/tools/<family>.ts
+   ├── prompts/get(<name>)       → diligence-kickoff.ts / target-quick-look.ts / etc.
+   └── resources/read(<uri>)     → mcp-server/src/resources/<family>.ts
+   ↓
+observability ── [mcp-server/src/observability/sentry.ts] + safeLog (structured log line)
+   ↓
+response back to Claude Desktop
+```
+
+**Two important properties** that follow from this shared pipeline:
+
+1. **Verifiability is structural, not bolt-on**. Every request is authenticated, scoped, rate-limited, and logged before any business logic runs. The `keyOwner` field on every log line lets us trace exactly which key invoked what.
+2. **Tool calls, prompt renders, and resource reads all show up in Claude Desktop's UI**. Whatever the stakeholder asks, you'll see the JSON-RPC method + payload render inline in the chat. **No render = no MCP hit** (the verification cue § 4.A rule 1 relies on).
+
+###### Anatomy of three example questions (and the methods they trigger)
+
+When a stakeholder fires the open-ended prompts in this scenario, here's the pattern-match between question shape and MCP method:
+
+| Stakeholder asks                                                                                | Claude likely fires                                                                                                                                                          | What you point at in the UI                                                                                              |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| _"Find me three PE firms in our portfolio that have done healthcare-interoperability deals..."_ | `tools/call` → `search_portfolio({ industry: 'healthcare', theme: 'interoperability' })` ([`mcp-server/src/tools/portfolio.ts`](../../../mcp-server/src/tools/portfolio.ts)) | The tool-call render shows the structured args — proving Claude translated prose into a query against our portfolio data |
+| _"What would diligence look like for a target with bad infrastructure cost-governance?"_        | `tools/call` → `assess_infrastructure_cost_governance(...)` ([`mcp-server/src/tools/icg.ts`](../../../mcp-server/src/tools/icg.ts))                                          | Multi-domain ICG output with our framework's taxonomy showing through (verification cue § 4.A rule 3)                    |
+| _"Generate a comparable-engagements memo for healthcare interoperability"_                      | `prompts/get` → `gst_comparable_engagements_memo` → which then auto-fires `tools/call` → `search_portfolio` + `list_portfolio_facets`                                        | Two structured calls render — the prompt invocation followed by the tool sub-calls it orchestrates                       |
+| _"Pull GDPR text and explain Article 32 to me"_                                                 | If user pre-pinned `gst://regulations/eu/gdpr`: NO new MCP call (text already in context, Scenario 2 pattern). Otherwise: `resources/read` if user types the URI             | Either zero new calls (if pinned) or one resource-read render                                                            |
+
+###### The substrate-as-substrate story — the key story for the demo
+
+Scenario 4 is where you make the load-bearing claim about the architecture itself:
+
+**Demonstrator phrasing**: _"Whatever the stakeholder just asked, three things happened. One — the request went through bearer authentication and was attributed to my specific key. Two — the request was scope-checked: did `MCP_KEY_RP` have permission to call this tool, render this prompt, or read this resource? Three — the request was counted against per-key rate budgets. Then, and only then, the actual handler ran. This pipeline is the same for every Tool, every Prompt, every Resource — there's no privileged path. That's what makes this safe to expose to pilot clients in BL-033 — verifiability isn't a feature we added, it's how the substrate is built."_
+
+###### Reading order for the demonstrator
+
+30-second version:
+
+> _"This is the open-ended segment. The architectural point is that everything you'll see Claude do — whether it's a tool call, a prompt invocation, or a resource read — flows through the same auth + scope + rate-limit pipeline. Every request is attributed to my key, scope-checked against what that key is allowed to do, and counted against a per-key budget. Then the handler runs. That's why I can hand you the keyboard and let you ask anything — every interaction will leave a trail in our logs, and nothing gets through that pipeline by accident."_
+
+5-second version: _"Three primitives, one shared pipeline — auth, scope, rate-limit, then handler. Every interaction is logged + budgeted + authorized."_
 
 #### Scenario 5 — 🍒 OpenClaw autonomous agentic loop (5-7 min, cherry on top)
 
@@ -293,6 +675,111 @@ Each specialist agent's system prompt composes a sequence of Tool calls matching
   - **Where this could go** — productized agent workflows running pre-meeting prep overnight, on-demand briefings, ambient market intelligence
 - **Honest framing**: this is the "what if" lens. The Claude scenarios (1, 2, 4) are _production-ready today_. The OpenClaw scenario is _substrate-ready, productization-pending_ — and intentionally exercises the Tools+Resources surface that ALL MCP clients support today, not the Prompt surface that some clients (e.g., OpenClaw) don't yet.
 - **Failure tolerance**: if any agent hangs or errors mid-run, gracefully fall back to "the Claude version of this is scenario 1 — you already saw it work." The OpenClaw segment failing on stage doesn't undermine the demo's core value.
+
+##### § 5.C — Architecture under the hood (multi-agent fan-out, attribution, rate-limit shape)
+
+The story arc for Scenario 5 is **the substrate behaves the same whether one client connects or one hundred**. Three OpenClaw agents firing concurrent tool calls against the MCP look architecturally identical to three users — same auth gate, same scope check, same rate-limit accounting — they just happen to share one bearer key. Below is the wire-level shape of the fan-out + a sober look at the rate-limit math.
+
+###### Wire-level shape — three parallel agents, one shared MCP
+
+```
+                  OpenClaw orchestrator (cloud)
+                              │
+              ┌───────────────┼───────────────────────────────┐
+              │               │                               │
+       ┌──────▼──────┐ ┌──────▼─────────────┐ ┌───────────────▼────────┐
+       │ Target-fit  │ │  Comparable-       │ │  Regulatory-exposure   │
+       │  agent      │ │  engagements agent │ │   agent                │
+       └──────┬──────┘ └──────┬─────────────┘ └───────────────┬────────┘
+              │               │                               │
+              │ (4 tools/call)│ (2 tools/call)                │ (1 tools/call + N resources/read)
+              │ sequentially  │ sequentially                  │ sequentially
+              │ from agent's  │ from agent's                  │ from agent's
+              │ system prompt │ system prompt                 │ system prompt
+              │               │                               │
+              ▼               ▼                               ▼
+   ┌──────────────────────────────────────────────────────────────────────────────┐
+   │                          GST MCP Worker (mcp.globalstrategic.tech)           │
+   │                                                                              │
+   │  All three concurrent HTTP streams hit the same Worker isolate(s).           │
+   │  Every request carries Authorization: Bearer <MCP_KEY_OC>.                   │
+   │  Worker can't tell which OpenClaw agent issued which call — it just sees     │
+   │  3 concurrent bearer-authenticated clients with the same keyOwner=OC.        │
+   │                                                                              │
+   │  Each call goes through the standard pipeline (§ 4.B):                       │
+   │    auth → scope → rate-limit decrement → handler → response                  │
+   │                                                                              │
+   │  Rate-limit accounting is per-KEY, not per-client-connection.                │
+   │  → All 3 agents share ONE 5/min·50/day radar budget                          │
+   │  → All 3 agents share ONE default-tier budget for non-radar tools            │
+   │                                                                              │
+   └──────────────────────────────────────────────────────────────────────────────┘
+              │               │                               │
+              │ structured    │ structured                    │ structured
+              │ JSON results  │ JSON results                  │ JSON results
+              │               │                               │
+              ▼               ▼                               ▼
+       ┌──────────────────────────────────────────────────────────────┐
+       │       Synthesis agent (cloud, no MCP calls of its own)        │
+       │  Receives all 3 upstream outputs → produces partner verdict  │
+       └──────────────────────────────────────────────────────────────┘
+```
+
+###### Tool-call accounting — how many MCP requests does Scenario 5 actually fire?
+
+This is the question that comes up in BL-033 pilot-client discussions: _"if you scaled this to 10 prospects a day, what does that cost us?"_ Below is the per-run call inventory so you can extrapolate.
+
+| Agent                  | MCP tool calls per run                                                                                         | Resource reads per run                                                           | Tier                                                 |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Target-fit             | 4: `assess_infrastructure_cost_governance`, `compute_techpar`, `estimate_tech_debt_cost`, `search_regulations` | 0                                                                                | default tier                                         |
+| Comparable-engagements | 2: `search_portfolio`, `list_portfolio_facets`                                                                 | 0                                                                                | default tier                                         |
+| Regulatory-exposure    | 1: `search_regulations`                                                                                        | 2-5: `gst://regulations/<jurisdiction>/<framework>` (varies by target geography) | default tier × tool + RESOURCE_REGULATION_READ × pin |
+| Synthesis              | 0                                                                                                              | 0                                                                                | —                                                    |
+| **TOTAL per run**      | **7 tools/call**                                                                                               | **2-5 resources/read**                                                           | all default tier                                     |
+
+Notes for the demonstrator:
+
+- **None of these are radar-tier**. The 5/min·50/day radar budget is untouched by Scenario 5 — Scenario 3's `MCP_KEY_OC` consumption is independent.
+- **9-12 MCP requests per run** total. At 10 runs/day, that's ~100-120 requests against the default tier — comfortably under the per-key budget (default tier is ~60/min·1000/day per key per `mcp-server/src/docs/operations/RATE_LIMITS.md`).
+- **Concurrent burst window**: all 3 agents start at roughly the same time, so the Worker sees a 7-call burst within ~3-4 seconds. Default-tier per-minute budget absorbs this without trouble; if BL-033 scales beyond ~5 simultaneous fan-out runs, BL-040 (debounce parallel refreshes) becomes load-bearing rather than nice-to-have.
+
+###### Attribution — what shows up in `wrangler tail` during the demo
+
+When Scenario 5 runs, this is the live log you'd see streaming from `wrangler tail --env production --format=json | jq -c '.event.request | {method, url}'`:
+
+```
+{ "method": "POST", "url": ".../mcp" }   ← tools/call(assess_infrastructure_cost_governance) keyOwner=OC
+{ "method": "POST", "url": ".../mcp" }   ← tools/call(search_portfolio)                       keyOwner=OC
+{ "method": "POST", "url": ".../mcp" }   ← tools/call(search_regulations)                     keyOwner=OC
+{ "method": "POST", "url": ".../mcp" }   ← tools/call(compute_techpar)                        keyOwner=OC
+{ "method": "POST", "url": ".../mcp" }   ← tools/call(list_portfolio_facets)                  keyOwner=OC
+{ "method": "POST", "url": ".../mcp" }   ← resources/read(gst://regulations/eu/gdpr)          keyOwner=OC
+{ "method": "POST", "url": ".../mcp" }   ← tools/call(estimate_tech_debt_cost)                keyOwner=OC
+{ "method": "POST", "url": ".../mcp" }   ← resources/read(gst://regulations/us-ca/ccpa)       keyOwner=OC
+...
+```
+
+Every line carries `keyOwner=OC`. **If we wanted to spin up a second OpenClaw integration for a different team, they'd get their own `MCP_KEY_<TEAM>` key and their log lines would carry their own `keyOwner` field** — full multi-tenant attribution with zero change to the substrate. This is the architecture story for "what would BL-033 pilot-client onboarding look like?"
+
+###### The substrate is just substrate — the key story for the demo
+
+Three orchestration layers stack cleanly, and each layer is independently inspectable:
+
+| Layer                        | Lives in                                                      | Inspectable via                                                  |
+| ---------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **Top: agent fan-out**       | OpenClaw orchestrator (cloud)                                 | OpenClaw UI — see each agent fire + its outputs                  |
+| **Middle: workflow specs**   | `mcp-server/src/prompts/*.ts` (versioned, code-reviewed)      | Source files in repo — what the agent's system prompt replicates |
+| **Bottom: tool invocations** | `mcp-server/src/tools/*.ts` + `mcp-server/src/resources/*.ts` | `wrangler tail` + Claude/OpenClaw UI's tool-call renders         |
+
+**Demonstrator phrasing**: _"What you're watching is three agents fanning out in parallel, each one issuing a short sequence of tool calls against the same MCP server I demoed earlier with Claude Desktop. From the MCP's perspective there's nothing special about agents — they're just three concurrent bearer-authenticated clients sharing one team key. Every call is attributed to `MCP_KEY_OC`, every call is scope-checked, every call is rate-limited. If we wanted to give a pilot client their own agent, we'd issue them their own key — and our logs would show their traffic separately. Productized AI workflows aren't a different system; they're the same MCP, with agents on top instead of humans in chat."_
+
+###### Reading order for the demonstrator
+
+30-second version:
+
+> _"Three agents firing seven tool calls and a handful of resource reads, all in parallel, all bearing the same `MCP_KEY_OC` key. The MCP server treats them like three concurrent clients — same auth gate, same scope check, same rate-limit accounting we'd give a human typing in Claude Desktop. The architectural payoff isn't the agent fan-out itself — it's that the substrate behaved the same whether one client or twenty connect. That's what makes it safe to point pilot clients at next quarter."_
+
+5-second version: _"Three concurrent agents, one shared bearer key, same auth + scope + rate-limit pipeline as every other call. Substrate scales without rearchitecture."_
 
 ### Business value
 
@@ -652,6 +1139,41 @@ Track what changes between revisions of this doc + why. Append as we go.
 **What's still open**: implementation work — same set as Rev 7. The spec remains requirements-complete; Rev 8 is a correctness pass, not a scope change.
 
 **Owner**: RP — design unblocked for cloud-models + OpenClaw Tools+Resources-only implementation.
+
+### 2026-05-14 — Revision 9: Demonstrator architecture sections added to all 5 scenarios
+
+**Trigger**: RP feedback: _"update Scenario 1 to show the underlying architecture of how the scenario is routed through MCP to invoke the various GST Hub tools - it isn't immediately clear to me what's happening under the hood and I want to be able to articulate it during the demo"_ — followed by _"now do the same technical documentation for the other scenarios also"_ once § 1.B landed.
+
+**Resolution**: each scenario now has a dedicated **"Architecture under the hood"** sub-section optimized for spoken articulation during the demo. Each section follows the same template established in § 1.B:
+
+1. Wire-level call sequence (ASCII diagram showing the JSON-RPC round-trips Claude Desktop or OpenClaw makes)
+2. Talking points keyed to each step (verbatim phrasing the demonstrator speaks while pointing at the UI)
+3. Worker-internal pipeline (the auth + scope + rate-limit + handler shape)
+4. The scenario-specific key story (different teaching moment for each)
+5. Reading-order summaries (30-second + 5-second articulation scripts)
+
+**Per-scenario architectural story**:
+
+| Scenario | Section | Key teaching                                                                                                                                                                                                                                                                                                            |
+| -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1        | § 1.B   | **Shared engine** — MCP calls the same `generateScript()` function that powers the hub wizard; same `serializeToParams()` URL encoder on both surfaces enables the deeplink round-trip.                                                                                                                                 |
+| 2        | § 2.A   | **Citation grounding** — Resources pinning fetches verbatim regulation text via `resources/read` once; subsequent prompts reason over pinned content, not training data. No hallucinated articles.                                                                                                                      |
+| 3        | § 3.A   | **Operational substrate** — Cron-pre-warmed Upstash cache + per-key rate limit + BL-039 OAuth self-heal + circuit breaker all cooperate so one agent tool call feels instant + safe + budgeted.                                                                                                                         |
+| 4        | § 4.B   | **Shared pipeline** — Tools, Prompts, Resources all flow through the same auth + scope + rate-limit gauntlet before reaching their handlers. Verifiability is structural, not bolt-on.                                                                                                                                  |
+| 5        | § 5.C   | **Substrate scales without rearchitecture** — 3 concurrent agents look identical to 3 humans at the MCP layer; same auth gate, same per-key rate-limit accounting, with full multi-tenant attribution via `keyOwner` log fields. Includes tool-call inventory + `wrangler tail` log shape for BL-033 capacity planning. |
+
+**Changes**:
+
+- **Scenario 2** gains § 2.A (Resources path) — pin-time `resources/read` × 3 phase, then prompt-time zero-MCP-call phase; codegen index + 24h cache + scoped attribution table; demonstrator phrasing
+- **Scenario 3** gains § 3.A (OpenClaw → Tools, cache, BL-039) — wire-level diagram showing the cache-hit path and the BL-039 self-heal fallback path; substrate-stack table; demonstrator phrasing
+- **Scenario 4** gains § 4.B (general routing pipeline) — three-primitive method table, shared Worker pipeline diagram, anatomy table mapping example questions to MCP methods; complements § 4.A (verification mechanisms) by explaining WHY verifiability is structural
+- **Scenario 5** gains § 5.C (multi-agent fan-out, attribution, rate-limit shape) — three-agent parallel-fan-out diagram, per-run tool-call inventory (7 tools/call + 2-5 resources/read across the 3 specialists; all default-tier; radar tier untouched), simulated `wrangler tail` output showing `keyOwner=OC` attribution for every call
+
+**Format/length discipline**: every architecture section is ~100-130 lines, balanced between diagram + narration. They live inside the per-scenario subtree (`#### Scenario N`, then `##### § N.X`, then `######` for sub-headers) so the document hierarchy stays clean. None of the existing content was rewritten — these sections are pure additions adjacent to each scenario's main bullet list.
+
+**What didn't change**: scenario specifications themselves (inputs, prompts, expected outputs, failure modes, acceptance criteria, demo wall-clock budgets). Iteration questions remain locked at Rev 8 status. Rev 9 is a documentation-completeness pass for the demo runbook, not a scope change.
+
+**Owner**: RP — demo implementation work continues; demonstrator now has narration cheat-sheets for every scenario.
 
 ---
 
