@@ -186,7 +186,7 @@ If during the demo Claude opts to derive `companyAge` ('5-10yr' is a defensible 
 
 The **first taste of agentic autonomy** in the demo. A single OpenClaw agent, on a one-line command, pulls live radar from the GST MCP and produces a thematic briefing. Establishes "agents can do this — autonomously" without the multi-agent complexity of scenario 5. Plants the seed.
 
-- **Setup**: Pre-configured OpenClaw with the `gst-mcp` connector registered (same `MCP_KEY_OPENCLAW_DEMO` used in scenario 5). One pre-defined agent — `radar-analyst` — with access to just the radar tools (`search_radar`, `get_latest_insights`).
+- **Setup**: Pre-configured OpenClaw with the `gst-mcp` connector registered (same `MCP_KEY_OC` used in scenario 5). One pre-defined agent — `radar-analyst` — with access to just the radar tools (`search_radar`, `get_latest_insights`).
 - **Input** (typed live in the OpenClaw UI, single command): _"Pull today's radar items relevant to AI infrastructure deals and give me a 3-bullet briefing in the GST Take voice."_
 - **What stakeholders see**:
   1. OpenClaw routes the command to the `radar-analyst` agent
@@ -239,41 +239,29 @@ If stakeholders push harder (rare but possible): pull up the actual tool source 
 
 The closing flourish. Takes scenario 1's workflow (sales-call → diligence agenda) and runs it autonomously through a small OpenClaw fan-out — showing what the same workflow looks like under multi-agent orchestration rather than human-driven chat. Pays off the seed planted in scenario 3.
 
-**Hardware-constrained design**: local OpenClaw runtime limits how many simultaneous agent contexts we can host without RAM pressure. Scenario 5 ships in **two variants**:
+**Cloud-models design (Rev 8)**: with demo agents upgraded to **cloud models** rather than locally-hosted runtimes, the RAM constraint that motivated Rev 6's safe/stretch split is gone. Scenario 5 now ships as **a single 3-specialist + Synthesis configuration** — all three partner-decision dimensions (fit, precedent, risk) cover every run, no hardware-check gate, no day-of variant decision.
 
-| Variant            | Specialist agents                                             | + Synthesis | Total OpenClaw contexts | Status                                                             |
-| ------------------ | ------------------------------------------------------------- | ----------- | ----------------------- | ------------------------------------------------------------------ |
-| **Safe (default)** | 2 (Target-fit + Comparable-engagements)                       | 1           | 3                       | **Load-bearing — verified in dry-run, this is what runs on stage** |
-| **Stretch**        | 3 (Target-fit + Comparable-engagements + Regulatory-exposure) | 1           | 4                       | Conditional — only runs if same-day hardware check passes          |
+**Tools + Resources only — no MCP Prompt invocation (Rev 8)**: research into OpenClaw's MCP client capability surface confirmed that `mcporter` (OpenClaw's MCP tooling, 0.10.0+) consumes Tools and Resources only — **Prompts are not consumable from OpenClaw**. Both upstream feature requests ([openclaw#8188](https://github.com/openclaw/openclaw/issues/8188), [openclaw#29053](https://github.com/openclaw/openclaw/issues/29053)) closed stale. Each scenario-5 specialist agent therefore composes its Tool sequence via **system-prompt composition**, using the `gst_*` Prompt source files as the design specification for which Tools to call in what order. The architectural payoff is unchanged — 3-agent fan-out → each agent driving a 1-4 tool sub-sequence → 6-8 underlying Tool calls total — but the layer where the workflow is _named_ moves from server-side (Prompts) to client-side (agent system prompts). Claude Desktop scenarios (1, 2, 4) still use server-side Prompts because Claude Desktop's MCP client supports all three primitives.
 
-The safe variant is the **published demo**; the stretch is bonus depth shown only if the demonstrator's hardware accommodates the extra agent context at show-time. Both variants take the same MedSig Health call notes from scenario 1 as input.
-
-- **Setup**: Pre-configured `openclaw mcp set gst-mcp '{"transport":"streamable-http","url":"https://mcp.globalstrategic.tech/mcp","headers":{"Authorization":"Bearer <demo-key>"}}'`; 2 or 3 OpenClaw specialist agents pre-defined (per variant) plus a Synthesis agent
+- **Setup**: Pre-configured `openclaw mcp set gst-mcp '{"transport":"streamable-http","url":"https://mcp.globalstrategic.tech/mcp","headers":{"Authorization":"Bearer <MCP_KEY_OC>"}}'`; 3 OpenClaw specialist agents pre-defined plus a Synthesis agent. Each specialist's system prompt is hand-authored to reproduce the equivalent `gst_*` Prompt's Tool sequence (per § 5.A).
 - **Input** (same MedSig Health call notes from scenario 1, fed once at the kickoff): kicks off the fan-out
 
-##### § 5.A — Agent / Prompt / Tool / Source-code map
+##### § 5.A — Agent / Tool-sequence / Source-code map
 
-Each specialist agent is a thin OpenClaw wrapper around **one GST MCP Prompt** (not a single Tool — Prompts orchestrate multiple Tools internally, so each agent already drives a 1-4 tool sub-fan-out). This layered orchestration is the architectural payoff: 2-3 high-level agents → each invoking a versioned consultant workflow → each calling 1-4 underlying tools = substantial substrate exercise without RAM-intensive parallel agents.
+Each specialist agent's system prompt composes a sequence of Tool calls matching what the equivalent `gst_*` Prompt would have orchestrated server-side. The `gst_*` Prompt source files remain the **canonical specification** for what each workflow does — they're consulted at agent-design time rather than invoked at run-time. This is the workaround for OpenClaw's Tools+Resources-only client (per the HANDOVER doc § 2.0).
 
-**The MD-facing demo slide for scenario 5 lists each agent with its prompt, its underlying tools, and hyperlinks to BOTH the prompt source AND each tool source** — so a curious stakeholder can verify "yes, this is real, named, versioned code we built, here it is in the repo." All paths are relative to repo root.
+**The MD-facing demo slide for scenario 5 lists each agent with the Prompt source it replicates, the underlying Tools it calls, and hyperlinks to BOTH the Prompt spec AND each tool source** — so a curious stakeholder can verify "yes, this is real, named, versioned code we built, here it is in the repo." All paths are relative to repo root.
 
-###### Safe variant (2 specialist agents + Synthesis)
+| Agent                            | Workflow spec (Prompt source — the design reference)                                                | Tool sequence invoked by agent system prompt                                                                                                                                                                                                           | What the agent contributes                                                    |
+| -------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| **Target-fit agent**             | [`gst_target_quick_look`](../../../mcp-server/src/prompts/target-quick-look.ts)                     | 4 tools: [`icg.ts`](../../../mcp-server/src/tools/icg.ts) · [`techpar.ts`](../../../mcp-server/src/tools/techpar.ts) · [`tech-debt.ts`](../../../mcp-server/src/tools/tech-debt.ts) · [`regulations.ts`](../../../mcp-server/src/tools/regulations.ts) | Pursue / pass / dig-more verdict — the "is this worth our time?" check        |
+| **Comparable-engagements agent** | [`gst_comparable_engagements_memo`](../../../mcp-server/src/prompts/comparable-engagements-memo.ts) | 2 tools: [`portfolio.ts`](../../../mcp-server/src/tools/portfolio.ts) (`search_portfolio`, `list_portfolio_facets`)                                                                                                                                    | "Have we done this before?" — precedent memo from our 57-engagement portfolio |
+| **Regulatory-exposure agent**    | [`gst_regulatory_exposure_brief`](../../../mcp-server/src/prompts/regulatory-exposure-brief.ts)     | 1 tool + Resources: [`regulations.ts`](../../../mcp-server/src/tools/regulations.ts) + `gst://regulations/*` (120+ files)                                                                                                                              | Jurisdictional regulatory-risk dimension covering target's geographies        |
+| **Synthesis agent**              | _(no Prompt analog — pure synthesis)_                                                               | _none — receives upstream outputs only_                                                                                                                                                                                                                | Combines fit + precedent + risk into a single partner-decision recommendation |
 
-| Agent                            | MCP Prompt                         | Prompt source                                                                                                             | Internal tool sub-fan-out                                                                                                                                                                                                                              | What the agent contributes                                                            |
-| -------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| **Target-fit agent**             | `gst_target_quick_look` v0.0.3     | [`mcp-server/src/prompts/target-quick-look.ts`](../../../mcp-server/src/prompts/target-quick-look.ts)                     | 4 tools: [`icg.ts`](../../../mcp-server/src/tools/icg.ts) · [`techpar.ts`](../../../mcp-server/src/tools/techpar.ts) · [`tech-debt.ts`](../../../mcp-server/src/tools/tech-debt.ts) · [`regulations.ts`](../../../mcp-server/src/tools/regulations.ts) | Pursue / pass / dig-more verdict — the "is this worth our time?" check                |
-| **Comparable-engagements agent** | `gst_comparable_engagements_memo`  | [`mcp-server/src/prompts/comparable-engagements-memo.ts`](../../../mcp-server/src/prompts/comparable-engagements-memo.ts) | 2 tools: [`portfolio.ts`](../../../mcp-server/src/tools/portfolio.ts) (`search_portfolio`, `list_portfolio_facets`)                                                                                                                                    | "Have we done this before?" — precedent memo from our 57-engagement portfolio         |
-| **Synthesis agent**              | _(no MCP prompt — pure synthesis)_ | _N/A — synthesis logic in OpenClaw agent config_                                                                          | _none_                                                                                                                                                                                                                                                 | Combines target-fit verdict + precedent into a single partner-decision recommendation |
+**Why these three specialists**: they map to the three questions a partner asks first when triaging a deal — _"does this fit our pattern?"_ (outward look), _"have we done similar work before?"_ (inward look), _"what's the risk?"_ (compliance look). Synthesis is the partner-decision moment that combines them.
 
-**Why this pair**: these are the two questions a partner asks first when triaging a deal — "does this fit our pattern?" (outward look) and "have we done similar work before?" (inward look). Synthesis is the partner-decision moment ("pursue / pass / dig more, citing both signals").
-
-###### Stretch variant (adds a 3rd specialist agent — only if hardware permits)
-
-| Agent                                         | MCP Prompt                      | Prompt source                                                                                                         | Internal tool sub-fan-out                                                                                                 | What the agent contributes                                             |
-| --------------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| **Regulatory-exposure agent** ⭐ stretch only | `gst_regulatory_exposure_brief` | [`mcp-server/src/prompts/regulatory-exposure-brief.ts`](../../../mcp-server/src/prompts/regulatory-exposure-brief.ts) | 1 tool + Resources: [`regulations.ts`](../../../mcp-server/src/tools/regulations.ts) + `gst://regulations/*` (120+ files) | Jurisdictional regulatory-risk dimension covering target's geographies |
-
-The stretch adds the third partner-question ("what's the risk?") — the regulatory-exposure brief produces a structured cross-jurisdictional matrix that the Synthesis agent factors in alongside fit + precedent.
+**Why this isn't just hand-coding the workflow into the agent**: the Prompt source files are still authoritative — they capture the GST consultant voice, the ordering reasoning, the response-shape rules, the verifiability guidance. Lifting that specification into the agent's system prompt preserves the architectural layering (workflow definition vs runtime invocation are still separated) and gives the OpenClaw integration a path back to native Prompt invocation if/when [openclaw#8188](https://github.com/openclaw/openclaw/issues/8188) ships.
 
 ###### Bonus tools available (for "what else?" Q&A grounding)
 
@@ -285,27 +273,25 @@ The stretch adds the third partner-question ("what's the risk?") — the regulat
 
 **Demonstrator narration cue**: when each agent fires in the OpenClaw UI, name the prompt + its tools out loud AND mention the source links are in the slide deck. _"The Target-fit agent just invoked our `gst_target_quick_look` prompt — that workflow lives at `mcp-server/src/prompts/target-quick-look.ts` and internally calls our ICG, TechPar, tech-debt, and regulations tools. All links are in your handout."_ Makes the demo feel grounded in real engineering, not magic — three layers of "real code we built" become visible.
 
-##### § 5.B — End-to-end flow (safe variant)
+##### § 5.B — End-to-end flow
 
-**Pre-show hardware check**: ~10 min before demo start, demonstrator runs both variants in dry-run. If 3-agent stretch completes within 7 min on the demo laptop without OOM/runtime errors, the stretch is "green-lit" for show-time. If not, ship the safe variant only.
-
-**What stakeholders see (safe variant — 2 specialists + Synthesis)**:
+**What stakeholders see**:
 
 1. **Demonstrator kicks off** by feeding the MedSig Health call notes (same input as scenario 1) into OpenClaw's orchestrator
-2. **Target-fit agent starts** — invokes `gst_target_quick_look` Prompt → internal fan-out to 4 tools (ICG + TechPar + tech-debt + regulations) renders in the OpenClaw UI → produces fit-verdict
-3. **Comparable-engagements agent runs in parallel** — invokes `gst_comparable_engagements_memo` Prompt → internal fan-out to 2 portfolio tools → produces precedent memo with anonymized engagement code names
-4. **Both agents complete** → outputs arrive at the Synthesis agent
-5. **Synthesis agent** produces final partner-decision recommendation citing both upstream agents' outputs
+2. **All three specialists fan out in parallel** (cloud-models — no RAM contention):
+   - **Target-fit agent** — system-prompt-driven 4-tool sequence (ICG + TechPar + tech-debt + regulations) renders in the OpenClaw UI → produces fit-verdict
+   - **Comparable-engagements agent** — system-prompt-driven 2-tool sequence (`search_portfolio` + `list_portfolio_facets`) → produces precedent memo with anonymized engagement code names
+   - **Regulatory-exposure agent** — system-prompt-driven 1-tool + Resources sequence (`search_regulations` + `gst://regulations/*` pins) → produces cross-jurisdictional risk matrix
+3. **All three agents complete** → outputs arrive at the Synthesis agent
+4. **Synthesis agent** produces final partner-decision recommendation citing all three upstream agents' outputs
 
-**Wall-clock**: ~3-4 minutes for both specialist agents to complete (parallel) + ~30s synthesis + ~1-2 min narration = ~5-7 min total. Same total as the original 4-agent design but with less RAM pressure and richer per-agent depth (because each agent runs a multi-tool prompt rather than a single tool call).
-
-**Stretch variant flow** (if hardware-check passes): same as above, but Regulatory-exposure agent starts in parallel with the other two specialists. Synthesis combines 3 inputs instead of 2.
+**Wall-clock**: ~3-4 minutes for all three specialist agents to complete (parallel, cloud-hosted — no local-runtime bottleneck) + ~30s synthesis + ~1-2 min narration = ~5-7 min total.
 
 - **Showcase**:
-  - **What autonomy on top looks like** — same workflow as scenario 1, but executed by 2 (or 3) cooperating agents — each running a versioned consultant prompt that itself fans out to 1-4 tools — instead of a human in chat
-  - **Architectural payoff** — the demo shows three layers of orchestration: top-level agent fan-out (OpenClaw) → mid-level prompt orchestration (GST consultant workflows) → leaf-level tool invocations (single-purpose code). Each layer is independently named, versioned, and inspectable.
+  - **What autonomy on top looks like** — same workflow as scenario 1, but executed by 3 cooperating agents — each composing the same multi-tool sequence the equivalent server-side Prompt would have orchestrated — instead of a human in chat
+  - **Architectural payoff** — the demo shows three layers of orchestration: top-level agent fan-out (OpenClaw) → mid-level workflow composition (each agent's system prompt encodes a GST consultant workflow) → leaf-level Tool invocations (single-purpose code on the GST MCP). Each layer is independently named, versioned, and inspectable. The fact that the workflow specification lives in source-controlled Prompt files (consulted by agent designers, even though OpenClaw can't invoke them at run-time) keeps the architectural separation clean.
   - **Where this could go** — productized agent workflows running pre-meeting prep overnight, on-demand briefings, ambient market intelligence
-- **Honest framing**: this is the "what if" lens. The Claude scenarios (1-5) are _production-ready today_. The OpenClaw scenario is _substrate-ready, productization-pending_.
+- **Honest framing**: this is the "what if" lens. The Claude scenarios (1, 2, 4) are _production-ready today_. The OpenClaw scenario is _substrate-ready, productization-pending_ — and intentionally exercises the Tools+Resources surface that ALL MCP clients support today, not the Prompt surface that some clients (e.g., OpenClaw) don't yet.
 - **Failure tolerance**: if any agent hangs or errors mid-run, gracefully fall back to "the Claude version of this is scenario 1 — you already saw it work." The OpenClaw segment failing on stage doesn't undermine the demo's core value.
 
 ### Business value
@@ -314,7 +300,7 @@ The stretch adds the third partner-question ("what's the risk?") — the regulat
 - **Investment direction**: scenario 5 surfaces what stakeholders actually care about — that data shapes BL-033 pilot-client selection + downstream initiative prioritization
 - **External marketing material seed**: recorded scenarios become assets for sales/BD with potential pilot clients (anonymized, with consent). Scenario 1 in particular ("sales-call-to-agenda in 60 seconds") is the kind of artifact that lands directly with PE/M&A buyers
 - **Stress-test before BL-033**: real Claude Desktop traffic exercises rate limits, OAuth-refresh, Cron-pre-warm; the OpenClaw segment additionally exercises BL-040 fan-out gap if it bites in practice
-- **Cost**: ~0 — Claude Desktop demos use the operator's existing `MCP_KEY_RP`; OpenClaw uses one fresh `MCP_KEY_OPENCLAW_DEMO`; runs against production; tiny slice of the 200/day Inoreader budget
+- **Cost**: ~0 — Claude Desktop demos use the operator's existing `MCP_KEY_RP`; OpenClaw uses the fresh `MCP_KEY_OC` issued 2026-05-14; runs against production; tiny slice of the 200/day Inoreader budget
 
 ### Acceptance Criteria
 
@@ -328,14 +314,13 @@ The stretch adds the third partner-question ("what's the risk?") — the regulat
 
 **OpenClaw setup (load-bearing for scenarios 3 + 5)**
 
-- [ ] Fresh `MCP_KEY_OPENCLAW_DEMO` issued via `wrangler secret put --env production`; key value recorded in operator password manager (NOT in this repo). Same key powers both scenarios 3 and 5.
-- [ ] OpenClaw server registration tested: `openclaw mcp set gst-mcp '{"transport":"streamable-http","url":"https://mcp.globalstrategic.tech/mcp","headers":{"Authorization":"Bearer <demo-key>"}}'`
-- [ ] All 12 Tools + 6 Resources + 8 Prompts discoverable from OpenClaw agent context (`openclaw mcp inspect gst-mcp` returns the full surface)
+- [ ] Fresh `MCP_KEY_OC` issued via `wrangler secret put MCP_KEY_OC --env production`; key value recorded in operator password manager (NOT in this repo). Same key powers both scenarios 3 and 5.
+- [ ] OpenClaw server registration tested: `openclaw mcp set gst-mcp '{"transport":"streamable-http","url":"https://mcp.globalstrategic.tech/mcp","headers":{"Authorization":"Bearer <MCP_KEY_OC>"}}'`
+- [ ] **Tools + Resources discovery verified**: `mcporter list gst-mcp` returns all 12 Tools; `mcporter resource gst-mcp` enumerates all ~130 Resources. **Prompts are not consumable by OpenClaw** (see HANDOVER doc § 2.0) — `prompts/list` is not implemented in `mcporter` 0.10.0; this is by design and routed-around via system-prompt composition per § 5.A.
 - [ ] **Scenario 3** (teaser): single-agent `radar-analyst` definition with `search_radar` + `get_latest_insights` access; verified dry-run completing in ~3-5 min
-- [ ] **Scenario 5 safe variant** (load-bearing): 2-specialist (Target-fit + Comparable-engagements) + Synthesis-agent definition per § 5.A; verified dry-run completing in ~5-7 min on the demo laptop
-- [ ] **Scenario 5 stretch variant** (conditional): 3-specialist (above + Regulatory-exposure) + Synthesis; same-day hardware check confirms it runs without OOM/runtime errors. If check fails, stretch is dropped silently and safe variant ships.
-- [ ] Both OpenClaw scenarios have a documented "graceful skip" runbook — scenario 3 falls back to a pre-recorded screencast; scenario 5 safe variant falls back to "the Claude version of this is scenario 1"
-- [ ] Pre-show hardware-check checklist saved alongside the demo runbook: RAM budget, parallel-agent runtime cap, expected dry-run duration thresholds
+- [ ] **Scenario 5** (cloud-models, Rev 8): 3-specialist (Target-fit + Comparable-engagements + Regulatory-exposure) + Synthesis-agent definition per § 5.A; each specialist's system prompt hand-authored against the equivalent `gst_*` Prompt source as the design spec; verified dry-run completing in ~5-7 min running cloud-hosted agents (no local-RAM dependency)
+- [ ] Both OpenClaw scenarios have a documented "graceful skip" runbook — scenario 3 falls back to a pre-recorded screencast; scenario 5 falls back to "the Claude version of this is scenario 1"
+- [ ] Same-day dry-run checklist: verify the 3 specialist agents each invoke their full Tool sequence (visible in OpenClaw UI); verify Synthesis agent receives all 3 upstream outputs before composing the final recommendation
 
 **Stakeholder presentation deliverables**
 
@@ -637,6 +622,36 @@ Track what changes between revisions of this doc + why. Append as we go.
 2. **BACKLOG.md transcription** (the canonical entry): goes through a PR per Q10's PR-track decision
 
 **Owner**: RP — spec locked, demo implementation work unblocked.
+
+### 2026-05-14 — Revision 8: OpenClaw client-compat research + cloud-models upgrade
+
+**Trigger**: two parallel discoveries during scenario-5 implementation prep:
+
+1. RP observation while wiring the OpenClaw agent: _"it doesn't seem that openclaw is capable of consuming prompts or resources from the MCP."_ Triggered a research pass on OpenClaw's MCP client capability surface.
+2. RP infrastructure change: _"I have upgraded the demo agent models to use cloud (instead of local) that will help to unblock the concurrent demo we have slated."_ Removes the RAM constraint that motivated Rev 6's safe/stretch split.
+
+**Research findings (OpenClaw client compatibility)**:
+
+- OpenClaw's MCP client tooling (`mcporter`, 0.10.0+) implements `tools/list`+`tools/call` and `resources/list`+`resources/read` — Tools and Resources fully supported.
+- **Prompts are NOT consumable** — no `prompts/list` or `prompts/get` in `mcporter`. Both feature requests asking for full primitive parity ([openclaw#8188](https://github.com/openclaw/openclaw/issues/8188), [openclaw#29053](https://github.com/openclaw/openclaw/issues/29053)) filed and closed stale.
+- The 8 `gst_*` Prompts are unreachable from any OpenClaw-orchestrated agent. The hub-side Tools (`generate_diligence_agenda`, `search_radar`, `compute_techpar`, etc.) and all ~130 Resources (`gst://library/*`, `gst://regulations/*`, `gst://radar/*`) are fully reachable.
+
+**Workaround applied (already implemented on the OpenClaw side, per RP)**: each scenario-5 specialist agent's system prompt is hand-authored to reproduce the equivalent `gst_*` Prompt's Tool sequence. The Prompt source files become the **design specification** for each agent (consulted at agent-design time) rather than runtime artifacts. Claude Desktop scenarios (1, 2, 4) keep using server-side Prompts — Claude Desktop's MCP client implements all three primitives, so the surface-mismatch only affects OpenClaw paths.
+
+**Changes**:
+
+- **Scenario 5 § 5.A fully rewritten**: collapsed safe/stretch variants into a single 3-specialist + Synthesis configuration; renamed the table from "Agent / Prompt / Tool / Source-code map" to "Agent / Tool-sequence / Source-code map"; reworded "agent invokes `gst_*` Prompt" → "agent's system prompt composes the Tool sequence the equivalent Prompt would have orchestrated"; added paragraph clarifying that Prompt source files remain authoritative as workflow specifications even though OpenClaw can't invoke them
+- **Scenario 5 § 5.B rewritten**: dropped the safe-variant flow + stretch-variant addendum + pre-show hardware-check; replaced with a single 3-specialist parallel-fan-out flow; "Architectural payoff" bullet revised to reflect workflow-spec-as-source-of-truth (vs Prompt-at-runtime) layering
+- **Acceptance criteria § OpenClaw setup rewritten**: removed the safe-variant load-bearing + stretch-variant conditional + pre-show hardware-check items; replaced with single 3-specialist verification + Tools/Resources discovery (with explicit "Prompts not consumable — this is by design" callout); updated `MCP_KEY_OPENCLAW_DEMO` to canonical `MCP_KEY_OC` token name issued 2026-05-14
+- **HANDOVER doc** updated in lockstep (`MCP_SERVER_OPENCLAW_HANDOVER_BL-032_6.md`): added § 2.0 "Known consumer compatibility" callout at the top of the capability inventory, added warning banner to § 2.2 Prompts header, rewrote § 2.2 BL-032.6 scenario-5 mapping bullets to reflect Tools+Resources-only composition
+
+**Honest framing addition**: scenario 5's "what if" pitch now intentionally exercises the surface that ALL MCP clients support today (Tools + Resources), not the surface some clients haven't shipped yet (Prompts). That's a more accurate story for "what production agent integration looks like in 2026" — the lowest common denominator is Tools+Resources, and a healthy agent design uses the Prompt source files as workflow specs even when the client can invoke them, because system-prompt composition gives the agent more control over the conversation arc anyway.
+
+**What didn't change**: scenarios 1, 2, 3, 4 unchanged. Scenario 1 keeps `gst_diligence_kickoff` Prompt invocation (Claude Desktop client). Scenario 3 keeps single-agent radar pull via Tools (already Tools-only). Demo total wall-clock unchanged (~30-35 min).
+
+**What's still open**: implementation work — same set as Rev 7. The spec remains requirements-complete; Rev 8 is a correctness pass, not a scope change.
+
+**Owner**: RP — design unblocked for cloud-models + OpenClaw Tools+Resources-only implementation.
 
 ---
 

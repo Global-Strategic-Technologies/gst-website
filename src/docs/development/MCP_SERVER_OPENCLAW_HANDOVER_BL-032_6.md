@@ -119,6 +119,23 @@ Expected: SSE response with a `data:` line containing a JSON-RPC envelope listin
 
 The GST MCP server provides three distinct capability classes per the [MCP specification](https://spec.modelcontextprotocol.io/):
 
+### 2.0 Known consumer compatibility — read first
+
+**OpenClaw's MCP client consumes Tools and Resources only — Prompts are not supported.** The OpenClaw client tooling (`mcporter`, 0.10.0+) implements `tools/list`+`tools/call` and `resources/list`+`resources/read` JSON-RPC methods, but does NOT implement `prompts/list` or `prompts/get`. Two feature requests asking for full primitive parity were filed and closed stale ([openclaw#8188](https://github.com/openclaw/openclaw/issues/8188), [openclaw#29053](https://github.com/openclaw/openclaw/issues/29053)).
+
+**What this means for OpenClaw agent design**:
+
+- ✅ **Tools** in § 2.1 — fully consumable; invoke via `mcporter call gst-mcp.<tool_name>` or natively from agent context
+- ✅ **Resources** in § 2.3 — fully consumable; read via `mcporter resource gst-mcp gst://<uri>` or pin as agent context
+- ❌ **Prompts** in § 2.2 — **not invokable** from OpenClaw. The 8 `gst_*` Prompts are server-side templates that an OpenClaw agent cannot call directly.
+
+**Two workarounds** to access Prompt-equivalent workflows from OpenClaw:
+
+1. **System-prompt composition (recommended)**: each `gst_*` Prompt's `orchestrates: [...]` manifest lists the Tools + Resources it expects the model to call. An OpenClaw agent can replicate the workflow by composing those same Tool calls in its own system prompt. E.g. instead of invoking `gst_target_quick_look`, an agent with system-prompt instructions _"call `assess_infrastructure_cost_governance`, `compute_techpar`, `estimate_tech_debt_cost`, and `search_regulations` in sequence, then synthesize a target-fit verdict"_ reproduces the workflow at the agent layer. The Prompt source files in § 2.2 are the canonical reference for what each workflow does — read the `build()` function and translate its instructions into agent system-prompt language.
+2. **Prompt-as-Tool shim** (operator-side): if a workflow is invoked frequently enough, an operator can wrap a Prompt as a Tool that returns the same messages payload — `composeBrief(args) → { messages: [...] }`. Not currently shipped; ask for `MCP_KEY_OC`-level work prioritization if needed.
+
+**For prompt-orchestrated workflows specifically**, Claude Desktop remains the better surface — its MCP client implements all three primitives. BL-032.6 reflects this: prompt-heavy scenarios route through Claude Desktop, Tool/Resource-heavy scenarios route through OpenClaw. See the demo design doc § 2 scenario allocations.
+
 ### 2.1 Tools (12+) — single-purpose pure-engine callables
 
 Tools are stateless, typed function calls. Each Tool has a Zod-defined input schema and returns structured JSON. Useful when an agent needs to **invoke a specific engine** with concrete inputs.
@@ -142,6 +159,8 @@ Each Tool's input/output contract is documented in `mcp-server/src/docs/<tool-fa
 
 ### 2.2 Prompts (8) — versioned consultant workflows
 
+> ⚠️ **Not directly consumable by OpenClaw** — see § 2.0. The 8 `gst_*` Prompts below are the canonical reference for the consultant workflows an OpenClaw agent should _replicate_ via system-prompt composition. Treat this section as the "what each named workflow does" specification — read each Prompt's `build()` function in the linked source file and translate its instructions into your agent's system prompt.
+
 Prompts are **typed, versioned macros** that orchestrate one or more Tools and Resources in a specific consultant-workflow sequence. Each prompt has an `argsSchema` (Zod-validated input form), a `build(args)` function that generates the prompt template, and an `orchestrates: [...]` manifest declaring which Tools + Resources it expects the model to use.
 
 **See [`mcp-server/src/docs/prompts/README.md`](../../../mcp-server/src/docs/prompts/README.md) for the full architecture.** Quick inventory:
@@ -157,13 +176,13 @@ Prompts are **typed, versioned macros** that orchestrate one or more Tools and R
 | `gst_regulatory_exposure_brief`   | `search_regulations` + `gst://regulations/*`                   | [`mcp-server/src/prompts/regulatory-exposure-brief.ts`](../../../mcp-server/src/prompts/regulatory-exposure-brief.ts)     |
 | `gst_comparable_engagements_memo` | `search_portfolio` + `list_portfolio_facets`                   | [`mcp-server/src/prompts/comparable-engagements-memo.ts`](../../../mcp-server/src/prompts/comparable-engagements-memo.ts) |
 
-**Why this matters for OpenClaw agent design**: each Prompt is a **named, versioned consultant workflow** that an OpenClaw agent can invoke as a high-level task. The agent doesn't need to know which underlying Tools to call — the Prompt's `build()` function generates messages that instruct Claude (within the agent loop) to call them in the right order with the right args. Use Prompts when the agent task maps to a named workflow; use raw Tools when the agent task is a single-purpose query.
+**Why this matters for OpenClaw agent design** (revised given § 2.0 constraint): each Prompt is a **named, versioned consultant workflow specification** that an OpenClaw agent should reproduce via system-prompt composition. The `orchestrates: [...]` manifest is the canonical "which Tools to call in what order" map. Read the source file, lift the Tool sequence + the response-shaping instructions out of `build()`, and bake them into your agent's system prompt. Each Prompt's source file is short (typically <120 LOC) and documents the exact sequence inline.
 
-**BL-032.6 scenario 5 mapping** (per the demo design doc):
+**BL-032.6 scenario 5 mapping** (cloud-models pivot, per the demo design doc Rev 8): each specialist agent's system prompt composes the same Tool sequence the Prompt would have orchestrated. The Prompt source files remain authoritative for "what the workflow is supposed to do" — they're just consulted at agent-design time rather than invoked at run-time.
 
-- Target-fit agent → `gst_target_quick_look` (drives 4-tool sub-fan-out)
-- Comparable-engagements agent → `gst_comparable_engagements_memo` (drives 2-tool sub-fan-out)
-- Regulatory-exposure agent (stretch) → `gst_regulatory_exposure_brief` (drives 1-tool + Resources sub-fan-out)
+- Target-fit agent → composes 4-tool sequence per `gst_target_quick_look` (ICG + TechPar + tech-debt + regulations)
+- Comparable-engagements agent → composes 2-tool sequence per `gst_comparable_engagements_memo` (`search_portfolio` + `list_portfolio_facets`)
+- Regulatory-exposure agent → composes 1-tool + Resources sequence per `gst_regulatory_exposure_brief` (`search_regulations` + `gst://regulations/*` Resources)
 
 ### 2.3 Resources (~130 total) — pinnable read-only content
 
