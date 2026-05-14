@@ -121,20 +121,19 @@ The GST MCP server provides three distinct capability classes per the [MCP speci
 
 ### 2.0 Known consumer compatibility — read first
 
-**OpenClaw's MCP client consumes Tools and Resources only — Prompts are not supported.** The OpenClaw client tooling (`mcporter`, 0.10.0+) implements `tools/list`+`tools/call` and `resources/list`+`resources/read` JSON-RPC methods, but does NOT implement `prompts/list` or `prompts/get`. Two feature requests asking for full primitive parity were filed and closed stale ([openclaw#8188](https://github.com/openclaw/openclaw/issues/8188), [openclaw#29053](https://github.com/openclaw/openclaw/issues/29053)).
+**OpenClaw's MCP client consumes Tools ONLY — neither Prompts nor Resources are supported.** The OpenClaw client tooling (`mcporter`) implements `tools/list`+`tools/call`, but does NOT implement `prompts/*` or `resources/*` JSON-RPC methods. This was confirmed empirically during BL-032.6 scenario-5 wiring (see DEMO doc Rev 10). Earlier desk research had suggested mcporter 0.10.0+ supported Resources; hands-on integration proved otherwise. Two upstream feature requests asking for full primitive parity were filed and closed stale ([openclaw#8188](https://github.com/openclaw/openclaw/issues/8188), [openclaw#29053](https://github.com/openclaw/openclaw/issues/29053)).
 
 **What this means for OpenClaw agent design**:
 
 - ✅ **Tools** in § 2.1 — fully consumable; invoke via `mcporter call gst-mcp.<tool_name>` or natively from agent context
-- ✅ **Resources** in § 2.3 — fully consumable; read via `mcporter resource gst-mcp gst://<uri>` or pin as agent context
+- ❌ **Resources** in § 2.3 — **not consumable** from OpenClaw. To get equivalent content, call the structured-query Tool family (e.g. `search_regulations({ jurisdiction: '...' })` returns the same canonical content the `gst://regulations/<jurisdiction>/<framework>` Resource would have served, just as a structured response instead of a pinnable URI).
 - ❌ **Prompts** in § 2.2 — **not invokable** from OpenClaw. The 8 `gst_*` Prompts are server-side templates that an OpenClaw agent cannot call directly.
 
-**Two workarounds** to access Prompt-equivalent workflows from OpenClaw:
+**Workaround: Tools-only system-prompt composition**. Each `gst_*` Prompt's `orchestrates: [...]` manifest lists the Tools + Resources it expects the model to use. An OpenClaw agent reproduces the workflow by composing the corresponding Tool calls in its own system prompt — and substituting `tools/call` for any `resources/read` the Prompt would have orchestrated. Example: instead of invoking `gst_regulatory_exposure_brief` (which would pin `gst://regulations/*` Resources), an OpenClaw agent calls `search_regulations({ jurisdiction: 'eu' })`, then `search_regulations({ jurisdiction: 'us-ca' })`, etc., and synthesizes the cross-jurisdictional matrix from the tool responses. The Prompt source files in § 2.2 remain the canonical reference for _what_ each workflow does — read the `build()` function and translate its instructions into agent system-prompt language using Tools-only invocations.
 
-1. **System-prompt composition (recommended)**: each `gst_*` Prompt's `orchestrates: [...]` manifest lists the Tools + Resources it expects the model to call. An OpenClaw agent can replicate the workflow by composing those same Tool calls in its own system prompt. E.g. instead of invoking `gst_target_quick_look`, an agent with system-prompt instructions _"call `assess_infrastructure_cost_governance`, `compute_techpar`, `estimate_tech_debt_cost`, and `search_regulations` in sequence, then synthesize a target-fit verdict"_ reproduces the workflow at the agent layer. The Prompt source files in § 2.2 are the canonical reference for what each workflow does — read the `build()` function and translate its instructions into agent system-prompt language.
-2. **Prompt-as-Tool shim** (operator-side): if a workflow is invoked frequently enough, an operator can wrap a Prompt as a Tool that returns the same messages payload — `composeBrief(args) → { messages: [...] }`. Not currently shipped; ask for `MCP_KEY_OC`-level work prioritization if needed.
+**Optional operator-side shim**: a Prompt-as-Tool wrapper (`composeBrief(args) → { messages: [...] }`) is technically possible and would let an OpenClaw agent invoke a Prompt-equivalent workflow via a single `tools/call`. Not currently shipped; ask for `MCP_KEY_OC`-level work prioritization if needed.
 
-**For prompt-orchestrated workflows specifically**, Claude Desktop remains the better surface — its MCP client implements all three primitives. BL-032.6 reflects this: prompt-heavy scenarios route through Claude Desktop, Tool/Resource-heavy scenarios route through OpenClaw. See the demo design doc § 2 scenario allocations.
+**For prompt-orchestrated AND Resource-pinning workflows**, Claude Desktop remains the better surface — its MCP client implements all three primitives. BL-032.6 reflects this: scenarios 1 (Prompts), 2 (Resources), and 4 (everything) route through Claude Desktop; scenarios 3 and 5 (Tools-only) route through OpenClaw. The Tools-only constraint is actually a portability feature for scenario 5: Tools is the lowest-common-denominator MCP primitive that every client supports today, so the agent design ports unchanged to any other agent framework.
 
 ### 2.1 Tools (12+) — single-purpose pure-engine callables
 
@@ -182,7 +181,7 @@ Prompts are **typed, versioned macros** that orchestrate one or more Tools and R
 
 - Target-fit agent → composes 4-tool sequence per `gst_target_quick_look` (ICG + TechPar + tech-debt + regulations)
 - Comparable-engagements agent → composes 2-tool sequence per `gst_comparable_engagements_memo` (`search_portfolio` + `list_portfolio_facets`)
-- Regulatory-exposure agent → composes 1-tool + Resources sequence per `gst_regulatory_exposure_brief` (`search_regulations` + `gst://regulations/*` Resources)
+- Regulatory-exposure agent → composes multi-jurisdiction `search_regulations` Tool sequence per `gst_regulatory_exposure_brief` (one Tool call per jurisdiction the target operates in; Resource pinning of `gst://regulations/*` is NOT used — OpenClaw can't consume Resources, see § 2.0)
 
 ### 2.3 Resources (~130 total) — pinnable read-only content
 
