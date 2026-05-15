@@ -416,3 +416,82 @@ Recommended sequencing per the 2026-05-13 planning conversation:
 ---
 
 _Soak closed pre-production-gate: 2026-05-13T17:02 UTC. Final closure (post-production-deploy review) deferred until BL-039 lands and the re-soak passes._
+
+---
+
+## Section Z — Post-soak operational findings (BL-032.6 demo prep + delivery)
+
+Findings surfaced during BL-032.6 demo-preparation (2026-05-14) and live-demo execution (2026-05-15) operational use of the production substrate. T.Z.1 and T.Z.2 are BL-040 evidence; T.Z.3 was discovered during the BL-032.6 demo-day RCA when these findings — together with the upstream Inoreader 100/day Zone-1 cap (confirmed via the Inoreader Developer dashboard reading `100% / 100 requests per day`) — caused the radar surface to go fully unavailable during the demo window. **Suggested home for fixes: a new follow-on BL-032.7 "Inoreader budget hardening" initiative** that bundles T.Z.1 + T.Z.2 + T.Z.3 + per-env Inoreader app separation (see T.Z.3 § Remediation). All three findings are substrate behavior gaps, not BL-032.5 regressions; the BL-032.5 deliverable shipped without these surfacing because the prior soak window did not include a multi-hour Inoreader sub-limit episode followed by daily-cap exhaustion.
+
+### T.Z.1 — Cron `partial` outcomes increment day-counter even when zero Inoreader calls succeeded
+
+- Date: 2026-05-14
+- Tester: RP
+- Client: Sentry breadcrumb inspection (event `GST-MCP-SERVER-6` ID `ecb835d6`, captured 2026-05-14T10:00:22 -04 during BL-032.6 demo prep)
+- Command/Action: Drilled into a `cron.radar-refresh.partial` Sentry event's breadcrumb timeline during operational triage of Inoreader 429 episode
+- Outcome: FAIL (substrate design gap)
+- Observed: In the 10:00:22 EDT Cron run, both Wire-tier first call (`GET inoreader.com/reader/api/0/tag/list`) AND FYI-tier call (`GET inoreader.com/reader/api/0/stream/contents/.../annotated`) returned HTTP 429 within the same millisecond. Zero Inoreader content was retrieved. The handler proceeded to `await incrementDayCounter(env, CALLS_PER_REFRESH)` at [mcp-server/src/cron/radar-refresh.ts:159](../../../mcp-server/src/cron/radar-refresh.ts#L159), adding 6 to the `mcp:inoreader:day-counter:2026-05-14` key as if 6 calls had succeeded. Repeated 3+ times in the visible Sentry trace timeline before the breaker eventually opened (via a downstream live tool call, not the Cron — see T.Z.2). Downstream consequence: the day-counter reached the 180 soft cap by ~21:00 UTC despite many of those "180 calls" being 429-rejected.
+- Expected: Counter should reflect actual successful Inoreader consumption. When all attempted calls 429, the counter should stay flat (or at minimum differentiate success-on-one-tier from failed-on-both).
+- Severity: Important
+- Remediation: deferred — track in BACKLOG.md as part of BL-040
+- Notes: The inline rationale at [radar-refresh.ts:159](../../../mcp-server/src/cron/radar-refresh.ts#L159) reads _"Increment regardless of outcome — the Inoreader calls happened (or were attempted) whether or not the parsed response was usable."_ The original framing treats attempts as the protected resource. In practice when Inoreader hard-429s us, the attempts cost nothing on Inoreader's quota side but consume our internal soft cap. **Counter-as-budget-proxy breaks in this failure mode.** Suggested fix shape: refactor `RefreshOutcome` to distinguish `partial-one-tier-ok` from `partial-both-failed`, and only increment the counter for outcomes where at least one tier returned `ok: true`.
+
+### T.Z.2 — Cron 429 outcomes do not trip the circuit breaker; only live tool calls do
+
+- Date: 2026-05-14
+- Tester: RP
+- Client: Sentry event inspection + code review of [`mcp-server/src/cron/radar-refresh.ts`](../../../mcp-server/src/cron/radar-refresh.ts) + [`mcp-server/src/tools/radar-live.ts`](../../../mcp-server/src/tools/radar-live.ts)
+- Command/Action: Traced the call sites of `openCircuit()`; verified whether Cron's `refreshRadarSnapshot` calls it on Inoreader 429
+- Outcome: FAIL (substrate design gap)
+- Observed: The Cron handler reads `wire.ok` and `fyi.ok` and emits `cron.radar-refresh.partial` when either is false, but does NOT call `openCircuit(env, ...)`. The breaker is only opened from `failureResponse` in [mcp-server/src/tools/radar-live.ts:117-133](../../../mcp-server/src/tools/radar-live.ts#L117-L133), which is exclusively invoked by `handleSearchRadar` / `handleGetLatestInsights` — the live tool path. During the 2026-05-14 incident, the Cron emitted multiple `partial` outcomes from 10:00 EDT onward without opening the breaker; the breaker only opened later when a live `search_radar` tool call from an OpenClaw agent during demo prep hit 429.
+- Expected: Either (a) Cron 429 outcomes should also call `openCircuit()` — failing fast across all consumers; or (b) the design intent that "only live traffic should open the breaker" should be documented inline with a rationale.
+- Severity: Important
+- Remediation: deferred — track in BACKLOG.md as part of BL-040
+- Notes: In the absence of any live tool calls, the Cron could hard-429 hourly for 24h, hit the day-counter soft cap (via T.Z.1's counter-leak), fill the radar cache with stale data, and the substrate's observability would surface only `partial` warnings — no `inoreader-rate-limit` event, no circuit-open state, no 503 response surface for alert rules to bind to. Operators would have to read each `partial` event's breadcrumbs to spot the underlying 429s. **The protective mechanism (breaker) is gated behind a consumer pattern (live tool calls), not the actual upstream signal (429 from Inoreader).** Combined with T.Z.1, this creates an extended-blind-spot window where the substrate is degraded but appears healthy to most alert rules. Suggested fix shape: extract a `handleInoreaderFailure(env, failure)` helper that both the Cron's partial path and the live tool path can call, centralising the `openCircuit()` + `captureMessage('inoreader-rate-limit', ...)` decision.
+
+### T.Z.3 — 429 handler discards diagnostic headers, blocking quick RCA
+
+- Date: 2026-05-15
+- Tester: RP (operator) + AI-pair (Claude Code)
+- Client: Sentry event inspection of the `inoreader-rate-limit` issue captured at 2026-05-15T11:18:31.104 -04 during BL-032.6 demo execution; code review of [`mcp-server/src/lib/inoreader-worker.ts`](../../../mcp-server/src/lib/inoreader-worker.ts)
+- Command/Action: Drilled into the demo-day Sentry event hoping to read `X-Reader-Zone1-Limit`, `X-Reader-Zone1-Usage`, and `Retry-After` from the 429 response to attribute root cause. None present.
+- Outcome: FAIL (observability gap)
+- Observed: At [inoreader-worker.ts:284-290](../../../mcp-server/src/lib/inoreader-worker.ts#L284), the 429 handler records ONLY `status` and `statusText`:
+
+  ```ts
+  if (status === 429) {
+    return {
+      ok: false,
+      status: 429,
+      reason: 'inoreader-rate-limit',
+      message: `Inoreader rate limit exceeded: ${status} ${statusText}`,
+    };
+  }
+  ```
+
+  The response body and the diagnostic headers Inoreader documents in [their rate-limiting docs](https://www.inoreader.com/developers/rate-limiting) — `X-Reader-Zone1-Limit`, `X-Reader-Zone1-Usage`, `X-Reader-Zone2-Limit`, `X-Reader-Zone2-Usage`, `X-Reader-Limits-Reset-After` — are silently discarded. The Sentry breadcrumb's `Fetch` entry shows only `URL [429]` (verified against the demo-day event screenshot); the parent error message gives no quantitative information about WHICH zone hit the limit, HOW deep into the limit we were, or HOW LONG until reset. RCA required an out-of-band call to Inoreader's Developer Dashboard which confirmed `Zone 1: 100% of 100 requests/day` — the actual root cause was reachable only through human dashboard inspection, not through our own observability.
+
+- Expected: When Inoreader returns 429, the handler should:
+  1. Read the diagnostic headers off `response.headers` and surface them in the `RefreshFailure` envelope alongside `status`
+  2. Attach them as Sentry tags (`inoreader.zone1.usage`, `inoreader.zone1.limit`, `inoreader.reset_after_seconds`) so the next 429 event in Sentry tells the full story without an external lookup
+  3. Optionally include the response body excerpt (first ~200 chars) in the captureMessage `extra` field — Inoreader's 429 body sometimes specifies which sub-limit was hit
+- Severity: Important — directly extended the demo-day RCA from 30 seconds (read the header) to >2 hours (hypothesis testing + dashboard hunting)
+- Remediation: ~10 LOC change in `inoreader-worker.ts` + matching `sentry.ts` tag extraction. **Schedule in the proposed BL-032.7 "Inoreader budget hardening" follow-on initiative** alongside T.Z.1 + T.Z.2 + the per-env Inoreader app split discussed below.
+- Notes: This finding is the meta-finding behind T.Z.1 and T.Z.2 — both of those took longer to diagnose than they should have because every 429 captured to Sentry today had the same opaque message and required code-spelunking + Inoreader-dashboard lookups to interpret. Fixing this single instrumentation gap retroactively makes T.Z.1 and T.Z.2 self-diagnosing in production.
+
+#### Additional finding — per-env Inoreader app sharing (BL-032.7 scope)
+
+Discovered alongside T.Z.3 during demo-day RCA:
+
+- **Both Worker envs share one Inoreader app (`App ID 1000008446 — "Global Strategic Technologies Radar"`)**. Default zone limits are 100/day Zone 1 + 100/day Zone 2 per app (Inoreader docs: [rate-limiting](https://www.inoreader.com/developers/rate-limiting), [register-app](https://www.inoreader.com/developers/register-app)).
+- Until both crons were paused on 2026-05-15, staging + production were each making 6 calls/hour against the SAME Zone-1 100/day budget = 12 calls/hour combined. Over a 24h day this exceeds the Zone-1 cap by ~44%; in practice the daily reset (UTC midnight) gave us partial coverage early in the day until the cap was hit, then full-day outage.
+- The website's hub Radar page (`/hub/radar`) ALSO calls Inoreader through the website's own server-side code path (separate from the MCP Worker), which historically used the same app credentials. Any user visit to the hub Radar page during a demo cycle ALSO consumes the 100/day budget — invisible to our day-counter (which only tracks Worker-side intent).
+- **Recommendation: separate Inoreader apps per consumer surface**:
+  - App #1 — **Website Radar** (consumer: `/hub/radar` server-side rendering + BL-039 refresh path; lower cadence, user-triggered)
+  - App #2 — **MCP Worker** (consumer: hourly Cron + live agent tool calls; higher cadence, machine-driven)
+  - Each app gets its own 100/day Zone-1 + 100/day Zone-2 quota → effective Zone-1 budget doubles to 200/day, and one consumer's bad day doesn't blank the other.
+  - Cost: one new app registration on Inoreader's developer portal; one new pair of OAuth credentials; one OAuth-callback URL split. ~30 min of operator work.
+  - Alternative considered: request a Zone-1 limit increase from Inoreader (the "Request limits increase" button exists on the dashboard). Less work but creates a single point of failure — one app's daily exhaustion still affects both consumers. Pursue only if Inoreader denies the per-app split or if account-level limits also apply.
+- This split also resolves the attribution ambiguity in T.Z.1: with one app per consumer, the Inoreader Developer dashboard becomes a clean second source of truth for "did this consumer over-spend?"
+- Severity: Important — this is the upstream-side root cause of the demo-day outage. Until the apps are split (or limits raised), every operational cycle is one degraded Inoreader window away from the same incident.
+- Remediation: schedule in **BL-032.7 "Inoreader budget hardening"** alongside T.Z.1, T.Z.2, T.Z.3.
