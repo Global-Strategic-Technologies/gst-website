@@ -79,13 +79,28 @@ routes = [
   { pattern = "mcp-staging.globalstrategic.tech", custom_domain = true }
 ]
 
-# BL-032.5 Phase 4: hourly radar snapshot refresh. The `scheduled` handler
-# in `src/worker.ts` delegates to `cron/radar-refresh.ts`, which force-
-# refreshes `mcp:radar:cache:wire` and `mcp:radar:cache:fyi`. Budget
-# protection (circuit breaker + day-counter soft cap) lives in the
-# handler so this trigger is the only place the cadence is declared.
+# Radar snapshot refresh — cadence calibrated to cache TTL.
+#
+# The `scheduled` handler in `src/worker.ts` delegates to
+# `cron/radar-refresh.ts`, which force-refreshes `mcp:radar:cache:wire`
+# and `mcp:radar:cache:fyi`. Budget protection (circuit breaker +
+# day-counter soft cap) lives in the handler so this trigger is the
+# only place the cadence is declared.
+#
+# **Cadence rule (BL-032.7 — Inoreader budget hardening)**: cron MUST
+# fire at intervals >= the cache TTL (currently 6h, see resource-cache
+# settings). Firing more often than the TTL re-fetches Inoreader while
+# the cache is still warm — pure waste against the 100/day Zone-1 cap.
+#
+# Historical context: the Phase 4 initial config was `0 * * * *`
+# (hourly), which over-fetched by 6× and was the load-bearing cause of
+# the 2026-05-15 BL-032.6 demo-day Zone-1 exhaustion incident — see
+# BL-032_5_TESTING_FINDINGS.md § Section Z and BACKLOG.md § BL-032.7.
+# Corrected to `0 */6 * * *` (every 6h, top of UTC hour) on
+# 2026-05-16; matches cache TTL exactly; ~24 Inoreader calls/day per
+# env, well under the per-app 100/day Zone-1 budget.
 [env.staging.triggers]
-crons = ["0 * * * *"]
+crons = ["0 */6 * * *"]
 
 # ---------------------------------------------------------------------------
 # Production
@@ -100,6 +115,6 @@ routes = [
   { pattern = "mcp.globalstrategic.tech", custom_domain = true }
 ]
 
-# Same hourly radar refresh as staging — see commentary above.
+# Same 6h cadence as staging — see commentary above (cadence rule + 2026-05-15 RCA reference).
 [env.production.triggers]
-crons = ["0 * * * *"]
+crons = ["0 */6 * * *"]
