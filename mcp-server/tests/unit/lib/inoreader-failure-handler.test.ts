@@ -53,6 +53,26 @@ describe('handleInoreaderFailure — inoreader-rate-limit', () => {
     expect(mockOpenCircuit).toHaveBeenCalledWith(env, 'inoreader-429-cron-wire');
   });
 
+  it('opens the breaker BEFORE emitting the Sentry capture', async () => {
+    // Load-bearing order: the protective side effect must run first so a
+    // slow Sentry round-trip can't delay the breaker. The source
+    // documents this at inoreader-failure-handler.ts:95-97 — this test
+    // pins the invariant so a refactor that reverses the calls (or
+    // parallelizes them in a way that loses ordering) fails CI.
+    const failure: InoreaderFailure = {
+      ok: false,
+      status: 429,
+      reason: 'inoreader-rate-limit',
+      message: 'rate limited',
+    };
+
+    await handleInoreaderFailure(env, failure, 'cron-wire');
+
+    const openOrder = mockOpenCircuit.mock.invocationCallOrder[0]!;
+    const captureOrder = mockCaptureMessage.mock.invocationCallOrder[0]!;
+    expect(openOrder).toBeLessThan(captureOrder);
+  });
+
   it('emits a Sentry capture with the rate-limit info as structured tags', async () => {
     const failure: InoreaderFailure = {
       ok: false,
@@ -127,6 +147,12 @@ describe('handleInoreaderFailure — inoreader-rate-limit', () => {
     expect(extra).toMatchObject({
       bodyExcerpt: 'App over daily limit. Please retry later.',
     });
+    // Body text is free-form and would explode Sentry tag-value
+    // cardinality. Pin the boundary: bodyExcerpt belongs in `extra`,
+    // never on `extraTags`. A regression that moves it would silently
+    // blow up Sentry tag indexes — this assertion blocks that.
+    const tags = mockCaptureMessage.mock.calls[0]?.[4] as Record<string, unknown>;
+    expect(tags).not.toHaveProperty('bodyExcerpt');
   });
 
   it('omits bodyExcerpt from extra when the failure has no body excerpt', async () => {
