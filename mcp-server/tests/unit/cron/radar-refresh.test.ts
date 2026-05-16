@@ -19,9 +19,15 @@ vi.mock('../../../src/content/radar-live-store', () => ({
   readFyiLive: mockReadFyiLive,
 }));
 
-const { mockIsCircuitOpen } = vi.hoisted(() => ({ mockIsCircuitOpen: vi.fn() }));
+const { mockIsCircuitOpen, mockOpenCircuit } = vi.hoisted(() => ({
+  mockIsCircuitOpen: vi.fn(),
+  mockOpenCircuit: vi.fn(),
+}));
 vi.mock('../../../src/ratelimit/circuit-breaker', () => ({
   isCircuitOpen: mockIsCircuitOpen,
+  // T.Z.2 (BL-032.7) — cron path now opens the breaker on per-tier 429
+  // via handleInoreaderFailure(); needs the mock so the import resolves.
+  openCircuit: mockOpenCircuit,
 }));
 
 const { mockCounterGet, mockCounterIncrby, mockCounterExpire, mockCreateMcpClient } = vi.hoisted(
@@ -65,6 +71,7 @@ beforeEach(() => {
   mockReadWireLive.mockReset();
   mockReadFyiLive.mockReset();
   mockIsCircuitOpen.mockReset();
+  mockOpenCircuit.mockReset();
   mockCounterGet.mockReset();
   mockCounterIncrby.mockReset();
   mockCounterExpire.mockReset();
@@ -410,6 +417,13 @@ describe('refreshRadarSnapshot — both-tiers-failed path (T.Z.1 budget protecti
     });
     // Critical assertion — pre-T.Z.1 this would have been called with 6.
     expect(mockCounterIncrby).not.toHaveBeenCalled();
+    // T.Z.2 assertion — cron path opens the breaker on 429, NOT just
+    // the live tool path. Pre-T.Z.2 this stayed silent, extending the
+    // outage window by 6h every time the cron beat a live caller to
+    // the upstream 429.
+    expect(mockOpenCircuit).toHaveBeenCalledTimes(2); // once per tier
+    expect(mockOpenCircuit).toHaveBeenCalledWith(env, 'inoreader-429-cron-wire');
+    expect(mockOpenCircuit).toHaveBeenCalledWith(env, 'inoreader-429-cron-fyi');
     expect(mockCaptureMessage).toHaveBeenCalledWith(
       'cron.radar-refresh.partial-both-failed',
       'warning',

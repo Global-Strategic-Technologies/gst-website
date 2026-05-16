@@ -38,8 +38,11 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { Env } from '../worker';
 import { readWireLive, readFyiLive, type LiveTierResult } from '../content/radar-live-store';
-import { isCircuitOpen, openCircuit } from '../ratelimit/circuit-breaker';
-import { captureMessage } from '../observability/sentry';
+import { isCircuitOpen } from '../ratelimit/circuit-breaker';
+import {
+  handleInoreaderFailure,
+  type InoreaderFailureSource,
+} from '../lib/inoreader-failure-handler';
 import { serializeToParams as serializeRadarUrl } from '../../../src/utils/radar-url';
 import { RadarCategoryEnum } from '../schemas';
 import { HUB_BASE } from '../config';
@@ -109,47 +112,21 @@ function categoryMatches(item: SnapshotItem, filter?: RadarCategory): boolean {
 }
 
 /**
- * Build an MCP error envelope from a LiveTierResult failure. Calls
- * `openCircuit()` when the failure is `inoreader-rate-limit` so subsequent
- * radar requests across all keys see the breaker.
+ * Build an MCP error envelope from a LiveTierResult failure.
+ *
+ * T.Z.2 (BL-032.7) — side effects (breaker open + Sentry capture with
+ * diagnostic tags) live in the shared `handleInoreaderFailure()` helper
+ * so the cron path and the live-tool path open the breaker on the same
+ * 429 signal. Prior to T.Z.2, only this path opened the breaker, which
+ * extended Inoreader-degradation windows by 6h on top of the upstream
+ * incident — see BL-032_5_TESTING_FINDINGS.md § T.Z.2.
  */
-async function failureResponse(env: Env, failure: Extract<LiveTierResult, { ok: false }>) {
-  if (failure.reason === 'inoreader-rate-limit') {
-    await openCircuit(env, 'inoreader-429');
-    // Sentry breadcrumb so SENTRY_MANUAL_SETUP.md Alert #3 fires. Low-
-    // volume by construction (fires at most once per 6h breaker-open),
-    // so no rate-limit concern — every event is informative. The
-    // `eventTag` argument sets an `event:` tag matching safeLog's
-    // structured-log field, so alert rules can filter via tag (preferred)
-    // OR message-content match (current SENTRY_MANUAL_SETUP.md walkthrough).
-    //
-    // T.Z.3 (BL-032.7 — 2026-05-16): also attach the Zone-1/Zone-2
-    // usage + reset-after seconds as structured Sentry tags so RCA on
-    // the next 429 takes 30 seconds (read the tag) instead of 2 hours
-    // (hunt the Inoreader dashboard). The rateLimitInfo fields are
-    // populated by mapHttpStatus() in inoreader-worker.ts when the 429
-    // response carries the documented X-Reader-* headers.
-    const info = failure.rateLimitInfo;
-    captureMessage(
-      'inoreader-rate-limit',
-      'error',
-      {
-        status: failure.status,
-        message: failure.message,
-        ...(info ? { rateLimitInfo: info } : {}),
-      },
-      'inoreader-rate-limit',
-      info
-        ? {
-            'inoreader.zone1.usage': info.zone1Usage,
-            'inoreader.zone1.limit': info.zone1Limit,
-            'inoreader.zone2.usage': info.zone2Usage,
-            'inoreader.zone2.limit': info.zone2Limit,
-            'inoreader.reset_after_seconds': info.resetAfterSeconds,
-          }
-        : undefined
-    );
-  }
+async function failureResponse(
+  env: Env,
+  failure: Extract<LiveTierResult, { ok: false }>,
+  source: InoreaderFailureSource
+) {
+  await handleInoreaderFailure(env, failure, source);
   return {
     content: [
       {
@@ -204,8 +181,8 @@ export async function handleSearchRadar(env: Env, input: SearchRadarInput) {
 
   const [wireResult, fyiResult] = await Promise.all([readWireLive(env), readFyiLive(env, 30)]);
 
-  if (!wireResult.ok) return failureResponse(env, wireResult);
-  if (!fyiResult.ok) return failureResponse(env, fyiResult);
+  if (!wireResult.ok) return failureResponse(env, wireResult, 'live-search-radar');
+  if (!fyiResult.ok) return failureResponse(env, fyiResult, 'live-search-radar');
 
   // Merge + dedupe + sort, mirroring the website's unified feed.
   const seen = new Set<string>();
@@ -256,7 +233,7 @@ export async function handleGetLatestInsights(env: Env, input: GetLatestInsights
 
   const limit = input.limit ?? 10;
   const fyiResult = await readFyiLive(env, Math.max(limit, 30)); // fetch 30 always so cache shared with search_radar
-  if (!fyiResult.ok) return failureResponse(env, fyiResult);
+  if (!fyiResult.ok) return failureResponse(env, fyiResult, 'live-get-latest-insights');
 
   const filtered = fyiResult.items
     .filter((item) => categoryMatches(item, input.category))

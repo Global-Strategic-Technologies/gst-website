@@ -36,6 +36,7 @@ import { readWireLive, readFyiLive } from '../content/radar-live-store';
 import { isCircuitOpen } from '../ratelimit/circuit-breaker';
 import { createMcpClient } from '../lib/upstash-clients';
 import { captureMessage } from '../observability/sentry';
+import { handleInoreaderFailure } from '../lib/inoreader-failure-handler';
 import { safeLog } from '../auth/safe-logger';
 import type { Env } from '../worker';
 
@@ -229,6 +230,19 @@ export async function refreshRadarSnapshot(env: Env): Promise<RefreshOutcome> {
     // T.Z.1 (BL-032.7) — split into `partial-one-tier-ok` (cache half-
     // refreshed, some Inoreader budget consumed) vs `partial-both-failed`
     // (zero budget consumed, faster staleness alert path).
+    //
+    // T.Z.2 (BL-032.7) — route any tier-level inoreader-rate-limit
+    // failure through the shared handler so the circuit breaker opens
+    // immediately, identically to how the live tool path handles it.
+    // Pre-T.Z.2 the cron emitted only a partial event and let the next
+    // live tool call trip the breaker — extending the degradation
+    // window by 6h on top of the upstream incident.
+    if (!wire.ok) {
+      await handleInoreaderFailure(env, wire, 'cron-wire');
+    }
+    if (!fyi.ok) {
+      await handleInoreaderFailure(env, fyi, 'cron-fyi');
+    }
     const bothFailed = !wire.ok && !fyi.ok;
     captureMessage(
       bothFailed ? 'cron.radar-refresh.partial-both-failed' : 'cron.radar-refresh.partial',
