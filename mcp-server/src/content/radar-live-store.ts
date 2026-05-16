@@ -25,6 +25,7 @@ import {
   fetchAllStreams,
   fetchAnnotatedItems,
   type InoreaderResult,
+  type RateLimitInfo,
 } from '../lib/inoreader-worker';
 import { createCacheStore } from '../lib/upstash-cache-store';
 import { recordInoreaderStatus } from '../observability/inoreader-status';
@@ -55,6 +56,13 @@ export type LiveTierResult =
         | 'upstream-error'
         | 'network-timeout';
       readonly message: string;
+      /**
+       * Populated on `inoreader-rate-limit` (429) responses when Inoreader
+       * returned the `X-Reader-Zone*` headers. T.Z.3 (BL-032.7) — surfaces
+       * the diagnostic headers through the live-store boundary so the
+       * radar-live tools can attach them as Sentry tags.
+       */
+      readonly rateLimitInfo?: RateLimitInfo;
     };
 
 interface CachedTier {
@@ -174,5 +182,8 @@ function mapFailure(
     status: result.status,
     reason: result.reason,
     message: result.message,
+    // Forward Inoreader's rate-limit diagnostic headers when present
+    // (T.Z.3 — only populated on 429 responses).
+    ...(result.rateLimitInfo ? { rateLimitInfo: result.rateLimitInfo } : {}),
   };
 }

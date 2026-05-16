@@ -122,14 +122,32 @@ async function failureResponse(env: Env, failure: Extract<LiveTierResult, { ok: 
     // `eventTag` argument sets an `event:` tag matching safeLog's
     // structured-log field, so alert rules can filter via tag (preferred)
     // OR message-content match (current SENTRY_MANUAL_SETUP.md walkthrough).
+    //
+    // T.Z.3 (BL-032.7 — 2026-05-16): also attach the Zone-1/Zone-2
+    // usage + reset-after seconds as structured Sentry tags so RCA on
+    // the next 429 takes 30 seconds (read the tag) instead of 2 hours
+    // (hunt the Inoreader dashboard). The rateLimitInfo fields are
+    // populated by mapHttpStatus() in inoreader-worker.ts when the 429
+    // response carries the documented X-Reader-* headers.
+    const info = failure.rateLimitInfo;
     captureMessage(
       'inoreader-rate-limit',
       'error',
       {
         status: failure.status,
         message: failure.message,
+        ...(info ? { rateLimitInfo: info } : {}),
       },
-      'inoreader-rate-limit'
+      'inoreader-rate-limit',
+      info
+        ? {
+            'inoreader.zone1.usage': info.zone1Usage,
+            'inoreader.zone1.limit': info.zone1Limit,
+            'inoreader.zone2.usage': info.zone2Usage,
+            'inoreader.zone2.limit': info.zone2Limit,
+            'inoreader.reset_after_seconds': info.resetAfterSeconds,
+          }
+        : undefined
     );
   }
   return {

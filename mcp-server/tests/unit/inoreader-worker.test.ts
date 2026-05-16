@@ -213,6 +213,56 @@ describe('fetchAnnotatedItems — happy path + failure modes', () => {
     expect(result.reason).toBe('inoreader-rate-limit');
   });
 
+  // T.Z.3 (BL-032.7) — 429 envelope carries Inoreader's documented
+  // rate-limit headers so downstream callers can attach them as Sentry
+  // tags. RCA on the next 429 should be a 30-second tag read, not a
+  // multi-hour Inoreader dashboard hunt.
+  it('429 envelope includes parsed X-Reader-Zone* headers as rateLimitInfo', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response('too many', {
+        status: 429,
+        headers: {
+          'X-Reader-Zone1-Limit': '100',
+          'X-Reader-Zone1-Usage': '100',
+          'X-Reader-Zone2-Limit': '100',
+          'X-Reader-Zone2-Usage': '17',
+          'X-Reader-Limits-Reset-After': '14823',
+        },
+      })
+    );
+
+    const result = await fetchAnnotatedItems(baseEnv, 5);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('inoreader-rate-limit');
+    expect(result.rateLimitInfo).toEqual({
+      zone1Limit: 100,
+      zone1Usage: 100,
+      zone2Limit: 100,
+      zone2Usage: 17,
+      resetAfterSeconds: 14823,
+    });
+  });
+
+  it('429 envelope handles missing rate-limit headers gracefully (proxy strip)', async () => {
+    // Sanity check: if a CDN / proxy strips the X-Reader-* headers,
+    // rateLimitInfo should still be present (envelope shape stable) but
+    // every field undefined — NOT throw, NOT crash, NOT have literal
+    // "undefined" strings showing up in the Sentry tags downstream.
+    fetchSpy.mockResolvedValue(new Response('too many', { status: 429 }));
+
+    const result = await fetchAnnotatedItems(baseEnv, 5);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.rateLimitInfo).toEqual({
+      zone1Limit: undefined,
+      zone1Usage: undefined,
+      zone2Limit: undefined,
+      zone2Usage: undefined,
+      resetAfterSeconds: undefined,
+    });
+  });
+
   it('maps other non-2xx to upstream-error', async () => {
     fetchSpy.mockResolvedValue(new Response('server error', { status: 503 }));
 
