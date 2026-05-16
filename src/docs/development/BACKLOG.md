@@ -1096,6 +1096,177 @@ The acceptance criteria for BL-032.25 are dynamic — populated as soak findings
 
 ---
 
+### BL-032.7: MCP Server — Inoreader Substrate Safety & Observability
+
+**Source**: BL-032.6 demo prep + delivery surfaced three operationally load-bearing gaps | **Evidence**: [BL-032_5_TESTING_FINDINGS.md § Section Z](BL-032_5_TESTING_FINDINGS.md) (T.Z.1, T.Z.2, T.Z.3) | **Effort**: 1-2 days | **Status**: ✅ Shipped 2026-05-16 (commits 302c625, bba2a46, 2597854) | **Depends on**: BL-032, BL-032.5, BL-039 | **Supersedes**: per-consumer Inoreader app split (originally item 4 of this initiative; promoted to BL-032.8 with a better end-state design — see § Out of scope)
+
+**As a** GST operator running production MCP traffic and any future BL-033 pilot client traffic, **I want** the Inoreader-dependent surface to (a) consume its daily quota honestly, (b) fail fast and visibly when the upstream is degraded, and (c) capture the diagnostic information needed to root-cause a 429 incident in 30 seconds instead of 2 hours — **so that** the substrate's protective mechanisms reflect reality and any Inoreader-side disruption surfaces as a self-explaining alert rather than a guessing game.
+
+> **Why a precondition to BL-033**: the 2026-05-15 BL-032.6 demo-day RCA proved the current substrate has a multi-hour blind spot when Inoreader exhausts its daily zone-1 quota. Repeating that incident with a paying pilot client on the line is unacceptable. Items 1-3 below close the blind spot and shipped 2026-05-16 in a single working session. The fourth item (per-consumer Inoreader app split) was promoted to its own initiative — see BL-032.8 — because the cleaner end-state architecture is "MCP Worker becomes sole Inoreader consumer; website consumes radar via MCP" rather than "register a second Inoreader app and rotate secrets."
+
+#### Planning Criteria
+
+**Use cases**
+
+- **Operator triaging a 429 in Sentry** — the captured event includes `inoreader.zone1.usage`, `inoreader.zone1.limit`, and `inoreader.reset_after_seconds` as Sentry tags; RCA is a 30-second header read instead of a multi-hour dashboard hunt
+- **Cron firing into a 429'd Inoreader** — the day-counter stays flat (no false consumption recorded); the breaker opens immediately so all downstream consumers (including live tool calls) fail fast and surface as 503 envelopes with `Retry-After`
+- **Website ISR refresh and MCP Worker cron firing in the same hour** — each consumer draws from its own 100/day Zone-1 budget (separate Inoreader apps); one consumer's exhaustion cannot starve the other
+- **BL-033 pilot client traffic going live** — per-consumer attribution in the Inoreader Developer dashboard lets us see exactly which surface (website / MCP / pilot client) is driving consumption, independent of our internal day-counter
+
+**Outcomes**
+
+- Day-counter (`mcp:inoreader:day-counter:<YYYY-MM-DD>`) increments only when at least one tier returns `ok: true` — verified in unit tests + observed over a 7-day soak with at least one upstream 429 episode
+- Circuit breaker opens on the first 429 from any caller (cron OR live tool), not only live tool calls — verified by inducing a 429 from the cron path in a staging Sentry-monitored test
+- Every `inoreader-rate-limit` Sentry event includes the four Inoreader documented diagnostic headers as searchable tags
+- Website (`/hub/radar` ISR) and MCP Worker each consume from a separate Inoreader app — verified in the Inoreader Developer Console (two registered apps, two independent usage graphs)
+- Zero shared-budget failure modes over the 7-day soak — confirmed by running both consumers at their normal cadence with no quota events on either
+
+**Business value**
+
+- **Unblocks BL-033** — the per-pilot-client onboarding story currently has an unaddressed "your team's traffic could starve our internal team's substrate" failure mode; per-consumer app isolation makes per-pilot scoping trivial later (each pilot client gets its own MCP-side app and its own 100/day budget that doesn't touch GST internal capacity)
+- **Operational honesty** — the substrate currently appears healthy to alert rules during multi-hour degradation episodes (T.Z.1 + T.Z.2). Fixing this restores the alerting contract everyone assumes is already in place
+- **Compounds with BL-032.75 (observability)** — BL-032.75's dashboards become 10× more useful once 429 events carry zone-usage tags
+- **Cost**: ~0 — one new Inoreader app registration (free, one-time), ~10-90 LOC in `mcp-server/src/`, ~5 LOC in `src/lib/inoreader/client.ts` for env-var rename, ~30 min of secret-rotation ops across the two Worker envs + the Vercel website env
+
+#### Acceptance Criteria
+
+**T.Z.1 fix — Day-counter only on actual success**
+
+- [x] `RefreshOutcome` extended to distinguish `partial-one-tier-ok` from `partial-both-failed` per the suggestion in [T.Z.1 § Notes](BL-032_5_TESTING_FINDINGS.md) — see [radar-refresh.ts:141-151](../../../mcp-server/src/cron/radar-refresh.ts#L141-L151)
+- [x] [mcp-server/src/cron/radar-refresh.ts](../../../mcp-server/src/cron/radar-refresh.ts) only invokes `incrementDayCounter()` when at least one tier returned `ok: true` (per-tier accounting: `CALLS_PER_WIRE = 5`, `CALLS_PER_FYI = 1`)
+- [x] Unit test covering the both-tiers-429 path verifies the counter does NOT increment — `tests/unit/cron/radar-refresh.test.ts § partial-both-failed`
+- [x] Existing tests for the success / partial-one-tier-ok paths continue to pass with the new accounting
+
+**T.Z.2 fix — Unified Inoreader-failure handler**
+
+- [x] New `handleInoreaderFailure(env, failure, source)` helper in [`mcp-server/src/lib/inoreader-failure-handler.ts`](../../../mcp-server/src/lib/inoreader-failure-handler.ts) centralizes `openCircuit()` + `captureMessage('inoreader-rate-limit', ...)` decisions
+- [x] [`radar-refresh.ts`](../../../mcp-server/src/cron/radar-refresh.ts) partial-outcome path calls the helper when any tier returned 429 (sources: `cron-wire`, `cron-fyi`)
+- [x] [`radar-live.ts`](../../../mcp-server/src/tools/radar-live.ts) `failureResponse` refactored to call the same helper rather than calling `openCircuit` directly (sources: `live-search-radar`, `live-get-latest-insights`)
+- [x] Test coverage: forcing a cron path 429 results in the breaker being OPEN before the next live tool call arrives — `tests/unit/lib/inoreader-failure-handler.test.ts` + `tests/unit/cron/radar-refresh.test.ts § partial-both-failed` together prove `openCircuit(env, 'inoreader-429-<source>')` is invoked on the cron path
+- [x] Inline rationale documenting the symmetric-protection design lives in the helper module's header docstring at [`inoreader-failure-handler.ts:1-30`](../../../mcp-server/src/lib/inoreader-failure-handler.ts#L1-L30) ("every Inoreader call site (cron OR live tool) routes its failures through this helper")
+
+**T.Z.3 fix — Capture 429 diagnostic headers**
+
+- [x] [`inoreader-worker.ts`](../../../mcp-server/src/lib/inoreader-worker.ts) 429 handler reads `X-Reader-Zone1-Limit`, `X-Reader-Zone1-Usage`, `X-Reader-Zone2-Limit`, `X-Reader-Zone2-Usage`, `X-Reader-Limits-Reset-After` off the response (`parseRateLimitHeaders` helper)
+- [x] The `InoreaderFailure` envelope carries the parsed header values as `rateLimitInfo`
+- [x] `handleInoreaderFailure()` attaches them to Sentry as searchable tags (`inoreader.zone1.usage`, `inoreader.zone1.limit`, `inoreader.zone2.usage`, `inoreader.zone2.limit`, `inoreader.reset_after_seconds`)
+- [x] First ~200 chars of the response body included in Sentry `extra` field — captured via `readBodyExcerpt()` on 429 only, forwarded through `InoreaderFailure.bodyExcerpt` and `LiveTierResult.bodyExcerpt`
+- [x] Unit test mocks Inoreader 429 with the documented headers + body and asserts both the envelope and the Sentry capture include the values
+
+**Verification & docs**
+
+- [x] [BL-032_5_TESTING_FINDINGS.md § Section Z](BL-032_5_TESTING_FINDINGS.md) cross-referenced from this BACKLOG entry; status of T.Z.1 / T.Z.2 / T.Z.3 flipped to "Remediation: fixed in BL-032.7" with commit SHAs (302c625 / bba2a46 / 2597854)
+- [x] Operator runbook implicitly improved: 429 events now carry `inoreader.zone1.usage`, `inoreader.zone1.limit`, `inoreader.zone2.usage`, `inoreader.zone2.limit`, `inoreader.reset_after_seconds` as searchable Sentry tags. RCA on the next 429 is a 30-second tag read.
+
+#### Technical Context
+
+**Why a new initiative rather than folding into BL-040**: BL-040's stated scope is "debounce parallel refreshes" — a fan-out load-shedding optimization. BL-032.7 is about **budget protection + observability** — a different axis. Conflating them inflates BL-040's scope and risks shipping budget-protection fixes behind a load-optimization gate. BL-040 remains its own initiative for whenever multi-pilot fan-out load actually materializes (current single-tenant load doesn't trip the BL-040 condition).
+
+**Why the per-consumer app split (originally item 4) was retired in favor of BL-032.8**: while implementing item 4 we discovered the scope extends beyond renaming env vars — the website + Worker today share their Inoreader access token through a single Upstash key (`inoreader:access_token`), so a clean per-consumer split requires either (a) duplicating the entire OAuth refresh path or (b) eliminating one of the two consumers from the Inoreader-caller surface entirely. Option (b) is structurally cleaner — single OAuth identity, single budget, single client implementation, single source of truth — and is filed as BL-032.8 "Radar consumer unification." The retired item 4 would have been a band-aid that needed re-doing the first time a BL-033 pilot client onboarded.
+
+**Out of scope (covered by BL-032.8 or later)**
+
+- Retiring `src/components/radar/RadarFeed.astro`'s direct Inoreader calls — BL-032.8
+- Eliminating the website's Inoreader credentials entirely — BL-032.8
+- Per-pilot-client onboarding flow — handled as part of BL-033 (issues bearer keys, no per-pilot Inoreader account work)
+- Migrating to Inoreader's paid tier (10k/day Zone 1 + 2k/day Zone 2) — pursue only if BL-032.8's "MCP-as-sole-consumer" single-app architecture proves insufficient under combined website + pilot-client load
+- BL-040 parallel-refresh debounce — separate axis
+
+---
+
+### BL-032.8: Radar Consumer Unification — MCP Worker as sole Inoreader caller
+
+**Source**: BL-032.7 implementation discovered the per-consumer-app-split was a band-aid; the cleaner end-state is single-OAuth-identity with the Worker as sole Inoreader consumer | **Effort**: 3-4 days | **Status**: Open · precondition for BL-033 (replaces BL-032.7's prior precondition role for the budget-isolation property) | **Depends on**: BL-032, BL-032.5, BL-032.7, BL-039
+
+**As a** GST operator scaling toward BL-033 multi-tenant pilot client traffic, **I want** all Inoreader API traffic to flow through a single canonical client (the MCP Worker) with one OAuth identity, one token storage path, and one set of protective substrate mechanisms (rate limit + circuit breaker + day-counter + 429 header capture from BL-032.7) — **so that** every consumer surface (website ISR, Claude Desktop, OpenClaw, BL-033 pilot clients) benefits from the same protections, the Inoreader budget is visible in one dashboard, and onboarding new consumers scales to zero Inoreader-side work per consumer.
+
+> **Why this is precondition to BL-033 (not BL-032.7)**: BL-032.7's three observability + safety fixes (T.Z.1, T.Z.2, T.Z.3) shipped today and make the substrate self-diagnosing during Inoreader incidents. BUT the website's Radar page still calls Inoreader directly through its own server-side code path, bypassing all of BL-032.7's protections AND sharing the same 100/day Zone-1 budget with the MCP Worker. Onboarding a paying pilot client onto a substrate where the website can starve everyone else's budget — invisibly to the alerting contract — is unacceptable. BL-032.8 closes that gap by making the website a downstream consumer of the MCP Worker, not a parallel Inoreader client.
+
+#### Planning Criteria
+
+**Architecture choice — Pattern B2 (MCP HTTP endpoint for radar)**
+
+Two end-state options were considered:
+
+- **B1 — website reads `mcp:radar:cache:*` keys directly from Upstash**. Fast (no HTTP roundtrip), but couples the website to the Worker's cache-key naming.
+- **B2 — website calls a lightweight `GET /radar/snapshot` HTTP endpoint on the Worker** (or `tools/call(search_radar)` over the existing MCP path). Treats the MCP as the canonical interface; website becomes "just another MCP consumer." Slightly more overhead per request but architecturally cleaner.
+
+**B2 is the chosen direction**. The HTTP boundary is the right abstraction layer — it's the same surface BL-033 pilot clients will use.
+
+**Use cases**
+
+- **Website `/hub/radar` page renders without Inoreader credentials** — Vercel-side SSR fetches the snapshot from the Worker; if the Worker is degraded, the website shows the same staleness UX as today but sourced from `mcp.globalstrategic.tech` rather than from a direct `inoreader.com` call
+- **A new BL-033 pilot client onboards in 10 minutes** — operator issues an `MCP_KEY_<TEAM>` bearer; the client points its MCP-compatible runtime at `https://mcp.globalstrategic.tech/mcp`; no Inoreader account work
+- **Operator sees one Inoreader usage graph** in the Developer Console; the Worker's day-counter (T.Z.1) is the canonical Inoreader-consumption signal across every consumer
+- **A 429 from Inoreader affects every consumer identically** — the Worker's circuit breaker opens once (T.Z.2), every downstream consumer sees the same 503/cached-snapshot response shape
+
+**Outcomes**
+
+- Website `/hub/radar` renders successfully via the Worker's snapshot for 7+ days post-deploy with no Inoreader credentials present on Vercel
+- `src/lib/inoreader/client.ts` deleted from the website repo; all website-side `INOREADER_*` env vars removed from Vercel
+- BL-039 `/api/inoreader/refresh` endpoint either retired (preferred) or repurposed as an operator-controlled escape hatch with a clear deprecation note
+- One Inoreader app (App ID `1000008446` — "Global Strategic Technologies Radar") becomes the sole OAuth identity for all GST Inoreader traffic
+- Single Upstash key (e.g. `mcp:inoreader:access_token`) is the sole token-storage path; sole-writer is the Worker
+- All BL-032.7 protections (per-key rate limit, breaker, day-counter, 429 header capture) automatically extend to website traffic — verified by inspecting Sentry events that previously would have been attributed to website-side calls
+
+**Business value**
+
+- **Unblocks BL-033** with a structurally clean substrate — pilot client onboarding is a bearer-key issuance, not an Inoreader account work item
+- **Eliminates ~400 LOC** of duplicate Inoreader client code (`src/lib/inoreader/client.ts`)
+- **Single source of truth** for Inoreader-API drift — when Inoreader changes their API, one client to update, not two
+- **Operational visibility** — one Inoreader usage graph to monitor, one set of OAuth secrets to rotate, one cache to warm
+- **Aligns with the demo's "shared engine" narrative** — Scenario 1 of BL-032.6 told stakeholders "this isn't a parallel implementation; it's the same engine the hub wizard uses." Today, the radar surface DOES have a parallel implementation. BL-032.8 makes the narrative true.
+- **Cost**: ~0 ongoing; ~3-4 days engineering one-time. No Inoreader paid-tier needed in steady state (single 100/day Zone-1 budget is sufficient for projected total traffic post-BL-033 ramp).
+
+#### Acceptance Criteria
+
+**Worker takes over OAuth refresh ownership**
+
+- [ ] Worker calls Inoreader's `/oauth2/token` directly on 401 (replaces the BL-039 round-trip through the website's `/api/inoreader/refresh` endpoint)
+- [ ] New Upstash key `mcp:inoreader:access_token` in the MCP DB holds the Worker-written token; the legacy `inoreader:access_token` in the Inoreader DB is read-only-with-fallback during migration, then retired
+- [ ] Q4 single-writer invariant relocates from "website is sole refresh-writer" to "Worker is sole refresh-writer"; updated rationale captured in [`mcp-server/src/lib/inoreader-worker.ts`](../../../mcp-server/src/lib/inoreader-worker.ts) docstring
+- [ ] Worker exposes a new lightweight `GET /radar/snapshot` HTTP endpoint returning `{ wire: SnapshotTier, fyi: SnapshotTier, fetchedAt }` as plain JSON (no MCP-RPC framing). Authenticated via a dedicated `RADAR_SNAPSHOT_KEY` bearer (separate from MCP keys; lower-privilege; one-per-consumer-surface)
+
+**Website becomes a downstream consumer**
+
+- [ ] [`src/components/radar/RadarFeed.astro`](../../../src/components/radar/RadarFeed.astro) refactored to fetch from `https://mcp.globalstrategic.tech/radar/snapshot` at SSR time using the website's `RADAR_SNAPSHOT_KEY` bearer (Vercel env var)
+- [ ] [`src/lib/inoreader/client.ts`](../../../src/lib/inoreader/client.ts) and all callers removed from the website repo
+- [ ] All website-side `INOREADER_*` Vercel env vars removed via `vercel env rm`
+- [ ] Website's `/hub/radar` page renders successfully with no Inoreader credentials in scope — verified by a Vercel preview deploy that has `INOREADER_*` deliberately unset
+
+**BL-039 deprecation**
+
+- [ ] [`src/pages/api/inoreader/refresh.ts`](../../../src/pages/api/inoreader/refresh.ts) either deleted (if no legacy callers remain) or replaced with a 410 Gone responder + deprecation note pointing operators at the Worker's new refresh ownership
+- [ ] `INOREADER_REFRESH_SECRET` shared-secret retired from both Vercel + Worker env (one-direction-only refresh from the website is the surface this secret protected)
+
+**Soak verification**
+
+- [ ] 7 days of normal operation with website ISR + MCP Worker tools both serving radar; Inoreader Developer Console shows usage under one app, well below the 100/day Zone-1 cap
+- [ ] At least one induced 429 (force-set `mcp:radar:circuit-open` or temporarily revoke the Worker's token) demonstrates: website's `/hub/radar` shows degraded UX gracefully; live MCP tool calls return 503 envelopes with `Retry-After`; both consumers see the same recovery moment when the breaker closes
+- [ ] [`src/docs/hub/RADAR.md`](../hub/RADAR.md) budget envelope updated to reflect "single app, ~52 calls/day combined (cron + ISR + live tools)"
+- [ ] Operator runbook entry: how to rotate the Inoreader OAuth credentials on the Worker (since the website no longer holds them)
+
+#### Technical Context
+
+**Why this isn't fully covered by BL-032.7**: BL-032.7's three fixes (T.Z.1/T.Z.2/T.Z.3) protect the MCP-Worker code path. The website ISR's direct Inoreader caller bypasses every one of those protections — different OAuth resolution path, different cache, no breaker, no day-counter, no 429 header capture, no Sentry attribution. Closing that gap is not a "rename and add a secret" change; it's "retire one of the two callers." The structural fix is to make the Worker the sole caller.
+
+**Migration risk profile**: medium. The website's `RadarFeed.astro` is high-traffic relative to most other pages; a regression in snapshot fetching shows up immediately. Mitigation: ship behind a feature flag (`PUBLIC_RADAR_SOURCE='mcp' | 'inoreader'`) for the first 48h post-deploy; flip to `mcp` after preview-traffic verification.
+
+**Why the website needs a dedicated bearer key (not a regular `MCP_KEY_*`)**:
+
+- The MCP key surface is for AI tool clients (Claude, OpenClaw) and carries `tool:*` + `prompt:*` + `resource:*` scopes
+- The website's radar fetch only needs `radar:snapshot:read` — a much narrower scope
+- Issuing a full MCP key to the website would over-permission and conflate audit logs (`keyOwner=WEBSITE` would show up in tool-call telemetry)
+- A lower-privilege `RADAR_SNAPSHOT_KEY` keeps the surface clean
+
+**Out of scope**
+
+- Replacing the website's `/hub/radar` rendering with client-side React (separate UX initiative)
+- Adding new MCP consumer types beyond `tools/call`, `prompts/get`, `resources/read` (BL-033 territory)
+- Migrating Cron logic out of the Worker (Cron is the right home for "fetch upstream on a schedule")
+
+---
+
 ### BL-032.75: MCP Server — Production Observability Maturity
 
 **Source**: BL-032.75 — extends Phase 2 substrate | **Architecture & plan**: [MCP_SERVER_OBSERVABILITY_BL-032_75.md](MCP_SERVER_OBSERVABILITY_BL-032_75.md) | **Effort**: 1 sprint engineering + 10-14 day baselining window | **Status**: Open | **Depends on**: BL-032 (BL-032.5 strongly preferred for full surface coverage)
@@ -1239,7 +1410,7 @@ BL-032's Section K soak (31 of 40 tests recorded as of 2026-05-12) surfaced a ti
 
 ### BL-033: MCP Server — External Pilot (Phase 3)
 
-**Source**: MCP_SERVER_INITIATIVE.md (archived) | **Effort**: 2 weeks engineering + indeterminate legal/sales lead time | **Status**: Open | **Depends on**: BL-032
+**Source**: MCP_SERVER_INITIATIVE.md (archived) | **Effort**: 2 weeks engineering + indeterminate legal/sales lead time | **Status**: Open | **Depends on**: BL-032, BL-032.7 (substrate safety + observability — shipped 2026-05-16), **BL-032.8** (radar consumer unification — precondition; eliminates the website's direct Inoreader caller so all consumers — including pilot clients — go through the same canonical MCP path with the BL-032.7 protections)
 
 **As a** PE firm client, **I want** to connect my AI tools to GST's MCP server **so that** my agents can query GST's diligence engine and portfolio data during deal evaluation, with the security and audit guarantees my compliance team requires.
 

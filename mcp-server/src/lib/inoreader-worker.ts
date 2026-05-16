@@ -71,11 +71,52 @@ export interface InoreaderSuccess {
   readonly data: InoreaderStreamResponse;
 }
 
+/**
+ * Diagnostic headers Inoreader returns on every authenticated response
+ * (success OR 429). Documented at
+ * https://www.inoreader.com/developers/rate-limiting and confirmed via
+ * the 2026-05-15 BL-032.6 demo-day RCA — when these are missing from a
+ * Sentry event, RCA shifts from a 30-second header read to a multi-hour
+ * dashboard hunt (see BL-032_5_TESTING_FINDINGS.md § T.Z.3).
+ *
+ * All five fields are present on a typical 429; we keep them optional so
+ * proxies that strip CORS-exposed headers don't break the type.
+ */
+export interface RateLimitInfo {
+  /** Daily Zone-1 quota for this app (reads — tag/list, stream/contents, etc.). */
+  readonly zone1Limit?: number;
+  /** Zone-1 usage so far today (resets daily; same window as `resetAfterSeconds`). */
+  readonly zone1Usage?: number;
+  /** Daily Zone-2 quota for this app (writes — edit-tag, mark-as-read, etc.). */
+  readonly zone2Limit?: number;
+  /** Zone-2 usage so far today. */
+  readonly zone2Usage?: number;
+  /** Seconds until BOTH zone counters reset (Inoreader rolls them together). */
+  readonly resetAfterSeconds?: number;
+}
+
 export interface InoreaderFailure {
   readonly ok: false;
   readonly status: number;
   readonly reason: InoreaderFailureReason;
   readonly message: string;
+  /**
+   * Populated on `inoreader-rate-limit` (429) responses when Inoreader
+   * returned the `X-Reader-Zone*` headers. T.Z.3 (BL-032.7) — capturing
+   * these in the envelope lets downstream Sentry callers attach them as
+   * structured tags rather than baking them into the message string.
+   */
+  readonly rateLimitInfo?: RateLimitInfo;
+  /**
+   * First ~200 chars of the Inoreader response body on a 429. T.Z.3
+   * (BL-032.7) — the headers carry the quantitative signal; the body
+   * occasionally carries a human-readable hint ("App over daily limit",
+   * "User over daily limit", etc.) that distinguishes app-level from
+   * user-level exhaustion. Optional because empty/binary bodies and
+   * proxy-stripped responses are real failure modes we don't want to
+   * crash the RCA path on.
+   */
+  readonly bodyExcerpt?: string;
 }
 
 export type InoreaderResult = InoreaderSuccess | InoreaderFailure;
@@ -271,7 +312,54 @@ async function authenticatedFetch(
   return retry;
 }
 
-function mapHttpStatus(status: number, statusText: string): InoreaderFailure {
+/**
+ * Parse Inoreader's documented rate-limit headers off a Response. All
+ * fields are optional — missing or non-numeric headers return undefined
+ * for that field rather than throwing.
+ *
+ * Header reference (https://www.inoreader.com/developers/rate-limiting):
+ *   X-Reader-Zone1-Limit, X-Reader-Zone1-Usage
+ *   X-Reader-Zone2-Limit, X-Reader-Zone2-Usage
+ *   X-Reader-Limits-Reset-After
+ */
+function parseRateLimitHeaders(res: Response): RateLimitInfo {
+  const num = (name: string): number | undefined => {
+    const raw = res.headers.get(name);
+    if (raw == null) return undefined;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : undefined;
+  };
+  return {
+    zone1Limit: num('X-Reader-Zone1-Limit'),
+    zone1Usage: num('X-Reader-Zone1-Usage'),
+    zone2Limit: num('X-Reader-Zone2-Limit'),
+    zone2Usage: num('X-Reader-Zone2-Usage'),
+    resetAfterSeconds: num('X-Reader-Limits-Reset-After'),
+  };
+}
+
+/**
+ * Best-effort read of the first ~200 chars of a non-2xx response body.
+ * Used on 429 only (T.Z.3 — BL-032.7) so RCA in Sentry can see if the
+ * body distinguishes "App over daily limit" from "User over daily
+ * limit" or carries an Inoreader-side error string. Returns undefined
+ * on read failure (already-consumed stream, empty body, abort, etc.)
+ * rather than throwing — diagnostic enrichment must never crash the
+ * failure path.
+ */
+const BODY_EXCERPT_MAX_CHARS = 200;
+async function readBodyExcerpt(res: Response): Promise<string | undefined> {
+  try {
+    const text = await res.text();
+    if (!text) return undefined;
+    return text.slice(0, BODY_EXCERPT_MAX_CHARS);
+  } catch {
+    return undefined;
+  }
+}
+
+async function mapHttpStatus(res: Response): Promise<InoreaderFailure> {
+  const { status, statusText } = res;
   if (status === 401) {
     return {
       ok: false,
@@ -282,11 +370,15 @@ function mapHttpStatus(status: number, statusText: string): InoreaderFailure {
     };
   }
   if (status === 429) {
+    const rateLimitInfo = parseRateLimitHeaders(res);
+    const bodyExcerpt = await readBodyExcerpt(res);
     return {
       ok: false,
       status: 429,
       reason: 'inoreader-rate-limit',
       message: `Inoreader rate limit exceeded: ${status} ${statusText}`,
+      rateLimitInfo,
+      ...(bodyExcerpt ? { bodyExcerpt } : {}),
     };
   }
   return {
@@ -331,7 +423,7 @@ export async function fetchAnnotatedItems(env: Env, count: number = 30): Promise
 
   const res = await authenticatedFetch(env, url, config as ResolvedConfig);
   if (!(res instanceof Response)) return res;
-  if (!res.ok) return mapHttpStatus(res.status, res.statusText);
+  if (!res.ok) return await mapHttpStatus(res);
   return parseStream(res);
 }
 
@@ -354,7 +446,7 @@ export async function fetchFolderStream(
 
   const res = await authenticatedFetch(env, url, config as ResolvedConfig);
   if (!(res instanceof Response)) return res;
-  if (!res.ok) return mapHttpStatus(res.status, res.statusText);
+  if (!res.ok) return await mapHttpStatus(res);
   return parseStream(res);
 }
 
@@ -382,7 +474,7 @@ export async function fetchAllStreams(
   const tagsUrl = `${API_BASE}/tag/list?output=json`;
   const tagsRes = await authenticatedFetch(env, tagsUrl, cfg);
   if (!(tagsRes instanceof Response)) return tagsRes;
-  if (!tagsRes.ok) return mapHttpStatus(tagsRes.status, tagsRes.statusText);
+  if (!tagsRes.ok) return await mapHttpStatus(tagsRes);
 
   let tagsData: { tags?: Array<{ id: string }> };
   try {
@@ -477,6 +569,6 @@ async function fetchFolderStreamWithConfig(
     new URLSearchParams({ n: String(count), output: 'json' }).toString();
   const res = await authenticatedFetch(env, url, config);
   if (!(res instanceof Response)) return res;
-  if (!res.ok) return mapHttpStatus(res.status, res.statusText);
+  if (!res.ok) return await mapHttpStatus(res);
   return parseStream(res);
 }

@@ -36,12 +36,33 @@ import { readWireLive, readFyiLive } from '../content/radar-live-store';
 import { isCircuitOpen } from '../ratelimit/circuit-breaker';
 import { createMcpClient } from '../lib/upstash-clients';
 import { captureMessage } from '../observability/sentry';
+import { handleInoreaderFailure } from '../lib/inoreader-failure-handler';
 import { safeLog } from '../auth/safe-logger';
 import type { Env } from '../worker';
 
 const DAILY_SOFT_CAP = 180;
-/** Approximate Inoreader call count for one full refresh (5 wire + 1 fyi). */
-const CALLS_PER_REFRESH = 6;
+/**
+ * Inoreader call cost per tier on a successful refresh. Wire tier =
+ * 1 tag-list + 4 folder fetches (5 total); FYI tier = 1 annotated-items
+ * fetch (1 total). Combined: 6 calls/refresh.
+ *
+ * T.Z.1 (BL-032.7) — these are NOW used for per-tier accounting: the
+ * day-counter is incremented by the sum of `CALLS_PER_*` for tiers
+ * that returned ok. A tier that returned 429 / token-stale / network-
+ * timeout consumes ZERO budget (Inoreader rejects before serving
+ * content). Pre-T.Z.1, `CALLS_PER_REFRESH = 6` was added regardless of
+ * outcome, leaking the cap during multi-hour 429 episodes; that broke
+ * the counter-as-budget-proxy invariant.
+ */
+const CALLS_PER_WIRE = 5;
+const CALLS_PER_FYI = 1;
+/**
+ * Sum of the per-tier costs. Used by the day-cap pre-flight guard
+ * (`counter + CALLS_PER_REFRESH > DAILY_SOFT_CAP`) — we still gate on
+ * the WORST-CASE consumption, so a refresh that might succeed on both
+ * tiers won't be allowed to push us past the cap.
+ */
+const CALLS_PER_REFRESH = CALLS_PER_WIRE + CALLS_PER_FYI;
 /** Day-counter Upstash key prefix; suffix is UTC `YYYY-MM-DD`. */
 const DAY_COUNTER_PREFIX = 'mcp:inoreader:day-counter:';
 /** TTL slightly past 24h so the key naturally rolls over at UTC midnight. */
@@ -108,9 +129,24 @@ async function incrementDayCounter(env: Env, by: number): Promise<void> {
  * ignore the return value — `scheduled` handlers don't have a response
  * surface beyond status code.
  */
+/**
+ * T.Z.1 (BL-032.7) — `partial` outcomes split into two sub-kinds so
+ * callers + tests can distinguish "one tier succeeded, the other
+ * didn't" (cache still useful, partial budget consumed) from "both
+ * tiers failed" (no budget consumed, but staleness alerts should fire
+ * faster). Pre-T.Z.1 these were collapsed into one `partial` kind,
+ * which masked the multi-hour Inoreader degradation pattern surfaced
+ * during the 2026-05-15 BL-032.6 demo-day RCA.
+ */
 export type RefreshOutcome =
-  | { kind: 'success'; wireItems: number; fyiItems: number }
-  | { kind: 'partial'; wireOk: boolean; fyiOk: boolean }
+  | { kind: 'success'; wireItems: number; fyiItems: number; callsConsumed: number }
+  | {
+      kind: 'partial-one-tier-ok';
+      wireOk: boolean;
+      fyiOk: boolean;
+      callsConsumed: number;
+    }
+  | { kind: 'partial-both-failed'; wireReason: string; fyiReason: string }
   | { kind: 'skipped'; reason: 'circuit-open' | 'day-cap-reached'; counter?: number }
   | { kind: 'error'; message: string };
 
@@ -154,45 +190,89 @@ export async function refreshRadarSnapshot(env: Env): Promise<RefreshOutcome> {
       readFyiLive(env, 30, { forceRefresh: true }),
     ]);
 
-    // Increment regardless of outcome — the Inoreader calls happened (or
-    // were attempted) whether or not the parsed response was usable.
-    await incrementDayCounter(env, CALLS_PER_REFRESH);
+    // T.Z.1 (BL-032.7) — only count Inoreader calls that actually
+    // succeeded. A tier that 429'd (or hit any other upstream failure)
+    // consumed zero successful calls; counting them anyway burns the
+    // soft cap on no-op fetches and was the load-bearing cause of the
+    // 2026-05-15 demo-day budget leak. Each tier's cost is independent
+    // and reflects only the tier-specific endpoints called.
+    const wireCalls = wire.ok ? CALLS_PER_WIRE : 0;
+    const fyiCalls = fyi.ok ? CALLS_PER_FYI : 0;
+    const callsConsumed = wireCalls + fyiCalls;
+    if (callsConsumed > 0) {
+      await incrementDayCounter(env, callsConsumed);
+    }
 
     if (wire.ok && fyi.ok) {
       captureMessage(
         'cron.radar-refresh.success',
         'info',
-        { wireItems: wire.items.length, fyiItems: fyi.items.length },
+        { wireItems: wire.items.length, fyiItems: fyi.items.length, callsConsumed },
         'cron.radar-refresh'
       );
       safeLog({
         event: 'cron.radar-refresh.success',
         success: true,
       });
-      return { kind: 'success', wireItems: wire.items.length, fyiItems: fyi.items.length };
+      return {
+        kind: 'success',
+        wireItems: wire.items.length,
+        fyiItems: fyi.items.length,
+        callsConsumed,
+      };
     }
 
     // At least one tier failed. Don't escalate to 'error' — the radar-live
     // tools will surface a service-degraded response if the operator hits
     // them; the BL-032.75 alert rule on `radarSnapshotAgeSeconds` catches
     // sustained refresh failures.
+    //
+    // T.Z.1 (BL-032.7) — split into `partial-one-tier-ok` (cache half-
+    // refreshed, some Inoreader budget consumed) vs `partial-both-failed`
+    // (zero budget consumed, faster staleness alert path).
+    //
+    // T.Z.2 (BL-032.7) — route any tier-level inoreader-rate-limit
+    // failure through the shared handler so the circuit breaker opens
+    // immediately, identically to how the live tool path handles it.
+    // Pre-T.Z.2 the cron emitted only a partial event and let the next
+    // live tool call trip the breaker — extending the degradation
+    // window by 6h on top of the upstream incident.
+    if (!wire.ok) {
+      await handleInoreaderFailure(env, wire, 'cron-wire');
+    }
+    if (!fyi.ok) {
+      await handleInoreaderFailure(env, fyi, 'cron-fyi');
+    }
+    const bothFailed = !wire.ok && !fyi.ok;
     captureMessage(
-      'cron.radar-refresh.partial',
+      bothFailed ? 'cron.radar-refresh.partial-both-failed' : 'cron.radar-refresh.partial',
       'warning',
       {
         wireOk: wire.ok,
         fyiOk: fyi.ok,
         wireReason: !wire.ok ? wire.reason : undefined,
         fyiReason: !fyi.ok ? fyi.reason : undefined,
+        callsConsumed,
       },
-      'cron.radar-refresh'
+      bothFailed ? 'cron.radar-refresh.partial-both-failed' : 'cron.radar-refresh.partial'
     );
     safeLog({
-      event: 'cron.radar-refresh.partial',
+      event: bothFailed ? 'cron.radar-refresh.partial-both-failed' : 'cron.radar-refresh.partial',
       success: false,
       errorCode: !wire.ok ? wire.reason : !fyi.ok ? fyi.reason : 'unknown',
     });
-    return { kind: 'partial', wireOk: wire.ok, fyiOk: fyi.ok };
+    if (bothFailed) {
+      // Both .ok === false, so .reason exists on both branches.
+      const wireReason = !wire.ok ? wire.reason : 'unknown';
+      const fyiReason = !fyi.ok ? fyi.reason : 'unknown';
+      return { kind: 'partial-both-failed', wireReason, fyiReason };
+    }
+    return {
+      kind: 'partial-one-tier-ok',
+      wireOk: wire.ok,
+      fyiOk: fyi.ok,
+      callsConsumed,
+    };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     captureMessage('cron.radar-refresh.error', 'error', { message }, 'cron.radar-refresh');

@@ -81,6 +81,43 @@ describe('captureMessage', () => {
       tags: { event: 'inoreader-rate-limit' },
     });
   });
+
+  // T.Z.3 (BL-032.7) — extraTags surface structured diagnostic data
+  // (e.g. Inoreader zone usage) as searchable Sentry facets.
+  it('merges extraTags with eventTag; eventTag wins on the `event` key', () => {
+    captureMessage('inoreader-rate-limit', 'error', undefined, 'inoreader-rate-limit', {
+      'inoreader.zone1.usage': 100,
+      'inoreader.zone1.limit': 100,
+      'inoreader.reset_after_seconds': 14823,
+      event: 'should-be-overridden-by-eventTag-arg',
+    });
+    expect(sentryCaptureMessage).toHaveBeenCalledWith('inoreader-rate-limit', {
+      level: 'error',
+      tags: {
+        'inoreader.zone1.usage': 100,
+        'inoreader.zone1.limit': 100,
+        'inoreader.reset_after_seconds': 14823,
+        event: 'inoreader-rate-limit',
+      },
+    });
+  });
+
+  it('drops undefined values from extraTags (so they do not become "undefined" strings)', () => {
+    captureMessage('inoreader-rate-limit', 'error', undefined, 'inoreader-rate-limit', {
+      'inoreader.zone1.usage': 100,
+      'inoreader.zone2.usage': undefined,
+      'inoreader.reset_after_seconds': undefined,
+    });
+    const callArgs = sentryCaptureMessage.mock.calls.at(-1)?.[1] as {
+      tags: Record<string, unknown>;
+    };
+    expect(callArgs.tags).toEqual({
+      'inoreader.zone1.usage': 100,
+      event: 'inoreader-rate-limit',
+    });
+    expect(callArgs.tags).not.toHaveProperty('inoreader.zone2.usage');
+    expect(callArgs.tags).not.toHaveProperty('inoreader.reset_after_seconds');
+  });
 });
 
 describe('captureException', () => {

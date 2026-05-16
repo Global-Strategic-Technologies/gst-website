@@ -213,6 +213,93 @@ describe('fetchAnnotatedItems — happy path + failure modes', () => {
     expect(result.reason).toBe('inoreader-rate-limit');
   });
 
+  // T.Z.3 (BL-032.7) — 429 envelope carries Inoreader's documented
+  // rate-limit headers so downstream callers can attach them as Sentry
+  // tags. RCA on the next 429 should be a 30-second tag read, not a
+  // multi-hour Inoreader dashboard hunt.
+  it('429 envelope includes parsed X-Reader-Zone* headers as rateLimitInfo', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response('too many', {
+        status: 429,
+        headers: {
+          'X-Reader-Zone1-Limit': '100',
+          'X-Reader-Zone1-Usage': '100',
+          'X-Reader-Zone2-Limit': '100',
+          'X-Reader-Zone2-Usage': '17',
+          'X-Reader-Limits-Reset-After': '14823',
+        },
+      })
+    );
+
+    const result = await fetchAnnotatedItems(baseEnv, 5);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('inoreader-rate-limit');
+    expect(result.rateLimitInfo).toEqual({
+      zone1Limit: 100,
+      zone1Usage: 100,
+      zone2Limit: 100,
+      zone2Usage: 17,
+      resetAfterSeconds: 14823,
+    });
+  });
+
+  it('429 envelope handles missing rate-limit headers gracefully (proxy strip)', async () => {
+    // Sanity check: if a CDN / proxy strips the X-Reader-* headers,
+    // rateLimitInfo should still be present (envelope shape stable) but
+    // every field undefined — NOT throw, NOT crash, NOT have literal
+    // "undefined" strings showing up in the Sentry tags downstream.
+    fetchSpy.mockResolvedValue(new Response('too many', { status: 429 }));
+
+    const result = await fetchAnnotatedItems(baseEnv, 5);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.rateLimitInfo).toEqual({
+      zone1Limit: undefined,
+      zone1Usage: undefined,
+      zone2Limit: undefined,
+      zone2Usage: undefined,
+      resetAfterSeconds: undefined,
+    });
+  });
+
+  // T.Z.3 (BL-032.7) — body excerpt capture for Sentry `extra`. Inoreader
+  // occasionally returns a human-readable hint in the 429 body ("App over
+  // daily limit" vs "User over daily limit") that distinguishes app-wide
+  // exhaustion from per-user policy enforcement.
+  it('429 envelope includes the first ~200 chars of the response body', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response('App over daily limit. Please retry later.', { status: 429 })
+    );
+
+    const result = await fetchAnnotatedItems(baseEnv, 5);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.bodyExcerpt).toBe('App over daily limit. Please retry later.');
+  });
+
+  it('429 envelope truncates body excerpt to 200 chars', async () => {
+    // 250-char body → only the first 200 chars should land on the envelope.
+    const longBody = 'A'.repeat(250);
+    fetchSpy.mockResolvedValue(new Response(longBody, { status: 429 }));
+
+    const result = await fetchAnnotatedItems(baseEnv, 5);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.bodyExcerpt).toBe('A'.repeat(200));
+    expect(result.bodyExcerpt!.length).toBe(200);
+  });
+
+  it('429 envelope omits bodyExcerpt when the body is empty', async () => {
+    fetchSpy.mockResolvedValue(new Response('', { status: 429 }));
+
+    const result = await fetchAnnotatedItems(baseEnv, 5);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    // Stable envelope shape — present-when-meaningful, absent otherwise.
+    expect(result.bodyExcerpt).toBeUndefined();
+  });
+
   it('maps other non-2xx to upstream-error', async () => {
     fetchSpy.mockResolvedValue(new Response('server error', { status: 503 }));
 

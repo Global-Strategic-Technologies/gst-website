@@ -118,6 +118,17 @@ export function captureException(error: unknown, context?: Record<string, unknow
  * (or in addition to) the message-content filter. Falls back to no tag
  * if omitted, preserving the prior behavior.
  *
+ * `extraTags` parameter (added 2026-05-16, BL-032.7 T.Z.3): structured
+ * tags surfaced as searchable Sentry facets — e.g. for
+ * `inoreader-rate-limit` events, the caller attaches
+ * `inoreader.zone1.usage`, `inoreader.zone1.limit`,
+ * `inoreader.reset_after_seconds` so RCA is a 30-second tag read in the
+ * Sentry UI rather than a multi-hour Inoreader-dashboard hunt. Tag
+ * values are coerced to strings by Sentry; pass numbers or booleans as
+ * the underlying type and let the SDK serialize. Merges with the
+ * `event:` tag from `eventTag` (caller can't accidentally override the
+ * `event` key).
+ *
  * No-op when Sentry isn't initialized — `@sentry/cloudflare`'s
  * captureMessage returns early if `getClient()` is undefined.
  */
@@ -125,12 +136,24 @@ export function captureMessage(
   message: string,
   level: 'info' | 'warning' | 'error' = 'warning',
   context?: Record<string, unknown>,
-  eventTag?: string
+  eventTag?: string,
+  extraTags?: Record<string, string | number | boolean | undefined>
 ): void {
+  // Merge tags: start with extraTags (caller-supplied), then layer the
+  // event tag on top so it can't be overwritten. Skip undefined values
+  // so they don't show up as the literal string "undefined" in Sentry.
+  const tags: Record<string, string | number | boolean> = {};
+  if (extraTags) {
+    for (const [k, v] of Object.entries(extraTags)) {
+      if (v !== undefined) tags[k] = v;
+    }
+  }
+  if (eventTag) tags.event = eventTag;
+
   Sentry.captureMessage(message, {
     level,
     ...(context ? { extra: context } : {}),
-    ...(eventTag ? { tags: { event: eventTag } } : {}),
+    ...(Object.keys(tags).length > 0 ? { tags } : {}),
   });
 }
 
