@@ -1132,26 +1132,26 @@ The acceptance criteria for BL-032.25 are dynamic — populated as soak findings
 
 **T.Z.1 fix — Day-counter only on actual success**
 
-- [ ] `RefreshOutcome` extended to distinguish `partial-one-tier-ok` from `partial-both-failed` per the suggestion in [T.Z.1 § Notes](BL-032_5_TESTING_FINDINGS.md)
-- [ ] [mcp-server/src/cron/radar-refresh.ts:159](../../../mcp-server/src/cron/radar-refresh.ts#L159) only invokes `incrementDayCounter()` when at least one tier returned `ok: true`
-- [ ] Unit test covering the both-tiers-429 path verifies the counter does NOT increment
-- [ ] Existing tests for the success / partial-one-tier-ok paths continue to pass with the new accounting
+- [x] `RefreshOutcome` extended to distinguish `partial-one-tier-ok` from `partial-both-failed` per the suggestion in [T.Z.1 § Notes](BL-032_5_TESTING_FINDINGS.md) — see [radar-refresh.ts:141-151](../../../mcp-server/src/cron/radar-refresh.ts#L141-L151)
+- [x] [mcp-server/src/cron/radar-refresh.ts](../../../mcp-server/src/cron/radar-refresh.ts) only invokes `incrementDayCounter()` when at least one tier returned `ok: true` (per-tier accounting: `CALLS_PER_WIRE = 5`, `CALLS_PER_FYI = 1`)
+- [x] Unit test covering the both-tiers-429 path verifies the counter does NOT increment — `tests/unit/cron/radar-refresh.test.ts § partial-both-failed`
+- [x] Existing tests for the success / partial-one-tier-ok paths continue to pass with the new accounting
 
 **T.Z.2 fix — Unified Inoreader-failure handler**
 
-- [ ] New `handleInoreaderFailure(env, failure)` helper in `mcp-server/src/lib/inoreader-worker.ts` (or a new file) centralizes `openCircuit()` + `captureMessage('inoreader-rate-limit', ...)` decisions
-- [ ] [`radar-refresh.ts`](../../../mcp-server/src/cron/radar-refresh.ts) partial-outcome path calls the helper when any tier returned 429
-- [ ] [`radar-live.ts`](../../../mcp-server/src/tools/radar-live.ts) `failureResponse` is refactored to call the same helper rather than calling `openCircuit` directly
-- [ ] Integration test: forcing a cron path 429 results in the breaker being OPEN before the next live tool call arrives
-- [ ] Inline rationale added to the helper documenting the symmetric-protection design (both paths treat upstream 429 identically)
+- [x] New `handleInoreaderFailure(env, failure, source)` helper in [`mcp-server/src/lib/inoreader-failure-handler.ts`](../../../mcp-server/src/lib/inoreader-failure-handler.ts) centralizes `openCircuit()` + `captureMessage('inoreader-rate-limit', ...)` decisions
+- [x] [`radar-refresh.ts`](../../../mcp-server/src/cron/radar-refresh.ts) partial-outcome path calls the helper when any tier returned 429 (sources: `cron-wire`, `cron-fyi`)
+- [x] [`radar-live.ts`](../../../mcp-server/src/tools/radar-live.ts) `failureResponse` refactored to call the same helper rather than calling `openCircuit` directly (sources: `live-search-radar`, `live-get-latest-insights`)
+- [x] Test coverage: forcing a cron path 429 results in the breaker being OPEN before the next live tool call arrives — `tests/unit/lib/inoreader-failure-handler.test.ts` + `tests/unit/cron/radar-refresh.test.ts § partial-both-failed` together prove `openCircuit(env, 'inoreader-429-<source>')` is invoked on the cron path
+- [x] Inline rationale documenting the symmetric-protection design lives in the helper module's header docstring at [`inoreader-failure-handler.ts:1-30`](../../../mcp-server/src/lib/inoreader-failure-handler.ts#L1-L30) ("every Inoreader call site (cron OR live tool) routes its failures through this helper")
 
 **T.Z.3 fix — Capture 429 diagnostic headers**
 
-- [ ] [`inoreader-worker.ts`](../../../mcp-server/src/lib/inoreader-worker.ts) 429 handler reads `X-Reader-Zone1-Limit`, `X-Reader-Zone1-Usage`, `X-Reader-Zone2-Limit`, `X-Reader-Zone2-Usage`, `X-Reader-Limits-Reset-After` off the response
-- [ ] The `RefreshFailure` envelope carries the parsed header values
-- [ ] `handleInoreaderFailure()` (per T.Z.2) attaches them to Sentry as searchable tags (`inoreader.zone1.usage`, `inoreader.zone1.limit`, `inoreader.zone2.usage`, `inoreader.zone2.limit`, `inoreader.reset_after_seconds`)
-- [ ] First ~200 chars of the response body included in Sentry `extra` field
-- [ ] Unit test mocks Inoreader 429 with the documented headers and asserts both the envelope and the Sentry capture include the values
+- [x] [`inoreader-worker.ts`](../../../mcp-server/src/lib/inoreader-worker.ts) 429 handler reads `X-Reader-Zone1-Limit`, `X-Reader-Zone1-Usage`, `X-Reader-Zone2-Limit`, `X-Reader-Zone2-Usage`, `X-Reader-Limits-Reset-After` off the response (`parseRateLimitHeaders` helper)
+- [x] The `InoreaderFailure` envelope carries the parsed header values as `rateLimitInfo`
+- [x] `handleInoreaderFailure()` attaches them to Sentry as searchable tags (`inoreader.zone1.usage`, `inoreader.zone1.limit`, `inoreader.zone2.usage`, `inoreader.zone2.limit`, `inoreader.reset_after_seconds`)
+- [x] First ~200 chars of the response body included in Sentry `extra` field — captured via `readBodyExcerpt()` on 429 only, forwarded through `InoreaderFailure.bodyExcerpt` and `LiveTierResult.bodyExcerpt`
+- [x] Unit test mocks Inoreader 429 with the documented headers + body and asserts both the envelope and the Sentry capture include the values
 
 **Verification & docs**
 

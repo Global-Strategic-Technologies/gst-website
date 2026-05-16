@@ -104,6 +104,10 @@ export async function handleInoreaderFailure(
       message: failure.message,
       source,
       ...(failure.rateLimitInfo ? { rateLimitInfo: failure.rateLimitInfo } : {}),
+      // T.Z.3 — first ~200 chars of Inoreader's 429 response body. Lives
+      // in Sentry `extra` rather than as a tag because bodies are
+      // free-form text and would explode tag-value cardinality.
+      ...(failure.bodyExcerpt ? { bodyExcerpt: failure.bodyExcerpt } : {}),
     },
     'inoreader-rate-limit',
     rateLimitTags(failure.rateLimitInfo, source)

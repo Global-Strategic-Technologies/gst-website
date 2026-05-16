@@ -63,6 +63,12 @@ export type LiveTierResult =
        * radar-live tools can attach them as Sentry tags.
        */
       readonly rateLimitInfo?: RateLimitInfo;
+      /**
+       * First ~200 chars of the Inoreader 429 response body. T.Z.3
+       * (BL-032.7) — forwarded so the radar-live tools can include it in
+       * the Sentry `extra` payload alongside the structured tags.
+       */
+      readonly bodyExcerpt?: string;
     };
 
 interface CachedTier {
@@ -185,5 +191,7 @@ function mapFailure(
     // Forward Inoreader's rate-limit diagnostic headers when present
     // (T.Z.3 — only populated on 429 responses).
     ...(result.rateLimitInfo ? { rateLimitInfo: result.rateLimitInfo } : {}),
+    // Forward the body excerpt for Sentry `extra` (T.Z.3).
+    ...(result.bodyExcerpt ? { bodyExcerpt: result.bodyExcerpt } : {}),
   };
 }

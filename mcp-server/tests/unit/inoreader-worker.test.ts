@@ -263,6 +263,43 @@ describe('fetchAnnotatedItems — happy path + failure modes', () => {
     });
   });
 
+  // T.Z.3 (BL-032.7) — body excerpt capture for Sentry `extra`. Inoreader
+  // occasionally returns a human-readable hint in the 429 body ("App over
+  // daily limit" vs "User over daily limit") that distinguishes app-wide
+  // exhaustion from per-user policy enforcement.
+  it('429 envelope includes the first ~200 chars of the response body', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response('App over daily limit. Please retry later.', { status: 429 })
+    );
+
+    const result = await fetchAnnotatedItems(baseEnv, 5);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.bodyExcerpt).toBe('App over daily limit. Please retry later.');
+  });
+
+  it('429 envelope truncates body excerpt to 200 chars', async () => {
+    // 250-char body → only the first 200 chars should land on the envelope.
+    const longBody = 'A'.repeat(250);
+    fetchSpy.mockResolvedValue(new Response(longBody, { status: 429 }));
+
+    const result = await fetchAnnotatedItems(baseEnv, 5);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.bodyExcerpt).toBe('A'.repeat(200));
+    expect(result.bodyExcerpt!.length).toBe(200);
+  });
+
+  it('429 envelope omits bodyExcerpt when the body is empty', async () => {
+    fetchSpy.mockResolvedValue(new Response('', { status: 429 }));
+
+    const result = await fetchAnnotatedItems(baseEnv, 5);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    // Stable envelope shape — present-when-meaningful, absent otherwise.
+    expect(result.bodyExcerpt).toBeUndefined();
+  });
+
   it('maps other non-2xx to upstream-error', async () => {
     fetchSpy.mockResolvedValue(new Response('server error', { status: 503 }));
 

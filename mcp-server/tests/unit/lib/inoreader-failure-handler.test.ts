@@ -107,6 +107,42 @@ describe('handleInoreaderFailure — inoreader-rate-limit', () => {
     const tags = mockCaptureMessage.mock.calls[0]?.[4] as Record<string, unknown>;
     expect(tags).toEqual({ 'inoreader.source': 'cron-fyi' });
   });
+
+  // T.Z.3 (BL-032.7) — body excerpt forwarded into Sentry `extra`. Body
+  // text is free-form and would explode tag-value cardinality, so it
+  // lives in `extra` rather than as a tag.
+  it('forwards bodyExcerpt into the Sentry extra field when present', async () => {
+    const failure: InoreaderFailure = {
+      ok: false,
+      status: 429,
+      reason: 'inoreader-rate-limit',
+      message: 'rate limited',
+      bodyExcerpt: 'App over daily limit. Please retry later.',
+    };
+
+    await handleInoreaderFailure(env, failure, 'live-search-radar');
+
+    expect(mockCaptureMessage).toHaveBeenCalledTimes(1);
+    const extra = mockCaptureMessage.mock.calls[0]?.[2] as Record<string, unknown>;
+    expect(extra).toMatchObject({
+      bodyExcerpt: 'App over daily limit. Please retry later.',
+    });
+  });
+
+  it('omits bodyExcerpt from extra when the failure has no body excerpt', async () => {
+    const failure: InoreaderFailure = {
+      ok: false,
+      status: 429,
+      reason: 'inoreader-rate-limit',
+      message: 'rate limited',
+    };
+
+    await handleInoreaderFailure(env, failure, 'cron-wire');
+
+    expect(mockCaptureMessage).toHaveBeenCalledTimes(1);
+    const extra = mockCaptureMessage.mock.calls[0]?.[2] as Record<string, unknown>;
+    expect(extra).not.toHaveProperty('bodyExcerpt');
+  });
 });
 
 describe('handleInoreaderFailure — non-429 failures', () => {

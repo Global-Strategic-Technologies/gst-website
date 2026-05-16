@@ -107,6 +107,16 @@ export interface InoreaderFailure {
    * structured tags rather than baking them into the message string.
    */
   readonly rateLimitInfo?: RateLimitInfo;
+  /**
+   * First ~200 chars of the Inoreader response body on a 429. T.Z.3
+   * (BL-032.7) — the headers carry the quantitative signal; the body
+   * occasionally carries a human-readable hint ("App over daily limit",
+   * "User over daily limit", etc.) that distinguishes app-level from
+   * user-level exhaustion. Optional because empty/binary bodies and
+   * proxy-stripped responses are real failure modes we don't want to
+   * crash the RCA path on.
+   */
+  readonly bodyExcerpt?: string;
 }
 
 export type InoreaderResult = InoreaderSuccess | InoreaderFailure;
@@ -328,7 +338,27 @@ function parseRateLimitHeaders(res: Response): RateLimitInfo {
   };
 }
 
-function mapHttpStatus(res: Response): InoreaderFailure {
+/**
+ * Best-effort read of the first ~200 chars of a non-2xx response body.
+ * Used on 429 only (T.Z.3 — BL-032.7) so RCA in Sentry can see if the
+ * body distinguishes "App over daily limit" from "User over daily
+ * limit" or carries an Inoreader-side error string. Returns undefined
+ * on read failure (already-consumed stream, empty body, abort, etc.)
+ * rather than throwing — diagnostic enrichment must never crash the
+ * failure path.
+ */
+const BODY_EXCERPT_MAX_CHARS = 200;
+async function readBodyExcerpt(res: Response): Promise<string | undefined> {
+  try {
+    const text = await res.text();
+    if (!text) return undefined;
+    return text.slice(0, BODY_EXCERPT_MAX_CHARS);
+  } catch {
+    return undefined;
+  }
+}
+
+async function mapHttpStatus(res: Response): Promise<InoreaderFailure> {
   const { status, statusText } = res;
   if (status === 401) {
     return {
@@ -341,12 +371,14 @@ function mapHttpStatus(res: Response): InoreaderFailure {
   }
   if (status === 429) {
     const rateLimitInfo = parseRateLimitHeaders(res);
+    const bodyExcerpt = await readBodyExcerpt(res);
     return {
       ok: false,
       status: 429,
       reason: 'inoreader-rate-limit',
       message: `Inoreader rate limit exceeded: ${status} ${statusText}`,
       rateLimitInfo,
+      ...(bodyExcerpt ? { bodyExcerpt } : {}),
     };
   }
   return {
@@ -391,7 +423,7 @@ export async function fetchAnnotatedItems(env: Env, count: number = 30): Promise
 
   const res = await authenticatedFetch(env, url, config as ResolvedConfig);
   if (!(res instanceof Response)) return res;
-  if (!res.ok) return mapHttpStatus(res);
+  if (!res.ok) return await mapHttpStatus(res);
   return parseStream(res);
 }
 
@@ -414,7 +446,7 @@ export async function fetchFolderStream(
 
   const res = await authenticatedFetch(env, url, config as ResolvedConfig);
   if (!(res instanceof Response)) return res;
-  if (!res.ok) return mapHttpStatus(res);
+  if (!res.ok) return await mapHttpStatus(res);
   return parseStream(res);
 }
 
@@ -442,7 +474,7 @@ export async function fetchAllStreams(
   const tagsUrl = `${API_BASE}/tag/list?output=json`;
   const tagsRes = await authenticatedFetch(env, tagsUrl, cfg);
   if (!(tagsRes instanceof Response)) return tagsRes;
-  if (!tagsRes.ok) return mapHttpStatus(tagsRes);
+  if (!tagsRes.ok) return await mapHttpStatus(tagsRes);
 
   let tagsData: { tags?: Array<{ id: string }> };
   try {
@@ -537,6 +569,6 @@ async function fetchFolderStreamWithConfig(
     new URLSearchParams({ n: String(count), output: 'json' }).toString();
   const res = await authenticatedFetch(env, url, config);
   if (!(res instanceof Response)) return res;
-  if (!res.ok) return mapHttpStatus(res);
+  if (!res.ok) return await mapHttpStatus(res);
   return parseStream(res);
 }
