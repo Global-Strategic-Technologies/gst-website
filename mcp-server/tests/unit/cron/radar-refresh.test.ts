@@ -240,7 +240,7 @@ describe('refreshRadarSnapshot — success path', () => {
 
     const outcome = await refreshRadarSnapshot(env);
 
-    expect(outcome).toEqual({ kind: 'success', wireItems: 3, fyiItems: 1 });
+    expect(outcome).toEqual({ kind: 'success', wireItems: 3, fyiItems: 1, callsConsumed: 6 });
     expect(mockReadWireLive).toHaveBeenCalledWith(env, { forceRefresh: true });
     expect(mockReadFyiLive).toHaveBeenCalledWith(env, 30, { forceRefresh: true });
     expect(mockCaptureMessage).toHaveBeenCalledWith(
@@ -300,11 +300,16 @@ describe('refreshRadarSnapshot — partial-failure path', () => {
     mockIsCircuitOpen.mockResolvedValueOnce({ open: false });
     bindMcpClient();
     mockCounterGet.mockResolvedValueOnce(0);
-    mockCounterIncrby.mockResolvedValueOnce(6);
+    mockCounterIncrby.mockResolvedValueOnce(5);
     mockCounterExpire.mockResolvedValueOnce(1);
   });
 
-  it('returns partial when wire succeeds and fyi fails', async () => {
+  // T.Z.1 (BL-032.7) — `partial` split into `partial-one-tier-ok` /
+  // `partial-both-failed` so callers can distinguish "cache half-
+  // refreshed" from "no refresh at all". Per-tier accounting on the
+  // day-counter means a tier that 429'd consumes ZERO budget rather
+  // than the previous full-CALLS_PER_REFRESH leak.
+  it('returns partial-one-tier-ok when wire succeeds and fyi fails; counts wire only', async () => {
     mockReadWireLive.mockResolvedValueOnce({
       ok: true,
       tier: 'wire',
@@ -321,16 +326,28 @@ describe('refreshRadarSnapshot — partial-failure path', () => {
 
     const outcome = await refreshRadarSnapshot(env);
 
-    expect(outcome).toEqual({ kind: 'partial', wireOk: true, fyiOk: false });
+    expect(outcome).toEqual({
+      kind: 'partial-one-tier-ok',
+      wireOk: true,
+      fyiOk: false,
+      callsConsumed: 5,
+    });
+    expect(mockCounterIncrby).toHaveBeenCalledTimes(1);
+    expect(mockCounterIncrby.mock.calls[0]?.[1]).toBe(5);
     expect(mockCaptureMessage).toHaveBeenCalledWith(
       'cron.radar-refresh.partial',
       'warning',
-      expect.objectContaining({ wireOk: true, fyiOk: false, fyiReason: 'inoreader-rate-limit' }),
-      'cron.radar-refresh'
+      expect.objectContaining({
+        wireOk: true,
+        fyiOk: false,
+        fyiReason: 'inoreader-rate-limit',
+        callsConsumed: 5,
+      }),
+      'cron.radar-refresh.partial'
     );
   });
 
-  it('still increments the counter on partial failure (the Inoreader calls were made)', async () => {
+  it('returns partial-one-tier-ok when only fyi succeeds; counts fyi only (1 call)', async () => {
     mockReadWireLive.mockResolvedValueOnce({
       ok: false,
       status: 502,
@@ -345,9 +362,64 @@ describe('refreshRadarSnapshot — partial-failure path', () => {
       cacheHit: false,
     });
 
-    await refreshRadarSnapshot(env);
+    const outcome = await refreshRadarSnapshot(env);
 
+    expect(outcome).toEqual({
+      kind: 'partial-one-tier-ok',
+      wireOk: false,
+      fyiOk: true,
+      callsConsumed: 1,
+    });
     expect(mockCounterIncrby).toHaveBeenCalledTimes(1);
+    expect(mockCounterIncrby.mock.calls[0]?.[1]).toBe(1);
+  });
+});
+
+describe('refreshRadarSnapshot — both-tiers-failed path (T.Z.1 budget protection)', () => {
+  beforeEach(() => {
+    mockIsCircuitOpen.mockResolvedValueOnce({ open: false });
+    bindMcpClient();
+    mockCounterGet.mockResolvedValueOnce(0);
+    // Note: no mockCounterIncrby set up — we assert it is NEVER called.
+  });
+
+  it('returns partial-both-failed and does NOT increment the day-counter when both tiers 429', async () => {
+    // This is the exact failure mode that triggered the 2026-05-15
+    // demo-day budget leak: both Inoreader endpoints 429'd, zero items
+    // returned, but the pre-T.Z.1 cron credited 6 calls/tick to the
+    // day-counter anyway. The fix: only count successful consumption.
+    mockReadWireLive.mockResolvedValueOnce({
+      ok: false,
+      status: 429,
+      reason: 'inoreader-rate-limit',
+      message: 'rate limited',
+    });
+    mockReadFyiLive.mockResolvedValueOnce({
+      ok: false,
+      status: 429,
+      reason: 'inoreader-rate-limit',
+      message: 'rate limited',
+    });
+
+    const outcome = await refreshRadarSnapshot(env);
+
+    expect(outcome).toEqual({
+      kind: 'partial-both-failed',
+      wireReason: 'inoreader-rate-limit',
+      fyiReason: 'inoreader-rate-limit',
+    });
+    // Critical assertion — pre-T.Z.1 this would have been called with 6.
+    expect(mockCounterIncrby).not.toHaveBeenCalled();
+    expect(mockCaptureMessage).toHaveBeenCalledWith(
+      'cron.radar-refresh.partial-both-failed',
+      'warning',
+      expect.objectContaining({
+        wireOk: false,
+        fyiOk: false,
+        callsConsumed: 0,
+      }),
+      'cron.radar-refresh.partial-both-failed'
+    );
   });
 });
 
