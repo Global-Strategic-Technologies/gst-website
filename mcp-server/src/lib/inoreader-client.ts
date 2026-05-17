@@ -1,5 +1,18 @@
 /**
- * Worker-specific Inoreader API client (BL-032 Phase 4a).
+ * Worker-specific Inoreader API client (BL-032 Phase 4a; renamed in BL-032.8).
+ *
+ * **History**: this file was `inoreader-worker.ts` until BL-032.8 Phase 1
+ * (2026-05-17), when it was renamed `inoreader-client.ts` as part of the
+ * module-split refactor. The split clarifies responsibilities:
+ *
+ *   - This file (`inoreader-client.ts`): HTTP client — Inoreader API calls,
+ *     retry on 401, structured failure mapping.
+ *   - [`inoreader-token-store.ts`](./inoreader-token-store.ts): Upstash token
+ *     I/O (Q4 single-writer invariant lives here).
+ *   - [`inoreader-bl039-fallback.ts`](./inoreader-bl039-fallback.ts): the
+ *     `triggerWebsiteRefresh` fallback path — Phase A only, deleted in Phase B.
+ *   - [`single-flight-lock.ts`](./single-flight-lock.ts): generic Upstash
+ *     SET-NX-EX primitive — used by Phase 2's `inoreader-oauth.ts`.
  *
  * **Why a fork instead of reusing src/lib/inoreader/client.ts** (deviation
  * from Q4 Option A's "generalize via adapters" plan, recorded in the BL-032
@@ -11,18 +24,11 @@
  *      budget-protection invariant. Removing the rule to share the client
  *      would inflate the website-regression surface significantly.
  *   2. The Worker is **read-only** for `inoreader:*` Upstash keys (Q13) —
- *      it does NOT refresh OAuth tokens. The website remains the sole
- *      refresh-writer. The shared-client refactor would have to add a
- *      "read-only mode" flag and disable refresh for Worker callers, which
- *      is most of the website client's complexity.
+ *      it does NOT refresh OAuth tokens today. BL-032.8 Phase 2 introduces a
+ *      Worker-owned refresh path (writes `mcp:inoreader:*` keys in the MCP
+ *      DB); the website's `inoreader:*` keys retire in Phase B.
  *   3. Workers have no filesystem; the website client's dev-mode cache
  *      (`src/lib/inoreader/cache.ts`) wouldn't apply anyway.
- *
- * The fork is small (~200 lines) and bounded — both clients share the
- * `InoreaderStreamResponse` type from `src/lib/inoreader/types.ts` (no
- * Astro imports), so response shapes stay in sync. Inoreader API endpoints
- * are stable; the maintenance cost of two clients is dominated by
- * "occasionally update the URL string in two places."
  *
  * **Failure modes are structured** (vs. the website client's `null`-on-fail):
  * radar tools need to distinguish "token stale, refresh needed" from
@@ -31,28 +37,12 @@
  */
 
 import type { InoreaderStreamResponse, InoreaderItem } from '../../../src/lib/inoreader/types';
-import { createInoreaderClient } from './upstash-clients';
+import { readAccessToken } from './inoreader-token-store';
+import { triggerWebsiteRefresh } from './inoreader-bl039-fallback';
 import type { Env } from '../worker';
 
 const API_BASE = 'https://www.inoreader.com/reader/api/0';
 const FETCH_TIMEOUT_MS = 5_000;
-
-/** Shared Upstash key (read-only on Worker side per Q13). */
-const KV_ACCESS_TOKEN_KEY = 'inoreader:access_token';
-
-/**
- * BL-039 — website endpoint the Worker calls to trigger an OAuth refresh.
- * Default targets production because the Inoreader account itself is shared
- * across staging + production (per Q13's two-DB architecture: separate MCP
- * DBs, single shared Inoreader DB). Both staging and production Workers
- * point at the same refresh-writer in steady state.
- *
- * Override via `INOREADER_REFRESH_URL` on the Worker env when soaking BL-039
- * against a Vercel preview deployment — set it to the preview URL during
- * verification, then unset (or set to production) afterwards.
- */
-const DEFAULT_REFRESH_ENDPOINT_URL = 'https://globalstrategic.tech/api/inoreader/refresh';
-const REFRESH_TIMEOUT_MS = 8_000;
 
 // ---------------------------------------------------------------------------
 // Result types — structured failures so the radar tools can branch.
@@ -145,22 +135,9 @@ async function resolveConfig(env: Env): Promise<ResolvedConfig | InoreaderFailur
     };
   }
 
-  // Try Upstash first — Inoreader DB, Read-Only access (Q13 / Path 2).
-  // This is the SOLE place in the codebase that reads `inoreader:*` keys;
-  // a leaked Read-Only token cannot mutate them (storage-layer Q4 enforcement).
-  let accessToken: string | null = null;
-  const inoreaderRedis = createInoreaderClient(env);
-  if (inoreaderRedis) {
-    try {
-      accessToken = await inoreaderRedis.get<string>(KV_ACCESS_TOKEN_KEY);
-    } catch {
-      // Inoreader DB unreachable; fall through to env fallback.
-    }
-  }
-
-  // Env fallback (initial seed value used by the website on first call).
-  accessToken = accessToken ?? env.INOREADER_ACCESS_TOKEN ?? null;
-
+  // Token I/O delegated to inoreader-token-store (Q4 single-writer invariant
+  // home). readAccessToken handles Upstash read + env fallback in one place.
+  const accessToken = await readAccessToken(env);
   if (!accessToken) {
     return {
       ok: false,
@@ -203,61 +180,6 @@ async function singleFetch(
       reason: 'network-timeout',
       message: `Inoreader request failed: ${(e as Error).message}`,
     };
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-/**
- * BL-039 — call the website's `/api/inoreader/refresh` endpoint to trigger
- * an OAuth refresh. Returns true if the refresh succeeded (the website has
- * persisted a new access token to Upstash; the caller should re-resolve
- * config + retry the original Inoreader request).
- *
- * Returns false when:
- *   - INOREADER_REFRESH_SECRET is not bound on the Worker env (BL-039 not
- *     configured here) → caller falls back to legacy token-stale envelope
- *   - Endpoint returns non-2xx → distinguish via Sentry breadcrumb but
- *     don't retry from the Worker; the failure is sticky until creds rotate
- *   - Network error / timeout → same fallback semantics
- *
- * Never throws — callers treat any failure as "refresh unavailable" and
- * surface the original token-stale error.
- */
-async function triggerWebsiteRefresh(env: Env): Promise<boolean> {
-  if (!env.INOREADER_REFRESH_SECRET) {
-    // BL-039 not configured on this env — fall back to legacy behavior.
-    // No Sentry breadcrumb: this is a known-and-handled deployment state
-    // until the secret rolls out to all envs.
-    return false;
-  }
-
-  const url = env.INOREADER_REFRESH_URL ?? DEFAULT_REFRESH_ENDPOINT_URL;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.INOREADER_REFRESH_SECRET}`,
-        'Content-Type': 'application/json',
-      },
-      signal: controller.signal,
-    });
-    // Sentry breadcrumb tagging the source so we can distinguish Worker-
-    // initiated refresh from website-ISR-initiated refresh in alerts.
-    // captureMessage() is the canonical way to surface a one-shot signal;
-    // the Worker's Sentry helper accepts an eventTag for routing.
-    if (res.ok) return true;
-
-    // Non-2xx: refresh endpoint is reachable but rejected/errored. Don't
-    // retry; just fall back to token-stale envelope. The endpoint has its
-    // own Sentry tagging on the website side so we don't double-capture.
-    return false;
-  } catch {
-    // Network error / timeout / abort — refresh endpoint unreachable.
-    // Same fallback semantics as 503.
-    return false;
   } finally {
     clearTimeout(timeoutId);
   }

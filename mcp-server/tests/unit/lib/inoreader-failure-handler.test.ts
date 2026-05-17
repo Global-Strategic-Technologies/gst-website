@@ -25,7 +25,7 @@ vi.mock('../../../src/observability/sentry', () => ({
 }));
 
 import { handleInoreaderFailure } from '../../../src/lib/inoreader-failure-handler';
-import type { InoreaderFailure } from '../../../src/lib/inoreader-worker';
+import type { InoreaderFailure } from '../../../src/lib/inoreader-client';
 import type { Env } from '../../../src/worker';
 
 const env: Env = {

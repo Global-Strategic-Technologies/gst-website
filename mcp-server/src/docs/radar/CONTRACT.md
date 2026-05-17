@@ -117,7 +117,7 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 
 - Wrapper: [`mcp-server/src/tools/radar-live.ts`](../../tools/radar-live.ts)
 - Content adapter: [`mcp-server/src/content/radar-live-store.ts`](../../content/radar-live-store.ts) — Inoreader fetch + Upstash cache (`mcp:radar:cache:wire`, `mcp:radar:cache:fyi`, 6h TTL)
-- API client: [`mcp-server/src/lib/inoreader-worker.ts`](../../lib/inoreader-worker.ts) — Workers-compatible Inoreader client (Q4 fork-fallback)
+- API client: [`mcp-server/src/lib/inoreader-client.ts`](../../lib/inoreader-client.ts) — Workers-compatible Inoreader client (Q4 fork-fallback; renamed from `inoreader-worker.ts` in BL-032.8)
 - Shared transform: [`mcp-server/src/content/radar-transform.ts`](../../content/radar-transform.ts) — `InoreaderItem → SnapshotItem` (single source of truth used by both offline + live)
 - Circuit breaker integration: [`mcp-server/src/ratelimit/circuit-breaker.ts`](../../ratelimit/circuit-breaker.ts) — read-side check before fetch + write-side trigger on Inoreader 429
 

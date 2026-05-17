@@ -26,7 +26,7 @@ import {
   fetchAnnotatedItems,
   type InoreaderResult,
   type RateLimitInfo,
-} from '../lib/inoreader-worker';
+} from '../lib/inoreader-client';
 import { createCacheStore } from '../lib/upstash-cache-store';
 import { recordInoreaderStatus } from '../observability/inoreader-status';
 import { toSnapshotItem, type SnapshotItem } from './radar-transform';

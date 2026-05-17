@@ -13,7 +13,7 @@
  * DB via `createMcpClient(env)`. All keys written here use the `mcp:` prefix
  * (cache snapshots, rate-limit counters, circuit-breaker flags); the Worker
  * never reads `inoreader:*` through this store — that path goes through
- * `inoreader-worker.ts` against the Inoreader DB's Read-Only client.
+ * `inoreader-token-store.ts` against the Inoreader DB's Read-Only client.
  */
 
 import { createMcpClient } from './upstash-clients';

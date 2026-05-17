@@ -39,7 +39,7 @@ import {
   fetchAnnotatedItems,
   fetchAllStreams,
   fetchFolderStream,
-} from '../../src/lib/inoreader-worker';
+} from '../../src/lib/inoreader-client';
 import type { Env } from '../../src/worker';
 
 const baseEnv: Env = {
@@ -50,7 +50,7 @@ const baseEnv: Env = {
   UPSTASH_INOREADER_REST_URL: 'https://inoreader-db.upstash.io',
   UPSTASH_INOREADER_REST_TOKEN: 'test-inoreader-readonly',
   // MCP DB also bound so test fixtures look like a real prod env, even
-  // though `inoreader-worker.ts` doesn't read from this DB.
+  // though `inoreader-client.ts` doesn't read from this DB.
   UPSTASH_MCP_REST_URL: 'https://mcp-db.upstash.io',
   UPSTASH_MCP_REST_TOKEN: 'test-mcp-standard',
 };
