@@ -43,6 +43,25 @@ export default defineConfig({
         default: 'GST-',
       }),
 
+      // BL-032.8 Phase 4 — MCP Worker /radar/snapshot consumer credentials.
+      // MCP_KEY_WEBSITE_RADAR is REQUIRED in production; optional in schema so
+      // local dev + Vercel preview deploys without the secret bound render
+      // /hub/radar empty (with a console.error in logs) rather than crashing
+      // the build. See src/docs/hub/RADAR.md § Environment Variables.
+      MCP_KEY_WEBSITE_RADAR: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      // Optional override of the MCP endpoint URL. Defaults to production
+      // (`https://mcp.globalstrategic.tech/radar/snapshot`) when unset. Used
+      // on preview deploys to target the staging Worker.
+      MCP_RADAR_SNAPSHOT_URL: envField.string({
+        context: 'server',
+        access: 'public',
+        default: 'https://mcp.globalstrategic.tech/radar/snapshot',
+      }),
+
       // Upstash Redis — optional, graceful degradation when absent
       KV_REST_API_URL: envField.string({ context: 'server', access: 'secret', optional: true }),
       KV_REST_API_TOKEN: envField.string({ context: 'server', access: 'secret', optional: true }),

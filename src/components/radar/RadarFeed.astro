@@ -39,19 +39,14 @@ import {
 
 import type { RadarFyiItem, RadarWireItem } from '../../lib/inoreader/types';
 
-/**
- * MCP Worker endpoint URL. Production by default; can be overridden via
- * Vercel env if a preview deploy needs to target the staging Worker.
- */
-const RADAR_SNAPSHOT_URL =
-  import.meta.env.MCP_RADAR_SNAPSHOT_URL ?? 'https://mcp.globalstrategic.tech/radar/snapshot';
+// Typed env imports — see astro.config.mjs schema. MCP_KEY_WEBSITE_RADAR
+// is optional in schema (graceful empty-feed degradation when unset);
+// MCP_RADAR_SNAPSHOT_URL has a production default and is overridable on
+// Vercel preview deploys to target the staging Worker.
+import { MCP_KEY_WEBSITE_RADAR, MCP_RADAR_SNAPSHOT_URL } from 'astro:env/server';
 
-/**
- * Narrow-scope bearer (BL-032.8 Phase 3). Configured via Vercel env vars
- * `MCP_KEY_WEBSITE_RADAR` on production + preview. Carries only
- * `resource:radar:read` on the Worker side — see DEPLOY.md § A.6.1.
- */
-const RADAR_BEARER = import.meta.env.MCP_KEY_WEBSITE_RADAR;
+const RADAR_SNAPSHOT_URL = MCP_RADAR_SNAPSHOT_URL;
+const RADAR_BEARER = MCP_KEY_WEBSITE_RADAR;
 
 interface RadarSnapshotResponse {
   wire: { ok: true; items: RadarSnapshotItem[] } | { ok: false; reason: string; message?: string };
