@@ -1220,24 +1220,25 @@ Two end-state options were considered:
 
 #### Acceptance Criteria
 
-**Worker takes over OAuth refresh ownership**
+**Worker takes over OAuth refresh ownership** _(detailed design + module split: see [MCP_SERVER_RADAR_UNIFICATION_BL-032_8.md](MCP_SERVER_RADAR_UNIFICATION_BL-032_8.md))_
 
 - [ ] Worker calls Inoreader's `/oauth2/token` directly on 401 (replaces the BL-039 round-trip through the website's `/api/inoreader/refresh` endpoint)
-- [ ] New Upstash key `mcp:inoreader:access_token` in the MCP DB holds the Worker-written token; the legacy `inoreader:access_token` in the Inoreader DB is read-only-with-fallback during migration, then retired
-- [ ] Q4 single-writer invariant relocates from "website is sole refresh-writer" to "Worker is sole refresh-writer"; updated rationale captured in [`mcp-server/src/lib/inoreader-worker.ts`](../../../mcp-server/src/lib/inoreader-worker.ts) docstring
-- [ ] Worker exposes a new lightweight `GET /radar/snapshot` HTTP endpoint returning `{ wire: SnapshotTier, fyi: SnapshotTier, fetchedAt }` as plain JSON (no MCP-RPC framing). Authenticated via a dedicated `RADAR_SNAPSHOT_KEY` bearer (separate from MCP keys; lower-privilege; one-per-consumer-surface)
+- [ ] Upstash MCP DB keys `mcp:inoreader:access_token` (TTL = `expires_in − 60`) and `mcp:inoreader:refresh_token` (no TTL) hold the Worker-written tokens; refresh-token rotation persisted sequentially (refresh_token first); `mcp:inoreader:refresh-lock` (NX, TTL 10s) coordinates concurrent refresh attempts so exactly ONE `/oauth2/token` POST lands per stale-token event regardless of fan-out
+- [ ] Q4 single-writer invariant relocates from "website is sole refresh-writer" to "Worker is sole refresh-writer"; rationale captured in the new `mcp-server/src/lib/inoreader-token-store.ts` module docstring
+- [ ] Worker exposes a new lightweight `GET /radar/snapshot` HTTP endpoint returning `{ wire: SnapshotTier, fyi: SnapshotTier, fetchedAt }` as plain JSON (no MCP-RPC framing). Authenticated via the existing bearer flow + `assertScope(auth.scopes, 'resource:radar:read')` — narrow-scope key issued via the unified scope catalog (see "Why a unified scope catalog" below)
 
 **Website becomes a downstream consumer**
 
-- [ ] [`src/components/radar/RadarFeed.astro`](../../../src/components/radar/RadarFeed.astro) refactored to fetch from `https://mcp.globalstrategic.tech/radar/snapshot` at SSR time using the website's `RADAR_SNAPSHOT_KEY` bearer (Vercel env var)
+- [ ] [`src/components/radar/RadarFeed.astro`](../../../src/components/radar/RadarFeed.astro) refactored to fetch from `https://mcp.globalstrategic.tech/radar/snapshot` at SSR time using `MCP_KEY_WEBSITE_RADAR` as bearer (Vercel env var). Companion `MCP_KEY_WEBSITE_RADAR_SCOPES=["resource:radar:read"]` narrows the grant — see "Why a unified scope catalog" below
 - [ ] [`src/lib/inoreader/client.ts`](../../../src/lib/inoreader/client.ts) and all callers removed from the website repo
 - [ ] All website-side `INOREADER_*` Vercel env vars removed via `vercel env rm`
 - [ ] Website's `/hub/radar` page renders successfully with no Inoreader credentials in scope — verified by a Vercel preview deploy that has `INOREADER_*` deliberately unset
+- [ ] **Rollback path is `git revert` of the RadarFeed.astro commit** — no runtime feature flag. The Phase A dual-write window (Worker has `/oauth2/token` ownership AND website still has direct Inoreader access) is the structural safety net
 
-**BL-039 deprecation**
+**Phased rollout** _(no deferred tech debt — Phase B PR drafted day-of-Phase-A-merge with target merge date = Phase A merge + 7 days; details in impl doc)_
 
-- [ ] [`src/pages/api/inoreader/refresh.ts`](../../../src/pages/api/inoreader/refresh.ts) either deleted (if no legacy callers remain) or replaced with a 410 Gone responder + deprecation note pointing operators at the Worker's new refresh ownership
-- [ ] `INOREADER_REFRESH_SECRET` shared-secret retired from both Vercel + Worker env (one-direction-only refresh from the website is the surface this secret protected)
+- [ ] Phase A: ship `refreshAccessToken()` as primary path; keep `triggerWebsiteRefresh()` (BL-039) as fallback only on `inoreader-error` (NOT `invalid-refresh-token`). 7-day soak gate: zero fallback invocations in Sentry
+- [ ] Phase B: delete `triggerWebsiteRefresh()`, delete website `/api/inoreader/refresh` endpoint, `vercel secret rm INOREADER_REFRESH_SECRET`, `wrangler secret delete INOREADER_REFRESH_SECRET` on both envs, close BL-040 as ✅ Superseded
 
 **Soak verification**
 
@@ -1250,14 +1251,16 @@ Two end-state options were considered:
 
 **Why this isn't fully covered by BL-032.7**: BL-032.7's three fixes (T.Z.1/T.Z.2/T.Z.3) protect the MCP-Worker code path. The website ISR's direct Inoreader caller bypasses every one of those protections — different OAuth resolution path, different cache, no breaker, no day-counter, no 429 header capture, no Sentry attribution. Closing that gap is not a "rename and add a secret" change; it's "retire one of the two callers." The structural fix is to make the Worker the sole caller.
 
-**Migration risk profile**: medium. The website's `RadarFeed.astro` is high-traffic relative to most other pages; a regression in snapshot fetching shows up immediately. Mitigation: ship behind a feature flag (`PUBLIC_RADAR_SOURCE='mcp' | 'inoreader'`) for the first 48h post-deploy; flip to `mcp` after preview-traffic verification.
+**Migration risk profile**: medium. The website's `RadarFeed.astro` is high-traffic relative to most other pages; a regression in snapshot fetching shows up immediately. Mitigation is **structural, not runtime-flagged**: the Phase A dual-write window means both paths function during the cutover (Worker has `/oauth2/token` ownership AND website still has direct Inoreader access). Cutover is one commit (`RadarFeed.astro` swaps Inoreader call for Worker fetch); regression rollback is `git revert` of that single commit. A `PUBLIC_RADAR_SOURCE` runtime flag was considered and rejected — it would add code paths that need cleanup and risks becoming permanent deferred debt once the cutover succeeds.
 
-**Why the website needs a dedicated bearer key (not a regular `MCP_KEY_*`)**:
+**Why a unified scope catalog (and not a parallel `RADAR_SNAPSHOT_KEY` auth path)**:
 
-- The MCP key surface is for AI tool clients (Claude, OpenClaw) and carries `tool:*` + `prompt:*` + `resource:*` scopes
-- The website's radar fetch only needs `radar:snapshot:read` — a much narrower scope
-- Issuing a full MCP key to the website would over-permission and conflate audit logs (`keyOwner=WEBSITE` would show up in tool-call telemetry)
-- A lower-privilege `RADAR_SNAPSHOT_KEY` keeps the surface clean
+- [`scopes.ts`](../../../mcp-server/src/auth/scopes.ts) was designed for exactly this kind of extensibility — segment-based hierarchical scopes (`tool:*`, `resource:radar:read`, etc.) with wildcard semantics, and an explicit doc-comment commitment that "strings ship now and never change so external clients don't have to adapt their scope handling later"
+- A parallel `RADAR_SNAPSHOT_KEY` mechanism would mean two auth paths in the Worker, two key-discovery loops, two operator mental models — and the same problem would recur every time we add a new HTTP convenience endpoint (e.g. future `/portfolio/snapshot`, `/analytics/summary`)
+- Scopes describe what the caller can DO (read radar data), not which transport they use (MCP-RPC vs HTTP GET). Reusing `resource:radar:read` for both surfaces keeps the model coherent
+- The "lower-privilege bearer" outcome is achieved purely by issuing a key with a scope subset of `DEFAULT_SCOPES`: a new optional companion env var `MCP_KEY_<OWNER>_SCOPES` (JSON-encoded array) narrows the grant. Forward-compatible with BL-033's OAuth flow — same scope strings carry through.
+
+**Why BL-040 (parallel-refresh debounce) is superseded by this initiative**: BL-040 was filed when a single `search_radar` call triggered 5 parallel POSTs to `/api/inoreader/refresh` because `fetchAllStreams` fans out into 5 Inoreader calls, each independently invoking `triggerWebsiteRefresh` on 401. The standalone BL-040 fix was an in-memory debounce inside `inoreader-worker.ts`. BL-032.8's Upstash-based single-flight lock in `inoreader-oauth.ts` solves the same problem structurally and at a higher consistency level (cross-isolate, not per-isolate). After BL-032.8 ships, BL-040's debounce becomes dead-code-removed-by-rename when `triggerWebsiteRefresh` deletes in Phase B. Close BL-040 as `✅ Superseded` in the Phase B PR.
 
 **Out of scope**
 
