@@ -92,16 +92,74 @@ export function authenticate(request: Request, env: Record<string, unknown>): Au
   for (const [name, value] of Object.entries(env)) {
     if (typeof value !== 'string') continue;
     if (!name.startsWith(KEY_NAME_PREFIX)) continue;
+    // Skip the `_SCOPES` companion env vars during the token-match scan —
+    // they're metadata for OTHER keys (e.g. `MCP_KEY_FOO_SCOPES` describes
+    // the scopes for `MCP_KEY_FOO`). Treating them as keys would let any
+    // caller authenticate by sending the JSON-encoded scope array as a
+    // bearer token, which is wrong (and a leaky-ish information disclosure).
+    if (name.endsWith(SCOPES_SUFFIX)) continue;
     if (value === token) {
+      const owner = name.slice(KEY_NAME_PREFIX.length);
+      const scopes = resolveKeyScopes(env, name);
+      if ('ok' in scopes && !scopes.ok) {
+        // Malformed `_SCOPES` companion var — fail loud at auth time rather
+        // than silently falling back to DEFAULT_SCOPES. An operator who
+        // mistyped JSON in a Worker secret should see the failure
+        // immediately, not discover it via a downstream scope-mismatch.
+        return unauthorized(`Bearer key ${owner} has malformed _SCOPES JSON: ${scopes.message}`);
+      }
       return {
         ok: true,
-        keyOwner: name.slice(KEY_NAME_PREFIX.length),
-        scopes: DEFAULT_SCOPES,
+        keyOwner: owner,
+        scopes: scopes.scopes,
       };
     }
   }
 
   return unauthorized('Invalid Bearer token');
+}
+
+/** Suffix for the optional per-key scope-subset companion env var. */
+const SCOPES_SUFFIX = '_SCOPES';
+
+/**
+ * BL-032.8 Phase 2 — optional per-key scope subset.
+ *
+ * When `MCP_KEY_<OWNER>_SCOPES` is bound on the env (JSON-encoded string
+ * array), narrow the resolved scope set to that subset. When absent, the
+ * key carries `DEFAULT_SCOPES` (the BL-032.5 behavior).
+ *
+ * **Why narrow keys**: enables the website's `MCP_KEY_WEBSITE_RADAR` to
+ * carry only `['resource:radar:read']` instead of the full Tool / Prompt
+ * / Resource grant — limits blast radius if the website's env leaks
+ * AND keeps audit logs clean (radar-snapshot reads don't pollute
+ * tool-call telemetry).
+ *
+ * Returns either `{ scopes }` on success or `{ ok: false, message }` on
+ * malformed JSON. The malformed case is deliberately surfaced so the
+ * caller can fail loud at auth time.
+ */
+function resolveKeyScopes(
+  env: Record<string, unknown>,
+  keyName: string
+): { scopes: readonly string[] } | { ok: false; message: string } {
+  const scopesEnvVar = `${keyName}${SCOPES_SUFFIX}`;
+  const raw = env[scopesEnvVar];
+  if (typeof raw !== 'string') {
+    return { scopes: DEFAULT_SCOPES };
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return { ok: false, message: 'must be a JSON-encoded string array' };
+    }
+    if (!parsed.every((s) => typeof s === 'string' && s.length > 0)) {
+      return { ok: false, message: 'all elements must be non-empty strings' };
+    }
+    return { scopes: parsed as readonly string[] };
+  } catch (e) {
+    return { ok: false, message: (e as Error).message };
+  }
 }
 
 /** Build a `Response` from an `AuthFailure` envelope. */

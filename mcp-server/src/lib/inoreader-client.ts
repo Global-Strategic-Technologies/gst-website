@@ -39,6 +39,7 @@
 import type { InoreaderStreamResponse, InoreaderItem } from '../../../src/lib/inoreader/types';
 import { readAccessToken } from './inoreader-token-store';
 import { triggerWebsiteRefresh } from './inoreader-bl039-fallback';
+import { refreshAccessToken } from './inoreader-oauth';
 import type { Env } from '../worker';
 
 const API_BASE = 'https://www.inoreader.com/reader/api/0';
@@ -186,20 +187,30 @@ async function singleFetch(
 }
 
 /**
- * Authenticated fetch with BL-039 self-healing on 401. Wraps `singleFetch`:
+ * Authenticated fetch with self-healing on 401 (BL-032.8 Phase 2 — Phase A).
  *
- *   1. First attempt with the currently-resolved access token.
- *   2. If Inoreader returns 401:
- *      a. Call the website's refresh endpoint (BL-039) to trigger an OAuth
- *         refresh; the website persists a new token to Upstash.
- *      b. Re-resolve config (so we pick up the new token from Upstash).
- *      c. Retry the original request ONCE with the new token.
- *      d. If the retry also fails with 401, OR the refresh endpoint was
- *         unavailable / rejected, surface the original `token-stale`
- *         envelope. Worker never loops.
+ * Recovery cascade on Inoreader 401:
  *
- * This is the BL-039 acceptance criterion: "on token-stale, call the
- * refresh endpoint, retry once, only then surface the original error."
+ *   1. **Primary** — Worker-direct refresh via `refreshAccessToken('live-tool')`
+ *      from [`inoreader-oauth.ts`](./inoreader-oauth.ts). Single-flight via
+ *      Upstash lock; writes new tokens to MCP DB.
+ *   2. **Fallback (Phase A only)** — Only when (1) returned
+ *      `reason: 'inoreader-error'` (transient upstream issue). Call the
+ *      website's `/api/inoreader/refresh` endpoint
+ *      ([`inoreader-bl039-fallback.ts`](./inoreader-bl039-fallback.ts)).
+ *      Provides soak-window safety net against bugs in the new primary path.
+ *
+ * For any other `refreshAccessToken` failure reason
+ * (`invalid-refresh-token` / `upstash-write-failed` / `lock-timeout` /
+ * `token-missing`), do NOT fall back to BL-039 — those reasons mean
+ * credentials are dead, our infra is degraded, or a peer is already
+ * refreshing. The BL-039 path would either hit the same Inoreader-side
+ * rejection (invalid-refresh-token) or fight the in-flight peer
+ * (lock-timeout / write-failed). In all those cases, surface the original
+ * 401 to the caller as `token-stale`.
+ *
+ * Phase B deletes the BL-039 fallback branch entirely; primary becomes
+ * the sole path.
  */
 async function authenticatedFetch(
   env: Env,
@@ -210,28 +221,45 @@ async function authenticatedFetch(
   if (!(first instanceof Response)) return first;
   if (first.status !== 401) return first;
 
-  // 401 — try to recover via BL-039 refresh.
-  const refreshed = await triggerWebsiteRefresh(env);
-  if (!refreshed) {
-    // Refresh unavailable, endpoint failed, or BL-039 not configured —
-    // surface the original 401 mapped to `token-stale` so the caller
-    // gets the same envelope shape as pre-BL-039.
-    return first;
+  // Primary: Worker-direct refresh (BL-032.8 Phase 2).
+  const refreshResult = await refreshAccessToken(env, 'live-tool');
+  if (refreshResult.ok) {
+    return retryWithFreshConfig(env, url, first);
   }
 
-  // Refresh succeeded. Re-resolve config so we pick up the newly-written
-  // access token from Upstash, then retry exactly once.
+  // Fallback to BL-039 ONLY for transient Inoreader-side failures.
+  // Other reasons (invalid-refresh-token / upstash-write-failed /
+  // lock-timeout / token-missing) are non-recoverable via the website
+  // path — see docstring rationale above.
+  if (refreshResult.reason === 'inoreader-error') {
+    const refreshed = await triggerWebsiteRefresh(env);
+    if (refreshed) return retryWithFreshConfig(env, url, first);
+  }
+
+  // All recovery paths exhausted; surface original 401 as token-stale.
+  return first;
+}
+
+/**
+ * Re-resolve config (pick up newly-written access token from Upstash),
+ * then retry the original request exactly once. Used by both the primary
+ * and BL-039 fallback success paths so the retry semantics stay
+ * identical regardless of which refresh path succeeded.
+ *
+ * `originalFirstAttempt` is returned when config re-resolution unexpectedly
+ * fails — better to surface the original 401 envelope shape than to mask
+ * the failure.
+ */
+async function retryWithFreshConfig(
+  env: Env,
+  url: string,
+  originalFirstAttempt: Response
+): Promise<Response | InoreaderFailure> {
   const reResolved = await resolveConfig(env);
   if ('ok' in reResolved && !reResolved.ok) {
-    // Config disappeared between calls — very unlikely, but surface as
-    // token-stale rather than masking. Return the original 401.
-    return first;
+    return originalFirstAttempt;
   }
-  const retry = await singleFetch(url, reResolved as ResolvedConfig);
-  // Whatever this returns is the final answer; if it's still 401 the
-  // caller will map it to `token-stale` via `mapHttpStatus`. We do NOT
-  // recurse.
-  return retry;
+  return await singleFetch(url, reResolved as ResolvedConfig);
 }
 
 /**
