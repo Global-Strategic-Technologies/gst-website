@@ -100,18 +100,18 @@ export function authenticate(request: Request, env: Record<string, unknown>): Au
     if (name.endsWith(SCOPES_SUFFIX)) continue;
     if (value === token) {
       const owner = name.slice(KEY_NAME_PREFIX.length);
-      const scopes = resolveKeyScopes(env, name);
-      if ('ok' in scopes && !scopes.ok) {
+      const result = resolveKeyScopes(env, name);
+      if (!result.ok) {
         // Malformed `_SCOPES` companion var — fail loud at auth time rather
         // than silently falling back to DEFAULT_SCOPES. An operator who
         // mistyped JSON in a Worker secret should see the failure
         // immediately, not discover it via a downstream scope-mismatch.
-        return unauthorized(`Bearer key ${owner} has malformed _SCOPES JSON: ${scopes.message}`);
+        return unauthorized(`Bearer key ${owner} has malformed _SCOPES JSON: ${result.message}`);
       }
       return {
         ok: true,
         keyOwner: owner,
-        scopes: scopes.scopes,
+        scopes: result.scopes,
       };
     }
   }
@@ -135,18 +135,20 @@ const SCOPES_SUFFIX = '_SCOPES';
  * AND keeps audit logs clean (radar-snapshot reads don't pollute
  * tool-call telemetry).
  *
- * Returns either `{ scopes }` on success or `{ ok: false, message }` on
+ * Returns `{ ok: true, scopes }` on success or `{ ok: false, message }` on
  * malformed JSON. The malformed case is deliberately surfaced so the
- * caller can fail loud at auth time.
+ * caller can fail loud at auth time. The `ok` discriminator on both
+ * variants is what lets the caller's `if (!result.ok)` narrow cleanly
+ * (an asymmetric union with `'ok' in result` only narrows on the truthy
+ * branch and trips TypeScript's strict-narrowing under `tsc --noEmit`).
  */
-function resolveKeyScopes(
-  env: Record<string, unknown>,
-  keyName: string
-): { scopes: readonly string[] } | { ok: false; message: string } {
+type ScopeResolution = { ok: true; scopes: readonly string[] } | { ok: false; message: string };
+
+function resolveKeyScopes(env: Record<string, unknown>, keyName: string): ScopeResolution {
   const scopesEnvVar = `${keyName}${SCOPES_SUFFIX}`;
   const raw = env[scopesEnvVar];
   if (typeof raw !== 'string') {
-    return { scopes: DEFAULT_SCOPES };
+    return { ok: true, scopes: DEFAULT_SCOPES };
   }
   try {
     const parsed = JSON.parse(raw);
@@ -156,7 +158,7 @@ function resolveKeyScopes(
     if (!parsed.every((s) => typeof s === 'string' && s.length > 0)) {
       return { ok: false, message: 'all elements must be non-empty strings' };
     }
-    return { scopes: parsed as readonly string[] };
+    return { ok: true, scopes: parsed as readonly string[] };
   } catch (e) {
     return { ok: false, message: (e as Error).message };
   }
