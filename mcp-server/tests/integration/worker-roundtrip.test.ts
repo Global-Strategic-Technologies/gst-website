@@ -74,13 +74,29 @@ describe('Worker roundtrip — Phase 1 transport spike', () => {
     expect(typeof body.gitSha).toBe('string');
   });
 
-  it('non-MCP, non-health route does not throw — delegates to MCP handler which rejects', async () => {
-    const res = await worker.fetch('/unknown-path');
-    // The MCP handler's behavior on a non-/mcp path is to return some 4xx;
-    // the precise status comes from agents/mcp internals. We just assert the
-    // Worker doesn't crash (non-2xx but well-formed response).
-    expect(res.status).toBeGreaterThanOrEqual(400);
-    expect(res.status).toBeLessThan(600);
+  it('non-routed paths return 404 BEFORE the auth check fires (probe-noise suppression)', async () => {
+    // worker.ts isRoutedPath() allowlist gates `/mcp` (+ sub-paths) and
+    // `/radar/snapshot`. Everything else gets a 404 without invoking the
+    // bearer auth code, which means no `auth.failed bearer-rejected`
+    // Sentry event for /favicon.ico, /.env, /wp-admin, /robots.txt, etc.
+    const res = await worker.fetch('/favicon.ico');
+    expect(res.status).toBe(404);
+    expect(await res.text()).toBe('Not Found');
+    // No `WWW-Authenticate` header — auth wasn't attempted (cross-checks
+    // that the 404 is from the route allowlist, not from a 401 envelope
+    // with a 404-shaped body).
+    expect(res.headers.get('www-authenticate')).toBeNull();
+  });
+
+  it('arbitrary scanner-style paths also 404 without auth', async () => {
+    // Spot-check a sampling of paths that bots commonly probe. None of
+    // them should reach the auth path (which would otherwise fire a
+    // Sentry warning per probe — see GST-MCP-SERVER-4 incident).
+    for (const path of ['/.env', '/wp-admin', '/robots.txt', '/.git/config']) {
+      const res = await worker.fetch(path);
+      expect(res.status).toBe(404);
+      expect(res.headers.get('www-authenticate')).toBeNull();
+    }
   });
 
   it('POST to /mcp without an MCP body returns a structured error, not a crash', async () => {
