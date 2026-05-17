@@ -348,6 +348,34 @@ describe('refreshAccessToken — error taxonomy', () => {
     // Lock still released — finally block runs regardless of error.
     expect(redisDel).toHaveBeenCalledWith('mcp:inoreader:refresh-lock');
   });
+
+  it('returns upstash-write-failed when ROTATED refresh_token persistence fails', async () => {
+    // Distinct branch from the access_token-failure case above: when Inoreader
+    // returns a rotated refresh_token AND the write to mcp:inoreader:refresh_token
+    // fails, we surface upstash-write-failed BEFORE attempting the access_token
+    // write. This is load-bearing for crash-safety — the access_token must
+    // never land in Upstash without a paired refresh_token capable of
+    // refreshing it.
+    fetchSpy.mockResolvedValue(inoreaderTokenResponse({ refresh_token: 'rotated-refresh-token' }));
+    redisSet.mockImplementation(async (key: string) => {
+      if (key === 'mcp:inoreader:refresh_token') {
+        throw new Error('upstash unreachable mid-rotation');
+      }
+      return 'OK';
+    });
+
+    const result = await refreshAccessToken(env, 'cron');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('upstash-write-failed');
+    // access_token write must NOT have been attempted — the refresh_token
+    // failure short-circuits the persistence sequence.
+    const accessSetCall = redisSet.mock.calls.find((c) => c[0] === 'mcp:inoreader:access_token');
+    expect(accessSetCall).toBeUndefined();
+    // Lock still released — finally block runs regardless of error.
+    expect(redisDel).toHaveBeenCalledWith('mcp:inoreader:refresh-lock');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -356,12 +384,24 @@ describe('refreshAccessToken — error taxonomy', () => {
 
 describe('refreshAccessToken — single-flight', () => {
   it('returns cached-by-peer when lock acquire fails and access_token changes within timeout', async () => {
-    // Acquire fails (peer holds lock); poll observes new access_token.
+    // Acquire fails (peer holds lock). pollForChange snapshots
+    // mcp:inoreader:access_token once, then polls until value differs.
+    // Use a stateful mockImplementation keyed on access-token reads so the
+    // test self-documents which call is snapshot vs. poll-observation —
+    // mockResolvedValueOnce chains break the moment pollForChange ever
+    // adds a pre-snapshot read (e.g. a health check).
     redisSet.mockImplementation(async (key: string, _value, opts) => {
       if (key === 'mcp:inoreader:refresh-lock' && opts?.nx) return null;
       return 'OK';
     });
-    redisGet.mockResolvedValueOnce('old-token').mockResolvedValueOnce('peer-refreshed-token');
+    let accessTokenReads = 0;
+    redisGet.mockImplementation(async (key: string) => {
+      if (key === 'mcp:inoreader:access_token') {
+        accessTokenReads += 1;
+        return accessTokenReads === 1 ? 'old-token' : 'peer-refreshed-token';
+      }
+      return null;
+    });
 
     const result = await refreshAccessToken(env, 'live-tool');
 
@@ -378,8 +418,14 @@ describe('refreshAccessToken — single-flight', () => {
       if (key === 'mcp:inoreader:refresh-lock' && opts?.nx) return null;
       return 'OK';
     });
-    // Token never changes → poll times out.
-    redisGet.mockResolvedValue('frozen-token');
+    // Narrow mock to just the access-token snapshot key so this test doesn't
+    // accidentally serve 'frozen-token' as the refresh_token if performRefresh
+    // were ever reached (it isn't on the lock-timeout path, but defense-in-depth
+    // against future refactors).
+    redisGet.mockImplementation(async (key: string) => {
+      if (key === 'mcp:inoreader:access_token') return 'frozen-token';
+      return null;
+    });
 
     // Use a synthetic short timeout via fake timers would be ideal, but the
     // current pollForChange API doesn't expose timeout-override at the caller.

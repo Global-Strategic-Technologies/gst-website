@@ -19,20 +19,29 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // distinguishes them by URL so tests can mock each independently. This is
 // closer to the production wire — using a single mocked Redis would hide
 // dual-read bugs where the wrong DB is consulted first.
-const { mcpRedisGet, mcpRedisSet, inoreaderRedisGet, MockRedis } = vi.hoisted(() => {
-  const mcpRedisGet = vi.fn();
-  const mcpRedisSet = vi.fn();
-  const inoreaderRedisGet = vi.fn();
-  class MockRedis {
-    private readonly isMcp: boolean;
-    constructor(opts: { url: string }) {
-      this.isMcp = opts.url.includes('mcp');
+const { mcpRedisGet, mcpRedisSet, inoreaderRedisGet, inoreaderRedisSet, MockRedis } = vi.hoisted(
+  () => {
+    const mcpRedisGet = vi.fn();
+    const mcpRedisSet = vi.fn();
+    const inoreaderRedisGet = vi.fn();
+    // Route writes to per-DB mocks too — production code MUST never write to
+    // the Inoreader DB from this module (Phase A: website is sole writer
+    // there; Phase B: that DB retires). Mocking writes separately means a
+    // stray inoreaderRedis.set(...) call fails CI instead of silently
+    // succeeding through a shared mock.
+    const inoreaderRedisSet = vi.fn();
+    class MockRedis {
+      private readonly isMcp: boolean;
+      constructor(opts: { url: string }) {
+        this.isMcp = opts.url.includes('mcp');
+      }
+      get = (key: string) => (this.isMcp ? mcpRedisGet(key) : inoreaderRedisGet(key));
+      set = (...args: unknown[]) =>
+        this.isMcp ? mcpRedisSet(...args) : inoreaderRedisSet(...args);
     }
-    get = (key: string) => (this.isMcp ? mcpRedisGet(key) : inoreaderRedisGet(key));
-    set = (...args: unknown[]) => mcpRedisSet(...args);
+    return { mcpRedisGet, mcpRedisSet, inoreaderRedisGet, inoreaderRedisSet, MockRedis };
   }
-  return { mcpRedisGet, mcpRedisSet, inoreaderRedisGet, MockRedis };
-});
+);
 
 vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
 
@@ -61,6 +70,7 @@ beforeEach(() => {
   mcpRedisGet.mockReset();
   mcpRedisSet.mockReset();
   inoreaderRedisGet.mockReset();
+  inoreaderRedisSet.mockReset();
 });
 
 // ---------------------------------------------------------------------------
@@ -223,6 +233,10 @@ describe('writeAccessToken (Phase 2)', () => {
       // 3600 - 60 = 3540
       expect.objectContaining({ ex: 3540 })
     );
+    // Q4 single-writer invariant: Worker writes only to the MCP DB. A stray
+    // write to the Inoreader DB would violate the read-only contract that
+    // the website's refresh-writer relies on during Phase A.
+    expect(inoreaderRedisSet).not.toHaveBeenCalled();
   });
 
   it('uses 3540s TTL when expires_in is undefined (defensive fallback)', async () => {
@@ -287,6 +301,8 @@ describe('writeRefreshToken (Phase 2)', () => {
     // Inoreader doesn't document an expiration, and rotation is the
     // substitute. Asserting absence of the third arg pins the contract.
     expect(mcpRedisSet).toHaveBeenCalledWith(KV_MCP_REFRESH_TOKEN_KEY, 'new-refresh');
+    // Same Q4 invariant guard as writeAccessToken — no stray Inoreader DB writes.
+    expect(inoreaderRedisSet).not.toHaveBeenCalled();
   });
 
   it('returns false when MCP DB creds are not bound', async () => {

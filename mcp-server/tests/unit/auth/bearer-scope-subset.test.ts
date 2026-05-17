@@ -133,6 +133,14 @@ describe('authenticate — per-key scope subset (BL-032.8 Phase 2)', () => {
     const result = authenticate(makeRequest('["tool:search_portfolio"]'), env);
 
     expect(result.ok).toBe(false);
+    if (result.ok) return;
+    // Pin the rejection reason — without this, a future refactor that ever
+    // produces `ok: false` for an unrelated reason (e.g. a parse error on the
+    // _SCOPES value somehow matching the bearer scan) could silently mask the
+    // security invariant. The expected failure is "Invalid Bearer token"
+    // (token didn't match any MCP_KEY_*), NOT a malformed-JSON message.
+    expect(result.bodyText).toMatch(/Invalid Bearer token/i);
+    expect(result.bodyText).not.toMatch(/malformed/i);
   });
 
   it('supports the empty-array scope set (key authenticates but has zero capabilities)', () => {

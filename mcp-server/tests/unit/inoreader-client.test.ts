@@ -555,6 +555,61 @@ describe('authenticatedFetch — primary refresh path (BL-032.8 Phase 2)', () =>
     expect(calls.some((u) => u === REFRESH_URL)).toBe(false);
   });
 
+  it('after primary refresh success, retry uses the freshly-written MCP DB token', async () => {
+    // Companion to the BL-039-fallback "fresh-token on retry" test below,
+    // but for the PRIMARY path (no fallback): refreshAccessToken writes a
+    // new access token to mcp:inoreader:access_token, then retryWithFreshConfig
+    // re-resolves and the retry's Authorization header carries the new value.
+    //
+    // We simulate the in-place token-store update by flipping the MCP
+    // access-token read after fetchSpy receives the /oauth2/token POST.
+    let mcpAccessToken: string | null = 'stale-primary';
+    mockGet.mockImplementation(async (key: string) => {
+      if (key === 'mcp:inoreader:access_token') return mcpAccessToken;
+      if (key === 'mcp:inoreader:refresh_token') return 'refresh-token-value';
+      return null;
+    });
+
+    routeFetch({
+      inoreader: [
+        new Response('unauthorized', { status: 401 }),
+        jsonResponse(makeStreamResponse([])),
+      ],
+      // Primary /oauth2/token succeeds — no BL-039 fallback triggered.
+      oauth2Token: jsonResponse({
+        access_token: 'primary-fresh-token',
+        refresh_token: 'refresh-token-value',
+        expires_in: 3600,
+      }),
+    });
+
+    // Flip the access-token mock when the primary path "writes" to Upstash.
+    // We hook on /oauth2/token specifically so the flip lands after the
+    // POST returns but before retryWithFreshConfig reads.
+    const originalImpl = fetchSpy.getMockImplementation();
+    fetchSpy.mockImplementation(async (url: string, init?: RequestInit) => {
+      const response = await originalImpl!(url, init);
+      if (url === OAUTH_TOKEN_URL) {
+        mcpAccessToken = 'primary-fresh-token';
+      }
+      return response;
+    });
+
+    await fetchAnnotatedItems(oauthEnv, 5);
+
+    // No BL-039 call should appear.
+    expect(fetchSpy.mock.calls.some((c) => c[0] === REFRESH_URL)).toBe(false);
+
+    const inoreaderCalls = fetchSpy.mock.calls.filter((c) =>
+      (c[0] as string).includes('/reader/api/0')
+    );
+    expect(inoreaderCalls).toHaveLength(2);
+    const firstAuth = (inoreaderCalls[0]![1].headers as Record<string, string>).Authorization;
+    const retryAuth = (inoreaderCalls[1]![1].headers as Record<string, string>).Authorization;
+    expect(firstAuth).toBe('Bearer stale-primary');
+    expect(retryAuth).toBe('Bearer primary-fresh-token');
+  });
+
   it('on primary invalid_grant: surfaces token-stale, BL-039 fallback NOT invoked', async () => {
     // Inoreader rejects the refresh_token with invalid_grant — credentials
     // are dead; trying BL-039 would just hit the same rejection through the

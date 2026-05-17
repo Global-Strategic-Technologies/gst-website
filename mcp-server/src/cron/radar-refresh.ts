@@ -37,8 +37,22 @@ import { isCircuitOpen } from '../ratelimit/circuit-breaker';
 import { createMcpClient } from '../lib/upstash-clients';
 import { captureMessage } from '../observability/sentry';
 import { handleInoreaderFailure } from '../lib/inoreader-failure-handler';
+import { refreshAccessToken } from '../lib/inoreader-oauth';
+import { KV_MCP_ACCESS_TOKEN_KEY } from '../lib/inoreader-token-store';
 import { safeLog } from '../auth/safe-logger';
 import type { Env } from '../worker';
+
+/**
+ * BL-032.8 Phase 2 — proactive refresh threshold. If the access token
+ * has less than 5 minutes of TTL remaining when cron fires, refresh it
+ * BEFORE the radar fetch so the fetch doesn't pay the 401-retry latency.
+ *
+ * Live-tool calls don't share this threshold — they take the reactive
+ * 401-then-retry path because checking TTL on every live request adds
+ * a hot-path Upstash round-trip for marginal benefit (live calls are
+ * already retry-tolerant by design).
+ */
+const PROACTIVE_REFRESH_THRESHOLD_SECONDS = 300;
 
 const DAILY_SOFT_CAP = 180;
 /**
@@ -184,6 +198,22 @@ export async function refreshRadarSnapshot(env: Env): Promise<RefreshOutcome> {
     return { kind: 'skipped', reason: 'day-cap-reached', counter };
   }
 
+  // BL-032.8 Phase 2 — proactive token refresh.
+  //
+  // If the access token is about to expire (< 5 min remaining), refresh it
+  // BEFORE the parallel radar fetch so the fetch doesn't pay the
+  // 401-then-retry latency. Cron is the right surface for this proactive
+  // check because (a) it runs on a predictable schedule, (b) it's
+  // latency-tolerant, and (c) it pre-warms the token for any live calls
+  // that arrive in the minutes immediately after.
+  //
+  // The check is best-effort: any failure (lock-timeout, inoreader-error,
+  // upstash-write-failed) falls through to the radar fetch, which will
+  // exercise the reactive 401 self-heal cascade in inoreader-client.ts if
+  // needed. Sentry observability fires on the refreshAccessToken side, so
+  // we don't double-capture here.
+  await maybeProactiveRefresh(env);
+
   try {
     const [wire, fyi] = await Promise.all([
       readWireLive(env, { forceRefresh: true }),
@@ -284,4 +314,69 @@ export async function refreshRadarSnapshot(env: Env): Promise<RefreshOutcome> {
     });
     return { kind: 'error', message };
   }
+}
+
+/**
+ * BL-032.8 Phase 2 — Proactive token refresh on cron.
+ *
+ * Reads the remaining TTL of `mcp:inoreader:access_token`. If less than
+ * `PROACTIVE_REFRESH_THRESHOLD_SECONDS` remain (or the key is absent),
+ * calls `refreshAccessToken('cron')` to top it up before the radar fetch.
+ *
+ * Failure handling is intentionally permissive: any non-ok result from
+ * `refreshAccessToken` falls through, and the subsequent radar fetch's
+ * reactive 401-self-heal cascade in `inoreader-client.ts` will take
+ * another swing. Cron is the "best opportunity" path, not the "only
+ * opportunity" path.
+ *
+ * Returns nothing — all observability is delegated to the OAuth module
+ * (it emits its own `safeLog`/`captureMessage` per outcome) plus a
+ * lightweight `cron.proactive-refresh.*` event here.
+ */
+async function maybeProactiveRefresh(env: Env): Promise<void> {
+  const redis = createMcpClient(env);
+  if (!redis) {
+    // No MCP DB bound; nothing to check or write. The reactive path will
+    // exercise refreshAccessToken on first 401 anyway.
+    return;
+  }
+
+  let ttlSeconds: number | null;
+  try {
+    // Upstash TTL returns the remaining lifetime in seconds. A return of
+    // -2 means "key does not exist"; -1 means "no expiry"; otherwise the
+    // remaining seconds. We treat -2 (absent) as below-threshold so the
+    // first cron run after a token wipe pre-warms the cache.
+    const raw = await redis.ttl(KV_MCP_ACCESS_TOKEN_KEY);
+    ttlSeconds = typeof raw === 'number' ? raw : null;
+  } catch {
+    // Upstash unreachable for TTL probe — skip the proactive check; the
+    // reactive path remains available.
+    return;
+  }
+
+  // ttl === -1 means no expiry (shouldn't happen for access_token but
+  // handle gracefully); ttl === -2 means absent (treat as expired).
+  // Positive values are remaining seconds.
+  const needsRefresh =
+    ttlSeconds === null ||
+    ttlSeconds === -2 ||
+    (ttlSeconds >= 0 && ttlSeconds < PROACTIVE_REFRESH_THRESHOLD_SECONDS);
+
+  if (!needsRefresh) {
+    safeLog({
+      event: 'cron.proactive-refresh.skipped',
+      reason: 'ttl-fresh',
+      durationMs: 0,
+    });
+    return;
+  }
+
+  safeLog({
+    event: 'cron.proactive-refresh.triggered',
+    reason: ttlSeconds === -2 ? 'token-absent' : `ttl-${ttlSeconds}s`,
+  });
+  // refreshAccessToken emits its own outcome log + Sentry capture; we
+  // don't re-capture here.
+  await refreshAccessToken(env, 'cron');
 }
