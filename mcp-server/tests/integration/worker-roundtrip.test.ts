@@ -68,8 +68,6 @@ describe('Worker roundtrip — Phase 1 transport spike', () => {
     // status isn't degraded.
     expect(body.ok).toBe(body.upstashMcp === 'ok' && body.inoreader !== 'degraded');
     expect(typeof body.gitSha).toBe('string');
-    // Phase B: legacy `upstashInoreader` field intentionally absent.
-    expect((body as Record<string, unknown>).upstashInoreader).toBeUndefined();
   });
 
   it('non-MCP, non-health route does not throw — delegates to MCP handler which rejects', async () => {

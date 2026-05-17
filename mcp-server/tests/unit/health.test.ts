@@ -58,9 +58,6 @@ describe('buildHealthPayload', () => {
     expect(payload.inoreaderObservedAt).toBe('2026-05-04T18:00:00.000Z');
     expect(payload.version).toMatch(/^0\.[0-9]+\.[0-9]+$/);
     expect(payload.phase).toContain('BL-032 Phase 5');
-    // Phase B: `upstashInoreader` field is intentionally absent from the
-    // response shape. Pin the absence so future drift surfaces here.
-    expect((payload as Record<string, unknown>).upstashInoreader).toBeUndefined();
   });
 
   it('returns ok:false when MCP DB is degraded', async () => {

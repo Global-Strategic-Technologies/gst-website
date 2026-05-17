@@ -1,9 +1,7 @@
 /**
- * Integration test for the BL-032.8 Phase 2 reactive refresh path on
- * live radar tool calls.
+ * Integration test for the reactive refresh path on live radar tool calls.
  *
- * Verifies the impl-doc matrix row: "search_radar 401 →
- * refreshAccessToken('live-tool') → retry succeeds (no BL-039 round-trip)"
+ * Verifies: "search_radar 401 → refreshAccessToken('live-tool') → retry succeeds"
  *
  * Scope: handleSearchRadar tool handler end-to-end, with real
  * authenticatedFetch, real inoreader-oauth, real inoreader-token-store,
@@ -14,7 +12,6 @@
  * Specifically asserts:
  *   - On 401 from Inoreader stream API, refreshAccessToken is invoked
  *     (a /oauth2/token POST appears in fetch calls)
- *   - BL-039 website fallback endpoint is NOT called when primary succeeds
  *   - Retry uses the NEW access token from MCP DB (Authorization header
  *     observed on the second stream call differs from the first)
  *   - search_radar returns a successful result (not the token-stale error
@@ -72,7 +69,6 @@ vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
 import { handleSearchRadar } from '../../src/tools/radar-live';
 import type { Env } from '../../src/worker';
 
-const BL039_REFRESH_URL = 'https://globalstrategic.tech/api/inoreader/refresh';
 const OAUTH_TOKEN_URL = 'https://www.inoreader.com/oauth2/token';
 
 const env: Env = {
@@ -127,8 +123,8 @@ function streamResponse(items: Array<{ id: string; published: number }>) {
   });
 }
 
-describe('search_radar token-stale recovery via primary refresh path', () => {
-  it('on stream 401 → /oauth2/token POST → retry succeeds, no BL-039 round-trip', async () => {
+describe('search_radar token-stale recovery via Worker refresh path', () => {
+  it('on stream 401 → /oauth2/token POST → retry succeeds', async () => {
     // State-machine mock:
     //   - Before /oauth2/token completes, every stream call returns 401.
     //   - After /oauth2/token completes (the refresh path has succeeded),
@@ -147,11 +143,6 @@ describe('search_radar token-stale recovery via primary refresh path', () => {
           expires_in: 3600,
           token_type: 'Bearer',
         });
-      }
-      if (url === BL039_REFRESH_URL) {
-        // This test asserts BL-039 is NOT called — return an obvious sentinel
-        // that would make any test assertion that uses it fail loud.
-        throw new Error('BL-039 fallback was invoked but should not have been');
       }
       // Inoreader stream API calls.
       if (!refreshCompleted) {
@@ -176,10 +167,6 @@ describe('search_radar token-stale recovery via primary refresh path', () => {
     // Exactly one /oauth2/token POST — single-flight worked.
     const oauthPosts = fetchSpy.mock.calls.filter((c) => c[0] === OAUTH_TOKEN_URL);
     expect(oauthPosts).toHaveLength(1);
-
-    // BL-039 fallback never touched — primary succeeded.
-    const bl039Calls = fetchSpy.mock.calls.filter((c) => c[0] === BL039_REFRESH_URL);
-    expect(bl039Calls).toHaveLength(0);
 
     // The retry stream call used the new access token. Find a post-401
     // Inoreader stream call and check its Authorization header.

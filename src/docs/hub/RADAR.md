@@ -204,115 +204,11 @@ During dev, the cache logs its behavior to the terminal:
 
 ## Working Offline / Rate-Limited Development
 
-When the Inoreader API rate limit (200 requests/day) has been exhausted — or when working without network access — you can seed the dev cache with mock data so the Radar page renders fully without any live API calls.
-
-### Quick Start
-
-```bash
-npm run radar:seed
-npm run dev
-# Visit http://localhost:4321/hub/radar — renders with mock data, zero API calls
-```
-
-The `radar:seed` script writes two cache entries into `.cache/inoreader/` with a fresh timestamp (24h TTL). Start the dev server normally afterward.
-
-### How It Works
-
-The seed script (`tests/e2e/fixtures/seed-radar-cache.ts`) writes the same cache files the dev-mode cache system reads. The Astro dev server sees valid cache entries and skips all Inoreader API calls. The mock data includes:
-
-- **5 FYI items** with annotations (highlights + GST Take) across all 4 categories
-- **13 Wire items** across all 4 GST-\* folders with realistic titles and sources
-
-### Resetting to Live Data
-
-When you're ready to return to live API data:
-
-```bash
-npm run radar:unseed       # Remove seeded mock data
-npm run dev                # Next page load fetches from Inoreader and re-caches
-```
-
-### Preserving Real Cache Data
-
-If you've already loaded the Radar page with live data and want to keep that cache for offline use, the files in `.cache/inoreader/` persist across dev server restarts. The 24-hour TTL is based on a `timestamp` field stored inside each JSON file, not the file modification time.
-
-To extend expired cache entries without re-fetching:
-
-```bash
-# Reset the timestamp inside each cache file to "now"
-npx tsx -e "
-import { readdirSync, readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
-const dir = '.cache/inoreader';
-for (const f of readdirSync(dir)) {
-  const p = join(dir, f);
-  const entry = JSON.parse(readFileSync(p, 'utf-8'));
-  entry.timestamp = Date.now();
-  writeFileSync(p, JSON.stringify(entry), 'utf-8');
-}
-console.log('Cache timestamps refreshed');
-"
-```
+The website no longer holds an Inoreader cache (post-BL-032.8 Phase B). For offline radar development, point Vercel preview deploys / `npm run dev` at the staging MCP Worker by setting `MCP_RADAR_SNAPSHOT_URL=https://mcp-staging.globalstrategic.tech/radar/snapshot` in your local `.env`. The Worker keeps the snapshot warm via its own cron-driven cache (`mcp:radar:cache:wire` / `:fyi` in the MCP Upstash DB, 6h TTL); offline-tool fixtures live in `mcp-server/tests/fixtures/radar-mock-data.ts` and the corresponding `search_radar_offline` MCP tool covers the no-network case.
 
 ## E2E Test Mocking
 
-### Why Mock Data Is Needed
-
-The Radar page is **server-side rendered** — Inoreader API calls happen in the Astro dev server (Node.js), not in the browser. This means Playwright's `page.route()` cannot intercept these calls. Without mock data, E2E tests either burn through the 200 req/day API budget or silently skip when the API is rate-limited.
-
-### How It Works
-
-E2E tests reuse the dev-mode file cache (see above) to serve deterministic mock data:
-
-1. **Playwright global setup** (`tests/e2e/global-setup.ts`) writes mock Inoreader responses to `.cache/inoreader/` before any test runs
-2. The Astro dev server reads these cache files during SSR — zero live API calls
-3. **Playwright global teardown** (`tests/e2e/global-teardown.ts`) cleans up the cache after tests complete
-
-Only two cache entries are needed:
-
-- `fetchAnnotatedItems(30)` — seeds 5 FYI items across all 4 categories
-- `fetchAllStreams('GST-', 15)` — seeds 13 Wire items across all 4 folders
-
-### File Structure
-
-```
-tests/e2e/
-├── global-setup.ts              # Seeds mock cache before tests
-├── global-teardown.ts           # Clears mock cache after tests
-├── fixtures/
-│   ├── radar-mock-data.ts       # Mock Inoreader API response factories
-│   └── seed-radar-cache.ts      # Writes/clears mock data in .cache/
-├── helpers/
-│   └── radar.ts                 # Page interaction helpers
-└── radar-page.test.ts           # Radar E2E tests (17 tests x 3 browsers)
-```
-
-### Cache Key Alignment
-
-The seeding script duplicates `buildCacheKey()` from `src/lib/inoreader/cache.ts` (same SHA-256 hashing of function name + args). If the cache key algorithm changes, E2E tests break immediately — providing fast feedback.
-
-### Mock Data Characteristics
-
-- **FYI items**: 5 articles with annotations (highlighted text + GST Take), covering all 4 categories
-- **Wire items**: 13 articles spread across 4 GST-\* folders with realistic titles and sources
-- All items have valid URLs, timestamps, sources, and category folder labels
-- Category distribution is intentionally uneven so filter tests can verify count changes
-- Both tiers render in a single unified feed, interleaved chronologically
-
-### Running Radar E2E Tests
-
-```bash
-npx playwright test tests/e2e/radar-page.test.ts              # All browsers
-npx playwright test tests/e2e/radar-page.test.ts --project=chromium  # Chromium only
-```
-
-Console output confirms mock data is active:
-
-```
-[E2E Setup] Radar mock cache seeded
-...
-[E2E Teardown] Radar mock cache cleared
-```
+E2E tests against `/hub/radar` rely on the production / staging MCP Worker's `/radar/snapshot` endpoint (already cron-warmed). Playwright's global-setup and global-teardown are intentionally no-ops post-Phase-B — there's no website-side cache to seed or clear. Set `MCP_KEY_WEBSITE_RADAR` in the Playwright env when running E2E tests so the Astro dev server's SSR fetch authenticates against the Worker.
 
 ## Vercel Caching & ISR Details
 
@@ -367,103 +263,42 @@ The prerender config (`.vercel/output/functions/_isr.prerender-config.json`) set
 
 ## Error Handling
 
-- **API down**: Radar page renders with empty FYI/Wire sections and fallback message
-- **Token expired**: Automatic refresh via refresh token; both new tokens persisted to Upstash Redis
-- **Refresh token expired**: Should not happen if Redis is configured (each refresh stores a new pair). If it does, re-run OAuth flow (`node scripts/inoreader-auth.mjs setup`) and update Vercel env vars
-- **No env vars**: Radar page shows "Intelligence feed is currently being refreshed" fallback
-- **ISR cache**: Vercel serves last good render even during API outages
+The website's failure modes shrink to MCP-Worker-call failures (post-BL-032.8 Phase B):
 
-### Failure Scenarios in Detail
+- **MCP Worker reachable, snapshot OK**: feed renders normally
+- **MCP Worker returns 5xx / tier-failed envelope**: that tier renders empty; the other tier renders if its envelope is OK
+- **MCP Worker unreachable / fetch throws**: feed renders empty with the SSR fallback message; ISR cache continues serving the last good page until next revalidation
+- **`MCP_KEY_WEBSITE_RADAR` unbound** (preview deploys with no Vercel env): feed renders empty + warning logged; the page shell still renders
 
-| Scenario                                 | User Sees                                              | ISR Cache Impact                | Logged                                                                                 |
-| ---------------------------------------- | ------------------------------------------------------ | ------------------------------- | -------------------------------------------------------------------------------------- |
-| Inoreader API temporarily down           | Fallback message                                       | Degraded page cached for 6h     | `[Radar] Inoreader API error: {status}`                                                |
-| Access token expired (refresh works)     | **Normal page** — auto-heals                           | Good page cached                | `[Radar] Access token expired, attempting refresh...` + `Tokens persisted to KV store` |
-| Refresh token revoked/expired (no Redis) | Fallback message                                       | Degraded page cached for 6h     | `[Radar] Token refresh failed: {status}`                                               |
-| Refresh token revoked (with Redis)       | **Unlikely** — Redis stores fresh pair on each refresh | N/A                             | Should not occur if Redis is healthy                                                   |
-| Both tokens invalid + Redis empty        | Fallback message                                       | Degraded page cached for 6h     | `[Radar] Token refresh failed`                                                         |
-| Redis unavailable                        | Falls back to env vars                                 | No impact if env vars are valid | `[Radar] KV read failed, falling back to env vars`                                     |
-| Env vars missing entirely                | **Page render crashes**                                | No cache generated              | `Inoreader credentials not configured` error                                           |
-| Network timeout to Inoreader             | Fallback message                                       | Degraded page cached for 6h     | `[Radar] Wire fetch failed` / `Folder fetch failed`                                    |
+All upstream Inoreader concerns (token refresh, 429 handling, OAuth recovery) live on the Worker — see [`mcp-server/src/docs/operations/DEPLOY.md` § C.5 — Inoreader budget recovery](../../../mcp-server/src/docs/operations/DEPLOY.md).
 
-**Key risk (mitigated by Redis):** Previously, if the refresh token expired, Vercel ISR would cache a degraded page indefinitely with no alerting. With Upstash Redis, each successful refresh persists a new token pair, keeping the chain alive. The remaining risk is if the Redis store is deleted or both the Redis-stored and env var tokens expire simultaneously — an unlikely scenario under normal operation.
+### `[Radar]` log messages (Vercel serverless / dev console)
 
-## Production Observability & Troubleshooting
+Emitted from [`src/components/radar/RadarFeed.astro`](../../components/radar/RadarFeed.astro):
 
-### Current Logging
+| Log message                                                  | Severity | Meaning                                                                                                                                                                                   |
+| ------------------------------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `[Radar] MCP_KEY_WEBSITE_RADAR is not bound on the env. ...` | Warn     | Bearer key missing — set the Vercel env var (see § Environment Vars)                                                                                                                      |
+| `[Radar] MCP /radar/snapshot returned {status} {statusText}` | Error    | Worker rejected the request — check status: 401 = bearer wrong; 403 = scope mismatch; 503 = breaker open or rate-limit; 5xx = Worker incident                                             |
+| `[Radar] FYI tier failed: {reason} {message}`                | Error    | Worker delivered the response but `snapshot.fyi.ok === false` — `reason` is one of the Worker's failure-taxonomy reasons (`token-stale`, `inoreader-rate-limit`, `inoreader-error`, etc.) |
+| `[Radar] Wire tier failed: {reason} {message}`               | Error    | Same as above but for the Wire tier — tiers fail independently                                                                                                                            |
+| `[Radar] MCP /radar/snapshot fetch threw: {error}`           | Error    | Network-level failure (DNS, TLS, timeout) — Worker may be down or the URL is misconfigured                                                                                                |
 
-The Inoreader client (`src/lib/inoreader/client.ts`) logs to `console.error` / `console.warn` / `console.log` with a `[Radar]` prefix at every failure point. These logs are captured by Vercel's serverless function runtime.
+**View in production**: Vercel Dashboard → your project → Logs → filter on `_isr` function + search `[Radar]`.
 
-**Log messages to watch for:**
+### Troubleshooting playbook
 
-| Log Message                                            | Severity | Meaning                                                |
-| ------------------------------------------------------ | -------- | ------------------------------------------------------ |
-| `[Radar] Access token expired, attempting refresh...`  | Warn     | Normal — token rotation in progress                    |
-| `[Radar] Access token refreshed successfully`          | Info     | Normal — self-healed                                   |
-| `[Radar] Loaded tokens from KV store`                  | Info     | Normal — using Redis-persisted tokens                  |
-| `[Radar] Tokens persisted to KV store`                 | Info     | Normal — fresh tokens saved for next invocation        |
-| `[Radar] KV read failed, falling back to env vars`     | Warn     | Redis unavailable — using env vars instead             |
-| `[Radar] KV write failed (non-fatal)`                  | Warn     | Redis persistence failed — tokens still work in-memory |
-| `[Radar] Token refresh failed: {status}`               | Error    | **Action needed** — refresh token may be revoked       |
-| `[Radar] No refresh token available`                   | Error    | **Action needed** — env var missing                    |
-| `[Radar] Request failed after token refresh: {status}` | Error    | API issue persists after token refresh                 |
-| `[Radar] Inoreader API error: {status} {statusText}`   | Error    | Inoreader returned non-200                             |
-| `[Radar] Wire fetch failed`                            | Error    | Network error fetching folders                         |
-| `[Radar] No folders found with prefix "GST-"`          | Warn     | No matching folders — check Inoreader organization     |
+**Symptom: `/hub/radar` shows the empty fallback in production**
 
-### How to View Logs
-
-1. **Vercel Dashboard** → Project → **Logs** tab
-2. Filter by function: `_isr`
-3. Search for `[Radar]` to isolate Radar-specific logs
-4. Logs are available for ~24–72 hours depending on Vercel plan
-
-### Verifying It's Working
-
-**Quick manual check:**
-
-- Visit `/hub/radar` — if the unified feed shows FYI and Wire items, it's working
-- Empty feed with fallback message indicates an API or token problem
-
-**Vercel dashboard checks:**
-
-- **Logs tab**: Filter for `[Radar]` errors in recent ISR invocations
-- **Functions tab**: Check that the `_isr` function is being invoked and returning 200
-- **Deployments tab**: View function logs for a specific deployment
-
-### What Does NOT Exist (Current Gaps)
-
-- No Sentry or external error tracking integration
-- No alerting (Slack, email, PagerDuty) on API failures
-- No health check endpoint (e.g., `/api/radar-health`)
-- No structured logging (only console output)
-- No retry logic beyond token refresh — single attempt per API call, then returns `null`
-
-### Troubleshooting Playbook
-
-**Symptom: Feed is empty on the live site**
-
-1. Go to Vercel Dashboard → Logs → filter for `[Radar]`
-2. Look for `Token refresh failed` → refresh token is dead
-   - Fix: Re-run OAuth flow and update Vercel env vars:
-     ```bash
-     node scripts/inoreader-auth.mjs setup        # Get new auth URL
-     node scripts/inoreader-auth.mjs exchange CODE # Get new tokens
-     ```
-   - Update `INOREADER_ACCESS_TOKEN` and `INOREADER_REFRESH_TOKEN` in Vercel project settings
-   - Redeploy or wait up to 6 hours for ISR to pick up the new env vars
-3. Look for `Inoreader API error: 429` → rate limited
-   - Wait and let the next ISR cycle retry (6 hours)
-4. Look for `Wire fetch failed` or `Folder fetch failed` → network issue
-   - Usually transient; next ISR cycle should recover
-5. Look for `No folders found with prefix "GST-"` → Inoreader folder naming issue
-   - Verify folders in Inoreader are prefixed with `GST-`
+1. `curl -i https://mcp.globalstrategic.tech/health` — Worker reachable?
+   - Non-200 / timeout → Worker incident; check Cloudflare status + `mcp-server/src/docs/operations/DEPLOY.md` § C.6
+2. `curl -H "Authorization: Bearer $MCP_KEY_WEBSITE_RADAR" https://mcp.globalstrategic.tech/radar/snapshot | jq .` — does the Worker return both tiers OK?
+   - `wire.ok === false` or `fyi.ok === false` → check the `reason` field; map to Worker recovery path
+3. Check Vercel logs for `[Radar]` lines (above table) — if missing entirely, the SSR fetch never ran (likely missing `MCP_KEY_WEBSITE_RADAR` env var)
 
 **Symptom: Page crashes / 500 error**
 
-1. Check Vercel function logs for the error
-2. Most likely cause: missing environment variables
-3. Verify all five env vars are set in Vercel project settings
+The radar code path doesn't throw on Worker failures (it returns empty arrays). A 500 from `/hub/radar` means an unrelated bug in the layout or middleware — check the Vercel function stack trace.
 
 **Symptom: Content is stale (not updating)**
 

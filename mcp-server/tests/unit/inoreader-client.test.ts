@@ -117,14 +117,13 @@ describe('resolveConfig (via fetchAnnotatedItems entry point)', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('prefers Upstash token over env fallback (MCP DB read first per Phase 2 dual-read)', async () => {
+  it('prefers MCP DB token over env fallback', async () => {
     mockGet.mockResolvedValue('upstash-token');
     fetchSpy.mockResolvedValue(jsonResponse(makeStreamResponse([])));
 
     await fetchAnnotatedItems(baseEnv, 5);
 
-    // Phase 2: readAccessToken tries MCP DB first (mcp:inoreader:access_token);
-    // returns immediately on hit. Pre-Phase-2 this hit inoreader:access_token.
+    // readAccessToken's priority order: MCP DB → env. See inoreader-token-store.ts.
     expect(mockGet).toHaveBeenCalledWith('mcp:inoreader:access_token');
     const call = fetchSpy.mock.calls[0]!;
     const headers = call[1].headers as Record<string, string>;
