@@ -22,10 +22,15 @@
  * forbids it, and a wildcard would let any website read MCP responses on
  * a user's behalf.
  *
- * Audit date: 2026-05-04 (Phase 2 seed). Origins:
+ * Audit date: 2026-05-17 (BL-032.8 Phase 3 — added website origin). Origins:
  *   - https://claude.ai          — Claude.ai web UI with remote MCP connector
  *   - https://chatgpt.com        — ChatGPT web with MCP Connectors
  *   - https://cursor.sh          — Cursor (when used in browser mode; native CLI has no Origin)
+ *   - https://globalstrategic.tech — GST website (Vercel) — primarily server-to-server
+ *                                   SSR (no Origin header → CORS path no-op), but
+ *                                   listed so any future client-side fetch from the
+ *                                   website to /radar/snapshot has a viable path
+ *   - https://www.globalstrategic.tech — Same; www-prefixed variant
  *
  * To add an origin: paste the new value into ALLOWED_ORIGINS, bump the
  * audit-date comment, document the verification method in `AUTH.md`.
@@ -35,6 +40,8 @@ const ALLOWED_ORIGINS: ReadonlySet<string> = new Set([
   'https://claude.ai',
   'https://chatgpt.com',
   'https://cursor.sh',
+  'https://globalstrategic.tech',
+  'https://www.globalstrategic.tech',
 ]);
 
 /** Origin-aware CORS headers. Empty object when origin is null or disallowed. */

@@ -167,3 +167,82 @@ export function mergeFeed(fyi: RadarFyiItem[], wire: RadarWireItem[]): RadarFeed
     ...wire.map((item) => ({ ...item, kind: 'wire' as const, sortDate: item.publishedAt })),
   ].sort((a, b) => new Date(b.sortDate).getTime() - new Date(a.sortDate).getTime());
 }
+
+// ---------------------------------------------------------------------------
+// BL-032.8 Phase 4 — SnapshotItem adapters
+//
+// The MCP Worker's GET /radar/snapshot endpoint returns items in the
+// `SnapshotItem` shape (the canonical MCP-radar contract — see
+// mcp-server/src/content/radar-transform.ts). When RadarFeed.astro
+// consumes that endpoint instead of calling Inoreader directly, it
+// needs adapters from SnapshotItem back into the website's display
+// models (RadarFyiItem / RadarWireItem). These adapters preserve the
+// existing display behavior — HTML stripping + truncation, category
+// fallback, annotation timestamp surfacing — so the visible UX stays
+// unchanged across the cutover.
+//
+// Decoupled from the Inoreader API entirely — no `InoreaderItem` input,
+// so when the Phase B retirement removes `inoreader/client.ts` the
+// adapters keep working unchanged.
+// ---------------------------------------------------------------------------
+
+/**
+ * Shape returned by the MCP Worker's `/radar/snapshot` endpoint for one
+ * item. Mirrors `SnapshotItem` in the MCP server's `radar-transform.ts`,
+ * duplicated here only to avoid a build-time dependency on the
+ * mcp-server package from the website's Vite/Astro build. Changes to the
+ * MCP-side shape MUST be reflected here in lockstep.
+ */
+export interface RadarSnapshotItem {
+  id: string;
+  title: string;
+  url: string;
+  source: string;
+  sourceUrl?: string;
+  category: string | null;
+  publishedAt: string;
+  annotatedAt?: string;
+  summary?: string;
+  annotation?: { highlightedText?: string; gstTake?: string };
+}
+
+/**
+ * Adapt a SnapshotItem (MCP shape) into the website's FYI display model.
+ *
+ * Returns null if the item lacks annotation data — same contract as
+ * `toFyiItem(InoreaderItem)`, which returns null when there are no
+ * annotations. Preserves the existing display behavior (HTML strip,
+ * summary truncation, sort-by-annotatedAt) so the UX is unchanged
+ * across the cutover.
+ */
+export function snapshotToFyiItem(item: RadarSnapshotItem): RadarFyiItem | null {
+  const ann = item.annotation;
+  if (!ann || (!ann.highlightedText && !ann.gstTake)) return null;
+  return {
+    id: item.id,
+    title: (item.title || 'Untitled').trim(),
+    url: item.url,
+    source: item.source || 'Unknown',
+    sourceUrl: item.sourceUrl ?? '',
+    category: item.category ?? 'enterprise-tech',
+    publishedAt: item.publishedAt,
+    // Fall back to publishedAt when the MCP snapshot omits annotatedAt
+    // (defensive — toSnapshotItem populates it on FYI items by design).
+    annotatedAt: item.annotatedAt ?? item.publishedAt,
+    highlightedText: ann.highlightedText ?? '',
+    gstTake: ann.gstTake ?? '',
+    summary: truncate(stripHtml(item.summary ?? ''), 250),
+  };
+}
+
+/** Adapt a SnapshotItem (MCP shape) into the website's Wire display model. */
+export function snapshotToWireItem(item: RadarSnapshotItem): RadarWireItem {
+  return {
+    id: item.id,
+    title: (item.title || 'Untitled').trim(),
+    url: item.url,
+    source: item.source || 'Unknown',
+    category: item.category ?? 'enterprise-tech',
+    publishedAt: item.publishedAt,
+  };
+}

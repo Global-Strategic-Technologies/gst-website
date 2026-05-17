@@ -33,11 +33,13 @@ import { createServer } from './server';
 import { authenticate, authFailureResponse } from './auth/bearer';
 import { isPreflight, preflightResponse, withCors } from './auth/cors';
 import { safeLog } from './auth/safe-logger';
+import { hasScope } from './auth/scopes';
 import { createLimiter } from './ratelimit/limiter';
 import { tooManyRequestsResponse, withRateLimitHeaders } from './ratelimit/headers';
 import { captureMessage, sentryOptions, tagRequest, withSentry } from './observability/sentry';
 import { buildHealthPayload } from './observability/health';
 import { refreshRadarSnapshot } from './cron/radar-refresh';
+import { readWireLive, readFyiLive } from './content/radar-live-store';
 
 /**
  * Worker environment bindings.
@@ -53,6 +55,15 @@ export interface Env {
   // so this list doesn't need updating when a new MCP_KEY_<INITIALS> ships.
   // Listed explicitly only for the soak-week initial roster (Q11/Q13 — just RP).
   MCP_KEY_RP?: string;
+
+  // BL-032.8 Phase 3 — narrow-scope bearer for the website's `/hub/radar`
+  // SSR consumer. Carries only `resource:radar:read` via the companion
+  // `MCP_KEY_WEBSITE_RADAR_SCOPES` env var (JSON-encoded scope array, per
+  // bearer.ts:120 contract). Same key-discovery loop as the full MCP keys;
+  // the scope subset narrows the grant. See:
+  // src/docs/development/MCP_SERVER_RADAR_UNIFICATION_BL-032_8.md § Phase 3
+  MCP_KEY_WEBSITE_RADAR?: string;
+  MCP_KEY_WEBSITE_RADAR_SCOPES?: string;
 
   // Upstash Redis — Q13 / Path 2 (two-database architecture).
   //   Inoreader DB:  Read-Only token; shared `inoreader:*` keys (OAuth tokens
@@ -205,6 +216,65 @@ const handler: ExportedHandler<Env> = {
         path: url.pathname,
         reason: 'upstash-not-bound',
       });
+    }
+
+    // 4.5. GET /radar/snapshot — lightweight HTTP convenience endpoint
+    //      (BL-032.8 Phase 3). The website's SSR uses this instead of
+    //      calling Inoreader directly. Reuses the unified scope catalog
+    //      via `resource:radar:read` — same scope that gates the MCP
+    //      `resources/read` of `gst://radar/snapshot`, so a narrow-scope
+    //      bearer like `MCP_KEY_WEBSITE_RADAR` can serve this endpoint
+    //      without inflating to the full DEFAULT_SCOPES grant.
+    //
+    //      Slotted AFTER auth + rate-limit so it benefits from both
+    //      substrates; BEFORE MCP-handler dispatch so plain-HTTP traffic
+    //      doesn't go through MCP-RPC framing.
+    if (url.pathname === '/radar/snapshot' && request.method === 'GET') {
+      const startedAt = Date.now();
+      if (!hasScope(auth.scopes, 'resource:radar:read')) {
+        const missing = 'resource:radar:read';
+        safeLog({
+          event: 'radar-snapshot.scope-denied',
+          keyOwner: auth.keyOwner,
+          path: url.pathname,
+          status: 403,
+          reason: `missing-scope=${missing}`,
+          success: false,
+          errorCode: 'missing-scope',
+        });
+        const body = JSON.stringify({
+          error: 'forbidden',
+          missingScope: missing,
+          ownedScopes: auth.scopes,
+        });
+        const resp = new Response(body, {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const withRl = rlResult ? withRateLimitHeaders(resp, rlResult) : resp;
+        return withCors(withRl, origin);
+      }
+      const [wire, fyi] = await Promise.all([readWireLive(env), readFyiLive(env, 30)]);
+      const payload = JSON.stringify({
+        wire,
+        fyi,
+        fetchedAt: new Date().toISOString(),
+      });
+      const resp = new Response(payload, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const durationMs = Date.now() - startedAt;
+      safeLog({
+        event: 'radar-snapshot.request',
+        keyOwner: auth.keyOwner,
+        path: url.pathname,
+        status: 200,
+        durationMs,
+        success: true,
+      });
+      const withRl = rlResult ? withRateLimitHeaders(resp, rlResult) : resp;
+      return withCors(withRl, origin);
     }
 
     // 5. Authenticated + within rate limit — log + delegate to MCP handler.

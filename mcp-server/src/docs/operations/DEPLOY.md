@@ -327,6 +327,70 @@ One bearer token for yourself, named `MCP_KEY_<INITIALS>` per the [`AUTH.md`](./
 
 ---
 
+## A.6.1 — BL-032.8 Phase 3 — Narrow-scope key for the website's `/radar/snapshot` consumer
+
+This step issues the website's bearer key for the `GET /radar/snapshot` HTTP convenience endpoint (BL-032.8 Phase 3). Skip this section if you haven't reached the Phase 3 deploy yet.
+
+### What you need
+
+- One bearer token for the website's SSR consumer, named `MCP_KEY_WEBSITE_RADAR`.
+- The companion `MCP_KEY_WEBSITE_RADAR_SCOPES` env var that narrows the grant to the single scope this consumer needs.
+
+### Why narrow
+
+A full `DEFAULT_SCOPES` grant would let the website's bearer call any MCP Tool or Prompt. The `/radar/snapshot` endpoint only needs `resource:radar:read`. Issuing the narrow scope:
+
+- Limits blast radius if the website's env leaks
+- Keeps audit logs clean (`keyOwner=WEBSITE_RADAR` won't show up in tool-call telemetry)
+- Forward-compatible with BL-033 pilot-client onboarding (same per-key scope-subset mechanism)
+
+See [bearer.ts](../../auth/bearer.ts) line 100–160 for the resolution code and `MCP_SERVER_RADAR_UNIFICATION_BL-032_8.md` § Phase 3 for the design.
+
+### Steps
+
+1. **Generate a token** using any of the random-bytes snippets from A.6 step 1. Save in your password manager labeled "GST MCP — WEBSITE_RADAR — staging+production".
+2. **Set as Wrangler secrets on staging** — TWO secrets, the second is JSON-encoded:
+   ```bash
+   cd mcp-server
+   npx wrangler secret put MCP_KEY_WEBSITE_RADAR --env staging
+   # Paste the token value at the prompt
+   npx wrangler secret put MCP_KEY_WEBSITE_RADAR_SCOPES --env staging
+   # Paste: ["resource:radar:read"]
+   # (Yes, including the brackets and quotes — it's a JSON array literal.)
+   ```
+3. **Repeat for production** when you're ready to deploy Phase 4 (website cutover):
+   ```bash
+   npx wrangler secret put MCP_KEY_WEBSITE_RADAR --env production
+   npx wrangler secret put MCP_KEY_WEBSITE_RADAR_SCOPES --env production
+   ```
+4. **Add the same value to Vercel** when wiring the website cutover (Phase 4):
+   ```bash
+   # From the website repo (not mcp-server):
+   vercel env add MCP_KEY_WEBSITE_RADAR
+   # Paste the same token used on the Worker side. Apply to production +
+   # preview targets.
+   ```
+
+### Verification
+
+Smoke-test the endpoint with the new bearer (staging shown; substitute prod when deployed):
+
+```bash
+curl -s -H "Authorization: Bearer <token>" \
+  https://mcp-staging.globalstrategic.tech/radar/snapshot \
+  | head -c 500
+```
+
+Expected: HTTP 200 with JSON body `{ wire: {...}, fyi: {...}, fetchedAt: "..." }`.
+
+Without the bearer, expect HTTP 401. With a token that's missing the `resource:radar:read` scope (e.g., a key configured with `MCP_KEY_<OWNER>_SCOPES=["tool:*"]`), expect HTTP 403 with `{ "error": "forbidden", "missingScope": "resource:radar:read", "ownedScopes": [...] }`.
+
+### What you've completed
+
+✅ Narrow-scope bearer key issued for the website's `/radar/snapshot` consumer, on staging (and production when ready). The endpoint is now usable by any consumer that knows the bearer; the narrow scope keeps the audit trail clean.
+
+---
+
 ## A.7 — Local validation gate
 
 Before any `wrangler deploy`, verify the local build works. This catches the most common deploy-time blocker (a broken bundle) before it reaches Cloudflare's edge.

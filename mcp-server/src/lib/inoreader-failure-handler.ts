@@ -32,7 +32,7 @@
 import { openCircuit } from '../ratelimit/circuit-breaker';
 import { captureMessage } from '../observability/sentry';
 import type { Env } from '../worker';
-import type { InoreaderFailure, RateLimitInfo } from './inoreader-worker';
+import type { InoreaderFailure, RateLimitInfo } from './inoreader-client';
 
 /**
  * Source labels for the `source:` Sentry tag, so dashboard filters can
