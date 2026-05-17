@@ -76,25 +76,16 @@ export interface Env {
   UPSTASH_MCP_REST_URL?: string;
   UPSTASH_MCP_REST_TOKEN?: string;
 
-  // Inoreader OAuth — copied from Vercel env. Worker reads tokens; website
-  // remains sole refresh-writer (Q4 / Q13).
+  // Inoreader OAuth — Worker is sole refresh-writer post-BL-032.8 Phase B.
+  // `INOREADER_APP_ID` + `INOREADER_APP_KEY` identify the registered Inoreader
+  // app to the OAuth endpoint. `INOREADER_ACCESS_TOKEN` /
+  // `INOREADER_REFRESH_TOKEN` are env-var fallbacks for the Upstash-stored
+  // tokens (read priority: `mcp:inoreader:*` MCP DB → `inoreader:*` Inoreader DB
+  // → these env vars). See `inoreader-token-store.ts` for the read cascade.
   INOREADER_APP_ID?: string;
   INOREADER_APP_KEY?: string;
   INOREADER_ACCESS_TOKEN?: string;
   INOREADER_REFRESH_TOKEN?: string;
-
-  // BL-039: shared secret used to authenticate Worker → website
-  // /api/inoreader/refresh POST calls. Same value bound on both sides
-  // (wrangler secret put on Worker; Vercel env var on website). The Worker
-  // only TRIGGERS refresh via this endpoint — the website remains the sole
-  // refresh-writer (Q4 invariant preserved).
-  INOREADER_REFRESH_SECRET?: string;
-
-  // BL-039: optional override for the refresh endpoint URL. Defaults to
-  // production (https://globalstrategic.tech/api/inoreader/refresh). Set
-  // this on staging Worker during BL-039 soak verification to target a
-  // Vercel preview deployment; unset / restore-to-default after verification.
-  INOREADER_REFRESH_URL?: string;
 
   // Sentry — new project for service:mcp-server (Q6).
   SENTRY_DSN?: string;

@@ -27,9 +27,19 @@ Both tiers render in a **single unified feed**, sorted chronologically (FYI by a
 ### Data Flow
 
 ```
-Inoreader API ──► RadarFeed server island ──► Vercel ISR cache (6h) ──► Visitors
-                  (streams into page shell)
+Inoreader API ──► MCP Worker (mcp.globalstrategic.tech)
+                  • OAuth refresh (single-flight)
+                  • /radar/snapshot endpoint (resource:radar:read scope)
+                  • cron pre-warm every 6h (cron/radar-refresh.ts)
+                       │
+                       ▼
+                  RadarFeed server island (Vercel SSR)
+                       │
+                       ▼
+                  Vercel ISR cache (6h) ──► Visitors
 ```
+
+The website is a downstream consumer of the MCP Worker, not a parallel Inoreader caller (BL-032.8 Phase B, 2026-05-17). All Inoreader budget protections (rate-limit, breaker, day-counter, 429 header observability) apply to website traffic automatically.
 
 No GitHub Action crons. No auto-committed JSON files. No manual rebuilds for feed content.
 
@@ -41,19 +51,12 @@ The "Updated" timestamp in the page header (`RadarHeader.astro`) displays the se
 
 Set in Vercel project settings and local `.env`:
 
-| Variable                  | Purpose                                                                                                | Source                                                                                                  |
-| ------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `MCP_KEY_WEBSITE_RADAR`   | **Required** — Bearer for MCP Worker `/radar/snapshot` endpoint                                        | `wrangler secret put` on the Worker; mirrored as a Vercel env var here. Same value bound on both sides. |
-| `MCP_RADAR_SNAPSHOT_URL`  | Optional override of the MCP endpoint URL (default: `https://mcp.globalstrategic.tech/radar/snapshot`) | Vercel env (typically only set on preview deploys targeting `mcp-staging.globalstrategic.tech`)         |
-| `INOREADER_APP_ID`        | Inoreader developer app ID — **Phase A only** (retained for rollback; deleted in Phase B)              | Manual (Inoreader dev portal)                                                                           |
-| `INOREADER_APP_KEY`       | Inoreader developer app key — Phase A only                                                             | Manual (Inoreader dev portal)                                                                           |
-| `INOREADER_ACCESS_TOKEN`  | OAuth access token — Phase A only                                                                      | OAuth flow or Redis auto-refresh                                                                        |
-| `INOREADER_REFRESH_TOKEN` | OAuth refresh token — Phase A only                                                                     | OAuth flow or Redis auto-refresh                                                                        |
-| `INOREADER_FOLDER_PREFIX` | Folder prefix filter (default: `GST-`) — Phase A only                                                  | Manual                                                                                                  |
-| `KV_REST_API_URL`         | Upstash Redis REST endpoint                                                                            | Auto-provisioned by Vercel Upstash integration                                                          |
-| `KV_REST_API_TOKEN`       | Upstash Redis standard token (read/write)                                                              | Auto-provisioned by Vercel Upstash integration                                                          |
-
-**BL-032.8 Phase A status (2026-05-17)**: `RadarFeed.astro` now fetches from the MCP Worker's `/radar/snapshot` endpoint using `MCP_KEY_WEBSITE_RADAR`. The legacy `INOREADER_*` env vars are retained until Phase B (deletion lands as a single coordinated PR after 7-day soak). Operators only need `MCP_KEY_WEBSITE_RADAR` bound on Vercel for the website to render `/hub/radar` correctly post-cutover.
+| Variable                 | Purpose                                                                                                | Source                                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `MCP_KEY_WEBSITE_RADAR`  | **Required** — Bearer for MCP Worker `/radar/snapshot` endpoint                                        | `wrangler secret put` on the Worker; mirrored as a Vercel env var here. Same value bound on both sides. |
+| `MCP_RADAR_SNAPSHOT_URL` | Optional override of the MCP endpoint URL (default: `https://mcp.globalstrategic.tech/radar/snapshot`) | Vercel env (typically only set on preview deploys targeting `mcp-staging.globalstrategic.tech`)         |
+| `KV_REST_API_URL`        | Upstash Redis REST endpoint                                                                            | Auto-provisioned by Vercel Upstash integration                                                          |
+| `KV_REST_API_TOKEN`      | Upstash Redis standard token (read/write)                                                              | Auto-provisioned by Vercel Upstash integration                                                          |
 
 **To configure on Vercel**:
 
@@ -66,24 +69,18 @@ vercel env add MCP_KEY_WEBSITE_RADAR
 
 The Vercel Upstash integration also provisions `KV_REST_API_READ_ONLY_TOKEN`, `KV_URL`, and `REDIS_URL` — these are **not used** by the Radar client. See [Environment Variables for Redis](#environment-variables-for-redis) for details.
 
-## Inoreader Setup
+## Inoreader Setup (operator reference — Worker-side credentials)
+
+Inoreader OAuth state lives entirely on the MCP Worker post-BL-032.8 Phase B. The website has no Inoreader account / app / token. The setup procedure below is the Worker operator's responsibility; documented here for cross-system reference.
 
 ### Prerequisites
 
 - Inoreader Pro plan (~$7.50/month)
 - Register app at https://www.inoreader.com/developers/
 
-### OAuth Setup
+### OAuth Setup (Worker operator)
 
-The script reads `INOREADER_APP_ID` and `INOREADER_APP_KEY` from the project root `.env` file automatically.
-
-```bash
-node scripts/inoreader-auth.mjs setup        # 1. Prints auth URL to open in browser
-node scripts/inoreader-auth.mjs exchange CODE # 2. Exchange auth code for access + refresh tokens
-node scripts/inoreader-auth.mjs refresh       # 3. Manual fallback if refresh token needs rotation
-```
-
-Do steps 1-2 quickly back-to-back — auth codes expire within minutes. The exchange command prints both `INOREADER_ACCESS_TOKEN` and `INOREADER_REFRESH_TOKEN` to add to `.env` and Vercel env vars.
+OAuth tokens are bound on the Worker via `wrangler secret put INOREADER_APP_ID`, `INOREADER_APP_KEY`, and the initial-seed `INOREADER_ACCESS_TOKEN` / `INOREADER_REFRESH_TOKEN`. After bootstrap, the Worker's `inoreader-oauth.ts` module refreshes tokens autonomously and persists to the MCP DB. See [`mcp-server/src/docs/operations/DEPLOY.md`](../../../mcp-server/src/docs/operations/DEPLOY.md) for the full operator runbook.
 
 ### Folder Organization
 

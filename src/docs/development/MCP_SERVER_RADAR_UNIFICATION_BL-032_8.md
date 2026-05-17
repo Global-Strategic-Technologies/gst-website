@@ -11,7 +11,7 @@
 > **Sequel**: BL-033 (multi-tenant pilot clients) — unblocked by this initiative
 > **Supersedes**: BL-040 (parallel-refresh debounce) — obsoleted by the single-flight lock introduced here
 > **Scope**: makes the MCP Worker the sole Inoreader API consumer; retires the website's direct Inoreader access; introduces a Worker-owned OAuth refresh path with single-flight coordination via Upstash `SET ... NX EX`; exposes a lightweight `GET /radar/snapshot` HTTP endpoint authenticated through the existing unified scope catalog with a new narrow-scope bearer for the website.
-> **Status**: Open — implementation kickoff pending operator scheduling.
+> **Status**: ✅ **SHIPPED 2026-05-17** — Phase A (cutover) via PR #139, commit `89e5933`; Phase B (BL-039 retirement) via PR #TBD, commit `TBD` after 7-day soak window closed clean. All six phases complete. BL-033 unblocked.
 
 ## Context — why this earns its own initiative
 
@@ -615,4 +615,4 @@ If any check fails, document the gap and decide whether to ship a corrective PR 
 
 ---
 
-_Last updated: 2026-05-17 — initial filing, predecessor + sequel links, design rationale, six-phase execution plan with embedded verification + ASCII architecture/flow/matrix diagrams. Phase 0 Q-stanza pending Context7 lookup._
+_Last updated: 2026-05-17 — Phase B retirement landed. All six phases complete. Initiative ✅ SHIPPED._

@@ -1,44 +1,40 @@
 /**
- * Worker-specific Inoreader API client (BL-032 Phase 4a; renamed in BL-032.8).
+ * Worker-specific Inoreader API client (BL-032 Phase 4a; renamed in BL-032.8
+ * Phase 1; BL-039 fallback removed in BL-032.8 Phase B).
  *
- * **History**: this file was `inoreader-worker.ts` until BL-032.8 Phase 1
- * (2026-05-17), when it was renamed `inoreader-client.ts` as part of the
- * module-split refactor. The split clarifies responsibilities:
+ * **Responsibilities**: HTTP client — Inoreader API calls, retry on 401
+ * via the Worker-direct OAuth refresh path, structured failure mapping.
+ * The sibling modules cover orthogonal concerns:
  *
- *   - This file (`inoreader-client.ts`): HTTP client — Inoreader API calls,
- *     retry on 401, structured failure mapping.
  *   - [`inoreader-token-store.ts`](./inoreader-token-store.ts): Upstash token
- *     I/O (Q4 single-writer invariant lives here).
- *   - [`inoreader-bl039-fallback.ts`](./inoreader-bl039-fallback.ts): the
- *     `triggerWebsiteRefresh` fallback path — Phase A only, deleted in Phase B.
+ *     I/O (Q4 single-writer invariant lives here — Worker is sole writer
+ *     post-Phase-B).
+ *   - [`inoreader-oauth.ts`](./inoreader-oauth.ts): OAuth refresh module —
+ *     single-flight via Upstash lock + persistence.
  *   - [`single-flight-lock.ts`](./single-flight-lock.ts): generic Upstash
- *     SET-NX-EX primitive — used by Phase 2's `inoreader-oauth.ts`.
+ *     SET-NX-EX primitive — used by `inoreader-oauth.ts`.
  *
- * **Why a fork instead of reusing src/lib/inoreader/client.ts** (deviation
- * from Q4 Option A's "generalize via adapters" plan, recorded in the BL-032
- * doc's Q4 Resolved stanza):
+ * **Why a fork instead of reusing src/lib/inoreader/client.ts** (historical
+ * context — the website-side client was DELETED in Phase B; this fork is
+ * now the only Inoreader client in the codebase, but the original Q4 Option-A
+ * "generalize via adapters" alternative was rejected for these reasons):
  *
  *   1. The existing eslint `no-restricted-imports` rule blocks
- *      `mcp-server/src/**` from importing `src/lib/inoreader/client.ts` —
- *      put in place during BL-031.5 to enforce the local-stdio
- *      budget-protection invariant. Removing the rule to share the client
- *      would inflate the website-regression surface significantly.
- *   2. The Worker is **read-only** for `inoreader:*` Upstash keys (Q13) —
- *      it does NOT refresh OAuth tokens today. BL-032.8 Phase 2 introduces a
- *      Worker-owned refresh path (writes `mcp:inoreader:*` keys in the MCP
- *      DB); the website's `inoreader:*` keys retire in Phase B.
- *   3. Workers have no filesystem; the website client's dev-mode cache
- *      (`src/lib/inoreader/cache.ts`) wouldn't apply anyway.
+ *      `mcp-server/src/**` from importing the (now-deleted) website client.
+ *      The rule was put in place during BL-031.5 to enforce the local-stdio
+ *      budget-protection invariant; it's retained as a forward-compat guard.
+ *   2. The Worker is the SOLE refresh-writer (Q4 invariant relocated in
+ *      Phase 2 / consolidated in Phase B). Both the website's old client
+ *      AND its dev-mode cache have retired.
  *
- * **Failure modes are structured** (vs. the website client's `null`-on-fail):
- * radar tools need to distinguish "token stale, refresh needed" from
- * "Inoreader 429, open the circuit breaker" from "network timeout" — each
- * surfaces a different response to the user.
+ * **Failure modes are structured** (vs. the original website client's
+ * `null`-on-fail): radar tools need to distinguish "token stale, refresh
+ * needed" from "Inoreader 429, open the circuit breaker" from "network
+ * timeout" — each surfaces a different response to the user.
  */
 
 import type { InoreaderStreamResponse, InoreaderItem } from '../../../src/lib/inoreader/types';
 import { readAccessToken } from './inoreader-token-store';
-import { triggerWebsiteRefresh } from './inoreader-bl039-fallback';
 import { refreshAccessToken } from './inoreader-oauth';
 import type { Env } from '../worker';
 
@@ -189,28 +185,17 @@ async function singleFetch(
 /**
  * Authenticated fetch with self-healing on 401 (BL-032.8 Phase 2 — Phase A).
  *
- * Recovery cascade on Inoreader 401:
+ * Recovery cascade on Inoreader 401 (post-Phase-B — single path):
  *
- *   1. **Primary** — Worker-direct refresh via `refreshAccessToken('live-tool')`
- *      from [`inoreader-oauth.ts`](./inoreader-oauth.ts). Single-flight via
- *      Upstash lock; writes new tokens to MCP DB.
- *   2. **Fallback (Phase A only)** — Only when (1) returned
- *      `reason: 'inoreader-error'` (transient upstream issue). Call the
- *      website's `/api/inoreader/refresh` endpoint
- *      ([`inoreader-bl039-fallback.ts`](./inoreader-bl039-fallback.ts)).
- *      Provides soak-window safety net against bugs in the new primary path.
- *
- * For any other `refreshAccessToken` failure reason
- * (`invalid-refresh-token` / `upstash-write-failed` / `lock-timeout` /
- * `token-missing`), do NOT fall back to BL-039 — those reasons mean
- * credentials are dead, our infra is degraded, or a peer is already
- * refreshing. The BL-039 path would either hit the same Inoreader-side
- * rejection (invalid-refresh-token) or fight the in-flight peer
- * (lock-timeout / write-failed). In all those cases, surface the original
- * 401 to the caller as `token-stale`.
- *
- * Phase B deletes the BL-039 fallback branch entirely; primary becomes
- * the sole path.
+ *   Worker-direct refresh via `refreshAccessToken('live-tool')` from
+ *   [`inoreader-oauth.ts`](./inoreader-oauth.ts). Single-flight via Upstash
+ *   lock; writes new tokens to MCP DB; retry the original Inoreader call
+ *   once with the fresh token. If the refresh itself fails (for any reason
+ *   — invalid-refresh-token, upstash-write-failed, lock-timeout,
+ *   inoreader-error, token-missing) the original 401 surfaces to the
+ *   caller as `token-stale`. The BL-039 website-refresh fallback was
+ *   retired in Phase B once the 7-day Phase A soak proved the Worker-
+ *   direct path stable.
  */
 async function authenticatedFetch(
   env: Env,
@@ -221,30 +206,19 @@ async function authenticatedFetch(
   if (!(first instanceof Response)) return first;
   if (first.status !== 401) return first;
 
-  // Primary: Worker-direct refresh (BL-032.8 Phase 2).
   const refreshResult = await refreshAccessToken(env, 'live-tool');
   if (refreshResult.ok) {
     return retryWithFreshConfig(env, url, first);
   }
 
-  // Fallback to BL-039 ONLY for transient Inoreader-side failures.
-  // Other reasons (invalid-refresh-token / upstash-write-failed /
-  // lock-timeout / token-missing) are non-recoverable via the website
-  // path — see docstring rationale above.
-  if (refreshResult.reason === 'inoreader-error') {
-    const refreshed = await triggerWebsiteRefresh(env);
-    if (refreshed) return retryWithFreshConfig(env, url, first);
-  }
-
-  // All recovery paths exhausted; surface original 401 as token-stale.
+  // Refresh failed — surface original 401 as token-stale. No fallback path
+  // exists post-Phase-B; the substrate is single-writer by design.
   return first;
 }
 
 /**
  * Re-resolve config (pick up newly-written access token from Upstash),
- * then retry the original request exactly once. Used by both the primary
- * and BL-039 fallback success paths so the retry semantics stay
- * identical regardless of which refresh path succeeded.
+ * then retry the original request exactly once.
  *
  * `originalFirstAttempt` is returned when config re-resolution unexpectedly
  * fails — better to surface the original 401 envelope shape than to mask

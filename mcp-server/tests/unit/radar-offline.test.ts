@@ -30,7 +30,7 @@ import { SearchRadarOfflineInputSchema } from '../../src/tools/radar-offline';
 import {
   createMockAnnotatedResponse,
   createMockAllStreamsResponse,
-} from '../../../tests/e2e/fixtures/radar-mock-data';
+} from '../fixtures/radar-mock-data';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const CACHE_DIR = resolve(here, '../../../.cache/inoreader');
