@@ -74,29 +74,33 @@ describe('Worker roundtrip — Phase 1 transport spike', () => {
     expect(typeof body.gitSha).toBe('string');
   });
 
-  it('non-routed paths return 404 BEFORE the auth check fires (probe-noise suppression)', async () => {
-    // worker.ts isRoutedPath() allowlist gates `/mcp` (+ sub-paths) and
-    // `/radar/snapshot`. Everything else gets a 404 without invoking the
-    // bearer auth code, which means no `auth.failed bearer-rejected`
-    // Sentry event for /favicon.ico, /.env, /wp-admin, /robots.txt, etc.
+  it('non-routed paths return 404 without invoking auth', async () => {
+    // The discriminating signal: a 404 from the route allowlist carries
+    // NO `WWW-Authenticate` header. A 401 envelope (the alternative if
+    // auth had run and rejected the missing bearer) WOULD set one. So
+    // header-absence is the behavioral fingerprint that proves auth
+    // didn't run — independent of status code or response body, both of
+    // which could plausibly drift.
     const res = await worker.fetch('/favicon.ico');
     expect(res.status).toBe(404);
-    expect(await res.text()).toBe('Not Found');
-    // No `WWW-Authenticate` header — auth wasn't attempted (cross-checks
-    // that the 404 is from the route allowlist, not from a 401 envelope
-    // with a 404-shaped body).
     expect(res.headers.get('www-authenticate')).toBeNull();
   });
 
-  it('arbitrary scanner-style paths also 404 without auth', async () => {
-    // Spot-check a sampling of paths that bots commonly probe. None of
-    // them should reach the auth path (which would otherwise fire a
-    // Sentry warning per probe — see GST-MCP-SERVER-4 incident).
+  it('routed vs non-routed paths take different code paths', async () => {
+    // Sampling of paths bots commonly probe. None reach the auth check
+    // (status 404, no WWW-Authenticate header).
     for (const path of ['/.env', '/wp-admin', '/robots.txt', '/.git/config']) {
       const res = await worker.fetch(path);
       expect(res.status).toBe(404);
       expect(res.headers.get('www-authenticate')).toBeNull();
     }
+
+    // Boundary check: `/mcp` IS in the allowlist, so it reaches the
+    // auth path and returns a 401 envelope (with WWW-Authenticate) when
+    // no bearer is sent. This pins both sides of the allowlist gate.
+    const routed = await worker.fetch('/mcp', { method: 'POST', body: '{}' });
+    expect(routed.status).toBe(401);
+    expect(routed.headers.get('www-authenticate')).toContain('Bearer');
   });
 
   it('POST to /mcp without an MCP body returns a structured error, not a crash', async () => {
