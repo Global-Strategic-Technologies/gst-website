@@ -392,22 +392,28 @@ mcp-server/src/lib/
 
 **Deliverables**:
 
-- [ ] **Context7 docs lookup**: confirm Inoreader's `/oauth2/token` response shape — does it always return `expires_in`? Does it rotate `refresh_token` on every refresh? Record findings inline in this doc's Q-stanza below
-- [ ] **Custom-domain smoke test**: `curl https://mcp.globalstrategic.tech/health` returns expected JSON (production Worker custom domain already provisioned per [wrangler.toml:114-116](../../../mcp-server/wrangler.toml))
-- [ ] **Staging custom-domain smoke test**: `curl https://mcp-staging.globalstrategic.tech/health` (already provisioned per [wrangler.toml:78-80](../../../mcp-server/wrangler.toml))
+- [x] **Context7 docs lookup** (resolved 2026-05-17 via `/websites/inoreader_developers` Library ID — see Q0.1/Q0.2 below)
+- [x] **Custom-domain smoke test** (production): `curl https://mcp.globalstrategic.tech/health` returned `{"ok":true,"version":"0.1.0","upstashMcp":"ok","upstashInoreader":"ok","radarSnapshotAgeSeconds":6281,...}` — healthy
+- [x] **Staging custom-domain smoke test**: `curl https://mcp-staging.globalstrategic.tech/health` returned the same shape — both domains resolve to the expected Worker over HTTPS
 
 **Verification**:
 
-- Q-stanza below filled with concrete answers (no TBDs carried into Phase 1)
-- Both custom domains resolve to the expected Worker with HTTPS
+- [x] Q-stanza filled with concrete answers (no TBDs carried into Phase 1)
+- [x] Both custom domains resolve to the expected Worker with HTTPS
 
 **Q0.1 — Does Inoreader always return `expires_in` in the `/oauth2/token` response?**
 
-> _Phase 0 verification pending. Default assumption if absent: 3600s (OAuth 2.0 convention; matches Inoreader's documented example value). The `inoreader-token-store.ts` write path uses `expiresIn ?? 3600` as the fallback for the access-token TTL._
+> **Yes** (resolved 2026-05-17, Context7 lookup against `/websites/inoreader_developers`). The Inoreader OAuth docs list `expires_in (integer)` as a guaranteed field in the success response body: _"The expiration time of the new access token in seconds."_ No conditional language. `inoreader-oauth.ts` reads `expires_in` directly; the fallback `expiresIn ?? 3600` is defensive belt-and-suspenders for malformed responses (e.g. Inoreader API drift), not the expected path.
 
 **Q0.2 — Does Inoreader rotate the `refresh_token` on every refresh call?**
 
-> _Phase 0 verification pending. The website's existing `client.ts:228-273` handles rotation conditionally (`if (newRefreshToken) { saveTokensToKV(...) }`). The new Worker module ports this same conditional logic — safe whether rotation happens or not. Phase 0 answer informs whether the test coverage matrix needs both rotation + non-rotation cases (it does either way, for defense-in-depth)._
+> **Conditional rotation** (resolved 2026-05-17). The Inoreader docs document the response field as: _"refresh_token (string) — The refresh token (may be the same as the one provided)."_ So the response **always contains a `refresh_token` field**, but the value may equal the previously-stored token (no rotation this round) or differ (rotation). The new `inoreader-oauth.ts` module's persistence logic:
+>
+> 1. Always read `refresh_token` from the response if present
+> 2. Compare to the currently-stored value via `inoreader-token-store.ts`
+> 3. Only `SET` the new value if it differs — avoids redundant Upstash writes when no rotation happened
+>
+> Test coverage matrix needs both cases (Phase 2): rotation present (new value written) AND rotation absent (value-equal — no write). This is now a definitive contract, not defensive-paranoia coverage.
 
 ## Phase 1: Module-split refactor + single-flight-lock primitive
 
