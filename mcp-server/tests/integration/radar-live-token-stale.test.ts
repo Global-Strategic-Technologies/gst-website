@@ -24,13 +24,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 const { redisStore, MockRedis, fetchSpy } = vi.hoisted(() => {
+  // Single MCP DB store post-BL-032.8 Phase B.
   const stores = new Map<string, Map<string, { value: string; expiresAt?: number }>>();
   class MockRedis {
     private readonly store: Map<string, { value: string; expiresAt?: number }>;
-    constructor(opts: { url: string }) {
-      const key = opts.url.includes('mcp') ? 'mcp' : 'inoreader';
-      if (!stores.has(key)) stores.set(key, new Map());
-      this.store = stores.get(key)!;
+    constructor(_opts: { url: string }) {
+      if (!stores.has('mcp')) stores.set('mcp', new Map());
+      this.store = stores.get('mcp')!;
     }
     async get<T>(key: string): Promise<T | null> {
       const entry = this.store.get(key);
@@ -80,11 +80,6 @@ const env: Env = {
   INOREADER_APP_KEY: 'app-key',
   UPSTASH_MCP_REST_URL: 'https://mcp.upstash.io',
   UPSTASH_MCP_REST_TOKEN: 'mcp-rw',
-  UPSTASH_INOREADER_REST_URL: 'https://inoreader.upstash.io',
-  UPSTASH_INOREADER_REST_TOKEN: 'inoreader-ro',
-  // BL-039 secret deliberately bound so this test fails loud if the
-  // primary-path code ever accidentally routes through the fallback.
-  INOREADER_REFRESH_SECRET: 'bl039-shared-secret',
 };
 
 beforeEach(() => {

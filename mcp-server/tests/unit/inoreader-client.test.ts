@@ -50,11 +50,8 @@ const baseEnv: Env = {
   INOREADER_APP_ID: 'test-app-id',
   INOREADER_APP_KEY: 'test-app-key',
   INOREADER_ACCESS_TOKEN: 'env-access-token',
-  // Inoreader DB (read-only) — only DB this module talks to.
-  UPSTASH_INOREADER_REST_URL: 'https://inoreader-db.upstash.io',
-  UPSTASH_INOREADER_REST_TOKEN: 'test-inoreader-readonly',
-  // MCP DB also bound so test fixtures look like a real prod env, even
-  // though `inoreader-client.ts` doesn't read from this DB.
+  // MCP DB — sole Upstash binding post-BL-032.8 Phase B. Holds the
+  // `mcp:inoreader:*` token state that `readAccessToken` reads.
   UPSTASH_MCP_REST_URL: 'https://mcp-db.upstash.io',
   UPSTASH_MCP_REST_TOKEN: 'test-mcp-standard',
 };
@@ -168,8 +165,6 @@ describe('resolveConfig (via fetchAnnotatedItems entry point)', () => {
     await fetchAnnotatedItems(
       {
         ...baseEnv,
-        UPSTASH_INOREADER_REST_URL: undefined,
-        UPSTASH_INOREADER_REST_TOKEN: undefined,
         UPSTASH_MCP_REST_URL: undefined,
         UPSTASH_MCP_REST_TOKEN: undefined,
       },
@@ -212,7 +207,10 @@ describe('fetchAnnotatedItems — happy path + failure modes', () => {
     if (result.ok) return;
     expect(result.status).toBe(401);
     expect(result.reason).toBe('token-stale');
-    expect(result.message).toMatch(/website-side will refresh|website-side ISR/i);
+    // Post-BL-032.8 Phase B: 401 message no longer references website-side
+    // ISR. Worker-direct refresh is the sole recovery path; the message
+    // explains that authenticatedFetch attempted a refresh + retry already.
+    expect(result.message).toMatch(/Worker attempts a refresh \+ single retry/i);
   });
 
   it('maps 429 to inoreader-rate-limit', async () => {

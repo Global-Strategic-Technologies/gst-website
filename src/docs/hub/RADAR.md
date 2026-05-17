@@ -55,8 +55,6 @@ Set in Vercel project settings and local `.env`:
 | ------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
 | `MCP_KEY_WEBSITE_RADAR`  | **Required** — Bearer for MCP Worker `/radar/snapshot` endpoint                                        | `wrangler secret put` on the Worker; mirrored as a Vercel env var here. Same value bound on both sides. |
 | `MCP_RADAR_SNAPSHOT_URL` | Optional override of the MCP endpoint URL (default: `https://mcp.globalstrategic.tech/radar/snapshot`) | Vercel env (typically only set on preview deploys targeting `mcp-staging.globalstrategic.tech`)         |
-| `KV_REST_API_URL`        | Upstash Redis REST endpoint                                                                            | Auto-provisioned by Vercel Upstash integration                                                          |
-| `KV_REST_API_TOKEN`      | Upstash Redis standard token (read/write)                                                              | Auto-provisioned by Vercel Upstash integration                                                          |
 
 **To configure on Vercel**:
 
@@ -67,7 +65,7 @@ vercel env add MCP_KEY_WEBSITE_RADAR
 # Apply to: production, preview, development.
 ```
 
-The Vercel Upstash integration also provisions `KV_REST_API_READ_ONLY_TOKEN`, `KV_URL`, and `REDIS_URL` — these are **not used** by the Radar client. See [Environment Variables for Redis](#environment-variables-for-redis) for details.
+The website holds **no** Upstash bindings post-BL-032.8 Phase B — all radar state lives on the MCP Worker. If Vercel's Upstash integration still appears in **Storage** with `KV_REST_API_*` env vars surfaced on the project, they're inert (unused by any source file). You can safely disconnect the integration; the `gst-radar-tokens` database it pointed at was decommissioned in the same Phase B batch (see [`mcp-server/src/docs/operations/DEPLOY.md` § C.13](../../../mcp-server/src/docs/operations/DEPLOY.md)).
 
 ## Inoreader Setup (operator reference — Worker-side credentials)
 
@@ -139,82 +137,23 @@ src/
 │   ├── WireItem.astro            # Compact wire feed item
 │   └── CategoryFilter.astro     # Client-side filter pills (gravity spacing)
 ├── lib/inoreader/
-│   ├── types.ts                  # TypeScript interfaces
-│   ├── client.ts                 # API client (fetch wrappers + token refresh + Upstash Redis persistence)
-│   ├── cache.ts                  # Dev-mode file cache (24h TTL)
-│   └── transform.ts             # Data transformation + categories + feed merge
+│   ├── types.ts                  # TypeScript interfaces (RadarFyiItem, RadarWireItem, ...)
+│   └── transform.ts             # MCP-snapshot adapters + CATEGORIES + mergeFeed
 ├── pages/hub/radar/
 │   └── index.astro               # Main Radar page (SSR + ISR + unified feed)
 scripts/
 └── inoreader-auth.mjs           # OAuth setup helper
 ```
 
-## Token Management
+## Token Management (Worker-side)
 
-### How Token Refresh Works
+Inoreader OAuth state is now owned end-to-end by the MCP Worker (BL-032.8 Phase B, 2026-05-17). The website holds no OAuth state, runs no refresh logic, and does not write to any `inoreader:*` Upstash namespace. The Worker:
 
-The API client handles token refresh automatically at runtime:
+- Stores tokens in the MCP Upstash DB under `mcp:inoreader:access_token` (TTL: `expires_in − 60s`) and `mcp:inoreader:refresh_token` (no TTL)
+- Refreshes proactively on the 6h cron tick (TTL-watch) and reactively on Inoreader 401 (single-flight via `mcp:inoreader:refresh-lock`, 10s SET-NX-EX)
+- Mints new tokens via `node scripts/inoreader-auth.mjs setup` when the refresh chain itself dies — operator runbook: [`mcp-server/src/docs/operations/DEPLOY.md` § C.5 — Inoreader budget recovery](../../../mcp-server/src/docs/operations/DEPLOY.md)
 
-1. Each API call uses the current access token (resolved from Redis or env var)
-2. If Inoreader returns **401** (token expired), the client automatically uses the refresh token to obtain a **new access token AND a new refresh token**
-3. Both new tokens are **persisted to Upstash Redis** so they survive across serverless invocations
-4. Subsequent API calls in the same page render reuse the in-memory refreshed token
-5. The next ISR invocation (up to 6 hours later) loads the Redis-stored tokens automatically
-
-### Token Resolution Priority
-
-When resolving credentials, the client checks three sources in order:
-
-| Priority | Source               | When Used                                                    |
-| -------- | -------------------- | ------------------------------------------------------------ |
-| 1        | In-memory refresh    | Token was refreshed during this SSR invocation               |
-| 2        | Upstash Redis store  | Token was refreshed by a previous invocation and persisted   |
-| 3        | Environment variable | Initial setup value; used when Redis is empty or unavailable |
-
-### Upstash Redis Persistence
-
-Tokens are stored in Upstash Redis to survive across serverless invocations:
-
-| Redis Key                 | Value               | TTL     |
-| ------------------------- | ------------------- | ------- |
-| `inoreader:access_token`  | OAuth access token  | 30 days |
-| `inoreader:refresh_token` | OAuth refresh token | 30 days |
-
-**Why this matters:** Without Redis, each serverless invocation starts fresh with the original env var tokens. When Inoreader's refresh endpoint returns a new refresh token (which it does on every refresh), the old refresh token may be invalidated. Without persistence, the next invocation would try to use the now-invalid original refresh token from the env var — eventually causing a permanent auth failure.
-
-With Redis, the refreshed token chain stays alive indefinitely — each refresh stores the new pair, and the next invocation picks it up.
-
-**Graceful degradation:** All Redis operations are wrapped in try/catch. If Redis is unavailable (dev mode, quota exceeded, not configured), the client silently falls back to env vars — matching the pre-Redis behavior.
-
-### Redis Setup
-
-Redis is provisioned via the Upstash integration in the Vercel Marketplace (free tier: 10,000 commands/day, 256MB):
-
-1. **Vercel Dashboard → Storage → Upstash** → Create a Redis database named `gst-radar-tokens`
-2. **Connect to the project** — Upstash auto-provisions 5 env vars (`KV_REST_API_URL`, `KV_REST_API_TOKEN`, `KV_REST_API_READ_ONLY_TOKEN`, `KV_URL`, `REDIS_URL`); only the first two are used by the Radar client
-3. **Redeploy** — the code detects Redis automatically via `@upstash/redis`
-
-No code changes or local env var setup needed. For local development, Redis is not used — the client reads tokens from `.env` as usual.
-
-### Environment Variables for Redis
-
-The Vercel Upstash integration auto-provisions **5 environment variables** when you connect a Redis store to the project. The Radar client only uses 2 of them:
-
-| Variable                      | Used by Radar? | Purpose                                                                                                                                                                                                                      |
-| ----------------------------- | :------------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `KV_REST_API_URL`             |    **Yes**     | Upstash Redis REST endpoint (HTTPS) — used by `@upstash/redis` SDK                                                                                                                                                           |
-| `KV_REST_API_TOKEN`           |    **Yes**     | Standard token with **full read/write** access — required because the client both reads and writes tokens                                                                                                                    |
-| `KV_REST_API_READ_ONLY_TOKEN` |       No       | Read-only token — permits only read commands (GET, not SET). Intended for client-side/browser code where the token is publicly exposed. Not needed here since all Redis calls are server-side in Vercel serverless functions |
-| `KV_URL`                      |       No       | Redis protocol connection string (`rediss://...`) — for native Redis clients like `ioredis`. Not needed since we use the REST SDK                                                                                            |
-| `REDIS_URL`                   |       No       | Alias for `KV_URL` — same Redis protocol string, provided for compatibility with frameworks that expect this name                                                                                                            |
-
-**Why `KV_REST_API_TOKEN` and not `KV_REST_API_READ_ONLY_TOKEN`?** The Radar client calls `store.set()` to persist refreshed OAuth tokens. The read-only token would reject these write operations. The standard token is safe to use because it never leaves the server — it's only accessed in Vercel serverless functions, never exposed to browsers.
-
-**Fallback env var names:** The code also checks `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` as fallbacks, supporting direct Upstash SDK conventions if the Vercel-specific names are not set.
-
-### Manual Fallback
-
-The manual refresh script (`node scripts/inoreader-auth.mjs refresh`) remains available if the entire token chain breaks (e.g., Redis store deleted, both tokens expired). In that case, re-run the full OAuth flow and update the Vercel env vars.
+The legacy `gst-radar-tokens` Upstash database (which held `inoreader:*` keys when the website was the refresh-writer) was decommissioned in the same Phase B operator batch. See DEPLOY.md § C.13 for the cleanup walkthrough.
 
 ## Dev-Mode API Cache
 

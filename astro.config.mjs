@@ -39,20 +39,6 @@ export default defineConfig({
         default: 'https://mcp.globalstrategic.tech/radar/snapshot',
       }),
 
-      // Upstash Redis — optional, graceful degradation when absent
-      KV_REST_API_URL: envField.string({ context: 'server', access: 'secret', optional: true }),
-      KV_REST_API_TOKEN: envField.string({ context: 'server', access: 'secret', optional: true }),
-      UPSTASH_REDIS_REST_URL: envField.string({
-        context: 'server',
-        access: 'secret',
-        optional: true,
-      }),
-      UPSTASH_REDIS_REST_TOKEN: envField.string({
-        context: 'server',
-        access: 'secret',
-        optional: true,
-      }),
-
       // Sentry — public DSN for client init (auth token stays in process.env for build-time config)
       PUBLIC_SENTRY_DSN: envField.string({ context: 'client', access: 'public', optional: true }),
 

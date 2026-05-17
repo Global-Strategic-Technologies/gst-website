@@ -50,12 +50,10 @@ const baseEnv: Env = {
   INOREADER_APP_ID: 'test-app-id',
   INOREADER_APP_KEY: 'test-app-key',
   INOREADER_ACCESS_TOKEN: 'env-access-token',
-  // Path 2: two databases. The shared MockRedis collapses both clients onto
-  // the same spies, so behavior tests work unchanged — `redisGet` dispatches
-  // by key (`inoreader:access_token` for OAuth read, `mcp:radar:cache:*` for
-  // cache, `mcp:radar:circuit-open` for breaker).
-  UPSTASH_INOREADER_REST_URL: 'https://inoreader-db.upstash.io',
-  UPSTASH_INOREADER_REST_TOKEN: 'test-inoreader-readonly',
+  // Single MCP DB (post-BL-032.8 Phase B). The shared MockRedis collapses
+  // all clients onto the same spies; `redisGet` dispatches by key
+  // (`mcp:inoreader:*` for OAuth, `mcp:radar:cache:*` for cache,
+  // `mcp:radar:circuit-open` for breaker).
   UPSTASH_MCP_REST_URL: 'https://mcp-db.upstash.io',
   UPSTASH_MCP_REST_TOKEN: 'test-mcp-standard',
 };

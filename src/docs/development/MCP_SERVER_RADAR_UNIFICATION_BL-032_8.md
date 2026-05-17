@@ -615,4 +615,4 @@ If any check fails, document the gap and decide whether to ship a corrective PR 
 
 ---
 
-_Last updated: 2026-05-17 — Phase B retirement landed. All six phases complete. Initiative ✅ SHIPPED._
+_Last updated: 2026-05-17 — Phase B retirement landed, including the legacy Upstash Inoreader DB decommissioning (Worker bindings + dual-read fallback removed; database itself decommissioned via the C.13 operator runbook in DEPLOY.md). All six phases complete. Initiative ✅ SHIPPED._

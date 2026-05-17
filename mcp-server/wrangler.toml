@@ -47,11 +47,12 @@ upload_source_maps = true
 # Secrets (set via `wrangler secret put <NAME> --env staging`):
 #   MCP_KEY_RP                    Bearer token for thefastcat (RP) — initial soak roster (Q11/Q13)
 #
-#   # Path 2 (Q13 / two-database architecture) — see DEPLOY.md § A.3 for the operator walkthrough.
-#   UPSTASH_INOREADER_REST_URL    Website's Upstash DB URL (same as website's UPSTASH_REDIS_REST_URL)
-#   UPSTASH_INOREADER_REST_TOKEN  Website-DB Read-Only token — Worker reads inoreader:* keys only
-#   UPSTASH_MCP_REST_URL          New MCP-only Upstash DB URL (Worker-owned)
+#   # Upstash bindings — single MCP DB (post-BL-032.8 Phase B; see DEPLOY.md § A.3).
+#   # The historical two-DB split (Q13 / Path 2) retired the website-shared Inoreader DB
+#   # in Phase B alongside the website's direct Inoreader client.
+#   UPSTASH_MCP_REST_URL          MCP-only Upstash DB URL (Worker-owned, gst-mcp)
 #   UPSTASH_MCP_REST_TOKEN        MCP-DB Standard token (read+write) for mcp:* keys
+#                                  (incl. mcp:inoreader:* OAuth token state)
 #
 #   INOREADER_APP_ID              Registered Inoreader OAuth app ID
 #   INOREADER_APP_KEY             Registered Inoreader OAuth app key
@@ -98,9 +99,10 @@ crons = ["0 */6 * * *"]
 # ---------------------------------------------------------------------------
 # Production
 # ---------------------------------------------------------------------------
-# Same secret matrix as staging (with `--env production` values). Path 2:
-# UPSTASH_INOREADER_REST_TOKEN = website-DB Read-Only token; UPSTASH_MCP_REST_TOKEN
-# = MCP-DB Standard token. Independent rotation cadence per DB.
+# Same secret matrix as staging (with `--env production` values).
+# UPSTASH_MCP_REST_TOKEN = MCP-DB Standard token (read+write); rotate via
+# `wrangler secret put UPSTASH_MCP_REST_TOKEN --env production` after
+# regenerating the token in the Upstash console.
 
 [env.production]
 name = "gst-mcp"

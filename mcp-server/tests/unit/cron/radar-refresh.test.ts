@@ -40,7 +40,6 @@ const { mockCounterGet, mockCounterIncrby, mockCounterExpire, mockCreateMcpClien
 );
 vi.mock('../../../src/lib/upstash-clients', () => ({
   createMcpClient: mockCreateMcpClient,
-  createInoreaderClient: vi.fn(),
 }));
 
 const { mockCaptureMessage } = vi.hoisted(() => ({ mockCaptureMessage: vi.fn() }));

@@ -65,14 +65,12 @@ export interface Env {
   MCP_KEY_WEBSITE_RADAR?: string;
   MCP_KEY_WEBSITE_RADAR_SCOPES?: string;
 
-  // Upstash Redis — Q13 / Path 2 (two-database architecture).
-  //   Inoreader DB:  Read-Only token; shared `inoreader:*` keys (OAuth tokens
-  //                  written by the website). Storage-layer Q4 enforcement.
-  //   MCP DB:        Standard token; Worker-owned `mcp:*` keys (rate-limit
-  //                  counters, circuit breaker, health probe, status cache).
-  // See src/lib/upstash-clients.ts for the helper factories that consume these.
-  UPSTASH_INOREADER_REST_URL?: string;
-  UPSTASH_INOREADER_REST_TOKEN?: string;
+  // Upstash Redis — single MCP DB (post-BL-032.8 Phase B). All Inoreader-related
+  // state (OAuth tokens, rate-limit counters, circuit breaker, status cache,
+  // radar caches) lives under the `mcp:*` namespace in this database. The
+  // historical website-shared "Inoreader DB" (`inoreader:*` keys, Read-Only
+  // token, `UPSTASH_INOREADER_REST_*` bindings) was retired in Phase B
+  // alongside the website's direct Inoreader client. See upstash-clients.ts.
   UPSTASH_MCP_REST_URL?: string;
   UPSTASH_MCP_REST_TOKEN?: string;
 
@@ -80,8 +78,8 @@ export interface Env {
   // `INOREADER_APP_ID` + `INOREADER_APP_KEY` identify the registered Inoreader
   // app to the OAuth endpoint. `INOREADER_ACCESS_TOKEN` /
   // `INOREADER_REFRESH_TOKEN` are env-var fallbacks for the Upstash-stored
-  // tokens (read priority: `mcp:inoreader:*` MCP DB → `inoreader:*` Inoreader DB
-  // → these env vars). See `inoreader-token-store.ts` for the read cascade.
+  // tokens (read priority: `mcp:inoreader:*` MCP DB → these env vars).
+  // See `inoreader-token-store.ts` for the read cascade.
   INOREADER_APP_ID?: string;
   INOREADER_APP_KEY?: string;
   INOREADER_ACCESS_TOKEN?: string;

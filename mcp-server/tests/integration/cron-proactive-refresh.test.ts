@@ -92,8 +92,6 @@ const env: Env = {
   INOREADER_APP_KEY: 'app-key',
   UPSTASH_MCP_REST_URL: 'https://mcp.upstash.io',
   UPSTASH_MCP_REST_TOKEN: 'mcp-rw',
-  UPSTASH_INOREADER_REST_URL: 'https://inoreader.upstash.io',
-  UPSTASH_INOREADER_REST_TOKEN: 'inoreader-ro',
 };
 
 beforeEach(() => {

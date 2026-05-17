@@ -196,7 +196,7 @@ async function performRefresh(
       ok: false,
       reason: 'token-missing',
       message:
-        'No Inoreader refresh token available. Upstash mcp:inoreader:refresh_token + inoreader:refresh_token + INOREADER_REFRESH_TOKEN env are all empty. Manual OAuth re-link required.',
+        'No Inoreader refresh token available. Upstash mcp:inoreader:refresh_token + INOREADER_REFRESH_TOKEN env are both empty. Manual OAuth re-link required.',
     };
     logAndCapture(result, source, Date.now() - startedAt);
     return result;

@@ -141,7 +141,7 @@ async function resolveConfig(env: Env): Promise<ResolvedConfig | InoreaderFailur
       status: 500,
       reason: 'token-missing',
       message:
-        'No Inoreader access token available. Upstash key inoreader:access_token is empty and INOREADER_ACCESS_TOKEN env fallback is not set.',
+        'No Inoreader access token available. Upstash key mcp:inoreader:access_token is empty and INOREADER_ACCESS_TOKEN env fallback is not set.',
     };
   }
 
@@ -290,7 +290,7 @@ async function mapHttpStatus(res: Response): Promise<InoreaderFailure> {
       status: 401,
       reason: 'token-stale',
       message:
-        'Inoreader access token is stale. The website-side ISR will refresh on its next call; retry the Worker call after that.',
+        'Inoreader access token is stale. The Worker attempts a refresh + single retry on the failing call path (authenticatedFetch); a token-stale envelope here means that retry also failed or refresh was not viable.',
     };
   }
   if (status === 429) {
