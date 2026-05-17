@@ -2,79 +2,143 @@
 /**
  * RadarFeed — Server island that fetches and renders the unified feed.
  *
+ * **BL-032.8 Phase A (2026-05-17)**: data source switched from direct
+ * Inoreader API calls (`inoreader/client.ts`) to the MCP Worker's
+ * `GET /radar/snapshot` endpoint. The website is now a downstream
+ * consumer of the MCP substrate rather than a parallel Inoreader caller.
+ *
+ * Architectural benefits:
+ *   - All BL-032.7 substrate protections (rate-limit, circuit breaker,
+ *     day-counter, 429-header observability) automatically extend to
+ *     website traffic.
+ *   - One OAuth identity for all GST Inoreader traffic — visible as a
+ *     single usage graph in the Inoreader Developer Console.
+ *   - A 429 from Inoreader trips ONE circuit breaker and affects every
+ *     consumer identically.
+ *
+ * **Rollback path**: `git revert` of the Phase A cutover commit. The
+ * `inoreader/client.ts` module and the website-side OAuth flow are
+ * retained in Phase A; Phase B (post-soak) deletes them. No runtime
+ * feature flag — git is the source of truth for the rollback.
+ *
  * Used with `server:defer` so the page shell (header, nav, category filter)
- * renders instantly while this component fetches from the Inoreader API.
+ * renders instantly while this component fetches from the MCP Worker.
  * No props — data fetching is self-contained to avoid prop serialization
  * limits imposed by server islands.
  */
 import FyiItem from './FyiItem.astro';
 import WireItem from './WireItem.astro';
 
-import { fetchAnnotatedItems, fetchAllStreams } from '../../lib/inoreader/client';
-import { toFyiItem, toWireItem, mergeFeed, CATEGORIES } from '../../lib/inoreader/transform';
-import { INOREADER_FOLDER_PREFIX } from 'astro:env/server';
+import {
+  snapshotToFyiItem,
+  snapshotToWireItem,
+  mergeFeed,
+  CATEGORIES,
+  type RadarSnapshotItem,
+} from '../../lib/inoreader/transform';
 
 import type { RadarFyiItem, RadarWireItem } from '../../lib/inoreader/types';
 
-// --- Data Fetching (runs on Vercel at revalidation time) ---
-// Fetch FYI items and Wire streams in parallel to reduce TTFB.
+/**
+ * MCP Worker endpoint URL. Production by default; can be overridden via
+ * Vercel env if a preview deploy needs to target the staging Worker.
+ */
+const RADAR_SNAPSHOT_URL =
+  import.meta.env.MCP_RADAR_SNAPSHOT_URL ?? 'https://mcp.globalstrategic.tech/radar/snapshot';
 
-const [fyiResult, wireResult] = await Promise.allSettled([
-  fetchAnnotatedItems(30),
-  fetchAllStreams(INOREADER_FOLDER_PREFIX, 15),
-]);
+/**
+ * Narrow-scope bearer (BL-032.8 Phase 3). Configured via Vercel env vars
+ * `MCP_KEY_WEBSITE_RADAR` on production + preview. Carries only
+ * `resource:radar:read` on the Worker side — see DEPLOY.md § A.6.1.
+ */
+const RADAR_BEARER = import.meta.env.MCP_KEY_WEBSITE_RADAR;
 
-let fyi: RadarFyiItem[] = [];
-if (fyiResult.status === 'fulfilled' && fyiResult.value) {
-  fyi = fyiResult.value.items.map(toFyiItem).filter((item): item is RadarFyiItem => item !== null);
-} else if (fyiResult.status === 'rejected') {
-  console.error('[Radar] FYI items fetch failed:', fyiResult.reason);
+interface RadarSnapshotResponse {
+  wire: { ok: true; items: RadarSnapshotItem[] } | { ok: false; reason: string; message?: string };
+  fyi: { ok: true; items: RadarSnapshotItem[] } | { ok: false; reason: string; message?: string };
+  fetchedAt: string;
 }
 
+// --- Data Fetching (runs on Vercel at revalidation time) ---
+
+let fyi: RadarFyiItem[] = [];
 let wire: RadarWireItem[] = [];
-if (wireResult.status === 'fulfilled' && wireResult.value) {
-  const fyiUrls = new Set(fyi.map((f) => f.url));
-  const allWireItems = wireResult.value.items
-    .filter((item) => {
-      const url = item.canonical?.[0]?.href || item.alternate?.[0]?.href || '';
-      return !fyiUrls.has(url);
-    })
-    .map(toWireItem);
 
-  // Guarantee each category is represented before filling chronologically.
-  // Without this, categories with older items get pushed past the display cap.
-  const MIN_PER_CATEGORY = 3;
-  const MAX_WIRE = 30;
-  const picked = new Set<string>();
-  const result: RadarWireItem[] = [];
+if (!RADAR_BEARER) {
+  // Misconfigured env — log loud so operators see it in Vercel logs;
+  // continue with empty feeds rather than throwing (radar-empty UX is
+  // better than 500-ing the whole page).
+  console.error(
+    '[Radar] MCP_KEY_WEBSITE_RADAR is not bound on the env. /hub/radar will render empty.'
+  );
+} else {
+  try {
+    const res = await fetch(RADAR_SNAPSHOT_URL, {
+      headers: {
+        Authorization: `Bearer ${RADAR_BEARER}`,
+        Accept: 'application/json',
+      },
+    });
+    if (!res.ok) {
+      console.error(`[Radar] MCP /radar/snapshot returned ${res.status} ${res.statusText}`);
+    } else {
+      const snapshot = (await res.json()) as RadarSnapshotResponse;
 
-  // Pass 1: pick up to MIN_PER_CATEGORY items per category (newest first)
-  const categoryKeys = Object.keys(CATEGORIES);
-  for (const cat of categoryKeys) {
-    let count = 0;
-    for (const item of allWireItems) {
-      if (item.category === cat && count < MIN_PER_CATEGORY) {
-        picked.add(item.id);
-        result.push(item);
-        count++;
+      // FYI tier
+      if (snapshot.fyi.ok) {
+        fyi = snapshot.fyi.items
+          .map(snapshotToFyiItem)
+          .filter((item): item is RadarFyiItem => item !== null);
+      } else {
+        console.error('[Radar] FYI tier failed:', snapshot.fyi.reason, snapshot.fyi.message);
+      }
+
+      // Wire tier
+      if (snapshot.wire.ok) {
+        const fyiUrls = new Set(fyi.map((f) => f.url));
+        const allWireItems = snapshot.wire.items
+          .filter((item) => !fyiUrls.has(item.url))
+          .map(snapshotToWireItem);
+
+        // Guarantee each category is represented before filling chronologically.
+        // Without this, categories with older items get pushed past the display cap.
+        const MIN_PER_CATEGORY = 3;
+        const MAX_WIRE = 30;
+        const picked = new Set<string>();
+        const result: RadarWireItem[] = [];
+
+        // Pass 1: pick up to MIN_PER_CATEGORY items per category (newest first)
+        const categoryKeys = Object.keys(CATEGORIES);
+        for (const cat of categoryKeys) {
+          let count = 0;
+          for (const item of allWireItems) {
+            if (item.category === cat && count < MIN_PER_CATEGORY) {
+              picked.add(item.id);
+              result.push(item);
+              count++;
+            }
+          }
+        }
+
+        // Pass 2: fill remaining slots chronologically from unpicked items
+        for (const item of allWireItems) {
+          if (result.length >= MAX_WIRE) break;
+          if (!picked.has(item.id)) {
+            result.push(item);
+          }
+        }
+
+        // Sort final set by date so the display order stays chronological
+        wire = result.sort(
+          (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+        );
+      } else {
+        console.error('[Radar] Wire tier failed:', snapshot.wire.reason, snapshot.wire.message);
       }
     }
+  } catch (e) {
+    console.error('[Radar] MCP /radar/snapshot fetch threw:', e);
   }
-
-  // Pass 2: fill remaining slots chronologically from unpicked items
-  for (const item of allWireItems) {
-    if (result.length >= MAX_WIRE) break;
-    if (!picked.has(item.id)) {
-      result.push(item);
-    }
-  }
-
-  // Sort final set by date so the display order stays chronological
-  wire = result.sort(
-    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-  );
-} else if (wireResult.status === 'rejected') {
-  console.error('[Radar] Wire fetch failed:', wireResult.reason);
 }
 
 // --- Merge into unified feed ---

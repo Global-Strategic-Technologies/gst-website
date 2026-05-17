@@ -10,7 +10,15 @@
  * - HTML stripping, entity decoding, text truncation
  */
 
-import { toFyiItem, toWireItem, mergeFeed, CATEGORIES } from '@/lib/inoreader/transform';
+import {
+  toFyiItem,
+  toWireItem,
+  mergeFeed,
+  CATEGORIES,
+  snapshotToFyiItem,
+  snapshotToWireItem,
+  type RadarSnapshotItem,
+} from '@/lib/inoreader/transform';
 import type { InoreaderItem, InoreaderAnnotation } from '@/lib/inoreader/types';
 import type { RadarFyiItem, RadarWireItem } from '@/lib/inoreader/types';
 
@@ -542,5 +550,185 @@ describe('mergeFeed', () => {
       expect(item.gstTake).toBe('Practitioner insight');
       expect(item.highlightedText).toBe('Key passage');
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// BL-032.8 Phase 4 — SnapshotItem adapters
+//
+// Verify the website's adapter functions that turn the MCP Worker's
+// /radar/snapshot response into the website's RadarFyiItem / RadarWireItem
+// display models. These adapters MUST preserve the display contract that
+// the FyiItem / WireItem .astro components depend on — title trim,
+// 'Untitled' fallback, source fallback, category fallback, summary HTML
+// strip + 250-char truncate, FYI null when no annotation.
+// ---------------------------------------------------------------------------
+
+function makeSnapshotItem(overrides: Partial<RadarSnapshotItem> = {}): RadarSnapshotItem {
+  return {
+    id: 'snap-item-1',
+    title: 'Snapshot Article',
+    url: 'https://example.com/article',
+    source: 'Example Feed',
+    sourceUrl: 'https://example.com',
+    category: 'pe-ma',
+    publishedAt: '2026-05-17T10:00:00Z',
+    annotatedAt: '2026-05-17T10:05:00Z',
+    summary: '<p>Plain summary text</p>',
+    ...overrides,
+  };
+}
+
+describe('snapshotToFyiItem', () => {
+  it('maps a SnapshotItem with annotation into a RadarFyiItem', () => {
+    const snap = makeSnapshotItem({
+      annotation: { highlightedText: 'key passage', gstTake: 'GST analysis' },
+    });
+
+    const fyi = snapshotToFyiItem(snap);
+
+    expect(fyi).not.toBeNull();
+    expect(fyi).toMatchObject({
+      id: 'snap-item-1',
+      title: 'Snapshot Article',
+      url: 'https://example.com/article',
+      source: 'Example Feed',
+      sourceUrl: 'https://example.com',
+      category: 'pe-ma',
+      publishedAt: '2026-05-17T10:00:00Z',
+      annotatedAt: '2026-05-17T10:05:00Z',
+      highlightedText: 'key passage',
+      gstTake: 'GST analysis',
+    });
+  });
+
+  it('returns null when the snapshot item has no annotation', () => {
+    const snap = makeSnapshotItem({ annotation: undefined });
+    expect(snapshotToFyiItem(snap)).toBeNull();
+  });
+
+  it('returns null when annotation has neither highlightedText nor gstTake', () => {
+    const snap = makeSnapshotItem({ annotation: {} });
+    expect(snapshotToFyiItem(snap)).toBeNull();
+  });
+
+  it('strips HTML and truncates summary to 250 chars', () => {
+    const longSummary = '<p>' + 'a '.repeat(200) + '</p>';
+    const snap = makeSnapshotItem({
+      summary: longSummary,
+      annotation: { highlightedText: 'highlight' },
+    });
+
+    const fyi = snapshotToFyiItem(snap);
+
+    expect(fyi).not.toBeNull();
+    expect(fyi!.summary).not.toMatch(/<[^>]+>/); // no HTML tags
+    expect(fyi!.summary.length).toBeLessThanOrEqual(253); // 250 + '...'
+  });
+
+  it('falls back to publishedAt when annotatedAt is missing', () => {
+    const snap = makeSnapshotItem({
+      annotatedAt: undefined,
+      annotation: { highlightedText: 'highlight' },
+    });
+
+    const fyi = snapshotToFyiItem(snap);
+
+    expect(fyi).not.toBeNull();
+    expect(fyi!.annotatedAt).toBe('2026-05-17T10:00:00Z');
+  });
+
+  it('falls back to enterprise-tech when category is null', () => {
+    const snap = makeSnapshotItem({
+      category: null,
+      annotation: { highlightedText: 'highlight' },
+    });
+
+    const fyi = snapshotToFyiItem(snap);
+
+    expect(fyi).not.toBeNull();
+    expect(fyi!.category).toBe('enterprise-tech');
+  });
+
+  it('uses empty string for sourceUrl when MCP snapshot omits it', () => {
+    const snap = makeSnapshotItem({
+      sourceUrl: undefined,
+      annotation: { highlightedText: 'highlight' },
+    });
+
+    const fyi = snapshotToFyiItem(snap);
+
+    expect(fyi).not.toBeNull();
+    expect(fyi!.sourceUrl).toBe('');
+  });
+
+  it("falls back to 'Untitled' / 'Unknown' for blank title/source", () => {
+    const snap = makeSnapshotItem({
+      title: '',
+      source: '',
+      annotation: { highlightedText: 'highlight' },
+    });
+
+    const fyi = snapshotToFyiItem(snap);
+
+    expect(fyi).not.toBeNull();
+    expect(fyi!.title).toBe('Untitled');
+    expect(fyi!.source).toBe('Unknown');
+  });
+
+  it('trims whitespace from title', () => {
+    const snap = makeSnapshotItem({
+      title: '  Padded Title  ',
+      annotation: { highlightedText: 'highlight' },
+    });
+
+    const fyi = snapshotToFyiItem(snap);
+
+    expect(fyi!.title).toBe('Padded Title');
+  });
+});
+
+describe('snapshotToWireItem', () => {
+  it('maps a SnapshotItem into a RadarWireItem (no annotation handling)', () => {
+    const snap = makeSnapshotItem({ category: 'enterprise-tech' });
+
+    const wire = snapshotToWireItem(snap);
+
+    expect(wire).toMatchObject({
+      id: 'snap-item-1',
+      title: 'Snapshot Article',
+      url: 'https://example.com/article',
+      source: 'Example Feed',
+      category: 'enterprise-tech',
+      publishedAt: '2026-05-17T10:00:00Z',
+    });
+  });
+
+  it('falls back to enterprise-tech when category is null', () => {
+    const snap = makeSnapshotItem({ category: null });
+    expect(snapshotToWireItem(snap).category).toBe('enterprise-tech');
+  });
+
+  it("falls back to 'Untitled' / 'Unknown' for blank title/source", () => {
+    const snap = makeSnapshotItem({ title: '', source: '' });
+    const wire = snapshotToWireItem(snap);
+    expect(wire.title).toBe('Untitled');
+    expect(wire.source).toBe('Unknown');
+  });
+
+  it('trims whitespace from title', () => {
+    const snap = makeSnapshotItem({ title: '  Wire Title  ' });
+    expect(snapshotToWireItem(snap).title).toBe('Wire Title');
+  });
+
+  it('ignores annotation field even if present (Wire is non-annotated tier)', () => {
+    const snap = makeSnapshotItem({
+      annotation: { highlightedText: 'should be ignored', gstTake: 'also ignored' },
+    });
+    const wire = snapshotToWireItem(snap);
+    // RadarWireItem shape has no annotation field — TypeScript prevents
+    // access, but assert the runtime shape too.
+    expect((wire as unknown as { annotation?: unknown }).annotation).toBeUndefined();
+    expect((wire as unknown as { highlightedText?: unknown }).highlightedText).toBeUndefined();
   });
 });
