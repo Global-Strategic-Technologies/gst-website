@@ -58,6 +58,14 @@ export interface LogEvent {
   errorCode?: string;
   /** MCP Resource URI (e.g. `gst://library/vdr-structure`). Carried on `resource_cache_*` events from BL-032.5 Phase 1; safe to log (URIs are public identifiers). */
   uri?: string;
+  /**
+   * Sub-classification for `auth.failed` events — the discriminator from
+   * `AuthFailure.reason`. Lets `wrangler tail`-side analysis distinguish
+   * probe traffic (`missing-header` / `empty-token` / `bad-scheme`) from
+   * actionable failures (`invalid-token` / `malformed-scopes`) even when
+   * Sentry capture was suppressed for the probe-class entries.
+   */
+  authFailureReason?: string;
 }
 
 /**

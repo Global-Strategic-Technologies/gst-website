@@ -40,10 +40,33 @@ export interface AuthSuccess {
   readonly scopes: readonly string[];
 }
 
+/**
+ * Discriminated reason for an auth failure. The worker.ts layer uses this
+ * to decide whether to fire a Sentry event:
+ *
+ * - `missing-header` / `empty-token` / `bad-scheme` are **probe-class**:
+ *   no real bearer was sent. Bots / scanners produce these; real clients
+ *   never do. The Worker still safeLogs them (forensics survive in
+ *   Cloudflare logs) but skips Sentry capture so probe traffic doesn't
+ *   burn quota or obscure actionable failures.
+ *
+ * - `invalid-token` / `malformed-scopes` are **actionable**: a bearer was
+ *   sent but doesn't match any `MCP_KEY_*` (likely stale team-member
+ *   config) or the operator's `_SCOPES` companion env var is malformed
+ *   JSON. Sentry captures these.
+ */
+export type AuthFailureReason =
+  | 'missing-header'
+  | 'empty-token'
+  | 'bad-scheme'
+  | 'invalid-token'
+  | 'malformed-scopes';
+
 /** Failed auth — Worker should respond with the carried 401 envelope. */
 export interface AuthFailure {
   readonly ok: false;
   readonly status: 401;
+  readonly reason: AuthFailureReason;
   readonly bodyText: string;
   readonly headers: Readonly<Record<string, string>>;
 }
@@ -55,11 +78,12 @@ const DEFAULT_401_HEADERS: Readonly<Record<string, string>> = Object.freeze({
   'Content-Type': 'application/json',
 });
 
-function unauthorized(reason: string): AuthFailure {
+function unauthorized(reason: AuthFailureReason, message: string): AuthFailure {
   return {
     ok: false,
     status: 401,
-    bodyText: JSON.stringify({ error: 'unauthorized', message: reason }),
+    reason,
+    bodyText: JSON.stringify({ error: 'unauthorized', message }),
     headers: DEFAULT_401_HEADERS,
   };
 }
@@ -77,17 +101,18 @@ function unauthorized(reason: string): AuthFailure {
  */
 export function authenticate(request: Request, env: Record<string, unknown>): AuthResult {
   const auth = request.headers.get('Authorization');
-  if (!auth) return unauthorized('Missing Authorization header');
+  if (!auth) return unauthorized('missing-header', 'Missing Authorization header');
   // HTTP runtimes normalize trailing whitespace on header values, so
   // `Authorization: Bearer ` arrives as `"Bearer"` (no trailing space).
   // Route the bare-scheme and whitespace-only-token cases to the empty-
   // token branch so operators see a clearer 401 message.
-  if (auth === 'Bearer' || /^Bearer\s+$/.test(auth)) return unauthorized('Empty Bearer token');
+  if (auth === 'Bearer' || /^Bearer\s+$/.test(auth))
+    return unauthorized('empty-token', 'Empty Bearer token');
   if (!auth.startsWith(BEARER_PREFIX))
-    return unauthorized('Authorization header must use Bearer scheme');
+    return unauthorized('bad-scheme', 'Authorization header must use Bearer scheme');
 
   const token = auth.slice(BEARER_PREFIX.length).trim();
-  if (!token) return unauthorized('Empty Bearer token');
+  if (!token) return unauthorized('empty-token', 'Empty Bearer token');
 
   for (const [name, value] of Object.entries(env)) {
     if (typeof value !== 'string') continue;
@@ -106,7 +131,10 @@ export function authenticate(request: Request, env: Record<string, unknown>): Au
         // than silently falling back to DEFAULT_SCOPES. An operator who
         // mistyped JSON in a Worker secret should see the failure
         // immediately, not discover it via a downstream scope-mismatch.
-        return unauthorized(`Bearer key ${owner} has malformed _SCOPES JSON: ${result.message}`);
+        return unauthorized(
+          'malformed-scopes',
+          `Bearer key ${owner} has malformed _SCOPES JSON: ${result.message}`
+        );
       }
       return {
         ok: true,
@@ -116,7 +144,28 @@ export function authenticate(request: Request, env: Record<string, unknown>): Au
     }
   }
 
-  return unauthorized('Invalid Bearer token');
+  return unauthorized('invalid-token', 'Invalid Bearer token');
+}
+
+/**
+ * Reasons that warrant a Sentry capture. A real client with a stale key
+ * shows up as `invalid-token`; an operator-side `_SCOPES` typo shows up as
+ * `malformed-scopes`. Everything else (missing header, empty token, wrong
+ * scheme) is probe-class behavior and is captured to `wrangler tail` only.
+ */
+const SENTRY_WORTHY_REASONS: ReadonlySet<AuthFailureReason> = new Set([
+  'invalid-token',
+  'malformed-scopes',
+]);
+
+/**
+ * Predicate the worker.ts layer uses to gate Sentry capture on auth
+ * failures. Keeps the policy colocated with the reason enum so a future
+ * reason addition doesn't silently fall into either bucket without a
+ * deliberate decision.
+ */
+export function shouldCaptureAuthFailure(reason: AuthFailureReason): boolean {
+  return SENTRY_WORTHY_REASONS.has(reason);
 }
 
 /** Suffix for the optional per-key scope-subset companion env var. */
