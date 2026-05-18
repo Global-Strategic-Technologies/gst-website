@@ -17,20 +17,37 @@
  * synthetic Astro `APIContext` and a `next()` spy. The spy lets us
  * assert whether the middleware short-circuited (no next() call) or
  * passed through to the route handler (next() called once).
+ *
+ * Test setup conventions (per repo rubric):
+ *   - `vi` is the only Vitest symbol explicitly imported; `describe` /
+ *     `it` / `expect` come from globals (`vitest.config.ts` sets
+ *     `globals: true`). Importing them explicitly silently shadows
+ *     the globals in Vitest 4.x — see TEST_BEST_PRACTICES § anti-pattern #9.
+ *   - The synthetic context covers only `url` + `request` (the two
+ *     fields the current middleware touches). If `onRequest` grows to
+ *     read `context.cookies` / `context.locals` / `context.params` /
+ *     `context.redirect`, extend `makeContext()` accordingly — a hot
+ *     `undefined` access from a test stub silently crashes in real
+ *     Astro and surfaces as a hard-to-debug E2E failure.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { vi } from 'vitest';
 import { onRequest } from '@/middleware';
 import type { APIContext, MiddlewareNext } from 'astro';
 
+/** Test-only origin — used to make "this is a fixture" intent explicit. */
+const TEST_ORIGIN = 'http://localhost';
+
 function makeContext(opts: {
-  url: string;
+  path: string;
   method?: string;
   headers?: Record<string, string>;
 }): APIContext {
-  const url = new URL(opts.url);
+  const url = new URL(opts.path, TEST_ORIGIN);
   const headers = new Headers(opts.headers ?? {});
   const request = new Request(url, { method: opts.method ?? 'GET', headers });
+  // Cast scoped to (url, request) — the only fields onRequest reads today.
+  // See module-top JSDoc for the extension contract.
   return { url, request } as APIContext;
 }
 
@@ -54,91 +71,124 @@ async function callMiddleware(ctx: APIContext, next: MiddlewareNext): Promise<Re
 }
 
 describe('middleware — discovery defense for /api/inoreader/refresh', () => {
-  it('returns 404 for an anonymous GET (no Authorization header)', async () => {
-    const ctx = makeContext({
-      url: 'https://globalstrategic.tech/api/inoreader/refresh',
-      method: 'GET',
-    });
+  // ---------------------------------------------------------------------
+  // Probe-class requests (no usable bearer) MUST short-circuit to 404
+  // BEFORE the route handler runs. Every test in this block asserts both:
+  //   - status === 404 (response shape)
+  //   - next not called (the load-bearing "route handler didn't run"
+  //     invariant — a regression that 404s but still invokes next would
+  //     defeat the discovery defense)
+  // ---------------------------------------------------------------------
+
+  it('rejects anonymous GET as 404 without invoking the route handler', async () => {
     const next = makeNext();
-    const res = await callMiddleware(ctx, next);
+    const res = await callMiddleware(
+      makeContext({ path: '/api/inoreader/refresh', method: 'GET' }),
+      next
+    );
 
     expect(res.status).toBe(404);
-    // Route handler MUST NOT have run — the whole point is to short-circuit
-    // before the function does any work.
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('returns 404 for an anonymous POST (no Authorization header)', async () => {
-    const ctx = makeContext({
-      url: 'https://globalstrategic.tech/api/inoreader/refresh',
-      method: 'POST',
-    });
-    const res = await callMiddleware(ctx, makeNext());
+  it('rejects anonymous POST as 404 without invoking the route handler', async () => {
+    const next = makeNext();
+    const res = await callMiddleware(
+      makeContext({ path: '/api/inoreader/refresh', method: 'POST' }),
+      next
+    );
+
     expect(res.status).toBe(404);
+    expect(next).not.toHaveBeenCalled();
   });
 
-  it('returns 404 for a request with a non-Bearer Authorization scheme', async () => {
-    const ctx = makeContext({
-      url: 'https://globalstrategic.tech/api/inoreader/refresh',
-      method: 'POST',
-      headers: { Authorization: 'Basic c29tZTpjcmVk' },
-    });
-    const res = await callMiddleware(ctx, makeNext());
+  it('rejects non-Bearer schemes (e.g. Basic) as 404 without invoking the route handler', async () => {
+    const next = makeNext();
+    const res = await callMiddleware(
+      makeContext({
+        path: '/api/inoreader/refresh',
+        method: 'POST',
+        headers: { Authorization: 'Basic c29tZTpjcmVk' },
+      }),
+      next
+    );
+
     expect(res.status).toBe(404);
+    expect(next).not.toHaveBeenCalled();
   });
 
-  it('returns 404 for a Bearer header with an empty token', async () => {
-    const ctx = makeContext({
-      url: 'https://globalstrategic.tech/api/inoreader/refresh',
-      method: 'POST',
-      headers: { Authorization: 'Bearer    ' },
-    });
-    const res = await callMiddleware(ctx, makeNext());
+  it('rejects empty/whitespace-only Bearer tokens as 404 without invoking the route handler', async () => {
+    const next = makeNext();
+    const res = await callMiddleware(
+      makeContext({
+        path: '/api/inoreader/refresh',
+        method: 'POST',
+        headers: { Authorization: 'Bearer    ' },
+      }),
+      next
+    );
+
     expect(res.status).toBe(404);
+    expect(next).not.toHaveBeenCalled();
   });
 
-  it('lets a request with a Bearer token through to the route handler', async () => {
-    // The middleware doesn't validate the bearer value — that's the route
-    // handler's job. Middleware only filters anonymous probes. A bearer
-    // present (even if wrong) reaches the route handler, which compares
-    // against the configured secret and returns 401 + Sentry on mismatch.
-    const ctx = makeContext({
-      url: 'https://globalstrategic.tech/api/inoreader/refresh',
-      method: 'POST',
-      headers: { Authorization: 'Bearer some-token-value' },
-    });
-    const expectedResponse = new Response('handler ran', { status: 200 });
-    const next = makeNext(expectedResponse);
+  // ---------------------------------------------------------------------
+  // Authenticated requests pass through to the route handler. The
+  // middleware doesn't validate the bearer VALUE (that's the route
+  // handler's job — bearer-present-but-wrong → 401 + Sentry); it only
+  // filters fully anonymous probes.
+  // ---------------------------------------------------------------------
 
-    const res = await callMiddleware(ctx, next);
+  it('passes Bearer-present requests through, applies security headers', async () => {
+    const handlerResponse = new Response('handler ran', { status: 200 });
+    const next = makeNext(handlerResponse);
+
+    const res = await callMiddleware(
+      makeContext({
+        path: '/api/inoreader/refresh',
+        method: 'POST',
+        headers: { Authorization: 'Bearer some-token-value' },
+      }),
+      next
+    );
+
     expect(next).toHaveBeenCalledTimes(1);
-    // Middleware mutates the response by adding security headers but doesn't
-    // change status. 200 from the (mocked) route handler should pass through.
     expect(res.status).toBe(200);
+    // The security-header layer applies to passthrough responses too —
+    // any future refactor that bypasses that layer for the
+    // discovery-defense-allowed branch should fail here.
+    expect(res.headers.get('Content-Security-Policy')).toBeTruthy();
   });
 
-  it('does not gate non-internal endpoints', async () => {
-    // The discovery defense applies ONLY to paths in INTERNAL_ENDPOINTS.
-    // Public paths like `/hub/radar` must reach the route handler with no
-    // Authorization header — gating them would break the website.
-    const ctx = makeContext({ url: 'https://globalstrategic.tech/hub/radar', method: 'GET' });
-    const next = makeNext();
-    await onRequest(ctx, next);
+  // ---------------------------------------------------------------------
+  // Boundary cases — the defense applies to EXACT pathname matches,
+  // nothing more. These tests pin the boundary so a future refactor
+  // (e.g. switching to `startsWith()` for a path family) fails loud.
+  // ---------------------------------------------------------------------
 
+  it('does not gate public paths (e.g. /hub/radar)', async () => {
+    const next = makeNext();
+    await callMiddleware(makeContext({ path: '/hub/radar', method: 'GET' }), next);
     expect(next).toHaveBeenCalledTimes(1);
   });
 
-  it('does not gate similar-but-different paths (no over-matching)', async () => {
-    // The INTERNAL_ENDPOINTS check uses exact pathname match, not prefix.
-    // A theoretical `/api/inoreader/refresh/something` or
-    // `/api/inoreader/refresh-v2` would NOT inherit the gate.
-    const ctx = makeContext({
-      url: 'https://globalstrategic.tech/api/inoreader/refresh-different',
-      method: 'GET',
-    });
+  it('does not over-match adjacent suffixes (refresh-different)', async () => {
+    // A theoretical `/api/inoreader/refresh-v2` or `/api/inoreader/refresh-different`
+    // is NOT in INTERNAL_ENDPOINTS, and the exact-match check must NOT inherit.
     const next = makeNext();
-    await onRequest(ctx, next);
+    await callMiddleware(
+      makeContext({ path: '/api/inoreader/refresh-different', method: 'GET' }),
+      next
+    );
+    expect(next).toHaveBeenCalledTimes(1);
+  });
 
+  it('does not over-match prefix children (refresh/sub)', async () => {
+    // A theoretical `/api/inoreader/refresh/sub` is a true prefix collision.
+    // If someone refactors `INTERNAL_ENDPOINTS.has(p)` into a prefix check,
+    // this test would start failing — that's the regression net.
+    const next = makeNext();
+    await callMiddleware(makeContext({ path: '/api/inoreader/refresh/sub', method: 'GET' }), next);
     expect(next).toHaveBeenCalledTimes(1);
   });
 });
