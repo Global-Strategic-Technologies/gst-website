@@ -79,6 +79,40 @@ routes = [
   { pattern = "mcp-staging.globalstrategic.tech", custom_domain = true }
 ]
 
+# Staging deliberately has NO cron trigger.
+#
+# Staging exists to validate code changes, not to keep caches warm.
+# Both envs share the same Inoreader OAuth app (single registered
+# application; same credentials mirrored across envs), so a staging
+# cron firing on the same `0 */6 * * *` cadence as production
+# DOUBLED the Zone-1 budget burn against the shared 100/day cap.
+# Discovered Day 2 of the BL-032.8 Phase B soak (2026-05-18) when
+# the `mcp:inoreader:day-counter:YYYY-MM-DD` reached 36 at 12:30 UTC
+# instead of the expected 18 (3 prod firings × 6 calls).
+#
+# Cron-path validation now lives in:
+#   - `mcp-server/tests/integration/cron-proactive-refresh.test.ts`
+#   - Manual `wrangler dev --env staging` runs ad-hoc
+#   - Occasional manual `wrangler tail --env staging` of the
+#     scheduled handler triggered via Cloudflare dashboard "Trigger"
+#
+# If you re-enable the staging cron in the future, FIRST confirm
+# the staging Inoreader credentials point at a different registered
+# OAuth app from production — otherwise this regression returns.
+
+# ---------------------------------------------------------------------------
+# Production
+# ---------------------------------------------------------------------------
+# Same secret matrix as staging (with `--env production` values). Path 2:
+# UPSTASH_INOREADER_REST_TOKEN = website-DB Read-Only token; UPSTASH_MCP_REST_TOKEN
+# = MCP-DB Standard token. Independent rotation cadence per DB.
+
+[env.production]
+name = "gst-mcp"
+routes = [
+  { pattern = "mcp.globalstrategic.tech", custom_domain = true }
+]
+
 # Radar snapshot refresh — cadence calibrated to cache TTL.
 #
 # The `scheduled` handler in `src/worker.ts` delegates to
@@ -97,24 +131,8 @@ routes = [
 # the 2026-05-15 BL-032.6 demo-day Zone-1 exhaustion incident — see
 # BL-032_5_TESTING_FINDINGS.md § Section Z and BACKLOG.md § BL-032.7.
 # Corrected to `0 */6 * * *` (every 6h, top of UTC hour) on
-# 2026-05-16; matches cache TTL exactly; ~24 Inoreader calls/day per
-# env, well under the per-app 100/day Zone-1 budget.
-[env.staging.triggers]
-crons = ["0 */6 * * *"]
-
-# ---------------------------------------------------------------------------
-# Production
-# ---------------------------------------------------------------------------
-# Same secret matrix as staging (with `--env production` values). Path 2:
-# UPSTASH_INOREADER_REST_TOKEN = website-DB Read-Only token; UPSTASH_MCP_REST_TOKEN
-# = MCP-DB Standard token. Independent rotation cadence per DB.
-
-[env.production]
-name = "gst-mcp"
-routes = [
-  { pattern = "mcp.globalstrategic.tech", custom_domain = true }
-]
-
-# Same 6h cadence as staging — see commentary above (cadence rule + 2026-05-15 RCA reference).
+# 2026-05-16; matches cache TTL exactly; ~24 Inoreader calls/day,
+# well under the per-app 100/day Zone-1 budget. Production-only —
+# staging deliberately runs no cron (see staging block above).
 [env.production.triggers]
 crons = ["0 */6 * * *"]
