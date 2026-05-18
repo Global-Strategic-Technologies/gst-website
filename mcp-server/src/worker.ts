@@ -30,14 +30,16 @@
 
 import { createMcpHandler } from 'agents/mcp';
 import { createServer } from './server';
-import { authenticate, authFailureResponse } from './auth/bearer';
+import { authenticate, authFailureResponse, shouldCaptureAuthFailure } from './auth/bearer';
 import { isPreflight, preflightResponse, withCors } from './auth/cors';
 import { safeLog } from './auth/safe-logger';
+import { hasScope } from './auth/scopes';
 import { createLimiter } from './ratelimit/limiter';
 import { tooManyRequestsResponse, withRateLimitHeaders } from './ratelimit/headers';
 import { captureMessage, sentryOptions, tagRequest, withSentry } from './observability/sentry';
 import { buildHealthPayload } from './observability/health';
 import { refreshRadarSnapshot } from './cron/radar-refresh';
+import { readWireLive, readFyiLive } from './content/radar-live-store';
 
 /**
  * Worker environment bindings.
@@ -53,6 +55,15 @@ export interface Env {
   // so this list doesn't need updating when a new MCP_KEY_<INITIALS> ships.
   // Listed explicitly only for the soak-week initial roster (Q11/Q13 — just RP).
   MCP_KEY_RP?: string;
+
+  // BL-032.8 Phase 3 — narrow-scope bearer for the website's `/hub/radar`
+  // SSR consumer. Carries only `resource:radar:read` via the companion
+  // `MCP_KEY_WEBSITE_RADAR_SCOPES` env var (JSON-encoded scope array, per
+  // bearer.ts:120 contract). Same key-discovery loop as the full MCP keys;
+  // the scope subset narrows the grant. See:
+  // src/docs/development/MCP_SERVER_RADAR_UNIFICATION_BL-032_8.md § Phase 3
+  MCP_KEY_WEBSITE_RADAR?: string;
+  MCP_KEY_WEBSITE_RADAR_SCOPES?: string;
 
   // Upstash Redis — Q13 / Path 2 (two-database architecture).
   //   Inoreader DB:  Read-Only token; shared `inoreader:*` keys (OAuth tokens
@@ -114,6 +125,26 @@ export interface Env {
 // is the safe pattern. Construction cost is sub-millisecond (registry
 // assembly only — no I/O).
 
+/**
+ * Path-matching predicate for the routed-paths allowlist. Anything that
+ * doesn't return true here gets a 404 before the auth path runs (see the
+ * fetch handler step 3 comment for rationale + Sentry-noise impact).
+ *
+ *   - `/mcp`             — exact + sub-paths: `agents/mcp`'s
+ *                          `createMcpHandler` serves the JSON-RPC endpoint
+ *                          at `/mcp` and may use sub-paths for session
+ *                          resume. Prefix match keeps that surface intact.
+ *   - `/radar/snapshot`  — exact: single GET endpoint, no sub-paths.
+ *   - `/health`          — handled before this check; included here only
+ *                          for documentation completeness (the predicate
+ *                          isn't consulted for `/health` requests).
+ */
+function isRoutedPath(pathname: string): boolean {
+  if (pathname === '/mcp' || pathname.startsWith('/mcp/')) return true;
+  if (pathname === '/radar/snapshot') return true;
+  return false;
+}
+
 const handler: ExportedHandler<Env> = {
   /**
    * Hourly Cron handler (BL-032.5 Phase 4). Refreshes the Upstash radar
@@ -145,7 +176,24 @@ const handler: ExportedHandler<Env> = {
       return withCors(Response.json(payload), origin);
     }
 
-    // 3. Bearer-token authentication — every non-health, non-preflight path.
+    // 3. Known-route allowlist — anything we don't actually serve gets a
+    //    404 before the auth path runs. This kills bot-probe noise
+    //    (`/favicon.ico`, `/.env`, `/wp-admin`, `/robots.txt`, etc.) at
+    //    the source: no auth attempt, no `auth.failed` Sentry event, no
+    //    quota burn. Cloudflare's edge already filters most scanner
+    //    traffic; this catches what gets through.
+    //
+    //    The /mcp path is matched by prefix because the underlying
+    //    `agents/mcp` handler may serve sub-paths (e.g. session resume).
+    //    /radar/snapshot is exact-match because it's a single endpoint.
+    if (!isRoutedPath(url.pathname)) {
+      // No safeLog for 404s either — high-volume, low-signal. If we ever
+      // need to investigate scanner traffic, Cloudflare's request-log
+      // surface (Logpush / Analytics) is the right tool, not Sentry.
+      return withCors(new Response('Not Found', { status: 404 }), origin);
+    }
+
+    // 4. Bearer-token authentication — every routed, non-health, non-preflight path.
     const auth = authenticate(request, env);
     if (!auth.ok) {
       safeLog({
@@ -153,24 +201,33 @@ const handler: ExportedHandler<Env> = {
         path: url.pathname,
         status: auth.status,
         reason: 'bearer-rejected',
+        authFailureReason: auth.reason,
         success: false,
         errorCode: 'unauthorized',
       });
-      // Sentry breadcrumb so SENTRY_MANUAL_SETUP.md Alert #2 fires.
-      // Message intentionally stable so Sentry groups all auth.failed
-      // events together — a probing burst becomes one issue, not N.
-      // `eventTag: 'auth.failed'` mirrors safeLog's `event` field so
-      // alert rules can filter via tag (`The event's tag {event} equals
-      // {auth.failed}`) instead of message-content match.
-      captureMessage(
-        'auth.failed bearer-rejected',
-        'warning',
-        {
-          path: url.pathname,
-          status: auth.status,
-        },
-        'auth.failed'
-      );
+      // Sentry capture only for actionable failures — a missing or
+      // empty bearer is probe-class behavior (real clients always send
+      // one). An `invalid-token` (bearer sent but no key match) or a
+      // `malformed-scopes` operator config error IS actionable. See
+      // bearer.ts § shouldCaptureAuthFailure for the policy + rationale.
+      //
+      // Forensics are preserved either way — safeLog above writes a
+      // structured line for every 401 that's tailable via `wrangler tail`.
+      if (shouldCaptureAuthFailure(auth.reason)) {
+        // Message + fingerprint intentionally stable so Sentry groups
+        // these events together — a probing burst at a single bad key
+        // (e.g. one stale team-member config) becomes one issue, not N.
+        captureMessage(
+          'auth.failed bearer-rejected',
+          'warning',
+          {
+            path: url.pathname,
+            status: auth.status,
+            reason: auth.reason,
+          },
+          'auth.failed'
+        );
+      }
       return withCors(authFailureResponse(auth), origin);
     }
 
@@ -205,6 +262,65 @@ const handler: ExportedHandler<Env> = {
         path: url.pathname,
         reason: 'upstash-not-bound',
       });
+    }
+
+    // 4.5. GET /radar/snapshot — lightweight HTTP convenience endpoint
+    //      (BL-032.8 Phase 3). The website's SSR uses this instead of
+    //      calling Inoreader directly. Reuses the unified scope catalog
+    //      via `resource:radar:read` — same scope that gates the MCP
+    //      `resources/read` of `gst://radar/snapshot`, so a narrow-scope
+    //      bearer like `MCP_KEY_WEBSITE_RADAR` can serve this endpoint
+    //      without inflating to the full DEFAULT_SCOPES grant.
+    //
+    //      Slotted AFTER auth + rate-limit so it benefits from both
+    //      substrates; BEFORE MCP-handler dispatch so plain-HTTP traffic
+    //      doesn't go through MCP-RPC framing.
+    if (url.pathname === '/radar/snapshot' && request.method === 'GET') {
+      const startedAt = Date.now();
+      if (!hasScope(auth.scopes, 'resource:radar:read')) {
+        const missing = 'resource:radar:read';
+        safeLog({
+          event: 'radar-snapshot.scope-denied',
+          keyOwner: auth.keyOwner,
+          path: url.pathname,
+          status: 403,
+          reason: `missing-scope=${missing}`,
+          success: false,
+          errorCode: 'missing-scope',
+        });
+        const body = JSON.stringify({
+          error: 'forbidden',
+          missingScope: missing,
+          ownedScopes: auth.scopes,
+        });
+        const resp = new Response(body, {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const withRl = rlResult ? withRateLimitHeaders(resp, rlResult) : resp;
+        return withCors(withRl, origin);
+      }
+      const [wire, fyi] = await Promise.all([readWireLive(env), readFyiLive(env, 30)]);
+      const payload = JSON.stringify({
+        wire,
+        fyi,
+        fetchedAt: new Date().toISOString(),
+      });
+      const resp = new Response(payload, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const durationMs = Date.now() - startedAt;
+      safeLog({
+        event: 'radar-snapshot.request',
+        keyOwner: auth.keyOwner,
+        path: url.pathname,
+        status: 200,
+        durationMs,
+        success: true,
+      });
+      const withRl = rlResult ? withRateLimitHeaders(resp, rlResult) : resp;
+      return withCors(withRl, origin);
     }
 
     // 5. Authenticated + within rate limit — log + delegate to MCP handler.

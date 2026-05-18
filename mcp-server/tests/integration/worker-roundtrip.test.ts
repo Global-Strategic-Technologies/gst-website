@@ -74,13 +74,33 @@ describe('Worker roundtrip — Phase 1 transport spike', () => {
     expect(typeof body.gitSha).toBe('string');
   });
 
-  it('non-MCP, non-health route does not throw — delegates to MCP handler which rejects', async () => {
-    const res = await worker.fetch('/unknown-path');
-    // The MCP handler's behavior on a non-/mcp path is to return some 4xx;
-    // the precise status comes from agents/mcp internals. We just assert the
-    // Worker doesn't crash (non-2xx but well-formed response).
-    expect(res.status).toBeGreaterThanOrEqual(400);
-    expect(res.status).toBeLessThan(600);
+  it('non-routed paths return 404 without invoking auth', async () => {
+    // The discriminating signal: a 404 from the route allowlist carries
+    // NO `WWW-Authenticate` header. A 401 envelope (the alternative if
+    // auth had run and rejected the missing bearer) WOULD set one. So
+    // header-absence is the behavioral fingerprint that proves auth
+    // didn't run — independent of status code or response body, both of
+    // which could plausibly drift.
+    const res = await worker.fetch('/favicon.ico');
+    expect(res.status).toBe(404);
+    expect(res.headers.get('www-authenticate')).toBeNull();
+  });
+
+  it('routed vs non-routed paths take different code paths', async () => {
+    // Sampling of paths bots commonly probe. None reach the auth check
+    // (status 404, no WWW-Authenticate header).
+    for (const path of ['/.env', '/wp-admin', '/robots.txt', '/.git/config']) {
+      const res = await worker.fetch(path);
+      expect(res.status).toBe(404);
+      expect(res.headers.get('www-authenticate')).toBeNull();
+    }
+
+    // Boundary check: `/mcp` IS in the allowlist, so it reaches the
+    // auth path and returns a 401 envelope (with WWW-Authenticate) when
+    // no bearer is sent. This pins both sides of the allowlist gate.
+    const routed = await worker.fetch('/mcp', { method: 'POST', body: '{}' });
+    expect(routed.status).toBe(401);
+    expect(routed.headers.get('www-authenticate')).toContain('Bearer');
   });
 
   it('POST to /mcp without an MCP body returns a structured error, not a crash', async () => {

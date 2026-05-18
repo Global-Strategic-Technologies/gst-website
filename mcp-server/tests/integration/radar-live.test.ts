@@ -3,7 +3,7 @@
  * get_latest_insights (BL-032 Phase 4c).
  *
  * Mocks `@upstash/redis` (Upstash KV — both the cache layer for radar
- * results AND the OAuth-token read in inoreader-worker) and global
+ * results AND the OAuth-token read in inoreader-token-store) and global
  * `fetch` (Inoreader API). Exercises:
  *
  *   - Happy path: cache miss → Inoreader fetch → cache write → result
@@ -22,7 +22,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Mock `@upstash/redis` — the inoreader-worker, cache-store, AND
+// Mock `@upstash/redis` — the inoreader-token-store, cache-store, AND
 // circuit-breaker modules all instantiate Redis. A single MockRedis
 // satisfies all three.
 const { redisGet, redisSet, redisDel, redisTtl, MockRedis } = vi.hoisted(() => {

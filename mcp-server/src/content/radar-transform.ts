@@ -36,8 +36,23 @@ export interface SnapshotItem {
   readonly title: string;
   readonly url: string;
   readonly source: string;
+  /**
+   * Source feed's homepage URL — populated when Inoreader provides
+   * `item.origin.htmlUrl`. Optional because it's not always present and
+   * existing offline-tool consumers don't require it. Added in BL-032.8
+   * Phase 4 so the website's `/hub/radar` SSR can render the source name
+   * as a clickable link.
+   */
+  readonly sourceUrl?: string;
   readonly category: RadarCategory | null;
   readonly publishedAt: string;
+  /**
+   * Timestamp of the most-recent annotation (FYI items only). Optional —
+   * unset for Wire items and for FYI items lacking annotations. Added in
+   * BL-032.8 Phase 4 so the website's chronological merge can sort FYI
+   * items by annotation date rather than publication date.
+   */
+  readonly annotatedAt?: string;
   readonly summary?: string;
   /** Present only for FYI items (annotated). */
   readonly annotation?: { highlightedText?: string; gstTake?: string };
@@ -74,13 +89,23 @@ export function toIsoDate(unixSeconds: number): string {
 export function toSnapshotItem(item: InoreaderItem, tier: 'fyi' | 'wire'): SnapshotItem {
   const url = item.canonical?.[0]?.href ?? item.alternate?.[0]?.href ?? '';
   const annotation = item.annotations?.[0];
+  // For FYI items, take the most-recent annotation's `added_on` timestamp.
+  // Pre-Phase-4 the website used this as the chronological-merge sort key;
+  // surfacing it here preserves that ordering when the website becomes a
+  // downstream consumer.
+  const latestAnnotation =
+    tier === 'fyi' && item.annotations && item.annotations.length > 0
+      ? item.annotations.reduce((latest, a) => (a.added_on > latest.added_on ? a : latest))
+      : undefined;
   return {
     id: item.id,
     title: item.title,
     url,
     source: item.origin.title,
+    sourceUrl: item.origin.htmlUrl || undefined,
     category: categorizeItem(item),
     publishedAt: toIsoDate(item.published),
+    annotatedAt: latestAnnotation ? toIsoDate(latestAnnotation.added_on) : undefined,
     summary: item.summary?.content,
     annotation:
       tier === 'fyi' && annotation

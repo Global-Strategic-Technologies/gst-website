@@ -40,10 +40,33 @@ export interface AuthSuccess {
   readonly scopes: readonly string[];
 }
 
+/**
+ * Discriminated reason for an auth failure. The worker.ts layer uses this
+ * to decide whether to fire a Sentry event:
+ *
+ * - `missing-header` / `empty-token` / `bad-scheme` are **probe-class**:
+ *   no real bearer was sent. Bots / scanners produce these; real clients
+ *   never do. The Worker still safeLogs them (forensics survive in
+ *   Cloudflare logs) but skips Sentry capture so probe traffic doesn't
+ *   burn quota or obscure actionable failures.
+ *
+ * - `invalid-token` / `malformed-scopes` are **actionable**: a bearer was
+ *   sent but doesn't match any `MCP_KEY_*` (likely stale team-member
+ *   config) or the operator's `_SCOPES` companion env var is malformed
+ *   JSON. Sentry captures these.
+ */
+export type AuthFailureReason =
+  | 'missing-header'
+  | 'empty-token'
+  | 'bad-scheme'
+  | 'invalid-token'
+  | 'malformed-scopes';
+
 /** Failed auth — Worker should respond with the carried 401 envelope. */
 export interface AuthFailure {
   readonly ok: false;
   readonly status: 401;
+  readonly reason: AuthFailureReason;
   readonly bodyText: string;
   readonly headers: Readonly<Record<string, string>>;
 }
@@ -55,11 +78,12 @@ const DEFAULT_401_HEADERS: Readonly<Record<string, string>> = Object.freeze({
   'Content-Type': 'application/json',
 });
 
-function unauthorized(reason: string): AuthFailure {
+function unauthorized(reason: AuthFailureReason, message: string): AuthFailure {
   return {
     ok: false,
     status: 401,
-    bodyText: JSON.stringify({ error: 'unauthorized', message: reason }),
+    reason,
+    bodyText: JSON.stringify({ error: 'unauthorized', message }),
     headers: DEFAULT_401_HEADERS,
   };
 }
@@ -77,31 +101,116 @@ function unauthorized(reason: string): AuthFailure {
  */
 export function authenticate(request: Request, env: Record<string, unknown>): AuthResult {
   const auth = request.headers.get('Authorization');
-  if (!auth) return unauthorized('Missing Authorization header');
+  if (!auth) return unauthorized('missing-header', 'Missing Authorization header');
   // HTTP runtimes normalize trailing whitespace on header values, so
   // `Authorization: Bearer ` arrives as `"Bearer"` (no trailing space).
   // Route the bare-scheme and whitespace-only-token cases to the empty-
   // token branch so operators see a clearer 401 message.
-  if (auth === 'Bearer' || /^Bearer\s+$/.test(auth)) return unauthorized('Empty Bearer token');
+  if (auth === 'Bearer' || /^Bearer\s+$/.test(auth))
+    return unauthorized('empty-token', 'Empty Bearer token');
   if (!auth.startsWith(BEARER_PREFIX))
-    return unauthorized('Authorization header must use Bearer scheme');
+    return unauthorized('bad-scheme', 'Authorization header must use Bearer scheme');
 
   const token = auth.slice(BEARER_PREFIX.length).trim();
-  if (!token) return unauthorized('Empty Bearer token');
+  if (!token) return unauthorized('empty-token', 'Empty Bearer token');
 
   for (const [name, value] of Object.entries(env)) {
     if (typeof value !== 'string') continue;
     if (!name.startsWith(KEY_NAME_PREFIX)) continue;
+    // Skip the `_SCOPES` companion env vars during the token-match scan —
+    // they're metadata for OTHER keys (e.g. `MCP_KEY_FOO_SCOPES` describes
+    // the scopes for `MCP_KEY_FOO`). Treating them as keys would let any
+    // caller authenticate by sending the JSON-encoded scope array as a
+    // bearer token, which is wrong (and a leaky-ish information disclosure).
+    if (name.endsWith(SCOPES_SUFFIX)) continue;
     if (value === token) {
+      const owner = name.slice(KEY_NAME_PREFIX.length);
+      const result = resolveKeyScopes(env, name);
+      if (!result.ok) {
+        // Malformed `_SCOPES` companion var — fail loud at auth time rather
+        // than silently falling back to DEFAULT_SCOPES. An operator who
+        // mistyped JSON in a Worker secret should see the failure
+        // immediately, not discover it via a downstream scope-mismatch.
+        return unauthorized(
+          'malformed-scopes',
+          `Bearer key ${owner} has malformed _SCOPES JSON: ${result.message}`
+        );
+      }
       return {
         ok: true,
-        keyOwner: name.slice(KEY_NAME_PREFIX.length),
-        scopes: DEFAULT_SCOPES,
+        keyOwner: owner,
+        scopes: result.scopes,
       };
     }
   }
 
-  return unauthorized('Invalid Bearer token');
+  return unauthorized('invalid-token', 'Invalid Bearer token');
+}
+
+/**
+ * Reasons that warrant a Sentry capture. A real client with a stale key
+ * shows up as `invalid-token`; an operator-side `_SCOPES` typo shows up as
+ * `malformed-scopes`. Everything else (missing header, empty token, wrong
+ * scheme) is probe-class behavior and is captured to `wrangler tail` only.
+ */
+const SENTRY_WORTHY_REASONS: ReadonlySet<AuthFailureReason> = new Set([
+  'invalid-token',
+  'malformed-scopes',
+]);
+
+/**
+ * Predicate the worker.ts layer uses to gate Sentry capture on auth
+ * failures. Keeps the policy colocated with the reason enum so a future
+ * reason addition doesn't silently fall into either bucket without a
+ * deliberate decision.
+ */
+export function shouldCaptureAuthFailure(reason: AuthFailureReason): boolean {
+  return SENTRY_WORTHY_REASONS.has(reason);
+}
+
+/** Suffix for the optional per-key scope-subset companion env var. */
+const SCOPES_SUFFIX = '_SCOPES';
+
+/**
+ * BL-032.8 Phase 2 — optional per-key scope subset.
+ *
+ * When `MCP_KEY_<OWNER>_SCOPES` is bound on the env (JSON-encoded string
+ * array), narrow the resolved scope set to that subset. When absent, the
+ * key carries `DEFAULT_SCOPES` (the BL-032.5 behavior).
+ *
+ * **Why narrow keys**: enables the website's `MCP_KEY_WEBSITE_RADAR` to
+ * carry only `['resource:radar:read']` instead of the full Tool / Prompt
+ * / Resource grant — limits blast radius if the website's env leaks
+ * AND keeps audit logs clean (radar-snapshot reads don't pollute
+ * tool-call telemetry).
+ *
+ * Returns `{ ok: true, scopes }` on success or `{ ok: false, message }` on
+ * malformed JSON. The malformed case is deliberately surfaced so the
+ * caller can fail loud at auth time. The `ok` discriminator on both
+ * variants is what lets the caller's `if (!result.ok)` narrow cleanly
+ * (an asymmetric union with `'ok' in result` only narrows on the truthy
+ * branch and trips TypeScript's strict-narrowing under `tsc --noEmit`).
+ */
+type ScopeResolution = { ok: true; scopes: readonly string[] } | { ok: false; message: string };
+
+function resolveKeyScopes(env: Record<string, unknown>, keyName: string): ScopeResolution {
+  const scopesEnvVar = `${keyName}${SCOPES_SUFFIX}`;
+  const raw = env[scopesEnvVar];
+  if (typeof raw !== 'string') {
+    return { ok: true, scopes: DEFAULT_SCOPES };
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return { ok: false, message: 'must be a JSON-encoded string array' };
+    }
+    if (!parsed.every((s) => typeof s === 'string' && s.length > 0)) {
+      return { ok: false, message: 'all elements must be non-empty strings' };
+    }
+    return { ok: true, scopes: parsed as readonly string[] };
+  } catch (e) {
+    return { ok: false, message: (e as Error).message };
+  }
 }
 
 /** Build a `Response` from an `AuthFailure` envelope. */
