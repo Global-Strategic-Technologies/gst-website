@@ -32,15 +32,15 @@ Watch four signals. Any one of them tripping is an [abort condition](#abort-cond
 
 Tick each box as you observe the signal that day. Add a one-line note if anything looked off (even if it self-resolved).
 
-| Day | Date       | Sig 1 ✅ | Sig 2 ✅ | Sig 3 ✅ | Sig 4 ✅ | Operator initials | Notes |
-| --- | ---------- | -------- | -------- | -------- | -------- | ----------------- | ----- |
-| 1   | 2026-05-17 | [ ]      | [ ]      | [ ]      | [ ]      |                   |       |
-| 2   | 2026-05-18 | [ ]      | [ ]      | [ ]      | [ ]      |                   |       |
-| 3   | 2026-05-19 | [ ]      | [ ]      | [ ]      | [ ]      |                   |       |
-| 4   | 2026-05-20 | [ ]      | [ ]      | [ ]      | [ ]      |                   |       |
-| 5   | 2026-05-21 | [ ]      | [ ]      | [ ]      | [ ]      |                   |       |
-| 6   | 2026-05-22 | [ ]      | [ ]      | [ ]      | [ ]      |                   |       |
-| 7   | 2026-05-23 | [ ]      | [ ]      | [ ]      | [ ]      |                   |       |
+| Day | Date       | Sig 1 ✅ | Sig 2 ✅ | Sig 3 ✅ | Sig 4 ✅ | Operator initials | Notes                                                                                                                                                                                          |
+| --- | ---------- | -------- | -------- | -------- | -------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 2026-05-17 | [x]      | [x]      | [x]      | [x]      | RP                | Baseline established post-Phase-A merge.                                                                                                                                                       |
+| 2   | 2026-05-18 | [x]      | [⚠️→✅]  | [x]      | [x]      | RP                | Sig 2 anomaly at 12:30 UTC (36%); root-caused to dual-env cron; fix shipped PR #143; tomorrow validates ~30/day baseline. Sig 4 bot-probe noise reduced via PR #144. See § Findings log below. |
+| 3   | 2026-05-19 | [ ]      | [ ]      | [ ]      | [ ]      |                   |                                                                                                                                                                                                |
+| 4   | 2026-05-20 | [ ]      | [ ]      | [ ]      | [ ]      |                   |                                                                                                                                                                                                |
+| 5   | 2026-05-21 | [ ]      | [ ]      | [ ]      | [ ]      |                   |                                                                                                                                                                                                |
+| 6   | 2026-05-22 | [ ]      | [ ]      | [ ]      | [ ]      |                   |                                                                                                                                                                                                |
+| 7   | 2026-05-23 | [ ]      | [ ]      | [ ]      | [ ]      |                   |                                                                                                                                                                                                |
 
 ---
 
@@ -169,6 +169,54 @@ After Step 4, confirm production still works on the trimmed secret list (the Wor
 - [ ] `dev` HEAD reset to `master`
 - [ ] BACKLOG.md confirms `BL-032.8: ✅ SHIPPED 2026-05-17` and `BL-040: ✅ SUPERSEDED`
 
+### Post-deploy verification (Vercel — within ~5 min of merge)
+
+PR #140 deletes the website-side BL-039 surface (`src/pages/api/inoreader/refresh.ts`) and the Worker-side fallback caller (`mcp-server/src/lib/inoreader-bl039-fallback.ts`). Vercel auto-deploys the website on merge to master (typically 2-3 min); the Worker requires a manual `npm run deploy:production` from `mcp-server/`. After both land, the `/api/inoreader/refresh` route ceases to exist on the website entirely — anonymous probes that previously hit the Astro middleware short-circuit (PR #144, 404 from in-function middleware) now get a 404 directly from Vercel's edge routing layer with NO function invocation.
+
+The verification is two-part: confirm the user-visible status code stays 404 (no regression), and confirm Vercel logs no longer show any `[Radar]`/`_render` function invocations for that path (the noise reduction Day-2's Finding #3 was supposed to fix completely, not just relabel).
+
+```powershell
+# 1. Anonymous GET still returns 404 (now from Vercel's edge, not from
+#    Astro middleware — but visually indistinguishable to the caller).
+Invoke-WebRequest -Uri https://globalstrategic.tech/api/inoreader/refresh -SkipHttpErrorCheck `
+  | Select-Object StatusCode, @{N='Server';E={$_.Headers['Server']}}, `
+                              @{N='VercelId';E={$_.Headers['X-Vercel-Id']}}
+
+# Expected: StatusCode 404. Server header may still be "Vercel" but NO
+# X-Vercel-Id header means the response came from Vercel's static
+# 404 page, not a serverless function invocation. (If X-Vercel-Id IS
+# set, the function still ran — Vercel may take a few minutes to
+# update its routing manifest after deploy. Re-test after 5 min.)
+
+# 2. Browser-style POST: should also return 404, NOT 401/403/405.
+#    The route file is gone; Astro can't even reach the (now-deleted)
+#    POST handler. The CSRF gate doesn't run either because there's
+#    no SSR function invocation.
+Invoke-WebRequest -Uri https://globalstrategic.tech/api/inoreader/refresh -Method POST `
+  -Headers @{
+    Authorization = 'Bearer wrong-token';
+    Origin = 'https://globalstrategic.tech';
+    'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+  } -SkipHttpErrorCheck | Select-Object StatusCode
+# Expected: 404 (was 401 with bearer-present + Origin in the pre-PR-140
+# state). The 401 → 404 transition proves the route handler is gone,
+# not just hidden by middleware.
+
+# 3. Vercel function-invocation log check (Vercel dashboard, not CLI).
+#    Vercel Dashboard → gst-website project → Logs → filter for
+#    "/api/inoreader/refresh" over the past 30 min.
+#    Expected: zero entries. If any appear, the route file wasn't
+#    fully deleted by the PR or Vercel's deploy lagged.
+```
+
+### Post-deploy verification checklist
+
+- [ ] Anonymous GET returns 404 with NO `X-Vercel-Id` header (proves no function invocation) — Date: **\_\_\_** Operator: **\_\_**
+- [ ] Bearer-present POST returns 404 (was 401 pre-PR-140) — Date: **\_\_\_** Operator: **\_\_**
+- [ ] Vercel logs show zero `/api/inoreader/refresh` function invocations in the 30 min after deploy — Date: **\_\_\_** Operator: **\_\_**
+
+If any of these fail, do NOT delete the legacy Upstash DB in the post-merge gate (next section) — that step assumes PR #140's full delete chain landed cleanly. Investigate first; if the route file persists, the deploy may have skipped a file (Vercel build-cache quirks) and a force-rebuild is needed.
+
 ---
 
 ## Post-merge gate (wait 48h — earliest action 2026-05-26)
@@ -208,17 +256,28 @@ If an abort fires, record it here for the post-incident write-up:
 | ----------- | ------------------- | ------------ | ---------- | -------------------------------- |
 |             |                     |              |            |                                  |
 
+### Findings log
+
+Non-abort observations discovered during the soak. Useful for the post-mortem and for evolving the soak playbook on future cutover initiatives.
+
+| Date       | Finding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-18 | **Dual-env cron doubling Inoreader Zone-1 budget burn.** Inoreader Developer Console showed 36% utilization at 12:30 UTC against an expected 18% (3 cron firings × 6 calls). Counter `mcp:inoreader:day-counter:2026-05-18` confirmed 36. Sentry showed 4 `cron.radar-refresh.success` events in 10 hours instead of 2. Root cause: both `[env.staging.triggers]` and `[env.production.triggers]` ran `0 */6 * * *` against the same Inoreader OAuth app. Fix: PR #143 removed `[env.staging.triggers]` entirely; staging cron-path validation moves to the test suite + manual `wrangler dev` runs. Defensive comment added in `wrangler.toml`: if anyone re-enables a staging cron later, they must FIRST register a separate Inoreader OAuth app for staging. Day-3 baseline projection drops to ~24-30/day.                                                                                                                                                                                                                                                                                                                                                     |
+| 2026-05-18 | **`auth.failed bearer-rejected` Sentry noise from bot probes.** Sentry issue GST-MCP-SERVER-4 surfaced multiple events from anonymous probes against `/favicon.ico` and similar paths on `mcp.globalstrategic.tech`. Worker auth was rejecting them correctly (401), but every probe burned Sentry quota + obscured actionable failures. Fix: PR #141 (merged earlier) added an `isRoutedPath()` allowlist that 404s unknown paths before auth runs, plus a `shouldCaptureAuthFailure(reason)` predicate that gates Sentry capture on actionable failure modes only (`invalid-token`, `malformed-scopes`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| 2026-05-18 | **405 noise on website `/api/inoreader/refresh`.** Vercel logs showed bot probes against the BL-039 refresh endpoint (POST-only) being rejected with 405. Endpoint behavior was HTTP-correct but visually noisy. Fix: PR #144 added the website-side analogue of the Worker's route allowlist via Astro middleware (`src/middleware.ts` → `INTERNAL_ENDPOINTS` set). Anonymous probes now 404 silently before the route handler runs. Real callers (Worker with bearer) reach the route handler unchanged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| 2026-05-18 | **BL-039 fallback silently broken by Astro CSRF.** Smoke-testing PR #144 with a bearer-present POST returned 403 (not the expected 401). Root-caused to Astro's default `security.checkOrigin = true` — POST requests without a matching `Origin` header are rejected with 403 at the Astro layer (before the route handler). The Worker's BL-039 fallback fetch (in [`inoreader-bl039-fallback.ts:80-83`](../../lib/inoreader-bl039-fallback.ts#L80-L83)) doesn't set `Origin`, so the fallback path has been silently broken since Astro v5+'s CSRF default flipped on. **Soak gate signal still valid**: "zero `triggerWebsiteRefresh` invocations" measures primary-path reliability; through Day 2 the primary (`inoreader-oauth.ts` Worker-direct refresh) has been stable + zero fallback invocations needed. **Decision**: accept the gap rather than fix for 5 days of life. PR #140 deletes the entire BL-039 fallback path on 2026-05-24 anyway; fixing the Origin header now would be ~30 LOC of code change to retire days later. Future cutover initiatives should test the rollback safety net end-to-end before relying on it as a soak protection. |
+
 ---
 
 ## Soak completion record
 
 Once Day 7 ticks clean and PR #140 merges, fill this in as the closure artifact:
 
-- **Soak completed clean**: Yes / No (****\_\_\_****)
-- **Final PR #140 merge date**: ****\_\_\_****
-- **Merge commit SHA**: ****\_\_\_****
-- **Operator who ran the gate**: ****\_\_\_****
-- **Post-merge gate cleared on**: ****\_\_\_**** (Upstash database deleted)
+- **Soak completed clean**: Yes / No (\***\*\_\_\_\*\***)
+- **Final PR #140 merge date**: \***\*\_\_\_\*\***
+- **Merge commit SHA**: \***\*\_\_\_\*\***
+- **Operator who ran the gate**: \***\*\_\_\_\*\***
+- **Post-merge gate cleared on**: \***\*\_\_\_\*\*** (Upstash database deleted)
 - **Initiative closed in BACKLOG.md**: confirmed Yes / No
 
 ---

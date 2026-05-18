@@ -1828,13 +1828,14 @@ Tier 1 (DONE in BL-031.75 V5 closure)
 - [ ] Uses `cloudflare/wrangler-action@v3` (or current equivalent)
 - [ ] Gates on (in order): `npm ci` in `mcp-server/`, `npx tsc --noEmit`, `npm run lint`, `npm run test:run`
 - [ ] Cloudflare credentials sourced from GitHub Secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`)
+- [ ] Sentry source-map upload credentials sourced from GitHub Secrets (`SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`) and exposed as env to the wrangler step so [`scripts/deploy.mjs`](../../../mcp-server/scripts/deploy.mjs)'s `sentry-cli` source-map upload runs on every CI deploy — closes the `SENTRY_AUTH_TOKEN not set — skipping source-map upload` warning that operator-direct deploys produce today
 - [ ] Post-deploy `/health` smoke probe; fails the workflow if `gitSha` doesn't match the commit SHA within 60s
 - [ ] First successful run produces an audit entry in the GitHub Actions log
 - [ ] Operator-direct path still works (`npx wrangler deploy --env staging` documented as the emergency path)
 
 **Phase B — Production deploy on master**
 
-- [ ] `.github/workflows/deploy-mcp-production.yml` created with same gates as Phase A
+- [ ] `.github/workflows/deploy-mcp-production.yml` created with same gates as Phase A (including the `SENTRY_AUTH_TOKEN` source-map upload step)
 - [ ] Triggered on push to `master` only
 - [ ] GitHub Environment `mcp-production` configured with required reviewers (≥1 approval before deploy proceeds)
 - [ ] Same smoke-probe shape as Phase A; failure aborts the deploy and notifies (Slack webhook or GitHub Issue)
@@ -1874,6 +1875,12 @@ Tier 1 (DONE in BL-031.75 V5 closure)
 - Phase B specifically requires BL-033's phase boundary because production-deploy gating only earns its keep once external consumers depend on uptime. Before BL-033, a production deploy is "internal change to the surface RP uses"; after BL-033, it's "change to a surface ExtCo's contract requires uptime on."
 - Phase C (rollback automation) is independently valuable and can ship anytime after Phase A. Decoupled because the DR story under BL-032 already documents `wrangler rollback` as operator-direct; CI automation is additive, not blocking.
 - Phase D (secret sync) is the most operator-experience-improving phase but the least critical to ship — single-operator scale doesn't strictly need it. Honest acknowledgment that this might never ship if BL-033 brings a different secret-management substrate.
+
+**Why source-map upload is in scope here (not BL-032.75)**
+
+- The source-map upload chain has three pieces: (1) `mcp-server/wrangler.toml` sets `upload_source_maps = true` so wrangler emits `.map` files into the deploy artifact; (2) [`scripts/deploy.mjs`](../../../mcp-server/scripts/deploy.mjs) runs `sentry-cli sourcemaps upload` after a successful `wrangler deploy`; (3) `SENTRY_AUTH_TOKEN` must be bound on the shell env for step 2 to succeed. Pieces 1 and 2 already ship; piece 3 is operator-laptop-only today.
+- That's a _deploy-time_ gap, not an _observability_ gap — Sentry itself is configured correctly (DSN bound, alert rules tuned by BL-032.75), but stack traces resolve to `dist/index.js:1:482718` rather than `src/auth/bearer.ts:119` because the source-map upload never runs in CI. The right surface to fix this is BL-037's CI deploy workflow, where `SENTRY_AUTH_TOKEN` lives as a GitHub Secret alongside the Cloudflare credentials.
+- BL-033 (external pilots) will surface real Sentry incidents; minified traces will be a real debugging tax then. Closing this in BL-037 Phase A means the first BL-033 production deploy has resolved-source traces from day one.
 
 **Why not extend BL-032.75 instead**
 
