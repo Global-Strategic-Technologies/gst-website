@@ -169,6 +169,54 @@ After Step 4, confirm production still works on the trimmed secret list (the Wor
 - [ ] `dev` HEAD reset to `master`
 - [ ] BACKLOG.md confirms `BL-032.8: ✅ SHIPPED 2026-05-17` and `BL-040: ✅ SUPERSEDED`
 
+### Post-deploy verification (Vercel — within ~5 min of merge)
+
+PR #140 deletes the website-side BL-039 surface (`src/pages/api/inoreader/refresh.ts`) and the Worker-side fallback caller (`mcp-server/src/lib/inoreader-bl039-fallback.ts`). Vercel auto-deploys the website on merge to master (typically 2-3 min); the Worker requires a manual `npm run deploy:production` from `mcp-server/`. After both land, the `/api/inoreader/refresh` route ceases to exist on the website entirely — anonymous probes that previously hit the Astro middleware short-circuit (PR #144, 404 from in-function middleware) now get a 404 directly from Vercel's edge routing layer with NO function invocation.
+
+The verification is two-part: confirm the user-visible status code stays 404 (no regression), and confirm Vercel logs no longer show any `[Radar]`/`_render` function invocations for that path (the noise reduction Day-2's Finding #3 was supposed to fix completely, not just relabel).
+
+```powershell
+# 1. Anonymous GET still returns 404 (now from Vercel's edge, not from
+#    Astro middleware — but visually indistinguishable to the caller).
+Invoke-WebRequest -Uri https://globalstrategic.tech/api/inoreader/refresh -SkipHttpErrorCheck `
+  | Select-Object StatusCode, @{N='Server';E={$_.Headers['Server']}}, `
+                              @{N='VercelId';E={$_.Headers['X-Vercel-Id']}}
+
+# Expected: StatusCode 404. Server header may still be "Vercel" but NO
+# X-Vercel-Id header means the response came from Vercel's static
+# 404 page, not a serverless function invocation. (If X-Vercel-Id IS
+# set, the function still ran — Vercel may take a few minutes to
+# update its routing manifest after deploy. Re-test after 5 min.)
+
+# 2. Browser-style POST: should also return 404, NOT 401/403/405.
+#    The route file is gone; Astro can't even reach the (now-deleted)
+#    POST handler. The CSRF gate doesn't run either because there's
+#    no SSR function invocation.
+Invoke-WebRequest -Uri https://globalstrategic.tech/api/inoreader/refresh -Method POST `
+  -Headers @{
+    Authorization = 'Bearer wrong-token';
+    Origin = 'https://globalstrategic.tech';
+    'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+  } -SkipHttpErrorCheck | Select-Object StatusCode
+# Expected: 404 (was 401 with bearer-present + Origin in the pre-PR-140
+# state). The 401 → 404 transition proves the route handler is gone,
+# not just hidden by middleware.
+
+# 3. Vercel function-invocation log check (Vercel dashboard, not CLI).
+#    Vercel Dashboard → gst-website project → Logs → filter for
+#    "/api/inoreader/refresh" over the past 30 min.
+#    Expected: zero entries. If any appear, the route file wasn't
+#    fully deleted by the PR or Vercel's deploy lagged.
+```
+
+### Post-deploy verification checklist
+
+- [ ] Anonymous GET returns 404 with NO `X-Vercel-Id` header (proves no function invocation) — Date: **\_\_\_** Operator: **\_\_**
+- [ ] Bearer-present POST returns 404 (was 401 pre-PR-140) — Date: **\_\_\_** Operator: **\_\_**
+- [ ] Vercel logs show zero `/api/inoreader/refresh` function invocations in the 30 min after deploy — Date: **\_\_\_** Operator: **\_\_**
+
+If any of these fail, do NOT delete the legacy Upstash DB in the post-merge gate (next section) — that step assumes PR #140's full delete chain landed cleanly. Investigate first; if the route file persists, the deploy may have skipped a file (Vercel build-cache quirks) and a force-rebuild is needed.
+
 ---
 
 ## Post-merge gate (wait 48h — earliest action 2026-05-26)
