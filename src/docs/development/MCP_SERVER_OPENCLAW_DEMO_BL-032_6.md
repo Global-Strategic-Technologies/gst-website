@@ -283,7 +283,7 @@ If you have 5 seconds: _"Same engine as the hub wizard, Claude on top, with our 
 #### Scenario 2 — Cross-jurisdictional deal review (Claude Desktop, 7 min)
 
 - **Input**: hypothetical target operating in EU + US-CA + UK
-- **Operator manually pins** `gst://regulations/eu/gdpr`, `gst://regulations/us-ca/ccpa`, `gst://regulations/uk/dpa-2018` as Resources in Claude Desktop (the UI shows them as pinned-resource pills — visible signal)
+- **Operator manually pins** `gst://regulations/eu/gdpr`, `gst://regulations/us-ca/ccpa`, `gst://regulations/gb/dpa` as Resources in Claude Desktop (the UI shows them as pinned-resource pills — visible signal)
 - **Prompt** (typed live): _"Using only the pinned regulations, generate a compliance-risk matrix for this target..."_
 - **Output**: cross-jurisdictional risk matrix with verbatim citations to pinned Resource content
 - **Showcase**: BL-032.5 Resources-over-HTTP, cross-jurisdictional pinning (a core BL-032.5 deliverable), citation grounding to prevent hallucinated regulatory text
@@ -307,7 +307,7 @@ Two distinct phases. Pin-time fetches happen once per session per Resource; the 
    ② Operator clicks the + → Resources → picks 3 URIs:   │
       gst://regulations/eu/gdpr                          │
       gst://regulations/us-ca/ccpa                       │
-      gst://regulations/uk/dpa-2018                      │
+      gst://regulations/gb/dpa                           │
             │                                            │
             ├─── POST resources/read (uri 1) ──────────► │  assertScope(RESOURCE_REGULATION_READ)
             │ ◄──── { contents: [...GDPR text...] } ─────┤  readThroughCache(env, uri, 24h TTL)

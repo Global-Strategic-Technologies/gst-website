@@ -202,7 +202,7 @@ GST Library articles — canonical taxonomies and reference content baked into t
 
 - `gst://regulations/eu/gdpr`
 - `gst://regulations/us-ca/ccpa`
-- `gst://regulations/uk/dpa-2018`
+- `gst://regulations/gb/dpa`
 - `gst://regulations/apac/<framework>`
 - etc.
 

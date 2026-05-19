@@ -51,7 +51,7 @@
 ### Clipboard prep
 
 - [ ] **Call notes for Scenario 1 + 5** copied to clipboard (or sticky note). See Appendix A.
-- [ ] Scenario 2 regulation URIs handy: `gst://regulations/eu/gdpr`, `gst://regulations/us-ca/ccpa`, `gst://regulations/uk/dpa-2018`.
+- [ ] Scenario 2 regulation URIs handy: `gst://regulations/eu/gdpr`, `gst://regulations/us-ca/ccpa`, `gst://regulations/gb/dpa`.
 - [ ] Scenario 4 provocative prompts handy. See Appendix B.
 
 ### Fallback assets
@@ -175,7 +175,7 @@ I just had an intro call with MedSig Health (notes above). Partner needs a 1-pag
 
    🎤 **SAY**: _"When I pin that, Claude Desktop makes one HTTP call to our server — `resources/read` — to fetch the canonical text. Goes through our auth gate, scope check, 24-hour cache. The text Claude now has pinned is verbatim what's in our regulatory corpus."_
 
-4. Pick **`gst://regulations/us-ca/ccpa`**, then **`gst://regulations/uk/dpa-2018`**
+4. Pick **`gst://regulations/us-ca/ccpa`**, then **`gst://regulations/gb/dpa`**
 
 👁 **SHOW** the three pinned-resource pills now sitting above the chat input.
 
@@ -554,7 +554,7 @@ I just had an intro call with MedSig Health (notes above). Partner needs a 1-pag
 ```
 gst://regulations/eu/gdpr
 gst://regulations/us-ca/ccpa
-gst://regulations/uk/dpa-2018
+gst://regulations/gb/dpa
 ```
 
 ### A.4 Scenario 2 compliance-matrix prompt
