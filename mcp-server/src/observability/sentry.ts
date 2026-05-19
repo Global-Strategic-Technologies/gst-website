@@ -157,6 +157,31 @@ export function captureMessage(
   });
 }
 
+/**
+ * Drain the Sentry SDK's in-memory event queue. Returns `true` if the
+ * queue was flushed within `timeoutMs`, `false` if the timeout fired
+ * first.
+ *
+ * Why this exists: the fetch handler is wrapped in `withSentry`, which
+ * holds the isolate open until any pending Sentry HTTP POSTs complete
+ * before letting the Response return. The scheduled handler has no
+ * Response to anchor that wait against — so `captureMessage` events
+ * emitted from cron paths race against Cloudflare reclaiming the
+ * isolate and can be dropped silently.
+ *
+ * Observed at BL-032.8 Phase B soak Day 3 (2026-05-19): Cloudflare's
+ * cron event log showed all 4/4 daily firings succeeding, but Sentry
+ * was only capturing ~1 of 4 `cron.radar-refresh.success` events. The
+ * fix is to `await flushSentry()` inside `ctx.waitUntil` so the
+ * isolate stays alive until the SDK has drained.
+ *
+ * No-op when Sentry isn't initialized (graceful: `Sentry.flush()`
+ * returns true immediately if there's no active client).
+ */
+export async function flushSentry(timeoutMs = 2000): Promise<boolean> {
+  return Sentry.flush(timeoutMs);
+}
+
 // Re-export `withSentry` so worker.ts has a single import surface for
 // observability rather than reaching into @sentry/cloudflare directly.
 export { withSentry } from '@sentry/cloudflare';
