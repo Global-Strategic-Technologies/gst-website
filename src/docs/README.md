@@ -4,15 +4,16 @@ Master index for all project documentation.
 
 ## Directories
 
-| Directory                    | Purpose                               | Docs | Entry Point                        |
-| ---------------------------- | ------------------------------------- | ---- | ---------------------------------- |
-| [analytics/](analytics/)     | GA4 integration, event tracking       | 3    | [README.md](analytics/README.md)   |
-| [development/](development/) | Roadmap, tooling, initiatives         | 10   | [README.md](development/README.md) |
-| [hub/](hub/)                 | Hub tool technical docs               | 4    | [README.md](hub/README.md)         |
-| [security/](security/)       | Headers, CSP, privacy, compliance     | 1    | [README.md](security/README.md)    |
-| [seo/](seo/)                 | SEO implementation, JSON-LD           | 4    | [README.md](seo/README.md)         |
-| [styles/](styles/)           | CSS conventions, brand, tokens        | 6    | [README.md](styles/README.md)      |
-| [testing/](testing/)         | Test strategy, CI/CD, troubleshooting | 7    | [README.md](testing/README.md)     |
+| Directory                    | Purpose                               | Docs | Entry Point                                             |
+| ---------------------------- | ------------------------------------- | ---- | ------------------------------------------------------- |
+| [analytics/](analytics/)     | GA4 integration, event tracking       | 3    | [README.md](analytics/README.md)                        |
+| [development/](development/) | Roadmap, tooling, initiatives         | 10   | [README.md](development/README.md)                      |
+| [hub/](hub/)                 | Hub tool technical docs               | 4    | [README.md](hub/README.md)                              |
+| [operations/](operations/)   | Secrets inventory, deploy, rotation   | 1    | [SECRETS_INVENTORY.md](operations/SECRETS_INVENTORY.md) |
+| [security/](security/)       | Headers, CSP, privacy, compliance     | 1    | [README.md](security/README.md)                         |
+| [seo/](seo/)                 | SEO implementation, JSON-LD           | 4    | [README.md](seo/README.md)                              |
+| [styles/](styles/)           | CSS conventions, brand, tokens        | 6    | [README.md](styles/README.md)                           |
+| [testing/](testing/)         | Test strategy, CI/CD, troubleshooting | 7    | [README.md](testing/README.md)                          |
 
 ## Quick Navigation
 
@@ -28,6 +29,7 @@ Master index for all project documentation.
 | Set up Sentry monitoring                            | [development/SENTRY_MANUAL_SETUP.md](development/SENTRY_MANUAL_SETUP.md)                                                    |
 | Investigate a perf regression or read the dashboard | [development/PERFORMANCE_OBSERVABILITY.md](development/PERFORMANCE_OBSERVABILITY.md)                                        |
 | Understand security headers                         | [security/SECURITY_HEADERS.md](security/SECURITY_HEADERS.md)                                                                |
+| Find a secret / understand where each env var lives | [operations/SECRETS_INVENTORY.md](operations/SECRETS_INVENTORY.md)                                                          |
 | See the development roadmap                         | [development/README.md](development/README.md)                                                                              |
 | Set up branch protection                            | [testing/GITHUB_ACTIONS_SETUP.md](testing/GITHUB_ACTIONS_SETUP.md#branch-protection-rules)                                  |
 | See the MCP server in a concrete scenario           | [mcp-server/src/docs/diligence/USAGE.md](../../mcp-server/src/docs/diligence/USAGE.md) (each tool ships its own `USAGE.md`) |
