@@ -247,8 +247,8 @@ describe('refreshRadarSnapshot — success path', () => {
     const outcome = await refreshRadarSnapshot(env);
 
     expect(outcome).toEqual({ kind: 'success', wireItems: 3, fyiItems: 1, callsConsumed: 6 });
-    expect(mockReadWireLive).toHaveBeenCalledWith(env, { forceRefresh: true });
-    expect(mockReadFyiLive).toHaveBeenCalledWith(env, 30, { forceRefresh: true });
+    expect(mockReadWireLive).toHaveBeenCalledWith(env, { forceRefresh: true, source: 'cron' });
+    expect(mockReadFyiLive).toHaveBeenCalledWith(env, 30, { forceRefresh: true, source: 'cron' });
     expect(mockCaptureMessage).toHaveBeenCalledWith(
       'cron.radar-refresh.success',
       'info',

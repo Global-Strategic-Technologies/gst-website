@@ -36,7 +36,13 @@ import { safeLog } from './auth/safe-logger';
 import { hasScope } from './auth/scopes';
 import { createLimiter } from './ratelimit/limiter';
 import { tooManyRequestsResponse, withRateLimitHeaders } from './ratelimit/headers';
-import { captureMessage, sentryOptions, tagRequest, withSentry } from './observability/sentry';
+import {
+  captureMessage,
+  flushSentry,
+  sentryOptions,
+  tagRequest,
+  withSentry,
+} from './observability/sentry';
 import { buildHealthPayload } from './observability/health';
 import { refreshRadarSnapshot } from './cron/radar-refresh';
 import { readWireLive, readFyiLive } from './content/radar-live-store';
@@ -142,9 +148,29 @@ const handler: ExportedHandler<Env> = {
    * (circuit breaker + daily soft cap) live inside `refreshRadarSnapshot`;
    * we just delegate here. The scheduled handler has no response surface
    * — return value is ignored by Cloudflare.
+   *
+   * The `try { … } finally { await flushSentry() }` shape exists because
+   * `captureMessage` events emitted from cron paths (`cron.radar-refresh.*`)
+   * race against Cloudflare reclaiming the isolate once the scheduled
+   * handler returns. `withSentry` auto-flushes for the fetch handler
+   * because it can anchor against the returned Response, but the
+   * scheduled handler has no Response — so the SDK's in-memory queue
+   * gets killed mid-POST and events are lost. Observed dropping ~75% of
+   * Sentry capture during BL-032.8 Phase B soak Day 3 even though
+   * Cloudflare's cron event log showed all 4/4 daily firings succeeding.
+   * The single `ctx.waitUntil` (vs two separate `waitUntil` calls) keeps
+   * the flush ordered AFTER the captures it's draining.
    */
   async scheduled(_event, env, ctx): Promise<void> {
-    ctx.waitUntil(refreshRadarSnapshot(env));
+    ctx.waitUntil(
+      (async () => {
+        try {
+          await refreshRadarSnapshot(env);
+        } finally {
+          await flushSentry();
+        }
+      })()
+    );
   },
 
   async fetch(request, env, ctx): Promise<Response> {

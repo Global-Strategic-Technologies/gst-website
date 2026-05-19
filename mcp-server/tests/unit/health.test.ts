@@ -45,7 +45,12 @@ describe('buildHealthPayload', () => {
     redisGet.mockImplementation(async (key: string) => {
       if (key === 'mcp:health:probe') return null; // probe just needs to NOT throw
       if (key === 'mcp:inoreader:last-status') {
-        return { status: 'ok', observedAt: '2026-05-04T18:00:00.000Z', note: 'wire' };
+        return {
+          status: 'ok',
+          observedAt: '2026-05-04T18:00:00.000Z',
+          source: 'cron',
+          note: 'wire',
+        };
       }
       return null;
     });
@@ -56,6 +61,7 @@ describe('buildHealthPayload', () => {
     expect(payload.upstashMcp).toBe('ok');
     expect(payload.inoreader).toBe('ok');
     expect(payload.inoreaderObservedAt).toBe('2026-05-04T18:00:00.000Z');
+    expect(payload.inoreaderObservedSource).toBe('cron');
     expect(payload.version).toMatch(/^0\.[0-9]+\.[0-9]+$/);
     expect(payload.phase).toContain('BL-032 Phase 5');
   });
@@ -85,6 +91,7 @@ describe('buildHealthPayload', () => {
         return {
           status: 'degraded',
           observedAt: '2026-05-04T18:00:00.000Z',
+          source: 'live-tool',
           note: 'fyi:inoreader-rate-limit',
         };
       }
@@ -96,6 +103,7 @@ describe('buildHealthPayload', () => {
     expect(payload.ok).toBe(false);
     expect(payload.upstashMcp).toBe('ok');
     expect(payload.inoreader).toBe('degraded');
+    expect(payload.inoreaderObservedSource).toBe('live-tool');
   });
 
   it('returns ok:true when inoreader API is unknown but MCP DB is fine — unknown is not degraded', async () => {
@@ -164,6 +172,87 @@ describe('buildHealthPayload', () => {
     const payload = await buildHealthPayload(baseEnv);
 
     expect(payload.gitSha).toBe('unknown');
+  });
+
+  // Added 2026-05-19: the inoreader-status entry now persists without
+  // TTL, and exposes both an observedSecondsAgo and an observedSource.
+  // These tests pin the surface of the new fields.
+  describe('inoreaderObservedSecondsAgo + inoreaderObservedSource (stale-while-OK)', () => {
+    it('computes observedSecondsAgo from the entry observedAt timestamp', async () => {
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      redisGet.mockImplementation(async (key: string) => {
+        if (key === 'mcp:health:probe') return null;
+        if (key === 'inoreader:access_token') return 'token';
+        if (key === 'mcp:inoreader:last-status') {
+          return { status: 'ok', observedAt: twoHoursAgo, source: 'cron', note: 'wire' };
+        }
+        return null;
+      });
+
+      const payload = await buildHealthPayload(baseEnv);
+
+      // ~7200 seconds; allow ±5s for wall-clock drift during the test.
+      expect(payload.inoreaderObservedSecondsAgo).toBeGreaterThanOrEqual(7195);
+      expect(payload.inoreaderObservedSecondsAgo).toBeLessThanOrEqual(7205);
+      expect(payload.inoreaderObservedSource).toBe('cron');
+    });
+
+    it('surfaces source: "live-tool" when the observation came from a live MCP call', async () => {
+      redisGet.mockImplementation(async (key: string) => {
+        if (key === 'mcp:health:probe') return null;
+        if (key === 'inoreader:access_token') return 'token';
+        if (key === 'mcp:inoreader:last-status') {
+          return {
+            status: 'ok',
+            observedAt: new Date().toISOString(),
+            source: 'live-tool',
+            note: 'wire',
+          };
+        }
+        return null;
+      });
+
+      const payload = await buildHealthPayload(baseEnv);
+      expect(payload.inoreaderObservedSource).toBe('live-tool');
+    });
+
+    it('returns observedSecondsAgo: null and observedSource: null when no entry exists', async () => {
+      redisGet.mockImplementation(async (key: string) => {
+        if (key === 'mcp:health:probe') return null;
+        if (key === 'inoreader:access_token') return 'token';
+        if (key === 'mcp:inoreader:last-status') return null;
+        return null;
+      });
+
+      const payload = await buildHealthPayload(baseEnv);
+      expect(payload.inoreader).toBe('unknown');
+      expect(payload.inoreaderObservedAt).toBeNull();
+      expect(payload.inoreaderObservedSecondsAgo).toBeNull();
+      expect(payload.inoreaderObservedSource).toBeNull();
+    });
+
+    // Back-compat: entries written by the pre-2026-05-19 code path didn't
+    // include the `source` field. Reads of those entries must not crash
+    // and must surface `source: null` to the operator (rather than
+    // pretending the source is known). The next successful refresh
+    // upgrades the entry to the new shape.
+    it('handles pre-2026-05-19 entries without a source field (source: null)', async () => {
+      redisGet.mockImplementation(async (key: string) => {
+        if (key === 'mcp:health:probe') return null;
+        if (key === 'inoreader:access_token') return 'token';
+        if (key === 'mcp:inoreader:last-status') {
+          // Old entry shape — no `source` field.
+          return { status: 'ok', observedAt: '2026-05-18T18:00:00.000Z', note: 'wire' };
+        }
+        return null;
+      });
+
+      const payload = await buildHealthPayload(baseEnv);
+      expect(payload.inoreader).toBe('ok');
+      expect(payload.inoreaderObservedAt).toBe('2026-05-18T18:00:00.000Z');
+      expect(payload.inoreaderObservedSecondsAgo).toBeGreaterThan(0);
+      expect(payload.inoreaderObservedSource).toBeNull();
+    });
   });
 
   describe('radarSnapshotAgeSeconds (BL-032.5 Phase 4)', () => {
