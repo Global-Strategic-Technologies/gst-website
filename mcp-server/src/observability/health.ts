@@ -4,15 +4,28 @@
  * Response shape:
  *
  *   {
- *     ok:                 boolean,
- *     version:            string,            // mcp-server package version
- *     gitSha:             string,            // deploy-time injected; 'unknown' locally
- *     phase:              string,
- *     upstashMcp:         'ok' | 'degraded', // can we reach the MCP DB?
- *     upstashInoreader:   'ok' | 'degraded', // can we reach the Inoreader DB?
- *     inoreader:          'ok' | 'degraded' | 'unknown',  // last observed Inoreader API response
- *     inoreaderObservedAt:string | null,
+ *     ok:                          boolean,
+ *     version:                     string,            // mcp-server package version
+ *     gitSha:                      string,            // deploy-time injected; 'unknown' locally
+ *     phase:                       string,
+ *     upstashMcp:                  'ok' | 'degraded', // can we reach the MCP DB?
+ *     upstashInoreader:            'ok' | 'degraded', // can we reach the Inoreader DB?
+ *     inoreader:                   'ok' | 'degraded' | 'unknown',  // last observed Inoreader API response
+ *     inoreaderObservedAt:         string | null,
+ *     inoreaderObservedSecondsAgo: number | null,     // age of the observation; null when none
+ *     inoreaderObservedSource:     'cron' | 'live-tool' | null,
+ *     radarSnapshotAgeSeconds:     number | null,
  *   }
+ *
+ * **Stale-while-OK semantics for `inoreader`** (2026-05-19): the
+ * `mcp:inoreader:last-status` key persists indefinitely — the most
+ * recent observation is always returned. `inoreaderObservedSecondsAgo`
+ * surfaces freshness so readers (this endpoint's consumers, dashboards,
+ * operators) compute their own staleness threshold. Previous version
+ * had a 5-minute TTL on the key, which meant `inoreader: 'unknown'`
+ * ~98% of the time because the 6h cron cadence was the dominant
+ * Inoreader-call source and 5 minutes ≪ 6 hours. See inoreader-status.ts
+ * docstring for the full rationale.
  *
  * **Two Upstash subsystems** (Q13 / Path 2): the Worker accesses two
  * separate databases — the website-shared Inoreader DB (Read-Only token,
@@ -34,7 +47,11 @@
  * actual 5xx from /health pages oncall.
  */
 
-import { readInoreaderStatus, type InoreaderStatus } from './inoreader-status';
+import {
+  readInoreaderStatus,
+  type InoreaderStatus,
+  type InoreaderObservedSource,
+} from './inoreader-status';
 import { createInoreaderClient, createMcpClient } from '../lib/upstash-clients';
 import type { Env } from '../worker';
 
@@ -52,6 +69,22 @@ interface HealthResponse {
   upstashInoreader: 'ok' | 'degraded';
   inoreader: InoreaderStatus;
   inoreaderObservedAt: string | null;
+  /**
+   * Age of the last Inoreader observation in seconds. `null` when no
+   * observation has been recorded (cold start, pre-first-cron). Readers
+   * use this to decide whether the `inoreader` status is fresh enough
+   * to act on: an `'ok'` from 12h ago means the cron has missed at
+   * least one firing, regardless of what the static field says.
+   */
+  inoreaderObservedSecondsAgo: number | null;
+  /**
+   * Source of the last observation — `'cron'` for cron-triggered
+   * refreshes, `'live-tool'` for MCP tool / `/radar/snapshot` calls.
+   * Diagnostically useful: if every recent observation is `'cron'`,
+   * no human is actively using the MCP surface. `null` for entries
+   * written by pre-2026-05-19 code (the field is back-compat optional).
+   */
+  inoreaderObservedSource: InoreaderObservedSource | null;
   /**
    * Age of the FYI radar snapshot in seconds (BL-032.5 Phase 4). `null` when
    * the snapshot has never been populated or when MCP DB is unreachable.
@@ -172,6 +205,8 @@ export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
     upstashInoreader,
     inoreader: inoreader.status,
     inoreaderObservedAt: inoreader.observedAt,
+    inoreaderObservedSecondsAgo: inoreader.observedSecondsAgo,
+    inoreaderObservedSource: inoreader.source,
     radarSnapshotAgeSeconds,
   };
 }
