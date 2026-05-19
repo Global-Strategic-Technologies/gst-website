@@ -8,25 +8,35 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { sentryCaptureException, sentryCaptureMessage, sentrySetTag } = vi.hoisted(() => ({
-  sentryCaptureException: vi.fn(),
-  sentryCaptureMessage: vi.fn(),
-  sentrySetTag: vi.fn(),
-}));
+const { sentryCaptureException, sentryCaptureMessage, sentrySetTag, sentryFlush } = vi.hoisted(
+  () => ({
+    sentryCaptureException: vi.fn(),
+    sentryCaptureMessage: vi.fn(),
+    sentrySetTag: vi.fn(),
+    sentryFlush: vi.fn(),
+  })
+);
 
 vi.mock('@sentry/cloudflare', () => ({
   captureException: sentryCaptureException,
   captureMessage: sentryCaptureMessage,
   setTag: sentrySetTag,
+  flush: sentryFlush,
   withSentry: vi.fn(),
 }));
 
-import { captureException, captureMessage, tagRequest } from '../../src/observability/sentry';
+import {
+  captureException,
+  captureMessage,
+  flushSentry,
+  tagRequest,
+} from '../../src/observability/sentry';
 
 beforeEach(() => {
   sentryCaptureException.mockReset();
   sentryCaptureMessage.mockReset();
   sentrySetTag.mockReset();
+  sentryFlush.mockReset();
 });
 
 describe('captureMessage', () => {
@@ -145,5 +155,36 @@ describe('tagRequest', () => {
     tagRequest(undefined, '/sitemap.xml');
     expect(sentrySetTag).toHaveBeenCalledWith('keyOwner', 'unauthenticated');
     expect(sentrySetTag).toHaveBeenCalledWith('path', '/sitemap.xml');
+  });
+});
+
+// `flushSentry` is the load-bearing piece of the scheduled-handler
+// flush fix (BL-032.8 Phase B soak Day 3). The SDK call site behavior
+// (does flush actually drain the transport queue) is the SDK's
+// responsibility; what the tests below pin is OUR wrapper contract:
+// the default timeout, custom timeout passthrough, and Promise<boolean>
+// return-value passthrough.
+describe('flushSentry', () => {
+  it('forwards to Sentry.flush with the documented 2000ms default timeout', async () => {
+    sentryFlush.mockResolvedValueOnce(true);
+    const ok = await flushSentry();
+    expect(sentryFlush).toHaveBeenCalledTimes(1);
+    expect(sentryFlush).toHaveBeenCalledWith(2000);
+    expect(ok).toBe(true);
+  });
+
+  it('passes a caller-supplied timeout through unchanged', async () => {
+    sentryFlush.mockResolvedValueOnce(true);
+    await flushSentry(500);
+    expect(sentryFlush).toHaveBeenCalledWith(500);
+  });
+
+  it('returns the SDK boolean (timeout-fired path returns false)', async () => {
+    // The boolean return value is how the caller can detect that flush
+    // hit the timeout without draining — useful for diagnostics on the
+    // scheduled-handler hot path if cron observability ever regresses.
+    sentryFlush.mockResolvedValueOnce(false);
+    const ok = await flushSentry();
+    expect(ok).toBe(false);
   });
 });
