@@ -28,7 +28,10 @@ import {
   type RateLimitInfo,
 } from '../lib/inoreader-client';
 import { createCacheStore } from '../lib/upstash-cache-store';
-import { recordInoreaderStatus } from '../observability/inoreader-status';
+import {
+  recordInoreaderStatus,
+  type InoreaderObservedSource,
+} from '../observability/inoreader-status';
 import { toSnapshotItem, type SnapshotItem } from './radar-transform';
 import type { Env } from '../worker';
 
@@ -85,11 +88,19 @@ interface CachedTier {
  * `opts.forceRefresh`: skip the cache lookup and always fetch from Inoreader.
  * Used by the BL-032.5 Phase 4 Worker Cron to refresh the snapshot on a
  * schedule independent of read traffic.
+ *
+ * `opts.source`: which path the call originated from. Recorded on the
+ * `mcp:inoreader:last-status` entry so `/health` can surface
+ * `inoreaderObservedSource`. Defaults to `'live-tool'` because that's
+ * what most callers are (MCP tool handlers, the `/radar/snapshot` HTTP
+ * route, the snapshot-reader adapter); the cron explicitly passes
+ * `'cron'`.
  */
 export async function readWireLive(
   env: Env,
-  opts: { forceRefresh?: boolean } = {}
+  opts: { forceRefresh?: boolean; source?: InoreaderObservedSource } = {}
 ): Promise<LiveTierResult> {
+  const source: InoreaderObservedSource = opts.source ?? 'live-tool';
   const cache = createCacheStore(env);
   if (cache && !opts.forceRefresh) {
     const cached = await cache.get<CachedTier>(CACHE_KEY_WIRE);
@@ -108,12 +119,12 @@ export async function readWireLive(
   if (!result.ok) {
     // BL-032 Phase 5: record observed Inoreader status for /health
     // surfacing. Best-effort; doesn't affect the failure response shape.
-    await recordInoreaderStatus(env, 'degraded', `wire:${result.reason}`);
+    await recordInoreaderStatus(env, 'degraded', source, `wire:${result.reason}`);
     return mapFailure(result);
   }
 
   // BL-032 Phase 5: record OK status so /health reflects fresh signal.
-  await recordInoreaderStatus(env, 'ok', 'wire');
+  await recordInoreaderStatus(env, 'ok', source, 'wire');
 
   const items: SnapshotItem[] = [];
   for (const item of result.data.items) {
@@ -138,12 +149,15 @@ export async function readWireLive(
  *
  * `opts.forceRefresh`: skip the cache lookup and always fetch from Inoreader.
  * Used by the BL-032.5 Phase 4 Worker Cron.
+ *
+ * `opts.source`: see `readWireLive` docstring.
  */
 export async function readFyiLive(
   env: Env,
   count: number = 30,
-  opts: { forceRefresh?: boolean } = {}
+  opts: { forceRefresh?: boolean; source?: InoreaderObservedSource } = {}
 ): Promise<LiveTierResult> {
+  const source: InoreaderObservedSource = opts.source ?? 'live-tool';
   const cache = createCacheStore(env);
   if (cache && !opts.forceRefresh) {
     const cached = await cache.get<CachedTier>(CACHE_KEY_FYI);
@@ -157,11 +171,11 @@ export async function readFyiLive(
 
   const result = await fetchAnnotatedItems(env, count);
   if (!result.ok) {
-    await recordInoreaderStatus(env, 'degraded', `fyi:${result.reason}`);
+    await recordInoreaderStatus(env, 'degraded', source, `fyi:${result.reason}`);
     return mapFailure(result);
   }
 
-  await recordInoreaderStatus(env, 'ok', 'fyi');
+  await recordInoreaderStatus(env, 'ok', source, 'fyi');
 
   const items: SnapshotItem[] = [];
   for (const item of result.data.items) {
