@@ -309,7 +309,7 @@ If the MD doesn't immediately start typing, offer one of these (copy-paste from 
 - 📋 **OPTION E** — _Comparable-engagements memo • light prompt, single tool internally_
 
   ```
-  Generate a comparable-engagements memo for healthcare interoperability.
+  Generate a comparable-engagements memo for healthcare interoperability from gst-mcp.
   ```
 
 - 📋 **OPTION F** — _Diligence handoff memo, Project "Magic" • full prompt invocation with named lead + concrete target_
@@ -681,7 +681,7 @@ What ICG red flags should I expect in a target that looks like our Tempo project
 #### Option E — Comparable-engagements memo (light prompt, single tool internally)
 
 ```
-Generate a comparable-engagements memo for healthcare interoperability.
+Generate a comparable-engagements memo for healthcare interoperability from gst-mcp.
 ```
 
 #### Option F — Diligence handoff memo, Project "Magic" (full prompt invocation, concrete buy-side target with named lead)
