@@ -274,7 +274,7 @@ Pull today's radar items relevant to AI infrastructure deals and give me a 3-bul
 
 If the MD doesn't immediately start typing, offer one of these (copy-paste from Appendix B). Options are grouped by **MCP mechanism**: A–D exercise the **Tools** primitive (`tools/call`); E–G exercise the **Prompts** primitive (`prompts/get` → templated workflow that internally orchestrates tools). Within each group, options progress from lower-complexity to higher-complexity. Pick based on (a) what the MD seems engaged with, (b) whether you want to show breadth (Tool calls — fast, single-shot) or depth (Prompt workflows — multi-step, GST-voice-templated).
 
-#### Tool-only seeds — `tools/call` (narration: _"Claude just called our tool with these args"_)
+### Tool-only seeds — `tools/call` (narration: _"Claude just called our tool with these args"_)
 
 📋 **OPTION A** — _Portfolio search • single tool, simplest_
 
@@ -300,7 +300,7 @@ Compare GDPR exposure for SaaS vs marketplace business models using our regulati
 What ICG red flags should I expect in a target that looks like our Tempo project? Use the ICG framework, and pull comparable engagements from our portfolio to ground the assessment.
 ```
 
-#### Prompt-orchestrated seeds — `prompts/get` (narration: _"Claude just asked our server for a workflow template, which is now composing multiple tools"_)
+### Prompt-orchestrated seeds — `prompts/get` (narration: _"Claude just asked our server for a workflow template, which is now composing multiple tools"_)
 
 📋 **OPTION E** — _Comparable-engagements memo • light prompt, single tool internally_
 
