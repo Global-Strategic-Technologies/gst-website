@@ -426,13 +426,13 @@ Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 
 ---
 
-Commission three specialists in parallel with the following exact commands. Do not do their work yourself.
+Commission three specialists in parallel (using your commission skill) with the following exact commands. Do not do their work yourself.
 
 - Neuromancer: use gst-mcp search_radar to search for a market signal. European healthcare IT and RCM. Return me one paragraph.
 - Molly: use the GST MCP's list_portfolio_facets, search_portfolio to find comparable-engagements. Healthcare/RCM/EU precedents. Respond to me with one paragraph.
 - 3Jane: use gst-mcp's list_regulation_facets, search_regulations for Germany BDSG, France CNIL, EU GDPR. One paragraph response.
 
-Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
+Use the sales notes above to Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
 ```
 
 ### Narrate as the fan-out fires
@@ -635,13 +635,13 @@ Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 
 ---
 
-Commission three specialists in parallel with the following exact commands. Do not do their work yourself.
+Commission three specialists in parallel (using your commission skill) with the following exact commands. Do not do their work yourself.
 
 - Neuromancer: use gst-mcp search_radar to search for a market signal. European healthcare IT and RCM. Return me one paragraph.
 - Molly: use the GST MCP's list_portfolio_facets, search_portfolio to find comparable-engagements. Healthcare/RCM/EU precedents. Respond to me with one paragraph.
 - 3Jane: use gst-mcp's list_regulation_facets, search_regulations for Germany BDSG, France CNIL, EU GDPR. One paragraph response.
 
-Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
+Use the sales notes above to Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
 ```
 
 ---
