@@ -320,6 +320,22 @@ If the MD doesn't immediately start typing, offer one of these (copy-paste from 
   Do a gst_target_quick_look on a target called Mythos. B2B SaaS, ~$27M ARR USD, growth stage, headquartered in California, USA. They spend ~$14M/year on AWS. Cloud-native with serverless compute. Engineering leads directly manage cloud costs; cloud resources are only partially tagged. Software-architecture and infrastructure-cost-governance maturity both appear low, but most other dimensions we're not yet sure about. Fill in what you can confidently derive; leave the rest as 'unknown'.
   ```
 
+- 📋 **OPTION H** — _All-MCP-primitives synergy • Pin 2 Resources + invoke a Prompt that uses them alongside its own embedded content (the highest-complexity single-user scenario — exercises Tools + Prompts + Resources in one chat thread)_
+
+  **Step 1**: Pin these regulations via Claude Desktop's `+ → Resources` menu:
+  - `gst://regulations/eu/gdpr`
+  - `gst://regulations/us-ca/ccpa`
+
+  **Step 2**: Paste this as the chat message:
+
+  ```
+  Run gst_diligence_handoff_memo for project "Cygnet". Lead: Reid Peryam. Target: B2B healthcare SaaS, ~$80M ARR USD, ~120 employees, operating across US and EU with cross-border patient data flows. Engineering maturity is medium; regulatory exposure is high. Use the pinned regulations DIRECTLY when sizing the Regulatory Exposure section — cite specific article numbers from the pinned content (no inferred citations). Leave dimensions you can't confidently derive as 'unknown'.
+  ```
+
+  **Narration beat**: _"What you're about to see is the prompt from Scenario 1, plus the regulation-pinning from Scenario 2, in one chat thread. Claude is going to call our `gst_diligence_handoff_memo` prompt, which internally orchestrates tool calls and embeds our VDR Library article. At the same time, it's going to use the two regulations I just pinned. The Regulatory Exposure section of the memo should cite article numbers from the pinned content — not made-up ones. That's all three MCP primitives — Tools, Prompts, Resources — composing in one workflow."_
+
+  **Watch-fors**: Regulatory Exposure section cites article numbers verifiable in the pinned pills (e.g., GDPR Art. 32, CCPA §1798.150); no hallucinated articles; VDR-folder labels still verbatim from the embedded Library article; low-confidence callout fires if dimensions are mostly 'unknown'.
+
 ### Narration pattern (per stakeholder question)
 
 Every time something fires, do this 3-step:
@@ -662,6 +678,19 @@ Use the gst_diligence_handoff_memo prompt to draft a buy-side diligence handoff 
 
 ```
 Do a gst_target_quick_look on a target called Mythos. B2B SaaS, ~$27M ARR USD, growth stage, headquartered in California, USA. They spend ~$14M/year on AWS. Cloud-native with serverless compute. Engineering leads directly manage cloud costs; cloud resources are only partially tagged. Software-architecture and infrastructure-cost-governance maturity both appear low, but most other dimensions we're not yet sure about. Fill in what you can confidently derive; leave the rest as 'unknown'.
+```
+
+#### Option H — All-MCP-primitives synergy (pin 2 Resources + invoke a Prompt that uses them — highest-complexity single-user scenario)
+
+**Step 1**: Pin these regulations via Claude Desktop's `+ → Resources` menu:
+
+- `gst://regulations/eu/gdpr`
+- `gst://regulations/us-ca/ccpa`
+
+**Step 2**: Paste this as the chat message:
+
+```
+Run gst_diligence_handoff_memo for project "Cygnet". Lead: Reid Peryam. Target: B2B healthcare SaaS, ~$80M ARR USD, ~120 employees, operating across US and EU with cross-border patient data flows. Engineering maturity is medium; regulatory exposure is high. Use the pinned regulations DIRECTLY when sizing the Regulatory Exposure section — cite specific article numbers from the pinned content (no inferred citations). Leave dimensions you can't confidently derive as 'unknown'.
 ```
 
 ---
