@@ -126,7 +126,7 @@ Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 📋 **PASTE** as the next message:
 
 ```
-I just had an intro call with MedSig Health (notes above). Partner needs a 1-page diligence agenda before tomorrow's 9am pipeline review. Use the `gst_diligence_kickoff` prompt with the target name 'MedSig Health' and whatever dimensions you can confidently derive from the notes. Leave the rest as `'unknown'` — don't guess.
+I just had an intro call with MedSig Health (notes above). Create 1-page diligence agenda before tomorrow's 9am discovery session. Use the `gst_diligence_kickoff` prompt with the target name 'MedSig Health' and whatever dimensions you can confidently derive from the notes. Leave the rest as `'unknown'` — don't guess.
 ```
 
 ### Narrate as Claude streams the response
@@ -578,7 +578,7 @@ Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 ### A.2 Scenario 1 invocation prompt
 
 ```
-I just had an intro call with MedSig Health (notes above). Partner needs a 1-page diligence agenda before tomorrow's 9am pipeline review. Use the `gst_diligence_kickoff` prompt with the target name 'MedSig Health' and whatever dimensions you can confidently derive from the notes. Leave the rest as `'unknown'` — don't guess.
+I just had an intro call with MedSig Health (notes above). Create 1-page diligence agenda before tomorrow's 9am discovery session. Use the `gst_diligence_kickoff` prompt with the target name 'MedSig Health' and whatever dimensions you can confidently derive from the notes. Leave the rest as `'unknown'` — don't guess.
 ```
 
 ### A.3 Scenario 2 pinned regulation URIs
