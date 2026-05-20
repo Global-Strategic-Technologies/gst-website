@@ -418,7 +418,7 @@ Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 
 ---
 
-Spawn three specialists in parallel. Do not do their work yourself.
+Commission three specialists in parallel. Do not do their work yourself.
 
 - Case: market-signal via gst-mcp search_radar. European healthcare IT and RCM. One paragraph.
 - Molly: comparable-engagements via gst-mcp search_portfolio. Healthcare/RCM/EU precedents. One paragraph.
@@ -619,7 +619,7 @@ Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 
 ---
 
-Spawn three specialists in parallel. Do not do their work yourself.
+Commission three specialists in parallel. Do not do their work yourself.
 
 - Case: market-signal via gst-mcp search_radar. European healthcare IT and RCM. One paragraph.
 - Molly: comparable-engagements via gst-mcp search_portfolio. Healthcare/RCM/EU precedents. One paragraph.
