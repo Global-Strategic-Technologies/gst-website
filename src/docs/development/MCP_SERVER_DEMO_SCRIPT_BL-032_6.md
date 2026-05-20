@@ -33,7 +33,7 @@
 - [ ] Open Claude Desktop. Confirm `gst-mcp` connector is loaded (the GST icon shows in the connectors panel).
 - [ ] In Claude Desktop, verify the system-prompt addendum from [REMOTE_CLIENT_SETUP.md § 4](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) is enabled in your profile.
 - [ ] Open the OpenClaw Telegram bot chat. Send `/status` (or whatever your bot's health command is) and confirm the bot responds with `gst-mcp` connector live. Server-side: `mcporter list gst-mcp` returns all 12 Tools.
-- [ ] Confirm the bot has the pre-defined agents wired: `radar-analyst` (Scenario 3), plus `market-signal` / `comparable-engagements` / `regulatory-exposure` / `synthesis` (Scenario 5). Each Scenario 5 specialist is restricted to a single MCP tool — `market-signal` → `search_radar`, `comparable-engagements` → `search_portfolio`, `regulatory-exposure` → `search_regulations`. Send `/agents` or your bot's agent-list command to verify.
+- [ ] Confirm the bot has the pre-defined agents wired: `radar-analyst` (Scenario 3), plus `market-signal` / `comparable-engagements` / `regulatory-exposure` / `synthesis` (Scenario 5). Each Scenario 5 specialist is scoped to one decision domain with the minimum tool set required — `market-signal` → `search_radar`, `comparable-engagements` → `search_portfolio`, `regulatory-exposure` → `list_regulation_facets` + `search_regulations` (the facets call enumerates available jurisdictions before search). Send `/agents` or your bot's agent-list command to verify.
 - [ ] **Screen-share setup**: the audience needs to see the Telegram chat live. If demoing from phone → mirror to laptop via the Telegram Desktop client (signed into the same account) and share the laptop screen. If demoing from desktop → just share the Telegram Desktop window. Confirm the chat scrollback is readable at audience-viewable font size.
 
 ### Substrate health
@@ -382,7 +382,7 @@ If a skeptical MD asks _"how do I know this isn't training data?"_, three layers
 
 ## Scenario 5 — OpenClaw multi-agent autonomous diligence (5-7 min) 🍒
 
-**Window**: Telegram bot chat (same bot as Scenario 3), multi-agent mode — the bot routes the kickoff to the 4 pre-defined agents (`market-signal`, `comparable-engagements`, `regulatory-exposure`, `synthesis`). Each specialist agent is restricted to ONE MCP tool (Tools-only deployment, per the OpenClaw client constraint): `market-signal` → `search_radar`, `comparable-engagements` → `search_portfolio`, `regulatory-exposure` → `search_regulations`. Synthesis makes no MCP calls.
+**Window**: Telegram bot chat (same bot as Scenario 3), multi-agent mode — the bot routes the kickoff to the 4 pre-defined agents (`market-signal`, `comparable-engagements`, `regulatory-exposure`, `synthesis`). Each specialist agent is scoped to one decision domain with the minimum tool set that domain requires (Tools-only deployment, per the OpenClaw client constraint): `market-signal` → `search_radar`, `comparable-engagements` → `search_portfolio`, `regulatory-exposure` → `list_regulation_facets` + `search_regulations` (facets enumerates available jurisdictions, then search retrieves the framework body per jurisdiction). Synthesis makes no MCP calls.
 
 ### Open
 
@@ -430,7 +430,7 @@ Commission three specialists in parallel with the following exact commands. Do n
 
 - Neuromancer: use gst-mcp search_radar to search for a market signal. European healthcare IT and RCM. Return me one paragraph.
 - Molly: use the GST MCP's search_portfolio to find comparable-engagements. Healthcare/RCM/EU precedents. Respond to me with one paragraph.
-- 3Jane: use gst-mcp's search_regulations to research regulatory-exposure use. Germany BDSG, France CNIL, EU GDPR. One paragraph response.
+- 3Jane: use gst-mcp's list_regulation_facets, search_regulations for Germany BDSG, France CNIL, EU GDPR. One paragraph response.
 
 Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
 ```
@@ -441,7 +441,7 @@ Synthesize: go / no-go / conditional, then one bullet per specialist, then one l
 
 🎤 **SAY** (~30 sec, while the messages stream in):
 
-> "Three agents just started in parallel — Market-signal, Comparable-engagements, and Regulatory-exposure. You'll see their messages interleaving in this chat as each one fires its tool calls. Each agent has access to exactly ONE MCP tool — that's a deliberate scope-of-authority design, not a substrate limitation. The MCP server itself ships twelve tools; we've given these specialists just the slice each one needs. From our MCP server's perspective, these look like three concurrent bearer-authenticated clients all carrying the same `MCP_KEY_OC` bearer. Every call is rate-limited against that key's budget. Every call is attributed in our logs.
+> "Three agents just started in parallel — Market-signal, Comparable-engagements, and Regulatory-exposure. You'll see their messages interleaving in this chat as each one fires its tool calls. Each agent has been given a narrow tool slice — one or two tools — covering exactly the decision domain it owns. That's a deliberate scope-of-authority design, not a substrate limitation. The MCP server itself ships twelve tools; we've given these specialists just the slice each one needs. From our MCP server's perspective, these look like three concurrent bearer-authenticated clients all carrying the same `MCP_KEY_OC` bearer. Every call is rate-limited against that key's budget. Every call is attributed in our logs.
 >
 > All requests are `tools/call` — no Resource reads, no Prompts. That's because OpenClaw's MCP client doesn't support Resources or Prompts yet; it only consumes Tools. That's actually a feature for this demo: Tools is the lowest-common-denominator MCP primitive that every client supports today. So this exact architecture would port to any other agent framework, any other chat surface — Claude Code, Cursor, CrewAI, Slack bots, future agents — without modification."
 
@@ -639,7 +639,7 @@ Commission three specialists in parallel with the following exact commands. Do n
 
 - Neuromancer: use gst-mcp search_radar to search for a market signal. European healthcare IT and RCM. Return me one paragraph.
 - Molly: use the GST MCP's search_portfolio to find comparable-engagements. Healthcare/RCM/EU precedents. Respond to me with one paragraph.
-- 3Jane: use gst-mcp's search_regulations to research regulatory-exposure use. Germany BDSG, France CNIL, EU GDPR. One paragraph response.
+- 3Jane: use gst-mcp's list_regulation_facets, search_regulations for Germany BDSG, France CNIL, EU GDPR. One paragraph response.
 
 Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
 ```
