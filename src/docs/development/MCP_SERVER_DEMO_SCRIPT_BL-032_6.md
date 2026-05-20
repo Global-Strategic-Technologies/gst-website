@@ -395,6 +395,16 @@ If a skeptical MD asks _"how do I know this isn't training data?"_, three layers
 📋 **SEND** as a Telegram message to the bot:
 
 ```
+Commission three specialists in parallel (using your commission skill) with the following exact commands. Do not do their work yourself.
+
+- Neuromancer: use gst-mcp search_radar to search for a market signal. European healthcare IT and RCM. Return me one paragraph.
+- Molly: use the GST MCP's list_portfolio_facets, search_portfolio to find comparable-engagements. Healthcare/RCM/EU precedents. Respond to me with one paragraph.
+- 3Jane: use gst-mcp's list_regulation_facets, search_regulations for Germany BDSG, France CNIL, EU GDPR. One paragraph response.
+
+Use the sales notes below to Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
+
+---
+
 Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 
 - COO: Christina Reyes (ex-Cerner). She drove the call agenda.
@@ -423,16 +433,6 @@ Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 - Vibes: COO confident but evasive on infra specifics. PE-pattern flag:
   companies that won't talk infra in an intro call usually have
   something they're sandbagging on
-
----
-
-Commission three specialists in parallel (using your commission skill) with the following exact commands. Do not do their work yourself.
-
-- Neuromancer: use gst-mcp search_radar to search for a market signal. European healthcare IT and RCM. Return me one paragraph.
-- Molly: use the GST MCP's list_portfolio_facets, search_portfolio to find comparable-engagements. Healthcare/RCM/EU precedents. Respond to me with one paragraph.
-- 3Jane: use gst-mcp's list_regulation_facets, search_regulations for Germany BDSG, France CNIL, EU GDPR. One paragraph response.
-
-Use the sales notes above to Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
 ```
 
 ### Narrate as the fan-out fires
@@ -604,6 +604,16 @@ Pull today's radar items relevant to AI infrastructure deals and give me a 3-bul
 ### A.6 Scenario 5 — Telegram-bot multi-agent kickoff command
 
 ```
+Commission three specialists in parallel (using your commission skill) with the following exact commands. Do not do their work yourself.
+
+- Neuromancer: use gst-mcp search_radar to search for a market signal. European healthcare IT and RCM. Return me one paragraph.
+- Molly: use the GST MCP's list_portfolio_facets, search_portfolio to find comparable-engagements. Healthcare/RCM/EU precedents. Respond to me with one paragraph.
+- 3Jane: use gst-mcp's list_regulation_facets, search_regulations for Germany BDSG, France CNIL, EU GDPR. One paragraph response.
+
+Use the sales notes below to Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
+
+---
+
 Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 
 - COO: Christina Reyes (ex-Cerner). She drove the call agenda.
@@ -632,16 +642,6 @@ Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 - Vibes: COO confident but evasive on infra specifics. PE-pattern flag:
   companies that won't talk infra in an intro call usually have
   something they're sandbagging on
-
----
-
-Commission three specialists in parallel (using your commission skill) with the following exact commands. Do not do their work yourself.
-
-- Neuromancer: use gst-mcp search_radar to search for a market signal. European healthcare IT and RCM. Return me one paragraph.
-- Molly: use the GST MCP's list_portfolio_facets, search_portfolio to find comparable-engagements. Healthcare/RCM/EU precedents. Respond to me with one paragraph.
-- 3Jane: use gst-mcp's list_regulation_facets, search_regulations for Germany BDSG, France CNIL, EU GDPR. One paragraph response.
-
-Use the sales notes above to Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
 ```
 
 ---
