@@ -283,7 +283,7 @@ If the MD doesn't immediately start typing, offer one of these (copy-paste from 
 - 📋 **OPTION A** — _Portfolio search • single tool, simplest_
 
   ```
-  Find me three PE firms in our portfolio that have done healthcare-interoperability deals adjacent to the Tempo project.
+  Find me three PE firms in the gst mcp portfolio that have done healthcare-interoperability deals adjacent to the Tempo project.
   ```
 
 - 📋 **OPTION C** — _Concrete-target ICG walkthrough • single tool, rich inputs (surfaces mid-tier maturity nuance)_
@@ -655,7 +655,7 @@ Use these if the stakeholder isn't probing on their own. Each one is engineered 
 #### Option A — Portfolio search (single tool, simplest)
 
 ```
-Find me three PE firms in our portfolio that have done healthcare-interoperability deals adjacent to the Tempo project.
+Find me three PE firms in the gst mcp portfolio that have done healthcare-interoperability deals adjacent to the Tempo project.
 ```
 
 #### Option C — Concrete-target ICG walkthrough (single tool, rich inputs)
