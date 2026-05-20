@@ -426,11 +426,11 @@ Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 
 ---
 
-Commission three specialists in parallel. Do not do their work yourself.
+Commission three specialists in parallel with the following exact commands. Do not do their work yourself.
 
-- Neuromancer: market-signal via gst-mcp search_radar. European healthcare IT and RCM. One paragraph.
-- Molly: comparable-engagements via gst-mcp search_portfolio. Healthcare/RCM/EU precedents. One paragraph.
-- 3Jane: regulatory-exposure via gst-mcp search_regulations. Germany BDSG, France CNIL, EU GDPR. One paragraph.
+- Neuromancer: use gst-mcp search_radar to search for a market signal. European healthcare IT and RCM. Return me one paragraph.
+- Molly: use the GST MCP's search_portfolio to find comparable-engagements. Healthcare/RCM/EU precedents. Respond to me with one paragraph.
+- 3Jane: use gst-mcp's search_regulations to research regulatory-exposure use. Germany BDSG, France CNIL, EU GDPR. One paragraph response.
 
 Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
 ```
@@ -635,11 +635,11 @@ Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 
 ---
 
-Commission three specialists in parallel. Do not do their work yourself.
+Commission three specialists in parallel with the following exact commands. Do not do their work yourself.
 
-- Neuromancer: market-signal via gst-mcp search_radar. European healthcare IT and RCM. One paragraph.
-- Molly: comparable-engagements via gst-mcp search_portfolio. Healthcare/RCM/EU precedents. One paragraph.
-- 3Jane: regulatory-exposure via gst-mcp search_regulations. Germany BDSG, France CNIL, EU GDPR. One paragraph.
+- Neuromancer: use gst-mcp search_radar to search for a market signal. European healthcare IT and RCM. Return me one paragraph.
+- Molly: use the GST MCP's search_portfolio to find comparable-engagements. Healthcare/RCM/EU precedents. Respond to me with one paragraph.
+- 3Jane: use gst-mcp's search_regulations to research regulatory-exposure use. Germany BDSG, France CNIL, EU GDPR. One paragraph response.
 
 Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
 ```
