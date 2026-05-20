@@ -94,19 +94,23 @@
 Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 
 - COO: Christina Reyes (ex-Cerner). She drove the call agenda.
-- Product: unified RCM platform for European hospital networks —
-  claims management, denial appeals, payment posting all in one workflow
+- Product: revenue cycle management platform for hospital networks
+  and large physician groups — insurance follow-up, denial appeals,
+  payment posting, AR recovery in one workflow
 - Stage: Series-B (closed late 2024, lead investor Atomico)
-- Revenue: ~€22M ARR (€20-23M she said); growing "north of 60%" YoY
-- Geography: EU only today — Germany, France, Netherlands, Iberia.
+- Revenue: ~$45M ARR; growing "north of 60%" YoY
+- Geography: primary base US (East Coast + Texas + California);
+  EU expansion launched 2025 — Germany, France, Netherlands, Iberia.
   "We're talking to two NHS trusts but nothing signed"
 - Customers: hospital networks + large physician groups; B2B contracts,
-  multi-year, ~70-80 customers ranging from 200-bed regional hospitals
+  multi-year, ~120 customers ranging from 200-bed regional hospitals
   to multi-site groups with 5k+ providers
 - Stack: "fully modern, cloud-native" (her words) — couldn't pin down
-  specifics; said something about AWS Frankfurt but wouldn't go deeper
-- Data: handles claims with PHI for every European patient touched;
-  explicitly mentioned GDPR + Germany's BDSG and France's CNIL guidance
+  specifics; said something about AWS Virginia for US + AWS Frankfurt
+  for EU but wouldn't go deeper
+- Data: handles claims with PHI for every patient touched; explicitly
+  mentioned HIPAA (US side) and GDPR + Germany's BDSG and France's
+  CNIL guidance (EU side)
 - Engagement ask: technical due diligence advisory for an "upcoming
   round" — wouldn't disclose if Series-C raise, sale, or strategic
   investor; said "we're talking to two other advisory firms"
@@ -394,19 +398,23 @@ If a skeptical MD asks _"how do I know this isn't training data?"_, three layers
 Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 
 - COO: Christina Reyes (ex-Cerner). She drove the call agenda.
-- Product: unified RCM platform for European hospital networks —
-  claims management, denial appeals, payment posting all in one workflow
+- Product: revenue cycle management platform for hospital networks
+  and large physician groups — insurance follow-up, denial appeals,
+  payment posting, AR recovery in one workflow
 - Stage: Series-B (closed late 2024, lead investor Atomico)
-- Revenue: ~€22M ARR (€20-23M she said); growing "north of 60%" YoY
-- Geography: EU only today — Germany, France, Netherlands, Iberia.
+- Revenue: ~$45M ARR; growing "north of 60%" YoY
+- Geography: primary base US (East Coast + Texas + California);
+  EU expansion launched 2025 — Germany, France, Netherlands, Iberia.
   "We're talking to two NHS trusts but nothing signed"
 - Customers: hospital networks + large physician groups; B2B contracts,
-  multi-year, ~70-80 customers ranging from 200-bed regional hospitals
+  multi-year, ~120 customers ranging from 200-bed regional hospitals
   to multi-site groups with 5k+ providers
 - Stack: "fully modern, cloud-native" (her words) — couldn't pin down
-  specifics; said something about AWS Frankfurt but wouldn't go deeper
-- Data: handles claims with PHI for every European patient touched;
-  explicitly mentioned GDPR + Germany's BDSG and France's CNIL guidance
+  specifics; said something about AWS Virginia for US + AWS Frankfurt
+  for EU but wouldn't go deeper
+- Data: handles claims with PHI for every patient touched; explicitly
+  mentioned HIPAA (US side) and GDPR + Germany's BDSG and France's
+  CNIL guidance (EU side)
 - Engagement ask: technical due diligence advisory for an "upcoming
   round" — wouldn't disclose if Series-C raise, sale, or strategic
   investor; said "we're talking to two other advisory firms"
@@ -540,19 +548,23 @@ Synthesize: go / no-go / conditional, then one bullet per specialist, then one l
 Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 
 - COO: Christina Reyes (ex-Cerner). She drove the call agenda.
-- Product: unified RCM platform for European hospital networks —
-  claims management, denial appeals, payment posting all in one workflow
+- Product: revenue cycle management platform for hospital networks
+  and large physician groups — insurance follow-up, denial appeals,
+  payment posting, AR recovery in one workflow
 - Stage: Series-B (closed late 2024, lead investor Atomico)
-- Revenue: ~€22M ARR (€20-23M she said); growing "north of 60%" YoY
-- Geography: EU only today — Germany, France, Netherlands, Iberia.
+- Revenue: ~$45M ARR; growing "north of 60%" YoY
+- Geography: primary base US (East Coast + Texas + California);
+  EU expansion launched 2025 — Germany, France, Netherlands, Iberia.
   "We're talking to two NHS trusts but nothing signed"
 - Customers: hospital networks + large physician groups; B2B contracts,
-  multi-year, ~70-80 customers ranging from 200-bed regional hospitals
+  multi-year, ~120 customers ranging from 200-bed regional hospitals
   to multi-site groups with 5k+ providers
 - Stack: "fully modern, cloud-native" (her words) — couldn't pin down
-  specifics; said something about AWS Frankfurt but wouldn't go deeper
-- Data: handles claims with PHI for every European patient touched;
-  explicitly mentioned GDPR + Germany's BDSG and France's CNIL guidance
+  specifics; said something about AWS Virginia for US + AWS Frankfurt
+  for EU but wouldn't go deeper
+- Data: handles claims with PHI for every patient touched; explicitly
+  mentioned HIPAA (US side) and GDPR + Germany's BDSG and France's
+  CNIL guidance (EU side)
 - Engagement ask: technical due diligence advisory for an "upcoming
   round" — wouldn't disclose if Series-C raise, sale, or strategic
   investor; said "we're talking to two other advisory firms"
@@ -595,19 +607,23 @@ Pull today's radar items relevant to AI infrastructure deals and give me a 3-bul
 Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 
 - COO: Christina Reyes (ex-Cerner). She drove the call agenda.
-- Product: unified RCM platform for European hospital networks —
-  claims management, denial appeals, payment posting all in one workflow
+- Product: revenue cycle management platform for hospital networks
+  and large physician groups — insurance follow-up, denial appeals,
+  payment posting, AR recovery in one workflow
 - Stage: Series-B (closed late 2024, lead investor Atomico)
-- Revenue: ~€22M ARR (€20-23M she said); growing "north of 60%" YoY
-- Geography: EU only today — Germany, France, Netherlands, Iberia.
+- Revenue: ~$45M ARR; growing "north of 60%" YoY
+- Geography: primary base US (East Coast + Texas + California);
+  EU expansion launched 2025 — Germany, France, Netherlands, Iberia.
   "We're talking to two NHS trusts but nothing signed"
 - Customers: hospital networks + large physician groups; B2B contracts,
-  multi-year, ~70-80 customers ranging from 200-bed regional hospitals
+  multi-year, ~120 customers ranging from 200-bed regional hospitals
   to multi-site groups with 5k+ providers
 - Stack: "fully modern, cloud-native" (her words) — couldn't pin down
-  specifics; said something about AWS Frankfurt but wouldn't go deeper
-- Data: handles claims with PHI for every European patient touched;
-  explicitly mentioned GDPR + Germany's BDSG and France's CNIL guidance
+  specifics; said something about AWS Virginia for US + AWS Frankfurt
+  for EU but wouldn't go deeper
+- Data: handles claims with PHI for every patient touched; explicitly
+  mentioned HIPAA (US side) and GDPR + Germany's BDSG and France's
+  CNIL guidance (EU side)
 - Engagement ask: technical due diligence advisory for an "upcoming
   round" — wouldn't disclose if Series-C raise, sale, or strategic
   investor; said "we're talking to two other advisory firms"
