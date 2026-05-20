@@ -276,49 +276,49 @@ If the MD doesn't immediately start typing, offer one of these (copy-paste from 
 
 ### Tool-only seeds — `tools/call` (narration: _"Claude just called our tool with these args"_)
 
-📋 **OPTION A** — _Portfolio search • single tool, simplest_
+- 📋 **OPTION A** — _Portfolio search • single tool, simplest_
 
-```
-Find me three PE firms in our portfolio that have done healthcare-interoperability deals adjacent to the Tempo project.
-```
+  ```
+  Find me three PE firms in our portfolio that have done healthcare-interoperability deals adjacent to the Tempo project.
+  ```
 
-📋 **OPTION C** — _Concrete-target ICG walkthrough • single tool, rich inputs (surfaces mid-tier maturity nuance)_
+- 📋 **OPTION C** — _Concrete-target ICG walkthrough • single tool, rich inputs (surfaces mid-tier maturity nuance)_
 
-```
-A target has ~$25M annual cloud spend, a 2-person FinOps function inside the platform team, about 70% resource-tag coverage, quarterly cost reviews at the engineering-leadership level, and some reserved-instance usage but no automated rightsizing. Walk me through what an ICG diligence finds and what we'd recommend if we engaged.
-```
+  ```
+  A target has ~$25M annual cloud spend, a 2-person FinOps function inside the platform team, about 70% resource-tag coverage, quarterly cost reviews at the engineering-leadership level, and some reserved-instance usage but no automated rightsizing. Walk me through what an ICG diligence finds and what we'd recommend if we engaged.
+  ```
 
-📋 **OPTION D** — _Cross-framework regulatory comparison • single tool, comparative reasoning_
+- 📋 **OPTION D** — _Cross-framework regulatory comparison • single tool, comparative reasoning_
 
-```
-Compare GDPR exposure for SaaS vs marketplace business models using our regulations corpus.
-```
+  ```
+  Compare GDPR exposure for SaaS vs marketplace business models using our regulations corpus.
+  ```
 
-📋 **OPTION B** — _ICG + portfolio precedent • 2-tool chain (Claude orchestrates the chain — highest complexity in Tool-only group)_
+- 📋 **OPTION B** — _ICG + portfolio precedent • 2-tool chain (Claude orchestrates the chain — highest complexity in Tool-only group)_
 
-```
-What ICG red flags should I expect in a target that looks like our Tempo project? Use the ICG framework, and pull comparable engagements from our portfolio to ground the assessment.
-```
+  ```
+  What ICG red flags should I expect in a target that looks like our Tempo project? Use the ICG framework, and pull comparable engagements from our portfolio to ground the assessment.
+  ```
 
 ### Prompt-orchestrated seeds — `prompts/get` (narration: _"Claude just asked our server for a workflow template, which is now composing multiple tools"_)
 
-📋 **OPTION E** — _Comparable-engagements memo • light prompt, single tool internally_
+- 📋 **OPTION E** — _Comparable-engagements memo • light prompt, single tool internally_
 
-```
-Generate a comparable-engagements memo for healthcare interoperability.
-```
+  ```
+  Generate a comparable-engagements memo for healthcare interoperability.
+  ```
 
-📋 **OPTION F** — _Diligence handoff memo, Project "Magic" • full prompt invocation with named lead + concrete target_
+- 📋 **OPTION F** — _Diligence handoff memo, Project "Magic" • full prompt invocation with named lead + concrete target_
 
-```
-Use the gst_diligence_handoff_memo prompt to draft a buy-side diligence handoff memo for project "Magic". Lead: Scott Thomas. The target is a fast-growing healthcare SaaS with ~$50M ARR USD, ~25 employees, operating across the US and UK. Infrastructure and operations maturity appears low based on the intro call. Fill in the dimensions you can confidently derive; leave the rest as 'unknown'.
-```
+  ```
+  Use the gst_diligence_handoff_memo prompt to draft a buy-side diligence handoff memo for project "Magic". Lead: Scott Thomas. The target is a fast-growing healthcare SaaS with ~$50M ARR USD, ~25 employees, operating across the US and UK. Infrastructure and operations maturity appears low based on the intro call. Fill in the dimensions you can confidently derive; leave the rest as 'unknown'.
+  ```
 
-📋 **OPTION G** — _Target quick-look, Mythos • full prompt invocation with detailed profile (cloud-native, partial-maturity signals)_
+- 📋 **OPTION G** — _Target quick-look, Mythos • full prompt invocation with detailed profile (cloud-native, partial-maturity signals)_
 
-```
-Do a gst_target_quick_look on a target called Mythos. B2B SaaS, ~$27M ARR USD, growth stage, headquartered in California, USA. They spend ~$14M/year on AWS. Cloud-native with serverless compute. Engineering leads directly manage cloud costs; cloud resources are only partially tagged. Software-architecture and infrastructure-cost-governance maturity both appear low, but most other dimensions we're not yet sure about. Fill in what you can confidently derive; leave the rest as 'unknown'.
-```
+  ```
+  Do a gst_target_quick_look on a target called Mythos. B2B SaaS, ~$27M ARR USD, growth stage, headquartered in California, USA. They spend ~$14M/year on AWS. Cloud-native with serverless compute. Engineering leads directly manage cloud costs; cloud resources are only partially tagged. Software-architecture and infrastructure-cost-governance maturity both appear low, but most other dimensions we're not yet sure about. Fill in what you can confidently derive; leave the rest as 'unknown'.
+  ```
 
 ### Narration pattern (per stakeholder question)
 
