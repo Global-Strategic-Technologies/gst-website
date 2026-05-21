@@ -1227,7 +1227,7 @@ Two end-state options were considered:
 
 - **Website `/hub/radar` page renders without Inoreader credentials** — Vercel-side SSR fetches the snapshot from the Worker; if the Worker is degraded, the website shows the same staleness UX as today but sourced from `mcp.globalstrategic.tech` rather than from a direct `inoreader.com` call
 - **A new BL-033 pilot client onboards in 10 minutes** — operator issues an `MCP_KEY_<TEAM>` bearer; the client points its MCP-compatible runtime at `https://mcp.globalstrategic.tech/mcp`; no Inoreader account work
-- **Operator sees one Inoreader usage graph** in the Developer Console; the Worker's day-counter (T.Z.1) is the canonical Inoreader-consumption signal across every consumer
+- **Operator sees one Inoreader usage graph** in the Developer Console — that graph is the canonical Inoreader-consumption signal across every consumer. The Worker's day-counter (T.Z.1) is a cron-path subset of that total (~80-85%); the missing 15-25% is OAuth refresh + live cache-miss fetches that don't increment the counter. Closing that accounting gap is scoped under [BL-032.75 § BL-032.8 Phase B soak findings → Inoreader spend accounting](#bl-03275-mcp-server--production-observability-maturity) (Day-5 finding, 2026-05-21). The cron's soft-cap protection still works correctly today; the gap is observability-side, not budget-protection-side.
 - **A 429 from Inoreader affects every consumer identically** — the Worker's circuit breaker opens once (T.Z.2), every downstream consumer sees the same 503/cached-snapshot response shape
 
 **Outcomes**
@@ -1377,6 +1377,55 @@ BL-032's Section K soak (31 of 40 tests recorded as of 2026-05-12) surfaced a ti
 - [ ] `search_regulations.jurisdiction` and `.category` — accept arrays in addition to single strings. Evidence: K.2.c.4 (fan-out forced by single-string filters). Would reduce multi-jurisdiction queries from N×M calls to 1. Worth weighing against the "capability mirror" invariant (the website's UI has single-select chips by design) — but input flexibility on the MCP surface doesn't break the mirror if the output stays identical. Estimated effort: 1 day (schema + handler + tests + docs).
 
 **Total estimated effort for K-section mitigations**: ~4 days engineering, sequenceable independently of the broader observability work. Each item ships as a standalone PR.
+
+#### BL-032.8 Phase B soak findings (added 2026-05-21)
+
+**Inoreader spend accounting — day-counter completeness gap**
+
+- [ ] **Discovery (Day-5 of BL-032.8 Phase B soak, 2026-05-21)**: the Inoreader Developer Console reported 37% Zone-1 utilization at end-of-day vs the day-counter's implied prediction of 24% (4 cron firings × 6 calls). Across the post-soak-fix window (18-21 May) the observed steady-state baseline ran 28-37 calls/day, **15-25% above** what the day-counter tracks. Day-counter and Inoreader's Developer Console disagree by a structurally-explainable amount, not a measurement glitch.
+
+  **Root cause**: the day-counter (`mcp:inoreader:day-counter:<YYYY-MM-DD>`, written by [`incrementDayCounter` in radar-refresh.ts:115](../../../mcp-server/src/cron/radar-refresh.ts#L115)) only counts **cron-path radar fetches**. Three other Zone-1-consuming code paths bypass it:
+
+  | Source                            | Egress point                                                                                                                                                                                                                                                                       | Calls/event                              | Frequency                                                                                                      | Tracked? |
+  | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------- |
+  | **Cron radar fetches**            | [`inoreader-client.ts`](../../../mcp-server/src/lib/inoreader-client.ts) `API_BASE` constant — `fetchAllStreams`, `fetchAnnotatedItems`, `fetchTagList` — invoked from [`radar-live-store.ts`](../../../mcp-server/src/content/radar-live-store.ts) when `opts.forceRefresh: true` | 6 (1 tag/list + 4 streams + 1 annotated) | 4 × /day (`0 */6 * * *` UTC)                                                                                   | ✅ Yes   |
+  | **OAuth token refresh**           | [`inoreader-oauth.ts`](../../../mcp-server/src/lib/inoreader-oauth.ts) `OAUTH_TOKEN_URL` — `/oauth2/token` POST                                                                                                                                                                    | 1                                        | ≥1× per cron firing (proactive TTL refresh in `radar-refresh.ts:187`) + ad-hoc on live-tool reactive 401-retry | ❌ No    |
+  | **Live cache-miss radar fetches** | Same `API_BASE` in `inoreader-client.ts`, but invoked from `radar-live-store.ts` when `opts.forceRefresh: false` AND the 6h-TTL cache key is absent (cron-write window slipped, or after deploy/cold start)                                                                        | ~6 each                                  | Rare — only on the brief window before each cron rewrites the cache, plus any tool calls that trip cache miss  | ❌ No    |
+
+  **Predicted vs observed**: 24 (cron) + ~4 (OAuth, one per cron firing) = **28/day baseline**. Matches 18-20 May exactly. Days that exceed 28 (e.g., 21 May's 37) include 1-2 reactive OAuth refreshes from live tool calls + occasional cache-miss radar fetches (operational testing, dry-runs, slow-cron windows). The undercount is structural, not stochastic.
+
+  **Operator-facing consequence**: BL-032.75's existing acceptance criteria ("alert fires at 70% pre-emptively"; "Daily Inoreader budget burn-down panel shows >20% headroom") are **not measurable** against an undercounting counter. The cron's soft-cap guard ([radar-refresh.ts:187](../../../mcp-server/src/cron/radar-refresh.ts#L187)) `counter + 6 > 94` gates the cron's contribution, not total spend — so the cron can stop firing while live-tool traffic continues to consume budget invisibly. In a multi-tenant BL-033 future, this gap becomes load-bearing.
+
+  **Implementation options**:
+  1. **Single global counter** (recommended). Replace the cron-only `day-counter` with `mcp:inoreader:zone1-spend:<YYYY-MM-DD>`. Wrap every Inoreader fetch at egress (a new `fetchInoreaderZone1(env, url, init)` helper in `mcp-server/src/lib/inoreader-egress.ts`) that increments the counter by 1 on every non-error response and returns the raw fetch result. Cron's soft-cap reads this global counter instead of the cron-only one. **Pro**: one accounting point, structurally impossible to bypass. **Con**: requires refactoring three call sites (`inoreader-client.ts` `fetchAllStreams`/`fetchAnnotatedItems`/`fetchTagList`, plus `inoreader-oauth.ts` `refreshAccessToken`'s POST).
+
+  2. **Multi-key counter with breakdown**. Keep `day-counter` for cron-radar; add `mcp:inoreader:oauth-spend:<YYYY-MM-DD>` and `mcp:inoreader:live-spend:<YYYY-MM-DD>`. Cron's soft-cap sums all three. `/health` surfaces breakdown: `inoreaderSpendBreakdown: { cron, oauth, live }`. **Pro**: operator sees exactly where spend went, useful for debugging fan-out hot spots. **Con**: 3× the keys to maintain; reconciling the three is its own minor design problem (e.g., what increments OAuth vs live when an OAuth refresh fires during a live-tool retry).
+
+  3. **Universal egress wrapper with category dimension** (recommended hybrid — combine 1 and 2). Single helper `fetchInoreaderZone1(env, url, init, category)` where `category: 'cron-radar' | 'live-radar' | 'oauth-refresh'`. Helper increments BOTH a single global counter AND a per-category counter. Cron's soft-cap reads global; `/health` returns per-category breakdown for operator visibility. **Pro**: ergonomics of option 1 + observability of option 2. **Con**: marginally more code (~30 LOC for the dual-counter logic), worth it for the breakdown signal.
+
+  **Recommendation**: option 3. The 30-LOC delta over option 1 buys us BL-033-grade operator visibility ("which consumer ate the budget?") for free. Document the category enum in `inoreader-egress.ts` JSDoc + add a "if you add a new Inoreader egress point, add a new category" comment so future code paths don't slip past the accounting.
+
+  **Acceptance criteria for this sub-deliverable**:
+  - [ ] New `mcp-server/src/lib/inoreader-egress.ts` exporting `fetchInoreaderZone1(env, url, init, category)` with the dual-counter increment + on-error short-circuit (don't increment if fetch throws or returns ≥500 — those calls didn't actually consume Zone-1)
+  - [ ] `inoreader-client.ts` `fetchAllStreams`, `fetchAnnotatedItems`, `fetchTagList` refactored to call through the egress wrapper with `category: 'cron-radar'` when invoked from cron path OR `'live-radar'` when invoked from live-tool path (thread the category through `opts.source` already added in BL-032.8 PR #152)
+  - [ ] `inoreader-oauth.ts` `refreshAccessToken` refactored to call through the egress wrapper with `category: 'oauth-refresh'`
+  - [ ] Old `mcp:inoreader:day-counter:<YYYY-MM-DD>` key + `incrementDayCounter`/`readDayCounter` deleted from `radar-refresh.ts`; cron's soft-cap (line 187) reads `mcp:inoreader:zone1-spend:<YYYY-MM-DD>` global counter
+  - [ ] Soft-cap threshold revised: pre-fix the guard was `counter + 6 > 94` (94 = 100 − 6-call safety margin). Post-fix it must be `counter + 7 > 94` to account for the OAuth refresh that the cron now also incurs. **Or** loosen to `> 88` for a more conservative cap. Document the chosen threshold + rationale in the comment block above the guard.
+  - [ ] `/health` response gains `inoreaderSpend: { total: number, byCategory: { 'cron-radar': N, 'live-radar': N, 'oauth-refresh': N } }` so the operator can see breakdown without leaving the endpoint
+  - [ ] Unit tests in `tests/unit/lib/inoreader-egress.test.ts`:
+    - 200 response → counter incremented (both global + category)
+    - Network error → counter NOT incremented
+    - 5xx response → counter NOT incremented
+    - 429 response → counter incremented (Inoreader DID serve a response, even though it was a rejection — debate-worthy; pick a semantic and pin it in the test)
+    - Counter TTL set on first-write (matches existing 25h TTL pattern)
+  - [ ] Soak: 7-day stability window post-deploy; the day-of-deploy projection (cron at 4/day × 7 calls = 28/day, ≈28% of 100/day budget) should match Inoreader's Developer Console within ±1 call/day. If they don't reconcile, there's a fourth egress point we missed.
+  - [ ] Migration note: existing `day-counter:*` keys on Upstash will sit unused after deploy. Add a one-line `mcp-server/src/docs/operations/DEPLOY.md` § A.X note explaining the keys can be manually deleted after deploy + adding a date for the manual cleanup.
+
+  **Effort estimate**: 1-1.5 days engineering — primarily the refactor of 3 fetch sites + threading the category parameter + the new helper + tests. The cron soft-cap threshold revision is a 1-line change but warrants careful test coverage. The `/health` breakdown is a 15-LOC addition. Lower bound assumes no surprises on the radar-live-store.ts category-threading; upper bound budgets a half-day for unexpected.
+
+  **Why this is right-sized as a BL-032.75 sub-deliverable, not a new initiative**: this is exactly the observability-completeness work BL-032.75 is for — making our internal signals match measurable reality. Filing it standalone would create artificial structure; folding it into BL-032.75 inherits the existing acceptance-criteria scaffolding (dashboards, alerts, baselining) which now becomes meaningful once the underlying counter is accurate. The fix unblocks BL-032.75's "alert at 70%" and "20% headroom" acceptance criteria.
+
+  **Related upstream correction**: BL-032.8 currently claims `the Worker's day-counter (T.Z.1) is the canonical Inoreader-consumption signal across every consumer` (line ~1200 of this BACKLOG entry). Post-discovery, the canonical signal is Inoreader's Developer Console; the day-counter is the cron-path subset. BL-032.8's claim updated in the same PR as this entry so BACKLOG stays internally consistent.
 
 #### Acceptance Criteria
 
