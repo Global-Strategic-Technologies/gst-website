@@ -14,15 +14,16 @@
 
 ## Demo flow at a glance
 
-| #   | Scenario                                                                                  | Where           | Time    | Magic moment                                           |
-| --- | ----------------------------------------------------------------------------------------- | --------------- | ------- | ------------------------------------------------------ |
-| —   | [Opening](#opening-3-min)                                                                 | (you, speaking) | 3 min   | Frame the substrate                                    |
-| 1   | [Sales call → Diligence agenda ⭐](#scenario-1--sales-call--diligence-agenda-5-min--lead) | Claude Desktop  | 5 min   | Prose → structured tool call → 1-page kickoff memo     |
-| 2   | [Cross-jurisdictional deal review](#scenario-2--cross-jurisdictional-deal-review-7-min)   | Claude Desktop  | 7 min   | Pin 3 regulations; citation-grounded compliance matrix |
-| 3   | [OpenClaw radar pull (teaser)](#scenario-3--openclaw-radar-pull-on-command-5-min)         | Telegram bot    | 5 min   | One agent, one command, GST-voice briefing             |
-| 4   | ["What else?" open-ended](#scenario-4--what-else-open-ended-interactive-5-7-min)          | Claude Desktop  | 5-7 min | Hand stakeholder the keyboard; emergent use cases      |
-| 5   | [OpenClaw multi-agent cherry 🍒](#scenario-5)                                             | Telegram bot    | 5-7 min | 3 agents fan out in parallel; partner-decision verdict |
-| —   | [Closing + Q&A](#closing-3-min)                                                           | (you, speaking) | 3 min   | What's next; receive feedback                          |
+| #   | Scenario                                                                                  | Where           | Time    | Magic moment                                                                                                       |
+| --- | ----------------------------------------------------------------------------------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------------------ |
+| —   | [Opening](#opening-3-min)                                                                 | (you, speaking) | 3 min   | Frame the substrate                                                                                                |
+| 1   | [Sales call → Diligence agenda ⭐](#scenario-1--sales-call--diligence-agenda-5-min--lead) | Claude Desktop  | 5 min   | Prose → structured tool call → 1-page kickoff memo                                                                 |
+| 2   | [Cross-jurisdictional deal review](#scenario-2--cross-jurisdictional-deal-review-7-min)   | Claude Desktop  | 7 min   | Pin 3 regulations; citation-grounded compliance matrix                                                             |
+| 3   | [OpenClaw radar pull (teaser)](#scenario-3--openclaw-radar-pull-on-command-5-min)         | Telegram bot    | 5 min   | One agent, one command, GST-voice briefing                                                                         |
+| 4   | ["What else?" open-ended](#scenario-4--what-else-open-ended-interactive-5-7-min)          | Claude Desktop  | 5-7 min | Hand stakeholder the keyboard; emergent use cases                                                                  |
+| 5   | [OpenClaw single-agent sequential 🍒](#scenario-5)                                        | Telegram bot    | 5-7 min | One agent, 3-dimension MCP sequence, partner verdict                                                               |
+| 6   | [Multi-agent cherry 🍒🍒 — DEFERRED](#scenario-6)                                         | (not run)       | —       | Blocked by [openclaw#85030](https://github.com/openclaw/openclaw/issues/85030); designed, will ship when fix lands |
+| —   | [Closing + Q&A](#closing-3-min)                                                           | (you, speaking) | 3 min   | What's next; receive feedback                                                                                      |
 
 ---
 
@@ -33,7 +34,7 @@
 - [ ] Open Claude Desktop. Confirm `gst-mcp` connector is loaded (the GST icon shows in the connectors panel).
 - [ ] In Claude Desktop, verify the system-prompt addendum from [REMOTE_CLIENT_SETUP.md § 4](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) is enabled in your profile.
 - [ ] Open the OpenClaw Telegram bot chat. Send `/status` (or whatever your bot's health command is) and confirm the bot responds with `gst-mcp` connector live. Server-side: `mcporter list gst-mcp` returns all 12 Tools.
-- [ ] Confirm the bot has the pre-defined agents wired: `radar-analyst` (Scenario 3), plus `market-signal` / `comparable-engagements` / `regulatory-exposure` / `synthesis` (Scenario 5). Each Scenario 5 specialist is scoped to one decision domain with the minimum tool set required — `market-signal` → `search_radar`, `comparable-engagements` → `list_portfolio_facets` + `search_portfolio`, `regulatory-exposure` → `list_regulation_facets` + `search_regulations` (each `*_facets` call enumerates available filter values before the corresponding `search_*` retrieves matching entries). Send `/agents` or your bot's agent-list command to verify.
+- [ ] Confirm the bot has the pre-defined agents wired for the two scenarios that run live: `radar-analyst` (Scenario 3) and `triage-analyst` (Scenario 5). The Scenario 5 agent is a single direct-session agent (NO `sessions_spawn` — that path is blocked by [openclaw#85030](https://github.com/openclaw/openclaw/issues/85030)) with `tools.allow` scoped to 5 GST MCP tools: `list_portfolio_facets`, `search_portfolio`, `list_regulation_facets`, `search_regulations`, `search_radar`. Send `/agents` or your bot's agent-list command to verify. The Scenario 6 (deferred) multi-agent config (`market-signal` / `comparable-engagements` / `regulatory-exposure` / `synthesis`) does NOT need to be present on demo day — it ships post-fix.
 - [ ] **Screen-share setup**: the audience needs to see the Telegram chat live. If demoing from phone → mirror to laptop via the Telegram Desktop client (signed into the same account) and share the laptop screen. If demoing from desktop → just share the Telegram Desktop window. Confirm the chat scrollback is readable at audience-viewable font size.
 
 ### Substrate health
@@ -253,7 +254,7 @@ Pull today's radar items relevant to AI infrastructure deals and give me a 3-bul
 
 🎤 **SAY** (~10 sec):
 
-> "Before we get to the multi-agent finale, I want to give you the keyboard. Let me switch back to Claude Desktop and hand it over so you can probe the system with whatever you want to know."
+> "Before we get to the OpenClaw cherry, I want to give you the keyboard. Let me switch back to Claude Desktop and hand it over so you can probe the system with whatever you want to know."
 
 ### ⚠️ FALLBACKS
 
@@ -380,7 +381,126 @@ If a skeptical MD asks _"how do I know this isn't training data?"_, three layers
 
 <a id="scenario-5"></a>
 
-## Scenario 5 — OpenClaw multi-agent autonomous diligence (5-7 min) 🍒
+## Scenario 5 — OpenClaw single-agent sequential diligence (5-7 min) 🍒
+
+**Window**: Telegram bot chat (same bot as Scenario 3), single-agent mode. The bot routes the kickoff to ONE pre-defined `triage-analyst` agent (direct session, no spawn — see § 5 in companion design doc for why). That agent has been scoped to the 3-tool MCP slice it needs: `search_portfolio`, `search_regulations`, `search_radar`. It works the three partner-decision dimensions in a deliberate sequence and synthesizes the verdict itself.
+
+### Open
+
+🎤 **SAY** (~40 sec):
+
+> "Final scenario — the cherry on top. Same workflow as the lead demo: take the MedSig Health call notes, produce a partner-decision recommendation. But instead of me in chat with Claude, I'm going to drop the call notes into the same Telegram bot and one OpenClaw agent will work the three decision dimensions in sequence — comparable engagements, regulatory exposure, market signal — then synthesize the verdict and post it to the chat. Watch the agent's tool calls scroll past as it works through the sequence. From our MCP server's perspective, this looks like one bearer-authenticated client carrying `MCP_KEY_OC`, firing a 5-9 call sequence. Same auth, same scope, same rate limits as any other call.
+>
+> _(briefly, if asked)_ Originally I'd designed this as 3 specialists fanning out in parallel — that's still in the deck as the 'where this is heading' picture. The fan-out lane in OpenClaw has a P1 bug right now where MCP tools don't reach spawned subagents. It's filed, it'll get fixed; meanwhile the single-agent sequential path works today and tells the same MCP integration story."
+
+### Send the call notes + kickoff command
+
+📋 **SEND** as a Telegram message to the bot:
+
+```
+You're a deal-triage analyst. Use the GST MCP server to research the
+sales notes below across three dimensions, in this exact order:
+
+1. Comparable engagements (have we done this before?):
+   call list_portfolio_facets first, then search_portfolio for
+   healthcare/RCM/EU precedents.
+
+2. Regulatory exposure (what's the regulatory risk?):
+   call list_regulation_facets first, then search_regulations for
+   Germany BDSG, France CNIL, EU GDPR — one call per jurisdiction.
+
+3. Market signal (what's the market saying about this space?):
+   call search_radar for European healthcare IT and RCM.
+
+Then synthesize: go / no-go / conditional, then one bullet per dimension
+(comparable / regulatory / market), then one line for what to send the
+COO before tomorrow's 9am discovery session.
+
+---
+
+Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
+
+- COO: Christina Reyes (ex-Cerner). She drove the call agenda.
+- Product: revenue cycle management platform for hospital networks
+  and large physician groups — insurance follow-up, denial appeals,
+  payment posting, AR recovery in one workflow
+- Stage: Series-B (closed late 2024, lead investor Atomico)
+- Revenue: ~$45M ARR; growing "north of 60%" YoY
+- Geography: primary base US (East Coast + Texas + California);
+  EU expansion launched 2025 — Germany, France, Netherlands, Iberia.
+  "We're talking to two NHS trusts but nothing signed"
+- Customers: hospital networks + large physician groups; B2B contracts,
+  multi-year, ~120 customers ranging from 200-bed regional hospitals
+  to multi-site groups with 5k+ providers
+- Stack: "fully modern, cloud-native" (her words) — couldn't pin down
+  specifics; said something about AWS Virginia for US + AWS Frankfurt
+  for EU but wouldn't go deeper
+- Data: handles claims with PHI for every patient touched; explicitly
+  mentioned HIPAA (US side) and GDPR + Germany's BDSG and France's
+  CNIL guidance (EU side)
+- Engagement ask: technical due diligence advisory for an "upcoming
+  round" — wouldn't disclose if Series-C raise, sale, or strategic
+  investor; said "we're talking to two other advisory firms"
+- Asked us to send a 1-page diligence agenda before tomorrow's 9am
+  pipeline review
+- Vibes: COO confident but evasive on infra specifics. PE-pattern flag:
+  companies that won't talk infra in an intro call usually have
+  something they're sandbagging on
+```
+
+### Narrate as the agent works the sequence
+
+👁 **WATCH** the chat scrollback. The bot will start posting messages as the agent fires each tool call — typically `[triage-analyst] Calling list_portfolio_facets...` then the result, then the next call.
+
+🎤 **SAY** (~30 sec, while the sequence runs):
+
+> "One agent, three dimensions, calls in a deliberate sequence — comparable engagements first because precedent is the highest-signal input; regulatory exposure second because that's the deal-breaker filter; market signal last because it modulates urgency, not the verdict. Every call you see scroll past is `tools/call` against our MCP — no Resource reads, no Prompts. That's because OpenClaw's MCP client doesn't support Resources or Prompts yet; it only consumes Tools. Which is actually a feature for the architectural story: Tools is the lowest-common-denominator MCP primitive that every client supports today. This exact integration would port to any other agent framework — Claude Code, Cursor, CrewAI, Slack bots — without modification."
+
+### As each phase completes
+
+👁 **POINT** at each tool-call result in the Telegram scrollback:
+
+- **Portfolio phase** completes (`list_portfolio_facets` → 1-2 `search_portfolio` calls):
+
+  🎤 **SAY**: _"That answered 'have we done this before?' — facets first to see what dimensions our portfolio is filterable on, then a targeted search for healthcare/RCM/EU precedents. You'll see anonymized engagement code names in the result."_
+
+- **Regulatory phase** completes (`list_regulation_facets` → 2-5 `search_regulations` calls, one per jurisdiction):
+
+  🎤 **SAY**: _"Regulatory exposure — facets enumerated the available jurisdictions, then one search per EU jurisdiction MedSig operates in. Cross-jurisdictional risk matrix."_
+
+- **Radar phase** completes (1-2 `search_radar` calls):
+
+  🎤 **SAY**: _"Market signal — current radar items relevant to European healthcare IT and RCM. That feeds the partner's read on the deal's timing."_
+
+### Synthesis renders
+
+👁 **WATCH** for the final synthesis message in the Telegram chat.
+
+🎤 **SAY** (~20 sec, while synthesis composes):
+
+> "Now the agent synthesizes — go / no-go / conditional, one bullet per dimension, and one line the partner can send to the COO. Notice the architectural layering. Top level: an OpenClaw agent orchestrating a multi-step workflow, surfaced through Telegram. Bottom level: tool invocations on our MCP, each one named, scope-checked, rate-limited, attributed to `MCP_KEY_OC` in our logs. Three layers of real, source-controlled engineering — and the partner gets the answer in the chat tool they already use."
+
+### Close
+
+🎤 **SAY** (~30 sec):
+
+> "Same workflow as the lead demo. Same engine. But run autonomously by an OpenClaw agent instead of me at a keyboard, delivered into Telegram instead of a desktop app — and the agent worked a structured 3-dimension sequence against our MCP. The next step up is multi-agent parallelism — three specialists, one per dimension, fanning out concurrently. That's designed, documented, and waiting on an OpenClaw `sessions_spawn` fix that's filed and in their P1 queue. When that ships, this scenario gets the parallel version for free — same MCP server, same scopes, same rate limits, same logs."
+
+### ⚠️ FALLBACKS
+
+- **Agent stalls mid-sequence (no new tool call for ~45 sec)**: don't wait — narrate _"You'd see the agent walk back the prior step on retry, but in the interest of time, let me cut to the Claude version of this workflow, which you saw in Scenario 1. Same output, single-threaded."_
+- **Bot stops responding entirely**: graceful pivot — _"The Claude version of this is Scenario 1. You already saw it work. The OpenClaw + Telegram surface is still maturing on the orchestration side; our MCP is production-ready today regardless."_
+- **Tool-call messages don't render in Telegram (only final synthesis output)**: still narrate from the final synthesis content — the GST-specific framework citations + engagement code names prove the MCP was called. Note that intermediate-step visibility is a bot-config knob, not an MCP issue. Optionally pull up `wrangler tail` on a side terminal to show the live `keyOwner=OC` log lines as receipts.
+- **Output not coherent**: don't dwell on quality; emphasize architectural layering.
+- **If asked: "why not 3 agents in parallel?"**: short answer — _"OpenClaw has a P1 bug where MCP tools don't reach spawned subagents; that's why this run is single-agent sequential. The multi-agent design is in the deck as Scenario 6 — same MCP, same scopes, same logs, just fanning out across three agents. Both versions live in our repo; the parallel one runs as soon as OpenClaw ships the fix."_
+
+---
+
+<a id="scenario-6"></a>
+
+## Scenario 6 — OpenClaw multi-agent autonomous diligence (DEFERRED — blocked by openclaw#85030) 🍒🍒
+
+> **⚠️ DEFERRED — DO NOT RUN ON DEMO DAY.** This scenario depends on OpenClaw's `sessions_spawn` subagent lane delivering MCP tools to spawned agents. That path is broken in current OpenClaw releases (verified 2026-05-21): MCP tool schemas registered in `mcp.servers` are not injected into subagent sessions even when `bundle-mcp` + `tools.subagents.tools.allow` + per-agent allowlist are all set per the documented mechanism. Filed as [openclaw#85030](https://github.com/openclaw/openclaw/issues/85030) (P1, OPEN, no patch landed). The scenario stays in this doc — fully designed, fully ready — so it ships the moment OpenClaw's fix lands. **Day-of substitute**: Scenario 5 (single-agent sequential) covers the OpenClaw + MCP integration story on the working `sessions_spawn`-free path.
 
 **Window**: Telegram bot chat (same bot as Scenario 3), multi-agent mode — the bot routes the kickoff to the 4 pre-defined agents (`market-signal`, `comparable-engagements`, `regulatory-exposure`, `synthesis`). Each specialist agent is scoped to one decision domain with the minimum tool set that domain requires (Tools-only deployment, per the OpenClaw client constraint): `market-signal` → `search_radar`, `comparable-engagements` → `list_portfolio_facets` + `search_portfolio` (facets enumerates available industries/themes/stages, then search retrieves matching engagements), `regulatory-exposure` → `list_regulation_facets` + `search_regulations` (facets enumerates available jurisdictions, then search retrieves the framework body per jurisdiction). Synthesis makes no MCP calls.
 
@@ -526,7 +646,7 @@ Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 1. **Claude Desktop scenario fails live**: rerun once. If still failing, swap to pre-recorded screencap and keep narrating.
 2. **Telegram-bot scenario fails live**: don't retry; immediately invoke _"the Claude version of this is Scenario 1 — you already saw it work"_ and move on. Don't lose stage time fighting a hung bot or unresponsive Telegram session.
 3. **MCP server returns 5xx**: open `/health` terminal, show status, mention BL-039 / circuit breaker. If `/health` itself fails, switch entirely to pre-recorded mode.
-4. **Internet drops**: pre-recorded screencaps cover Scenarios 1, 3, 5. Scenarios 2 + 4 need live interactivity — cut them, finish on the pre-recorded scenarios.
+4. **Internet drops**: pre-recorded screencaps cover Scenarios 1, 3, 5 (single-agent sequential). Scenarios 2 + 4 need live interactivity — cut them, finish on the pre-recorded scenarios.
 5. **Demonstrator loses the thread**: 5-second narration scripts in the design doc § X.X — last resort, recover with a tight one-liner.
 
 ---
@@ -535,14 +655,14 @@ Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 
 - [ ] Log "what resonated / what fell flat / what surfaced a gap" per scenario into a follow-up doc at `src/docs/demos/BL-032_6/feedback-<date>.md`
 - [ ] Capture any "what else?" prompts the stakeholder tried — these are candidate BL-04X initiatives
-- [ ] If Scenario 5 surfaced parallel-refresh load on the BL-040 boundary, capture the Sentry breadcrumbs for the BL-040 implementation kickoff
+- [ ] If/when Scenario 6 (multi-agent fan-out) runs post-openclaw#85030 fix and surfaces parallel-refresh load on the BL-040 boundary, capture the Sentry breadcrumbs for the BL-040 implementation kickoff. Scenario 5 (single-agent sequential) doesn't fan out, so this row is dormant until the fan-out scenario ships.
 - [ ] If anything broke on stage, file as a soak finding in [`BL-032_5_TESTING_FINDINGS.md`](./BL-032_5_TESTING_FINDINGS.md)-style entry
 
 ---
 
 ## Appendix A — Paste-ready content
 
-### A.1 MedSig Health call notes (used in Scenarios 1 + 5)
+### A.1 MedSig Health call notes (used in Scenarios 1 + 5; also Scenario 6 post-fix)
 
 ```
 Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
@@ -601,7 +721,35 @@ Using only the pinned regulations above, generate a compliance-risk matrix for t
 Pull today's radar items relevant to AI infrastructure deals and give me a 3-bullet briefing in the GST Take voice.
 ```
 
-### A.6 Scenario 5 — Telegram-bot multi-agent kickoff command
+### A.6 Scenario 5 — Telegram-bot single-agent sequential kickoff command
+
+```
+You're a deal-triage analyst. Use the GST MCP server to research the
+sales notes below across three dimensions, in this exact order:
+
+1. Comparable engagements (have we done this before?):
+   call list_portfolio_facets first, then search_portfolio for
+   healthcare/RCM/EU precedents.
+
+2. Regulatory exposure (what's the regulatory risk?):
+   call list_regulation_facets first, then search_regulations for
+   Germany BDSG, France CNIL, EU GDPR — one call per jurisdiction.
+
+3. Market signal (what's the market saying about this space?):
+   call search_radar for European healthcare IT and RCM.
+
+Then synthesize: go / no-go / conditional, then one bullet per dimension
+(comparable / regulatory / market), then one line for what to send the
+COO before tomorrow's 9am discovery session.
+
+---
+
+[append the MedSig Health call notes from A.1 below this line]
+```
+
+### A.7 Scenario 6 (DEFERRED) — Telegram-bot multi-agent kickoff command
+
+> **⏸️ Do not send on demo day.** Preserved here so the moment [openclaw#85030](https://github.com/openclaw/openclaw/issues/85030) is fixed, this snippet drops back into Scenario 6's runbook unchanged.
 
 ```
 Commission three specialists in parallel (using your commission skill) with the following exact commands. Do not do their work yourself.
