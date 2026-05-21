@@ -279,14 +279,24 @@ test.describe('Tech Debt Calculator', () => {
       );
     }
 
-    // Known-valid encoded state: {a:0,ts:80,sp:70,mp:60,di:2,in:3,mttr:4,bp:50,ap:50}
+    // Post-2026-05-21 URL format encodes raw business values (not slider positions).
+    // Pre-refactor format used keys {ts:teamSizePos, sp:salaryPos, bp:budgetPos, ap:arrPos}
+    // bounded to 0-100. New keys: {ts:teamSize, sa:salary, bg:remediationBudget, ar:arr}.
     const ENCODED_STATE = btoa(
-      JSON.stringify({ a: 0, ts: 80, sp: 70, mp: 60, di: 2, in: 3, mttr: 4, bp: 50, ap: 50 })
+      JSON.stringify({
+        a: 0,
+        ts: 80, // teamSize: 80 engineers
+        sa: 200_000, // salary: $200K
+        mp: 60,
+        di: 2,
+        in: 3,
+        mttr: 4,
+        bg: 1_000_000, // remediationBudget: $1M
+        ar: 50_000_000, // arr: $50M
+      })
     );
 
-    test('URL ?s= param restores slider positions and produces different results', async ({
-      page,
-    }) => {
+    test('URL ?s= param restores raw values and produces different results', async ({ page }) => {
       // Get default result first
       await gotoCalc(page);
       const defaultCost = await getMetric(page, 'annual-cost');
@@ -294,13 +304,13 @@ test.describe('Tech Debt Calculator', () => {
       // Load with custom state
       await gotoCalcWithParams(page, ENCODED_STATE);
 
-      // Team size slider at position 80
-      const sliderVal = await page.locator('#input-team-size').inputValue();
-      expect(Number(sliderVal)).toBe(80);
+      // teamSize=80 → display label shows "80"
+      const teamDisplay = await page.locator('[data-display="team-size"]').textContent();
+      expect(teamDisplay).toBe('80');
 
       // maintPct=60 → display shows "60%"
-      const display = await page.locator('[data-display="maint-pct"]').textContent();
-      expect(display).toContain('60');
+      const maintDisplay = await page.locator('[data-display="maint-pct"]').textContent();
+      expect(maintDisplay).toContain('60');
 
       // Results differ from defaults
       const paramCost = await getMetric(page, 'annual-cost');
@@ -622,6 +632,212 @@ test.describe('Tech Debt Calculator', () => {
       await page.locator('#currency-select').selectOption('EUR');
       const eurCost = await getMetric(page, 'context-switch');
       expect(eurCost).toMatch(/^€/);
+    });
+  });
+
+  // ── Direct-input precision (no slider-position thrashing) ──────────────────
+  //
+  // Per TEST_BEST_PRACTICES.md § 27 (Dual-Control UI Where Only One Direction
+  // of Sync Is Tested), every slider+direct-input pair must reconcile in BOTH
+  // directions and the typed value must be preserved exactly. Pre-2026-05-21
+  // the change-handler routed the typed value through the slider's 0-100
+  // position, quantizing $237,500 to "$300K" on blur — a state-lying UX bug.
+
+  test.describe('Direct-input typed-value precision', () => {
+    // ARR, budget, incidents, mttr live in the collapsed advanced panel.
+    // Open it once before each test in this block so their direct inputs
+    // become actionable.
+    test.beforeEach(async ({ page }) => {
+      await gotoCalc(page);
+      await jsClick(page, '[data-advanced-toggle]');
+      await page.waitForFunction(
+        () => !document.querySelector('[data-advanced-panel]')?.classList.contains('is-hidden'),
+        { timeout: 5000 }
+      );
+    });
+
+    /** Type a value into a [data-direct] input and fire change. */
+    async function typeDirect(page: Page, key: string, value: string): Promise<void> {
+      const input = page.locator(`[data-direct="${key}"]`);
+      await input.fill(value);
+      await input.dispatchEvent('change');
+    }
+
+    /** Read the rendered display label for a slider. */
+    async function getDisplay(page: Page, key: string): Promise<string> {
+      return (await page.locator(`[data-display="${key}"]`).textContent()) ?? '';
+    }
+
+    test('ARR: typing $237,500 preserves precision (no quantization to $200K/$300K)', async ({
+      page,
+    }) => {
+      await typeDirect(page, 'arr', '237500');
+
+      // The user's exact value is shown back in the direct input (formatted)
+      // and the display label reflects it — no thrashing to a nearby slider bucket.
+      const directValue = await page.locator('[data-direct="arr"]').inputValue();
+      expect(directValue).toBe('$238K'); // fmtShortC rounds the *display* to 1dp on K
+      // The display label uses the same fmtShortC formatter
+      const display = await getDisplay(page, 'arr');
+      expect(display).toBe('$238K');
+    });
+
+    test('ARR: typing "12.5M" honors M suffix → $12,500,000 exact', async ({ page }) => {
+      await typeDirect(page, 'arr', '12.5M');
+
+      const directValue = await page.locator('[data-direct="arr"]').inputValue();
+      expect(directValue).toBe('$12.5M');
+      const display = await getDisplay(page, 'arr');
+      expect(display).toBe('$12.5M');
+    });
+
+    test('ARR: typing "$1.5M" honors mirrored display format', async ({ page }) => {
+      await typeDirect(page, 'arr', '$1.5M');
+
+      const directValue = await page.locator('[data-direct="arr"]').inputValue();
+      expect(directValue).toBe('$1.5M');
+    });
+
+    test('ARR: clamps to $100K floor on out-of-range input', async ({ page }) => {
+      await typeDirect(page, 'arr', '50'); // $50 — below the $100K floor
+
+      const directValue = await page.locator('[data-direct="arr"]').inputValue();
+      expect(directValue).toBe('$100K');
+    });
+
+    test('ARR: clamps to $1B ceiling on out-of-range input', async ({ page }) => {
+      await typeDirect(page, 'arr', '5B'); // B suffix unsupported → NaN → falls back to current value
+      // 5B unparseable → state unchanged; verify default remained
+      const directAfter = await page.locator('[data-direct="arr"]').inputValue();
+      expect(directAfter).toBe('$10.0M'); // DEFAULT_STATE.arr
+
+      // Now try a valid but huge value
+      await typeDirect(page, 'arr', '2000000000'); // $2B
+      const clamped = await page.locator('[data-direct="arr"]').inputValue();
+      expect(clamped).toBe('$1000.0M'); // clamped to ceiling
+    });
+
+    test('Salary: typing "$187,500" preserves precision (no $5K snap)', async ({ page }) => {
+      await typeDirect(page, 'salary', '187500');
+
+      const display = await getDisplay(page, 'salary');
+      expect(display).toBe('$188K'); // fmtShortC display rounding only
+    });
+
+    test('Budget: typing "$1.75M" honors M suffix and preserves precision', async ({ page }) => {
+      await typeDirect(page, 'budget', '1.75M');
+
+      const directValue = await page.locator('[data-direct="budget"]').inputValue();
+      expect(directValue).toBe('$1.8M'); // fmtShortC rounds *display* to 1dp on M
+    });
+
+    // Dual-control sync (§ 27): both directions of the contract are tested.
+
+    test('slider drag updates the direct input (slider→input direction)', async ({ page }) => {
+      // Drag ARR slider to position 50 (mid-curve)
+      await setSlider(page, 'input-arr', 50);
+      const directValue = await page.locator('[data-direct="arr"]').inputValue();
+      // Display should reflect a value near pos-50 (~$177M) — value depends on
+      // the power curve. Assert it CHANGED from default and is non-empty.
+      expect(directValue).not.toBe('$10.0M');
+      expect(directValue.length).toBeGreaterThan(0);
+    });
+
+    test('direct input updates the slider thumb (input→slider direction)', async ({ page }) => {
+      await typeDirect(page, 'arr', '500M');
+
+      // Slider thumb position should reflect the new value via arrToPos()
+      const sliderValue = await page.locator('#input-arr').inputValue();
+      expect(Number(sliderValue)).toBeGreaterThan(0);
+      expect(Number(sliderValue)).toBeLessThanOrEqual(100);
+    });
+
+    test('garbled input (non-numeric) falls back to current state, no NaN/zero corruption', async ({
+      page,
+    }) => {
+      // Default ARR is $10M
+      const beforeAnnual = await getMetric(page, 'annual-cost');
+      await typeDirect(page, 'arr', 'lol not a number');
+
+      // State unchanged; the typed garbage is replaced with the current value
+      const directAfter = await page.locator('[data-direct="arr"]').inputValue();
+      expect(directAfter).toBe('$10.0M');
+      const annualAfter = await getMetric(page, 'annual-cost');
+      expect(annualAfter).toBe(beforeAnnual);
+    });
+
+    // ── Clamp feedback (C3) ──────────────────────────────────────────────────
+    //
+    // When a typed value is clamped to a range bound or rejected as
+    // unparseable, the UI shows a visible message under the input. Without
+    // this, the user sees "$100K" appear after typing "$50" with no clue
+    // why their value changed — the same state-lying anti-pattern this work
+    // set out to fix.
+
+    async function getClampMsg(page: Page, key: string): Promise<string> {
+      return (await page.locator(`[data-clamp-msg="${key}"]`).textContent()) ?? '';
+    }
+
+    async function isClampMsgVisible(page: Page, key: string): Promise<boolean> {
+      return await page.locator(`[data-clamp-msg="${key}"]`).isVisible();
+    }
+
+    test('ARR below floor shows "Minimum ARR is $100K" message', async ({ page }) => {
+      await typeDirect(page, 'arr', '50');
+      expect(await isClampMsgVisible(page, 'arr')).toBe(true);
+      const msg = await getClampMsg(page, 'arr');
+      expect(msg).toMatch(/Minimum ARR/);
+      expect(msg).toMatch(/100K/);
+    });
+
+    test('ARR above ceiling shows "Maximum ARR is $1000.0M" message', async ({ page }) => {
+      await typeDirect(page, 'arr', '2000000000');
+      expect(await isClampMsgVisible(page, 'arr')).toBe(true);
+      const msg = await getClampMsg(page, 'arr');
+      expect(msg).toMatch(/Maximum ARR/);
+    });
+
+    test('ARR garbled input shows "Couldn\'t read" fallback message', async ({ page }) => {
+      await typeDirect(page, 'arr', 'lol');
+      expect(await isClampMsgVisible(page, 'arr')).toBe(true);
+      const msg = await getClampMsg(page, 'arr');
+      expect(msg).toMatch(/Couldn't read/);
+      expect(msg).toMatch(/lol/);
+    });
+
+    test('valid in-range input shows no clamp message', async ({ page }) => {
+      await typeDirect(page, 'arr', '50000000');
+      expect(await isClampMsgVisible(page, 'arr')).toBe(false);
+    });
+
+    test('clamp message clears as soon as the user starts editing again', async ({ page }) => {
+      // Trigger a clamp first
+      await typeDirect(page, 'arr', '50');
+      expect(await isClampMsgVisible(page, 'arr')).toBe(true);
+
+      // Now type one character (input event) — should clear the message
+      // before the user even blurs
+      const input = page.locator('[data-direct="arr"]');
+      await input.click();
+      await input.press('End');
+      await input.press('0'); // fires input event
+      expect(await isClampMsgVisible(page, 'arr')).toBe(false);
+    });
+
+    test('Budget below floor surfaces feedback (covers second currency control)', async ({
+      page,
+    }) => {
+      await typeDirect(page, 'budget', '500');
+      expect(await isClampMsgVisible(page, 'budget')).toBe(true);
+      const msg = await getClampMsg(page, 'budget');
+      expect(msg).toMatch(/Minimum remediation budget/);
+    });
+
+    test('Maint-pct above 100 surfaces feedback (covers percent control)', async ({ page }) => {
+      await typeDirect(page, 'maint-pct', '150');
+      expect(await isClampMsgVisible(page, 'maint-pct')).toBe(true);
+      const msg = await getClampMsg(page, 'maint-pct');
+      expect(msg).toMatch(/Maximum maintenance burden is 100%/);
     });
   });
 });

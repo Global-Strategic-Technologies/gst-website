@@ -1,23 +1,16 @@
 /**
  * MCP tool: estimate_tech_debt_cost
  *
- * Wraps the website's pure Tech Debt engine via `calculateFromRawInputs` —
- * the slider-position helpers stay on the website side so agents pass raw
- * business values directly.
- *
- * The result includes a `deeplink` that opens the Tech Debt Calculator
- * with sliders pre-positioned to reproduce the supplied inputs (subject
- * to slider-granularity quantization — see BL-034 cleanup item).
+ * Wraps the website's pure Tech Debt engine via `calculateFromRawInputs`.
+ * Agents pass raw business values directly; the website's CalcState now
+ * stores those same raw values, so deeplinks reproduce inputs exactly
+ * (no slider-position quantization loss).
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   calculateFromRawInputs,
   encodeState,
-  teamSizeToPos,
-  salaryToPos,
-  budgetToPos,
-  arrToPos,
   DEPLOY_OPTIONS,
   type CalcState,
   type RawTechDebtInputs,
@@ -37,13 +30,12 @@ Given raw business values (team size, average salary, maintenance burden %, depl
 - \`doraLabel\` and DORA velocity multiplier (V) — derived from deployment frequency
 - \`deeplink\` — URL to open the Tech Debt Calculator with sliders pre-positioned to these inputs (for PDF / export / share via the website page)
 
-The MCP tool accepts raw values directly. The website's slider-position helpers (\`posToTeamSize\`, \`posToSalary\`, \`posTobudget\`, \`posToArr\`) are deliberately bypassed — sliders are a UI concern with no place in an agent-facing schema.`;
+The MCP tool accepts raw values directly. The website stores the same raw values as canonical state, so deep-links round-trip exactly without slider-granularity quantization.`;
 
 /**
- * Convert raw inputs back to a CalcState (slider-position representation)
- * using the website's inverse helpers. Subject to slider-granularity
- * quantization — the deep-link will reproduce the inputs to whatever
- * precision the sliders support.
+ * Convert raw MCP inputs to CalcState. Since CalcState now holds raw business
+ * values (post-precision-thrash refactor), this is mostly a field-renaming +
+ * deployFrequency-label-to-index lookup.
  */
 export function rawToState(raw: RawTechDebtInputs): CalcState {
   const deployIdx = DEPLOY_OPTIONS.findIndex((d) => d.label === raw.deployFrequency);
@@ -52,14 +44,14 @@ export function rawToState(raw: RawTechDebtInputs): CalcState {
   }
   return {
     advancedOpen: false,
-    teamSizePos: teamSizeToPos(raw.teamSize),
-    salaryPos: salaryToPos(raw.salary),
+    teamSize: raw.teamSize,
+    salary: raw.salary,
     maintPct: raw.maintenanceBurdenPct,
     deployIdx,
     incidents: raw.incidents,
     mttr: raw.mttrHours,
-    budgetPos: budgetToPos(raw.remediationBudget),
-    arrPos: arrToPos(raw.arr),
+    remediationBudget: raw.remediationBudget,
+    arr: raw.arr,
     remediationPct: raw.remediationPct,
     contextSwitchOn: raw.contextSwitchOn,
   };

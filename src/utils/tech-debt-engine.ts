@@ -34,31 +34,43 @@ export const posToArr = (pos: number): number =>
   Math.round((100000 + 999900000 * Math.pow(pos / 100, 2.5)) / 100000) * 100000;
 
 // ─── Inverse transforms (business value → initial slider position) ────────────
+//
+// Sliders use step="0.1" (1000 discrete positions across the 0-100 domain) so
+// the thumb can faithfully represent a typed value without snapping to one of
+// only 100 buckets. Output is rounded to one decimal place to match the
+// slider's step granularity exactly.
+const POS_DECIMAL = (x: number): number => Math.round(x * 10) / 10;
 
 export const teamSizeToPos = (v: number): number =>
-  Math.round(Math.pow((v - 1) / 499, 1 / 2.3) * 100);
+  POS_DECIMAL(Math.pow((v - 1) / 499, 1 / 2.3) * 100);
 
-export const salaryToPos = (v: number): number => Math.round(Math.sqrt((v - 60000) / 940000) * 100);
+export const salaryToPos = (v: number): number =>
+  POS_DECIMAL(Math.sqrt((v - 60000) / 940000) * 100);
 
 export const budgetToPos = (v: number): number =>
-  Math.round(Math.pow((v - 10000) / 49990000, 1 / 2.5) * 100);
+  POS_DECIMAL(Math.pow((v - 10000) / 49990000, 1 / 2.5) * 100);
 
 export const arrToPos = (v: number): number =>
-  Math.round(Math.pow((v - 100000) / 999900000, 1 / 2.5) * 100);
+  POS_DECIMAL(Math.pow((v - 100000) / 999900000, 1 / 2.5) * 100);
 
 // ─── State & result types ─────────────────────────────────────────────────────
 
+// Canonical state stores raw business values (dollars, headcount, percent).
+// Slider positions are a UI concern derived via `*ToPos()` for thumb placement
+// and produced by `posTo*()` on slider drag. This contract prevents the user's
+// typed precision from being round-tripped through the slider's coarse 0-100
+// integer space — see TEST_BEST_PRACTICES.md § 27 for the anti-pattern.
 export interface CalcState {
   advancedOpen: boolean;
-  teamSizePos: number;
-  salaryPos: number;
-  maintPct: number;
+  teamSize: number; // headcount, 1-500
+  salary: number; // dollars, 60000-1000000
+  maintPct: number; // percent, 0-100
   deployIdx: number;
-  incidents: number;
-  mttr: number;
-  budgetPos: number;
-  arrPos: number;
-  remediationPct: number;
+  incidents: number; // count, 0-20
+  mttr: number; // hours, 1-48
+  remediationBudget: number; // dollars, 10000-50000000
+  arr: number; // dollars, 100000-1000000000
+  remediationPct: number; // percent, 0-100
   contextSwitchOn: boolean;
 }
 
@@ -144,14 +156,14 @@ export function calculateFromRawInputs(raw: RawTechDebtInputs): CalcResult {
 export function calculate(state: CalcState): CalcResult {
   const deploy = DEPLOY_OPTIONS[state.deployIdx];
   return calculateFromRawInputs({
-    teamSize: posToTeamSize(state.teamSizePos),
-    salary: posToSalary(state.salaryPos),
+    teamSize: state.teamSize,
+    salary: state.salary,
     maintenanceBurdenPct: state.maintPct,
     deployFrequency: deploy.label,
     incidents: state.incidents,
     mttrHours: state.mttr,
-    remediationBudget: posTobudget(state.budgetPos),
-    arr: posToArr(state.arrPos),
+    remediationBudget: state.remediationBudget,
+    arr: state.arr,
     remediationPct: state.remediationPct,
     contextSwitchOn: state.contextSwitchOn,
   });
@@ -180,20 +192,23 @@ export const fmtPayback = (months: number): string => {
 
 // ─── URL state serialisation ──────────────────────────────────────────────────
 //
-// Compact key map keeps the base64 string short.
-// 'in' is a JS reserved word in some contexts — always access as raw['in'].
+// Compact key map keeps the base64 string short. URL stores raw business
+// values directly so shared deeplinks reproduce typed precision exactly
+// (previous slider-position format quantized to 100 buckets and was lossy
+// at high ARR values). 'in' is a JS reserved word in some contexts — always
+// access as raw['in'].
 
 export function encodeState(state: CalcState): string {
   const compact = {
     a: state.advancedOpen ? 1 : 0,
-    ts: state.teamSizePos,
-    sp: state.salaryPos,
+    ts: state.teamSize,
+    sa: state.salary,
     mp: state.maintPct,
     di: state.deployIdx,
     in: state.incidents,
     mttr: state.mttr,
-    bp: state.budgetPos,
-    ap: state.arrPos,
+    bg: state.remediationBudget,
+    ar: state.arr,
     re: state.remediationPct,
     cs: state.contextSwitchOn ? 1 : 0,
   };
@@ -206,16 +221,18 @@ export function decodeState(encoded: string): Partial<CalcState> | null {
     if (typeof raw !== 'object' || raw === null) return null;
 
     const out: Partial<CalcState> = {};
+    const isNum = (v: unknown, min: number, max: number): v is number =>
+      typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
 
     if (raw.a === 0 || raw.a === 1) out.advancedOpen = raw.a === 1;
-    if (Number.isInteger(raw.ts) && raw.ts >= 0 && raw.ts <= 100) out.teamSizePos = raw.ts;
-    if (Number.isInteger(raw.sp) && raw.sp >= 0 && raw.sp <= 100) out.salaryPos = raw.sp;
+    if (isNum(raw.ts, 1, 500)) out.teamSize = raw.ts;
+    if (isNum(raw.sa, 60000, 1000000)) out.salary = raw.sa;
     if (Number.isInteger(raw.mp) && raw.mp >= 0 && raw.mp <= 100) out.maintPct = raw.mp;
     if (Number.isInteger(raw.di) && raw.di >= 0 && raw.di <= 8) out.deployIdx = raw.di;
     if (Number.isInteger(raw['in']) && raw['in'] >= 0 && raw['in'] <= 20) out.incidents = raw['in'];
     if (Number.isInteger(raw.mttr) && raw.mttr >= 1 && raw.mttr <= 48) out.mttr = raw.mttr;
-    if (Number.isInteger(raw.bp) && raw.bp >= 0 && raw.bp <= 100) out.budgetPos = raw.bp;
-    if (Number.isInteger(raw.ap) && raw.ap >= 0 && raw.ap <= 100) out.arrPos = raw.ap;
+    if (isNum(raw.bg, 10000, 50000000)) out.remediationBudget = raw.bg;
+    if (isNum(raw.ar, 100000, 1000000000)) out.arr = raw.ar;
     if (Number.isInteger(raw.re) && raw.re >= 0 && raw.re <= 100) out.remediationPct = raw.re;
     if (raw.cs === 0 || raw.cs === 1) out.contextSwitchOn = raw.cs === 1;
 
@@ -223,6 +240,35 @@ export function decodeState(encoded: string): Partial<CalcState> | null {
   } catch {
     return null;
   }
+}
+
+// ─── Currency parsing ─────────────────────────────────────────────────────────
+
+/**
+ * Parses a currency string with optional K/M suffix into a number.
+ * Honors the same shorthand format the UI displays back (`fmtShortC`), so the
+ * user can mirror what they see ("$12.5M") instead of being forced to type
+ * seven zeros. Leading currency symbol, commas, and whitespace are stripped.
+ *
+ * Returns NaN for unparseable input (caller decides clamp / fallback).
+ *
+ * Examples:
+ *   parseShortCurrency("$12.5M") → 12500000
+ *   parseShortCurrency("750K")   → 750000
+ *   parseShortCurrency("237500") → 237500
+ *   parseShortCurrency("1,000")  → 1000
+ *   parseShortCurrency("")       → NaN
+ */
+export function parseShortCurrency(input: string): number {
+  if (typeof input !== 'string') return NaN;
+  const cleaned = input.replace(/[\s,$£€¥]/g, '').toUpperCase();
+  // Allow optional leading +/-, digits, optional decimal, optional K|M suffix
+  const match = cleaned.match(/^([+-]?\d+(?:\.\d+)?)([KM])?$/);
+  if (!match) return NaN;
+  const num = parseFloat(match[1]);
+  if (!Number.isFinite(num)) return NaN;
+  const mult = match[2] === 'M' ? 1_000_000 : match[2] === 'K' ? 1_000 : 1;
+  return num * mult;
 }
 
 // ─── Default initial state ────────────────────────────────────────────────────
@@ -285,8 +331,8 @@ export function buildSummaryText(
   url?: string
 ): string {
   const f = (n: number) => fmtShortC(n, symbol, multiplier);
-  const teamSize = posToTeamSize(state.teamSizePos);
-  const salary = posToSalary(state.salaryPos);
+  const teamSize = state.teamSize;
+  const salary = state.salary;
   const deploy = DEPLOY_OPTIONS[state.deployIdx];
   const ftesLost = (teamSize * (state.maintPct / 100)).toFixed(1);
   const date = new Date().toISOString().slice(0, 10);
@@ -333,14 +379,14 @@ export function buildSummaryText(
 
 export const DEFAULT_STATE: CalcState = {
   advancedOpen: false,
-  teamSizePos: teamSizeToPos(8),
-  salaryPos: salaryToPos(150000),
+  teamSize: 8,
+  salary: 150000,
   maintPct: 25,
   deployIdx: 3,
   incidents: 3,
   mttr: 4,
-  budgetPos: budgetToPos(500000),
-  arrPos: arrToPos(10000000),
+  remediationBudget: 500000,
+  arr: 10000000,
   remediationPct: 70,
   contextSwitchOn: false,
 };
