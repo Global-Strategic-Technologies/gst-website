@@ -231,6 +231,30 @@ describe('Table of Contents', () => {
 
 **Coverage Target:** 85%+
 
+#### D. Dual-Control Synchronization
+
+Any UI surface that exposes **two** controls representing the same state — preset chip group + manual numeric input, segmented control + free-text override, slider + number input — forms a sync contract. Tests must cover **both** directions of the contract, because the forward path (the one the developer was thinking about while writing the feature) almost always works, and the reverse path (manual override → reconcile the chip/slider/toggle group) is the one that quietly rots.
+
+**Affected surfaces in this codebase:**
+
+- TechPar cost preset chips + numeric inputs (`data-preset-for` + `data-input`)
+- ARR quick-select chips + ARR input
+- Industry / currency / period segmented controls (toggle-group form)
+
+**Why the reverse direction breaks:** the chip-click handler updates state and synchronously toggles the chip's `active` class. The input-typed handler usually updates state too — but a missing input-event listener for the same group leaves stale chip selections in place, telling the user "the preset is still in effect" when the actual submitted value is whatever they typed.
+
+**Required test cases per dual-control pair:**
+
+1. Forward — clicking control A updates control B and marks A active
+2. Reverse — editing control B to a non-preset value deactivates A
+3. Reverse-rematch — editing control B to match a different chip's value activates that chip and deactivates the prior
+4. Clear — emptying control B deactivates every chip in the group
+5. Idempotent re-type — re-typing the active chip's exact value leaves A active
+
+See [TEST_BEST_PRACTICES.md § 27 — Dual-Control UI Where Only One Direction of Sync Is Tested](./TEST_BEST_PRACTICES.md) for the anti-pattern that motivates this subsection, and `tests/e2e/techpar.test.ts § "Cost preset chip ↔ input sync"` for the reference implementation parameterized over the 9 TechPar cost controls.
+
+**Coverage Target:** 100% of dual-control pairs covered by all five cases.
+
 ---
 
 ### 3.3 E2E Tests (User Journeys)
