@@ -434,6 +434,22 @@ export function syncArrChips() {
   });
 }
 
+// Mirrors syncArrChips for cost preset chips. Activates the chip whose
+// data-preset-val matches the current input value; deactivates the rest. This
+// is the second half of the chip↔input contract — without it, manually
+// overriding the input value leaves a stale preset chip visually selected.
+export function syncCostChips(inputName: string): void {
+  const input = document.querySelector<HTMLInputElement>(`[data-input="${inputName}"]`);
+  const current = input ? parseFloat(input.value.replace(/,/g, '')) || 0 : 0;
+  document
+    .querySelectorAll<HTMLButtonElement>(`[data-preset-for="${inputName}"]`)
+    .forEach((chip) => {
+      const isActive = Number(chip.dataset.presetVal) === current && current > 0;
+      chip.classList.toggle('tp-arr-chip--active', isActive);
+      chip.setAttribute('aria-pressed', String(isActive));
+    });
+}
+
 // ─── Config display sync ──────────────────────────────────
 export function updateChipCurrencies() {
   document
