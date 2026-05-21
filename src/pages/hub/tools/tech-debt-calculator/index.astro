@@ -1323,6 +1323,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     buildSummaryText,
     burdenClassify,
     contextNote,
+    parseShortCurrency,
   } from '../../../../utils/tech-debt-engine';
 
   import type { CalcState, CalcResult } from '../../../../utils/tech-debt-engine';
@@ -1473,7 +1474,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
         result.paybackMonths < 24 ? 'var(--color-primary)' : 'var(--color-secondary)';
       el('payback-savings').textContent = fmtShortC(result.monthlySavings);
       el('payback-disclaimer').textContent =
-        `Remediation efficiency: ${state.remediationPct}% · Budget: ${fmtC(posTobudget(state.budgetPos))}`;
+        `Remediation efficiency: ${state.remediationPct}% · Budget: ${fmtC(state.remediationBudget)}`;
     }
   }
 
@@ -1502,12 +1503,12 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
 
   function renderSliderValues(state: CalcState, teamSize: number): void {
     getDisplay('team-size').textContent = String(teamSize);
-    getDisplay('salary').textContent = fmtShortC(posToSalary(state.salaryPos));
+    getDisplay('salary').textContent = fmtShortC(state.salary);
     getDisplay('maint-pct').textContent = state.maintPct + '%';
     getDisplay('incidents').textContent = state.incidents === 0 ? 'None' : String(state.incidents);
     getDisplay('mttr').textContent = state.mttr + 'h';
-    getDisplay('budget').textContent = fmtShortC(posTobudget(state.budgetPos));
-    getDisplay('arr').textContent = fmtShortC(posToArr(state.arrPos));
+    getDisplay('budget').textContent = fmtShortC(state.remediationBudget);
+    getDisplay('arr').textContent = fmtShortC(state.arr);
     getDisplay('remediation').textContent = state.remediationPct + '%';
 
     const ctxCheckbox = document.getElementById('input-context-switch') as HTMLInputElement | null;
@@ -1520,8 +1521,8 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
         slider.setAttribute('aria-valuetext', text);
       }
     };
-    setAriaValue('input-team-size', state.teamSizePos, `${teamSize} engineers`);
-    setAriaValue('input-salary', state.salaryPos, fmtShortC(posToSalary(state.salaryPos)));
+    setAriaValue('input-team-size', teamSizeToPos(state.teamSize), `${teamSize} engineers`);
+    setAriaValue('input-salary', salaryToPos(state.salary), fmtShortC(state.salary));
     setAriaValue('input-maint-pct', state.maintPct, `${state.maintPct}%`);
     setAriaValue(
       'input-incidents',
@@ -1529,8 +1530,12 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
       state.incidents === 0 ? 'None' : `${state.incidents} per month`
     );
     setAriaValue('input-mttr', state.mttr, `${state.mttr} hours`);
-    setAriaValue('input-arr', state.arrPos, fmtShortC(posToArr(state.arrPos)));
-    setAriaValue('input-budget', state.budgetPos, fmtShortC(posTobudget(state.budgetPos)));
+    setAriaValue('input-arr', arrToPos(state.arr), fmtShortC(state.arr));
+    setAriaValue(
+      'input-budget',
+      budgetToPos(state.remediationBudget),
+      fmtShortC(state.remediationBudget)
+    );
     setAriaValue('input-remediation', state.remediationPct, `${state.remediationPct}%`);
 
     const hint = (key: string): HTMLElement | null =>
@@ -1551,7 +1556,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
 
   function render(): void {
     const result = calculate(state);
-    const teamSize = posToTeamSize(state.teamSizePos);
+    const teamSize = state.teamSize;
     renderAnalytics(result);
     renderCoreMetrics(state, result, teamSize);
     renderAdvancedPanel(state, result);
@@ -1569,9 +1574,9 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
 
   function syncDirectInputs(): void {
     const ts = getDirect('team-size');
-    if (ts) ts.value = String(posToTeamSize(state.teamSizePos));
+    if (ts) ts.value = String(state.teamSize);
     const sal = getDirect('salary');
-    if (sal) sal.value = fmtShortC(posToSalary(state.salaryPos));
+    if (sal) sal.value = fmtShortC(state.salary);
     const mp = getDirect('maint-pct');
     if (mp) mp.value = String(state.maintPct);
     const inc = getDirect('incidents');
@@ -1579,19 +1584,19 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     const mttr = getDirect('mttr');
     if (mttr) mttr.value = String(state.mttr);
     const arr = getDirect('arr');
-    if (arr) arr.value = fmtShortC(posToArr(state.arrPos));
+    if (arr) arr.value = fmtShortC(state.arr);
     const budget = getDirect('budget');
-    if (budget) budget.value = fmtShortC(posTobudget(state.budgetPos));
+    if (budget) budget.value = fmtShortC(state.remediationBudget);
   }
 
   function initSliders(): void {
-    getInput('team-size').value = String(state.teamSizePos);
-    getInput('salary').value = String(state.salaryPos);
+    getInput('team-size').value = String(teamSizeToPos(state.teamSize));
+    getInput('salary').value = String(salaryToPos(state.salary));
     getInput('maint-pct').value = String(state.maintPct);
     getInput('incidents').value = String(state.incidents);
     getInput('mttr').value = String(state.mttr);
-    getInput('budget').value = String(state.budgetPos);
-    getInput('arr').value = String(state.arrPos);
+    getInput('budget').value = String(budgetToPos(state.remediationBudget));
+    getInput('arr').value = String(arrToPos(state.arr));
     getInput('remediation').value = String(state.remediationPct);
     syncDirectInputs();
   }
@@ -1606,13 +1611,16 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     initSliders();
     render();
 
-    // Slider input handlers (live update on drag)
+    // Slider input handlers — slider drag updates raw state via posTo* mapping.
+    // The slider's coarse 0-100 quantization is now contained to its own UI
+    // surface; typed input bypasses it entirely (see direct-input handlers
+    // below).
     getInput('team-size').addEventListener('input', (e) => {
-      state.teamSizePos = Number((e.target as HTMLInputElement).value);
+      state.teamSize = posToTeamSize(Number((e.target as HTMLInputElement).value));
       render();
     });
     getInput('salary').addEventListener('input', (e) => {
-      state.salaryPos = Number((e.target as HTMLInputElement).value);
+      state.salary = posToSalary(Number((e.target as HTMLInputElement).value));
       render();
     });
     getInput('maint-pct').addEventListener('input', (e) => {
@@ -1628,11 +1636,11 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
       render();
     });
     getInput('budget').addEventListener('input', (e) => {
-      state.budgetPos = Number((e.target as HTMLInputElement).value);
+      state.remediationBudget = posTobudget(Number((e.target as HTMLInputElement).value));
       render();
     });
     getInput('arr').addEventListener('input', (e) => {
-      state.arrPos = Number((e.target as HTMLInputElement).value);
+      state.arr = posToArr(Number((e.target as HTMLInputElement).value));
       render();
     });
     getInput('remediation').addEventListener('input', (e) => {
@@ -1640,13 +1648,17 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
       render();
     });
 
-    // Direct input handlers — sync typed values back to sliders and state
+    // Direct input handlers — write typed values to raw state verbatim
+    // (no slider-position round-trip). Slider thumb position is recomputed
+    // from the new raw value via `*ToPos()` for visual feedback only.
     const tsInput = getDirect('team-size');
     if (tsInput) {
       tsInput.addEventListener('change', () => {
-        const v = Math.max(1, Math.min(500, Number(tsInput.value) || 1));
-        state.teamSizePos = teamSizeToPos(v);
-        getInput('team-size').value = String(state.teamSizePos);
+        const parsed = Math.round(Number(tsInput.value));
+        const fallback = state.teamSize;
+        const clamped = Number.isFinite(parsed) ? Math.max(1, Math.min(500, parsed)) : fallback;
+        state.teamSize = clamped;
+        getInput('team-size').value = String(teamSizeToPos(state.teamSize));
         render();
       });
     }
@@ -1654,10 +1666,13 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     const salInput = getDirect('salary');
     if (salInput) {
       salInput.addEventListener('change', () => {
-        const raw = Number(salInput.value.replace(/[^0-9.]/g, '')) || 0;
-        const clamped = Math.max(60000, Math.min(1000000, raw));
-        state.salaryPos = salaryToPos(clamped);
-        getInput('salary').value = String(state.salaryPos);
+        const parsed = parseShortCurrency(salInput.value);
+        const fallback = state.salary;
+        const clamped = Number.isFinite(parsed)
+          ? Math.max(60000, Math.min(1000000, parsed))
+          : fallback;
+        state.salary = clamped;
+        getInput('salary').value = String(salaryToPos(state.salary));
         render();
       });
     }
@@ -1695,10 +1710,13 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     const arrInput = getDirect('arr');
     if (arrInput) {
       arrInput.addEventListener('change', () => {
-        const raw = Number(arrInput.value.replace(/[^0-9.]/g, '')) || 0;
-        const clamped = Math.max(100000, Math.min(1000000000, raw));
-        state.arrPos = arrToPos(clamped);
-        getInput('arr').value = String(state.arrPos);
+        const parsed = parseShortCurrency(arrInput.value);
+        const fallback = state.arr;
+        const clamped = Number.isFinite(parsed)
+          ? Math.max(100000, Math.min(1000000000, parsed))
+          : fallback;
+        state.arr = clamped;
+        getInput('arr').value = String(arrToPos(state.arr));
         render();
       });
     }
@@ -1706,10 +1724,13 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     const budgetInput = getDirect('budget');
     if (budgetInput) {
       budgetInput.addEventListener('change', () => {
-        const raw = Number(budgetInput.value.replace(/[^0-9.]/g, '')) || 0;
-        const clamped = Math.max(10000, Math.min(50000000, raw));
-        state.budgetPos = budgetToPos(clamped);
-        getInput('budget').value = String(state.budgetPos);
+        const parsed = parseShortCurrency(budgetInput.value);
+        const fallback = state.remediationBudget;
+        const clamped = Number.isFinite(parsed)
+          ? Math.max(10000, Math.min(50000000, parsed))
+          : fallback;
+        state.remediationBudget = clamped;
+        getInput('budget').value = String(budgetToPos(state.remediationBudget));
         render();
       });
     }
