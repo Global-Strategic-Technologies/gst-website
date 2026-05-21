@@ -102,6 +102,12 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                   aria-label="Number of engineers"
                 />
               </div>
+              <span
+                class="brutal-slider__clamp-msg brutal-text-tiny"
+                data-clamp-msg="team-size"
+                role="status"
+                aria-live="polite"
+                style="display:none"></span>
             </div>
 
             <div class="brutal-slider">
@@ -131,6 +137,12 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                   aria-label="Average all-in salary in dollars"
                 />
               </div>
+              <span
+                class="brutal-slider__clamp-msg brutal-text-tiny"
+                data-clamp-msg="salary"
+                role="status"
+                aria-live="polite"
+                style="display:none"></span>
             </div>
 
             <div class="brutal-slider">
@@ -163,6 +175,12 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                   aria-label="Maintenance burden percentage"
                 />
               </div>
+              <span
+                class="brutal-slider__clamp-msg brutal-text-tiny"
+                data-clamp-msg="maint-pct"
+                role="status"
+                aria-live="polite"
+                style="display:none"></span>
               <div class="slider-benchmark">
                 Estimate: what % of engineering sprints go to bugs, maintenance, and
                 keep-the-lights-on work? The complement of feature velocity.
@@ -223,6 +241,12 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                     aria-label="Incidents per month"
                   />
                 </div>
+                <span
+                  class="brutal-slider__clamp-msg brutal-text-tiny"
+                  data-clamp-msg="incidents"
+                  role="status"
+                  aria-live="polite"
+                  style="display:none"></span>
               </div>
 
               <div class="brutal-slider">
@@ -255,6 +279,12 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                     aria-label="Average hours to resolve"
                   />
                 </div>
+                <span
+                  class="brutal-slider__clamp-msg brutal-text-tiny"
+                  data-clamp-msg="mttr"
+                  role="status"
+                  aria-live="polite"
+                  style="display:none"></span>
               </div>
             </div>
 
@@ -321,6 +351,12 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                     aria-label="Annual recurring revenue in dollars"
                   />
                 </div>
+                <span
+                  class="brutal-slider__clamp-msg brutal-text-tiny"
+                  data-clamp-msg="arr"
+                  role="status"
+                  aria-live="polite"
+                  style="display:none"></span>
               </div>
 
               <div class="brutal-slider">
@@ -350,6 +386,12 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
                     aria-label="Remediation budget in dollars"
                   />
                 </div>
+                <span
+                  class="brutal-slider__clamp-msg brutal-text-tiny"
+                  data-clamp-msg="budget"
+                  role="status"
+                  aria-live="polite"
+                  style="display:none"></span>
               </div>
             </div>
 
@@ -1572,6 +1614,20 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     return document.querySelector(`[data-direct="${key}"]`) as HTMLInputElement | null;
   }
 
+  // Visible feedback when a typed direct-input value gets clamped or rejected.
+  // Passing `null` clears the message. Aria-live announces changes to AT users.
+  function showClampMsg(key: string, reason: string | null): void {
+    const msg = document.querySelector(`[data-clamp-msg="${key}"]`) as HTMLElement | null;
+    if (!msg) return;
+    if (reason) {
+      msg.textContent = reason;
+      msg.style.display = 'block';
+    } else {
+      msg.textContent = '';
+      msg.style.display = 'none';
+    }
+  }
+
   function syncDirectInputs(): void {
     const ts = getDirect('team-size');
     if (ts) ts.value = String(state.teamSize);
@@ -1651,13 +1707,52 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     // Direct input handlers — write typed values to raw state verbatim
     // (no slider-position round-trip). Slider thumb position is recomputed
     // from the new raw value via `*ToPos()` for visual feedback only.
+    //
+    // Each handler tracks WHY a value changed (parse-fail, below-min, above-max)
+    // and emits a visible clamp message via showClampMsg() so the user never
+    // wonders why "$50" silently became "$100K". The message is auto-cleared
+    // by the typed-value's `input` event (one keystroke ahead of next change).
+
+    /** Resolve a numeric input with clamp + reason, in one place. */
+    function resolveTyped(
+      raw: string,
+      parsed: number,
+      min: number,
+      max: number,
+      fallback: number,
+      label: string,
+      fmt: (n: number) => string
+    ): { value: number; reason: string | null } {
+      if (!Number.isFinite(parsed)) {
+        return { value: fallback, reason: `Couldn't read "${raw}" — kept ${fmt(fallback)}` };
+      }
+      if (parsed < min) {
+        return { value: min, reason: `Minimum ${label} is ${fmt(min)}` };
+      }
+      if (parsed > max) {
+        return { value: max, reason: `Maximum ${label} is ${fmt(max)}` };
+      }
+      return { value: parsed, reason: null };
+    }
+
+    const fmtInt = (n: number) => String(n);
+
     const tsInput = getDirect('team-size');
     if (tsInput) {
+      tsInput.addEventListener('input', () => showClampMsg('team-size', null));
       tsInput.addEventListener('change', () => {
         const parsed = Math.round(Number(tsInput.value));
-        const fallback = state.teamSize;
-        const clamped = Number.isFinite(parsed) ? Math.max(1, Math.min(500, parsed)) : fallback;
-        state.teamSize = clamped;
+        const { value, reason } = resolveTyped(
+          tsInput.value,
+          parsed,
+          1,
+          500,
+          state.teamSize,
+          'team size',
+          fmtInt
+        );
+        state.teamSize = value;
+        showClampMsg('team-size', reason);
         getInput('team-size').value = String(teamSizeToPos(state.teamSize));
         render();
       });
@@ -1665,13 +1760,20 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
 
     const salInput = getDirect('salary');
     if (salInput) {
+      salInput.addEventListener('input', () => showClampMsg('salary', null));
       salInput.addEventListener('change', () => {
         const parsed = parseShortCurrency(salInput.value);
-        const fallback = state.salary;
-        const clamped = Number.isFinite(parsed)
-          ? Math.max(60000, Math.min(1000000, parsed))
-          : fallback;
-        state.salary = clamped;
+        const { value, reason } = resolveTyped(
+          salInput.value,
+          parsed,
+          60000,
+          1000000,
+          state.salary,
+          'salary',
+          fmtShortC
+        );
+        state.salary = value;
+        showClampMsg('salary', reason);
         getInput('salary').value = String(salaryToPos(state.salary));
         render();
       });
@@ -1679,43 +1781,83 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
 
     const mpInput = getDirect('maint-pct');
     if (mpInput) {
+      mpInput.addEventListener('input', () => showClampMsg('maint-pct', null));
       mpInput.addEventListener('change', () => {
-        const v = Math.max(0, Math.min(100, Number(mpInput.value) || 0));
-        state.maintPct = v;
-        getInput('maint-pct').value = String(v);
+        const parsed = Number(mpInput.value);
+        const { value, reason } = resolveTyped(
+          mpInput.value,
+          parsed,
+          0,
+          100,
+          state.maintPct,
+          'maintenance burden',
+          (n) => `${n}%`
+        );
+        state.maintPct = value;
+        showClampMsg('maint-pct', reason);
+        getInput('maint-pct').value = String(value);
         render();
       });
     }
 
     const incInput = getDirect('incidents');
     if (incInput) {
+      incInput.addEventListener('input', () => showClampMsg('incidents', null));
       incInput.addEventListener('change', () => {
-        const v = Math.max(0, Math.min(20, Number(incInput.value) || 0));
-        state.incidents = v;
-        getInput('incidents').value = String(v);
+        const parsed = Number(incInput.value);
+        const { value, reason } = resolveTyped(
+          incInput.value,
+          parsed,
+          0,
+          20,
+          state.incidents,
+          'incidents',
+          fmtInt
+        );
+        state.incidents = value;
+        showClampMsg('incidents', reason);
+        getInput('incidents').value = String(value);
         render();
       });
     }
 
     const mttrInput = getDirect('mttr');
     if (mttrInput) {
+      mttrInput.addEventListener('input', () => showClampMsg('mttr', null));
       mttrInput.addEventListener('change', () => {
-        const v = Math.max(1, Math.min(48, Number(mttrInput.value) || 1));
-        state.mttr = v;
-        getInput('mttr').value = String(v);
+        const parsed = Number(mttrInput.value);
+        const { value, reason } = resolveTyped(
+          mttrInput.value,
+          parsed,
+          1,
+          48,
+          state.mttr,
+          'MTTR',
+          (n) => `${n}h`
+        );
+        state.mttr = value;
+        showClampMsg('mttr', reason);
+        getInput('mttr').value = String(value);
         render();
       });
     }
 
     const arrInput = getDirect('arr');
     if (arrInput) {
+      arrInput.addEventListener('input', () => showClampMsg('arr', null));
       arrInput.addEventListener('change', () => {
         const parsed = parseShortCurrency(arrInput.value);
-        const fallback = state.arr;
-        const clamped = Number.isFinite(parsed)
-          ? Math.max(100000, Math.min(1000000000, parsed))
-          : fallback;
-        state.arr = clamped;
+        const { value, reason } = resolveTyped(
+          arrInput.value,
+          parsed,
+          100000,
+          1000000000,
+          state.arr,
+          'ARR',
+          fmtShortC
+        );
+        state.arr = value;
+        showClampMsg('arr', reason);
         getInput('arr').value = String(arrToPos(state.arr));
         render();
       });
@@ -1723,13 +1865,20 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
 
     const budgetInput = getDirect('budget');
     if (budgetInput) {
+      budgetInput.addEventListener('input', () => showClampMsg('budget', null));
       budgetInput.addEventListener('change', () => {
         const parsed = parseShortCurrency(budgetInput.value);
-        const fallback = state.remediationBudget;
-        const clamped = Number.isFinite(parsed)
-          ? Math.max(10000, Math.min(50000000, parsed))
-          : fallback;
-        state.remediationBudget = clamped;
+        const { value, reason } = resolveTyped(
+          budgetInput.value,
+          parsed,
+          10000,
+          50000000,
+          state.remediationBudget,
+          'remediation budget',
+          fmtShortC
+        );
+        state.remediationBudget = value;
+        showClampMsg('budget', reason);
         getInput('budget').value = String(budgetToPos(state.remediationBudget));
         render();
       });

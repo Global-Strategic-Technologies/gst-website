@@ -765,5 +765,79 @@ test.describe('Tech Debt Calculator', () => {
       const annualAfter = await getMetric(page, 'annual-cost');
       expect(annualAfter).toBe(beforeAnnual);
     });
+
+    // ── Clamp feedback (C3) ──────────────────────────────────────────────────
+    //
+    // When a typed value is clamped to a range bound or rejected as
+    // unparseable, the UI shows a visible message under the input. Without
+    // this, the user sees "$100K" appear after typing "$50" with no clue
+    // why their value changed — the same state-lying anti-pattern this work
+    // set out to fix.
+
+    async function getClampMsg(page: Page, key: string): Promise<string> {
+      return (await page.locator(`[data-clamp-msg="${key}"]`).textContent()) ?? '';
+    }
+
+    async function isClampMsgVisible(page: Page, key: string): Promise<boolean> {
+      return await page.locator(`[data-clamp-msg="${key}"]`).isVisible();
+    }
+
+    test('ARR below floor shows "Minimum ARR is $100K" message', async ({ page }) => {
+      await typeDirect(page, 'arr', '50');
+      expect(await isClampMsgVisible(page, 'arr')).toBe(true);
+      const msg = await getClampMsg(page, 'arr');
+      expect(msg).toMatch(/Minimum ARR/);
+      expect(msg).toMatch(/100K/);
+    });
+
+    test('ARR above ceiling shows "Maximum ARR is $1000.0M" message', async ({ page }) => {
+      await typeDirect(page, 'arr', '2000000000');
+      expect(await isClampMsgVisible(page, 'arr')).toBe(true);
+      const msg = await getClampMsg(page, 'arr');
+      expect(msg).toMatch(/Maximum ARR/);
+    });
+
+    test('ARR garbled input shows "Couldn\'t read" fallback message', async ({ page }) => {
+      await typeDirect(page, 'arr', 'lol');
+      expect(await isClampMsgVisible(page, 'arr')).toBe(true);
+      const msg = await getClampMsg(page, 'arr');
+      expect(msg).toMatch(/Couldn't read/);
+      expect(msg).toMatch(/lol/);
+    });
+
+    test('valid in-range input shows no clamp message', async ({ page }) => {
+      await typeDirect(page, 'arr', '50000000');
+      expect(await isClampMsgVisible(page, 'arr')).toBe(false);
+    });
+
+    test('clamp message clears as soon as the user starts editing again', async ({ page }) => {
+      // Trigger a clamp first
+      await typeDirect(page, 'arr', '50');
+      expect(await isClampMsgVisible(page, 'arr')).toBe(true);
+
+      // Now type one character (input event) — should clear the message
+      // before the user even blurs
+      const input = page.locator('[data-direct="arr"]');
+      await input.click();
+      await input.press('End');
+      await input.press('0'); // fires input event
+      expect(await isClampMsgVisible(page, 'arr')).toBe(false);
+    });
+
+    test('Budget below floor surfaces feedback (covers second currency control)', async ({
+      page,
+    }) => {
+      await typeDirect(page, 'budget', '500');
+      expect(await isClampMsgVisible(page, 'budget')).toBe(true);
+      const msg = await getClampMsg(page, 'budget');
+      expect(msg).toMatch(/Minimum remediation budget/);
+    });
+
+    test('Maint-pct above 100 surfaces feedback (covers percent control)', async ({ page }) => {
+      await typeDirect(page, 'maint-pct', '150');
+      expect(await isClampMsgVisible(page, 'maint-pct')).toBe(true);
+      const msg = await getClampMsg(page, 'maint-pct');
+      expect(msg).toMatch(/Maximum maintenance burden is 100%/);
+    });
   });
 });
