@@ -1413,6 +1413,61 @@ grep -rn 'setAttribute.*data-.*-ready\|window\.__\w*Initialized' src/
 
 If yes, move the signal to fire after all handler attachments. If the signal currently fires inside an early lifecycle hook, refactor so the hook completes the _full_ initialization sequence before emitting.
 
+### 27. ❌ Dual-Control UI Where Only One Direction of Sync Is Tested
+
+When a UI exposes two controls that represent the same underlying value — a quick-preset chip group **and** a manual numeric input, a slider **and** a number input, a toggle group **and** a free-text field — they form a contract: editing either control must reconcile the other. The chip→input direction is the obvious one and almost always works. The input→chip direction is the one that quietly rots, because the developer remembered to write the click handler but forgot the input listener.
+
+The user-visible symptom is **state lying**: a chip stays visually selected after the user manually overrode its value, implying the preset is still in effect when the actual submitted value is whatever the user typed. The form looks correct but isn't.
+
+**Bad — test only covers the chip→input direction:**
+
+```typescript
+test('clicking a preset chip updates the input', async ({ page }) => {
+  await page.click('[data-preset-for="infraPers"][data-preset-val="1000000"]');
+  await expect(page.locator('[data-input="infraPers"]')).toHaveValue('1000000');
+  await expect(
+    page.locator('[data-preset-for="infraPers"][data-preset-val="1000000"]')
+  ).toHaveClass(/--active/);
+  // ✗ Missing: what happens when the user then types over the value?
+});
+```
+
+**Good — both directions tested, behavioral verification per [TEST_BEST_PRACTICES § 2](#2-❌-testing-ui-presence-not-behavior):**
+
+```typescript
+test('manual override deactivates the previously-selected chip', async ({ page }) => {
+  const chip = page.locator('[data-preset-for="infraPers"][data-preset-val="1000000"]');
+  const input = page.locator('[data-input="infraPers"]');
+
+  // chip → input
+  await chip.click();
+  await expect(input).toHaveValue('1000000');
+  await expect(chip).toHaveClass(/--active/);
+  await expect(chip).toHaveAttribute('aria-pressed', 'true');
+
+  // input → chip (the easy-to-forget direction)
+  await input.fill('1234567');
+  await expect(chip).not.toHaveClass(/--active/);
+  await expect(chip).toHaveAttribute('aria-pressed', 'false');
+});
+```
+
+**Test the four canonical cases for every dual-control pair:**
+
+1. **Override deactivates** — clicking a preset then typing a non-matching value deactivates the chip
+2. **Override re-matches** — typing a value that matches a different chip activates that chip and deactivates the prior
+3. **Clear deactivates all** — emptying the input deactivates every chip in the group
+4. **Re-type to match keeps active** — re-typing the chip's exact value leaves the chip active
+
+**When auditing source code**, grep for the asymmetric pattern: any element that updates state on click but has no `addEventListener('input', …)` (or equivalent) on the paired control:
+
+```bash
+# Find click handlers that write to a paired input but never listen back
+grep -rn "addEventListener('click'" src/ | xargs -I{} echo "audit {}: does any 'input' listener call back into the same state?"
+```
+
+**Key principle:** dual-control UI is a contract. Both directions must reconcile, and both directions must be tested. The bug almost never lives in the direction the developer was thinking about — it lives in the direction they assumed would "just work."
+
 ---
 
 ## Running Tests

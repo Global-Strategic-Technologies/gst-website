@@ -474,3 +474,13 @@ Brutalist Slider
   border-style: solid;
   color: var(--color-primary);
 }
+
+/* Visible feedback when a typed direct-input value gets clamped to range
+   bounds or rejected as unparseable. Stays hidden via inline style="display:none"
+   until JS populates it. */
+.brutal-slider__clamp-msg {
+  display: block;
+  text-align: center;
+  color: var(--color-warning);
+  margin-top: 4px;
+}
