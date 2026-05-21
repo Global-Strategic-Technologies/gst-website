@@ -115,16 +115,42 @@ describe('inverse transforms round-trip', () => {
   });
 
   // posTobudget / posToArr use integer snapping with a 2.5 exponent curve.
-  // The inverse loses precision at the snap resolution — tolerance is 22× the snap unit
-  // due to the non-linear curve compressing precision near the midpoint.
-  it('budgetToPos(500000) round-trips within 22 × $1K snap', () => {
+  // The inverse loses precision at the snap resolution. With the 10× slider
+  // resolution bump (step="0.1") the round-trip is much tighter than before.
+  it('budgetToPos(500000) round-trips within 3 × $1K snap', () => {
     const pos = budgetToPos(500000);
-    expect(Math.abs(posTobudget(pos) - 500000)).toBeLessThanOrEqual(22000);
+    expect(Math.abs(posTobudget(pos) - 500000)).toBeLessThanOrEqual(3000);
   });
 
-  it('arrToPos(10000000) round-trips within 3 × $100K snap', () => {
+  it('arrToPos(10000000) round-trips within 1 × $100K snap', () => {
     const pos = arrToPos(10000000);
-    expect(Math.abs(posToArr(pos) - 10000000)).toBeLessThanOrEqual(300000);
+    expect(Math.abs(posToArr(pos) - 10000000)).toBeLessThanOrEqual(100000);
+  });
+});
+
+// ─── Slider resolution (step="0.1") ────────────────────────────────────────────
+
+describe('slider resolution', () => {
+  it('*ToPos functions return values with at most 1 decimal place', () => {
+    const cases = [
+      teamSizeToPos(57),
+      salaryToPos(173_500),
+      budgetToPos(427_000),
+      arrToPos(237_500_000),
+    ];
+    for (const pos of cases) {
+      const decimals = (pos.toString().split('.')[1] || '').length;
+      expect(decimals).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('arrToPos(237500) lands closer to its true position with sub-integer resolution', () => {
+    // Pre-bump (integer positions): arrToPos(237500) = 3 — slider thumb at 3/100
+    // Post-bump (0.1 positions): arrToPos(237500) ≈ 2.7-2.9 — thumb closer to math
+    const pos = arrToPos(237_500);
+    expect(pos % 1).not.toBe(0); // has fractional part
+    expect(pos).toBeGreaterThan(0);
+    expect(pos).toBeLessThan(5);
   });
 });
 

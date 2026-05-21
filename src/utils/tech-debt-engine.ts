@@ -34,17 +34,24 @@ export const posToArr = (pos: number): number =>
   Math.round((100000 + 999900000 * Math.pow(pos / 100, 2.5)) / 100000) * 100000;
 
 // ─── Inverse transforms (business value → initial slider position) ────────────
+//
+// Sliders use step="0.1" (1000 discrete positions across the 0-100 domain) so
+// the thumb can faithfully represent a typed value without snapping to one of
+// only 100 buckets. Output is rounded to one decimal place to match the
+// slider's step granularity exactly.
+const POS_DECIMAL = (x: number): number => Math.round(x * 10) / 10;
 
 export const teamSizeToPos = (v: number): number =>
-  Math.round(Math.pow((v - 1) / 499, 1 / 2.3) * 100);
+  POS_DECIMAL(Math.pow((v - 1) / 499, 1 / 2.3) * 100);
 
-export const salaryToPos = (v: number): number => Math.round(Math.sqrt((v - 60000) / 940000) * 100);
+export const salaryToPos = (v: number): number =>
+  POS_DECIMAL(Math.sqrt((v - 60000) / 940000) * 100);
 
 export const budgetToPos = (v: number): number =>
-  Math.round(Math.pow((v - 10000) / 49990000, 1 / 2.5) * 100);
+  POS_DECIMAL(Math.pow((v - 10000) / 49990000, 1 / 2.5) * 100);
 
 export const arrToPos = (v: number): number =>
-  Math.round(Math.pow((v - 100000) / 999900000, 1 / 2.5) * 100);
+  POS_DECIMAL(Math.pow((v - 100000) / 999900000, 1 / 2.5) * 100);
 
 // ─── State & result types ─────────────────────────────────────────────────────
 
