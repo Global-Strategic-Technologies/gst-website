@@ -169,6 +169,36 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ---
 
+### BL-042: TechPar PresetInput Component Extraction
+
+**Source**: Follow-up from the BL-032.8 / techpar chip↔input bidirectional-sync bug fix (2026-05-21) | **Effort**: Medium (~half a day) | **Status**: Open, not urgent
+
+**As a** developer maintaining TechPar (or adding a similar preset+input control to another tool), **I want** the chip group + numeric input + bidirectional sync logic encapsulated in a single reusable `<PresetInput>` Astro component **so that** future controls auto-enroll into both directions of the chip↔input contract without relying on an implicit DOM-convention protocol enforced by a page-level orchestrator.
+
+#### Acceptance Criteria
+
+- [ ] New `src/components/techpar/PresetInput.astro` (or `src/components/forms/PresetInput.astro` if reused beyond TechPar) renders chips + label + input + hint as one unit; takes `inputName`, `presets`, `label`, `hint`, `step`, `placeholder` as props
+- [ ] Component's inline `<script>` wires bidirectional sync internally — no dependency on a sibling page-level helper
+- [ ] All 9 cost preset controls in `src/pages/hub/tools/techpar/index.astro` (exitMult, infra, infraPers, rdOpEx, rdEng, rdProd, rdTool, engFTE, rdCapEx) replaced with `<PresetInput .../>` instances
+- [ ] `syncCostChips()` and the cost-input listener loop in `src/utils/techpar-ui.ts` removed (their work now lives inside the component)
+- [ ] Existing E2E test block `tests/e2e/techpar.test.ts § "Cost preset chip ↔ input sync"` continues to pass without modification (selectors are stable: `[data-preset-for]` + `[data-input]`)
+- [ ] No visual or behavioral regression on `/hub/tools/techpar` across all 9 controls + ARR
+
+#### Technical Context
+
+- **Current state**: bug fixed structurally via a generic page-level sync handler that walks `[data-preset-for]` chips and attaches one input listener per `[data-input]` cost field. DRY across controls (one fix covers all 9) but not encapsulated _per control_ — the sync contract is enforced by an implicit naming convention rather than a component boundary
+- **Cross-cutting concerns to decide** during extraction (these touch the same inputs the component would own):
+  - `updateChipCurrencies()` rewrites the `$` prefix on currency changes — should the component subscribe to a currency event, or stay page-driven?
+  - `syncInfraPeriodUI()` shows/hides two sibling chip groups bound to one `infra` input — does a single `<PresetInput>` accept _two_ chip groups, or do we render _two_ components and orchestrate visibility at the page?
+  - `updateInfraAnnotation()` and `checkSanity()` write warning text into siblings of the input — page-level should remain the home for these
+  - `hydrateFromUrl()` writes values into `[data-input]` selectors — works as-is if the component preserves those data attributes
+  - Conditional visibility wrappers (`tp-exit-field--vis`, `tp-deep-wrap--on`, `tp-capex-row--vis`) — stay at page level, component is unaware
+- **What to keep stable**: the `data-preset-for` / `data-input` / `data-preset-val` selectors are now load-bearing for tests and URL hydration. Component must continue to emit them on the same elements
+- **Why not urgent**: the existing fix is correct, DRY (one helper, 9 controls), and tested in both directions. The architectural cleanup is preference, not need
+- **Re-evaluate when**: a second tool wants the same preset+input pattern (creating a real DRY use case beyond TechPar), TechPar's `index.astro` becomes painful to navigate (~3500 LOC today), or a future bug demonstrates that page-level sync logic is the right blame target
+
+---
+
 ## Infrastructure
 
 ### BL-031: MCP Server — Internal Prototype (Phase 1)
