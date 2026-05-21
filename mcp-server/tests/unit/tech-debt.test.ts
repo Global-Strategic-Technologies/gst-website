@@ -10,10 +10,6 @@
 import {
   calculate,
   calculateFromRawInputs,
-  posToTeamSize,
-  posToSalary,
-  posTobudget,
-  posToArr,
   DEFAULT_STATE,
   DEPLOY_OPTIONS,
 } from '../../../src/utils/tech-debt-engine';
@@ -69,17 +65,21 @@ describe('DEPLOY_FREQUENCY_VALUES schema/engine parity', () => {
 });
 
 describe('estimate_tech_debt_cost (engine parity)', () => {
-  it('returns matching output for raw values vs the slider state', () => {
+  it('returns matching output for CalcState vs raw inputs (now field-identical)', () => {
+    // Post-state-inversion (2026-05-21): CalcState holds raw business values
+    // directly, so calculate(state) and calculateFromRawInputs(raw) consume
+    // structurally equivalent data. The deployIdx → deployFrequency lookup
+    // is the only conversion left.
     const direct = calculate(DEFAULT_STATE);
     const raw = calculateFromRawInputs({
-      teamSize: posToTeamSize(DEFAULT_STATE.teamSizePos),
-      salary: posToSalary(DEFAULT_STATE.salaryPos),
+      teamSize: DEFAULT_STATE.teamSize,
+      salary: DEFAULT_STATE.salary,
       maintenanceBurdenPct: DEFAULT_STATE.maintPct,
       deployFrequency: DEPLOY_OPTIONS[DEFAULT_STATE.deployIdx].label,
       incidents: DEFAULT_STATE.incidents,
       mttrHours: DEFAULT_STATE.mttr,
-      remediationBudget: posTobudget(DEFAULT_STATE.budgetPos),
-      arr: posToArr(DEFAULT_STATE.arrPos),
+      remediationBudget: DEFAULT_STATE.remediationBudget,
+      arr: DEFAULT_STATE.arr,
       remediationPct: DEFAULT_STATE.remediationPct,
       contextSwitchOn: DEFAULT_STATE.contextSwitchOn,
     });

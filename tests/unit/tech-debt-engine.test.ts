@@ -28,6 +28,7 @@ import {
   decodeState,
   burdenClassify,
   contextNote,
+  parseShortCurrency,
 } from '../../src/utils/tech-debt-engine';
 
 import type { CalcState } from '../../src/utils/tech-debt-engine';
@@ -114,16 +115,42 @@ describe('inverse transforms round-trip', () => {
   });
 
   // posTobudget / posToArr use integer snapping with a 2.5 exponent curve.
-  // The inverse loses precision at the snap resolution — tolerance is 22× the snap unit
-  // due to the non-linear curve compressing precision near the midpoint.
-  it('budgetToPos(500000) round-trips within 22 × $1K snap', () => {
+  // The inverse loses precision at the snap resolution. With the 10× slider
+  // resolution bump (step="0.1") the round-trip is much tighter than before.
+  it('budgetToPos(500000) round-trips within 3 × $1K snap', () => {
     const pos = budgetToPos(500000);
-    expect(Math.abs(posTobudget(pos) - 500000)).toBeLessThanOrEqual(22000);
+    expect(Math.abs(posTobudget(pos) - 500000)).toBeLessThanOrEqual(3000);
   });
 
-  it('arrToPos(10000000) round-trips within 3 × $100K snap', () => {
+  it('arrToPos(10000000) round-trips within 1 × $100K snap', () => {
     const pos = arrToPos(10000000);
-    expect(Math.abs(posToArr(pos) - 10000000)).toBeLessThanOrEqual(300000);
+    expect(Math.abs(posToArr(pos) - 10000000)).toBeLessThanOrEqual(100000);
+  });
+});
+
+// ─── Slider resolution (step="0.1") ────────────────────────────────────────────
+
+describe('slider resolution', () => {
+  it('*ToPos functions return values with at most 1 decimal place', () => {
+    const cases = [
+      teamSizeToPos(57),
+      salaryToPos(173_500),
+      budgetToPos(427_000),
+      arrToPos(237_500_000),
+    ];
+    for (const pos of cases) {
+      const decimals = (pos.toString().split('.')[1] || '').length;
+      expect(decimals).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('arrToPos(237500) lands closer to its true position with sub-integer resolution', () => {
+    // Pre-bump (integer positions): arrToPos(237500) = 3 — slider thumb at 3/100
+    // Post-bump (0.1 positions): arrToPos(237500) ≈ 2.7-2.9 — thumb closer to math
+    const pos = arrToPos(237_500);
+    expect(pos % 1).not.toBe(0); // has fractional part
+    expect(pos).toBeGreaterThan(0);
+    expect(pos).toBeLessThan(5);
   });
 });
 
@@ -153,14 +180,13 @@ describe('calculate() — collapsed mode (advancedOpen: false)', () => {
     // Explicitly set all inputs used by this formula
     const state = makeState({
       advancedOpen: false,
-      teamSizePos: teamSizeToPos(10),
-      salaryPos: salaryToPos(120000),
+      teamSize: 10,
+      salary: 120000,
       maintPct: 30,
       deployIdx: 2,
     });
     const result = calculate(state);
-    const teamSize = posToTeamSize(state.teamSizePos);
-    expect(result.costPerEng).toBeCloseTo(result.totalMonthly / teamSize, 5);
+    expect(result.costPerEng).toBeCloseTo(result.totalMonthly / state.teamSize, 5);
   });
 
   it('directMonthly increases proportionally with maintPct', () => {
@@ -193,14 +219,12 @@ describe('calculate() — expanded mode (advancedOpen: true)', () => {
   });
 
   it('incidentMonthly equals incidents × mttr × (salary / 2080)', () => {
-    // Use salary=150000 — a $5K multiple that round-trips through posToSalary(salaryToPos(v))
-    // exactly (proven by DEFAULT_STATE test). Derive expected from the round-tripped value.
-    const salaryInput = 150000;
-    const salaryPos = salaryToPos(salaryInput);
-    const salary = posToSalary(salaryPos); // = 150000 (exact round-trip)
+    // CalcState now stores raw dollars directly — no posToSalary round-trip
+    // needed, so the expected value is the input verbatim.
+    const salary = 150000;
     const state = makeState({
       advancedOpen: true,
-      salaryPos,
+      salary,
       incidents: 4,
       mttr: 10,
     });
@@ -210,20 +234,19 @@ describe('calculate() — expanded mode (advancedOpen: true)', () => {
     expect(result.incidentMonthly).toBeCloseTo(expectedIncident, 5);
   });
 
-  it('debtPctArr returns 0 when arrVal guard is triggered (zero division)', () => {
-    // The engine computes debtPctArr = arrVal > 0 ? ... : 0
-    // posToArr always returns >= 100000 for pos >= 0, so we test the formula
-    // directly by verifying the guard branch: a tiny ARR yields large percentage
-    const state = makeState({ advancedOpen: true, arrPos: 0 }); // arrVal = 100000
+  it('debtPctArr returns 0 when arr guard is triggered (zero division)', () => {
+    // Engine computes debtPctArr = arr > 0 ? ... : 0
+    // A minimum-floor ARR ($100K) yields a positive percentage; the guard is
+    // only hit when ARR is exactly 0 (impossible via the UI, possible via MCP).
+    const state = makeState({ advancedOpen: true, arr: 100000 });
     const result = calculate(state);
-    // arrVal = 100000 (minimum floor, not zero) — guard NOT triggered, result is positive
     expect(result.debtPctArr).toBeGreaterThan(0);
     expect(isFinite(result.debtPctArr)).toBe(true);
   });
 
   it('debtPctArr scales inversely with ARR — higher ARR means lower percentage', () => {
-    const loArr = calculate(makeState({ advancedOpen: true, arrPos: arrToPos(1_000_000) }));
-    const hiArr = calculate(makeState({ advancedOpen: true, arrPos: arrToPos(100_000_000) }));
+    const loArr = calculate(makeState({ advancedOpen: true, arr: 1_000_000 }));
+    const hiArr = calculate(makeState({ advancedOpen: true, arr: 100_000_000 }));
     expect(loArr.debtPctArr).toBeGreaterThan(hiArr.debtPctArr);
   });
 
@@ -233,23 +256,22 @@ describe('calculate() — expanded mode (advancedOpen: true)', () => {
     expect(calculate(state).paybackMonths).toBe(Infinity);
   });
 
-  it('paybackMonths equals budgetVal / monthlySavings — concrete arithmetic', () => {
+  it('paybackMonths equals remediationBudget / monthlySavings — concrete arithmetic', () => {
     const state = makeState({
       advancedOpen: true,
-      budgetPos: budgetToPos(600000),
+      remediationBudget: 600000,
       maintPct: 50,
       incidents: 0,
       mttr: 1,
       remediationPct: 70,
     });
     const result = calculate(state);
-    const budgetVal = posTobudget(state.budgetPos);
-    expect(result.paybackMonths).toBeCloseTo(budgetVal / result.monthlySavings, 5);
+    expect(result.paybackMonths).toBeCloseTo(state.remediationBudget / result.monthlySavings, 5);
   });
 
   it('paybackMonths decreases as remediation budget decreases', () => {
-    const hi = calculate(makeState({ advancedOpen: true, budgetPos: budgetToPos(1_000_000) }));
-    const lo = calculate(makeState({ advancedOpen: true, budgetPos: budgetToPos(100_000) }));
+    const hi = calculate(makeState({ advancedOpen: true, remediationBudget: 1_000_000 }));
+    const lo = calculate(makeState({ advancedOpen: true, remediationBudget: 100_000 }));
     expect(lo.paybackMonths).toBeLessThan(hi.paybackMonths);
   });
 });
@@ -399,11 +421,11 @@ describe('DEFAULT_STATE', () => {
   });
 
   it('initialises to team size of 8', () => {
-    expect(posToTeamSize(DEFAULT_STATE.teamSizePos)).toBe(8);
+    expect(DEFAULT_STATE.teamSize).toBe(8);
   });
 
   it('initialises to salary of 150000', () => {
-    expect(posToSalary(DEFAULT_STATE.salaryPos)).toBe(150000);
+    expect(DEFAULT_STATE.salary).toBe(150000);
   });
 
   it('initialises to maintenance burden of 25%', () => {
@@ -423,12 +445,12 @@ describe('DEFAULT_STATE', () => {
     expect(DEFAULT_STATE.mttr).toBe(4);
   });
 
-  it('initialises budget within 22 × $1K snap of $500K', () => {
-    expect(Math.abs(posTobudget(DEFAULT_STATE.budgetPos) - 500_000)).toBeLessThanOrEqual(22000);
+  it('initialises remediation budget to $500K', () => {
+    expect(DEFAULT_STATE.remediationBudget).toBe(500_000);
   });
 
-  it('initialises ARR within 3 × $100K snap of $10M', () => {
-    expect(Math.abs(posToArr(DEFAULT_STATE.arrPos) - 10_000_000)).toBeLessThanOrEqual(300_000);
+  it('initialises ARR to $10M', () => {
+    expect(DEFAULT_STATE.arr).toBe(10_000_000);
   });
 
   it('initialises remediationPct to 70', () => {
@@ -566,14 +588,14 @@ describe('decodeState', () => {
     const decoded = decodeState(encodeState(DEFAULT_STATE));
     expect(decoded).not.toBeNull();
     expect(decoded!.advancedOpen).toBe(DEFAULT_STATE.advancedOpen);
-    expect(decoded!.teamSizePos).toBe(DEFAULT_STATE.teamSizePos);
-    expect(decoded!.salaryPos).toBe(DEFAULT_STATE.salaryPos);
+    expect(decoded!.teamSize).toBe(DEFAULT_STATE.teamSize);
+    expect(decoded!.salary).toBe(DEFAULT_STATE.salary);
     expect(decoded!.maintPct).toBe(DEFAULT_STATE.maintPct);
     expect(decoded!.deployIdx).toBe(DEFAULT_STATE.deployIdx);
     expect(decoded!.incidents).toBe(DEFAULT_STATE.incidents);
     expect(decoded!.mttr).toBe(DEFAULT_STATE.mttr);
-    expect(decoded!.budgetPos).toBe(DEFAULT_STATE.budgetPos);
-    expect(decoded!.arrPos).toBe(DEFAULT_STATE.arrPos);
+    expect(decoded!.remediationBudget).toBe(DEFAULT_STATE.remediationBudget);
+    expect(decoded!.arr).toBe(DEFAULT_STATE.arr);
     expect(decoded!.remediationPct).toBe(DEFAULT_STATE.remediationPct);
     expect(decoded!.contextSwitchOn).toBe(DEFAULT_STATE.contextSwitchOn);
   });
@@ -602,15 +624,43 @@ describe('decodeState', () => {
     const result = decodeState(encoded);
     expect(result).not.toBeNull();
     expect(result!.maintPct).toBe(60);
-    expect(result!.teamSizePos).toBeUndefined();
+    expect(result!.teamSize).toBeUndefined();
   });
 
-  it('rejects teamSizePos > 100', () => {
-    expect(decodeState(btoa(JSON.stringify({ ts: 101 })))!.teamSizePos).toBeUndefined();
+  it('rejects teamSize > 500', () => {
+    expect(decodeState(btoa(JSON.stringify({ ts: 501 })))!.teamSize).toBeUndefined();
   });
 
-  it('rejects teamSizePos < 0', () => {
-    expect(decodeState(btoa(JSON.stringify({ ts: -1 })))!.teamSizePos).toBeUndefined();
+  it('rejects teamSize < 1', () => {
+    expect(decodeState(btoa(JSON.stringify({ ts: 0 })))!.teamSize).toBeUndefined();
+  });
+
+  it('rejects out-of-range salary (< 60K or > 1M)', () => {
+    expect(decodeState(btoa(JSON.stringify({ sa: 50000 })))!.salary).toBeUndefined();
+    expect(decodeState(btoa(JSON.stringify({ sa: 1_500_000 })))!.salary).toBeUndefined();
+  });
+
+  it('rejects out-of-range arr (< 100K or > 1B)', () => {
+    expect(decodeState(btoa(JSON.stringify({ ar: 50000 })))!.arr).toBeUndefined();
+    expect(decodeState(btoa(JSON.stringify({ ar: 2_000_000_000 })))!.arr).toBeUndefined();
+  });
+
+  it('rejects out-of-range remediationBudget (< 10K or > 50M)', () => {
+    expect(decodeState(btoa(JSON.stringify({ bg: 5000 })))!.remediationBudget).toBeUndefined();
+    expect(
+      decodeState(btoa(JSON.stringify({ bg: 100_000_000 })))!.remediationBudget
+    ).toBeUndefined();
+  });
+
+  it('preserves typed-input precision through URL round-trip (no quantization)', () => {
+    // Anti-thrash regression test: the previous slider-position encoding rounded
+    // ARR to the nearest of 100 buckets, losing precision. New format stores
+    // raw dollars and must round-trip exactly.
+    const granular = makeState({ arr: 237_500, salary: 187_500, remediationBudget: 423_000 });
+    const decoded = decodeState(encodeState(granular))!;
+    expect(decoded.arr).toBe(237_500);
+    expect(decoded.salary).toBe(187_500);
+    expect(decoded.remediationBudget).toBe(423_000);
   });
 
   it('rejects deployIdx > 8', () => {
@@ -706,12 +756,84 @@ describe('decodeState', () => {
     expect(decodeState(btoa(JSON.stringify({ cs: 2 })))!.contextSwitchOn).toBeUndefined();
   });
 
-  it('backward compatibility: old URLs without re/cs decode fine', () => {
-    const oldEncoded = btoa(JSON.stringify({ mp: 25, ts: 50 }));
-    const result = decodeState(oldEncoded)!;
+  it('backward compatibility: URLs missing re/cs still decode the rest', () => {
+    const partialEncoded = btoa(JSON.stringify({ mp: 25, ts: 50 }));
+    const result = decodeState(partialEncoded)!;
     expect(result.maintPct).toBe(25);
-    expect(result.teamSizePos).toBe(50);
+    expect(result.teamSize).toBe(50);
     expect(result.remediationPct).toBeUndefined();
     expect(result.contextSwitchOn).toBeUndefined();
+  });
+
+  // Pre-2026-05 URLs encoded slider-position integers under the old keys
+  // (sp, bp, ap). The new decoder ignores them — accepted breakage per
+  // the BL-032.8-adjacent precision-thrash fix (2026-05-21).
+  it('ignores legacy slider-position keys (sp, bp, ap)', () => {
+    const legacyEncoded = btoa(JSON.stringify({ sp: 50, bp: 50, ap: 50 }));
+    const result = decodeState(legacyEncoded)!;
+    expect(result.salary).toBeUndefined();
+    expect(result.remediationBudget).toBeUndefined();
+    expect(result.arr).toBeUndefined();
+  });
+});
+
+// ─── parseShortCurrency ──────────────────────────────────────────────────────
+
+describe('parseShortCurrency', () => {
+  it('parses bare digits as exact dollars', () => {
+    expect(parseShortCurrency('237500')).toBe(237_500);
+    expect(parseShortCurrency('1000')).toBe(1000);
+    expect(parseShortCurrency('0')).toBe(0);
+  });
+
+  it('honors K suffix as thousands (matches fmtShortC output)', () => {
+    expect(parseShortCurrency('750K')).toBe(750_000);
+    expect(parseShortCurrency('1K')).toBe(1_000);
+    expect(parseShortCurrency('100K')).toBe(100_000);
+  });
+
+  it('honors M suffix as millions (matches fmtShortC output)', () => {
+    expect(parseShortCurrency('12.5M')).toBe(12_500_000);
+    expect(parseShortCurrency('1M')).toBe(1_000_000);
+    expect(parseShortCurrency('1.5M')).toBe(1_500_000);
+  });
+
+  it('strips currency symbol prefix ($, £, €, ¥)', () => {
+    expect(parseShortCurrency('$237500')).toBe(237_500);
+    expect(parseShortCurrency('$12.5M')).toBe(12_500_000);
+    expect(parseShortCurrency('£1M')).toBe(1_000_000);
+    expect(parseShortCurrency('€500K')).toBe(500_000);
+  });
+
+  it('strips commas and whitespace', () => {
+    expect(parseShortCurrency('1,500,000')).toBe(1_500_000);
+    expect(parseShortCurrency(' $1.5M ')).toBe(1_500_000);
+  });
+
+  it('is case-insensitive on suffix', () => {
+    expect(parseShortCurrency('12.5m')).toBe(12_500_000);
+    expect(parseShortCurrency('500k')).toBe(500_000);
+  });
+
+  it('preserves precision (no quantization round-trip)', () => {
+    // Regression guard: the previous handler would quantize a typed
+    // "$237,500" to nearest $100K via the slider position. The parser
+    // must return the user's exact intent so the clamp/state handler
+    // can decide what to do without precision already lost.
+    expect(parseShortCurrency('237500')).toBe(237_500);
+    expect(parseShortCurrency('$12.345M')).toBe(12_345_000);
+  });
+
+  it('returns NaN for unparseable input', () => {
+    expect(parseShortCurrency('')).toBeNaN();
+    expect(parseShortCurrency('abc')).toBeNaN();
+    expect(parseShortCurrency('1.2.3')).toBeNaN();
+    expect(parseShortCurrency('1B')).toBeNaN(); // B suffix not supported
+    expect(parseShortCurrency('12.5MM')).toBeNaN();
+  });
+
+  it('handles signed values', () => {
+    expect(parseShortCurrency('-500K')).toBe(-500_000);
+    expect(parseShortCurrency('+1M')).toBe(1_000_000);
   });
 });
