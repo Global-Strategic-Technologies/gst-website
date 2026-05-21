@@ -515,13 +515,13 @@ Sales-call notes — MedSig Health intro (2026-05-13, 30 min Zoom)
 📋 **SEND** as a Telegram message to the bot:
 
 ```
-Commission three specialists in parallel (using your commission skill) with the following exact commands. Do not do their work yourself.
+Using your 'commission' skill, commission three agent specialists in parallel with the following exact tasks. Do not do their work yourself.
 
 - Neuromancer: use the GST MCP's list_portfolio_facets, search_portfolio to find comparable-engagements. Healthcare/RCM/EU precedents. Respond to me with one paragraph.
 - Molly: use gst-mcp's list_regulation_facets, search_regulations for Germany BDSG, France CNIL, EU GDPR. One paragraph response.
 - 3Jane: use gst-mcp search_radar to search for a market signal. European healthcare IT and RCM. Return me one paragraph.
 
-Use the sales notes below to Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
+Then after receiving their response, use the sales notes below to Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
 
 ---
 
@@ -752,13 +752,13 @@ COO before tomorrow's 9am discovery session.
 > **⏸️ Do not send on demo day.** Preserved here so the moment [openclaw#85030](https://github.com/openclaw/openclaw/issues/85030) is fixed, this snippet drops back into Scenario 6's runbook unchanged.
 
 ```
-Commission three specialists in parallel (using your commission skill) with the following exact commands. Do not do their work yourself.
+Using your 'commission' skill, commission three agent specialists in parallel with the following exact tasks. Do not do their work yourself.
 
 - Neuromancer: use the GST MCP's list_portfolio_facets, search_portfolio to find comparable-engagements. Healthcare/RCM/EU precedents. Respond to me with one paragraph.
 - Molly: use gst-mcp's list_regulation_facets, search_regulations for Germany BDSG, France CNIL, EU GDPR. One paragraph response.
 - 3Jane: use gst-mcp search_radar to search for a market signal. European healthcare IT and RCM. Return me one paragraph.
 
-Use the sales notes below to Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
+Then after receiving their response, use the sales notes below to Synthesize: go / no-go / conditional, then one bullet per specialist, then one line for what to send the COO before 9am.
 
 ---
 
