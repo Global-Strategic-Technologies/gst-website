@@ -35,6 +35,14 @@ const LIBRARY_METADATA: ReadonlyArray<Omit<LibraryEntry, 'body'>> = [
       'GST reference for organizing a technology-focused Virtual Data Room across nine folder categories, with common pitfalls and best practices.',
     mimeType: 'text/markdown',
   },
+  {
+    slug: 'information-request-list',
+    uri: 'gst://library/information-request-list',
+    name: 'Information Request List',
+    description:
+      'GST one-page intake checklist organized by VDR taxonomy — the structured information needed to execute Hub diligence tools against a target or client.',
+    mimeType: 'text/markdown',
+  },
 ];
 
 export const LIBRARY_ENTRIES: readonly LibraryEntry[] = LIBRARY_METADATA.map((meta) => {
