@@ -11,20 +11,37 @@
 ## Current manifest hash
 
 ```
-2d155d19ea7a2e37f29a2c405cb65c2f18def7f5adc5968550f02348a117b6a0
+9d5738f414bafc65e8b9340a277c3d0ad551f26fdedd6fa6411ec5af98a2245c
 ```
 
 Computed over (sorted):
 
-- 2 Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`)
+- 3 Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`)
 - 120 Regulation URIs (`gst://regulations/<jurisdiction>/<framework-id>`)
 - 6 Radar URIs (FYI latest + Wire latest + 4 Wire categories)
-- 8 prompt `name@version` tuples (`gst_*`)
+- 9 prompt `name@version` tuples (`gst_*`)
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.2.0 — 2026-05-22 — BL-043 Information Request List
+
+**Theme**: ship the Information Request List as a Library article + MCP Resource + MCP Prompt.
+
+### Added
+
+- **Library article + Resource**: `gst://library/information-request-list` — universal one-page intake checklist organized by VDR taxonomy (00 Engagement Basics + sections 01-09 mirroring VDR-9). Codegen auto-picked up via `mcp-server/scripts/generate-regulations-index.mjs`.
+- **MCP Prompt**: `gst_information_request_list` (v0.0.1) — assembles the input-gathering ask GST hands to a target/client before running diligence tools. Embeds the canonical Resource as the second message; supports optional `targetName`, `transactionContext`, and `productSummary` args for light personalization.
+
+**Operator semantics**: this is an **additive** change — no URIs or prompt names were renamed or removed. Per the discipline above (URI / prompt-name addition → minor bump), `mcp-server/package.json` bumps `0.1.0 → 0.2.0`.
+
+**Pinned conversation impact**: none. Existing pinned URIs and prompt names continue to resolve.
+
+**Architecture context**: [BL-043 design doc](../src/docs/development/MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md).
 
 ---
 

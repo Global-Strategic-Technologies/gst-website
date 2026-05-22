@@ -8,10 +8,10 @@
 import { LIBRARY_ENTRIES, loadLibraryByUri } from '../../src/content/library-loader';
 
 describe('LIBRARY_ENTRIES', () => {
-  it('exposes both library articles with text/markdown mime type', () => {
-    expect(LIBRARY_ENTRIES.length).toBe(2);
+  it('exposes all three library articles with text/markdown mime type', () => {
+    expect(LIBRARY_ENTRIES.length).toBe(3);
     const slugs = LIBRARY_ENTRIES.map((e) => e.slug).sort();
-    expect(slugs).toEqual(['business-architectures', 'vdr-structure']);
+    expect(slugs).toEqual(['business-architectures', 'information-request-list', 'vdr-structure']);
     for (const e of LIBRARY_ENTRIES) {
       expect(e.mimeType).toBe('text/markdown');
       expect(e.uri).toBe(`gst://library/${e.slug}`);
@@ -48,12 +48,33 @@ describe('LIBRARY_ENTRIES', () => {
       expect(body).toContain(folder);
     }
   });
+
+  it('the information-request-list body includes the 00 prelude and every VDR-9 section heading', () => {
+    const entry = LIBRARY_ENTRIES.find((e) => e.slug === 'information-request-list');
+    expect(entry).toBeDefined();
+    const body = entry!.body;
+    for (const heading of [
+      '00 — Engagement Basics',
+      '01 — Product',
+      '02 — Software Architecture',
+      '03 — Infrastructure & Operations',
+      '04 — SDLC',
+      '05 — Data, Analytics & AI',
+      '06 — Security',
+      '07 — People & Organization',
+      '08 — Corporate IT',
+      '09 — Governance & Compliance',
+    ]) {
+      expect(body).toContain(heading);
+    }
+  });
 });
 
 describe('loadLibraryByUri', () => {
-  it('resolves both canonical Library URIs', () => {
+  it('resolves all three canonical Library URIs', () => {
     expect(loadLibraryByUri('gst://library/business-architectures')).not.toBeNull();
     expect(loadLibraryByUri('gst://library/vdr-structure')).not.toBeNull();
+    expect(loadLibraryByUri('gst://library/information-request-list')).not.toBeNull();
   });
 
   it('returns null for an unknown slug', () => {

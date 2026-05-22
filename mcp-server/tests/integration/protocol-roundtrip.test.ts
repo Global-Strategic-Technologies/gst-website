@@ -345,9 +345,10 @@ describe('protocol roundtrip', () => {
       const payload = res.result as unknown as ListResourcesResultPayload;
       const uris = payload.resources.map((r) => r.uri);
 
-      // Library × 2 + Regulations × 120
+      // Library × 3 + Regulations × 120
       expect(uris).toContain('gst://library/business-architectures');
       expect(uris).toContain('gst://library/vdr-structure');
+      expect(uris).toContain('gst://library/information-request-list');
       expect(uris).toContain('gst://regulations/eu/gdpr');
       expect(uris).toContain('gst://regulations/us-ca/ccpa');
 
@@ -355,7 +356,7 @@ describe('protocol roundtrip', () => {
       const regulationEntries = payload.resources.filter((r) =>
         r.uri.startsWith('gst://regulations/')
       );
-      expect(libraryEntries.length).toBe(2);
+      expect(libraryEntries.length).toBe(3);
       expect(regulationEntries.length).toBe(120);
 
       for (const r of libraryEntries) {
