@@ -281,7 +281,9 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 - **VDR-9 taxonomy + "00 Engagement Basics" prelude**: sections `01-09` mirror the canonical VDR taxonomy. Section `00` captures the cross-cutting deal/profile facts (target name, transaction type, ARR, stage, business model, geos) that no single VDR folder owns but every downstream analysis depends on.
 - **CSS-ID slug quirk**: auto-generated heading slugs use github-slugger; em-dashes in section titles ("00 — Engagement Basics") collapse to double-dashes ("00--engagement-basics"). Bare CSS ID selectors that start with a digit are invalid — E2E tests use attribute-form selectors (`h2[id="..."]`) instead.
 - **Companion to existing prompts**: `gst_information_request_list` is the _request_ artifact; `gst_diligence_kickoff` consumes filled answers as the diligence-agenda generator; `gst_vdr_audit` audits the target's eventual VDR against the canonical taxonomy.
-- **Future scoped out**: `gst_intake_filled_irl` (paste-a-filled-IRL → canonical-Hub-tool-inputs converter) is **not** part of BL-043. Premature to design without v1 usage evidence. File as BL-043.5 if/when prioritized.
+- **Future work** (tracked separately, do not bundle into BL-043):
+  - **[BL-044](#bl-044-information-request-list--fillable-form-generator)** — fillable-form generator (Hub tool + MCP tool) that produces a downloadable `.xlsx` from this article. Closes the partner-side "recipient response surface" gap. Filed; not yet started.
+  - **BL-045 candidate** (`gst_intake_filled_irl`) — paste-a-filled-IRL → canonical Hub-tool inputs converter. The response side of the loop. Premature to design without BL-044 + v1 usage evidence; file when prioritized.
 - **Discipline**: every IRL change ships with a corresponding `irl-tool-input-mapping.md` update in the same PR. Every new Hub tool that needs partner-supplied input either matches an existing IRL bullet or adds one in the same PR.
 
 **Validation sequence before PR**
@@ -292,6 +294,161 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 4. `npx playwright test tests/e2e/hub-library-information-request-list.test.ts --project=chromium` — all 5 cases green
 5. Senior-consultant content review pass (Step 5.5 — blocking)
 6. Live-exercise capture from Claude Desktop overwrites the draft golden file
+
+---
+
+### BL-044: Information Request List — Fillable-Form Generator
+
+**Source**: Follow-up identified during BL-043 final review (2026-05-22) | **Effort**: 3-4 days | **Status**: Open | **Depends on**: BL-043 (consumes its canonical article + Resource)
+
+**As a** GST partner sending the IRL to a target, client, or portfolio company, **I want** a one-click download of a fillable spreadsheet (.xlsx) that mirrors the canonical IRL section structure **so that** the recipient has an obvious response surface — type answers into structured cells and email it back — instead of inventing their own response format or ignoring the request because the markdown article isn't actionable on their side.
+
+> **Companion**: [`MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md`](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md) — read first. BL-044 is the consumption surface for the article authored under BL-043; the request artifact is unchanged.
+
+#### Planning Criteria
+
+**Use cases**
+
+- **Partner sending the IRL** — clicks "Download IRL (.xlsx)" on `/hub/tools/information-request-list-generator/`, optionally types the target name + transaction context to pre-fill the file header, attaches the resulting file to the kickoff email. No markdown-to-XLS hand-conversion. No "what format do you want this in?" round trip with the recipient.
+- **MCP-mediated workflow** — partner in Claude Desktop invokes `/gst_information_request_list { targetName, transactionContext }` and Claude both renders the IRL preview AND produces a downloadable .xlsx (via the new tool) in the same turn. The prompt evolves from "emit text" to "emit text + generate file."
+- **Recipient response loop** — recipient opens the .xlsx, sees one section per worksheet (or one column-group per section, TBD), types short answers into column B alongside the request text in column A, sends the filled file back. Structure is preserved end-to-end.
+- **Future-state agent ingestion** — when a separate initiative (BL-045 candidate) ships the filled-IRL ingestion path, the structured XLS columns become the natural parse target.
+
+**Outcomes**
+
+- One-click .xlsx download from the Hub + matching MCP tool returning `{ filename, base64 }`.
+- File generated deterministically from `gst://library/information-request-list` — partner-facing artifact and agent-facing Resource stay byte-identical to the article authored under BL-043.
+- Zero new content authored in BL-044 — the bullets, section headers, and ordering all come from `article.md` via the existing codegen.
+- The `gst_information_request_list` MCP prompt orchestrates the new tool when invoked with file-attachment intent (additive — bare prompt invocation still emits text-only).
+
+**Business value**
+
+- **Closes the request → response loop** that BL-043 deliberately scoped out. The IRL is currently a one-page reference; BL-044 makes it a transactable deliverable.
+- **Reduces partner friction** by eliminating the markdown-to-spreadsheet hand-conversion step every engagement currently requires.
+- **Brand-bearing in the recipient's inbox** — a structured .xlsx with the GST header reads as more professional than a markdown block pasted into an email body.
+- **Foundation for the response-ingestion follow-up** (filled-IRL → canonical Hub-tool inputs) — that future initiative needs a structured response format to parse; BL-044 ships exactly that.
+
+#### Acceptance Criteria
+
+**Hub tool**
+
+- [ ] New Hub tool page at `/hub/tools/information-request-list-generator/` (slug distinct from the BL-043 library article `/hub/library/information-request-list/` — no URI collision).
+- [ ] Page header explains the workflow in one paragraph, links to the canonical library article for the reference reading. Does **not** duplicate the article content.
+- [ ] Optional text inputs: `targetName`, `transactionContext` (sell-side / buy-side / value-creation / unknown) — write into the file's header cells + filename.
+- [ ] Primary CTA: "Download IRL (.xlsx)" button. Behavior: client-side or SSR endpoint generation (see Technical Context for the decision).
+- [ ] Generated file mirrors the canonical 10-section structure from `article.md`: one section per worksheet OR one section per row-group (decide during design; both are reasonable).
+- [ ] File header cells include: target name (if supplied), transaction context (if supplied), GST generation date, link back to the canonical article URL.
+
+**MCP Tool**
+
+- [ ] New tool `generate_information_request_list_xlsx` registered in the existing tool registry. Input schema: `{ targetName?, transactionContext?, productSummary? }` — same shape as the existing `gst_information_request_list` prompt args.
+- [ ] Output: `{ filename, base64, mimeType }` — base64-encoded .xlsx payload Claude Desktop can attach to a message.
+- [ ] Tool reads from `gst://library/information-request-list` Resource (BL-043's codegen-loaded body). No parallel content store.
+
+**Prompt evolution**
+
+- [ ] `gst_information_request_list.version` bumped `0.0.1 → 0.0.2` (patch — same name, behavior addition).
+- [ ] `gst_information_request_list.orchestrates` extended to include the new tool name alongside the existing Resource URI.
+- [ ] `gst_information_request_list.lastReviewedAt` bumped to the BL-044 commit date.
+- [ ] Manifest-stability hash recomputed; `mcp-server/BREAKING_CHANGES.md` gains a `0.3.0` (or `0.2.1` if no new URIs) entry documenting the additive tool + prompt-version bump.
+- [ ] Prompt body updated: when called with args, the model both emits the IRL preview AND calls `generate_information_request_list_xlsx` to attach the file. Bare invocation (interactive mode) unchanged behaviorally — still emits text-only.
+- [ ] Existing golden file at `mcp-server/tests/examples/information-request-list.golden.md` re-captured to reflect the file-attachment output shape.
+
+**Tests**
+
+- [ ] Article-parser unit test (`mcp-server/tests/unit/lib/parse-irl-article.test.ts`): given the current `article.md`, the parser returns exactly 10 sections + the expected bullet count per section (~63 total). Asserts the parser handles renumbering, section-title edits, and bullet additions without code changes. Becomes the regression guard for BL-043's article structure.
+- [ ] Tool unit test (`mcp-server/tests/unit/tools/generate-information-request-list-xlsx.test.ts`): empty input + populated input both produce valid .xlsx (validate via `exceljs` round-trip read); filename contains `targetName` slug when supplied; base64 decodes to a non-empty buffer.
+- [ ] Hub page E2E (`tests/e2e/hub-tools-irl-generator.test.ts`): button click triggers download, downloaded file has the expected mimeType, optional inputs propagate to filename. Follows the anti-pattern discipline from `TEST_BEST_PRACTICES.md` (no arbitrary `waitForTimeout`, `waitUntil: 'domcontentloaded'`, deep readiness gate).
+- [ ] Updated prompt unit test asserts the new tool name appears in `orchestrates` and the body literally mentions it (registry-invariant requirement).
+
+**Documentation**
+
+- [ ] Implementation tracking doc at `src/docs/development/MCP_SERVER_IRL_GENERATOR_BL-044.md` — same depth as `MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md`, structured around three-surface design (Hub tool + MCP tool + prompt evolution).
+- [ ] `mcp-server/README.md` — Tools table gains the new tool row; Prompts table updated to reflect the IRL prompt's evolved `orchestrates`.
+- [ ] `mcp-server/src/docs/library/irl-tool-input-mapping.md` (BL-043 deliverable) — adds a row documenting that the generator tool reads the article body as a structured source; this is the existing-discipline lockstep update.
+- [ ] BL-043 tracking doc updated to point at BL-044 in the "Sequel" front-matter line so the cross-reference is bidirectional.
+
+#### Technical Context
+
+**What BL-044 explicitly reuses from BL-043 (do not duplicate)**
+
+| BL-043 deliverable                                                                        | How BL-044 reuses                                                                                            |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `src/data/library/information-request-list/article.md`                                    | Single source of truth. BL-044's parser reads this; never authors its own bullets.                           |
+| `gst://library/information-request-list` Resource                                         | BL-044's MCP tool reads via `loadLibraryByUri()`. No parallel registration. URI contract unchanged.          |
+| `mcp-server/src/content/library-loader.ts` (`LIBRARY_BODIES['information-request-list']`) | Already codegen-emitted by the prebuild step. BL-044's parser imports.                                       |
+| `mcp-server/src/docs/library/irl-tool-input-mapping.md`                                   | Internal SOP authored under BL-043. BL-044 adds one row; doesn't fork the doc.                               |
+| `gst_information_request_list` MCP prompt                                                 | Evolves in place. New version (`0.0.2`), extended `orchestrates`, file-attachment instruction added to body. |
+| `/hub/library/information-request-list/` Hub page                                         | BL-044 links to it for the canonical reference reading. Tool page does NOT duplicate the article content.    |
+
+**What BL-044 adds (genuinely new)**
+
+- `src/pages/hub/tools/information-request-list-generator/index.astro` — action-only Hub tool page (download button + optional metadata inputs); slug deliberately distinct from `/hub/library/information-request-list/` to avoid URI collision.
+- `mcp-server/src/lib/parse-irl-article.ts` — parses the canonical markdown into a structured `{ sections: [{ number, title, bullets[] }] }` shape. Unit-tested as the regression guard for article structure.
+- `mcp-server/src/lib/generate-irl-xlsx.ts` — consumes the parsed structure + optional metadata, produces an `exceljs` workbook → buffer → base64.
+- `mcp-server/src/tools/generate-information-request-list-xlsx.ts` — MCP tool wrapper around the generator.
+- Possibly `src/pages/api/information-request-list.xlsx.ts` — server-side endpoint if SSR generation is chosen (see decision below).
+
+**File-format decision: XLS (.xlsx) for v1**
+
+- **Why**: universal, recipient-familiar, structured cells map naturally to bullets, `exceljs` (or `@cfworker`-compatible XLSX libs) are mature.
+- **DOCX considered**: nearly as good, but the table-of-fields metaphor is less obvious than a spreadsheet. Defer.
+- **Fillable PDF considered**: most professional look, but `pdf-lib` + form-field definitions is substantially heavier engineering. Defer to a future v2.
+- **Markdown considered**: lightest, but recipients have no obvious "fillable form" structure. Negates the entire reason for BL-044.
+
+**Generation path: client-side vs SSR endpoint vs build-time**
+
+Decide during BL-044 Phase 0:
+
+- **Client-side** (`exceljs` running in browser at button-click): smallest server footprint, but ~200 KB bundle hit on the Hub tool page. Probably the right v1 choice — the tool page is opt-in.
+- **SSR endpoint** (`/api/information-request-list.xlsx?targetName=…`): zero bundle hit, but each click is a serverless invocation. Worth it if we want shareable URLs.
+- **Build-time** (`/public/downloads/information-request-list.xlsx` regenerated by prebuild): static + fast, but no per-request personalization (target name, transaction context).
+
+Recommend: **client-side for v1**. Bundle cost is acceptable for a tool page; the personalization fields only make sense at click-time anyway.
+
+**MCP tool runtime concern**
+
+The MCP Worker runtime (BL-032 / BL-032.5) is Cloudflare Workers. `exceljs` has Node-only dependencies (`stream`, `Buffer`). Either:
+
+1. Use a Workers-compatible XLSX library (`@nzwsch/xlsx-js`, `xlsx`, others — verify in Phase 0).
+2. Generate via a Node sidecar (out of scope for v1 — adds infra complexity).
+3. Use the parsed-structure → CSV fallback in the Worker, document XLSX as Hub-tool-only.
+
+Recommend: **option 1**, verify library compatibility before authoring the tool.
+
+**Slug discipline**
+
+- **Library article** (BL-043): `/hub/library/information-request-list/` — reference, read-only
+- **Hub tool** (BL-044): `/hub/tools/information-request-list-generator/` — action, downloadable
+- **MCP Resource**: `gst://library/information-request-list` — unchanged
+- **MCP tool**: `generate_information_request_list_xlsx` — verb-prefixed, distinguishable from the prompt
+- **MCP prompt**: `gst_information_request_list` — unchanged name, evolved behavior + bumped version
+
+**Out of scope for BL-044** (explicitly distinguish from this initiative)
+
+- **Filled-IRL ingestion** — a separate future initiative (BL-045 candidate) that consumes a filled .xlsx and emits canonical Hub-tool inputs (`compute_techpar` payload, `assess_infrastructure_cost_governance` answers map, etc.). Different problem; needs its own design.
+- **Multi-language IRL** — internationalization of the canonical article. Out of scope; if/when prioritized, file separately.
+- **Fillable PDF / DOCX variants** — v2+ if recipient feedback indicates spreadsheet isn't preferred.
+
+**Risks & mitigations**
+
+| Risk                                                                                        | Mitigation                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Article structure changes after BL-043 ship (renumbering, new sections) break the generator | Article-parser unit test (acceptance criteria above) is the regression guard. Discipline: any change to `article.md` requires running `npm -w @gst/mcp-server run test`.   |
+| `exceljs` bundle size hurts Hub tool page Lighthouse                                        | Phase 0 measures the bundle delta. Mitigation paths: SSR generation; lazy-loaded import; CSV fallback for the bulk of bullets.                                             |
+| Workers-runtime XLSX library has a parity gap with Node `exceljs`                           | Phase 0 verifies library compatibility before tool authoring. If parity gap is large, ship Hub-tool .xlsx + MCP-tool .csv as v1; align later.                              |
+| Recipient opens .xlsx and finds the column structure confusing                              | v1 ships with a hidden "instructions" sheet + visible header row in the data sheet. Senior-consultant review of the file's open-in-Excel UX is a blocking pre-merge gate.  |
+| Prompt-orchestration evolution breaks existing `gst_information_request_list` consumers     | Patch-version bump (`0.0.1 → 0.0.2`) signals additive behavior; bare invocation still emits text-only; new file-attachment behavior is conditional on args being supplied. |
+
+**Validation sequence before PR**
+
+1. Phase 0: Workers-XLSX library decision recorded in the tracking doc.
+2. Article-parser unit test passes against the unmodified BL-043 article (no edits to `article.md` required).
+3. Hub tool E2E: button click → downloaded .xlsx → open in Excel → all 10 sections render with bullets verbatim.
+4. MCP tool integration test: tool invocation returns valid base64; round-tripped through `exceljs` yields the same structure.
+5. Updated prompt golden file capture: bare invocation still emits text-only; populated invocation emits text + tool call.
+6. `mcp-server/tests/integration/manifest-stability.test.ts` + `prompts-registry.test.ts` green with the new tool + prompt version.
+7. Senior-consultant review of the downloaded .xlsx in Excel — open-in-Excel UX gate.
 
 ---
 

@@ -11,7 +11,10 @@
 >
 > **Predecessors**: BL-031.5 (Library Resources), BL-031.75 (Prompt library + golden-file maturity bar), BL-032.5 (Prompts on remote transport).
 >
-> **Sequel**: A future BL-043.5 may add a filled-IRL ingestion prompt (`gst_intake_filled_irl`) that converts a partner's filled-in IRL into the canonical inputs for `compute_techpar` / `assess_infrastructure_cost_governance` / `estimate_tech_debt_cost` / `generate_diligence_agenda` — closing the loop. **Explicitly out of scope for BL-043.**
+> **Sequels**:
+>
+> - [BL-044: Information Request List — Fillable-Form Generator](BACKLOG.md#bl-044-information-request-list--fillable-form-generator) — adds the Hub tool + MCP tool that converts this article into a downloadable .xlsx, evolves `gst_information_request_list` to optionally orchestrate the file generator. Closes the partner-side "how does the recipient respond?" gap.
+> - A future BL-045 candidate may add a filled-IRL ingestion prompt (`gst_intake_filled_irl`) that converts a partner's filled-in IRL into the canonical inputs for `compute_techpar` / `assess_infrastructure_cost_governance` / `estimate_tech_debt_cost` / `generate_diligence_agenda` — closing the response loop. **Explicitly out of scope for BL-043 and BL-044.**
 >
 > **Scope**: ship a single, universal, one-page Information Request List on three surfaces in one PR — a Library article at `/hub/library/information-request-list/`, an MCP Resource at `gst://library/information-request-list`, and an MCP Prompt `gst_information_request_list` that emits the IRL inline with optional tailoring to a target.
 >
@@ -123,7 +126,7 @@ Ten sections — one "00 — Engagement Basics" prelude that captures deal/profi
 | 08  | Corporate IT                | 3                | ICG (Corporate IT overlay); future tools                                                                                                                               |
 | 09  | Governance & Compliance     | 5                | `gst_regulatory_exposure_brief` (`targetJurisdictions`, `dataCategories`), Regulatory Map filters, Diligence Machine (`dataSensitivity`)                               |
 
-**Total**: ~63 bullets. **Voice**: request-style (a request, not a question), 1-2-sentence section intros explaining the _why_ to the recipient. **Length**: prints to ~3 pages with `@media print` CSS that breaks each section onto its own page (one-page-per-section feel, partner-acceptable).
+**Total**: ~63 bullets. **Voice**: addressed directly to the recipient. A single one-paragraph opener tells the recipient how to respond (short answers preferred, "n/a" / "not yet tracked" rather than skipping). No per-section intro prose — the section header plus bullets carries enough context, and the bullets themselves are self-describing. **Length**: prints to ~3 pages with `@media print` CSS that breaks each section onto its own page (one-page-per-section feel, partner-acceptable). **Audience discipline**: the article body is **recipient-facing only** — no partner instructions, no engineering metadata, no MCP/Resource references. Partner-side framing (when to use which sections, voice tuning per transaction context) lives in the MCP Prompt body (`build()`); engineering-side metadata (drift policy, single source of truth) lives in this tracking doc and the library-loader comments.
 
 ---
 
@@ -424,7 +427,8 @@ Audit recommended staging into 3 PRs (Library article + Resource → Hub page �
 
 ## Open items (no deferred work — by design)
 
-- **Filled-IRL ingestion path** (a future `gst_intake_filled_irl` prompt that converts a filled IRL into canonical Hub-tool inputs) is **explicitly scoped out** of BL-043. Separate user-need that hasn't been validated yet — premature to design. If/when prioritized, file as BL-043.5.
+- **Fillable-form generator** (Hub tool + MCP tool that produces a downloadable `.xlsx` from this article, evolves `gst_information_request_list` to optionally attach the file): filed as **[BL-044](BACKLOG.md#bl-044-information-request-list--fillable-form-generator)**. Not part of BL-043 — closes the recipient-response surface gap in a follow-up PR.
+- **Filled-IRL ingestion path** (a future `gst_intake_filled_irl` prompt that converts a filled IRL into canonical Hub-tool inputs) is the response-side completion. **Explicitly scoped out** of both BL-043 and BL-044. Separate user-need that hasn't been validated yet — premature to design. If/when prioritized, file as BL-045.
 - **Per-transaction-context content variants**: revisit only if v1 partner feedback shows the single-universal artifact actively fails for one of the three motions.
 
 ---
