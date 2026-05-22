@@ -164,4 +164,4 @@ The prompt itself is **passive infrastructure** — a templated message body. Al
 
 ---
 
-_Last updated: 2026-04-30_
+_Last updated: 2026-05-22 (BL-043 — added `gst_information_request_list`)._
