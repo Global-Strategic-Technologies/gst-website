@@ -39,7 +39,8 @@ Below is information useful to size and execute a client engagement. Per-bullet,
 ## 03 — Infrastructure & Operations
 
 - Hosting model: cloud provider(s), self-hosted / managed mix, primary region(s)
-- Monthly hosting and infrastructure spend, with 12–24 months of history if available (longer horizons surface spend-escalation patterns relevant to cost-governance maturity)
+- The past three months' monthly hosting and infrastructure spend
+- 12–24 months of hosting and infrastructure spend history if available
 - Headcount dedicated to infrastructure operations (FTE equivalent)
 - Monitoring and alerting stack (tools, on-call rotation, escalation paths)
 - Deployment frequency to production (e.g., multiple/day, weekly, monthly, quarterly)

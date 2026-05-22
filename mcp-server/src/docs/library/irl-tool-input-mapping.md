@@ -50,15 +50,16 @@
 
 ## Section 03 — Infrastructure & Operations
 
-| Bullet                                           | Feeds                                                                                            |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| Hosting model                                    | TechPar `infraHosting` framing; `gst_architecture_layer_review` Layer 2                          |
-| Monthly hosting and infrastructure spend         | TechPar `infraHosting` (annualized; 12–24 mo history enables ICG cost-governance trend analysis) |
-| Headcount dedicated to infrastructure operations | TechPar `infraPersonnel`                                                                         |
-| Monitoring and alerting stack                    | ICG Monitoring domain answers (qualitative; future: explicit ICG question mapping)               |
-| Deployment frequency to production               | Tech Debt Calculator `deployIdx`                                                                 |
-| Capacity headroom                                | ICG Infrastructure domain                                                                        |
-| Material capital expenditure on infrastructure   | TechPar `capexView` toggle (capex-on / capex-off framing)                                        |
+| Bullet                                           | Feeds                                                                              |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| Hosting model                                    | TechPar `infraHosting` framing; `gst_architecture_layer_review` Layer 2            |
+| Past 3 months' monthly hosting and infra spend   | TechPar `infraHosting` (annualized — primary input)                                |
+| 12–24 mo hosting / infra spend history           | ICG cost-governance trend analysis (Optimizing vs Reactive maturity scoring)       |
+| Headcount dedicated to infrastructure operations | TechPar `infraPersonnel`                                                           |
+| Monitoring and alerting stack                    | ICG Monitoring domain answers (qualitative; future: explicit ICG question mapping) |
+| Deployment frequency to production               | Tech Debt Calculator `deployIdx`                                                   |
+| Capacity headroom                                | ICG Infrastructure domain                                                          |
+| Material capital expenditure on infrastructure   | TechPar `capexView` toggle (capex-on / capex-off framing)                          |
 
 ## Section 04 — SDLC
 
