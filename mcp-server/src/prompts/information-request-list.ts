@@ -40,7 +40,7 @@ const argsSchema = z.object({
     .enum(transactionContextValues)
     .optional()
     .describe(
-      "Optional engagement context. Lightly tunes voice — sell-side ('help us tell your story'), buy-side ('help us underwrite the deal'), value-creation ('help us prioritize the roadmap'). Extensibility: enum widening (new value) is backward-compatible; renaming an existing value requires a coordinated migration."
+      'Engagement context. Must be one of: sell-side · buy-side · value-creation · unknown.'
     ),
   productSummary: z
     .string()
