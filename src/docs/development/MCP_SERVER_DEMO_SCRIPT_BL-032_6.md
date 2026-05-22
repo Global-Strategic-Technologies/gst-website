@@ -737,39 +737,64 @@ Run the `gst_diligence_sweep` prompt against the populated IRL above. Target: Me
 
 ### Narrate as the sweep runs
 
-This is the highest tool-call density of any scenario — the sweep fires 6-9 tool calls in sequence before composing the dossier. Plant the framing early so the audience knows what to watch for.
+This is the highest tool-call density of any scenario — the sweep fires **6-9 tool calls in parallel** after extracting dimensions, then composes the dossier. The renders will interleave; do NOT try to narrate them sequentially. Instead, plant the framing up front, then point at four specific moments as they surface.
 
-🎤 **SAY** (~20 sec, as the first `prompts/get` render appears):
+🎤 **SAY** (~25 sec, as the first `prompts/get` render appears + the fan-out begins):
 
-> "Watch the tool-call density that's about to scroll past. The sweep prompt's body instructs Claude to fire six or seven tool calls in a specific order — generate a diligence agenda, pull comparable engagements, pull every regulatory framework MedSig is exposed to, run TechPar, run ICG, run the tech-debt calculator, pull market signal — and then synthesize the lot into a single dossier. Every one of those calls is a function in our codebase. None of it is the model improvising."
+> "Watch the tool-call density that's about to scroll past. The sweep prompt extracts the 13 diligence dimensions from the populated IRL, then **fans out to every Hub tool in parallel** — TechPar, ICG, the diligence agenda engine, the portfolio search, the regulatory framework loader, the radar feed. You'll see the renders interleave because they fire concurrently, not in sequence. Every one of those calls is a function in our codebase. None of it is the model improvising. Then it synthesizes the lot into a single dossier."
 
-👁 **WATCH** for these tool-call renders in sequence — narrate as each one fires:
+👁 **WATCH** for these four specific moments — when each lands, point at it:
 
-1. **`generate_diligence_agenda`** — _"Diligence agenda first. Every field populated from the IRL — no `'unknown'` defaults. Same engine as Scenario 1, but the agenda comes back precise instead of conservative."_
-2. **`list_portfolio_facets` + `search_portfolio`** — _"Comparable engagements — facets first to see what the portfolio is filterable on, then a targeted search. Healthcare + scaling + US-EU. Anonymized code names."_
-3. **`list_regulation_facets` + `search_regulations` ×4-5** — _"One regulation call per framework MedSig named in Section 09 — HIPAA, GDPR, BDSG, CNIL, CCPA. Every citation in the dossier will be from this corpus, not the model's training data."_
-4. **`compute_techpar`** — _"TechPar. The IRL gave us 58 engineers, $2.4M product cost, $640k tooling, $23M annualized cloud spend, $232k average loaded salary. Real numbers in, real paradigm assessment out."_
-5. **`assess_infrastructure_cost_governance`** — _"ICG framework. MedSig has 1 FinOps hire (October 2025), trending cloud spend, partial tag coverage signals from the technical-debt assessment. The maturity scoring will land mid-tier — and the recommendations will be specific."_
-6. **`estimate_tech_debt_cost`** — _"Tech debt calculator. 22% maintenance burden, MTTR P0 2.4 hours, $1.8M FY26 remediation budget already allocated. The output is an annualized carry cost and a payback projection."_
-7. **`search_radar`** — _"Market signal — European healthcare IT and RCM. Two or three radar items that contextualize the deal's timing."_
+#### Moment 1 — ICG two-call self-correction (canonical defensive pattern)
 
-🎤 **SAY** (~20 sec, as the dossier composes):
+When `assess_infrastructure_cost_governance` fires, it will fire **twice**: an empty call to retrieve the 20-question schema, then a seeded second call with the IRL-extractable signals.
 
-> "Now the synthesis. Nine sections — target snapshot, agenda, architecture, ICG, tech debt, regulatory, comparables, market signal, and a final partner-attributed recommendation. The dossier should read as a single coherent document — that's the test. If it reads like a stitched-together set of tool outputs, the prompt body needs sharpening, not the tools. The substrate ran clean either way."
+🎤 **SAY**: _"Watch — ICG just called itself with empty answers first. That's the model retrieving the 20-question schema before seeding the second call with what the IRL actually told it: FinOps lead hired in Q4 2025, Datadog observability, multi-AZ EU isolation. That's a canonical defensive move — it would rather ask the schema what to fill than guess. **Sixteen of twenty questions came back unknown, which triggers our low-confidence threshold** — but at $23M annual hosting spend, sixteen unknowns is itself the diligence finding. Signal from silence."_
+
+#### Moment 2 — EU AI Act conditional fires automatically (v0.0.2 enrichment)
+
+The IRL's Section 09 names HIPAA, GDPR, BDSG, CNIL, UAVG, LOPDGDD, CCPA. **It does NOT name the EU AI Act.** But the model will call `search_regulations` for the EU AI Act anyway.
+
+🎤 **SAY**: _"Notice — the sweep just added EU AI Act to the regulatory fan-out **on its own**. The IRL didn't name it. But the prompt body has a conditional: if Section 05 names production ML/AI AND geographies include the EU, add EU AI Act to the regulatory pass. MedSig deploys an XGBoost denial-prediction model plus an OpenAI claims-AI co-pilot in EU customers — that's likely Annex III high-risk under the AI Act. The IRL was silent on the exposure; the sweep surfaces it anyway. **This is the kind of gap-fill that's hard for a junior associate to catch — and it just fired automatically.**"_
+
+#### Moment 3 — TechPar lands the central thesis ($1.32B exit drag)
+
+When `compute_techpar` returns and the dossier's section (C) composes, the audience will see the central thesis.
+
+🎤 **SAY**: _"There — TechPar just landed **in the critical zone**. Hosting is 51% of ARR against an 8-18% Series B-C benchmark. The IRL gave us monthly hosting — $1.84M, $1.92M, $2.07M — and the engine annualized to $23.16M against $45.2M ARR. **Annual excess of $16.7M, cumulative gap of $110M over a 36-month hold, implied exit-value drag of $1.32 billion at a 12× SaaS multiple.** That's the central thesis of the deal either way. Not a deal-killer — it's a pre-LOI diligence question — but everything else in this dossier is a supporting voice next to that one number."_
+
+#### Moment 4 — Open-in-Hub deeplinks per section (the v0.0.2 bridge)
+
+As the dossier composes, every section that pulled from a tool will close with a clickable "Open in Hub" link.
+
+🎤 **SAY** (point at the bottom of section C, then scroll through D, E, F, G, H): _"Look at the bottom of each section — **'Open TechPar Wizard,' 'Open ICG Wizard,' 'Open Tech Debt Calculator,' 'Open in Regulatory Map' per framework, 'Open Hub: Comparable engagement view,' 'Open Radar Feed.'** Every one of those links opens the corresponding wizard on our website with the MedSig inputs pre-populated. That's the bridge — the partner can read the dossier here, click any link, refine the inputs in-browser, share the URL with the deal team, export a PDF. The Claude Desktop output is the entry point; the Hub is the workspace."_
+
+🎤 **SAY** (~25 sec, as the synthesis section (I) composes — the partner-attributed recommendation):
+
+> "And there's the synthesis — attributed to Reid Peryam, project label 'Cygnet.' Nine sections in one coherent document: target snapshot, agenda, architecture, ICG, tech debt, regulatory, comparables, market signal, partner recommendation. **Notice the comparable-engagements section inverts the usual frame** — Atlas and Arrow are our closest peers from the GST portfolio, both RCM, both legacy-platform / cost-efficient. MedSig is modern-cloud-native / cost-inefficient at similar scale. That's not just a precedent list — it's an analytical contrast that focuses the deal team's attention. The dossier reads as one document the partner can act on without going back to the tool outputs."
 
 ### Close + bridge to Q&A
 
-🎤 **SAY** (~30 sec, optimized for MD framing):
+🎤 **SAY** (~40 sec, optimized for MD framing):
 
-> "What you just watched is the GST platform's full surface area lit up by one populated IRL. Same MCP server, same authentication, same per-key budgeting. But the trigger is a structured document the target filled out — which means this scenario isn't just for our partners. It's for the target's CFO, who can fill the IRL once and have it feed everyone we hand it to.
+> "What you just watched is the GST platform's full surface area lit up by one populated IRL. Same MCP server, same authentication, same per-key budgeting. But three things to anchor on as we close.
 >
-> Scenario 1 was 'partner runs the intake' — useful for fast triage. Scenario 7 is 'target runs the intake, platform sweeps everything else' — that's the productized path to a buyer-grade diligence dossier in under ten minutes of partner time. Same engine. The fidelity of the intake is the variable that scales."
+> **First — the trigger is a structured document the target filled out.** That means this scenario isn't just for our partners; it's for the target's CFO, who can fill the IRL once and have it feed everyone we hand it to. The IRL is the artifact that bridges the partner side and the target side of the workflow.
+>
+> **Second — the dossier you just saw is a working document, not a printout.** Every section closes with a link back into our Hub — TechPar wizard, ICG wizard, Tech Debt Calculator, Regulatory Map, portfolio view, Radar — each opening with the MedSig inputs pre-populated. The Claude Desktop output is the entry point; the Hub is where the partner refines, shares, and exports.
+>
+> **Third — the platform caught something the IRL didn't tell it to.** MedSig's IRL named seven regulatory frameworks but not the EU AI Act, even though they deploy ML in EU customers. The sweep added it anyway because the prompt body has a conditional that fires when the IRL has ML in production AND EU geography. That kind of gap-fill is what scaled diligence buys you — the platform catches what the intake forgot.
+>
+> Scenario 1 was 'partner runs the intake' — useful for fast triage. Scenario 7 is 'target runs the intake, platform sweeps everything else' — that's the productized path to a buyer-grade diligence dossier in under ten minutes of partner time. Same engine. **The fidelity of the intake is the variable that scales.**"
 
 ### ⚠️ FALLBACKS
 
-- **Sweep stalls mid-sequence (no new tool call for ~60 sec)**: pivot to _"You'd see the agent walk back and retry — but in the interest of time, let me skip to the dossier composition. The Scenario 1 output covers the agenda dimension; this one would have added six more."_
+- **Sweep stalls mid-fan-out (no new tool call for ~60 sec; one or more renders missing from the parallel fan-out)**: pivot to _"You'd see the agent retry on whichever call failed — but in the interest of time, let me skip to the dossier composition. The TechPar, ICG, and regulatory passes you can see are the central thesis; the missing call is a confirmatory data point we'd re-run on a separate prompt."_
 - **One tool returns an error (e.g., rate limit hit on `search_regulations`)**: narrate it transparently — _"That's our rate limiter firing on `MCP_KEY_<INITIALS>`'s regulations budget. It's a feature — the substrate protects itself. The dossier composes with the calls that succeeded; the partner re-runs the missing framework call separately if needed."\_
-- **Dossier reads as stitched-together outputs (V-trial-style content quality issue)**: don't dwell — _"That's the senior-consultant content review surface. The prompt is on its first version; the body composition gets refined the same way `gst_diligence_handoff_memo` did across V8 → v0.0.3."_
+- **TechPar lands outside the critical zone** (e.g., the IRL fixture got updated and hosting/ARR is now in the healthy band): don't fake the finding — pivot to whichever section IS critical and narrate that instead. The story is about the platform surfacing the load-bearing finding, not about any specific number.
+- **EU AI Act conditional does NOT fire** (model didn't add it to the regulatory pass): point at the v0.0.2 prompt body conditional, narrate that the conditional is there and would catch it in a re-run — "the kind of regression that the prompt-body tests would catch and surface back into the loop."
+- **No Open-in-Hub links visible at section close** (would indicate a regression from v0.0.2 → some older version somehow deployed): check `/health` for `gitSha`; if it's not `2dc7ee4` or later, the deploy regressed. Don't try to demo around this — pivot to pre-recorded screencap.
+- **Dossier reads as stitched-together outputs (V-trial-style content quality issue)**: don't dwell — _"That's the senior-consultant content review surface. The prompt body composition gets refined across versions — v0.0.2 ships today, and the next live exercise drives v0.0.3."_
 - **Cold failure**: pre-recorded screencap. This is the second-highest-risk live segment after the OpenClaw scenarios; have the recording ready.
 
 ---
