@@ -25,15 +25,15 @@
 
 ## Section 01 — Product
 
-| Bullet                            | Feeds                                                                                                |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| One-paragraph product description | `gst_architecture_layer_review.targetSummary`; `gst_information_request_list.productSummary` (light) |
-| Target market                     | Diligence Machine `productType` (segment hint), `dataSensitivity` (industry hint)                    |
-| Product roadmap snapshot          | (qualitative — informs `gst_diligence_handoff_memo` synthesis section)                               |
-| Top 3 features by adoption        | (qualitative — informs `gst_target_quick_look` close-line and `gst_diligence_kickoff` attention)     |
-| Customer profile                  | Diligence Machine `scaleIntensity` derivation (concentration risk signal)                            |
-| Competitive landscape             | `gst_comparable_engagements_memo.targetDescription` context                                          |
-| Operational scale (low/mod/high)  | Diligence Machine `scaleIntensity` enum (direct); informs TechPar zone interpretation                |
+| Bullet                            | Feeds                                                                                                                                                                                                                                                                         |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One-paragraph product description | `gst_architecture_layer_review.targetSummary`; `gst_information_request_list.productSummary` (light)                                                                                                                                                                          |
+| Target market                     | Diligence Machine `productType` (segment hint), `dataSensitivity` (industry hint)                                                                                                                                                                                             |
+| Product roadmap snapshot          | (qualitative — informs `gst_diligence_handoff_memo` synthesis section)                                                                                                                                                                                                        |
+| Top 3 features by adoption        | (qualitative — informs `gst_target_quick_look` close-line and `gst_diligence_kickoff` attention)                                                                                                                                                                              |
+| Customer profile                  | Diligence Machine `scaleIntensity` derivation (concentration risk signal)                                                                                                                                                                                                     |
+| Competitive landscape             | `gst_comparable_engagements_memo.targetDescription` context                                                                                                                                                                                                                   |
+| Operational scale (low/mod/high)  | Diligence Machine `scaleIntensity` enum (direct). **Lockstep**: bullet wording mirrors [`src/data/diligence-machine/wizard-config.ts:325-340`](../../../../src/data/diligence-machine/wizard-config.ts) verbatim — any wizard-config edit triggers an IRL edit in the same PR |
 
 ## Section 02 — Software Architecture
 
