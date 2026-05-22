@@ -31,8 +31,9 @@
 | Target market                     | Diligence Machine `productType` (segment hint), `dataSensitivity` (industry hint)                    |
 | Product roadmap snapshot          | (qualitative — informs `gst_diligence_handoff_memo` synthesis section)                               |
 | Top 3 features by adoption        | (qualitative — informs `gst_target_quick_look` close-line and `gst_diligence_kickoff` attention)     |
-| Customer profile                  | Diligence Machine `scaleIntensity` derivation                                                        |
+| Customer profile                  | Diligence Machine `scaleIntensity` derivation (concentration risk signal)                            |
 | Competitive landscape             | `gst_comparable_engagements_memo.targetDescription` context                                          |
+| Operational scale (low/mod/high)  | Diligence Machine `scaleIntensity` enum (direct); informs TechPar zone interpretation                |
 
 ## Section 02 — Software Architecture
 
@@ -42,34 +43,36 @@
 | Technology stack                      | Diligence Machine `techArchetype`; `gst_architecture_layer_review` Layer 1                         |
 | Repository organization               | (qualitative — `gst_architecture_layer_review` Layer 1)                                            |
 | Engineering FTE count                 | TechPar `engFTEs`; Tech Debt Calculator `teamSize`                                                 |
+| Product personnel cost                | TechPar `prodCost` (deep-dive mode); unlocks disaggregated R&D OpEx synthesis                      |
 | Annual build and tooling cost         | TechPar `toolingCost`                                                                              |
 | Third-party dependency overview       | (qualitative — `gst_architecture_layer_review` Layer 1; future tool: vendor-risk scoring)          |
 | Most recent technical-debt assessment | Tech Debt Calculator inputs (`maintPct`, `incidents`, `mttr`); qualitative tone of `targetSummary` |
 
 ## Section 03 — Infrastructure & Operations
 
-| Bullet                                           | Feeds                                                                              |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| Hosting model                                    | TechPar `infraHosting` framing; `gst_architecture_layer_review` Layer 2            |
-| Monthly hosting and infrastructure spend         | TechPar `infraHosting` (annualized)                                                |
-| Headcount dedicated to infrastructure operations | TechPar `infraPersonnel`                                                           |
-| Monitoring and alerting stack                    | ICG Monitoring domain answers (qualitative; future: explicit ICG question mapping) |
-| Deployment frequency to production               | Tech Debt Calculator `deployIdx`                                                   |
-| Capacity headroom                                | ICG Infrastructure domain                                                          |
-| Material capital expenditure on infrastructure   | TechPar `capexView` toggle (capex-on / capex-off framing)                          |
+| Bullet                                           | Feeds                                                                                            |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Hosting model                                    | TechPar `infraHosting` framing; `gst_architecture_layer_review` Layer 2                          |
+| Monthly hosting and infrastructure spend         | TechPar `infraHosting` (annualized; 12–24 mo history enables ICG cost-governance trend analysis) |
+| Headcount dedicated to infrastructure operations | TechPar `infraPersonnel`                                                                         |
+| Monitoring and alerting stack                    | ICG Monitoring domain answers (qualitative; future: explicit ICG question mapping)               |
+| Deployment frequency to production               | Tech Debt Calculator `deployIdx`                                                                 |
+| Capacity headroom                                | ICG Infrastructure domain                                                                        |
+| Material capital expenditure on infrastructure   | TechPar `capexView` toggle (capex-on / capex-off framing)                                        |
 
 ## Section 04 — SDLC
 
-| Bullet                                          | Feeds                                                   |
-| ----------------------------------------------- | ------------------------------------------------------- |
-| Development methodology                         | Diligence Machine `operatingModel` derivation           |
-| Branching strategy and code-review process      | (qualitative — `gst_architecture_layer_review` Layer 2) |
-| Test coverage                                   | Tech Debt Calculator `maintPct` proxy                   |
-| Production deployment process                   | Tech Debt Calculator `deployIdx`                        |
-| Production incidents (last 12 months)           | Tech Debt Calculator `incidents`, `mttr`                |
-| Active maintenance burden as % engineering time | Tech Debt Calculator `maintPct`                         |
-| Open bugs by severity                           | Tech Debt Calculator `incidents` quality signal         |
-| Engineering operating model                     | Diligence Machine `operatingModel`                      |
+| Bullet                                          | Feeds                                                                                             |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Development methodology                         | Diligence Machine `operatingModel` derivation                                                     |
+| Branching strategy and code-review process      | (qualitative — `gst_architecture_layer_review` Layer 2)                                           |
+| Test coverage                                   | Tech Debt Calculator `maintPct` proxy                                                             |
+| Production deployment process                   | Tech Debt Calculator `deployIdx`                                                                  |
+| Production incidents (24-mo quarterly trend)    | Tech Debt Calculator `incidents`, `mttr`; trend supports stability-improving / -worsening framing |
+| Active maintenance burden as % engineering time | Tech Debt Calculator `maintPct`                                                                   |
+| Annual remediation investment plan              | Tech Debt Calculator `remediationBudget`; unlocks payback-months projection                       |
+| Open bugs by severity                           | Tech Debt Calculator `incidents` quality signal                                                   |
+| Engineering operating model                     | Diligence Machine `operatingModel`                                                                |
 
 ## Section 05 — Data, Analytics & AI
 
@@ -143,4 +146,4 @@ When a Hub tool input is renamed or removed:
 
 ---
 
-_Last updated: 2026-05-22 (BL-043 initial filing)._
+_Last updated: 2026-05-22 (BL-043 initial filing + tool-coverage audit pass adding `prodCost`, `remediationBudget`, `scaleIntensity` bullets + cloud-spend / incident trend-horizon enrichments)._

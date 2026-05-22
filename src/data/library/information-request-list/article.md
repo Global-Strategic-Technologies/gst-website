@@ -23,6 +23,7 @@ Below is information useful to size and execute a client engagement. Per-bullet,
 - Top three features by adoption (DAU/MAU or equivalent engagement metric)
 - Customer profile: typical contract size, contract length, top concentration risk
 - Competitive landscape: three to five named alternatives and how the product differentiates
+- Operational scale: low (single-tenant or small SaaS; under 10M DAU), moderate (mid-market; 10–100M DAU or multi-tenant), or high (hypergrowth; over 100M DAU, real-time data pipelines, or sub-100ms latency SLA)
 
 ## 02 — Software Architecture
 
@@ -30,6 +31,7 @@ Below is information useful to size and execute a client engagement. Per-bullet,
 - Technology stack: primary languages, frameworks, databases, infrastructure providers
 - Repository organization: monorepo vs. polyrepo, number of services, approximate lines of code
 - Engineering FTE count: total and breakdown by team (product engineering, infrastructure / SRE, security, data)
+- Product personnel cost: annual fully-loaded cost for product managers and designers, if tracked separately from engineering
 - Annual build and tooling cost: IDE licenses, CI/CD platform, observability tooling
 - Third-party dependency overview: major licensed libraries or APIs + renewal exposure
 - Most recent technical-debt assessment or code-quality report (SonarQube, CodeClimate, equivalent) if available
@@ -37,7 +39,7 @@ Below is information useful to size and execute a client engagement. Per-bullet,
 ## 03 — Infrastructure & Operations
 
 - Hosting model: cloud provider(s), self-hosted / managed mix, primary region(s)
-- Monthly hosting and infrastructure spend (last three months, with trend if available)
+- Monthly hosting and infrastructure spend, with 12–24 months of history if available (longer horizons surface spend-escalation patterns relevant to cost-governance maturity)
 - Headcount dedicated to infrastructure operations (FTE equivalent)
 - Monitoring and alerting stack (tools, on-call rotation, escalation paths)
 - Deployment frequency to production (e.g., multiple/day, weekly, monthly, quarterly)
@@ -50,8 +52,9 @@ Below is information useful to size and execute a client engagement. Per-bullet,
 - Branching strategy (trunk-based, Gitflow, feature-branch) and code-review process
 - Test coverage targets: unit / integration / end-to-end (measured percentage if tracked)
 - Production deployment process: manual or automated, gating criteria, rollback approach
-- Production incidents in the last 12 months: count, severity distribution, mean time to resolution
+- Production incidents: quarterly counts over the last 24 months (or 12 if 24 unavailable), with severity distribution and mean time to resolution
 - Active maintenance burden as a percentage of engineering time
+- Annual investment planned for technical-debt remediation (headcount budgeted, capex allocated, or specific roadmap commitments — e.g., "rewriting the legacy billing system in 2027")
 - Open bugs by severity (P0 / P1 / P2 / P3) and aging
 - Engineering operating model: in-house, outsourced, hybrid (with rough split)
 
