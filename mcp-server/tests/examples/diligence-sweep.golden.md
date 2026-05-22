@@ -1,6 +1,6 @@
 ---
 promptName: gst_diligence_sweep
-version: 0.0.2
+version: 0.0.3
 recordedAt: 2026-05-22
 model: claude-opus-4-7
 ---
@@ -56,9 +56,9 @@ The v0.0.1 prompt body only instructed the model to surface the `deeplink` URL f
 
 **v0.0.2 closes the gap**: Steps 3-7 now each instruct the model to capture the `deeplink` field from the tool response, and every dossier section (C/D/E/F/G/H) that pulled from a tool must close with the corresponding "Open in Hub" link. The voice-and-format directives now state explicitly that the deeplinks "are the bridge between the Claude Desktop dossier and the partner-refinable Hub surface; without them the dossier is read-only."
 
-### v0.0.3 candidate patches (queued post-demo)
+### v0.0.3 patches — SHIPPED post-demo
 
-Two findings from a second live exercise (2026-05-22, post-deploy of v0.0.2) that v0.0.3 will address. Held to ship after the BL-032.6 demo to avoid touching the deployed contract on demo day.
+Two findings from a second live exercise (2026-05-22, post-deploy of v0.0.2) — held until after the BL-032.6 demo, then shipped in v0.0.3 (mcp-server 0.3.2, manifest hash `0ce78e3…`). The BL-032.6 demo ran without snags; the deploy went out immediately after.
 
 **1. Partial v0.0.2 deeplink regression — directive verb is too weak.** A live re-run produced a dossier where 2/7 sections carried Open-in-Hub links and 5/7 dropped them silently. Diagnostic: the v0.0.1-era directives use "Surface ... + the `deeplink` URL" (output verb — model puts it in the rendered text); the v0.0.2-added directives use "Capture the `deeplink` URL" (working-memory verb — model notes it for later, doesn't surface in output). The two sections that worked (B Agenda, G Comparables) used "Surface"; the five that dropped (C TechPar, D ICG, E Tech Debt, F Regulatory, H Radar) used "Capture." v0.0.3 fix: replace "Capture" → "Surface" in Steps 3-7, and hoist the `**Close with [Open X Wizard](deeplink)**` directive to the first sentence of each Step 8 section description so the model attends to it before the freeform-writing guidance. Two-line surgical patch.
 

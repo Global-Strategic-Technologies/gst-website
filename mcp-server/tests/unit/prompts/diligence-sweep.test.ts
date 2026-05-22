@@ -78,7 +78,7 @@ describe('gst_diligence_sweep', () => {
   });
 
   it('declares the required GstPrompt fields with concrete values', () => {
-    expect(diligenceSweepPrompt.version).toBe('0.0.2');
+    expect(diligenceSweepPrompt.version).toBe('0.0.3');
     expect(diligenceSweepPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(diligenceSweepPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });

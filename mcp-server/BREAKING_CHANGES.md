@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-763fde78d62adfb1f5308a9b1dc8e1bb53327152a1ce0ee2102cb759deee88a6
+0ce78e349a5f7188f733d8dbbf52bd4c932cadaeebe87b810b62560079135691
 ```
 
 Computed over (sorted):
@@ -25,6 +25,22 @@ If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.3.2 — 2026-05-22 — `gst_diligence_sweep` v0.0.3 body refinements (second live-exercise + post-demo)
+
+**Theme**: close the two findings from the second live exercise that the v0.0.2 deploy didn't fix at the prompt-body level. Both fixes were held until after the BL-032.6 demo to keep the deployed contract stable; demo ran clean; shipping the patches now.
+
+### Changed
+
+- **Prompt body**: `gst_diligence_sweep` bumped `0.0.2 → 0.0.3`. Two body refinements:
+  - **Deeplink directive verb strengthened**: Steps 3-7 now use `Surface ... in the dossier` (output verb) instead of `Capture ...` (working-memory verb). The v0.0.2 live exercise showed the model honored "Surface" (sections B Agenda + G Comparables — using v0.0.1 phrasing) but silently dropped "Capture" for the new v0.0.2-added directives (sections C TechPar / D ICG / E Tech Debt / F Regulatory / H Radar) — leaving 5/7 sections without their Open-in-Hub link. v0.0.3 mirrors the v0.0.1 phrasing literally across all five new directives. Step 8's section descriptions (C/D/E/F/G/H) also hoist the `**MUST close with [Open X Wizard](deeplink)** — this is non-optional` directive to the **first sentence** so the model attends to it before the freeform-writing guidance.
+  - **TechPar engCost / infraPersonnel dedup guard**: Step 4 now carries explicit guidance: `engCost` covers R&D engineering headcount NOT also booked as infra personnel. The v0.0.2 live exercise had the model pass all 58 engineers into `engCost` AND 8 SRE into `infraPersonnel`, double-counting the SRE headcount (once in synthesized R&D OpEx, once standalone) and inflating total tech / ARR by ~4 points (92.4% reported vs ~88% corrected). v0.0.3 explicitly instructs the partition (e.g., "58 total — 38 product + 8 SRE + 3 security + 7 data + 2 platform DX" → 8 in `infraPersonnel`, remaining 50 in `engCost`).
+
+**Operator semantics**: patch bump per the discipline (prompt `version` field bump with same name → patch). Behavior change without surface-area change; pinned conversations continue to resolve `gst_diligence_sweep` to the (now-newer) prompt.
+
+**Architecture context**: live-exercise findings captured in [`mcp-server/tests/examples/diligence-sweep.golden.md`](./tests/examples/diligence-sweep.golden.md) § v0.0.3 candidate patches (now shipped). [BL-032.6 demo Scenario 7](../src/docs/development/MCP_SERVER_DEMO_SCRIPT_BL-032_6.md#scenario-7) demo invocation directive (`Surface each GST Hub Tool deeplink at the close of its corresponding section`) was the front-line workaround that masked the deeplink regression during the demo; v0.0.3 makes that workaround unnecessary at the prompt-body level.
 
 ---
 
