@@ -235,7 +235,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 **Library article + MCP Resource**
 
-- [x] `src/data/library/information-request-list/article.md` — canonical one-pager, 10 sections (00 Engagement Basics + 01-09 mirroring VDR-9), ~63 bullets, request-style voice.
+- [x] `src/data/library/information-request-list/article.md` — canonical one-pager, 10 sections (00 Basics + 01-09 mirroring VDR-9), ~67 bullets, request-style voice.
 - [x] `mcp-server/src/content/library-loader.ts` — `LIBRARY_METADATA` gains the new entry; codegen auto-picks it up via `mcp-server/scripts/generate-regulations-index.mjs`.
 - [x] `mcp-server/src/resources/library.ts` — no edit needed; existing `registerLibraryResources` iterator wraps the new entry in `readThroughCache` automatically.
 
@@ -278,8 +278,8 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 - **Three-surface design with one source of truth**: `article.md` is the only canonical body. The Astro Hub page imports it via `Content` + `getHeadings`; the MCP Resource serves the same bytes via the codegen-emitted `LIBRARY_BODIES` index; the MCP Prompt embeds the same Resource as its second message. Adding or renaming a section in `article.md` updates the page content, the TOC anchors, and the Resource body automatically — no drift surface.
 - **No tool attribution in the public artifact** — by design, per the BL-043 planning conversation. The internal `irl-tool-input-mapping.md` doc carries the engineering-side map of which IRL bullet feeds which Hub-tool / MCP-prompt input.
-- **VDR-9 taxonomy + "00 Engagement Basics" prelude**: sections `01-09` mirror the canonical VDR taxonomy. Section `00` captures the cross-cutting deal/profile facts (target name, transaction type, ARR, stage, business model, geos) that no single VDR folder owns but every downstream analysis depends on.
-- **CSS-ID slug quirk**: auto-generated heading slugs use github-slugger; em-dashes in section titles ("00 — Engagement Basics") collapse to double-dashes ("00--engagement-basics"). Bare CSS ID selectors that start with a digit are invalid — E2E tests use attribute-form selectors (`h2[id="..."]`) instead.
+- **VDR-9 taxonomy + "00 Basics" prelude**: sections `01-09` mirror the canonical VDR taxonomy. Section `00` captures the cross-cutting deal/profile facts (target name, transaction type, ARR, stage, business model, geos) that no single VDR folder owns but every downstream analysis depends on.
+- **CSS-ID slug quirk**: auto-generated heading slugs use github-slugger; em-dashes in section titles ("00 — Basics") collapse to double-dashes ("00--basics"). Bare CSS ID selectors that start with a digit are invalid — E2E tests use attribute-form selectors (`h2[id="..."]`) instead.
 - **Companion to existing prompts**: `gst_information_request_list` is the _request_ artifact; `gst_diligence_kickoff` consumes filled answers as the diligence-agenda generator; `gst_vdr_audit` audits the target's eventual VDR against the canonical taxonomy.
 - **Future work** (tracked separately, do not bundle into BL-043):
   - **[BL-044](#bl-044-information-request-list--fillable-form-generator)** — fillable-form generator (Hub tool + MCP tool) that produces a downloadable `.xlsx` from this article. Closes the partner-side "recipient response surface" gap. Filed; not yet started.

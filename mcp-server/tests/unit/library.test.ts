@@ -54,7 +54,7 @@ describe('LIBRARY_ENTRIES', () => {
     expect(entry).toBeDefined();
     const body = entry!.body;
     for (const heading of [
-      '00 — Engagement Basics',
+      '00 — Basics',
       '01 — Product',
       '02 — Software Architecture',
       '03 — Infrastructure & Operations',

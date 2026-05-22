@@ -2,7 +2,7 @@
  * Prompt: gst_information_request_list
  *
  * Emits GST's universal one-page intake checklist, organized by VDR taxonomy
- * (00 Engagement Basics + sections 01-09 mirroring the VDR-9 folders). The
+ * (00 Basics + sections 01-09 mirroring the VDR-9 folders). The
  * canonical body lives at `gst://library/information-request-list` and is
  * embedded as the second message of every expansion (same pattern as
  * `gst_vdr_audit`).

@@ -6,7 +6,7 @@ const PAGE_URL = '/hub/library/information-request-list';
 // Em-dashes collapse to double-dashes via github-slugger — matches the rendered IDs
 // in dist/client/hub/library/information-request-list/index.html.
 const EXPECTED_SECTION_IDS = [
-  '00--engagement-basics',
+  '00--basics',
   '01--product',
   '02--software-architecture',
   '03--infrastructure--operations',
@@ -20,7 +20,7 @@ const EXPECTED_SECTION_IDS = [
 
 // Attribute-form selectors (`[id="…"]`) avoid CSS's restriction that bare ID
 // selectors cannot start with a digit. The auto-generated slugs are derived from
-// the leading section numbers (e.g. "00 — Engagement Basics" → "00--engagement-basics").
+// the leading section numbers (e.g. "00 — Basics" → "00--basics").
 const headingByIdLocator = (page: Page, id: string) => page.locator(`h2[id="${id}"]`);
 const tocAnchorLocator = (page: Page, id: string) => page.locator(`.toc a[href="#${id}"]`);
 
@@ -31,7 +31,7 @@ const tocAnchorLocator = (page: Page, id: string) => page.locator(`.toc a[href="
  */
 async function gotoPage(page: Page): Promise<void> {
   await page.goto(PAGE_URL, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('h2[id="00--engagement-basics"]', { timeout: 10000 });
+  await page.waitForSelector('h2[id="00--basics"]', { timeout: 10000 });
 }
 
 test.describe('Hub Library — Information Request List', () => {
@@ -58,7 +58,7 @@ test.describe('Hub Library — Information Request List', () => {
     await page.locator('a[href="/hub/library/information-request-list"]').first().click();
 
     await page.waitForURL(/\/hub\/library\/information-request-list\/?$/, { timeout: 10000 });
-    await expect(headingByIdLocator(page, '00--engagement-basics')).toBeVisible();
+    await expect(headingByIdLocator(page, '00--basics')).toBeVisible();
   });
 
   test('back-link returns to the library index', async ({ page }) => {

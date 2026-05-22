@@ -111,20 +111,20 @@ Confirmed in planning conversation 2026-05-21:
 
 ## Content structure
 
-Ten sections — one "00 — Engagement Basics" prelude that captures deal/profile fields no single VDR folder owns, plus the nine canonical VDR sections with question lists scoped to what the Hub tools actually need.
+Ten sections — one "00 — Basics" prelude that captures deal/profile fields no single VDR folder owns, plus the nine canonical VDR sections with question lists scoped to what the Hub tools actually need.
 
-| #   | Section                     | Bullets (approx) | Hub tools / MCP prompts the answers feed (internal — NOT printed in artifact)                                                                                          |
-| --- | --------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 00  | Engagement Basics           | 10               | All MCP prompts; deal-context for every Hub tool. Captures target name, transaction type, ARR, funding stage, business model, geographies, HQ, age, headcount, growth. |
-| 01  | Product                     | 6                | Diligence Machine (`productType`, `techArchetype`), `gst_target_quick_look`, `gst_architecture_layer_review`                                                           |
-| 02  | Software Architecture       | 7                | TechPar (`engFTEs`, `engineeringCost`, `productCost`, `toolingCost`), `gst_architecture_layer_review`                                                                  |
-| 03  | Infrastructure & Operations | 7                | TechPar (`infraHosting`, `infraPersonnel`, `capexView`), ICG (Infrastructure + Cloud domains), Tech Debt Calculator (`deployIdx`)                                      |
-| 04  | SDLC                        | 8                | Tech Debt Calculator (`maintPct`, `deployIdx`, `incidents`, `mttr`, `contextSwitchOn`), Diligence Machine (`scaleIntensity`, `transformationState`)                    |
-| 05  | Data, Analytics & AI        | 5                | Diligence Machine (`dataSensitivity`), `gst_regulatory_exposure_brief` (`dataCategories`)                                                                              |
-| 06  | Security                    | 5                | Diligence Machine (`scaleIntensity` security overlay), ICG (Security domain), `gst_regulatory_exposure_brief`                                                          |
-| 07  | People & Organization       | 7                | Tech Debt (`teamSize`, `salary`), TechPar (`engFTEs`), Diligence Machine (`headcount`, `operatingModel`, `transformationState`)                                        |
-| 08  | Corporate IT                | 3                | ICG (Corporate IT overlay); future tools                                                                                                                               |
-| 09  | Governance & Compliance     | 5                | `gst_regulatory_exposure_brief` (`targetJurisdictions`, `dataCategories`), Regulatory Map filters, Diligence Machine (`dataSensitivity`)                               |
+| #   | Section                     | Bullets (approx) | Hub tools / MCP prompts the answers feed (internal — NOT printed in artifact)                                                                                                          |
+| --- | --------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 00  | Basics                      | 10               | All MCP prompts; deal-context for every Hub tool. Captures target name, transaction type, ARR, funding stage (if applicable), business model, geographies, HQ, age, headcount, growth. |
+| 01  | Product                     | 6                | Diligence Machine (`productType`, `techArchetype`), `gst_target_quick_look`, `gst_architecture_layer_review`                                                                           |
+| 02  | Software Architecture       | 7                | TechPar (`engFTEs`, `engineeringCost`, `productCost`, `toolingCost`), `gst_architecture_layer_review`                                                                                  |
+| 03  | Infrastructure & Operations | 7                | TechPar (`infraHosting`, `infraPersonnel`, `capexView`), ICG (Infrastructure + Cloud domains), Tech Debt Calculator (`deployIdx`)                                                      |
+| 04  | SDLC                        | 8                | Tech Debt Calculator (`maintPct`, `deployIdx`, `incidents`, `mttr`, `contextSwitchOn`), Diligence Machine (`scaleIntensity`, `transformationState`)                                    |
+| 05  | Data, Analytics & AI        | 5                | Diligence Machine (`dataSensitivity`), `gst_regulatory_exposure_brief` (`dataCategories`)                                                                                              |
+| 06  | Security                    | 5                | Diligence Machine (`scaleIntensity` security overlay), ICG (Security domain), `gst_regulatory_exposure_brief`                                                                          |
+| 07  | People & Organization       | 7                | Tech Debt (`teamSize`, `salary`), TechPar (`engFTEs`), Diligence Machine (`headcount`, `operatingModel`, `transformationState`)                                                        |
+| 08  | Corporate IT                | 3                | ICG (Corporate IT overlay); future tools                                                                                                                                               |
+| 09  | Governance & Compliance     | 5                | `gst_regulatory_exposure_brief` (`targetJurisdictions`, `dataCategories`), Regulatory Map filters, Diligence Machine (`dataSensitivity`)                                               |
 
 **Total**: ~63 bullets. **Voice**: addressed directly to the recipient. A single one-paragraph opener tells the recipient how to respond (short answers preferred, "n/a" / "not yet tracked" rather than skipping). No per-section intro prose — the section header plus bullets carries enough context, and the bullets themselves are self-describing. **Length**: prints to ~3 pages with `@media print` CSS that breaks each section onto its own page (one-page-per-section feel, partner-acceptable). **Audience discipline**: the article body is **recipient-facing only** — no partner instructions, no engineering metadata, no MCP/Resource references. Partner-side framing (when to use which sections, voice tuning per transaction context) lives in the MCP Prompt body (`build()`); engineering-side metadata (drift policy, single source of truth) lives in this tracking doc and the library-loader comments.
 
@@ -258,7 +258,7 @@ Required cases:
 2. **Library index card links here** — go to `/hub/library/`, click the IRL card, verify URL.
 3. **TOC navigation** — the existing `TableOfContents` component has its own E2E coverage; this test only needs to confirm the IRL page successfully wires it.
 4. **Back-link to `/hub/library`** — assert the back-link is present and points to `/hub/library`.
-5. **All 10 section anchors exist** — `for` each of `['engagement-basics', 'product', 'software-architecture', …]`, assert the element with that id exists. Use `page.locator(...).count()` + assert on each id explicitly (per [TEST_BEST_PRACTICES § 1](../testing/TEST_BEST_PRACTICES.md#1--false-positive-assertions) — no `toBeGreaterThan(0)`).
+5. **All 10 section anchors exist** — `for` each of `['basics', 'product', 'software-architecture', …]`, assert the element with that id exists. Use `page.locator(...).count()` + assert on each id explicitly (per [TEST_BEST_PRACTICES § 1](../testing/TEST_BEST_PRACTICES.md#1--false-positive-assertions) — no `toBeGreaterThan(0)`).
 
 **Anti-patterns to avoid**:
 

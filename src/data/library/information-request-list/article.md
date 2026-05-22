@@ -2,12 +2,12 @@
 
 Below is information useful to size and execute a client engagement. Per-bullet, short answers are preferred. Note "n/a" or "not yet tracked" rather than skipping; the presence of an answer is signal, including "we don't track this."
 
-## 00 — Engagement Basics
+## 00 — Basics
 
 - Target / client name (legal entity + brand if different)
 - Engagement context: sell-side preparation, buy-side review, post-close value creation, or other
 - Annual recurring revenue (most recent quarter, plus prior 12 months if available)
-- Funding stage and most recent round details (date, lead investor, headline valuation)
+- If applicable, funding stage and most recent round details (date, lead investor, headline valuation)
 - Business model (B2B SaaS, B2C subscription, enterprise license + services, marketplace, other)
 - Geographies of operation (revenue presence; engineering presence if different)
 - Headquarters jurisdiction (incorporation entity + primary operating location)
@@ -23,7 +23,7 @@ Below is information useful to size and execute a client engagement. Per-bullet,
 - Top three features by adoption (DAU/MAU or equivalent engagement metric)
 - Customer profile: typical contract size, contract length, top concentration risk
 - Competitive landscape: three to five named alternatives and how the product differentiates
-- Operational scale: low (internal tools or small user base), moderate (thousands of users with steady growth), or high (millions of users or high transaction volume)
+- Operational scale: low (single-tenant or small SaaS; under 10M DAU), moderate (mid-market; 10–100M DAU or multi-tenant), or high (hypergrowth; over 100M DAU, real-time data pipelines, or sub-100ms latency SLA)
 
 ## 02 — Software Architecture
 
