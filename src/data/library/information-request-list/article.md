@@ -23,7 +23,7 @@ Below is information useful to size and execute a client engagement. Per-bullet,
 - Top three features by adoption (DAU/MAU or equivalent engagement metric)
 - Customer profile: typical contract size, contract length, top concentration risk
 - Competitive landscape: three to five named alternatives and how the product differentiates
-- Operational scale: low (single-tenant or small SaaS; under 10M DAU), moderate (mid-market; 10–100M DAU or multi-tenant), or high (hypergrowth; over 100M DAU, real-time data pipelines, or sub-100ms latency SLA)
+- Operational scale: low (internal tools or small user base), moderate (thousands of users with steady growth), or high (millions of users or high transaction volume)
 
 ## 02 — Software Architecture
 
