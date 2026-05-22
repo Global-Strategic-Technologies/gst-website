@@ -199,6 +199,102 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ---
 
+### BL-043: Information Request List (IRL)
+
+**Source**: Sales/value-creation enablement (May 2026) | **Architecture & plan**: [MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md) | **Effort**: 5-7 days | **Status**: In progress (kicked off 2026-05-21) | **Fast-tracked**
+
+**As a** GST partner running a diligence or value-creation engagement, **I want** a single, universal, one-page Information Request List I can hand to a target (buy-side), client (sell-side preparation), or portfolio company (value-creation) **so that** the answers flow back into our Hub diligence tools and MCP prompts with high-fidelity inputs — turning the Diligence Machine's defensive `'unknown'`-mode agendas into precise ones and letting MCP/agent contexts scope to "everything we need to know about a target" via one pinned Resource.
+
+> **Implementation plan**: see [MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md) for the full design — three-surface architecture (Library article + MCP Resource + MCP Prompt), single-source-of-truth drift policy (Astro page imports `article.md` directly), testing strategy compliant with `TEST_STRATEGY.md` pyramid and `TEST_BEST_PRACTICES.md` anti-patterns, documentation update inventory, and the senior-consultant content-review gate.
+
+#### Planning Criteria
+
+**Use cases**
+
+- **Buy-side intake** — hand the target a structured request list at kickoff so the diligence team receives data in a form the Hub tools can ingest directly. Eliminates the partner having to mentally translate sales-call notes into `TechParInputs` / `ICGInputs` / `UserInputs` shapes.
+- **Sell-side preparation** — clients populating their own VDR can use the IRL as a checklist that mirrors the canonical [VDR taxonomy](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md#content-structure), surfacing gaps before a buyer points them out.
+- **Value-creation baseline** — post-close, a portfolio company's filled IRL becomes the cold-start baseline for the 100-day roadmap and first-12-months platform-investment plan.
+- **Agent context scoping** — pinned `gst://library/information-request-list` Resource gives Claude Desktop / OpenClaw / BL-033 pilot agents a versatile substrate to scope "all the partner-supplied facts about a target" in one read.
+- **Inventory for future tools** — the internal [`mcp-server/src/docs/library/irl-tool-input-mapping.md`](../../../mcp-server/src/docs/library/irl-tool-input-mapping.md) doc tracks which Hub-tool / MCP-prompt inputs each IRL bullet feeds; when a new tool ships, the mapping surfaces gaps.
+
+**Outcomes**
+
+- Universal one-page artifact at `/hub/library/information-request-list/` (Hub) + `gst://library/information-request-list` (MCP Resource) + `/gst_information_request_list` (MCP Prompt) — all three shipped in one PR (per user direction).
+- Astro Hub page imports the canonical `article.md` directly (via `getHeadings` + `Content`); no content duplication between partner-facing print and agent-facing Resource bytes.
+- Diligence Machine `'unknown'` sentinel widening becomes the exception, not the rule, for engagements where the IRL was filled.
+- Internal tool-input mapping doc is a permanent maintenance discipline — every new Hub tool or MCP prompt that needs partner-supplied input either matches an existing IRL bullet or adds one in the same PR.
+
+**Business value**
+
+- **Reduces partner overhead** by eliminating the mental translation step between unstructured sales-call notes and canonical Hub-tool inputs.
+- **MCP/Agent enablement** for BL-033 pilot clients — pilot teams can pin one Resource to scope an engagement's full intake surface; no per-pilot context-engineering required.
+- **Brand-bearing artifact** — printed PDF is a partner-presentable deliverable in the GST voice; reinforces the firm's "structured-information-first" posture in early client conversations.
+- **Compounds with existing prompts** — `gst_information_request_list` is the _request_ side of the diligence-intake loop; pair with `gst_diligence_kickoff` once filled, and `gst_vdr_audit` for the response audit.
+
+#### Acceptance Criteria
+
+**Library article + MCP Resource**
+
+- [x] `src/data/library/information-request-list/article.md` — canonical one-pager, 10 sections (00 Engagement Basics + 01-09 mirroring VDR-9), ~63 bullets, request-style voice.
+- [x] `mcp-server/src/content/library-loader.ts` — `LIBRARY_METADATA` gains the new entry; codegen auto-picks it up via `mcp-server/scripts/generate-regulations-index.mjs`.
+- [x] `mcp-server/src/resources/library.ts` — no edit needed; existing `registerLibraryResources` iterator wraps the new entry in `readThroughCache` automatically.
+
+**Hub page**
+
+- [x] `src/pages/hub/library/information-request-list/index.astro` — imports `article.md` via Astro's markdown loader (`Content` + `getHeadings`); single source of truth.
+- [x] `src/pages/hub/library/index.astro` — gains a card linking to the new article. Three real cards confirmed laying out at 1280/768/480.
+- [x] Print CSS: each h2 starts a new page; TOC and back-link hidden on print (mirrors the VDR Structure Guide print pattern).
+
+**MCP Prompt**
+
+- [x] `mcp-server/src/prompts/information-request-list.ts` — `gst_information_request_list` (v0.0.1, `lastReviewedAt: 2026-05-21`, `orchestrates: ['gst://library/information-request-list']`). Embeds the canonical Resource as the second message.
+- [x] Three optional args: `targetName`, `transactionContext` (sell-side / buy-side / value-creation / unknown), `productSummary`. Empty payload → interactive mode.
+- [x] Registered in `ALL_PROMPTS` at `mcp-server/src/prompts/_registry.ts` (now 9 prompts).
+- [x] Boot-time invariant checks pass (`assertPromptInvariants` validates `version` semver, `lastReviewedAt` freshness, `orchestrates` non-empty).
+- [x] Description explicitly contrasts with `gst_diligence_kickoff` to disambiguate slash-menu picks.
+
+**Test coverage**
+
+- [x] Per-prompt unit test (`mcp-server/tests/unit/prompts/information-request-list.test.ts`) — 16 cases covering schema accept/reject paths, body content per mode, `orchestrates` invariant, Resource embed shape, voice-cue differentiation. Tests follow TEST_BEST_PRACTICES.md § 1 (explicit error-path assertions, no false-positives).
+- [x] Hub-page E2E (`tests/e2e/hub-library-information-request-list.test.ts`) — 5 cases covering section-heading rendering, TOC-anchor mapping, library-index card navigation, back-link, in-page TOC click → viewport. Tests follow TEST_BEST_PRACTICES.md § 3 (no arbitrary timeouts), § 12 (`waitUntil: 'domcontentloaded'`), § 25 (deep readiness gate).
+- [x] Golden-file snapshot at `mcp-server/tests/examples/information-request-list.golden.md` — frontmatter correct (golden-snapshots test passes); body is a DRAFT to be overwritten with senior-consultant live-exercise capture during Step 5.5.
+- [x] Existing manifest-stability + resource-URI-stability + protocol-roundtrip tests updated for the new Library URI + 9th prompt (manifest hash `9d5738f4…`).
+
+**Documentation**
+
+- [x] `mcp-server/BREAKING_CHANGES.md` — `0.2.0` entry documenting the additive change (Library URI + Prompt added; minor bump per the additive-change discipline).
+- [x] `mcp-server/package.json` — bumped `0.1.0 → 0.2.0`.
+- [x] `mcp-server/README.md` — prompts inventory adds row for `gst_information_request_list`; Resources table adds row for `gst://library/information-request-list`; count updated 8 → 9 prompts, 128 → 129 Resources.
+- [x] `mcp-server/src/docs/prompts/README.md` — close-line `Last updated` bumped.
+- [x] `mcp-server/src/docs/library/irl-tool-input-mapping.md` — internal SOP mapping every IRL bullet to the Hub tool / MCP prompt input(s) it feeds. Maintained in lockstep with `article.md`.
+- [x] `src/docs/development/MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md` — implementation tracking doc with live-state checkboxes.
+
+**Senior-consultant content review (BLOCKING gate before PR)**
+
+- [ ] Walk a senior team member through the canonical `article.md`. Each of the 10 sections must pass: _"does this read as if I wrote it to a real client?"_ Capture any rewrites; recommit.
+- [ ] Restart Claude Desktop with the local MCP server, invoke `/gst_information_request_list` with a representative target profile, capture the rendered output verbatim into `mcp-server/tests/examples/information-request-list.golden.md` (overwriting the draft body).
+
+#### Technical Context
+
+- **Three-surface design with one source of truth**: `article.md` is the only canonical body. The Astro Hub page imports it via `Content` + `getHeadings`; the MCP Resource serves the same bytes via the codegen-emitted `LIBRARY_BODIES` index; the MCP Prompt embeds the same Resource as its second message. Adding or renaming a section in `article.md` updates the page content, the TOC anchors, and the Resource body automatically — no drift surface.
+- **No tool attribution in the public artifact** — by design, per the BL-043 planning conversation. The internal `irl-tool-input-mapping.md` doc carries the engineering-side map of which IRL bullet feeds which Hub-tool / MCP-prompt input.
+- **VDR-9 taxonomy + "00 Engagement Basics" prelude**: sections `01-09` mirror the canonical VDR taxonomy. Section `00` captures the cross-cutting deal/profile facts (target name, transaction type, ARR, stage, business model, geos) that no single VDR folder owns but every downstream analysis depends on.
+- **CSS-ID slug quirk**: auto-generated heading slugs use github-slugger; em-dashes in section titles ("00 — Engagement Basics") collapse to double-dashes ("00--engagement-basics"). Bare CSS ID selectors that start with a digit are invalid — E2E tests use attribute-form selectors (`h2[id="..."]`) instead.
+- **Companion to existing prompts**: `gst_information_request_list` is the _request_ artifact; `gst_diligence_kickoff` consumes filled answers as the diligence-agenda generator; `gst_vdr_audit` audits the target's eventual VDR against the canonical taxonomy.
+- **Future scoped out**: `gst_intake_filled_irl` (paste-a-filled-IRL → canonical-Hub-tool-inputs converter) is **not** part of BL-043. Premature to design without v1 usage evidence. File as BL-043.5 if/when prioritized.
+- **Discipline**: every IRL change ships with a corresponding `irl-tool-input-mapping.md` update in the same PR. Every new Hub tool that needs partner-supplied input either matches an existing IRL bullet or adds one in the same PR.
+
+**Validation sequence before PR**
+
+1. `npm -w @gst/mcp-server run typecheck` — clean
+2. `npm -w @gst/mcp-server run test` — all 633+ tests green (manifest-stability hash matches)
+3. `npx astro check && npm run lint && npm run lint:css && npm run test:run` — all clean (1170+ tests)
+4. `npx playwright test tests/e2e/hub-library-information-request-list.test.ts --project=chromium` — all 5 cases green
+5. Senior-consultant content review pass (Step 5.5 — blocking)
+6. Live-exercise capture from Claude Desktop overwrites the draft golden file
+
+---
+
 ## Infrastructure
 
 ### BL-031: MCP Server — Internal Prototype (Phase 1)
