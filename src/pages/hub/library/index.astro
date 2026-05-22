@@ -64,6 +64,30 @@ const isDev = import.meta.env.DEV;
         >
       </article>
 
+      <article class="brutal-gateway-card brutal-frosted">
+        <div class="brutal-gateway-card__header">
+          <h2>Information Request List</h2>
+        </div>
+        <ul class="brutal-gateway-card__features">
+          <li>
+            <DeltaIcon class="bullet-icon" />A one-page intake checklist organized by VDR taxonomy
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Hand to a target, client, or portfolio company at
+            engagement start
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Feeds GST&apos;s Hub diligence tools with structured
+            inputs
+          </li>
+        </ul>
+        <a
+          href="/hub/library/information-request-list"
+          class="cta-button primary brutal-gateway-card__cta"
+          onclick="trackCTA('resource-irl', 'library')">Read List</a
+        >
+      </article>
+
       {
         isDev && (
           <article class="brutal-gateway-card">
