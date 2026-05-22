@@ -90,11 +90,11 @@ function buildOneShotBody(args: {
     `- ${voiceClause}`,
     `- ${productClause}`,
     '',
-    'Step 1. Open with a one-line lead-in addressed to the recipient. Reference the engagement context (transaction, kickoff, value-creation cadence) but keep it terse — one sentence.',
+    'Step 1. Add a one-line greeting addressed to the recipient (use their name if supplied). Mention the engagement context (transaction, kickoff, value-creation cadence) in the same line. The article body that follows already opens with the universal recipient instructions ("respond per bullet, mark n/a rather than skip…") — do not duplicate them.',
     '',
     'Step 2. Reproduce the embedded IRL verbatim from the next message. Keep the section ordering (`00` → `09`). Keep every bullet. The artifact is the deliverable — do not summarize, restructure, or annotate the bullets inline.',
     '',
-    'Step 3. Close with a single-line ask: short turnaround request, point of contact, preferred return format (filled markdown, attached PDFs, or VDR upload). Match the voice cue above.',
+    'Step 3. Close with a single-line ask covering turnaround, point of contact, and preferred return format (filled markdown, attached PDFs, or VDR upload). Match the voice cue above.',
     '',
     'Do not invent additional sections. Do not add a tools-attribution appendix (the artifact is intentionally clean for client consumption). If a question is materially answered by `productSummary`, you may add a single inline annotation like "_(already noted: …)_" next to the bullet — but never delete it.',
   ].join('\n');
@@ -110,7 +110,7 @@ const INTERACTIVE_BODY = [
   '> What target or client is this for, and is the engagement sell-side, buy-side, or value-creation? If you can share a one-paragraph product summary, I can lightly tune the artifact; otherwise I will emit the universal template.',
   '',
   'Step 2. Once the user answers, deliver the IRL as a paste-ready artifact:',
-  '  - Open with a one-line lead-in addressed to the recipient.',
+  '  - Add a one-line greeting addressed to the recipient (use their name if supplied) that mentions the engagement context. The article body already opens with universal recipient instructions — do not duplicate them.',
   '  - Reproduce the embedded IRL verbatim from the next message (sections `00` through `09`, every bullet preserved).',
   '  - Close with a one-line ask covering turnaround, point of contact, and preferred return format.',
   '',
@@ -124,7 +124,7 @@ export const informationRequestListPrompt: GstPrompt<typeof argsSchema> = {
   description:
     'Assemble the input-gathering ask GST hands to a target/client before running diligence tools. Pair with gst_diligence_kickoff once the IRL is filled.',
   version: '0.0.1',
-  lastReviewedAt: '2026-05-21',
+  lastReviewedAt: '2026-05-22',
   orchestrates: [RESOURCE_URI] as const,
   argsSchema,
   build: (args) => {

@@ -1,27 +1,8 @@
 # Information Request List
 
-> The structured information GST needs to execute its Hub diligence tools and MCP-mediated analysis against a target or client. Authored as the canonical text rendered by both the live website at <https://globalstrategic.tech/hub/library/information-request-list> and the MCP Library resource `gst://library/information-request-list`. Single source of truth — both surfaces consume this file directly.
-
-This one-page request list assembles the inputs GST needs at the start of a diligence or value-creation engagement. Hand it to a target (buy-side), a client (sell-side preparation), or a portfolio company (value-creation) before the first working session.
-
-The structure mirrors the canonical [VDR taxonomy](./vdr-structure.md) so responses map cleanly into the VDR that will ultimately house the transaction's diligence record. Section `00` collects the engagement-level facts that no single VDR folder owns; sections `01` through `09` mirror the VDR-9 folders.
-
-The artifact is intentionally compact. Each bullet asks for one fact or a short summary — not exhaustive documentation. Depth comes later in the diligence cycle; this list scopes the first conversation.
-
----
-
-## How to use this list
-
-- Treat this as the opening intake. Hand the relevant sections to the recipient and ask for written responses or attachments per bullet.
-- Short answers are preferred. Depth comes later in the diligence cycle.
-- Note "n/a" or "not yet known" rather than skipping. The presence of an answer is signal, including "we don't track this."
-- Sections are ordered to mirror the canonical VDR taxonomy. Most engagements use all ten; narrower conversations might lead with sections `00`, `01`, and `09` alone.
-
----
+Below is information useful to size and execute a client engagement. Per-bullet, short answers are preferred. Note "n/a" or "not yet tracked" rather than skipping; the presence of an answer is signal, including "we don't track this."
 
 ## 00 — Engagement Basics
-
-Cross-cutting facts that anchor the rest of the conversation. None of these live in a single VDR folder, but every downstream analysis depends on them.
 
 - Target / client name (legal entity + brand if different)
 - Engagement context: sell-side preparation, buy-side review, post-close value creation, or other
@@ -36,8 +17,6 @@ Cross-cutting facts that anchor the rest of the conversation. None of these live
 
 ## 01 — Product
 
-Buyers and investors evaluate whether the product organization can sustain innovation post-transaction. This section frames what the product is, who buys it, and how it competes.
-
 - One-paragraph product description: what it does, who buys it, the problem it solves
 - Target market: primary buyer persona, segment (SMB / mid-market / enterprise), industry vertical(s)
 - Product roadmap snapshot: current-quarter priorities + next-12-month outlook
@@ -46,8 +25,6 @@ Buyers and investors evaluate whether the product organization can sustain innov
 - Competitive landscape: three to five named alternatives and how the product differentiates
 
 ## 02 — Software Architecture
-
-How the system is built. The goal is a clear picture without requiring source-code access at this stage.
 
 - High-level architecture diagram (PDF or image): logical components, data flow, external integrations
 - Technology stack: primary languages, frameworks, databases, infrastructure providers
@@ -59,8 +36,6 @@ How the system is built. The goal is a clear picture without requiring source-co
 
 ## 03 — Infrastructure & Operations
 
-Operational maturity directly drives post-acquisition integration cost. This section captures hosting posture, spend, and operational discipline.
-
 - Hosting model: cloud provider(s), self-hosted / managed mix, primary region(s)
 - Monthly hosting and infrastructure spend (last three months, with trend if available)
 - Headcount dedicated to infrastructure operations (FTE equivalent)
@@ -70,8 +45,6 @@ Operational maturity directly drives post-acquisition integration cost. This sec
 - Material capital expenditure on infrastructure in the last 12 months
 
 ## 04 — SDLC
-
-How software gets built reveals more about engineering maturity than the software itself. This section measures repeatability and quality of the delivery process.
 
 - Development methodology (Agile, Scrum, Kanban, Waterfall, hybrid) and release cadence
 - Branching strategy (trunk-based, Gitflow, feature-branch) and code-review process
@@ -84,8 +57,6 @@ How software gets built reveals more about engineering maturity than the softwar
 
 ## 05 — Data, Analytics & AI
 
-Data is increasingly the core asset in technology engagements. This section captures how the target collects, stores, transforms, and uses data — and whether AI/ML capabilities are production-grade.
-
 - Data architecture overview: primary data stores, pipelines, warehousing platform
 - Data sensitivity classification: customer PII, financial, health, or other regulated categories handled
 - ML/AI capabilities in production (if any): models, training infrastructure, monitoring
@@ -94,8 +65,6 @@ Data is increasingly the core asset in technology engagements. This section capt
 
 ## 06 — Security
 
-Security posture is a deal-driver. Gaps trigger purchase-price adjustments or outright termination; proactive disclosure signals maturity.
-
 - Most recent penetration test (date, executive summary if shareable, remediation status)
 - Security incident history: any reportable events in the last 24 months
 - Access controls: SSO/MFA coverage, privileged-access management approach
@@ -103,8 +72,6 @@ Security posture is a deal-driver. Gaps trigger purchase-price adjustments or ou
 - Business continuity and disaster recovery plan: RPO/RTO targets, last tested date
 
 ## 07 — People & Organization
-
-Skills are often the primary asset in technology engagements. This section captures team depth and key-person risk.
 
 - Organizational chart with reporting lines (executive team + engineering leadership)
 - Engineering headcount by role: ICs vs. managers, seniority distribution, contractor mix
@@ -116,15 +83,11 @@ Skills are often the primary asset in technology engagements. This section captu
 
 ## 08 — Corporate IT
 
-Enterprise systems supporting internal operations. Often a source of hidden integration cost.
-
 - Enterprise applications inventory: ERP, CRM, HRIS, finance, communication tools
 - Identity and access management: SSO provider, directory service, provisioning workflow
 - Annual IT spend: software licensing, hardware, support services
 
 ## 09 — Governance & Compliance
-
-Compliance readiness determines whether the target can operate in regulated environments post-close. This section captures regulatory exposure and audit history.
 
 - Data categories handled (PII, PHI, financial, regulated industry data)
 - Jurisdictions of operation: where customers reside, where data is stored, where employees work
@@ -134,4 +97,4 @@ Compliance readiness determines whether the target can operate in regulated envi
 
 ---
 
-_Last updated: 2026-05-21._
+_Last updated: 2026-05-22._

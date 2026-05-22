@@ -6,7 +6,6 @@ const PAGE_URL = '/hub/library/information-request-list';
 // Em-dashes collapse to double-dashes via github-slugger — matches the rendered IDs
 // in dist/client/hub/library/information-request-list/index.html.
 const EXPECTED_SECTION_IDS = [
-  'how-to-use-this-list',
   '00--engagement-basics',
   '01--product',
   '02--software-architecture',
