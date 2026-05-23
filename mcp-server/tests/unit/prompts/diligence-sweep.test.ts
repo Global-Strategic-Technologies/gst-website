@@ -78,7 +78,7 @@ describe('gst_diligence_sweep', () => {
   });
 
   it('declares the required GstPrompt fields with concrete values', () => {
-    expect(diligenceSweepPrompt.version).toBe('0.0.3');
+    expect(diligenceSweepPrompt.version).toBe('0.0.4');
     expect(diligenceSweepPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(diligenceSweepPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -245,9 +245,17 @@ describe('gst_diligence_sweep', () => {
       expect(text).toContain('Step 8 —');
     });
 
-    it("instructs against 'unknown' defaults — the IRL is filled, the model should not widen defensively", () => {
+    it('enforces sentinel-discipline on businessModel / operatingModel (v0.0.4 anti-inference contract)', () => {
+      // v0.0.4 replaced the v0.0.3 "do NOT default to unknown" framing with
+      // explicit anti-inference anti-examples after a post-demo audit
+      // showed v0.0.3 produced OVER-confident outputs on bm and om —
+      // canonical forbidden patterns per the diligence tool's USAGE RULE.
       const text = bodyText(diligenceSweepPrompt, { filledIrl: SAMPLE_FILLED_IRL });
-      expect(text).toMatch(/do NOT default to.*unknown/i);
+      // The sentinel-discipline framing must be present:
+      expect(text).toMatch(/otherwise pass.*'unknown'/i);
+      // Both canonical forbidden anti-examples must be named explicitly:
+      expect(text).toMatch(/productized-platform/);
+      expect(text).toMatch(/product-aligned-teams/);
     });
   });
 });

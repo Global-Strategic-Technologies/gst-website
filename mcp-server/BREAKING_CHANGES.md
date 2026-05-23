@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-0ce78e349a5f7188f733d8dbbf52bd4c932cadaeebe87b810b62560079135691
+15377e5552187a93745816da84e1c55e33f8d4bc2ce1c27175adb7507c0c48f4
 ```
 
 Computed over (sorted):
@@ -25,6 +25,29 @@ If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.3.4 — 2026-05-22 — `gst_diligence_sweep` v0.0.4 body refinements (post-demo audit)
+
+**Theme**: close five accuracy gaps surfaced by a 4-agent parallel audit of the post-demo Scenario 7 sweep output. The v0.0.3 patches landed but the model still produced material errors on three of the four tool surfaces (TechPar engCost partial-dedup, Tech Debt MTTR-not-P1, ICG under-seeding + q5_3 over-credit, Diligence Wizard sentinel-discipline regression on bm and om, NIS2 coverage gap).
+
+### Changed
+
+- **Prompt body**: `gst_diligence_sweep` bumped `0.0.3 → 0.0.4`. Five body refinements, each targeted at a specific failure mode observed in the post-demo live exercise:
+  1. **Step 1 — Sentinel-discipline anti-examples for `businessModel` and `operatingModel`**: v0.0.3 had the model fill `bm=productized-platform` (forbidden inference from `b2b-saas`; the IRL said "per-claim transactional uplift" which signals usage-based) and `om=product-aligned-teams` (forbidden — "squad model" is a colloquialism, not a literal one-to-one enum mapping; the tool's USAGE RULE explicitly says "do NOT infer operatingModel from anything"). v0.0.4 names these two canonical forbidden patterns explicitly, plus calls out that `transformationState: actively-modernizing` IS a literal mapping when the IRL names an in-flight rewrite (closes the v0.0.3 over-conservatism on that dimension).
+
+  2. **Step 3 — NIS2 conditional alongside the existing EU AI Act conditional**: when Section 00 includes EU geography AND Section 01 names a regulated sector covered by NIS2 Annex I/II (healthcare among them), the sweep now adds an NIS2 search. The audit found NIS2 absent from the post-demo dossier despite MedSig serving EU healthcare — same gap-fill pattern as the EU AI Act conditional, just for cybersecurity.
+
+  3. **Step 4 — TechPar engCost dedup with worked math example**: v0.0.3 added dedup guidance but the model still partially mis-applied it ($12.76M = 55 × salary, having subtracted 3 security engineers instead of the 8 SRE that belong in `infraPersonnel`). v0.0.4 spells out the math with an explicit example matching the IRL fixture's wording: "58 total — 38 product + 8 SRE + 3 security + 7 data + 2 platform DX → infraPersonnel = 8 × salary; engCost = (58 − 8) × salary = 50 × salary. Do NOT subtract security, data, or DX."
+
+  4. **Step 5 — ICG seeding-signal mapping table + tenure caveat for q5_3**: v0.0.3 was directionally clean but produced a 2/100 Reactive score where ~26-30/100 Aware was defensible. The engine penalizes `-1` ("Not sure") more harshly than `0` ("Not in place"), so over-conservatism is mechanically worse than calibrated seeding. v0.0.4 includes a short signal → seed-level mapping table (IaC + per-service Datadog → q1_1 tagging at 2; named FinOps lead + monthly spend tracking → q1_2 + q1_3 at 2; multi-region with isolation + gated staging → q2_1 at 2; production serverless / managed-ML → q5_2 at 2). Plus an explicit tenure caveat: a hired-and-named FinOps lead is q5_3 level 2 (Established), NOT level 3 (Strategic) — level 3 requires evidence of a _practice_ (wins shipped, architectural influence) that a <12-month hire typically does not yet exhibit.
+
+  5. **Step 6 — Tech Debt MTTR explicit P1 guidance**: v0.0.3 didn't specify which MTTR to use when the IRL lists P0 and P1 separately. The post-demo run used `mttr=3` (midway between P0=2.4h and P1=7.8h), understating the carrying-cost calc by ~62% on its linear component. v0.0.4 hard-codes: "Use P1 (the workhorse number). Do NOT use P0, do NOT use a midpoint, do NOT use an average." Also tightens the incidents-per-month guidance to use the most-recent quarter's monthly equivalent (avoiding the round-up to 2/month when the IRL trends down to ~1.3/month).
+
+**Operator semantics**: patch bump per the discipline (prompt `version` field bump with same name → patch). Behavior change without surface-area change; pinned conversations continue to resolve `gst_diligence_sweep` to the (now-newer) prompt.
+
+**Architecture context**: Findings from a 4-agent parallel audit of the post-demo Scenario 7 sweep output, with full audit transcripts retained in conversation context. The audit identified that the v0.0.3 dedup, deeplink, and sentinel-discipline patches partially landed but with three material residual errors; v0.0.4 closes the residuals. [BL-032.6 demo Scenario 7](../src/docs/development/MCP_SERVER_DEMO_SCRIPT_BL-032_6.md#scenario-7).
 
 ---
 

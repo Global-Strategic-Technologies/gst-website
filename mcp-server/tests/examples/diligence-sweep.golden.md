@@ -1,6 +1,6 @@
 ---
 promptName: gst_diligence_sweep
-version: 0.0.3
+version: 0.0.4
 recordedAt: 2026-05-22
 model: claude-opus-4-7
 ---
