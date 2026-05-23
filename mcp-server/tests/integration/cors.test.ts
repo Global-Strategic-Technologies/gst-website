@@ -19,12 +19,12 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { unstable_dev, type UnstableDevWorker } from 'wrangler';
+import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 
 const ALLOWED_ORIGIN = 'https://claude.ai';
 const DISALLOWED_ORIGIN = 'https://evil.example';
 
-let worker: UnstableDevWorker;
+let worker: Unstable_DevWorker;
 
 beforeAll(async () => {
   worker = await unstable_dev('src/worker.ts', {

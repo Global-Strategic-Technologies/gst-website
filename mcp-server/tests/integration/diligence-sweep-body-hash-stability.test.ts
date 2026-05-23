@@ -71,10 +71,10 @@ function hashPromptOutput(args: Parameters<typeof diligenceSweepPrompt.build>[0]
         // trigger this test — which is the desired behavior, since the
         // sweep's behavior depends on the embedded article shape.
         const r = m.content.resource;
-        const bodyHash = createHash('sha256')
-          .update(typeof r.text === 'string' ? r.text : '')
-          .digest('hex')
-          .slice(0, 16);
+        // The MCP SDK types `resource` as a union of `{ text }` vs `{ blob }`
+        // variants. Narrow with `'text' in r` to access the text variant.
+        const text = 'text' in r && typeof r.text === 'string' ? r.text : '';
+        const bodyHash = createHash('sha256').update(text).digest('hex').slice(0, 16);
         return `[resource:${r.uri}#${bodyHash}]`;
       }
       return '';
@@ -175,8 +175,12 @@ describe('gst_diligence_sweep — prompt-body hash stability', () => {
     const result = diligenceSweepPrompt.build({});
     for (const msg of result.messages) {
       if (msg.content.type === 'resource') {
-        expect(typeof msg.content.resource.text).toBe('string');
-        expect((msg.content.resource.text as string).length).toBeGreaterThan(500);
+        const r = msg.content.resource;
+        expect('text' in r).toBe(true);
+        if ('text' in r) {
+          expect(typeof r.text).toBe('string');
+          expect(r.text.length).toBeGreaterThan(500);
+        }
       }
     }
   });

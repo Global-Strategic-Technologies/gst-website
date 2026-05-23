@@ -44,6 +44,18 @@ vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
 import { handleSearchRadar, handleGetLatestInsights } from '../../src/tools/radar-live';
 import type { Env } from '../../src/worker';
 
+// The radar tool handlers return a discriminated success/error union:
+// `{ content, isError: true }` OR `{ content, structuredContent }`.
+// Tests access `.isError` and `.structuredContent` without narrowing — the
+// `wide` helper widens to a flat shape that supports both accessors in a
+// single cast, keeping test code readable.
+type WideResult = {
+  isError?: boolean;
+  structuredContent?: Record<string, unknown>;
+  content?: Array<{ type: string; text: string }>;
+};
+const wide = <T>(r: T): T & WideResult => r as unknown as T & WideResult;
+
 const TEST_KEY = 'test-mcp-key-rp';
 const baseEnv: Env = {
   MCP_KEY_RP: TEST_KEY,
@@ -170,9 +182,9 @@ describe('search_radar — happy path', () => {
 
     const result = await handleSearchRadar(baseEnv, {});
 
-    expect(result.isError).toBeUndefined();
-    expect(result.structuredContent).toBeDefined();
-    const payload = result.structuredContent as {
+    expect(wide(result).isError).toBeUndefined();
+    expect(wide(result).structuredContent).toBeDefined();
+    const payload = wide(result).structuredContent as {
       matches: Array<{ id: string; tier: string; publishedAt: string }>;
       totalMatched: number;
       deeplink: string;
@@ -195,7 +207,7 @@ describe('search_radar — happy path', () => {
 
     const result = await handleSearchRadar(baseEnv, { category: 'pe-ma' });
 
-    const payload = result.structuredContent as {
+    const payload = wide(result).structuredContent as {
       matches: Array<{ id: string; category: string }>;
       deeplink: string;
     };
@@ -248,8 +260,8 @@ describe('search_radar — cache hit path', () => {
 
     const result = await handleSearchRadar(baseEnv, {});
 
-    expect(result.isError).toBeUndefined();
-    const payload = result.structuredContent as {
+    expect(wide(result).isError).toBeUndefined();
+    const payload = wide(result).structuredContent as {
       matches: Array<{ id: string }>;
       liveInfo: { wireCacheHit: boolean; fyiCacheHit: boolean };
     };
@@ -273,7 +285,7 @@ describe('search_radar — failure modes', () => {
 
     const result = await handleSearchRadar(baseEnv, {});
 
-    expect(result.isError).toBe(true);
+    expect(wide(result).isError).toBe(true);
     const errorPayload = JSON.parse((result.content[0] as { text: string }).text) as {
       error: string;
       status: number;
@@ -298,7 +310,7 @@ describe('search_radar — failure modes', () => {
 
     const result = await handleSearchRadar(baseEnv, {});
 
-    expect(result.isError).toBe(true);
+    expect(wide(result).isError).toBe(true);
     const errorPayload = JSON.parse((result.content[0] as { text: string }).text) as {
       error: string;
       status: number;
@@ -315,7 +327,7 @@ describe('search_radar — failure modes', () => {
 
     const result = await handleSearchRadar(baseEnv, {});
 
-    expect(result.isError).toBe(true);
+    expect(wide(result).isError).toBe(true);
     const errorPayload = JSON.parse((result.content[0] as { text: string }).text) as {
       error: string;
     };
@@ -332,7 +344,7 @@ describe('search_radar — failure modes', () => {
 
     const result = await handleSearchRadar(env, {});
 
-    expect(result.isError).toBe(true);
+    expect(wide(result).isError).toBe(true);
     const errorPayload = JSON.parse((result.content[0] as { text: string }).text) as {
       error: string;
     };
@@ -355,8 +367,8 @@ describe('get_latest_insights', () => {
 
     const result = await handleGetLatestInsights(baseEnv, { category: 'pe-ma', limit: 5 });
 
-    expect(result.isError).toBeUndefined();
-    const payload = result.structuredContent as {
+    expect(wide(result).isError).toBeUndefined();
+    const payload = wide(result).structuredContent as {
       items: Array<{ id: string }>;
       returned: number;
     };
@@ -379,7 +391,7 @@ describe('get_latest_insights', () => {
 
     const result = await handleGetLatestInsights(baseEnv, {});
 
-    const payload = result.structuredContent as { items: Array<{ id: string }> };
+    const payload = wide(result).structuredContent as { items: Array<{ id: string }> };
     expect(payload.items.map((i) => i.id)).toEqual([
       'next-day',
       'newer-same-day',
@@ -395,7 +407,7 @@ describe('get_latest_insights', () => {
 
     const result = await handleGetLatestInsights(baseEnv, {});
 
-    const payload = result.structuredContent as { returned: number };
+    const payload = wide(result).structuredContent as { returned: number };
     expect(payload.returned).toBe(10);
   });
 
@@ -409,7 +421,7 @@ describe('get_latest_insights', () => {
 
     const result = await handleGetLatestInsights(baseEnv, {});
 
-    expect(result.isError).toBe(true);
+    expect(wide(result).isError).toBe(true);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

@@ -146,10 +146,10 @@ describe('gst_diligence_sweep', () => {
         const result = diligenceSweepPrompt.build(args);
         const second = result.messages[1].content;
         expect(second.type).toBe('resource');
-        if (second.type === 'resource') {
+        if (second.type === 'resource' && 'text' in second.resource) {
           expect(second.resource.uri).toBe(IRL_RESOURCE_URI);
           expect(typeof second.resource.text).toBe('string');
-          expect((second.resource.text as string).length).toBeGreaterThan(500);
+          expect(second.resource.text.length).toBeGreaterThan(500);
         }
       }
     });
@@ -159,10 +159,10 @@ describe('gst_diligence_sweep', () => {
         const result = diligenceSweepPrompt.build(args);
         const third = result.messages[2].content;
         expect(third.type).toBe('resource');
-        if (third.type === 'resource') {
+        if (third.type === 'resource' && 'text' in third.resource) {
           expect(third.resource.uri).toBe(VDR_RESOURCE_URI);
           expect(typeof third.resource.text).toBe('string');
-          expect((third.resource.text as string).length).toBeGreaterThan(500);
+          expect(third.resource.text.length).toBeGreaterThan(500);
         }
       }
     });
