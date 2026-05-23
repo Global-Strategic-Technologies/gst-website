@@ -88,14 +88,19 @@ afterEach(() => {
 
 function snapshotRequest(
   opts: { bearer?: string; method?: string; origin?: string } = {}
-): Request {
+): Request<unknown, IncomingRequestCfProperties<unknown>> {
   const headers = new Headers();
   if (opts.bearer) headers.set('Authorization', `Bearer ${opts.bearer}`);
   if (opts.origin) headers.set('Origin', opts.origin);
+  // Manually-constructed Requests don't carry edge-only `cf` properties;
+  // cast to the richer IncomingRequestCfProperties shape that `worker.fetch`
+  // expects. This is the standard test-side workaround for the Cloudflare
+  // `@cloudflare/workerd` types tightening (visible after the qs audit-fix
+  // bumped workerd 1.20260515 -> 1.20260521).
   return new Request('https://mcp.globalstrategic.tech/radar/snapshot', {
     method: opts.method ?? 'GET',
     headers,
-  });
+  }) as unknown as Request<unknown, IncomingRequestCfProperties<unknown>>;
 }
 
 // Minimal ExecutionContext stub — the fetch handler uses ctx only for
@@ -196,10 +201,12 @@ describe('GET /radar/snapshot — CORS', () => {
       'Access-Control-Request-Method': 'GET',
       'Access-Control-Request-Headers': 'authorization',
     });
+    // Cast for the same reason as `snapshotRequest` above —
+    // manually-constructed Requests don't carry edge-only `cf` properties.
     const preflight = new Request('https://mcp.globalstrategic.tech/radar/snapshot', {
       method: 'OPTIONS',
       headers,
-    });
+    }) as unknown as Request<unknown, IncomingRequestCfProperties<unknown>>;
 
     const res = await worker.fetch!(preflight, baseEnv, stubCtx);
 

@@ -30,6 +30,8 @@ const KNOWN_TOOL_NAMES = new Set([
   // name; existing prompts may still reference the alias for one release.
   'search_radar_cache',
   'search_radar_offline',
+  // BL-032 Phase 4c — live Inoreader-backed tool (canonical for new prompts).
+  'search_radar',
 ]);
 
 const KNOWN_RESOURCE_URI_PREFIXES = ['gst://library/', 'gst://regulations/', 'gst://radar/'];

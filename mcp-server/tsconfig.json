@@ -11,9 +11,9 @@
     "noEmit": true,
     "declaration": false,
     "sourceMap": false,
-    "types": ["node"],
+    "types": ["node", "vitest/globals"],
     "verbatimModuleSyntax": false
   },
-  "include": ["src/**/*"],
-  "exclude": ["dist", "node_modules", "coverage", "tests"]
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["dist", "node_modules", "coverage"]
 }

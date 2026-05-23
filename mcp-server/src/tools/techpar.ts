@@ -25,6 +25,16 @@ import { HUB_BASE } from '../config';
  */
 function buildTechparDeeplink(inputs: TechParInputs): string {
   const params = serializeToParams(inputs);
+  // The wizard has two infra-cost-period modes (monthly / annual) and
+  // defaults to `monthly`, which multiplies the `h` field by 12 on
+  // compute. BL-031.95 standardized the tool API on annual units, so the
+  // `h` value we emit is ALWAYS annual — set `b=annual` so the wizard
+  // restores in annual mode and doesn't apply the ×12 monthly conversion
+  // to an already-annualized value. Without this, the wizard renders
+  // ~7× the correct totalTechPct (live finding 2026-05-22: a
+  // healthcare-RCM target at $23.4M annual hosting / $45.2M ARR
+  // restored as 655.6% instead of 92.4%).
+  params.set('b', 'annual');
   return `${HUB_BASE}/hub/tools/techpar/?${params.toString()}`;
 }
 

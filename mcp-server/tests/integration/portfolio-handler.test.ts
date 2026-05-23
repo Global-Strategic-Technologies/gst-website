@@ -35,7 +35,10 @@ describe('handleSearchPortfolioTool — BL-031.95 Phase 4.B integration', () => 
   it('empty input returns every project; deeplink omits the query string', async () => {
     const parsed = SearchPortfolioInputSchema.parse({});
     const response = await handleSearchPortfolioTool(parsed);
-    expect(response.isError).toBeUndefined();
+    // The handler's TS return type asserts success-only (no `isError`),
+    // but the assertion is kept as a defensive guard against a future
+    // refactor that widens the return type to a success/error union.
+    expect((response as { isError?: unknown }).isError).toBeUndefined();
     const payload = response.structuredContent as Record<string, unknown>;
     const matches = payload.matches as unknown[];
 
@@ -48,7 +51,10 @@ describe('handleSearchPortfolioTool — BL-031.95 Phase 4.B integration', () => 
   it('engagement filter scopes results and is reflected in the deeplink', async () => {
     const parsed = SearchPortfolioInputSchema.parse({ engagement: 'Buy-Side' });
     const response = await handleSearchPortfolioTool(parsed);
-    expect(response.isError).toBeUndefined();
+    // The handler's TS return type asserts success-only (no `isError`),
+    // but the assertion is kept as a defensive guard against a future
+    // refactor that widens the return type to a success/error union.
+    expect((response as { isError?: unknown }).isError).toBeUndefined();
     const payload = response.structuredContent as Record<string, unknown>;
     const matches = payload.matches as Array<{ engagementCategory?: string }>;
 
@@ -69,7 +75,10 @@ describe('handleSearchPortfolioTool — BL-031.95 Phase 4.B integration', () => 
 
     const parsed = SearchPortfolioInputSchema.parse({ theme: sampleTheme });
     const response = await handleSearchPortfolioTool(parsed);
-    expect(response.isError).toBeUndefined();
+    // The handler's TS return type asserts success-only (no `isError`),
+    // but the assertion is kept as a defensive guard against a future
+    // refactor that widens the return type to a success/error union.
+    expect((response as { isError?: unknown }).isError).toBeUndefined();
     const payload = response.structuredContent as Record<string, unknown>;
     const matches = payload.matches as Array<{ theme: string }>;
 
@@ -86,7 +95,10 @@ describe('handleSearchPortfolioTool — BL-031.95 Phase 4.B integration', () => 
   it('search filter applies substring match against searchable text', async () => {
     const parsed = SearchPortfolioInputSchema.parse({ search: 'cloud' });
     const response = await handleSearchPortfolioTool(parsed);
-    expect(response.isError).toBeUndefined();
+    // The handler's TS return type asserts success-only (no `isError`),
+    // but the assertion is kept as a defensive guard against a future
+    // refactor that widens the return type to a success/error union.
+    expect((response as { isError?: unknown }).isError).toBeUndefined();
     const payload = response.structuredContent as Record<string, unknown>;
     const matches = payload.matches as Array<Record<string, unknown>>;
     // Dataset known to contain "cloud" in at least one project.
@@ -101,7 +113,10 @@ describe('handleSearchPortfolioTool — BL-031.95 Phase 4.B integration', () => 
       theme: 'all', // explicit pass-through
     });
     const response = await handleSearchPortfolioTool(parsed);
-    expect(response.isError).toBeUndefined();
+    // The handler's TS return type asserts success-only (no `isError`),
+    // but the assertion is kept as a defensive guard against a future
+    // refactor that widens the return type to a success/error union.
+    expect((response as { isError?: unknown }).isError).toBeUndefined();
     const payload = response.structuredContent as Record<string, unknown>;
     const matches = payload.matches as Array<{ engagementCategory?: string }>;
 
@@ -156,7 +171,10 @@ describe('handleSearchPortfolioTool — BL-031.95 Phase 4.B integration', () => 
 describe('handleListPortfolioFacetsTool — BL-031.95 Phase 4.B integration', () => {
   it('returns the four facet dimensions with non-empty values', async () => {
     const response = await handleListPortfolioFacetsTool();
-    expect(response.isError).toBeUndefined();
+    // The handler's TS return type asserts success-only (no `isError`),
+    // but the assertion is kept as a defensive guard against a future
+    // refactor that widens the return type to a success/error union.
+    expect((response as { isError?: unknown }).isError).toBeUndefined();
     const payload = response.structuredContent as Record<string, unknown>;
 
     const themes = payload.themes as string[];

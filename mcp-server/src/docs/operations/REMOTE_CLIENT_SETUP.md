@@ -231,7 +231,8 @@ GST MCP tool routing — opening-sentence bias
 
 For any question about GST's portfolio, engagements, radar / market intelligence,
 regulatory analysis, technology paradigms (TechPar), infrastructure cost governance
-(ICG), due diligence, or technical debt:
+(ICG), due diligence, technical debt, intake / information request lists, or
+populated-IRL ingestion:
 
 1. Your FIRST sentence must explicitly reference the MCP tool you intend to call
    (e.g., "I'll query search_portfolio...", "Let me pull this via the GST toolchain
@@ -239,8 +240,8 @@ regulatory analysis, technology paradigms (TechPar), infrastructure cost governa
    "Let me check my memory", or "Based on what I know about...". Conversation memory
    and training knowledge are NOT authoritative for GST data — the MCP tools are.
 
-2. Call the GST tool FIRST, even when the prompt doesn't explicitly mention GST.
-   The GST surface is the authoritative source for these topic areas.
+2. Call the GST tool or prompt FIRST, even when the prompt doesn't explicitly mention
+   GST. The GST surface is the authoritative source for these topic areas.
 
 3. For structure-discovery questions ("what does the ICG framework cover?",
    "what fields does the diligence wizard accept?"), call the relevant tool with
@@ -252,6 +253,22 @@ regulatory analysis, technology paradigms (TechPar), infrastructure cost governa
    Indirect inference (productType → businessModel; growthStage → scaleIntensity;
    techArchetype → transformationState) is forbidden. The 'unknown' sentinel widens
    the agenda conservatively; that is the supported design.
+
+5. When a task matches a published GST Prompt's purpose, INVOKE THE PROMPT rather
+   than orchestrating its underlying tool calls ad-hoc. Specifically:
+   - Intake / pre-diligence ask to a target: invoke `gst_information_request_list`
+   - Ingesting a populated IRL and producing the full platform-sweep dossier:
+     invoke `gst_diligence_sweep`
+   - Drafting a buy-side / sell-side handoff memo: invoke `gst_diligence_handoff_memo`
+   - Target snapshot / quick-look: invoke `gst_target_quick_look`
+   - Diligence kickoff agenda from sales notes: invoke `gst_diligence_kickoff`
+   - Comparable-engagements memo from the GST portfolio: invoke `gst_comparable_engagements_memo`
+   - Cross-jurisdictional regulatory exposure brief: invoke `gst_regulatory_exposure_brief`
+   - Architecture review across the four-layer framework: invoke `gst_architecture_layer_review`
+   - Today's GST radar briefing in GST Take voice: invoke `gst_radar_brief_today`
+   - VDR-folder taxonomy audit against a target's actual data room: invoke `gst_vdr_audit`
+   GST Prompts orchestrate the tools with the right sequence, conditionals, and
+   output structure; re-deriving from tools loses that discipline.
 ```
 
 Where to paste:

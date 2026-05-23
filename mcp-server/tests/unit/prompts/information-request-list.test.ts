@@ -95,10 +95,10 @@ describe('gst_information_request_list', () => {
         expect(result.messages.length).toBe(2);
         const second = result.messages[1].content;
         expect(second.type).toBe('resource');
-        if (second.type === 'resource') {
+        if (second.type === 'resource' && 'text' in second.resource) {
           expect(second.resource.uri).toBe(RESOURCE_URI);
           expect(typeof second.resource.text).toBe('string');
-          expect((second.resource.text as string).length).toBeGreaterThan(500);
+          expect(second.resource.text.length).toBeGreaterThan(500);
         }
       }
     });
