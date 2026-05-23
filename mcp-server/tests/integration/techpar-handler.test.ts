@@ -68,6 +68,12 @@ describe('handleTechparTool — BL-031.95 Phase 1 integration (renamed field + c
     // Native stage is what the URL carries (the page hydrates to the
     // engine's enum).
     expect(deeplink).toMatch(/s=series_bc/);
+    // BL-032.6 post-demo finding: the wizard defaults `infraPeriod` to
+    // `monthly`, which would × 12 the `h` value on compute and produce
+    // ~7× the correct totalTechPct. The MCP deeplink always emits
+    // annual values per BL-031.95, so the builder must set `b=annual`
+    // to tell the wizard not to apply the monthly conversion.
+    expect(deeplink).toMatch(/b=annual/);
   });
 
   it('native stage `series_bc` produces identical engine output to canonical `series-b` (canonical layer is purely additive)', async () => {
