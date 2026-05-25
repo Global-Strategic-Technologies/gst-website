@@ -86,7 +86,7 @@ Sheet 1 "Information Request List" (visible, default open view)
 
   Row 1   Information Request List              <- article title (col A)
   Row 2   Target                MedSig Health   <- if supplied
-  Row 3   Engagement context    Buy-side review <- if supplied
+  Row 3   Engagement context    Buy-side        <- if supplied
   Row 4   Generated             2026-05-23
   Row 5   Canonical reference   https://...
   Row 6   (blank)

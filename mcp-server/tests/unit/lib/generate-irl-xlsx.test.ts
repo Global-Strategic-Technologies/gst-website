@@ -84,7 +84,7 @@ describe('generateIrlXlsxBuffer', () => {
     const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
     const flat = rows.flat().join('\n');
     expect(flat).toContain('MedSig Health');
-    expect(flat).toContain('Buy-side review');
+    expect(flat).toContain('Buy-side');
   });
 
   it('omits target/context label-rows when not supplied (bullet content unaffected)', () => {

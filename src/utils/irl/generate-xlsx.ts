@@ -47,8 +47,8 @@ const PRIMARY_SHEET_NAME = 'Information Request List';
 const INSTRUCTIONS_SHEET_NAME = 'Instructions';
 
 const TRANSACTION_CONTEXT_LABEL: Record<IRLTransactionContext, string> = {
-  'sell-side': 'Sell-side preparation',
-  'buy-side': 'Buy-side review',
+  'sell-side': 'Sell-side',
+  'buy-side': 'Buy-side',
   'value-creation': 'Value Creation',
   unknown: 'Unspecified',
 };
