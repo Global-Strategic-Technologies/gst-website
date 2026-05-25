@@ -185,3 +185,39 @@ export async function flushSentry(timeoutMs = 2000): Promise<boolean> {
 // Re-export `withSentry` so worker.ts has a single import surface for
 // observability rather than reaching into @sentry/cloudflare directly.
 export { withSentry } from '@sentry/cloudflare';
+
+/**
+ * Re-export of Sentry's `withMonitor` — the cron-monitoring wrapper that
+ * sends `in_progress` / `ok` / `error` check-ins to Sentry Crons.
+ *
+ * **Critical behavior** (from `@sentry/core` source, verified 2026-05-25):
+ * `withMonitor` finishes the check-in with the matching status on
+ * callback resolution / rejection AND **re-throws** any rejection. It
+ * does NOT call `captureException` itself. To capture the stack trace,
+ * callers must layer an outer try/catch that calls `captureException`
+ * on the re-thrown error. The reference `instrumentCron` implementation
+ * in `@sentry/node-core/src/cron/cron.ts` follows exactly this pattern.
+ *
+ * **Why this matters for the GST scheduled handler**: missing this
+ * outer catch was the load-bearing cause of the 2026-05-25 incident
+ * where Cloudflare reported `outcome: exception` on cron firings but
+ * Sentry had zero corresponding events. The scheduled handler had a
+ * `try { … } finally { … }` shape with no `catch` — exceptions escaped
+ * `ctx.waitUntil` without ever being captured by Sentry.
+ *
+ * Pattern shape (canonical, mirrors Sentry's own instrumentCron):
+ *
+ *   try {
+ *     await withMonitor('radar-refresh', () => doWork(), { schedule: … });
+ *   } catch (err) {
+ *     captureException(err, { source: 'cron.scheduled' });
+ *   } finally {
+ *     await flushSentry();
+ *   }
+ *
+ * Free-plan note: Sentry Crons is available on all plans with a monthly
+ * check-in quota. The `upsertMonitorConfig` parameter (passed by
+ * including `schedule` in the options) auto-creates the monitor on
+ * first check-in, so no manual setup is required.
+ */
+export { withMonitor } from '@sentry/cloudflare';
