@@ -81,28 +81,29 @@ Verified compatibilities (Phase 0 research):
 
 **One worksheet** with styled section header rows, NOT one worksheet per section. Easier to skim, easier to email-screenshot a single section in context, supports Excel row-outline grouping.
 
-**Four columns** (added in post-merge follow-up):
+**Five columns** (Reference + Location added in post-merge follow-up; Notes added in second follow-up):
 
-| Col | Heading     | Purpose                                                                                                                                                                                |
-| --- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A   | `Reference` | Short ID per request, format `<sectionDigit>-<NN>` — Basics first bullet = `0-01`, Product first = `1-01`, Governance fifth = `9-05`. Quotable in conversation or VDR cross-reference. |
-| B   | `Request`   | The structured information GST is asking for (bullet text from `article.md`).                                                                                                          |
-| C   | `Location`  | Optional. The filename, VDR path, or share-link where the corresponding artifact lives. Can be used alongside Response, or alone.                                                      |
-| D   | `Response`  | Free-text answer.                                                                                                                                                                      |
+| Col | Heading         | Purpose                                                                                                                                                                                |
+| --- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A   | `Reference`     | Short ID per request, format `<sectionDigit>-<NN>` — Basics first bullet = `0-01`, Product first = `1-01`, Governance fifth = `9-05`. Quotable in conversation or VDR cross-reference. |
+| B   | `Request`       | The structured information GST is asking for (bullet text from `article.md`).                                                                                                          |
+| C   | `File Location` | Optional. The filename, VDR path, or share-link where the corresponding artifact lives. Can be used alongside Response, or alone.                                                      |
+| D   | `Response`      | Free-text answer.                                                                                                                                                                      |
+| E   | `Notes`         | Optional. Caveats, follow-ups, or context the recipient wants to flag alongside an answer (e.g., "scheduled for Q3 refresh", "confidential — discuss in call").                        |
 
 ```
 Sheet 1 "Information Request List" (visible, default open view)
 
-  Row 1   Information Request List              <- article title (col A)
-  Row 2   Target                MedSig Health   <- if supplied
-  Row 3   Engagement context    Buy-side        <- if supplied
-  Row 4   Generated             2026-05-23
-  Row 5   Canonical reference   https://...
+  Row 1   ⟨Information Request List⟩                                  <- merged A1:E1 (title)
+  Row 2        Target           ⟨StoreForce⟩                          <- col B label, merged C2:E2 value
+  Row 3        Engagement       ⟨Value Creation⟩                      <- col B label, merged C3:E3 value
+  Row 4        Generated        ⟨2026-05-25⟩                          <- col B label, merged C4:E4 value
+  Row 5        Canonical ref    ⟨https://...⟩                         <- col B label, merged C5:E5 value
   Row 6   (blank)
-  Row 7   Below is information useful to...     <- article intro
+  Row 7   ⟨Below is information useful to...⟩                          <- merged A7:E7 (intro)
   Row 8   (blank)
-  Row 9   Reference  Request   Location  Response   <- column header
-  Row 10             00 — BASICS                    <- section header (col B only)
+  Row 9   Reference  Request   File Location  Response  Notes          <- column header (bold, sz 13)
+  Row 10             00 — BASICS                                       <- section header (col B only, bold)
   Row 11  0-01       Company name (legal entity ...)
   Row 12  0-02       Engagement context: sell-side ...
   ...
@@ -112,11 +113,25 @@ Sheet 1 "Information Request List" (visible, default open view)
 
 Sheet 2 "Instructions" (hidden by default)
 
-  Short usage guide for recipient — now describes the 4-column layout.
+  Short usage guide for recipient — describes the 5-column layout
+  including the role of File Location vs Response vs Notes.
   Senior consultant review can flip Hidden 1→0 without code change.
 ```
 
-Column widths: A=10, B=80, C=25, D=40. Validated by round-trip read in unit tests with `cellStyles: true`.
+Column widths: A=10 (Reference only — narrow), B=70 (Request / metadata labels), C=25 (File Location), D=35 (Response), E=30 (Notes). Total ~170 chars wide; comfortable for landscape printing.
+
+**Header section row strategy** — to keep col A narrow without truncating long title / metadata text:
+
+- Title row (A1): single cell at A1, **merged A1:E1** so the title spans the visual width.
+- Metadata rows (Target / Engagement context / Generated / Canonical reference): col A empty, col B = label, **C:E merged** value. Label sits in the wide col B (70 chars) so "Engagement context" (18) and "Canonical reference" (19) render fully; merged value spans 25+35+30=90 chars so URLs / long names render fully.
+- Intro paragraph: single cell at column A, **merged A:E** so the long sentence spans the full width.
+
+**Styling** — `cell.s` style blocks applied:
+
+- Column header row (Reference / Request / File Location / Response / Notes): `{ font: { bold: true, sz: 13 } }`.
+- Section header rows (e.g., "00 — BASICS"): `{ font: { bold: true } }`.
+
+SheetJS Community Edition writes these styles into the XLSX; Excel / Google Sheets / LibreOffice all honor them on open. Vitest round-trip read may not preserve style metadata, so the test surface stays on text-position + merge-range assertions rather than style verification.
 
 **Reference ID derivation**: section number's leading zero is stripped (so `"00"` → `0`, `"09"` → `9`, future `"10"` would stay `10`); bullet index is one-based, zero-padded to two digits. Pure function `buildReferenceId` lives in `src/utils/irl/generate-xlsx.ts`; the test `'emits per-bullet Reference IDs in the form ...'` locks the pattern.
 

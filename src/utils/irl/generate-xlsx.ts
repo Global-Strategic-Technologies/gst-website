@@ -130,54 +130,109 @@ function buildReferenceId(sectionNumber: string, bulletIndex: number): string {
 }
 
 function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): XLSX.WorkSheet {
-  // 4-column layout: [Reference | Request | Location | Response].
+  // 5-column layout: [Reference | Request | File Location | Response | Notes].
   //
-  // Header rows (title / target / context / generated / canonical / intro)
-  // deliberately emit MINIMAL-LENGTH row arrays so the empty downstream
-  // columns don't get cell records written for them. Excel only overflows
-  // text rightward into cells that don't exist — populating B/C/D with
-  // empty strings would block the overflow and visually truncate long
-  // header text like the article intro paragraph and the canonical URL.
-  // Section header rows + bullet rows can keep length-2 arrays since their
-  // overflow path is also into undefined cells.
+  // Col A is deliberately NARROW — it only holds short Reference IDs in the
+  // data section. The header section (title / metadata / intro) does not
+  // depend on col A's width: long header text lives in col B (labels) +
+  // merged C:E (values), or spans A:E as a single visual cell via !merges.
+  // This keeps the data table compact while letting header content
+  // breathe.
   const rows: (string | number)[][] = [];
+  const merges: XLSX.Range[] = [];
+  const sectionHeaderRowIndices: number[] = [];
+  const NUM_COLS = 5;
+  const LAST_COL = NUM_COLS - 1;
 
+  // Row 0: article title — merge A:E so the title spans the visual width.
   rows.push([article.title]);
-  if (meta.targetName) rows.push(['Target', meta.targetName]);
-  if (meta.transactionContext) {
-    rows.push(['Engagement context', TRANSACTION_CONTEXT_LABEL[meta.transactionContext]]);
+  merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: LAST_COL } });
+
+  let rowIdx = 1;
+
+  // Metadata rows: col A empty, col B = label, col C:E merged = value.
+  // This keeps col A narrow while ensuring long labels ("Engagement
+  // context", "Canonical reference") and long values (URLs) both render
+  // fully without truncation.
+  if (meta.targetName) {
+    rows.push(['', 'Target', meta.targetName]);
+    merges.push({ s: { r: rowIdx, c: 2 }, e: { r: rowIdx, c: LAST_COL } });
+    rowIdx += 1;
   }
-  rows.push(['Generated', isoDate(meta.generatedAt)]);
-  rows.push(['Canonical reference', meta.canonicalUrl]);
+  if (meta.transactionContext) {
+    rows.push(['', 'Engagement context', TRANSACTION_CONTEXT_LABEL[meta.transactionContext]]);
+    merges.push({ s: { r: rowIdx, c: 2 }, e: { r: rowIdx, c: LAST_COL } });
+    rowIdx += 1;
+  }
+  rows.push(['', 'Generated', isoDate(meta.generatedAt)]);
+  merges.push({ s: { r: rowIdx, c: 2 }, e: { r: rowIdx, c: LAST_COL } });
+  rowIdx += 1;
+  rows.push(['', 'Canonical reference', meta.canonicalUrl]);
+  merges.push({ s: { r: rowIdx, c: 2 }, e: { r: rowIdx, c: LAST_COL } });
+  rowIdx += 1;
   rows.push([]);
+  rowIdx += 1;
 
+  // Intro paragraph: merged A:E so the long sentence has the full width.
+  const introRowIdx = rowIdx;
   rows.push([article.intro]);
+  merges.push({ s: { r: introRowIdx, c: 0 }, e: { r: introRowIdx, c: LAST_COL } });
+  rowIdx += 1;
   rows.push([]);
+  rowIdx += 1;
 
-  rows.push(['Reference', 'Request', 'Location', 'Response']);
+  // Column header row — 5 cols, bold + larger font applied after sheet creation.
+  const headerRowIdx = rowIdx;
+  rows.push(['Reference', 'Request', 'File Location', 'Response', 'Notes']);
+  rowIdx += 1;
 
   for (const section of article.sections) {
+    sectionHeaderRowIndices.push(rowIdx);
     rows.push(['', `${section.number} — ${section.title.toUpperCase()}`]);
-    if (section.intro) rows.push(['', section.intro]);
+    rowIdx += 1;
+
+    if (section.intro) {
+      rows.push(['', section.intro]);
+      rowIdx += 1;
+    }
 
     let bulletIndex = 0;
     for (const bullet of section.bullets) {
       bulletIndex += 1;
       rows.push([buildReferenceId(section.number, bulletIndex), bullet.text]);
+      rowIdx += 1;
     }
     rows.push([]);
+    rowIdx += 1;
   }
 
   const sheet = XLSX.utils.aoa_to_sheet(rows);
   sheet['!cols'] = [
-    // A widened from 10 → 22 so the metadata labels ("Engagement context"
-    // at 18 chars, "Canonical reference" at 19) display fully without
-    // truncation. Reference IDs are 4 chars max so they sit with margin.
-    { wch: 22 }, // Reference + header metadata labels
-    { wch: 80 }, // Request (bullet text); also overflow runway for the intro paragraph
-    { wch: 25 }, // Location (recipient's filename / VDR path)
-    { wch: 40 }, // Response (free-text answer)
+    { wch: 10 }, // A — Reference (data section only; narrow per UX feedback)
+    { wch: 70 }, // B — Request (bullet text) + metadata labels in header section
+    { wch: 25 }, // C — File Location (recipient's filename / VDR path)
+    { wch: 35 }, // D — Response (free-text answer)
+    { wch: 30 }, // E — Notes (recipient's free-text annotation)
   ];
+  sheet['!merges'] = merges;
+
+  // Bold + larger font on the column header row, bold on the section
+  // header text. SheetJS writes the cell.s style block into the XLSX;
+  // Excel / LibreOffice / Sheets all honor it. Round-trip read in
+  // Vitest may not preserve style metadata, so the test surface keeps to
+  // text-position / merge-range assertions rather than style verification.
+  const HEADER_STYLE = { font: { bold: true, sz: 13 } };
+  for (let col = 0; col < NUM_COLS; col += 1) {
+    const ref = XLSX.utils.encode_cell({ r: headerRowIdx, c: col });
+    if (sheet[ref]) sheet[ref].s = HEADER_STYLE;
+  }
+
+  const SECTION_STYLE = { font: { bold: true } };
+  for (const sectionRow of sectionHeaderRowIndices) {
+    const ref = XLSX.utils.encode_cell({ r: sectionRow, c: 1 });
+    if (sheet[ref]) sheet[ref].s = SECTION_STYLE;
+  }
+
   return sheet;
 }
 
@@ -195,19 +250,23 @@ function buildInstructionsSheet(meta: IRLXlsxMetadata): XLSX.WorkSheet {
     ['execute the engagement.'],
     [''],
     ['Column layout on the main sheet:'],
-    ['  A  Reference  — short ID per request (e.g., "0-01"). Quote it back'],
-    ['                 in conversation or in your VDR.'],
-    ['  B  Request    — the structured information GST is asking for.'],
-    ['  C  Location   — OPTIONAL. The filename, VDR path, or sharepoint'],
-    ['                 link where the corresponding artifact lives.'],
-    ['  D  Response   — your free-text answer.'],
+    ['  A  Reference      — short ID per request (e.g., "0-01"). Quote it'],
+    ['                     back in conversation or in your VDR.'],
+    ['  B  Request        — the structured information GST is asking for.'],
+    ['  C  File Location  — OPTIONAL. The filename, VDR path, or share-link'],
+    ['                     where the corresponding artifact lives.'],
+    ['  D  Response       — your free-text answer.'],
+    ['  E  Notes          — OPTIONAL. Any caveats, follow-ups, or context'],
+    ['                     the recipient wants to flag alongside an answer.'],
     [''],
     ['1. Fill answers in column D alongside each request in column B.'],
     ['2. If you are attaching a file or pointing to a VDR folder, put the'],
-    ['   reference in column C (Location). Both columns may be used together.'],
-    ['3. Type "n/a" or "not yet tracked" rather than leaving a cell blank —'],
+    ['   reference in column C (File Location). C and D may be used together.'],
+    ['3. Use column E (Notes) for anything that does not fit in Response —'],
+    ['   "scheduled for Q3 refresh", "confidential — discuss in call", etc.'],
+    ['4. Type "n/a" or "not yet tracked" rather than leaving a cell blank —'],
     ['   the presence of an answer is signal, including "we do not track this."'],
-    ['4. Section header rows (e.g., "00 — BASICS") delimit the ten request'],
+    ['5. Section header rows (e.g., "00 — BASICS") delimit the ten request'],
     ['   areas. Per-section context lives in the canonical article (link in'],
     ['   the header of the main sheet).'],
     [''],

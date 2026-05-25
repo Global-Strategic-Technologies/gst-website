@@ -94,13 +94,16 @@ describe('generateIrlXlsxBuffer', () => {
     });
     const sheet = XLSX.read(buf, { type: 'array' }).Sheets['Information Request List'];
     const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
-    // A label-row is `[<label>, <value-or-empty>]` where value populated.
-    // Bullet rows are `[<question>, '']` so col B is empty.
+    // Metadata label rows live in col B (col A is empty / reserved for
+    // the Reference column). A label row pairs the col-B label with a
+    // populated col-C value. Bullet rows have the bullet text in col B
+    // and Reference ID in col A, so the col[1]==='Target' check below
+    // wouldn't match them.
     const hasTargetLabelRow = rows.some(
-      (r) => r[0] === 'Target' && typeof r[1] === 'string' && r[1] !== ''
+      (r) => r[1] === 'Target' && typeof r[2] === 'string' && r[2] !== ''
     );
     const hasContextLabelRow = rows.some(
-      (r) => r[0] === 'Engagement context' && typeof r[1] === 'string' && r[1] !== ''
+      (r) => r[1] === 'Engagement context' && typeof r[2] === 'string' && r[2] !== ''
     );
     expect(hasTargetLabelRow).toBe(false);
     expect(hasContextLabelRow).toBe(false);
@@ -138,7 +141,7 @@ describe('generateIrlXlsxBuffer', () => {
     expect(flat).toContain('n/a');
   });
 
-  it('produces a 4-column header row [Reference | Request | Location | Response] before the section blocks', () => {
+  it('produces a 5-column header row [Reference | Request | File Location | Response | Notes] before the section blocks', () => {
     const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
       generatedAt: FIXED_DATE,
       canonicalUrl: 'https://example.test',
@@ -149,8 +152,9 @@ describe('generateIrlXlsxBuffer', () => {
       (row) =>
         row[0] === 'Reference' &&
         row[1] === 'Request' &&
-        row[2] === 'Location' &&
-        row[3] === 'Response'
+        row[2] === 'File Location' &&
+        row[3] === 'Response' &&
+        row[4] === 'Notes'
     );
     expect(headerRowIndex).toBeGreaterThan(0);
   });
@@ -181,7 +185,7 @@ describe('generateIrlXlsxBuffer', () => {
     expect(row1_01?.[1]).toBe('One-paragraph product description');
   });
 
-  it('Location + Response columns are empty for every bullet row (recipient fills them in)', () => {
+  it('File Location, Response, and Notes columns are empty for every bullet row (recipient fills them in)', () => {
     const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
       generatedAt: FIXED_DATE,
       canonicalUrl: 'https://example.test',
@@ -191,8 +195,9 @@ describe('generateIrlXlsxBuffer', () => {
     const bulletRows = rows.filter((r) => /^\d+-\d{2}$/.test(r[0] ?? ''));
     expect(bulletRows.length).toBeGreaterThan(0);
     for (const row of bulletRows) {
-      expect(row[2] ?? '').toBe(''); // Location
+      expect(row[2] ?? '').toBe(''); // File Location
       expect(row[3] ?? '').toBe(''); // Response
+      expect(row[4] ?? '').toBe(''); // Notes
     }
   });
 
@@ -208,29 +213,28 @@ describe('generateIrlXlsxBuffer', () => {
     expect(basicsHeader?.[0] ?? '').toBe(''); // Reference col empty on section header row
   });
 
-  it('header rows do NOT emit empty-string cells in B/C/D — preserves Excel rightward text overflow', () => {
-    // Regression for the visual-truncation bug surfaced 2026-05-25: padding
-    // the title / intro / canonical rows with explicit '' values blocks
-    // Excel's natural overflow and truncates long text inside narrow col A.
-    // The fix is to omit the padding entirely so those cells don't exist in
-    // the workbook. Verified by inspecting the raw worksheet cell map.
+  it('title row is merged A:E so the article title spans the full visual width', () => {
     const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
-      targetName: 'Acme',
-      transactionContext: 'buy-side',
       generatedAt: FIXED_DATE,
-      canonicalUrl: 'https://example.test/very/long/canonical/reference/url/that/overflows',
+      canonicalUrl: 'https://example.test',
     });
-    const wb = XLSX.read(buf, { type: 'array' });
-    const sheet = wb.Sheets['Information Request List'];
-    // Locate the title row (row 0). For row 0, cells B1/C1/D1 must NOT
-    // exist in the worksheet — if they did, Excel would block overflow.
-    expect(sheet['A1']).toBeDefined();
-    expect(sheet['B1']).toBeUndefined();
-    expect(sheet['C1']).toBeUndefined();
-    expect(sheet['D1']).toBeUndefined();
-    // Same contract for the intro row: A populated, B/C/D unwritten.
-    // Locate it by scanning for the cell whose value starts with the
-    // intro's first phrase.
+    const sheet = XLSX.read(buf, { type: 'array' }).Sheets['Information Request List'];
+    // A1 (row 0) is the title; merge range should span A1:E1.
+    const titleMerge = sheet['!merges']?.find(
+      (m) => m.s.r === 0 && m.s.c === 0 && m.e.r === 0 && m.e.c === 4
+    );
+    expect(titleMerge).toBeDefined();
+    expect(sheet['A1']?.v).toBe(SAMPLE_ARTICLE.title);
+  });
+
+  it('intro row is merged A:E so the long paragraph spans the full visual width', () => {
+    const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
+      generatedAt: FIXED_DATE,
+      canonicalUrl: 'https://example.test',
+    });
+    const sheet = XLSX.read(buf, { type: 'array' }).Sheets['Information Request List'];
+    // Locate the row whose A cell holds the intro text and assert a
+    // matching A:E merge range.
     const introCellKey = Object.keys(sheet).find(
       (k) =>
         k.startsWith('A') &&
@@ -239,15 +243,30 @@ describe('generateIrlXlsxBuffer', () => {
         sheet[k].v.startsWith('Below is information')
     );
     expect(introCellKey).toBeDefined();
-    if (introCellKey) {
-      const rowNum = introCellKey.slice(1);
-      expect(sheet[`B${rowNum}`]).toBeUndefined();
-      expect(sheet[`C${rowNum}`]).toBeUndefined();
-      expect(sheet[`D${rowNum}`]).toBeUndefined();
-    }
+    const introRowIdx = introCellKey ? Number(introCellKey.slice(1)) - 1 : -1;
+    const introMerge = sheet['!merges']?.find(
+      (m) => m.s.r === introRowIdx && m.s.c === 0 && m.e.r === introRowIdx && m.e.c === 4
+    );
+    expect(introMerge).toBeDefined();
   });
 
-  it('column A width is wide enough to display the longest header metadata label without truncation', () => {
+  it('metadata rows merge C:E so the value cell has room (URLs, long labels)', () => {
+    const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
+      targetName: 'Acme',
+      transactionContext: 'buy-side',
+      generatedAt: FIXED_DATE,
+      canonicalUrl: 'https://example.test/very/long/canonical/reference/url/that/overflows',
+    });
+    const sheet = XLSX.read(buf, { type: 'array' }).Sheets['Information Request List'];
+    // Every metadata row (Target / Engagement context / Generated / Canonical
+    // reference) should have a C:E merge for the value cell.
+    const metadataRowMerges = sheet['!merges']?.filter(
+      (m) => m.s.c === 2 && m.e.c === 4 && m.s.r === m.e.r
+    );
+    expect(metadataRowMerges?.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('col A is narrow (Reference IDs only); col B is wide enough for bullet text', () => {
     const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
       generatedAt: FIXED_DATE,
       canonicalUrl: 'https://example.test',
@@ -256,11 +275,15 @@ describe('generateIrlXlsxBuffer', () => {
       'Information Request List'
     ];
     const colA = sheet['!cols']?.[0];
-    expect(colA).toBeDefined();
-    // "Canonical reference" is 19 chars; col A must be at least that wide
-    // (we ship wch=22 with margin). Stable across SheetJS wch/wpx encoding.
-    const widthChars = colA?.wch ?? (colA?.wpx ? colA.wpx / 7 : 0);
-    expect(widthChars).toBeGreaterThanOrEqual(19);
+    const colB = sheet['!cols']?.[1];
+    const colAWidth = colA?.wch ?? (colA?.wpx ? colA.wpx / 7 : 0);
+    const colBWidth = colB?.wch ?? (colB?.wpx ? colB.wpx / 7 : 0);
+    // Col A: just for "Reference" (9 chars) + IDs like "0-01" (4 chars).
+    // Should be narrow — definitely under 20.
+    expect(colAWidth).toBeGreaterThan(0);
+    expect(colAWidth).toBeLessThan(20);
+    // Col B: holds bullet text which can be 100+ chars; widest column.
+    expect(colBWidth).toBeGreaterThanOrEqual(50);
   });
 
   it('column widths are preserved on round-trip when cellStyles is requested', () => {
