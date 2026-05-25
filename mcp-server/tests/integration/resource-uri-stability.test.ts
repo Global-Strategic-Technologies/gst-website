@@ -36,6 +36,7 @@ interface ListResourcesResultPayload {
 const EXPECTED_LIBRARY_URIS: ReadonlyArray<string> = [
   'gst://library/business-architectures',
   'gst://library/vdr-structure',
+  'gst://library/information-request-list',
 ];
 
 const EXPECTED_RADAR_URIS: ReadonlyArray<string> = [
@@ -61,8 +62,13 @@ const REGULATION_URI_CANARIES: ReadonlyArray<string> = [
 ];
 
 describe('resource URI stability', () => {
-  let client: PairedHalf;
-  let nextId: number;
+  // Definite-assignment assertions (`!:`) — `client` and `nextId` are
+  // assigned in `beforeEach` before any `it` block runs OR any call to
+  // the `rpc` / `notify` helpers. TS strict mode can't reason about
+  // cross-function lifecycle here, so without the `!` it flags TS2454
+  // ("used before being assigned") inside the helpers.
+  let client!: PairedHalf;
+  let nextId!: number;
 
   async function rpc(
     method: string,

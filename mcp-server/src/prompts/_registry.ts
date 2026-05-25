@@ -24,6 +24,8 @@ import { diligenceHandoffMemoPrompt } from './diligence-handoff-memo';
 import { vdrAuditPrompt } from './vdr-audit';
 import { architectureLayerReviewPrompt } from './architecture-layer-review';
 import { radarBriefTodayPrompt } from './radar-brief-today';
+import { informationRequestListPrompt } from './information-request-list';
+import { diligenceSweepPrompt } from './diligence-sweep';
 
 /** Frozen list of every prompt the server registers. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,6 +38,8 @@ export const ALL_PROMPTS: ReadonlyArray<GstPrompt<any>> = [
   vdrAuditPrompt,
   architectureLayerReviewPrompt,
   radarBriefTodayPrompt,
+  informationRequestListPrompt,
+  diligenceSweepPrompt,
 ];
 
 const NAME_PATTERN = /^gst_[a-z][a-z_]*$/;

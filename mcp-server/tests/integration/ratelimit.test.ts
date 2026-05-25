@@ -16,11 +16,11 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { unstable_dev, type UnstableDevWorker } from 'wrangler';
+import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 
 const TEST_KEY = 'test-token-rp';
 
-let worker: UnstableDevWorker;
+let worker: Unstable_DevWorker;
 
 beforeAll(async () => {
   // Note: NO UPSTASH_MCP_REST_URL / TOKEN bindings — limiter takes the

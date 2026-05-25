@@ -24,7 +24,7 @@ const isDev = import.meta.env.DEV;
       name: 'GST Strategic Intelligence Tools',
       description:
         'Interactive calculators and generators to quantify risk and value in technology investments',
-      numberOfItems: 5,
+      numberOfItems: 6,
       itemListElement: [
         {
           '@type': 'ListItem',
@@ -55,6 +55,12 @@ const isDev = import.meta.env.DEV;
           position: 5,
           name: 'TechPar',
           url: 'https://globalstrategic.tech/hub/tools/techpar',
+        },
+        {
+          '@type': 'ListItem',
+          position: 6,
+          name: 'Information Request List Generator',
+          url: 'https://globalstrategic.tech/hub/tools/information-request-list-generator',
         },
       ],
     })}
@@ -182,6 +188,30 @@ const isDev = import.meta.env.DEV;
         >
       </article>
 
+      <article class="brutal-gateway-card brutal-frosted">
+        <div class="brutal-gateway-card__header">
+          <h2>Information Request List Generator</h2>
+        </div>
+        <ul class="brutal-gateway-card__features">
+          <li>
+            <DeltaIcon class="bullet-icon" />Download a fillable .xlsx of the GST Information
+            Request List, personalized to a target or client
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Ten sections mirroring the canonical VDR taxonomy — one
+            row per request, with an answer cell beside
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" />Close the request → response loop: the recipient fills
+            cells and emails the file back instead of inventing a format
+          </li>
+        </ul>
+        <a
+          href="/hub/tools/information-request-list-generator"
+          class="cta-button primary brutal-gateway-card__cta">Launch Tool</a
+        >
+      </article>
+
       {
         isDev && (
           <>
@@ -264,27 +294,6 @@ const isDev = import.meta.env.DEV;
                 <li>
                   <DeltaIcon class="bullet-icon" />
                   Exportable questionnaire package for target company distribution
-                </li>
-              </ul>
-              <span class="brutal-gateway-card__badge">Planned</span>
-            </article>
-
-            <article class="brutal-gateway-card">
-              <div class="brutal-gateway-card__header">
-                <h2>Information Request List (IRL) Generator</h2>
-              </div>
-              <ul class="brutal-gateway-card__features">
-                <li>
-                  <DeltaIcon class="bullet-icon" />
-                  Generate a comprehensive document and data request list for technical diligence
-                </li>
-                <li>
-                  <DeltaIcon class="bullet-icon" />
-                  Categorized by domain: infrastructure, codebase, security, compliance, team
-                </li>
-                <li>
-                  <DeltaIcon class="bullet-icon" />
-                  Priority-ranked with expected delivery formats and responsible parties
                 </li>
               </ul>
               <span class="brutal-gateway-card__badge">Planned</span>

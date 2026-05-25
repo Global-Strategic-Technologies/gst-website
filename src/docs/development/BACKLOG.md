@@ -169,6 +169,394 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ---
 
+### BL-042: TechPar PresetInput Component Extraction
+
+**Source**: Follow-up from the BL-032.8 / techpar chip↔input bidirectional-sync bug fix (2026-05-21) | **Effort**: Medium (~half a day) | **Status**: Open, not urgent
+
+**As a** developer maintaining TechPar (or adding a similar preset+input control to another tool), **I want** the chip group + numeric input + bidirectional sync logic encapsulated in a single reusable `<PresetInput>` Astro component **so that** future controls auto-enroll into both directions of the chip↔input contract without relying on an implicit DOM-convention protocol enforced by a page-level orchestrator.
+
+#### Acceptance Criteria
+
+- [ ] New `src/components/techpar/PresetInput.astro` (or `src/components/forms/PresetInput.astro` if reused beyond TechPar) renders chips + label + input + hint as one unit; takes `inputName`, `presets`, `label`, `hint`, `step`, `placeholder` as props
+- [ ] Component's inline `<script>` wires bidirectional sync internally — no dependency on a sibling page-level helper
+- [ ] All 9 cost preset controls in `src/pages/hub/tools/techpar/index.astro` (exitMult, infra, infraPers, rdOpEx, rdEng, rdProd, rdTool, engFTE, rdCapEx) replaced with `<PresetInput .../>` instances
+- [ ] `syncCostChips()` and the cost-input listener loop in `src/utils/techpar-ui.ts` removed (their work now lives inside the component)
+- [ ] Existing E2E test block `tests/e2e/techpar.test.ts § "Cost preset chip ↔ input sync"` continues to pass without modification (selectors are stable: `[data-preset-for]` + `[data-input]`)
+- [ ] No visual or behavioral regression on `/hub/tools/techpar` across all 9 controls + ARR
+
+#### Technical Context
+
+- **Current state**: bug fixed structurally via a generic page-level sync handler that walks `[data-preset-for]` chips and attaches one input listener per `[data-input]` cost field. DRY across controls (one fix covers all 9) but not encapsulated _per control_ — the sync contract is enforced by an implicit naming convention rather than a component boundary
+- **Cross-cutting concerns to decide** during extraction (these touch the same inputs the component would own):
+  - `updateChipCurrencies()` rewrites the `$` prefix on currency changes — should the component subscribe to a currency event, or stay page-driven?
+  - `syncInfraPeriodUI()` shows/hides two sibling chip groups bound to one `infra` input — does a single `<PresetInput>` accept _two_ chip groups, or do we render _two_ components and orchestrate visibility at the page?
+  - `updateInfraAnnotation()` and `checkSanity()` write warning text into siblings of the input — page-level should remain the home for these
+  - `hydrateFromUrl()` writes values into `[data-input]` selectors — works as-is if the component preserves those data attributes
+  - Conditional visibility wrappers (`tp-exit-field--vis`, `tp-deep-wrap--on`, `tp-capex-row--vis`) — stay at page level, component is unaware
+- **What to keep stable**: the `data-preset-for` / `data-input` / `data-preset-val` selectors are now load-bearing for tests and URL hydration. Component must continue to emit them on the same elements
+- **Why not urgent**: the existing fix is correct, DRY (one helper, 9 controls), and tested in both directions. The architectural cleanup is preference, not need
+- **Re-evaluate when**: a second tool wants the same preset+input pattern (creating a real DRY use case beyond TechPar), TechPar's `index.astro` becomes painful to navigate (~3500 LOC today), or a future bug demonstrates that page-level sync logic is the right blame target
+
+---
+
+### BL-043: Information Request List (IRL)
+
+**Source**: Sales/value-creation enablement (May 2026) | **Architecture & plan**: [MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md) | **Effort**: 5-7 days | **Status**: Done (merged via PR #158, 2026-05-22; sequel BL-044 landed 2026-05-24) | **Fast-tracked**
+
+**As a** GST partner running a diligence or value-creation engagement, **I want** a single, universal, one-page Information Request List I can hand to a target (buy-side), client (sell-side preparation), or portfolio company (value-creation) **so that** the answers flow back into our Hub diligence tools and MCP prompts with high-fidelity inputs — turning the Diligence Machine's defensive `'unknown'`-mode agendas into precise ones and letting MCP/agent contexts scope to "everything we need to know about a target" via one pinned Resource.
+
+> **Implementation plan**: see [MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md) for the full design — three-surface architecture (Library article + MCP Resource + MCP Prompt), single-source-of-truth drift policy (Astro page imports `article.md` directly), testing strategy compliant with `TEST_STRATEGY.md` pyramid and `TEST_BEST_PRACTICES.md` anti-patterns, documentation update inventory, and the senior-consultant content-review gate.
+
+#### Planning Criteria
+
+**Use cases**
+
+- **Buy-side intake** — hand the target a structured request list at kickoff so the diligence team receives data in a form the Hub tools can ingest directly. Eliminates the partner having to mentally translate sales-call notes into `TechParInputs` / `ICGInputs` / `UserInputs` shapes.
+- **Sell-side preparation** — clients populating their own VDR can use the IRL as a checklist that mirrors the canonical [VDR taxonomy](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md#content-structure), surfacing gaps before a buyer points them out.
+- **Value-creation baseline** — post-close, a portfolio company's filled IRL becomes the cold-start baseline for the 100-day roadmap and first-12-months platform-investment plan.
+- **Agent context scoping** — pinned `gst://library/information-request-list` Resource gives Claude Desktop / OpenClaw / BL-033 pilot agents a versatile substrate to scope "all the partner-supplied facts about a target" in one read.
+- **Inventory for future tools** — the internal [`mcp-server/src/docs/library/irl-tool-input-mapping.md`](../../../mcp-server/src/docs/library/irl-tool-input-mapping.md) doc tracks which Hub-tool / MCP-prompt inputs each IRL bullet feeds; when a new tool ships, the mapping surfaces gaps.
+
+**Outcomes**
+
+- Universal one-page artifact at `/hub/library/information-request-list/` (Hub) + `gst://library/information-request-list` (MCP Resource) + `/gst_information_request_list` (MCP Prompt) — all three shipped in one PR (per user direction).
+- Astro Hub page imports the canonical `article.md` directly (via `getHeadings` + `Content`); no content duplication between partner-facing print and agent-facing Resource bytes.
+- Diligence Machine `'unknown'` sentinel widening becomes the exception, not the rule, for engagements where the IRL was filled.
+- Internal tool-input mapping doc is a permanent maintenance discipline — every new Hub tool or MCP prompt that needs partner-supplied input either matches an existing IRL bullet or adds one in the same PR.
+
+**Business value**
+
+- **Reduces partner overhead** by eliminating the mental translation step between unstructured sales-call notes and canonical Hub-tool inputs.
+- **MCP/Agent enablement** for BL-033 pilot clients — pilot teams can pin one Resource to scope an engagement's full intake surface; no per-pilot context-engineering required.
+- **Brand-bearing artifact** — printed PDF is a partner-presentable deliverable in the GST voice; reinforces the firm's "structured-information-first" posture in early client conversations.
+- **Compounds with existing prompts** — `gst_information_request_list` is the _request_ side of the diligence-intake loop; pair with `gst_diligence_kickoff` once filled, and `gst_vdr_audit` for the response audit.
+
+#### Acceptance Criteria
+
+**Library article + MCP Resource**
+
+- [x] `src/data/library/information-request-list/article.md` — canonical one-pager, 10 sections (00 Basics + 01-09 mirroring VDR-9), ~67 bullets, request-style voice.
+- [x] `mcp-server/src/content/library-loader.ts` — `LIBRARY_METADATA` gains the new entry; codegen auto-picks it up via `mcp-server/scripts/generate-regulations-index.mjs`.
+- [x] `mcp-server/src/resources/library.ts` — no edit needed; existing `registerLibraryResources` iterator wraps the new entry in `readThroughCache` automatically.
+
+**Hub page**
+
+- [x] `src/pages/hub/library/information-request-list/index.astro` — imports `article.md` via Astro's markdown loader (`Content` + `getHeadings`); single source of truth.
+- [x] `src/pages/hub/library/index.astro` — gains a card linking to the new article. Three real cards confirmed laying out at 1280/768/480.
+- [x] Print CSS: each h2 starts a new page; TOC and back-link hidden on print (mirrors the VDR Structure Guide print pattern).
+
+**MCP Prompt**
+
+- [x] `mcp-server/src/prompts/information-request-list.ts` — `gst_information_request_list` (v0.0.1, `lastReviewedAt: 2026-05-21`, `orchestrates: ['gst://library/information-request-list']`). Embeds the canonical Resource as the second message.
+- [x] Three optional args: `targetName`, `transactionContext` (sell-side / buy-side / value-creation / unknown), `productSummary`. Empty payload → interactive mode.
+- [x] Registered in `ALL_PROMPTS` at `mcp-server/src/prompts/_registry.ts` (now 9 prompts).
+- [x] Boot-time invariant checks pass (`assertPromptInvariants` validates `version` semver, `lastReviewedAt` freshness, `orchestrates` non-empty).
+- [x] Description explicitly contrasts with `gst_diligence_kickoff` to disambiguate slash-menu picks.
+
+**Test coverage**
+
+- [x] Per-prompt unit test (`mcp-server/tests/unit/prompts/information-request-list.test.ts`) — 16 cases covering schema accept/reject paths, body content per mode, `orchestrates` invariant, Resource embed shape, voice-cue differentiation. Tests follow TEST_BEST_PRACTICES.md § 1 (explicit error-path assertions, no false-positives).
+- [x] Hub-page E2E (`tests/e2e/hub-library-information-request-list.test.ts`) — 5 cases covering section-heading rendering, TOC-anchor mapping, library-index card navigation, back-link, in-page TOC click → viewport. Tests follow TEST_BEST_PRACTICES.md § 3 (no arbitrary timeouts), § 12 (`waitUntil: 'domcontentloaded'`), § 25 (deep readiness gate).
+- [x] Golden-file snapshot at `mcp-server/tests/examples/information-request-list.golden.md` — frontmatter correct (golden-snapshots test passes); body is a DRAFT to be overwritten with senior-consultant live-exercise capture during Step 5.5.
+- [x] Existing manifest-stability + resource-URI-stability + protocol-roundtrip tests updated for the new Library URI + 9th prompt (manifest hash `9d5738f4…`).
+
+**Documentation**
+
+- [x] `mcp-server/BREAKING_CHANGES.md` — `0.2.0` entry documenting the additive change (Library URI + Prompt added; minor bump per the additive-change discipline).
+- [x] `mcp-server/package.json` — bumped `0.1.0 → 0.2.0`.
+- [x] `mcp-server/README.md` — prompts inventory adds row for `gst_information_request_list`; Resources table adds row for `gst://library/information-request-list`; count updated 8 → 9 prompts, 128 → 129 Resources.
+- [x] `mcp-server/src/docs/prompts/README.md` — close-line `Last updated` bumped.
+- [x] `mcp-server/src/docs/library/irl-tool-input-mapping.md` — internal SOP mapping every IRL bullet to the Hub tool / MCP prompt input(s) it feeds. Maintained in lockstep with `article.md`.
+- [x] `src/docs/development/MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md` — implementation tracking doc with live-state checkboxes.
+
+**Senior-consultant content review (BLOCKING gate before PR)**
+
+- [ ] Walk a senior team member through the canonical `article.md`. Each of the 10 sections must pass: _"does this read as if I wrote it to a real client?"_ Capture any rewrites; recommit.
+- [ ] Restart Claude Desktop with the local MCP server, invoke `/gst_information_request_list` with a representative target profile, capture the rendered output verbatim into `mcp-server/tests/examples/information-request-list.golden.md` (overwriting the draft body).
+
+#### Technical Context
+
+- **Three-surface design with one source of truth**: `article.md` is the only canonical body. The Astro Hub page imports it via `Content` + `getHeadings`; the MCP Resource serves the same bytes via the codegen-emitted `LIBRARY_BODIES` index; the MCP Prompt embeds the same Resource as its second message. Adding or renaming a section in `article.md` updates the page content, the TOC anchors, and the Resource body automatically — no drift surface.
+- **No tool attribution in the public artifact** — by design, per the BL-043 planning conversation. The internal `irl-tool-input-mapping.md` doc carries the engineering-side map of which IRL bullet feeds which Hub-tool / MCP-prompt input.
+- **VDR-9 taxonomy + "00 Basics" prelude**: sections `01-09` mirror the canonical VDR taxonomy. Section `00` captures the cross-cutting deal/profile facts (target name, transaction type, ARR, stage, business model, geos) that no single VDR folder owns but every downstream analysis depends on.
+- **CSS-ID slug quirk**: auto-generated heading slugs use github-slugger; em-dashes in section titles ("00 — Basics") collapse to double-dashes ("00--basics"). Bare CSS ID selectors that start with a digit are invalid — E2E tests use attribute-form selectors (`h2[id="..."]`) instead.
+- **Companion to existing prompts**: `gst_information_request_list` is the _request_ artifact; `gst_diligence_kickoff` consumes filled answers as the diligence-agenda generator; `gst_vdr_audit` audits the target's eventual VDR against the canonical taxonomy.
+- **Future work** (tracked separately, do not bundle into BL-043):
+  - **[BL-044](#bl-044-information-request-list--fillable-form-generator)** — fillable-form generator (Hub tool + MCP tool) that produces a downloadable `.xlsx` from this article. Closes the partner-side "recipient response surface" gap. Filed; not yet started.
+  - **BL-045 candidate** (`gst_intake_filled_irl`) — paste-a-filled-IRL → canonical Hub-tool inputs converter. The response side of the loop. Premature to design without BL-044 + v1 usage evidence; file when prioritized.
+- **Discipline**: every IRL change ships with a corresponding `irl-tool-input-mapping.md` update in the same PR. Every new Hub tool that needs partner-supplied input either matches an existing IRL bullet or adds one in the same PR.
+
+**Validation sequence before PR**
+
+1. `npm -w @gst/mcp-server run typecheck` — clean
+2. `npm -w @gst/mcp-server run test` — all 633+ tests green (manifest-stability hash matches)
+3. `npx astro check && npm run lint && npm run lint:css && npm run test:run` — all clean (1170+ tests)
+4. `npx playwright test tests/e2e/hub-library-information-request-list.test.ts --project=chromium` — all 5 cases green
+5. Senior-consultant content review pass (Step 5.5 — blocking)
+6. Live-exercise capture from Claude Desktop overwrites the draft golden file
+
+---
+
+### BL-044: Information Request List — Fillable-Form Generator
+
+**Source**: Follow-up identified during BL-043 final review (2026-05-22) | **Architecture & plan**: [MCP_SERVER_IRL_GENERATOR_BL-044.md](MCP_SERVER_IRL_GENERATOR_BL-044.md) | **Effort**: 3-4 days (landed in 1 session) | **Status**: Done (landed 2026-05-24, `mcp-server@0.3.5`) | **Depends on**: BL-043 (consumes its canonical article + Resource)
+
+**As a** GST partner sending the IRL to a target, client, or portfolio company, **I want** a one-click download of a fillable spreadsheet (.xlsx) that mirrors the canonical IRL section structure **so that** the recipient has an obvious response surface — type answers into structured cells and email it back — instead of inventing their own response format or ignoring the request because the markdown article isn't actionable on their side.
+
+> **Companion**: [`MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md`](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md) — read first. BL-044 is the consumption surface for the article authored under BL-043; the request artifact is unchanged.
+
+#### Planning Criteria
+
+**Use cases**
+
+- **Partner sending the IRL** — clicks "Download IRL (.xlsx)" on `/hub/tools/information-request-list-generator/`, optionally types the target name + transaction context to pre-fill the file header, attaches the resulting file to the kickoff email. No markdown-to-XLS hand-conversion. No "what format do you want this in?" round trip with the recipient.
+- **MCP-mediated workflow** — partner in Claude Desktop invokes `/gst_information_request_list { targetName, transactionContext }` and Claude both renders the IRL preview AND produces a downloadable .xlsx (via the new tool) in the same turn. The prompt evolves from "emit text" to "emit text + generate file."
+- **Recipient response loop** — recipient opens the .xlsx, sees one section per worksheet (or one column-group per section, TBD), types short answers into column B alongside the request text in column A, sends the filled file back. Structure is preserved end-to-end.
+- **Future-state agent ingestion** — when a separate initiative (BL-045 candidate) ships the filled-IRL ingestion path, the structured XLS columns become the natural parse target.
+
+**Outcomes**
+
+- One-click .xlsx download from the Hub + matching MCP tool returning `{ filename, base64 }`.
+- File generated deterministically from `gst://library/information-request-list` — partner-facing artifact and agent-facing Resource stay byte-identical to the article authored under BL-043.
+- Zero new content authored in BL-044 — the bullets, section headers, and ordering all come from `article.md` via the existing codegen.
+- The `gst_information_request_list` MCP prompt orchestrates the new tool when invoked with file-attachment intent (additive — bare prompt invocation still emits text-only).
+
+**Business value**
+
+- **Closes the request → response loop** that BL-043 deliberately scoped out. The IRL is currently a one-page reference; BL-044 makes it a transactable deliverable.
+- **Reduces partner friction** by eliminating the markdown-to-spreadsheet hand-conversion step every engagement currently requires.
+- **Brand-bearing in the recipient's inbox** — a structured .xlsx with the GST header reads as more professional than a markdown block pasted into an email body.
+- **Foundation for the response-ingestion follow-up** (filled-IRL → canonical Hub-tool inputs) — that future initiative needs a structured response format to parse; BL-044 ships exactly that.
+
+#### Acceptance Criteria
+
+**Hub tool**
+
+- [ ] New Hub tool page at `/hub/tools/information-request-list-generator/` (slug distinct from the BL-043 library article `/hub/library/information-request-list/` — no URI collision).
+- [ ] Page header explains the workflow in one paragraph, links to the canonical library article for the reference reading. Does **not** duplicate the article content.
+- [ ] Optional text inputs: `targetName`, `transactionContext` (sell-side / buy-side / value-creation / unknown) — write into the file's header cells + filename.
+- [ ] Primary CTA: "Download IRL (.xlsx)" button. Behavior: client-side or SSR endpoint generation (see Technical Context for the decision).
+- [ ] Generated file mirrors the canonical 10-section structure from `article.md`: one section per worksheet OR one section per row-group (decide during design; both are reasonable).
+- [ ] File header cells include: target name (if supplied), transaction context (if supplied), GST generation date, link back to the canonical article URL.
+
+**MCP Tool**
+
+- [ ] New tool `generate_information_request_list_xlsx` registered in the existing tool registry. Input schema: `{ targetName?, transactionContext?, productSummary? }` — same shape as the existing `gst_information_request_list` prompt args.
+- [ ] Output: `{ filename, base64, mimeType }` — base64-encoded .xlsx payload Claude Desktop can attach to a message.
+- [ ] Tool reads from `gst://library/information-request-list` Resource (BL-043's codegen-loaded body). No parallel content store.
+
+**Prompt evolution**
+
+- [ ] `gst_information_request_list.version` bumped `0.0.1 → 0.0.2` (patch — same name, behavior addition).
+- [ ] `gst_information_request_list.orchestrates` extended to include the new tool name alongside the existing Resource URI.
+- [ ] `gst_information_request_list.lastReviewedAt` bumped to the BL-044 commit date.
+- [ ] Manifest-stability hash recomputed; `mcp-server/BREAKING_CHANGES.md` gains a `0.3.0` (or `0.2.1` if no new URIs) entry documenting the additive tool + prompt-version bump.
+- [ ] Prompt body updated: when called with args, the model both emits the IRL preview AND calls `generate_information_request_list_xlsx` to attach the file. Bare invocation (interactive mode) unchanged behaviorally — still emits text-only.
+- [ ] Existing golden file at `mcp-server/tests/examples/information-request-list.golden.md` re-captured to reflect the file-attachment output shape.
+
+**Tests**
+
+- [ ] Article-parser unit test (`mcp-server/tests/unit/lib/parse-irl-article.test.ts`): given the current `article.md`, the parser returns exactly 10 sections + the expected bullet count per section (~63 total). Asserts the parser handles renumbering, section-title edits, and bullet additions without code changes. Becomes the regression guard for BL-043's article structure.
+- [ ] Tool unit test (`mcp-server/tests/unit/tools/generate-information-request-list-xlsx.test.ts`): empty input + populated input both produce valid .xlsx (validate via `exceljs` round-trip read); filename contains `targetName` slug when supplied; base64 decodes to a non-empty buffer.
+- [ ] Hub page E2E (`tests/e2e/hub-tools-irl-generator.test.ts`): button click triggers download, downloaded file has the expected mimeType, optional inputs propagate to filename. Follows the anti-pattern discipline from `TEST_BEST_PRACTICES.md` (no arbitrary `waitForTimeout`, `waitUntil: 'domcontentloaded'`, deep readiness gate).
+- [ ] Updated prompt unit test asserts the new tool name appears in `orchestrates` and the body literally mentions it (registry-invariant requirement).
+
+**Documentation**
+
+- [ ] Implementation tracking doc at `src/docs/development/MCP_SERVER_IRL_GENERATOR_BL-044.md` — same depth as `MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md`, structured around three-surface design (Hub tool + MCP tool + prompt evolution).
+- [ ] `mcp-server/README.md` — Tools table gains the new tool row; Prompts table updated to reflect the IRL prompt's evolved `orchestrates`.
+- [ ] `mcp-server/src/docs/library/irl-tool-input-mapping.md` (BL-043 deliverable) — adds a row documenting that the generator tool reads the article body as a structured source; this is the existing-discipline lockstep update.
+- [ ] BL-043 tracking doc updated to point at BL-044 in the "Sequel" front-matter line so the cross-reference is bidirectional.
+
+#### Technical Context
+
+**What BL-044 explicitly reuses from BL-043 (do not duplicate)**
+
+| BL-043 deliverable                                                                        | How BL-044 reuses                                                                                            |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `src/data/library/information-request-list/article.md`                                    | Single source of truth. BL-044's parser reads this; never authors its own bullets.                           |
+| `gst://library/information-request-list` Resource                                         | BL-044's MCP tool reads via `loadLibraryByUri()`. No parallel registration. URI contract unchanged.          |
+| `mcp-server/src/content/library-loader.ts` (`LIBRARY_BODIES['information-request-list']`) | Already codegen-emitted by the prebuild step. BL-044's parser imports.                                       |
+| `mcp-server/src/docs/library/irl-tool-input-mapping.md`                                   | Internal SOP authored under BL-043. BL-044 adds one row; doesn't fork the doc.                               |
+| `gst_information_request_list` MCP prompt                                                 | Evolves in place. New version (`0.0.2`), extended `orchestrates`, file-attachment instruction added to body. |
+| `/hub/library/information-request-list/` Hub page                                         | BL-044 links to it for the canonical reference reading. Tool page does NOT duplicate the article content.    |
+
+**What BL-044 adds (genuinely new)**
+
+- `src/pages/hub/tools/information-request-list-generator/index.astro` — action-only Hub tool page (download button + optional metadata inputs); slug deliberately distinct from `/hub/library/information-request-list/` to avoid URI collision.
+- `mcp-server/src/lib/parse-irl-article.ts` — parses the canonical markdown into a structured `{ sections: [{ number, title, bullets[] }] }` shape. Unit-tested as the regression guard for article structure.
+- `mcp-server/src/lib/generate-irl-xlsx.ts` — consumes the parsed structure + optional metadata, produces an `exceljs` workbook → buffer → base64.
+- `mcp-server/src/tools/generate-information-request-list-xlsx.ts` — MCP tool wrapper around the generator.
+- Possibly `src/pages/api/information-request-list.xlsx.ts` — server-side endpoint if SSR generation is chosen (see decision below).
+
+**File-format decision: XLS (.xlsx) for v1**
+
+- **Why**: universal, recipient-familiar, structured cells map naturally to bullets, `exceljs` (or `@cfworker`-compatible XLSX libs) are mature.
+- **DOCX considered**: nearly as good, but the table-of-fields metaphor is less obvious than a spreadsheet. Defer.
+- **Fillable PDF considered**: most professional look, but `pdf-lib` + form-field definitions is substantially heavier engineering. Defer to a future v2.
+- **Markdown considered**: lightest, but recipients have no obvious "fillable form" structure. Negates the entire reason for BL-044.
+
+**Generation path: client-side vs SSR endpoint vs build-time**
+
+Decide during BL-044 Phase 0:
+
+- **Client-side** (`exceljs` running in browser at button-click): smallest server footprint, but ~200 KB bundle hit on the Hub tool page. Probably the right v1 choice — the tool page is opt-in.
+- **SSR endpoint** (`/api/information-request-list.xlsx?targetName=…`): zero bundle hit, but each click is a serverless invocation. Worth it if we want shareable URLs.
+- **Build-time** (`/public/downloads/information-request-list.xlsx` regenerated by prebuild): static + fast, but no per-request personalization (target name, transaction context).
+
+Recommend: **client-side for v1**. Bundle cost is acceptable for a tool page; the personalization fields only make sense at click-time anyway.
+
+**MCP tool runtime concern**
+
+The MCP Worker runtime (BL-032 / BL-032.5) is Cloudflare Workers. `exceljs` has Node-only dependencies (`stream`, `Buffer`). Either:
+
+1. Use a Workers-compatible XLSX library (`@nzwsch/xlsx-js`, `xlsx`, others — verify in Phase 0).
+2. Generate via a Node sidecar (out of scope for v1 — adds infra complexity).
+3. Use the parsed-structure → CSV fallback in the Worker, document XLSX as Hub-tool-only.
+
+Recommend: **option 1**, verify library compatibility before authoring the tool.
+
+**Slug discipline**
+
+- **Library article** (BL-043): `/hub/library/information-request-list/` — reference, read-only
+- **Hub tool** (BL-044): `/hub/tools/information-request-list-generator/` — action, downloadable
+- **MCP Resource**: `gst://library/information-request-list` — unchanged
+- **MCP tool**: `generate_information_request_list_xlsx` — verb-prefixed, distinguishable from the prompt
+- **MCP prompt**: `gst_information_request_list` — unchanged name, evolved behavior + bumped version
+
+**Out of scope for BL-044** (explicitly distinguish from this initiative)
+
+- **Filled-IRL ingestion** — a separate future initiative (BL-045 candidate) that consumes a filled .xlsx and emits canonical Hub-tool inputs (`compute_techpar` payload, `assess_infrastructure_cost_governance` answers map, etc.). Different problem; needs its own design.
+- **Multi-language IRL** — internationalization of the canonical article. Out of scope; if/when prioritized, file separately.
+- **Fillable PDF / DOCX variants** — v2+ if recipient feedback indicates spreadsheet isn't preferred.
+
+**Scope expansion (post-v1)** — content-filtering directives
+
+The current `gst_information_request_list` prompt (shipped under BL-043) has no way to include or exclude content based on input args. Every recipient gets the same 10 sections and ~63 bullets regardless of `productSummary` / `transactionContext`. The only personalization-of-content lever today is **annotation-based compression** — the prompt may add inline `_(already noted: …)_` next to a bullet `productSummary` answers, but never deletes (additive only).
+
+A post-v1 expansion of BL-044 can add **subtractive filtering** by tagging bullets and sections in `article.md` with hidden directives:
+
+```markdown
+<!-- skip-if: productType=b2c -->
+
+- Customer profile: typical contract size, contract length, top concentration risk
+```
+
+BL-044's parser (already a v1 deliverable — required for XLS generation) is the natural home for this logic. Both the XLS generator AND the prompt's `build()` would consume the parser's filtered output, so the agent-emitted version, the downloaded spreadsheet, and the Hub library page (with optional `?productType=b2c-saas` query params) all apply the same filter from the same source. The article remains the single source of truth — directives change _which_ bullets render, never duplicate the bullet text.
+
+**Why post-v1, not bundled into BL-044 v1**:
+
+- Directive syntax design + tag taxonomy + partner-facing docs for "which filters are available" adds ~1-1.5 days to the v1 estimate.
+- v1's annotation-based compression (the lever that already exists under BL-043) covers a substantial portion of the use case without the parser-complexity tax.
+- Subtractive filtering needs partner-validated use cases to design the right tag dictionary — premature without v1 usage signals.
+- v1 ships the universal artifact + tool surface; v1.5 / v2 adds directives once recipient feedback shows the gap is real.
+
+**Drift mitigation** when added: the Hub library page (`/hub/library/information-request-list/`) would gain optional query params that apply the same filter. Without those, the page shows the full universal version (preserves current behavior). The internal `irl-tool-input-mapping.md` doc (a BL-043 deliverable) would gain a "filter directives" section enumerating which input dimensions can be skipped — keeps directives disciplined rather than proliferating.
+
+**Anti-pattern to avoid**: bullet-level removal authored only in the prompt body (and not propagated through the parser to other surfaces) violates BL-043's "single source of truth, no drift" principle. If we ship filtering in BL-044, the parser is the single filter engine — no surface authors its own filter logic in isolation.
+
+**Risks & mitigations**
+
+| Risk                                                                                        | Mitigation                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Article structure changes after BL-043 ship (renumbering, new sections) break the generator | Article-parser unit test (acceptance criteria above) is the regression guard. Discipline: any change to `article.md` requires running `npm -w @gst/mcp-server run test`.   |
+| `exceljs` bundle size hurts Hub tool page Lighthouse                                        | Phase 0 measures the bundle delta. Mitigation paths: SSR generation; lazy-loaded import; CSV fallback for the bulk of bullets.                                             |
+| Workers-runtime XLSX library has a parity gap with Node `exceljs`                           | Phase 0 verifies library compatibility before tool authoring. If parity gap is large, ship Hub-tool .xlsx + MCP-tool .csv as v1; align later.                              |
+| Recipient opens .xlsx and finds the column structure confusing                              | v1 ships with a hidden "instructions" sheet + visible header row in the data sheet. Senior-consultant review of the file's open-in-Excel UX is a blocking pre-merge gate.  |
+| Prompt-orchestration evolution breaks existing `gst_information_request_list` consumers     | Patch-version bump (`0.0.1 → 0.0.2`) signals additive behavior; bare invocation still emits text-only; new file-attachment behavior is conditional on args being supplied. |
+
+**Validation sequence before PR**
+
+1. Phase 0: Workers-XLSX library decision recorded in the tracking doc.
+2. Article-parser unit test passes against the unmodified BL-043 article (no edits to `article.md` required).
+3. Hub tool E2E: button click → downloaded .xlsx → open in Excel → all 10 sections render with bullets verbatim.
+4. MCP tool integration test: tool invocation returns valid base64; round-tripped through `exceljs` yields the same structure.
+5. Updated prompt golden file capture: bare invocation still emits text-only; populated invocation emits text + tool call.
+6. `mcp-server/tests/integration/manifest-stability.test.ts` + `prompts-registry.test.ts` green with the new tool + prompt version.
+7. Senior-consultant review of the downloaded .xlsx in Excel — open-in-Excel UX gate.
+
+---
+
+### BL-045: Filled-IRL Ingestion → Canonical Hub-Tool Inputs (candidate)
+
+**Source**: Sequel work explicitly scoped out of BL-044 (closing the request → response side of the loop) | **Effort**: 3-5 days (estimate; refine during scoping spike) | **Status**: Candidate — not committed; awaits v1 usage evidence | **Depends on**: BL-044 (consumes its generated workbook format)
+
+**As a** GST partner receiving a filled IRL `.xlsx` back from a target/client, **I want** to invoke `/gst_intake_filled_irl` in Claude Desktop with the filled workbook attached **so that** the model parses the answer cells into structured inputs for every relevant Hub tool — `compute_techpar`, `assess_infrastructure_cost_governance`, `estimate_tech_debt_cost`, `generate_diligence_agenda`, `search_regulations` — in one assistant turn, instead of manually re-typing each value across multiple wizards.
+
+Closes the request → response loop BL-043 and BL-044 deliberately scoped out. Today the IRL is a structured _request_ artifact (BL-043 article + BL-044 generator); BL-045 makes the filled response equally structured on the consumption side.
+
+#### Likely shape (to refine during scoping)
+
+- **New prompt** `gst_intake_filled_irl` — takes the filled IRL as `filledIrl` arg (markdown OR base64-encoded `.xlsx` once Claude Desktop's MCP file-attachment surface matures, OR via paste-from-clipboard). Reads through the answer cells, maps each to its canonical Hub-tool input dimension via the [`irl-tool-input-mapping.md`](../../../mcp-server/src/docs/library/irl-tool-input-mapping.md) SOP.
+- **Output**: a dossier section per Hub tool with the inferred input payload (JSON-pasteable into the tool's input schema OR a one-click Hub deeplink with args pre-encoded — same deeplink pattern BL-044 introduced for the XLSX generator).
+- **Engine**: model-mediated semantic mapping, not hardcoded field extraction — handles per-engagement IRL drift (added bullets, rephrasings, "n/a" values) without code changes. Per the ["Per-engagement IRL drift" decision flow](../../../mcp-server/src/docs/library/irl-tool-input-mapping.md#per-engagement-irl-drift--decision-flow).
+
+#### Why "candidate" and not committed
+
+The BL-044 v1 generator + Hub page just shipped (2026-05-25). Real partner usage of the request side should accumulate before designing the response side — v1 evidence on filled-IRL formats, common drift patterns, and which tools partners actually want auto-populated will dramatically improve BL-045's scope. Premature design risks shipping a parser optimized for hypothetical inputs.
+
+#### Triggers to promote from candidate → committed
+
+- ≥3 engagements have run the BL-044 generator end-to-end and partners have actually received filled IRLs back
+- Common drift patterns surface across those engagements (informs whether the parser needs structured arg-mapping or a freeform model-mediated path)
+- A specific partner request for "automate the IRL → tool-inputs hop" arrives — currently the hop is unautomated but small (partner copies the answer cells manually into wizards)
+
+#### Out of scope (likely)
+
+- Multi-version IRL ingestion (parser supports v0 article structure only; later IRL revisions need their own parser updates)
+- Field-level validation against tool Zod schemas (rejection → loop back; bigger scope)
+- DOCX / PDF input variants (start with .xlsx since BL-044 generated that; expand later)
+
+---
+
+### BL-046: In-Claude-Desktop File Delivery for MCP Tools (candidate)
+
+**Source**: BL-044 staging round-trip surfaced Claude Desktop's MCP renderer limitation (2026-05-25) — `resource` content blocks with non-image MIME types are rejected as "unsupported format". The current workaround (Hub deeplink with arg-encoded query params) closes the immediate value gap but doesn't deliver files _inside_ the Claude Desktop chat. | **Effort**: 4-6 hours (`resource_link` + ephemeral Worker-hosted Resources path) OR 3-4 hours (signed HTTP URL path); pick during scoping | **Status**: Candidate · **Low priority** — deeplink+pre-fill closes the arg-passing gap; this is incremental polish for in-chat file UX | **Depends on**: BL-044 (the .xlsx generator is the producer)
+
+**As a** GST partner using Claude Desktop to draft engagement outreach, **I want** the `.xlsx` produced by `generate_information_request_list_xlsx` (and any future binary-producing MCP tool) to appear inline as a downloadable attachment in the chat **so that** I can forward the file from the same draft without leaving the Claude Desktop window to fetch it from the Hub page.
+
+#### Three implementation paths (pick during scoping)
+
+**Path A — `resource_link` + ephemeral Worker-hosted Resources**
+
+- Generated file lands in Upstash KV (or R2) keyed by a synthetic ULID + TTL
+- Tool returns a `resource_link` content block pointing at `gst://generated/irl/<id>`
+- MCP `resources/read` handler on the Worker looks up the cached blob and returns the binary body
+- Claude Desktop sees the resource_link, fetches via `resources/read`, renders as attachment
+- Effort: ~4-6 hours (KV/R2 storage, per-call resource registration, TTL cleanup, resources/read handler wiring, bearer-auth on the resource path)
+
+**Path B — Signed HTTP URL on the Worker**
+
+- Generated file lands in KV/R2 with a signed URL (HMAC of `{ id, expires_at, scope }`)
+- Tool returns a plain text content block with the URL embedded
+- User clicks the link → Worker `/files/:id?sig=...` route validates signature, returns the blob with `Content-Disposition: attachment`
+- Effort: ~3-4 hours (KV/R2 cache, route handler, HMAC signing/validation, expiry logic)
+- Drawback: requires the partner to click an external link (same as current Hub deeplink); less "inline" than Path A
+
+**Path C — Wait for Claude Desktop renderer support**
+
+- The MCP spec already allows arbitrary-mimeType `resource` content blocks with `blob`. Claude Desktop's renderer just doesn't honor them today.
+- Effort: 0 hours for us; unknown timeline on the Claude Desktop side
+- Right path if the Anthropic-side fix lands within a reasonable window — file the issue upstream and revisit BL-046 quarterly
+
+#### Why "low priority"
+
+The BL-044 deeplink+pre-fill (`?target=…&context=…`) reduces the friction of "leaving the chat to get the file" to one click on a Hub page that's already pre-filled with the args. For the partner-handing-off-to-recipient workflow, that's reasonable. BL-046's incremental value is mostly for:
+
+- Email/chat composition flows where the partner wants the file as a draft attachment without context-switching
+- Future agent workflows (BL-033) where automated pipelines pass files as part of programmatic steps and can't tolerate a "human clicks a link" hop
+- Pure-chat workflows where leaving Claude Desktop is itself the friction
+
+None of these are currently load-bearing for active partners. Revisit when (a) Claude Desktop's renderer ships support natively, OR (b) BL-033 surfaces a concrete need for inline file delivery, OR (c) a partner specifically requests "I want the file IN the chat, not a link out."
+
+#### Triggers to promote from candidate → committed
+
+- Claude Desktop ships native renderer support for `resource`-with-blob in tool results (Path C resolves itself)
+- BL-033 pilot needs inline file delivery for an automated workflow
+- Direct partner feedback that the Hub-page hop is friction worth removing
+
+---
+
 ## Infrastructure
 
 ### BL-031: MCP Server — Internal Prototype (Phase 1)
@@ -1197,7 +1585,7 @@ Two end-state options were considered:
 
 - **Website `/hub/radar` page renders without Inoreader credentials** — Vercel-side SSR fetches the snapshot from the Worker; if the Worker is degraded, the website shows the same staleness UX as today but sourced from `mcp.globalstrategic.tech` rather than from a direct `inoreader.com` call
 - **A new BL-033 pilot client onboards in 10 minutes** — operator issues an `MCP_KEY_<TEAM>` bearer; the client points its MCP-compatible runtime at `https://mcp.globalstrategic.tech/mcp`; no Inoreader account work
-- **Operator sees one Inoreader usage graph** in the Developer Console; the Worker's day-counter (T.Z.1) is the canonical Inoreader-consumption signal across every consumer
+- **Operator sees one Inoreader usage graph** in the Developer Console — that graph is the canonical Inoreader-consumption signal across every consumer. The Worker's day-counter (T.Z.1) is a cron-path subset of that total (~80-85%); the missing 15-25% is OAuth refresh + live cache-miss fetches that don't increment the counter. Closing that accounting gap is scoped under [BL-032.75 § BL-032.8 Phase B soak findings → Inoreader spend accounting](#bl-03275-mcp-server--production-observability-maturity) (Day-5 finding, 2026-05-21). The cron's soft-cap protection still works correctly today; the gap is observability-side, not budget-protection-side.
 - **A 429 from Inoreader affects every consumer identically** — the Worker's circuit breaker opens once (T.Z.2), every downstream consumer sees the same 503/cached-snapshot response shape
 
 **Outcomes**
@@ -1347,6 +1735,55 @@ BL-032's Section K soak (31 of 40 tests recorded as of 2026-05-12) surfaced a ti
 - [ ] `search_regulations.jurisdiction` and `.category` — accept arrays in addition to single strings. Evidence: K.2.c.4 (fan-out forced by single-string filters). Would reduce multi-jurisdiction queries from N×M calls to 1. Worth weighing against the "capability mirror" invariant (the website's UI has single-select chips by design) — but input flexibility on the MCP surface doesn't break the mirror if the output stays identical. Estimated effort: 1 day (schema + handler + tests + docs).
 
 **Total estimated effort for K-section mitigations**: ~4 days engineering, sequenceable independently of the broader observability work. Each item ships as a standalone PR.
+
+#### BL-032.8 Phase B soak findings (added 2026-05-21)
+
+**Inoreader spend accounting — day-counter completeness gap**
+
+- [ ] **Discovery (Day-5 of BL-032.8 Phase B soak, 2026-05-21)**: the Inoreader Developer Console reported 37% Zone-1 utilization at end-of-day vs the day-counter's implied prediction of 24% (4 cron firings × 6 calls). Across the post-soak-fix window (18-21 May) the observed steady-state baseline ran 28-37 calls/day, **15-25% above** what the day-counter tracks. Day-counter and Inoreader's Developer Console disagree by a structurally-explainable amount, not a measurement glitch.
+
+  **Root cause**: the day-counter (`mcp:inoreader:day-counter:<YYYY-MM-DD>`, written by [`incrementDayCounter` in radar-refresh.ts:115](../../../mcp-server/src/cron/radar-refresh.ts#L115)) only counts **cron-path radar fetches**. Three other Zone-1-consuming code paths bypass it:
+
+  | Source                            | Egress point                                                                                                                                                                                                                                                                       | Calls/event                              | Frequency                                                                                                      | Tracked? |
+  | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------- |
+  | **Cron radar fetches**            | [`inoreader-client.ts`](../../../mcp-server/src/lib/inoreader-client.ts) `API_BASE` constant — `fetchAllStreams`, `fetchAnnotatedItems`, `fetchTagList` — invoked from [`radar-live-store.ts`](../../../mcp-server/src/content/radar-live-store.ts) when `opts.forceRefresh: true` | 6 (1 tag/list + 4 streams + 1 annotated) | 4 × /day (`0 */6 * * *` UTC)                                                                                   | ✅ Yes   |
+  | **OAuth token refresh**           | [`inoreader-oauth.ts`](../../../mcp-server/src/lib/inoreader-oauth.ts) `OAUTH_TOKEN_URL` — `/oauth2/token` POST                                                                                                                                                                    | 1                                        | ≥1× per cron firing (proactive TTL refresh in `radar-refresh.ts:187`) + ad-hoc on live-tool reactive 401-retry | ❌ No    |
+  | **Live cache-miss radar fetches** | Same `API_BASE` in `inoreader-client.ts`, but invoked from `radar-live-store.ts` when `opts.forceRefresh: false` AND the 6h-TTL cache key is absent (cron-write window slipped, or after deploy/cold start)                                                                        | ~6 each                                  | Rare — only on the brief window before each cron rewrites the cache, plus any tool calls that trip cache miss  | ❌ No    |
+
+  **Predicted vs observed**: 24 (cron) + ~4 (OAuth, one per cron firing) = **28/day baseline**. Matches 18-20 May exactly. Days that exceed 28 (e.g., 21 May's 37) include 1-2 reactive OAuth refreshes from live tool calls + occasional cache-miss radar fetches (operational testing, dry-runs, slow-cron windows). The undercount is structural, not stochastic.
+
+  **Operator-facing consequence**: BL-032.75's existing acceptance criteria ("alert fires at 70% pre-emptively"; "Daily Inoreader budget burn-down panel shows >20% headroom") are **not measurable** against an undercounting counter. The cron's soft-cap guard ([radar-refresh.ts:187](../../../mcp-server/src/cron/radar-refresh.ts#L187)) `counter + 6 > 94` gates the cron's contribution, not total spend — so the cron can stop firing while live-tool traffic continues to consume budget invisibly. In a multi-tenant BL-033 future, this gap becomes load-bearing.
+
+  **Implementation options**:
+  1. **Single global counter** (recommended). Replace the cron-only `day-counter` with `mcp:inoreader:zone1-spend:<YYYY-MM-DD>`. Wrap every Inoreader fetch at egress (a new `fetchInoreaderZone1(env, url, init)` helper in `mcp-server/src/lib/inoreader-egress.ts`) that increments the counter by 1 on every non-error response and returns the raw fetch result. Cron's soft-cap reads this global counter instead of the cron-only one. **Pro**: one accounting point, structurally impossible to bypass. **Con**: requires refactoring three call sites (`inoreader-client.ts` `fetchAllStreams`/`fetchAnnotatedItems`/`fetchTagList`, plus `inoreader-oauth.ts` `refreshAccessToken`'s POST).
+
+  2. **Multi-key counter with breakdown**. Keep `day-counter` for cron-radar; add `mcp:inoreader:oauth-spend:<YYYY-MM-DD>` and `mcp:inoreader:live-spend:<YYYY-MM-DD>`. Cron's soft-cap sums all three. `/health` surfaces breakdown: `inoreaderSpendBreakdown: { cron, oauth, live }`. **Pro**: operator sees exactly where spend went, useful for debugging fan-out hot spots. **Con**: 3× the keys to maintain; reconciling the three is its own minor design problem (e.g., what increments OAuth vs live when an OAuth refresh fires during a live-tool retry).
+
+  3. **Universal egress wrapper with category dimension** (recommended hybrid — combine 1 and 2). Single helper `fetchInoreaderZone1(env, url, init, category)` where `category: 'cron-radar' | 'live-radar' | 'oauth-refresh'`. Helper increments BOTH a single global counter AND a per-category counter. Cron's soft-cap reads global; `/health` returns per-category breakdown for operator visibility. **Pro**: ergonomics of option 1 + observability of option 2. **Con**: marginally more code (~30 LOC for the dual-counter logic), worth it for the breakdown signal.
+
+  **Recommendation**: option 3. The 30-LOC delta over option 1 buys us BL-033-grade operator visibility ("which consumer ate the budget?") for free. Document the category enum in `inoreader-egress.ts` JSDoc + add a "if you add a new Inoreader egress point, add a new category" comment so future code paths don't slip past the accounting.
+
+  **Acceptance criteria for this sub-deliverable**:
+  - [ ] New `mcp-server/src/lib/inoreader-egress.ts` exporting `fetchInoreaderZone1(env, url, init, category)` with the dual-counter increment + on-error short-circuit (don't increment if fetch throws or returns ≥500 — those calls didn't actually consume Zone-1)
+  - [ ] `inoreader-client.ts` `fetchAllStreams`, `fetchAnnotatedItems`, `fetchTagList` refactored to call through the egress wrapper with `category: 'cron-radar'` when invoked from cron path OR `'live-radar'` when invoked from live-tool path (thread the category through `opts.source` already added in BL-032.8 PR #152)
+  - [ ] `inoreader-oauth.ts` `refreshAccessToken` refactored to call through the egress wrapper with `category: 'oauth-refresh'`
+  - [ ] Old `mcp:inoreader:day-counter:<YYYY-MM-DD>` key + `incrementDayCounter`/`readDayCounter` deleted from `radar-refresh.ts`; cron's soft-cap (line 187) reads `mcp:inoreader:zone1-spend:<YYYY-MM-DD>` global counter
+  - [ ] Soft-cap threshold revised: pre-fix the guard was `counter + 6 > 94` (94 = 100 − 6-call safety margin). Post-fix it must be `counter + 7 > 94` to account for the OAuth refresh that the cron now also incurs. **Or** loosen to `> 88` for a more conservative cap. Document the chosen threshold + rationale in the comment block above the guard.
+  - [ ] `/health` response gains `inoreaderSpend: { total: number, byCategory: { 'cron-radar': N, 'live-radar': N, 'oauth-refresh': N } }` so the operator can see breakdown without leaving the endpoint
+  - [ ] Unit tests in `tests/unit/lib/inoreader-egress.test.ts`:
+    - 200 response → counter incremented (both global + category)
+    - Network error → counter NOT incremented
+    - 5xx response → counter NOT incremented
+    - 429 response → counter incremented (Inoreader DID serve a response, even though it was a rejection — debate-worthy; pick a semantic and pin it in the test)
+    - Counter TTL set on first-write (matches existing 25h TTL pattern)
+  - [ ] Soak: 7-day stability window post-deploy; the day-of-deploy projection (cron at 4/day × 7 calls = 28/day, ≈28% of 100/day budget) should match Inoreader's Developer Console within ±1 call/day. If they don't reconcile, there's a fourth egress point we missed.
+  - [ ] Migration note: existing `day-counter:*` keys on Upstash will sit unused after deploy. Add a one-line `mcp-server/src/docs/operations/DEPLOY.md` § A.X note explaining the keys can be manually deleted after deploy + adding a date for the manual cleanup.
+
+  **Effort estimate**: 1-1.5 days engineering — primarily the refactor of 3 fetch sites + threading the category parameter + the new helper + tests. The cron soft-cap threshold revision is a 1-line change but warrants careful test coverage. The `/health` breakdown is a 15-LOC addition. Lower bound assumes no surprises on the radar-live-store.ts category-threading; upper bound budgets a half-day for unexpected.
+
+  **Why this is right-sized as a BL-032.75 sub-deliverable, not a new initiative**: this is exactly the observability-completeness work BL-032.75 is for — making our internal signals match measurable reality. Filing it standalone would create artificial structure; folding it into BL-032.75 inherits the existing acceptance-criteria scaffolding (dashboards, alerts, baselining) which now becomes meaningful once the underlying counter is accurate. The fix unblocks BL-032.75's "alert at 70%" and "20% headroom" acceptance criteria.
+
+  **Related upstream correction**: BL-032.8 currently claims `the Worker's day-counter (T.Z.1) is the canonical Inoreader-consumption signal across every consumer` (line ~1200 of this BACKLOG entry). Post-discovery, the canonical signal is Inoreader's Developer Console; the day-counter is the cron-path subset. BL-032.8's claim updated in the same PR as this entry so BACKLOG stays internally consistent.
 
 #### Acceptance Criteria
 

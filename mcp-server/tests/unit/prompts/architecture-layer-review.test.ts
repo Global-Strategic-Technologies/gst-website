@@ -43,7 +43,7 @@ describe('gst_architecture_layer_review', () => {
     expect(result.messages.length).toBeGreaterThanOrEqual(2);
     const second = result.messages[1].content;
     expect(second.type).toBe('resource');
-    if (second.type === 'resource') {
+    if (second.type === 'resource' && 'text' in second.resource) {
       expect(second.resource.uri).toBe('gst://library/business-architectures');
       expect(second.resource.text).toBeTruthy();
     }

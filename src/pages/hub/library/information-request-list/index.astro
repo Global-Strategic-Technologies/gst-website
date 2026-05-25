@@ -1,0 +1,299 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../../components/hub/HubHeader.astro';
+import PrintReportHeader from '../../../../components/PrintReportHeader.astro';
+import TableOfContents from '../../../../components/TableOfContents.astro';
+
+import { Content, getHeadings } from '../../../../data/library/information-request-list/article.md';
+
+// Build the TOC from the article's h2s so the page and the markdown can never drift.
+// `getHeadings()` is exported by Astro's markdown loader; returns { depth, slug, text }[].
+const tocItems = getHeadings()
+  .filter((h: { depth: number }) => h.depth === 2)
+  .map((h: { slug: string; text: string }) => ({ href: `#${h.slug}`, label: h.text }));
+---
+
+<BaseLayout
+  title="Information Request List | GST"
+  description="A one-page information request list (IRL) reflecting baseline information to guide technology diligence or value creation initiatives. Organized by VDR taxonomy."
+  ogTitle="Information Request List | GST"
+  ogDescription="GST's universal intake checklist for diligence and value-creation engagements, organized by VDR taxonomy."
+  ogImage="/og-image.png"
+  ogImageAlt="GST Information Request List"
+  ogUrl="https://globalstrategic.tech/hub/library/information-request-list"
+>
+  <PrintReportHeader title="Information Request List" />
+
+  <section class="irl-guide">
+    <div class="container">
+      <HubHeader
+        title="Information Request List"
+        subtitle="IRL reflecting baseline data to guide technology diligence or value creation initiatives. Organized by VDR taxonomy."
+      />
+
+      <div class="irl-layout">
+        <TableOfContents collapsible={true} items={tocItems} />
+
+        <article class="irl-content">
+          <Content />
+        </article>
+      </div>
+
+      <a href="/hub/library" class="cta-button secondary back-link">Back to The Library</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .irl-guide {
+    padding: var(--spacing-3xl) 0 5rem;
+  }
+
+  /* Layout positioning for shared TOC (non-sidebar default) */
+  .irl-layout :global(.toc) {
+    display: block;
+    max-width: 800px;
+    margin: 0 auto var(--spacing-3xl);
+  }
+
+  .irl-content {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  /* Style the markdown-rendered content to match the VDR Library Guide voice. */
+  .irl-content :global(blockquote) {
+    border-left: 3px solid var(--color-primary);
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin: 0 0 var(--spacing-xl);
+    color: var(--text-secondary);
+    font-size: var(--text-base);
+    line-height: 1.7;
+    background: transparent;
+  }
+
+  .irl-content :global(h2) {
+    font-family: var(--font-family-mono);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: var(--spacing-3xl) 0 var(--spacing-lg);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-left: 3px solid var(--color-primary);
+    scroll-margin-top: 80px;
+  }
+
+  .irl-content :global(h2:first-of-type) {
+    margin-top: 0;
+  }
+
+  .irl-content :global(p) {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .irl-content :global(ul) {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--spacing-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  /* Mirrors `.vdr-list li` exactly — flexbox + gap + vertical-aligned icon via
+     margin-top on the bullet. The pseudo-element renders the canonical delta
+     glyph via the documented mask-image pattern (see STYLES_GUIDE.md § Mask-
+     image pattern). Markdown-rendered `<li>` can't host a `<DeltaIcon>`
+     component, so this is the documented fallback. `currentColor` inherits
+     the `<li>`'s `--text-secondary` color so the bullet matches VDR's
+     `<DeltaIcon stroke="currentColor">` exactly. */
+  .irl-content :global(ul li) {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    transition: background var(--transition-fast);
+  }
+
+  .irl-content :global(ul li::before) {
+    content: '';
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    margin-top: 0.35em;
+    background-color: currentColor;
+    mask-image: url('/images/logo/gst-delta-icon-teal-stroke-thick.svg');
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    opacity: 0.8;
+  }
+
+  .irl-content :global(strong) {
+    color: var(--text-primary);
+  }
+
+  .irl-content :global(a) {
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .irl-content :global(a:hover) {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+  }
+
+  .irl-content :global(code) {
+    font-family: var(--font-family-mono);
+    font-size: 0.9em;
+    background: transparent;
+    padding: 0.15em 0.4em;
+    color: var(--color-primary);
+  }
+
+  .irl-content :global(hr) {
+    border: 0;
+    border-top: 1px solid var(--border-light);
+    margin: var(--spacing-2xl) 0;
+  }
+
+  .irl-content :global(em) {
+    color: var(--text-muted);
+  }
+
+  /* Back navigation */
+  .back-link {
+    display: inline-block;
+    margin-top: var(--spacing-2xl);
+  }
+
+  /* Desktop sidebar layout */
+  @media (min-width: 1025px) {
+    .irl-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: var(--spacing-2xl);
+      max-width: 1200px;
+      margin: 0 auto;
+      align-items: start;
+    }
+
+    .irl-layout :global(.toc) {
+      position: sticky;
+      top: var(--spacing-xl);
+      max-width: none;
+      margin: 0;
+      max-height: calc(100vh - var(--spacing-2xl));
+      overflow-y: auto;
+    }
+
+    .irl-layout :global(.toc .toc__heading) {
+      font-size: 1rem;
+      padding: var(--spacing-xs) var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .irl-content {
+      max-width: none;
+      margin: 0;
+    }
+  }
+
+  /* Tablet — slightly wider content */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .irl-layout :global(.toc) {
+      max-width: 900px;
+    }
+
+    .irl-content {
+      max-width: 900px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .irl-guide {
+      padding: var(--spacing-2xl) 0 var(--spacing-3xl);
+    }
+
+    .irl-content :global(h2) {
+      font-size: 1.1rem;
+      padding: var(--spacing-xs) var(--spacing-md);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .irl-guide {
+      padding: var(--spacing-xl) 0 var(--spacing-2xl);
+    }
+
+    .irl-content :global(h2) {
+      font-size: 1.05rem;
+    }
+
+    .irl-content :global(p),
+    .irl-content :global(ul li) {
+      line-height: 1.7;
+    }
+  }
+
+  /* Print layout — mirror the VDR Structure Guide print treatment */
+  @media print {
+    .irl-layout {
+      display: block;
+    }
+
+    .irl-guide {
+      padding: 0;
+    }
+
+    /* Hide TOC — not useful on paper */
+    .irl-layout :global(.toc) {
+      display: none;
+    }
+
+    /* Each section starts on a fresh page */
+    .irl-content :global(h2) {
+      page-break-before: always;
+      break-before: page;
+      break-inside: avoid;
+      margin-top: 0;
+      margin-bottom: var(--spacing-sm);
+      padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    /* First h2 ("How to use this list") shares the first page with the intro */
+    .irl-content :global(h2:first-of-type) {
+      page-break-before: auto;
+      break-before: auto;
+    }
+
+    /* Tighten body spacing for print */
+    .irl-content :global(p) {
+      margin-bottom: var(--spacing-sm);
+      line-height: 1.5;
+    }
+
+    .irl-content :global(ul) {
+      gap: 2px;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .irl-content :global(ul li) {
+      padding: 2px var(--spacing-xs) 2px var(--spacing-lg);
+      break-inside: avoid;
+    }
+
+    .back-link {
+      display: none;
+    }
+  }
+</style>

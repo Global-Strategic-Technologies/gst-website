@@ -454,3 +454,164 @@ test.describe('TechPar - Regression', () => {
     await expect(page.locator('#tp-arr')).toHaveValue('');
   });
 });
+
+// ─── Cost preset chip ↔ input synchronization ────────────────────────────────
+//
+// Every `data-preset-for` chip group paired with a `data-input` must stay in
+// sync in BOTH directions: clicking a chip writes its value to the input
+// (already worked), and typing in the input must deactivate any chip whose
+// preset value no longer matches. Asserts the chip class AND aria-pressed AND
+// the resulting input value — see TEST_BEST_PRACTICES.md §
+// "Quick-preset chips that don't deactivate on manual override".
+
+interface CostControlCase {
+  name: string;
+  input: string;
+  tab: 'profile' | 'costs';
+  stage?: string;
+  /** rdEng/rdProd/rdTool live inside .tp-deep-wrap (hidden until deepdive mode). */
+  deepDive?: boolean;
+  presetA: number;
+  presetB: number;
+}
+
+const COST_CONTROLS: CostControlCase[] = [
+  { name: 'exitMult', input: 'exitMult', tab: 'profile', stage: 'pe', presetA: 6, presetB: 10 },
+  { name: 'infra (monthly)', input: 'infra', tab: 'costs', presetA: 5000, presetB: 15000 },
+  { name: 'infraPers', input: 'infraPers', tab: 'costs', presetA: 250000, presetB: 500000 },
+  { name: 'rdOpEx', input: 'rdOpEx', tab: 'costs', presetA: 1000000, presetB: 3000000 },
+  {
+    name: 'rdEng',
+    input: 'rdEng',
+    tab: 'costs',
+    deepDive: true,
+    presetA: 500000,
+    presetB: 1000000,
+  },
+  {
+    name: 'rdProd',
+    input: 'rdProd',
+    tab: 'costs',
+    deepDive: true,
+    presetA: 250000,
+    presetB: 500000,
+  },
+  {
+    name: 'rdTool',
+    input: 'rdTool',
+    tab: 'costs',
+    deepDive: true,
+    presetA: 100000,
+    presetB: 250000,
+  },
+  { name: 'engFTE', input: 'engFTE', tab: 'costs', presetA: 5, presetB: 10 },
+  { name: 'rdCapEx', input: 'rdCapEx', tab: 'costs', presetA: 500000, presetB: 1000000 },
+];
+
+async function navigateToControl(page: Page, c: CostControlCase): Promise<void> {
+  await gotoTool(page);
+  await selectStage(page, c.stage ?? 'series_bc');
+  if (c.tab === 'costs') await clickTab(page, 'costs');
+  if (c.deepDive) {
+    await page.click('[data-mode="deepdive"]');
+    await page.waitForFunction(() =>
+      document.querySelector('[data-rd-deep]')?.classList.contains('tp-deep-wrap--on')
+    );
+  }
+}
+
+test.describe('TechPar - Cost preset chip ↔ input sync', () => {
+  for (const c of COST_CONTROLS) {
+    test.describe(c.name, () => {
+      test('manual override deactivates the previously-selected chip', async ({ page }) => {
+        await navigateToControl(page, c);
+        const chipA = page.locator(
+          `[data-preset-for="${c.input}"][data-preset-val="${c.presetA}"]`
+        );
+        const input = page.locator(`[data-input="${c.input}"]`);
+
+        await chipA.click();
+        await expect(input).toHaveValue(String(c.presetA));
+        await expect(chipA).toHaveClass(/tp-arr-chip--active/);
+        await expect(chipA).toHaveAttribute('aria-pressed', 'true');
+
+        // Type a value that matches NO preset chip
+        const overrideValue = c.presetA + 1;
+        await input.fill(String(overrideValue));
+        await expect(input).toHaveValue(String(overrideValue));
+        await expect(chipA).not.toHaveClass(/tp-arr-chip--active/);
+        await expect(chipA).toHaveAttribute('aria-pressed', 'false');
+      });
+
+      test('overriding to another chip value activates that chip and deactivates the prior', async ({
+        page,
+      }) => {
+        await navigateToControl(page, c);
+        const chipA = page.locator(
+          `[data-preset-for="${c.input}"][data-preset-val="${c.presetA}"]`
+        );
+        const chipB = page.locator(
+          `[data-preset-for="${c.input}"][data-preset-val="${c.presetB}"]`
+        );
+        const input = page.locator(`[data-input="${c.input}"]`);
+
+        await chipA.click();
+        await expect(chipA).toHaveClass(/tp-arr-chip--active/);
+
+        await input.fill(String(c.presetB));
+        await expect(chipA).not.toHaveClass(/tp-arr-chip--active/);
+        await expect(chipB.first()).toHaveClass(/tp-arr-chip--active/);
+        await expect(chipB.first()).toHaveAttribute('aria-pressed', 'true');
+      });
+
+      test('clearing the input deactivates all chips', async ({ page }) => {
+        await navigateToControl(page, c);
+        const chipA = page.locator(
+          `[data-preset-for="${c.input}"][data-preset-val="${c.presetA}"]`
+        );
+        const input = page.locator(`[data-input="${c.input}"]`);
+
+        await chipA.click();
+        await expect(chipA).toHaveClass(/tp-arr-chip--active/);
+
+        await input.fill('');
+        const activeCount = await page
+          .locator(`[data-preset-for="${c.input}"].tp-arr-chip--active`)
+          .count();
+        expect(activeCount).toBe(0);
+      });
+
+      test('re-typing the exact preset value keeps the chip active', async ({ page }) => {
+        await navigateToControl(page, c);
+        const chipA = page.locator(
+          `[data-preset-for="${c.input}"][data-preset-val="${c.presetA}"]`
+        );
+        const input = page.locator(`[data-input="${c.input}"]`);
+
+        await chipA.click();
+        await input.fill(String(c.presetA));
+        await expect(chipA).toHaveClass(/tp-arr-chip--active/);
+        await expect(chipA).toHaveAttribute('aria-pressed', 'true');
+      });
+    });
+  }
+
+  // Negative-control regression: ARR has always had correct sync behavior
+  // (via syncArrChips). Guard against future refactors that might reintroduce
+  // the bug on the ARR control.
+  test('ARR chip deactivates when input is manually overridden (regression guard)', async ({
+    page,
+  }) => {
+    await gotoTool(page);
+    await selectStage(page);
+    const chip = page.locator('.tp-arr-chip[data-arr-val="10000000"]');
+    const input = page.locator('[data-input="arr"]');
+
+    await chip.click();
+    await expect(chip).toHaveClass(/tp-arr-chip--active/);
+
+    await input.fill('12345678');
+    await expect(chip).not.toHaveClass(/tp-arr-chip--active/);
+    await expect(chip).toHaveAttribute('aria-pressed', 'false');
+  });
+});

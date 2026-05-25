@@ -48,7 +48,7 @@ describe('gst_vdr_audit', () => {
       expect(result.messages.length).toBeGreaterThanOrEqual(2);
       const second = result.messages[1].content;
       expect(second.type).toBe('resource');
-      if (second.type === 'resource') {
+      if (second.type === 'resource' && 'text' in second.resource) {
         expect(second.resource.uri).toBe('gst://library/vdr-structure');
         expect(second.resource.text).toBeTruthy();
       }

@@ -161,8 +161,9 @@ describe('search_radar token-stale recovery via Worker refresh path', () => {
     // handleSearchRadar signature is (env, input).
     const result = await handleSearchRadar(env, {});
 
-    // Tool returned a successful result envelope.
-    expect(result.isError).toBeFalsy();
+    // Tool returned a successful result envelope. Cast widens the
+    // discriminated success/error union for the narrowing-free access.
+    expect((result as { isError?: boolean }).isError).toBeFalsy();
 
     // Exactly one /oauth2/token POST — single-flight worked.
     const oauthPosts = fetchSpy.mock.calls.filter((c) => c[0] === OAUTH_TOKEN_URL);
