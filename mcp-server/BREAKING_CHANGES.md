@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-d8097510e3513631deb3d3035a05f7de9081e8384543a733fe78bff33fd8aa61
+b702aa38df95e959bbf6f9f8ffac27460f0bbb7e3511c4253eb1781692d1a84d
 ```
 
 Computed over (sorted):
@@ -19,12 +19,51 @@ Computed over (sorted):
 - 3 Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`)
 - 120 Regulation URIs (`gst://regulations/<jurisdiction>/<framework-id>`)
 - 6 Radar URIs (FYI latest + Wire latest + 4 Wire categories)
-- 10 prompt `name@version` tuples (`gst_*`) — `gst_information_request_list` at `0.0.3` + `gst_diligence_sweep` at `0.0.5` post-voice-cue accuracy patch
+- 10 prompt `name@version` tuples (`gst_*`) — `gst_information_request_list` at `0.0.4` (Claude Desktop redirect) + `gst_diligence_sweep` at `0.0.5`
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.3.9 — 2026-05-25 — `generate_information_request_list_xlsx` reverts the `resource` content block; `gst_information_request_list` v0.0.3 → v0.0.4 redirects to the Hub page
+
+**Theme**: 0.3.8 added a `resource` content block carrying the .xlsx as a blob — the canonical MCP "tool produced a binary" pattern. Staging round-trip test (2026-05-25) confirmed Claude Desktop's tool-result renderer **routes `resource` content blocks by mimeType prefix** (`image/*` → image renderer, anything else → red "unsupported format" error block). The blob was correctly delivered on the wire; Claude Desktop just refused to render anything that wasn't an image.
+
+### Changed
+
+- **Tool response shape**: `generate_information_request_list_xlsx` reverts to a single text content block (no resource block). `structuredContent` retained verbatim — programmatic API consumers that read `.base64` continue to work. The text summary now includes the Hub page URL (`/hub/tools/information-request-list-generator/`) so the model can direct users to the canonical download surface.
+- **Prompt body**: `gst_information_request_list` bumped `0.0.3 → 0.0.4`. Step 4 of the one-shot body updated:
+  - **DOES** still call `generate_information_request_list_xlsx` (the tool returns useful `structuredContent` — filename, counts — that the model uses in its reply).
+  - **DOES NOT** promise an attachment in chat (the previous "attach the file to your reply" directive was unfulfillable in Claude Desktop).
+  - **DOES** explicitly redirect the partner to `https://globalstrategic.tech/hub/tools/information-request-list-generator/` for the actual download. The Hub page runs the same generator client-side with the same target/context personalization.
+- **Description**: clarified that the prompt "directs the partner to the Hub page" rather than "emits a downloadable fillable .xlsx".
+
+### Why patch and not major
+
+The tool's input schema, name, registered orchestrates list, and `structuredContent` shape are unchanged. The only externally-visible change is the removal of a content block that Claude Desktop rejected anyway — the surface that worked still works, the surface that errored is gone. No client breakage.
+
+### Test impact
+
+- `generate-information-request-list-xlsx.test.ts`: removed the two regression tests asserting the resource block + base64 blob (they validated a contract that's no longer the right pattern). Replaced with one test asserting the text summary contains the Hub page URL.
+- `information-request-list.test.ts`: version assertion bumped `0.0.3 → 0.0.4`; the "one-shot body calls the XLSX tool" test extended to also assert the Hub page URL appears AND the "do not promise an attachment" directive appears literally in the body.
+- Manifest hash recomputed.
+
+### Follow-up — BL-046 candidate (file-delivery surface for Claude Desktop)
+
+Proper file-delivery in Claude Desktop requires one of:
+
+1. Claude Desktop renderer support for arbitrary-mimeType `resource` content (waiting on client maturity)
+2. `resource_link` + ephemeral Worker-hosted Resources (~4-6 hours: KV/R2 storage, per-call resource registration, TTL, resources/read handler integration)
+3. Signed HTTP download URL on the Worker (~3-4 hours: KV cache, route, expiry, signature scheme)
+
+Filing as BL-046 when prioritized. Until then, the Hub page is the canonical download surface and the tool's text summary names it explicitly.
+
+**Operator semantics**: patch bump per the discipline (response-shape revert + prompt patch — no surface-area change). Pinned MCP conversations resolve everything identically; the only behavior change is that the model now correctly directs users to a working download path instead of an unfulfillable attachment.
+
+**Architecture context**: BL-044 staging round-trip test (2026-05-25). The 0.3.8 → 0.3.9 pair is one logical fix arc: 0.3.8 attempted the canonical MCP pattern; 0.3.9 reverts to an honest Claude-Desktop-compatible shape after the renderer limitation was confirmed empirically.
 
 ---
 

@@ -108,7 +108,7 @@ function buildOneShotBody(args: {
     '',
     'Do not invent additional sections. Do not add a tools-attribution appendix (the artifact is intentionally clean for client consumption). If a question is materially answered by `productSummary`, you may add a single inline annotation like "_(already noted: …)_" next to the bullet — but never delete it.',
     '',
-    `Step 4. Call the **\`${XLSX_TOOL_NAME}\`** tool with the same args (\`targetName\`, \`transactionContext\`) so the partner gets a downloadable fillable \`.xlsx\` workbook alongside the paste-ready text. The tool returns \`{ filename, base64, mimeType }\` — attach the file to your reply. The XLSX mirrors the same canonical article body the model is reproducing above, so partner-facing text and partner-facing file stay byte-identical.`,
+    `Step 4. Call the **\`${XLSX_TOOL_NAME}\`** tool with the same args (\`targetName\`, \`transactionContext\`) to confirm the partner-facing fillable \`.xlsx\` can be generated. The tool returns \`{ filename, base64, mimeType, sectionCount, bulletCount }\` in \`structuredContent\` — use the filename and counts in your reply so the partner knows what's available. **DO NOT promise an attachment in this chat**: Claude Desktop's MCP tool-result renderer cannot surface arbitrary-mimeType file payloads today. Instead, direct the partner to the Hub page at https://globalstrategic.tech/hub/tools/information-request-list-generator/ — the same generator runs there client-side with a one-click download and the same target/context personalization. (The base64 in \`structuredContent\` remains available for programmatic API consumers that aren't Claude Desktop.)`,
   ].join('\n');
 }
 
@@ -134,9 +134,9 @@ const INTERACTIVE_BODY = [
 export const informationRequestListPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
-    'Assemble the input-gathering ask GST hands to a target/client before running diligence tools. When called with args, also emits a downloadable fillable .xlsx via generate_information_request_list_xlsx so the recipient has a structured response surface. Pair with gst_diligence_kickoff once the IRL is filled.',
-  version: '0.0.3',
-  lastReviewedAt: '2026-05-24',
+    'Assemble the input-gathering ask GST hands to a target/client before running diligence tools. When called with args, also calls generate_information_request_list_xlsx and directs the partner to the Hub page for a one-click .xlsx download. Pair with gst_diligence_kickoff once the IRL is filled.',
+  version: '0.0.4',
+  lastReviewedAt: '2026-05-25',
   orchestrates: [RESOURCE_URI, XLSX_TOOL_NAME] as const,
   argsSchema,
   build: (args) => {

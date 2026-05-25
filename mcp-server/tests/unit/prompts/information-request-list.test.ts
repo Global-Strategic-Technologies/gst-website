@@ -23,7 +23,10 @@ describe('gst_information_request_list', () => {
     // v0.0.2 = BL-044 (additive file-attachment behavior).
     // v0.0.3 = voice-cue copy fix (drop "underwriting"/"before the LOI" buy-side
     // anchor + "post-close" value-creation anchor — accuracy + label alignment).
-    expect(informationRequestListPrompt.version).toBe('0.0.3');
+    // v0.0.4 = Step 4 update (don't promise attachment in Claude Desktop;
+    // redirect to Hub page after the staging round-trip surfaced the
+    // arbitrary-mimeType resource-block limitation).
+    expect(informationRequestListPrompt.version).toBe('0.0.4');
     expect(informationRequestListPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(informationRequestListPrompt.orchestrates).toEqual([RESOURCE_URI, XLSX_TOOL_NAME]);
   });
@@ -176,13 +179,16 @@ describe('gst_information_request_list', () => {
       expect(text).toContain('Step 2.');
     });
 
-    it('one-shot body instructs the model to call the XLSX tool (BL-044 behavior addition)', () => {
+    it('one-shot body instructs the model to call the XLSX tool AND direct the partner to the Hub page', () => {
       const text = bodyText(informationRequestListPrompt, { targetName: 'Acme' });
       expect(text).toContain(XLSX_TOOL_NAME);
-      // The call instruction must reference the tool's return shape so the
-      // model knows what to attach. If this assertion drifts, the prompt
-      // body has lost the file-attachment directive.
-      expect(text).toMatch(/filename.*base64.*mimeType/i);
+      // v0.0.4 anchors: model must NOT promise an attachment (Claude
+      // Desktop renderer can't surface it); MUST point at the Hub page
+      // where the same file is downloadable client-side. If either side
+      // of this assertion drifts, the prompt has lost the redirect
+      // discipline that the post-staging-round-trip fix established.
+      expect(text).toMatch(/hub\/tools\/information-request-list-generator/);
+      expect(text.toLowerCase()).toMatch(/do not promise an attachment/);
     });
   });
 

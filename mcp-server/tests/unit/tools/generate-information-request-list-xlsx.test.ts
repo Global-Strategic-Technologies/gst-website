@@ -54,42 +54,27 @@ describe('generate_information_request_list_xlsx — schema', () => {
 });
 
 describe('generate_information_request_list_xlsx — handler', () => {
-  it('returns a content envelope with a text summary AND a resource attachment', async () => {
+  it('returns a single text content block summarizing what was generated', async () => {
+    // 2026-05-25 update: a resource content block carrying the .xlsx as a
+    // blob was REMOVED because Claude Desktop's tool-result renderer routes
+    // by mimeType prefix (image/* only) and surfaces a red "unsupported
+    // format" error for arbitrary binary mimeTypes. Until BL-046 ships a
+    // proper file-delivery surface, the tool returns text + structuredContent
+    // only; the canonical download path is the Hub page.
     const result = await handleGenerateIrlXlsxTool({});
-    // Two content blocks: text summary (model + human readable) + resource
-    // block (the downloadable .xlsx surface Claude Desktop renders).
-    expect(result.content).toHaveLength(2);
+    expect(result.content).toHaveLength(1);
     expect(result.content[0].type).toBe('text');
     expect((result.content[0] as { text: string }).text).toMatch(/Generated.*workbook/i);
-    expect(result.content[1].type).toBe('resource');
   });
 
-  it('resource content block carries the xlsx as a base64 blob with the right MIME type (Claude Desktop download surface)', async () => {
-    // Regression for 2026-05-25: shipping only `structuredContent.base64`
-    // left Claude Desktop with no surface to render a downloadable file —
-    // the model wrote a summary but the user couldn't click anything. The
-    // canonical MCP "tool produced a binary" pattern is a resource content
-    // block with `blob` (base64) and `mimeType`. This test locks the shape
-    // so the fix can't silently regress.
+  it('text summary directs the recipient to the Hub page download surface', async () => {
+    // Regression guard: the model needs to be told explicitly where the
+    // file is actually retrievable. Without this directive in the summary,
+    // the model writes "here's the file" with no clickable target and the
+    // user has nowhere to click.
     const result = await handleGenerateIrlXlsxTool({ targetName: 'Acme' });
-    const resourceBlock = result.content.find((c) => c.type === 'resource') as
-      | { type: 'resource'; resource: { uri: string; mimeType: string; blob: string } }
-      | undefined;
-    expect(resourceBlock).toBeDefined();
-    if (resourceBlock) {
-      expect(resourceBlock.resource.mimeType).toBe(IRL_XLSX_MIME_TYPE);
-      expect(resourceBlock.resource.uri).toMatch(
-        /^gst:\/\/generated\/irl\/GST-IRL-Acme-\d{4}-\d{2}-\d{2}\.xlsx$/
-      );
-      // The blob must be a non-empty base64 string that decodes to a real
-      // workbook (ZIP magic bytes PK\x03\x04 at offset 0).
-      const decoded = atob(resourceBlock.resource.blob);
-      expect(decoded.length).toBeGreaterThan(500);
-      expect(decoded.charCodeAt(0)).toBe(0x50); // 'P'
-      expect(decoded.charCodeAt(1)).toBe(0x4b); // 'K'
-      expect(decoded.charCodeAt(2)).toBe(0x03);
-      expect(decoded.charCodeAt(3)).toBe(0x04);
-    }
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toMatch(/hub\/tools\/information-request-list-generator/);
   });
 
   it('structuredContent has filename, base64, mimeType, and counts', async () => {

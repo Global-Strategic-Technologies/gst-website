@@ -122,9 +122,13 @@ export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
   const base64 = uint8ToBase64(buffer);
   const totalBullets = article.sections.reduce((sum, s) => sum + s.bullets.length, 0);
 
+  const downloadHref = `${IRL_CANONICAL_URL.replace(
+    '/library/information-request-list/',
+    '/tools/information-request-list-generator/'
+  )}`;
   const summary = input.targetName
-    ? `Generated IRL workbook for ${input.targetName} (${article.sections.length} sections, ${totalBullets} requests). Filename: ${filename}`
-    : `Generated universal IRL workbook (${article.sections.length} sections, ${totalBullets} requests). Filename: ${filename}`;
+    ? `Generated IRL workbook for ${input.targetName} (${article.sections.length} sections, ${totalBullets} requests). Filename: ${filename}. Download the same file (with the same target/context personalization) at ${downloadHref} — Claude Desktop cannot render arbitrary-mimeType MCP resource attachments today, so the Hub page is the canonical download surface.`
+    : `Generated universal IRL workbook (${article.sections.length} sections, ${totalBullets} requests). Filename: ${filename}. Download the same file from ${downloadHref} — Claude Desktop cannot render arbitrary-mimeType MCP resource attachments today, so the Hub page is the canonical download surface.`;
 
   const payload = {
     filename,
@@ -136,28 +140,29 @@ export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
     canonicalUrl: IRL_CANONICAL_URL,
   };
 
-  // Emit the file as both:
-  //   1. A `resource` content block — the canonical MCP surface that
-  //      Claude Desktop (and other MCP clients) render as a downloadable
-  //      attachment in the tool-result. Without this, the base64 lives
-  //      only in `structuredContent` (model metadata) and the user sees
-  //      a description but no clickable file.
-  //   2. `structuredContent` retained — API clients that pipe the result
-  //      programmatically (and the model's own reasoning) still get the
-  //      structured payload at the same shape.
+  // Claude Desktop's MCP tool-result renderer routes `resource` content
+  // blocks BY mimeType prefix — `image/*` → image renderer, anything else
+  // → "unsupported format" error. Returning the .xlsx as a `resource`
+  // with blob + `application/vnd.openxmlformats-...` therefore surfaces
+  // in Claude Desktop as a red error block, not a downloadable file.
+  // Confirmed via staging round-trip 2026-05-25.
+  //
+  // Until Claude Desktop's renderer supports arbitrary-mimeType resource
+  // blobs (BL-046 candidate — or until we ship the resource_link +
+  // ephemeral Worker-hosted file path), the canonical download surface
+  // for the IRL workbook is the Hub page at
+  //   https://globalstrategic.tech/hub/tools/information-request-list-generator/
+  // The tool below returns text summary + structuredContent only:
+  //   - Text content: human + model-readable summary mentioning the
+  //     filename, section/bullet counts, and Hub-page URL for download.
+  //   - structuredContent: full payload including base64 blob, retained
+  //     for programmatic API callers (non-Claude-Desktop clients) and
+  //     for the model's reasoning about what was generated.
   return {
     content: [
       {
         type: 'text' as const,
         text: summary,
-      },
-      {
-        type: 'resource' as const,
-        resource: {
-          uri: `gst://generated/irl/${filename}`,
-          mimeType: IRL_XLSX_MIME_TYPE,
-          blob: base64,
-        },
       },
     ],
     structuredContent: payload as unknown as Record<string, unknown>,

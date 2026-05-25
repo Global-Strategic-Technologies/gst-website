@@ -1,7 +1,7 @@
 ---
 promptName: gst_information_request_list
-version: 0.0.3
-recordedAt: 2026-05-24
+version: 0.0.4
+recordedAt: 2026-05-25
 model: claude-opus-4-7
 ---
 
