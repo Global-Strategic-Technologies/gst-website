@@ -1,18 +1,53 @@
 /**
  * Tests for the pure XLSX generator + filename slug helper.
  *
- * The generator round-trips through `@e965/xlsx` (read back what we wrote)
- * so the assertions exercise the actual binary output, not just our code.
+ * The generator round-trips through `xlsx-js-style` (read back what we
+ * wrote) so the assertions exercise the actual binary output, not just
+ * our code.
  */
 
 import { describe, it, expect } from 'vitest';
-import * as XLSX from '@e965/xlsx';
+import { inflateRawSync } from 'node:zlib';
+import { Buffer } from 'node:buffer';
+import * as XLSX from 'xlsx-js-style';
 import {
   generateIrlXlsxBuffer,
   buildIrlFilename,
   IRL_XLSX_MIME_TYPE,
 } from '../../../../src/utils/irl/generate-xlsx';
 import type { IRLArticle } from '../../../../src/utils/irl/types';
+
+/**
+ * Minimal ZIP "local file header" walker — pulls out a single named entry
+ * from the .xlsx (which is just a ZIP). Used to verify style XML directly
+ * because xlsx-js-style's round-trip READ does not preserve `cell.s.font`
+ * metadata even though the underlying file IS written with the styles.
+ * The library's write side is correct (verified by inspection); the read
+ * side strips style metadata back to a partial shape (`{ patternType:
+ * 'none' }` only). Inspecting the file bytes is the only reliable test.
+ */
+function extractZipEntry(xlsxBuf: Uint8Array, targetName: string): string | null {
+  const buf = Buffer.from(xlsxBuf);
+  let off = 0;
+  while (off < buf.length - 4) {
+    if (buf.readUInt32LE(off) === 0x04034b50) {
+      const compMethod = buf.readUInt16LE(off + 8);
+      const compSize = buf.readUInt32LE(off + 18);
+      const nameLen = buf.readUInt16LE(off + 26);
+      const extraLen = buf.readUInt16LE(off + 28);
+      const name = buf.slice(off + 30, off + 30 + nameLen).toString('utf8');
+      const dataStart = off + 30 + nameLen + extraLen;
+      if (name === targetName) {
+        const data = buf.slice(dataStart, dataStart + compSize);
+        return compMethod === 0 ? data.toString('utf8') : inflateRawSync(data).toString('utf8');
+      }
+      off = dataStart + compSize;
+    } else {
+      off += 1;
+    }
+  }
+  return null;
+}
 
 const SAMPLE_ARTICLE: IRLArticle = {
   title: 'Information Request List',
@@ -264,6 +299,29 @@ describe('generateIrlXlsxBuffer', () => {
       (m) => m.s.c === 2 && m.e.c === 4 && m.s.r === m.e.r
     );
     expect(metadataRowMerges?.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('generated .xlsx contains a bold font definition in xl/styles.xml (write path proven by OOXML inspection)', () => {
+    // Regression for 2026-05-25: `@e965/xlsx` (SheetJS Community
+    // auto-republish) silently dropped `cell.s.font` on write so column
+    // headers and section headers rendered as plain text. We swapped to
+    // `xlsx-js-style`, which actually serializes the styles into OOXML.
+    // We can't verify via round-trip read (xlsx-js-style's READ side
+    // strips style metadata), so we unzip the .xlsx and inspect the
+    // xl/styles.xml fragment directly. The presence of `<b/>` inside a
+    // `<font>` element proves Excel / Sheets / LibreOffice will render
+    // the column header row + section header rows in bold.
+    const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
+      generatedAt: FIXED_DATE,
+      canonicalUrl: 'https://example.test',
+    });
+    const stylesXml = extractZipEntry(buf, 'xl/styles.xml');
+    expect(stylesXml).not.toBeNull();
+    // The bold marker must live inside a <font> element (could appear
+    // anywhere else in the doc by coincidence otherwise).
+    expect(stylesXml).toMatch(/<font>[^<]*<[^>]*\/>\s*<[^>]*\/>\s*<b\/>/);
+    // At least one font has the larger column-header size (sz=13).
+    expect(stylesXml).toMatch(/<sz val="13"\/>/);
   });
 
   it('col A is narrow (Reference IDs only); col B is wide enough for bullet text', () => {

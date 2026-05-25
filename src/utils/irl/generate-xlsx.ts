@@ -26,7 +26,7 @@
  * lives in {@link buildIrlFilename} so both surfaces share one rule.
  */
 
-import * as XLSX from '@e965/xlsx';
+import * as XLSX from 'xlsx-js-style';
 import type { IRLArticle } from './types';
 
 export type IRLTransactionContext = 'sell-side' | 'buy-side' | 'value-creation' | 'unknown';

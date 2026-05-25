@@ -24,7 +24,7 @@
  *
  *   - Pure, deterministic, no I/O at handler time (the article body is
  *     bundled into the Worker binary by the prebuild codegen).
- *   - Workers-runtime safe: `@e965/xlsx` is pure JS, `btoa` is
+ *   - Workers-runtime safe: `xlsx-js-style` is pure JS, `btoa` is
  *     universally available, no `Buffer` or `nodejs_compat` needed.
  *   - The library URI lookup uses `loadLibraryByUri` — same code path
  *     as the MCP Resource handler — so the tool never drifts from the

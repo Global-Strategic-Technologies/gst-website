@@ -43,7 +43,7 @@ src/utils/irl/generate-xlsx.ts → Uint8Array (.xlsx)       ← pure, Workers + 
 
 - Slug deliberately distinct from `/hub/library/information-request-list/` (the BL-043 reference article) to avoid URI collision.
 - Client-side generation: the page imports `article.md?raw`, parses + generates inside the browser, triggers a `Blob` download. Zero server round-trip per click.
-- Bundle cost: `@e965/xlsx` adds ~250 KB minified (browser bundle measured at build time). Acceptable for an opt-in tool page; the same library powers the MCP-side surface so total runtime footprint is one dep.
+- Bundle cost: `xlsx-js-style` adds ~250 KB minified (browser bundle measured at build time). Acceptable for an opt-in tool page; the same library powers the MCP-side surface so total runtime footprint is one dep.
 - Optional inputs: `targetName` (text) + `transactionContext` (radio). Both write into the workbook header AND, for targetName, the filename slug.
 - Card on `/hub/tools` landing index (6th card, alongside Regulatory Map / Diligence Machine / Tech Debt / ICG / TechPar).
 
@@ -63,17 +63,26 @@ src/utils/irl/generate-xlsx.ts → Uint8Array (.xlsx)       ← pure, Workers + 
 
 ---
 
-## Library choice — `@e965/xlsx`
+## Library choice — `xlsx-js-style`
 
-The Cloudflare Workers runtime constraint (no `Buffer`, no `stream`, no `node:fs`) rules out `exceljs`. The well-known `xlsx` package on npm has been abandoned by SheetJS (CVE-2023-30533 unpatched at 0.18.5, official install path moved to a CDN-only tarball). `@e965/xlsx` is the community-maintained auto-republish of the current SheetJS source — pure JS, zero runtime deps, identical surface, ~900 KB unminified, comfortably under the free-tier Worker 1 MB limit.
+**Final pick**: [`xlsx-js-style`](https://www.npmjs.com/package/xlsx-js-style) — a maintained MIT-licensed fork of SheetJS Community that adds full style write support (font, fill, border, alignment). Pure JS, zero native deps, Workers + browser + Node compatible.
 
-Verified compatibilities (Phase 0 research):
+**Why not `@e965/xlsx`** (the original Phase 0 pick): `@e965/xlsx` is an auto-republish of SheetJS Community Edition, which silently drops `cell.s.font` on write. Bold + larger font on column headers and section header rows surfaced visually as plain text in Excel (live screenshot 2026-05-25). Swap to `xlsx-js-style` resolves it; the OOXML `xl/styles.xml` inside the generated file now contains real `<font><b/><sz val="13"/></font>` entries that Excel / Sheets / LibreOffice honor.
+
+**Why not `exceljs`**: Node-only (depends on `stream`, `Buffer`, `tmp`). Incompatible with the Cloudflare Workers runtime.
+
+**Why not stock `xlsx` from npm**: SheetJS abandoned the npm package; official install moved to a CDN-only tarball and the npm version carries unpatched CVE-2023-30533.
+
+Verified compatibilities:
 
 - **Workers**: `XLSX.write(wb, { type: 'array' })` returns a `Uint8Array` with no `Buffer` dep. No `nodejs_compat` flag required.
 - **Browser**: same API, returns the same shape. Wrap in `new Blob([buffer])` for download.
 - **Node**: works in Vitest under both `node` and `jsdom` environments (used by the unit tests).
+- **Style write**: `<b/>` + `<sz val="13"/>` confirmed present in `xl/styles.xml` post-write. Verified by the OOXML-inspection unit test in `generate-irl-xlsx.test.ts`.
 
-**Gotcha**: do not import `xlsx/dist/cpexcel.js` (optional codepage support) — it inflates the bundle past the free Workers tier. Core `@e965/xlsx` doesn't need it for ASCII / UTF-8 IRL content.
+**Round-trip read limitation**: `xlsx-js-style`'s READ path strips `cell.s.font` metadata back to a partial shape (`{ patternType: 'none' }` only). So style verification in tests cannot use the round-trip-read pattern; we unzip the .xlsx and inspect `xl/styles.xml` directly via a small inline ZIP walker in the test file.
+
+**Gotcha**: do not import `xlsx-js-style/dist/cpexcel` (optional codepage support) — it inflates the bundle past the free Workers tier. The core package doesn't need it for ASCII / UTF-8 IRL content.
 
 ---
 
@@ -209,8 +218,8 @@ The AST is the contract between the parser and every consumer. **Changes to this
 - [`mcp-server/src/prompts/information-request-list.ts`](../../../mcp-server/src/prompts/information-request-list.ts) — `version` 0.0.1 → 0.0.2, `lastReviewedAt` → 2026-05-24, `orchestrates` extended, one-shot body adds Step 4.
 - [`mcp-server/src/server.ts`](../../../mcp-server/src/server.ts) — register the new tool.
 - [`mcp-server/src/content/library-loader.ts`](../../../mcp-server/src/content/library-loader.ts) — UNCHANGED (BL-043 already registered the article; BL-044 just consumes it).
-- [`mcp-server/package.json`](../../../mcp-server/package.json) — `version` 0.3.4 → 0.3.5, add `@e965/xlsx@^0.20.3` dep.
-- [`package.json`](../../../package.json) — add `@e965/xlsx@^0.20.3` to root deps (for the Astro client-side bundle).
+- [`mcp-server/package.json`](../../../mcp-server/package.json) — `version` 0.3.4 → 0.3.5; later replaced `@e965/xlsx` with `xlsx-js-style@^1.2.0` for cell-style write support.
+- [`package.json`](../../../package.json) — added `xlsx-js-style@^1.2.0` to root deps (for the Astro client-side bundle).
 - [`mcp-server/BREAKING_CHANGES.md`](../../../mcp-server/BREAKING_CHANGES.md) — `0.3.5` entry + manifest-hash bump.
 - [`mcp-server/tests/integration/manifest-stability.test.ts`](../../../mcp-server/tests/integration/manifest-stability.test.ts) — `EXPECTED_MANIFEST_HASH` updated.
 - [`mcp-server/tests/integration/prompts-registry.test.ts`](../../../mcp-server/tests/integration/prompts-registry.test.ts) — `KNOWN_TOOL_NAMES` adds the new tool.

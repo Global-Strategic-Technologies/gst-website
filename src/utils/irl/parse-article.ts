@@ -6,7 +6,7 @@
  * Deliberately uses no markdown library — the article shape is small,
  * stable, and authored by GST. A hand-written line-mode parser keeps
  * the dependency surface minimal (the same Workers runtime constraint
- * that drove the `@e965/xlsx` choice) and yields precise error messages.
+ * that drove the `xlsx-js-style` choice) and yields precise error messages.
  *
  * **Grammar accepted** (mirrors `src/data/library/information-request-list/article.md`):
  *

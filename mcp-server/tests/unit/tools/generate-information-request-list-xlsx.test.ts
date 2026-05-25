@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import * as XLSX from '@e965/xlsx';
+import * as XLSX from 'xlsx-js-style';
 import {
   handleGenerateIrlXlsxTool,
   GenerateIrlXlsxInputSchema,

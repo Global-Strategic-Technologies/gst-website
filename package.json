@@ -45,7 +45,6 @@
   "dependencies": {
     "@astrojs/sitemap": "^3.7.2",
     "@astrojs/vercel": "^10.0.6",
-    "@e965/xlsx": "^0.20.3",
     "@sentry/astro": "^10.52.0",
     "@upstash/redis": "^1.37.0",
     "@vercel/speed-insights": "^2.0.0",
@@ -55,6 +54,7 @@
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
     "topojson-client": "^3.1.0",
+    "xlsx-js-style": "^1.2.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

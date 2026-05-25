@@ -28,6 +28,26 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.3.7 — 2026-05-25 — XLSX library swap (`@e965/xlsx` → `xlsx-js-style`) for cell-style write support
+
+**Theme**: the generated IRL `.xlsx` workbook needs visible bold + larger-font styling on column headers and section header rows for readability. `@e965/xlsx` (SheetJS Community auto-republish) silently drops `cell.s.font` on write — the styling logic in our code was being applied to a no-op write path, so Excel rendered everything as plain text.
+
+### Changed
+
+- **Runtime dependency**: `@e965/xlsx@^0.20.3` removed; `xlsx-js-style@^1.2.0` added in both `mcp-server/package.json` and root `package.json`. Drop-in API replacement (same `XLSX.utils.aoa_to_sheet`, same `XLSX.write` shape, same return types).
+- **Generated workbook bytes change**: the binary output of `generate_information_request_list_xlsx` now includes a non-empty `xl/styles.xml` with real `<font><b/></font>` and `<sz val="13"/>` entries. Excel / Google Sheets / LibreOffice render bold column headers and bold section header rows accordingly.
+- **No tool / prompt / URI surface change**: tool name, input schema, output shape (`{ filename, base64, mimeType, byteLength, sectionCount, bulletCount, canonicalUrl }`), and prompt versions are all unchanged. Pinned conversations continue to resolve the prompt + tool identically.
+
+### Test impact
+
+The `xlsx-js-style` READ path strips style metadata back to a partial shape, so style verification cannot use the round-trip-read pattern. The unit test (`generate-irl-xlsx.test.ts`) now unzips the generated `.xlsx` (small inline ZIP walker) and inspects `xl/styles.xml` directly. This proves the bytes shipped to Excel actually carry the styling, regardless of the library's read-side behavior.
+
+**Operator semantics**: patch-style bump (runtime behavior change without surface-area change → patch bump per the discipline). Pinned conversations continue to resolve everything identically; the only behavior change is the visual styling Excel applies on open.
+
+**Architecture context**: BL-044 post-merge polish (live screenshot 2026-05-25 surfaced the styling no-op). Library-choice rationale + Workers-compatibility verification documented in [`MCP_SERVER_IRL_GENERATOR_BL-044.md` § "Library choice"](../src/docs/development/MCP_SERVER_IRL_GENERATOR_BL-044.md#library-choice--xlsx-js-style).
+
+---
+
 ## 0.3.6 — 2026-05-24 — `gst_information_request_list` v0.0.3 + `gst_diligence_sweep` v0.0.5 voice-cue accuracy patch
 
 **Theme**: tighten the `transactionContext`-driven voice cues in both prompts. Two specific inaccuracies and one alignment with the BL-044 UI label change.
