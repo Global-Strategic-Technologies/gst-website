@@ -44,11 +44,11 @@
   ],
   "dependencies": {
     "@astrojs/sitemap": "^3.7.2",
-    "@astrojs/vercel": "^10.0.6",
+    "@astrojs/vercel": "^10.0.7",
     "@sentry/astro": "^10.52.0",
     "@upstash/redis": "^1.37.0",
     "@vercel/speed-insights": "^2.0.0",
-    "astro": "^6.2.2",
+    "astro": "^6.3.7",
     "chart.js": "^4.5.1",
     "d3-geo": "^3.1.1",
     "d3-selection": "^3.0.0",
