@@ -477,6 +477,86 @@ BL-044's parser (already a v1 deliverable — required for XLS generation) is th
 
 ---
 
+### BL-045: Filled-IRL Ingestion → Canonical Hub-Tool Inputs (candidate)
+
+**Source**: Sequel work explicitly scoped out of BL-044 (closing the request → response side of the loop) | **Effort**: 3-5 days (estimate; refine during scoping spike) | **Status**: Candidate — not committed; awaits v1 usage evidence | **Depends on**: BL-044 (consumes its generated workbook format)
+
+**As a** GST partner receiving a filled IRL `.xlsx` back from a target/client, **I want** to invoke `/gst_intake_filled_irl` in Claude Desktop with the filled workbook attached **so that** the model parses the answer cells into structured inputs for every relevant Hub tool — `compute_techpar`, `assess_infrastructure_cost_governance`, `estimate_tech_debt_cost`, `generate_diligence_agenda`, `search_regulations` — in one assistant turn, instead of manually re-typing each value across multiple wizards.
+
+Closes the request → response loop BL-043 and BL-044 deliberately scoped out. Today the IRL is a structured _request_ artifact (BL-043 article + BL-044 generator); BL-045 makes the filled response equally structured on the consumption side.
+
+#### Likely shape (to refine during scoping)
+
+- **New prompt** `gst_intake_filled_irl` — takes the filled IRL as `filledIrl` arg (markdown OR base64-encoded `.xlsx` once Claude Desktop's MCP file-attachment surface matures, OR via paste-from-clipboard). Reads through the answer cells, maps each to its canonical Hub-tool input dimension via the [`irl-tool-input-mapping.md`](../../../mcp-server/src/docs/library/irl-tool-input-mapping.md) SOP.
+- **Output**: a dossier section per Hub tool with the inferred input payload (JSON-pasteable into the tool's input schema OR a one-click Hub deeplink with args pre-encoded — same deeplink pattern BL-044 introduced for the XLSX generator).
+- **Engine**: model-mediated semantic mapping, not hardcoded field extraction — handles per-engagement IRL drift (added bullets, rephrasings, "n/a" values) without code changes. Per the ["Per-engagement IRL drift" decision flow](../../../mcp-server/src/docs/library/irl-tool-input-mapping.md#per-engagement-irl-drift--decision-flow).
+
+#### Why "candidate" and not committed
+
+The BL-044 v1 generator + Hub page just shipped (2026-05-25). Real partner usage of the request side should accumulate before designing the response side — v1 evidence on filled-IRL formats, common drift patterns, and which tools partners actually want auto-populated will dramatically improve BL-045's scope. Premature design risks shipping a parser optimized for hypothetical inputs.
+
+#### Triggers to promote from candidate → committed
+
+- ≥3 engagements have run the BL-044 generator end-to-end and partners have actually received filled IRLs back
+- Common drift patterns surface across those engagements (informs whether the parser needs structured arg-mapping or a freeform model-mediated path)
+- A specific partner request for "automate the IRL → tool-inputs hop" arrives — currently the hop is unautomated but small (partner copies the answer cells manually into wizards)
+
+#### Out of scope (likely)
+
+- Multi-version IRL ingestion (parser supports v0 article structure only; later IRL revisions need their own parser updates)
+- Field-level validation against tool Zod schemas (rejection → loop back; bigger scope)
+- DOCX / PDF input variants (start with .xlsx since BL-044 generated that; expand later)
+
+---
+
+### BL-046: In-Claude-Desktop File Delivery for MCP Tools (candidate)
+
+**Source**: BL-044 staging round-trip surfaced Claude Desktop's MCP renderer limitation (2026-05-25) — `resource` content blocks with non-image MIME types are rejected as "unsupported format". The current workaround (Hub deeplink with arg-encoded query params) closes the immediate value gap but doesn't deliver files _inside_ the Claude Desktop chat. | **Effort**: 4-6 hours (`resource_link` + ephemeral Worker-hosted Resources path) OR 3-4 hours (signed HTTP URL path); pick during scoping | **Status**: Candidate · **Low priority** — deeplink+pre-fill closes the arg-passing gap; this is incremental polish for in-chat file UX | **Depends on**: BL-044 (the .xlsx generator is the producer)
+
+**As a** GST partner using Claude Desktop to draft engagement outreach, **I want** the `.xlsx` produced by `generate_information_request_list_xlsx` (and any future binary-producing MCP tool) to appear inline as a downloadable attachment in the chat **so that** I can forward the file from the same draft without leaving the Claude Desktop window to fetch it from the Hub page.
+
+#### Three implementation paths (pick during scoping)
+
+**Path A — `resource_link` + ephemeral Worker-hosted Resources**
+
+- Generated file lands in Upstash KV (or R2) keyed by a synthetic ULID + TTL
+- Tool returns a `resource_link` content block pointing at `gst://generated/irl/<id>`
+- MCP `resources/read` handler on the Worker looks up the cached blob and returns the binary body
+- Claude Desktop sees the resource_link, fetches via `resources/read`, renders as attachment
+- Effort: ~4-6 hours (KV/R2 storage, per-call resource registration, TTL cleanup, resources/read handler wiring, bearer-auth on the resource path)
+
+**Path B — Signed HTTP URL on the Worker**
+
+- Generated file lands in KV/R2 with a signed URL (HMAC of `{ id, expires_at, scope }`)
+- Tool returns a plain text content block with the URL embedded
+- User clicks the link → Worker `/files/:id?sig=...` route validates signature, returns the blob with `Content-Disposition: attachment`
+- Effort: ~3-4 hours (KV/R2 cache, route handler, HMAC signing/validation, expiry logic)
+- Drawback: requires the partner to click an external link (same as current Hub deeplink); less "inline" than Path A
+
+**Path C — Wait for Claude Desktop renderer support**
+
+- The MCP spec already allows arbitrary-mimeType `resource` content blocks with `blob`. Claude Desktop's renderer just doesn't honor them today.
+- Effort: 0 hours for us; unknown timeline on the Claude Desktop side
+- Right path if the Anthropic-side fix lands within a reasonable window — file the issue upstream and revisit BL-046 quarterly
+
+#### Why "low priority"
+
+The BL-044 deeplink+pre-fill (`?target=…&context=…`) reduces the friction of "leaving the chat to get the file" to one click on a Hub page that's already pre-filled with the args. For the partner-handing-off-to-recipient workflow, that's reasonable. BL-046's incremental value is mostly for:
+
+- Email/chat composition flows where the partner wants the file as a draft attachment without context-switching
+- Future agent workflows (BL-033) where automated pipelines pass files as part of programmatic steps and can't tolerate a "human clicks a link" hop
+- Pure-chat workflows where leaving Claude Desktop is itself the friction
+
+None of these are currently load-bearing for active partners. Revisit when (a) Claude Desktop's renderer ships support natively, OR (b) BL-033 surfaces a concrete need for inline file delivery, OR (c) a partner specifically requests "I want the file IN the chat, not a link out."
+
+#### Triggers to promote from candidate → committed
+
+- Claude Desktop ships native renderer support for `resource`-with-blob in tool results (Path C resolves itself)
+- BL-033 pilot needs inline file delivery for an automated workflow
+- Direct partner feedback that the Hub-page hop is friction worth removing
+
+---
+
 ## Infrastructure
 
 ### BL-031: MCP Server — Internal Prototype (Phase 1)

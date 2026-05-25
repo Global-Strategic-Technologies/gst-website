@@ -7,6 +7,16 @@ permissions:
 on:
   pull_request:
     branches: [master]
+    # Skip Lighthouse on PRs that don't change anything user-facing — docs,
+    # workflow files, and MCP-server-only changes can't move performance
+    # scores. Reduces noise on docs PRs (the BL-045/046 candidate filing
+    # ran a full 5-min audit for zero signal). If EVERY changed path
+    # matches the ignore list, the workflow is skipped; mixed PRs still
+    # run Lighthouse.
+    paths-ignore:
+      - '**/*.md'
+      - '.github/**'
+      - 'mcp-server/**'
   workflow_dispatch:
     inputs:
       reason:
