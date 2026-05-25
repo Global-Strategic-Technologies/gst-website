@@ -132,44 +132,41 @@ function buildReferenceId(sectionNumber: string, bulletIndex: number): string {
 function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): XLSX.WorkSheet {
   // 5-column layout: [Reference | Request | File Location | Response | Notes].
   //
-  // Col A is deliberately NARROW — it only holds short Reference IDs in the
-  // data section. The header section (title / metadata / intro) does not
-  // depend on col A's width: long header text lives in col B (labels) +
-  // merged C:E (values), or spans A:E as a single visual cell via !merges.
-  // This keeps the data table compact while letting header content
-  // breathe.
+  // Col A is wide enough to hold metadata labels ("Canonical reference" =
+  // 19 chars) in the header section AND Reference IDs ("0-01") in the
+  // data section. Labels are right-aligned in col A so they visually snug
+  // against the value in merged B:E — no gap between label and value
+  // (the prior narrow-col-A layout left col B mostly empty between them).
   const rows: (string | number)[][] = [];
   const merges: XLSX.Range[] = [];
   const sectionHeaderRowIndices: number[] = [];
+  const metadataLabelCells: string[] = [];
   const NUM_COLS = 5;
   const LAST_COL = NUM_COLS - 1;
 
-  // Row 0: article title — merge A:E so the title spans the visual width.
+  // Row 0: article title — merge A:E. Bold + large font applied below.
   rows.push([article.title]);
   merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: LAST_COL } });
 
   let rowIdx = 1;
 
-  // Metadata rows: col A empty, col B = label, col C:E merged = value.
-  // This keeps col A narrow while ensuring long labels ("Engagement
-  // context", "Canonical reference") and long values (URLs) both render
-  // fully without truncation.
-  if (meta.targetName) {
-    rows.push(['', 'Target', meta.targetName]);
-    merges.push({ s: { r: rowIdx, c: 2 }, e: { r: rowIdx, c: LAST_COL } });
+  // Metadata rows: label in col A (right-aligned), value in merged B:E.
+  // Label and value sit visually adjacent — one char of gutter between
+  // the end of col A and the start of col B.
+  const pushMetadataRow = (label: string, value: string) => {
+    rows.push([label, value]);
+    merges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx, c: LAST_COL } });
+    metadataLabelCells.push(XLSX.utils.encode_cell({ r: rowIdx, c: 0 }));
     rowIdx += 1;
-  }
+  };
+
+  if (meta.targetName) pushMetadataRow('Target', meta.targetName);
   if (meta.transactionContext) {
-    rows.push(['', 'Engagement context', TRANSACTION_CONTEXT_LABEL[meta.transactionContext]]);
-    merges.push({ s: { r: rowIdx, c: 2 }, e: { r: rowIdx, c: LAST_COL } });
-    rowIdx += 1;
+    pushMetadataRow('Engagement context', TRANSACTION_CONTEXT_LABEL[meta.transactionContext]);
   }
-  rows.push(['', 'Generated', isoDate(meta.generatedAt)]);
-  merges.push({ s: { r: rowIdx, c: 2 }, e: { r: rowIdx, c: LAST_COL } });
-  rowIdx += 1;
-  rows.push(['', 'Canonical reference', meta.canonicalUrl]);
-  merges.push({ s: { r: rowIdx, c: 2 }, e: { r: rowIdx, c: LAST_COL } });
-  rowIdx += 1;
+  pushMetadataRow('Generated', isoDate(meta.generatedAt));
+  pushMetadataRow('Canonical reference', meta.canonicalUrl);
+
   rows.push([]);
   rowIdx += 1;
 
@@ -208,25 +205,36 @@ function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): XLSX.Wor
 
   const sheet = XLSX.utils.aoa_to_sheet(rows);
   sheet['!cols'] = [
-    { wch: 10 }, // A — Reference (data section only; narrow per UX feedback)
-    { wch: 70 }, // B — Request (bullet text) + metadata labels in header section
-    { wch: 25 }, // C — File Location (recipient's filename / VDR path)
-    { wch: 35 }, // D — Response (free-text answer)
-    { wch: 30 }, // E — Notes (recipient's free-text annotation)
+    { wch: 22 }, // A — Reference IDs (data) + metadata labels (header, right-aligned)
+    { wch: 70 }, // B — Request (bullet text); also leftmost cell of merged metadata values
+    { wch: 25 }, // C — File Location
+    { wch: 35 }, // D — Response
+    { wch: 30 }, // E — Notes
   ];
   sheet['!merges'] = merges;
 
-  // Bold + larger font on the column header row, bold on the section
-  // header text. SheetJS writes the cell.s style block into the XLSX;
-  // Excel / LibreOffice / Sheets all honor it. Round-trip read in
-  // Vitest may not preserve style metadata, so the test surface keeps to
-  // text-position / merge-range assertions rather than style verification.
+  // Title (A1): bold + large font for emphasis.
+  if (sheet['A1']) {
+    sheet['A1'].s = { font: { bold: true, sz: 18 } };
+  }
+
+  // Metadata labels right-aligned so they sit flush against the merged
+  // value cell — eliminates the visual gap users flagged in the prior
+  // narrow-col-A layout.
+  for (const ref of metadataLabelCells) {
+    if (sheet[ref]) {
+      sheet[ref].s = { alignment: { horizontal: 'right', vertical: 'center' } };
+    }
+  }
+
+  // Column header row: bold + larger font.
   const HEADER_STYLE = { font: { bold: true, sz: 13 } };
   for (let col = 0; col < NUM_COLS; col += 1) {
     const ref = XLSX.utils.encode_cell({ r: headerRowIdx, c: col });
     if (sheet[ref]) sheet[ref].s = HEADER_STYLE;
   }
 
+  // Section header text: bold.
   const SECTION_STYLE = { font: { bold: true } };
   for (const sectionRow of sectionHeaderRowIndices) {
     const ref = XLSX.utils.encode_cell({ r: sectionRow, c: 1 });

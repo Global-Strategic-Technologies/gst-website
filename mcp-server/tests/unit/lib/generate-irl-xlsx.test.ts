@@ -129,16 +129,15 @@ describe('generateIrlXlsxBuffer', () => {
     });
     const sheet = XLSX.read(buf, { type: 'array' }).Sheets['Information Request List'];
     const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
-    // Metadata label rows live in col B (col A is empty / reserved for
-    // the Reference column). A label row pairs the col-B label with a
-    // populated col-C value. Bullet rows have the bullet text in col B
-    // and Reference ID in col A, so the col[1]==='Target' check below
-    // wouldn't match them.
+    // Metadata label rows live in col A (right-aligned to snug up against
+    // the merged B:E value cell). Bullet rows put Reference IDs in col A
+    // (matching /^\d+-\d{2}$/), so an exact-string check on col A reliably
+    // distinguishes metadata-label rows from bullet rows.
     const hasTargetLabelRow = rows.some(
-      (r) => r[1] === 'Target' && typeof r[2] === 'string' && r[2] !== ''
+      (r) => r[0] === 'Target' && typeof r[1] === 'string' && r[1] !== ''
     );
     const hasContextLabelRow = rows.some(
-      (r) => r[1] === 'Engagement context' && typeof r[2] === 'string' && r[2] !== ''
+      (r) => r[0] === 'Engagement context' && typeof r[1] === 'string' && r[1] !== ''
     );
     expect(hasTargetLabelRow).toBe(false);
     expect(hasContextLabelRow).toBe(false);
@@ -285,7 +284,7 @@ describe('generateIrlXlsxBuffer', () => {
     expect(introMerge).toBeDefined();
   });
 
-  it('metadata rows merge C:E so the value cell has room (URLs, long labels)', () => {
+  it('metadata rows merge B:E so the value cell sits directly next to the right-aligned label in col A', () => {
     const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
       targetName: 'Acme',
       transactionContext: 'buy-side',
@@ -294,9 +293,10 @@ describe('generateIrlXlsxBuffer', () => {
     });
     const sheet = XLSX.read(buf, { type: 'array' }).Sheets['Information Request List'];
     // Every metadata row (Target / Engagement context / Generated / Canonical
-    // reference) should have a C:E merge for the value cell.
+    // reference) should have a B:E merge for the value cell. The label sits
+    // in col A right-aligned, value spans B:E left-aligned — no visual gap.
     const metadataRowMerges = sheet['!merges']?.filter(
-      (m) => m.s.c === 2 && m.e.c === 4 && m.s.r === m.e.r
+      (m) => m.s.c === 1 && m.e.c === 4 && m.s.r === m.e.r
     );
     expect(metadataRowMerges?.length).toBeGreaterThanOrEqual(4);
   });
@@ -324,7 +324,7 @@ describe('generateIrlXlsxBuffer', () => {
     expect(stylesXml).toMatch(/<sz val="13"\/>/);
   });
 
-  it('col A is narrow (Reference IDs only); col B is wide enough for bullet text', () => {
+  it('col A fits the longest metadata label ("Canonical reference", 19 chars); col B fits bullet text', () => {
     const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
       generatedAt: FIXED_DATE,
       canonicalUrl: 'https://example.test',
@@ -336,12 +336,27 @@ describe('generateIrlXlsxBuffer', () => {
     const colB = sheet['!cols']?.[1];
     const colAWidth = colA?.wch ?? (colA?.wpx ? colA.wpx / 7 : 0);
     const colBWidth = colB?.wch ?? (colB?.wpx ? colB.wpx / 7 : 0);
-    // Col A: just for "Reference" (9 chars) + IDs like "0-01" (4 chars).
-    // Should be narrow — definitely under 20.
-    expect(colAWidth).toBeGreaterThan(0);
-    expect(colAWidth).toBeLessThan(20);
-    // Col B: holds bullet text which can be 100+ chars; widest column.
+    // Col A holds metadata labels (header) AND Reference IDs (data). The
+    // widest label is "Canonical reference" (19 chars); we ship wch=22.
+    expect(colAWidth).toBeGreaterThanOrEqual(19);
+    // Col B holds bullet text (~100 chars) and is the leftmost cell of
+    // every merged metadata value range.
     expect(colBWidth).toBeGreaterThanOrEqual(50);
+  });
+
+  it('title cell A1 carries the larger sz=18 bold style (write path proven by OOXML inspection)', () => {
+    const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
+      generatedAt: FIXED_DATE,
+      canonicalUrl: 'https://example.test',
+    });
+    const stylesXml = extractZipEntry(buf, 'xl/styles.xml');
+    expect(stylesXml).not.toBeNull();
+    // sz=18 is unique to the title row; sz=13 is the column header row.
+    // Both must appear, and 18 must appear inside a <font> element with
+    // <b/> (bold). The exact ordering of font children isn't fixed across
+    // xlsx-js-style versions so we assert presence of the marker pair.
+    expect(stylesXml).toMatch(/<sz val="18"\/>/);
+    expect(stylesXml).toMatch(/<font>[^<]*<sz val="18"\/>[^<]*<name val="[^"]+"\/>[^<]*<b\/>/);
   });
 
   it('column widths are preserved on round-trip when cellStyles is requested', () => {
