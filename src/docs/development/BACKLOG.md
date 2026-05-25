@@ -201,7 +201,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-043: Information Request List (IRL)
 
-**Source**: Sales/value-creation enablement (May 2026) | **Architecture & plan**: [MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md) | **Effort**: 5-7 days | **Status**: In progress (kicked off 2026-05-21) | **Fast-tracked**
+**Source**: Sales/value-creation enablement (May 2026) | **Architecture & plan**: [MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md) | **Effort**: 5-7 days | **Status**: Done (merged via PR #158, 2026-05-22; sequel BL-044 landed 2026-05-24) | **Fast-tracked**
 
 **As a** GST partner running a diligence or value-creation engagement, **I want** a single, universal, one-page Information Request List I can hand to a target (buy-side), client (sell-side preparation), or portfolio company (value-creation) **so that** the answers flow back into our Hub diligence tools and MCP prompts with high-fidelity inputs — turning the Diligence Machine's defensive `'unknown'`-mode agendas into precise ones and letting MCP/agent contexts scope to "everything we need to know about a target" via one pinned Resource.
 
@@ -299,7 +299,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-044: Information Request List — Fillable-Form Generator
 
-**Source**: Follow-up identified during BL-043 final review (2026-05-22) | **Effort**: 3-4 days | **Status**: Open | **Depends on**: BL-043 (consumes its canonical article + Resource)
+**Source**: Follow-up identified during BL-043 final review (2026-05-22) | **Architecture & plan**: [MCP_SERVER_IRL_GENERATOR_BL-044.md](MCP_SERVER_IRL_GENERATOR_BL-044.md) | **Effort**: 3-4 days (landed in 1 session) | **Status**: Done (landed 2026-05-24, `mcp-server@0.3.5`) | **Depends on**: BL-043 (consumes its canonical article + Resource)
 
 **As a** GST partner sending the IRL to a target, client, or portfolio company, **I want** a one-click download of a fillable spreadsheet (.xlsx) that mirrors the canonical IRL section structure **so that** the recipient has an obvious response surface — type answers into structured cells and email it back — instead of inventing their own response format or ignoring the request because the markdown article isn't actionable on their side.
 

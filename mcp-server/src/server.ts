@@ -20,6 +20,7 @@ import { registerTechparTool } from './tools/techpar';
 import { registerTechDebtTool } from './tools/tech-debt';
 import { registerRegulationsTool } from './tools/regulations';
 import { registerRadarLiveTools } from './tools/radar-live';
+import { registerGenerateIrlXlsxTool } from './tools/generate-information-request-list-xlsx';
 import { registerLibraryResources } from './resources/library';
 import { registerRegulationResources } from './resources/regulations';
 import { registerRadarResources } from './resources/radar';
@@ -82,6 +83,7 @@ export function createServer(env: Env = {}, ctx: ServerContext = {}): McpServer 
   registerTechDebtTool(server);
   registerRegulationsTool(server);
   registerRadarLiveTools(server, env);
+  registerGenerateIrlXlsxTool(server);
 
   // Resources (transport-portable). `env` is threaded so handlers can
   // consult the BL-032.5 server-side cache (see `cache/resource-cache.ts`).

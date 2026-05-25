@@ -32,6 +32,8 @@ const KNOWN_TOOL_NAMES = new Set([
   'search_radar_offline',
   // BL-032 Phase 4c — live Inoreader-backed tool (canonical for new prompts).
   'search_radar',
+  // BL-044 — fillable-form (.xlsx) generator orchestrated by gst_information_request_list v0.0.2+.
+  'generate_information_request_list_xlsx',
 ]);
 
 const KNOWN_RESOURCE_URI_PREFIXES = ['gst://library/', 'gst://regulations/', 'gst://radar/'];

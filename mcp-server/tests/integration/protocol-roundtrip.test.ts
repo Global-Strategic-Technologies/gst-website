@@ -163,6 +163,7 @@ describe('protocol roundtrip', () => {
           'compute_techpar',
           'estimate_tech_debt_cost',
           'generate_diligence_agenda',
+          'generate_information_request_list_xlsx', // BL-044 fillable-form generator
           'get_latest_insights', // BL-032 Phase 4c live FYI tier
           'list_portfolio_facets',
           'list_regulation_facets',

@@ -74,9 +74,9 @@ const VOICE_CUES: Record<(typeof transactionContextValues)[number], string> = {
   'sell-side':
     "Sell-side: framing emphasizes the target's defensible story and where GST can sharpen positioning before buyers see the data room.",
   'buy-side':
-    'Buy-side: framing emphasizes underwriting — what risks the data confirms, denies, or fails to address before the LOI.',
+    'Buy-side: framing emphasizes the technical, regulatory, and organizational risks the data confirms, denies, or fails to address — what the buyer needs to weigh against the deal thesis (whether pre-LOI or LOI-stage).',
   'value-creation':
-    'Value-creation: framing emphasizes the post-close 100-day plan and the highest-leverage platform investments the dossier reveals.',
+    'Value-creation: framing emphasizes the 100-day plan and the highest-leverage platform investments the dossier reveals.',
   unknown:
     'Engagement context unspecified — write the dossier in universal voice; the partner can sharpen framing on read.',
 };
@@ -195,8 +195,8 @@ export const diligenceSweepPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and sweep every Hub tool + downstream artifact to produce a unified diligence dossier. The "high-fidelity intake → full platform sweep" workflow.',
-  version: '0.0.4',
-  lastReviewedAt: '2026-05-22',
+  version: '0.0.5',
+  lastReviewedAt: '2026-05-24',
   orchestrates: [
     'generate_diligence_agenda',
     'list_portfolio_facets',

@@ -78,7 +78,9 @@ describe('gst_diligence_sweep', () => {
   });
 
   it('declares the required GstPrompt fields with concrete values', () => {
-    expect(diligenceSweepPrompt.version).toBe('0.0.4');
+    // v0.0.5 = voice-cue copy fix (drop "underwriting"/"before the LOI" buy-side
+    // anchor + "post-close" value-creation anchor — accuracy + label alignment).
+    expect(diligenceSweepPrompt.version).toBe('0.0.5');
     expect(diligenceSweepPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(diligenceSweepPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -221,13 +223,20 @@ describe('gst_diligence_sweep', () => {
       expect(text).toContain('CodeName-Marker-XYZ');
     });
 
-    it('includes a buy-side voice cue when transactionContext is buy-side', () => {
+    it('includes a buy-side voice cue framing the dossier as weighing risks against the deal thesis (not underwriting) + acknowledging both pre-LOI and LOI-stage engagements', () => {
       const text = bodyText(diligenceSweepPrompt, {
         filledIrl: SAMPLE_FILLED_IRL,
         transactionContext: 'buy-side',
       });
-      expect(text.toLowerCase()).toContain('buy-side');
-      expect(text.toLowerCase()).toContain('underwriting');
+      const lower = text.toLowerCase();
+      expect(lower).toContain('buy-side');
+      // v0.0.5 anchors: the dossier weighs risks against the deal thesis
+      // (GST does not "underwrite") and the engagement may be pre-LOI OR
+      // LOI-stage (the old "before the LOI" framing falsely constrained timing).
+      expect(lower).toContain('deal thesis');
+      expect(lower).toContain('pre-loi or loi-stage');
+      expect(lower).not.toContain('underwriting');
+      expect(lower).not.toContain('before the loi');
     });
 
     it('includes a sell-side voice cue when transactionContext is sell-side', () => {

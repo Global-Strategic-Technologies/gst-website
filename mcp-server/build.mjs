@@ -34,7 +34,19 @@ await build({
   sourcemap: true,
   minify: false,
   banner: {
-    js: '#!/usr/bin/env node',
+    // Shim a CJS-style `require` into the ESM bundle. Some CJS deps that
+    // get inlined (e.g. `xlsx-js-style`) do dynamic `require('stream')`
+    // at module-load time; without this shim, esbuild's default ESM
+    // emit replaces those calls with a stub that throws
+    // "Dynamic require of 'X' is not supported" at runtime. Surfaced by
+    // the "Smoke test compiled binary" CI step (2026-05-25) when
+    // `xlsx-js-style` was added for cell-style write support. The Worker
+    // build (wrangler) bundles independently and isn't affected.
+    js: [
+      '#!/usr/bin/env node',
+      "import { createRequire as __gstCreateRequire } from 'node:module';",
+      'const require = __gstCreateRequire(import.meta.url);',
+    ].join('\n'),
   },
   logLevel: 'info',
 });
