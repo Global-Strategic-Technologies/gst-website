@@ -28,6 +28,42 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.3.12 — 2026-05-25 — scheduled handler: add missing `catch` + wrap in `Sentry.withMonitor` (cron failures now visible in Sentry)
+
+**Theme**: production showed 13 cron `outcome: exception` events on the Cloudflare dashboard in 24h while Sentry's Issues view showed zero corresponding events. Root cause: the scheduled handler's payload was `try { await refreshRadarSnapshot(env); } finally { await flushSentry(); }` — **no `catch` clause**. Exceptions escaped `ctx.waitUntil`'s promise without ever being captured by Sentry; `flushSentry` ran on an empty queue. `withSentry`'s auto-capture is anchored on the fetch handler's Response — scheduled handlers in `ctx.waitUntil` aren't covered.
+
+### Changed
+
+- **`worker.ts` scheduled handler** rewritten to mirror Sentry's reference `instrumentCron` pattern:
+  1. **`Sentry.withMonitor('radar-refresh', () => refreshRadarSnapshot(env), { schedule, … })`** — sends `in_progress` / `ok` / `error` check-ins to Sentry Crons. Auto-creates the monitor on first check-in via `upsertMonitorConfig`. Enables missed-firing alerts on the Sentry Crons dashboard.
+  2. **Outer `try/catch`** — `withMonitor` re-throws on callback rejection (only marks the check-in; does NOT call `captureException` itself). The catch calls `captureException` for the stack trace, then swallows so `ctx.waitUntil` resolves cleanly.
+  3. **`finally { await flushSentry() }`** — unchanged from the prior shape; documented in the original 4680028 commit (BL-032.8 Phase B soak Day 3).
+- **`observability/sentry.ts`** — re-exports `withMonitor` from `@sentry/cloudflare` with a docstring explaining the re-throw contract and the three-layer pattern the scheduled handler relies on. Future cron handlers should follow the same shape.
+- **`worker.ts`** now also exports `handler` as a named export so the scheduled-handler error path is directly testable. The default export (`withSentry(sentryOptions, handler)`) is unchanged.
+
+### Tests
+
+New regression suite at `mcp-server/tests/unit/worker-scheduled.test.ts` (6 cases) explicitly exercises:
+
+- `captureException` is called with the rejection AND the `{ source: 'cron.scheduled', cron }` context
+- `flushSentry` is always called (success + failure paths)
+- No `captureException` on the success path (no double-reporting)
+- No `captureException` when `refreshRadarSnapshot` returns a non-error envelope (e.g. `partial-both-failed`) — that path is already captured by the inner `captureMessage` call
+- `withMonitor` is invoked with the runtime `event.cron` (not a hardcoded constant), so a `wrangler.toml` schedule edit doesn't desync from Sentry's monitor config
+- **Load-bearing assertion**: `Promise.all(ctx.waitUntil promises).resolves` — if a future regression removes the catch, this test fails loudly because the IIFE's promise rejects.
+
+**Coverage gap closed**: prior to this commit, zero tests exercised `worker.ts`'s scheduled handler. The cron-handler suite (`tests/unit/cron/radar-refresh.test.ts`) covers `refreshRadarSnapshot` in isolation; it never asked "what does the worker do if `refreshRadarSnapshot` rejects?" That gap is why the 2026-05-25 incident wasn't caught by CI.
+
+### Why patch and not minor
+
+Bug fix to a tooling code path that was silently failing. No tool / prompt / URI surface change. No new dependencies. Operationally identical for any caller that doesn't read Sentry — the only behavior change is that Sentry now sees what Cloudflare's dashboard was reporting.
+
+**Operator semantics**: patch bump per the discipline. The first cron firing after deploy will auto-create the `radar-refresh` monitor on Sentry's Crons dashboard (Sentry Crons is available on all plans including Free, with a monthly check-in quota; the 4/day cadence is well within limits).
+
+**Architecture context**: 2026-05-25 incident RCA. Impartial-agent review confirmed the diagnosis and recommended `withMonitor` as the proper structural fix (vs. the interim "just add a catch" patch I'd initially considered) since it bundles the catch + the Sentry Crons check-in + missed-firing alerts in one wrapper designed for the scheduled-handler shape. The 4680028 commit (BL-032.8 Phase B soak Day 3) explicitly flagged this approach as "strictly better long-term shape" and punted; this incident is the trigger that took it off the punt list.
+
+---
+
 ## 0.3.11 — 2026-05-25 — stdio binary `createRequire` banner shim (unblocks `xlsx-js-style` runtime startup)
 
 **Theme**: surfaced by CI on PR #162 (2026-05-25). The "Smoke test compiled binary" step (`node mcp-server/dist/index.js < /dev/null`) failed with:
