@@ -28,6 +28,31 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.3.8 — 2026-05-25 — `generate_information_request_list_xlsx` emits a `resource` content block (Claude Desktop download surface)
+
+**Theme**: the previous response shape returned the .xlsx only in `structuredContent.base64` — a metadata field the model reasons about but Claude Desktop doesn't render as a downloadable attachment. Live exercise on staging (2026-05-25) confirmed: the model successfully called the tool, wrote a confirmation paragraph, but the user got no clickable file. The base64 was on the wire; the client just had no UI hook to surface it.
+
+### Changed
+
+- **Tool response shape**: `generate_information_request_list_xlsx` now returns `content[]` with TWO blocks instead of one:
+  - `content[0]`: existing text summary (unchanged — "Generated IRL workbook for X (N sections, M requests). Filename: ..."`).
+  - `content[1]`: **new** `resource` content block with `uri: gst://generated/irl/<filename>`, `mimeType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, `blob: <base64>`. This is the canonical MCP "tool produced a binary file" pattern; Claude Desktop / Cursor / other MCP clients render it as a downloadable attachment.
+- **`structuredContent` retained verbatim**: `{ filename, base64, mimeType, byteLength, sectionCount, bulletCount, canonicalUrl }`. API clients that piped the base64 from `structuredContent.base64` continue to work; no integration break.
+
+### Why patch and not minor
+
+Additive: existing `content[0]` text and `structuredContent` shape are unchanged. Old callers that read either path see no difference. New callers (Claude Desktop UI rendering) gain the file-download affordance. No removed names, no renamed fields, no schema changes.
+
+### Test impact
+
+`generate-information-request-list-xlsx.test.ts` adds one regression test asserting the resource block is present, the MIME type matches, the URI follows the `gst://generated/irl/<filename>` pattern, and the blob decodes to a workbook with ZIP magic bytes `PK\x03\x04` at offset 0. The pre-existing structuredContent shape tests are unchanged and continue to pass — proving the additive nature of the change.
+
+**Operator semantics**: patch bump per the discipline (response-shape addition with no surface-area change → patch). Pinned MCP conversations continue to resolve the tool identically; the only behavior change is that Claude Desktop users now actually get the file.
+
+**Architecture context**: BL-044 staging round-trip test (2026-05-25) — first invocation of the v0.0.3 prompt in Claude Desktop surfaced the missing-attachment bug. Fix is in-scope for BL-044 since the prompt's Step 4 directive promises "attach the file to your reply" — without the resource content block, that promise was unfulfillable.
+
+---
+
 ## 0.3.7 — 2026-05-25 — XLSX library swap (`@e965/xlsx` → `xlsx-js-style`) for cell-style write support
 
 **Theme**: the generated IRL `.xlsx` workbook needs visible bold + larger-font styling on column headers and section header rows for readability. `@e965/xlsx` (SheetJS Community auto-republish) silently drops `cell.s.font` on write — the styling logic in our code was being applied to a no-op write path, so Excel rendered everything as plain text.

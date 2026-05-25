@@ -136,11 +136,28 @@ export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
     canonicalUrl: IRL_CANONICAL_URL,
   };
 
+  // Emit the file as both:
+  //   1. A `resource` content block — the canonical MCP surface that
+  //      Claude Desktop (and other MCP clients) render as a downloadable
+  //      attachment in the tool-result. Without this, the base64 lives
+  //      only in `structuredContent` (model metadata) and the user sees
+  //      a description but no clickable file.
+  //   2. `structuredContent` retained — API clients that pipe the result
+  //      programmatically (and the model's own reasoning) still get the
+  //      structured payload at the same shape.
   return {
     content: [
       {
         type: 'text' as const,
         text: summary,
+      },
+      {
+        type: 'resource' as const,
+        resource: {
+          uri: `gst://generated/irl/${filename}`,
+          mimeType: IRL_XLSX_MIME_TYPE,
+          blob: base64,
+        },
       },
     ],
     structuredContent: payload as unknown as Record<string, unknown>,
