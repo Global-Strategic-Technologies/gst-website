@@ -17,9 +17,14 @@
  *               Bullet rows are 7 columns wide:
  *                 A Reference | B Request | C Status | D File Location |
  *                 E Comments | F Notes | G Response
- *               Status pre-fills "OPEN" on every row; recipient promotes
- *               to PARTIAL / CLOSED and recolors the cell manually per
- *               the Instructions sheet.
+ *               Status pre-fills "OPEN" on every row. The recipient
+ *               promotes a row by picking PARTIAL or CLOSED from the
+ *               in-cell dropdown; the cell auto-recolors via Excel
+ *               conditional formatting (PARTIAL → cream, CLOSED →
+ *               light green). xlsx-js-style cannot emit CF or data
+ *               validation natively, so both ship via a post-process
+ *               that splices the necessary OOXML elements into
+ *               sheet1.xml and styles.xml.
  *
  *   Sheet 2 "Instructions" (hidden):
  *     Short usage guide for the recipient. Senior-consultant review can
@@ -118,12 +123,13 @@ export function generateIrlXlsxBuffer(article: IRLArticle, metadata: IRLXlsxMeta
   const raw =
     written instanceof Uint8Array ? written : new Uint8Array(written as ArrayLike<number>);
 
-  // xlsx-js-style does not emit Excel `<dataValidations>` on write, so the
-  // Status column would otherwise accept any string. Post-process the .xlsx
-  // (which is a zip) to inject a list-type validation restricting the
-  // Status cells to OPEN / PARTIAL / CLOSED. Dropdown appears on click;
-  // pasting an out-of-list value raises a hard error per `errorStyle="stop"`.
-  return injectStatusDataValidation(raw, statusCellRefs);
+  // xlsx-js-style does not emit Excel `<dataValidations>` or
+  // `<conditionalFormatting>` on write, so we post-process the .xlsx
+  // (which is a zip) to splice both into the worksheet XML AND populate
+  // the empty `<dxfs/>` block in styles.xml with the cream/green fills
+  // the CF rules reference. Result: Status cells get an in-cell dropdown,
+  // paste-blocking, AND auto-coloring (PARTIAL → cream, CLOSED → green).
+  return patchStatusValidationAndColoring(raw, statusCellRefs);
 }
 
 /**
@@ -153,13 +159,13 @@ function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): PrimaryS
   // 7-column layout:
   //   A Reference | B Request | C Status | D File Location | E Comments | F Notes | G Response
   //
-  // Status column pre-fills "OPEN" (white fill) on every bullet row. The
-  // allowable values are OPEN, PARTIAL, CLOSED with documented fill colors
-  // (white / cream / light-green) so a recipient can visually track
-  // request-by-request progress. xlsx-js-style cannot emit Excel
-  // conditional formatting at write time, so the recipient sets the value
-  // and the cell color manually; the Instructions sheet documents the
-  // exact hex codes.
+  // Status column pre-fills "OPEN" (white fill) on every bullet row.
+  // Allowable values: OPEN, PARTIAL, CLOSED. The in-cell dropdown is
+  // wired by the post-process step (data validation); the cell fill
+  // auto-updates via Excel conditional formatting (PARTIAL → cream,
+  // CLOSED → light green; OPEN keeps the default white from the cell's
+  // own style). Both CF rules + DV dropdown are spliced into the .xlsx
+  // by `patchStatusValidationAndColoring` below.
   //
   // Col A is wide enough to hold metadata labels ("Canonical reference" =
   // 19 chars) in the header section AND Reference IDs ("0-01") in the
@@ -300,34 +306,80 @@ function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): PrimaryS
 }
 
 /**
- * Inject Excel data validation into the post-XLSX-write buffer so the
- * Status column accepts only OPEN / PARTIAL / CLOSED. xlsx-js-style does
- * not serialize `<dataValidations>` on write, so we unzip the .xlsx
- * (which is just a zip of XML), splice the element into the primary
- * worksheet XML before `</worksheet>`, and re-zip.
- *
- * The `sqref` attribute is a space-separated list of A1-style references.
- * Status cells are non-contiguous in the sheet (interleaved with section
- * headers and blank separator rows) so we list every cell individually
- * rather than try to coalesce ranges.
- *
- * `errorStyle="stop"` blocks paste/free-typed values; the recipient sees
- * a hard error dialog instead of silently writing a bad string.
+ * ARGB fills referenced by conditional-format `dxfId` indices. Order is
+ * load-bearing: `dxfId="0"` → first entry (PARTIAL), `dxfId="1"` →
+ * second (CLOSED). Eight-hex form (`FF` alpha prefix) is required by
+ * Excel for opaque solid fills; six-hex renders transparent in some
+ * versions. OPEN intentionally has no entry — the default white fill
+ * from `STATUS_STYLE` is the OPEN appearance.
  */
-function injectStatusDataValidation(
+const STATUS_DXF_FILLS = [
+  { rgb: 'FFFFF8DC', label: 'PARTIAL' }, // cream
+  { rgb: 'FFC6EFCE', label: 'CLOSED' }, // light green
+] as const;
+
+/**
+ * Inject Excel data validation + conditional formatting into the
+ * post-XLSX-write buffer:
+ *
+ *   1. `<conditionalFormatting>` into `xl/worksheets/sheet1.xml` so
+ *      Status cell fill auto-updates when value matches PARTIAL or
+ *      CLOSED (OPEN keeps the default white from STATUS_STYLE).
+ *   2. `<dataValidations>` into the same sheet so cells carry an
+ *      in-cell dropdown and paste-block invalid values.
+ *   3. Populated `<dxfs>` block into `xl/styles.xml` defining the two
+ *      fill differentials the CF rules reference. xlsx-js-style ships
+ *      with a hard-coded empty `<dxfs count="0"/>` literal in its
+ *      bundle; we string-replace it (NOT append — OOXML rejects
+ *      duplicate `<dxfs>` blocks).
+ *
+ * OOXML sibling order (CT_Worksheet, §18.3.1.99): conditionalFormatting
+ * (#17) MUST precede dataValidations (#18). We compute one splice anchor
+ * (earliest must-come-after-DV sibling) and emit `CF + DV` together so
+ * their relative order is correct by construction.
+ *
+ * `errorStyle="stop"` blocks paste/free-typed values; the recipient
+ * sees a hard error dialog instead of silently writing a bad string.
+ *
+ * Two regression bugs surfaced during development; both are pinned by
+ * tests:
+ *   - "Replaced Part: sheet1.xml" when DV landed after `<pageMargins>`
+ *   - same error when DV landed after `<ignoredErrors>` (which
+ *     xlsx-js-style emits on numeric-as-text Reference IDs like "0-01")
+ *
+ * Splice anchor scans for the earliest must-come-after sibling so
+ * future content shapes / xlsx-js-style version bumps don't reintroduce
+ * either regression. CF uses the same anchor (CF must precede DV but
+ * both must precede `<hyperlinks>` onwards, so the same anchor works
+ * for both).
+ */
+function patchStatusValidationAndColoring(
   buf: Uint8Array,
   statusCellRefs: readonly string[]
 ): Uint8Array {
   if (statusCellRefs.length === 0) return buf;
 
   const unzipped = unzipSync(buf);
+
+  // -- Patch 1: sheet1.xml (CF + DV) -------------------------------------
   const sheetPath = 'xl/worksheets/sheet1.xml';
   const sheetBytes = unzipped[sheetPath];
-  if (!sheetBytes) return buf; // Defensive: structure changed, leave file untouched.
+  if (!sheetBytes) return buf;
 
   const sheetXml = strFromU8(sheetBytes);
   const sqref = statusCellRefs.join(' ');
-  const validationXml =
+
+  const conditionalFormattingXml =
+    `<conditionalFormatting sqref="${sqref}">` +
+    STATUS_DXF_FILLS.map(
+      (fill, idx) =>
+        `<cfRule type="cellIs" dxfId="${idx}" priority="${idx + 1}" operator="equal">` +
+        `<formula>"${fill.label}"</formula>` +
+        `</cfRule>`
+    ).join('') +
+    `</conditionalFormatting>`;
+
+  const dataValidationsXml =
     `<dataValidations count="1">` +
     `<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" ` +
     `errorStyle="stop" errorTitle="Invalid status" ` +
@@ -338,25 +390,10 @@ function injectStatusDataValidation(
     `</dataValidation>` +
     `</dataValidations>`;
 
-  // OOXML strictly enforces sibling order inside `<worksheet>`:
-  //   sheetData → mergeCells → … → dataValidations → hyperlinks →
-  //   printOptions → pageMargins → pageSetup → headerFooter → … → </worksheet>
-  //
-  // Splicing right before `</worksheet>` puts dataValidations AFTER
-  // pageMargins, which Excel rejects with "Replaced Part: sheet1.xml with
-  // XML error" and discards the entire sheet. Instead, find the earliest
-  // sibling that must come AFTER dataValidations and splice before it.
-  // Fall back to `</worksheet>` only when none of those siblings exist
-  // (xlsx-js-style omits pageMargins on minimally-styled sheets).
-  // CT_Worksheet sibling order (OOXML 18.3.1.99): dataValidations is
-  // position 18; everything from 19 onward must come AFTER it. Notably
-  // `<ignoredErrors>` (#28) is the one xlsx-js-style emits on numeric
-  // Reference IDs ("0-01" etc.) being stored-as-text — splicing before
-  // </worksheet> alone puts DV after ignoredErrors and Excel rejects
-  // the sheet ("Replaced Part: sheet1.xml part with XML error" —
-  // observed 2026-05-25). The full list below covers every sibling
-  // that must come after DV so the splice anchor is stable across
-  // xlsx-js-style versions and content shapes.
+  // CT_Worksheet sibling order (OOXML §18.3.1.99): everything from
+  // #19 (hyperlinks) onward must come AFTER dataValidations. The list
+  // below covers every sibling Excel might reject if it appears before
+  // our splice point.
   const AFTER_DV_TAGS = [
     '<hyperlinks',
     '<printOptions',
@@ -384,13 +421,49 @@ function injectStatusDataValidation(
     const idx = sheetXml.indexOf(tag);
     if (idx >= 0 && (spliceIdx === -1 || idx < spliceIdx)) spliceIdx = idx;
   }
-  if (spliceIdx === -1) {
-    spliceIdx = sheetXml.lastIndexOf('</worksheet>');
-  }
-  if (spliceIdx < 0) return buf; // Malformed sheet XML; bail rather than corrupt.
+  if (spliceIdx === -1) spliceIdx = sheetXml.lastIndexOf('</worksheet>');
+  if (spliceIdx < 0) return buf;
 
-  const patchedXml = sheetXml.slice(0, spliceIdx) + validationXml + sheetXml.slice(spliceIdx);
-  unzipped[sheetPath] = strToU8(patchedXml);
+  const patchedSheetXml =
+    sheetXml.slice(0, spliceIdx) +
+    conditionalFormattingXml +
+    dataValidationsXml +
+    sheetXml.slice(spliceIdx);
+  unzipped[sheetPath] = strToU8(patchedSheetXml);
+
+  // -- Patch 2: styles.xml (populate <dxfs>) -----------------------------
+  const stylesPath = 'xl/styles.xml';
+  const stylesBytes = unzipped[stylesPath];
+  if (stylesBytes) {
+    const stylesXml = strFromU8(stylesBytes);
+    const dxfsBlock =
+      `<dxfs count="${STATUS_DXF_FILLS.length}">` +
+      STATUS_DXF_FILLS.map(
+        (fill) =>
+          `<dxf><fill><patternFill patternType="solid">` +
+          `<fgColor rgb="${fill.rgb}"/><bgColor rgb="${fill.rgb}"/>` +
+          `</patternFill></fill></dxf>`
+      ).join('') +
+      `</dxfs>`;
+
+    let patchedStylesXml: string;
+    if (stylesXml.includes('<dxfs count="0"/>')) {
+      patchedStylesXml = stylesXml.replace('<dxfs count="0"/>', dxfsBlock);
+    } else if (stylesXml.includes('<dxfs/>')) {
+      patchedStylesXml = stylesXml.replace('<dxfs/>', dxfsBlock);
+    } else if (!stylesXml.includes('<dxfs')) {
+      const closeIdx = stylesXml.lastIndexOf('</styleSheet>');
+      if (closeIdx < 0) return buf;
+      patchedStylesXml = stylesXml.slice(0, closeIdx) + dxfsBlock + stylesXml.slice(closeIdx);
+    } else {
+      // A populated `<dxfs count="N">…</dxfs>` already exists from
+      // xlsx-js-style. Splicing a second one would be a schema
+      // violation; bail rather than corrupt the file. Should be
+      // unreachable with current xlsx-js-style bundle.
+      return buf;
+    }
+    unzipped[stylesPath] = strToU8(patchedStylesXml);
+  }
 
   return zipSync(unzipped, { level: 6 });
 }
@@ -422,14 +495,14 @@ function buildInstructionsSheet(meta: IRLXlsxMetadata): XLSX.WorkSheet {
     ['  G  Response       your free-text answer.'],
     [''],
     ['Status workflow (column C):'],
-    ['  OPEN     no response yet. Cell color: white (#FFFFFF).'],
-    ['  PARTIAL  answer in progress / awaiting input. Cell color:'],
-    ['           cream (#FFF8DC).'],
-    ['  CLOSED   answered and complete. Cell color: light green (#C6EFCE).'],
+    ['  OPEN     no response yet. Cell color: white.'],
+    ['  PARTIAL  answer in progress or awaiting input. Cell auto-colors'],
+    ['           cream when value is set to PARTIAL.'],
+    ['  CLOSED   answered and complete. Cell auto-colors light green'],
+    ['           when value is set to CLOSED.'],
     [''],
-    ['Cell colors are not auto-applied — change the cell value AND the fill'],
-    ['color together when you advance a row. In Excel: select the cell,'],
-    ['Home > Fill Color > More Colors > Custom > enter the hex above.'],
+    ['Click any Status cell to use the in-cell dropdown. Cell color'],
+    ['updates automatically as the value changes (no manual recolor).'],
     [''],
     ['1. Set Status (column C) to PARTIAL or CLOSED as you progress.'],
     ['2. Fill answers in column G (Response) alongside each request in B.'],

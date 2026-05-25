@@ -518,6 +518,113 @@ describe('generateIrlXlsxBuffer', () => {
     expect(ieIdx).toBeGreaterThan(0);
     expect(dvIdx).toBeLessThan(ieIdx);
   });
+
+  it('emits <conditionalFormatting> with two cellIs rules (PARTIAL → dxfId=0, CLOSED → dxfId=1)', () => {
+    // Auto-coloring of Status cells. OPEN keeps the default white from
+    // the cell's own STATUS_STYLE; CF rules override fill when value
+    // equals "PARTIAL" or "CLOSED". `dxfId` indices reference the
+    // populated <dxfs> block we inject into xl/styles.xml; off-by-one
+    // there silently produces wrong colors so the dxfId-vs-count
+    // invariant is pinned by a separate test below.
+    const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
+      generatedAt: FIXED_DATE,
+      canonicalUrl: 'https://example.test',
+    });
+    const sheetXml = extractZipEntry(buf, 'xl/worksheets/sheet1.xml');
+    expect(sheetXml).not.toBeNull();
+    if (!sheetXml) return;
+
+    expect(sheetXml).toContain('<conditionalFormatting');
+    expect(sheetXml).toMatch(
+      /<cfRule type="cellIs" dxfId="0" priority="1" operator="equal"><formula>"PARTIAL"<\/formula><\/cfRule>/
+    );
+    expect(sheetXml).toMatch(
+      /<cfRule type="cellIs" dxfId="1" priority="2" operator="equal"><formula>"CLOSED"<\/formula><\/cfRule>/
+    );
+  });
+
+  it('places <conditionalFormatting> before <dataValidations> (OOXML CT_Worksheet sibling order #17 < #18)', () => {
+    // Both elements must be inside <worksheet>; CF (#17) must precede
+    // DV (#18). Reversing puts the file into "Replaced Part" recovery
+    // mode on open. Production article exercises the same anchor so
+    // any future reshuffling of the splice logic fails here.
+    const articlePath = resolve(
+      __dirname,
+      '../../../../src/data/library/information-request-list/article.md'
+    );
+    const md = readFileSync(articlePath, 'utf8');
+    const article = parseIrlArticle(md);
+    const buf = generateIrlXlsxBuffer(article, {
+      generatedAt: FIXED_DATE,
+      canonicalUrl: 'https://globalstrategic.tech/hub/library/information-request-list/',
+    });
+    const sheetXml = extractZipEntry(buf, 'xl/worksheets/sheet1.xml');
+    expect(sheetXml).not.toBeNull();
+    if (!sheetXml) return;
+
+    const cfIdx = sheetXml.indexOf('<conditionalFormatting');
+    const dvIdx = sheetXml.indexOf('<dataValidations');
+    const ieIdx = sheetXml.indexOf('<ignoredErrors');
+    expect(cfIdx).toBeGreaterThan(0);
+    expect(dvIdx).toBeGreaterThan(0);
+    expect(ieIdx).toBeGreaterThan(0);
+    expect(cfIdx).toBeLessThan(dvIdx);
+    expect(dvIdx).toBeLessThan(ieIdx);
+  });
+
+  it('populates <dxfs> in xl/styles.xml with two solid-fill entries (cream + light green)', () => {
+    // xlsx-js-style ships an empty `<dxfs count="0"/>` literal; the
+    // post-process MUST replace it (not append — OOXML rejects
+    // duplicate <dxfs> blocks). If a future xlsx-js-style version
+    // changes the empty-block shape (e.g. `<dxfs/>` self-closing) we
+    // also accept that, but the populated post-process result is
+    // pinned to count="2" + solid fgColor entries.
+    const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
+      generatedAt: FIXED_DATE,
+      canonicalUrl: 'https://example.test',
+    });
+    const stylesXml = extractZipEntry(buf, 'xl/styles.xml');
+    expect(stylesXml).not.toBeNull();
+    if (!stylesXml) return;
+
+    // After patch: must NOT contain the empty-block literal.
+    expect(stylesXml).not.toContain('<dxfs count="0"/>');
+    // Must contain a populated block matching the post-process output.
+    expect(stylesXml).toMatch(/<dxfs count="2">/);
+    // Cream fill (PARTIAL).
+    expect(stylesXml).toContain('<fgColor rgb="FFFFF8DC"/>');
+    // Light-green fill (CLOSED).
+    expect(stylesXml).toContain('<fgColor rgb="FFC6EFCE"/>');
+  });
+
+  it('every dxfId referenced by cfRule resolves to a valid <dxfs> entry (no off-by-one drift)', () => {
+    // Integrity guard: if someone adds a third cfRule without bumping
+    // the dxfs block, Excel renders the cell with the wrong fill (or
+    // discards the rule). This test parses out every dxfId in cfRule
+    // and asserts it's strictly less than the dxfs count attribute.
+    const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
+      generatedAt: FIXED_DATE,
+      canonicalUrl: 'https://example.test',
+    });
+    const sheetXml = extractZipEntry(buf, 'xl/worksheets/sheet1.xml');
+    const stylesXml = extractZipEntry(buf, 'xl/styles.xml');
+    expect(sheetXml).not.toBeNull();
+    expect(stylesXml).not.toBeNull();
+    if (!sheetXml || !stylesXml) return;
+
+    const dxfsCountMatch = stylesXml.match(/<dxfs count="(\d+)">/);
+    expect(dxfsCountMatch).not.toBeNull();
+    const dxfsCount = Number(dxfsCountMatch?.[1] ?? 0);
+    expect(dxfsCount).toBeGreaterThan(0);
+
+    const dxfIdMatches = [...sheetXml.matchAll(/<cfRule[^>]*\bdxfId="(\d+)"/g)];
+    expect(dxfIdMatches.length).toBeGreaterThan(0);
+    for (const m of dxfIdMatches) {
+      const id = Number(m[1]);
+      expect(id).toBeGreaterThanOrEqual(0);
+      expect(id).toBeLessThan(dxfsCount);
+    }
+  });
 });
 
 describe('buildIrlFilename', () => {
