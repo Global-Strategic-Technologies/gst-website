@@ -280,4 +280,12 @@ Manual smoke tests (blocking pre-merge):
 
 ---
 
-_Last updated: 2026-05-24._
+## Per-engagement IRL drift
+
+When a specific engagement's filled IRL diverges from the canonical article (extra bullets, deleted bullets, rephrased questions, new sections), the canonical guidance for choosing the right response lives in [`mcp-server/src/docs/library/irl-tool-input-mapping.md` § "Per-engagement IRL drift — decision flow"](../../../mcp-server/src/docs/library/irl-tool-input-mapping.md#per-engagement-irl-drift--decision-flow). That section holds the situation → right-path decision table, the operator action checklist for closing any drift response, the anti-patterns to avoid, and pointers to BL-044.5 / BL-045 as the future evolution lanes.
+
+This doc (BL-044 tracking) is the architecture + decisions for the **generator** specifically. The drift decision flow spans the whole IRL pipeline (parser, generator, MCP tool, prompt, downstream `gst_diligence_sweep` consumption) so it belongs in the cross-surface SOP, not here.
+
+---
+
+_Last updated: 2026-05-25 (added pointer to the "Per-engagement IRL drift" decision flow in irl-tool-input-mapping.md)._
