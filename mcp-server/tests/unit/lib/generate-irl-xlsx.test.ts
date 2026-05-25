@@ -208,6 +208,61 @@ describe('generateIrlXlsxBuffer', () => {
     expect(basicsHeader?.[0] ?? '').toBe(''); // Reference col empty on section header row
   });
 
+  it('header rows do NOT emit empty-string cells in B/C/D — preserves Excel rightward text overflow', () => {
+    // Regression for the visual-truncation bug surfaced 2026-05-25: padding
+    // the title / intro / canonical rows with explicit '' values blocks
+    // Excel's natural overflow and truncates long text inside narrow col A.
+    // The fix is to omit the padding entirely so those cells don't exist in
+    // the workbook. Verified by inspecting the raw worksheet cell map.
+    const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
+      targetName: 'Acme',
+      transactionContext: 'buy-side',
+      generatedAt: FIXED_DATE,
+      canonicalUrl: 'https://example.test/very/long/canonical/reference/url/that/overflows',
+    });
+    const wb = XLSX.read(buf, { type: 'array' });
+    const sheet = wb.Sheets['Information Request List'];
+    // Locate the title row (row 0). For row 0, cells B1/C1/D1 must NOT
+    // exist in the worksheet — if they did, Excel would block overflow.
+    expect(sheet['A1']).toBeDefined();
+    expect(sheet['B1']).toBeUndefined();
+    expect(sheet['C1']).toBeUndefined();
+    expect(sheet['D1']).toBeUndefined();
+    // Same contract for the intro row: A populated, B/C/D unwritten.
+    // Locate it by scanning for the cell whose value starts with the
+    // intro's first phrase.
+    const introCellKey = Object.keys(sheet).find(
+      (k) =>
+        k.startsWith('A') &&
+        typeof sheet[k] === 'object' &&
+        typeof sheet[k].v === 'string' &&
+        sheet[k].v.startsWith('Below is information')
+    );
+    expect(introCellKey).toBeDefined();
+    if (introCellKey) {
+      const rowNum = introCellKey.slice(1);
+      expect(sheet[`B${rowNum}`]).toBeUndefined();
+      expect(sheet[`C${rowNum}`]).toBeUndefined();
+      expect(sheet[`D${rowNum}`]).toBeUndefined();
+    }
+  });
+
+  it('column A width is wide enough to display the longest header metadata label without truncation', () => {
+    const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
+      generatedAt: FIXED_DATE,
+      canonicalUrl: 'https://example.test',
+    });
+    const sheet = XLSX.read(buf, { type: 'array', cellStyles: true }).Sheets[
+      'Information Request List'
+    ];
+    const colA = sheet['!cols']?.[0];
+    expect(colA).toBeDefined();
+    // "Canonical reference" is 19 chars; col A must be at least that wide
+    // (we ship wch=22 with margin). Stable across SheetJS wch/wpx encoding.
+    const widthChars = colA?.wch ?? (colA?.wpx ? colA.wpx / 7 : 0);
+    expect(widthChars).toBeGreaterThanOrEqual(19);
+  });
+
   it('column widths are preserved on round-trip when cellStyles is requested', () => {
     const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
       generatedAt: FIXED_DATE,

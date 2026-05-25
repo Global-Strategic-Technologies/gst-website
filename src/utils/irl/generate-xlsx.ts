@@ -131,42 +131,51 @@ function buildReferenceId(sectionNumber: string, bulletIndex: number): string {
 
 function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): XLSX.WorkSheet {
   // 4-column layout: [Reference | Request | Location | Response].
-  // Header metadata rows put their label in col A and value in col B so the
-  // operator can scan the top of the sheet without scrolling. Section header
-  // rows and bullet rows respect the same column semantics.
+  //
+  // Header rows (title / target / context / generated / canonical / intro)
+  // deliberately emit MINIMAL-LENGTH row arrays so the empty downstream
+  // columns don't get cell records written for them. Excel only overflows
+  // text rightward into cells that don't exist — populating B/C/D with
+  // empty strings would block the overflow and visually truncate long
+  // header text like the article intro paragraph and the canonical URL.
+  // Section header rows + bullet rows can keep length-2 arrays since their
+  // overflow path is also into undefined cells.
   const rows: (string | number)[][] = [];
 
-  rows.push([article.title, '', '', '']);
-  if (meta.targetName) rows.push(['Target', meta.targetName, '', '']);
+  rows.push([article.title]);
+  if (meta.targetName) rows.push(['Target', meta.targetName]);
   if (meta.transactionContext) {
-    rows.push(['Engagement context', TRANSACTION_CONTEXT_LABEL[meta.transactionContext], '', '']);
+    rows.push(['Engagement context', TRANSACTION_CONTEXT_LABEL[meta.transactionContext]]);
   }
-  rows.push(['Generated', isoDate(meta.generatedAt), '', '']);
-  rows.push(['Canonical reference', meta.canonicalUrl, '', '']);
-  rows.push(['', '', '', '']);
+  rows.push(['Generated', isoDate(meta.generatedAt)]);
+  rows.push(['Canonical reference', meta.canonicalUrl]);
+  rows.push([]);
 
-  rows.push([article.intro, '', '', '']);
-  rows.push(['', '', '', '']);
+  rows.push([article.intro]);
+  rows.push([]);
 
   rows.push(['Reference', 'Request', 'Location', 'Response']);
 
   for (const section of article.sections) {
-    rows.push(['', `${section.number} — ${section.title.toUpperCase()}`, '', '']);
-    if (section.intro) rows.push(['', section.intro, '', '']);
+    rows.push(['', `${section.number} — ${section.title.toUpperCase()}`]);
+    if (section.intro) rows.push(['', section.intro]);
 
     let bulletIndex = 0;
     for (const bullet of section.bullets) {
       bulletIndex += 1;
-      rows.push([buildReferenceId(section.number, bulletIndex), bullet.text, '', '']);
+      rows.push([buildReferenceId(section.number, bulletIndex), bullet.text]);
     }
-    rows.push(['', '', '', '']);
+    rows.push([]);
   }
 
   const sheet = XLSX.utils.aoa_to_sheet(rows);
   sheet['!cols'] = [
-    { wch: 10 }, // Reference (e.g., "0-01")
-    { wch: 80 }, // Request (the bullet text)
-    { wch: 25 }, // Location (filename / VDR path the recipient supplies)
+    // A widened from 10 → 22 so the metadata labels ("Engagement context"
+    // at 18 chars, "Canonical reference" at 19) display fully without
+    // truncation. Reference IDs are 4 chars max so they sit with margin.
+    { wch: 22 }, // Reference + header metadata labels
+    { wch: 80 }, // Request (bullet text); also overflow runway for the intro paragraph
+    { wch: 25 }, // Location (recipient's filename / VDR path)
     { wch: 40 }, // Response (free-text answer)
   ];
   return sheet;
