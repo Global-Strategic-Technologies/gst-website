@@ -122,12 +122,24 @@ export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
   const base64 = uint8ToBase64(buffer);
   const totalBullets = article.sections.reduce((sum, s) => sum + s.bullets.length, 0);
 
-  const downloadHref = `${IRL_CANONICAL_URL.replace(
-    '/library/information-request-list/',
-    '/tools/information-request-list-generator/'
-  )}`;
+  // Build a deeplink to the Hub generator page with the args encoded as
+  // query params. The Hub page's submit handler hydrates the form from
+  // these params, so a one-click landing reproduces exactly the same file
+  // the MCP path would have produced — no re-entry. Without this
+  // arg-passing the link was no better than a bookmark; with it the MCP
+  // path delivers real value over visiting the Hub page directly.
+  const hubUrl = new URL(
+    IRL_CANONICAL_URL.replace(
+      '/library/information-request-list/',
+      '/tools/information-request-list-generator/'
+    )
+  );
+  if (input.targetName) hubUrl.searchParams.set('target', input.targetName);
+  if (input.transactionContext) hubUrl.searchParams.set('context', input.transactionContext);
+  const downloadHref = hubUrl.toString();
+
   const summary = input.targetName
-    ? `Generated IRL workbook for ${input.targetName} (${article.sections.length} sections, ${totalBullets} requests). Filename: ${filename}. Download the same file (with the same target/context personalization) at ${downloadHref} — Claude Desktop cannot render arbitrary-mimeType MCP resource attachments today, so the Hub page is the canonical download surface.`
+    ? `Generated IRL workbook for ${input.targetName} (${article.sections.length} sections, ${totalBullets} requests). Filename: ${filename}. Download the same file (same target/context already filled in) at ${downloadHref} — Claude Desktop cannot render arbitrary-mimeType MCP resource attachments today, so the Hub page is the canonical download surface.`
     : `Generated universal IRL workbook (${article.sections.length} sections, ${totalBullets} requests). Filename: ${filename}. Download the same file from ${downloadHref} — Claude Desktop cannot render arbitrary-mimeType MCP resource attachments today, so the Hub page is the canonical download surface.`;
 
   const payload = {

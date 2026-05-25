@@ -77,6 +77,39 @@ describe('generate_information_request_list_xlsx — handler', () => {
     expect(text).toMatch(/hub\/tools\/information-request-list-generator/);
   });
 
+  it('Hub deeplink encodes args as query params (target + context) so the form pre-fills on landing', async () => {
+    // Without arg-passing the deeplink is no better than a bookmark —
+    // user would re-type everything on the Hub page. This test locks the
+    // MCP value-add: the args that flowed through Claude Desktop land
+    // on the Hub form via query params and produce a one-click download
+    // with no re-entry.
+    const result = await handleGenerateIrlXlsxTool({
+      targetName: 'MedSig Health',
+      transactionContext: 'buy-side',
+    });
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toMatch(/[?&]target=MedSig\+Health(&|\s|$)/);
+    expect(text).toMatch(/[?&]context=buy-side(&|\s|$)/);
+  });
+
+  it('Hub deeplink omits query params when no args are supplied (universal landing)', async () => {
+    // Bare invocation should land the user on the un-personalized Hub
+    // page; encoding empty params would look like a broken URL.
+    const result = await handleGenerateIrlXlsxTool({});
+    const text = (result.content[0] as { text: string }).text;
+    // Match the Hub URL but capture whether it has a ? after the path.
+    const match = text.match(
+      /https?:\/\/[^\s]*\/hub\/tools\/information-request-list-generator\/(\?[^\s]*)?/
+    );
+    expect(match).toBeTruthy();
+    if (match) {
+      // No query string OR an empty one — but no target/context params.
+      const query = match[1] ?? '';
+      expect(query).not.toMatch(/target=/);
+      expect(query).not.toMatch(/context=/);
+    }
+  });
+
   it('structuredContent has filename, base64, mimeType, and counts', async () => {
     const result = await handleGenerateIrlXlsxTool({});
     const payload = result.structuredContent;

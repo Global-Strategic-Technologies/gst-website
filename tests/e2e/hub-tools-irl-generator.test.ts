@@ -100,4 +100,31 @@ test.describe('Hub Tools — Information Request List Generator', () => {
     const card = page.locator('a[href="/hub/tools/information-request-list-generator"]').first();
     await expect(card).toBeVisible();
   });
+
+  test('URL query params pre-fill the form (deeplink from the MCP tool)', async ({ page }) => {
+    // The MCP generate_information_request_list_xlsx tool emits a deeplink
+    // with `?target=...&context=...` so a user arriving from a Claude
+    // Desktop chat doesn't have to re-type the args. Without this hydration
+    // the MCP path is no better than a bookmark.
+    await page.goto(`${PAGE_URL}?target=MedSig+Health&context=buy-side`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await page.waitForSelector('button.irl-gen__cta', { timeout: 10000 });
+
+    await expect(page.locator('input#targetName')).toHaveValue('MedSig Health');
+    await expect(page.locator('input[name="transactionContext"][value="buy-side"]')).toBeChecked();
+  });
+
+  test('URL query params ignore unknown context values (defensive)', async ({ page }) => {
+    // A malformed or attacker-supplied URL with an unknown context value
+    // must not break the form — it should fall back to the default
+    // (Unspecified) without raising.
+    await page.goto(`${PAGE_URL}?target=Acme&context=not-a-real-value`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await page.waitForSelector('button.irl-gen__cta', { timeout: 10000 });
+
+    await expect(page.locator('input#targetName')).toHaveValue('Acme');
+    await expect(page.locator('input[name="transactionContext"][value=""]')).toBeChecked();
+  });
 });

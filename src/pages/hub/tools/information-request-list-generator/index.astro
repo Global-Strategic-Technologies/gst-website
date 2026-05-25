@@ -100,6 +100,27 @@ import HubHeader from '../../../../components/hub/HubHeader.astro';
   const form = document.getElementById('irl-gen-form') as HTMLFormElement | null;
   const status = document.getElementById('irl-gen-status') as HTMLParagraphElement | null;
 
+  // Hydrate form inputs from URL query params so the MCP tool's deeplink
+  // (`?target=...&context=...`) lands the user on a page already filled
+  // with the values that emerged through their Claude Desktop conversation.
+  // Without this, the MCP deeplink is no better than a bookmark — user
+  // would have to re-type every arg.
+  if (form) {
+    const params = new URL(window.location.href).searchParams;
+    const targetFromUrl = params.get('target');
+    if (targetFromUrl) {
+      const targetInput = form.elements.namedItem('targetName') as HTMLInputElement | null;
+      if (targetInput) targetInput.value = targetFromUrl;
+    }
+    const contextFromUrl = params.get('context');
+    if (contextFromUrl && TRANSACTION_CONTEXT_VALUES.has(contextFromUrl as IRLTransactionContext)) {
+      const radio = form.querySelector<HTMLInputElement>(
+        `input[name="transactionContext"][value="${CSS.escape(contextFromUrl)}"]`
+      );
+      if (radio) radio.checked = true;
+    }
+  }
+
   if (form && status) {
     form.addEventListener('submit', (event) => {
       event.preventDefault();

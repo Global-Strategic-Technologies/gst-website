@@ -28,6 +28,32 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.3.10 — 2026-05-25 — `generate_information_request_list_xlsx` deeplink encodes args (Hub form pre-fills on landing)
+
+**Theme**: 0.3.9 had the tool emit a static URL to the Hub page. User feedback (2026-05-25): "the hyperlink doesn't add any value — it does not reflect the input arguments to the tool at all, it simply links to it. A user could go directly there, instead." Correct critique — the MCP path delivered zero value over a bookmark. This release aligns the IRL generator with the deeplink pattern every other Hub tool already uses (TechPar, ICG, Tech Debt, Diligence Machine, Regulatory Map, Radar all serialize args into URL query params).
+
+### Changed
+
+- **`generate_information_request_list_xlsx`**: the Hub URL in the tool's text summary now encodes `?target=<name>&context=<ctx>` when those args are supplied. Empty args produce a clean URL with no query string (universal landing).
+- **Hub page** (`/hub/tools/information-request-list-generator/`): added URL-query-param hydration on mount. `?target=...` pre-fills the target name input; `?context=...` selects the matching radio (defensive — unknown values fall through to the "Unspecified" default). One-click landing reproduces the same file the MCP path would have generated.
+
+### Why this matters for the MCP value-add
+
+Without arg-passing, the MCP path was "type prompt args → read text → click link → re-enter the same args on the Hub page → download." With it: "type prompt args → read text → click link → already filled → download." The friction reduction is what makes the MCP path's existence worth justifying over a bookmark.
+
+This is the same deeplink pattern from BL-031.95 (other Hub tools); the IRL generator was the outlier with a static URL.
+
+### Test impact
+
+- `generate-information-request-list-xlsx.test.ts`: two new regression tests asserting (a) the deeplink encodes `target` + `context` query params when args supplied, (b) the URL is clean (no query string) when no args. Locks the contract so a future accidental revert can't silently break the MCP value prop.
+- `hub-tools-irl-generator.test.ts` (E2E): two new tests asserting (a) the form pre-fills from URL params, (b) unknown context values are defensively ignored (form falls back to default).
+
+**Operator semantics**: patch bump per the discipline (text content change on tool output + Hub page hydration — no surface-area change). No manifest hash drift (prompt versions unchanged; tool name + schema + structuredContent shape unchanged).
+
+**Architecture context**: BL-044 post-staging-feedback polish. The 0.3.8 → 0.3.9 → 0.3.10 trio is one logical arc: 0.3.8 tried the canonical resource-block pattern, 0.3.9 reverted after Claude Desktop's renderer limitation was confirmed, 0.3.10 invests in the Hub-page-as-canonical-download-surface story by closing the arg-passing gap that made the redirect feel valueless.
+
+---
+
 ## 0.3.9 — 2026-05-25 — `generate_information_request_list_xlsx` reverts the `resource` content block; `gst_information_request_list` v0.0.3 → v0.0.4 redirects to the Hub page
 
 **Theme**: 0.3.8 added a `resource` content block carrying the .xlsx as a blob — the canonical MCP "tool produced a binary" pattern. Staging round-trip test (2026-05-25) confirmed Claude Desktop's tool-result renderer **routes `resource` content blocks by mimeType prefix** (`image/*` → image renderer, anything else → red "unsupported format" error block). The blob was correctly delivered on the wire; Claude Desktop just refused to render anything that wasn't an image.
