@@ -112,34 +112,63 @@ export function generateIrlXlsxBuffer(article: IRLArticle, metadata: IRLXlsxMeta
   return out instanceof Uint8Array ? out : new Uint8Array(out as ArrayLike<number>);
 }
 
+/**
+ * Compose the per-bullet Reference identifier.
+ *
+ * Section numbers in the canonical article are zero-padded to two digits
+ * (`"00"` through `"09"`). The Reference column uses the section's leading
+ * digit dropped — so Basics (section `"00"`) → `0-01`, Product (`"01"`)
+ * → `1-01`, Governance (`"09"`) → `9-01`. Bullet index is one-based and
+ * zero-padded to two digits. The pattern collapses cleanly back to the
+ * section structure when a recipient quotes a Reference back ("we'll
+ * cover 3-05 in tomorrow's call").
+ */
+function buildReferenceId(sectionNumber: string, bulletIndex: number): string {
+  const sectionDigit = sectionNumber.replace(/^0+/, '') || '0';
+  const bulletSlug = String(bulletIndex).padStart(2, '0');
+  return `${sectionDigit}-${bulletSlug}`;
+}
+
 function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): XLSX.WorkSheet {
+  // 4-column layout: [Reference | Request | Location | Response].
+  // Header metadata rows put their label in col A and value in col B so the
+  // operator can scan the top of the sheet without scrolling. Section header
+  // rows and bullet rows respect the same column semantics.
   const rows: (string | number)[][] = [];
 
-  rows.push([article.title, '']);
-  if (meta.targetName) rows.push(['Target', meta.targetName]);
+  rows.push([article.title, '', '', '']);
+  if (meta.targetName) rows.push(['Target', meta.targetName, '', '']);
   if (meta.transactionContext) {
-    rows.push(['Engagement context', TRANSACTION_CONTEXT_LABEL[meta.transactionContext]]);
+    rows.push(['Engagement context', TRANSACTION_CONTEXT_LABEL[meta.transactionContext], '', '']);
   }
-  rows.push(['Generated', isoDate(meta.generatedAt)]);
-  rows.push(['Canonical reference', meta.canonicalUrl]);
-  rows.push(['', '']);
+  rows.push(['Generated', isoDate(meta.generatedAt), '', '']);
+  rows.push(['Canonical reference', meta.canonicalUrl, '', '']);
+  rows.push(['', '', '', '']);
 
-  rows.push([article.intro, '']);
-  rows.push(['', '']);
+  rows.push([article.intro, '', '', '']);
+  rows.push(['', '', '', '']);
 
-  rows.push(['Request', 'Response']);
+  rows.push(['Reference', 'Request', 'Location', 'Response']);
 
   for (const section of article.sections) {
-    rows.push([`${section.number} — ${section.title.toUpperCase()}`, '']);
-    if (section.intro) rows.push([section.intro, '']);
+    rows.push(['', `${section.number} — ${section.title.toUpperCase()}`, '', '']);
+    if (section.intro) rows.push(['', section.intro, '', '']);
+
+    let bulletIndex = 0;
     for (const bullet of section.bullets) {
-      rows.push([bullet.text, '']);
+      bulletIndex += 1;
+      rows.push([buildReferenceId(section.number, bulletIndex), bullet.text, '', '']);
     }
-    rows.push(['', '']);
+    rows.push(['', '', '', '']);
   }
 
   const sheet = XLSX.utils.aoa_to_sheet(rows);
-  sheet['!cols'] = [{ wch: 90 }, { wch: 60 }];
+  sheet['!cols'] = [
+    { wch: 10 }, // Reference (e.g., "0-01")
+    { wch: 80 }, // Request (the bullet text)
+    { wch: 25 }, // Location (filename / VDR path the recipient supplies)
+    { wch: 40 }, // Response (free-text answer)
+  ];
   return sheet;
 }
 
@@ -156,10 +185,20 @@ function buildInstructionsSheet(meta: IRLXlsxMetadata): XLSX.WorkSheet {
     ['(VDR) folder; together they cover the inputs GST needs to size and'],
     ['execute the engagement.'],
     [''],
-    ['1. Fill answers in column B alongside each request in column A.'],
-    ['2. Type "n/a" or "not yet tracked" rather than leaving a cell blank —'],
+    ['Column layout on the main sheet:'],
+    ['  A  Reference  — short ID per request (e.g., "0-01"). Quote it back'],
+    ['                 in conversation or in your VDR.'],
+    ['  B  Request    — the structured information GST is asking for.'],
+    ['  C  Location   — OPTIONAL. The filename, VDR path, or sharepoint'],
+    ['                 link where the corresponding artifact lives.'],
+    ['  D  Response   — your free-text answer.'],
+    [''],
+    ['1. Fill answers in column D alongside each request in column B.'],
+    ['2. If you are attaching a file or pointing to a VDR folder, put the'],
+    ['   reference in column C (Location). Both columns may be used together.'],
+    ['3. Type "n/a" or "not yet tracked" rather than leaving a cell blank —'],
     ['   the presence of an answer is signal, including "we do not track this."'],
-    ['3. Section header rows (e.g., "00 — BASICS") delimit the ten request'],
+    ['4. Section header rows (e.g., "00 — BASICS") delimit the ten request'],
     ['   areas. Per-section context lives in the canonical article (link in'],
     ['   the header of the main sheet).'],
     [''],

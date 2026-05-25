@@ -138,15 +138,74 @@ describe('generateIrlXlsxBuffer', () => {
     expect(flat).toContain('n/a');
   });
 
-  it('produces a Request/Response header row before the section blocks', () => {
+  it('produces a 4-column header row [Reference | Request | Location | Response] before the section blocks', () => {
     const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
       generatedAt: FIXED_DATE,
       canonicalUrl: 'https://example.test',
     });
     const sheet = XLSX.read(buf, { type: 'array' }).Sheets['Information Request List'];
     const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
-    const headerRowIndex = rows.findIndex((row) => row[0] === 'Request' && row[1] === 'Response');
+    const headerRowIndex = rows.findIndex(
+      (row) =>
+        row[0] === 'Reference' &&
+        row[1] === 'Request' &&
+        row[2] === 'Location' &&
+        row[3] === 'Response'
+    );
     expect(headerRowIndex).toBeGreaterThan(0);
+  });
+
+  it('emits per-bullet Reference IDs in the form `<sectionDigit>-<NN>` (00 → 0-01, 01 → 1-01)', () => {
+    const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
+      generatedAt: FIXED_DATE,
+      canonicalUrl: 'https://example.test',
+    });
+    const sheet = XLSX.read(buf, { type: 'array' }).Sheets['Information Request List'];
+    const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
+    // SAMPLE_ARTICLE has: Basics (00) with 2 bullets, Product (01) with 1 bullet.
+    // Expected IDs: 0-01, 0-02, 1-01.
+    const refIds = rows.map((r) => r[0]).filter((cell) => /^\d+-\d{2}$/.test(cell ?? ''));
+    expect(refIds).toEqual(['0-01', '0-02', '1-01']);
+  });
+
+  it('Reference IDs sit alongside their bullet text in the same row', () => {
+    const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
+      generatedAt: FIXED_DATE,
+      canonicalUrl: 'https://example.test',
+    });
+    const sheet = XLSX.read(buf, { type: 'array' }).Sheets['Information Request List'];
+    const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
+    const row0_01 = rows.find((r) => r[0] === '0-01');
+    expect(row0_01?.[1]).toBe('Company name');
+    const row1_01 = rows.find((r) => r[0] === '1-01');
+    expect(row1_01?.[1]).toBe('One-paragraph product description');
+  });
+
+  it('Location + Response columns are empty for every bullet row (recipient fills them in)', () => {
+    const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
+      generatedAt: FIXED_DATE,
+      canonicalUrl: 'https://example.test',
+    });
+    const sheet = XLSX.read(buf, { type: 'array' }).Sheets['Information Request List'];
+    const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
+    const bulletRows = rows.filter((r) => /^\d+-\d{2}$/.test(r[0] ?? ''));
+    expect(bulletRows.length).toBeGreaterThan(0);
+    for (const row of bulletRows) {
+      expect(row[2] ?? '').toBe(''); // Location
+      expect(row[3] ?? '').toBe(''); // Response
+    }
+  });
+
+  it('section header rows have an empty Reference cell (only the named bullets get IDs)', () => {
+    const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
+      generatedAt: FIXED_DATE,
+      canonicalUrl: 'https://example.test',
+    });
+    const sheet = XLSX.read(buf, { type: 'array' }).Sheets['Information Request List'];
+    const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
+    const basicsHeader = rows.find((r) => r[1] === '00 — BASICS');
+    expect(basicsHeader).toBeDefined();
+    expect(basicsHeader?.[0] ?? '').toBe(''); // Reference col empty on section header row
   });
 
   it('column widths are preserved on round-trip when cellStyles is requested', () => {

@@ -81,6 +81,15 @@ Verified compatibilities (Phase 0 research):
 
 **One worksheet** with styled section header rows, NOT one worksheet per section. Easier to skim, easier to email-screenshot a single section in context, supports Excel row-outline grouping.
 
+**Four columns** (added in post-merge follow-up):
+
+| Col | Heading     | Purpose                                                                                                                                                                                |
+| --- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A   | `Reference` | Short ID per request, format `<sectionDigit>-<NN>` — Basics first bullet = `0-01`, Product first = `1-01`, Governance fifth = `9-05`. Quotable in conversation or VDR cross-reference. |
+| B   | `Request`   | The structured information GST is asking for (bullet text from `article.md`).                                                                                                          |
+| C   | `Location`  | Optional. The filename, VDR path, or share-link where the corresponding artifact lives. Can be used alongside Response, or alone.                                                      |
+| D   | `Response`  | Free-text answer.                                                                                                                                                                      |
+
 ```
 Sheet 1 "Information Request List" (visible, default open view)
 
@@ -90,21 +99,26 @@ Sheet 1 "Information Request List" (visible, default open view)
   Row 4   Generated             2026-05-23
   Row 5   Canonical reference   https://...
   Row 6   (blank)
-  Row 7   Below is information useful to...      <- article intro
+  Row 7   Below is information useful to...     <- article intro
   Row 8   (blank)
-  Row 9   Request               Response         <- column header
-  Row 10  00 — BASICS                            <- section header (uppercased)
-  Row 11  Company name (legal entity ...)
-  Row 12  Engagement context: sell-side ...
+  Row 9   Reference  Request   Location  Response   <- column header
+  Row 10             00 — BASICS                    <- section header (col B only)
+  Row 11  0-01       Company name (legal entity ...)
+  Row 12  0-02       Engagement context: sell-side ...
+  ...
+  Row N              01 — PRODUCT
+  Row N+1 1-01       One-paragraph product description...
   ...
 
 Sheet 2 "Instructions" (hidden by default)
 
-  Short usage guide for recipient.
+  Short usage guide for recipient — now describes the 4-column layout.
   Senior consultant review can flip Hidden 1→0 without code change.
 ```
 
-Column widths: A=90, B=60. Validated by round-trip read in unit tests with `cellStyles: true`.
+Column widths: A=10, B=80, C=25, D=40. Validated by round-trip read in unit tests with `cellStyles: true`.
+
+**Reference ID derivation**: section number's leading zero is stripped (so `"00"` → `0`, `"09"` → `9`, future `"10"` would stay `10`); bullet index is one-based, zero-padded to two digits. Pure function `buildReferenceId` lives in `src/utils/irl/generate-xlsx.ts`; the test `'emits per-bullet Reference IDs in the form ...'` locks the pattern.
 
 ---
 
