@@ -28,6 +28,37 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.3.11 — 2026-05-25 — stdio binary `createRequire` banner shim (unblocks `xlsx-js-style` runtime startup)
+
+**Theme**: surfaced by CI on PR #162 (2026-05-25). The "Smoke test compiled binary" step (`node mcp-server/dist/index.js < /dev/null`) failed with:
+
+```
+Error: Dynamic require of "stream" is not supported
+  at make_xlsx_lib (.../mcp-server/dist/index.js:...)
+  at xlsx-js-style/dist/xlsx.min.js (.../mcp-server/dist/index.js:...)
+```
+
+`xlsx-js-style` does `require('stream')` at module-load time. esbuild's default ESM emit replaces dynamic `require()` calls inside bundled CJS deps with a stub that throws at runtime. The unit + integration tests passed locally because Vitest imports the source directly (no bundle); the smoke test catches what the test suite misses.
+
+### Changed
+
+- **`mcp-server/build.mjs`** — esbuild `banner.js` now injects a CJS-style `require` shim via `createRequire(import.meta.url)`. The bundled CJS deps' dynamic require calls resolve through Node's built-in module resolver. Canonical esbuild ESM-with-CJS-deps pattern.
+- **No code changes** — build-config only. Source files, tests, and runtime contracts are unchanged.
+
+### Why patch and not minor
+
+Build-config fix to a bug introduced in 0.3.7 (the `xlsx-js-style` swap). The deployed Worker binary is unaffected (wrangler uses its own bundler; staging `0.3.10` deploy worked fine — this is stdio-only). Tool/prompt/URI surfaces unchanged.
+
+### Test impact
+
+`node mcp-server/dist/index.js < /dev/null` now exits 0 with `[gst-mcp] connected on stdio`. The CI "Smoke test compiled binary" step will pass on re-run.
+
+**Operator semantics**: patch bump per the discipline. Stdio binary correctness fix; no runtime API change.
+
+**Architecture context**: BL-044 PR #162 CI failure. 0.3.7 introduced `xlsx-js-style`; 0.3.11 fixes the build emit to support its CJS-style dynamic requires.
+
+---
+
 ## 0.3.10 — 2026-05-25 — `generate_information_request_list_xlsx` deeplink encodes args (Hub form pre-fills on landing)
 
 **Theme**: 0.3.9 had the tool emit a static URL to the Hub page. User feedback (2026-05-25): "the hyperlink doesn't add any value — it does not reflect the input arguments to the tool at all, it simply links to it. A user could go directly there, instead." Correct critique — the MCP path delivered zero value over a bookmark. This release aligns the IRL generator with the deeplink pattern every other Hub tool already uses (TechPar, ICG, Tech Debt, Diligence Machine, Regulatory Map, Radar all serialize args into URL query params).
