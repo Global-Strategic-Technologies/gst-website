@@ -13,8 +13,18 @@
  *   Sheet 1 "Information Request List" (visible default):
  *     Rows 1-N: engagement header (target, context, date, canonical link),
  *               blank separator, optional intro paragraph, blank separator,
- *               then per-section blocks (uppercased header row + bullet rows
- *               with the request in col A and an empty answer cell in col B).
+ *               then per-section blocks (uppercased header row + bullet rows).
+ *               Bullet rows are 7 columns wide:
+ *                 A Reference | B Request | C Status | D File Location |
+ *                 E Comments | F Notes | G Response
+ *               Status pre-fills "OPEN" on every row. The recipient
+ *               promotes a row by picking PARTIAL or CLOSED from the
+ *               in-cell dropdown; the cell auto-recolors via Excel
+ *               conditional formatting (PARTIAL → cream, CLOSED →
+ *               light green). xlsx-js-style cannot emit CF or data
+ *               validation natively, so both ship via a post-process
+ *               that splices the necessary OOXML elements into
+ *               sheet1.xml and styles.xml.
  *
  *   Sheet 2 "Instructions" (hidden):
  *     Short usage guide for the recipient. Senior-consultant review can
@@ -27,6 +37,7 @@
  */
 
 import * as XLSX from 'xlsx-js-style';
+import { unzipSync, zipSync, strFromU8, strToU8 } from 'fflate';
 import type { IRLArticle } from './types';
 
 export type IRLTransactionContext = 'sell-side' | 'buy-side' | 'value-creation' | 'unknown';
@@ -88,7 +99,7 @@ function slugifyTargetName(name: string): string {
 
 /** Render the IRL article + metadata as an `.xlsx` workbook buffer. */
 export function generateIrlXlsxBuffer(article: IRLArticle, metadata: IRLXlsxMetadata): Uint8Array {
-  const primarySheet = buildPrimarySheet(article, metadata);
+  const { sheet: primarySheet, statusCellRefs } = buildPrimarySheet(article, metadata);
   const instructionsSheet = buildInstructionsSheet(metadata);
 
   const wb = XLSX.utils.book_new();
@@ -108,8 +119,17 @@ export function generateIrlXlsxBuffer(article: IRLArticle, metadata: IRLXlsxMeta
   // SheetJS's `type: 'array'` returns a Uint8Array in modern releases but
   // older API surfaces returned a plain number array; normalize so callers
   // (MCP wrapper + browser Blob constructor) get a consistent shape.
-  const out = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
-  return out instanceof Uint8Array ? out : new Uint8Array(out as ArrayLike<number>);
+  const written = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  const raw =
+    written instanceof Uint8Array ? written : new Uint8Array(written as ArrayLike<number>);
+
+  // xlsx-js-style does not emit Excel `<dataValidations>` or
+  // `<conditionalFormatting>` on write, so we post-process the .xlsx
+  // (which is a zip) to splice both into the worksheet XML AND populate
+  // the empty `<dxfs/>` block in styles.xml with the cream/green fills
+  // the CF rules reference. Result: Status cells get an in-cell dropdown,
+  // paste-blocking, AND auto-coloring (PARTIAL → cream, CLOSED → green).
+  return patchStatusValidationAndColoring(raw, statusCellRefs);
 }
 
 /**
@@ -129,19 +149,35 @@ function buildReferenceId(sectionNumber: string, bulletIndex: number): string {
   return `${sectionDigit}-${bulletSlug}`;
 }
 
-function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): XLSX.WorkSheet {
-  // 5-column layout: [Reference | Request | File Location | Response | Notes].
+interface PrimarySheetResult {
+  readonly sheet: XLSX.WorkSheet;
+  /** A1-style references of every Status cell (col C of each bullet row). Used to scope data validation. */
+  readonly statusCellRefs: readonly string[];
+}
+
+function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): PrimarySheetResult {
+  // 7-column layout:
+  //   A Reference | B Request | C Status | D File Location | E Comments | F Notes | G Response
+  //
+  // Status column pre-fills "OPEN" (white fill) on every bullet row.
+  // Allowable values: OPEN, PARTIAL, CLOSED. The in-cell dropdown is
+  // wired by the post-process step (data validation); the cell fill
+  // auto-updates via Excel conditional formatting (PARTIAL → cream,
+  // CLOSED → light green; OPEN keeps the default white from the cell's
+  // own style). Both CF rules + DV dropdown are spliced into the .xlsx
+  // by `patchStatusValidationAndColoring` below.
   //
   // Col A is wide enough to hold metadata labels ("Canonical reference" =
   // 19 chars) in the header section AND Reference IDs ("0-01") in the
   // data section. Labels are right-aligned in col A so they visually snug
-  // against the value in merged B:E — no gap between label and value
+  // against the value in merged B:G — no gap between label and value
   // (the prior narrow-col-A layout left col B mostly empty between them).
   const rows: (string | number)[][] = [];
   const merges: XLSX.Range[] = [];
   const sectionHeaderRowIndices: number[] = [];
   const metadataLabelCells: string[] = [];
-  const NUM_COLS = 5;
+  const statusCellRefs: string[] = [];
+  const NUM_COLS = 7;
   const LAST_COL = NUM_COLS - 1;
 
   // Row 0: article title — merge A:E. Bold + large font applied below.
@@ -178,9 +214,9 @@ function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): XLSX.Wor
   rows.push([]);
   rowIdx += 1;
 
-  // Column header row — 5 cols, bold + larger font applied after sheet creation.
+  // Column header row — 7 cols, bold + larger font applied after sheet creation.
   const headerRowIdx = rowIdx;
-  rows.push(['Reference', 'Request', 'File Location', 'Response', 'Notes']);
+  rows.push(['Reference', 'Request', 'Status', 'File Location', 'Comments', 'Notes', 'Response']);
   rowIdx += 1;
 
   for (const section of article.sections) {
@@ -196,7 +232,11 @@ function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): XLSX.Wor
     let bulletIndex = 0;
     for (const bullet of section.bullets) {
       bulletIndex += 1;
-      rows.push([buildReferenceId(section.number, bulletIndex), bullet.text]);
+      // Pre-fill Status column with "OPEN" so the cell is non-empty (Excel
+      // hides the row's status when blank) and the recipient sees the
+      // workflow shape immediately.
+      rows.push([buildReferenceId(section.number, bulletIndex), bullet.text, 'OPEN']);
+      statusCellRefs.push(XLSX.utils.encode_cell({ r: rowIdx, c: 2 }));
       rowIdx += 1;
     }
     rows.push([]);
@@ -207,9 +247,11 @@ function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): XLSX.Wor
   sheet['!cols'] = [
     { wch: 22 }, // A — Reference IDs (data) + metadata labels (header, right-aligned)
     { wch: 70 }, // B — Request (bullet text); also leftmost cell of merged metadata values
-    { wch: 25 }, // C — File Location
-    { wch: 35 }, // D — Response
-    { wch: 30 }, // E — Notes
+    { wch: 12 }, // C — Status (OPEN/PARTIAL/CLOSED)
+    { wch: 25 }, // D — File Location
+    { wch: 30 }, // E — Comments
+    { wch: 30 }, // F — Notes
+    { wch: 35 }, // G — Response
   ];
   sheet['!merges'] = merges;
 
@@ -241,7 +283,189 @@ function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): XLSX.Wor
     if (sheet[ref]) sheet[ref].s = SECTION_STYLE;
   }
 
-  return sheet;
+  // Status cells: pre-filled "OPEN" with white background + thin border so
+  // each status cell renders as a tile. Recipient changes value + cell
+  // color when promoting to PARTIAL (cream #FFF8DC) or CLOSED (light-green
+  // #C6EFCE) — the Instructions sheet documents the exact hex codes.
+  const STATUS_STYLE = {
+    fill: { fgColor: { rgb: 'FFFFFF' }, patternType: 'solid' as const },
+    alignment: { horizontal: 'center' as const, vertical: 'center' as const },
+    font: { bold: true },
+    border: {
+      top: { style: 'thin' as const, color: { rgb: 'CCCCCC' } },
+      bottom: { style: 'thin' as const, color: { rgb: 'CCCCCC' } },
+      left: { style: 'thin' as const, color: { rgb: 'CCCCCC' } },
+      right: { style: 'thin' as const, color: { rgb: 'CCCCCC' } },
+    },
+  };
+  for (const ref of statusCellRefs) {
+    if (sheet[ref]) sheet[ref].s = STATUS_STYLE;
+  }
+
+  return { sheet, statusCellRefs };
+}
+
+/**
+ * ARGB fills referenced by conditional-format `dxfId` indices. Order is
+ * load-bearing: `dxfId="0"` → first entry (PARTIAL), `dxfId="1"` →
+ * second (CLOSED). Eight-hex form (`FF` alpha prefix) is required by
+ * Excel for opaque solid fills; six-hex renders transparent in some
+ * versions. OPEN intentionally has no entry — the default white fill
+ * from `STATUS_STYLE` is the OPEN appearance.
+ */
+const STATUS_DXF_FILLS = [
+  { rgb: 'FFFFF8DC', label: 'PARTIAL' }, // cream
+  { rgb: 'FFC6EFCE', label: 'CLOSED' }, // light green
+] as const;
+
+/**
+ * Inject Excel data validation + conditional formatting into the
+ * post-XLSX-write buffer:
+ *
+ *   1. `<conditionalFormatting>` into `xl/worksheets/sheet1.xml` so
+ *      Status cell fill auto-updates when value matches PARTIAL or
+ *      CLOSED (OPEN keeps the default white from STATUS_STYLE).
+ *   2. `<dataValidations>` into the same sheet so cells carry an
+ *      in-cell dropdown and paste-block invalid values.
+ *   3. Populated `<dxfs>` block into `xl/styles.xml` defining the two
+ *      fill differentials the CF rules reference. xlsx-js-style ships
+ *      with a hard-coded empty `<dxfs count="0"/>` literal in its
+ *      bundle; we string-replace it (NOT append — OOXML rejects
+ *      duplicate `<dxfs>` blocks).
+ *
+ * OOXML sibling order (CT_Worksheet, §18.3.1.99): conditionalFormatting
+ * (#17) MUST precede dataValidations (#18). We compute one splice anchor
+ * (earliest must-come-after-DV sibling) and emit `CF + DV` together so
+ * their relative order is correct by construction.
+ *
+ * `errorStyle="stop"` blocks paste/free-typed values; the recipient
+ * sees a hard error dialog instead of silently writing a bad string.
+ *
+ * Two regression bugs surfaced during development; both are pinned by
+ * tests:
+ *   - "Replaced Part: sheet1.xml" when DV landed after `<pageMargins>`
+ *   - same error when DV landed after `<ignoredErrors>` (which
+ *     xlsx-js-style emits on numeric-as-text Reference IDs like "0-01")
+ *
+ * Splice anchor scans for the earliest must-come-after sibling so
+ * future content shapes / xlsx-js-style version bumps don't reintroduce
+ * either regression. CF uses the same anchor (CF must precede DV but
+ * both must precede `<hyperlinks>` onwards, so the same anchor works
+ * for both).
+ */
+function patchStatusValidationAndColoring(
+  buf: Uint8Array,
+  statusCellRefs: readonly string[]
+): Uint8Array {
+  if (statusCellRefs.length === 0) return buf;
+
+  const unzipped = unzipSync(buf);
+
+  // -- Patch 1: sheet1.xml (CF + DV) -------------------------------------
+  const sheetPath = 'xl/worksheets/sheet1.xml';
+  const sheetBytes = unzipped[sheetPath];
+  if (!sheetBytes) return buf;
+
+  const sheetXml = strFromU8(sheetBytes);
+  const sqref = statusCellRefs.join(' ');
+
+  const conditionalFormattingXml =
+    `<conditionalFormatting sqref="${sqref}">` +
+    STATUS_DXF_FILLS.map(
+      (fill, idx) =>
+        `<cfRule type="cellIs" dxfId="${idx}" priority="${idx + 1}" operator="equal">` +
+        `<formula>"${fill.label}"</formula>` +
+        `</cfRule>`
+    ).join('') +
+    `</conditionalFormatting>`;
+
+  const dataValidationsXml =
+    `<dataValidations count="1">` +
+    `<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" ` +
+    `errorStyle="stop" errorTitle="Invalid status" ` +
+    `error="Status must be OPEN, PARTIAL, or CLOSED." ` +
+    `promptTitle="Status" prompt="OPEN, PARTIAL, or CLOSED" ` +
+    `sqref="${sqref}">` +
+    `<formula1>"OPEN,PARTIAL,CLOSED"</formula1>` +
+    `</dataValidation>` +
+    `</dataValidations>`;
+
+  // CT_Worksheet sibling order (OOXML §18.3.1.99): everything from
+  // #19 (hyperlinks) onward must come AFTER dataValidations. The list
+  // below covers every sibling Excel might reject if it appears before
+  // our splice point.
+  const AFTER_DV_TAGS = [
+    '<hyperlinks',
+    '<printOptions',
+    '<pageMargins',
+    '<pageSetup',
+    '<headerFooter',
+    '<rowBreaks',
+    '<colBreaks',
+    '<customProperties',
+    '<cellWatches',
+    '<ignoredErrors',
+    '<smartTags',
+    '<drawing',
+    '<legacyDrawing',
+    '<legacyDrawingHF',
+    '<picture',
+    '<oleObjects',
+    '<controls',
+    '<webPublishItems',
+    '<tableParts',
+    '<extLst',
+  ];
+  let spliceIdx = -1;
+  for (const tag of AFTER_DV_TAGS) {
+    const idx = sheetXml.indexOf(tag);
+    if (idx >= 0 && (spliceIdx === -1 || idx < spliceIdx)) spliceIdx = idx;
+  }
+  if (spliceIdx === -1) spliceIdx = sheetXml.lastIndexOf('</worksheet>');
+  if (spliceIdx < 0) return buf;
+
+  const patchedSheetXml =
+    sheetXml.slice(0, spliceIdx) +
+    conditionalFormattingXml +
+    dataValidationsXml +
+    sheetXml.slice(spliceIdx);
+  unzipped[sheetPath] = strToU8(patchedSheetXml);
+
+  // -- Patch 2: styles.xml (populate <dxfs>) -----------------------------
+  const stylesPath = 'xl/styles.xml';
+  const stylesBytes = unzipped[stylesPath];
+  if (stylesBytes) {
+    const stylesXml = strFromU8(stylesBytes);
+    const dxfsBlock =
+      `<dxfs count="${STATUS_DXF_FILLS.length}">` +
+      STATUS_DXF_FILLS.map(
+        (fill) =>
+          `<dxf><fill><patternFill patternType="solid">` +
+          `<fgColor rgb="${fill.rgb}"/><bgColor rgb="${fill.rgb}"/>` +
+          `</patternFill></fill></dxf>`
+      ).join('') +
+      `</dxfs>`;
+
+    let patchedStylesXml: string;
+    if (stylesXml.includes('<dxfs count="0"/>')) {
+      patchedStylesXml = stylesXml.replace('<dxfs count="0"/>', dxfsBlock);
+    } else if (stylesXml.includes('<dxfs/>')) {
+      patchedStylesXml = stylesXml.replace('<dxfs/>', dxfsBlock);
+    } else if (!stylesXml.includes('<dxfs')) {
+      const closeIdx = stylesXml.lastIndexOf('</styleSheet>');
+      if (closeIdx < 0) return buf;
+      patchedStylesXml = stylesXml.slice(0, closeIdx) + dxfsBlock + stylesXml.slice(closeIdx);
+    } else {
+      // A populated `<dxfs count="N">…</dxfs>` already exists from
+      // xlsx-js-style. Splicing a second one would be a schema
+      // violation; bail rather than corrupt the file. Should be
+      // unreachable with current xlsx-js-style bundle.
+      return buf;
+    }
+    unzipped[stylesPath] = strToU8(patchedStylesXml);
+  }
+
+  return zipSync(unzipped, { level: 6 });
 }
 
 function buildInstructionsSheet(meta: IRLXlsxMetadata): XLSX.WorkSheet {
@@ -258,23 +482,38 @@ function buildInstructionsSheet(meta: IRLXlsxMetadata): XLSX.WorkSheet {
     ['execute the engagement.'],
     [''],
     ['Column layout on the main sheet:'],
-    ['  A  Reference      — short ID per request (e.g., "0-01"). Quote it'],
-    ['                     back in conversation or in your VDR.'],
-    ['  B  Request        — the structured information GST is asking for.'],
-    ['  C  File Location  — OPTIONAL. The filename, VDR path, or share-link'],
-    ['                     where the corresponding artifact lives.'],
-    ['  D  Response       — your free-text answer.'],
-    ['  E  Notes          — OPTIONAL. Any caveats, follow-ups, or context'],
-    ['                     the recipient wants to flag alongside an answer.'],
+    ['  A  Reference      short ID per request (e.g., "0-01"). Quote it'],
+    ['                   back in conversation or in your VDR.'],
+    ['  B  Request        the structured information GST is asking for.'],
+    ['  C  Status         OPEN, PARTIAL, or CLOSED. Pre-filled OPEN on'],
+    ['                   every row; update as you progress.'],
+    ['  D  File Location  OPTIONAL. The filename, VDR path, or share-link'],
+    ['                   where the corresponding artifact lives.'],
+    ['  E  Comments       OPTIONAL. Caveats, follow-ups, or context worth'],
+    ['                   flagging alongside the answer.'],
+    ['  F  Notes          OPTIONAL. Free-form scratch space.'],
+    ['  G  Response       your free-text answer.'],
     [''],
-    ['1. Fill answers in column D alongside each request in column B.'],
-    ['2. If you are attaching a file or pointing to a VDR folder, put the'],
-    ['   reference in column C (File Location). C and D may be used together.'],
-    ['3. Use column E (Notes) for anything that does not fit in Response —'],
-    ['   "scheduled for Q3 refresh", "confidential — discuss in call", etc.'],
-    ['4. Type "n/a" or "not yet tracked" rather than leaving a cell blank —'],
-    ['   the presence of an answer is signal, including "we do not track this."'],
-    ['5. Section header rows (e.g., "00 — BASICS") delimit the ten request'],
+    ['Status workflow (column C):'],
+    ['  OPEN     no response yet. Cell color: white.'],
+    ['  PARTIAL  answer in progress or awaiting input. Cell auto-colors'],
+    ['           cream when value is set to PARTIAL.'],
+    ['  CLOSED   answered and complete. Cell auto-colors light green'],
+    ['           when value is set to CLOSED.'],
+    [''],
+    ['Click any Status cell to use the in-cell dropdown. Cell color'],
+    ['updates automatically as the value changes (no manual recolor).'],
+    [''],
+    ['1. Set Status (column C) to PARTIAL or CLOSED as you progress.'],
+    ['2. Fill answers in column G (Response) alongside each request in B.'],
+    ['3. If you are attaching a file or pointing to a VDR folder, put the'],
+    ['   reference in column D (File Location). D and G may be used together.'],
+    ['4. Use column E (Comments) for anything that does not fit in Response'],
+    ['   ("scheduled for Q3 refresh", "confidential, discuss in call").'],
+    ['5. Type "n/a" or "not yet tracked" rather than leaving a Response'],
+    ['   cell blank. The presence of an answer is signal, including'],
+    ['   "we do not track this."'],
+    ['6. Section header rows (e.g., "00 — BASICS") delimit the ten request'],
     ['   areas. Per-section context lives in the canonical article (link in'],
     ['   the header of the main sheet).'],
     [''],
