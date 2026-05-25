@@ -1,0 +1,270 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../../components/hub/HubHeader.astro';
+---
+
+<BaseLayout
+  title="Information Request List Generator | GST"
+  description="Download a fillable .xlsx Information Request List (IRL) personalized to a target or client. Generated client-side from the canonical GST IRL article."
+  ogTitle="Information Request List Generator | GST"
+  ogDescription="One-click downloadable .xlsx Information Request List for technology diligence and value-creation engagements."
+  ogImage="/og-image.png"
+  ogImageAlt="GST Information Request List Generator"
+  ogUrl="https://globalstrategic.tech/hub/tools/information-request-list-generator"
+>
+  <section class="irl-gen">
+    <div class="container">
+      <HubHeader
+        title="Information Request List Generator"
+        subtitle="Download a fillable .xlsx version of the GST IRL, personalized to a target or client."
+      />
+
+      <div class="irl-gen__intro">
+        <p>
+          Generate a structured <strong>.xlsx workbook</strong> recipients can fill in cell-by-cell and
+          email back. The workbook mirrors the GST canonical Information Request List — ten sections (one
+          per VDR folder) covering every input GST tools need to execute the engagement. For the reference
+          article content, see
+          <a href="/hub/library/information-request-list/">Information Request List</a> in the Library.
+        </p>
+      </div>
+
+      <form id="irl-gen-form" class="irl-gen__form">
+        <label class="irl-gen__field">
+          <span class="irl-gen__label"
+            >Target name <span class="irl-gen__hint">(optional)</span></span
+          >
+          <input
+            id="targetName"
+            name="targetName"
+            type="text"
+            placeholder="e.g., MedSig Health"
+            autocomplete="organization"
+            maxlength="120"
+          />
+        </label>
+
+        <fieldset class="irl-gen__fieldset">
+          <legend class="irl-gen__label">
+            Engagement context <span class="irl-gen__hint">(optional)</span>
+          </legend>
+          <label class="irl-gen__radio">
+            <input type="radio" name="transactionContext" value="" checked />
+            <span>Unspecified</span>
+          </label>
+          <label class="irl-gen__radio">
+            <input type="radio" name="transactionContext" value="sell-side" />
+            <span>Sell-side preparation</span>
+          </label>
+          <label class="irl-gen__radio">
+            <input type="radio" name="transactionContext" value="buy-side" />
+            <span>Buy-side review</span>
+          </label>
+          <label class="irl-gen__radio">
+            <input type="radio" name="transactionContext" value="value-creation" />
+            <span>Value Creation</span>
+          </label>
+        </fieldset>
+
+        <button type="submit" class="cta-button primary irl-gen__cta">Download IRL (.xlsx)</button>
+
+        <p id="irl-gen-status" class="irl-gen__status" role="status" aria-live="polite"></p>
+      </form>
+
+      <a href="/hub/tools" class="cta-button secondary irl-gen__back">Back to Tools</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import articleBody from '../../../../data/library/information-request-list/article.md?raw';
+  import { parseIrlArticle } from '../../../../utils/irl/parse-article';
+  import {
+    generateIrlXlsxBuffer,
+    buildIrlFilename,
+    IRL_XLSX_MIME_TYPE,
+    type IRLTransactionContext,
+  } from '../../../../utils/irl/generate-xlsx';
+
+  const TRANSACTION_CONTEXT_VALUES = new Set<IRLTransactionContext>([
+    'sell-side',
+    'buy-side',
+    'value-creation',
+    'unknown',
+  ]);
+
+  // Parse once at module init — the article body is bundled by Vite at build
+  // time, so this is a cheap one-time cost rather than a per-click parse.
+  const article = parseIrlArticle(articleBody);
+
+  const form = document.getElementById('irl-gen-form') as HTMLFormElement | null;
+  const status = document.getElementById('irl-gen-status') as HTMLParagraphElement | null;
+
+  if (form && status) {
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      const targetRaw = (form.elements.namedItem('targetName') as HTMLInputElement | null)?.value;
+      const targetName = targetRaw?.trim() ? targetRaw.trim() : undefined;
+
+      const ctxRaw = (form.elements.namedItem('transactionContext') as RadioNodeList | null)?.value;
+      const transactionContext =
+        ctxRaw && TRANSACTION_CONTEXT_VALUES.has(ctxRaw as IRLTransactionContext)
+          ? (ctxRaw as IRLTransactionContext)
+          : undefined;
+
+      const generatedAt = new Date();
+      const buffer = generateIrlXlsxBuffer(article, {
+        targetName,
+        transactionContext,
+        generatedAt,
+        canonicalUrl: `${window.location.origin}/hub/library/information-request-list/`,
+      });
+      const filename = buildIrlFilename(targetName, generatedAt);
+
+      // Wrap in a fresh Uint8Array so the typed-array's underlying buffer
+      // narrows from `ArrayBufferLike` to `ArrayBuffer` for the Blob ctor.
+      // Small (~3-6 KB) buffer, so the copy is negligible.
+      const blob = new Blob([new Uint8Array(buffer)], { type: IRL_XLSX_MIME_TYPE });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+
+      const sizeKB = Math.round((buffer.byteLength / 1024) * 10) / 10;
+      status.textContent = `Downloaded ${filename} (${sizeKB} KB).`;
+    });
+  }
+</script>
+
+<style>
+  .irl-gen {
+    padding: var(--spacing-3xl) 0 5rem;
+  }
+
+  .irl-gen__intro {
+    max-width: 720px;
+    margin: 0 auto var(--spacing-3xl);
+  }
+
+  .irl-gen__intro p {
+    font-size: var(--text-base);
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  .irl-gen__intro a {
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+    transition: color var(--transition-fast);
+  }
+
+  .irl-gen__intro a:hover {
+    color: var(--color-primary-dark);
+  }
+
+  .irl-gen__form {
+    max-width: 560px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    padding: var(--spacing-xl);
+    border: 1px solid var(--border-default);
+    background: var(--surface-elevated);
+    backdrop-filter: blur(2px);
+  }
+
+  .irl-gen__field,
+  .irl-gen__fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    border: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .irl-gen__label {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-primary);
+  }
+
+  .irl-gen__hint {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--text-muted);
+    margin-left: var(--spacing-xs);
+  }
+
+  .irl-gen__field input[type='text'] {
+    font-family: var(--font-family-sans);
+    font-size: var(--text-base);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border-default);
+    background: var(--surface-base);
+    color: var(--text-primary);
+    transition: border-color var(--transition-fast);
+  }
+
+  .irl-gen__field input[type='text']:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .irl-gen__radio {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: var(--spacing-xs) 0;
+  }
+
+  .irl-gen__radio input {
+    accent-color: var(--color-primary);
+  }
+
+  .irl-gen__cta {
+    align-self: flex-start;
+  }
+
+  .irl-gen__status {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin: 0;
+    min-height: 1.5em;
+  }
+
+  .irl-gen__back {
+    display: inline-block;
+    margin-top: var(--spacing-2xl);
+  }
+
+  @media (max-width: 768px) {
+    .irl-gen {
+      padding: var(--spacing-2xl) 0 var(--spacing-3xl);
+    }
+
+    .irl-gen__form {
+      padding: var(--spacing-lg);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .irl-gen {
+      padding: var(--spacing-xl) 0 var(--spacing-2xl);
+    }
+  }
+</style>

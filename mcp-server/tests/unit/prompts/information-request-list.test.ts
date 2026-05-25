@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { informationRequestListPrompt } from '../../../src/prompts/information-request-list';
 
 const RESOURCE_URI = 'gst://library/information-request-list';
+const XLSX_TOOL_NAME = 'generate_information_request_list_xlsx';
 
 function bodyText(
   prompt: typeof informationRequestListPrompt,
@@ -19,9 +20,12 @@ describe('gst_information_request_list', () => {
   });
 
   it('declares the required GstPrompt fields with concrete values', () => {
-    expect(informationRequestListPrompt.version).toBe('0.0.1');
+    // v0.0.2 = BL-044 (additive file-attachment behavior).
+    // v0.0.3 = voice-cue copy fix (drop "underwriting"/"before the LOI" buy-side
+    // anchor + "post-close" value-creation anchor — accuracy + label alignment).
+    expect(informationRequestListPrompt.version).toBe('0.0.3');
     expect(informationRequestListPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(informationRequestListPrompt.orchestrates).toEqual([RESOURCE_URI]);
+    expect(informationRequestListPrompt.orchestrates).toEqual([RESOURCE_URI, XLSX_TOOL_NAME]);
   });
 
   describe('argsSchema', () => {
@@ -103,13 +107,22 @@ describe('gst_information_request_list', () => {
       }
     });
 
-    it('mentions every orchestrates entry literally in the body', () => {
+    it('mentions the Resource URI literally in every mode (orchestrates invariant)', () => {
       for (const args of [{}, { targetName: 'Acme' }]) {
         const text = bodyText(informationRequestListPrompt, args);
-        for (const ref of informationRequestListPrompt.orchestrates) {
-          expect(text).toContain(ref);
-        }
+        expect(text).toContain(RESOURCE_URI);
       }
+    });
+
+    it('mentions the XLSX tool literally in one-shot mode only (per BL-044 acceptance)', () => {
+      // Bare invocation MUST NOT mention the tool — text-only behavior is
+      // unchanged at v0.0.2 (BL-044 acceptance: "Bare invocation
+      // (interactive mode) unchanged behaviorally"). Any args triggers the
+      // tool-call directive.
+      const oneShot = bodyText(informationRequestListPrompt, { targetName: 'Acme' });
+      const interactive = bodyText(informationRequestListPrompt, {});
+      expect(oneShot).toContain(XLSX_TOOL_NAME);
+      expect(interactive).not.toContain(XLSX_TOOL_NAME);
     });
   });
 
@@ -134,10 +147,17 @@ describe('gst_information_request_list', () => {
       expect(text.toLowerCase()).toContain('story to tell');
     });
 
-    it('includes a buy-side voice cue when transactionContext is buy-side', () => {
+    it('includes a buy-side voice cue framing GST as supporting (not underwriting) + acknowledging both pre-LOI and LOI-stage engagements', () => {
       const text = bodyText(informationRequestListPrompt, { transactionContext: 'buy-side' });
-      expect(text.toLowerCase()).toContain('buy-side');
-      expect(text.toLowerCase()).toContain('underwriting');
+      const lower = text.toLowerCase();
+      expect(lower).toContain('buy-side');
+      // v0.0.3 anchors: GST supports the buyer's evaluation (it does not
+      // "underwrite") and the engagement may be pre-LOI OR LOI-stage (the
+      // old "before the LOI" framing falsely constrained timing).
+      expect(lower).toContain('supporting');
+      expect(lower).toContain('pre-loi or loi-stage');
+      expect(lower).not.toContain('underwriting');
+      expect(lower).not.toContain('before the loi');
     });
 
     it('embeds the supplied productSummary so the model can compress repeat questions', () => {
@@ -154,6 +174,25 @@ describe('gst_information_request_list', () => {
       // interactive bodies have the user-prompt block above.
       expect(text).toContain('Step 1.');
       expect(text).toContain('Step 2.');
+    });
+
+    it('one-shot body instructs the model to call the XLSX tool (BL-044 behavior addition)', () => {
+      const text = bodyText(informationRequestListPrompt, { targetName: 'Acme' });
+      expect(text).toContain(XLSX_TOOL_NAME);
+      // The call instruction must reference the tool's return shape so the
+      // model knows what to attach. If this assertion drifts, the prompt
+      // body has lost the file-attachment directive.
+      expect(text).toMatch(/filename.*base64.*mimeType/i);
+    });
+  });
+
+  describe('build() — interactive mode unchanged at v0.0.2 (BL-044 acceptance)', () => {
+    it('bare invocation body does NOT mention the XLSX tool', () => {
+      // Per BL-044 acceptance criteria: "Bare invocation (interactive mode)
+      // unchanged behaviorally — still emits text-only." The XLSX tool only
+      // fires when the model has args to call it with.
+      const text = bodyText(informationRequestListPrompt, {});
+      expect(text).not.toContain(XLSX_TOOL_NAME);
     });
   });
 });

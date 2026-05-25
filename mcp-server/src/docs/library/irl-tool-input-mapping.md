@@ -127,6 +127,17 @@
 
 ---
 
+## Cross-cutting reads (BL-044 generator)
+
+Some surfaces consume the **whole article body** structurally rather than answering specific bullets. These don't slot into the per-section bullet→input rows above, but the lockstep maintenance discipline still applies — any IRL edit must run `npm -w @gst/mcp-server run test` to confirm the parser regression test ([`mcp-server/tests/unit/lib/parse-irl-article.test.ts`](../../../tests/unit/lib/parse-irl-article.test.ts)) still locks the expected section + bullet counts.
+
+| Consumer                                                | What it reads from the article                                                                                                                                                                                                                               | Stability contract                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`generate_information_request_list_xlsx`** _(BL-044)_ | Title + intro + every section header + every bullet, rendered as one row per bullet in column A of the generated `.xlsx`. Reads via the same `gst://library/information-request-list` Resource the prompt embeds.                                            | Article structure (section count, section numbering scheme, bullet markers) is locked by the [parser regression test](../../../tests/unit/lib/parse-irl-article.test.ts). Section count / bullet count changes are intentional but require updating the expected-shape constants in the test in the same PR.                                                                |
+| `gst_information_request_list` v0.0.2+ prompt body      | Embeds the canonical Resource as the second message in both modes; the model reproduces the bullets verbatim in the paste-ready text artifact. When called with args, also orchestrates the XLSX generator (additive behavior — interactive mode unchanged). | Body-mention invariant from `assertPromptInvariants` requires the Resource URI to appear literally in the rendered text; the per-mode `orchestrates` body-mention contract (URI in both modes; tool name in one-shot only) is asserted by [`mcp-server/tests/unit/prompts/information-request-list.test.ts`](../../../tests/unit/prompts/information-request-list.test.ts). |
+
+---
+
 ## Gap-detection workflow
 
 When a new Hub tool or MCP prompt ships:
@@ -147,4 +158,4 @@ When a Hub tool input is renamed or removed:
 
 ---
 
-_Last updated: 2026-05-22 (BL-043 initial filing + tool-coverage audit pass adding `prodCost`, `remediationBudget`, `scaleIntensity` bullets + cloud-spend / incident trend-horizon enrichments)._
+_Last updated: 2026-05-24 (BL-044 — added "Cross-cutting reads" section documenting the `generate_information_request_list_xlsx` tool's whole-article consumption pattern + lockstep parser-regression-test discipline)._

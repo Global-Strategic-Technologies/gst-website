@@ -37,7 +37,7 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
  * match the value in `mcp-server/BREAKING_CHANGES.md`. Update both in
  * lockstep when the registry shape changes.
  */
-const EXPECTED_MANIFEST_HASH = '15377e5552187a93745816da84e1c55e33f8d4bc2ce1c27175adb7507c0c48f4';
+const EXPECTED_MANIFEST_HASH = 'd8097510e3513631deb3d3035a05f7de9081e8384543a733fe78bff33fd8aa61';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

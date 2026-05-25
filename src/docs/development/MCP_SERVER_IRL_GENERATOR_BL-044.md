@@ -1,0 +1,245 @@
+# MCP Server — Information Request List Generator (BL-044)
+
+> **Backlog initiative**: [BL-044: Information Request List — Fillable-Form Generator](BACKLOG.md#bl-044-information-request-list--fillable-form-generator)
+>
+> **Companion docs**:
+>
+> - [MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md) — read first. BL-044 consumes the article authored under BL-043 unchanged; this initiative is the fillable-form layer on top.
+> - [MCP_SERVER_ARCHITECTURE_BL-031.md](MCP_SERVER_ARCHITECTURE_BL-031.md) — overall MCP architecture, repo placement, lifecycle.
+> - [MCP_SERVER_PROMPTS_BL-031_75.md](MCP_SERVER_PROMPTS_BL-031_75.md) — registered-prompt pattern, maturity bar (golden file, lastReviewedAt, orchestrates body-mention).
+> - [`mcp-server/BREAKING_CHANGES.md`](../../../mcp-server/BREAKING_CHANGES.md) — semver-as-contract log; the 0.3.5 entry documents this initiative's surface additions.
+>
+> **Predecessors**: BL-043 (canonical article + Resource + prompt), BL-031.75 (prompt-library maturity bar).
+>
+> **Sequels**: A future BL-045 candidate may add a filled-IRL ingestion prompt (`gst_intake_filled_irl`) that converts a partner's filled-in `.xlsx` into canonical inputs for `compute_techpar` / `assess_infrastructure_cost_governance` / `estimate_tech_debt_cost` / `generate_diligence_agenda`. BL-044 ships the structured response format that a future BL-045 would parse. **Explicitly out of scope for BL-044.**
+>
+> **Scope**: ship the fillable-form layer on three surfaces in one PR — a Hub tool at `/hub/tools/information-request-list-generator/` (client-side .xlsx download), an MCP tool `generate_information_request_list_xlsx` (server-side, Workers-compatible), and a prompt evolution from `gst_information_request_list@0.0.1` to `0.0.2` that orchestrates the new tool when called with args.
+>
+> **Status**: Implementation landed 2026-05-24 (`mcp-server@0.3.5`). Pending blocking gates: senior-consultant review of the live workbook ergonomics + a manual smoke test in Excel/Numbers/LibreOffice across the three readers.
+
+---
+
+## Three-surface design
+
+The article authored under BL-043 is the **single source of truth**; every surface in BL-044 reads from it via the same `gst://library/information-request-list` Resource path so partner-facing text, partner-facing file, and the agent-embedded Resource never drift.
+
+```
+src/data/library/information-request-list/article.md     ← authored
+                       │
+                       ▼
+src/utils/irl/parse-article.ts → IRLArticle AST          ← pure, deterministic
+                       │
+                       ▼
+src/utils/irl/generate-xlsx.ts → Uint8Array (.xlsx)       ← pure, Workers + browser safe
+                       │
+            ┌──────────┼──────────────────────────────────┐
+            ▼          ▼                                  ▼
+  Hub tool         MCP tool                       gst_information_request_list v0.0.2
+  (Astro page)     (Worker handler)               (prompt body Step 4 calls the tool)
+  /hub/tools/...   generate_information_..._xlsx  one-shot mode only
+```
+
+### Surface 1 — Hub tool (`/hub/tools/information-request-list-generator/`)
+
+- Slug deliberately distinct from `/hub/library/information-request-list/` (the BL-043 reference article) to avoid URI collision.
+- Client-side generation: the page imports `article.md?raw`, parses + generates inside the browser, triggers a `Blob` download. Zero server round-trip per click.
+- Bundle cost: `@e965/xlsx` adds ~250 KB minified (browser bundle measured at build time). Acceptable for an opt-in tool page; the same library powers the MCP-side surface so total runtime footprint is one dep.
+- Optional inputs: `targetName` (text) + `transactionContext` (radio). Both write into the workbook header AND, for targetName, the filename slug.
+- Card on `/hub/tools` landing index (6th card, alongside Regulatory Map / Diligence Machine / Tech Debt / ICG / TechPar).
+
+### Surface 2 — MCP tool (`generate_information_request_list_xlsx`)
+
+- Registered in `createServer()` ([`mcp-server/src/server.ts`](../../../mcp-server/src/server.ts)) — transport-portable; runs on both stdio and the Cloudflare Workers entrypoint.
+- Pure-function pipeline: `loadLibraryByUri('gst://library/information-request-list')` → `parseIrlArticle` → `generateIrlXlsxBuffer` → chunked `btoa`.
+- Returns `{ filename, base64, mimeType, byteLength, sectionCount, bulletCount, canonicalUrl }`. Claude Desktop and other MCP clients can write the file or attach it to a message.
+- Input shape matches the `gst_information_request_list` prompt args (`targetName?`, `transactionContext?`, `productSummary?`) so the prompt can forward its args verbatim to the tool.
+
+### Surface 3 — Prompt evolution (`gst_information_request_list@0.0.2`)
+
+- Patch-style bump per the [BL-031.75 maturity bar](MCP_SERVER_PROMPTS_BL-031_75.md): same name, additive behavior, no removed orchestrations.
+- One-shot body (when ANY arg is supplied) now includes a Step 4 directing the model to call `generate_information_request_list_xlsx` with the same args and attach the returned file. The partner gets a paste-ready text artifact AND a downloadable workbook in the same turn.
+- Interactive body (bare invocation) UNCHANGED. Per BL-044 acceptance: "Bare invocation (interactive mode) unchanged behaviorally — still emits text-only." Catches the case where a user invokes the prompt purely for in-chat reference.
+- `orchestrates` extended from `[RESOURCE_URI]` to `[RESOURCE_URI, 'generate_information_request_list_xlsx']`. The body-mention invariant is satisfied per-mode: the URI appears in both modes (embedded as second message via `embedLibraryArticle`); the tool name appears only in the one-shot body (per the additive-behavior contract).
+
+---
+
+## Library choice — `@e965/xlsx`
+
+The Cloudflare Workers runtime constraint (no `Buffer`, no `stream`, no `node:fs`) rules out `exceljs`. The well-known `xlsx` package on npm has been abandoned by SheetJS (CVE-2023-30533 unpatched at 0.18.5, official install path moved to a CDN-only tarball). `@e965/xlsx` is the community-maintained auto-republish of the current SheetJS source — pure JS, zero runtime deps, identical surface, ~900 KB unminified, comfortably under the free-tier Worker 1 MB limit.
+
+Verified compatibilities (Phase 0 research):
+
+- **Workers**: `XLSX.write(wb, { type: 'array' })` returns a `Uint8Array` with no `Buffer` dep. No `nodejs_compat` flag required.
+- **Browser**: same API, returns the same shape. Wrap in `new Blob([buffer])` for download.
+- **Node**: works in Vitest under both `node` and `jsdom` environments (used by the unit tests).
+
+**Gotcha**: do not import `xlsx/dist/cpexcel.js` (optional codepage support) — it inflates the bundle past the free Workers tier. Core `@e965/xlsx` doesn't need it for ASCII / UTF-8 IRL content.
+
+---
+
+## Workbook structure (BL-044 Phase 0 decision)
+
+**One worksheet** with styled section header rows, NOT one worksheet per section. Easier to skim, easier to email-screenshot a single section in context, supports Excel row-outline grouping.
+
+```
+Sheet 1 "Information Request List" (visible, default open view)
+
+  Row 1   Information Request List              <- article title (col A)
+  Row 2   Target                MedSig Health   <- if supplied
+  Row 3   Engagement context    Buy-side review <- if supplied
+  Row 4   Generated             2026-05-23
+  Row 5   Canonical reference   https://...
+  Row 6   (blank)
+  Row 7   Below is information useful to...      <- article intro
+  Row 8   (blank)
+  Row 9   Request               Response         <- column header
+  Row 10  00 — BASICS                            <- section header (uppercased)
+  Row 11  Company name (legal entity ...)
+  Row 12  Engagement context: sell-side ...
+  ...
+
+Sheet 2 "Instructions" (hidden by default)
+
+  Short usage guide for recipient.
+  Senior consultant review can flip Hidden 1→0 without code change.
+```
+
+Column widths: A=90, B=60. Validated by round-trip read in unit tests with `cellStyles: true`.
+
+---
+
+## Filename convention
+
+```
+Supplied targetName:   GST-IRL-<target-slug>-<YYYY-MM-DD>.xlsx
+                                   ↑                    ↑
+                                   slugified            from generatedAt
+                                   (NFKD, kebab)
+
+Empty / no targetName: GST-IRL-<YYYY-MM-DD>.xlsx
+```
+
+Examples:
+
+| Input                                          | Filename                                |
+| ---------------------------------------------- | --------------------------------------- |
+| `targetName: 'MedSig Health'`                  | `GST-IRL-MedSig-Health-2026-05-23.xlsx` |
+| `targetName: 'Café Société'`                   | `GST-IRL-Cafe-Societe-2026-05-23.xlsx`  |
+| `targetName: 'Acme & Co., Ltd.'`               | `GST-IRL-Acme-Co-Ltd-2026-05-23.xlsx`   |
+| `targetName: '🚀🎯'` (slug collapses to empty) | `GST-IRL-2026-05-23.xlsx`               |
+| no targetName                                  | `GST-IRL-2026-05-23.xlsx`               |
+
+Slug rules: NFKD-normalize → strip combining diacritics (U+0300..U+036F) → replace non-`[A-Za-z0-9]+` with single hyphen → trim leading/trailing hyphens. Pure-emoji or otherwise non-ASCII names that collapse to empty gracefully degrade to the no-target form.
+
+---
+
+## AST shape — `IRLArticle`
+
+```ts
+interface IRLBullet {
+  readonly text: string;
+}
+
+interface IRLSection {
+  readonly number: string; // "00".."09", zero-padded
+  readonly title: string; // "Software Architecture", etc.
+  readonly intro?: string; // optional per-section prose (none today)
+  readonly bullets: readonly IRLBullet[];
+}
+
+interface IRLArticle {
+  readonly title: string; // H1 line
+  readonly intro: string; // top-of-file prose between H1 and first §
+  readonly sections: readonly IRLSection[];
+  readonly footer?: string; // post-rule trailing content
+}
+```
+
+**Forward-compat note**: bullets are wrapped in `{ text }` objects (not plain `string`) so the future BL-044.5 directives (e.g., `<!-- skip-if: productType=b2c -->`) can attach a `directives?: IRLDirective[]` field without churning every consumer. The cost today is one `.text` accessor per bullet; the cost saved later is touching every parser/generator/test.
+
+The AST is the contract between the parser and every consumer. **Changes to this shape are breaking** — coordinate with the MCP tool, the Hub page, and the BL-044.5+ filter engine if added.
+
+---
+
+## Critical files
+
+**New** (created in BL-044):
+
+- [`src/utils/irl/types.ts`](../../utils/irl/types.ts) — AST type definitions (`IRLBullet`, `IRLSection`, `IRLArticle`)
+- [`src/utils/irl/parse-article.ts`](../../utils/irl/parse-article.ts) — pure markdown → AST parser. No markdown library — hand-written line-mode parser for minimal deps + precise error messages.
+- [`src/utils/irl/generate-xlsx.ts`](../../utils/irl/generate-xlsx.ts) — pure AST + metadata → `Uint8Array` XLSX. Also exports `buildIrlFilename` + `IRL_XLSX_MIME_TYPE`.
+- [`mcp-server/src/tools/generate-information-request-list-xlsx.ts`](../../../mcp-server/src/tools/generate-information-request-list-xlsx.ts) — MCP tool wrapper around the pure functions; emits base64 + filename.
+- [`src/pages/hub/tools/information-request-list-generator/index.astro`](../../pages/hub/tools/information-request-list-generator/index.astro) — Astro page + client-side download button.
+- [`mcp-server/tests/unit/lib/parse-irl-article.test.ts`](../../../mcp-server/tests/unit/lib/parse-irl-article.test.ts) — parser regression test (locks article shape) + grammar acceptance + error reporting.
+- [`mcp-server/tests/unit/lib/generate-irl-xlsx.test.ts`](../../../mcp-server/tests/unit/lib/generate-irl-xlsx.test.ts) — generator unit tests via round-trip read.
+- [`mcp-server/tests/unit/tools/generate-information-request-list-xlsx.test.ts`](../../../mcp-server/tests/unit/tools/generate-information-request-list-xlsx.test.ts) — MCP tool wrapper tests.
+- [`tests/e2e/hub-tools-irl-generator.test.ts`](../../../tests/e2e/hub-tools-irl-generator.test.ts) — Playwright E2E for the download button (run separately).
+
+**Modified**:
+
+- [`mcp-server/src/prompts/information-request-list.ts`](../../../mcp-server/src/prompts/information-request-list.ts) — `version` 0.0.1 → 0.0.2, `lastReviewedAt` → 2026-05-24, `orchestrates` extended, one-shot body adds Step 4.
+- [`mcp-server/src/server.ts`](../../../mcp-server/src/server.ts) — register the new tool.
+- [`mcp-server/src/content/library-loader.ts`](../../../mcp-server/src/content/library-loader.ts) — UNCHANGED (BL-043 already registered the article; BL-044 just consumes it).
+- [`mcp-server/package.json`](../../../mcp-server/package.json) — `version` 0.3.4 → 0.3.5, add `@e965/xlsx@^0.20.3` dep.
+- [`package.json`](../../../package.json) — add `@e965/xlsx@^0.20.3` to root deps (for the Astro client-side bundle).
+- [`mcp-server/BREAKING_CHANGES.md`](../../../mcp-server/BREAKING_CHANGES.md) — `0.3.5` entry + manifest-hash bump.
+- [`mcp-server/tests/integration/manifest-stability.test.ts`](../../../mcp-server/tests/integration/manifest-stability.test.ts) — `EXPECTED_MANIFEST_HASH` updated.
+- [`mcp-server/tests/integration/prompts-registry.test.ts`](../../../mcp-server/tests/integration/prompts-registry.test.ts) — `KNOWN_TOOL_NAMES` adds the new tool.
+- [`mcp-server/tests/integration/protocol-roundtrip.test.ts`](../../../mcp-server/tests/integration/protocol-roundtrip.test.ts) — expected tool list adds the new tool.
+- [`mcp-server/tests/unit/prompts/information-request-list.test.ts`](../../../mcp-server/tests/unit/prompts/information-request-list.test.ts) — version + orchestrates expectations updated; new tests for the Step 4 directive + interactive-mode unchanged invariant.
+- [`mcp-server/tests/examples/information-request-list.golden.md`](../../../mcp-server/tests/examples/information-request-list.golden.md) — frontmatter bumped + v0.0.2 behavior note added.
+- [`src/pages/hub/tools/index.astro`](../../pages/hub/tools/index.astro) — new card + `ItemList` JSON-LD entry (numberOfItems 5 → 6).
+- [`mcp-server/src/docs/library/irl-tool-input-mapping.md`](../../../mcp-server/src/docs/library/irl-tool-input-mapping.md) — adds a row documenting that the generator tool reads the article body as a structured source.
+- [`src/docs/development/MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md`](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md) — Sequel front-matter cross-reference unchanged (BL-043 already pointed at BL-044).
+- [`src/docs/development/BACKLOG.md`](BACKLOG.md) — BL-044 status flip Open → Done.
+
+---
+
+## Test surface added
+
+| Layer        | File                                                                         | Count | Validates                                                                          |
+| ------------ | ---------------------------------------------------------------------------- | ----- | ---------------------------------------------------------------------------------- |
+| Parser       | `mcp-server/tests/unit/lib/parse-irl-article.test.ts`                        | 29    | Article structure (10 sections, 67 bullets) + grammar acceptance + error reporting |
+| Generator    | `mcp-server/tests/unit/lib/generate-irl-xlsx.test.ts`                        | 19    | XLSX round-trip read + filename slug rules + Hidden Instructions sheet             |
+| Tool         | `mcp-server/tests/unit/tools/generate-information-request-list-xlsx.test.ts` | 14    | Input schema + handler output shape + base64 round-trip + targetName propagation   |
+| Prompt       | `mcp-server/tests/unit/prompts/information-request-list.test.ts`             | +2    | v0.0.2 invariants: Step 4 directive in one-shot, NOT in interactive                |
+| Registry     | `mcp-server/tests/integration/prompts-registry.test.ts`                      | (✓)   | New tool name resolves; per-prompt body-mention satisfied per-mode                 |
+| Roundtrip    | `mcp-server/tests/integration/protocol-roundtrip.test.ts`                    | (✓)   | New tool surfaces in the registered tool list over HTTP transport                  |
+| Manifest     | `mcp-server/tests/integration/manifest-stability.test.ts`                    | (✓)   | Hash drift from prompt-version bump caught + remediated                            |
+| Hub page E2E | `tests/e2e/hub-tools-irl-generator.test.ts`                                  | 1     | Download click triggers a file with the expected mimeType + filename pattern       |
+
+**62 new unit tests** (29 + 19 + 14) + integration coverage already exercised by the regression suites.
+
+---
+
+## Validation sequence before PR
+
+```
+npx astro check                                        # 0 errors (227 files)
+npm run lint                                           # 0 errors
+npm run lint:css                                       # 0 errors
+npm run test:run                                       # 1173/1173 pass (root)
+npm -w @gst/mcp-server run test                        # 732/732 pass (mcp-server)
+npm -w @gst/mcp-server run typecheck                   # 0 errors
+npm audit --omit=dev                                   # 0 advisories
+```
+
+Manual smoke tests (blocking pre-merge):
+
+- [ ] Click "Download IRL (.xlsx)" on `/hub/tools/information-request-list-generator/` with and without target name + each `transactionContext` option. Open the downloaded file in Excel / Google Sheets / LibreOffice — confirm header cells, section headers, bullet rows are legible.
+- [ ] Invoke `gst_information_request_list { targetName: 'MedSig Health', transactionContext: 'buy-side' }` in Claude Desktop with the staging MCP server. Confirm the model emits the paste-ready text AND calls `generate_information_request_list_xlsx` to attach the file. Confirm the attached file opens cleanly.
+- [ ] Invoke `gst_information_request_list` with no args. Confirm the model asks the interactive question and does NOT call the XLSX tool unprompted (interactive-mode invariant).
+- [ ] Senior-consultant review of the open-in-Excel workbook ergonomics — toggle Instructions sheet visibility based on feedback (single flag change, see Workbook structure above).
+
+---
+
+## Out of scope (deferred to future initiatives)
+
+- **Filled-IRL ingestion** (BL-045 candidate): parses a recipient-filled `.xlsx` back into canonical Hub-tool inputs. Different problem; separate design pass.
+- **Subtractive content filtering** (BL-044.5): directive-based bullet/section filtering driven by `productSummary` / `transactionContext` / `productType`. Documented as a post-v1 expansion in [BACKLOG.md § "Scope expansion"](BACKLOG.md#bl-044-information-request-list--fillable-form-generator). The AST already supports the wrapping `{ text }` shape that makes this additive — no parser refactor needed when ready.
+- **DOCX / PDF variants**: deferred to v2+ if recipient feedback indicates spreadsheet ergonomics are insufficient.
+- **Build-time pregeneration**: rejected because every personalization input (target name, transaction context) is per-click; build-time would lose the personalization. Static "universal template" pregeneration was considered and rejected as duplicative — the runtime generator covers the same case at zero additional cost.
+
+---
+
+_Last updated: 2026-05-24._

@@ -1,13 +1,15 @@
 ---
 promptName: gst_information_request_list
-version: 0.0.1
-recordedAt: 2026-05-22
+version: 0.0.3
+recordedAt: 2026-05-24
 model: claude-opus-4-7
 ---
 
 # Worked example output for `gst_information_request_list`
 
 V1 draft recording. To be replaced with the senior-consultant live-exercise capture during Step 5.5 of [BL-043](../../../src/docs/development/MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md#step-55-senior-consultant-content-review--blocking) — the prompts README authoring checklist § 10 ("Live-exercise it") is the source of truth for the final capture.
+
+> **v0.0.2 (BL-044) — file-attachment behavior**: when ANY arg is supplied, the one-shot body now instructs the model to also call the `generate_information_request_list_xlsx` tool so the partner receives a downloadable fillable `.xlsx` workbook (`{ filename, base64, mimeType }`) alongside the paste-ready text. Bare invocation (interactive mode) is unchanged — still text-only. The XLSX reads from the same canonical Resource the prompt embeds, so the partner-facing text and the partner-facing file stay byte-identical.
 
 ## Input — Trial (a) one-shot mode (target + transaction context)
 
@@ -27,7 +29,7 @@ Empty payload. Model recognized the empty input and asked the user for the targe
 
 ## Expanded prompt body
 
-Two messages: (1) the rendered text body (one of two branches — one-shot when any arg is provided, interactive otherwise); (2) the embedded `gst://library/information-request-list` Resource carrying the canonical IRL article body (10 sections, ~63 bullets).
+Two messages: (1) the rendered text body (one of two branches — one-shot when any arg is provided, interactive otherwise); (2) the embedded `gst://library/information-request-list` Resource carrying the canonical IRL article body (10 sections, ~67 bullets). At v0.0.2 the one-shot body includes a Step 4 that directs the model to call `generate_information_request_list_xlsx` with the same args; that tool returns `{ filename, base64, mimeType }` for attachment to the reply.
 
 ## Model output
 

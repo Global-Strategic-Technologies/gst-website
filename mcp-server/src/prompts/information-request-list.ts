@@ -18,6 +18,15 @@
  *      already answer from context.
  *
  * Pair with `gst_diligence_kickoff` once the IRL has been filled.
+ *
+ * **v0.0.2 (BL-044) — file-attachment behavior**: when ANY arg is supplied,
+ * the one-shot body now instructs the model to also call the
+ * `generate_information_request_list_xlsx` tool so the partner receives a
+ * downloadable fillable `.xlsx` workbook alongside the paste-ready text.
+ * Bare invocation (interactive mode) is unchanged behaviorally — still
+ * emits text only. The XLSX uses the same canonical article body the
+ * model is reproducing, so partner-facing text and partner-facing file
+ * stay byte-identical (single source of truth at `article.md`).
  */
 
 import { z } from 'zod';
@@ -25,6 +34,7 @@ import type { GstPrompt } from './types';
 import { authorialIntentLine, embedLibraryArticle } from './embed';
 
 const RESOURCE_URI = 'gst://library/information-request-list';
+const XLSX_TOOL_NAME = 'generate_information_request_list_xlsx';
 
 const transactionContextValues = ['sell-side', 'buy-side', 'value-creation', 'unknown'] as const;
 
@@ -58,9 +68,9 @@ const VOICE_CUES: Record<(typeof transactionContextValues)[number], string> = {
   'sell-side':
     'Sell-side framing: this is your story to tell. The IRL helps GST help you put the strongest, most defensible version of your business in front of buyers.',
   'buy-side':
-    'Buy-side framing: GST is underwriting this transaction. The IRL is the structured information we need to size technical, regulatory, and organizational risk before the LOI.',
+    'Buy-side framing: GST is supporting your evaluation of the target. The IRL is the structured information we need to size technical, regulatory, and organizational risk for this engagement (whether pre-LOI or LOI-stage).',
   'value-creation':
-    'Value-creation framing: GST is partnering with you post-close. The IRL is the baseline we need to prioritize the 100-day roadmap and the first 12 months of platform investments.',
+    'Value-creation framing: GST is partnering with you on platform investments. The IRL is the baseline we need to prioritize the 100-day roadmap and the first 12 months of work.',
   unknown:
     'Engagement context unspecified — frame the IRL as universal. The recipient can self-select which framing applies.',
 };
@@ -97,6 +107,8 @@ function buildOneShotBody(args: {
     'Step 3. Close with a single-line ask covering turnaround, point of contact, and preferred return format (filled markdown, attached PDFs, or VDR upload). Match the voice cue above.',
     '',
     'Do not invent additional sections. Do not add a tools-attribution appendix (the artifact is intentionally clean for client consumption). If a question is materially answered by `productSummary`, you may add a single inline annotation like "_(already noted: …)_" next to the bullet — but never delete it.',
+    '',
+    `Step 4. Call the **\`${XLSX_TOOL_NAME}\`** tool with the same args (\`targetName\`, \`transactionContext\`) so the partner gets a downloadable fillable \`.xlsx\` workbook alongside the paste-ready text. The tool returns \`{ filename, base64, mimeType }\` — attach the file to your reply. The XLSX mirrors the same canonical article body the model is reproducing above, so partner-facing text and partner-facing file stay byte-identical.`,
   ].join('\n');
 }
 
@@ -122,10 +134,10 @@ const INTERACTIVE_BODY = [
 export const informationRequestListPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
-    'Assemble the input-gathering ask GST hands to a target/client before running diligence tools. Pair with gst_diligence_kickoff once the IRL is filled.',
-  version: '0.0.1',
-  lastReviewedAt: '2026-05-22',
-  orchestrates: [RESOURCE_URI] as const,
+    'Assemble the input-gathering ask GST hands to a target/client before running diligence tools. When called with args, also emits a downloadable fillable .xlsx via generate_information_request_list_xlsx so the recipient has a structured response surface. Pair with gst_diligence_kickoff once the IRL is filled.',
+  version: '0.0.3',
+  lastReviewedAt: '2026-05-24',
+  orchestrates: [RESOURCE_URI, XLSX_TOOL_NAME] as const,
   argsSchema,
   build: (args) => {
     const hasAnyArg =

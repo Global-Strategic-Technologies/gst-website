@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-15377e5552187a93745816da84e1c55e33f8d4bc2ce1c27175adb7507c0c48f4
+d8097510e3513631deb3d3035a05f7de9081e8384543a733fe78bff33fd8aa61
 ```
 
 Computed over (sorted):
@@ -19,12 +19,52 @@ Computed over (sorted):
 - 3 Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`)
 - 120 Regulation URIs (`gst://regulations/<jurisdiction>/<framework-id>`)
 - 6 Radar URIs (FYI latest + Wire latest + 4 Wire categories)
-- 10 prompt `name@version` tuples (`gst_*`)
+- 10 prompt `name@version` tuples (`gst_*`) — `gst_information_request_list` at `0.0.3` + `gst_diligence_sweep` at `0.0.5` post-voice-cue accuracy patch
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.3.6 — 2026-05-24 — `gst_information_request_list` v0.0.3 + `gst_diligence_sweep` v0.0.5 voice-cue accuracy patch
+
+**Theme**: tighten the `transactionContext`-driven voice cues in both prompts. Two specific inaccuracies and one alignment with the BL-044 UI label change.
+
+### Changed
+
+- **`gst_information_request_list` bumped `0.0.2 → 0.0.3`** (same name, patch — body change only, behavior unchanged):
+  - `VOICE_CUES['buy-side']`: removed "GST is underwriting this transaction" (GST supports a buyer's evaluation; does not underwrite) AND "before the LOI" (buy-side engagements can be pre-LOI OR LOI-stage). New text frames GST's role as "supporting your evaluation" and explicitly notes "(whether pre-LOI or LOI-stage)".
+  - `VOICE_CUES['value-creation']`: removed the "post-close" qualifier on GST's role to align with the BL-044 UI label change from "Post-close value creation" → "Value Creation". The "100-day roadmap" terminology (industry-standard) is retained without explicit "post-close" framing of GST's involvement.
+- **`gst_diligence_sweep` bumped `0.0.4 → 0.0.5`** (same name, patch — body change only): the same two voice-cue edits applied to its `VOICE_CUES` map. The dossier-output hash for the `one-shot full` scenario shifted as a result; the interactive + one-shot-minimal hashes are unchanged (they don't reference voice cues).
+
+**Operator semantics**: patch bumps per the discipline (body changes that steer model output → patch bump). Pinned conversations continue to resolve both prompts to the (now-newer) versions; no schema changes; no behavior changes to the artifact structure or sweep coverage.
+
+**Architecture context**: voice-cue accuracy is partner-facing brand integrity — the previous "underwriting" framing materially miscast GST's role in buy-side engagements, and the "post-close" qualifier created label drift after the BL-044 "Value Creation" UI cleanup. Caught during BL-044 post-merge cleanup review.
+
+---
+
+## 0.3.5 — 2026-05-24 — `gst_information_request_list` v0.0.2 + `generate_information_request_list_xlsx` tool (BL-044)
+
+**Theme**: close the IRL request → response loop by shipping a fillable `.xlsx` generator. The recipient now has an obvious structured response surface (one row per request, with an empty answer cell beside) instead of having to invent a response format from the markdown article.
+
+### Added
+
+- **Tool**: `generate_information_request_list_xlsx` — pure-function pipeline (library load → markdown parse → XLSX render → base64). Returns `{ filename, base64, mimeType, byteLength, sectionCount, bulletCount, canonicalUrl }`. Reads from the same `gst://library/information-request-list` Resource the prompt embeds, so the partner-facing text and the partner-facing file stay byte-identical. The new tool name was added to `KNOWN_TOOL_NAMES` in [`tests/integration/prompts-registry.test.ts`](./tests/integration/prompts-registry.test.ts).
+
+### Changed
+
+- **Prompt body**: `gst_information_request_list` bumped `0.0.1 → 0.0.2`. Additive behavior: when **any** arg is supplied, the one-shot body now instructs the model to also call `generate_information_request_list_xlsx` so the partner receives a downloadable workbook alongside the paste-ready text. Bare invocation (interactive mode) is unchanged — still emits text-only. `orchestrates` extended from `[RESOURCE_URI]` to `[RESOURCE_URI, 'generate_information_request_list_xlsx']`.
+- **Description**: clarified that the prompt now generates a downloadable file when called with args; pairing with `gst_diligence_kickoff` is unchanged.
+
+### Dependencies
+
+- Added `@e965/xlsx@^0.20.3` to `mcp-server/package.json` — community-maintained auto-republish of SheetJS, pure JS, Workers + Node + browser compatible, zero runtime deps. Avoids the stale + CVE-laden `xlsx` npm package and the Node-only `exceljs`. Verified compatible with the Cloudflare Workers runtime — no `nodejs_compat` flag needed, no `Buffer` polyfill required (uses `type: 'array'` output + chunked `btoa` for base64).
+
+**Operator semantics**: minor bump per the discipline (additive tool + additive prompt behavior + new dependency → `0.3.4 → 0.3.5` minor, NOT major; pinned conversations resolve `gst_information_request_list` to the newer prompt with the additive file-attachment behavior; no removed names; no schema changes to existing tools).
+
+**Architecture context**: [BL-044 in BACKLOG.md](../src/docs/development/BACKLOG.md#bl-044-information-request-list--fillable-form-generator). Tracking doc at [`src/docs/development/MCP_SERVER_IRL_GENERATOR_BL-044.md`](../src/docs/development/MCP_SERVER_IRL_GENERATOR_BL-044.md) (added in this release).
 
 ---
 
