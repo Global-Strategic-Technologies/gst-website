@@ -37,10 +37,12 @@ import { hasScope } from './auth/scopes';
 import { createLimiter } from './ratelimit/limiter';
 import { tooManyRequestsResponse, withRateLimitHeaders } from './ratelimit/headers';
 import {
+  captureException,
   captureMessage,
   flushSentry,
   sentryOptions,
   tagRequest,
+  withMonitor,
   withSentry,
 } from './observability/sentry';
 import { buildHealthPayload } from './observability/health';
@@ -151,32 +153,76 @@ function isRoutedPath(pathname: string): boolean {
   return false;
 }
 
-const handler: ExportedHandler<Env> = {
+// Exported for direct unit-testing of the scheduled handler's error-capture
+// path (see `tests/unit/worker-scheduled.test.ts`). The default export
+// remains the canonical wrangler entrypoint (withSentry-wrapped, below).
+export const handler: ExportedHandler<Env> = {
   /**
-   * Hourly Cron handler (BL-032.5 Phase 4). Refreshes the Upstash radar
-   * snapshot cache so MCP Resource consumers see snapshots that are at
-   * most 60 minutes stale, independent of read traffic. Budget guards
-   * (circuit breaker + daily soft cap) live inside `refreshRadarSnapshot`;
-   * we just delegate here. The scheduled handler has no response surface
-   * — return value is ignored by Cloudflare.
+   * Cron handler — refreshes the Upstash radar snapshot cache every 6h so
+   * MCP Resource consumers see snapshots that are at most ~6h stale,
+   * independent of read traffic. Budget guards (circuit breaker + daily
+   * soft cap) live inside `refreshRadarSnapshot`; we just delegate here.
+   * The scheduled handler has no response surface — return value is
+   * ignored by Cloudflare.
    *
-   * The `try { … } finally { await flushSentry() }` shape exists because
-   * `captureMessage` events emitted from cron paths (`cron.radar-refresh.*`)
-   * race against Cloudflare reclaiming the isolate once the scheduled
-   * handler returns. `withSentry` auto-flushes for the fetch handler
-   * because it can anchor against the returned Response, but the
-   * scheduled handler has no Response — so the SDK's in-memory queue
-   * gets killed mid-POST and events are lost. Observed dropping ~75% of
-   * Sentry capture during BL-032.8 Phase B soak Day 3 even though
-   * Cloudflare's cron event log showed all 4/4 daily firings succeeding.
-   * The single `ctx.waitUntil` (vs two separate `waitUntil` calls) keeps
-   * the flush ordered AFTER the captures it's draining.
+   * **Three-layer Sentry instrumentation** (mirrors Sentry's reference
+   * `instrumentCron` pattern; verified against `@sentry/node-core/src/
+   * cron/cron.ts`):
+   *
+   *   1. `withMonitor('radar-refresh', …)` — sends `in_progress` / `ok`
+   *      / `error` check-ins to Sentry Crons. Auto-creates the monitor
+   *      on first check-in via `upsertMonitorConfig` (the `schedule`
+   *      field). Sentry surfaces missed firings + sustained-failure
+   *      alerts on its Crons dashboard.
+   *   2. **Outer `try/catch`** — `withMonitor` re-throws on callback
+   *      rejection (it only marks the check-in; it does NOT call
+   *      `captureException`). Without an outer catch, the rejection
+   *      escapes `ctx.waitUntil` and Cloudflare reports
+   *      `outcome: exception` with zero Sentry signal. The catch calls
+   *      `captureException` for the stack trace and then swallows so
+   *      `ctx.waitUntil`'s promise resolves cleanly.
+   *   3. **`finally { await flushSentry() }`** — `withSentry` auto-
+   *      flushes for the fetch handler (anchored on the Response), but
+   *      the scheduled handler has no Response. Without an explicit
+   *      flush, in-flight Sentry POSTs get killed mid-flight when
+   *      Cloudflare reclaims the isolate. Observed dropping ~75% of
+   *      cron capture during BL-032.8 Phase B soak Day 3 (commit
+   *      4680028, 2026-05-19) — that fix landed the flush; this fix
+   *      lands the catch.
+   *
+   * Bug history (resolves 2026-05-25 incident): Cloudflare dashboard
+   * showed 13 cron `outcome: exception` events in 24h. Sentry's Issues
+   * view showed zero corresponding events. Root cause: the prior shape
+   * had `try { … } finally { … }` with no `catch` clause — exceptions
+   * thrown by `refreshRadarSnapshot` propagated past the IIFE, past
+   * `ctx.waitUntil`'s promise, into Cloudflare's runtime. The `finally`
+   * ran flushSentry but the SDK queue was empty (no capture had been
+   * made), so Sentry never saw the error. See
+   * `mcp-server/BREAKING_CHANGES.md` 0.3.12 for full context.
    */
-  async scheduled(_event, env, ctx): Promise<void> {
+  async scheduled(event, env, ctx): Promise<void> {
     ctx.waitUntil(
       (async () => {
         try {
-          await refreshRadarSnapshot(env);
+          // Sentry Crons check-in + monitor auto-upsert. The cron expression
+          // here MUST match wrangler.toml's `[triggers] crons` entry — if it
+          // drifts, Sentry's missed-firing alerts use the wrong baseline.
+          // `event.cron` is the source of truth at runtime; we pass it
+          // through rather than hardcoding so a wrangler.toml schedule edit
+          // doesn't silently break the monitor.
+          await withMonitor('radar-refresh', () => refreshRadarSnapshot(env), {
+            schedule: { type: 'crontab', value: event.cron },
+            checkinMargin: 5,
+            maxRuntime: 10,
+            timezone: 'UTC',
+          });
+        } catch (err) {
+          // `withMonitor` marked the check-in as `error` and re-threw.
+          // Capture here so the stack trace reaches Sentry, then swallow
+          // so `ctx.waitUntil` sees a clean resolution (Cloudflare's
+          // outcome stays `ok` — the canonical failure signal moves to
+          // the Sentry Crons dashboard).
+          captureException(err, { source: 'cron.scheduled', cron: event.cron });
         } finally {
           await flushSentry();
         }
