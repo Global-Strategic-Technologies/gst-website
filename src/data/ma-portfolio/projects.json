@@ -1639,5 +1639,36 @@
     "challenge": "Assessing carve-out feasibility, integration risk, and security posture for a target combining a proprietary legacy software platform mid-modernization with a separate vendor-led claims and reinsurance services operating environment.",
     "solution": "Validated a services-anchored business with a useful proprietary platform, but identified substantial ColdFusion technical debt, undersized development capacity relative to roadmap ambition, two distinct integration workstreams, and tactical security gaps in vulnerability scanning, SIEM log ingestion, and SDLC code scanning.",
     "engagementCategory": "Buy-Side"
+  },
+  {
+    "id": "valorem",
+    "codeName": "Valorem",
+    "industry": "Fund Administration & Corporate Services",
+    "theme": "Finance",
+    "summary": "Luxembourg-based fund administration and corporate services platform delivered through Citrix on legacy on-premises core applications, with a SQL Server data warehouse and Power BI consolidating reporting across accounting, claims, and regulatory tooling.",
+    "arr": "$50M",
+    "arrNumeric": 50000000,
+    "currency": "USD",
+    "growthStage": "Mature Enterprise",
+    "year": 2026,
+    "technologies": [
+      "Citrix",
+      "SQL Server 2017",
+      "Power BI",
+      "Microsoft 365",
+      "Sage BOB50",
+      "Admin Consult",
+      "Paxus",
+      "Demasy",
+      "ILEA CRM",
+      "Silverfin",
+      "Wallix",
+      "Veeam",
+      "VMware"
+    ],
+    "engagementType": "Technical Diligence",
+    "challenge": "Assessing whether the target's security posture is appropriate for the business and whether systems, infrastructure, organization, processes, or security carry risks that would materially impact ~2x growth.",
+    "solution": "Validated a structurally sound operating base with strong infrastructure resilience and a credible security baseline, but flagged legacy on-premises core applications, a SQL Server 2017 data warehouse nearing end-of-support, manual cross-system workflows, missing AI governance and incident response playbooks, and a lean configuration-focused IT team misaligned with the Omnicore modernization roadmap.",
+    "engagementCategory": "Buy-Side"
   }
 ]
