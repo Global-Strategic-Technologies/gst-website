@@ -242,9 +242,20 @@ async function performRefresh(
       signal: controller.signal,
     });
   } catch (e) {
-    // No Response — nothing reached Inoreader, so the egress wrapper is
-    // intentionally NOT invoked here (keeps the counter aligned with what
-    // Inoreader's own quota counter sees).
+    // No Response — the call aborted (timeout) or threw before reaching
+    // Inoreader. The egress wrapper is intentionally NOT invoked here,
+    // for BOTH counters it would have touched:
+    //
+    //   - Zone-1 total: `oauth-refresh` doesn't contribute anyway, so this
+    //     branch is moot for the Zone-1 dashboard.
+    //   - Per-category `oauth-refresh` counter: skipping aligns with the
+    //     same rule the Zone-1 path follows ("nothing reached Inoreader,
+    //     nothing was counted by them"). If we ticked here, the
+    //     `oauth-refresh` rate would over-count auth churn during
+    //     network-degraded windows — exactly when an operator would be
+    //     reading the counter to diagnose.
+    //
+    // Documented at BL-032.75 Phase 0 audit fix M3.
     const result: RefreshResult = {
       ok: false,
       reason: 'inoreader-error',
