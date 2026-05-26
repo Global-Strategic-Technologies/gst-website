@@ -59,6 +59,7 @@ The four categories mirror exactly the four filter pills on `/hub/radar` and the
   matches: Array<SnapshotItem & { tier: 'fyi' | 'wire' }>,
   totalMatched: number,           // === matches.length
   returned: number,               // === matches.length (no limit; mirrors website)
+  oldestItemDaysAgo: number | null, // freshness signal; null when matches is empty (BL-031.95)
   snapshotInfo: {
     fyiLastSeededAt: string | null,
     wireLastSeededAt: string | null,
@@ -66,6 +67,8 @@ The four categories mirror exactly the four filter pills on `/hub/radar` and the
   deeplink: string,               // e.g. "https://globalstrategic.tech/hub/radar?category=pe-ma"
 }
 ```
+
+**`oldestItemDaysAgo`** (BL-031.95 follow-up): rolling 24h-bucketed age of the oldest item in `matches`, or `null` when `matches` is empty. Lets callers (UI badges, MCP agents deciding whether to re-fetch, Sentry alert rules in BL-032.75 Phase 3) see freshness at a glance without scanning every item's `publishedAt`. Boundary semantics: `0` for items 23h59m ago (rolling buckets, not UTC midnight); `0` for future-dated items (clamped, defensive). See [`mcp-server/src/content/radar-transform.ts`](../../content/radar-transform.ts) `oldestItemDaysAgo` for the helper.
 
 **Sort order**: `publishedAt` newest-first across the unified FYI + Wire set. Matches the website's natural feed order via `mergeFeed()` in `RadarFeed.astro`.
 
