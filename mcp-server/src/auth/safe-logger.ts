@@ -79,6 +79,18 @@ export interface LogEvent {
    * wrangler-tail output without having to cross-reference Upstash.
    */
   zone1Usage?: number;
+  /**
+   * Short identifier of an Inoreader egress call site — e.g.
+   * `'fetchAnnotatedItems'`, `'tag-list'`, `'folder:GST-pe-ma'`,
+   * `'refresh-cron'`. Carried on `inoreader.egress` events alongside
+   * `category`. BL-032.75 Phase 0 audit fix S3: previously these values
+   * were overloaded onto the `tool` field, which downstream Sentry
+   * queries (filtering `tool = "search_radar"`) treated as MCP tool
+   * names. The dedicated field keeps `tool` clean for its semantic
+   * meaning and lets egress filters scope to call-site granularity
+   * without pre-joining the category breakdown.
+   */
+  egressSource?: string;
 }
 
 /**

@@ -385,8 +385,17 @@ describe('recordInoreaderEgress: safeLog breadcrumbs', () => {
         status: 200,
         success: true,
         zone1Usage: 5,
+        // Audit fix S3: dedicated egressSource field, NOT the `tool` field.
+        // Downstream Sentry queries filtering `tool = "search_radar"` stay
+        // clean if a future contributor adds tool-name carriage on the
+        // same event.
+        egressSource: 'fetchAnnotatedItems',
       })
     );
+    // Belt-and-suspenders: the `tool` field MUST NOT carry an egress
+    // call-site value, even though the LogEvent type technically allows it.
+    const call = safeLogMock.mock.calls.find(([arg]) => arg?.event === 'inoreader.egress');
+    expect(call?.[0]?.tool).toBeUndefined();
   });
 
   it('emits success: false on a 4xx response', async () => {
