@@ -27,6 +27,7 @@ import {
   type InoreaderResult,
   type RateLimitInfo,
 } from '../lib/inoreader-client';
+import type { InoreaderEgressCategory } from '../lib/inoreader-egress';
 import { createCacheStore } from '../lib/upstash-cache-store';
 import {
   recordInoreaderStatus,
@@ -81,6 +82,30 @@ interface CachedTier {
 }
 
 /**
+ * Map the `InoreaderObservedSource` surfaced through readWireLive / readFyiLive
+ * to the corresponding `InoreaderEgressCategory` consumed by the egress
+ * accounting wrapper (BL-032.75 Phase 0). The mapping is:
+ *
+ *   'cron'         → 'cron-radar'
+ *   'live-tool'    → 'live-radar'
+ *   'http-snapshot'→ 'http-radar-snapshot'
+ *
+ * The egress wrapper additionally synthesizes a '401-retry' category inside
+ * authenticatedFetch; that path is not reachable from here.
+ */
+function sourceToCategory(source: InoreaderObservedSource): InoreaderEgressCategory {
+  switch (source) {
+    case 'cron':
+      return 'cron-radar';
+    case 'http-snapshot':
+      return 'http-radar-snapshot';
+    case 'live-tool':
+    default:
+      return 'live-radar';
+  }
+}
+
+/**
  * Read the merged Wire stream (live, with Upstash 6h cache).
  * On cache miss, calls Inoreader's `tag/list` + parallel folder fetches via
  * `fetchAllStreams`. Items are tagged `tier: 'wire'`.
@@ -115,7 +140,7 @@ export async function readWireLive(
     }
   }
 
-  const result = await fetchAllStreams(env);
+  const result = await fetchAllStreams(env, 'GST-', 15, sourceToCategory(source));
   if (!result.ok) {
     // BL-032 Phase 5: record observed Inoreader status for /health
     // surfacing. Best-effort; doesn't affect the failure response shape.
@@ -169,7 +194,7 @@ export async function readFyiLive(
     }
   }
 
-  const result = await fetchAnnotatedItems(env, count);
+  const result = await fetchAnnotatedItems(env, count, sourceToCategory(source));
   if (!result.ok) {
     await recordInoreaderStatus(env, 'degraded', source, `fyi:${result.reason}`);
     return mapFailure(result);
