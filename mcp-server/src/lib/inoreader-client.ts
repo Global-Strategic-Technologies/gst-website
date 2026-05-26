@@ -176,6 +176,33 @@ function buildAuthHeaders(config: ResolvedConfig): Record<string, string> {
  * Network errors / abort timeouts deliberately do NOT record — nothing
  * reached Inoreader's quota counter, so we don't tick ours either.
  */
+/**
+ * Parse the `X-Reader-Zone1-Usage` header off an Inoreader response into a
+ * non-negative finite number, or `undefined` when the header is absent or
+ * unusable. BL-032.75 Phase 0 audit fix C3.
+ *
+ * Defensive against three real cases:
+ *   - **Missing** (`headers.get` returns `null` — proxy stripped it)
+ *   - **Present but empty** (`""` — observed historically on some edge
+ *     responses; `Number("")` is `0` and `Number.isFinite(0)` is true, so
+ *     a naive parse would treat the absence as a real zero reading and
+ *     trigger drift detection against a fake baseline)
+ *   - **Non-numeric / negative** (Inoreader returning garbage on a degraded
+ *     path; `Number("abc")` is `NaN`)
+ *
+ * All three collapse to `undefined` so the recorder skips drift detection
+ * rather than treating noise as a real reading. Tests live in
+ * `tests/unit/lib/inoreader-client-parse-zone1-header.test.ts`.
+ */
+export function parseZone1UsageHeader(res: Response): number | undefined {
+  const raw = res.headers.get('X-Reader-Zone1-Usage');
+  if (raw == null) return undefined;
+  const trimmed = raw.trim();
+  if (trimmed === '') return undefined;
+  const n = Number(trimmed);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
 async function singleFetch(
   url: string,
   config: ResolvedConfig,
@@ -186,9 +213,7 @@ async function singleFetch(
   try {
     const res = await fetch(url, { headers: buildAuthHeaders(config), signal: controller.signal });
     if (egressMeta) {
-      const headerVal = res.headers.get('X-Reader-Zone1-Usage');
-      const zone1UsageHeader =
-        headerVal != null && Number.isFinite(Number(headerVal)) ? Number(headerVal) : undefined;
+      const zone1UsageHeader = parseZone1UsageHeader(res);
       await recordInoreaderEgress({
         env: egressMeta.env,
         category: egressMeta.category,
