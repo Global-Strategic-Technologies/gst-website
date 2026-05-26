@@ -92,17 +92,26 @@ interface CachedTier {
  *
  * The egress wrapper additionally synthesizes a '401-retry' category inside
  * authenticatedFetch; that path is not reachable from here.
+ *
+ * BL-032.75 Phase 0 audit fix S1: exhaustive switch with `never`
+ * exhaustiveness check. A future `InoreaderObservedSource` widening now
+ * fails the build (compile-time error pointing at this function), rather
+ * than silently routing the new value into 'live-radar' via a `default`.
  */
 function sourceToCategory(source: InoreaderObservedSource): InoreaderEgressCategory {
   switch (source) {
     case 'cron':
       return 'cron-radar';
+    case 'live-tool':
+      return 'live-radar';
     case 'http-snapshot':
       return 'http-radar-snapshot';
-    case 'live-tool':
-    default:
-      return 'live-radar';
   }
+  // If TypeScript reports an error on this line, a new value was added to
+  // `InoreaderObservedSource` without a corresponding case above. Map it
+  // to the right category (or add a new one in inoreader-egress.ts).
+  const _exhaustive: never = source;
+  throw new Error(`Unhandled InoreaderObservedSource: ${String(_exhaustive)}`);
 }
 
 /**
