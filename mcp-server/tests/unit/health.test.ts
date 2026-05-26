@@ -389,4 +389,71 @@ describe('buildHealthPayload', () => {
       expect(payload.radarSnapshotAgeSeconds).toBeNull();
     });
   });
+
+  // BL-032.75 Phase 0: /health surfaces the new categorized spend counter
+  // alongside the existing day-counter. These tests pin the shape so a
+  // dashboard / SLO consumer can rely on it.
+  describe('inoreaderSpend (BL-032.75 Phase 0)', () => {
+    it('reads total + per-category from the zone1-spend counters', async () => {
+      redisGet.mockImplementation(async (key: string) => {
+        if (key === 'mcp:health:probe') return null;
+        if (key === 'inoreader:access_token') return 'token';
+        if (key === 'mcp:inoreader:last-status') return null;
+        if (key === 'mcp:radar:cache:fyi') return null;
+        if (key.startsWith('mcp:inoreader:zone1-spend:')) {
+          const suffix = key.slice('mcp:inoreader:zone1-spend:'.length);
+          if (!/:/.test(suffix)) return 18; // total (key ends at the date)
+          if (suffix.endsWith(':cron-radar')) return 12;
+          if (suffix.endsWith(':live-radar')) return 4;
+          if (suffix.endsWith(':http-radar-snapshot')) return 2;
+          if (suffix.endsWith(':oauth-refresh')) return 3;
+          if (suffix.endsWith(':401-retry')) return 0;
+        }
+        return null;
+      });
+
+      const payload = await buildHealthPayload(baseEnv);
+
+      expect(payload.inoreaderSpend.total).toBe(18);
+      expect(payload.inoreaderSpend.byCategory).toEqual({
+        'cron-radar': 12,
+        'live-radar': 4,
+        'http-radar-snapshot': 2,
+        'oauth-refresh': 3,
+        '401-retry': 0,
+      });
+    });
+
+    it('returns zeros when no spend has been recorded today', async () => {
+      redisGet.mockImplementation(async (key: string) => {
+        if (key === 'mcp:health:probe') return null;
+        if (key === 'inoreader:access_token') return 'token';
+        return null; // all spend keys missing
+      });
+
+      const payload = await buildHealthPayload(baseEnv);
+
+      expect(payload.inoreaderSpend.total).toBe(0);
+      expect(payload.inoreaderSpend.byCategory).toEqual({
+        'cron-radar': 0,
+        'live-radar': 0,
+        'http-radar-snapshot': 0,
+        'oauth-refresh': 0,
+        '401-retry': 0,
+      });
+    });
+
+    it('returns zeros when MCP DB is unreachable rather than failing /health', async () => {
+      const env = {
+        ...baseEnv,
+        UPSTASH_MCP_REST_URL: undefined,
+        UPSTASH_MCP_REST_TOKEN: undefined,
+      };
+
+      const payload = await buildHealthPayload(env);
+
+      expect(payload.inoreaderSpend.total).toBe(0);
+      expect(payload.inoreaderSpend.byCategory['cron-radar']).toBe(0);
+    });
+  });
 });
