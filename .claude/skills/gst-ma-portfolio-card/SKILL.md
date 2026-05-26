@@ -54,4 +54,4 @@ Ask: **"Shall I insert this record into projects.json?"**
 
 ## Step 4 — Insert the record
 
-On confirmation, read `src/data/ma-portfolio/projects.json`, append the new object to the array, and write the file back. Preserve all existing records exactly. Use 2-space indentation. Do not reformat or sort any existing entries.
+On confirmation, read `src/data/ma-portfolio/projects.json` and **prepend** the new object to the array (insert it as the first element, immediately after the opening `[`). The portfolio UI renders entries in file order with no sort applied, so newest entries must appear at the top of the array to appear at the top of the page. Preserve all existing records exactly. Use 2-space indentation. Do not reformat or sort any existing entries.
