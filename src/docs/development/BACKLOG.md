@@ -1848,6 +1848,384 @@ BL-032's Section K soak (31 of 40 tests recorded as of 2026-05-12) surfaced a ti
 
 ---
 
+### BL-032.76: MCP Cron Status / Sentry Observability Repair
+
+**Source**: 2026-05-26 incident investigation session | **Effort**: 1-2 days (Option B path) | **Status**: Open | **Depends on**: nothing blocking | **Blocks**: BL-032.75 Phase 3 alerting (alert rules on Cloudflare cron status are unreliable while every firing reports `Exception Thrown`) | **Sibling-of**: BL-032.75 (this fixes the substrate that BL-032.75 Phase 3 alerts on)
+
+**As a** GST operator running the MCP-server production cron, **I want** Cloudflare's cron-events dashboard to report `Success` when the radar refresh actually succeeds, AND Sentry's mcp-server project to receive `cron.radar-refresh.*` events on every firing, **so that** my dashboards and alert rules tell me the truth about cron health instead of misleading me with false `Exception Thrown` statuses while the system is functionally working.
+
+> **Why this is its own ticket and not folded into BL-032.75**: BL-032.75 is the multi-phase observability maturity initiative. This is a specific substrate incident that must be resolved before BL-032.75's Phase 3 alerting can be meaningful — an "alert on Cloudflare cron Error" rule is useless when 100% of firings report Error while the work succeeds. Tracked separately so each can move independently.
+
+#### Symptom (observed 2026-05-26 18:30 BRT)
+
+Cloudflare's cron-events dashboard reports `Exception Thrown` on every cron firing since approximately 2026-05-19. Sentry's mcp-server project receives **zero** `cron.radar-refresh.*` events despite the cron handler completing its work successfully on every firing:
+
+```
+Cron events dashboard (last 4 firings, all production):
+Tue 2026-05-26 18:00:46 UTC — Error
+Tue 2026-05-26 12:00:40 UTC — Error
+Tue 2026-05-26 06:00:39 UTC — Error
+Tue 2026-05-26 00:00:39 UTC — Error
+```
+
+Yet `/health` confirms the cron is actually working:
+
+```json
+{
+  "ok": true,
+  "version": "0.1.0",
+  "gitSha": "<0.3.13 commit>",
+  "inoreader": "ok",
+  "inoreaderObservedAt": "2026-05-26T18:00:49.443Z",
+  "inoreaderObservedSecondsAgo": 2272,
+  "inoreaderObservedSource": "cron",
+  "radarSnapshotAgeSeconds": 2273
+}
+```
+
+The cron RAN at 18:00:46 UTC and successfully observed Inoreader at 18:00:49 UTC — three-second turnaround. Snapshot age tracks the cron cadence. The radar substrate is healthy. Cloudflare's `Error` status is misleading.
+
+`wrangler tail` output during a firing shows the handler completes:
+
+```
+"*/2 * * * *" @ 5/26/2026, 4:02:44 PM - Exception Thrown
+  (log) {"timestamp":"2026-05-26T19:02:45.517Z","event":"cron.proactive-refresh.skipped","reason":"ttl-fresh"}
+  (log) {"timestamp":"2026-05-26T19:02:47.260Z","event":"cron.radar-refresh.success","success":true}
+```
+
+Both `safeLog` lines emit; the work succeeds. The "Exception Thrown" header is the firing's outcome label, applied AFTER the safeLog lines, meaning the rejection happens during cleanup (post-success). No Sentry-specific error logs appear in `wrangler tail`.
+
+#### Timeline
+
+- **Pre-2026-05-19**: scheduled handler was bare `ctx.waitUntil(refreshRadarSnapshot(env))`. Cloudflare reported `Success` on 4/4 daily firings. Sentry captured ~1 of 4 expected events per 24h via SDK auto-instrumentation only (`~75% capture loss`). This is documented in the PR #150 commit message itself.
+- **2026-05-19 (commit `4680028`, PR #150)** — `fix(mcp-cron): flush Sentry queue before scheduled-handler isolate teardown` — added `await flushSentry()` to the scheduled handler IIFE to address the 75% capture loss. **Cloudflare started reporting `Error` on every firing from this commit forward.** Inverted the trade-off: fixed Sentry capture loss (theoretically), introduced a Cloudflare false-Error reporting bug.
+- **2026-05-25 (commit `a74ffc9`, 0.3.11 → 0.3.12)** — `fix(mcp-cron): wrap scheduled handler in Sentry.withMonitor + add missing catch` — layered on `Sentry.withMonitor` (Sentry Crons check-in HTTP POSTs per firing). Did not resolve the Cloudflare `Error` status.
+- **2026-05-25 (commit `f9ea461`, 0.3.12 → 0.3.13)** — `fix(mcp-cron): outer try/catch around Sentry plumbing` — added an outer try/catch around the IIFE inside `ctx.waitUntil`. Should have absorbed flushSentry rejections. Did NOT fix the symptom.
+- **2026-05-25 (separate)**: user rotated `SENTRY_DSN` secret (had been pointing at the website Sentry project, not mcp-server). DSN now correct (verified — see Investigation Findings below). Did not fix the symptom.
+- **2026-05-26 (this session)**: confirmed via direct PowerShell envelope POST that the DSN + ingest endpoint + project key are all healthy. Test event `7a22ca8212983f1d0b58a54e4f283841` arrived in the mcp-server Sentry project within ~1 min of the POST. The SDK, not the DSN/transport, is the failure surface.
+
+#### Investigation findings (verified facts as of 2026-05-26)
+
+1. **DSN is correct and the Sentry project accepts events.** Manual PowerShell POST to the same endpoint via `Invoke-WebRequest` with the bound DSN returns HTTP 200 + event_id; the event appears in mcp-server project Issues view. DSN parsing:
+
+   ```
+   host:       o4511195716386816.ingest.us.sentry.io
+   project ID: 4511343962357760
+   public key: 18b0d78cb4cbff2cbee5da2ae86c3e5e
+   ```
+
+2. **DSN value bound to Cloudflare matches what's shown in Sentry mcp-server project's Settings → Client Keys (DSN) page.** Verified after re-binding via `wrangler secret put SENTRY_DSN --env production`.
+
+3. **Cron firings are NOT landing in the website Sentry project either.** Eliminates "wrong project" hypothesis.
+
+4. **Sentry-side filtering ruled out.** The mcp-server project's only enabled Inbound Filter was "Filter out health check transactions" — toggled OFF for verification, no change in symptom. Project key is Enabled. No rate limit configured on the key. No Spike Protection active. No IP allowlist restricting Cloudflare egress.
+
+5. **SDK version is stable.** `@sentry/cloudflare@10.53.1` (NOT `10.51.0` as `package.json` ^range suggests — `10.53.1` is the resolved version). Same version since at least 2026-05-12 per `package-lock.json` history. Not a recent SDK bump.
+
+6. **0.3.13 is deployed.** `/health.gitSha` confirmed matches the master HEAD with the outer try/catch around the IIFE. The outer catch IS in place; cron status still shows Error → the rejection source is NOT our IIFE.
+
+7. **The cron's actual work succeeds.** Two `safeLog` lines emit per firing (`cron.proactive-refresh.skipped` followed by `cron.radar-refresh.success`); `/health.inoreaderObservedAt` updates within 3s of each firing; snapshot age tracks the cron cadence. The radar substrate is functionally healthy.
+
+8. **`@sentry/cloudflare`'s `wrapScheduledHandler` at [`node_modules/@sentry/cloudflare/build/cjs/instrumentations/worker/instrumentScheduled.js:45`](node_modules/@sentry/cloudflare/build/cjs/instrumentations/worker/instrumentScheduled.js#L45) queues its OWN `ctx.waitUntil(flush.flushAndDispose(client))`** AFTER our handler returns. Our outer try/catch wraps OUR IIFE; the SDK's separate `ctx.waitUntil` is a parallel promise we cannot reach. The current architectural hypothesis is that the SDK's queued flush rejects, producing the `Exception Thrown` outcome.
+
+9. **The strict "SDK flush rejects" theory is unproven by source-code reading.** Adversarial audit of [`@sentry/cloudflare/build/cjs/flush.js:45-54`](node_modules/@sentry/cloudflare/build/cjs/flush.js#L45-L54) shows `flushAndDispose` calls `client.flush(timeout)` then `client.dispose()`. Neither has a documented reject path on an empty queue. The actual mechanism producing `Exception Thrown` is not pinned down by reading source alone — we observe the symptom empirically but cannot point to the exact reject statement.
+
+#### Hypotheses ruled out
+
+| Hypothesis                                          | How it was ruled out                                                                                                |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| DSN points at wrong (website) project               | Manual POST to current DSN → 200 + event in mcp-server project                                                      |
+| Sentry inbound filter dropping events               | Toggled "health check transactions" filter OFF, no change                                                           |
+| Sentry rate limit / spike protection / disabled key | UI showed: Enabled, no rate limit, no spike-protection throttle                                                     |
+| Network egress blocked Cloudflare → Sentry          | Direct POST from same network worked; uncommon for global Sentry                                                    |
+| Recent `@sentry/cloudflare` SDK version bump        | `10.53.1` since at least 2026-05-12; pre-incident                                                                   |
+| 0.3.13 not deployed                                 | `/health.gitSha` matches master HEAD with outer try/catch present                                                   |
+| Code path failing BEFORE outer try/catch swallows   | `wrangler tail` shows both `safeLog` lines emit; `/health` confirms work; cron handler is reaching the success path |
+
+#### Suspected root cause (unproven)
+
+The SDK's auto-instrumentation in `wrapScheduledHandler` queues `ctx.waitUntil(flush.flushAndDispose(client))` at [`instrumentScheduled.js:45`](node_modules/@sentry/cloudflare/build/cjs/instrumentations/worker/instrumentScheduled.js#L45) — a SEPARATE `ctx.waitUntil` from ours. Even though `flush()` is documented as non-rejecting, something in the transport layer (`makeCloudflareTransport`) may be rejecting under Worker-runtime conditions. Adversarial audit noted: "the actual mechanism producing `Exception Thrown` is not pinned down by reading source alone." A next-session investigator should:
+
+1. Add instrumentation that captures the actual rejection (e.g. wrap `ctx.waitUntil` with a logging proxy that intercepts each promise and logs any rejection).
+2. OR — bypass the SDK entirely on the cron path (Option B below), which sidesteps needing to fully understand the rejection mechanism.
+
+#### Three solution paths considered
+
+##### Option A — Accept the cosmetic Cloudflare Error status (CURRENT PATH, 2026-05-26)
+
+The cron actually works. `/health` confirms. `safeLog` emits clean success lines. The Cloudflare `Error` label is a substrate-misreporting issue — false negative on cron health.
+
+**Pros**: zero new code; preserves session work toward shipping BL-032.75 Phase 0; `wrangler tail` + `/health` give the operator the truth.
+**Cons**: Cloudflare cron dashboard remains red on every firing; on-call operator could be misled into thinking the cron is broken when it isn't; BL-032.75 Phase 3 alert rules on Cloudflare cron status are unreliable while this persists.
+
+**Why we picked this for the 2026-05-26 session**: investigation had consumed disproportionate time; the actual deliverable (Phase 0 PR) needed to ship; the root-cause mechanism wasn't fully pinned down so a code change carried risk; deferring to a focused follow-up session was the disciplined call.
+
+##### Option B — Structural bypass (RECOMMENDED for the next session)
+
+Stop using `@sentry/cloudflare`'s `withSentry` wrap on the scheduled handler. Split the default export so `withSentry` wraps only `fetch`. Inside the scheduled IIFE, replace `withMonitor` / `captureException` / `flushSentry` calls with direct `fetch()` POSTs to Sentry's envelope endpoint — the SAME pattern proven working via the PowerShell test (event_id `7a22ca8212983f1d0b58a54e4f283841` landed cleanly).
+
+**Pros**: definitive fix — no SDK surface on scheduled means no SDK rejection paths possible; full cron observability in Sentry; bulletproof against future SDK regressions; small (~60-90 LOC); proven-working transport pattern from this session.
+**Cons**: requires implementation + tests + deploy + cron-cycle verification (~1-2 days).
+**Recommended over Option C** because the bare revert (C) leaves `captureMessage` calls in `radar-refresh.ts` (lines 172, 188, 237, 277, 308) that would still queue events into the SDK and re-trip whatever rejection path exists today.
+
+##### Option C — Bare revert to pre-5/19 shape (NOT recommended)
+
+Revert scheduled handler to `ctx.waitUntil(refreshRadarSnapshot(env))`. Pre-5/19 this was reported as `Success` on Cloudflare.
+
+**Pros**: smallest change (one method body).
+**Cons**: `radar-refresh.ts` still emits `captureMessage` calls inside `refreshRadarSnapshot` (lines 172, 188, 237, 277, 308 — counted by the 2026-05-26 audit). Those queue Sentry events regardless of what the scheduled handler does. The SDK's auto-`waitUntil(flushAndDispose(client))` still runs. **Not verified to actually fix the symptom.** Loses real observability we want without certainty.
+
+#### Recommended fix (Option B) — detailed code outline
+
+**New file**: `mcp-server/src/observability/sentry-envelope.ts` (~60 LOC):
+
+```ts
+/**
+ * Direct Sentry envelope POSTs — bypasses @sentry/cloudflare for paths
+ * where the SDK's auto-instrumentation introduces unhandled-rejection
+ * leaks into ctx.waitUntil. Modeled on the PowerShell envelope test
+ * that proved transport health on 2026-05-26 (Sentry event_id
+ * 7a22ca8212983f1d0b58a54e4f283841).
+ *
+ * Pure fetch() — no SDK import, no auto-queued ctx.waitUntil, no
+ * isolation-scope wrapping. Used by cron paths and any future bg
+ * surface where SDK lifecycle conflicts with Workers semantics.
+ */
+import type { Env } from '../worker';
+
+interface ParsedDsn {
+  readonly host: string;
+  readonly projectId: string;
+  readonly publicKey: string;
+}
+
+export function parseDsn(dsn: string | undefined): ParsedDsn | null {
+  if (!dsn) return null;
+  const m = dsn.match(/^https:\/\/([a-f0-9]+)@([^/]+)\/(\d+)$/);
+  return m ? { publicKey: m[1], host: m[2], projectId: m[3] } : null;
+}
+
+const SENTRY_CLIENT = 'mcp-server-manual/0.1.0';
+
+function envelopeAuthHeader(publicKey: string): string {
+  return `Sentry sentry_version=7,sentry_key=${publicKey},sentry_client=${SENTRY_CLIENT}`;
+}
+
+function randomEventId(): string {
+  // 32-char lowercase hex; Sentry accepts any value matching that shape.
+  let id = '';
+  for (let i = 0; i < 32; i++) id += Math.floor(Math.random() * 16).toString(16);
+  return id;
+}
+
+/**
+ * Send an event envelope. Best-effort — never throws.
+ *
+ * @param env - Worker env carrying SENTRY_DSN (and optionally SENTRY_RELEASE).
+ * @param event - Sentry event body: { level, message, extra, tags, ... }.
+ */
+export async function postSentryEvent(env: Env, event: Record<string, unknown>): Promise<void> {
+  const dsn = parseDsn(env.SENTRY_DSN);
+  if (!dsn) return;
+
+  const eventId = randomEventId();
+  const sentAt = new Date().toISOString();
+  const body = [
+    JSON.stringify({ event_id: eventId, sent_at: sentAt }),
+    JSON.stringify({ type: 'event' }),
+    JSON.stringify({ event_id: eventId, timestamp: sentAt, platform: 'javascript', ...event }),
+  ].join('\n');
+
+  try {
+    await fetch(`https://${dsn.host}/api/${dsn.projectId}/envelope/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-sentry-envelope',
+        'X-Sentry-Auth': envelopeAuthHeader(dsn.publicKey),
+      },
+      body,
+    });
+  } catch {
+    // Best-effort. The cron path swallows any failure.
+  }
+}
+
+/**
+ * Send a Sentry Crons check-in. Status: 'in_progress' | 'ok' | 'error'.
+ * Pair an `in_progress` with a matching `ok`/`error` using the returned
+ * check_in_id so Sentry's Crons UI shows the duration + outcome.
+ *
+ * Returns the check_in_id (generated UUID) for the caller to thread
+ * through to the closing check-in.
+ */
+export async function postSentryCheckIn(
+  env: Env,
+  monitorSlug: string,
+  status: 'in_progress' | 'ok' | 'error',
+  schedule: string,
+  checkInId?: string
+): Promise<string | undefined> {
+  const dsn = parseDsn(env.SENTRY_DSN);
+  if (!dsn) return undefined;
+
+  const id = checkInId ?? randomEventId();
+  const sentAt = new Date().toISOString();
+  const checkInBody = {
+    check_in_id: id,
+    monitor_slug: monitorSlug,
+    status,
+    monitor_config: {
+      schedule: { type: 'crontab', value: schedule },
+      timezone: 'UTC',
+    },
+  };
+  const envelope = [
+    JSON.stringify({ event_id: id, sent_at: sentAt }),
+    JSON.stringify({ type: 'check_in' }),
+    JSON.stringify(checkInBody),
+  ].join('\n');
+
+  try {
+    await fetch(`https://${dsn.host}/api/${dsn.projectId}/envelope/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-sentry-envelope',
+        'X-Sentry-Auth': envelopeAuthHeader(dsn.publicKey),
+      },
+      body: envelope,
+    });
+    return id;
+  } catch {
+    return undefined;
+  }
+}
+```
+
+**Modify `mcp-server/src/worker.ts`**:
+
+Replace the current `withSentry(sentryOptions, { fetch, scheduled })` default export pattern. Split so `withSentry` wraps only `fetch`. The scheduled handler uses the new envelope helpers — no SDK calls at all in the cron path.
+
+```ts
+// Existing handler object construction stays the same shape.
+const baseHandler = { fetch, scheduled };
+
+// withSentry mutates handler.fetch in place and returns it; isolate
+// the scope by passing a fresh literal that has only fetch.
+const wrappedFetch = withSentry(sentryOptions, { fetch: baseHandler.fetch }).fetch;
+
+// Default export: wrapped fetch + bare scheduled. The scheduled
+// handler owns its own Sentry envelope lifecycle (postSentryEvent /
+// postSentryCheckIn) — NO @sentry/cloudflare SDK use whatsoever in
+// the cron path. This is the BL-032.76 architectural pivot
+// (2026-05-26 incident).
+export default {
+  fetch: wrappedFetch,
+  scheduled: baseHandler.scheduled,
+};
+```
+
+The `scheduled` function body changes to:
+
+```ts
+async scheduled(event, env, ctx): Promise<void> {
+  ctx.waitUntil((async () => {
+    const startedAt = Date.now();
+    const checkInId = await postSentryCheckIn(
+      env, 'radar-refresh', 'in_progress', event.cron
+    );
+    try {
+      const outcome = await refreshRadarSnapshot(env);
+      safeLog({
+        event: 'cron.radar-refresh.success',
+        success: true,
+        durationMs: Date.now() - startedAt,
+      });
+      await postSentryCheckIn(env, 'radar-refresh', 'ok', event.cron, checkInId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      safeLog({
+        event: 'cron.radar-refresh.error',
+        success: false,
+        reason: msg,
+        durationMs: Date.now() - startedAt,
+      });
+      await postSentryEvent(env, {
+        level: 'error',
+        message: `cron.radar-refresh.error: ${msg}`,
+        tags: { event: 'cron.scheduled', cron: event.cron },
+        extra: { source: 'cron.scheduled', cron: event.cron },
+      });
+      await postSentryCheckIn(env, 'radar-refresh', 'error', event.cron, checkInId);
+    }
+  })());
+}
+```
+
+**Tests required**:
+
+- `tests/unit/observability/sentry-envelope.test.ts` — unit tests for `parseDsn` (valid/invalid/missing); `postSentryEvent` mocks fetch and asserts envelope body shape; `postSentryCheckIn` covers `in_progress` and `ok`/`error` lifecycle.
+- Rewrite `tests/unit/worker-scheduled.test.ts` to assert the new shape:
+  - scheduled handler invokes `refreshRadarSnapshot` exactly once via `ctx.waitUntil`
+  - on success: `postSentryCheckIn('in_progress')` then `postSentryCheckIn('ok')` with matching checkInId
+  - on rejection: `postSentryCheckIn('in_progress')` then `postSentryEvent` then `postSentryCheckIn('error')`
+  - **Regression guard**: assert `withSentry` is called with a handler object that does NOT have a `scheduled` key. Prevents a future contributor from re-adding SDK wrapping to the cron path.
+
+#### File references for the next session
+
+The exact files + line numbers to load FIRST (in order):
+
+1. [`mcp-server/src/worker.ts:203-249`](mcp-server/src/worker.ts#L203-L249) — current scheduled handler shape (0.3.13).
+2. [`mcp-server/src/worker.ts:~456`](mcp-server/src/worker.ts) — default export with `withSentry(sentryOptions, handler)`.
+3. [`mcp-server/src/cron/radar-refresh.ts:172,188,237,277,308`](mcp-server/src/cron/radar-refresh.ts) — `captureMessage` calls that the bare-revert option fails to address.
+4. [`mcp-server/src/observability/sentry.ts:46-69,135-158,181-183`](mcp-server/src/observability/sentry.ts) — current wrappers (`sentryOptions`, `captureException`, `captureMessage`, `flushSentry`); reference for envelope shape mapping.
+5. [`mcp-server/tests/unit/worker-scheduled.test.ts`](mcp-server/tests/unit/worker-scheduled.test.ts) — 8 existing tests pinning the broken-current behavior; needs rewrite for the new shape.
+6. [`node_modules/@sentry/cloudflare/build/cjs/instrumentations/worker/instrumentScheduled.js:38-78`](node_modules/@sentry/cloudflare/build/cjs/instrumentations/worker/instrumentScheduled.js) — the SDK's scheduled-handler wrapper that queues `waitUntil(flush.flushAndDispose(client))` at line 45.
+7. [`node_modules/@sentry/cloudflare/build/cjs/flush.js:45-54`](node_modules/@sentry/cloudflare/build/cjs/flush.js) — `flushAndDispose` implementation: `await client.flush(timeout); client.dispose();`
+8. [`node_modules/@sentry/cloudflare/build/cjs/withSentry.js:37-54`](node_modules/@sentry/cloudflare/build/cjs/withSentry.js) — `withSentry` mutates the handler in place; passing `{ fetch }` only correctly avoids the scheduled wrap.
+
+#### Verification plan for the fix
+
+1. **Pre-deploy**:
+   - `cd mcp-server && npm run typecheck && npm run test` clean
+   - From repo root: `npx astro check && npm run lint && npm run lint:css && npm run test:run` clean
+   - Existing `worker-scheduled.test.ts` tests pass with new assertions
+   - New `sentry-envelope.test.ts` tests pass
+2. **Deploy production**:
+   - `cd mcp-server && npm run deploy:production` (with `SENTRY_AUTH_TOKEN` bound for source-map upload)
+   - Confirm `/health.gitSha` matches the deploy commit
+3. **Wait for next cron firing** (≤6h on normal `0 */6 * * *` schedule, OR temporarily set `*/2 * * * *` and `npm run deploy:production` to accelerate — **note budget burn**: see this ticket's "Inoreader budget hazard during verification" section below)
+4. **Verify each side independently**:
+   - **Cloudflare cron-events dashboard** — next firing reports `Success` (not `Error`)
+   - **Sentry mcp-server project → Issues view** — `cron.radar-refresh.error` events on circuit-open / failure path; check-in events in Crons section under monitor slug `radar-refresh`
+   - **`/health`** — `inoreaderObservedAt` continues to update on cadence
+   - **`wrangler tail`** — `safeLog` lines emit; the `fetch()` POSTs to Sentry's envelope endpoint are visible as outbound network calls (depending on tail format)
+5. **If accelerated cron schedule was used for verification, REVERT to `0 */6 * * *`** in `mcp-server/wrangler.toml` and `npm run deploy:production` once. (See the BL-032.75 Phase 0 plan's accelerated-cron pattern.)
+
+#### Inoreader budget hazard during verification
+
+If the verification uses an accelerated cron schedule (`*/2 * * * *`), each firing consumes 6 Zone-1 Inoreader calls. The soft-cap guard at [`radar-refresh.ts:187`](mcp-server/src/cron/radar-refresh.ts#L187) trips at ~94 day-counter, after which firings skip Inoreader entirely while still exercising the new envelope-POST path (still a valid test). Budget impact during verification window:
+
+- `*/2` for 30 minutes: ~15 firings × 6 calls = ~90 calls, against the 100/day Zone-1 cap
+- On 2026-05-26's verification, the cap was reached ~22 minutes in, then firings auto-skipped. Plan accordingly.
+
+#### Adversarial audit references (this session's investigation)
+
+This ticket exists because three adversarial audits over the 2026-05-26 session iteratively refined the diagnosis:
+
+1. **First audit (Inoreader egress wrapper for BL-032.75 Phase 0)**: surfaced the prior session's "DSN rotation alone is sufficient" assumption as incomplete; identified that the SDK queues its own `waitUntil` outside our reach.
+2. **Second audit (initial fix plan)**: rejected the manual `Sentry.init` inside the scheduled IIFE as insufficient (would still leak through SDK transport internals); recommended the direct-envelope-POST pattern.
+3. **Third audit (revert-to-bare-handler plan)**: rejected the "bare revert" RCA as structurally unfounded — the SDK auto-wrap runs in both pre-5/19 and current states; `radar-refresh.ts`'s `captureMessage` calls would still queue events post-revert; the actual rejection mechanism was not pinned down by source-code reading alone.
+
+All three audits converged on: **bypass the SDK on the scheduled path entirely**. That is Option B above.
+
+#### Adjacent backlog items affected by this ticket
+
+- **BL-032.75 Phase 3 (Dashboards + Alerts)** — blocked until cron status is reliable. An alert on Cloudflare cron `Error` is unreliable signal as long as 100% of firings report `Error` while work succeeds.
+- **BL-033 (External Pilot Phase 3)** — pilot SLA conversation about cron reliability is harder to defend with the current state of Cloudflare's cron dashboard. Fixing this strengthens the BL-033 pricing/SLA story.
+- **The Phase 0 work** itself ([`MCP_SERVER_OBSERVABILITY_BL-032_75.md`](src/docs/development/MCP_SERVER_OBSERVABILITY_BL-032_75.md)) — accurate spend dashboards are unaffected by this incident (egress accounting is independent of cron status), but the cron-status reliability story is what makes the dashboard credible to operators. Phase 0 ships independently; this ticket lights up the "honest cron status" half of the observability promise.
+
+---
+
 ### BL-033: MCP Server — External Pilot (Phase 3)
 
 **Source**: MCP_SERVER_INITIATIVE.md (archived) | **Effort**: 2 weeks engineering + indeterminate legal/sales lead time | **Status**: Open | **Depends on**: BL-032, BL-032.7 (substrate safety + observability — shipped 2026-05-16), **BL-032.8** (radar consumer unification — precondition; eliminates the website's direct Inoreader caller so all consumers — including pilot clients — go through the same canonical MCP path with the BL-032.7 protections)
