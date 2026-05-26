@@ -1697,7 +1697,7 @@
       "GitHub Actions",
       "BuildKite"
     ],
-    "engagementType": "Technical Diligence",
+    "engagementType": "Technical Assessment",
     "challenge": "Validating whether existing architecture, infrastructure, organization, and processes can support expected revenue growth without disproportionate investment, and assessing the maturity of security and data privacy posture for the business.",
     "solution": "Confirmed a high-throughput Rails monolith on multi-region AWS sustaining 99.95% uptime, elite DORA metrics (~200 weekly deploys, sub-1hr MTTR, 91% test coverage), a defensible 13-year proprietary compliance rules engine driving retention, deep AI-assisted SDLC adoption, and SOC 2 Type II security baseline; flagged investor-readiness opportunities around AI roadmap formalization, architectural documentation, and a 12-month product direction.",
     "engagementCategory": "Sell-Side"
