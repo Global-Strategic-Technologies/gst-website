@@ -3,6 +3,9 @@ tool: estimate_tech_debt_cost
 version: v1
 lastAuthored: 2026-04-28
 schema: src/schemas/tech-debt.ts
+enumParity:
+  - tableHeading: '`deployFrequency`'
+    schemaExport: src/schemas/tech-debt.ts#DEPLOY_FREQUENCY_VALUES
 ---
 
 # Input Contract: `estimate_tech_debt_cost`

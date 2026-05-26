@@ -148,23 +148,38 @@ function discoverContracts(): DiscoveredContract[] {
 }
 
 /**
- * Extract IDs from the FIRST markdown table beneath a `### <heading>`
- * section. IDs are read from the first column, with backticks stripped.
- * Header / separator rows are skipped.
+ * Extract IDs from the FIRST markdown table beneath the FIRST h2 or h3
+ * heading whose text CONTAINS the supplied `heading` substring. IDs are
+ * read from the first column, with backticks stripped. Header / separator
+ * rows are skipped.
+ *
+ * Design rationale (BL-034, 2026-05-26 audit-driven revision):
+ *
+ *   - **Heading levels h2 + h3** — different contracts use different
+ *     conventions. `radar/CONTRACT.md` uses `### \`category\``; `tech-debt/
+ *     CONTRACT.md` uses `## \`deployFrequency\` valid values` (a top-level
+ *     section for its enum). Matching both keeps existing doc structure
+ *     intact instead of forcing a one-size restructure.
+ *
+ *   - **Substring match, not exact** — contracts naturally write combined
+ *     headings (`### \`companyStage\` (optional)`, `### \`mode\` and
+ *     \`capexView\``) for related fields. The frontmatter's `tableHeading`
+ *     is treated as a search token that must appear in the heading
+ *     verbatim; the rest of the heading is allowed to contain context
+ *     words ("optional", "valid values", trailing punctuation, etc.).
+ *     Authors keep doc readability; the parser stays robust.
  */
 function extractIdsFromTable(body: string, heading: string): string[] {
-  const headingRegex = new RegExp(
-    `^###\\s+${heading.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\s*$`,
-    'm'
-  );
+  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const headingRegex = new RegExp(`^(?:##|###)\\s+.*${escaped}.*$`, 'm');
   const headingMatch = body.match(headingRegex);
   if (!headingMatch) {
-    throw new Error(`section "### ${heading}" not found`);
+    throw new Error(`no h2/h3 heading containing "${heading}" was found`);
   }
   const after = body.slice(headingMatch.index! + headingMatch[0].length);
   const tableMatch = after.match(/(?:^\|[^\n]+\n)+/m);
   if (!tableMatch) {
-    throw new Error(`no markdown table found beneath "### ${heading}"`);
+    throw new Error(`no markdown table found beneath heading containing "${heading}"`);
   }
   const rows = tableMatch[0].split(/\r?\n/).filter((l) => l.startsWith('|'));
   const ids: string[] = [];
