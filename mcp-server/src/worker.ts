@@ -192,28 +192,46 @@ export const handler: ExportedHandler<Env> = {
   async scheduled(event, env, ctx): Promise<void> {
     ctx.waitUntil(
       (async () => {
+        // Outer safety net: every observability call (captureException,
+        // flushSentry, even withMonitor's internal Sentry HTTP traffic)
+        // can throw under SDK-internal errors, network blips reaching
+        // Sentry ingest, or quota rejections. The original v0.3.12 fix
+        // caught `refreshRadarSnapshot` rejections but left these Sentry-
+        // plumbing throws unguarded — Cloudflare's cron dashboard
+        // continued to report `exception` even on firings where the
+        // radar work succeeded (verified 2026-05-25 18:00 UTC: /health
+        // confirmed inoreaderObservedAt updated, Cloudflare still
+        // reported Error). Wrapping the whole IIFE body guarantees
+        // ctx.waitUntil sees a clean resolution regardless of which
+        // sub-system fails. The inner try/catch/finally still does the
+        // useful capture-and-flush work on the happy path.
         try {
-          // Sentry Crons check-in + monitor auto-upsert. The cron expression
-          // here MUST match wrangler.toml's `[triggers] crons` entry — if it
-          // drifts, Sentry's missed-firing alerts use the wrong baseline.
-          // `event.cron` is the source of truth at runtime; we pass it
-          // through rather than hardcoding so a wrangler.toml schedule edit
-          // doesn't silently break the monitor.
-          await withMonitor('radar-refresh', () => refreshRadarSnapshot(env), {
-            schedule: { type: 'crontab', value: event.cron },
-            checkinMargin: 5,
-            maxRuntime: 10,
-            timezone: 'UTC',
-          });
-        } catch (err) {
-          // `withMonitor` marked the check-in as `error` and re-threw.
-          // Capture here so the stack trace reaches Sentry, then swallow
-          // so `ctx.waitUntil` sees a clean resolution (Cloudflare's
-          // outcome stays `ok` — the canonical failure signal moves to
-          // the Sentry Crons dashboard).
-          captureException(err, { source: 'cron.scheduled', cron: event.cron });
-        } finally {
-          await flushSentry();
+          try {
+            // Sentry Crons check-in + monitor auto-upsert. The cron
+            // expression here MUST match wrangler.toml's `[triggers]
+            // crons` entry — `event.cron` is the runtime source of
+            // truth so a wrangler.toml edit doesn't silently desync.
+            await withMonitor('radar-refresh', () => refreshRadarSnapshot(env), {
+              schedule: { type: 'crontab', value: event.cron },
+              checkinMargin: 5,
+              maxRuntime: 10,
+              timezone: 'UTC',
+            });
+          } catch (err) {
+            // `withMonitor` marked the check-in `error` and re-threw.
+            // Capture so the stack trace reaches Sentry; swallow so
+            // ctx.waitUntil resolves cleanly.
+            captureException(err, { source: 'cron.scheduled', cron: event.cron });
+          } finally {
+            await flushSentry();
+          }
+        } catch {
+          // Belt-and-suspenders. Anything escaping the inner structured
+          // cleanup (Sentry SDK internal throw, ingest rejection, flush
+          // timeout that rejects rather than resolves false) lands here
+          // and is intentionally dropped — there is no further recovery
+          // and the radar work either succeeded (visible via /health)
+          // or was already captured by the inner catch.
         }
       })()
     );

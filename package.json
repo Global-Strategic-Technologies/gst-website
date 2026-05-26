@@ -50,6 +50,7 @@
     "d3-geo": "^3.1.1",
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
+    "fflate": "^0.8.3",
     "topojson-client": "^3.1.0",
     "xlsx-js-style": "^1.2.0",
     "zod": "^4.4.3"
@@ -86,7 +87,7 @@
     "stylelint-config-standard": "^40.0.0",
     "stylelint-declaration-strict-value": "^1.11.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.59.4",
+    "typescript-eslint": "^8.60.0",
     "us-atlas": "^3.0.1",
     "vitest": "^4.0.18",
     "world-atlas": "^2.0.2"
