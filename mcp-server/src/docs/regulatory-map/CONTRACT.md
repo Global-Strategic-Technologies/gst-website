@@ -1,3 +1,10 @@
+---
+tool: search_regulations
+version: v1
+lastAuthored: 2026-04-28
+schema: src/schemas/regulatory-map.ts
+---
+
 # Input Contract: `search_regulations` + `list_regulation_facets`
 
 > **Tools**:

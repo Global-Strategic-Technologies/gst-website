@@ -1,3 +1,10 @@
+---
+tool: generate_diligence_agenda
+version: v1
+lastAuthored: 2026-04-27
+schema: src/schemas/diligence.ts
+---
+
 # Input Contract: `generate_diligence_agenda`
 
 > **Tool**: `generate_diligence_agenda` — generates a prescriptive due-diligence "Inquisitor's Script" for a target M&A or investment opportunity. Wraps the website's pure `generateScript` engine.
@@ -7,8 +14,6 @@
 > - **Validation**: [`src/schemas/diligence.ts`](../../../../src/schemas/diligence.ts) — `UserInputsSchema` and the `*_IDS` enum tuples
 > - **Labels & per-option descriptions**: [`src/data/diligence-machine/wizard-config.ts`](../../../../src/data/diligence-machine/wizard-config.ts) — `WizardStep` definitions, lines 85–425
 > - **Downstream effects**: [`src/utils/diligence-engine.ts`](../../../../src/utils/diligence-engine.ts) — `CONDITION_LABELS` (lines 333-348), `meetsMinimumBracket` (lines 74-87), `BRACKET_ORDER` constant
->
-> **Version**: `v1` | **Last authored**: 2026-04-27
 >
 > **Registry**: see [`../contracts/README.md`](../contracts/README.md) for the "what is an input contract" narrative, the cross-tool registry, and the per-tool spec template this document follows.
 
