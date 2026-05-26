@@ -1609,5 +1609,35 @@
     "challenge": "Pre-bid light-touch assessment of whether a single-tenant Azure data-integration SaaS is modern and scalable enough to back, how exposed it is to AI risk, and which organizational roles are missing — giving the investor conviction to lean in or pause on the bid.",
     "solution": "Stack is not modern but serviceable and cost-efficient (infra 5.2% of revenue); single-tenant design is defensible for varied customer ontologies. Flagged missing IaC/CI/CD, automated QA, observability, and incident response; an emerging product and data strategy with no articulated AI roadmap; and key organizational gaps — DevOps leader, Cloud Data Architect, and interim CTO — to address before pursuing 5–10× scale.",
     "engagementCategory": "Buy-Side"
+  },
+  {
+    "id": "ivy",
+    "codeName": "Ivy",
+    "industry": "Insurance Services & Legal Bill Management",
+    "theme": "Professional Services",
+    "summary": "Dual-entity target combining a proprietary ColdFusion-based legal bill management platform supporting ~$100M of annual legal spend, alongside a configured third-party claims, reinsurance, and document management environment supported by an internal IT function.",
+    "arr": "$32M",
+    "arrNumeric": 32000000,
+    "currency": "USD",
+    "growthStage": "Mature Enterprise",
+    "year": 2026,
+    "technologies": [
+      "ColdFusion",
+      "MS SQL Server",
+      "React",
+      "MUI X Pro",
+      "Python",
+      "SAP BusinessObjects",
+      "RiskConnect",
+      "ImageRight",
+      "SunGard",
+      "Nutanix",
+      "JIRA",
+      "Bitbucket"
+    ],
+    "engagementType": "Technical Diligence",
+    "challenge": "Assessing carve-out feasibility, integration risk, and security posture for a target combining a proprietary legacy software platform mid-modernization with a separate vendor-led claims and reinsurance services operating environment.",
+    "solution": "Validated a services-anchored business with a useful proprietary platform, but identified substantial ColdFusion technical debt, undersized development capacity relative to roadmap ambition, two distinct integration workstreams, and tactical security gaps in vulnerability scanning, SIEM log ingestion, and SDLC code scanning.",
+    "engagementCategory": "Buy-Side"
   }
 ]
