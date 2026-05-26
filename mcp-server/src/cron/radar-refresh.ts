@@ -68,13 +68,29 @@ const DAILY_SOFT_CAP = 180;
  * outcome, leaking the cap during multi-hour 429 episodes; that broke
  * the counter-as-budget-proxy invariant.
  */
+/**
+ * Wire-tier cost = 1 tag-list ([`inoreader-client.ts` `fetchAllStreams`
+ * tag-list call](../lib/inoreader-client.ts) at the `tagsUrl` line) + 4
+ * folder fetches (one per GST-prefixed folder; folder count documented in
+ * `fetchAllStreams`'s docstring at [`inoreader-client.ts:381-385`](../lib/inoreader-client.ts#L381-L385)).
+ * If a 5th GST-* folder is added, this constant must update — the
+ * `inoreader-call-count-regression.test.ts` (BL-032.75 Phase 0) test
+ * asserts the actual HTTP call count matches the constant so a CI run
+ * fails loudly on drift.
+ */
 const CALLS_PER_WIRE = 5;
+/**
+ * FYI-tier cost = 1 annotated-items fetch
+ * ([`fetchAnnotatedItems`](../lib/inoreader-client.ts) — single
+ * `authenticatedFetch` call per invocation).
+ */
 const CALLS_PER_FYI = 1;
 /**
  * Sum of the per-tier costs. Used by the day-cap pre-flight guard
  * (`counter + CALLS_PER_REFRESH > DAILY_SOFT_CAP`) — we still gate on
  * the WORST-CASE consumption, so a refresh that might succeed on both
- * tiers won't be allowed to push us past the cap.
+ * tiers won't be allowed to push us past the cap. Locked at 6
+ * (BL-032.75 Phase 0 pre-impl audit confirmed against the live code).
  */
 const CALLS_PER_REFRESH = CALLS_PER_WIRE + CALLS_PER_FYI;
 /** Day-counter Upstash key prefix; suffix is UTC `YYYY-MM-DD`. */

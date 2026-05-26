@@ -1848,6 +1848,384 @@ BL-032's Section K soak (31 of 40 tests recorded as of 2026-05-12) surfaced a ti
 
 ---
 
+### BL-032.76: MCP Cron Status / Sentry Observability Repair
+
+**Source**: 2026-05-26 incident investigation session | **Effort**: 1-2 days (Option B path) | **Status**: Open | **Depends on**: nothing blocking | **Blocks**: BL-032.75 Phase 3 alerting (alert rules on Cloudflare cron status are unreliable while every firing reports `Exception Thrown`) | **Sibling-of**: BL-032.75 (this fixes the substrate that BL-032.75 Phase 3 alerts on)
+
+**As a** GST operator running the MCP-server production cron, **I want** Cloudflare's cron-events dashboard to report `Success` when the radar refresh actually succeeds, AND Sentry's mcp-server project to receive `cron.radar-refresh.*` events on every firing, **so that** my dashboards and alert rules tell me the truth about cron health instead of misleading me with false `Exception Thrown` statuses while the system is functionally working.
+
+> **Why this is its own ticket and not folded into BL-032.75**: BL-032.75 is the multi-phase observability maturity initiative. This is a specific substrate incident that must be resolved before BL-032.75's Phase 3 alerting can be meaningful — an "alert on Cloudflare cron Error" rule is useless when 100% of firings report Error while the work succeeds. Tracked separately so each can move independently.
+
+#### Symptom (observed 2026-05-26 18:30 BRT)
+
+Cloudflare's cron-events dashboard reports `Exception Thrown` on every cron firing since approximately 2026-05-19. Sentry's mcp-server project receives **zero** `cron.radar-refresh.*` events despite the cron handler completing its work successfully on every firing:
+
+```
+Cron events dashboard (last 4 firings, all production):
+Tue 2026-05-26 18:00:46 UTC — Error
+Tue 2026-05-26 12:00:40 UTC — Error
+Tue 2026-05-26 06:00:39 UTC — Error
+Tue 2026-05-26 00:00:39 UTC — Error
+```
+
+Yet `/health` confirms the cron is actually working:
+
+```json
+{
+  "ok": true,
+  "version": "0.1.0",
+  "gitSha": "<0.3.13 commit>",
+  "inoreader": "ok",
+  "inoreaderObservedAt": "2026-05-26T18:00:49.443Z",
+  "inoreaderObservedSecondsAgo": 2272,
+  "inoreaderObservedSource": "cron",
+  "radarSnapshotAgeSeconds": 2273
+}
+```
+
+The cron RAN at 18:00:46 UTC and successfully observed Inoreader at 18:00:49 UTC — three-second turnaround. Snapshot age tracks the cron cadence. The radar substrate is healthy. Cloudflare's `Error` status is misleading.
+
+`wrangler tail` output during a firing shows the handler completes:
+
+```
+"*/2 * * * *" @ 5/26/2026, 4:02:44 PM - Exception Thrown
+  (log) {"timestamp":"2026-05-26T19:02:45.517Z","event":"cron.proactive-refresh.skipped","reason":"ttl-fresh"}
+  (log) {"timestamp":"2026-05-26T19:02:47.260Z","event":"cron.radar-refresh.success","success":true}
+```
+
+Both `safeLog` lines emit; the work succeeds. The "Exception Thrown" header is the firing's outcome label, applied AFTER the safeLog lines, meaning the rejection happens during cleanup (post-success). No Sentry-specific error logs appear in `wrangler tail`.
+
+#### Timeline
+
+- **Pre-2026-05-19**: scheduled handler was bare `ctx.waitUntil(refreshRadarSnapshot(env))`. Cloudflare reported `Success` on 4/4 daily firings. Sentry captured ~1 of 4 expected events per 24h via SDK auto-instrumentation only (`~75% capture loss`). This is documented in the PR #150 commit message itself.
+- **2026-05-19 (commit `4680028`, PR #150)** — `fix(mcp-cron): flush Sentry queue before scheduled-handler isolate teardown` — added `await flushSentry()` to the scheduled handler IIFE to address the 75% capture loss. **Cloudflare started reporting `Error` on every firing from this commit forward.** Inverted the trade-off: fixed Sentry capture loss (theoretically), introduced a Cloudflare false-Error reporting bug.
+- **2026-05-25 (commit `a74ffc9`, 0.3.11 → 0.3.12)** — `fix(mcp-cron): wrap scheduled handler in Sentry.withMonitor + add missing catch` — layered on `Sentry.withMonitor` (Sentry Crons check-in HTTP POSTs per firing). Did not resolve the Cloudflare `Error` status.
+- **2026-05-25 (commit `f9ea461`, 0.3.12 → 0.3.13)** — `fix(mcp-cron): outer try/catch around Sentry plumbing` — added an outer try/catch around the IIFE inside `ctx.waitUntil`. Should have absorbed flushSentry rejections. Did NOT fix the symptom.
+- **2026-05-25 (separate)**: user rotated `SENTRY_DSN` secret (had been pointing at the website Sentry project, not mcp-server). DSN now correct (verified — see Investigation Findings below). Did not fix the symptom.
+- **2026-05-26 (this session)**: confirmed via direct PowerShell envelope POST that the DSN + ingest endpoint + project key are all healthy. Test event `7a22ca8212983f1d0b58a54e4f283841` arrived in the mcp-server Sentry project within ~1 min of the POST. The SDK, not the DSN/transport, is the failure surface.
+
+#### Investigation findings (verified facts as of 2026-05-26)
+
+1. **DSN is correct and the Sentry project accepts events.** Manual PowerShell POST to the same endpoint via `Invoke-WebRequest` with the bound DSN returns HTTP 200 + event_id; the event appears in mcp-server project Issues view. DSN parsing:
+
+   ```
+   host:       o4511195716386816.ingest.us.sentry.io
+   project ID: 4511343962357760
+   public key: 18b0d78cb4cbff2cbee5da2ae86c3e5e
+   ```
+
+2. **DSN value bound to Cloudflare matches what's shown in Sentry mcp-server project's Settings → Client Keys (DSN) page.** Verified after re-binding via `wrangler secret put SENTRY_DSN --env production`.
+
+3. **Cron firings are NOT landing in the website Sentry project either.** Eliminates "wrong project" hypothesis.
+
+4. **Sentry-side filtering ruled out.** The mcp-server project's only enabled Inbound Filter was "Filter out health check transactions" — toggled OFF for verification, no change in symptom. Project key is Enabled. No rate limit configured on the key. No Spike Protection active. No IP allowlist restricting Cloudflare egress.
+
+5. **SDK version is stable.** `@sentry/cloudflare@10.53.1` (NOT `10.51.0` as `package.json` ^range suggests — `10.53.1` is the resolved version). Same version since at least 2026-05-12 per `package-lock.json` history. Not a recent SDK bump.
+
+6. **0.3.13 is deployed.** `/health.gitSha` confirmed matches the master HEAD with the outer try/catch around the IIFE. The outer catch IS in place; cron status still shows Error → the rejection source is NOT our IIFE.
+
+7. **The cron's actual work succeeds.** Two `safeLog` lines emit per firing (`cron.proactive-refresh.skipped` followed by `cron.radar-refresh.success`); `/health.inoreaderObservedAt` updates within 3s of each firing; snapshot age tracks the cron cadence. The radar substrate is functionally healthy.
+
+8. **`@sentry/cloudflare`'s `wrapScheduledHandler` at [`node_modules/@sentry/cloudflare/build/cjs/instrumentations/worker/instrumentScheduled.js:45`](node_modules/@sentry/cloudflare/build/cjs/instrumentations/worker/instrumentScheduled.js#L45) queues its OWN `ctx.waitUntil(flush.flushAndDispose(client))`** AFTER our handler returns. Our outer try/catch wraps OUR IIFE; the SDK's separate `ctx.waitUntil` is a parallel promise we cannot reach. The current architectural hypothesis is that the SDK's queued flush rejects, producing the `Exception Thrown` outcome.
+
+9. **The strict "SDK flush rejects" theory is unproven by source-code reading.** Adversarial audit of [`@sentry/cloudflare/build/cjs/flush.js:45-54`](node_modules/@sentry/cloudflare/build/cjs/flush.js#L45-L54) shows `flushAndDispose` calls `client.flush(timeout)` then `client.dispose()`. Neither has a documented reject path on an empty queue. The actual mechanism producing `Exception Thrown` is not pinned down by reading source alone — we observe the symptom empirically but cannot point to the exact reject statement.
+
+#### Hypotheses ruled out
+
+| Hypothesis                                          | How it was ruled out                                                                                                |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| DSN points at wrong (website) project               | Manual POST to current DSN → 200 + event in mcp-server project                                                      |
+| Sentry inbound filter dropping events               | Toggled "health check transactions" filter OFF, no change                                                           |
+| Sentry rate limit / spike protection / disabled key | UI showed: Enabled, no rate limit, no spike-protection throttle                                                     |
+| Network egress blocked Cloudflare → Sentry          | Direct POST from same network worked; uncommon for global Sentry                                                    |
+| Recent `@sentry/cloudflare` SDK version bump        | `10.53.1` since at least 2026-05-12; pre-incident                                                                   |
+| 0.3.13 not deployed                                 | `/health.gitSha` matches master HEAD with outer try/catch present                                                   |
+| Code path failing BEFORE outer try/catch swallows   | `wrangler tail` shows both `safeLog` lines emit; `/health` confirms work; cron handler is reaching the success path |
+
+#### Suspected root cause (unproven)
+
+The SDK's auto-instrumentation in `wrapScheduledHandler` queues `ctx.waitUntil(flush.flushAndDispose(client))` at [`instrumentScheduled.js:45`](node_modules/@sentry/cloudflare/build/cjs/instrumentations/worker/instrumentScheduled.js#L45) — a SEPARATE `ctx.waitUntil` from ours. Even though `flush()` is documented as non-rejecting, something in the transport layer (`makeCloudflareTransport`) may be rejecting under Worker-runtime conditions. Adversarial audit noted: "the actual mechanism producing `Exception Thrown` is not pinned down by reading source alone." A next-session investigator should:
+
+1. Add instrumentation that captures the actual rejection (e.g. wrap `ctx.waitUntil` with a logging proxy that intercepts each promise and logs any rejection).
+2. OR — bypass the SDK entirely on the cron path (Option B below), which sidesteps needing to fully understand the rejection mechanism.
+
+#### Three solution paths considered
+
+##### Option A — Accept the cosmetic Cloudflare Error status (CURRENT PATH, 2026-05-26)
+
+The cron actually works. `/health` confirms. `safeLog` emits clean success lines. The Cloudflare `Error` label is a substrate-misreporting issue — false negative on cron health.
+
+**Pros**: zero new code; preserves session work toward shipping BL-032.75 Phase 0; `wrangler tail` + `/health` give the operator the truth.
+**Cons**: Cloudflare cron dashboard remains red on every firing; on-call operator could be misled into thinking the cron is broken when it isn't; BL-032.75 Phase 3 alert rules on Cloudflare cron status are unreliable while this persists.
+
+**Why we picked this for the 2026-05-26 session**: investigation had consumed disproportionate time; the actual deliverable (Phase 0 PR) needed to ship; the root-cause mechanism wasn't fully pinned down so a code change carried risk; deferring to a focused follow-up session was the disciplined call.
+
+##### Option B — Structural bypass (RECOMMENDED for the next session)
+
+Stop using `@sentry/cloudflare`'s `withSentry` wrap on the scheduled handler. Split the default export so `withSentry` wraps only `fetch`. Inside the scheduled IIFE, replace `withMonitor` / `captureException` / `flushSentry` calls with direct `fetch()` POSTs to Sentry's envelope endpoint — the SAME pattern proven working via the PowerShell test (event_id `7a22ca8212983f1d0b58a54e4f283841` landed cleanly).
+
+**Pros**: definitive fix — no SDK surface on scheduled means no SDK rejection paths possible; full cron observability in Sentry; bulletproof against future SDK regressions; small (~60-90 LOC); proven-working transport pattern from this session.
+**Cons**: requires implementation + tests + deploy + cron-cycle verification (~1-2 days).
+**Recommended over Option C** because the bare revert (C) leaves `captureMessage` calls in `radar-refresh.ts` (lines 172, 188, 237, 277, 308) that would still queue events into the SDK and re-trip whatever rejection path exists today.
+
+##### Option C — Bare revert to pre-5/19 shape (NOT recommended)
+
+Revert scheduled handler to `ctx.waitUntil(refreshRadarSnapshot(env))`. Pre-5/19 this was reported as `Success` on Cloudflare.
+
+**Pros**: smallest change (one method body).
+**Cons**: `radar-refresh.ts` still emits `captureMessage` calls inside `refreshRadarSnapshot` (lines 172, 188, 237, 277, 308 — counted by the 2026-05-26 audit). Those queue Sentry events regardless of what the scheduled handler does. The SDK's auto-`waitUntil(flushAndDispose(client))` still runs. **Not verified to actually fix the symptom.** Loses real observability we want without certainty.
+
+#### Recommended fix (Option B) — detailed code outline
+
+**New file**: `mcp-server/src/observability/sentry-envelope.ts` (~60 LOC):
+
+```ts
+/**
+ * Direct Sentry envelope POSTs — bypasses @sentry/cloudflare for paths
+ * where the SDK's auto-instrumentation introduces unhandled-rejection
+ * leaks into ctx.waitUntil. Modeled on the PowerShell envelope test
+ * that proved transport health on 2026-05-26 (Sentry event_id
+ * 7a22ca8212983f1d0b58a54e4f283841).
+ *
+ * Pure fetch() — no SDK import, no auto-queued ctx.waitUntil, no
+ * isolation-scope wrapping. Used by cron paths and any future bg
+ * surface where SDK lifecycle conflicts with Workers semantics.
+ */
+import type { Env } from '../worker';
+
+interface ParsedDsn {
+  readonly host: string;
+  readonly projectId: string;
+  readonly publicKey: string;
+}
+
+export function parseDsn(dsn: string | undefined): ParsedDsn | null {
+  if (!dsn) return null;
+  const m = dsn.match(/^https:\/\/([a-f0-9]+)@([^/]+)\/(\d+)$/);
+  return m ? { publicKey: m[1], host: m[2], projectId: m[3] } : null;
+}
+
+const SENTRY_CLIENT = 'mcp-server-manual/0.1.0';
+
+function envelopeAuthHeader(publicKey: string): string {
+  return `Sentry sentry_version=7,sentry_key=${publicKey},sentry_client=${SENTRY_CLIENT}`;
+}
+
+function randomEventId(): string {
+  // 32-char lowercase hex; Sentry accepts any value matching that shape.
+  let id = '';
+  for (let i = 0; i < 32; i++) id += Math.floor(Math.random() * 16).toString(16);
+  return id;
+}
+
+/**
+ * Send an event envelope. Best-effort — never throws.
+ *
+ * @param env - Worker env carrying SENTRY_DSN (and optionally SENTRY_RELEASE).
+ * @param event - Sentry event body: { level, message, extra, tags, ... }.
+ */
+export async function postSentryEvent(env: Env, event: Record<string, unknown>): Promise<void> {
+  const dsn = parseDsn(env.SENTRY_DSN);
+  if (!dsn) return;
+
+  const eventId = randomEventId();
+  const sentAt = new Date().toISOString();
+  const body = [
+    JSON.stringify({ event_id: eventId, sent_at: sentAt }),
+    JSON.stringify({ type: 'event' }),
+    JSON.stringify({ event_id: eventId, timestamp: sentAt, platform: 'javascript', ...event }),
+  ].join('\n');
+
+  try {
+    await fetch(`https://${dsn.host}/api/${dsn.projectId}/envelope/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-sentry-envelope',
+        'X-Sentry-Auth': envelopeAuthHeader(dsn.publicKey),
+      },
+      body,
+    });
+  } catch {
+    // Best-effort. The cron path swallows any failure.
+  }
+}
+
+/**
+ * Send a Sentry Crons check-in. Status: 'in_progress' | 'ok' | 'error'.
+ * Pair an `in_progress` with a matching `ok`/`error` using the returned
+ * check_in_id so Sentry's Crons UI shows the duration + outcome.
+ *
+ * Returns the check_in_id (generated UUID) for the caller to thread
+ * through to the closing check-in.
+ */
+export async function postSentryCheckIn(
+  env: Env,
+  monitorSlug: string,
+  status: 'in_progress' | 'ok' | 'error',
+  schedule: string,
+  checkInId?: string
+): Promise<string | undefined> {
+  const dsn = parseDsn(env.SENTRY_DSN);
+  if (!dsn) return undefined;
+
+  const id = checkInId ?? randomEventId();
+  const sentAt = new Date().toISOString();
+  const checkInBody = {
+    check_in_id: id,
+    monitor_slug: monitorSlug,
+    status,
+    monitor_config: {
+      schedule: { type: 'crontab', value: schedule },
+      timezone: 'UTC',
+    },
+  };
+  const envelope = [
+    JSON.stringify({ event_id: id, sent_at: sentAt }),
+    JSON.stringify({ type: 'check_in' }),
+    JSON.stringify(checkInBody),
+  ].join('\n');
+
+  try {
+    await fetch(`https://${dsn.host}/api/${dsn.projectId}/envelope/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-sentry-envelope',
+        'X-Sentry-Auth': envelopeAuthHeader(dsn.publicKey),
+      },
+      body: envelope,
+    });
+    return id;
+  } catch {
+    return undefined;
+  }
+}
+```
+
+**Modify `mcp-server/src/worker.ts`**:
+
+Replace the current `withSentry(sentryOptions, { fetch, scheduled })` default export pattern. Split so `withSentry` wraps only `fetch`. The scheduled handler uses the new envelope helpers — no SDK calls at all in the cron path.
+
+```ts
+// Existing handler object construction stays the same shape.
+const baseHandler = { fetch, scheduled };
+
+// withSentry mutates handler.fetch in place and returns it; isolate
+// the scope by passing a fresh literal that has only fetch.
+const wrappedFetch = withSentry(sentryOptions, { fetch: baseHandler.fetch }).fetch;
+
+// Default export: wrapped fetch + bare scheduled. The scheduled
+// handler owns its own Sentry envelope lifecycle (postSentryEvent /
+// postSentryCheckIn) — NO @sentry/cloudflare SDK use whatsoever in
+// the cron path. This is the BL-032.76 architectural pivot
+// (2026-05-26 incident).
+export default {
+  fetch: wrappedFetch,
+  scheduled: baseHandler.scheduled,
+};
+```
+
+The `scheduled` function body changes to:
+
+```ts
+async scheduled(event, env, ctx): Promise<void> {
+  ctx.waitUntil((async () => {
+    const startedAt = Date.now();
+    const checkInId = await postSentryCheckIn(
+      env, 'radar-refresh', 'in_progress', event.cron
+    );
+    try {
+      const outcome = await refreshRadarSnapshot(env);
+      safeLog({
+        event: 'cron.radar-refresh.success',
+        success: true,
+        durationMs: Date.now() - startedAt,
+      });
+      await postSentryCheckIn(env, 'radar-refresh', 'ok', event.cron, checkInId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      safeLog({
+        event: 'cron.radar-refresh.error',
+        success: false,
+        reason: msg,
+        durationMs: Date.now() - startedAt,
+      });
+      await postSentryEvent(env, {
+        level: 'error',
+        message: `cron.radar-refresh.error: ${msg}`,
+        tags: { event: 'cron.scheduled', cron: event.cron },
+        extra: { source: 'cron.scheduled', cron: event.cron },
+      });
+      await postSentryCheckIn(env, 'radar-refresh', 'error', event.cron, checkInId);
+    }
+  })());
+}
+```
+
+**Tests required**:
+
+- `tests/unit/observability/sentry-envelope.test.ts` — unit tests for `parseDsn` (valid/invalid/missing); `postSentryEvent` mocks fetch and asserts envelope body shape; `postSentryCheckIn` covers `in_progress` and `ok`/`error` lifecycle.
+- Rewrite `tests/unit/worker-scheduled.test.ts` to assert the new shape:
+  - scheduled handler invokes `refreshRadarSnapshot` exactly once via `ctx.waitUntil`
+  - on success: `postSentryCheckIn('in_progress')` then `postSentryCheckIn('ok')` with matching checkInId
+  - on rejection: `postSentryCheckIn('in_progress')` then `postSentryEvent` then `postSentryCheckIn('error')`
+  - **Regression guard**: assert `withSentry` is called with a handler object that does NOT have a `scheduled` key. Prevents a future contributor from re-adding SDK wrapping to the cron path.
+
+#### File references for the next session
+
+The exact files + line numbers to load FIRST (in order):
+
+1. [`mcp-server/src/worker.ts:203-249`](mcp-server/src/worker.ts#L203-L249) — current scheduled handler shape (0.3.13).
+2. [`mcp-server/src/worker.ts:~456`](mcp-server/src/worker.ts) — default export with `withSentry(sentryOptions, handler)`.
+3. [`mcp-server/src/cron/radar-refresh.ts:172,188,237,277,308`](mcp-server/src/cron/radar-refresh.ts) — `captureMessage` calls that the bare-revert option fails to address.
+4. [`mcp-server/src/observability/sentry.ts:46-69,135-158,181-183`](mcp-server/src/observability/sentry.ts) — current wrappers (`sentryOptions`, `captureException`, `captureMessage`, `flushSentry`); reference for envelope shape mapping.
+5. [`mcp-server/tests/unit/worker-scheduled.test.ts`](mcp-server/tests/unit/worker-scheduled.test.ts) — 8 existing tests pinning the broken-current behavior; needs rewrite for the new shape.
+6. [`node_modules/@sentry/cloudflare/build/cjs/instrumentations/worker/instrumentScheduled.js:38-78`](node_modules/@sentry/cloudflare/build/cjs/instrumentations/worker/instrumentScheduled.js) — the SDK's scheduled-handler wrapper that queues `waitUntil(flush.flushAndDispose(client))` at line 45.
+7. [`node_modules/@sentry/cloudflare/build/cjs/flush.js:45-54`](node_modules/@sentry/cloudflare/build/cjs/flush.js) — `flushAndDispose` implementation: `await client.flush(timeout); client.dispose();`
+8. [`node_modules/@sentry/cloudflare/build/cjs/withSentry.js:37-54`](node_modules/@sentry/cloudflare/build/cjs/withSentry.js) — `withSentry` mutates the handler in place; passing `{ fetch }` only correctly avoids the scheduled wrap.
+
+#### Verification plan for the fix
+
+1. **Pre-deploy**:
+   - `cd mcp-server && npm run typecheck && npm run test` clean
+   - From repo root: `npx astro check && npm run lint && npm run lint:css && npm run test:run` clean
+   - Existing `worker-scheduled.test.ts` tests pass with new assertions
+   - New `sentry-envelope.test.ts` tests pass
+2. **Deploy production**:
+   - `cd mcp-server && npm run deploy:production` (with `SENTRY_AUTH_TOKEN` bound for source-map upload)
+   - Confirm `/health.gitSha` matches the deploy commit
+3. **Wait for next cron firing** (≤6h on normal `0 */6 * * *` schedule, OR temporarily set `*/2 * * * *` and `npm run deploy:production` to accelerate — **note budget burn**: see this ticket's "Inoreader budget hazard during verification" section below)
+4. **Verify each side independently**:
+   - **Cloudflare cron-events dashboard** — next firing reports `Success` (not `Error`)
+   - **Sentry mcp-server project → Issues view** — `cron.radar-refresh.error` events on circuit-open / failure path; check-in events in Crons section under monitor slug `radar-refresh`
+   - **`/health`** — `inoreaderObservedAt` continues to update on cadence
+   - **`wrangler tail`** — `safeLog` lines emit; the `fetch()` POSTs to Sentry's envelope endpoint are visible as outbound network calls (depending on tail format)
+5. **If accelerated cron schedule was used for verification, REVERT to `0 */6 * * *`** in `mcp-server/wrangler.toml` and `npm run deploy:production` once. (See the BL-032.75 Phase 0 plan's accelerated-cron pattern.)
+
+#### Inoreader budget hazard during verification
+
+If the verification uses an accelerated cron schedule (`*/2 * * * *`), each firing consumes 6 Zone-1 Inoreader calls. The soft-cap guard at [`radar-refresh.ts:187`](mcp-server/src/cron/radar-refresh.ts#L187) trips at ~94 day-counter, after which firings skip Inoreader entirely while still exercising the new envelope-POST path (still a valid test). Budget impact during verification window:
+
+- `*/2` for 30 minutes: ~15 firings × 6 calls = ~90 calls, against the 100/day Zone-1 cap
+- On 2026-05-26's verification, the cap was reached ~22 minutes in, then firings auto-skipped. Plan accordingly.
+
+#### Adversarial audit references (this session's investigation)
+
+This ticket exists because three adversarial audits over the 2026-05-26 session iteratively refined the diagnosis:
+
+1. **First audit (Inoreader egress wrapper for BL-032.75 Phase 0)**: surfaced the prior session's "DSN rotation alone is sufficient" assumption as incomplete; identified that the SDK queues its own `waitUntil` outside our reach.
+2. **Second audit (initial fix plan)**: rejected the manual `Sentry.init` inside the scheduled IIFE as insufficient (would still leak through SDK transport internals); recommended the direct-envelope-POST pattern.
+3. **Third audit (revert-to-bare-handler plan)**: rejected the "bare revert" RCA as structurally unfounded — the SDK auto-wrap runs in both pre-5/19 and current states; `radar-refresh.ts`'s `captureMessage` calls would still queue events post-revert; the actual rejection mechanism was not pinned down by source-code reading alone.
+
+All three audits converged on: **bypass the SDK on the scheduled path entirely**. That is Option B above.
+
+#### Adjacent backlog items affected by this ticket
+
+- **BL-032.75 Phase 3 (Dashboards + Alerts)** — blocked until cron status is reliable. An alert on Cloudflare cron `Error` is unreliable signal as long as 100% of firings report `Error` while work succeeds.
+- **BL-033 (External Pilot Phase 3)** — pilot SLA conversation about cron reliability is harder to defend with the current state of Cloudflare's cron dashboard. Fixing this strengthens the BL-033 pricing/SLA story.
+- **The Phase 0 work** itself ([`MCP_SERVER_OBSERVABILITY_BL-032_75.md`](src/docs/development/MCP_SERVER_OBSERVABILITY_BL-032_75.md)) — accurate spend dashboards are unaffected by this incident (egress accounting is independent of cron status), but the cron-status reliability story is what makes the dashboard credible to operators. Phase 0 ships independently; this ticket lights up the "honest cron status" half of the observability promise.
+
+---
+
 ### BL-033: MCP Server — External Pilot (Phase 3)
 
 **Source**: MCP_SERVER_INITIATIVE.md (archived) | **Effort**: 2 weeks engineering + indeterminate legal/sales lead time | **Status**: Open | **Depends on**: BL-032, BL-032.7 (substrate safety + observability — shipped 2026-05-16), **BL-032.8** (radar consumer unification — precondition; eliminates the website's direct Inoreader caller so all consumers — including pilot clients — go through the same canonical MCP path with the BL-032.7 protections)
@@ -2049,15 +2427,16 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 
 - [ ] Library content-source convergence — if/when an Astro content-collection migration happens, replace the parallel-canonical `.md` digests with the unified source. Tracked here pending that decision; see [BL-031.5 deviation](MCP_SERVER_HUB_SURFACE_BL-031_5.md#deviation--library-content-source-bl-0315)
 - [ ] Radar per-item URIs — `gst://radar/item/<id>` URIs were deferred in BL-031.5. Re-evaluate after BL-032 ships live data with stable item IDs; either author them as a Resource family or formally drop them from scope
-- [ ] Portfolio per-tool `CONTRACT.md` and `USAGE.md` — Portfolio Search is `⏳ Backlog` in the contracts registry. The `mcp-server/README.md` Tools table links to `mcp-server/src/docs/portfolio/CONTRACT.md`, but the directory does not exist (broken link, pre-dates BL-031.75 and surfaced again during its closure audit). The `search_portfolio` / `list_portfolio_facets` ↔ `gst_comparable_engagements_memo` / `gst_diligence_handoff_memo` cross-reference is currently only discoverable via the README's Prompts table — authoring the missing CONTRACT.md (or dropping the tool from the registry) would close the loop. Decide at end-of-sequence whether to author the docs or drop the tool from the registry; either path resolves the broken link
+- [x] **DONE (silently resolved; verified 2026-05-26)**: Portfolio per-tool `CONTRACT.md` exists at [`mcp-server/src/docs/portfolio/CONTRACT.md`](../../../mcp-server/src/docs/portfolio/CONTRACT.md) (authored 2026-05-03 per the doc's `lastAuthored` frontmatter); the README link at `mcp-server/README.md:57` resolves. The "broken link" framing was stale at filing time. `USAGE.md` is not currently per-convention required for any tool — closing the bullet retroactively. If a future need emerges, file separately
 - [x] **DONE 2026-05-02 (BL-031.95 Phase 3.B)**: `search_radar_cache` `CONTRACT.md` authored at `mcp-server/src/docs/radar/CONTRACT.md` as part of BL-031.95 Phase 3 closure. Mirrors the website's single-filter surface (`category` only); documents the capability-mirror invariant explicitly so the future live `search_radar` (BL-032) inherits the same discipline. Earlier framing — "planned alongside live BL-032" — was wrong: the cached tool earns its own contract because it has its own user-facing semantics, and the live tool will get its own contract that compares/contrasts with this one
-- [ ] **Contract-parity Vitest** (filed from BL-031.85 closure, 2026-05-02) — structural test that walks every per-tool `mcp-server/src/docs/<tool>/CONTRACT.md`, parses the option-ID tables, and asserts each ID exists in the matching `*_IDS` tuple in the corresponding `src/schemas/<tool>.ts`. Hardens the "discipline is conventional" risk noted in [`MCP_SERVER_CONTRACTS_BL-031_85.md`](MCP_SERVER_CONTRACTS_BL-031_85.md) § Risks. ~1 hr / ~60 LOC. Schedule independently if drift surveillance becomes a maintenance pain point — not a blocker today. **Bundle hint**: pair with the YAML frontmatter item below; both want a small contract-metadata parser, and shipping them in one commit avoids duplicating the parsing scaffolding
-- [ ] **YAML frontmatter on each `CONTRACT.md`** (filed from BL-031.85 closure, 2026-05-02) — promote the prose `Version: v1 \| Last authored: <date>` line in each per-tool CONTRACT.md to YAML frontmatter (`---\nversion: v1\nlastAuthored: 2026-04-27\nschema: src/schemas/<tool>.ts\n---`). Enables (a) the contract-parity test above to extract metadata structurally, (b) future IRL generator consumption, (c) a contract-staleness Vitest analogous to the BL-031.75 prompt-staleness pattern (`prompts.test.ts`). ~30 min mechanical edit across 5 contracts. Bundle with the parity test when scheduled
+- [x] **DONE 2026-05-26 (commit `88bc246`)**: **Contract-parity Vitest** shipped at [`mcp-server/tests/integration/contract-parity.test.ts`](../../../mcp-server/tests/integration/contract-parity.test.ts). Walks every CONTRACT.md, asserts frontmatter required fields, schema-path resolution, and opt-in bidirectional enum parity via `enumParity` frontmatter blocks. Three contracts opted in at landing: radar (`RADAR_CATEGORIES`), icg (`COMPANY_STAGE_VALUES`), tech-debt (`DEPLOY_FREQUENCY_VALUES`). Others can opt in incrementally — one-line frontmatter additions, no test-code changes. Drift-verified: temp-commented `'security'` out of `RADAR_CATEGORIES` → test failed loudly; restored → green
+- [x] **DONE 2026-05-26 (commit `88bc246`)**: **YAML frontmatter on each `CONTRACT.md`** shipped. All 7 contracts (diligence, icg, portfolio, radar, regulatory-map, tech-debt, techpar) carry `tool`, `version`, `lastAuthored`, `schema` frontmatter; the contract-parity test asserts the fields are well-formed and that the cited `schema` path resolves on disk. Two contracts (icg, tech-debt) ship with opt-in `enumParity` blocks at landing in addition to radar's. Schema validation enabled IRL generator consumption (future BL) and the contract-staleness pattern (future Vitest analogous to `prompts.test.ts`)
 - [ ] **IRL generator scoping spike** (filed from BL-031.85 closure, 2026-05-02) — Information Request List generator was named in [`MCP_SERVER_CONTRACTS_BL-031_85.md`](MCP_SERVER_CONTRACTS_BL-031_85.md) as the strategic destination of the contracts pattern. With 5 contracts now stable (and a 6th canonical-stage-aware layer landing under [BL-031.87](#bl-03187-mcp-server--stage-taxonomy-adapter-layer)), the contracts have enough variance for a 2-3 hr scoping spike: pick a concrete consumer use case (likely "external diligence prep for offline analyst preparing inputs in advance of a kickoff call"), define the rendering format (likely JSON Schema generated from each CONTRACT.md plus the YAML frontmatter once landed), validate the offline-submission mechanism. **Graduation note**: this is a placeholder for an initiative, not a BL-034 cleanup item. Once the spike produces concrete scope, file as a new BL number (suggested: BL-031.97 or BL-038) and remove this bullet. Keeping it here so the proximate-opportunity capture isn't lost between initiatives
 - [x] **DONE 2026-04-29**: deleted `MCP_SERVER_HUB_SURFACE_BL-031_5_Verification.md`. Recorded evidence migrated to [`mcp-server/README.md` § Smoke test](../../../mcp-server/README.md#smoke-test-manual-parity-check); UX findings logged in this BL-034 list above; doc history reachable via `git log`. The pattern (transitional punch-list doc → migrate to README → delete) is reusable for future MCP initiatives that ship code-complete with deferred verification
 - [ ] **Wizard / API symmetry follow-up** (discovered during BL-031.5 V1 verification trial 1): the ICG MCP API accepts sparse `answers` maps that the website wizard cannot produce (the wizard forces an answer for every question). Documented in [`icg/CONTRACT.md`](../../../mcp-server/src/docs/icg/CONTRACT.md) hidden-semantics section as intentional asymmetry. Decide at end-of-sequence whether to (a) keep as-is and rely on the doc, (b) add an `answeredCount`-based result-confidence indicator to the API output, or (c) require the API to receive all questions (matching wizard discipline). Same audit needed for `compute_techpar` (`null` return when arr/infraHosting are 0 — wizard handles this differently) and any other tool where API and wizard input completeness rules differ
-- [ ] **TechPar `exitMultiple` UX gap** (discovered during BL-031.5 V2 verification trial 1): the wizard's exit-multiple input is conditionally rendered — only visible when stage is `pe` or `enterprise` (see [`techpar-ui.ts:65-67`](../../../src/utils/techpar-ui.ts#L65-L67)). At earlier stages (Seed / Series A / Series B–C) the field is hidden, but its underlying state value persists across stage changes — meaning a user who set it to (e.g.) 15× while on Enterprise and then switched to Series B–C silently carries that 15× value into their results, the URL state, and any downstream calculations, with no UI to inspect or modify. Decide at end-of-sequence whether to (a) reset `exitMultiple` to its default when stage drops below PE, (b) show the field at all stages with stage-appropriate guidance, (c) add a "current state" inspection panel that exposes hidden values, or (d) document the behavior as intentional. Note: in scenarios where `gap.cumulative36 = 0`, the exit-multiple value has no observable output impact — but in scenarios where cumulative excess is non-zero, the silent persistence directly affects `gap.exitValue`
-- [ ] **Tech Debt direct-input quantization bug** (discovered during BL-031.5 V3 verification): the wizard exposes number-input fields next to the sliders (data-direct="arr", "budget", "salary", etc.) that LOOK like free-text entry but silently quantize the user's typed value to the nearest slider position. Specifically, [`tech-debt-calculator/index.astro:1697-1714`](../../../src/pages/hub/tools/tech-debt-calculator/index.astro#L1697-L1714) — the `arr` handler does `state.arrPos = arrToPos(clamped)` and the next `render()` call computes `posToArr(state.arrPos)`, which round-trips the user's value through the slider's coarse $100K granularity (so $10,000,000 becomes $10,300,000). Same pattern for the `budget` handler ($500K becomes $522K via $1K slider granularity) and `salary` handler. The numeric input field is misleading — it suggests precision the engine can't honor through the slider domain. Decide at end-of-sequence whether to (a) make the direct inputs truly free-form by storing raw values in state and only using slider position for the slider's display, (b) add a visible "snapped to nearest slider stop" indicator after the user types, (c) increase slider granularity (more positions, finer steps), or (d) remove the number-input fields and document sliders as the only input path. Option (a) is the cleanest — it would also resolve the corresponding MCP-vs-wizard parity friction (the MCP API accepts truly raw values; matching that on the wizard side eliminates surprise)
+- [ ] **TechPar `exitMultiple` UX gap** (discovered during BL-031.5 V2 verification trial 1; **confirmed still present, re-verified 2026-05-26**): the wizard's exit-multiple input is conditionally rendered — only visible when stage is `pe` or `enterprise`. At [`src/utils/techpar-ui.ts:67-68`](../../../src/utils/techpar-ui.ts#L67-L68) (line numbers shifted from the original `:65-67` citation): `const showExit = tp.stageKey === 'pe' || tp.stageKey === 'enterprise'; g('exit-field')?.classList.toggle('tp-exit-field--vis', showExit);`. The visibility toggle is CSS-class-only — the underlying state `tp.exitMultiple` and the DOM input value persist when the stage drops below PE. The stage-change handler at [`techpar-ui.ts:200-217`](../../../src/utils/techpar-ui.ts#L200-L217) sets `tp.stageKey` and re-renders but does NOT reset `tp.exitMultiple`. **Result**: a user who sets `exitMult=15` while on Enterprise and then switches to Series B-C silently carries 15× into their results, URL state, and any downstream calculations, with no UI to inspect or modify. Note: in scenarios where `gap.cumulative36 = 0`, the value has no observable output impact; in scenarios where cumulative excess is non-zero, the silent persistence directly affects `gap.exitValue`. Original options: (a) reset `exitMultiple` to its default when stage drops below PE, (b) show the field at all stages with stage-appropriate guidance, (c) add a "current state" inspection panel that exposes hidden values, or (d) document the behavior as intentional. **Decision needed**: pick one of (a)-(d) at end-of-sequence
+- [x] **DONE (silently resolved; verified 2026-05-26)**: **Tech Debt direct-input quantization bug** (discovered during BL-031.5 V3 verification). The bug existed because the change handlers stored slider position (`state.arrPos`) rather than raw value, and `render()` then round-tripped through `posToArr` losing precision. **Current code at [`tech-debt-calculator/index.astro:1845-1862`](../../../src/pages/hub/tools/tech-debt-calculator/index.astro#L1845-L1862) implements option (a)**: number-input handlers store raw values via `state.arr = value`, `state.salary = value` (line 1775), `state.remediationBudget = value` (line 1880); slider DOM position is re-derived via `arrToPos(state.arr)` / `salaryToPos(state.salary)` / `budgetToPos(state.remediationBudget)` for display only. `render()` reads raw state directly (e.g. line 1553) and the engine sees the raw value. **No work needed** — closing the bullet retroactively. The "silently resolved" pattern is worth flagging: a future BL-034 sweep should grep open bullets against current code before assuming the issue is still live
+- [x] **RETRACTED (filed in error 2026-05-26; retracted same day)**: "ICG `answeredCount` accounting bug." Adversarial audit on the proposed fix surfaced that the behavior I called a bug is **documented contract** at [`icg/CONTRACT.md:109`](../../../mcp-server/src/docs/icg/CONTRACT.md#L109) (`"distinct keys in answers"`) and pinned by an existing regression test at [`tests/unit/icg-engine.test.ts:303-309`](../../../tests/unit/icg-engine.test.ts#L303-L309) literally named `'reports correct answeredCount (includes -1 entries)'`. The `-1` sentinel means **"Not sure"** — a deliberate, scored answer, NOT a skip. The engine comment at [`icg-engine.ts:112`](../../utils/icg-engine.ts#L112) (`// -1 ("Not sure") scores as -1 — ignorance is worse than known absence (0)`) confirms intent. Proposed fix would have broken the regression test on purpose and tripped the BL-034 contract-parity test I shipped earlier in the same session. **The real ambiguity was the display string**, not the engine — fixed separately at [`icg-engine.ts:235`](../../utils/icg-engine.ts#L235) (rename "Questions answered" → "Responses recorded"). **Process lesson**: a bullet describing behavior must be verified against the relevant `CONTRACT.md` AND existing tests before filing as a confirmed bug — surface that as a discipline note on this BL-034 ticket
 - [ ] (Add bullets here as new transitional items emerge during BL-031.75 / BL-032 / BL-032.5 / BL-032.75 / BL-033 implementation)
 
 **Verification & docs**
@@ -2075,6 +2454,7 @@ When implementing any BL-031.x / BL-032.x / BL-033 initiative:
 1. If the initiative adds a transitional note (e.g., a "remove when X closes" callout), append a corresponding bullet to BL-034's AC list in the same PR. This keeps the AC list current.
 2. If the initiative defers an item (e.g. "we'll author this later"), check whether it belongs here vs. its own ticket. Items that are scoped + bounded get their own ticket; items that are "see if this still matters at end-of-sequence" go here.
 3. The discipline is conventional, not enforced by CI. Reviewers should ask "did this PR introduce a transitional note? if so, is it tracked under BL-034?"
+4. **Verify before filing (added 2026-05-26 after the ICG `answeredCount` retraction incident)**: a bullet describing behavior in this list must be verified against the relevant per-tool `CONTRACT.md` (if one exists) AND existing tests before being filed as a confirmed bug. The "Tech Debt direct-input quantization" bullet (closed 2026-05-26 as silently-resolved) and the "ICG `answeredCount`" bullet (retracted 2026-05-26 as documented-contract-not-a-bug) both illustrate the failure mode this rule prevents: reading 1-2 lines of source and assuming intent without checking whether the contract or existing tests document the behavior as intentional. The rule is: grep the contract for the field name, grep the tests for the field name, read both — then either file the bullet with the contradictions cited or annotate the existing contract/test as ambiguous.
 
 **Why this is its own initiative (not folded into BL-031.85 or BL-033)**
 

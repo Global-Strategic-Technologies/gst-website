@@ -46,7 +46,11 @@ import {
 import { serializeToParams as serializeRadarUrl } from '../../../src/utils/radar-url';
 import { RadarCategoryEnum } from '../schemas';
 import { HUB_BASE } from '../config';
-import type { SnapshotItem, RadarCategory } from '../content/radar-transform';
+import {
+  oldestItemDaysAgo,
+  type SnapshotItem,
+  type RadarCategory,
+} from '../content/radar-transform';
 
 // ---------------------------------------------------------------------------
 // Schemas (shared shape with search_radar_offline; capability-mirror invariant)
@@ -208,6 +212,10 @@ export async function handleSearchRadar(env: Env, input: SearchRadarInput) {
     matches: matched,
     totalMatched: matched.length,
     returned: matched.length,
+    // BL-031.95 follow-up: freshness signal at the envelope so callers
+    // don't have to scan every item's date. `null` when matches is
+    // empty; otherwise rolling 24h-bucketed age of the oldest item.
+    oldestItemDaysAgo: oldestItemDaysAgo(matched),
     liveInfo: {
       wireFetchedAt: wireResult.fetchedAt,
       wireCacheHit: wireResult.cacheHit,
@@ -244,6 +252,9 @@ export async function handleGetLatestInsights(env: Env, input: GetLatestInsights
   const payload = {
     items: filtered,
     returned: filtered.length,
+    // BL-031.95 follow-up: freshness signal at the envelope. `null` when
+    // items is empty; otherwise rolling 24h-bucketed age of the oldest.
+    oldestItemDaysAgo: oldestItemDaysAgo(filtered),
     liveInfo: {
       fetchedAt: fyiResult.fetchedAt,
       cacheHit: fyiResult.cacheHit,

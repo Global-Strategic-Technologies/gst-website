@@ -42,6 +42,7 @@ import {
   type RadarCategory,
   type SnapshotItem,
 } from '../content/radar-snapshot';
+import { oldestItemDaysAgo } from '../content/radar-transform';
 import { serializeToParams as serializeRadarUrl } from '../../../src/utils/radar-url';
 import { RadarCategoryEnum } from '../schemas';
 import { HUB_BASE } from '../config';
@@ -114,6 +115,11 @@ export async function handleRadarOfflineTool(input: SearchRadarOfflineInput) {
     matches: matched,
     totalMatched: matched.length,
     returned: matched.length,
+    // BL-031.95 follow-up: freshness signal at the envelope. `null` when
+    // matches is empty; otherwise rolling 24h-bucketed age of the oldest.
+    // For the offline tool this reflects the snapshot's freshness — useful
+    // for dev/test reminders that the cache is stale (`npm run radar:seed`).
+    oldestItemDaysAgo: oldestItemDaysAgo(matched),
     snapshotInfo: {
       fyiLastSeededAt: fyi?.lastSeededAt ?? null,
       wireLastSeededAt: wire?.lastSeededAt ?? null,

@@ -1,3 +1,10 @@
+---
+tool: compute_techpar
+version: v1
+lastAuthored: 2026-04-28
+schema: src/schemas/techpar.ts
+---
+
 # Input Contract: `compute_techpar`
 
 > **Tool**: `compute_techpar` — computes the TechPar benchmark for a target company's technology cost ratio. Wraps the website's pure `compute` engine.

@@ -232,7 +232,16 @@ export function buildSummaryText(
     `Generated: ${date}`,
     '────────────────────────────────────────',
     `Overall score: ${result.overallScore}/100 (${level})`,
-    `Questions answered: ${result.answeredCount} of ${result.totalQuestions}`,
+    // "Responses recorded" intentionally over "Questions answered" — the
+    // counter is `answeredCount`, defined as "distinct keys in answers"
+    // (see CONTRACT.md:109). That count INCLUDES `-1` ("Not sure")
+    // responses, which colloquially aren't what a reader means by
+    // "answered." The disclosure on the next line ("Not sure" responses:
+    // N) honestly carves out the subset. The original "Questions
+    // answered" wording read as if the count excluded "Not sure", which
+    // it doesn't — surfaced 2026-05-26 during the BL-034 audit-against-
+    // contract sweep.
+    `Responses recorded: ${result.answeredCount} of ${result.totalQuestions}`,
   ];
 
   if (result.skippedCount > 0) {

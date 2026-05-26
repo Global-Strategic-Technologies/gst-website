@@ -50,6 +50,7 @@ import {
 } from './inoreader-token-store';
 import { captureMessage } from '../observability/sentry';
 import { safeLog } from '../auth/safe-logger';
+import { recordInoreaderEgress } from './inoreader-egress';
 import type { Env } from '../worker';
 
 /** Inoreader OAuth token-refresh endpoint. */
@@ -241,6 +242,20 @@ async function performRefresh(
       signal: controller.signal,
     });
   } catch (e) {
+    // No Response — the call aborted (timeout) or threw before reaching
+    // Inoreader. The egress wrapper is intentionally NOT invoked here,
+    // for BOTH counters it would have touched:
+    //
+    //   - Zone-1 total: `oauth-refresh` doesn't contribute anyway, so this
+    //     branch is moot for the Zone-1 dashboard.
+    //   - Per-category `oauth-refresh` counter: skipping aligns with the
+    //     same rule the Zone-1 path follows ("nothing reached Inoreader,
+    //     nothing was counted by them"). If we ticked here, the
+    //     `oauth-refresh` rate would over-count auth churn during
+    //     network-degraded windows — exactly when an operator would be
+    //     reading the counter to diagnose.
+    //
+    // Documented at BL-032.75 Phase 0 audit fix M3.
     const result: RefreshResult = {
       ok: false,
       reason: 'inoreader-error',
@@ -251,6 +266,20 @@ async function performRefresh(
   } finally {
     clearTimeout(timeoutId);
   }
+
+  // BL-032.75 Phase 0: record the OAuth POST as an 'oauth-refresh' egress
+  // event. /oauth2/token is not in either Inoreader Zone table at
+  // https://www.inoreader.com/developers/rate-limiting (verified 2026-05-26
+  // — Zone tables cover /reader/api/0/* endpoints only). The recorder
+  // increments the per-category counter but EXCLUDES this from the Zone-1
+  // total, so OAuth refresh churn doesn't pollute spend dashboards.
+  // Best-effort — recorder failures never propagate.
+  await recordInoreaderEgress({
+    env,
+    category: 'oauth-refresh',
+    status: res.status,
+    source: `refresh-${source}`,
+  });
 
   if (!res.ok) {
     // Differentiate invalid_grant from other failures. Inoreader returns
