@@ -38,13 +38,14 @@ const { redisGet, redisSet, redisDel, redisIncr, redisExpire, MockRedis, mockSaf
 );
 
 vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
-vi.mock('../../../src/observability/sentry', () => ({
+vi.mock('../../src/observability/sentry', () => ({
   captureMessage: vi.fn(),
 }));
-vi.mock('../../../src/auth/safe-logger', () => ({ safeLog: mockSafeLog }));
+vi.mock('../../src/auth/safe-logger', () => ({ safeLog: mockSafeLog }));
 
-import { refreshAccessToken } from '../../../src/lib/inoreader-oauth';
-import type { Env } from '../../../src/worker';
+import { refreshAccessToken } from '../../src/lib/inoreader-oauth';
+import { categorySpendKey, totalSpendKey } from '../../src/lib/inoreader-egress';
+import type { Env } from '../../src/worker';
 
 const env: Env = {
   INOREADER_APP_ID: 'app',
@@ -93,22 +94,12 @@ describe('refreshAccessToken × egress recorder (BL-032.75 Phase 0)', () => {
 
     await refreshAccessToken(env, 'cron');
 
-    // The egress recorder calls INCR exactly once for oauth-refresh
-    // (per-category only — NOT the Zone-1 total).
-    const oauthIncrs = redisIncr.mock.calls.filter((c) => String(c[0]).endsWith(':oauth-refresh'));
-    expect(oauthIncrs).toHaveLength(1);
-
-    // Zone-1 total must NOT tick for an OAuth call. The total key is
-    // `mcp:inoreader:zone1-spend:<YYYY-MM-DD>` with no `:` segment after
-    // the date.
-    const totalIncrs = redisIncr.mock.calls.filter((c) => {
-      const key = String(c[0]);
-      return (
-        key.startsWith('mcp:inoreader:zone1-spend:') &&
-        !/:(cron|live|http|oauth|401)/.test(key.slice('mcp:inoreader:zone1-spend:'.length))
-      );
-    });
-    expect(totalIncrs).toHaveLength(0);
+    // Use the exported helpers rather than regex shape-matching. If
+    // SPEND_KEY_PREFIX changes, the helper updates and this test still
+    // pins the same behavior; the prior regex would have gone green
+    // trivially because no keys would match the old prefix.
+    expect(redisIncr).toHaveBeenCalledWith(categorySpendKey('oauth-refresh'));
+    expect(redisIncr).not.toHaveBeenCalledWith(totalSpendKey());
   });
 
   it('records the OAuth POST even when Inoreader returns a 4xx/5xx (call still hit Inoreader)', async () => {
@@ -116,8 +107,8 @@ describe('refreshAccessToken × egress recorder (BL-032.75 Phase 0)', () => {
 
     await refreshAccessToken(env, 'cron');
 
-    const oauthIncrs = redisIncr.mock.calls.filter((c) => String(c[0]).endsWith(':oauth-refresh'));
-    expect(oauthIncrs).toHaveLength(1);
+    expect(redisIncr).toHaveBeenCalledWith(categorySpendKey('oauth-refresh'));
+    expect(redisIncr).not.toHaveBeenCalledWith(totalSpendKey());
   });
 
   it('does NOT record when the OAuth POST throws (no Response received)', async () => {

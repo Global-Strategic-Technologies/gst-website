@@ -33,8 +33,9 @@ const { mockGet, mockSet, mockDel, mockIncr, mockExpire, MockRedis } = vi.hoiste
 
 vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
 
-import { fetchAnnotatedItems, fetchAllStreams } from '../../../src/lib/inoreader-client';
-import type { Env } from '../../../src/worker';
+import { fetchAnnotatedItems, fetchAllStreams } from '../../src/lib/inoreader-client';
+import { categorySpendKey, totalSpendKey } from '../../src/lib/inoreader-egress';
+import type { Env } from '../../src/worker';
 
 const env: Env = {
   INOREADER_APP_ID: 'app',
@@ -95,10 +96,11 @@ describe('inoreader-client × egress recorder wiring (BL-032.75 Phase 0)', () =>
     await fetchAnnotatedItems(env, 5, 'live-radar');
 
     // Exactly 2 INCRs per outbound HTTP call: per-category + Zone-1 total.
+    // Use the exported key helpers rather than regex shape-matching so
+    // a SPEND_KEY_PREFIX rename can't pass this test for the wrong reason.
     expect(mockIncr).toHaveBeenCalledTimes(2);
-    const keys = mockIncr.mock.calls.map((c) => c[0]);
-    expect(keys.some((k: string) => k.endsWith(':live-radar'))).toBe(true);
-    expect(keys.some((k: string) => /:\d{4}-\d{2}-\d{2}$/.test(k))).toBe(true);
+    expect(mockIncr).toHaveBeenCalledWith(categorySpendKey('live-radar'));
+    expect(mockIncr).toHaveBeenCalledWith(totalSpendKey());
   });
 
   it('fetchAllStreams records the tag-list AND each folder fetch independently', async () => {
@@ -128,8 +130,7 @@ describe('inoreader-client × egress recorder wiring (BL-032.75 Phase 0)', () =>
     expect(fetchSpy).toHaveBeenCalledTimes(5);
     // Each call records 2 INCRs (per-category + Zone-1 total). 5 × 2 = 10.
     expect(mockIncr).toHaveBeenCalledTimes(10);
-    const keys = mockIncr.mock.calls.map((c) => c[0]);
-    const catKey = keys.find((k: string) => k.endsWith(':cron-radar'));
-    expect(catKey).toBeDefined();
+    expect(mockIncr).toHaveBeenCalledWith(categorySpendKey('cron-radar'));
+    expect(mockIncr).toHaveBeenCalledWith(totalSpendKey());
   });
 });

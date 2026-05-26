@@ -21,23 +21,27 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { redisIncr, redisGet, redisExpire, MockRedis, captureMessageMock } = vi.hoisted(() => {
-  const redisIncr = vi.fn();
-  const redisGet = vi.fn();
-  const redisExpire = vi.fn();
-  const captureMessageMock = vi.fn();
-  class MockRedis {
-    incr = redisIncr;
-    get = redisGet;
-    expire = redisExpire;
+const { redisIncr, redisGet, redisExpire, MockRedis, captureMessageMock, safeLogMock } = vi.hoisted(
+  () => {
+    const redisIncr = vi.fn();
+    const redisGet = vi.fn();
+    const redisExpire = vi.fn();
+    const captureMessageMock = vi.fn();
+    const safeLogMock = vi.fn();
+    class MockRedis {
+      incr = redisIncr;
+      get = redisGet;
+      expire = redisExpire;
+    }
+    return { redisIncr, redisGet, redisExpire, MockRedis, captureMessageMock, safeLogMock };
   }
-  return { redisIncr, redisGet, redisExpire, MockRedis, captureMessageMock };
-});
+);
 
 vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
 vi.mock('../../../src/observability/sentry', () => ({
   captureMessage: captureMessageMock,
 }));
+vi.mock('../../../src/auth/safe-logger', () => ({ safeLog: safeLogMock }));
 
 import {
   recordInoreaderEgress,
@@ -60,6 +64,7 @@ beforeEach(() => {
   redisGet.mockReset();
   redisExpire.mockReset();
   captureMessageMock.mockReset();
+  safeLogMock.mockReset();
 });
 
 describe('recordInoreaderEgress: counter increments', () => {
@@ -77,9 +82,12 @@ describe('recordInoreaderEgress: counter increments', () => {
 
     await recordInoreaderEgress({ env, category: 'cron-radar', status: 200 });
 
+    // Behavior contract: both keys tick exactly once. Order is intentionally
+    // not pinned — a future Promise.all refactor is free to reorder them
+    // without breaking this test.
     expect(redisIncr).toHaveBeenCalledTimes(2);
-    expect(redisIncr).toHaveBeenNthCalledWith(1, categorySpendKey('cron-radar'));
-    expect(redisIncr).toHaveBeenNthCalledWith(2, totalSpendKey());
+    expect(redisIncr).toHaveBeenCalledWith(categorySpendKey('cron-radar'));
+    expect(redisIncr).toHaveBeenCalledWith(totalSpendKey());
   });
 
   it('skips the Zone-1 total for oauth-refresh (per-category only)', async () => {
@@ -120,8 +128,8 @@ describe('recordInoreaderEgress: counter increments', () => {
 
     await recordInoreaderEgress({ env, category: '401-retry', status: 200 });
 
-    expect(redisIncr).toHaveBeenNthCalledWith(1, categorySpendKey('401-retry'));
-    expect(redisIncr).toHaveBeenNthCalledWith(2, totalSpendKey());
+    expect(redisIncr).toHaveBeenCalledWith(categorySpendKey('401-retry'));
+    expect(redisIncr).toHaveBeenCalledWith(totalSpendKey());
   });
 });
 
@@ -158,12 +166,19 @@ describe('recordInoreaderEgress: drift detection', () => {
       zone1UsageHeader: 15,
     });
 
+    // Behavior contract: warning-severity capture with the diagnostic payload.
+    // Positional arg shape is NOT pinned — a future signature consolidation
+    // (e.g. options-object) should not break this test as long as the
+    // payload fields surface.
     expect(captureMessageMock).toHaveBeenCalledTimes(1);
-    const [message, level, context, tag] = captureMessageMock.mock.calls[0];
-    expect(message).toBe('inoreader.spend.drift');
-    expect(level).toBe('warning');
-    expect(context).toMatchObject({ counter: 20, observed: 15, drift: 5 });
-    expect(tag).toBe('inoreader.spend.drift');
+    const args = captureMessageMock.mock.calls[0];
+    expect(args).toEqual(
+      expect.arrayContaining([
+        'inoreader.spend.drift',
+        'warning',
+        expect.objectContaining({ counter: 20, observed: 15, drift: 5 }),
+      ])
+    );
   });
 
   it('emits inoreader.spend.drift when observed - counter > 2 (we missed calls)', async () => {
@@ -179,8 +194,8 @@ describe('recordInoreaderEgress: drift detection', () => {
     });
 
     expect(captureMessageMock).toHaveBeenCalledTimes(1);
-    const [, , context] = captureMessageMock.mock.calls[0];
-    expect(context).toMatchObject({ drift: -7 });
+    const args = captureMessageMock.mock.calls[0];
+    expect(args).toEqual(expect.arrayContaining([expect.objectContaining({ drift: -7 })]));
   });
 
   it('does NOT emit drift when |drift| <= 2 (race tolerance)', async () => {
@@ -215,6 +230,94 @@ describe('recordInoreaderEgress: drift detection', () => {
     });
 
     expect(captureMessageMock).not.toHaveBeenCalled();
+  });
+
+  // Boundary case: first call of the day → Inoreader's counter is at 0 BEFORE
+  // ours ticks. Our counter post-INCR is 1, observed=0 → drift=1, below the
+  // threshold. The Number.isFinite(0) guard must let this through (not
+  // confuse 0 with "missing header"). Audit gap §3.1.
+  it('treats zone1UsageHeader: 0 as a real reading (not a missing header)', async () => {
+    redisIncr.mockResolvedValueOnce(1).mockResolvedValueOnce(1);
+
+    await recordInoreaderEgress({
+      env,
+      category: 'cron-radar',
+      status: 200,
+      zone1UsageHeader: 0,
+    });
+
+    // drift = 1 - 0 = 1; within tolerance, no message.
+    expect(captureMessageMock).not.toHaveBeenCalled();
+  });
+
+  it('emits drift when zone1UsageHeader: 0 but counter has drifted', async () => {
+    // Pathological case: counter says 10, Inoreader observed 0 (e.g. quota
+    // reset on Inoreader's side but our counter hasn't rolled). drift = 10,
+    // well above the threshold.
+    redisIncr.mockResolvedValueOnce(1).mockResolvedValueOnce(10);
+
+    await recordInoreaderEgress({
+      env,
+      category: 'cron-radar',
+      status: 200,
+      zone1UsageHeader: 0,
+    });
+
+    expect(captureMessageMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Audit gap §3.4 / §3.5: the egress module emits structured logs on every
+// call (operators rely on these via `wrangler tail`). Without these
+// assertions, removing the safeLog lines from production passes 100% of
+// tests — so the breadcrumb contract was silently untested.
+describe('recordInoreaderEgress: safeLog breadcrumbs', () => {
+  it('emits an inoreader.egress breadcrumb on the success path with the call shape', async () => {
+    redisIncr.mockResolvedValueOnce(1).mockResolvedValueOnce(1);
+
+    await recordInoreaderEgress({
+      env,
+      category: 'live-radar',
+      status: 200,
+      zone1UsageHeader: 5,
+      source: 'fetchAnnotatedItems',
+    });
+
+    expect(safeLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'inoreader.egress',
+        category: 'live-radar',
+        status: 200,
+        success: true,
+        zone1Usage: 5,
+      })
+    );
+  });
+
+  it('emits success: false on a 4xx response', async () => {
+    redisIncr.mockResolvedValueOnce(1).mockResolvedValueOnce(1);
+
+    await recordInoreaderEgress({ env, category: 'live-radar', status: 429 });
+
+    expect(safeLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'inoreader.egress', status: 429, success: false })
+    );
+  });
+
+  it('emits the inoreader.egress.counter-write-failed breadcrumb when INCR rejects', async () => {
+    redisIncr.mockRejectedValueOnce(new Error('upstash unreachable'));
+
+    await recordInoreaderEgress({ env, category: 'live-radar', status: 200 });
+
+    // First log line is the per-call breadcrumb; second is the failure
+    // notice. Operators alert on the second pattern.
+    expect(safeLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'inoreader.egress.counter-write-failed',
+        category: 'live-radar',
+        success: false,
+      })
+    );
   });
 });
 
