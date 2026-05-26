@@ -66,6 +66,19 @@ export interface LogEvent {
    * Sentry capture was suppressed for the probe-class entries.
    */
   authFailureReason?: string;
+  /**
+   * Inoreader egress attribution (BL-032.75 Phase 0). One of the values in
+   * `InoreaderEgressCategory` — `'cron-radar'`, `'live-radar'`,
+   * `'http-radar-snapshot'`, `'oauth-refresh'`, `'401-retry'`. Carried on
+   * `inoreader.egress` and `inoreader.egress.counter-write-failed` events.
+   */
+  category?: string;
+  /**
+   * `X-Reader-Zone1-Usage` value from an Inoreader response, when present.
+   * Carried on `inoreader.egress` events so per-call spend is visible in
+   * wrangler-tail output without having to cross-reference Upstash.
+   */
+  zone1Usage?: number;
 }
 
 /**
