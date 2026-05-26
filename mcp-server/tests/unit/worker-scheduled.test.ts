@@ -195,4 +195,47 @@ describe('worker.ts scheduled handler — Sentry error capture (2026-05-25 regre
     // promise and the test fails loudly with the original error.
     await expect(Promise.all(waitUntilPromises)).resolves.toBeDefined();
   });
+
+  it('swallows throws from flushSentry so Cloudflare sees outcome:ok even on Sentry-side failures (2026-05-25 18:00 UTC regression)', async () => {
+    // 0.3.12 introduced the catch around refreshRadarSnapshot but left
+    // `await flushSentry()` in the finally block unguarded. Cloudflare's
+    // cron dashboard continued to report `exception` on every firing
+    // because Sentry SDK flush failures (ingest network blips, quota
+    // rejections, internal SDK errors) propagated past the IIFE.
+    // Confirmed via the 2026-05-25 dashboard: cron successfully made
+    // the Inoreader call (/health.inoreaderObservedAt updated), but
+    // Cloudflare still reported Error.
+    //
+    // The 0.3.13 fix is an outer try/catch around the entire IIFE body
+    // that swallows Sentry-plumbing throws. This test forces flushSentry
+    // to reject and asserts ctx.waitUntil still resolves cleanly.
+    vi.mocked(cron.refreshRadarSnapshot).mockResolvedValue({
+      kind: 'success',
+      wireItems: 5,
+      fyiItems: 3,
+      callsConsumed: 6,
+    });
+    vi.mocked(sentry.flushSentry).mockRejectedValue(new Error('sentry ingest unreachable'));
+
+    const { ctx, waitUntilPromises } = makeCtx();
+    handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);
+
+    await expect(Promise.all(waitUntilPromises)).resolves.toBeDefined();
+  });
+
+  it('swallows throws from captureException so flushSentry-then-resolve still happens (defense-in-depth)', async () => {
+    // Lower-probability path than the flushSentry case but covered by
+    // the same outer catch. If captureException somehow throws (Sentry
+    // SDK getting into a bad scope, fetch failure mid-capture), the
+    // finally block still runs flushSentry and ctx.waitUntil resolves.
+    vi.mocked(cron.refreshRadarSnapshot).mockRejectedValue(new Error('upstream failure'));
+    vi.mocked(sentry.captureException).mockImplementation(() => {
+      throw new Error('sentry capture internal error');
+    });
+
+    const { ctx, waitUntilPromises } = makeCtx();
+    handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);
+
+    await expect(Promise.all(waitUntilPromises)).resolves.toBeDefined();
+  });
 });

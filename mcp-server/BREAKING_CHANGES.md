@@ -28,6 +28,18 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.3.13 — 2026-05-25 — scheduled handler: outer catch around Sentry plumbing (Cloudflare `outcome:exception` regression)
+
+**Theme**: 0.3.12 added a `catch` for `refreshRadarSnapshot` rejections, but `await flushSentry()` in the `finally` block and the Sentry SDK internals invoked by `withMonitor` were still unguarded. When a flush rejected (Sentry ingest network blip, quota, internal SDK error) or `withMonitor`'s check-in HTTP traffic threw, the exception escaped the IIFE → `ctx.waitUntil` rejected → Cloudflare reported `outcome:exception` even on firings where the radar work succeeded.
+
+**Evidence**: 2026-05-25 18:00 UTC firing post-0.3.12-deploy. `/health.inoreaderObservedAt` updated cleanly (cron succeeded end-to-end on the radar side), but Cloudflare's cron dashboard still reported Error. Same pattern persisted across every firing since May 19 — the 0.3.12 fix moved the throw point inside the Sentry stack but didn't close the Cloudflare-visibility gap.
+
+**Fix**: belt-and-suspenders outer try/catch around the entire IIFE body in `worker.ts:scheduled`. Inner try/catch/finally still does the useful capture-and-flush work on the happy and partial-failure paths; the outer catch is a last-resort drop that ensures `ctx.waitUntil` resolves cleanly regardless of which sub-system fails. Two new regression tests in `tests/unit/worker-scheduled.test.ts` simulate `flushSentry` rejection and `captureException` throw — both must leave `Promise.all(waitUntilPromises)` resolved.
+
+**Not a behavior change for the happy path**: when Sentry is reachable and operating normally, captures still fire, flushes still complete, no observable change. The fix only affects the failure modes where the SDK itself misbehaves.
+
+---
+
 ## 0.3.12 — 2026-05-25 — scheduled handler: add missing `catch` + wrap in `Sentry.withMonitor` (cron failures now visible in Sentry)
 
 **Theme**: production showed 13 cron `outcome: exception` events on the Cloudflare dashboard in 24h while Sentry's Issues view showed zero corresponding events. Root cause: the scheduled handler's payload was `try { await refreshRadarSnapshot(env); } finally { await flushSentry(); }` — **no `catch` clause**. Exceptions escaped `ctx.waitUntil`'s promise without ever being captured by Sentry; `flushSentry` ran on an empty queue. `withSentry`'s auto-capture is anchored on the fetch handler's Response — scheduled handlers in `ctx.waitUntil` aren't covered.
