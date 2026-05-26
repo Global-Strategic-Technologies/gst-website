@@ -1,3 +1,10 @@
+---
+tool: search_portfolio
+version: v1
+lastAuthored: 2026-05-03
+schema: mcp-server/src/schemas.ts
+---
+
 # Input Contract: `search_portfolio` + `list_portfolio_facets`
 
 > **Tools**: `search_portfolio` (text + chip filters → match list + deeplink) and the companion `list_portfolio_facets` (zero-arg facet enumeration).

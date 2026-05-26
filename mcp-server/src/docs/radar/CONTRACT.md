@@ -1,3 +1,13 @@
+---
+tool: search_radar_offline
+version: v1
+lastAuthored: 2026-05-02
+schema: mcp-server/src/tools/radar-offline.ts
+enumParity:
+  - tableHeading: '`category`'
+    schemaExport: mcp-server/src/content/radar-transform.ts#RADAR_CATEGORIES
+---
+
 # Input Contract: `search_radar_offline`
 
 > **Tool**: `search_radar_offline` (renamed from `search_radar_cache` in [BL-032 Phase 4b](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited)) — strict mirror of the `/hub/radar` website page. Reads the locally-cached Inoreader snapshot (`npm run radar:seed`) and returns a unified FYI + Wire feed. Never makes live Inoreader API calls (protects the shared 200 req/day budget — see [`mcp-server/src/content/radar-snapshot.ts`](../../content/radar-snapshot.ts) for the budget invariant).
