@@ -50,6 +50,7 @@ import {
 } from './inoreader-token-store';
 import { captureMessage } from '../observability/sentry';
 import { safeLog } from '../auth/safe-logger';
+import { recordInoreaderEgress } from './inoreader-egress';
 import type { Env } from '../worker';
 
 /** Inoreader OAuth token-refresh endpoint. */
@@ -241,6 +242,9 @@ async function performRefresh(
       signal: controller.signal,
     });
   } catch (e) {
+    // No Response — nothing reached Inoreader, so the egress wrapper is
+    // intentionally NOT invoked here (keeps the counter aligned with what
+    // Inoreader's own quota counter sees).
     const result: RefreshResult = {
       ok: false,
       reason: 'inoreader-error',
@@ -251,6 +255,20 @@ async function performRefresh(
   } finally {
     clearTimeout(timeoutId);
   }
+
+  // BL-032.75 Phase 0: record the OAuth POST as an 'oauth-refresh' egress
+  // event. /oauth2/token is not in either Inoreader Zone table at
+  // https://www.inoreader.com/developers/rate-limiting (verified 2026-05-26
+  // — Zone tables cover /reader/api/0/* endpoints only). The recorder
+  // increments the per-category counter but EXCLUDES this from the Zone-1
+  // total, so OAuth refresh churn doesn't pollute spend dashboards.
+  // Best-effort — recorder failures never propagate.
+  await recordInoreaderEgress({
+    env,
+    category: 'oauth-refresh',
+    status: res.status,
+    source: `refresh-${source}`,
+  });
 
   if (!res.ok) {
     // Differentiate invalid_grant from other failures. Inoreader returns
