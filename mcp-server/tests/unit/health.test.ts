@@ -16,12 +16,17 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { redisGet, MockRedis } = vi.hoisted(() => {
+const { redisGet, redisMget, MockRedis } = vi.hoisted(() => {
   const redisGet = vi.fn();
+  // BL-032.75 Phase 0: readInoreaderSpend uses MGET (one round-trip) for
+  // total + per-category counters. The Phase 0 audit-fix S2 swapped the
+  // 1+N GETs for a single MGET; the mock follows.
+  const redisMget = vi.fn().mockResolvedValue([0, 0, 0, 0, 0, 0]);
   class MockRedis {
     get = redisGet;
+    mget = redisMget;
   }
-  return { redisGet, MockRedis };
+  return { redisGet, redisMget, MockRedis };
 });
 
 vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
@@ -394,23 +399,18 @@ describe('buildHealthPayload', () => {
   // alongside the existing day-counter. These tests pin the shape so a
   // dashboard / SLO consumer can rely on it.
   describe('inoreaderSpend (BL-032.75 Phase 0)', () => {
-    it('reads total + per-category from the zone1-spend counters', async () => {
+    it('reads total + per-category from the zone1-spend counters via MGET', async () => {
       redisGet.mockImplementation(async (key: string) => {
         if (key === 'mcp:health:probe') return null;
         if (key === 'inoreader:access_token') return 'token';
         if (key === 'mcp:inoreader:last-status') return null;
         if (key === 'mcp:radar:cache:fyi') return null;
-        if (key.startsWith('mcp:inoreader:zone1-spend:')) {
-          const suffix = key.slice('mcp:inoreader:zone1-spend:'.length);
-          if (!/:/.test(suffix)) return 18; // total (key ends at the date)
-          if (suffix.endsWith(':cron-radar')) return 12;
-          if (suffix.endsWith(':live-radar')) return 4;
-          if (suffix.endsWith(':http-radar-snapshot')) return 2;
-          if (suffix.endsWith(':oauth-refresh')) return 3;
-          if (suffix.endsWith(':401-retry')) return 0;
-        }
         return null;
       });
+      // MGET returns [total, cron-radar, live-radar, http-radar-snapshot,
+      // oauth-refresh, 401-retry] — the order INOREADER_EGRESS_CATEGORIES
+      // declares (load-bearing for the destructure in readInoreaderSpend).
+      redisMget.mockResolvedValueOnce([18, 12, 4, 2, 3, 0]);
 
       const payload = await buildHealthPayload(baseEnv);
 
@@ -428,8 +428,10 @@ describe('buildHealthPayload', () => {
       redisGet.mockImplementation(async (key: string) => {
         if (key === 'mcp:health:probe') return null;
         if (key === 'inoreader:access_token') return 'token';
-        return null; // all spend keys missing
+        return null;
       });
+      // All spend keys missing → MGET returns nulls.
+      redisMget.mockResolvedValueOnce([null, null, null, null, null, null]);
 
       const payload = await buildHealthPayload(baseEnv);
 
