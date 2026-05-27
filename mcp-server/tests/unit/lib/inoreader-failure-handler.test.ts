@@ -20,8 +20,8 @@ vi.mock('../../../src/ratelimit/circuit-breaker', () => ({
   openCircuit: mockOpenCircuit,
 }));
 
-vi.mock('../../../src/observability/sentry', () => ({
-  captureMessage: mockCaptureMessage,
+vi.mock('../../../src/observability/sentry-envelope', () => ({
+  captureMessageEnvelope: mockCaptureMessage,
 }));
 
 import { handleInoreaderFailure } from '../../../src/lib/inoreader-failure-handler';
@@ -92,6 +92,7 @@ describe('handleInoreaderFailure — inoreader-rate-limit', () => {
 
     expect(mockCaptureMessage).toHaveBeenCalledTimes(1);
     expect(mockCaptureMessage).toHaveBeenCalledWith(
+      env,
       'inoreader-rate-limit',
       'error',
       expect.objectContaining({
@@ -124,7 +125,7 @@ describe('handleInoreaderFailure — inoreader-rate-limit', () => {
     await handleInoreaderFailure(env, failure, 'cron-fyi');
 
     expect(mockCaptureMessage).toHaveBeenCalledTimes(1);
-    const tags = mockCaptureMessage.mock.calls[0]?.[4] as Record<string, unknown>;
+    const tags = mockCaptureMessage.mock.calls[0]?.[5] as Record<string, unknown>;
     expect(tags).toEqual({ 'inoreader.source': 'cron-fyi' });
   });
 
@@ -143,7 +144,7 @@ describe('handleInoreaderFailure — inoreader-rate-limit', () => {
     await handleInoreaderFailure(env, failure, 'live-search-radar');
 
     expect(mockCaptureMessage).toHaveBeenCalledTimes(1);
-    const extra = mockCaptureMessage.mock.calls[0]?.[2] as Record<string, unknown>;
+    const extra = mockCaptureMessage.mock.calls[0]?.[3] as Record<string, unknown>;
     expect(extra).toMatchObject({
       bodyExcerpt: 'App over daily limit. Please retry later.',
     });
@@ -151,7 +152,7 @@ describe('handleInoreaderFailure — inoreader-rate-limit', () => {
     // cardinality. Pin the boundary: bodyExcerpt belongs in `extra`,
     // never on `extraTags`. A regression that moves it would silently
     // blow up Sentry tag indexes — this assertion blocks that.
-    const tags = mockCaptureMessage.mock.calls[0]?.[4] as Record<string, unknown>;
+    const tags = mockCaptureMessage.mock.calls[0]?.[5] as Record<string, unknown>;
     expect(tags).not.toHaveProperty('bodyExcerpt');
   });
 
@@ -166,7 +167,7 @@ describe('handleInoreaderFailure — inoreader-rate-limit', () => {
     await handleInoreaderFailure(env, failure, 'cron-wire');
 
     expect(mockCaptureMessage).toHaveBeenCalledTimes(1);
-    const extra = mockCaptureMessage.mock.calls[0]?.[2] as Record<string, unknown>;
+    const extra = mockCaptureMessage.mock.calls[0]?.[3] as Record<string, unknown>;
     expect(extra).not.toHaveProperty('bodyExcerpt');
   });
 });

@@ -64,7 +64,7 @@
 import type { Redis } from '@upstash/redis';
 import { createMcpClient } from './upstash-clients';
 import { safeLog } from '../auth/safe-logger';
-import { captureMessage } from '../observability/sentry';
+import { captureMessageEnvelope } from '../observability/sentry-envelope';
 import type { Env } from '../worker';
 
 /**
@@ -192,7 +192,7 @@ export async function recordInoreaderEgress(opts: RecordEgressOptions): Promise<
     const tNext = await redis.incr(tKey);
     await redis.expire(tKey, TTL_SECONDS);
 
-    await maybeAlertDrift(redis, opts.category, tNext, opts.zone1UsageHeader);
+    await maybeAlertDrift(opts.env, redis, opts.category, tNext, opts.zone1UsageHeader);
   } catch {
     // Counter is a guard rail, not auth — degraded Upstash shouldn't fail
     // user requests. Surface to the operator via safeLog.
@@ -221,6 +221,7 @@ export async function recordInoreaderEgress(opts: RecordEgressOptions): Promise<
  * don't emit (rather than firing 100×). Observability must never throw.
  */
 async function maybeAlertDrift(
+  env: Env,
   redis: Redis,
   category: InoreaderEgressCategory,
   counter: number,
@@ -233,7 +234,8 @@ async function maybeAlertDrift(
   const alertOk = await trySetDailyAlertFlag(redis);
   if (!alertOk) return; // already alerted today, or Upstash unreachable
 
-  captureMessage(
+  await captureMessageEnvelope(
+    env,
     'inoreader.spend.drift',
     'warning',
     {

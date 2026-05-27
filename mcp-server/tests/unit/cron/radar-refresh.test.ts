@@ -44,8 +44,8 @@ vi.mock('../../../src/lib/upstash-clients', () => ({
 }));
 
 const { mockCaptureMessage } = vi.hoisted(() => ({ mockCaptureMessage: vi.fn() }));
-vi.mock('../../../src/observability/sentry', () => ({
-  captureMessage: mockCaptureMessage,
+vi.mock('../../../src/observability/sentry-envelope', () => ({
+  captureMessageEnvelope: mockCaptureMessage,
 }));
 
 const { mockSafeLog } = vi.hoisted(() => ({ mockSafeLog: vi.fn() }));
@@ -90,6 +90,7 @@ describe('refreshRadarSnapshot — circuit breaker guard', () => {
     expect(mockReadWireLive).not.toHaveBeenCalled();
     expect(mockReadFyiLive).not.toHaveBeenCalled();
     expect(mockCaptureMessage).toHaveBeenCalledWith(
+      env,
       'cron.radar-refresh.skipped',
       'info',
       expect.objectContaining({ reason: 'circuit-open', retryAfterSeconds: 3600 }),
@@ -137,6 +138,7 @@ describe('refreshRadarSnapshot — daily soft cap guard', () => {
     expect(outcome).toEqual({ kind: 'skipped', reason: 'day-cap-reached', counter: 175 });
     expect(mockReadWireLive).not.toHaveBeenCalled();
     expect(mockCaptureMessage).toHaveBeenCalledWith(
+      env,
       'cron.radar-refresh.skipped',
       'info',
       expect.objectContaining({ reason: 'day-cap-reached', counter: 175, cap: 180 }),
@@ -251,6 +253,7 @@ describe('refreshRadarSnapshot — success path', () => {
     expect(mockReadWireLive).toHaveBeenCalledWith(env, { forceRefresh: true, source: 'cron' });
     expect(mockReadFyiLive).toHaveBeenCalledWith(env, 30, { forceRefresh: true, source: 'cron' });
     expect(mockCaptureMessage).toHaveBeenCalledWith(
+      env,
       'cron.radar-refresh.success',
       'info',
       expect.objectContaining({ wireItems: 3, fyiItems: 1 }),
@@ -342,6 +345,7 @@ describe('refreshRadarSnapshot — partial-failure path', () => {
     expect(mockCounterIncrby).toHaveBeenCalledTimes(1);
     expect(mockCounterIncrby.mock.calls[0]?.[1]).toBe(5);
     expect(mockCaptureMessage).toHaveBeenCalledWith(
+      env,
       'cron.radar-refresh.partial',
       'warning',
       expect.objectContaining({
@@ -425,6 +429,7 @@ describe('refreshRadarSnapshot — both-tiers-failed path (T.Z.1 budget protecti
     expect(mockOpenCircuit).toHaveBeenCalledWith(env, 'inoreader-429-cron-wire');
     expect(mockOpenCircuit).toHaveBeenCalledWith(env, 'inoreader-429-cron-fyi');
     expect(mockCaptureMessage).toHaveBeenCalledWith(
+      env,
       'cron.radar-refresh.partial-both-failed',
       'warning',
       expect.objectContaining({
@@ -458,6 +463,7 @@ describe('refreshRadarSnapshot — error path', () => {
       expect(outcome.message).toBe('boom');
     }
     expect(mockCaptureMessage).toHaveBeenCalledWith(
+      env,
       'cron.radar-refresh.error',
       'error',
       expect.objectContaining({ message: 'boom' }),
