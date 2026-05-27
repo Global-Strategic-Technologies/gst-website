@@ -58,8 +58,8 @@ const {
 });
 
 vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
-vi.mock('../../../src/observability/sentry', () => ({
-  captureMessage: captureMessageMock,
+vi.mock('../../../src/observability/sentry-envelope', () => ({
+  captureMessageEnvelope: captureMessageMock,
 }));
 vi.mock('../../../src/auth/safe-logger', () => ({ safeLog: safeLogMock }));
 
@@ -205,11 +205,15 @@ describe('recordInoreaderEgress: drift detection', () => {
     });
 
     // Behavior contract: warning-severity capture with the diagnostic payload.
-    // Positional arg shape is NOT pinned — a future signature consolidation
-    // (e.g. options-object) should not break this test as long as the
-    // payload fields surface.
+    // The leading `env` arg is pinned positionally so a regression that
+    // drops env (and falls back to a no-DSN no-op envelope call) fails CI
+    // rather than passing silently via arrayContaining. The remaining
+    // fields use `arrayContaining` so a future signature consolidation
+    // (e.g. options-object) can land without breaking this test as long
+    // as the diagnostic surfaces.
     expect(captureMessageMock).toHaveBeenCalledTimes(1);
     const args = captureMessageMock.mock.calls[0];
+    expect(args[0]).toBe(env);
     expect(args).toEqual(
       expect.arrayContaining([
         'inoreader.spend.drift',
@@ -233,6 +237,7 @@ describe('recordInoreaderEgress: drift detection', () => {
 
     expect(captureMessageMock).toHaveBeenCalledTimes(1);
     const args = captureMessageMock.mock.calls[0];
+    expect(args[0]).toBe(env);
     expect(args).toEqual(expect.arrayContaining([expect.objectContaining({ drift: -7 })]));
   });
 

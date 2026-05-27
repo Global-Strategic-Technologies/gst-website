@@ -35,7 +35,7 @@
 import { readWireLive, readFyiLive } from '../content/radar-live-store';
 import { isCircuitOpen } from '../ratelimit/circuit-breaker';
 import { createMcpClient } from '../lib/upstash-clients';
-import { captureMessage } from '../observability/sentry';
+import { captureMessageEnvelope } from '../observability/sentry-envelope';
 import { handleInoreaderFailure } from '../lib/inoreader-failure-handler';
 import { refreshAccessToken } from '../lib/inoreader-oauth';
 import { KV_MCP_ACCESS_TOKEN_KEY } from '../lib/inoreader-token-store';
@@ -185,7 +185,8 @@ export async function refreshRadarSnapshot(env: Env): Promise<RefreshOutcome> {
   // isn't reachable; treat as "no signal, proceed."
   const circuit = await isCircuitOpen(env);
   if (circuit?.open) {
-    captureMessage(
+    await captureMessageEnvelope(
+      env,
       'cron.radar-refresh.skipped',
       'info',
       { reason: 'circuit-open', retryAfterSeconds: circuit.retryAfterSeconds },
@@ -201,7 +202,8 @@ export async function refreshRadarSnapshot(env: Env): Promise<RefreshOutcome> {
   // Guard 2 — daily soft cap. Skip if next refresh would push us over.
   const counter = await readDayCounter(env);
   if (counter + CALLS_PER_REFRESH > DAILY_SOFT_CAP) {
-    captureMessage(
+    await captureMessageEnvelope(
+      env,
       'cron.radar-refresh.skipped',
       'info',
       { reason: 'day-cap-reached', counter, cap: DAILY_SOFT_CAP },
@@ -250,7 +252,8 @@ export async function refreshRadarSnapshot(env: Env): Promise<RefreshOutcome> {
     }
 
     if (wire.ok && fyi.ok) {
-      captureMessage(
+      await captureMessageEnvelope(
+        env,
         'cron.radar-refresh.success',
         'info',
         { wireItems: wire.items.length, fyiItems: fyi.items.length, callsConsumed },
@@ -290,7 +293,8 @@ export async function refreshRadarSnapshot(env: Env): Promise<RefreshOutcome> {
       await handleInoreaderFailure(env, fyi, 'cron-fyi');
     }
     const bothFailed = !wire.ok && !fyi.ok;
-    captureMessage(
+    await captureMessageEnvelope(
+      env,
       bothFailed ? 'cron.radar-refresh.partial-both-failed' : 'cron.radar-refresh.partial',
       'warning',
       {
@@ -321,7 +325,13 @@ export async function refreshRadarSnapshot(env: Env): Promise<RefreshOutcome> {
     };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    captureMessage('cron.radar-refresh.error', 'error', { message }, 'cron.radar-refresh');
+    await captureMessageEnvelope(
+      env,
+      'cron.radar-refresh.error',
+      'error',
+      { message },
+      'cron.radar-refresh'
+    );
     safeLog({
       event: 'cron.radar-refresh.error',
       success: false,

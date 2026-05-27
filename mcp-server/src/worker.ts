@@ -36,15 +36,8 @@ import { safeLog } from './auth/safe-logger';
 import { hasScope } from './auth/scopes';
 import { createLimiter } from './ratelimit/limiter';
 import { tooManyRequestsResponse, withRateLimitHeaders } from './ratelimit/headers';
-import {
-  captureException,
-  captureMessage,
-  flushSentry,
-  sentryOptions,
-  tagRequest,
-  withMonitor,
-  withSentry,
-} from './observability/sentry';
+import { captureMessage, sentryOptions, tagRequest, withSentry } from './observability/sentry';
+import { postSentryCheckIn, postSentryEvent } from './observability/sentry-envelope';
 import { buildHealthPayload } from './observability/health';
 import { refreshRadarSnapshot } from './cron/radar-refresh';
 import { readWireLive, readFyiLive } from './content/radar-live-store';
@@ -165,84 +158,79 @@ export const handler: ExportedHandler<Env> = {
    * The scheduled handler has no response surface — return value is
    * ignored by Cloudflare.
    *
-   * **Three-layer Sentry instrumentation** (mirrors Sentry's reference
-   * `instrumentCron` pattern; verified against `@sentry/node-core/src/
-   * cron/cron.ts`):
+   * **Envelope-direct observability** (BL-032.76 — replaces the prior
+   * `withMonitor` + `captureException` + `flushSentry` stack as of
+   * 2026-05-26):
    *
-   *   1. `withMonitor('radar-refresh', …)` — sends `in_progress` / `ok`
-   *      / `error` check-ins to Sentry Crons. Auto-creates the monitor
-   *      on first check-in via `upsertMonitorConfig` (the `schedule`
-   *      field). Sentry surfaces missed firings + sustained-failure
-   *      alerts on its Crons dashboard.
-   *   2. **Outer `try/catch`** — `withMonitor` re-throws on callback
-   *      rejection (it only marks the check-in; it does NOT call
-   *      `captureException`). Without an outer catch, the rejection
-   *      escapes `ctx.waitUntil` and Cloudflare reports
-   *      `outcome: exception` with zero Sentry signal. The catch calls
-   *      `captureException` for the stack trace and then swallows so
-   *      `ctx.waitUntil`'s promise resolves cleanly.
-   *   3. **`finally { await flushSentry() }`** — `withSentry` auto-
-   *      flushes for the fetch handler (anchored on the Response), but
-   *      the scheduled handler has no Response. Without an explicit
-   *      flush, in-flight Sentry POSTs get killed mid-flight when
-   *      Cloudflare reclaims the isolate. Observed dropping ~75% of
-   *      cron capture during BL-032.8 Phase B soak Day 3 (commit
-   *      4680028, 2026-05-19) — that fix landed the flush; this fix
-   *      lands the catch.
+   *   - Sentry Crons check-ins are sent via direct envelope POST
+   *     (`postSentryCheckIn`) — `in_progress` at start, then `ok` /
+   *     `error` paired by `check_in_id`.
+   *   - Failures emit a Sentry event via direct envelope POST
+   *     (`postSentryEvent`) for the stack trace.
+   *   - NO `@sentry/cloudflare` SDK calls on this code path. The SDK
+   *     remains in use for the fetch handler only (see default export
+   *     at the bottom of this file — `withSentry({ fetch })` splits
+   *     the surface so the scheduled handler stays SDK-free).
    *
-   * Bug history (resolves 2026-05-25 incident): Cloudflare dashboard
-   * showed 13 cron `outcome: exception` events in 24h. Sentry's Issues
-   * view showed zero corresponding events. Root cause: the prior shape
-   * had `try { … } finally { … }` with no `catch` clause — exceptions
-   * thrown by `refreshRadarSnapshot` propagated past the IIFE, past
-   * `ctx.waitUntil`'s promise, into Cloudflare's runtime. The `finally`
-   * ran flushSentry but the SDK queue was empty (no capture had been
-   * made), so Sentry never saw the error. See
-   * `mcp-server/BREAKING_CHANGES.md` 0.3.12 for full context.
+   * **Why the SDK is bypassed here**: from 2026-05-19 through 2026-05-26,
+   * every cron firing reported `Exception Thrown` on Cloudflare's cron
+   * dashboard while the underlying radar work succeeded. The SDK's
+   * `wrapScheduledHandler` queues its own `ctx.waitUntil(flushAndDispose
+   * (client))` outside any try/catch we control; something in that
+   * queued promise rejects under Workers-runtime conditions. Three
+   * in-tree fix attempts (Day-3 flush, withMonitor layering, outer
+   * try/catch around the IIFE) did not resolve the symptom; upstream
+   * check found no documented workaround or config flag. The structural
+   * fix is to stop wrapping `scheduled` with `withSentry`. See
+   * `src/observability/sentry-envelope.ts` for the helper rationale.
    */
   async scheduled(event, env, ctx): Promise<void> {
     ctx.waitUntil(
       (async () => {
-        // Outer safety net: every observability call (captureException,
-        // flushSentry, even withMonitor's internal Sentry HTTP traffic)
-        // can throw under SDK-internal errors, network blips reaching
-        // Sentry ingest, or quota rejections. The original v0.3.12 fix
-        // caught `refreshRadarSnapshot` rejections but left these Sentry-
-        // plumbing throws unguarded — Cloudflare's cron dashboard
-        // continued to report `exception` even on firings where the
-        // radar work succeeded (verified 2026-05-25 18:00 UTC: /health
-        // confirmed inoreaderObservedAt updated, Cloudflare still
-        // reported Error). Wrapping the whole IIFE body guarantees
-        // ctx.waitUntil sees a clean resolution regardless of which
-        // sub-system fails. The inner try/catch/finally still does the
-        // useful capture-and-flush work on the happy path.
+        const startedAt = Date.now();
+        // Outer safety net (defense-in-depth). The envelope helpers in
+        // `sentry-envelope.ts` carry a "never throws" contract, but a
+        // future refactor that breaks that contract would re-introduce
+        // the 2026-05-19 incident shape (rejection escapes ctx.waitUntil
+        // → Cloudflare reports `Exception Thrown`). Wrapping the whole
+        // body guarantees ctx.waitUntil resolves regardless of helper
+        // regressions. Anything that lands here is intentionally dropped
+        // — the safeLog inside the inner catch is the operator-visible
+        // signal on the failure path.
         try {
+          // The cron expression in the Crons check-in MUST match
+          // wrangler.toml's `[triggers] crons` entry — `event.cron` is
+          // the runtime source of truth so a wrangler.toml edit doesn't
+          // silently desync the Sentry-side monitor config.
+          const checkInId = await postSentryCheckIn(
+            env,
+            'radar-refresh',
+            'in_progress',
+            event.cron
+          );
           try {
-            // Sentry Crons check-in + monitor auto-upsert. The cron
-            // expression here MUST match wrangler.toml's `[triggers]
-            // crons` entry — `event.cron` is the runtime source of
-            // truth so a wrangler.toml edit doesn't silently desync.
-            await withMonitor('radar-refresh', () => refreshRadarSnapshot(env), {
-              schedule: { type: 'crontab', value: event.cron },
-              checkinMargin: 5,
-              maxRuntime: 10,
-              timezone: 'UTC',
-            });
+            await refreshRadarSnapshot(env);
+            await postSentryCheckIn(env, 'radar-refresh', 'ok', event.cron, checkInId);
           } catch (err) {
-            // `withMonitor` marked the check-in `error` and re-threw.
-            // Capture so the stack trace reaches Sentry; swallow so
-            // ctx.waitUntil resolves cleanly.
-            captureException(err, { source: 'cron.scheduled', cron: event.cron });
-          } finally {
-            await flushSentry();
+            const msg = err instanceof Error ? err.message : String(err);
+            safeLog({
+              event: 'cron.scheduled.error',
+              success: false,
+              reason: msg.slice(0, 200),
+              durationMs: Date.now() - startedAt,
+            });
+            await postSentryEvent(env, {
+              level: 'error',
+              message: `cron.radar-refresh.error: ${msg}`,
+              tags: { event: 'cron.scheduled', cron: event.cron },
+              extra: { source: 'cron.scheduled', cron: event.cron },
+            });
+            await postSentryCheckIn(env, 'radar-refresh', 'error', event.cron, checkInId);
           }
         } catch {
-          // Belt-and-suspenders. Anything escaping the inner structured
-          // cleanup (Sentry SDK internal throw, ingest rejection, flush
-          // timeout that rejects rather than resolves false) lands here
-          // and is intentionally dropped — there is no further recovery
-          // and the radar work either succeeded (visible via /health)
-          // or was already captured by the inner catch.
+          // Helper-contract regression. No further recovery — the work
+          // either succeeded (visible via /health) or its failure was
+          // captured by the inner catch before this outer one fired.
         }
       })()
     );
@@ -450,7 +438,24 @@ export const handler: ExportedHandler<Env> = {
   },
 };
 
-// Wrap the handler with Sentry. Returns the same ExportedHandler shape;
-// when SENTRY_DSN isn't bound, sentryOptions returns undefined and
-// withSentry passes through to the underlying handler unchanged.
-export default withSentry(sentryOptions, handler);
+// Default export — wraps `fetch` with Sentry, leaves `scheduled` bare.
+//
+// BL-032.76 (2026-05-26): the SDK's `wrapScheduledHandler` queues its
+// own `ctx.waitUntil(flushAndDispose(client))` outside any try/catch we
+// control, producing Cloudflare `Exception Thrown` on every cron firing
+// regardless of whether our work succeeded. The fix is structural:
+// `withSentry` mutates the passed handler object in place and only
+// touches keys present on it, so passing `{ fetch }` avoids the
+// scheduled-handler wrap entirely. The bare `handler.scheduled`
+// reference becomes the default-export's `scheduled`, owning its own
+// envelope-based Sentry lifecycle (see the `scheduled` method
+// docstring + `src/observability/sentry-envelope.ts`).
+//
+// When `SENTRY_DSN` isn't bound, `sentryOptions` returns undefined and
+// `withSentry` passes the fetch handler through unchanged.
+const wrappedFetch = withSentry(sentryOptions, { fetch: handler.fetch! }).fetch;
+
+export default {
+  fetch: wrappedFetch,
+  scheduled: handler.scheduled,
+} satisfies ExportedHandler<Env>;

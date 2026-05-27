@@ -30,7 +30,7 @@
  */
 
 import { openCircuit } from '../ratelimit/circuit-breaker';
-import { captureMessage } from '../observability/sentry';
+import { captureMessageEnvelope } from '../observability/sentry-envelope';
 import type { Env } from '../worker';
 import type { InoreaderFailure, RateLimitInfo } from './inoreader-client';
 
@@ -96,7 +96,8 @@ export async function handleInoreaderFailure(
   // doesn't delay the protective side effect.
   await openCircuit(env, `inoreader-429-${source}`);
 
-  captureMessage(
+  await captureMessageEnvelope(
+    env,
     'inoreader-rate-limit',
     'error',
     {

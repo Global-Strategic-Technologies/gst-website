@@ -36,8 +36,8 @@ const { redisGet, redisSet, redisDel, MockRedis, mockCaptureMessage, mockSafeLog
 );
 
 vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
-vi.mock('../../../src/observability/sentry', () => ({
-  captureMessage: mockCaptureMessage,
+vi.mock('../../../src/observability/sentry-envelope', () => ({
+  captureMessageEnvelope: mockCaptureMessage,
 }));
 vi.mock('../../../src/auth/safe-logger', () => ({ safeLog: mockSafeLog }));
 
@@ -219,6 +219,7 @@ describe('refreshAccessToken — error taxonomy', () => {
     expect(result.reason).toBe('invalid-refresh-token');
     // Sentry: paging-class (error level) — operator must re-link OAuth.
     expect(mockCaptureMessage).toHaveBeenCalledWith(
+      env,
       'oauth-refresh-invalid-refresh-token',
       'error',
       expect.objectContaining({ source: 'cron' }),
@@ -253,6 +254,7 @@ describe('refreshAccessToken — error taxonomy', () => {
     expect(result.reason).toBe('inoreader-error');
     // Sentry: warning (transient; caller fallback may recover).
     expect(mockCaptureMessage).toHaveBeenCalledWith(
+      env,
       'oauth-refresh-inoreader-error',
       'warning',
       expect.anything(),
@@ -313,6 +315,7 @@ describe('refreshAccessToken — error taxonomy', () => {
     // No /oauth2/token POST attempted — no point without a refresh_token.
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(mockCaptureMessage).toHaveBeenCalledWith(
+      { ...env, INOREADER_REFRESH_TOKEN: undefined },
       'oauth-refresh-token-missing',
       'error',
       expect.anything(),
