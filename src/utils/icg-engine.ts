@@ -8,6 +8,25 @@
 import type { Domain } from '../data/infrastructure-cost-governance/domains';
 import type { Recommendation } from '../data/infrastructure-cost-governance/recommendations';
 
+/**
+ * Recommendation enriched with engine-derived metadata.
+ *
+ * `triggerQuestionAnswered` distinguishes "confirmed gap" from "assumed
+ * gap pending more info":
+ *   - `true`  → user provided an answer (any value 0-3 or -1) for the
+ *               triggering question; the rec fired against a known state
+ *   - `false` → the trigger question's key is absent from `state.answers`;
+ *               the engine defaulted to 0, so the rec fires but consumers
+ *               should treat it as assumed/pending rather than confirmed
+ *
+ * K.2.b.4 — Claude inferred this distinction implicitly during soak by
+ * cross-referencing raw answers; surfacing it on each rec lets agents
+ * disambiguate without that walk.
+ */
+export type EnrichedRecommendation = Recommendation & {
+  triggerQuestionAnswered: boolean;
+};
+
 // ─── State & result types ────────────────────────────────────────────────────
 
 export type CompanyStage = 'pre-series-b' | 'series-bc' | 'pe-backed' | 'enterprise';
@@ -37,7 +56,7 @@ export interface ICGResult {
   maturityColor: string;
   domainScores: DomainScore[];
   showFoundationalFlag: boolean;
-  recommendations: Recommendation[];
+  recommendations: EnrichedRecommendation[];
   answeredCount: number;
   totalQuestions: number;
   skippedCount: number;
@@ -98,7 +117,7 @@ const DOMAIN_ORDER: Record<string, number> = { d1: 0, d2: 1, d3: 2, d4: 3, d5: 4
 export function getRecommendations(
   state: ICGState,
   allRecs: readonly Recommendation[]
-): Recommendation[] {
+): EnrichedRecommendation[] {
   return allRecs
     .filter((r) => {
       const answer = state.answers[r.triggerQuestionId];
@@ -106,6 +125,15 @@ export function getRecommendations(
       const effective = answer === undefined || answer === -1 ? 0 : answer;
       return effective <= r.triggerThreshold;
     })
+    .map((r) => ({
+      ...r,
+      // `!== undefined` over `in` for style consistency with the rest of
+      // the engine (lines below use the same idiom). Equivalent given
+      // input validation (decodeState + ICGInputsSchema admit only
+      // integers -1..3); the explicit-undefined check stays defensive
+      // against direct unit-test construction that bypasses the schema.
+      triggerQuestionAnswered: state.answers[r.triggerQuestionId] !== undefined,
+    }))
     .sort((a, b) => {
       const impactDiff = IMPACT_ORDER[a.impact] - IMPACT_ORDER[b.impact];
       if (impactDiff !== 0) return impactDiff;
@@ -345,6 +373,11 @@ export function buildExportPayload(
     totalQuestions: result.totalQuestions,
     skippedCount: result.skippedCount,
     answers: { ...state.answers },
+    // K.2.b.4 — `triggerQuestionAnswered` is intentionally omitted here.
+    // Export is human-facing PDF/share material; the confirmed-vs-assumed
+    // distinction is an agent-tooling signal surfaced on the MCP path,
+    // not a user-facing line item. If a future export needs it, widen
+    // the ICGExport rec shape deliberately.
     recommendations: recs.map((r) => ({
       id: r.id,
       title: r.title,

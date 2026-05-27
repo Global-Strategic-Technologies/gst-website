@@ -162,3 +162,79 @@ describe('calculateResults — unknown answer keys (K.2.c.3 / K.2.c.5)', () => {
     }
   });
 });
+
+// K.2.b.4 — `triggerQuestionAnswered` lets consuming agents distinguish
+// a "confirmed gap" (user explicitly answered the trigger question with
+// 0 or -1) from an "assumed gap pending more info" (the trigger question
+// key is absent and the engine defaulted to 0).
+describe('getRecommendations — triggerQuestionAnswered (K.2.b.4)', () => {
+  it('sets triggerQuestionAnswered: true when the trigger question is explicitly answered (value 0)', () => {
+    // Pick a recommendation whose trigger condition fires on `0`.
+    const sampleRec = RECOMMENDATIONS.find((r) => r.triggerThreshold >= 0);
+    expect(sampleRec).toBeDefined();
+    const state: ICGState = {
+      answers: { [sampleRec!.triggerQuestionId]: 0 },
+      currentStep: 0,
+      dismissed: [],
+    };
+    const recs = getRecommendations(state, RECOMMENDATIONS);
+    const matched = recs.find((r) => r.id === sampleRec!.id);
+    expect(matched).toBeDefined();
+    expect(matched!.triggerQuestionAnswered).toBe(true);
+  });
+
+  it('sets triggerQuestionAnswered: true when the trigger question is "Not sure" (-1)', () => {
+    // -1 is still an explicit answer — user said "I do not know."
+    const sampleRec = RECOMMENDATIONS.find((r) => r.triggerThreshold >= 0);
+    const state: ICGState = {
+      answers: { [sampleRec!.triggerQuestionId]: -1 },
+      currentStep: 0,
+      dismissed: [],
+    };
+    const recs = getRecommendations(state, RECOMMENDATIONS);
+    const matched = recs.find((r) => r.id === sampleRec!.id);
+    expect(matched).toBeDefined();
+    expect(matched!.triggerQuestionAnswered).toBe(true);
+  });
+
+  it('sets triggerQuestionAnswered: false when the trigger question key is absent (defaulted to 0)', () => {
+    // Empty state — every rec fires by default but no question was answered.
+    const state: ICGState = { answers: {}, currentStep: 0, dismissed: [] };
+    const recs = getRecommendations(state, RECOMMENDATIONS);
+    expect(recs.length).toBeGreaterThan(0);
+    for (const r of recs) {
+      expect(r.triggerQuestionAnswered).toBe(false);
+    }
+  });
+
+  it('every returned recommendation carries the triggerQuestionAnswered flag', () => {
+    const state: ICGState = {
+      answers: { q1_1: 0, q2_1: 1 },
+      currentStep: 0,
+      dismissed: [],
+    };
+    const recs = getRecommendations(state, RECOMMENDATIONS);
+    expect(recs.length).toBeGreaterThan(0);
+    for (const r of recs) {
+      expect(typeof r.triggerQuestionAnswered).toBe('boolean');
+    }
+  });
+});
+
+// Data-integrity guard — every recommendation's `triggerQuestionId` must
+// resolve to a real domain question. If a rec references a non-existent
+// question id (e.g. via a domain rename or question removal), the
+// `triggerQuestionAnswered: false` flag would silently mislead agents
+// into treating an unfireable rec as a real "assumed gap." This pins
+// the data invariant so a future RECOMMENDATIONS edit can't drift
+// undetected.
+describe('RECOMMENDATIONS data integrity', () => {
+  it('every recommendation triggerQuestionId resolves to a real domain question', () => {
+    const validIds = new Set(DOMAINS.flatMap((d) => d.questions.map((q) => q.id)));
+    const orphans = RECOMMENDATIONS.filter((r) => !validIds.has(r.triggerQuestionId)).map((r) => ({
+      id: r.id,
+      triggerQuestionId: r.triggerQuestionId,
+    }));
+    expect(orphans).toEqual([]);
+  });
+});
