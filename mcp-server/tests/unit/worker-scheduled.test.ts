@@ -1,33 +1,41 @@
 /**
- * Regression test for the scheduled handler's Sentry error-capture path.
+ * Tests for the scheduled handler's envelope-based Sentry lifecycle
+ * (BL-032.76 — supersedes the prior `withMonitor` + `flushSentry` shape).
  *
- * Background (2026-05-25 incident): Cloudflare's dashboard reported 13
- * cron `outcome: exception` events in 24h while Sentry's Issues view
- * showed zero corresponding events. Root cause: the prior shape of
- * `worker.ts:scheduled` was `try { … } finally { … }` with no `catch` —
- * exceptions thrown by `refreshRadarSnapshot` (or its dependencies)
- * escaped `ctx.waitUntil`'s promise without ever being captured by
- * Sentry. The current implementation wraps the cron in `withMonitor`
- * (Sentry Crons check-in) and adds an outer `catch` that calls
- * `captureException` for the stack trace.
+ * Background (2026-05-19 → 2026-05-26): every cron firing reported
+ * `Exception Thrown` on Cloudflare's cron-events dashboard while the
+ * underlying radar work succeeded. Root cause traced to the SDK's
+ * `wrapScheduledHandler` queueing its own `ctx.waitUntil(flushAndDispose
+ * (client))` outside any try/catch we control. The structural fix is to
+ * stop wrapping `scheduled` with `withSentry` (the default export now
+ * passes `{ fetch }` only) and to use direct envelope POSTs for
+ * observability inside the cron path.
  *
- * This test exists because:
- *   1. No existing test exercised the scheduled handler at all — the
- *      cron-handler suite (`tests/unit/cron/radar-refresh.test.ts`)
- *      covers `refreshRadarSnapshot` in isolation; it never asked
- *      "what does the worker do if refreshRadarSnapshot rejects?"
- *   2. Two future regressions are possible: someone removes the catch
- *      (returns to the silent-Sentry state) OR someone changes the
- *      withMonitor invocation in a way that breaks the re-throw
- *      contract this code relies on. Both must fail this test loudly.
+ * These tests pin the new contract:
+ *   - `withSentry` is called with a handler that has NO `scheduled` key
+ *     (regression guard against future re-wrapping)
+ *   - Scheduled handler invokes `refreshRadarSnapshot` exactly once
+ *   - Success path: `postSentryCheckIn('in_progress')` → `('ok')` with
+ *     matching `checkInId`
+ *   - Error path: `postSentryCheckIn('in_progress')` → `postSentryEvent`
+ *     → `postSentryCheckIn('error')` with matching `checkInId`
+ *   - DSN-missing path: handler still completes and `refreshRadarSnapshot`
+ *     still runs
+ *   - `ctx.waitUntil` always resolves cleanly (no unhandled rejection)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // `@sentry/cloudflare` + `agents/mcp` use the `cloudflare:workers` URL
-// scheme internally — Node's default ESM loader rejects it. Mock both at
-// the package boundary so importing worker.ts doesn't crash. (Same
-// pattern as `tests/integration/radar-snapshot-endpoint.test.ts`.)
+// scheme internally — Node's default ESM loader rejects it. Mock both
+// at the package boundary so importing worker.ts doesn't crash.
+const { withSentryMock, mockPostCheckIn, mockPostEvent, mockSafeLog } = vi.hoisted(() => ({
+  withSentryMock: vi.fn(<T>(_opts: unknown, handler: T) => handler),
+  mockPostCheckIn: vi.fn(),
+  mockPostEvent: vi.fn(),
+  mockSafeLog: vi.fn(),
+}));
+
 vi.mock('@sentry/cloudflare', () => ({
   init: vi.fn(),
   captureMessage: vi.fn(),
@@ -35,30 +43,33 @@ vi.mock('@sentry/cloudflare', () => ({
   setTag: vi.fn(),
   flush: vi.fn().mockResolvedValue(true),
   withMonitor: vi.fn(),
-  withSentry: <T>(_opts: unknown, handler: T) => handler,
+  withSentry: withSentryMock,
 }));
 vi.mock('agents/mcp', () => ({
   createMcpHandler: () => async () =>
     new Response('{"error":"mcp-mocked-in-this-test"}', { status: 501 }),
 }));
 
-// Stub the observability + cron modules so the handler picks up mockable
-// versions of our own wrappers (the @sentry/cloudflare mock above
-// satisfies sentry.ts's own imports during module load).
 vi.mock('../../src/cron/radar-refresh');
 vi.mock('../../src/observability/sentry', () => ({
-  captureException: vi.fn(),
   captureMessage: vi.fn(),
-  flushSentry: vi.fn().mockResolvedValue(true),
   sentryOptions: vi.fn().mockReturnValue(undefined),
   tagRequest: vi.fn(),
-  withMonitor: vi.fn(),
-  withSentry: <T>(_opts: unknown, h: T) => h, // pass-through wrap for the default export
+  withSentry: withSentryMock, // pass-through wrap for the default export
+}));
+
+vi.mock('../../src/observability/sentry-envelope', () => ({
+  postSentryCheckIn: mockPostCheckIn,
+  postSentryEvent: mockPostEvent,
+}));
+
+vi.mock('../../src/auth/safe-logger', () => ({
+  safeLog: mockSafeLog,
 }));
 
 // Imports MUST come after vi.mock so the mocked modules are wired in.
 import { handler } from '../../src/worker';
-import * as sentry from '../../src/observability/sentry';
+import workerDefault from '../../src/worker';
 import * as cron from '../../src/cron/radar-refresh';
 import type { Env } from '../../src/worker';
 
@@ -86,43 +97,40 @@ function makeCtx(): { ctx: ExecutionContext; waitUntilPromises: Promise<unknown>
   return { ctx, waitUntilPromises };
 }
 
-describe('worker.ts scheduled handler — Sentry error capture (2026-05-25 regression)', () => {
+describe('worker default export — withSentry wraps fetch only (BL-032.76 regression guard)', () => {
+  it('withSentry is called with a handler literal that has NO scheduled key', () => {
+    // Load-bearing assertion against the 2026-05-19 incident shape. The
+    // SDK's `wrapScheduledHandler` queues its own ctx.waitUntil flush
+    // outside our control; passing a handler literal with `scheduled`
+    // attached re-introduces the broken cron status reporting. The
+    // default export MUST pass `{ fetch }` only.
+    expect(withSentryMock).toHaveBeenCalled();
+    const [, passedHandler] = withSentryMock.mock.calls[0]!;
+    expect(passedHandler).toHaveProperty('fetch');
+    expect(passedHandler).not.toHaveProperty('scheduled');
+  });
+
+  it('the default export still has both fetch and scheduled (composed after withSentry)', () => {
+    expect(workerDefault).toHaveProperty('fetch');
+    expect(workerDefault).toHaveProperty('scheduled');
+    expect(typeof workerDefault.scheduled).toBe('function');
+  });
+});
+
+describe('worker.ts scheduled handler — envelope check-in lifecycle (BL-032.76)', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
-    // Default: withMonitor is a pass-through that runs its callback verbatim.
-    // Individual tests override this to simulate Sentry's re-throw behavior.
-    vi.mocked(sentry.withMonitor).mockImplementation(async (_slug: string, cb: () => unknown) =>
-      cb()
+    mockPostCheckIn.mockReset();
+    mockPostEvent.mockReset();
+    mockSafeLog.mockReset();
+    // Default: postSentryCheckIn returns a fresh id on in_progress,
+    // returns same id on closing check-ins.
+    mockPostCheckIn.mockImplementation(
+      async (_env, _slug, _status, _schedule, checkInId) => checkInId ?? 'fake-id-abc'
     );
-    vi.mocked(sentry.flushSentry).mockResolvedValue(true);
+    vi.mocked(cron.refreshRadarSnapshot).mockReset();
   });
 
-  it('captures the exception via captureException when refreshRadarSnapshot rejects', async () => {
-    const inoreaderError = new Error('Inoreader 503 Service Unavailable');
-    vi.mocked(cron.refreshRadarSnapshot).mockRejectedValue(inoreaderError);
-
-    const { ctx, waitUntilPromises } = makeCtx();
-    handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);
-    await Promise.all(waitUntilPromises);
-
-    expect(sentry.captureException).toHaveBeenCalledTimes(1);
-    expect(sentry.captureException).toHaveBeenCalledWith(inoreaderError, {
-      source: 'cron.scheduled',
-      cron: FAKE_CRON,
-    });
-  });
-
-  it('always calls flushSentry, even on failure', async () => {
-    vi.mocked(cron.refreshRadarSnapshot).mockRejectedValue(new Error('upstream failure'));
-
-    const { ctx, waitUntilPromises } = makeCtx();
-    handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);
-    await Promise.all(waitUntilPromises);
-
-    expect(sentry.flushSentry).toHaveBeenCalledTimes(1);
-  });
-
-  it('does NOT capture exception on the success path', async () => {
+  it('success path: in_progress → ok with matching checkInId', async () => {
     vi.mocked(cron.refreshRadarSnapshot).mockResolvedValue({
       kind: 'success',
       wireItems: 5,
@@ -134,88 +142,127 @@ describe('worker.ts scheduled handler — Sentry error capture (2026-05-25 regre
     handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);
     await Promise.all(waitUntilPromises);
 
-    expect(sentry.captureException).not.toHaveBeenCalled();
-    expect(sentry.flushSentry).toHaveBeenCalledTimes(1);
+    expect(mockPostCheckIn).toHaveBeenCalledTimes(2);
+    expect(mockPostCheckIn).toHaveBeenNthCalledWith(
+      1,
+      FAKE_ENV,
+      'radar-refresh',
+      'in_progress',
+      FAKE_CRON
+    );
+    expect(mockPostCheckIn).toHaveBeenNthCalledWith(
+      2,
+      FAKE_ENV,
+      'radar-refresh',
+      'ok',
+      FAKE_CRON,
+      'fake-id-abc'
+    );
+    expect(mockPostEvent).not.toHaveBeenCalled();
+    expect(cron.refreshRadarSnapshot).toHaveBeenCalledTimes(1);
   });
 
-  it('does NOT capture exception when refreshRadarSnapshot returns a non-error envelope', async () => {
-    // The `partial-both-failed` outcome means both tiers failed but
-    // refreshRadarSnapshot caught them internally and returned a result
-    // envelope — the scheduled handler should NOT double-report.
-    vi.mocked(cron.refreshRadarSnapshot).mockResolvedValue({
-      kind: 'partial-both-failed',
-      wireReason: 'inoreader-rate-limit',
-      fyiReason: 'inoreader-rate-limit',
-    });
+  it('error path: in_progress → postSentryEvent → error with matching checkInId', async () => {
+    const upstreamErr = new Error('Inoreader 503 Service Unavailable');
+    vi.mocked(cron.refreshRadarSnapshot).mockRejectedValue(upstreamErr);
 
     const { ctx, waitUntilPromises } = makeCtx();
     handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);
     await Promise.all(waitUntilPromises);
 
-    expect(sentry.captureException).not.toHaveBeenCalled();
+    expect(mockPostCheckIn).toHaveBeenCalledTimes(2);
+    expect(mockPostCheckIn).toHaveBeenNthCalledWith(
+      1,
+      FAKE_ENV,
+      'radar-refresh',
+      'in_progress',
+      FAKE_CRON
+    );
+    expect(mockPostEvent).toHaveBeenCalledTimes(1);
+    expect(mockPostEvent).toHaveBeenCalledWith(
+      FAKE_ENV,
+      expect.objectContaining({
+        level: 'error',
+        message: expect.stringContaining('Inoreader 503 Service Unavailable'),
+        tags: expect.objectContaining({ event: 'cron.scheduled', cron: FAKE_CRON }),
+      })
+    );
+    expect(mockPostCheckIn).toHaveBeenNthCalledWith(
+      2,
+      FAKE_ENV,
+      'radar-refresh',
+      'error',
+      FAKE_CRON,
+      'fake-id-abc'
+    );
+
+    // safeLog contract — the operator-visible diagnostic line that
+    // `wrangler tail` surfaces. If a refactor drops this emit, the
+    // structured-log channel goes silent on cron errors. Reason is
+    // truncated to 200 chars so an oversized stack doesn't bloat the
+    // log line.
+    expect(mockSafeLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'cron.scheduled.error',
+        success: false,
+        reason: expect.stringContaining('Inoreader 503 Service Unavailable'),
+      })
+    );
+
+    // Ordering invariant: in_progress fires before refreshRadarSnapshot
+    // is awaited; postSentryEvent fires before the closing check-in.
+    const inProgressOrder = mockPostCheckIn.mock.invocationCallOrder[0]!;
+    const eventOrder = mockPostEvent.mock.invocationCallOrder[0]!;
+    const errorOrder = mockPostCheckIn.mock.invocationCallOrder[1]!;
+    expect(inProgressOrder).toBeLessThan(eventOrder);
+    expect(eventOrder).toBeLessThan(errorOrder);
   });
 
-  it('invokes withMonitor with the runtime cron expression from the ScheduledController', async () => {
-    // The cron schedule passed to Sentry must match the schedule that
-    // actually fired. We pull it from `event.cron` (Cloudflare's runtime
-    // truth) rather than hardcoding so a `wrangler.toml` schedule edit
-    // doesn't silently desync from Sentry's monitor config.
+  it('DSN-missing path: handler still runs refreshRadarSnapshot and propagates undefined checkInId to the closing check-in', async () => {
+    // When SENTRY_DSN is unbound, the envelope helpers short-circuit
+    // and return undefined. The handler must still invoke the underlying
+    // work — observability gracefully degrades; correctness does not.
+    mockPostCheckIn.mockResolvedValue(undefined);
     vi.mocked(cron.refreshRadarSnapshot).mockResolvedValue({
       kind: 'success',
-      wireItems: 0,
+      wireItems: 1,
       fyiItems: 0,
-      callsConsumed: 0,
+      callsConsumed: 5,
     });
 
     const { ctx, waitUntilPromises } = makeCtx();
     handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);
     await Promise.all(waitUntilPromises);
 
-    expect(sentry.withMonitor).toHaveBeenCalledTimes(1);
-    const [slug, _callback, config] = vi.mocked(sentry.withMonitor).mock.calls[0];
-    expect(slug).toBe('radar-refresh');
-    expect(config).toMatchObject({
-      schedule: { type: 'crontab', value: FAKE_CRON },
-      timezone: 'UTC',
-    });
+    expect(cron.refreshRadarSnapshot).toHaveBeenCalledTimes(1);
+    // Closing check-in is attempted (also a no-op without DSN) and
+    // receives the undefined checkInId we got back from the opener.
+    // Pinning the boundary here so a refactor that defaults the id
+    // (e.g. `checkInId ?? generateNew()`) doesn't silently change the
+    // contract DSN-bound callers depend on.
+    expect(mockPostCheckIn).toHaveBeenCalledTimes(2);
+    expect(mockPostCheckIn).toHaveBeenNthCalledWith(
+      2,
+      FAKE_ENV,
+      'radar-refresh',
+      'ok',
+      FAKE_CRON,
+      undefined
+    );
   });
 
-  it('swallows the re-thrown exception so ctx.waitUntil resolves cleanly (no unhandled rejection escapes Cloudflare runtime)', async () => {
-    // This is the load-bearing assertion against the 2026-05-25 incident
-    // shape. If the catch is removed, the promise rejects → Cloudflare
-    // reports outcome:exception → Sentry has no event. The test would
-    // fail because `await Promise.all` would itself throw.
-    vi.mocked(cron.refreshRadarSnapshot).mockRejectedValue(new Error('any throw'));
-
-    const { ctx, waitUntilPromises } = makeCtx();
-    handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);
-
-    // The IIFE inside ctx.waitUntil must resolve, NOT reject. If the
-    // handler regresses to a no-catch shape, this awaits a rejected
-    // promise and the test fails loudly with the original error.
-    await expect(Promise.all(waitUntilPromises)).resolves.toBeDefined();
-  });
-
-  it('swallows throws from flushSentry so Cloudflare sees outcome:ok even on Sentry-side failures (2026-05-25 18:00 UTC regression)', async () => {
-    // 0.3.12 introduced the catch around refreshRadarSnapshot but left
-    // `await flushSentry()` in the finally block unguarded. Cloudflare's
-    // cron dashboard continued to report `exception` on every firing
-    // because Sentry SDK flush failures (ingest network blips, quota
-    // rejections, internal SDK errors) propagated past the IIFE.
-    // Confirmed via the 2026-05-25 dashboard: cron successfully made
-    // the Inoreader call (/health.inoreaderObservedAt updated), but
-    // Cloudflare still reported Error.
+  it('postSentryEvent rejection does NOT escape ctx.waitUntil (observability never fails the cron)', async () => {
+    // Symptom-side of the BL-032.76 incident: the SDK's queued
+    // ctx.waitUntil for the auto-flush rejected and produced Cloudflare
+    // `Exception Thrown`. The envelope helpers are documented as
+    // best-effort/never-throw — but if a future refactor breaks that
+    // contract (e.g. removes the try/catch in postEnvelope), the cron
+    // status reporting would regress to the 2026-05-19 shape.
     //
-    // The 0.3.13 fix is an outer try/catch around the entire IIFE body
-    // that swallows Sentry-plumbing throws. This test forces flushSentry
-    // to reject and asserts ctx.waitUntil still resolves cleanly.
-    vi.mocked(cron.refreshRadarSnapshot).mockResolvedValue({
-      kind: 'success',
-      wireItems: 5,
-      fyiItems: 3,
-      callsConsumed: 6,
-    });
-    vi.mocked(sentry.flushSentry).mockRejectedValue(new Error('sentry ingest unreachable'));
+    // This test forces an envelope helper to reject and asserts the
+    // outer handler still resolves cleanly.
+    vi.mocked(cron.refreshRadarSnapshot).mockRejectedValue(new Error('upstream'));
+    mockPostEvent.mockRejectedValue(new Error('sentry ingest 502'));
 
     const { ctx, waitUntilPromises } = makeCtx();
     handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);
@@ -223,15 +270,12 @@ describe('worker.ts scheduled handler — Sentry error capture (2026-05-25 regre
     await expect(Promise.all(waitUntilPromises)).resolves.toBeDefined();
   });
 
-  it('swallows throws from captureException so flushSentry-then-resolve still happens (defense-in-depth)', async () => {
-    // Lower-probability path than the flushSentry case but covered by
-    // the same outer catch. If captureException somehow throws (Sentry
-    // SDK getting into a bad scope, fetch failure mid-capture), the
-    // finally block still runs flushSentry and ctx.waitUntil resolves.
-    vi.mocked(cron.refreshRadarSnapshot).mockRejectedValue(new Error('upstream failure'));
-    vi.mocked(sentry.captureException).mockImplementation(() => {
-      throw new Error('sentry capture internal error');
-    });
+  it('ctx.waitUntil always resolves cleanly even when refreshRadarSnapshot rejects', async () => {
+    // Load-bearing — this is the symptom side of the 2026-05-19 incident.
+    // The IIFE inside ctx.waitUntil MUST resolve, NEVER reject, regardless
+    // of what `refreshRadarSnapshot` does. The catch in scheduled() is the
+    // safety net.
+    vi.mocked(cron.refreshRadarSnapshot).mockRejectedValue(new Error('any throw'));
 
     const { ctx, waitUntilPromises } = makeCtx();
     handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);

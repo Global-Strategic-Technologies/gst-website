@@ -48,7 +48,7 @@ import {
   writeRefreshToken,
   KV_MCP_ACCESS_TOKEN_KEY,
 } from './inoreader-token-store';
-import { captureMessage } from '../observability/sentry';
+import { captureMessageEnvelope } from '../observability/sentry-envelope';
 import { safeLog } from '../auth/safe-logger';
 import { recordInoreaderEgress } from './inoreader-egress';
 import type { Env } from '../worker';
@@ -199,7 +199,7 @@ async function performRefresh(
       message:
         'No Inoreader refresh token available. Upstash mcp:inoreader:refresh_token + INOREADER_REFRESH_TOKEN env are both empty. Manual OAuth re-link required.',
     };
-    logAndCapture(result, source, Date.now() - startedAt);
+    await logAndCapture(env, result, source, Date.now() - startedAt);
     return result;
   }
 
@@ -214,7 +214,7 @@ async function performRefresh(
       message:
         'Inoreader credentials (INOREADER_APP_ID + INOREADER_APP_KEY) not bound on the Worker env.',
     };
-    logAndCapture(result, source, Date.now() - startedAt);
+    await logAndCapture(env, result, source, Date.now() - startedAt);
     return result;
   }
 
@@ -261,7 +261,7 @@ async function performRefresh(
       reason: 'inoreader-error',
       message: `Inoreader /oauth2/token network error: ${(e as Error).message}`,
     };
-    logAndCapture(result, source, Date.now() - startedAt);
+    await logAndCapture(env, result, source, Date.now() - startedAt);
     return result;
   } finally {
     clearTimeout(timeoutId);
@@ -298,7 +298,7 @@ async function performRefresh(
           reason: 'inoreader-error',
           message: `Inoreader /oauth2/token returned ${res.status} ${res.statusText} (body excerpt: ${bodyText.slice(0, 200)})`,
         };
-    logAndCapture(result, source, Date.now() - startedAt);
+    await logAndCapture(env, result, source, Date.now() - startedAt);
     return result;
   }
 
@@ -311,7 +311,7 @@ async function performRefresh(
       reason: 'inoreader-error',
       message: `Inoreader /oauth2/token returned non-JSON body: ${(e as Error).message}`,
     };
-    logAndCapture(result, source, Date.now() - startedAt);
+    await logAndCapture(env, result, source, Date.now() - startedAt);
     return result;
   }
 
@@ -321,7 +321,7 @@ async function performRefresh(
       reason: 'inoreader-error',
       message: 'Inoreader /oauth2/token response had no access_token field',
     };
-    logAndCapture(result, source, Date.now() - startedAt);
+    await logAndCapture(env, result, source, Date.now() - startedAt);
     return result;
   }
 
@@ -337,7 +337,7 @@ async function performRefresh(
         message:
           'Refresh succeeded but rotated refresh_token persistence failed; token is now in an inconsistent state.',
       };
-      logAndCapture(result, source, Date.now() - startedAt);
+      await logAndCapture(env, result, source, Date.now() - startedAt);
       return result;
     }
   }
@@ -349,7 +349,7 @@ async function performRefresh(
       reason: 'upstash-write-failed',
       message: 'Refresh succeeded but access_token persistence failed; next call will re-refresh.',
     };
-    logAndCapture(result, source, Date.now() - startedAt);
+    await logAndCapture(env, result, source, Date.now() - startedAt);
     return result;
   }
 
@@ -360,7 +360,7 @@ async function performRefresh(
     expiresAt: Date.now() + expiresIn * 1000,
     refreshSource: 'fresh',
   };
-  logAndCapture(result, source, Date.now() - startedAt);
+  await logAndCapture(env, result, source, Date.now() - startedAt);
   return result;
 }
 
@@ -372,7 +372,12 @@ async function safeReadText(res: Response): Promise<string> {
   }
 }
 
-function logAndCapture(result: RefreshResult, source: RefreshSource, durationMs: number): void {
+async function logAndCapture(
+  env: Env,
+  result: RefreshResult,
+  source: RefreshSource,
+  durationMs: number
+): Promise<void> {
   if (result.ok) {
     safeLog({
       event: 'oauth.refresh.success',
@@ -401,7 +406,8 @@ function logAndCapture(result: RefreshResult, source: RefreshSource, durationMs:
 
   const level: 'error' | 'warning' = result.reason === 'inoreader-error' ? 'warning' : 'error';
 
-  captureMessage(
+  await captureMessageEnvelope(
+    env,
     `oauth-refresh-${result.reason}`,
     level,
     {
