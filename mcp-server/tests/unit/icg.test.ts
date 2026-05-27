@@ -97,3 +97,68 @@ describe('assess_infrastructure_cost_governance (engine parity)', () => {
     expect(() => JSON.stringify(result)).not.toThrow();
   });
 });
+
+// K.2.c.3 / K.2.c.5 — input keys outside the canonical domain registry
+// must not inflate `answeredCount` / `skippedCount` and must surface on
+// `unknownAnswerKeys` so a typo doesn't pass silently. Per-domain
+// scoring already ignores unknown keys; these tests pin that contract.
+describe('calculateResults — unknown answer keys (K.2.c.3 / K.2.c.5)', () => {
+  const allDefinedIds = DOMAINS.flatMap((d) => d.questions.map((q) => q.id));
+  const totalDefined = allDefinedIds.length;
+
+  function fullyAnswered(): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const id of allDefinedIds) out[id] = 2;
+    return out;
+  }
+
+  it('drops unknown keys from answeredCount so it reconciles against totalQuestions', () => {
+    const answers = { ...fullyAnswered(), q3_4: 1, q4_4: 2, q5_4: 0 };
+    const result = calculateResults({ answers, currentStep: 0, dismissed: [] }, DOMAINS);
+    expect(result.answeredCount).toBe(totalDefined);
+    expect(result.totalQuestions).toBe(totalDefined);
+    expect(result.answeredCount).toBeLessThanOrEqual(result.totalQuestions);
+  });
+
+  it('does NOT increment skippedCount for unknown keys with value -1', () => {
+    const answers = { ...fullyAnswered(), q3_4: -1, q4_4: -1 };
+    const result = calculateResults({ answers, currentStep: 0, dismissed: [] }, DOMAINS);
+    // None of the canonical answers are -1, so skippedCount should be 0.
+    expect(result.skippedCount).toBe(0);
+  });
+
+  it('surfaces unknown keys on unknownAnswerKeys for operator visibility', () => {
+    const answers = { ...fullyAnswered(), q3_4: 1, badKey: 2 };
+    const result = calculateResults({ answers, currentStep: 0, dismissed: [] }, DOMAINS);
+    expect(result.unknownAnswerKeys).toEqual(expect.arrayContaining(['q3_4', 'badKey']));
+    expect(result.unknownAnswerKeys).toHaveLength(2);
+  });
+
+  it('returns an empty unknownAnswerKeys array on the happy path', () => {
+    const result = calculateResults(
+      { answers: fullyAnswered(), currentStep: 0, dismissed: [] },
+      DOMAINS
+    );
+    expect(result.unknownAnswerKeys).toEqual([]);
+  });
+
+  it('does NOT let unknown keys affect any domain rawScore (regression guard)', () => {
+    // Same canonical answers in two runs; the second adds a noise key.
+    // Per-domain rawScore must be identical.
+    const baseAnswers = fullyAnswered();
+    const noisy = { ...baseAnswers, q3_4: 3, q4_4: 3, totallyMadeUp: 3 };
+    const baseResult = calculateResults(
+      { answers: baseAnswers, currentStep: 0, dismissed: [] },
+      DOMAINS
+    );
+    const noisyResult = calculateResults(
+      { answers: noisy, currentStep: 0, dismissed: [] },
+      DOMAINS
+    );
+    expect(noisyResult.overallScore).toBe(baseResult.overallScore);
+    for (let i = 0; i < baseResult.domainScores.length; i++) {
+      expect(noisyResult.domainScores[i].rawScore).toBe(baseResult.domainScores[i].rawScore);
+      expect(noisyResult.domainScores[i].score).toBe(baseResult.domainScores[i].score);
+    }
+  });
+});

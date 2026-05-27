@@ -41,6 +41,20 @@ export interface ICGResult {
   answeredCount: number;
   totalQuestions: number;
   skippedCount: number;
+  /**
+   * Question IDs present in `state.answers` that don't exist in the
+   * canonical domain registry. Empty array in the happy path. When non-
+   * empty, signals that the caller submitted typo'd or out-of-band keys
+   * — those answers are dropped from `answeredCount` / `skippedCount`
+   * and never affect any domain score (per-domain scoring iterates only
+   * `d.questions[*].id`). Consuming agents should surface this so
+   * silent under-reporting from a typo doesn't pass undetected.
+   *
+   * Documented semantic for K.2.c.3 / K.2.c.5: drop-with-visibility,
+   * not strict-reject. The website's tolerant client must continue to
+   * function on stale URL-encoded states with deprecated question IDs.
+   */
+  unknownAnswerKeys: string[];
 }
 
 // ─── Maturity thresholds ────────────────────────────────────────────────────
@@ -128,8 +142,18 @@ export function calculateResults(state: ICGState, domains: readonly Domain[]): I
     };
   });
 
-  const answeredCount = Object.keys(state.answers).length;
-  const skippedCount = Object.values(state.answers).filter((v) => v === -1).length;
+  // K.2.c.3 / K.2.c.5 — topline counters reconcile only against the
+  // canonical domain registry. Keys outside the registry (typo'd or
+  // out-of-band agent input) are dropped from the topline counts but
+  // surfaced via `unknownAnswerKeys` so the typo never passes silently.
+  // Per-domain scoring already ignores unknown keys (the reducer at
+  // L114 only iterates `d.questions`), so this preserves all scoring.
+  const validIds = new Set(domains.flatMap((d) => d.questions.map((q) => q.id)));
+  const answerEntries = Object.entries(state.answers);
+  const validAnswers = answerEntries.filter(([k]) => validIds.has(k));
+  const unknownAnswerKeys = answerEntries.filter(([k]) => !validIds.has(k)).map(([k]) => k);
+  const answeredCount = validAnswers.length;
+  const skippedCount = validAnswers.filter(([, v]) => v === -1).length;
 
   const totalWeight = domains.reduce((sum, d) => sum + d.weight, 0);
   const weightedSum = domainScores.reduce((sum, ds, i) => {
@@ -150,6 +174,7 @@ export function calculateResults(state: ICGState, domains: readonly Domain[]): I
     answeredCount,
     totalQuestions,
     skippedCount,
+    unknownAnswerKeys,
   };
 }
 
