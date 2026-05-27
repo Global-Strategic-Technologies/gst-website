@@ -1763,21 +1763,16 @@ BL-032's Section K soak (31 of 40 tests recorded as of 2026-05-12) surfaced a ti
 
   **Recommendation**: option 3. The 30-LOC delta over option 1 buys us BL-033-grade operator visibility ("which consumer ate the budget?") for free. Document the category enum in `inoreader-egress.ts` JSDoc + add a "if you add a new Inoreader egress point, add a new category" comment so future code paths don't slip past the accounting.
 
-  **Acceptance criteria for this sub-deliverable**:
-  - [ ] New `mcp-server/src/lib/inoreader-egress.ts` exporting `fetchInoreaderZone1(env, url, init, category)` with the dual-counter increment + on-error short-circuit (don't increment if fetch throws or returns ≥500 — those calls didn't actually consume Zone-1)
-  - [ ] `inoreader-client.ts` `fetchAllStreams`, `fetchAnnotatedItems`, `fetchTagList` refactored to call through the egress wrapper with `category: 'cron-radar'` when invoked from cron path OR `'live-radar'` when invoked from live-tool path (thread the category through `opts.source` already added in BL-032.8 PR #152)
-  - [ ] `inoreader-oauth.ts` `refreshAccessToken` refactored to call through the egress wrapper with `category: 'oauth-refresh'`
-  - [ ] Old `mcp:inoreader:day-counter:<YYYY-MM-DD>` key + `incrementDayCounter`/`readDayCounter` deleted from `radar-refresh.ts`; cron's soft-cap (line 187) reads `mcp:inoreader:zone1-spend:<YYYY-MM-DD>` global counter
-  - [ ] Soft-cap threshold revised: pre-fix the guard was `counter + 6 > 94` (94 = 100 − 6-call safety margin). Post-fix it must be `counter + 7 > 94` to account for the OAuth refresh that the cron now also incurs. **Or** loosen to `> 88` for a more conservative cap. Document the chosen threshold + rationale in the comment block above the guard.
-  - [ ] `/health` response gains `inoreaderSpend: { total: number, byCategory: { 'cron-radar': N, 'live-radar': N, 'oauth-refresh': N } }` so the operator can see breakdown without leaving the endpoint
-  - [ ] Unit tests in `tests/unit/lib/inoreader-egress.test.ts`:
-    - 200 response → counter incremented (both global + category)
-    - Network error → counter NOT incremented
-    - 5xx response → counter NOT incremented
-    - 429 response → counter incremented (Inoreader DID serve a response, even though it was a rejection — debate-worthy; pick a semantic and pin it in the test)
-    - Counter TTL set on first-write (matches existing 25h TTL pattern)
-  - [ ] Soak: 7-day stability window post-deploy; the day-of-deploy projection (cron at 4/day × 7 calls = 28/day, ≈28% of 100/day budget) should match Inoreader's Developer Console within ±1 call/day. If they don't reconcile, there's a fourth egress point we missed.
-  - [ ] Migration note: existing `day-counter:*` keys on Upstash will sit unused after deploy. Add a one-line `mcp-server/src/docs/operations/DEPLOY.md` § A.X note explaining the keys can be manually deleted after deploy + adding a date for the manual cleanup.
+  **Acceptance criteria for this sub-deliverable** — ✅ **Phase 0 shipped 2026-05-26** via `inoreader-egress.ts` (333 LOC, 25 unit tests + 5 post-implementation audit fixes; commits `e80d66f` through `44ea0c4`):
+  - [x] New `mcp-server/src/lib/inoreader-egress.ts` exporting `fetchInoreaderZone1(env, url, init, category)` with the dual-counter increment + on-error short-circuit (don't increment if fetch throws or returns ≥500 — those calls didn't actually consume Zone-1). Five categories: `'cron-radar' | 'live-radar' | 'http-radar-snapshot' | 'oauth-refresh' | '401-retry'` (broader than the original 3 — the audit surfaced two more bypass paths).
+  - [x] `inoreader-client.ts` `fetchAllStreams`, `fetchAnnotatedItems`, `fetchTagList` refactored to call through the egress wrapper with the correct category threaded through.
+  - [x] `inoreader-oauth.ts` OAuth-refresh path refactored to call through the egress wrapper with `category: 'oauth-refresh'`.
+  - [x] Cron's soft-cap reads the new `mcp:inoreader:zone1-spend:<YYYY-MM-DD>` global counter. Old `mcp:inoreader:day-counter:*` key + `incrementDayCounter`/`readDayCounter` retained during the 7-day parallel soak (2026-05-26 → ~2026-06-02) so we can reconcile old-vs-new before deletion; cleanup PR scheduled post-soak.
+  - [x] Soft-cap threshold revised to match the broader category set; chosen threshold + rationale documented in the comment block above the guard.
+  - [x] `/health` response gains `inoreaderSpend: { total: number, byCategory: { 'cron-radar': N, 'live-radar': N, 'http-radar-snapshot': N, 'oauth-refresh': N, '401-retry': N } }` — `mcp-server/src/observability/health.ts:102-118` (uses Upstash MGET for the per-category counters).
+  - [x] Unit tests in `tests/unit/lib/inoreader-egress.test.ts` — 25 tests covering 200/network-error/5xx/429/TTL paths + the dedicated `egressSource` log field + exhaustive switch coverage.
+  - [ ] Soak: 7-day stability window post-deploy (2026-05-26 → ~2026-06-02); daily reconciliation check that Upstash counter vs Inoreader Developer Console vs `/health` agree within ±1 call/day. If reconciliation drifts, there's a sixth egress point we missed. **In progress** — soak ends ~2026-06-02.
+  - [ ] Migration note: existing `day-counter:*` keys on Upstash will sit unused after the soak-end cleanup PR. Add a one-line `DEPLOY.md` § A.X note explaining the keys can be manually deleted post-cleanup + adding a date for the manual cleanup. **Deferred to the soak-end cleanup PR.**
 
   **Effort estimate**: 1-1.5 days engineering — primarily the refactor of 3 fetch sites + threading the category parameter + the new helper + tests. The cron soft-cap threshold revision is a 1-line change but warrants careful test coverage. The `/health` breakdown is a 15-LOC addition. Lower bound assumes no surprises on the radar-live-store.ts category-threading; upper bound budgets a half-day for unexpected.
 
