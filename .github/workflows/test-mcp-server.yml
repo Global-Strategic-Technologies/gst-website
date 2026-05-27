@@ -74,8 +74,22 @@ jobs:
         run: npm -w @gst/mcp-server run build
 
       - name: Run tests with coverage
+        # Capture vitest's exit code via PIPESTATUS so the step's success
+        # reflects test outcomes, not just tee's. Without this the `tee`
+        # pipeline captures tee's exit code (always 0), masking vitest
+        # failures and making the workflow report `success` while tests
+        # are red. Surfaced 2026-05-27 by an audit of why the Ivy /
+        # Valorem / Commodore portfolio merges shipped to master with 2
+        # failing tests — CI reported green; failures only became visible
+        # to the next contributor running `npm test` locally and got
+        # dismissed as "pre-existing master debt." Both this workflow and
+        # test.yml had the same bug; both fixed in the same commit.
+        #
+        # PIPESTATUS[0] is bash-specific — `shell: bash` is required.
+        shell: bash
         run: |
           npm -w @gst/mcp-server run test -- --coverage 2>&1 | tee coverage-output.txt
+          TEST_EXIT=${PIPESTATUS[0]}
           SUMMARY=$(grep "^All files" coverage-output.txt || echo "")
           if [ -n "$SUMMARY" ]; then
             STMTS=$(echo "$SUMMARY" | awk -F'|' '{gsub(/ /,"",$2); print $2}')
@@ -91,6 +105,11 @@ jobs:
             echo "| Functions | ${FUNCS}% |" >> $GITHUB_STEP_SUMMARY
             echo "| Lines | ${LINES}% |" >> $GITHUB_STEP_SUMMARY
           fi
+          # Surface vitest's actual exit code as the step's exit code so
+          # test failures fail the workflow (not the tee from the pipeline
+          # above). Run AFTER the summary scraping so coverage still lands
+          # in $GITHUB_STEP_SUMMARY on red builds.
+          exit $TEST_EXIT
 
       - name: Smoke test compiled binary
         run: node mcp-server/dist/index.js < /dev/null

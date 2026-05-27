@@ -16,17 +16,25 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { redisGet, redisMget, MockRedis } = vi.hoisted(() => {
+const { redisGet, redisMget, redisSet, redisDel, MockRedis } = vi.hoisted(() => {
   const redisGet = vi.fn();
   // BL-032.75 Phase 0: readInoreaderSpend uses MGET (one round-trip) for
   // total + per-category counters. The Phase 0 audit-fix S2 swapped the
   // 1+N GETs for a single MGET; the mock follows.
   const redisMget = vi.fn().mockResolvedValue([0, 0, 0, 0, 0, 0]);
+  // BL-032.75 T.X.2: probeMcp uses SET-then-DEL (write-then-cleanup) to
+  // catch the read-only-token gap that a GET-only probe missed. Default
+  // both to resolving OK so existing tests that don't simulate MCP-probe
+  // failure stay unchanged — only the failure-path tests override.
+  const redisSet = vi.fn().mockResolvedValue('OK');
+  const redisDel = vi.fn().mockResolvedValue(1);
   class MockRedis {
     get = redisGet;
     mget = redisMget;
+    set = redisSet;
+    del = redisDel;
   }
-  return { redisGet, redisMget, MockRedis };
+  return { redisGet, redisMget, redisSet, redisDel, MockRedis };
 });
 
 vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
@@ -43,6 +51,13 @@ const baseEnv: Env = {
 
 beforeEach(() => {
   redisGet.mockReset();
+  // Reset + re-establish the default-OK behavior for the probeMcp
+  // SET/DEL mocks. Without this, a prior test's `mockRejectedValueOnce`
+  // can leak into the next test's setup.
+  redisSet.mockReset();
+  redisSet.mockResolvedValue('OK');
+  redisDel.mockReset();
+  redisDel.mockResolvedValue(1);
 });
 
 describe('buildHealthPayload', () => {
@@ -74,8 +89,10 @@ describe('buildHealthPayload', () => {
   });
 
   it('returns ok:false when MCP DB is degraded but Inoreader DB is fine', async () => {
+    // T.X.2 fix: probeMcp now uses SET-then-DEL, so MCP-DB failure is
+    // simulated by rejecting the SET (not the GET).
+    redisSet.mockRejectedValue(new Error('mcp-db unreachable'));
     redisGet.mockImplementation(async (key: string) => {
-      if (key === 'mcp:health:probe') throw new Error('mcp-db unreachable');
       if (key === 'inoreader:access_token') return 'token-value';
       if (key === 'mcp:inoreader:last-status') {
         // Status read goes through MCP DB too → also throws → resolves to 'unknown'
@@ -110,6 +127,8 @@ describe('buildHealthPayload', () => {
   });
 
   it('returns ok:false when BOTH Upstash DBs are degraded', async () => {
+    // T.X.2 fix: MCP-DB failure shows up via SET rejection now, not GET.
+    redisSet.mockRejectedValue(new Error('mcp-db unreachable'));
     redisGet.mockRejectedValue(new Error('all upstash unreachable'));
 
     const payload = await buildHealthPayload(baseEnv);
@@ -214,6 +233,8 @@ describe('buildHealthPayload', () => {
     expect(payload.inoreader).toBe('unknown');
     // Redis client should NOT have been called when creds aren't bound.
     expect(redisGet).not.toHaveBeenCalled();
+    expect(redisSet).not.toHaveBeenCalled();
+    expect(redisDel).not.toHaveBeenCalled();
   });
 
   it('falls through gracefully when Inoreader-status entry is malformed', async () => {
@@ -456,6 +477,51 @@ describe('buildHealthPayload', () => {
 
       expect(payload.inoreaderSpend.total).toBe(0);
       expect(payload.inoreaderSpend.byCategory['cron-radar']).toBe(0);
+    });
+  });
+
+  // BL-032.75 T.X.2 — probeMcp uses SET-then-DEL so write-permission gaps
+  // surface in /health instead of being discovered only when the next /mcp
+  // call fails inside the rate-limiter. The earlier GET-only probe missed
+  // the case where the token had read perms but no write perms (read-only
+  // REST token).
+  describe('probeMcp — SET-then-DEL write probe (T.X.2)', () => {
+    it("returns upstashMcp: 'ok' when SET succeeds AND DEL succeeds", async () => {
+      // Defaults already resolve OK — this is the happy path.
+      const payload = await buildHealthPayload(baseEnv);
+      expect(payload.upstashMcp).toBe('ok');
+      // Confirm the probe actually wrote (and cleaned up).
+      expect(redisSet).toHaveBeenCalled();
+      expect(redisDel).toHaveBeenCalled();
+    });
+
+    it("returns upstashMcp: 'ok' when SET succeeds but DEL throws (write proven; TTL handles cleanup)", async () => {
+      // The documented semantic: WRITE permission is proven the moment
+      // SET resolves. A DEL throw means cleanup is deferred to the 60s
+      // TTL but the substrate is healthy.
+      redisDel.mockRejectedValue(new Error('upstash flap during cleanup'));
+      const payload = await buildHealthPayload(baseEnv);
+      expect(payload.upstashMcp).toBe('ok');
+    });
+
+    it("returns upstashMcp: 'degraded' when SET throws (read-only-token shape)", async () => {
+      // This is the T.X.2 gap the new probe closes: a read-only REST
+      // token would pass the old GET probe but fail this SET.
+      redisSet.mockRejectedValue(
+        new Error('NOPERM: this user has no permissions to run the eval command')
+      );
+      const payload = await buildHealthPayload(baseEnv);
+      expect(payload.upstashMcp).toBe('degraded');
+    });
+
+    it('two concurrent probes both return ok (no race; user-observable safety)', async () => {
+      // Reframed from "unique key per call" — the user-observable
+      // property is that concurrent operators + uptime monitors don't
+      // break each other. Two simultaneous /health requests must both
+      // resolve cleanly even when their SET/DEL operations interleave.
+      const [a, b] = await Promise.all([buildHealthPayload(baseEnv), buildHealthPayload(baseEnv)]);
+      expect(a.upstashMcp).toBe('ok');
+      expect(b.upstashMcp).toBe('ok');
     });
   });
 });

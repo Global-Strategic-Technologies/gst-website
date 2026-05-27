@@ -118,22 +118,49 @@ interface HealthResponse {
   };
 }
 
+const HEALTH_PROBE_KEY_PREFIX = 'mcp:health:probe:';
+const HEALTH_PROBE_TTL_SECONDS = 60; // TTL failsafe in case DEL is missed
+
 /**
- * Probe MCP DB reachability with a single cheap GET. The key
- * `mcp:health:probe` doesn't need to exist — we just want to confirm
- * the REST endpoint responds. Anything other than a thrown error counts
- * as `'ok'`.
+ * Probe MCP DB reachability + WRITE permission via SET-then-DEL. The
+ * earlier probe was a single GET, which a read-only Upstash REST token
+ * would pass cleanly — leading to `upstashMcp: 'ok'` while the next
+ * /mcp POST threw inside the rate-limiter on missing write perms
+ * (BL-032 T.X.2 incident, 2026-05-12 — ~30 min of false-healthy state
+ * during T.C.7 recovery). The SET catches that gap.
+ *
+ * **Per-call unique key** — every probe writes a fresh
+ * `mcp:health:probe:<uuid>` key so two concurrent probes (operator curl
+ * + uptime monitor) never race on the same key. The 60s TTL is a
+ * failsafe if the DEL silently fails to land (the key auto-evicts).
+ *
+ * **Semantic**: WRITE permission is proven the moment SET resolves.
+ * A subsequent DEL-throw means cleanup is delayed (TTL handles it), but
+ * the substrate is healthy — we return `'ok'` regardless. Only a SET
+ * failure (catches permission denial, unreachable Upstash, malformed
+ * token) flips to `'degraded'`.
+ *
+ * Cost: 2 extra Upstash round-trips per /health call. /health is hit
+ * lightly (operators + uptime monitors), so cost is negligible.
  */
 async function probeMcp(env: Env): Promise<'ok' | 'degraded'> {
   const redis = createMcpClient(env);
   if (!redis) return 'degraded';
 
+  const key = `${HEALTH_PROBE_KEY_PREFIX}${crypto.randomUUID()}`;
   try {
-    await redis.get('mcp:health:probe');
-    return 'ok';
+    await redis.set(key, '1', { ex: HEALTH_PROBE_TTL_SECONDS });
   } catch {
     return 'degraded';
   }
+  // SET succeeded — write permission proven. DEL is best-effort cleanup;
+  // a failure here doesn't change health status (TTL evicts the key).
+  try {
+    await redis.del(key);
+  } catch {
+    // intentionally ignored — see semantic note above
+  }
+  return 'ok';
 }
 
 /**
