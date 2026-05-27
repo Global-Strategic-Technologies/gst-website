@@ -1,54 +1,28 @@
 /**
  * Inoreader OAuth token state — sole Upstash I/O surface for tokens.
  *
- * **Phase A scope (BL-032.8 Phase 2)**: Worker is now an active refresh-writer
- * via the new `inoreader-oauth.ts` module. Tokens written by the Worker land
- * in the **MCP DB** under the `mcp:inoreader:*` namespace; tokens written by
- * the website (Phase A retention) continue landing in the **Inoreader DB**
- * under the `inoreader:*` namespace. Reads check MCP DB first and fall back
- * to the Inoreader DB so the dual-write window doesn't lose data on either
- * side.
+ * **Post-BL-032.8 Phase B (2026-05-17)**: the Worker is the sole writer
+ * AND the sole reader of Inoreader OAuth token state. All token state
+ * lives in the **MCP DB** under the `mcp:inoreader:*` namespace. The
+ * legacy `inoreader:*` namespace in the website's old Upstash DB has no
+ * remaining writer (the website's `inoreader/client.ts` was deleted in
+ * Phase A) and no remaining reader (this module's Phase A dual-read
+ * fallback was removed in Phase B). The legacy database itself is
+ * decommissioned alongside this commit — see PR #140 operator tasks.
  *
- * **Phase B scope (planned — see MCP_SERVER_RADAR_UNIFICATION_BL-032_8.md)**:
- * the website's refresh-writer retires; the `inoreader:*` namespace becomes
- * read-only-with-eventual-deletion; the fallback read is dropped from
- * `readAccessToken`. At that point the Worker is the sole token-store writer.
- *
- * **Q4 single-writer invariant** (informal, version-locked):
- *
- * - **Today (Phase A)**: The Worker is the **primary** refresh-writer to
- *   `mcp:inoreader:*` in the MCP DB. The website remains a refresh-writer
- *   to `inoreader:*` in the Inoreader DB during the Phase A dual-write
- *   window; this is structural fallback insurance while we soak the new
- *   path. Reads prefer the MCP DB value when present (Worker-owned, most
- *   recent), fall back to the Inoreader DB value otherwise.
- *
- * - **After Phase B**: The Worker is sole writer of `mcp:inoreader:*` token
- *   keys. The website's Inoreader DB keys are retired.
+ * **Q4 single-writer invariant**: the Worker is the sole writer of
+ * `mcp:inoreader:*`. `inoreader-oauth.ts` is the only caller of
+ * `writeAccessToken` / `writeRefreshToken` and serializes concurrent
+ * refresh attempts via the single-flight lock — so concurrent writes
+ * within an isolate are impossible, and cross-isolate writes are
+ * mutually excluded by the lock.
  *
  * Keep this docstring current — future humans tracing "who can write what"
  * during incident triage will read it.
  */
 
-import { createInoreaderClient, createMcpClient } from './upstash-clients';
+import { createMcpClient } from './upstash-clients';
 import type { Env } from '../worker';
-
-/**
- * Inoreader DB key holding the current access token (website-written).
- * Read fallback only — Phase A retention so the website-side ISR's refresh
- * still propagates to the Worker if the Worker's own MCP-DB key is empty.
- *
- * `inoreader:*` namespace is the shared website / Worker contract — do NOT
- * change this name; coordinate with website team if it ever changes.
- */
-export const KV_ACCESS_TOKEN_KEY = 'inoreader:access_token';
-
-/**
- * Inoreader DB key holding the current refresh token (website-written).
- * Read fallback only — Phase A retention so the Worker's `inoreader-oauth.ts`
- * can bootstrap from the website's pre-Phase-B state on first invocation.
- */
-export const KV_REFRESH_TOKEN_KEY = 'inoreader:refresh_token';
 
 /**
  * MCP DB key holding the Worker-written access token.
@@ -77,41 +51,29 @@ const ACCESS_TOKEN_TTL_BUFFER_SECONDS = 60;
  * Read the current Inoreader access token. Reads in priority order:
  *
  *   1. MCP DB `mcp:inoreader:access_token` (Worker-written, expected primary)
- *   2. Inoreader DB `inoreader:access_token` (website-written, Phase A fallback)
- *   3. `INOREADER_ACCESS_TOKEN` env var (initial-seed fallback)
+ *   2. `INOREADER_ACCESS_TOKEN` env var (initial-seed fallback)
  *
- * Returns `null` only when all three sources are empty. Callers should treat
+ * Returns `null` only when both sources are empty. Callers should treat
  * `null` as `token-missing` (not retryable — needs operator intervention).
  *
  * The function never throws; any Upstash error is silently swallowed and the
- * next-priority source is consulted. This matches the substrate's
- * fail-toward-degraded posture: a transient Upstash blip in one DB shouldn't
- * crash the Worker when another source can still serve a usable token.
+ * env-var fallback is consulted. This matches the substrate's
+ * fail-toward-degraded posture: a transient Upstash blip shouldn't crash
+ * the Worker when the env-var fallback can still serve a usable token
+ * during operator-driven bootstrap.
  */
 export async function readAccessToken(env: Env): Promise<string | null> {
-  // Priority 1: MCP DB (Worker-owned source of truth post-Phase-A).
   const mcpRedis = createMcpClient(env);
   if (mcpRedis) {
     try {
       const mcpToken = await mcpRedis.get<string>(KV_MCP_ACCESS_TOKEN_KEY);
       if (mcpToken) return mcpToken;
     } catch {
-      // MCP DB unreachable; fall through to Inoreader DB.
+      // MCP DB unreachable; fall through to env fallback.
     }
   }
 
-  // Priority 2: Inoreader DB (website-owned, Phase A retention).
-  const inoreaderRedis = createInoreaderClient(env);
-  if (inoreaderRedis) {
-    try {
-      const websiteToken = await inoreaderRedis.get<string>(KV_ACCESS_TOKEN_KEY);
-      if (websiteToken) return websiteToken;
-    } catch {
-      // Inoreader DB unreachable; fall through to env fallback.
-    }
-  }
-
-  // Priority 3: env-var seed (initial deployment / both DBs unreachable).
+  // Env-var seed (initial deployment / MCP DB unreachable).
   return env.INOREADER_ACCESS_TOKEN ?? null;
 }
 
@@ -119,13 +81,13 @@ export async function readAccessToken(env: Env): Promise<string | null> {
  * Read the current Inoreader refresh token. Reads in priority order:
  *
  *   1. MCP DB `mcp:inoreader:refresh_token` (Worker-written, expected primary)
- *   2. Inoreader DB `inoreader:refresh_token` (website-written, Phase A fallback)
- *   3. `INOREADER_REFRESH_TOKEN` env var (initial-seed fallback)
+ *   2. `INOREADER_REFRESH_TOKEN` env var (initial-seed fallback)
  *
  * Same fail-toward-degraded semantics as `readAccessToken`. Returns `null`
- * only when all sources are empty — at which point the next OAuth refresh
+ * only when both sources are empty — at which point the next OAuth refresh
  * attempt will fail with `token-missing` and require operator intervention
- * (manually re-link the Inoreader account via the website's OAuth flow).
+ * (manually re-link the Inoreader account by seeding `INOREADER_REFRESH_TOKEN`
+ * via `wrangler secret put` and re-deploying).
  */
 export async function readRefreshToken(env: Env): Promise<string | null> {
   const mcpRedis = createMcpClient(env);
@@ -135,16 +97,6 @@ export async function readRefreshToken(env: Env): Promise<string | null> {
       if (mcpToken) return mcpToken;
     } catch {
       // MCP DB unreachable; fall through.
-    }
-  }
-
-  const inoreaderRedis = createInoreaderClient(env);
-  if (inoreaderRedis) {
-    try {
-      const websiteToken = await inoreaderRedis.get<string>(KV_REFRESH_TOKEN_KEY);
-      if (websiteToken) return websiteToken;
-    } catch {
-      // Inoreader DB unreachable; fall through.
     }
   }
 

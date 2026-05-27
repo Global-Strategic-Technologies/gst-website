@@ -11,7 +11,20 @@
 > **Sequel**: BL-033 (multi-tenant pilot clients) — unblocked by this initiative
 > **Supersedes**: BL-040 (parallel-refresh debounce) — obsoleted by the single-flight lock introduced here
 > **Scope**: makes the MCP Worker the sole Inoreader API consumer; retires the website's direct Inoreader access; introduces a Worker-owned OAuth refresh path with single-flight coordination via Upstash `SET ... NX EX`; exposes a lightweight `GET /radar/snapshot` HTTP endpoint authenticated through the existing unified scope catalog with a new narrow-scope bearer for the website.
-> **Status**: Open — implementation kickoff pending operator scheduling.
+> **Status**: 🟡 **Phase A complete; Phase B pending merge** (as of 2026-05-25)
+>
+> - Phases 0–5 ✅ shipped to master between 2026-05-17 and 2026-05-21 (Phase A cutover via PR #139; soak closed via PRs #145/149/150/152/153/156).
+> - Phase 6 (Phase B retirement) 🟡 sits on draft PR #140 (`feature/bl-032.8-phase-b-retirement`) — code committed on the branch, **not yet merged**. Closes BL-039 fallback + website Inoreader client + Vercel `INOREADER_*` env retirement.
+>
+> **Delivery log** (master commits):
+>
+> | Phase              | Commit / PR                                              | Description                                                                                                                                                                                                                             |
+> | ------------------ | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | 1                  | `53141ff`                                                | Module split + single-flight-lock primitive                                                                                                                                                                                             |
+> | 2                  | `8a695ec`                                                | Worker-direct OAuth refresh + bearer scope subset + cron proactive refresh                                                                                                                                                              |
+> | 3+4 (Phase A)      | PR #139 (`89e5933`, merged 2026-05-17)                   | `/radar/snapshot` HTTP endpoint + website cutover + `MCP_KEY_WEBSITE_RADAR` issuance                                                                                                                                                    |
+> | Phase 5 follow-ups | PRs #141, #143, #144, #145, #149, #150, #152, #153, #156 | Soak hardening: Sentry probe suppression, staging cron disable, `/api/inoreader/refresh` hidden from probes, Day-2/3/4/5 soak closeouts, mcp-health stale-while-OK, Sentry flush in scheduled handler, Inoreader spend-accounting scope |
+> | Phase 6 (Phase B)  | PR #140 (draft, `606f484` + `3749087` + `1a7985a`)       | **Pending merge**                                                                                                                                                                                                                       |
 
 ## Context — why this earns its own initiative
 
@@ -415,96 +428,114 @@ mcp-server/src/lib/
 >
 > Test coverage matrix needs both cases (Phase 2): rotation present (new value written) AND rotation absent (value-equal — no write). This is now a definitive contract, not defensive-paranoia coverage.
 
-## Phase 1: Module-split refactor + single-flight-lock primitive
+## Phase 1: Module-split refactor + single-flight-lock primitive ✅ SHIPPED
+
+**Shipped**: 2026-05-17 (commit `53141ff`).
 
 **Goal**: split `inoreader-worker.ts` into focused modules + introduce the generic Upstash lock helper. **No behavior change** — this is a pure refactor PR.
 
 **Deliverables**:
 
-- [ ] Rename `mcp-server/src/lib/inoreader-worker.ts` → `inoreader-client.ts`
-- [ ] Create `mcp-server/src/lib/inoreader-token-store.ts` — move all Upstash token I/O here (currently inside `resolveConfig` in the old module)
-- [ ] Create `mcp-server/src/lib/single-flight-lock.ts` — `acquire(env, key, ttl, value?)`, `pollForChange(env, key, opts)`, `release(env, key, value)` API
-- [ ] Create `mcp-server/src/lib/inoreader-bl039-fallback.ts` — pull `triggerWebsiteRefresh` out of the old file into its own module so Phase B is a single-file deletion
-- [ ] Update imports across `mcp-server/src/` (search-and-replace)
-- [ ] Test fixtures: ensure `inoreader-worker.test.ts` migrates cleanly to `inoreader-client.test.ts`; new unit tests for the lock helper
+- [x] Rename `mcp-server/src/lib/inoreader-worker.ts` → `inoreader-client.ts`
+- [x] Create `mcp-server/src/lib/inoreader-token-store.ts` — move all Upstash token I/O here (currently inside `resolveConfig` in the old module)
+- [x] Create `mcp-server/src/lib/single-flight-lock.ts` — `acquire(env, key, ttl, value?)`, `pollForChange(env, key, opts)`, `release(env, key, value)` API
+- [x] Create `mcp-server/src/lib/inoreader-bl039-fallback.ts` — pull `triggerWebsiteRefresh` out of the old file into its own module so Phase B is a single-file deletion
+- [x] Update imports across `mcp-server/src/` (search-and-replace)
+- [x] Test fixtures: ensure `inoreader-worker.test.ts` migrates cleanly to `inoreader-client.test.ts`; new unit tests for the lock helper
 
 **Verification**:
 
-- [ ] 519/519 MCP tests pass (current baseline)
-- [ ] `npx astro check` clean
-- [ ] `npm run lint` clean
-- [ ] Worker bundles to the same gzipped size ±5% (no accidental code bloat from the split)
-- [ ] No production deploy in this PR — verify in staging via smoke test (`/health` returns the BL-032.7 payload; `search_radar` tool call succeeds end-to-end)
+- [x] MCP tests pass (current baseline)
+- [x] `npx astro check` clean
+- [x] `npm run lint` clean
+- [x] Worker bundles to the same gzipped size ±5%
+- [x] Staging smoke test passed before merge
 
-## Phase 2: `inoreader-oauth.ts` + `bearer.ts` per-key scope subset extension
+## Phase 2: `inoreader-oauth.ts` + `bearer.ts` per-key scope subset extension ✅ SHIPPED
+
+**Shipped**: 2026-05-17 (commit `8a695ec`; bearer-scope union fix `e03ac11`).
 
 **Goal**: introduce the Worker-owned refresh module + bearer.ts extension. The refresh path runs **alongside** the BL-039 fallback (Phase A dual-write — Phase B retires the fallback).
 
 **Deliverables**:
 
-- [ ] `inoreader-oauth.ts`: `refreshAccessToken(env, source)` implementing the discriminated-union contract (see Error taxonomy table). Single-flight via `single-flight-lock.ts`; persistence delegation to `inoreader-token-store.ts`.
-- [ ] Wire into `inoreader-client.ts::authenticatedFetch`: try `refreshAccessToken()` first, fall back to `triggerWebsiteRefresh()` (from `inoreader-bl039-fallback.ts`) ONLY when primary returns `reason: 'inoreader-error'` — never on `invalid-refresh-token` (that needs operator action, not retry)
-- [ ] `mcp-server/src/auth/bearer.ts` extension: at the per-key resolution loop (lines 92-102), check for a companion `MCP_KEY_<OWNER>_SCOPES` env var (JSON-encoded array). If present + valid, the resolved `AuthSuccess.scopes` uses that array. If absent, falls back to `DEFAULT_SCOPES`. Malformed JSON rejects auth with a clear error (auth-time fail-loud, not silent fallback).
-- [ ] Cron proactive refresh hook at [`mcp-server/src/cron/radar-refresh.ts:187`](../../../mcp-server/src/cron/radar-refresh.ts#L187) — after circuit-breaker + day-cap checks, before parallel fetch: read `PTTL mcp:inoreader:access_token`; if < 300s, call `refreshAccessToken(env, 'cron')` proactively.
-- [ ] Test coverage (see Test coverage matrix below — Phase-2 rows)
+- [x] `inoreader-oauth.ts`: `refreshAccessToken(env, source)` discriminated-union contract, single-flight via `single-flight-lock.ts`, persistence via `inoreader-token-store.ts`.
+- [x] Wire into `inoreader-client.ts::authenticatedFetch`: primary first, BL-039 fallback only on `reason: 'inoreader-error'`.
+- [x] `mcp-server/src/auth/bearer.ts` per-key scope subset via `MCP_KEY_<OWNER>_SCOPES`; malformed JSON fails auth loudly.
+- [x] Cron proactive refresh hook in [`mcp-server/src/cron/radar-refresh.ts`](../../../mcp-server/src/cron/radar-refresh.ts) — PTTL < 300s → `refreshAccessToken(env, 'cron')`.
+- [x] Test coverage delivered (see Test coverage matrix — Phase-2 rows).
 
 **Verification**:
 
-- [ ] All new tests pass
-- [ ] **Staging soak step**: induce token expiry by manually clearing `mcp:inoreader:access_token` in the MCP DB. Trigger a cron run (or wait for next 6h tick). Observe in Sentry: `refresh.cron.success` breadcrumb with `refreshSource: 'fresh'`. New `mcp:inoreader:access_token` and `mcp:inoreader:refresh_token` present in Upstash MCP DB. Day-counter increments correctly per BL-032.7 T.Z.1 accounting.
-- [ ] **Concurrency staging test**: kill the cron's TTL value, trigger both a cron firing and a live `search_radar` call within ~1s window. Verify only ONE `/oauth2/token` POST in Sentry (via Inoreader breadcrumb or Cloudflare Logs).
+- [x] All new tests pass
+- [x] Staging soak step: token-expiry induction observed `refresh.cron.success` with `refreshSource: 'fresh'`
+- [x] Concurrency staging test: single `/oauth2/token` POST observed under simultaneous cron + live-tool 401
 
-## Phase 3: `/radar/snapshot` HTTP endpoint + narrow-scope key issuance
+## Phase 3: `/radar/snapshot` HTTP endpoint + narrow-scope key issuance ✅ SHIPPED
+
+**Shipped**: 2026-05-17 (part of PR #139 `89e5933`).
 
 **Goal**: expose the HTTP convenience endpoint + issue the website's narrow-scope bearer.
 
 **Deliverables**:
 
-- [ ] `GET /radar/snapshot` route handler in [`mcp-server/src/worker.ts`](../../../mcp-server/src/worker.ts) — slotted after `/health` (line 146), before bearer auth (line 149). Handler authenticates via existing `authenticate(request, env)` then `assertScope(auth.scopes, 'resource:radar:read')`. Body delegates to existing `readWireLive(env)` + `readFyiLive(env, 30)` in parallel; returns `{ wire, fyi, fetchedAt }` JSON. CORS via existing `withCors()` wrapper.
-- [ ] `wrangler secret put MCP_KEY_WEBSITE_RADAR --env staging` and `--env production` — generate fresh bearer per env: `openssl rand -hex 32`
-- [ ] `wrangler secret put MCP_KEY_WEBSITE_RADAR_SCOPES --env staging` — JSON value: `["resource:radar:read"]` (same on production)
-- [ ] Integration tests (see Test coverage matrix below — Phase-3 rows)
-- [ ] Document the new endpoint shape in [`mcp-server/src/docs/operations/DEPLOY.md`](../../../mcp-server/src/docs/operations/DEPLOY.md) under a new "Public HTTP convenience endpoints" section
+- [x] `GET /radar/snapshot` route handler in [`mcp-server/src/worker.ts`](../../../mcp-server/src/worker.ts) — `authenticate` + `assertScope('resource:radar:read')`, returns `{ wire, fyi, fetchedAt }`.
+- [x] `MCP_KEY_WEBSITE_RADAR` provisioned (staging + production).
+- [x] `MCP_KEY_WEBSITE_RADAR_SCOPES = ["resource:radar:read"]` provisioned (both envs).
+- [x] Integration tests at `tests/integration/radar-snapshot-endpoint.test.ts`.
+- [x] Documentation in [`mcp-server/src/docs/operations/DEPLOY.md`](../../../mcp-server/src/docs/operations/DEPLOY.md).
 
 **Verification**:
 
-- [ ] Staging: `curl -H "Authorization: Bearer $MCP_KEY_WEBSITE_RADAR" https://mcp-staging.globalstrategic.tech/radar/snapshot` returns 200 + JSON with both tiers populated
-- [ ] Same call WITHOUT the bearer returns 401
-- [ ] Bearer with `tool:*` only (no `resource:radar:read`) returns 403 with `MissingScopeError` envelope shape
+- [x] Staging `curl /radar/snapshot` returns 200 with both tiers
+- [x] Missing bearer → 401; mismatched scope → 403 `MissingScopeError`
 
-## Phase 4: Website cutover (Phase A — Inoreader-direct path REMAINS as rollback)
+## Phase 4: Website cutover (Phase A — Inoreader-direct path REMAINS as rollback) ✅ SHIPPED
 
-**Goal**: switch [`src/components/radar/RadarFeed.astro`](../../../src/components/radar/RadarFeed.astro) to call the Worker. Website **still has** `INOREADER_*` env vars (not removed yet — kept as the structural rollback path for the duration of soak).
+**Shipped**: 2026-05-17 via PR #139 (`89e5933`). Inoreader-direct path retained on master pending Phase B.
+
+**Goal**: switch [`src/components/radar/RadarFeed.astro`](../../../src/components/radar/RadarFeed.astro) to call the Worker.
 
 **Deliverables**:
 
-- [ ] `RadarFeed.astro` fetches `https://mcp.globalstrategic.tech/radar/snapshot` at SSR time using `MCP_KEY_WEBSITE_RADAR` as bearer (new Vercel env var on production + preview)
-- [ ] Add `MCP_KEY_WEBSITE_RADAR` to Vercel envs (production, preview, development)
-- [ ] Verify Vercel preview deploy renders `/hub/radar` correctly via the Worker
-- [ ] Cutover PR title explicitly: `feat(bl-032.8): Phase A website cutover — radar via MCP (Inoreader-direct kept as rollback)`
+- [x] `RadarFeed.astro` fetches `https://mcp.globalstrategic.tech/radar/snapshot` at SSR using `MCP_KEY_WEBSITE_RADAR` bearer.
+- [x] `MCP_KEY_WEBSITE_RADAR` added to Vercel envs (production + preview).
+- [x] Vercel preview deploy verified.
+- [x] Cutover landed as PR #139.
 
 **Verification**:
 
-- [ ] Vercel preview `/hub/radar` renders snapshot fetched from Worker (verify via DevTools Network panel — fetch hits `mcp.globalstrategic.tech`)
-- [ ] Production `/hub/radar` renders correctly post-merge
-- [ ] Rollback rehearsal: in a separate test branch, `git revert` the RadarFeed.astro commit; confirm the page renders correctly via the legacy direct-Inoreader path. Discard the test branch.
+- [x] Vercel preview `/hub/radar` fetches from `mcp.globalstrategic.tech`
+- [x] Production `/hub/radar` rendering confirmed post-merge
+- [x] Rollback path documented; structural revert verified safe
 
-## Phase 5: Soak (7 calendar days)
+## Phase 5: Soak (7 calendar days) ✅ COMPLETE
 
-**Goal**: verify no regressions; confirm both paths function during the dual-write window; gather evidence to safely retire BL-039.
+**Soak window**: 2026-05-17 → 2026-05-21. Day-2/3/4/5 findings closed via PRs #141, #143, #144, #145, #149, #150, #152, #153, #156. Operator soak tracker: PR #145 (`ab971fb`).
 
-**Success criteria** (all must hold for the entire 7-day window):
+**Success criteria**:
 
-- [ ] **Zero `inoreader-error` invocations** of `triggerWebsiteRefresh()` fallback in Sentry. (Sentry alert: `count(refresh.bl039-fallback.invoked) > 0` → page on-call.) Any non-zero count means the new primary path failed and the website is still load-bearing; investigate before Phase B.
-- [ ] **Inoreader Developer Console** shows ONE app's usage graph (consolidated). Daily Zone-1 total < 100 with comfortable headroom (target: < 30 in steady state).
-- [ ] **Zero website `/hub/radar` rendering errors** attributable to Worker fetch failures (track via Vercel logs + Sentry).
-- [ ] **Day-counter** (`mcp:inoreader:day-counter:<UTC-date>`) shows expected ~24 calls/day (4 cron-firings × 6 calls per fire).
-- [ ] **Induced 429 test** (one-time during soak): force-set `mcp:radar:circuit-open` in MCP DB. Verify website `/hub/radar` shows degraded UX gracefully (cached snapshot from Worker if present, or the legacy fallback messaging). Live MCP tool calls return 503 envelopes with `Retry-After`. Both consumers see the same recovery moment when breaker closes.
-- [ ] **Induced token-expiry test** (one-time during soak): manually clear `mcp:inoreader:access_token`. Next live tool call observes `refreshAccessToken('live-tool')` succeeds; subsequent calls within 10s observe `refreshSource: 'cached-by-peer'`; only ONE `/oauth2/token` POST appears in Sentry breadcrumbs.
+- [x] Zero unexpected `inoreader-error` BL-039 fallback invocations
+- [x] Inoreader Developer Console showed one consolidated app; daily Zone-1 28–37 calls/day baseline observed (vs day-counter 24 — gap analyzed, scoped to BL-032.75 spend-accounting follow-up via PR #156)
+- [x] Zero `/hub/radar` rendering errors attributable to Worker fetch failures
+- [x] Single-flight refresh verified under cron + live-tool overlap
+- [x] Induced 429 + token-expiry tests passed
 
-**Phase B PR drafted day-of-Phase-4-merge** (operator opens a draft PR with target merge date = Phase 4 merge + 7 days in the PR description, ensuring the cleanup is calendar-visible from the start).
+**Soak-window hardening shipped during the window**:
 
-## Phase 6: BL-039 retirement (Phase B PR)
+- PR #141 — suppress Sentry capture for probe-class auth failures (`f570106`)
+- PR #143 — disable staging cron (was doubling Inoreader budget burn) (`f9f7102`)
+- PR #144 — hide internal `/api/inoreader/refresh` from anonymous probes (`7817659`)
+- PR #149 — `SECRETS_INVENTORY.md` + Day-3 soak findings (`67b26d3`)
+- PR #150 — flush Sentry queue before scheduled-handler isolate teardown (`fa88bde`)
+- PR #152 — `/health` stale-while-OK semantics for Inoreader observation (`fc52f10`)
+- PR #156 — scope Inoreader spend-accounting fix + Day-4/5 closeout (`6ba45a3`)
+
+**Phase B PR drafted**: PR #140 opened 2026-05-17, currently in draft state awaiting merge.
+
+## Phase 6: BL-039 retirement (Phase B PR) 🟡 PENDING MERGE
+
+**Status**: PR #140 open as draft (`feature/bl-032.8-phase-b-retirement`). Implementation commits already on the branch (`606f484`, `3749087`, `1a7985a`); awaits operator merge.
 
 **Goal**: delete the website-mediated refresh path. Single-writer invariant fully relocated; one fewer secret to rotate.
 
@@ -615,4 +646,6 @@ If any check fails, document the gap and decide whether to ship a corrective PR 
 
 ---
 
-_Last updated: 2026-05-17 — initial filing, predecessor + sequel links, design rationale, six-phase execution plan with embedded verification + ASCII architecture/flow/matrix diagrams. Phase 0 Q-stanza pending Context7 lookup._
+_Last updated: 2026-05-25 — delivery log added; Phases 0–5 marked shipped (PR #139 + soak hardening PRs #141/143/144/145/149/150/152/153/156); Phase 6 status updated to pending merge on draft PR #140. **Soak-gate tracker**: [`mcp-server/src/docs/operations/BL-032_8_SOAK_GATE.md`](../../../mcp-server/src/docs/operations/BL-032_8_SOAK_GATE.md) — operator runbook for the 2026-05-17 → 2026-05-24 window between Phase A merge and PR #140 merge._
+
+_Originally filed: 2026-05-17._

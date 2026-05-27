@@ -47,27 +47,21 @@ upload_source_maps = true
 # Secrets (set via `wrangler secret put <NAME> --env staging`):
 #   MCP_KEY_RP                    Bearer token for thefastcat (RP) — initial soak roster (Q11/Q13)
 #
-#   # Path 2 (Q13 / two-database architecture) — see DEPLOY.md § A.3 for the operator walkthrough.
-#   UPSTASH_INOREADER_REST_URL    Website's Upstash DB URL (same as website's UPSTASH_REDIS_REST_URL)
-#   UPSTASH_INOREADER_REST_TOKEN  Website-DB Read-Only token — Worker reads inoreader:* keys only
-#   UPSTASH_MCP_REST_URL          New MCP-only Upstash DB URL (Worker-owned)
+#   # Upstash bindings — single MCP DB (post-BL-032.8 Phase B; see DEPLOY.md § A.3).
+#   # The historical two-DB split (Q13 / Path 2) retired the website-shared Inoreader DB
+#   # in Phase B alongside the website's direct Inoreader client.
+#   UPSTASH_MCP_REST_URL          MCP-only Upstash DB URL (Worker-owned, gst-mcp)
 #   UPSTASH_MCP_REST_TOKEN        MCP-DB Standard token (read+write) for mcp:* keys
+#                                  (incl. mcp:inoreader:* OAuth token state)
 #
-#   INOREADER_APP_ID              Copy from Vercel env via `vercel env pull`
-#   INOREADER_APP_KEY             Copy from Vercel env
-#   INOREADER_ACCESS_TOKEN        Copy from Vercel env (env fallback only — primary read is inoreader:access_token)
-#   INOREADER_REFRESH_TOKEN       Copy from Vercel env (Worker reads only — see Q4 Resolved)
-#   INOREADER_REFRESH_SECRET      BL-039 — shared secret for Worker → /api/inoreader/refresh.
-#                                  SAME value must be bound on the website (Vercel env var).
-#                                  Generate fresh per env: `openssl rand -hex 32`
-#                                  When absent, Worker falls back to legacy token-stale envelope
-#                                  (the BL-032 / pre-BL-039 behavior — operator visits /hub/radar).
-#   INOREADER_REFRESH_URL         BL-039 — OPTIONAL override of the refresh endpoint URL.
-#                                  Defaults to https://globalstrategic.tech/api/inoreader/refresh.
-#                                  Set on staging Worker during BL-039 soak verification to point
-#                                  at a Vercel preview deployment (e.g. the feature-branch preview
-#                                  URL before merging to master). Unset / restore-to-default once
-#                                  the production website endpoint is live.
+#   INOREADER_APP_ID              Registered Inoreader OAuth app ID
+#   INOREADER_APP_KEY             Registered Inoreader OAuth app key
+#   INOREADER_ACCESS_TOKEN        Optional env-var fallback for the access token. Primary
+#                                  read source is `mcp:inoreader:access_token` in the MCP DB
+#                                  (Worker-written); see inoreader-token-store.ts read cascade.
+#   INOREADER_REFRESH_TOKEN       Optional env-var fallback for the refresh token. Same
+#                                  cascade as access token. Used by inoreader-oauth.ts when
+#                                  the Upstash-stored value isn't present (bootstrap state).
 #   SENTRY_DSN                    Sentry project — service:mcp-server (Q6)
 #
 # Phase 1 spike runs locally via `wrangler dev` with no secrets set; the only

@@ -14,36 +14,13 @@ export default defineConfig({
   site: 'https://globalstrategic.tech',
   env: {
     schema: {
-      // Inoreader API — server secrets (never inlined, resolved at runtime)
-      // Optional: Radar page degrades gracefully when absent (shows fallback message).
-      // Required only for local dev with live feed and on Vercel production.
-      INOREADER_APP_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
-      INOREADER_APP_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
-      INOREADER_ACCESS_TOKEN: envField.string({
-        context: 'server',
-        access: 'secret',
-        optional: true,
-      }),
-      INOREADER_REFRESH_TOKEN: envField.string({
-        context: 'server',
-        access: 'secret',
-        optional: true,
-      }),
-      // BL-039: shared secret authenticating Worker → /api/inoreader/refresh
-      // POST calls. Marked optional so the endpoint can return 503 when
-      // unconfigured rather than crashing at module load.
-      INOREADER_REFRESH_SECRET: envField.string({
-        context: 'server',
-        access: 'secret',
-        optional: true,
-      }),
-      INOREADER_FOLDER_PREFIX: envField.string({
-        context: 'server',
-        access: 'public',
-        default: 'GST-',
-      }),
-
       // BL-032.8 Phase 4 — MCP Worker /radar/snapshot consumer credentials.
+      //
+      // Post-Phase-B (2026-05-17): all `INOREADER_*` env vars were retired
+      // along with `src/lib/inoreader/client.ts`, `src/lib/inoreader/cache.ts`,
+      // and `src/pages/api/inoreader/refresh.ts`. The website is no longer
+      // an Inoreader API caller — it consumes radar via the MCP Worker.
+      // OAuth state lives entirely on the Worker (Upstash MCP DB).
       // MCP_KEY_WEBSITE_RADAR is REQUIRED in production; optional in schema so
       // local dev + Vercel preview deploys without the secret bound render
       // /hub/radar empty (with a console.error in logs) rather than crashing
@@ -60,20 +37,6 @@ export default defineConfig({
         context: 'server',
         access: 'public',
         default: 'https://mcp.globalstrategic.tech/radar/snapshot',
-      }),
-
-      // Upstash Redis — optional, graceful degradation when absent
-      KV_REST_API_URL: envField.string({ context: 'server', access: 'secret', optional: true }),
-      KV_REST_API_TOKEN: envField.string({ context: 'server', access: 'secret', optional: true }),
-      UPSTASH_REDIS_REST_URL: envField.string({
-        context: 'server',
-        access: 'secret',
-        optional: true,
-      }),
-      UPSTASH_REDIS_REST_TOKEN: envField.string({
-        context: 'server',
-        access: 'secret',
-        optional: true,
       }),
 
       // Sentry — public DSN for client init (auth token stays in process.env for build-time config)

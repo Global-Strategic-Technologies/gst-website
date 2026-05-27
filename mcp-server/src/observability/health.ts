@@ -1,5 +1,5 @@
 /**
- * Health endpoint (BL-032 Phase 5; resolves Q8; updated for Path 2).
+ * Health endpoint (BL-032 Phase 5; resolves Q8; simplified BL-032.8 Phase B).
  *
  * Response shape:
  *
@@ -9,7 +9,6 @@
  *     gitSha:                      string,            // deploy-time injected; 'unknown' locally
  *     phase:                       string,
  *     upstashMcp:                  'ok' | 'degraded', // can we reach the MCP DB?
- *     upstashInoreader:            'ok' | 'degraded', // can we reach the Inoreader DB?
  *     inoreader:                   'ok' | 'degraded' | 'unknown',  // last observed Inoreader API response
  *     inoreaderObservedAt:         string | null,
  *     inoreaderObservedSecondsAgo: number | null,     // age of the observation; null when none
@@ -21,6 +20,15 @@
  *     },
  *   }
  *
+ * **Single Upstash subsystem (post-BL-032.8 Phase B)**: the Worker is the
+ * sole reader and writer of Inoreader-related Upstash state. All state
+ * (rate-limit counters, circuit breaker, OAuth tokens, status cache, radar
+ * caches) lives in the MCP DB. The website's legacy Inoreader DB was
+ * decommissioned in Phase B — `upstashInoreader` was dropped from the
+ * response shape in the same commit. Consumers of this endpoint should
+ * not expect `upstashInoreader` to come back; it is an intentional removal,
+ * not a bug.
+ *
  * **Stale-while-OK semantics for `inoreader`** (2026-05-19): the
  * `mcp:inoreader:last-status` key persists indefinitely — the most
  * recent observation is always returned. `inoreaderObservedSecondsAgo`
@@ -31,18 +39,11 @@
  * Inoreader-call source and 5 minutes ≪ 6 hours. See inoreader-status.ts
  * docstring for the full rationale.
  *
- * **Two Upstash subsystems** (Q13 / Path 2): the Worker accesses two
- * separate databases — the website-shared Inoreader DB (Read-Only token,
- * `inoreader:*` keys) and the dedicated MCP DB (Standard token, `mcp:*`
- * keys). They have independent failure modes, so /health probes each
- * independently and the operator can disambiguate "MCP DB misconfigured"
- * from "website's Upstash project is degraded" without log triage.
- *
  * **Cheap by design** — no live Inoreader API call (would burn budget; Q8).
  * The `inoreader` field is the cached read from `mcp:inoreader:last-status`
- * (lives in the MCP DB) which the radar-live tools update as a side-effect
- * of their normal fetches. The two `upstash*` fields are single GET probes
- * — succeed → ok, throw → degraded.
+ * which the radar-live tools update as a side-effect of their normal
+ * fetches. The `upstashMcp` field is a single GET probe — succeed → ok,
+ * throw → degraded.
  *
  * `ok: true` returns 200; any degraded subsystem flips to `ok: false` and
  * status 200 stays (degraded != down — uptime monitors should treat this
@@ -56,7 +57,7 @@ import {
   type InoreaderStatus,
   type InoreaderObservedSource,
 } from './inoreader-status';
-import { createInoreaderClient, createMcpClient } from '../lib/upstash-clients';
+import { createMcpClient } from '../lib/upstash-clients';
 import { readInoreaderSpend, type InoreaderEgressCategory } from '../lib/inoreader-egress';
 import type { Env } from '../worker';
 
@@ -71,7 +72,6 @@ interface HealthResponse {
   gitSha: string;
   phase: string;
   upstashMcp: 'ok' | 'degraded';
-  upstashInoreader: 'ok' | 'degraded';
   inoreader: InoreaderStatus;
   inoreaderObservedAt: string | null;
   /**
@@ -164,31 +164,6 @@ async function probeMcp(env: Env): Promise<'ok' | 'degraded'> {
 }
 
 /**
- * Probe Inoreader DB reachability via the Read-Only token. Reads
- * `inoreader:access_token` because (a) it always exists when the website
- * is operating normally, (b) reading an existing key exercises both auth
- * and the read path (more failure modes caught than reading a never-set
- * key), (c) it's already accessible to the Read-Only token by design.
- *
- * **PRIVACY**: the access token is sensitive. The probe DISCARDS the
- * returned value — we only care whether the round-trip throws. NEVER log
- * the result of this `redis.get` call; doing so would leak the token to
- * Worker logs.
- */
-async function probeInoreader(env: Env): Promise<'ok' | 'degraded'> {
-  const redis = createInoreaderClient(env);
-  if (!redis) return 'degraded';
-
-  try {
-    // Result intentionally unused — see PRIVACY note above.
-    await redis.get('inoreader:access_token');
-    return 'ok';
-  } catch {
-    return 'degraded';
-  }
-}
-
-/**
  * Compute the age (seconds) of the FYI radar snapshot from its Upstash
  * cache entry. Returns null when:
  *   - MCP DB unreachable
@@ -226,27 +201,25 @@ async function probeRadarSnapshotAge(env: Env): Promise<number | null> {
  * data — no Response wrapping; that's the worker.ts layer's job (it
  * also adds CORS headers).
  *
- * Three concurrent probes (MCP, Inoreader, cached Inoreader-status); total
- * latency bounded by the slowest. No latency regression vs the prior
- * single-DB shape.
+ * Three concurrent probes (MCP, cached Inoreader-status, radar snapshot age);
+ * total latency bounded by the slowest. The Phase B simplification (removing
+ * the Inoreader DB probe) shaved one Upstash round-trip off this path.
  */
 export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
-  const [upstashMcp, upstashInoreader, inoreader, radarSnapshotAgeSeconds, inoreaderSpend] =
-    await Promise.all([
-      probeMcp(env),
-      probeInoreader(env),
-      readInoreaderStatus(env),
-      probeRadarSnapshotAge(env),
-      readInoreaderSpend(env),
-    ]);
+  const [upstashMcp, inoreader, radarSnapshotAgeSeconds, inoreaderSpend] = await Promise.all([
+    probeMcp(env),
+    readInoreaderStatus(env),
+    probeRadarSnapshotAge(env),
+    readInoreaderSpend(env),
+  ]);
 
-  // ok: true iff both Upstash DBs are reachable AND the last observed
-  // Inoreader API call was not degraded. `inoreader: 'unknown'` is
-  // intentionally NOT a degraded signal — it just means we haven't seen
-  // recent traffic. Worker cold-starts begin in this state.
+  // ok: true iff MCP DB is reachable AND the last observed Inoreader API
+  // call was not degraded. `inoreader: 'unknown'` is intentionally NOT a
+  // degraded signal — it just means we haven't seen recent traffic.
+  // Worker cold-starts begin in this state.
   // `radarSnapshotAgeSeconds` is informational on /health — staleness
   // alerts live in BL-032.75 (Sentry alert rule on the cron events).
-  const ok = upstashMcp === 'ok' && upstashInoreader === 'ok' && inoreader.status !== 'degraded';
+  const ok = upstashMcp === 'ok' && inoreader.status !== 'degraded';
 
   return {
     ok,
@@ -254,7 +227,6 @@ export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
     gitSha: env.GIT_SHA ?? 'unknown',
     phase: 'BL-032 Phase 5 (observability)',
     upstashMcp,
-    upstashInoreader,
     inoreader: inoreader.status,
     inoreaderObservedAt: inoreader.observedAt,
     inoreaderObservedSecondsAgo: inoreader.observedSecondsAgo,

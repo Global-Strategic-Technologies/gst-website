@@ -62,12 +62,10 @@ const baseEnv: Env = {
   INOREADER_APP_ID: 'test-app-id',
   INOREADER_APP_KEY: 'test-app-key',
   INOREADER_ACCESS_TOKEN: 'env-access-token',
-  // Path 2: two databases. The shared MockRedis collapses both clients onto
-  // the same spies, so behavior tests work unchanged — `redisGet` dispatches
-  // by key (`inoreader:access_token` for OAuth read, `mcp:radar:cache:*` for
-  // cache, `mcp:radar:circuit-open` for breaker).
-  UPSTASH_INOREADER_REST_URL: 'https://inoreader-db.upstash.io',
-  UPSTASH_INOREADER_REST_TOKEN: 'test-inoreader-readonly',
+  // Single MCP DB (post-BL-032.8 Phase B). The shared MockRedis collapses
+  // all clients onto the same spies; `redisGet` dispatches by key
+  // (`mcp:inoreader:*` for OAuth, `mcp:radar:cache:*` for cache,
+  // `mcp:radar:circuit-open` for breaker).
   UPSTASH_MCP_REST_URL: 'https://mcp-db.upstash.io',
   UPSTASH_MCP_REST_TOKEN: 'test-mcp-standard',
 };
@@ -84,7 +82,7 @@ beforeEach(() => {
 
   // Default: empty cache, circuit closed, OAuth token comes from Upstash.
   redisGet.mockImplementation(async (key: string) => {
-    if (key === 'inoreader:access_token') return 'upstash-access-token';
+    if (key === 'mcp:inoreader:access_token') return 'upstash-access-token';
     return null; // cache misses + circuit closed
   });
   redisTtl.mockResolvedValue(-2); // -2 = key doesn't exist (circuit closed)
@@ -254,7 +252,7 @@ describe('search_radar — cache hit path', () => {
     redisGet.mockImplementation(async (key: string) => {
       if (key === 'mcp:radar:cache:wire') return { storedAt: Date.now(), data: cachedWire };
       if (key === 'mcp:radar:cache:fyi') return { storedAt: Date.now(), data: cachedFyi };
-      if (key === 'inoreader:access_token') return 'upstash-access-token';
+      if (key === 'mcp:inoreader:access_token') return 'upstash-access-token';
       return null;
     });
 
@@ -303,7 +301,7 @@ describe('search_radar — failure modes', () => {
   it('circuit already open → 503 envelope; Inoreader fetch never happens', async () => {
     redisGet.mockImplementation(async (key: string) => {
       if (key === 'mcp:radar:circuit-open') return 'inoreader-429';
-      if (key === 'inoreader:access_token') return 'upstash-access-token';
+      if (key === 'mcp:inoreader:access_token') return 'upstash-access-token';
       return null;
     });
     redisTtl.mockResolvedValue(3600); // 1h remaining on circuit
@@ -414,7 +412,7 @@ describe('get_latest_insights', () => {
   it('circuit-open short-circuits get_latest_insights too', async () => {
     redisGet.mockImplementation(async (key: string) => {
       if (key === 'mcp:radar:circuit-open') return 'inoreader-429';
-      if (key === 'inoreader:access_token') return 'upstash-access-token';
+      if (key === 'mcp:inoreader:access_token') return 'upstash-access-token';
       return null;
     });
     redisTtl.mockResolvedValue(3600);

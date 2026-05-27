@@ -50,11 +50,8 @@ const baseEnv: Env = {
   INOREADER_APP_ID: 'test-app-id',
   INOREADER_APP_KEY: 'test-app-key',
   INOREADER_ACCESS_TOKEN: 'env-access-token',
-  // Inoreader DB (read-only) — only DB this module talks to.
-  UPSTASH_INOREADER_REST_URL: 'https://inoreader-db.upstash.io',
-  UPSTASH_INOREADER_REST_TOKEN: 'test-inoreader-readonly',
-  // MCP DB also bound so test fixtures look like a real prod env, even
-  // though `inoreader-client.ts` doesn't read from this DB.
+  // MCP DB — sole Upstash binding post-BL-032.8 Phase B. Holds the
+  // `mcp:inoreader:*` token state that `readAccessToken` reads.
   UPSTASH_MCP_REST_URL: 'https://mcp-db.upstash.io',
   UPSTASH_MCP_REST_TOKEN: 'test-mcp-standard',
 };
@@ -120,14 +117,13 @@ describe('resolveConfig (via fetchAnnotatedItems entry point)', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('prefers Upstash token over env fallback (MCP DB read first per Phase 2 dual-read)', async () => {
+  it('prefers MCP DB token over env fallback', async () => {
     mockGet.mockResolvedValue('upstash-token');
     fetchSpy.mockResolvedValue(jsonResponse(makeStreamResponse([])));
 
     await fetchAnnotatedItems(baseEnv, 5);
 
-    // Phase 2: readAccessToken tries MCP DB first (mcp:inoreader:access_token);
-    // returns immediately on hit. Pre-Phase-2 this hit inoreader:access_token.
+    // readAccessToken's priority order: MCP DB → env. See inoreader-token-store.ts.
     expect(mockGet).toHaveBeenCalledWith('mcp:inoreader:access_token');
     const call = fetchSpy.mock.calls[0]!;
     const headers = call[1].headers as Record<string, string>;
@@ -168,8 +164,6 @@ describe('resolveConfig (via fetchAnnotatedItems entry point)', () => {
     await fetchAnnotatedItems(
       {
         ...baseEnv,
-        UPSTASH_INOREADER_REST_URL: undefined,
-        UPSTASH_INOREADER_REST_TOKEN: undefined,
         UPSTASH_MCP_REST_URL: undefined,
         UPSTASH_MCP_REST_TOKEN: undefined,
       },
@@ -212,7 +206,10 @@ describe('fetchAnnotatedItems — happy path + failure modes', () => {
     if (result.ok) return;
     expect(result.status).toBe(401);
     expect(result.reason).toBe('token-stale');
-    expect(result.message).toMatch(/website-side will refresh|website-side ISR/i);
+    // Post-BL-032.8 Phase B: 401 message no longer references website-side
+    // ISR. Worker-direct refresh is the sole recovery path; the message
+    // explains that authenticatedFetch attempted a refresh + retry already.
+    expect(result.message).toMatch(/Worker attempts a refresh \+ single retry/i);
   });
 
   it('maps 429 to inoreader-rate-limit', async () => {
@@ -456,49 +453,31 @@ describe('fetchFolderStream', () => {
 });
 
 // ---------------------------------------------------------------------------
-// authenticatedFetch self-healing on 401 — Phase 2 architecture
+// authenticatedFetch self-healing on 401 — single path post-Phase-B
 // ---------------------------------------------------------------------------
 //
-// BL-032.8 Phase 2 changed the recovery cascade on Inoreader 401:
-//
-//   1. PRIMARY — Worker-direct refresh via refreshAccessToken('live-tool').
-//      Reads refresh_token from Upstash, POSTs to inoreader.com/oauth2/token,
-//      writes new tokens to MCP DB.
-//   2. FALLBACK (Phase A only) — BL-039 round-trip through the website's
-//      /api/inoreader/refresh endpoint, but ONLY when primary returned
-//      reason: 'inoreader-error' (transient upstream failure).
-//
-// For any other primary failure reason (invalid-refresh-token,
-// upstash-write-failed, lock-timeout, token-missing): surface the original
-// 401 as token-stale without trying BL-039 — those reasons aren't
-// website-recoverable.
+// On Inoreader 401, the Worker calls refreshAccessToken('live-tool')
+// (inoreader-oauth.ts): reads refresh_token from Upstash, POSTs to
+// inoreader.com/oauth2/token, writes new tokens to MCP DB, retries the
+// original call once with the fresh token. Any refresh failure surfaces
+// the original 401 as token-stale to the caller — there is no BL-039
+// website-fallback after Phase B.
 
-const REFRESH_URL = 'https://globalstrategic.tech/api/inoreader/refresh';
 const OAUTH_TOKEN_URL = 'https://www.inoreader.com/oauth2/token';
 
-/** Env with refresh creds for both the primary (refreshAccessToken) AND the BL-039 fallback paths. */
 const oauthEnv: Env = {
   ...baseEnv,
   INOREADER_REFRESH_TOKEN: 'test-refresh-token',
-  INOREADER_REFRESH_SECRET: 'test-shared-secret',
 };
 
 /**
- * Route fetch calls by URL — three distinct channels:
+ * Route fetch calls by URL — two channels:
  *   - inoreader: stream API calls (e.g. /reader/api/0/stream/contents/*).
  *     Array consumed in order.
- *   - oauth2Token: response from /oauth2/token. Defaults to 503 so the
- *     primary refreshAccessToken path fails with `inoreader-error`,
- *     which triggers the BL-039 fallback chain we're testing. Set to a
- *     200 JSON response to exercise primary-path success.
- *   - refresh: response from the BL-039 website endpoint. Optional —
- *     tests that expect BL-039 to be skipped pass `undefined`.
+ *   - oauth2Token: response from /oauth2/token. Defaults to 503 so tests
+ *     that don't explicitly mock it exercise the refresh-failure path.
  */
-function routeFetch(opts: {
-  inoreader: Response[];
-  oauth2Token?: Response | Error;
-  refresh?: Response | Error;
-}) {
+function routeFetch(opts: { inoreader: Response[]; oauth2Token?: Response | Error }) {
   let inoreaderIdx = 0;
   fetchSpy.mockImplementation(async (url: string) => {
     if (url === OAUTH_TOKEN_URL) {
@@ -506,26 +485,19 @@ function routeFetch(opts: {
       if (value instanceof Error) throw value;
       return value;
     }
-    if (url === REFRESH_URL) {
-      if (!opts.refresh) {
-        throw new Error('Unexpected BL-039 refresh call — no refresh response configured');
-      }
-      if (opts.refresh instanceof Error) throw opts.refresh;
-      return opts.refresh;
-    }
     const next = opts.inoreader[inoreaderIdx++];
     if (!next) throw new Error(`Inoreader call ${inoreaderIdx} unmocked`);
     return next;
   });
 }
 
-// Primary path: refreshAccessToken (Worker-direct /oauth2/token).
-describe('authenticatedFetch — primary refresh path (BL-032.8 Phase 2)', () => {
+// Worker-direct refresh on 401 — the sole recovery path post-Phase-B.
+describe('authenticatedFetch — Worker-direct refresh (BL-032.8 Phase 2)', () => {
   beforeEach(() => {
     mockGet.mockResolvedValue('upstash-token');
   });
 
-  it('on 401 → /oauth2/token success → retry succeeds (no BL-039 round-trip)', async () => {
+  it('on 401 → /oauth2/token success → retry succeeds', async () => {
     const stream = makeStreamResponse([
       { id: 'item-1', published: 1000, canonicalHref: 'https://example.com/1' },
     ]);
@@ -536,7 +508,6 @@ describe('authenticatedFetch — primary refresh path (BL-032.8 Phase 2)', () =>
         refresh_token: 'fresh-refresh',
         expires_in: 3600,
       }),
-      // refresh deliberately undefined — BL-039 must NOT be called.
     });
 
     const result = await fetchAnnotatedItems(oauthEnv, 5);
@@ -551,18 +522,14 @@ describe('authenticatedFetch — primary refresh path (BL-032.8 Phase 2)', () =>
     expect(calls[0]).toContain('inoreader.com');
     expect(calls[1]).toBe(OAUTH_TOKEN_URL);
     expect(calls[2]).toContain('inoreader.com');
-    // BL-039 fallback explicitly NOT invoked on primary success.
-    expect(calls.some((u) => u === REFRESH_URL)).toBe(false);
   });
 
-  it('after primary refresh success, retry uses the freshly-written MCP DB token', async () => {
-    // Companion to the BL-039-fallback "fresh-token on retry" test below,
-    // but for the PRIMARY path (no fallback): refreshAccessToken writes a
-    // new access token to mcp:inoreader:access_token, then retryWithFreshConfig
-    // re-resolves and the retry's Authorization header carries the new value.
-    //
-    // We simulate the in-place token-store update by flipping the MCP
-    // access-token read after fetchSpy receives the /oauth2/token POST.
+  it('after refresh success, retry uses the freshly-written MCP DB token', async () => {
+    // refreshAccessToken writes a new access token to mcp:inoreader:access_token,
+    // then retryWithFreshConfig re-resolves and the retry's Authorization
+    // header carries the new value. Simulate the in-place token-store update
+    // by flipping the MCP access-token read after fetchSpy receives the
+    // /oauth2/token POST.
     let mcpAccessToken: string | null = 'stale-primary';
     mockGet.mockImplementation(async (key: string) => {
       if (key === 'mcp:inoreader:access_token') return mcpAccessToken;
@@ -575,7 +542,6 @@ describe('authenticatedFetch — primary refresh path (BL-032.8 Phase 2)', () =>
         new Response('unauthorized', { status: 401 }),
         jsonResponse(makeStreamResponse([])),
       ],
-      // Primary /oauth2/token succeeds — no BL-039 fallback triggered.
       oauth2Token: jsonResponse({
         access_token: 'primary-fresh-token',
         refresh_token: 'refresh-token-value',
@@ -597,9 +563,6 @@ describe('authenticatedFetch — primary refresh path (BL-032.8 Phase 2)', () =>
 
     await fetchAnnotatedItems(oauthEnv, 5);
 
-    // No BL-039 call should appear.
-    expect(fetchSpy.mock.calls.some((c) => c[0] === REFRESH_URL)).toBe(false);
-
     const inoreaderCalls = fetchSpy.mock.calls.filter((c) =>
       (c[0] as string).includes('/reader/api/0')
     );
@@ -610,10 +573,10 @@ describe('authenticatedFetch — primary refresh path (BL-032.8 Phase 2)', () =>
     expect(retryAuth).toBe('Bearer primary-fresh-token');
   });
 
-  it('on primary invalid_grant: surfaces token-stale, BL-039 fallback NOT invoked', async () => {
+  it('on invalid_grant from Inoreader: surfaces token-stale', async () => {
     // Inoreader rejects the refresh_token with invalid_grant — credentials
-    // are dead; trying BL-039 would just hit the same rejection through the
-    // website. Phase 2 logic must skip the fallback on this reason.
+    // are dead. The Worker has no fallback path post-Phase-B; the original
+    // 401 surfaces as token-stale and operator must re-link OAuth.
     routeFetch({
       inoreader: [new Response('unauthorized', { status: 401 })],
       oauth2Token: new Response('{"error":"invalid_grant"}', { status: 401 }),
@@ -624,90 +587,17 @@ describe('authenticatedFetch — primary refresh path (BL-032.8 Phase 2)', () =>
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.reason).toBe('token-stale');
-    // 2 calls: original Inoreader (401) + /oauth2/token (401). No BL-039.
+    // 2 calls: original Inoreader (401) + /oauth2/token (401).
     expect(fetchSpy).toHaveBeenCalledTimes(2);
-    expect(fetchSpy.mock.calls.some((c) => c[0] === REFRESH_URL)).toBe(false);
-  });
-});
-
-// BL-039 — the FALLBACK path (Phase A only; deleted in Phase B).
-//
-// These tests verify the fallback chain that fires when the primary
-// `refreshAccessToken` returns `reason: 'inoreader-error'`. They simulate
-// primary failure by mocking /oauth2/token to return 503; the cascade
-// then routes through the BL-039 website endpoint.
-describe('authenticatedFetch — BL-039 fallback (only on primary inoreader-error)', () => {
-  beforeEach(() => {
-    mockGet.mockResolvedValue('upstash-token');
   });
 
-  it('primary 503 → BL-039 succeeds → retry succeeds (4 fetch calls in order)', async () => {
-    const stream = makeStreamResponse([
-      { id: 'item-1', published: 1000, canonicalHref: 'https://example.com/1' },
-    ]);
-    routeFetch({
-      inoreader: [new Response('unauthorized', { status: 401 }), jsonResponse(stream)],
-      // oauth2Token defaults to 503 → primary returns inoreader-error
-      refresh: new Response('{"ok":true}', { status: 200 }),
-    });
-
-    const result = await fetchAnnotatedItems(oauthEnv, 5);
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.data.items[0].id).toBe('item-1');
-
-    expect(fetchSpy).toHaveBeenCalledTimes(4);
-    const calls = fetchSpy.mock.calls.map((c) => c[0]);
-    expect(calls[0]).toContain('inoreader.com');
-    expect(calls[1]).toBe(OAUTH_TOKEN_URL); // primary attempt — 503
-    expect(calls[2]).toBe(REFRESH_URL); // fallback
-    expect(calls[3]).toContain('inoreader.com'); // retry
-  });
-
-  it('passes the shared secret as Bearer Authorization to the BL-039 endpoint', async () => {
-    routeFetch({
-      inoreader: [
-        new Response('unauthorized', { status: 401 }),
-        jsonResponse(makeStreamResponse([])),
-      ],
-      refresh: new Response('{"ok":true}', { status: 200 }),
-    });
-
-    await fetchAnnotatedItems(oauthEnv, 5);
-
-    const refreshCall = fetchSpy.mock.calls.find((c) => c[0] === REFRESH_URL)!;
-    expect(refreshCall[1].method).toBe('POST');
-    expect(refreshCall[1].headers.Authorization).toBe('Bearer test-shared-secret');
-  });
-
-  it('on 401 without INOREADER_REFRESH_SECRET + no refresh_token: surfaces token-stale, no fetch beyond original 401', async () => {
-    // baseEnv has neither INOREADER_REFRESH_TOKEN nor INOREADER_REFRESH_SECRET.
-    // Primary refreshAccessToken aborts at readRefreshToken with `token-missing`
-    // (no refresh credentials anywhere); BL-039 is then skipped because the
-    // reason isn't `inoreader-error`.
-    //
-    // Override the suite-level beforeEach which returns 'upstash-token' from
-    // every mockGet — we need readRefreshToken to actually return null here
-    // to exercise the token-missing path.
-    mockGet.mockReset();
-    mockGet.mockResolvedValue(null);
-
-    fetchSpy.mockResolvedValue(new Response('unauthorized', { status: 401 }));
-
-    const result = await fetchAnnotatedItems(baseEnv, 5);
-
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.reason).toBe('token-stale');
-    // 1 call only — primary aborts before any HTTP, no fallback fires.
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('primary 503 + BL-039 503: surfaces token-stale (4 calls, no retry)', async () => {
+  it('on /oauth2/token 5xx: surfaces token-stale (no website fallback post-Phase-B)', async () => {
+    // Pre-Phase-B this would have triggered the BL-039 website-refresh
+    // fallback. Post-Phase-B there is no fallback — the original 401
+    // surfaces directly.
     routeFetch({
       inoreader: [new Response('unauthorized', { status: 401 })],
-      refresh: new Response('{"ok":false,"reason":"endpoint-disabled"}', { status: 503 }),
+      // oauth2Token defaults to 503
     });
 
     const result = await fetchAnnotatedItems(oauthEnv, 5);
@@ -715,126 +605,6 @@ describe('authenticatedFetch — BL-039 fallback (only on primary inoreader-erro
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.reason).toBe('token-stale');
-    // 3 calls: Inoreader (401) + /oauth2/token (503) + BL-039 (503). No retry.
-    expect(fetchSpy).toHaveBeenCalledTimes(3);
-  });
-
-  it('primary 503 + BL-039 502: surfaces token-stale', async () => {
-    routeFetch({
-      inoreader: [new Response('unauthorized', { status: 401 })],
-      refresh: new Response('{"ok":false,"reason":"inoreader-rejected"}', { status: 502 }),
-    });
-
-    const result = await fetchAnnotatedItems(oauthEnv, 5);
-
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.reason).toBe('token-stale');
-    expect(fetchSpy).toHaveBeenCalledTimes(3);
-  });
-
-  it('primary 503 + BL-039 200 + retry ALSO 401: no second retry, surfaces token-stale', async () => {
-    routeFetch({
-      inoreader: [
-        new Response('unauthorized', { status: 401 }),
-        new Response('still unauthorized', { status: 401 }),
-      ],
-      refresh: new Response('{"ok":true}', { status: 200 }),
-    });
-
-    const result = await fetchAnnotatedItems(oauthEnv, 5);
-
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.reason).toBe('token-stale');
-    // 4 calls: Inoreader (401) + /oauth2/token (503) + BL-039 (200) + Inoreader retry (401). No THIRD Inoreader.
-    expect(fetchSpy).toHaveBeenCalledTimes(4);
-  });
-
-  it('primary 503 + BL-039 network error: surfaces token-stale', async () => {
-    routeFetch({
-      inoreader: [new Response('unauthorized', { status: 401 })],
-      refresh: new Error('network unreachable'),
-    });
-
-    const result = await fetchAnnotatedItems(oauthEnv, 5);
-
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.reason).toBe('token-stale');
-    expect(fetchSpy).toHaveBeenCalledTimes(3);
-  });
-
-  it('on non-401 Inoreader response: neither primary nor BL-039 invoked', async () => {
-    fetchSpy.mockResolvedValue(new Response('rate-limited', { status: 429 }));
-
-    const result = await fetchAnnotatedItems(oauthEnv, 5);
-
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.reason).toBe('inoreader-rate-limit');
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(fetchSpy.mock.calls.some((c) => c[0] === OAUTH_TOKEN_URL)).toBe(false);
-    expect(fetchSpy.mock.calls.some((c) => c[0] === REFRESH_URL)).toBe(false);
-  });
-
-  it('on 200 OK: no refresh path invoked (happy path unaffected)', async () => {
-    fetchSpy.mockResolvedValue(jsonResponse(makeStreamResponse([])));
-
-    const result = await fetchAnnotatedItems(oauthEnv, 5);
-
-    expect(result.ok).toBe(true);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(fetchSpy.mock.calls.some((c) => c[0] === OAUTH_TOKEN_URL)).toBe(false);
-    expect(fetchSpy.mock.calls.some((c) => c[0] === REFRESH_URL)).toBe(false);
-  });
-
-  it('after successful refresh, retry uses freshly-resolved access token from Upstash', async () => {
-    // Phase 2 architecture: readAccessToken queries mcp:inoreader:access_token
-    // first. Pre-refresh that key holds the stale token; after BL-039 fallback
-    // succeeds, the website writes a fresh value to inoreader:access_token,
-    // and we expect the retry's readAccessToken to observe the new value.
-    //
-    // To simulate this without a real Upstash, we toggle the mock's return
-    // for mcp:inoreader:access_token mid-test. The refresh path runs between
-    // the two access-token reads.
-    let mcpAccessToken: string | null = 'stale-token';
-    mockGet.mockImplementation(async (key: string) => {
-      if (key === 'mcp:inoreader:access_token') return mcpAccessToken;
-      if (key === 'mcp:inoreader:refresh_token') return 'refresh-token-value';
-      return null;
-    });
-
-    routeFetch({
-      inoreader: [
-        new Response('unauthorized', { status: 401 }),
-        jsonResponse(makeStreamResponse([])),
-      ],
-      // Primary returns 503 → BL-039 fallback fires. Simulate website
-      // writing the fresh token by flipping the mock after the BL-039 call.
-      refresh: new Response('{"ok":true}', { status: 200 }),
-    });
-
-    // Hook into the refresh-endpoint call to flip the mock state, simulating
-    // the website's write to Upstash that the Worker should observe on retry.
-    const originalImpl = fetchSpy.getMockImplementation();
-    fetchSpy.mockImplementation(async (url: string, init?: RequestInit) => {
-      const response = await originalImpl!(url, init);
-      if (url === REFRESH_URL) {
-        mcpAccessToken = 'fresh-token';
-      }
-      return response;
-    });
-
-    await fetchAnnotatedItems(oauthEnv, 5);
-
-    const inoreaderCalls = fetchSpy.mock.calls.filter((c) =>
-      (c[0] as string).includes('/reader/api/0')
-    );
-    expect(inoreaderCalls).toHaveLength(2);
-    const firstAuth = (inoreaderCalls[0]![1].headers as Record<string, string>).Authorization;
-    const retryAuth = (inoreaderCalls[1]![1].headers as Record<string, string>).Authorization;
-    expect(firstAuth).toBe('Bearer stale-token');
-    expect(retryAuth).toBe('Bearer fresh-token');
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 });

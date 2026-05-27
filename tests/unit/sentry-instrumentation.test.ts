@@ -50,45 +50,13 @@ describe('Sentry Client Config (privacy-first policy)', () => {
   });
 });
 
-describe('Server-side Sentry instrumentation', () => {
-  describe('Inoreader client', () => {
-    const src = readSrc('src/lib/inoreader/client.ts');
-
-    it('should import Sentry', () => {
-      expect(src).toContain("import * as Sentry from '@sentry/node'");
-    });
-
-    it('should have ≥6 captureException or captureMessage calls', () => {
-      const captures = countMatches(src, /Sentry\.(captureException|captureMessage)/g);
-      expect(captures).toBeGreaterThanOrEqual(6);
-    });
-
-    it('should tag redis-connection errors', () => {
-      expect(src).toContain("area: 'redis-connection'");
-    });
-
-    it('should tag inoreader-api errors', () => {
-      expect(src).toContain("area: 'inoreader-api'");
-    });
-  });
-
-  describe('Inoreader cache', () => {
-    const src = readSrc('src/lib/inoreader/cache.ts');
-
-    it('should import Sentry', () => {
-      expect(src).toContain("import * as Sentry from '@sentry/node'");
-    });
-
-    it('should have ≥2 captureException calls', () => {
-      const captures = countMatches(src, /Sentry\.captureException/g);
-      expect(captures).toBeGreaterThanOrEqual(2);
-    });
-
-    it('should tag file-cache errors', () => {
-      expect(src).toContain("area: 'file-cache'");
-    });
-  });
-});
+// Server-side Sentry instrumentation describe block removed in
+// BL-032.8 Phase B (2026-05-17): the Inoreader client (`src/lib/inoreader/
+// client.ts`) and its dev-mode cache (`src/lib/inoreader/cache.ts`) were
+// deleted as part of the website's retirement from being a parallel
+// Inoreader caller. Server-side Sentry instrumentation now lives in the
+// MCP Worker repo (mcp-server/src/observability/sentry.ts + the radar /
+// OAuth modules), which has its own test suite under mcp-server/tests/.
 
 describe('Client-side Sentry instrumentation', () => {
   describe('palette-manager', () => {
