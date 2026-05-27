@@ -134,6 +134,7 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
           "deny",
         ],
         "resource_read": [
+          "success",
           "hit",
           "miss",
           "error",

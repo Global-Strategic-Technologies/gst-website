@@ -149,7 +149,7 @@ export const AE_LIMITS = {
  */
 export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
   tool_invocation: ['success', 'error'],
-  resource_read: ['hit', 'miss', 'error'],
+  resource_read: ['success', 'hit', 'miss', 'error'],
   prompt_invocation: ['success', 'error'],
   prompt_span: ['success', 'error'],
   rate_limit_decision: ['allow', 'throttle', 'deny'],
