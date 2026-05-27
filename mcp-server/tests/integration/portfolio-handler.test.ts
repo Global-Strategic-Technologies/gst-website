@@ -24,12 +24,20 @@ import {
   handleSearchPortfolioTool,
   handleListPortfolioFacetsTool,
 } from '../../src/tools/portfolio';
-import { SearchPortfolioInputSchema } from '../../src/schemas';
+import { ProjectsArraySchema, SearchPortfolioInputSchema } from '../../src/schemas';
 import { HUB_BASE } from '../../src/config';
 import {
   serializeToParams as serializePortfolioUrl,
   deserializeFromParams as deserializePortfolioUrl,
 } from '../../../src/utils/portfolio-url';
+import projectsRaw from '../../../src/data/ma-portfolio/projects.json';
+
+// Source of truth for the bundled dataset size at test-run time. Derived
+// here (rather than hardcoded) so the empty-input contract assertion
+// — "the triplet matches.length === totalMatched === returned equals
+// the full dataset, no truncation" — stays self-consistent as the
+// portfolio grows. See TEST_BEST_PRACTICES.md § 6.
+const PROJECTS_COUNT = ProjectsArraySchema.parse(projectsRaw).length;
 
 describe('handleSearchPortfolioTool — BL-031.95 Phase 4.B integration', () => {
   it('empty input returns every project; deeplink omits the query string', async () => {
@@ -42,9 +50,14 @@ describe('handleSearchPortfolioTool — BL-031.95 Phase 4.B integration', () => 
     const payload = response.structuredContent as Record<string, unknown>;
     const matches = payload.matches as unknown[];
 
-    expect(matches.length).toBe(61);
-    expect(payload.totalMatched).toBe(61);
-    expect(payload.returned).toBe(61);
+    // Triplet equals the full dataset — the substantive contract is
+    // "no truncation, no pagination drift," which is preserved by
+    // deriving the expected count from PROJECTS_COUNT rather than
+    // hardcoding it (the hardcoded version was failing CI on every
+    // portfolio-add PR).
+    expect(matches.length).toBe(PROJECTS_COUNT);
+    expect(payload.totalMatched).toBe(PROJECTS_COUNT);
+    expect(payload.returned).toBe(PROJECTS_COUNT);
     expect(payload.deeplink).toBe(`${HUB_BASE}/ma-portfolio`);
   });
 
