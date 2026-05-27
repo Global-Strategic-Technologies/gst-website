@@ -12,8 +12,12 @@
  *     inoreader:                   'ok' | 'degraded' | 'unknown',  // last observed Inoreader API response
  *     inoreaderObservedAt:         string | null,
  *     inoreaderObservedSecondsAgo: number | null,     // age of the observation; null when none
- *     inoreaderObservedSource:     'cron' | 'live-tool' | null,
+ *     inoreaderObservedSource:     'cron' | 'live-tool' | 'http-snapshot' | null,
  *     radarSnapshotAgeSeconds:     number | null,
+ *     inoreaderSpend: {                                  // BL-032.75 Phase 0
+ *       total:      number,                              // today's Zone-1 spend
+ *       byCategory: Record<InoreaderEgressCategory, number>,
+ *     },
  *   }
  *
  * **Single Upstash subsystem (post-BL-032.8 Phase B)**: the Worker is the
@@ -54,6 +58,7 @@ import {
   type InoreaderObservedSource,
 } from './inoreader-status';
 import { createMcpClient } from '../lib/upstash-clients';
+import { readInoreaderSpend, type InoreaderEgressCategory } from '../lib/inoreader-egress';
 import type { Env } from '../worker';
 
 const VERSION = '0.1.0'; // bumped in lockstep with mcp-server/package.json (see BREAKING_CHANGES.md)
@@ -93,6 +98,24 @@ interface HealthResponse {
    * user-visible tier and refreshes from the same Cron tick.
    */
   radarSnapshotAgeSeconds: number | null;
+  /**
+   * Inoreader spend accounting (BL-032.75 Phase 0). `total` is today's
+   * cumulative Zone-1 spend across all four Zone-1 categories
+   * (`cron-radar`, `live-radar`, `http-radar-snapshot`, `401-retry`).
+   * `byCategory` breaks the same picture out per category and additionally
+   * surfaces the non-Zone-1 `oauth-refresh` count for visibility into auth
+   * churn. Zero-values when no traffic has been recorded today or when MCP
+   * DB is unreachable.
+   *
+   * The Phase 0 implementation runs PARALLEL to the pre-existing
+   * `mcp:inoreader:day-counter:*` (cron-only) counter — both are populated
+   * for the 7-day soak window. The old day-counter is removed in a
+   * follow-up PR once reconciliation is verified.
+   */
+  inoreaderSpend: {
+    total: number;
+    byCategory: Record<InoreaderEgressCategory, number>;
+  };
 }
 
 /**
@@ -156,10 +179,11 @@ async function probeRadarSnapshotAge(env: Env): Promise<number | null> {
  * the Inoreader DB probe) shaved one Upstash round-trip off this path.
  */
 export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
-  const [upstashMcp, inoreader, radarSnapshotAgeSeconds] = await Promise.all([
+  const [upstashMcp, inoreader, radarSnapshotAgeSeconds, inoreaderSpend] = await Promise.all([
     probeMcp(env),
     readInoreaderStatus(env),
     probeRadarSnapshotAge(env),
+    readInoreaderSpend(env),
   ]);
 
   // ok: true iff MCP DB is reachable AND the last observed Inoreader API
@@ -181,5 +205,6 @@ export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
     inoreaderObservedSecondsAgo: inoreader.observedSecondsAgo,
     inoreaderObservedSource: inoreader.source,
     radarSnapshotAgeSeconds,
+    inoreaderSpend,
   };
 }

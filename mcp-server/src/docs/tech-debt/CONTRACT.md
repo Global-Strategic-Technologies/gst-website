@@ -1,3 +1,13 @@
+---
+tool: estimate_tech_debt_cost
+version: v1
+lastAuthored: 2026-04-28
+schema: src/schemas/tech-debt.ts
+enumParity:
+  - tableHeading: '`deployFrequency`'
+    schemaExport: src/schemas/tech-debt.ts#DEPLOY_FREQUENCY_VALUES
+---
+
 # Input Contract: `estimate_tech_debt_cost`
 
 > **Tool**: `estimate_tech_debt_cost` — estimates the carrying cost of accumulated technical debt for a target organization. Wraps `calculateFromRawInputs` — the raw-value entry point that bypasses the website wizard's slider domain.

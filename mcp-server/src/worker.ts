@@ -379,7 +379,13 @@ export const handler: ExportedHandler<Env> = {
         const withRl = rlResult ? withRateLimitHeaders(resp, rlResult) : resp;
         return withCors(withRl, origin);
       }
-      const [wire, fyi] = await Promise.all([readWireLive(env), readFyiLive(env, 30)]);
+      // BL-032.75 Phase 0: tag this SSR endpoint's egress separately from
+      // MCP-tool live calls. Lets dashboards distinguish website cache-miss
+      // bursts (e.g. during redeploys) from real MCP-tool traffic.
+      const [wire, fyi] = await Promise.all([
+        readWireLive(env, { source: 'http-snapshot' }),
+        readFyiLive(env, 30, { source: 'http-snapshot' }),
+      ]);
       const payload = JSON.stringify({
         wire,
         fyi,

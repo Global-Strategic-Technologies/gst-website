@@ -36,6 +36,7 @@
 import type { InoreaderStreamResponse, InoreaderItem } from '../../../src/lib/inoreader/types';
 import { readAccessToken } from './inoreader-token-store';
 import { refreshAccessToken } from './inoreader-oauth';
+import { recordInoreaderEgress, type InoreaderEgressCategory } from './inoreader-egress';
 import type { Env } from '../worker';
 
 const API_BASE = 'https://www.inoreader.com/reader/api/0';
@@ -161,14 +162,62 @@ function buildAuthHeaders(config: ResolvedConfig): Record<string, string> {
 // Low-level fetch with timeout + structured error mapping.
 // ---------------------------------------------------------------------------
 
+/**
+ * `egressMeta` (BL-032.75 Phase 0): when supplied, the call is recorded by
+ * the egress accounting wrapper after the Response is received. Skipped when
+ * undefined to keep older test paths and direct callers unchanged. The
+ * recorder is best-effort and never throws; missing Upstash creds are a
+ * graceful no-op.
+ *
+ * Network errors / abort timeouts deliberately do NOT record — nothing
+ * reached Inoreader's quota counter, so we don't tick ours either.
+ */
+/**
+ * Parse the `X-Reader-Zone1-Usage` header off an Inoreader response into a
+ * non-negative finite number, or `undefined` when the header is absent or
+ * unusable. BL-032.75 Phase 0 audit fix C3.
+ *
+ * Defensive against three real cases:
+ *   - **Missing** (`headers.get` returns `null` — proxy stripped it)
+ *   - **Present but empty** (`""` — observed historically on some edge
+ *     responses; `Number("")` is `0` and `Number.isFinite(0)` is true, so
+ *     a naive parse would treat the absence as a real zero reading and
+ *     trigger drift detection against a fake baseline)
+ *   - **Non-numeric / negative** (Inoreader returning garbage on a degraded
+ *     path; `Number("abc")` is `NaN`)
+ *
+ * All three collapse to `undefined` so the recorder skips drift detection
+ * rather than treating noise as a real reading. Tests live in
+ * `tests/unit/lib/inoreader-client-parse-zone1-header.test.ts`.
+ */
+export function parseZone1UsageHeader(res: Response): number | undefined {
+  const raw = res.headers.get('X-Reader-Zone1-Usage');
+  if (raw == null) return undefined;
+  const trimmed = raw.trim();
+  if (trimmed === '') return undefined;
+  const n = Number(trimmed);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
 async function singleFetch(
   url: string,
-  config: ResolvedConfig
+  config: ResolvedConfig,
+  egressMeta?: { env: Env; category: InoreaderEgressCategory; source?: string }
 ): Promise<Response | InoreaderFailure> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
     const res = await fetch(url, { headers: buildAuthHeaders(config), signal: controller.signal });
+    if (egressMeta) {
+      const zone1UsageHeader = parseZone1UsageHeader(res);
+      await recordInoreaderEgress({
+        env: egressMeta.env,
+        category: egressMeta.category,
+        status: res.status,
+        ...(zone1UsageHeader !== undefined ? { zone1UsageHeader } : {}),
+        ...(egressMeta.source ? { source: egressMeta.source } : {}),
+      });
+    }
     return res;
   } catch (e) {
     return {
@@ -200,15 +249,21 @@ async function singleFetch(
 async function authenticatedFetch(
   env: Env,
   url: string,
-  config: ResolvedConfig
+  config: ResolvedConfig,
+  egressCategory?: InoreaderEgressCategory,
+  source?: string
 ): Promise<Response | InoreaderFailure> {
-  const first = await singleFetch(url, config);
+  const egressMeta = egressCategory
+    ? { env, category: egressCategory, ...(source ? { source } : {}) }
+    : undefined;
+
+  const first = await singleFetch(url, config, egressMeta);
   if (!(first instanceof Response)) return first;
   if (first.status !== 401) return first;
 
   const refreshResult = await refreshAccessToken(env, 'live-tool');
   if (refreshResult.ok) {
-    return retryWithFreshConfig(env, url, first);
+    return retryWithFreshConfig(env, url, first, egressCategory ? { env, source } : undefined);
   }
 
   // Refresh failed — surface original 401 as token-stale. No fallback path
@@ -227,13 +282,24 @@ async function authenticatedFetch(
 async function retryWithFreshConfig(
   env: Env,
   url: string,
-  originalFirstAttempt: Response
+  originalFirstAttempt: Response,
+  retryEgressMeta?: { env: Env; source?: string }
 ): Promise<Response | InoreaderFailure> {
   const reResolved = await resolveConfig(env);
   if ('ok' in reResolved && !reResolved.ok) {
     return originalFirstAttempt;
   }
-  return await singleFetch(url, reResolved as ResolvedConfig);
+  // BL-032.75 Phase 0: the retry leg is always categorized as '401-retry',
+  // regardless of the original caller's category. This lets dashboards
+  // isolate auth-churn from real traffic.
+  const retryMeta = retryEgressMeta
+    ? {
+        env: retryEgressMeta.env,
+        category: '401-retry' as InoreaderEgressCategory,
+        ...(retryEgressMeta.source ? { source: retryEgressMeta.source } : {}),
+      }
+    : undefined;
+  return await singleFetch(url, reResolved as ResolvedConfig, retryMeta);
 }
 
 /**
@@ -336,7 +402,11 @@ async function parseStream(res: Response): Promise<InoreaderResult> {
  * Mirrors the website client's `fetchAnnotatedItems` — same URL, same
  * response type, structured failures instead of `null`.
  */
-export async function fetchAnnotatedItems(env: Env, count: number = 30): Promise<InoreaderResult> {
+export async function fetchAnnotatedItems(
+  env: Env,
+  count: number = 30,
+  egressCategory?: InoreaderEgressCategory
+): Promise<InoreaderResult> {
   const config = await resolveConfig(env);
   if ('ok' in config && !config.ok) return config;
 
@@ -345,7 +415,13 @@ export async function fetchAnnotatedItems(env: Env, count: number = 30): Promise
     `${API_BASE}/stream/contents/${streamId}?` +
     new URLSearchParams({ n: String(count), annotations: '1', output: 'json' }).toString();
 
-  const res = await authenticatedFetch(env, url, config as ResolvedConfig);
+  const res = await authenticatedFetch(
+    env,
+    url,
+    config as ResolvedConfig,
+    egressCategory,
+    'fetchAnnotatedItems'
+  );
   if (!(res instanceof Response)) return res;
   if (!res.ok) return await mapHttpStatus(res);
   return parseStream(res);
@@ -358,7 +434,8 @@ export async function fetchAnnotatedItems(env: Env, count: number = 30): Promise
 export async function fetchFolderStream(
   env: Env,
   folderName: string,
-  count: number = 20
+  count: number = 20,
+  egressCategory?: InoreaderEgressCategory
 ): Promise<InoreaderResult> {
   const config = await resolveConfig(env);
   if ('ok' in config && !config.ok) return config;
@@ -368,7 +445,13 @@ export async function fetchFolderStream(
     `${API_BASE}/stream/contents/${streamId}?` +
     new URLSearchParams({ n: String(count), output: 'json' }).toString();
 
-  const res = await authenticatedFetch(env, url, config as ResolvedConfig);
+  const res = await authenticatedFetch(
+    env,
+    url,
+    config as ResolvedConfig,
+    egressCategory,
+    'fetchFolderStream'
+  );
   if (!(res instanceof Response)) return res;
   if (!res.ok) return await mapHttpStatus(res);
   return parseStream(res);
@@ -388,7 +471,8 @@ export async function fetchFolderStream(
 export async function fetchAllStreams(
   env: Env,
   folderPrefix: string = 'GST-',
-  countPerFolder: number = 15
+  countPerFolder: number = 15,
+  egressCategory?: InoreaderEgressCategory
 ): Promise<InoreaderResult> {
   const config = await resolveConfig(env);
   if ('ok' in config && !config.ok) return config;
@@ -396,7 +480,7 @@ export async function fetchAllStreams(
 
   // 1. Tags list — find all GST-prefixed folder IDs.
   const tagsUrl = `${API_BASE}/tag/list?output=json`;
-  const tagsRes = await authenticatedFetch(env, tagsUrl, cfg);
+  const tagsRes = await authenticatedFetch(env, tagsUrl, cfg, egressCategory, 'tag-list');
   if (!(tagsRes instanceof Response)) return tagsRes;
   if (!tagsRes.ok) return await mapHttpStatus(tagsRes);
 
@@ -438,7 +522,7 @@ export async function fetchAllStreams(
   const results = await Promise.allSettled(
     folders.map((folderId) => {
       const label = folderId.split('/').pop()!;
-      return fetchFolderStreamWithConfig(env, cfg, label, countPerFolder);
+      return fetchFolderStreamWithConfig(env, cfg, label, countPerFolder, egressCategory);
     })
   );
 
@@ -485,13 +569,14 @@ async function fetchFolderStreamWithConfig(
   env: Env,
   config: ResolvedConfig,
   folderName: string,
-  count: number
+  count: number,
+  egressCategory?: InoreaderEgressCategory
 ): Promise<InoreaderResult> {
   const streamId = encodeURIComponent(`user/-/label/${folderName}`);
   const url =
     `${API_BASE}/stream/contents/${streamId}?` +
     new URLSearchParams({ n: String(count), output: 'json' }).toString();
-  const res = await authenticatedFetch(env, url, config);
+  const res = await authenticatedFetch(env, url, config, egressCategory, `folder:${folderName}`);
   if (!(res instanceof Response)) return res;
   if (!res.ok) return await mapHttpStatus(res);
   return parseStream(res);

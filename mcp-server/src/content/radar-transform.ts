@@ -81,6 +81,43 @@ export function toIsoDate(unixSeconds: number): string {
 }
 
 /**
+ * Age in whole days of the OLDEST item in a result set, computed from
+ * `publishedAt`. Returns `null` when the input is empty (distinguishes
+ * "no items" from "items dated today") and when no item has a parseable
+ * timestamp (defensive — Inoreader items are expected to always carry a
+ * published date, but the helper degrades gracefully rather than throw).
+ *
+ * Surfaced on radar tool payloads (BL-031.95 / BL-032.75 follow-up) so an
+ * agent / operator can immediately see whether a returned feed is fresh
+ * or stale without scanning every item's date. Useful for:
+ *
+ *   - the website's `/hub/radar` SSR badge ("oldest item: 3 days ago")
+ *   - MCP tool callers deciding whether to re-fetch
+ *   - Sentry alert rules in BL-032.75 Phase 3 (alert when oldest > 14d)
+ *
+ * Days are floor-divided rolling 24h buckets, not UTC midnight buckets —
+ * an item published 23 hours ago is 0 days old, not 1. This matches
+ * common "N days ago" colloquial usage.
+ *
+ * Pure: no clock side-effects beyond `Date.now()`; pass `now` to make
+ * tests deterministic.
+ */
+export function oldestItemDaysAgo(
+  items: ReadonlyArray<{ readonly publishedAt: string }>,
+  now: number = Date.now()
+): number | null {
+  if (items.length === 0) return null;
+  let oldestMs: number | null = null;
+  for (const item of items) {
+    const ms = Date.parse(item.publishedAt);
+    if (!Number.isFinite(ms)) continue;
+    if (oldestMs === null || ms < oldestMs) oldestMs = ms;
+  }
+  if (oldestMs === null) return null;
+  return Math.max(0, Math.floor((now - oldestMs) / 86_400_000));
+}
+
+/**
  * Transform an Inoreader API item into the SnapshotItem shape both the
  * offline tool and the live tools return. The `tier` parameter is the
  * caller's signal of which feed produced this item — FYI items carry

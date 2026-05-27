@@ -1,3 +1,13 @@
+---
+tool: assess_infrastructure_cost_governance
+version: v1
+lastAuthored: 2026-04-28
+schema: src/schemas/icg.ts
+enumParity:
+  - tableHeading: '`companyStage`'
+    schemaExport: src/schemas/icg.ts#COMPANY_STAGE_VALUES
+---
+
 # Input Contract: `assess_infrastructure_cost_governance`
 
 > **Tool**: `assess_infrastructure_cost_governance` — assesses a target company's Infrastructure Cost Governance maturity. Wraps the website's pure `calculateResults` + `getRecommendations` engines.

@@ -40,7 +40,18 @@ import type { Env } from '../worker';
 const STATUS_KEY = 'mcp:inoreader:last-status';
 
 export type InoreaderStatus = 'ok' | 'degraded' | 'unknown';
-export type InoreaderObservedSource = 'cron' | 'live-tool';
+/**
+ * Where the last Inoreader observation originated. BL-032.75 Phase 0 widened
+ * this enum to add `'http-snapshot'` so the `/radar/snapshot` SSR endpoint
+ * (worker.ts:357) — a high-volume cache-miss path during website redeploys —
+ * is distinguishable from MCP-tool live calls in /health and dashboards.
+ *
+ * Widening is backward-compatible at the type level: Upstash entries written
+ * before the enum widened still parse (the value is just a string). Readers
+ * that previously did an exhaustive switch without a default would need a
+ * new case, but the in-tree readers all treat the field as an opaque label.
+ */
+export type InoreaderObservedSource = 'cron' | 'live-tool' | 'http-snapshot';
 
 interface StatusEntry {
   readonly status: 'ok' | 'degraded';

@@ -18,12 +18,17 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { redisGet, MockRedis } = vi.hoisted(() => {
+const { redisGet, redisMget, MockRedis } = vi.hoisted(() => {
   const redisGet = vi.fn();
+  // BL-032.75 Phase 0: readInoreaderSpend uses MGET (one round-trip) for
+  // total + per-category counters. The Phase 0 audit-fix S2 swapped the
+  // 1+N GETs for a single MGET; the mock follows.
+  const redisMget = vi.fn().mockResolvedValue([0, 0, 0, 0, 0, 0]);
   class MockRedis {
     get = redisGet;
+    mget = redisMget;
   }
-  return { redisGet, MockRedis };
+  return { redisGet, redisMget, MockRedis };
 });
 
 vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
@@ -312,6 +317,70 @@ describe('buildHealthPayload', () => {
 
       const payload = await buildHealthPayload(baseEnv);
       expect(payload.radarSnapshotAgeSeconds).toBeNull();
+    });
+  });
+
+  // BL-032.75 Phase 0: /health surfaces the new categorized spend counter
+  // alongside the existing day-counter. These tests pin the shape so a
+  // dashboard / SLO consumer can rely on it.
+  describe('inoreaderSpend (BL-032.75 Phase 0)', () => {
+    it('reads total + per-category from the zone1-spend counters via MGET', async () => {
+      redisGet.mockImplementation(async (key: string) => {
+        if (key === 'mcp:health:probe') return null;
+        if (key === 'inoreader:access_token') return 'token';
+        if (key === 'mcp:inoreader:last-status') return null;
+        if (key === 'mcp:radar:cache:fyi') return null;
+        return null;
+      });
+      // MGET returns [total, cron-radar, live-radar, http-radar-snapshot,
+      // oauth-refresh, 401-retry] — the order INOREADER_EGRESS_CATEGORIES
+      // declares (load-bearing for the destructure in readInoreaderSpend).
+      redisMget.mockResolvedValueOnce([18, 12, 4, 2, 3, 0]);
+
+      const payload = await buildHealthPayload(baseEnv);
+
+      expect(payload.inoreaderSpend.total).toBe(18);
+      expect(payload.inoreaderSpend.byCategory).toEqual({
+        'cron-radar': 12,
+        'live-radar': 4,
+        'http-radar-snapshot': 2,
+        'oauth-refresh': 3,
+        '401-retry': 0,
+      });
+    });
+
+    it('returns zeros when no spend has been recorded today', async () => {
+      redisGet.mockImplementation(async (key: string) => {
+        if (key === 'mcp:health:probe') return null;
+        if (key === 'inoreader:access_token') return 'token';
+        return null;
+      });
+      // All spend keys missing → MGET returns nulls.
+      redisMget.mockResolvedValueOnce([null, null, null, null, null, null]);
+
+      const payload = await buildHealthPayload(baseEnv);
+
+      expect(payload.inoreaderSpend.total).toBe(0);
+      expect(payload.inoreaderSpend.byCategory).toEqual({
+        'cron-radar': 0,
+        'live-radar': 0,
+        'http-radar-snapshot': 0,
+        'oauth-refresh': 0,
+        '401-retry': 0,
+      });
+    });
+
+    it('returns zeros when MCP DB is unreachable rather than failing /health', async () => {
+      const env = {
+        ...baseEnv,
+        UPSTASH_MCP_REST_URL: undefined,
+        UPSTASH_MCP_REST_TOKEN: undefined,
+      };
+
+      const payload = await buildHealthPayload(env);
+
+      expect(payload.inoreaderSpend.total).toBe(0);
+      expect(payload.inoreaderSpend.byCategory['cron-radar']).toBe(0);
     });
   });
 });
