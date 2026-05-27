@@ -47,9 +47,29 @@ export type Regulation = z.infer<typeof RegulationSchema>;
 //
 // Used by the `search_regulations` and `list_regulation_facets` MCP tools.
 
+// Accept either a single string or an array; normalize to a non-empty
+// array so consumers always see `string[] | undefined`. Backward-
+// compatible for existing callers that pass `jurisdiction: 'eu'`.
+//
+// Union+transform (not preprocess) for two reasons: (a) clearer parse
+// error on garbage input — `{jurisdiction: 42}` reports `invalid_union`
+// with both arm errors instead of a single "expected array" message;
+// (b) sharper TS inference — the transformed output type is
+// `string[] | undefined`, never `unknown`. See BL-032.75 K-section
+// follow-up audit findings (2026-05-27).
+const StringOrStringArray = z
+  .union([z.string().min(1), z.array(z.string().min(1)).min(1)])
+  .transform((v) => (Array.isArray(v) ? v : [v]))
+  .optional();
+
+const CategoryOrArray = z
+  .union([RegulationCategorySchema, z.array(RegulationCategorySchema).min(1)])
+  .transform((v) => (Array.isArray(v) ? v : [v]))
+  .optional();
+
 export const RegulationSearchInputSchema = z.object({
-  jurisdiction: z.string().optional(),
-  category: RegulationCategorySchema.optional(),
+  jurisdiction: StringOrStringArray,
+  category: CategoryOrArray,
   query: z.string().optional(),
   limit: z.number().int().positive().max(120).default(20),
 });

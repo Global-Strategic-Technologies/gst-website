@@ -10,7 +10,14 @@ import {
   listCategories,
 } from '../../src/content/regulation-loader';
 import { RegulationSearchInputSchema } from '../../src/schemas';
-import { applyFilters, toSearchResult } from '../../src/tools/regulations';
+import {
+  applyFilters,
+  buildRegulatoryMapDeeplink,
+  jurisdictionToRegion,
+  pickSingle,
+  toSearchResult,
+} from '../../src/tools/regulations';
+import { HUB_BASE } from '../../src/config';
 
 describe('regulation-loader URI taxonomy', () => {
   it('parses the EU jurisdiction from id "eu-gdpr"', () => {
@@ -187,5 +194,143 @@ describe('RegulationSearchInputSchema (tool input contract)', () => {
     expect(RegulationSearchInputSchema.safeParse({ category: 'environmental' }).success).toBe(
       false
     );
+  });
+});
+
+// BL-032.75 candidate-BL-040 — `jurisdiction` and `category` accept either
+// a single string or an array. Backward-compatible via a Zod union+transform.
+// The handler's filterDeeplink omits the corresponding URL param when an
+// array has >1 element (capability-mirror with the website's single-select UI).
+describe('RegulationSearchInputSchema — array filters (multi-value)', () => {
+  it('normalizes a single string jurisdiction to a one-element array', () => {
+    const r = RegulationSearchInputSchema.parse({ jurisdiction: 'eu' });
+    expect(r.jurisdiction).toEqual(['eu']);
+  });
+
+  it('keeps a multi-element jurisdiction array as-is', () => {
+    const r = RegulationSearchInputSchema.parse({ jurisdiction: ['eu', 'us'] });
+    expect(r.jurisdiction).toEqual(['eu', 'us']);
+  });
+
+  it('rejects an empty jurisdiction array (.min(1))', () => {
+    const r = RegulationSearchInputSchema.safeParse({ jurisdiction: [] });
+    expect(r.success).toBe(false);
+  });
+
+  it('keeps a multi-element category array as-is', () => {
+    const r = RegulationSearchInputSchema.parse({
+      category: ['data-privacy', 'cybersecurity'],
+    });
+    expect(r.category).toEqual(['data-privacy', 'cybersecurity']);
+  });
+
+  it('rejects non-string-non-array jurisdiction with an invalid_union error', () => {
+    // Audit-pinned: validates the union (not preprocess) design choice
+    // — the union surfaces a clearer error than a single "expected array"
+    // message. If a future refactor swaps to z.preprocess this test
+    // would break, signaling the design regression.
+    const r = RegulationSearchInputSchema.safeParse({ jurisdiction: 42 });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(r.error.issues[0].code).toBe('invalid_union');
+    }
+  });
+
+  it('rejects an array containing invalid category enum values (closes the smuggling path)', () => {
+    // The array arm validates each element against RegulationCategorySchema,
+    // so invalid enum values inside an array fail just like the single-string
+    // arm. Without this, an attacker could smuggle `{category: ['environmental']}`
+    // past validation that the string arm rejects.
+    const r = RegulationSearchInputSchema.safeParse({ category: ['environmental'] });
+    expect(r.success).toBe(false);
+  });
+});
+
+describe('applyFilters — multi-value array filters', () => {
+  it('returns EU + US matches in one call for jurisdiction: ["eu", "us"]', () => {
+    const results = applyFilters({ jurisdiction: ['eu', 'us'], limit: 200 });
+    const jurisdictions = new Set(results.map((r) => r.jurisdiction));
+
+    // Positive: at least one EU and one US entry surface (jurisdiction
+    // codes are equality-matched, so `'us-ca'` does NOT match `'us'` —
+    // the test uses entry.jurisdiction, not id-prefix matching, to avoid
+    // that confusion).
+    expect(jurisdictions.has('eu')).toBe(true);
+    expect(jurisdictions.has('us')).toBe(true);
+
+    // Negative — restrictive filter, NOT OR-everything. Every returned
+    // entry's jurisdiction must be exactly 'eu' or 'us' (NOT 'us-ca',
+    // 'gb', 'ca-ab', etc.). Asserting on the jurisdiction set catches
+    // a regression where the filter would let every entry through (a
+    // count-only assertion could miss this).
+    for (const j of jurisdictions) {
+      expect(['eu', 'us']).toContain(j);
+    }
+  });
+
+  it('returns data-privacy + cybersecurity matches for category array, excluding the other two categories', () => {
+    const results = applyFilters({
+      category: ['data-privacy', 'cybersecurity'],
+      limit: 200,
+    });
+    const categories = new Set(results.map((r) => r.data.category));
+
+    expect(categories.has('data-privacy')).toBe(true);
+    expect(categories.has('cybersecurity')).toBe(true);
+
+    // Negative — restrictive filter must exclude the other two categories
+    expect(categories.has('ai-governance')).toBe(false);
+    expect(categories.has('industry-compliance')).toBe(false);
+  });
+
+  it('AND-combines facets: jurisdiction: ["eu", "us"] AND category: ["data-privacy"] returns only data-privacy entries within EU+US', () => {
+    const results = applyFilters({
+      jurisdiction: ['eu', 'us'],
+      category: ['data-privacy'],
+      limit: 200,
+    });
+
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      expect(r.data.category).toBe('data-privacy');
+      expect(['eu', 'us']).toContain(r.jurisdiction);
+    }
+  });
+});
+
+describe('filterDeeplink — single-value identity + multi-value omission', () => {
+  // Re-derive the deeplink the way the handler does so we test the same
+  // composition without going through the MCP transport.
+  function deeplinkFor(input: { jurisdiction?: string | string[]; category?: string | string[] }) {
+    const parsed = RegulationSearchInputSchema.parse(input);
+    const singleJur = pickSingle(parsed.jurisdiction);
+    const singleCat = pickSingle(parsed.category);
+    return buildRegulatoryMapDeeplink({
+      region: singleJur ? jurisdictionToRegion(singleJur) : null,
+      filter: singleCat ?? null,
+    });
+  }
+
+  it("string input 'eu' and array input ['eu'] produce byte-identical deeplinks", () => {
+    // The most-valuable test in this bundle (per audit) — pins the
+    // schema transform's guarantee that single-value callsites get zero
+    // observable difference regardless of input shape.
+    expect(deeplinkFor({ jurisdiction: 'eu' })).toBe(deeplinkFor({ jurisdiction: ['eu'] }));
+  });
+
+  it('multi-value jurisdiction array omits the region query param', () => {
+    const url = new URL(deeplinkFor({ jurisdiction: ['eu', 'us'] }));
+    expect(url.searchParams.has('region')).toBe(false);
+  });
+
+  it('multi-value arrays on BOTH facets collapse to the bare regulatory-map URL (no query params)', () => {
+    const url = deeplinkFor({
+      jurisdiction: ['eu', 'us'],
+      category: ['data-privacy', 'cybersecurity'],
+    });
+    // Bare URL: hub-base + path with no `?...`. The
+    // buildRegulatoryMapDeeplink helper returns the path alone when both
+    // region + filter are null.
+    expect(url).toBe(`${HUB_BASE}/hub/tools/regulatory-map/`);
   });
 });
