@@ -46,19 +46,12 @@
  * timeout / abort — nothing reached Inoreader, nothing was counted by
  * them).
  *
- * **Known uncounted egress: the BL-039 fallback path.** When
- * `authenticatedFetch` hits a 401 AND the primary `refreshAccessToken`
- * returns `reason: 'inoreader-error'`, it falls back to calling the
- * website's `/api/inoreader/refresh` endpoint via `triggerWebsiteRefresh`
- * (`inoreader-bl039-fallback.ts`). The website then issues its own
- * `/oauth2/token` POST against Inoreader, which Inoreader counts against
- * the quota but which the MCP-server wrapper never sees (the call is made
- * from a different origin entirely). Estimated rate: <5 calls/day under
- * steady state — soak data will confirm. **This gap closes automatically
- * when BL-032.8 Phase B (PR #140) merges** — Phase B retires the BL-039
- * fallback entirely. We intentionally do NOT instrument the website-side
- * refresh here because the instrumentation would be throwaway work; the
- * path is being deleted.
+ * **Closed gap** (historical, retained for context): prior to BL-032.8
+ * Phase B (PR #140, merged 2026-05-27), the BL-039 website-refresh
+ * fallback emitted `/oauth2/token` POSTs that Inoreader counted against
+ * the quota but this counter never saw — estimated <5 calls/day. Phase B
+ * retired the fallback; the Worker is now the sole egress point, so this
+ * counter captures every Worker-side Inoreader call.
  */
 
 import type { Redis } from '@upstash/redis';

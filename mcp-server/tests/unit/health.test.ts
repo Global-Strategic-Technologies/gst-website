@@ -208,7 +208,6 @@ describe('buildHealthPayload', () => {
       const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
       redisGet.mockImplementation(async (key: string) => {
         if (key === 'mcp:health:probe') return null;
-        if (key === 'inoreader:access_token') return 'token';
         if (key === 'mcp:inoreader:last-status') {
           return { status: 'ok', observedAt: twoHoursAgo, source: 'cron', note: 'wire' };
         }
@@ -226,7 +225,6 @@ describe('buildHealthPayload', () => {
     it('surfaces source: "live-tool" when the observation came from a live MCP call', async () => {
       redisGet.mockImplementation(async (key: string) => {
         if (key === 'mcp:health:probe') return null;
-        if (key === 'inoreader:access_token') return 'token';
         if (key === 'mcp:inoreader:last-status') {
           return {
             status: 'ok',
@@ -245,7 +243,6 @@ describe('buildHealthPayload', () => {
     it('returns observedSecondsAgo: null and observedSource: null when no entry exists', async () => {
       redisGet.mockImplementation(async (key: string) => {
         if (key === 'mcp:health:probe') return null;
-        if (key === 'inoreader:access_token') return 'token';
         if (key === 'mcp:inoreader:last-status') return null;
         return null;
       });
@@ -265,7 +262,6 @@ describe('buildHealthPayload', () => {
     it('handles pre-2026-05-19 entries without a source field (source: null)', async () => {
       redisGet.mockImplementation(async (key: string) => {
         if (key === 'mcp:health:probe') return null;
-        if (key === 'inoreader:access_token') return 'token';
         if (key === 'mcp:inoreader:last-status') {
           // Old entry shape — no `source` field.
           return { status: 'ok', observedAt: '2026-05-18T18:00:00.000Z', note: 'wire' };
@@ -348,7 +344,6 @@ describe('buildHealthPayload', () => {
     it('reads total + per-category from the zone1-spend counters via MGET', async () => {
       redisGet.mockImplementation(async (key: string) => {
         if (key === 'mcp:health:probe') return null;
-        if (key === 'inoreader:access_token') return 'token';
         if (key === 'mcp:inoreader:last-status') return null;
         if (key === 'mcp:radar:cache:fyi') return null;
         return null;
@@ -373,7 +368,6 @@ describe('buildHealthPayload', () => {
     it('returns zeros when no spend has been recorded today', async () => {
       redisGet.mockImplementation(async (key: string) => {
         if (key === 'mcp:health:probe') return null;
-        if (key === 'inoreader:access_token') return 'token';
         return null;
       });
       // All spend keys missing → MGET returns nulls.
