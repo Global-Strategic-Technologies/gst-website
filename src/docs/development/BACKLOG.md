@@ -2914,6 +2914,63 @@ Three architectural options, in order of preference:
 - Worth doing before BL-033 (broader OAuth / public MCP clients) lands, since that initiative will multiply the fan-out frequency
 - Cheap to ship; the Upstash lock pattern is reusable for other coalescing needs
 
+### BL-041: Upstash Database Security Hardening — Redis ACL + Account MFA
+
+**Source**: Surfaced during BL-032.8 honest closure (2026-05-27) — the operator-side decom of the legacy `gst-radar-tokens` DB highlighted that the surviving `gst-mcp` Upstash database is still accessed via a single admin-scoped REST token (`UPSTASH_MCP_REST_TOKEN`) with full keyspace + dangerous-command access, and the Upstash account itself has no enforced MFA policy. | **Effort**: ~half-day engineering + operator runbook | **Status**: 📋 Filed 2026-05-27 | **Depends on**: nothing (independent hardening) | **Blocks**: nothing today; recommended before BL-033 broadens client surface
+
+**As an** operator of the MCP Worker, **I want** the Upstash MCP database access scoped via per-purpose ACL users and the Upstash account protected with MFA, **so that** a leaked Worker secret can't issue dangerous commands (FLUSHDB, CONFIG, etc.) and an attacker phishing the operator's SSO provider can't take over the database fleet.
+
+#### Planning Criteria
+
+**Current state (post-BL-032.8)**
+
+- Single Upstash REST token (`UPSTASH_MCP_REST_TOKEN`) bound to the Worker — admin-level, full keyspace, all commands
+- No ACL users defined on `gst-mcp`; the default user is what the Worker presents
+- Upstash account: operator signs in via SSO (GitHub/Google); MFA enforcement at the org level has not been validated end-to-end
+- Health-probe key (`mcp:health:probe:*`), Inoreader token keys (`mcp:inoreader:*`), and any future namespaces all share the same blast radius
+
+**Capabilities confirmed via Upstash docs (Context7)**
+
+- Redis ACL is **available on all paid plans** for Upstash Redis (matches our `gst-mcp` tier)
+- `ACL SETUSER <name> on >password ~<keypattern> &<channel> +@<category> -@dangerous` — standard Redis 7 ACL syntax works as-is
+- `ACL RESTTOKEN <user> <password>` mints a REST token that inherits the ACL user's permissions (runnable from `redis-cli` or Upstash console CLI) — this is how we'd give the Worker a scoped token instead of the default admin token
+- MFA: Upstash recommends enabling via the upstream auth provider (Google/GitHub/Amazon) and **forcing MFA for all team members**; treat the Upstash account itself as production infrastructure (separate email/password account for production is the documented best practice)
+- Shared-responsibility model explicitly lists ACL configuration, credential management, and MFA enforcement as **customer responsibilities**
+
+**Use cases — recommended scope**
+
+1. **Per-purpose ACL users on `gst-mcp`**:
+   - `mcp-worker-rw` — `+@read +@write +@string +@hash -@dangerous ~mcp:*` (the Worker's actual surface)
+   - `mcp-readonly-ops` — `+@read -@dangerous ~mcp:*` (for ad-hoc operator inspection without exposing destructive commands)
+   - Rotate the bound `UPSTASH_MCP_REST_TOKEN` to one minted from `mcp-worker-rw` via `ACL RESTTOKEN`
+   - Retire the default admin token from the Worker binding (still available for break-glass via console)
+2. **Account MFA**:
+   - Audit current Upstash team membership; confirm every member's upstream SSO has MFA enforced
+   - If the operator account currently uses GitHub SSO without org-enforced MFA, switch to a provider that enforces it OR add a TOTP layer
+   - Document the verification step in DEPLOY.md so the next operator can re-confirm during onboarding/offboarding
+
+**Outcomes**
+
+- Worker-side compromise (leaked secret in build logs, malicious dependency, etc.) limited to read/write within `mcp:*` — no `FLUSHDB`, `CONFIG SET`, `SCRIPT`, `DEBUG`, etc.
+- Operator inspection sessions use the scoped read-only token by default; admin token only for break-glass
+- Upstream auth-provider compromise blocked by second factor; meets the customer half of Upstash's shared-responsibility model
+
+#### Acceptance Criteria
+
+- [ ] ACL users `mcp-worker-rw` and `mcp-readonly-ops` created on `gst-mcp`; passwords stored in 1Password (operator vault)
+- [ ] `UPSTASH_MCP_REST_TOKEN` for both staging + production rotated to a token minted from `mcp-worker-rw` via `ACL RESTTOKEN`; old default-user token revoked
+- [ ] `/health` probe (T.X.2 SET-then-DEL) still passes against the new scoped token — confirms `+@write +@read` ACL covers the probe path
+- [ ] Negative test: from `redis-cli` authed as `mcp-worker-rw`, `FLUSHDB` returns `(error) NOPERM` — codifies the dangerous-command revocation
+- [ ] Upstash account MFA verified for every team member; finding documented in `src/docs/operations/SECRETS_INVENTORY.md`
+- [ ] DEPLOY.md gains a short "Upstash account hygiene" section (or extends § A.3) covering ACL user purpose + the MFA verification checklist
+- [ ] Operator runbook: how to rotate the scoped token (re-mint via `ACL RESTTOKEN` and `wrangler secret put`) — small enough to inline in DEPLOY.md
+
+**Why now**
+
+- Not blocking — current single-token setup works and the Worker secret has never been exposed externally
+- BL-033 (external pilot) broadens both the client surface and the number of people with operator access; landing this before BL-033 means the access-control story is settled before stakes rise
+- Cheap to ship; the ACL pattern is reusable (same `ACL RESTTOKEN` flow will apply to future Upstash databases if we add them)
+
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026_
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026_
