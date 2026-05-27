@@ -953,7 +953,13 @@ The MCP server's blast radius is bounded — it's an internal tool, BL-033 hasn'
 
 ## C.13 — Decommission legacy Inoreader DB (BL-032.8 Phase B one-time)
 
-> **Audience**: operator running the BL-032.8 Phase B retirement (PR #140). Skip this section if your Worker was deployed fresh post-2026-05-17 — there's nothing legacy to decommission.
+> ## ✅ Completed 2026-05-27
+>
+> The one-time decommission ran during the BL-032.8 Phase B closure session. This section is retained for two reasons: (a) the same pattern applies to any future "retire a parallel DB" operation, and (b) the prerequisite/step/rollback structure documents the safety reasoning. Future readers: this is historical reference, not a pending task.
+
+> **Audience** (historical): operator running the BL-032.8 Phase B retirement (PR #140). Skip this section if your Worker was deployed fresh post-2026-05-17 — there's nothing legacy to decommission.
+>
+> **Vercel-side cleanup**: § C.13 below covers the Worker side. The Vercel `INOREADER_*` env var sweep + Vercel↔Upstash integration disconnect lived in [`BL-032_8_SOAK_GATE.md`](./BL-032_8_SOAK_GATE.md) — see that doc for the Vercel walkthrough. Both halves ran the same day; both are now `✅ Completed 2026-05-27`.
 
 BL-032.8 Phase B retired the website-shared **Inoreader DB** (the `gst-radar-tokens` Upstash database that held the `inoreader:*` OAuth-token namespace). After Phase A landed and stabilized through the 7-day soak, the database had no remaining writer (the website's `inoreader/client.ts` was deleted) and no remaining reader (the Worker's dual-read fallback was removed in Phase B). This section walks through the operator-side cleanup.
 

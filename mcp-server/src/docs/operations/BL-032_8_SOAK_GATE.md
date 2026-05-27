@@ -1,7 +1,11 @@
 # BL-032.8 Phase B Soak Gate — Operator Tracker
 
-> **Window**: 2026-05-17 (Phase A merged) → 2026-05-24 (PR #140 target merge)
-> **PR**: [#140 — Phase B retirement (DRAFT)](https://github.com/Global-Strategic-Technologies/gst-website/pull/140)
+> ## ✅ Gate closed 2026-05-27
+>
+> Phase B (PR #140) merged 2026-05-27 after the soak window closed clean. Operator-side decommissioning of legacy Vercel `INOREADER_*` env vars, Worker `UPSTASH_INOREADER_REST_*` + `INOREADER_REFRESH_SECRET` secrets, and the `gst-radar-tokens` Upstash database itself was completed the same day. This document is retained as the historical operator tracker — sections below reflect the original forward-looking design and are now historical reference for future similar soak gates. See [`MCP_SERVER_RADAR_UNIFICATION_BL-032_8.md`](../../../../src/docs/development/MCP_SERVER_RADAR_UNIFICATION_BL-032_8.md) for the closure note.
+
+> **Window**: 2026-05-17 (Phase A merged) → 2026-05-27 (PR #140 merged; closed clean — original target was 2026-05-24, slipped 3 days due to ordering of BL-032.76 cron-Sentry fix landing first)
+> **PR**: [#140 — Phase B retirement (✅ MERGED 2026-05-27)](https://github.com/Global-Strategic-Technologies/gst-website/pull/140)
 > **Companion docs**:
 >
 > - [`MCP_SERVER_RADAR_UNIFICATION_BL-032_8.md`](../../../../src/docs/development/MCP_SERVER_RADAR_UNIFICATION_BL-032_8.md) — full initiative design + 6-phase plan

@@ -1,5 +1,15 @@
 # MCP Server — Radar Consumer Unification (BL-032.8)
 
+> ## ✅ Closed 2026-05-27
+>
+> - **Phase A** shipped via PR #139 (commit `89e5933`, merged 2026-05-17)
+> - **Phase B** retirement shipped via PR #140 (commit `794190c`, merged 2026-05-27)
+> - **Honest closure** via PR #<TBD> — source/test cleanup of stale BL-039 references + doc reconciliation + BACKLOG truth pass
+> - **Operator-side decom** of legacy `gst-radar-tokens` Upstash DB + Vercel `INOREADER_*` env vars + Worker `UPSTASH_INOREADER_REST_*` / `INOREADER_REFRESH_SECRET` secrets completed 2026-05-27 (see [`mcp-server/src/docs/operations/BL-032_8_SOAK_GATE.md`](../../../mcp-server/src/docs/operations/BL-032_8_SOAK_GATE.md))
+> - **Substrate verified**: `/health` returns `upstashMcp: "ok"` with no `upstashInoreader` field; Inoreader Developer Console shows single-app traffic; zero `triggerWebsiteRefresh` invocations in Sentry post-Phase-B
+>
+> Sections below preserve the original design narrative as historical reference.
+
 > **Backlog initiative**: [BL-032.8: Radar Consumer Unification — MCP Worker as sole Inoreader caller](BACKLOG.md#bl-0328-radar-consumer-unification--mcp-worker-as-sole-inoreader-caller)
 > **Predecessors**:
 >
