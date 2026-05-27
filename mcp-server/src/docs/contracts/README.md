@@ -126,6 +126,32 @@ Source: [`src/data/common/funding-stages.ts`](../../../../src/data/common/fundin
 
 If a future tool needs both funding-stage cohort AND growth-velocity bucketing, it should declare both as separate fields with separate enums.
 
+### Single-value or array — multi-value-filter pattern (regulations v2)
+
+Tools whose faceted-search inputs (e.g. `jurisdiction`, `category`) might reasonably accept either a single value or several should follow the **union+transform pattern** established by `search_regulations` v2:
+
+```ts
+const StringOrStringArray = z
+  .union([z.string().min(1), z.array(z.string().min(1)).min(1)])
+  .transform((v) => (Array.isArray(v) ? v : [v]))
+  .optional();
+```
+
+**Why union+transform (and NOT `z.preprocess`)**:
+
+- Surfaces a clearer parse error on garbage input — `{field: 42}` reports `invalid_union` with both arm errors, instead of a single "expected array" message
+- Gives the handler sharp `string[] | undefined` TS inference (no `unknown` cast)
+- The `invalid_union` error code is itself pinned by a test, so a future refactor to `z.preprocess` breaks CI
+
+**Required companion contracts**:
+
+- **`.min(1)` on the array arm** — empty array is ambiguous with "no filter" and must reject
+- **Array arm validates each element** against the same schema as the string arm — closes a smuggling path where invalid enum values inside an array would bypass validation that the string arm rejects
+- **Backward compatibility** — existing single-string callsites must continue to work unchanged; the transform normalizes both shapes to an array internally
+- **Byte-identical guarantee for derived URLs / deeplinks** — `{filter: 'eu'}` and `{filter: ['eu']}` must produce identical downstream output for single-value callsites. Pin with a unit test.
+
+**Capability-mirror policy for multi-value**: if the corresponding website UI is single-select, the tool's response must NOT emit a misleading single-value URL when the agent passed an array — drop the URL param instead. See [`../regulatory-map/CONTRACT.md`](../regulatory-map/CONTRACT.md) § "Multi-value filters" for the canonical example + rationale.
+
 ### Other shared concepts (no current variance)
 
 The following concepts appear in only one contract today — included here so future tools that share them know to pick the existing shape rather than reinvent:

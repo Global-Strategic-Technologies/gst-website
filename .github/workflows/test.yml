@@ -196,8 +196,21 @@ jobs:
 
       - name: Run tests with coverage
         if: needs.changes.outputs.should_run == 'true'
+        # Capture vitest's exit code via PIPESTATUS so the step's success
+        # reflects test outcomes, not just tee's. Without this the `tee`
+        # pipeline captures tee's exit code (always 0), masking vitest
+        # failures and making the workflow report `success` while tests
+        # are red. Same bug as test-mcp-server.yml; both fixed in the same
+        # commit (2026-05-27 audit). The Lighthouse / perf-dashboard
+        # workflows have the same `| tee` shape but are intentionally
+        # exit-tolerant (perf regressions are advisory signals, not
+        # gating) — left alone.
+        #
+        # PIPESTATUS[0] is bash-specific — `shell: bash` is required.
+        shell: bash
         run: |
           npm run test:coverage 2>&1 | tee coverage-output.txt
+          TEST_EXIT=${PIPESTATUS[0]}
           SUMMARY=$(grep "^All files" coverage-output.txt || echo "")
           if [ -n "$SUMMARY" ]; then
             STMTS=$(echo "$SUMMARY" | awk -F'|' '{gsub(/ /,"",$2); print $2}')
@@ -213,6 +226,11 @@ jobs:
             echo "| Functions | ${FUNCS}% |" >> $GITHUB_STEP_SUMMARY
             echo "| Lines | ${LINES}% |" >> $GITHUB_STEP_SUMMARY
           fi
+          # Surface vitest's actual exit code as the step's exit code so
+          # test failures fail the workflow (not the tee from the pipeline
+          # above). Run AFTER the summary scraping so coverage still lands
+          # in $GITHUB_STEP_SUMMARY on red builds.
+          exit $TEST_EXIT
 
       - name: Skipped (docs-only or duplicate run)
         if: needs.changes.outputs.should_run != 'true'

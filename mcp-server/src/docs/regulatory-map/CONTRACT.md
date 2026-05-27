@@ -1,7 +1,7 @@
 ---
 tool: search_regulations
-version: v1
-lastAuthored: 2026-04-28
+version: v2
+lastAuthored: 2026-05-27
 schema: src/schemas/regulatory-map.ts
 ---
 
@@ -28,7 +28,7 @@ schema: src/schemas/regulatory-map.ts
 >
 > Both prompts surface `gst://regulations/<jurisdiction>/<framework-id>` URIs as analyst-pinnable references. Adding new fields to `SearchResult`'s wire shape (e.g., for future enrichment beyond `scope`/`keyRequirements`/`penalties`) should be reflected in the regulatory-exposure-brief body's Step 2 source-grounding instruction.
 >
-> **Version**: `v1` | **Last authored**: 2026-04-28
+> **Version**: `v2` | **Last authored**: 2026-05-27 (multi-value filters)
 >
 > **Registry**: see [`../contracts/README.md`](../contracts/README.md).
 
@@ -36,14 +36,26 @@ schema: src/schemas/regulatory-map.ts
 
 ## `search_regulations` — field overview
 
-| Field          | Type     | Required | Default | Notes                                                                          |
-| -------------- | -------- | -------- | ------- | ------------------------------------------------------------------------------ |
-| `jurisdiction` | string   | no       | —       | Exact match against parsed jurisdiction code                                   |
-| `category`     | enum (4) | no       | —       | One of `data-privacy`, `ai-governance`, `industry-compliance`, `cybersecurity` |
-| `query`        | string   | no       | —       | Free-text substring match across `id`, `name`, `summary`                       |
-| `limit`        | int      | no       | 20      | Cap on returned matches; max 120                                               |
+| Field          | Type                        | Required | Default | Notes                                                                                          |
+| -------------- | --------------------------- | -------- | ------- | ---------------------------------------------------------------------------------------------- |
+| `jurisdiction` | `string \| string[]`        | no       | —       | Exact match against parsed jurisdiction code. Accepts a single string or an array (see below). |
+| `category`     | `enum(4) \| Array<enum(4)>` | no       | —       | One of `data-privacy`, `ai-governance`, `industry-compliance`, `cybersecurity`; or an array.   |
+| `query`        | string                      | no       | —       | Free-text substring match across `id`, `name`, `summary`                                       |
+| `limit`        | int                         | no       | 20      | Cap on returned matches; max 120                                                               |
 
-All filters are combined with AND. Empty input (`{}`) returns the first 20 frameworks, useful as a sanity check or browse-mode call.
+Filters AND across facets and OR within a facet — `{jurisdiction: ['eu','us'], category: ['data-privacy']}` returns data-privacy frameworks whose `jurisdiction ∈ {eu, us}`. Empty input (`{}`) returns the first 20 frameworks, useful as a sanity check or browse-mode call.
+
+### Multi-value filters (v2 — added 2026-05-27)
+
+`jurisdiction` and `category` each accept either a single string OR an array of strings. The schema normalizes both shapes to an array internally, so the response is identical whether the caller passes `'eu'` or `['eu']`.
+
+- **Backward compatibility**: existing string callsites (`{jurisdiction: 'eu'}`) continue to work unchanged.
+- **Empty array rejects**: `{jurisdiction: []}` fails validation (`.min(1)`) because the empty array is ambiguous with "no filter."
+- **Invalid category in array rejects**: `{category: ['environmental']}` fails the same way `{category: 'environmental'}` does — the array arm validates each element against the canonical enum (closes a smuggling path).
+- **Multi-value `filterDeeplink` policy**: when a filter array has >1 element, the response's `filterDeeplink` **omits the corresponding URL param**. When BOTH arrays have >1 element, the deeplink collapses to the bare `https://globalstrategic.tech/hub/tools/regulatory-map/`. The "why" is the **capability-mirror invariant**: the website page uses single-select chips and cannot represent a multi-jurisdiction (or multi-category) filter in its URL state. Returning a misleading deeplink that doesn't reflect the agent's filter would silently drop user intent. Use single-value filters when you need a deeplink that mirrors the agent's filter exactly.
+- **Byte-identical guarantee**: deeplinks for `jurisdiction: 'eu'` and `jurisdiction: ['eu']` are strictly equal (`===`). This is pinned by a unit test (`tests/unit/regulations.test.ts`) so any future schema refactor can't silently produce different deeplinks for the two callsite shapes.
+
+**Why union+transform (not preprocess)**: Zod's `z.union(...).transform(...)` surfaces a clearer parse error on garbage input (`{jurisdiction: 42}` reports `invalid_union` with both arm errors), gives the handler sharp `string[] | undefined` TS inference (no `unknown` cast), and is itself pinned by an `invalid_union` error-code assertion so a future refactor to `z.preprocess` would break CI. See [`tests/unit/regulations.test.ts`](../../../tests/unit/regulations.test.ts) under "RegulationSearchInputSchema — array filters (multi-value)".
 
 ### `jurisdiction` valid values
 

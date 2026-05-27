@@ -34,7 +34,7 @@ Search the GST Regulatory Map (120 frameworks across data privacy, AI governance
 
 Filters by \`jurisdiction\` (e.g. "eu", "us", "us-ca", "ca-qc"), \`category\` (one of "data-privacy", "ai-governance", "industry-compliance", "cybersecurity"), and free-text \`query\` (matches name, summary, and id). Returns up to \`limit\` matches (default 20, max 120).
 
-**Efficiency tip — for multi-jurisdiction or multi-category queries, prefer omitting one filter and filtering in synthesis.** The 120-framework full response fits comfortably in context; sequential per-jurisdiction fan-out (e.g. \`{jurisdiction: "eu"}\` then \`{jurisdiction: "us"}\` then \`{jurisdiction: "gb"}\`...) is wasteful when \`{category: "data-privacy", limit: 120}\` returns every jurisdiction's data-privacy frameworks in one call. Same logic applies for cross-category queries within one jurisdiction.
+**Multi-value filters** — both \`jurisdiction\` and \`category\` accept either a single string OR an array of strings (e.g. \`jurisdiction: ["eu", "us", "gb"]\`, \`category: ["data-privacy", "ai-governance"]\`). When multiple values are supplied, the response combines all matches in one call — preferred over sequential per-value fan-out. When arrays contain >1 element, the response's \`filterDeeplink\` omits that filter (the website UI uses single-select chips and cannot represent multi-select); use single-value filters when you need a deeplink that mirrors the agent's filter exactly. For multi-jurisdiction OR multi-category queries the full 120-framework response fits comfortably in context — prefer broader filters + synthesis-side narrowing over sequential fan-out.
 
 Each match includes:
 - \`uri\` (e.g. \`gst://regulations/eu/gdpr\`) — canonical resource URI
@@ -106,10 +106,27 @@ function scoreQuery(entry: RegulationEntry, query: string): number {
   return score;
 }
 
+/**
+ * Pick the sole element of a one-element array, or `undefined` for
+ * arrays of any other length (including `undefined` input). Used by the
+ * filterDeeplink construction: the website's regulatory map page UI
+ * is single-select, so a multi-element MCP filter cannot be represented
+ * in the deeplink — we drop the param rather than emit a misleading URL.
+ *
+ * Exported for testability — the deeplink-omit-when-multi policy is a
+ * documented capability-mirror constraint (see CONTRACT.md v2).
+ */
+export function pickSingle<T>(v: readonly T[] | undefined): T | undefined {
+  return v?.length === 1 ? v[0] : undefined;
+}
+
 export function applyFilters(input: RegulationSearchInput): RegulationEntry[] {
   const facetFiltered = REGULATION_ENTRIES.filter((entry) => {
-    if (input.jurisdiction && entry.jurisdiction !== input.jurisdiction) return false;
-    if (input.category && entry.data.category !== input.category) return false;
+    // After the schema transform, jurisdiction/category are
+    // `string[] | undefined`. Multi-value filters OR within a facet
+    // and AND across facets (typical faceted-search semantic).
+    if (input.jurisdiction && !input.jurisdiction.includes(entry.jurisdiction)) return false;
+    if (input.category && !input.category.includes(entry.data.category)) return false;
     return true;
   });
 
@@ -247,11 +264,22 @@ export function registerRegulationsTool(server: McpServer): void {
     async (input) => {
       const matched = applyFilters(input);
       const returned = matched.slice(0, input.limit);
+      // Deeplink construction: the website's regulatory map UI uses
+      // single-select chips, so a multi-value MCP filter can't be
+      // represented. Policy: when an array has >1 element, omit the
+      // corresponding URL param; when both are >1, the URL collapses to
+      // the bare map. Single-string and single-element-array inputs
+      // produce byte-identical deeplinks (the schema transform
+      // normalizes both to `['eu']`, and `pickSingle` extracts the
+      // element identically). Documented in
+      // mcp-server/src/docs/regulatory-map/CONTRACT.md v2.
+      const singleJur = pickSingle(input.jurisdiction);
+      const singleCat = pickSingle(input.category);
       const filterDeeplink =
         input.jurisdiction || input.category
           ? buildRegulatoryMapDeeplink({
-              region: input.jurisdiction ? jurisdictionToRegion(input.jurisdiction) : null,
-              filter: input.category ?? null,
+              region: singleJur ? jurisdictionToRegion(singleJur) : null,
+              filter: singleCat ?? null,
             })
           : undefined;
       const payload = {
