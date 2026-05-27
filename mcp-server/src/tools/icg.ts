@@ -52,7 +52,7 @@ Given an \`answers\` map keyed by ICG question ID (values: 0-3 for the four matu
 
 - \`overallScore\` (0-100) and \`maturityLevel\` ('Reactive' | 'Aware' | 'Optimizing' | 'Strategic')
 - Per-domain scores with foundational-flag status — each entry's \`name\` field is the canonical domain name (use these names verbatim; do not paraphrase or substitute)
-- Sorted recommendations triggered by below-threshold answers (impact-then-effort ordering)
+- Sorted recommendations triggered by below-threshold answers (impact-then-effort ordering). Each recommendation carries \`triggerQuestionAnswered: boolean\` — \`true\` when the trigger question was explicitly answered (any value 0-3 or -1), \`false\` when the key was absent and the engine defaulted to 0. Use this to distinguish confirmed gaps from assumed gaps in summarized output.
 - Aggregate counts (answered, total, "Not sure" responses)
 - \`deeplink\` — URL to open the ICG wizard with these answers pre-populated (for PDF / export / share via the website page)
 - \`stageContext\` — when \`companyStage\` is supplied, echoes the native value the engine used and the canonical funding-stage equivalents

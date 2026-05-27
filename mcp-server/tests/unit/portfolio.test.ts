@@ -7,9 +7,10 @@
  *
  * BL-031.95 Phase 4.A: the `limit` input was removed from the schema
  * under the capability-mirror invariant (the website's /ma-portfolio
- * page renders all 61 projects always). The full wrapper-pipeline
- * pathway including deeplink emission is exercised in the integration
- * file `tests/integration/portfolio-handler.test.ts`.
+ * page renders all bundled projects always — no client-side pagination
+ * or truncation). The full wrapper-pipeline pathway including deeplink
+ * emission is exercised in the integration file
+ * `tests/integration/portfolio-handler.test.ts`.
  */
 
 import projectsRaw from '../../../src/data/ma-portfolio/projects.json';
@@ -34,8 +35,14 @@ describe('Portfolio dataset (bundle integrity)', () => {
     expect(PROJECTS.length).toBeGreaterThan(0);
   });
 
-  it('contains exactly 61 projects (regression guard)', () => {
-    expect(PROJECTS.length).toBe(61);
+  it('contains a non-trivial number of projects (regression guard against accidental truncation)', () => {
+    // Lower bound rather than an exact count: ProjectsArraySchema.parse
+    // above is the real integrity check (throws on any malformed record).
+    // The `>= 50` guard catches wholesale data loss without trapping
+    // routine additions — the exact-count pattern was failing CI on
+    // every portfolio-add PR (see TEST_BEST_PRACTICES.md § 6 — "Hardcoded
+    // Test Data Assumptions").
+    expect(PROJECTS.length).toBeGreaterThanOrEqual(50);
   });
 
   it('every project has a non-empty technologies array', () => {
