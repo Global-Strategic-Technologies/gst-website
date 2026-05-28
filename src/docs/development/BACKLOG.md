@@ -2327,6 +2327,14 @@ Option (a) is cheapest; option (b) is most correct. Pick after instrumentation d
 - Adding OpenTelemetry tracing for cron firings — BL-032.75 Phase 3 deferred-tracing decision still holds.
 - Changing the cron cadence — `0 */6 * * *` is correct per BL-032.7 budget math.
 
+#### Deploy-time lessons learned (2026-05-28 production deploy)
+
+**Cloudflare Analytics Engine requires a one-time dashboard step before first deploy.** Cloudflare's [get-started docs](https://developers.cloudflare.com/analytics/analytics-engine/get-started/) claim datasets auto-materialize on first write after the binding is declared — and that's TRUE for second-and-later datasets, but the **first** dataset has to be created via the dashboard's "Create Blank Dataset" dialog (with binding name `METRICS` matching wrangler.toml). This flips the account-level enable. Subsequent datasets across other envs (e.g. `mcp_events` after `mcp_events_staging` was created manually) auto-materialize as advertised.
+
+The BL-032.75 Phase 1 closeout audit (PR #179) explicitly claimed "NO manual provisioning required for Phase 1 emission" — that was wrong. DEPLOY.md § A.4.5 has been corrected in this commit to walk operators through the one-time account-level enable. Future operators (or future-you across an Account-level fresh start) won't be surprised.
+
+**This is the kind of doc claim that needs adversarial-audit verification against production reality, not just doc-vs-doc reading.** Cloudflare's own docs were the source of the wrong claim — the audit verified the claim against docs but didn't verify the docs against a real deploy. Lesson for future plan-audit cycles: when a doc-cited fact gates a deploy step, prove it with a dry-run against a real account before declaring the audit clean.
+
 ---
 
 ### BL-033: MCP Server — External Pilot (Phase 3)
