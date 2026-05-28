@@ -32,6 +32,7 @@
  * perspective — wall-clock cost is one `Date.now()` + one synchronous
  * `sink.write()`.
  */
+import { safeLog } from '../auth/safe-logger';
 import { guardEvent } from './guard';
 import type { EventType, MetricEvent } from './_schema';
 import type { MetricSink } from './sinks/_interface';
@@ -59,11 +60,29 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
     const startedAt = Date.now();
     try {
       const result = await inner(...args);
+      // B1 fix: detectOutcome MUST NOT take down the caller. A buggy projection
+      // (e.g. accessing a field on an unexpected result shape) defaults to
+      // 'success' so the handler's real return value still propagates. The
+      // safeLog line surfaces the projection bug for operators without
+      // converting a successful handler call into a thrown error.
+      let outcome: string;
+      try {
+        outcome = detectOutcome(result);
+      } catch (projectionErr) {
+        outcome = 'success';
+        safeLog({
+          event: 'metrics.detect-outcome.threw',
+          tool: name,
+          reason: projectionErr instanceof Error ? projectionErr.message.slice(0, 200) : 'unknown',
+          success: false,
+          errorCode: 'metrics-detect-outcome',
+        });
+      }
       emit(ctx.sink, {
         event_type: eventType,
         name,
         keyOwner: ctx.keyOwner,
-        outcome: detectOutcome(result),
+        outcome,
         duration_ms: Date.now() - startedAt,
       });
       return result;
@@ -83,11 +102,14 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
 /**
  * Wrap a Tool handler. MCP convention: `result.isError === true` → error,
  * otherwise success.
+ *
+ * Constraint `TResult extends object` (not `{ isError?: boolean }`) — the
+ * tighter shape triggers TypeScript's weak-type rejection against
+ * `CallToolResult` literals like `{ content: [...] }` which don't carry
+ * `isError` until error-path. Runtime cast covers the optional-field read
+ * cleanly; SDK type compat verified via `tests/unit/metrics/sdk-integration.test.ts`.
  */
-export function withToolMetrics<
-  TArgs extends readonly unknown[],
-  TResult extends { isError?: boolean },
->(
+export function withToolMetrics<TArgs extends readonly unknown[], TResult extends object>(
   name: string,
   ctx: MetricsContext,
   inner: (...args: TArgs) => Promise<TResult>
@@ -96,7 +118,7 @@ export function withToolMetrics<
     'tool_invocation',
     name,
     ctx,
-    (result) => (result.isError ? 'error' : 'success'),
+    (result) => ((result as { isError?: boolean }).isError ? 'error' : 'success'),
     inner
   );
 }

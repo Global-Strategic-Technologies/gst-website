@@ -37,7 +37,24 @@ import {
   OUTCOME_VALUES,
 } from './_schema';
 
+/**
+ * Truncation marker. Note: `'…'` is **3 bytes UTF-8** (U+2026 HORIZONTAL
+ * ELLIPSIS). A string truncated to `maxChars` JS code units (= char count
+ * for the BMP-only ASCII fields we use today) can therefore be up to
+ * `maxChars × 4 + 3` UTF-8 bytes — well under AE's 16 KB blob payload cap
+ * given the current `BLOB_SLOTS` maxChars sum (~296 chars).
+ *
+ * If a future field admits high-codepoint UTF-8 (emoji, supplementary plane)
+ * the truncation may also land mid-surrogate-pair. ASCII-only by current
+ * design — revisit with `Array.from(s).slice(...)` if that constraint relaxes.
+ */
 const TRUNCATION_MARKER = '…';
+
+/**
+ * Module-singleton encoder. `TextEncoder` is stateless; per-call construction
+ * is wasteful when `utf8ByteLength` runs once per blob field per emission.
+ */
+const ENCODER = new TextEncoder();
 
 /**
  * Validate a `MetricEvent` against the schema, returning either a normalized
@@ -123,8 +140,9 @@ function isKnownEventType(value: unknown): value is EventType {
 
 function utf8ByteLength(s: string): number {
   // Workers-runtime + Node both expose `TextEncoder`; cheaper than `Buffer`
-  // (which isn't always present in edge runtimes).
-  return new TextEncoder().encode(s).length;
+  // (which isn't always present in edge runtimes). Module-level singleton
+  // since `TextEncoder` is stateless.
+  return ENCODER.encode(s).length;
 }
 
 function sumBlobPayloadBytes(event: MetricEvent): number {

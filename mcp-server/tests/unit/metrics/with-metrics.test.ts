@@ -170,4 +170,59 @@ describe('withMetricsCore (generic)', () => {
     // Guard rejects the event; sink stays empty. The inner still runs.
     expect(sink.events).toHaveLength(0);
   });
+
+  it('B1: detectOutcome throw does NOT propagate; defaults to success; result still returns', async () => {
+    // Adversarial-audit B1: a buggy projection on the success path must
+    // NOT convert a successful handler call into a thrown error from the
+    // caller's perspective.
+    const { sink, ctx } = makeCtx();
+    const innerResult = { ok: true };
+    const wrapped = withMetricsCore<[], typeof innerResult>(
+      'tool_invocation',
+      't',
+      ctx,
+      () => {
+        throw new Error('projection boom');
+      },
+      async () => innerResult
+    );
+    const result = await wrapped();
+    // The original handler return propagates unchanged.
+    expect(result).toBe(innerResult);
+    // The event still lands with the default outcome.
+    expect(sink.events).toHaveLength(1);
+    expect(sink.events[0]).toMatchObject({
+      event_type: 'tool_invocation',
+      outcome: 'success',
+    });
+  });
+});
+
+describe('W5: concurrency', () => {
+  it('measures distinct duration_ms across parallel HOF invocations', async () => {
+    // Adversarial-audit W5: per-invocation `startedAt` capture must not be
+    // shared across concurrent calls. Three callers with staggered delays
+    // should land three events with monotonically related durations.
+    const { sink, ctx } = makeCtx();
+    const wrapped = withMetricsCore<[number], number>(
+      'tool_invocation',
+      't',
+      ctx,
+      () => 'success',
+      async (delayMs: number) => {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        return delayMs;
+      }
+    );
+    await Promise.all([wrapped(5), wrapped(20), wrapped(40)]);
+    expect(sink.events).toHaveLength(3);
+    // Sort by duration so the assertion is order-independent.
+    const durations = sink.events.map((e) => e.duration_ms ?? 0).sort((a, b) => a - b);
+    expect(durations[0]).toBeLessThan(durations[1]);
+    expect(durations[1]).toBeLessThan(durations[2]);
+    // Each duration should be at least ~its requested delay.
+    expect(durations[0]).toBeGreaterThanOrEqual(3);
+    expect(durations[1]).toBeGreaterThanOrEqual(15);
+    expect(durations[2]).toBeGreaterThanOrEqual(35);
+  });
 });

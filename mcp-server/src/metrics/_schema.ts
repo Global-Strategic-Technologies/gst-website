@@ -122,11 +122,34 @@ export const DOUBLE_SLOTS: readonly DoubleSpec[] = [
 ] as const;
 
 /**
- * Sum of `maxChars` across all blob slots — sanity bound for the substrate's
- * 16 KB blob payload cap (16 384 bytes). Current total: ~296 chars worst-case,
- * orders of magnitude under the cap.
+ * Sum of `maxChars` across all blob slots, measured in JS string code units
+ * (≈ chars). Useful for budget-vs-cap math but NOT directly comparable to
+ * the AE 16 KB BYTE cap — UTF-8 can encode a single JS char into up to 4
+ * bytes (4-byte sequences for high-codepoint emoji/surrogate pairs). The
+ * static sanity bound below uses the worst-case ×4 conversion; the runtime
+ * `guard.ts::sumBlobPayloadBytes` measures actual UTF-8 byte length and
+ * is the authoritative check.
  */
-export const MAX_BLOB_PAYLOAD_CHARS = BLOB_SLOTS.reduce((sum, b) => sum + b.maxChars, 0);
+export const MAX_BLOB_PAYLOAD_CHARS_SUM = BLOB_SLOTS.reduce((sum, b) => sum + b.maxChars, 0);
+
+/**
+ * Conservative worst-case UTF-8 byte count for the full blob payload (chars
+ * sum × 4 byte/char). Sized to be safely under AE's 16 KB cap even if every
+ * blob field were filled with 4-byte UTF-8 sequences. Currently
+ * `296 × 4 = 1184` bytes worst-case vs the 16 384-byte ceiling.
+ */
+export const MAX_BLOB_PAYLOAD_BYTES_WORST_CASE = MAX_BLOB_PAYLOAD_CHARS_SUM * 4;
+
+/**
+ * Sentinel placed in `index1` when `keyOwner` is absent (cron paths,
+ * un-authenticated probes, stdio). AE requires non-empty index strings.
+ *
+ * Chosen to be impossible as a real `keyOwner` value: real owners are
+ * stripped suffixes of `MCP_KEY_*` env vars (alphanumeric uppercase),
+ * never bracketed in double underscores. Pinning the choice here lets
+ * Grafana queries filter unauthenticated traffic via `WHERE index1 = '__none__'`.
+ */
+export const KEYOWNER_PLACEHOLDER = '__none__';
 
 /**
  * AE substrate caps (verified against Cloudflare docs 2026-05-27). Exposed so
@@ -149,7 +172,11 @@ export const AE_LIMITS = {
  */
 export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
   tool_invocation: ['success', 'error'],
-  resource_read: ['success', 'hit', 'miss', 'error'],
+  // Narrow set for Phase 1. When the cache layer is wired to emit hit/miss
+  // distinctly (Phase 4 or later), widen to include those values + update the
+  // snapshot test. Avoiding speculative widening keeps the dashboard SQL
+  // narrow and forces the cache instrumentation to be a deliberate addition.
+  resource_read: ['success', 'error'],
   prompt_invocation: ['success', 'error'],
   prompt_span: ['success', 'error'],
   rate_limit_decision: ['allow', 'throttle', 'deny'],
@@ -193,8 +220,9 @@ export function toDataPoint(event: MetricEvent): AnalyticsDataPoint {
     return typeof value === 'number' && Number.isFinite(value) ? value : 0;
   });
   // index1 = keyOwner (mirror of blob3). AE requires non-empty index strings;
-  // emit '_' as a placeholder when keyOwner isn't applicable so the column
-  // stays type-stable for sampling.
-  const indexes = [event.keyOwner ?? '_'];
+  // emit `KEYOWNER_PLACEHOLDER` when keyOwner isn't applicable so the column
+  // stays type-stable for sampling and Grafana can filter unauthenticated
+  // traffic explicitly.
+  const indexes = [event.keyOwner ?? KEYOWNER_PLACEHOLDER];
   return { blobs, doubles, indexes };
 }

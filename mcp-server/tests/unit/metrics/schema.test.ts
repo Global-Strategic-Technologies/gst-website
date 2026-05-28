@@ -17,7 +17,9 @@ import {
   BLOB_SLOTS,
   DOUBLE_SLOTS,
   EVENT_TYPES,
-  MAX_BLOB_PAYLOAD_CHARS,
+  KEYOWNER_PLACEHOLDER,
+  MAX_BLOB_PAYLOAD_BYTES_WORST_CASE,
+  MAX_BLOB_PAYLOAD_CHARS_SUM,
   OUTCOME_VALUES,
   toDataPoint,
 } from '../../../src/metrics/_schema';
@@ -90,11 +92,15 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
     `);
   });
 
-  it('keeps total blob payload well under AE 16 KB cap', () => {
-    expect(MAX_BLOB_PAYLOAD_CHARS).toBeLessThan(AE_LIMITS.MAX_BLOB_PAYLOAD_BYTES);
-    // Sanity: current worst-case is ~296 chars. If this jumps by an order of
-    // magnitude, someone added a wide blob without thinking.
-    expect(MAX_BLOB_PAYLOAD_CHARS).toBeLessThan(1024);
+  it('keeps worst-case UTF-8 byte payload well under AE 16 KB cap', () => {
+    // B3 fix: compare BYTES to the BYTE cap. `MAX_BLOB_PAYLOAD_CHARS_SUM`
+    // multiplied by 4 (UTF-8 max bytes per char) gives the conservative
+    // worst-case payload size.
+    expect(MAX_BLOB_PAYLOAD_BYTES_WORST_CASE).toBeLessThan(AE_LIMITS.MAX_BLOB_PAYLOAD_BYTES);
+    // Sanity: current sum is ~296 chars → ~1184 bytes worst-case. If this
+    // jumps by an order of magnitude, someone added a wide blob without
+    // thinking.
+    expect(MAX_BLOB_PAYLOAD_CHARS_SUM).toBeLessThan(1024);
   });
 
   it('uses fewer blob/double slots than the AE substrate provides', () => {
@@ -135,8 +141,6 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
         ],
         "resource_read": [
           "success",
-          "hit",
-          "miss",
           "error",
         ],
         "tool_invocation": [
@@ -152,6 +156,18 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
       expect(OUTCOME_VALUES[eventType]).toBeDefined();
       expect(OUTCOME_VALUES[eventType].length).toBeGreaterThan(0);
     }
+  });
+
+  it('M2: OUTCOME_VALUES key set matches EVENT_TYPES exactly (catches forgotten additions)', () => {
+    // Adversarial-audit fix M2: the typed `Record<EventType, ...>` lets a
+    // missing key sneak past TS narrowing. This runtime parity check
+    // catches the case where someone extends `EVENT_TYPES` but forgets the
+    // matching `OUTCOME_VALUES` entry.
+    expect(Object.keys(OUTCOME_VALUES).sort()).toEqual([...EVENT_TYPES].sort());
+  });
+
+  it('M3: KEYOWNER_PLACEHOLDER pinned (downstream Grafana SQL depends on it)', () => {
+    expect(KEYOWNER_PLACEHOLDER).toBe('__none__');
   });
 });
 
@@ -172,13 +188,14 @@ describe('toDataPoint projection (pure function)', () => {
     });
   });
 
-  it('emits "_" as the index1 placeholder when keyOwner is absent', () => {
+  it('emits KEYOWNER_PLACEHOLDER as the index1 placeholder when keyOwner is absent', () => {
     const dp = toDataPoint({
       event_type: 'cron_outcome',
       name: 'radar-refresh',
       outcome: 'success',
     });
-    expect(dp.indexes).toEqual(['_']);
+    expect(dp.indexes).toEqual([KEYOWNER_PLACEHOLDER]);
+    expect(dp.indexes[0]).toBe('__none__');
   });
 
   it('mirrors keyOwner into both blob3 and index1', () => {
@@ -202,5 +219,26 @@ describe('toDataPoint projection (pure function)', () => {
     });
     expect(dp.blobs[4]).toBe('abc-123');
     expect(dp.doubles).toEqual([47, 2]);
+  });
+
+  it('W6: end-to-end blob payload stays under AE 16 KB cap even with all slots maxed', () => {
+    // Adversarial-audit W6: prior tests stop at length assertions. This
+    // pushes a maxed-out event (every blob field filled with its
+    // maxChars worth of single-byte ASCII) through the real `toDataPoint`
+    // and asserts the resulting payload byte count is within budget.
+    const dp = toDataPoint({
+      event_type: 'tool_invocation', // 15 chars
+      name: 'x'.repeat(128),
+      keyOwner: 'X'.repeat(32),
+      outcome: 'success', // 7 chars (any valid outcome)
+      correlation_id: 'c'.repeat(64),
+      status_code: '12345678', // 8 chars (the maxChars cap on status_code)
+    });
+    const encoder = new TextEncoder();
+    const totalBytes = dp.blobs.reduce(
+      (sum, blob) => sum + (blob === null ? 0 : encoder.encode(blob).length),
+      0
+    );
+    expect(totalBytes).toBeLessThan(AE_LIMITS.MAX_BLOB_PAYLOAD_BYTES);
   });
 });

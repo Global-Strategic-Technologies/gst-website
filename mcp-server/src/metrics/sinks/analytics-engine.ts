@@ -19,11 +19,21 @@
  * module dependency-free for testing.
  */
 import type { AnalyticsEngineDataset } from '@cloudflare/workers-types';
+import { safeLog } from '../../auth/safe-logger';
 import type { MetricEvent } from '../_schema';
 import { toDataPoint } from '../_schema';
 import type { MetricSink } from './_interface';
 
 export class AnalyticsEngineSink implements MetricSink {
+  /**
+   * Per-instance flag — `true` once a `writeDataPoint` throw has been logged.
+   * Suppresses duplicate `safeLog` lines within a single Worker invocation
+   * (the Worker builds the sink fresh per request, so a new isolate cycle
+   * resets this flag — matches the "once per invocation" policy from the
+   * BL-032.75 plan).
+   */
+  private firstFailureLogged = false;
+
   constructor(private readonly dataset: AnalyticsEngineDataset) {}
 
   write(event: MetricEvent): void {
@@ -33,9 +43,22 @@ export class AnalyticsEngineSink implements MetricSink {
     const dp = toDataPoint(event);
     try {
       this.dataset.writeDataPoint(dp);
-    } catch {
-      // Best-effort — see module docstring. Failure tracking is wired in
-      // the Phase 3 sentry-envelope-post-failure alert path.
+    } catch (err) {
+      // Best-effort write — never propagate the throw. But total silence
+      // would hide binding misconfiguration (e.g. `env.METRICS` is the
+      // wrong shape) across an entire deploy. Log on FIRST failure per
+      // sink instance so the Phase 3 sentry-envelope-post-failure-rate
+      // alert can detect "we lost AE visibility" without flooding logs
+      // when a transient substrate hiccup hits N events in a row.
+      if (!this.firstFailureLogged) {
+        this.firstFailureLogged = true;
+        safeLog({
+          event: 'metrics.sink.write_failed',
+          reason: err instanceof Error ? err.message.slice(0, 200) : 'unknown',
+          success: false,
+          errorCode: 'metrics-ae-write-failed',
+        });
+      }
     }
   }
 }
