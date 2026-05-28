@@ -32,6 +32,7 @@ import {
 } from '../content/radar-transform';
 import { readThroughCache, RESOURCE_TTL_SECONDS } from '../cache/resource-cache';
 import { assertScope, SCOPES, MissingScopeError, DEFAULT_SCOPES } from '../auth/scopes';
+import { NOOP_METRICS_CONTEXT, withResourceMetrics, type MetricsContext } from '../metrics/_index';
 import type { SnapshotReader } from '../content/radar-snapshot-reader';
 import type { Env } from '../worker';
 
@@ -78,7 +79,8 @@ export function registerRadarResources(
   server: McpServer,
   reader: SnapshotReader,
   env: Env = {},
-  scopes: readonly string[] = DEFAULT_SCOPES
+  scopes: readonly string[] = DEFAULT_SCOPES,
+  metrics: MetricsContext = NOOP_METRICS_CONTEXT
 ): void {
   const readSnapshot = async (
     uri: string,
@@ -121,7 +123,11 @@ export function registerRadarResources(
         'Latest annotated highlights from the GST Radar feed (snapshot-backed; refreshed via `npm run radar:seed` on stdio or hourly Worker Cron on HTTP).',
       mimeType: 'application/json',
     },
-    buildHandler(() => reader.readFyi())
+    withResourceMetrics(
+      'gst://radar/fyi/latest',
+      metrics,
+      buildHandler(() => reader.readFyi())
+    )
   );
 
   // gst://radar/wire/latest
@@ -134,7 +140,11 @@ export function registerRadarResources(
         'Latest items from the merged GST Radar Wire feed (snapshot-backed; refreshed via `npm run radar:seed` on stdio or hourly Worker Cron on HTTP).',
       mimeType: 'application/json',
     },
-    buildHandler(() => reader.readWire())
+    withResourceMetrics(
+      'gst://radar/wire/latest',
+      metrics,
+      buildHandler(() => reader.readWire())
+    )
   );
 
   // gst://radar/wire/<category> for each of the four canonical categories.
@@ -148,7 +158,11 @@ export function registerRadarResources(
         description: `${CATEGORY_LABELS[category]} items from the GST Radar Wire feed (snapshot-backed).`,
         mimeType: 'application/json',
       },
-      buildHandler(() => reader.readWireByCategory(category))
+      withResourceMetrics(
+        uri,
+        metrics,
+        buildHandler(() => reader.readWireByCategory(category))
+      )
     );
   }
 }

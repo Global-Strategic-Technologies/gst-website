@@ -7,6 +7,7 @@
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import { compute, serializeToParams } from '../../../src/utils/techpar-engine';
 import type { TechParInputs } from '../../../src/schemas/techpar';
 import {
@@ -103,7 +104,10 @@ export async function handleTechparTool(mcpInputs: TechParMcpInputs) {
   }
 }
 
-export function registerTechparTool(server: McpServer): void {
+export function registerTechparTool(
+  server: McpServer,
+  metrics: MetricsContext = NOOP_METRICS_CONTEXT
+): void {
   server.registerTool(
     'compute_techpar',
     {
@@ -115,6 +119,6 @@ export function registerTechparTool(server: McpServer): void {
         idempotentHint: true,
       },
     },
-    handleTechparTool
+    withToolMetrics('compute_techpar', metrics, handleTechparTool)
   );
 }

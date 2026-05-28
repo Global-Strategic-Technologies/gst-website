@@ -10,6 +10,7 @@
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import {
   calculateResults,
   getRecommendations,
@@ -113,7 +114,10 @@ export async function handleIcgTool(mcpInputs: ICGMcpInputs) {
   }
 }
 
-export function registerIcgTool(server: McpServer): void {
+export function registerIcgTool(
+  server: McpServer,
+  metrics: MetricsContext = NOOP_METRICS_CONTEXT
+): void {
   server.registerTool(
     'assess_infrastructure_cost_governance',
     {
@@ -125,6 +129,6 @@ export function registerIcgTool(server: McpServer): void {
         idempotentHint: true,
       },
     },
-    handleIcgTool
+    withToolMetrics('assess_infrastructure_cost_governance', metrics, handleIcgTool)
   );
 }

@@ -54,7 +54,9 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
   name: string,
   ctx: MetricsContext,
   detectOutcome: (result: TResult) => string,
-  inner: (...args: TArgs) => Promise<TResult>
+  // Accepts sync OR async inner. Some SDK callback shapes (e.g. MCP prompts)
+  // are typed `TResult | Promise<TResult>`; `await` works for both.
+  inner: (...args: TArgs) => TResult | Promise<TResult>
 ): (...args: TArgs) => Promise<TResult> {
   return async (...args: TArgs): Promise<TResult> => {
     const startedAt = Date.now();
@@ -112,7 +114,7 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
 export function withToolMetrics<TArgs extends readonly unknown[], TResult extends object>(
   name: string,
   ctx: MetricsContext,
-  inner: (...args: TArgs) => Promise<TResult>
+  inner: (...args: TArgs) => TResult | Promise<TResult>
 ): (...args: TArgs) => Promise<TResult> {
   return withMetricsCore(
     'tool_invocation',
@@ -134,7 +136,7 @@ export function withToolMetrics<TArgs extends readonly unknown[], TResult extend
 export function withResourceMetrics<TArgs extends readonly unknown[], TResult>(
   uri: string,
   ctx: MetricsContext,
-  inner: (...args: TArgs) => Promise<TResult>
+  inner: (...args: TArgs) => TResult | Promise<TResult>
 ): (...args: TArgs) => Promise<TResult> {
   return withMetricsCore('resource_read', uri, ctx, () => 'success', inner);
 }
@@ -148,7 +150,7 @@ export function withResourceMetrics<TArgs extends readonly unknown[], TResult>(
 export function withPromptMetrics<TArgs extends readonly unknown[], TResult>(
   name: string,
   ctx: MetricsContext,
-  inner: (...args: TArgs) => Promise<TResult>
+  inner: (...args: TArgs) => TResult | Promise<TResult>
 ): (...args: TArgs) => Promise<TResult> {
   return withMetricsCore('prompt_invocation', name, ctx, () => 'success', inner);
 }

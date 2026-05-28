@@ -33,6 +33,7 @@
 
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import { loadLibraryByUri } from '../content/library-loader';
 import { parseIrlArticle } from '../../../src/utils/irl/parse-article';
 import {
@@ -181,7 +182,10 @@ export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
   };
 }
 
-export function registerGenerateIrlXlsxTool(server: McpServer): void {
+export function registerGenerateIrlXlsxTool(
+  server: McpServer,
+  metrics: MetricsContext = NOOP_METRICS_CONTEXT
+): void {
   server.registerTool(
     'generate_information_request_list_xlsx',
     {
@@ -193,6 +197,6 @@ export function registerGenerateIrlXlsxTool(server: McpServer): void {
         idempotentHint: false, // each call uses `new Date()` → new filename
       },
     },
-    handleGenerateIrlXlsxTool
+    withToolMetrics('generate_information_request_list_xlsx', metrics, handleGenerateIrlXlsxTool)
   );
 }

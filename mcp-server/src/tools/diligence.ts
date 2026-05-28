@@ -10,6 +10,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { generateScript } from '../../../src/utils/diligence-engine';
 import { serializeToParams as serializeDiligenceUrl } from '../../../src/utils/diligence-url';
+import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import { UserInputsSchema, type ValidatedUserInputs } from '../schemas';
 import { HUB_BASE } from '../config';
 
@@ -121,7 +122,10 @@ export async function handleDiligenceTool(inputs: ValidatedUserInputs) {
   }
 }
 
-export function registerDiligenceTool(server: McpServer): void {
+export function registerDiligenceTool(
+  server: McpServer,
+  metrics: MetricsContext = NOOP_METRICS_CONTEXT
+): void {
   server.registerTool(
     'generate_diligence_agenda',
     {
@@ -133,6 +137,6 @@ export function registerDiligenceTool(server: McpServer): void {
         idempotentHint: true,
       },
     },
-    handleDiligenceTool
+    withToolMetrics('generate_diligence_agenda', metrics, handleDiligenceTool)
   );
 }

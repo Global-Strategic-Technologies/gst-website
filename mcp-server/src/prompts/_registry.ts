@@ -15,6 +15,7 @@
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { NOOP_METRICS_CONTEXT, withPromptMetrics, type MetricsContext } from '../metrics/_index';
 import type { GstPrompt } from './types';
 import { diligenceKickoffPrompt } from './diligence-kickoff';
 import { targetQuickLookPrompt } from './target-quick-look';
@@ -86,7 +87,10 @@ function assertPromptInvariants(prompt: GstPrompt, now: Date = new Date()): void
   }
 }
 
-export function registerPrompts(server: McpServer): void {
+export function registerPrompts(
+  server: McpServer,
+  metrics: MetricsContext = NOOP_METRICS_CONTEXT
+): void {
   for (const prompt of ALL_PROMPTS) {
     assertPromptInvariants(prompt);
     // SDK v1.29's `registerPrompt` expects `argsSchema` to be a ZodRawShape
@@ -102,7 +106,7 @@ export function registerPrompts(server: McpServer): void {
         description: prompt.description,
         argsSchema: prompt.argsSchema.shape,
       },
-      prompt.build
+      withPromptMetrics(prompt.name, metrics, prompt.build)
     );
   }
 }

@@ -21,6 +21,7 @@
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import {
   filterProjects,
   getUniqueThemes,
@@ -127,7 +128,10 @@ export async function handleListPortfolioFacetsTool() {
   };
 }
 
-export function registerPortfolioTools(server: McpServer): void {
+export function registerPortfolioTools(
+  server: McpServer,
+  metrics: MetricsContext = NOOP_METRICS_CONTEXT
+): void {
   server.registerTool(
     'search_portfolio',
     {
@@ -139,7 +143,7 @@ export function registerPortfolioTools(server: McpServer): void {
         idempotentHint: true,
       },
     },
-    handleSearchPortfolioTool
+    withToolMetrics('search_portfolio', metrics, handleSearchPortfolioTool)
   );
 
   server.registerTool(
@@ -153,6 +157,6 @@ export function registerPortfolioTools(server: McpServer): void {
         idempotentHint: true,
       },
     },
-    handleListPortfolioFacetsTool
+    withToolMetrics('list_portfolio_facets', metrics, handleListPortfolioFacetsTool)
   );
 }
