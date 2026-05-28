@@ -34,6 +34,20 @@ export class AnalyticsEngineSink implements MetricSink {
    */
   private firstFailureLogged = false;
 
+  /**
+   * **PER-REQUEST CONSTRUCTION REQUIRED.**
+   *
+   * `firstFailureLogged` is sized to "suppress duplicate logs WITHIN one
+   * fetch invocation." If a future refactor hoists this construction to
+   * module scope (a plausible micro-optimization — `new AnalyticsEngineSink`
+   * per request looks wasteful), the flag becomes per-isolate and one bad
+   * binding silences logging for the isolate's lifetime — eating the
+   * BL-032.76-style "loss of visibility into visibility" signal that this
+   * very flag exists to surface.
+   *
+   * Current call site is `worker.ts` fetch handler (per request).
+   * Do not relocate without redesigning the failure-tracking semantics.
+   */
   constructor(private readonly dataset: AnalyticsEngineDataset) {}
 
   write(event: MetricEvent): void {

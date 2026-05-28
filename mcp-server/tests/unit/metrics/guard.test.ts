@@ -94,6 +94,31 @@ describe('guardEvent — acceptance + normalization', () => {
     expect(result).not.toBeNull();
   });
 
+  it('Major-2 (closeout audit): rejects a multi-byte UTF-8 keyOwner whose byte length exceeds 96 even when char count is under', () => {
+    // The CYRILLIC SMALL LETTER ZHE 'ж' is U+0436, encoded as 2 bytes in UTF-8.
+    // 50 × 2 = 100 bytes — exceeds the AE 96-byte index1 cap even though the
+    // string is only 50 JS code units. The guard's `utf8ByteLength` path
+    // (using TextEncoder) is the safety net for this case.
+    const multiByteKeyOwner = 'ж'.repeat(50);
+    expect(multiByteKeyOwner.length).toBe(50); // chars
+    // byte length > 96 — guard rejects.
+    const result = guardEvent({
+      event_type: 'tool_invocation',
+      keyOwner: multiByteKeyOwner,
+    });
+    expect(result).toBeNull();
+  });
+
+  it('Major-2 (closeout audit): accepts a multi-byte UTF-8 keyOwner whose byte length is exactly 96', () => {
+    // 48 × 2-byte chars = exactly 96 UTF-8 bytes — at the cap, must pass.
+    const multiByteKeyOwner = 'ж'.repeat(48);
+    const result = guardEvent({
+      event_type: 'tool_invocation',
+      keyOwner: multiByteKeyOwner,
+    });
+    expect(result).not.toBeNull();
+  });
+
   it('accepts each canonical outcome value for tool_invocation', () => {
     for (const outcome of ['success', 'error']) {
       const result = guardEvent({ event_type: 'tool_invocation', outcome });

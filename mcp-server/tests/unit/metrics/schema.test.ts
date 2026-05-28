@@ -221,6 +221,42 @@ describe('toDataPoint projection (pure function)', () => {
     expect(dp.doubles).toEqual([47, 2]);
   });
 
+  it('closeout-audit: toDataPoint output conforms to AnalyticsEngineDataPoint structural shape', () => {
+    // Major-2 closeout fix: pins the AE-positional contract so a future
+    // schema change can't silently emit malformed data points.
+    //   - blobs: (string | null)[]
+    //   - doubles: number[]
+    //   - indexes: non-empty string[]  ← AE rejects empty index arrays
+    const dp = toDataPoint({
+      event_type: 'tool_invocation',
+      name: 'search_radar',
+      keyOwner: 'RP',
+      outcome: 'success',
+      duration_ms: 100,
+    });
+    // Every blob is either string or null (never undefined).
+    expect(Array.isArray(dp.blobs)).toBe(true);
+    for (const blob of dp.blobs) {
+      expect(blob === null || typeof blob === 'string').toBe(true);
+    }
+    expect(dp.blobs).toHaveLength(BLOB_SLOTS.length);
+    // Every double is a finite number.
+    expect(Array.isArray(dp.doubles)).toBe(true);
+    for (const d of dp.doubles) {
+      expect(typeof d).toBe('number');
+      expect(Number.isFinite(d)).toBe(true);
+    }
+    expect(dp.doubles).toHaveLength(DOUBLE_SLOTS.length);
+    // Indexes is a non-empty array of strings (AE requirement).
+    expect(Array.isArray(dp.indexes)).toBe(true);
+    expect(dp.indexes.length).toBeGreaterThan(0);
+    expect(dp.indexes.length).toBeLessThanOrEqual(AE_LIMITS.MAX_INDEXES_PER_CALL);
+    for (const idx of dp.indexes) {
+      expect(typeof idx).toBe('string');
+      expect(idx.length).toBeGreaterThan(0);
+    }
+  });
+
   it('W6: end-to-end blob payload stays under AE 16 KB cap even with all slots maxed', () => {
     // Adversarial-audit W6: prior tests stop at length assertions. This
     // pushes a maxed-out event (every blob field filled with its

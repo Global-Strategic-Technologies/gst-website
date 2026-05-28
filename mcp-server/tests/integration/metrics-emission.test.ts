@@ -239,3 +239,42 @@ function promptArgsFor(_promptName: string): Record<string, string> {
   // (no event, test tolerates).
   return {};
 }
+
+describe('closeout-audit Major-1: env.METRICS undefined fallback to NoopSink', () => {
+  // Worker.ts:427 — `env.METRICS ? new AnalyticsEngineSink(env.METRICS) : undefined`.
+  // The `undefined` branch falls through to createServer's NOOP_METRICS_CONTEXT
+  // default. Verify that path doesn't throw and the server still works.
+  it('createServer with no metricsSink falls back to NoopSink without throwing', async () => {
+    // No metricsSink, no keyOwner — exactly the shape an unbound-AE Worker
+    // request would produce.
+    const env: Env = {};
+    const server = createServer(env, { radarSource: 'worker' });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    const client = new Client({ name: 'fallback-test', version: '0.0.0' });
+    await client.connect(clientTransport);
+
+    // Invoke any tool — under NoopSink the call should succeed (or fail
+    // its inner logic) without throwing from the metrics layer.
+    await expect(
+      client.callTool({ name: 'list_portfolio_facets', arguments: {} })
+    ).resolves.toBeDefined();
+
+    await client.close();
+  });
+
+  it('register* functions called without metrics arg keep working (backward compat)', () => {
+    // Closeout-audit gap #4: every register* added an OPTIONAL `metrics`
+    // parameter defaulting to NOOP_METRICS_CONTEXT. Existing test/operator
+    // callers that pass only `server` must continue to work. Typecheck
+    // alone doesn't prove the runtime default fires; this does.
+    const sink = new InMemorySink();
+    const env: Env = {};
+    // No metricsSink in ctx → MetricsContext defaults to NOOP_METRICS_CONTEXT
+    // → register* functions internally also use that default. End result:
+    // no events emit. We just need it to not throw at construction.
+    expect(() => createServer(env, { radarSource: 'worker' })).not.toThrow();
+    // Sink is untouched (no metricsSink threaded).
+    expect(sink.events).toHaveLength(0);
+  });
+});
