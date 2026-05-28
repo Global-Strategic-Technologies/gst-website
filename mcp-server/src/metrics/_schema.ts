@@ -182,7 +182,7 @@ export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
   rate_limit_decision: ['allow', 'throttle', 'deny'],
   inoreader_call: ['success', 'error'],
   health_check: ['ok', 'degraded', 'error'],
-  cron_outcome: ['success', 'error', 'skipped-circuit', 'skipped-budget'],
+  cron_outcome: ['success', 'partial', 'error', 'skipped-circuit', 'skipped-budget'],
 };
 
 /**

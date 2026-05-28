@@ -160,7 +160,17 @@ export function withPromptMetrics<TArgs extends readonly unknown[], TResult>(
  * events are silently dropped (with a `safeLog` line from inside the guard).
  * `sink.write` is contractually non-throwing — see `sinks/_interface.ts`.
  */
-function emit(sink: MetricSink, event: MetricEvent): void {
+/**
+ * Direct emit for code paths that build a metric event outside the HOF
+ * wrappers (e.g. the cron scheduled handler in `worker.ts` — BL-032.77).
+ * Routes through `guardEvent` so the schema is enforced uniformly across
+ * every emit site; bypassing `guardEvent` (calling `sink.write` directly)
+ * would let schema drift ship silently.
+ *
+ * Best-effort: rejected events drop with a `safeLog` line (the guard's
+ * job); the sink itself is contractually non-throwing.
+ */
+export function emit(sink: MetricSink, event: MetricEvent): void {
   const validated = guardEvent(event);
   if (validated !== null) {
     sink.write(validated);

@@ -192,16 +192,18 @@ describe('recordInoreaderEgress: TTL (always-EXPIRE, audit fix C1)', () => {
 });
 
 describe('recordInoreaderEgress: drift detection', () => {
-  it('emits inoreader.spend.drift when counter - observed > 2', async () => {
-    // Counter says 20, Inoreader observed 15 → drift = +5 (we counted more
-    // than Inoreader did — likely double-incrementing somewhere).
+  it('emits inoreader.spend.drift when counter - observed > 6', async () => {
+    // BL-032.77: threshold raised 2 → 6 (one cron firing's parallel Zone-1
+    // count). Counter says 20, Inoreader observed 12 → drift = +8 (above
+    // the raised threshold). Real over-counting / double-increment would
+    // persist; one-off races resolve under daily debounce.
     redisIncr.mockResolvedValueOnce(2).mockResolvedValueOnce(20);
 
     await recordInoreaderEgress({
       env,
       category: 'live-radar',
       status: 200,
-      zone1UsageHeader: 15,
+      zone1UsageHeader: 12,
     });
 
     // Behavior contract: warning-severity capture with the diagnostic payload.
@@ -218,15 +220,15 @@ describe('recordInoreaderEgress: drift detection', () => {
       expect.arrayContaining([
         'inoreader.spend.drift',
         'warning',
-        expect.objectContaining({ counter: 20, observed: 15, drift: 5 }),
+        expect.objectContaining({ counter: 20, observed: 12, drift: 8 }),
       ])
     );
   });
 
-  it('emits inoreader.spend.drift when observed - counter > 2 (we missed calls)', async () => {
-    // Counter says 5, Inoreader observed 12 → drift = -7 (we missed calls
-    // — some untracked egress path is bypassing the wrapper).
-    redisIncr.mockResolvedValueOnce(1).mockResolvedValueOnce(5);
+  it('emits inoreader.spend.drift when observed - counter > 6 (we missed calls)', async () => {
+    // Counter says 3, Inoreader observed 12 → drift = -9 (above the raised
+    // threshold). Real uncounted egress path would surface this way.
+    redisIncr.mockResolvedValueOnce(1).mockResolvedValueOnce(3);
 
     await recordInoreaderEgress({
       env,
@@ -238,20 +240,87 @@ describe('recordInoreaderEgress: drift detection', () => {
     expect(captureMessageMock).toHaveBeenCalledTimes(1);
     const args = captureMessageMock.mock.calls[0];
     expect(args[0]).toBe(env);
-    expect(args).toEqual(expect.arrayContaining([expect.objectContaining({ drift: -7 })]));
+    expect(args).toEqual(expect.arrayContaining([expect.objectContaining({ drift: -9 })]));
   });
 
-  it('does NOT emit drift when |drift| <= 2 (race tolerance)', async () => {
+  it('does NOT emit drift when |drift| <= 6 (parallel-cron race tolerance)', async () => {
+    // BL-032.77 fix: a cron firing's 6 parallel Zone-1 calls produce drift
+    // of up to ±5 transiently due to Inoreader's eventual-consistency on
+    // header reads. The 2026-05-28 production event had drift=3 — must NOT
+    // alert at the new threshold.
+    redisIncr.mockResolvedValueOnce(1).mockResolvedValueOnce(4);
+
+    await recordInoreaderEgress({
+      env,
+      category: 'live-radar',
+      status: 200,
+      zone1UsageHeader: 1, // drift = +3, the actual 2026-05-28 production value
+    });
+
+    expect(captureMessageMock).not.toHaveBeenCalled();
+  });
+
+  it('does NOT emit drift at the exact threshold boundary (drift = +6)', async () => {
     redisIncr.mockResolvedValueOnce(1).mockResolvedValueOnce(10);
 
     await recordInoreaderEgress({
       env,
       category: 'live-radar',
       status: 200,
-      zone1UsageHeader: 9, // drift = +1, within tolerance
+      zone1UsageHeader: 4, // drift = +6, exactly at threshold
     });
 
     expect(captureMessageMock).not.toHaveBeenCalled();
+  });
+
+  it('does NOT emit drift at the negative-boundary (drift = -6)', async () => {
+    // Closeout-audit fix: the `±6` boundary needs explicit negative coverage.
+    // `Math.abs(drift) <= 6` is symmetric; this pins the symmetry so a
+    // future refactor that drops the `Math.abs` doesn't silently change
+    // the negative-side semantics.
+    redisIncr.mockResolvedValueOnce(1).mockResolvedValueOnce(4);
+
+    await recordInoreaderEgress({
+      env,
+      category: 'live-radar',
+      status: 200,
+      zone1UsageHeader: 10, // drift = -6, exactly at threshold
+    });
+
+    expect(captureMessageMock).not.toHaveBeenCalled();
+  });
+
+  it('DOES emit drift at the first-alerting value (drift = +7)', async () => {
+    // Closeout-audit fix: pins the first value that DOES alert above the
+    // raised threshold. The original `< 6` vs `<= 6` semantic distinction
+    // matters at the boundary; this catches it.
+    redisIncr.mockResolvedValueOnce(1).mockResolvedValueOnce(10);
+
+    await recordInoreaderEgress({
+      env,
+      category: 'live-radar',
+      status: 200,
+      zone1UsageHeader: 3, // drift = +7, just above threshold
+    });
+
+    expect(captureMessageMock).toHaveBeenCalledTimes(1);
+    const args = captureMessageMock.mock.calls[0];
+    expect(args).toEqual(expect.arrayContaining([expect.objectContaining({ drift: 7 })]));
+  });
+
+  it('DOES emit drift at the first-alerting negative value (drift = -7)', async () => {
+    redisIncr.mockResolvedValueOnce(1).mockResolvedValueOnce(3);
+
+    await recordInoreaderEgress({
+      env,
+      category: 'live-radar',
+      status: 200,
+      zone1UsageHeader: 10, // drift = -7, just above threshold (negative side)
+    });
+
+    expect(captureMessageMock).toHaveBeenCalledTimes(1);
+    const args = captureMessageMock.mock.calls[0];
+    expect(args).toEqual(expect.arrayContaining([expect.objectContaining({ drift: -7 })]));
   });
 
   it('does NOT check drift when zone1UsageHeader is undefined', async () => {

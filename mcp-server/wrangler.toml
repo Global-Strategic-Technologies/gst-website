@@ -72,7 +72,11 @@ dataset = "mcp_events_dev"
 #
 # The top-level `enabled = false` is the deprecated all-or-nothing flag;
 # the modern per-feature `logs.enabled` / `traces.enabled` flags below are
-# the granular controls. Cloudflare's wrangler reader honors both.
+# the granular controls. Cloudflare's wrangler reader honors both —
+# verified empirically 2026-05-29 by inspecting actual Workers Logs +
+# Traces output from the production deploy (cron.radar-refresh.success
+# events + `dataset: otel` span entries both present and operator-queryable
+# via dash.cloudflare.com → Workers & Pages → gst-mcp → Logs / Traces).
 #
 # Inheritance: top-level observability applies to all envs by default.
 # No per-env override needed; staging + production both pick this up.
