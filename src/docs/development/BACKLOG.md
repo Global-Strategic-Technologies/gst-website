@@ -2221,6 +2221,113 @@ All three audits converged on: **bypass the SDK on the scheduled path entirely**
 
 ---
 
+### BL-032.77: Sentry envelope-POST reliability + cron drift-detection refinement
+
+**Source**: 2026-05-28 post-deploy observation session — three open Sentry issues on the `gst-mcp-server` project, none of which match the underlying reality of the system (Cloudflare cron logs show 100% success; `/health` confirms radar substrate healthy; Inoreader Developer Console shows 25% daily usage well under budget). | **Effort**: ~half-day investigation (instrumentation) + ~half-day fix once root cause confirmed | **Status**: 🟡 **In progress** — instrumentation PR (TBD) lands the observability-of-observability layer; fixes follow after the next ~1-2 missed check-in events surface the root cause | **Depends on**: BL-032.76 (the envelope path this ticket investigates) | **Blocks**: BL-032.75 Phase 3 alerting credibility (alerts on `cron.radar-refresh.*` Sentry events are unreliable signal while every successful firing surfaces as a noisy Issue + occasional false-positive "timeout check-in")
+
+**As an** operator monitoring the MCP Worker, **I want** Sentry's `gst-mcp-server` Issues view to reflect actionable failures only (not "every cron success creates an Issue" and not "false-positive missed check-in alerts"), AND I want the Phase 0 `inoreader.spend.drift` detection to fire only on real drift (not on parallel-cron eventual-consistency races), **so that** I can trust the Sentry signal as the canonical operations dashboard for BL-033 SLA reporting.
+
+#### Symptoms (observed 2026-05-28 18:00 UTC-3)
+
+The Sentry project `gst-mcp-server` shows three unresolved issues across `All Envs` / 24h:
+
+| Issue                                                                                       | Age  | Events | Users | Severity            |
+| ------------------------------------------------------------------------------------------- | ---- | ------ | ----- | ------------------- |
+| `Cron failure: radar-refresh` — "Your monitor is failing: A timeout check-in was detected." | 4hr  | 2      | 0     | New / Investigating |
+| `cron.radar-refresh.success` — (No error message)                                           | 10hr | 4      | 3     | Ongoing             |
+| `inoreader.spend.drift` — (No error message)                                                | 10hr | 1      | 1     | New                 |
+
+The radar loads correctly via `/hub/radar` (Cloudflare cron dashboard reports 100% success across the same 24h window). Inoreader's quota at the time of this report: **25% of Zone-1 daily budget, 0% Zone-2**.
+
+#### Triage by issue
+
+##### Issue A — `cron.radar-refresh.success` Sentry Issue (4 events / 3 users / Ongoing)
+
+**Source**: [`cron/radar-refresh.ts:255-261`](mcp-server/src/cron/radar-refresh.ts#L255-L261) emits `captureMessageEnvelope('cron.radar-refresh.success', 'info', ...)` on **every successful firing**. Sentry treats every `captureMessage` call as an Issue regardless of `level` — so every success creates/updates one grouped Issue with re-fires.
+
+**Why it used to make sense**: pre-BL-032.76, this was the only Sentry-side signal that crons were running. Defended as a positive heartbeat.
+
+**Why it's now redundant**: BL-032.76 ships a proper Sentry Crons check-in (`postSentryCheckIn(env, 'radar-refresh', 'ok', ...)`) for the same signal. BL-032.75 Phase 1 (PR #179) will dual-write a `cron_outcome` event to AE once Step 6 wires the emitter post-soak. The captureMessage is duplicate signal AND actively misleading (green successes show up as an unresolved Issue).
+
+**Decision (2026-05-28)**: **keep the success captureMessage for now**, as a backup heartbeat until Issue B (envelope check-in reliability) is fully diagnosed and resolved. Once we have ≥7 days of clean Sentry Crons check-ins post-fix, drop the captureMessage in a one-line follow-up commit.
+
+##### Issue B — "Cron failure: timeout check-in" (2 events / 4hr ago / New)
+
+**Symptom**: Sentry Crons monitor flags a missed close-in. The `in_progress` check-in was received but no matching `ok`/`error` arrived within the auto-created monitor's window. Cloudflare cron logs confirm the firing succeeded; the radar substrate is healthy; the cron handler reached the `ok` branch (otherwise `radar-refresh.success` wouldn't have surfaced as Issue A).
+
+**Root cause hypothesis (likeliest first)**:
+
+1. **`postEnvelope` doesn't check `response.ok`.** [`sentry-envelope.ts:79`](mcp-server/src/observability/sentry-envelope.ts#L79) does `await fetch(...)` then `catch {}` on network errors only — Sentry-side 4xx (e.g. 429 project-rate-limit) or 5xx (transient) returns silently. Each cron firing currently emits **~4-5 envelope events within seconds**: `in_progress` check-in + `proactive-refresh.skipped` (info) + `radar-refresh.success` (info) + `ok` check-in + occasionally `inoreader.spend.drift` (warning) or OAuth-refresh captures. That burst can trip Sentry's project-level Spike Protection or per-DSN throttling. We have zero visibility into Sentry-side rejection today.
+
+2. **Sentry's `check_in_id` matching fails** between `in_progress` and `ok` envelopes — would require a serialization mismatch we can't see; unlikely given the code is uniform, but verifiable per-event in Sentry's UI by inspecting check-in pair IDs.
+
+3. **Worker isolate eviction mid-firing** — `ctx.waitUntil` gives 30s wall-clock on free tier (much longer on paid). The IIFE chain (~10-30s wall-clock for the full radar refresh) shouldn't approach the limit, but a cold-start + Inoreader latency spike + Upstash flap could.
+
+4. **Network blip on the `ok` POST** — possible but doesn't fit the 25% drop rate (2 misses out of ~8 firings since the BL-032.76 deploy).
+
+**Initial proposal rejected by operator (2026-05-28)**: adding retry-once + tighter `monitor_config` margins felt like patching symptoms without identifying the root cause. The operator's instinct is correct — we should diagnose before fixing.
+
+**Agreed first action**: **instrument `postEnvelope` to log on non-2xx response (with status + URL) AND log on abort/timeout separately.** Deploy, wait for the next 1-2 missed check-ins, observe which failure mode hits. Then decide between:
+
+- "Sentry envelope returned 429" → reduce per-firing envelope count (drop Issue A's captureMessage; throttle drift alerts) OR raise the Sentry project's quota / Spike Protection threshold
+- "Sentry envelope returned 5xx" → transient; retry-once IS the right fix
+- "fetch aborted (timeout)" → network blip; retry-once still appropriate
+- No new visibility → deeper investigation needed (Worker isolate lifecycle; check-in ID matching)
+
+##### Issue C — `inoreader.spend.drift` (1 event / 10hr ago / New)
+
+**Payload** (from operator's Sentry UI inspection 2026-05-28):
+
+```
+category: cron-radar
+counter:  4
+drift:    3
+observed: 1
+```
+
+**Initial interpretation (incorrect)**: counter > observed means our wrapper is over-counting Zone-1 calls — maybe `stream/contents/*` is actually Zone-2 not Zone-1.
+
+**Verified against Inoreader docs (2026-05-28)** [https://www.inoreader.com/developers/rate-limiting](https://www.inoreader.com/developers/rate-limiting): `/reader/api/0/tag/list`, `/reader/api/0/stream/contents/*`, and `/reader/api/0/stream/items/contents` are **all Zone 1**. Our wrapper's classification ([`inoreader-egress.ts:83-89`](mcp-server/src/lib/inoreader-egress.ts#L83-L89)) is correct.
+
+**Refined root-cause hypothesis**: **Inoreader's quota counter has eventual consistency under parallel cron load.** A single cron firing makes 6 Zone-1 calls in parallel via `Promise.all` (1 tag-list + 4 folder streams + 1 annotated-items). The `X-Reader-Zone1-Usage` header on each response reflects Inoreader's server-side cumulative count at the time the request was processed. Under parallel load, the first request to complete observes a low `usage` value while our local counter (incrementing on each completion) is already higher.
+
+Timeline that matches the payload:
+
+- 6 cron-radar calls fire in parallel
+- First call completes; Inoreader's counter shows 1 (just incremented for this call); our local counter increments to 1 → drift = 0
+- Three more calls complete; their response headers are undefined OR carry stale low values (because Inoreader's serialization is concurrent-write-then-read, not synchronous-batch); our local counter is now 4
+- Fourth call completes with header=1 → drift = 4 - 1 = 3 → alert fires
+
+This is **drift detection working as designed but flagging a non-actionable race condition**.
+
+**Why this matters**: a real drift signal (uncounted egress path, like the 15-25% gap that justified the Phase 0 wrapper in the first place) would show up as **persistent drift across days** — not one event from a single firing. The current per-call drift check with daily debounce is too sensitive for parallel-cron workloads.
+
+**Fix options (to evaluate after Issue B instrumentation lands)**:
+
+- **(a)** Raise `DRIFT_THRESHOLD_ABS` from 2 to ~6 (one cron firing's full Zone-1 count). Catches over-counting on a >cron-firing scale; tolerates parallel-completion races.
+- **(b)** Move drift check from per-call to end-of-firing: after `refreshRadarSnapshot` completes, compare the post-firing local counter delta vs the LAST observed `X-Reader-Zone1-Usage` value of the firing.
+- **(c)** Capture parallel-firing semantics explicitly: drift fires only when counter > observed + (expected_parallel_count_of_current_firing).
+
+Option (a) is cheapest; option (b) is most correct. Pick after instrumentation data clarifies whether single drift events represent real over-counting that the threshold-bump would silence vs the race we suspect.
+
+#### Acceptance criteria
+
+- [ ] **Instrumentation lands** — `postEnvelope` checks `response.ok`; logs non-2xx status + URL via `safeLog`; logs abort/timeout separately. No behavioral change to the success path; net +20 LOC.
+- [ ] **Cloudflare Worker observability** enabled persistently via wrangler config (`[observability]` block with `logs.enabled = true` + `traces.enabled = true`) so operators don't have to toggle via dashboard every deploy.
+- [ ] **Diagnosis deliverable** — after 1-week post-deploy window OR 3 missed check-in events (whichever comes first), file a follow-up commit documenting which failure mode dominates. Update this stanza with findings.
+- [ ] **Issue B fix lands** — choice driven by diagnosis data; could be retry-once / Sentry Spike Protection adjustment / envelope-emit throttling / something else.
+- [ ] **Issue C fix lands** — one of the three options above; choice driven by whether the post-instrumentation data shows persistent drift (real bug) or transient firing-window drift (parallel race).
+- [ ] **Issue A captureMessage retired** — only after Issue B's check-in reliability is verified over 7+ days of clean Sentry Crons signal.
+- [ ] BL-032.76 stanza updated with cross-reference to this ticket as the "verification-pass follow-up."
+
+#### Out of scope
+
+- Migrating to Sentry SDK on the cron path — explicitly chosen against in BL-032.76; the envelope path is the architectural decision.
+- Adding OpenTelemetry tracing for cron firings — BL-032.75 Phase 3 deferred-tracing decision still holds.
+- Changing the cron cadence — `0 */6 * * *` is correct per BL-032.7 budget math.
+
+---
+
 ### BL-033: MCP Server — External Pilot (Phase 3)
 
 **Source**: MCP_SERVER_INITIATIVE.md (archived) | **Effort**: 2 weeks engineering + indeterminate legal/sales lead time | **Status**: Open | **Depends on**: BL-032, BL-032.7 (substrate safety + observability — shipped 2026-05-16), **BL-032.8** (radar consumer unification — precondition; eliminates the website's direct Inoreader caller so all consumers — including pilot clients — go through the same canonical MCP path with the BL-032.7 protections)

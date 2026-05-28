@@ -257,3 +257,103 @@ describe('captureMessageEnvelope (shim for shared-module callers)', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
+
+describe('postEnvelope failure-mode instrumentation (BL-032.77)', () => {
+  // These cover the three new safeLog paths added 2026-05-28 to diagnose
+  // false-positive "timeout check-in" alerts on Sentry's Crons UI while
+  // Cloudflare's cron dashboard reports 100% success. The helpers stay
+  // best-effort (no throws); the new lines just add visibility so the
+  // operator can attribute each silent envelope drop to its root cause.
+  let consoleSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    // safeLog emits via console.log; capture so we can assert on it.
+    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+  });
+
+  function findLogLine(eventName: string): Record<string, unknown> | undefined {
+    for (const call of consoleSpy.mock.calls) {
+      const arg = call[0];
+      if (typeof arg !== 'string') continue;
+      try {
+        const parsed = JSON.parse(arg) as Record<string, unknown>;
+        if (parsed.event === eventName) return parsed;
+      } catch {
+        // not JSON; skip
+      }
+    }
+    return undefined;
+  }
+
+  it('logs sentry.envelope.post.non-2xx with status when Sentry rejects', async () => {
+    // 429 (project rate-limit) is the suspected dominant failure mode.
+    fetchSpy.mockResolvedValueOnce(new Response('rate limited', { status: 429 }));
+    await postSentryEvent(env, { level: 'info', message: 'rate-limited heartbeat' });
+
+    const log = findLogLine('sentry.envelope.post.non-2xx');
+    expect(log).toBeDefined();
+    expect(log?.status).toBe(429);
+    expect(log?.success).toBe(false);
+    expect(log?.errorCode).toBe('sentry-envelope-non-2xx');
+    expect(typeof log?.reason).toBe('string');
+    expect((log?.reason as string).includes('host=')).toBe(true);
+    expect((log?.reason as string).includes('project=')).toBe(true);
+  });
+
+  it('logs sentry.envelope.post.non-2xx for 5xx (transient) the same way', async () => {
+    fetchSpy.mockResolvedValueOnce(new Response('upstream', { status: 503 }));
+    await postSentryEvent(env, { level: 'error', message: 'transient sentry' });
+    const log = findLogLine('sentry.envelope.post.non-2xx');
+    expect(log?.status).toBe(503);
+  });
+
+  it('does NOT log non-2xx for 2xx responses (happy path stays silent)', async () => {
+    fetchSpy.mockResolvedValueOnce(new Response('', { status: 200 }));
+    await postSentryEvent(env, { level: 'info', message: 'ok' });
+    expect(findLogLine('sentry.envelope.post.non-2xx')).toBeUndefined();
+    expect(findLogLine('sentry.envelope.post.aborted')).toBeUndefined();
+    expect(findLogLine('sentry.envelope.post.network-error')).toBeUndefined();
+  });
+
+  it('logs sentry.envelope.post.aborted when AbortController fires (2s timeout)', async () => {
+    fetchSpy.mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init.signal!.addEventListener('abort', () => {
+            const err = new DOMException('The operation was aborted', 'AbortError');
+            reject(err);
+          });
+        })
+    );
+    vi.useFakeTimers();
+    const pending = postSentryEvent(env, { level: 'error', message: 'slow' });
+    await vi.advanceTimersByTimeAsync(2000);
+    await pending;
+
+    const log = findLogLine('sentry.envelope.post.aborted');
+    expect(log).toBeDefined();
+    expect(log?.errorCode).toBe('sentry-envelope-abort');
+  });
+
+  it('logs sentry.envelope.post.network-error for non-abort fetch rejection', async () => {
+    fetchSpy.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await postSentryEvent(env, { level: 'error', message: 'no network' });
+
+    const log = findLogLine('sentry.envelope.post.network-error');
+    expect(log).toBeDefined();
+    expect(log?.errorCode).toBe('sentry-envelope-network');
+    expect((log?.reason as string).includes('Failed to fetch')).toBe(true);
+  });
+
+  it('still resolves cleanly on every failure path (best-effort contract)', async () => {
+    fetchSpy.mockResolvedValueOnce(new Response('', { status: 429 }));
+    await expect(postSentryEvent(env, { level: 'info', message: 'x' })).resolves.toBeUndefined();
+
+    fetchSpy.mockRejectedValueOnce(new TypeError('network'));
+    await expect(postSentryEvent(env, { level: 'info', message: 'y' })).resolves.toBeUndefined();
+  });
+});
