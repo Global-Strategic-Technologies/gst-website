@@ -30,8 +30,13 @@ import { defineMiddleware } from 'astro:middleware';
  * Listed by exact pathname match. Add a new entry here when introducing
  * any internal-only endpoint that should not be discoverable via
  * status-code probing.
+ *
+ * **Currently empty** post-BL-032.8 Phase B (PR #140, 2026-05-27) — the
+ * sole prior entry `/api/inoreader/refresh` (BL-039 fallback endpoint)
+ * was retired with the rest of the website-side Inoreader surface. The
+ * defense mechanism is kept ready for the next internal-only endpoint.
  */
-const INTERNAL_ENDPOINTS: ReadonlySet<string> = new Set(['/api/inoreader/refresh']);
+const INTERNAL_ENDPOINTS: ReadonlySet<string> = new Set();
 
 function isAnonymousProbe(request: Request): boolean {
   const auth = request.headers.get('Authorization');

@@ -157,9 +157,12 @@ dataset = "mcp_events_staging"
 # ---------------------------------------------------------------------------
 # Production
 # ---------------------------------------------------------------------------
-# Same secret matrix as staging (with `--env production` values). Path 2:
-# UPSTASH_INOREADER_REST_TOKEN = website-DB Read-Only token; UPSTASH_MCP_REST_TOKEN
-# = MCP-DB Standard token. Independent rotation cadence per DB.
+# Same secret matrix as staging (with `--env production` values). Single
+# MCP DB binding: UPSTASH_MCP_REST_TOKEN = Standard read-write token for
+# the gst-mcp Upstash database. The legacy UPSTASH_INOREADER_REST_*
+# bindings (read-only access to the website-shared `gst-radar-tokens`
+# DB) were retired in BL-032.8 Phase B (PR #140, 2026-05-27); the
+# database itself was decommissioned in the same operator batch.
 
 [env.production]
 name = "gst-mcp"

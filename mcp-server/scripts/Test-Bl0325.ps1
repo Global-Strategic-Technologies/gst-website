@@ -299,10 +299,15 @@ Invoke-Test -Id 'T.H.1' -Section 'H' -Title '/health includes radarSnapshotAgeSe
     return $null
 }
 
-Invoke-Test -Id 'T.H.1.b' -Section 'H' -Title '/health upstashMcp + upstashInoreader are ok' -Body {
+Invoke-Test -Id 'T.H.1.b' -Section 'H' -Title '/health upstashMcp is ok; upstashInoreader field is gone (post-Phase-B)' -Body {
     if (-not $script:HealthPayload) { return 'SKIP' }
     if ($script:HealthPayload.upstashMcp -ne 'ok') { return "upstashMcp = $($script:HealthPayload.upstashMcp)" }
-    if ($script:HealthPayload.upstashInoreader -ne 'ok') { return "upstashInoreader = $($script:HealthPayload.upstashInoreader)" }
+    # Post-BL-032.8 Phase B (PR #140, 2026-05-27): the legacy Inoreader DB
+    # was retired; the field should not exist on /health. Assert its
+    # absence so a regression that re-introduces a dual-DB probe surfaces.
+    if ($script:HealthPayload.PSObject.Properties.Name -contains 'upstashInoreader') {
+        return "upstashInoreader field still present on /health — Phase B retirement regressed"
+    }
     return $null
 }
 
