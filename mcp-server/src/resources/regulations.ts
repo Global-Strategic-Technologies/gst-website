@@ -16,9 +16,14 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { REGULATION_ENTRIES, loadRegulationByUri } from '../content/regulation-loader';
 import { readThroughCache, RESOURCE_TTL_SECONDS } from '../cache/resource-cache';
+import { NOOP_METRICS_CONTEXT, withResourceMetrics, type MetricsContext } from '../metrics/_index';
 import type { Env } from '../worker';
 
-export function registerRegulationResources(server: McpServer, env: Env = {}): void {
+export function registerRegulationResources(
+  server: McpServer,
+  env: Env = {},
+  metrics: MetricsContext = NOOP_METRICS_CONTEXT
+): void {
   for (const entry of REGULATION_ENTRIES) {
     server.registerResource(
       entry.data.name,
@@ -28,7 +33,7 @@ export function registerRegulationResources(server: McpServer, env: Env = {}): v
         description: entry.data.summary,
         mimeType: 'application/json',
       },
-      async (uri: URL) => {
+      withResourceMetrics(entry.uri, metrics, async (uri: URL) => {
         const { body, mimeType } = await readThroughCache(
           env,
           uri.href,
@@ -53,7 +58,7 @@ export function registerRegulationResources(server: McpServer, env: Env = {}): v
             },
           ],
         };
-      }
+      })
     );
   }
 }

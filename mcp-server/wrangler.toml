@@ -29,6 +29,59 @@ compatibility_flags = ["nodejs_compat"]
 # missing so the chain doesn't break when the token isn't bound.
 upload_source_maps = true
 
+# ---------------------------------------------------------------------------
+# Analytics Engine — typed-metric emission (BL-032.75 Phase 1)
+# ---------------------------------------------------------------------------
+# Every Tool / Resource / Prompt invocation writes one event to AE via
+# `env.METRICS.writeDataPoint(...)`. The bound dataset is the substrate
+# Phase 3 Grafana dashboards SQL against.
+#
+# AE works on the Workers Free plan (verified 2026-05-27 against
+# https://developers.cloudflare.com/analytics/analytics-engine/pricing/):
+#   - Free:  100k writes/day + 10k reads/day + 3-month retention
+#   - Paid:  10M writes/mo + 1M reads/mo, then $0.25/M writes
+#
+# Column map (positional, 6 blobs + 2 doubles + 1 index) is pinned in
+# `src/metrics/_schema.ts` and snapshot-tested. Substrate caps enforced
+# by `src/metrics/guard.ts` at runtime.
+#
+# Top-level binding is for `wrangler dev` runs (un-tagged dataset).
+# Env-specific overrides below scope events per environment so staging
+# traffic doesn't contaminate production dashboards.
+[[analytics_engine_datasets]]
+binding = "METRICS"
+dataset = "mcp_events_dev"
+
+# ---------------------------------------------------------------------------
+# Cloudflare Workers Observability — persistent logs + traces (BL-032.77)
+# ---------------------------------------------------------------------------
+# Native Workers Logs + Workers Traces. Configured here so every deploy
+# enables them automatically — no more toggling via the Cloudflare dashboard
+# on each environment after a redeploy.
+#
+# Use cases (separate from BL-032.75 Phase 1 Analytics Engine emission):
+#   - Workers Logs: searchable request/invocation logs with 3-day retention
+#     on Free plan (200k events/day) — primary surface for diagnosing the
+#     BL-032.77 Sentry-envelope failure modes without leaning on Sentry's
+#     own ingest. Our `safeLog` lines (including the new `sentry.envelope.
+#     post.{non-2xx,aborted,network-error}` instrumentation) land here.
+#   - Workers Traces: per-invocation execution timeline. Useful for
+#     correlating cron-firing duration with `ok` check-in timing —
+#     direct evidence for or against the "isolate eviction mid-firing"
+#     hypothesis in BL-032.77 Issue B.
+#
+# The top-level `enabled = false` is the deprecated all-or-nothing flag;
+# the modern per-feature `logs.enabled` / `traces.enabled` flags below are
+# the granular controls. Cloudflare's wrangler reader honors both.
+#
+# Inheritance: top-level observability applies to all envs by default.
+# No per-env override needed; staging + production both pick this up.
+[observability]
+enabled = false
+head_sampling_rate = 1
+logs = { enabled = true, head_sampling_rate = 1, persist = true, invocation_logs = true }
+traces = { enabled = true, persist = true, head_sampling_rate = 1 }
+
 # nodejs_compat is required because the `agents` SDK pulls in `mimetext`
 # (uses node:os) and `mime-types` (uses node:path) transitively through its
 # observability module. Cloudflare's nodejs_compat layer polyfills these
@@ -73,6 +126,13 @@ routes = [
   { pattern = "mcp-staging.globalstrategic.tech", custom_domain = true }
 ]
 
+# Analytics Engine — staging dataset (BL-032.75 Phase 1).
+# Separate dataset from production so staging soak traffic doesn't
+# pollute production dashboards.
+[[env.staging.analytics_engine_datasets]]
+binding = "METRICS"
+dataset = "mcp_events_staging"
+
 # Staging deliberately has NO cron trigger.
 #
 # Staging exists to validate code changes, not to keep caches warm.
@@ -109,6 +169,13 @@ name = "gst-mcp"
 routes = [
   { pattern = "mcp.globalstrategic.tech", custom_domain = true }
 ]
+
+# Analytics Engine — production dataset (BL-032.75 Phase 1).
+# Canonical dataset for Phase 3 Grafana dashboards + the `/status` page
+# server-side query.
+[[env.production.analytics_engine_datasets]]
+binding = "METRICS"
+dataset = "mcp_events"
 
 # Radar snapshot refresh — cadence calibrated to cache TTL.
 #

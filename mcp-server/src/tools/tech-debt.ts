@@ -8,6 +8,7 @@
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import {
   calculateFromRawInputs,
   encodeState,
@@ -62,7 +63,10 @@ export function buildTechDebtDeeplink(raw: RawTechDebtInputs): string {
   return `${HUB_BASE}/hub/tools/tech-debt-calculator/?s=${encoded}`;
 }
 
-export function registerTechDebtTool(server: McpServer): void {
+export function registerTechDebtTool(
+  server: McpServer,
+  metrics: MetricsContext = NOOP_METRICS_CONTEXT
+): void {
   server.registerTool(
     'estimate_tech_debt_cost',
     {
@@ -74,7 +78,7 @@ export function registerTechDebtTool(server: McpServer): void {
         idempotentHint: true,
       },
     },
-    async (inputs) => {
+    withToolMetrics('estimate_tech_debt_cost', metrics, async (inputs) => {
       try {
         const result = calculateFromRawInputs(inputs);
         const deeplink = buildTechDebtDeeplink(inputs);
@@ -95,6 +99,6 @@ export function registerTechDebtTool(server: McpServer): void {
           isError: true,
         };
       }
-    }
+    })
   );
 }

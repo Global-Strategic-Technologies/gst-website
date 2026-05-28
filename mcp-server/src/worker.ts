@@ -37,6 +37,7 @@ import { hasScope } from './auth/scopes';
 import { createLimiter } from './ratelimit/limiter';
 import { tooManyRequestsResponse, withRateLimitHeaders } from './ratelimit/headers';
 import { captureMessage, sentryOptions, tagRequest, withSentry } from './observability/sentry';
+import { AnalyticsEngineSink } from './metrics/_index';
 import { postSentryCheckIn, postSentryEvent } from './observability/sentry-envelope';
 import { buildHealthPayload } from './observability/health';
 import { refreshRadarSnapshot } from './cron/radar-refresh';
@@ -102,6 +103,15 @@ export interface Env {
   // Matches GIT_SHA value by convention; separate Env field so the Sentry
   // SDK's `release` option reads from a Sentry-namespaced var.
   SENTRY_RELEASE?: string;
+
+  // Cloudflare Analytics Engine binding — typed-metric emission target
+  // (BL-032.75 Phase 1). Bound per environment in wrangler.toml:
+  //   - top-level (`wrangler dev`): dataset `mcp_events_dev`
+  //   - env.staging: `mcp_events_staging`
+  //   - env.production: `mcp_events`
+  // When unbound (some test contexts), worker.ts falls back to a NoopSink
+  // so emission becomes a no-op rather than throwing.
+  METRICS?: import('@cloudflare/workers-types').AnalyticsEngineDataset;
 
   // Forward-compat: any additional MCP_KEY_* secrets get matched by name.
   [key: string]: unknown;
@@ -409,7 +419,20 @@ export const handler: ExportedHandler<Env> = {
     // and `radarSource: 'worker'` so radar Resources register with the
     // Upstash-backed reader (the stdio reader uses node:fs and isn't bundled
     // for the Worker).
-    const mcp = createMcpHandler(createServer(env, { scopes: auth.scopes, radarSource: 'worker' }));
+    //
+    // BL-032.75 Phase 1: `metricsSink` is a per-request AnalyticsEngineSink
+    // bound to `env.METRICS`. Fall back to omitting the option (→ NoopSink)
+    // when the AE binding isn't present (some test contexts). `keyOwner`
+    // threads the bearer attribution into every emitted event.
+    const metricsSink = env.METRICS ? new AnalyticsEngineSink(env.METRICS) : undefined;
+    const mcp = createMcpHandler(
+      createServer(env, {
+        scopes: auth.scopes,
+        radarSource: 'worker',
+        metricsSink,
+        keyOwner: auth.keyOwner,
+      })
+    );
     const response = await mcp(request, env, ctx);
     const durationMs = Date.now() - startedAt;
 

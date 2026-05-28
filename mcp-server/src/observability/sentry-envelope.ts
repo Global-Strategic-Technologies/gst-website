@@ -33,6 +33,7 @@
  * ingest cannot extend `ctx.waitUntil` past its budget.
  */
 
+import { safeLog } from '../auth/safe-logger';
 import type { Env } from '../worker';
 
 interface ParsedDsn {
@@ -64,10 +65,28 @@ function randomEventId(): string {
 }
 
 async function postEnvelope(dsn: ParsedDsn, body: string): Promise<void> {
+  // BL-032.77 — diagnose Sentry-side envelope failures (missing-check-in
+  // alerts that don't match Cloudflare-side success). Three failure modes
+  // get distinct `safeLog` lines so a `wrangler tail` filter can attribute
+  // each missed check-in or noise burst to its root cause:
+  //
+  //   1. `sentry.envelope.post.non-2xx` — Sentry rejected the envelope (429
+  //      project rate limit, 503 transient, etc). Until this instrumentation
+  //      shipped, these were silent — the success path returned cleanly even
+  //      though Sentry never accepted the event. Suspected dominant cause
+  //      of the "timeout check-in" false-positive alerts.
+  //   2. `sentry.envelope.post.aborted` — local 2s timeout tripped before
+  //      response arrived. Network/DNS hiccup or Sentry-side slow ingest.
+  //   3. `sentry.envelope.post.network-error` — fetch itself threw (TLS,
+  //      DNS NXDOMAIN, etc). Rarest path; included for completeness.
+  //
+  // All three paths still resolve the promise cleanly — best-effort
+  // contract preserved; the caller's `ctx.waitUntil` is unaffected.
+  const url = `https://${dsn.host}/api/${dsn.projectId}/envelope/`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ENVELOPE_TIMEOUT_MS);
   try {
-    await fetch(`https://${dsn.host}/api/${dsn.projectId}/envelope/`, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-sentry-envelope',
@@ -76,10 +95,26 @@ async function postEnvelope(dsn: ParsedDsn, body: string): Promise<void> {
       body,
       signal: controller.signal,
     });
-  } catch {
-    // Best-effort — swallow network errors, abort timeouts, and any
-    // other fetch rejection so the caller's ctx.waitUntil resolves
-    // cleanly. There is no recovery path.
+    if (!response.ok) {
+      safeLog({
+        event: 'sentry.envelope.post.non-2xx',
+        status: response.status,
+        success: false,
+        errorCode: 'sentry-envelope-non-2xx',
+        reason: `host=${dsn.host} project=${dsn.projectId}`,
+      });
+    }
+  } catch (err) {
+    // AbortError when the controller fires; everything else is a genuine
+    // network / TLS / DNS failure. Distinguish so the operator can tell
+    // "Sentry is slow" from "we can't reach Sentry."
+    const isAbort = err instanceof DOMException && err.name === 'AbortError';
+    safeLog({
+      event: isAbort ? 'sentry.envelope.post.aborted' : 'sentry.envelope.post.network-error',
+      success: false,
+      errorCode: isAbort ? 'sentry-envelope-abort' : 'sentry-envelope-network',
+      reason: err instanceof Error ? err.message.slice(0, 200) : 'unknown',
+    });
   } finally {
     clearTimeout(timer);
   }
