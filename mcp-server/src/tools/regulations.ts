@@ -10,6 +10,7 @@
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import {
   RegulationSearchInputSchema,
   RegulationFacetsInputSchema,
@@ -249,7 +250,10 @@ export function toSearchResult(entry: RegulationEntry): SearchResult {
   };
 }
 
-export function registerRegulationsTool(server: McpServer): void {
+export function registerRegulationsTool(
+  server: McpServer,
+  metrics: MetricsContext = NOOP_METRICS_CONTEXT
+): void {
   server.registerTool(
     'search_regulations',
     {
@@ -261,7 +265,7 @@ export function registerRegulationsTool(server: McpServer): void {
         idempotentHint: true,
       },
     },
-    async (input) => {
+    withToolMetrics('search_regulations', metrics, async (input) => {
       const matched = applyFilters(input);
       const returned = matched.slice(0, input.limit);
       // Deeplink construction: the website's regulatory map UI uses
@@ -292,7 +296,7 @@ export function registerRegulationsTool(server: McpServer): void {
         content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
         structuredContent: payload as unknown as Record<string, unknown>,
       };
-    }
+    })
   );
 
   server.registerTool(
@@ -306,7 +310,7 @@ export function registerRegulationsTool(server: McpServer): void {
         idempotentHint: true,
       },
     },
-    async () => {
+    withToolMetrics('list_regulation_facets', metrics, async () => {
       const facets = {
         jurisdictions: listJurisdictions(),
         categories: listCategories(),
@@ -316,6 +320,6 @@ export function registerRegulationsTool(server: McpServer): void {
         content: [{ type: 'text', text: JSON.stringify(facets, null, 2) }],
         structuredContent: facets as unknown as Record<string, unknown>,
       };
-    }
+    })
   );
 }

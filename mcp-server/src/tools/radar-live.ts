@@ -35,6 +35,7 @@
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import { z } from 'zod';
 import type { Env } from '../worker';
 import { readWireLive, readFyiLive, type LiveTierResult } from '../content/radar-live-store';
@@ -279,7 +280,11 @@ export async function handleGetLatestInsights(env: Env, input: GetLatestInsights
  * In stdio without local Inoreader creds the tools still register; calling
  * them returns a structured `config-missing` error envelope.
  */
-export function registerRadarLiveTools(server: McpServer, env: Env): void {
+export function registerRadarLiveTools(
+  server: McpServer,
+  env: Env,
+  metrics: MetricsContext = NOOP_METRICS_CONTEXT
+): void {
   server.registerTool(
     'search_radar',
     {
@@ -291,7 +296,9 @@ export function registerRadarLiveTools(server: McpServer, env: Env): void {
         idempotentHint: true,
       },
     },
-    (input: SearchRadarInput) => handleSearchRadar(env, input)
+    withToolMetrics('search_radar', metrics, (input: SearchRadarInput) =>
+      handleSearchRadar(env, input)
+    )
   );
 
   server.registerTool(
@@ -305,7 +312,9 @@ export function registerRadarLiveTools(server: McpServer, env: Env): void {
         idempotentHint: true,
       },
     },
-    (input: GetLatestInsightsInput) => handleGetLatestInsights(env, input)
+    withToolMetrics('get_latest_insights', metrics, (input: GetLatestInsightsInput) =>
+      handleGetLatestInsights(env, input)
+    )
   );
 }
 

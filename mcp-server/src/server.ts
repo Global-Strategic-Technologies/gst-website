@@ -27,6 +27,7 @@ import { registerRadarResources } from './resources/radar';
 import { createWorkerSnapshotReader } from './content/radar-snapshot-reader-worker';
 import { registerPrompts } from './prompts/_registry';
 import { DEFAULT_SCOPES } from './auth/scopes';
+import { NOOP_METRICS_CONTEXT, type MetricsContext } from './metrics/_index';
 import type { Env } from './worker';
 
 /**
@@ -54,6 +55,26 @@ export interface ServerContext {
    * Avoids double-registration in stdio + Upstash-bound dev runs.
    */
   radarSource?: 'worker';
+
+  /**
+   * BL-032.75 Phase 1 — typed-metric emission sink. Each Tool / Resource /
+   * Prompt registration wraps its handler with the appropriate
+   * `withXxxMetrics` HOF so every invocation emits one event to this sink.
+   *
+   * Worker passes an `AnalyticsEngineSink(env.METRICS)`; stdio omits the
+   * field and gets `NoopSink` (no-op emission, no AE binding required).
+   * Tests inject `InMemorySink` to assert on emitted events.
+   */
+  metricsSink?: import('./metrics/_index').MetricSink;
+
+  /**
+   * BL-032.75 Phase 1 — bearer-key attribution (stripped `MCP_KEY_*`
+   * suffix). Per-request; threaded into every metric event via the
+   * `withXxxMetrics` HOF's `MetricsContext.keyOwner`. Omitted for stdio
+   * + cron paths (events emit with `keyOwner = undefined`, projected to
+   * `KEYOWNER_PLACEHOLDER` in AE's `index1` column).
+   */
+  keyOwner?: string;
 }
 
 /**
@@ -75,32 +96,42 @@ export function createServer(env: Env = {}, ctx: ServerContext = {}): McpServer 
   });
   const scopes = ctx.scopes ?? DEFAULT_SCOPES;
 
+  // BL-032.75 Phase 1: build the per-request MetricsContext once and thread
+  // it to every register*. Stdio path (no metricsSink) gets the frozen
+  // NOOP_METRICS_CONTEXT singleton — emission becomes a no-op without
+  // changing any callsite shape. Worker passes
+  // `{ metricsSink: AnalyticsEngineSink(env.METRICS), keyOwner: auth.keyOwner }`.
+  const metrics: MetricsContext =
+    ctx.metricsSink === undefined
+      ? NOOP_METRICS_CONTEXT
+      : { sink: ctx.metricsSink, keyOwner: ctx.keyOwner };
+
   // Tools (transport-portable)
-  registerDiligenceTool(server);
-  registerPortfolioTools(server);
-  registerIcgTool(server);
-  registerTechparTool(server);
-  registerTechDebtTool(server);
-  registerRegulationsTool(server);
-  registerRadarLiveTools(server, env);
-  registerGenerateIrlXlsxTool(server);
+  registerDiligenceTool(server, metrics);
+  registerPortfolioTools(server, metrics);
+  registerIcgTool(server, metrics);
+  registerTechparTool(server, metrics);
+  registerTechDebtTool(server, metrics);
+  registerRegulationsTool(server, metrics);
+  registerRadarLiveTools(server, env, metrics);
+  registerGenerateIrlXlsxTool(server, metrics);
 
   // Resources (transport-portable). `env` is threaded so handlers can
   // consult the BL-032.5 server-side cache (see `cache/resource-cache.ts`).
   // Cache is a no-op when Upstash isn't bound.
-  registerLibraryResources(server, env);
-  registerRegulationResources(server, env);
+  registerLibraryResources(server, env, metrics);
+  registerRegulationResources(server, env, metrics);
 
   // BL-032.5 Phase 3: radar Resources are now transport-portable. The
   // Worker passes radarSource='worker' so they register with the Upstash-
   // backed reader. Stdio omits the option; `tools/_local-only.ts`
   // registers them with the node:fs-backed reader separately.
   if (ctx.radarSource === 'worker') {
-    registerRadarResources(server, createWorkerSnapshotReader(env), env, scopes);
+    registerRadarResources(server, createWorkerSnapshotReader(env), env, scopes, metrics);
   }
 
   // Prompts
-  registerPrompts(server);
+  registerPrompts(server, metrics);
 
   return server;
 }

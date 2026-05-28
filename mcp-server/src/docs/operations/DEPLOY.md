@@ -238,6 +238,36 @@ The Worker reads OAuth tokens from Upstash first ([Q4](../../../../src/docs/deve
 
 ---
 
+## A.4.5 — Cloudflare Analytics Engine — typed-metric instrumentation (BL-032.75 Phase 1)
+
+### What you need
+
+- Cloudflare account (already set up in [A.1](#a1--cloudflare-account--wrangler-cli)).
+- Workers Free plan (verified sufficient per [Cloudflare AE pricing](https://developers.cloudflare.com/analytics/analytics-engine/pricing/) on 2026-05-27: 100k writes/day + 10k reads/day + 3-month retention).
+
+### Steps
+
+**Nothing to do.** Analytics Engine datasets auto-materialize on first `writeDataPoint` after `wrangler deploy` — no manual provisioning in the dashboard is required (per [Cloudflare's get-started page](https://developers.cloudflare.com/analytics/analytics-engine/get-started/): "Workers Analytics Engine datasets are created automatically the first time you write to them after defining the binding in your Wrangler configuration").
+
+The binding is already declared in [`mcp-server/wrangler.toml`](../../../wrangler.toml) per environment:
+
+- `wrangler dev` (no `--env`): dataset `mcp_events_dev`
+- `--env staging`: dataset `mcp_events_staging`
+- `--env production`: dataset `mcp_events`
+
+### Verification (after first deploy)
+
+1. `npx wrangler deploy --env staging`.
+2. Send any authenticated request to `https://mcp-staging.globalstrategic.tech/mcp` (the metrics-emission integration test or a manual `curl` with a real bearer works).
+3. `npx wrangler tail --env staging` and confirm **no** `metrics.sink.write_failed` line appears. If one does, the binding is misconfigured — re-check `wrangler.toml`.
+4. (Optional, requires Phase 3 token — see [C.X below](#cx--analytics-engine-sql-query-bl-03275-phase-3)): query AE via the SQL API and confirm rows are appearing in `mcp_events_staging`.
+
+### What you've completed
+
+✅ AE is bound; instrumented Tool / Resource / Prompt invocations write events to the per-env dataset.
+
+---
+
 ## A.5 — Sentry — create new project + DSN secret
 
 ### What you need
@@ -948,6 +978,70 @@ A bounded decision tree for "the MCP is broken" reports. Walk through these in o
 - **Cloudflare platform issues** → can't fix; communicate to users; Cloudflare's SLA covers it
 
 The MCP server's blast radius is bounded — it's an internal tool, BL-033 hasn't shipped external clients yet, and nothing about the website depends on it. An outage is inconvenient, not contractual. That calculus changes when [BL-033](../../../../src/docs/development/BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3) ships.
+
+---
+
+## C.X — Analytics Engine SQL query (BL-032.75 Phase 3)
+
+> **Audience**: operator wiring Grafana Cloud (or any external tool) to read AE events for dashboards / alerts / the `/status` page. **Phase 3 task** — file this here now so the procedure isn't rediscovered cold when Phase 3 lands.
+
+### What you need
+
+- A Cloudflare API token with `Account | Account Analytics | Read` permission (manual mint — see Steps below).
+- Your account ID (`npx wrangler whoami` or Cloudflare dashboard URL).
+
+### Steps
+
+1. **Cloudflare dashboard → My Profile → API Tokens → Create Token → "Custom token"**.
+2. **Permissions**: `Account` → `Account Analytics` → `Read`. Scope to the account that owns `gst-mcp` / `gst-mcp-staging`.
+3. **TTL**: 1 year (rotate annually; track via [SECRETS_INVENTORY.md](../../../../src/docs/operations/SECRETS_INVENTORY.md)).
+4. Save the token (Cloudflare shows it ONCE — store in your password manager + the Grafana datasource config).
+5. Verify with a `curl` probe:
+
+   ```powershell
+   $env:CF_AE_TOKEN = '<the token>'
+   $accountId = '<your account id>'
+   curl -X POST `
+     -H "Authorization: Bearer $env:CF_AE_TOKEN" `
+     -H "Content-Type: application/json" `
+     "https://api.cloudflare.com/client/v4/accounts/$accountId/analytics_engine/sql" `
+     --data 'SELECT count() AS total FROM mcp_events_staging WHERE timestamp > NOW() - INTERVAL ''1'' DAY'
+   ```
+
+   Expect `{"data":[{"total":<n>}],...}` with `n` ≥ 0.
+
+### Per-env dataset names (from `wrangler.toml`)
+
+| Env                | Dataset              |
+| ------------------ | -------------------- |
+| `wrangler dev`     | `mcp_events_dev`     |
+| `--env staging`    | `mcp_events_staging` |
+| `--env production` | `mcp_events`         |
+
+### Column map reference
+
+See [`mcp-server/src/metrics/_schema.ts`](../../metrics/_schema.ts) — the snapshot-tested source of truth. Summary:
+
+| Column    | Field                                                                                                                                                                 |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `blob1`   | `event_type` (`tool_invocation` / `resource_read` / `prompt_invocation` / `prompt_span` / `rate_limit_decision` / `inoreader_call` / `health_check` / `cron_outcome`) |
+| `blob2`   | `name` (tool / resource URI / prompt name / cron slug / Inoreader category)                                                                                           |
+| `blob3`   | `keyOwner` (or `__none__` placeholder when not authenticated)                                                                                                         |
+| `blob4`   | `outcome` (`success` / `error` / category-specific)                                                                                                                   |
+| `blob5`   | `correlation_id` (prompt_span only)                                                                                                                                   |
+| `blob6`   | `status_code` (string, e.g. `'200'`)                                                                                                                                  |
+| `double1` | `duration_ms`                                                                                                                                                         |
+| `double2` | `seq` (prompt_span step index)                                                                                                                                        |
+| `index1`  | `keyOwner` (mirror of blob3 for AE sampling)                                                                                                                          |
+
+### Token rotation
+
+Annual or after any suspected leak:
+
+1. Mint a new token (same permissions).
+2. Update the Grafana datasource config + any external dashboards.
+3. Revoke the old token in the Cloudflare dashboard.
+4. Update [`SECRETS_INVENTORY.md`](../../../../src/docs/operations/SECRETS_INVENTORY.md) with the rotation date.
 
 ---
 
