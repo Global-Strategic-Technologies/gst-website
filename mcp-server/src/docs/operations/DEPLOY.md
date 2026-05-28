@@ -247,24 +247,39 @@ The Worker reads OAuth tokens from Upstash first ([Q4](../../../../src/docs/deve
 
 ### Steps
 
-**Nothing to do.** Analytics Engine datasets auto-materialize on first `writeDataPoint` after `wrangler deploy` — no manual provisioning in the dashboard is required (per [Cloudflare's get-started page](https://developers.cloudflare.com/analytics/analytics-engine/get-started/): "Workers Analytics Engine datasets are created automatically the first time you write to them after defining the binding in your Wrangler configuration").
+**One-time account-level enable.** Cloudflare's [get-started page](https://developers.cloudflare.com/analytics/analytics-engine/get-started/) claims datasets auto-materialize on first `writeDataPoint` after the binding is declared, but **first-deploy reality (2026-05-28)** is that Analytics Engine has to be enabled on the account first. The "enable" surface is the **Create Blank Dataset** dialog in the dashboard — creating ANY dataset there flips the account-level switch.
 
-The binding is already declared in [`mcp-server/wrangler.toml`](../../../wrangler.toml) per environment:
+The fastest way to do this:
 
-- `wrangler dev` (no `--env`): dataset `mcp_events_dev`
-- `--env staging`: dataset `mcp_events_staging`
-- `--env production`: dataset `mcp_events`
+1. **Cloudflare dashboard** → Workers & Pages → **Analytics Engine** in the left nav (or direct link from the deploy error message)
+2. Click **Create Blank Dataset**
+3. **Dataset Name**: `mcp_events_staging` (match the staging dataset name pinned in `wrangler.toml`)
+4. **Dataset Binding**: `METRICS` (match the binding name)
+5. Click **Create Dataset**
+6. Close the "binding info" modal that follows — our `wrangler.toml` already declares the binding it shows
+
+After this one-time enable, the deploy succeeds AND every subsequent dataset (`mcp_events`, `mcp_events_dev`) auto-materializes on first write. The dashboard text confirms this — "the dataset will not appear until after you bind it to a worker and write data to it."
+
+### Per-env dataset map (already pinned in `wrangler.toml`)
+
+| Env                         | Dataset              | Binding   | Created via                                      |
+| --------------------------- | -------------------- | --------- | ------------------------------------------------ |
+| `wrangler dev` (no `--env`) | `mcp_events_dev`     | `METRICS` | Auto on first write                              |
+| `--env staging`             | `mcp_events_staging` | `METRICS` | **Manual dashboard step (account-level enable)** |
+| `--env production`          | `mcp_events`         | `METRICS` | Auto on first write (after staging step above)   |
 
 ### Verification (after first deploy)
 
-1. `npx wrangler deploy --env staging`.
-2. Send any authenticated request to `https://mcp-staging.globalstrategic.tech/mcp` (the metrics-emission integration test or a manual `curl` with a real bearer works).
-3. `npx wrangler tail --env staging` and confirm **no** `metrics.sink.write_failed` line appears. If one does, the binding is misconfigured — re-check `wrangler.toml`.
-4. (Optional, requires Phase 3 token — see [C.X below](#cx--analytics-engine-sql-query-bl-03275-phase-3)): query AE via the SQL API and confirm rows are appearing in `mcp_events_staging`.
+1. `npx wrangler deploy --env staging` — should succeed cleanly post-enable
+2. `npx wrangler deploy --env production` — auto-binds without dashboard prompts (the account-level enable carries over)
+3. Look at the deploy output's bindings table — confirms `env.METRICS (mcp_events_staging)` for staging and `env.METRICS (mcp_events)` for production. Different dataset names = different AE datasets = no staging/prod contamination.
+4. After the next cron firing (or any authenticated MCP request that exercises a tool/resource/prompt), `npx wrangler tail --env <env>` should show no `metrics.sink.write_failed` lines. If one appears, the binding-vs-dataset shape is wrong — re-check `wrangler.toml`.
+5. Within ~5-10 min of first writes, the Cloudflare dashboard → Workers & Pages → Analytics Engine should show both datasets populated.
+6. (Optional, requires Phase 3 token — see [C.X below](#cx--analytics-engine-sql-query-bl-03275-phase-3)): query AE via the SQL API and confirm rows.
 
 ### What you've completed
 
-✅ AE is bound; instrumented Tool / Resource / Prompt invocations write events to the per-env dataset.
+✅ AE is enabled at account level. Both per-env datasets exist (or will auto-materialize on first write). Instrumented Tool / Resource / Prompt invocations write events to the per-env dataset.
 
 ---
 
