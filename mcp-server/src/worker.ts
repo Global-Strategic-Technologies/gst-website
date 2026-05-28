@@ -37,7 +37,8 @@ import { hasScope } from './auth/scopes';
 import { createLimiter } from './ratelimit/limiter';
 import { tooManyRequestsResponse, withRateLimitHeaders } from './ratelimit/headers';
 import { captureMessage, sentryOptions, tagRequest, withSentry } from './observability/sentry';
-import { AnalyticsEngineSink } from './metrics/_index';
+import { AnalyticsEngineSink, emit } from './metrics/_index';
+import type { RefreshOutcome } from './cron/radar-refresh';
 import { postSentryCheckIn, postSentryEvent } from './observability/sentry-envelope';
 import { buildHealthPayload } from './observability/health';
 import { refreshRadarSnapshot } from './cron/radar-refresh';
@@ -208,19 +209,29 @@ export const handler: ExportedHandler<Env> = {
             event.cron
           );
           try {
-            await refreshRadarSnapshot(env);
+            const refreshOutcome = await refreshRadarSnapshot(env);
             await postSentryCheckIn(env, 'radar-refresh', 'ok', event.cron, checkInId);
             // BL-032.77 Fix C — emit cron_outcome to AE so the dataset
             // populates even when no MCP RPC traffic is flowing (the
             // common case: website's `/radar/snapshot` SSR uses HTTP,
             // not MCP RPC; cron is the only reliable AE-write source).
+            //
+            // `refreshRadarSnapshot` returns a discriminated `RefreshOutcome`
+            // (it doesn't throw on partial/skipped failures); ALL non-throw
+            // returns hit this branch. Map each `kind` to the schema's
+            // `OUTCOME_VALUES.cron_outcome` so the dashboard distinguishes
+            // success from partial / skipped / error rather than reporting
+            // every non-throw as "success."
+            //
             // Best-effort: env.METRICS may be undefined in test contexts;
-            // sink.write is contractually non-throwing.
+            // routing through `emit()` so the schema guard catches drift
+            // (e.g. a future RefreshOutcome.kind addition without a
+            // matching outcome value).
             if (env.METRICS) {
-              new AnalyticsEngineSink(env.METRICS).write({
+              emit(new AnalyticsEngineSink(env.METRICS), {
                 event_type: 'cron_outcome',
                 name: 'radar-refresh',
-                outcome: 'success',
+                outcome: refreshOutcomeToAe(refreshOutcome),
                 duration_ms: Date.now() - startedAt,
               });
             }
@@ -239,9 +250,14 @@ export const handler: ExportedHandler<Env> = {
               extra: { source: 'cron.scheduled', cron: event.cron },
             });
             await postSentryCheckIn(env, 'radar-refresh', 'error', event.cron, checkInId);
-            // BL-032.77 Fix C — error-path AE write.
+            // BL-032.77 Fix C — uncaught-throw error path. Distinct from
+            // `RefreshOutcome.kind === 'error'` which is handled above via
+            // `refreshOutcomeToAe` (refreshRadarSnapshot returns errors
+            // structurally; reaching this catch means something blew up
+            // outside its try/catch — uncaught exception, isolate fault,
+            // helper-contract regression).
             if (env.METRICS) {
-              new AnalyticsEngineSink(env.METRICS).write({
+              emit(new AnalyticsEngineSink(env.METRICS), {
                 event_type: 'cron_outcome',
                 name: 'radar-refresh',
                 outcome: 'error',
@@ -494,3 +510,44 @@ export default {
   fetch: wrappedFetch,
   scheduled: handler.scheduled,
 } satisfies ExportedHandler<Env>;
+
+/**
+ * Map a `RefreshOutcome` (5 kinds, plus the `skipped` sub-reason) to
+ * the pinned `OUTCOME_VALUES.cron_outcome` enum. Exhaustive `never`
+ * check at the end so a future kind addition becomes a compile error
+ * rather than a silent fall-through.
+ *
+ * Mapping rationale:
+ *   - `success`              → `'success'`
+ *   - `partial-one-tier-ok`  → `'partial'` (one tier refreshed; cache
+ *                              is half-fresh; informational)
+ *   - `partial-both-failed`  → `'error'`   (both tiers down; alertable)
+ *   - `skipped circuit-open` → `'skipped-circuit'`
+ *   - `skipped day-cap-...`  → `'skipped-budget'`
+ *   - `error`                → `'error'`
+ *
+ * If `OUTCOME_VALUES.cron_outcome` is later widened (e.g. distinguish
+ * `partial-both-failed` from `error`), update this map AND the
+ * snapshot test in `tests/unit/metrics/schema.test.ts`.
+ *
+ * Exported so the unit test in `tests/unit/worker-scheduled.test.ts`
+ * can pin the mapping per-case.
+ */
+export function refreshOutcomeToAe(outcome: RefreshOutcome): string {
+  switch (outcome.kind) {
+    case 'success':
+      return 'success';
+    case 'partial-one-tier-ok':
+      return 'partial';
+    case 'partial-both-failed':
+      return 'error';
+    case 'skipped':
+      return outcome.reason === 'circuit-open' ? 'skipped-circuit' : 'skipped-budget';
+    case 'error':
+      return 'error';
+    default: {
+      const _exhaustive: never = outcome;
+      return _exhaustive;
+    }
+  }
+}

@@ -283,3 +283,83 @@ describe('worker.ts scheduled handler — envelope check-in lifecycle (BL-032.76
     await expect(Promise.all(waitUntilPromises)).resolves.toBeDefined();
   });
 });
+
+import { refreshOutcomeToAe } from '../../src/worker';
+import type { RefreshOutcome } from '../../src/cron/radar-refresh';
+
+describe('refreshOutcomeToAe — RefreshOutcome.kind → cron_outcome enum mapping (BL-032.77 Fix C)', () => {
+  // Pins every `RefreshOutcome.kind` to its `OUTCOME_VALUES.cron_outcome`
+  // mapping. Catches the partial-as-success bug the closeout audit flagged:
+  // worker.ts used to discard the RefreshOutcome and emit `'success'` for
+  // every non-throw return, so `partial-both-failed` (both tiers down) was
+  // reported to AE as a success. The audit's exhaustive `never` check at
+  // the bottom of `refreshOutcomeToAe` is the compile-time safety net; this
+  // test is the runtime safety net.
+
+  it('kind=success → outcome=success', () => {
+    const outcome: RefreshOutcome = {
+      kind: 'success',
+      wireItems: 5,
+      fyiItems: 3,
+      callsConsumed: 6,
+    };
+    expect(refreshOutcomeToAe(outcome)).toBe('success');
+  });
+
+  it('kind=partial-one-tier-ok → outcome=partial (cache half-fresh, not an error)', () => {
+    const outcome: RefreshOutcome = {
+      kind: 'partial-one-tier-ok',
+      wireOk: true,
+      fyiOk: false,
+      callsConsumed: 5,
+    };
+    expect(refreshOutcomeToAe(outcome)).toBe('partial');
+  });
+
+  it('kind=partial-both-failed → outcome=error (both tiers down; user-visible staleness)', () => {
+    const outcome: RefreshOutcome = {
+      kind: 'partial-both-failed',
+      wireReason: 'upstream-503',
+      fyiReason: 'upstream-503',
+    };
+    expect(refreshOutcomeToAe(outcome)).toBe('error');
+  });
+
+  it('kind=skipped reason=circuit-open → outcome=skipped-circuit', () => {
+    const outcome: RefreshOutcome = { kind: 'skipped', reason: 'circuit-open' };
+    expect(refreshOutcomeToAe(outcome)).toBe('skipped-circuit');
+  });
+
+  it('kind=skipped reason=day-cap-reached → outcome=skipped-budget', () => {
+    const outcome: RefreshOutcome = {
+      kind: 'skipped',
+      reason: 'day-cap-reached',
+      counter: 94,
+    };
+    expect(refreshOutcomeToAe(outcome)).toBe('skipped-budget');
+  });
+
+  it('kind=error → outcome=error', () => {
+    const outcome: RefreshOutcome = { kind: 'error', message: 'boom' };
+    expect(refreshOutcomeToAe(outcome)).toBe('error');
+  });
+
+  it('every mapped outcome is in OUTCOME_VALUES.cron_outcome (no schema drift)', async () => {
+    // Cross-check that the strings refreshOutcomeToAe returns are all
+    // accepted by the schema guard. A future widening of `RefreshOutcome`
+    // without a matching schema enum entry would surface here.
+    const { OUTCOME_VALUES } = await import('../../src/metrics/_schema');
+    const outcomes: RefreshOutcome[] = [
+      { kind: 'success', wireItems: 0, fyiItems: 0, callsConsumed: 0 },
+      { kind: 'partial-one-tier-ok', wireOk: true, fyiOk: false, callsConsumed: 0 },
+      { kind: 'partial-both-failed', wireReason: 'r', fyiReason: 'r' },
+      { kind: 'skipped', reason: 'circuit-open' },
+      { kind: 'skipped', reason: 'day-cap-reached' },
+      { kind: 'error', message: 'x' },
+    ];
+    for (const outcome of outcomes) {
+      const ae = refreshOutcomeToAe(outcome);
+      expect(OUTCOME_VALUES.cron_outcome).toContain(ae);
+    }
+  });
+});

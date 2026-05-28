@@ -24,6 +24,7 @@ export {
 export { guardEvent } from './guard';
 export { emitPromptSpan } from './prompt-span';
 export {
+  emit,
   withMetricsCore,
   withPromptMetrics,
   withResourceMetrics,
