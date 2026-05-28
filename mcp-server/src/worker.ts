@@ -210,6 +210,20 @@ export const handler: ExportedHandler<Env> = {
           try {
             await refreshRadarSnapshot(env);
             await postSentryCheckIn(env, 'radar-refresh', 'ok', event.cron, checkInId);
+            // BL-032.77 Fix C — emit cron_outcome to AE so the dataset
+            // populates even when no MCP RPC traffic is flowing (the
+            // common case: website's `/radar/snapshot` SSR uses HTTP,
+            // not MCP RPC; cron is the only reliable AE-write source).
+            // Best-effort: env.METRICS may be undefined in test contexts;
+            // sink.write is contractually non-throwing.
+            if (env.METRICS) {
+              new AnalyticsEngineSink(env.METRICS).write({
+                event_type: 'cron_outcome',
+                name: 'radar-refresh',
+                outcome: 'success',
+                duration_ms: Date.now() - startedAt,
+              });
+            }
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             safeLog({
@@ -225,6 +239,15 @@ export const handler: ExportedHandler<Env> = {
               extra: { source: 'cron.scheduled', cron: event.cron },
             });
             await postSentryCheckIn(env, 'radar-refresh', 'error', event.cron, checkInId);
+            // BL-032.77 Fix C — error-path AE write.
+            if (env.METRICS) {
+              new AnalyticsEngineSink(env.METRICS).write({
+                event_type: 'cron_outcome',
+                name: 'radar-refresh',
+                outcome: 'error',
+                duration_ms: Date.now() - startedAt,
+              });
+            }
           }
         } catch {
           // Helper-contract regression. No further recovery — the work

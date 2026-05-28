@@ -100,11 +100,26 @@ const TTL_SECONDS = 25 * 60 * 60;
 /**
  * Drift threshold: when the local counter and the latest header-observed
  * `X-Reader-Zone1-Usage` disagree by more than this many calls in either
- * direction, a Sentry message fires. Set to 2 because a brief race between
- * "we wrote our increment" and "Inoreader's counter ticked" can produce a
- * legitimate ±1 momentary gap; anything beyond means a real path is uncounted.
+ * direction, a Sentry message fires.
+ *
+ * **Raised from 2 → 6 on 2026-05-29** per BL-032.77 Issue C analysis.
+ * Original `2` was too sensitive for the parallel-cron workload: a single
+ * cron firing makes 6 Zone-1 calls in parallel via `Promise.all` (1 tag-list +
+ * 4 folder streams + 1 annotated-items). Inoreader's `X-Reader-Zone1-Usage`
+ * header reflects the server-side cumulative count at request-processing time,
+ * which has eventual-consistency under concurrent writes — first request to
+ * complete observes `usage=1` while our local counter (incrementing on each
+ * completion) is already at 4-6. The 2026-05-28 production drift event
+ * (`counter=4, observed=1, drift=3, category=cron-radar`) was exactly this
+ * race, not real over-counting (Inoreader docs confirm our Zone-1 classification
+ * is correct for tag/list + stream/contents/* + stream/items/contents).
+ *
+ * `6` = one full cron firing's Zone-1 count. Real over-counting (uncounted
+ * egress path; new code path that bypasses the wrapper) would still trigger
+ * because it would persist across UTC days — the daily debounce limits
+ * noise to 1 event/UTC-day, so a real bug surfaces as a multi-day pattern.
  */
-const DRIFT_THRESHOLD_ABS = 2;
+const DRIFT_THRESHOLD_ABS = 6;
 
 function todayUtc(): string {
   const now = new Date();

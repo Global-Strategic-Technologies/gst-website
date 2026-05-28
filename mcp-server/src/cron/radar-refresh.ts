@@ -252,13 +252,19 @@ export async function refreshRadarSnapshot(env: Env): Promise<RefreshOutcome> {
     }
 
     if (wire.ok && fyi.ok) {
-      await captureMessageEnvelope(
-        env,
-        'cron.radar-refresh.success',
-        'info',
-        { wireItems: wire.items.length, fyiItems: fyi.items.length, callsConsumed },
-        'cron.radar-refresh'
-      );
+      // BL-032.77 Fix D (2026-05-29) — removed the success
+      // `captureMessageEnvelope` call. Sentry Crons UI is now reliably
+      // tracking cron outcomes via BL-032.76 envelope check-ins (no
+      // missed check-ins over 12+ post-deploy firings). The captureMessage
+      // was redundant signal surfacing as a noisy `cron.radar-refresh.success`
+      // Sentry Issue with "(No error message)" and increasing event count
+      // — exactly the noise pattern BL-032.77 was filed to eliminate.
+      // Operator-visible success signal preserved via:
+      //   1. `safeLog` line below (Workers Logs + wrangler tail)
+      //   2. `postSentryCheckIn('ok')` in worker.ts (Sentry Crons UI)
+      //   3. `cron_outcome` AE event in worker.ts (Phase 1 metrics)
+      // Partial / error paths below KEEP their captureMessageEnvelope
+      // calls because they are actionable Issues worth alerting on.
       safeLog({
         event: 'cron.radar-refresh.success',
         success: true,

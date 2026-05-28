@@ -251,13 +251,12 @@ describe('refreshRadarSnapshot — success path', () => {
     expect(outcome).toEqual({ kind: 'success', wireItems: 3, fyiItems: 1, callsConsumed: 6 });
     expect(mockReadWireLive).toHaveBeenCalledWith(env, { forceRefresh: true, source: 'cron' });
     expect(mockReadFyiLive).toHaveBeenCalledWith(env, 30, { forceRefresh: true, source: 'cron' });
-    expect(mockCaptureMessage).toHaveBeenCalledWith(
-      env,
-      'cron.radar-refresh.success',
-      'info',
-      expect.objectContaining({ wireItems: 3, fyiItems: 1 }),
-      'cron.radar-refresh'
-    );
+    // BL-032.77 Fix D (2026-05-29): the success-path captureMessageEnvelope
+    // call was removed because it surfaced as noise in Sentry's Issues UI.
+    // Success signal is now carried by safeLog + postSentryCheckIn('ok') +
+    // the cron_outcome AE event. Partial / error paths still call
+    // captureMessageEnvelope and are covered by other tests in this file.
+    expect(mockCaptureMessage).not.toHaveBeenCalled();
   });
 
   it('increments the day counter by 6 after a successful run', async () => {
