@@ -52,6 +52,36 @@ upload_source_maps = true
 binding = "METRICS"
 dataset = "mcp_events_dev"
 
+# ---------------------------------------------------------------------------
+# Cloudflare Workers Observability — persistent logs + traces (BL-032.77)
+# ---------------------------------------------------------------------------
+# Native Workers Logs + Workers Traces. Configured here so every deploy
+# enables them automatically — no more toggling via the Cloudflare dashboard
+# on each environment after a redeploy.
+#
+# Use cases (separate from BL-032.75 Phase 1 Analytics Engine emission):
+#   - Workers Logs: searchable request/invocation logs with 3-day retention
+#     on Free plan (200k events/day) — primary surface for diagnosing the
+#     BL-032.77 Sentry-envelope failure modes without leaning on Sentry's
+#     own ingest. Our `safeLog` lines (including the new `sentry.envelope.
+#     post.{non-2xx,aborted,network-error}` instrumentation) land here.
+#   - Workers Traces: per-invocation execution timeline. Useful for
+#     correlating cron-firing duration with `ok` check-in timing —
+#     direct evidence for or against the "isolate eviction mid-firing"
+#     hypothesis in BL-032.77 Issue B.
+#
+# The top-level `enabled = false` is the deprecated all-or-nothing flag;
+# the modern per-feature `logs.enabled` / `traces.enabled` flags below are
+# the granular controls. Cloudflare's wrangler reader honors both.
+#
+# Inheritance: top-level observability applies to all envs by default.
+# No per-env override needed; staging + production both pick this up.
+[observability]
+enabled = false
+head_sampling_rate = 1
+logs = { enabled = true, head_sampling_rate = 1, persist = true, invocation_logs = true }
+traces = { enabled = true, persist = true, head_sampling_rate = 1 }
+
 # nodejs_compat is required because the `agents` SDK pulls in `mimetext`
 # (uses node:os) and `mime-types` (uses node:path) transitively through its
 # observability module. Cloudflare's nodejs_compat layer polyfills these
