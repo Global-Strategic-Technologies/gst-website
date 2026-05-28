@@ -5,11 +5,10 @@
  * `/oauth2/token` endpoint, coordinated cross-isolate via Upstash SET-NX-EX
  * so concurrent callers don't fan out into multiple `/oauth2/token` POSTs.
  *
- * **What this replaces**: the BL-039 round-trip through the website's
- * `/api/inoreader/refresh` endpoint ([`inoreader-bl039-fallback.ts`](./inoreader-bl039-fallback.ts)).
- * That module remains in Phase A as a soak-safety fallback; Phase B
- * deletes it once production observation confirms the Worker-direct path
- * is reliable.
+ * **What this replaces** (historical): the BL-039 round-trip through the
+ * website's `/api/inoreader/refresh` endpoint, retired in Phase B
+ * (PR #140, merged 2026-05-27). The Worker is now the sole OAuth refresh
+ * writer; the website holds no Inoreader credentials.
  *
  * **Single-flight contract**: see [`single-flight-lock.ts`](./single-flight-lock.ts).
  * Lock key is `mcp:inoreader:refresh-lock`, TTL 10s (forces release even
@@ -206,8 +205,10 @@ async function performRefresh(
   const appId = env.INOREADER_APP_ID;
   const appKey = env.INOREADER_APP_KEY;
   if (!appId || !appKey) {
-    // Treat config-missing as inoreader-error since the caller's fallback
-    // path (BL-039) might still work if the website has the credentials.
+    // Treat config-missing as inoreader-error so the caller's next-call
+    // retry path engages; post-Phase-B there's no website fallback to
+    // recover from this — the Worker is the sole credential holder, so
+    // missing creds means the operator must re-bind via wrangler secrets.
     const result: RefreshResult = {
       ok: false,
       reason: 'inoreader-error',
@@ -399,7 +400,7 @@ async function logAndCapture(
   // Sentry severity mapping:
   //   invalid-refresh-token → error (paging-class — operator must re-link)
   //   upstash-write-failed  → error (high, but not paging)
-  //   inoreader-error       → warning (transient; BL-039 fallback or next-call retry)
+  //   inoreader-error       → warning (transient; next-call retry — post-Phase-B no fallback)
   //   lock-timeout          → no Sentry (handled in waitForPeerRefresh)
   //   token-missing         → error (operator bootstrap required)
   if (result.reason === 'lock-timeout') return;

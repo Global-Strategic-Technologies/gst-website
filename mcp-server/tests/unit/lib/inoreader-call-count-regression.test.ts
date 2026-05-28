@@ -38,8 +38,6 @@ const env: Env = {
   INOREADER_APP_ID: 'app',
   INOREADER_APP_KEY: 'key',
   INOREADER_ACCESS_TOKEN: 'tok',
-  UPSTASH_INOREADER_REST_URL: 'https://x.upstash.io',
-  UPSTASH_INOREADER_REST_TOKEN: 'ro',
   UPSTASH_MCP_REST_URL: 'https://y.upstash.io',
   UPSTASH_MCP_REST_TOKEN: 'rw',
 };

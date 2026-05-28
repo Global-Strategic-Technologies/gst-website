@@ -78,9 +78,9 @@ No `Exception Thrown` header on the firing line, no swallowed errors logged.
 
 ## Phase B retirement secondary verification
 
-Run **after** Phase B merges and redeploys (not part of this BL-032.76 firing).
+> **✅ Completed 2026-05-27** — Phase B (PR #140) merged 2026-05-27; operator-side decommissioning of the legacy Inoreader Upstash DB + Vercel/Worker secret cleanup completed the same day. Substrate verified clean post-cleanup via `/health` returning `upstashMcp: "ok"` with no `upstashInoreader` field. Historical procedure retained below.
 
-Phase B (`feature/bl-032.8-phase-b-retirement`) deletes the BL-039 `triggerWebsiteRefresh` fallback that the Worker-direct OAuth refresh path supersedes. Verification: grep Sentry over the next 24h for any `triggerWebsiteRefresh` invocations — **expected: zero**. Their absence confirms the Worker-direct refresh is the sole code path in flight (no fallback was needed during normal operation).
+Phase B (PR #140, merged 2026-05-27) deleted the BL-039 `triggerWebsiteRefresh` fallback that the Worker-direct OAuth refresh path supersedes. Verification: grep Sentry over the 24h post-deploy for any `triggerWebsiteRefresh` invocations — **expected: zero**. Their absence confirms the Worker-direct refresh is the sole code path in flight (no fallback was needed during normal operation).
 
 ## Related
 
