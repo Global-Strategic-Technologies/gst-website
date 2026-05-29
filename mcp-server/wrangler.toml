@@ -199,8 +199,18 @@ dataset = "mcp_events"
 # the 2026-05-15 BL-032.6 demo-day Zone-1 exhaustion incident — see
 # BL-032_5_TESTING_FINDINGS.md § Section Z and BACKLOG.md § BL-032.7.
 # Corrected to `0 */6 * * *` (every 6h, top of UTC hour) on
-# 2026-05-16; matches cache TTL exactly; ~24 Inoreader calls/day,
-# well under the per-app 100/day Zone-1 budget. Production-only —
-# staging deliberately runs no cron (see staging block above).
+# 2026-05-16; matches cache TTL exactly. Budget math: 4 firings ×
+# 6 calls = 24/day under the 100/day Zone-1 cap.
+#
+# **2026-05-29 BL-032.77 discovery**: Cloudflare's `scheduled` handler
+# may be invoked multiple times for the same scheduledTime (documented
+# platform behavior). Production observation 2026-05-29 confirmed every
+# firing was double-invoked, doubling the actual Zone-1 spend (36/day
+# observed against 24 expected). Fixed via single-flight Upstash lock
+# keyed on `event.cron:event.scheduledTime` at the top of the scheduled
+# handler — losers exit cleanly and emit `cron_outcome:'deduplicated'`
+# to AE so the dedup rate stays visible. Steady-state post-fix: 24/day
+# as the budget math claims. Production-only — staging deliberately
+# runs no cron (see staging block above).
 [env.production.triggers]
 crons = ["0 */6 * * *"]

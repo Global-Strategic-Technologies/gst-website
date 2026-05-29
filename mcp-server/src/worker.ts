@@ -41,6 +41,7 @@ import { AnalyticsEngineSink, emit } from './metrics/_index';
 import type { RefreshOutcome } from './cron/radar-refresh';
 import { postSentryCheckIn, postSentryEvent } from './observability/sentry-envelope';
 import { buildHealthPayload } from './observability/health';
+import { acquire } from './lib/single-flight-lock';
 import { refreshRadarSnapshot } from './cron/radar-refresh';
 import { readWireLive, readFyiLive } from './content/radar-live-store';
 
@@ -198,6 +199,48 @@ export const handler: ExportedHandler<Env> = {
         // — the safeLog inside the inner catch is the operator-visible
         // signal on the failure path.
         try {
+          // BL-032.77 — Cloudflare's `ScheduledController` may invoke the
+          // scheduled handler multiple times for the same scheduled fire
+          // (documented platform behavior; see
+          // https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/
+          // and the "cached-by-peer" observation in production on 2026-05-29).
+          // Both invocations share `event.scheduledTime` (epoch ms of the
+          // scheduled fire, NOT wall-clock at invocation), so we use it as the
+          // dedup key. `event.cron` is included so a future second cron entry
+          // in `wrangler.toml` doesn't collide on the same scheduledTime.
+          //
+          // Lock TTL of 5 min outlasts any plausible firing duration (typical:
+          // 2-10 seconds; worst case bounded by Inoreader's per-request caps).
+          // Fail-open semantics in `acquire`: if Upstash is unreachable, both
+          // invocations run — better to occasionally double-fetch Inoreader
+          // than to silently skip a firing during an Upstash outage.
+          //
+          // Loser path emits one `cron_outcome` AE event with outcome
+          // `'deduplicated'` so the dataset reflects how often Cloudflare
+          // double-fires; without it, dedup'd invocations would be invisible
+          // and we'd lose the ability to detect a regression in CF's behavior.
+          const lockKey = `mcp:lock:cron-radar-refresh:${event.cron}:${event.scheduledTime}`;
+          const acquired = await acquire(env, lockKey, 300);
+          if (!acquired) {
+            safeLog({
+              event: 'cron.scheduled.deduplicated',
+              reason: 'peer-holds-lock',
+              success: true,
+              durationMs: Date.now() - startedAt,
+              cron: event.cron,
+              scheduledTime: event.scheduledTime,
+            });
+            if (env.METRICS) {
+              emit(new AnalyticsEngineSink(env.METRICS), {
+                event_type: 'cron_outcome',
+                name: 'radar-refresh',
+                outcome: 'deduplicated',
+                duration_ms: Date.now() - startedAt,
+              });
+            }
+            return;
+          }
+
           // The cron expression in the Crons check-in MUST match
           // wrangler.toml's `[triggers] crons` entry — `event.cron` is
           // the runtime source of truth so a wrangler.toml edit doesn't

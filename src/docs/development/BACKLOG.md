@@ -2335,6 +2335,20 @@ The BL-032.75 Phase 1 closeout audit (PR #179) explicitly claimed "NO manual pro
 
 **This is the kind of doc claim that needs adversarial-audit verification against production reality, not just doc-vs-doc reading.** Cloudflare's own docs were the source of the wrong claim — the audit verified the claim against docs but didn't verify the docs against a real deploy. Lesson for future plan-audit cycles: when a doc-cited fact gates a deploy step, prove it with a dry-run against a real account before declaring the audit clean.
 
+#### Post-deploy discovery — Cloudflare double-firing scheduled handlers (2026-05-29)
+
+**Symptom**: Inoreader Developer API dashboard showed 36 Zone-1 calls today after 3 cron firings (00:00, 06:00, 12:00 UTC). Expected math: 3 × 6 = 18. Actual was exactly 2×. Sentry's `radar-refresh` Crons monitor showed two distinct `check_in_id`s at 06:00 UTC, one Timed Out and one Okay (marked Early for the next slot). Workers Logs at the 06:00 firing emitted `oauth.refresh.cached-by-peer` after waiting 996ms for a peer SETNX lock — proving a concurrent invocation was running.
+
+**Root cause**: Cloudflare's `ScheduledController` may invoke the `scheduled` handler multiple times for the same scheduled fire time. Both invocations independently run the full work (Inoreader fetches, Upstash writes, Sentry check-ins), doubling Zone-1 spend and producing orphan `in_progress` check-ins.
+
+**Resolution**: single-flight Upstash lock at the top of `worker.ts` scheduled handler, keyed on `event.cron:event.scheduledTime`. Reused the existing `mcp-server/src/lib/single-flight-lock.ts` primitive (originally introduced by BL-032.8 for OAuth refresh dedup; same `SET NX EX` semantics, same fail-open behavior). Loser invocation emits a `cron.scheduled.deduplicated` safeLog + a `cron_outcome:'deduplicated'` AE event (new value added to `OUTCOME_VALUES.cron_outcome`) so the dedup rate stays visible. Lock TTL: 300s.
+
+**Correction to PR #183 spend-accounting reasoning**: the `DRIFT_THRESHOLD_ABS=6` rationale ("one full cron firing's worth of parallel calls") was based on incorrect assumption that one scheduledTime = one invocation. With dedup, the threshold still works: it absorbs the parallel-fetch race within one invocation, which is what the BL-032.77 PR #183 audit found in the original drift event payload (`counter=4 observed=1`). No threshold change needed.
+
+**Spend-accounting correction**: prior docs (`MCP_SERVER_OBSERVABILITY_BL-032_75.md`, `wrangler.toml` cron comment) cited "24 calls/day" as the cron-radar baseline. That number was correct as the _intended_ baseline but actual production spend was 48/day pre-dedup. Post-dedup, the docs now match reality.
+
+**Lesson**: production substrate behavior can be subtly different from documented behavior in ways that pure unit tests can't catch. Inoreader Developer API quota dashboards and Sentry monitor histories are the ground-truth surfaces — local counters can lie if they're incrementing in handlers that get invoked multiple times. **Always reconcile against an external authoritative count when first deploying spend-sensitive instrumentation.**
+
 ---
 
 ### BL-033: MCP Server — External Pilot (Phase 3)
