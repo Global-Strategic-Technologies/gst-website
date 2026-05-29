@@ -1044,10 +1044,18 @@ See [`mcp-server/src/metrics/_schema.ts`](../../metrics/_schema.ts) — the snap
 | `blob3`   | `keyOwner` (or `__none__` placeholder when not authenticated)                                                                                                         |
 | `blob4`   | `outcome` (`success` / `error` / category-specific)                                                                                                                   |
 | `blob5`   | `correlation_id` (prompt_span only)                                                                                                                                   |
-| `blob6`   | `status_code` (string, e.g. `'200'`)                                                                                                                                  |
+| `blob6`   | `status_code` (string, e.g. `'200'`; `'0'` = no response received / network error)                                                                                    |
+| `blob7`   | `zone1` (`'1'` / `'0'`; `inoreader_call` only — Zone-1 quota classification; absent for other event types)                                                            |
 | `double1` | `duration_ms`                                                                                                                                                         |
 | `double2` | `seq` (prompt_span step index)                                                                                                                                        |
 | `index1`  | `keyOwner` (mirror of blob3 for AE sampling)                                                                                                                          |
+
+**Phase 1 Step 6 dashboard SQL hints** (BL-032.75 Phase 1 closure):
+
+- Zone-1 daily spend: `SELECT count() FROM mcp_events WHERE blob1='inoreader_call' AND blob7='1' AND timestamp > NOW() - INTERVAL '1' DAY`
+- Per-category breakdown: `... GROUP BY blob2` (excludes `oauth-refresh` automatically via `blob7='1'` filter)
+- Inoreader error rate: `... WHERE blob1='inoreader_call' AND blob4='error' GROUP BY blob6` (status code distribution; `'0'` rows isolate network-side failures from Inoreader-side ones)
+- Per-keyOwner attribution: `... GROUP BY index1` (authenticated traffic only — cron/oauth-refresh land in `'__none__'`)
 
 ### Token rotation
 

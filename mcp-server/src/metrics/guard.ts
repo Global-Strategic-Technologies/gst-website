@@ -34,6 +34,7 @@ import {
   EVENT_TYPES,
   type EventType,
   type MetricEvent,
+  NAME_VALUES,
   OUTCOME_VALUES,
 } from './_schema';
 
@@ -87,6 +88,26 @@ export function guardEvent(event: MetricEvent): MetricEvent | null {
     safeLog({
       event: 'metrics.guard.rejected',
       reason: `bad-outcome=${event.outcome};type=${event.event_type}`,
+      success: false,
+      errorCode: 'metrics-guard-reject',
+    });
+    return null;
+  }
+
+  // (2b) name (if set AND event_type has a NAME_VALUES entry) must be in the
+  // per-type allowlist. Catches drift between a category enum added to a
+  // wrapper (e.g. inoreader-egress.ts CATEGORIES) and the schema source of
+  // truth. Event types without a NAME_VALUES entry (tool_invocation,
+  // resource_read, etc.) have open `name` cardinality by design.
+  const allowedNames = NAME_VALUES[event.event_type];
+  if (
+    allowedNames !== undefined &&
+    event.name !== undefined &&
+    !allowedNames.includes(event.name)
+  ) {
+    safeLog({
+      event: 'metrics.guard.rejected',
+      reason: `bad-name=${event.name};type=${event.event_type}`,
       success: false,
       errorCode: 'metrics-guard-reject',
     });

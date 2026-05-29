@@ -35,6 +35,33 @@ describe('guardEvent — rejections (return null)', () => {
     });
     expect(result).toBeNull();
   });
+
+  it('Step 6: rejects inoreader_call.name not in NAME_VALUES allowlist', () => {
+    const result = guardEvent({
+      event_type: 'inoreader_call',
+      name: 'not-a-real-category',
+      outcome: 'success',
+    });
+    expect(result).toBeNull();
+  });
+
+  it('Step 6: rejects cron_outcome.name not in NAME_VALUES allowlist', () => {
+    const result = guardEvent({
+      event_type: 'cron_outcome',
+      name: 'mystery-cron',
+      outcome: 'success',
+    });
+    expect(result).toBeNull();
+  });
+
+  it('Step 6: tool_invocation.name passes unbounded (no NAME_VALUES entry)', () => {
+    const result = guardEvent({
+      event_type: 'tool_invocation',
+      name: 'any_tool_name_at_all',
+      outcome: 'success',
+    });
+    expect(result).not.toBeNull();
+  });
 });
 
 describe('guardEvent — acceptance + normalization', () => {
