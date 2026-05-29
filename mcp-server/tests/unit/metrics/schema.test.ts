@@ -20,6 +20,7 @@ import {
   KEYOWNER_PLACEHOLDER,
   MAX_BLOB_PAYLOAD_BYTES_WORST_CASE,
   MAX_BLOB_PAYLOAD_CHARS_SUM,
+  NAME_VALUES,
   OUTCOME_VALUES,
   toDataPoint,
 } from '../../../src/metrics/_schema';
@@ -72,6 +73,11 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
           "field": "status_code",
           "maxChars": 8,
           "slot": 6,
+        },
+        {
+          "field": "zone1",
+          "maxChars": 1,
+          "slot": 7,
         },
       ]
     `);
@@ -171,6 +177,23 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
   it('M3: KEYOWNER_PLACEHOLDER pinned (downstream Grafana SQL depends on it)', () => {
     expect(KEYOWNER_PLACEHOLDER).toBe('__none__');
   });
+
+  it('Step 6: NAME_VALUES allowlist pinned (catches enum drift between wrapper + schema)', () => {
+    expect(NAME_VALUES).toMatchInlineSnapshot(`
+      {
+        "cron_outcome": [
+          "radar-refresh",
+        ],
+        "inoreader_call": [
+          "cron-radar",
+          "live-radar",
+          "http-radar-snapshot",
+          "oauth-refresh",
+          "401-retry",
+        ],
+      }
+    `);
+  });
 });
 
 describe('toDataPoint projection (pure function)', () => {
@@ -184,10 +207,38 @@ describe('toDataPoint projection (pure function)', () => {
       duration_ms: 142,
     });
     expect(dp).toEqual({
-      blobs: ['tool_invocation', 'search_radar', 'RP', 'success', null, '200'],
+      blobs: ['tool_invocation', 'search_radar', 'RP', 'success', null, '200', null],
       doubles: [142, 0],
       indexes: ['RP'],
     });
+  });
+
+  it('projects an inoreader_call event with zone1 in blob7', () => {
+    const dp = toDataPoint({
+      event_type: 'inoreader_call',
+      name: 'cron-radar',
+      keyOwner: 'RP',
+      outcome: 'success',
+      status_code: '200',
+      duration_ms: 230,
+      zone1: '1',
+    });
+    expect(dp).toEqual({
+      blobs: ['inoreader_call', 'cron-radar', 'RP', 'success', null, '200', '1'],
+      doubles: [230, 0],
+      indexes: ['RP'],
+    });
+  });
+
+  it('projects oauth-refresh as zone1=0', () => {
+    const dp = toDataPoint({
+      event_type: 'inoreader_call',
+      name: 'oauth-refresh',
+      outcome: 'success',
+      status_code: '200',
+      zone1: '0',
+    });
+    expect(dp.blobs[6]).toBe('0');
   });
 
   it('emits KEYOWNER_PLACEHOLDER as the index1 placeholder when keyOwner is absent', () => {

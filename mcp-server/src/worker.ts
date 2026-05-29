@@ -463,8 +463,8 @@ export const handler: ExportedHandler<Env> = {
       // MCP-tool live calls. Lets dashboards distinguish website cache-miss
       // bursts (e.g. during redeploys) from real MCP-tool traffic.
       const [wire, fyi] = await Promise.all([
-        readWireLive(env, { source: 'http-snapshot' }),
-        readFyiLive(env, 30, { source: 'http-snapshot' }),
+        readWireLive(env, { source: 'http-snapshot', keyOwner: auth.keyOwner }),
+        readFyiLive(env, 30, { source: 'http-snapshot', keyOwner: auth.keyOwner }),
       ]);
       const payload = JSON.stringify({
         wire,

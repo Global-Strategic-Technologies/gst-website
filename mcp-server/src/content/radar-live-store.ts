@@ -132,7 +132,7 @@ function sourceToCategory(source: InoreaderObservedSource): InoreaderEgressCateg
  */
 export async function readWireLive(
   env: Env,
-  opts: { forceRefresh?: boolean; source?: InoreaderObservedSource } = {}
+  opts: { forceRefresh?: boolean; source?: InoreaderObservedSource; keyOwner?: string } = {}
 ): Promise<LiveTierResult> {
   const source: InoreaderObservedSource = opts.source ?? 'live-tool';
   const cache = createCacheStore(env);
@@ -149,7 +149,7 @@ export async function readWireLive(
     }
   }
 
-  const result = await fetchAllStreams(env, 'GST-', 15, sourceToCategory(source));
+  const result = await fetchAllStreams(env, 'GST-', 15, sourceToCategory(source), opts.keyOwner);
   if (!result.ok) {
     // BL-032 Phase 5: record observed Inoreader status for /health
     // surfacing. Best-effort; doesn't affect the failure response shape.
@@ -189,7 +189,7 @@ export async function readWireLive(
 export async function readFyiLive(
   env: Env,
   count: number = 30,
-  opts: { forceRefresh?: boolean; source?: InoreaderObservedSource } = {}
+  opts: { forceRefresh?: boolean; source?: InoreaderObservedSource; keyOwner?: string } = {}
 ): Promise<LiveTierResult> {
   const source: InoreaderObservedSource = opts.source ?? 'live-tool';
   const cache = createCacheStore(env);
@@ -203,7 +203,7 @@ export async function readFyiLive(
     }
   }
 
-  const result = await fetchAnnotatedItems(env, count, sourceToCategory(source));
+  const result = await fetchAnnotatedItems(env, count, sourceToCategory(source), opts.keyOwner);
   if (!result.ok) {
     await recordInoreaderStatus(env, 'degraded', source, `fyi:${result.reason}`);
     return mapFailure(result);

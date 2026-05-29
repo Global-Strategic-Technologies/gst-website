@@ -80,6 +80,15 @@ export interface MetricEvent {
   duration_ms?: number;
   /** Step index 0..N inside a `prompt_span` chain; 0 elsewhere. */
   seq?: number;
+  /**
+   * Zone-1 quota classification for `inoreader_call` events only. `'1'` for
+   * Zone-1 categories (cron-radar / live-radar / http-radar-snapshot /
+   * 401-retry); `'0'` for the OAuth refresh path (not Zone-1). Carrying this
+   * explicitly — rather than deriving it from `name` via dashboard SQL —
+   * keeps the SQL self-documenting: `SUM(...) WHERE blob7='1'` reads cleanly
+   * without consulting the schema doc. Absent for non-inoreader_call events.
+   */
+  zone1?: '1' | '0';
 }
 
 /**
@@ -114,6 +123,7 @@ export const BLOB_SLOTS: readonly BlobSpec[] = [
   { slot: 4, field: 'outcome', maxChars: 32 },
   { slot: 5, field: 'correlation_id', maxChars: 64 },
   { slot: 6, field: 'status_code', maxChars: 8 },
+  { slot: 7, field: 'zone1', maxChars: 1 },
 ] as const;
 
 export const DOUBLE_SLOTS: readonly DoubleSpec[] = [
@@ -190,6 +200,29 @@ export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
     'skipped-budget',
     'deduplicated',
   ],
+};
+
+/**
+ * Optional per-event-type allowlist for the `name` field (blob2). When set,
+ * the runtime guard rejects events whose `name` is not in the allowlist —
+ * a cardinality safety net that complements `OUTCOME_VALUES` for event
+ * types where `name` is also a bounded enum.
+ *
+ * Use cases:
+ *   - `inoreader_call.name` must be one of the 5 egress categories
+ *     (cron-radar / live-radar / http-radar-snapshot / oauth-refresh /
+ *     401-retry). Adding a 6th category requires a deliberate schema bump.
+ *   - `cron_outcome.name` is currently just `radar-refresh`; future cron
+ *     triggers extend the list explicitly.
+ *
+ * Event types where `name` is intentionally open (`tool_invocation` —
+ * tool names; `resource_read` — URI prefixes; `prompt_invocation` —
+ * prompt names; `prompt_span` — same; `rate_limit_decision` — call site
+ * identifiers) have no entry here; the guard skips them.
+ */
+export const NAME_VALUES: Partial<Record<EventType, readonly string[]>> = {
+  inoreader_call: ['cron-radar', 'live-radar', 'http-radar-snapshot', 'oauth-refresh', '401-retry'],
+  cron_outcome: ['radar-refresh'],
 };
 
 /**
