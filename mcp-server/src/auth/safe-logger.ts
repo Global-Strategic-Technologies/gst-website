@@ -91,6 +91,23 @@ export interface LogEvent {
    * without pre-joining the category breakdown.
    */
   egressSource?: string;
+  /**
+   * Cron expression from `ScheduledController.cron` (e.g.
+   * `0` `<asterisk-slash-6>` `<asterisk>` `<asterisk>` `<asterisk>` — escaped
+   * here because JSDoc otherwise treats the embedded `*` `/` `6` as a
+   * close-comment-then-divide-by-6). Carried on cron-path events so operator
+   * queries can filter by schedule when multiple cron entries are defined.
+   * BL-032.77 dedup added this for `cron.scheduled.deduplicated` correlation.
+   */
+  cron?: string;
+  /**
+   * `ScheduledController.scheduledTime` — epoch ms of the scheduled fire
+   * (NOT wall-clock at invocation). Identical across duplicate invocations
+   * of the same cron firing, which is what BL-032.77's dedup lock keys on.
+   * Carried on `cron.scheduled.deduplicated` so operators can correlate the
+   * dropped invocation with the winner's logs by matching scheduledTime.
+   */
+  scheduledTime?: number;
 }
 
 /**

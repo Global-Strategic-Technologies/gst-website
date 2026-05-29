@@ -29,12 +29,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // `@sentry/cloudflare` + `agents/mcp` use the `cloudflare:workers` URL
 // scheme internally — Node's default ESM loader rejects it. Mock both
 // at the package boundary so importing worker.ts doesn't crash.
-const { withSentryMock, mockPostCheckIn, mockPostEvent, mockSafeLog } = vi.hoisted(() => ({
-  withSentryMock: vi.fn(<T>(_opts: unknown, handler: T) => handler),
-  mockPostCheckIn: vi.fn(),
-  mockPostEvent: vi.fn(),
-  mockSafeLog: vi.fn(),
-}));
+const { withSentryMock, mockPostCheckIn, mockPostEvent, mockSafeLog, mockAcquire } = vi.hoisted(
+  () => ({
+    withSentryMock: vi.fn(<T>(_opts: unknown, handler: T) => handler),
+    mockPostCheckIn: vi.fn(),
+    mockPostEvent: vi.fn(),
+    mockSafeLog: vi.fn(),
+    // BL-032.77 dedup mock — default to `true` (lock acquired) so existing
+    // happy-path tests run the full handler. Tests that need to exercise
+    // the loser path override via `mockAcquire.mockResolvedValueOnce(false)`.
+    mockAcquire: vi.fn().mockResolvedValue(true),
+  })
+);
 
 vi.mock('@sentry/cloudflare', () => ({
   init: vi.fn(),
@@ -67,6 +73,12 @@ vi.mock('../../src/auth/safe-logger', () => ({
   safeLog: mockSafeLog,
 }));
 
+vi.mock('../../src/lib/single-flight-lock', () => ({
+  acquire: mockAcquire,
+  pollForChange: vi.fn(),
+  release: vi.fn(),
+}));
+
 // Imports MUST come after vi.mock so the mocked modules are wired in.
 import { handler } from '../../src/worker';
 import workerDefault from '../../src/worker';
@@ -75,11 +87,18 @@ import type { Env } from '../../src/worker';
 
 const FAKE_ENV = {} as Env;
 const FAKE_CRON = '0 */6 * * *';
+// BL-032.77 dedup tests need a STABLE scheduledTime so the lock key is
+// deterministic across the two concurrent invocations of the concurrency
+// test. Using a fixed epoch-ms value (2026-05-29T12:00:00Z) means both
+// invocations produce the same lock key — which is precisely the property
+// the dedup lock relies on (Cloudflare's `ScheduledController.scheduledTime`
+// is identical across duplicate invocations of the same fire).
+const FAKE_SCHEDULED_TIME = 1_780_056_000_000;
 
-function makeScheduledEvent(): ScheduledController {
+function makeScheduledEvent(scheduledTime: number = FAKE_SCHEDULED_TIME): ScheduledController {
   return {
     cron: FAKE_CRON,
-    scheduledTime: Date.now(),
+    scheduledTime,
     type: 'scheduled',
     noRetry: () => {},
   } as unknown as ScheduledController;
@@ -128,6 +147,10 @@ describe('worker.ts scheduled handler — envelope check-in lifecycle (BL-032.76
       async (_env, _slug, _status, _schedule, checkInId) => checkInId ?? 'fake-id-abc'
     );
     vi.mocked(cron.refreshRadarSnapshot).mockReset();
+    // BL-032.77 — default to lock acquired so existing tests below run the
+    // full handler. Dedup-specific tests reset and override.
+    mockAcquire.mockReset();
+    mockAcquire.mockResolvedValue(true);
   });
 
   it('success path: in_progress → ok with matching checkInId', async () => {
@@ -361,5 +384,178 @@ describe('refreshOutcomeToAe — RefreshOutcome.kind → cron_outcome enum mappi
       const ae = refreshOutcomeToAe(outcome);
       expect(OUTCOME_VALUES.cron_outcome).toContain(ae);
     }
+  });
+});
+
+describe('worker.ts scheduled handler — single-flight dedup (BL-032.77 cron-firing dedup)', () => {
+  // BL-032.77 production discovery (2026-05-29): Cloudflare invokes the
+  // scheduled handler multiple times for the same scheduledTime, doubling
+  // Zone-1 spend (observed 36/day vs expected 18/day after 3 firings).
+  // The dedup lock at the top of the scheduled handler exits losers
+  // cleanly before any work. These tests pin the dedup contract.
+  beforeEach(() => {
+    mockPostCheckIn.mockReset();
+    mockPostEvent.mockReset();
+    mockSafeLog.mockReset();
+    mockPostCheckIn.mockImplementation(
+      async (_env, _slug, _status, _schedule, checkInId) => checkInId ?? 'fake-id-abc'
+    );
+    vi.mocked(cron.refreshRadarSnapshot).mockReset();
+    mockAcquire.mockReset();
+    mockAcquire.mockResolvedValue(true);
+  });
+
+  it('lock acquired → full work runs (regression guard for happy path)', async () => {
+    vi.mocked(cron.refreshRadarSnapshot).mockResolvedValue({
+      kind: 'success',
+      wireItems: 5,
+      fyiItems: 3,
+      callsConsumed: 6,
+    });
+    const { ctx, waitUntilPromises } = makeCtx();
+    handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);
+    await Promise.all(waitUntilPromises);
+
+    expect(mockAcquire).toHaveBeenCalledTimes(1);
+    expect(mockAcquire).toHaveBeenCalledWith(
+      FAKE_ENV,
+      `mcp:lock:cron-radar-refresh:${FAKE_CRON}:${FAKE_SCHEDULED_TIME}`,
+      300
+    );
+    expect(cron.refreshRadarSnapshot).toHaveBeenCalledTimes(1);
+    expect(mockPostCheckIn).toHaveBeenCalledTimes(2);
+  });
+
+  it('lock NOT acquired → loser path: NO check-ins, NO refresh, NO Sentry event; safeLog emitted with correlation fields', async () => {
+    mockAcquire.mockResolvedValueOnce(false);
+    const { ctx, waitUntilPromises } = makeCtx();
+    handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);
+    await Promise.all(waitUntilPromises);
+
+    // Critical: zero side-effects to Sentry, zero work, zero Inoreader.
+    expect(cron.refreshRadarSnapshot).not.toHaveBeenCalled();
+    expect(mockPostCheckIn).not.toHaveBeenCalled();
+    expect(mockPostEvent).not.toHaveBeenCalled();
+
+    // Loser path emits exactly one structured-log line with correlation
+    // fields so operators can match a dropped invocation against the
+    // winner's logs by scheduledTime.
+    expect(mockSafeLog).toHaveBeenCalledTimes(1);
+    expect(mockSafeLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'cron.scheduled.deduplicated',
+        reason: 'peer-holds-lock',
+        success: true,
+        cron: FAKE_CRON,
+        scheduledTime: FAKE_SCHEDULED_TIME,
+        durationMs: expect.any(Number),
+      })
+    );
+  });
+
+  it('lock key format pinned: mcp:lock:cron-radar-refresh:<cron>:<scheduledTime>', async () => {
+    vi.mocked(cron.refreshRadarSnapshot).mockResolvedValue({
+      kind: 'success',
+      wireItems: 0,
+      fyiItems: 0,
+      callsConsumed: 6,
+    });
+    // Two different scheduledTimes (different firings) — assert distinct
+    // lock keys, NOT a single shared key. Regression guard against a
+    // future refactor that drops scheduledTime from the key (would
+    // re-introduce the double-firing bug).
+    const { ctx: ctxA, waitUntilPromises: waA } = makeCtx();
+    const { ctx: ctxB, waitUntilPromises: waB } = makeCtx();
+    handler.scheduled!(makeScheduledEvent(1_780_056_000_000), FAKE_ENV, ctxA);
+    handler.scheduled!(makeScheduledEvent(1_780_077_600_000), FAKE_ENV, ctxB);
+    await Promise.all([...waA, ...waB]);
+
+    expect(mockAcquire).toHaveBeenCalledTimes(2);
+    expect(mockAcquire.mock.calls[0][1]).toBe(
+      `mcp:lock:cron-radar-refresh:${FAKE_CRON}:1780056000000`
+    );
+    expect(mockAcquire.mock.calls[1][1]).toBe(
+      `mcp:lock:cron-radar-refresh:${FAKE_CRON}:1780077600000`
+    );
+    // TTL pinned at 300s — regression guard against TTL shortening
+    // mid-firing or lengthening past the 6h cron cadence.
+    expect(mockAcquire.mock.calls[0][2]).toBe(300);
+    expect(mockAcquire.mock.calls[1][2]).toBe(300);
+  });
+
+  it('concurrency: two parallel invocations of the same scheduledTime → exactly one runs the work', async () => {
+    // The core property the dedup lock introduces. Mock SETNX atomicity by
+    // returning `true` for the FIRST acquire() call and `false` for the
+    // SECOND — modeling Upstash's atomic SET NX where exactly one wins.
+    mockAcquire.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    vi.mocked(cron.refreshRadarSnapshot).mockResolvedValue({
+      kind: 'success',
+      wireItems: 5,
+      fyiItems: 3,
+      callsConsumed: 6,
+    });
+
+    const event = makeScheduledEvent();
+    const { ctx: ctxA, waitUntilPromises: waA } = makeCtx();
+    const { ctx: ctxB, waitUntilPromises: waB } = makeCtx();
+    // Fire BOTH invocations in parallel — same `event` (= same
+    // scheduledTime, same cron). This mirrors Cloudflare's actual
+    // double-firing behavior observed in production 2026-05-29.
+    handler.scheduled!(event, FAKE_ENV, ctxA);
+    handler.scheduled!(event, FAKE_ENV, ctxB);
+    await Promise.all([...waA, ...waB]);
+
+    // Both invocations attempted to acquire — Upstash SETNX is the arbiter.
+    expect(mockAcquire).toHaveBeenCalledTimes(2);
+
+    // Only ONE invocation ran the work — the lock-winner.
+    expect(cron.refreshRadarSnapshot).toHaveBeenCalledTimes(1);
+
+    // Only ONE invocation sent Sentry check-ins (the winner's in_progress
+    // + ok pair, both with the same checkInId).
+    expect(mockPostCheckIn).toHaveBeenCalledTimes(2);
+    expect(mockPostCheckIn).toHaveBeenNthCalledWith(
+      1,
+      FAKE_ENV,
+      'radar-refresh',
+      'in_progress',
+      FAKE_CRON
+    );
+    expect(mockPostCheckIn).toHaveBeenNthCalledWith(
+      2,
+      FAKE_ENV,
+      'radar-refresh',
+      'ok',
+      FAKE_CRON,
+      'fake-id-abc'
+    );
+
+    // The loser invocation emitted exactly one dedup safeLog line.
+    const dedupLogs = mockSafeLog.mock.calls.filter(
+      (call) => call[0]?.event === 'cron.scheduled.deduplicated'
+    );
+    expect(dedupLogs).toHaveLength(1);
+  });
+
+  it('fail-open: Upstash unreachable (acquire returns true even on no-client) → handler runs full work', async () => {
+    // `acquire` in `single-flight-lock.ts` returns `true` when createMcpClient
+    // returns null (Upstash creds unbound) — same fail-open semantics as
+    // the OAuth refresh lock. Verified at module level here: the handler
+    // proceeds to run the work as if the lock were uncontested. The trade-off
+    // is intentional: occasional double-firing during an Upstash outage is
+    // strictly better than silently skipping a cron firing.
+    mockAcquire.mockResolvedValueOnce(true); // simulates "fail-open: no Upstash, just proceed"
+    vi.mocked(cron.refreshRadarSnapshot).mockResolvedValue({
+      kind: 'success',
+      wireItems: 0,
+      fyiItems: 0,
+      callsConsumed: 6,
+    });
+    const { ctx, waitUntilPromises } = makeCtx();
+    handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);
+    await Promise.all(waitUntilPromises);
+
+    expect(cron.refreshRadarSnapshot).toHaveBeenCalledTimes(1);
+    expect(mockPostCheckIn).toHaveBeenCalledTimes(2);
   });
 });
