@@ -62,6 +62,7 @@ const env: Env = {
   UPSTASH_MCP_REST_URL: 'https://y.upstash.io',
   UPSTASH_MCP_REST_TOKEN: 'rw',
   GIT_SHA: 'abc1234',
+  ENV_NAME: 'staging',
 };
 
 beforeEach(() => {
@@ -194,5 +195,47 @@ describe('readAclSelfCheck', () => {
     mockGet.mockRejectedValueOnce(new Error('network'));
     const result = await readAclSelfCheck(env);
     expect(result.status).toBe('unknown');
+  });
+});
+
+describe('env-scoped keys (BL-041 closeout)', () => {
+  it('reads from env-scoped result key (env name prepended to gitSha)', async () => {
+    mockGet.mockResolvedValueOnce({ status: 'ok' });
+    await readAclSelfCheck(env);
+    expect(mockGet).toHaveBeenCalledWith('mcp:acl-selfcheck:result:staging:abc1234');
+  });
+
+  it('writes to env-scoped gate + result keys when probing', async () => {
+    mockSet.mockResolvedValueOnce('OK'); // gate
+    mockSet.mockResolvedValueOnce('OK'); // probe SET
+    mockIncr.mockResolvedValue(1);
+    mockExpire.mockResolvedValue(1);
+    mockZadd.mockResolvedValue(1);
+    mockZremrange.mockResolvedValue(0);
+    mockEval.mockResolvedValue(1);
+    mockSet.mockResolvedValueOnce('OK'); // result-record
+    mockDel.mockResolvedValue(1);
+
+    await runAclSelfCheckOnce(env);
+
+    // First SET = gate; third SET = result record. Both must carry env discriminator.
+    const gateCall = mockSet.mock.calls[0]!;
+    const resultCall = mockSet.mock.calls[2]!;
+    expect(gateCall[0]).toBe('mcp:acl-selfcheck:gate:staging:abc1234');
+    expect(resultCall[0]).toBe('mcp:acl-selfcheck:result:staging:abc1234');
+  });
+
+  it('production env name produces a DIFFERENT key set than staging (no shared-state false-green)', async () => {
+    const prodEnv: Env = { ...env, ENV_NAME: 'production' };
+    mockGet.mockResolvedValueOnce(null);
+    await readAclSelfCheck(prodEnv);
+    expect(mockGet).toHaveBeenCalledWith('mcp:acl-selfcheck:result:production:abc1234');
+  });
+
+  it('falls back to ENV_NAME=unknown when binding missing (local wrangler dev)', async () => {
+    const unbound: Env = { ...env, ENV_NAME: undefined };
+    mockGet.mockResolvedValueOnce(null);
+    await readAclSelfCheck(unbound);
+    expect(mockGet).toHaveBeenCalledWith('mcp:acl-selfcheck:result:unknown:abc1234');
   });
 });

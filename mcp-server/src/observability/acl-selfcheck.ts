@@ -13,15 +13,21 @@
  *   1. `SET` + `EXPIRE`          — token store / counter writes
  *   2. `INCR`                    — egress counter / day counter
  *   3. `ZADD` + `ZREMRANGEBYSCORE` — `@upstash/ratelimit` sorted-set surface
- *   4. `SCRIPT LOAD "return 1"`  — proves `@scripting` covers SCRIPT LOAD
- *                                   under whatever Redis fork Upstash runs
- *                                   (audit B2 — version varies)
+ *   4. `EVAL "return 1"`         — proves `@scripting` covers the SDK's
+ *                                   NOSCRIPT-fallback EVAL path under
+ *                                   whatever Redis fork Upstash runs
  *
  * Coordination — first isolate to acquire the gate runs the probe; all
  * later isolates see the result and skip the work. Gate + result live in
- * `mcp:acl-selfcheck:gate:<gitSha>` (SET NX EX, ~24h TTL) and
- * `mcp:acl-selfcheck:result:<gitSha>` (JSON, same TTL). `gitSha` keys both
- * so a new deploy automatically re-runs the probe.
+ * `mcp:acl-selfcheck:gate:<env>:<gitSha>` (SET NX EX, ~24h TTL) and
+ * `mcp:acl-selfcheck:result:<env>:<gitSha>` (JSON, same TTL). Keys include
+ * BOTH `env` and `gitSha` so:
+ *   - A new deploy auto-reruns the probe (gitSha discriminator)
+ *   - Both envs share the same MCP DB without their per-deploy state
+ *     colliding (env discriminator) — staging running aclSelfCheck would
+ *     otherwise have its result read by production, masking a real
+ *     production-side binding regression. Caught during BL-041 Phase 3
+ *     verification 2026-05-30.
  *
  * Result is surfaced via `/health.aclSelfCheck`:
  *
@@ -48,12 +54,26 @@ export interface AclSelfCheckResult {
   ranAt?: string;
 }
 
-function gateKey(gitSha: string): string {
-  return `${GATE_PREFIX}${gitSha}`;
+/**
+ * Derive the `<env>:<gitSha>` discriminator that suffixes both keys.
+ * `env.ENV_NAME` is bound in `wrangler.toml` per env block; `env.GIT_SHA`
+ * is injected by `deploy.mjs` at deploy time. Falls back to `'unknown'`
+ * for either when missing (local `wrangler dev` runs); the fallback keeps
+ * the key shape stable but flags the gap so an operator can spot a
+ * missing binding when reading raw keys.
+ */
+function envScopedDiscriminator(env: Env): string {
+  const envName = env.ENV_NAME ?? 'unknown';
+  const gitSha = env.GIT_SHA ?? 'unknown';
+  return `${envName}:${gitSha}`;
 }
 
-function resultKey(gitSha: string): string {
-  return `${RESULT_PREFIX}${gitSha}`;
+function gateKey(env: Env): string {
+  return `${GATE_PREFIX}${envScopedDiscriminator(env)}`;
+}
+
+function resultKey(env: Env): string {
+  return `${RESULT_PREFIX}${envScopedDiscriminator(env)}`;
 }
 
 /**
@@ -61,12 +81,11 @@ function resultKey(gitSha: string): string {
  * unreachable or missing key both return `'unknown'`.
  */
 export async function readAclSelfCheck(env: Env): Promise<AclSelfCheckResult> {
-  const gitSha = env.GIT_SHA ?? 'unknown';
   const redis = createMcpClient(env);
   if (!redis) return { status: 'unknown' };
 
   try {
-    const raw = await redis.get<AclSelfCheckResult | string | null>(resultKey(gitSha));
+    const raw = await redis.get<AclSelfCheckResult | string | null>(resultKey(env));
     if (raw == null) return { status: 'unknown' };
     return typeof raw === 'string' ? (JSON.parse(raw) as AclSelfCheckResult) : raw;
   } catch {
@@ -84,7 +103,6 @@ export async function readAclSelfCheck(env: Env): Promise<AclSelfCheckResult> {
  * `'unknown'`. Never throws to the caller.
  */
 export async function runAclSelfCheckOnce(env: Env): Promise<AclSelfCheckResult> {
-  const gitSha = env.GIT_SHA ?? 'unknown';
   const redis = createMcpClient(env);
   if (!redis) return { status: 'unknown' };
 
@@ -92,7 +110,7 @@ export async function runAclSelfCheckOnce(env: Env): Promise<AclSelfCheckResult>
   // recorded result or `'unknown'` if it hasn't landed yet.
   let acquired: boolean;
   try {
-    const r = await redis.set(gateKey(gitSha), '1', { nx: true, ex: TTL_SECONDS });
+    const r = await redis.set(gateKey(env), '1', { nx: true, ex: TTL_SECONDS });
     acquired = r === 'OK';
   } catch {
     // Gate write failed — Upstash unreachable or NOPERM on SET itself.
@@ -105,9 +123,9 @@ export async function runAclSelfCheckOnce(env: Env): Promise<AclSelfCheckResult>
     return await readAclSelfCheck(env);
   }
 
-  const result = await probeAclSurface(redis, gitSha);
+  const result = await probeAclSurface(redis, envScopedDiscriminator(env));
   try {
-    await redis.set(resultKey(gitSha), JSON.stringify(result), { ex: TTL_SECONDS });
+    await redis.set(resultKey(env), JSON.stringify(result), { ex: TTL_SECONDS });
   } catch {
     // Probe ran but result didn't persist; surface to caller anyway.
   }
@@ -128,12 +146,14 @@ export async function runAclSelfCheckOnce(env: Env): Promise<AclSelfCheckResult>
  * subsequent paths are not exercised, since the operator's debugging task
  * is "which command broke," not "how many commands broke."
  *
- * Probe keys are isolated under `mcp:acl-selfcheck:probe:<gitSha>:*` so
- * concurrent /health calls during the gate-acquire race don't collide.
+ * Probe keys are isolated under
+ * `mcp:acl-selfcheck:probe:<env>:<gitSha>:*` so concurrent /health calls
+ * during the gate-acquire race don't collide AND so probe-state from
+ * staging vs production lands in disjoint key sets.
  */
-async function probeAclSurface(redis: Redis, gitSha: string): Promise<AclSelfCheckResult> {
+async function probeAclSurface(redis: Redis, discriminator: string): Promise<AclSelfCheckResult> {
   const ranAt = new Date().toISOString();
-  const k = (suffix: string): string => `mcp:acl-selfcheck:probe:${gitSha}:${suffix}`;
+  const k = (suffix: string): string => `mcp:acl-selfcheck:probe:${discriminator}:${suffix}`;
 
   const steps: Array<{ cmd: string; run: () => Promise<unknown> }> = [
     { cmd: 'SET', run: () => redis.set(k('s'), '1', { ex: 60 }) },

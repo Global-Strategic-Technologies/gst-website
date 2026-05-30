@@ -130,6 +130,14 @@ routes = [
   { pattern = "mcp-staging.globalstrategic.tech", custom_domain = true }
 ]
 
+# Environment discriminator — BL-041 follow-up. Prepended to per-deploy
+# Upstash state keys (e.g. `mcp:acl-selfcheck:result:<env>:<gitSha>`) so
+# both envs sharing the same MCP DB don't collide on shared keys. Kept
+# under `[env.<name>.vars]` rather than as a secret because it's
+# non-sensitive routing metadata.
+[env.staging.vars]
+ENV_NAME = "staging"
+
 # Analytics Engine — staging dataset (BL-032.75 Phase 1).
 # Separate dataset from production so staging soak traffic doesn't
 # pollute production dashboards.
@@ -173,6 +181,10 @@ name = "gst-mcp"
 routes = [
   { pattern = "mcp.globalstrategic.tech", custom_domain = true }
 ]
+
+# Environment discriminator — see staging block for rationale.
+[env.production.vars]
+ENV_NAME = "production"
 
 # Analytics Engine — production dataset (BL-032.75 Phase 1).
 # Canonical dataset for Phase 3 Grafana dashboards + the `/status` page
