@@ -58,9 +58,22 @@ try {
   // log makes the failure mode obvious.
   if (msg.includes('NOPERM') || msg.toLowerCase().includes('no permission')) {
     console.error(
-      'verify-ratelimit-acl: NOPERM detected — scoped ACL is missing a category needed by Ratelimit.slidingWindow().'
+      'verify-ratelimit-acl: NOPERM detected — ACL is rejecting a command or key the SDK uses internally.'
     );
-    console.error('Expected: +@read +@write +@string +@sortedset +@scripting on ~mcp:*');
+    console.error(`  - prefix configured:    ${probeKey}`);
+    console.error(`  - identifier passed:    ${probeKey}`);
+    console.error('  - expected SDK key:     <prefix>:<identifier>:<bucket>');
+  }
+  // Diagnostic: include the cause chain + first few stack lines so we can
+  // see which Redis command/key actually triggered the NOPERM.
+  if (err instanceof Error) {
+    if (err.cause) console.error('  - error.cause:', err.cause);
+    if (err.stack) {
+      console.error('  - stack (first 4 lines):');
+      for (const line of err.stack.split('\n').slice(0, 4)) {
+        console.error('      ' + line);
+      }
+    }
   }
   process.exit(1);
 }
