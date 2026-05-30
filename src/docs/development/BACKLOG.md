@@ -2224,7 +2224,7 @@ All three audits converged on: **bypass the SDK on the scheduled path entirely**
 
 ### BL-032.77: Sentry envelope-POST reliability + cron drift-detection refinement
 
-**Source**: 2026-05-28 post-deploy observation session — three open Sentry issues on the `gst-mcp-server` project, none of which match the underlying reality of the system (Cloudflare cron logs show 100% success; `/health` confirms radar substrate healthy; Inoreader Developer Console shows 25% daily usage well under budget). | **Effort**: ~half-day investigation (instrumentation) + ~half-day fix once root cause confirmed | **Status**: 🟡 **In progress** — instrumentation PR (TBD) lands the observability-of-observability layer; fixes follow after the next ~1-2 missed check-in events surface the root cause | **Depends on**: BL-032.76 (the envelope path this ticket investigates) | **Blocks**: BL-032.75 Phase 3 alerting credibility (alerts on `cron.radar-refresh.*` Sentry events are unreliable signal while every successful firing surfaces as a noisy Issue + occasional false-positive "timeout check-in")
+**Source**: 2026-05-28 post-deploy observation session — three open Sentry issues on the `gst-mcp-server` project, none of which match the underlying reality of the system (Cloudflare cron logs show 100% success; `/health` confirms radar substrate healthy; Inoreader Developer Console shows 25% daily usage well under budget). | **Effort**: ~half-day investigation (instrumentation) + ~half-day fix once root cause confirmed | **Status**: ✅ **SHIPPED 2026-05-29** — instrumentation via PR #181 (envelope failure-mode logging + persistent Workers observability); Issue B + C root cause identified as Cloudflare double-firing scheduled handlers (post-deploy discovery, 2026-05-29 — see § Post-deploy discovery below); fix via PR #183 (drift threshold raise + cron AE emission + retire noise captureMessage) and PR #184 (cron single-flight dedup lock). One AC deferred — Issue A success captureMessage retirement (per decision below, kept as backup heartbeat until ≥7 days clean Sentry Crons signal post-dedup; revisit ≥2026-06-05) | **Depends on**: BL-032.76 (the envelope path this ticket investigates) | **Blocks**: BL-032.75 Phase 3 alerting credibility (alerts on `cron.radar-refresh.*` Sentry events are unreliable signal while every successful firing surfaces as a noisy Issue + occasional false-positive "timeout check-in")
 
 **As an** operator monitoring the MCP Worker, **I want** Sentry's `gst-mcp-server` Issues view to reflect actionable failures only (not "every cron success creates an Issue" and not "false-positive missed check-in alerts"), AND I want the Phase 0 `inoreader.spend.drift` detection to fire only on real drift (not on parallel-cron eventual-consistency races), **so that** I can trust the Sentry signal as the canonical operations dashboard for BL-033 SLA reporting.
 
@@ -2313,13 +2313,13 @@ Option (a) is cheapest; option (b) is most correct. Pick after instrumentation d
 
 #### Acceptance criteria
 
-- [ ] **Instrumentation lands** — `postEnvelope` checks `response.ok`; logs non-2xx status + URL via `safeLog`; logs abort/timeout separately. No behavioral change to the success path; net +20 LOC.
-- [ ] **Cloudflare Worker observability** enabled persistently via wrangler config (`[observability]` block with `logs.enabled = true` + `traces.enabled = true`) so operators don't have to toggle via dashboard every deploy.
-- [ ] **Diagnosis deliverable** — after 1-week post-deploy window OR 3 missed check-in events (whichever comes first), file a follow-up commit documenting which failure mode dominates. Update this stanza with findings.
-- [ ] **Issue B fix lands** — choice driven by diagnosis data; could be retry-once / Sentry Spike Protection adjustment / envelope-emit throttling / something else.
-- [ ] **Issue C fix lands** — one of the three options above; choice driven by whether the post-instrumentation data shows persistent drift (real bug) or transient firing-window drift (parallel race).
-- [ ] **Issue A captureMessage retired** — only after Issue B's check-in reliability is verified over 7+ days of clean Sentry Crons signal.
-- [ ] BL-032.76 stanza updated with cross-reference to this ticket as the "verification-pass follow-up."
+- [x] **Instrumentation lands** — `postEnvelope` checks `response.ok`; logs non-2xx status + URL via `safeLog`; logs abort/timeout separately (PR #181).
+- [x] **Cloudflare Worker observability** enabled persistently via wrangler config (`[observability]` block with `logs.enabled = true` + `traces.enabled = true`) — verified empirically 2026-05-29 against production Logs + Traces output (PR #181).
+- [x] **Diagnosis deliverable** — dominant failure mode identified as Cloudflare double-firing scheduled handlers (production observation 2026-05-29; see § Post-deploy discovery). Documented in-place in this stanza.
+- [x] **Issue B fix lands** — single-flight Upstash lock at top of `scheduled` handler keyed on `event.cron:event.scheduledTime`; loser emits `cron_outcome:'deduplicated'` AE event (PR #184).
+- [x] **Issue C fix lands** — Option (a) selected: `DRIFT_THRESHOLD_ABS` raised 2 → 6 (PR #183).
+- [ ] **Issue A captureMessage retired** — **Deferred** per 2026-05-28 decision: keep success captureMessage as backup heartbeat until ≥7 days clean Sentry Crons signal post-PR-#184 dedup. Revisit ≥2026-06-05.
+- [x] BL-032.76 stanza updated with cross-reference (PR #181).
 
 #### Out of scope
 
@@ -3108,7 +3108,7 @@ Three architectural options, in order of preference:
 
 ---
 
-### BL-042: Inoreader OAuth Resilience — Reduce Manual Re-Link to a 1-Click Operator Flow
+### BL-047: Inoreader OAuth Resilience — Reduce Manual Re-Link to a 1-Click Operator Flow
 
 **Source**: Surfaced 2026-05-30 during BL-041 Phase 3 closeout — `oauth-refresh-invalid-refresh-token` Sentry issue surfaced via live `search_radar` probe against production. Recovery required `node scripts/inoreader-auth.mjs setup` + browser auth + `exchange CODE` + 4× `wrangler secret put` + 2× `npm run deploy:*` — ~15 minutes of operator time at a terminal. Token death will recur whenever Inoreader's refresh-token grace window lapses (revocation, long inactivity, server-side policy change). The current recovery surface is not acceptable for a service surface that BL-033 broadens to external clients. | **Effort**: ~2 days engineering for T1+T2 (the operator-facing slice); T3-T4 fold in as ~1 day of incremental work afterward | **Status**: 📋 Filed 2026-05-30, revised after impartial audit | **Depends on**: nothing (independent hardening) | **Blocks**: BL-033 only loosely (acceptable to ship in parallel; not a hard gate)
 
@@ -3211,10 +3211,12 @@ Audit caught that the counters T4 surfaces don't exist yet — they require new 
 
 #### Acceptance Criteria
 
-- [ ] **T0**: `mcp-server/src/docs/operations/INOREADER_OAUTH_CONTRACT.md` written with verified `invalid_grant` response shape, rotation-vs-echo regime, refresh-token TTL (if documented); T1 + T2 + T3 scope against this doc
+- [x] **T0** (2026-05-30): [`INOREADER_OAUTH_CONTRACT.md`](../../../mcp-server/src/docs/operations/INOREADER_OAUTH_CONTRACT.md) written; Context7-verified contract pinned with `invalid_grant` shape (401 + `{"error":"invalid_grant"}`), refresh-token rotation regime (open question — closes via T3 telemetry), TTL (undocumented upstream — surface "age since last successful refresh" instead via T4)
 
-- [ ] **T1**: Sentry alert rules live for ALL three OAuth failure signals (`oauth-refresh-invalid-refresh-token`, `oauth-refresh-token-missing`, `oauth-refresh-upstash-write-failed`); each delivered to Slack within 1 min of first daily event; each carries a deep link to its specific DEPLOY.md § C.5 sub-procedure
-- [ ] **T1 monitor-the-monitor**: weekly synthetic event (`captureMessageEnvelope` tagged `tag.alert-rule-synthetic: 1`) confirms the alert path is live; documented in DEPLOY.md as part of the operator weekly checklist
+- [x] **T1 alert rules** (2026-05-30): four Sentry Issue Alerts configured by operator against `gst-mcp-server` project per [`SENTRY_ALERT_RULES.md`](../../../mcp-server/src/docs/operations/SENTRY_ALERT_RULES.md) § 3 — three OAuth failure rules (dual-trigger pattern: `A new issue is created` + `A resolved issue becomes unresolved`, Slack-routed to `#mcp-alerts`, 60min action frequency) and one synthetic rule (single trigger, 1d action frequency). Worker code emits the underlying tagged events from `inoreader-oauth.ts` (refresh failures) + `alert-rule-synthetic.ts` (heartbeat)
+- [x] **T1 monitor-the-monitor — wiring** (2026-05-30): weekly synthetic dispatcher [`alert-rule-synthetic.ts`](../../../mcp-server/src/observability/alert-rule-synthetic.ts) wired to `0 14 * * 1` production cron; emits `event:alert-rule-synthetic` tagged Sentry event Mondays 14:00 UTC; weekly-checklist procedure documented in [`SENTRY_ALERT_RULES.md`](../../../mcp-server/src/docs/operations/SENTRY_ALERT_RULES.md) § 3
+- [x] **T1 monitor-the-monitor — Sentry transport verified** (2026-05-30): force-fire via `wrangler dev --remote` succeeded; Worker dispatch log `{event:'alert-rule-synthetic.dispatch', success:true}` + Sentry Issue `event:alert-rule-synthetic` both observed end-to-end. First-firing date filled into [`SENTRY_ALERT_RULES.md`](../../../mcp-server/src/docs/operations/SENTRY_ALERT_RULES.md) § 4
+- [x] **T1 monitor-the-monitor — paging-channel verification** (2026-05-30): Sentry email notification confirmed at operator's address ~1 min after the force-fire. Full path verified end-to-end: Worker dispatch → Sentry Issue → Sentry email. No real-cron wait needed; force-fire substituted cleanly
 - [ ] **T2 endpoints**: `/admin/inoreader/reauth/{start,callback}` implemented + integration-tested; gated by `MCP_ADMIN_KEY` env-var bearer match (not scope); CSRF defense via Upstash-stored opaque state bound to operator-key identity (5-min TTL)
 - [ ] **T2 race-safety**: callback handler acquires `REFRESH_LOCK_KEY` before writing tokens; integration test asserts cron-in-flight + operator-callback ordering preserves new tokens
 - [ ] **T2 audit log**: every `/admin/*` hit emits a `safeLog` with `auth.keyOwner` + URL; `safe-logger.ts` extended to scrub `code`, `state`, `access_token`, `refresh_token` query params from logged URLs
@@ -3249,4 +3251,4 @@ Audit caught that the counters T4 surfaces don't exist yet — they require new 
 
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-042 filed: May 30, 2026_
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026_

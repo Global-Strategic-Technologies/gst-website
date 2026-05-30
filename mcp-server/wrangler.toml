@@ -224,5 +224,14 @@ dataset = "mcp_events"
 # to AE so the dedup rate stays visible. Steady-state post-fix: 24/day
 # as the budget math claims. Production-only — staging deliberately
 # runs no cron (see staging block above).
+# Second cron (`0 14 * * 1`) is the BL-047 T1 alert-rule synthetic:
+# Mondays 14:00 UTC, a single Sentry event tagged `alert-rule-synthetic: 1`
+# is emitted. Its presence in Slack `#mcp-alerts` is the operator's weekly
+# proof that the BL-047 T1 alert rules + Slack integration are wired
+# end-to-end. Without it, a silently-broken integration would first
+# surface on a real OAuth incident.
+#
+# Synthetic dispatcher: src/observability/alert-rule-synthetic.ts
+# Operator runbook:    src/docs/operations/SENTRY_ALERT_RULES.md § Synthetic
 [env.production.triggers]
-crons = ["0 */6 * * *"]
+crons = ["0 */6 * * *", "0 14 * * 1"]
