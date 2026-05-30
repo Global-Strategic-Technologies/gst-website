@@ -10,11 +10,11 @@
 
 The Worker emits structured Sentry events at three failure points on the Inoreader OAuth refresh path. Each is paging-worthy.
 
-| Sentry event tag                      | Worker source                                                | When it fires                                                                                                                            | Recovery                                                                                                                 |
-| ------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `oauth-refresh-invalid-refresh-token` | [`inoreader-oauth.ts:290-303`](../../lib/inoreader-oauth.ts) | Inoreader returned 401 or `invalid_grant` on `POST /oauth2/token` — refresh token is dead                                                | Re-authorize via DEPLOY.md § C.5 (until BL-047 T2 lands the in-browser flow)                                             |
-| `oauth-refresh-token-missing`         | [`inoreader-oauth.ts:198-202`](../../lib/inoreader-oauth.ts) | Worker tried to refresh but found no refresh token in Upstash or env-var fallback                                                        | Restore `INOREADER_REFRESH_TOKEN` Worker secret OR repopulate `mcp:inoreader:refresh_token` in Upstash from 1Password    |
-| `oauth-refresh-upstash-write-failed`  | [`inoreader-oauth.ts:336-343`](../../lib/inoreader-oauth.ts) | Refresh succeeded against Inoreader but writing the rotated refresh_token to Upstash failed — credential is now in an inconsistent state | Inspect Upstash status; if reachable, re-run a manual refresh to overwrite. If the failure persists, see DEPLOY.md § C.5 |
+| Sentry event tag                      | Worker source                                                | When it fires                                                                                                                            | Recovery                                                                                                                                                                                                                                     |
+| ------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `oauth-refresh-invalid-refresh-token` | [`inoreader-oauth.ts:290-303`](../../lib/inoreader-oauth.ts) | Inoreader returned 401 or `invalid_grant` on `POST /oauth2/token` — refresh token is dead                                                | Re-authorize via DEPLOY.md § C.5 sub-section **"Recovery — Inoreader OAuth refresh-token expired"** (until BL-047 T2 lands the in-browser flow)                                                                                              |
+| `oauth-refresh-token-missing`         | [`inoreader-oauth.ts:198-202`](../../lib/inoreader-oauth.ts) | Worker tried to refresh but found no refresh token in Upstash or env-var fallback                                                        | Same procedure as above — DEPLOY.md § C.5 sub-section "Recovery — Inoreader OAuth refresh-token expired" re-mints both env-var and Upstash key                                                                                               |
+| `oauth-refresh-upstash-write-failed`  | [`inoreader-oauth.ts:336-343`](../../lib/inoreader-oauth.ts) | Refresh succeeded against Inoreader but writing the rotated refresh_token to Upstash failed — credential is now in an inconsistent state | First check DEPLOY.md § C.6 step 2 (Is `upstashMcp: 'degraded'` in `/health`?). If Upstash is down, recovery is "wait or Upstash status page." If Upstash is reachable, re-mint via § C.5 "Recovery — Inoreader OAuth refresh-token expired" |
 
 Each of these gets ITS OWN Sentry alert rule. They are not collapsed into a single rule — each carries a different recovery procedure and the page needs to point at the right one.
 
@@ -29,10 +29,10 @@ Operator-only — no in-repo source of truth.
 3. **If** — leave the issue-state filters empty (alert on first event regardless of priority/seen-state)
 4. **Then** — `Send a notification to Slack` → workspace `globalstrategic` → channel `#mcp-alerts`
 5. **Rate limit** — debounce to 1 per UTC day per rule (Sentry: "Issue alerts have built-in rate limiting"; set frequency to `1 per 1440 minutes`)
-6. **Action data**: include `event_id`, `tag.event`, `extra.source`, and a Slack message body that links to the relevant DEPLOY.md sub-procedure (URL hardcoded into the rule's Slack action template):
-   - `invalid-refresh-token` → DEPLOY.md § C.5 step 2 ("Recovery — Inoreader OAuth refresh-token expired")
-   - `token-missing` → DEPLOY.md § C.5 step 1
-   - `upstash-write-failed` → DEPLOY.md § C.13 ("Upstash recovery")
+6. **Action data**: include `event_id`, `tag.event`, `extra.source`, and a Slack message body that links to the relevant DEPLOY.md sub-section (URL hardcoded into the rule's Slack action template). All three OAuth signals route to the same DEPLOY.md sub-section — the procedure is identical (re-mint via `scripts/inoreader-auth.mjs` + re-bind two Worker secrets), and the differing failure tag in the page tells the operator which mode it was:
+   - `invalid-refresh-token` → DEPLOY.md § C.5 sub-section **"Recovery — Inoreader OAuth refresh-token expired"**
+   - `token-missing` → DEPLOY.md § C.5 sub-section **"Recovery — Inoreader OAuth refresh-token expired"**
+   - `upstash-write-failed` → DEPLOY.md § C.6 step 2 (triage: is the underlying Upstash MCP DB degraded?), then § C.5 "Recovery — Inoreader OAuth refresh-token expired" if Upstash is healthy and only the write itself failed
 7. Save
 
 ### Synthetic rule (×1)

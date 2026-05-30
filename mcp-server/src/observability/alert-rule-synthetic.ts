@@ -23,6 +23,14 @@ import { safeLog } from '../auth/safe-logger';
 import { postSentryEvent } from './sentry-envelope';
 import type { Env } from '../worker';
 
+/**
+ * Single source of truth for the synthetic cron expression. Both the
+ * `worker.ts` dispatch branch and this dispatcher's `extra.cron` payload
+ * read from here, so a future cadence change (e.g. twice-weekly during
+ * a high-incident period) is a one-line edit.
+ */
+export const SYNTHETIC_CRON = '0 14 * * 1';
+
 export async function dispatchAlertRuleSynthetic(env: Env): Promise<void> {
   const startedAt = Date.now();
   safeLog({
@@ -35,11 +43,11 @@ export async function dispatchAlertRuleSynthetic(env: Env): Promise<void> {
     tags: {
       event: 'alert-rule-synthetic',
       'alert-rule-synthetic': '1',
-      env: env.ENV_NAME ?? 'unknown',
+      environment: env.ENV_NAME ?? 'unknown',
     },
     extra: {
       source: 'cron.scheduled',
-      cron: '0 14 * * 1',
+      cron: SYNTHETIC_CRON,
       purpose:
         'Operator-visible weekly proof that BL-047 T1 alert rules + Slack integration are wired. See SENTRY_ALERT_RULES.md § Synthetic.',
       durationMs: Date.now() - startedAt,

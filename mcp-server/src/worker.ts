@@ -40,7 +40,7 @@ import { captureMessage, sentryOptions, tagRequest, withSentry } from './observa
 import { AnalyticsEngineSink, emit } from './metrics/_index';
 import type { RefreshOutcome } from './cron/radar-refresh';
 import { postSentryCheckIn, postSentryEvent } from './observability/sentry-envelope';
-import { dispatchAlertRuleSynthetic } from './observability/alert-rule-synthetic';
+import { dispatchAlertRuleSynthetic, SYNTHETIC_CRON } from './observability/alert-rule-synthetic';
 import { buildHealthPayload } from './observability/health';
 import { runAclSelfCheckOnce } from './observability/acl-selfcheck';
 import { acquire } from './lib/single-flight-lock';
@@ -228,7 +228,7 @@ export const handler: ExportedHandler<Env> = {
           // a separate cron expression cannot collide with the radar
           // firing (different scheduledTime, different lockKey), and
           // the synthetic itself is idempotent (one fire-and-forget POST).
-          if (event.cron === '0 14 * * 1') {
+          if (event.cron === SYNTHETIC_CRON) {
             await dispatchAlertRuleSynthetic(env);
             return;
           }

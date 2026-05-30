@@ -59,6 +59,10 @@ Inoreader uses standard HTTP status codes; the `/developers/error-handling` page
 | `429`  | Daily limit reached (Zone-1 or Zone-2)                             | varies                                                            | Not an OAuth surface; relevant to `/reader/api/...` endpoints, not `/oauth2/token`                               |
 | `503`  | Service unavailable                                                | varies                                                            | `inoreader-error` (transient; retry next cron)                                                                   |
 
+### Sentry event-tag names
+
+Worker code maps these error states to Sentry events via the `event` tag. The canonical tag values (composite strings, NOT just the `reason` field) are pinned in [`SENTRY_ALERT_RULES.md`](./SENTRY_ALERT_RULES.md) § 1 — operators writing Sentry filters should use those exact strings (`oauth-refresh-invalid-refresh-token`, `oauth-refresh-token-missing`, `oauth-refresh-upstash-write-failed`).
+
 ### Critical contract statement
 
 Inoreader's own docs state: **"Upon receiving a 401, you should sign out the current user and prompt them to sign in again."**
