@@ -2,7 +2,11 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items**: 30 items were completed or closed through April 2026 (BL-002, 003, 008–019, 021–026, 027–030, 036–041). Use `git log` to find their original acceptance criteria and technical context.
+> **Completed and closed items**: items pruned through April 2026 include BL-002, 003, 008–019, 021–026, 027–030. Use `git log` to find their original acceptance criteria and technical context.
+>
+> Major May 2026 ships (stanzas retained for closure history): BL-039 delivered 2026-05-13 (PR #114); BL-040 superseded 2026-05-17 by BL-032.8 Phase B; BL-032.76 ✅ shipped 2026-05-27; BL-032.8 ✅ shipped 2026-05-27 (PRs #139 + #140 + #178 honest closure); BL-032.75 Phase 1 ✅ shipped 2026-05-28 (PR #179, promoted via PR #180); BL-032.77 ✅ shipped 2026-05-29 (PRs #181 + #183 + #184); BL-041 ✅ shipped 2026-05-30 (PRs #186 + #187 + #189 + #190); BL-047 T0+T1 ✅ shipped 2026-05-30 (PR #191).
+>
+> BL-036, BL-037, BL-038 remain **open** despite the historical April rollup phrasing — see their stanzas for current state.
 >
 > **BL-034** was previously closed and has been re-opened with new scope as the MCP-server doc-cleanup catch-all (April 2026). The historical BL-034 contents are reachable via `git log -- src/docs/development/BACKLOG.md`.
 
@@ -1783,13 +1787,13 @@ BL-032's Section K soak (31 of 40 tests recorded as of 2026-05-12) surfaced a ti
 
 #### Acceptance Criteria
 
-**Phase 1 — Instrumentation**
+**Phase 1 — Instrumentation** ✅ **SHIPPED 2026-05-28** via PR #179 (promoted to master via PR #180); Step 6 `inoreader_call` emission added 2026-05-30 via PR #191 commit `8cffd29`
 
-- [ ] Typed metric emitters introduced in `mcp-server/src/metrics/` for: `tool_invocation`, `resource_read`, `prompt_invocation`, `prompt_tool_fanout`, `rate_limit_decision`, `inoreader_call`, `radar_snapshot_age`, `health_check_duration`
-- [ ] Tool / Resource / Prompt registry decorators auto-emit metrics — no per-handler boilerplate; handlers stay focused on their domain logic
-- [ ] Cloudflare Analytics Engine binding configured in `wrangler.toml` (`env.METRICS`); each emitter writes structured events with the dimensions documented in [MCP_SERVER_OBSERVABILITY_BL-032_75.md § Metrics](MCP_SERVER_OBSERVABILITY_BL-032_75.md#1-metrics--whats-happening-in-numbers)
-- [ ] Vitest test asserts every registered Tool / Resource / Prompt emits at least one metric event in a representative invocation
-- [ ] Cardinality budget per metric documented in `metrics/_index.ts`; CI test caps emission cardinality to prevent dimension explosion
+- [x] Typed metric emitters introduced in `mcp-server/src/metrics/` for: `tool_invocation`, `resource_read`, `prompt_invocation`, `prompt_tool_fanout`, `rate_limit_decision`, `inoreader_call`, `radar_snapshot_age`, `health_check_duration` (PR #179 + PR #191 for `inoreader_call`)
+- [x] Tool / Resource / Prompt registry decorators auto-emit metrics via `withMetrics` HOF — no per-handler boilerplate; handlers stay focused on their domain logic (PR #179)
+- [x] Cloudflare Analytics Engine binding configured in `wrangler.toml` (`env.METRICS`); each emitter writes structured events with the dimensions documented in [MCP_SERVER_OBSERVABILITY_BL-032_75.md § Metrics](MCP_SERVER_OBSERVABILITY_BL-032_75.md#1-metrics--whats-happening-in-numbers) (PR #179)
+- [x] Vitest test asserts every registered Tool / Resource / Prompt emits at least one metric event in a representative invocation (`tests/integration/metrics-emission.test.ts`, PR #179)
+- [x] Cardinality budget per metric documented in `metrics/_index.ts` + `_schema.ts`; runtime + snapshot tests cap emission cardinality to prevent dimension explosion (PR #179)
 
 **Phase 2 — Baselining**
 
@@ -2248,7 +2252,7 @@ The radar loads correctly via `/hub/radar` (Cloudflare cron dashboard reports 10
 
 **Why it used to make sense**: pre-BL-032.76, this was the only Sentry-side signal that crons were running. Defended as a positive heartbeat.
 
-**Why it's now redundant**: BL-032.76 ships a proper Sentry Crons check-in (`postSentryCheckIn(env, 'radar-refresh', 'ok', ...)`) for the same signal. BL-032.75 Phase 1 (PR #179) will dual-write a `cron_outcome` event to AE once Step 6 wires the emitter post-soak. The captureMessage is duplicate signal AND actively misleading (green successes show up as an unresolved Issue).
+**Why it's now redundant**: BL-032.76 shipped a proper Sentry Crons check-in (`postSentryCheckIn(env, 'radar-refresh', 'ok', ...)`) for the same signal. BL-032.75 Phase 1 (PR #179, promoted via PR #180) dual-writes a `cron_outcome` event to AE; the cron-outcome emitter was wired in worker.ts via PR #183 (BL-032.77 Fix C). The captureMessage is duplicate signal AND actively misleading (green successes show up as an unresolved Issue).
 
 **Decision (2026-05-28)**: **keep the success captureMessage for now**, as a backup heartbeat until Issue B (envelope check-in reliability) is fully diagnosed and resolved. Once we have ≥7 days of clean Sentry Crons check-ins post-fix, drop the captureMessage in a one-line follow-up commit.
 
@@ -3098,7 +3102,7 @@ Three architectural options, in order of preference:
 - **Worker-side guardrail**: `acl-selfcheck.ts` — one-shot per deploy via SET-NX-EX gate; short-circuits at the first failing command with a per-command failure name; surfaces at `/health.aclSelfCheck`. PR #189 followup made the keys env-scoped (`<env>:<gitSha>`) to fix a shared-state false-green where staging's probe result was shadowing production's
 - **Empirical Upstash deviations documented in DEPLOY.md § A.3.5** for future operators: (a) `>password` clause silently ignored — Upstash auto-generates the password; (b) `@scripting` rejected as "unknown category" when there's trailing whitespace at end of ACL string (parser is whitespace-sensitive at modifier boundaries); (c) `+script|load` subcommand syntax rejected ("'|' is not supported"); (d) `~""` empty-string sentinel required alongside `~mcp:*` because `@upstash/ratelimit` v2 sliding-window passes `dynamicLimitKey: ""` as a third EVAL key when dynamic limits are off
 - **PR sequence**: [PR #186](https://github.com/Global-Strategic-Technologies/gst-website/pull/186) (engineering artifacts), [PR #187](https://github.com/Global-Strategic-Technologies/gst-website/pull/187) (verified-against-reality ACL string + script bugfixes), [PR #189](https://github.com/Global-Strategic-Technologies/gst-website/pull/189) (env-scoped acl-selfcheck + this AC closure)
-- **BL-042 filed as a follow-up** (PR #188) — Inoreader OAuth resilience surfaced during Phase 3 production verification when `oauth-refresh-invalid-refresh-token` fired and required ~15min manual local-terminal recovery. Not a BL-041 regression; surfaced by BL-041's first live production probe.
+- **BL-047 filed as a follow-up** (PR #188, originally filed as BL-042 but renumbered when the ID collision with the existing TechPar PresetInput BL-042 was caught) — Inoreader OAuth resilience surfaced during Phase 3 production verification when `oauth-refresh-invalid-refresh-token` fired and required ~15min manual local-terminal recovery. Not a BL-041 regression; surfaced by BL-041's first live production probe. T0+T1 (detection hardening) subsequently shipped 2026-05-30 via PR #191; T2-T4 (recovery + telemetry) remain open.
 
 **Why now**
 
@@ -3110,7 +3114,7 @@ Three architectural options, in order of preference:
 
 ### BL-047: Inoreader OAuth Resilience — Reduce Manual Re-Link to a 1-Click Operator Flow
 
-**Source**: Surfaced 2026-05-30 during BL-041 Phase 3 closeout — `oauth-refresh-invalid-refresh-token` Sentry issue surfaced via live `search_radar` probe against production. Recovery required `node scripts/inoreader-auth.mjs setup` + browser auth + `exchange CODE` + 4× `wrangler secret put` + 2× `npm run deploy:*` — ~15 minutes of operator time at a terminal. Token death will recur whenever Inoreader's refresh-token grace window lapses (revocation, long inactivity, server-side policy change). The current recovery surface is not acceptable for a service surface that BL-033 broadens to external clients. | **Effort**: ~2 days engineering for T1+T2 (the operator-facing slice); T3-T4 fold in as ~1 day of incremental work afterward | **Status**: 📋 Filed 2026-05-30, revised after impartial audit | **Depends on**: nothing (independent hardening) | **Blocks**: BL-033 only loosely (acceptable to ship in parallel; not a hard gate)
+**Source**: Surfaced 2026-05-30 during BL-041 Phase 3 closeout — `oauth-refresh-invalid-refresh-token` Sentry issue surfaced via live `search_radar` probe against production. Recovery required `node scripts/inoreader-auth.mjs setup` + browser auth + `exchange CODE` + 4× `wrangler secret put` + 2× `npm run deploy:*` — ~15 minutes of operator time at a terminal. Token death will recur whenever Inoreader's refresh-token grace window lapses (revocation, long inactivity, server-side policy change). The current recovery surface is not acceptable for a service surface that BL-033 broadens to external clients. | **Effort**: ~2 days engineering for T1+T2 (the operator-facing slice); T3-T4 fold in as ~1 day of incremental work afterward | **Status**: 🟡 **PARTIALLY SHIPPED 2026-05-30** — T0 + T1 (detection hardening) shipped via PR #191; T2 (in-browser recovery), T3 (rotation signal), T4 (`/health` surface) outstanding. Filed 2026-05-30, revised after impartial audit | **Depends on**: nothing (independent hardening) | **Blocks**: BL-033 only loosely (acceptable to ship in parallel; not a hard gate)
 
 **As an** operator of the MCP Worker, **I want** Inoreader refresh-token failures to be detected proactively, paged immediately, and recoverable in under 2 minutes from any browser, **so that** a refresh-token death doesn't manifest as a stale radar surface for users while I'm away from a terminal.
 
@@ -3165,7 +3169,7 @@ Audit caught that T1 must alert on ALL three, not just `invalid_refresh_token` �
 
 Replace the local `scripts/inoreader-auth.mjs` flow with a Worker-served re-auth surface. Three audit-derived design constraints:
 
-- **Auth model**: gate via a new `MCP_ADMIN_KEY` env var (bound separately from team `MCP_KEY_*` keys). Match by key identity, NOT by scope — current `DEFAULT_SCOPES` ([`scopes.ts:49-55`](../../../mcp-server/src/auth/scopes.ts#L49-L55)) is uniform across all keys; per-key scope variation is a BL-033 unlock and BL-042 must not pre-empt it. The `MCP_ADMIN_KEY` binding is a single-key surface independent of the team key set.
+- **Auth model**: gate via a new `MCP_ADMIN_KEY` env var (bound separately from team `MCP_KEY_*` keys). Match by key identity, NOT by scope — current `DEFAULT_SCOPES` ([`scopes.ts:49-55`](../../../mcp-server/src/auth/scopes.ts#L49-L55)) is uniform across all keys; per-key scope variation is a BL-033 unlock and BL-047 must not pre-empt it. The `MCP_ADMIN_KEY` binding is a single-key surface independent of the team key set.
 - **CSRF defense**: HMAC alone is insufficient — an attacker who triggers `/start` themselves gets a valid HMAC and can lure the operator into completing it. Use **Upstash-stored opaque state** (key: `mcp:inoreader:reauth-state:<nonce>`, TTL 5min, value: SHA256(admin-key)). Callback handler requires the SAME bearer key as `/start` — bound to operator identity.
 - **Race with cron refresh**: T2's callback writes via `writeRefreshToken/writeAccessToken` which DON'T acquire `REFRESH_LOCK_KEY` ([`inoreader-oauth.ts`](../../../mcp-server/src/lib/inoreader-oauth.ts)). Sequence: cron acquires lock, POSTs with OLD refresh token (~1s in flight), operator completes re-auth + writes NEW tokens, cron returns success and overwrites with stale rotated token from the OLD chain. **T2 callback MUST acquire `REFRESH_LOCK_KEY` before writing** — bounded ~5s lock TTL, same primitive as the existing single-flight.
 
@@ -3251,4 +3255,4 @@ Audit caught that the counters T4 surfaces don't exist yet — they require new 
 
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026_
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | Last reconciled: May 30, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 → superseded May 17, 2026 by BL-032.8 Phase B | BL-032.76 shipped: May 27, 2026 | BL-032.8 shipped: May 27, 2026 (PRs #139 + #140 + #178) | BL-032.75 Phase 1 shipped: May 28, 2026 (PR #179 / #180) | BL-032.77 shipped: May 29, 2026 (PRs #181 + #183 + #184) | BL-041 filed: May 27, 2026, closed: May 30, 2026 | BL-047 filed: May 30, 2026, T0+T1 shipped: May 30, 2026_
