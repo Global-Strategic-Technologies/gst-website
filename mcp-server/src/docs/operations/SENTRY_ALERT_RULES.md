@@ -75,7 +75,7 @@ npx wrangler dev --env production --remote --test-scheduled
 # In a second terminal:
 curl "http://localhost:8787/__scheduled?cron=0+14+*+*+1"
 # Expected:
-#   - Worker Logs: { event: 'alert-rule-synthetic.dispatch', success: true, env: 'production' }
+#   - Worker Logs: { event: 'alert-rule-synthetic.dispatch', success: true }
 #   - Sentry: new issue tagged event=alert-rule-synthetic
 #   - Slack: [SYNTHETIC] BL-047 T1 weekly heartbeat message in #mcp-alerts within ~1 min
 ```
