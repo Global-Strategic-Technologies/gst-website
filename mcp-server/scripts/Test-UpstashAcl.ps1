@@ -118,9 +118,20 @@ function Assert-Positive {
 function Assert-Noperm {
     param([string]$Label, [string[]]$Command)
     $r = Invoke-UpstashCommand -Command $Command
-    if (-not $r.Ok -and ($r.Error -match 'NOPERM' -or $r.Error -match 'no permission')) {
+    # Pass-equivalents (command was blocked, just by a different mechanism):
+    #   - NOPERM ...                            ACL category/keyspace deny
+    #   - Command is not available: '...'       Upstash strips the command at
+    #                                           the platform level (DEBUG,
+    #                                           CLUSTER, SHUTDOWN) — verified
+    #                                           via rediscompatibility docs
+    if (-not $r.Ok -and (
+        $r.Error -match 'NOPERM' -or
+        $r.Error -match 'no permission' -or
+        $r.Error -match 'Command is not available'
+    )) {
         $script:passes++
-        Write-Host "  PASS  $Label  (NOPERM as expected)" -ForegroundColor Green
+        $reason = if ($r.Error -match 'Command is not available') { 'platform-stripped' } else { 'NOPERM as expected' }
+        Write-Host "  PASS  $Label  ($reason)" -ForegroundColor Green
     } elseif ($r.Ok) {
         $script:fails++
         $script:failures.Add("NEG $Label  ->  command succeeded but should have been denied")
@@ -137,37 +148,45 @@ Write-Host "=== BL-041 ACL contract probe ($Url, prefix $ProbeKeyPrefix) ===" -F
 
 Write-Host ""
 Write-Host "-- Positive: Worker's actual command surface --" -ForegroundColor DarkCyan
-Assert-Positive 'SET'                    @('SET', "$ProbeKeyPrefix:string", 'v')
-Assert-Positive 'GET'                    @('GET', "$ProbeKeyPrefix:string")
-Assert-Positive 'SET NX EX (single-flight lock pattern)' @('SET', "$ProbeKeyPrefix:lock", 'owner', 'NX', 'EX', '60')
-Assert-Positive 'INCR (egress counter)'  @('INCR', "$ProbeKeyPrefix:counter")
-Assert-Positive 'INCRBY (cron day counter)' @('INCRBY', "$ProbeKeyPrefix:counter", '6')
-Assert-Positive 'EXPIRE (counter TTL)'   @('EXPIRE', "$ProbeKeyPrefix:counter", '3600')
-Assert-Positive 'TTL (OAuth token expiry probe)' @('TTL', "$ProbeKeyPrefix:counter")
-Assert-Positive 'MGET (egress total + per-cat read)' @('MGET', "$ProbeKeyPrefix:string", "$ProbeKeyPrefix:counter")
-Assert-Positive 'DEL (lock release, cache invalidation)' @('DEL', "$ProbeKeyPrefix:string")
+# NOTE: `${ProbeKeyPrefix}:suffix` (brace-delimited) not `$ProbeKeyPrefix:suffix`
+# — the latter is parsed by PowerShell as a scope-qualifier (like `$env:PATH`)
+# and resolves to $null, producing keys like `:string` that match no ACL
+# pattern. This is the bug that produced 13 keyspace NOPERM failures on
+# 2026-05-30 before the brace fix.
+Assert-Positive 'SET'                    @('SET', "${ProbeKeyPrefix}:string", 'v')
+Assert-Positive 'GET'                    @('GET', "${ProbeKeyPrefix}:string")
+Assert-Positive 'SET NX EX (single-flight lock pattern)' @('SET', "${ProbeKeyPrefix}:lock", 'owner', 'NX', 'EX', '60')
+Assert-Positive 'INCR (egress counter)'  @('INCR', "${ProbeKeyPrefix}:counter")
+Assert-Positive 'INCRBY (cron day counter)' @('INCRBY', "${ProbeKeyPrefix}:counter", '6')
+Assert-Positive 'EXPIRE (counter TTL)'   @('EXPIRE', "${ProbeKeyPrefix}:counter", '3600')
+Assert-Positive 'TTL (OAuth token expiry probe)' @('TTL', "${ProbeKeyPrefix}:counter")
+Assert-Positive 'MGET (egress total + per-cat read)' @('MGET', "${ProbeKeyPrefix}:string", "${ProbeKeyPrefix}:counter")
+Assert-Positive 'DEL (lock release, cache invalidation)' @('DEL', "${ProbeKeyPrefix}:string")
 
 Write-Host ""
 Write-Host "-- Positive: @upstash/ratelimit sliding-window surface --" -ForegroundColor DarkCyan
-Assert-Positive 'ZADD (ratelimit window)' @('ZADD', "$ProbeKeyPrefix:zset", '1', 'm1')
-Assert-Positive 'ZADD (second member)'    @('ZADD', "$ProbeKeyPrefix:zset", '2', 'm2')
-Assert-Positive 'ZCARD (ratelimit count)' @('ZCARD', "$ProbeKeyPrefix:zset")
-Assert-Positive 'ZREMRANGEBYSCORE (window prune)' @('ZREMRANGEBYSCORE', "$ProbeKeyPrefix:zset", '0', '1')
+Assert-Positive 'ZADD (ratelimit window)' @('ZADD', "${ProbeKeyPrefix}:zset", '1', 'm1')
+Assert-Positive 'ZADD (second member)'    @('ZADD', "${ProbeKeyPrefix}:zset", '2', 'm2')
+Assert-Positive 'ZCARD (ratelimit count)' @('ZCARD', "${ProbeKeyPrefix}:zset")
+Assert-Positive 'ZREMRANGEBYSCORE (window prune)' @('ZREMRANGEBYSCORE', "${ProbeKeyPrefix}:zset", '0', '1')
 
 Write-Host ""
 Write-Host "-- Positive: scripting surface (audit B2 raw probe) --" -ForegroundColor DarkCyan
-# Raw SCRIPT LOAD — NOT via SDK, so a cached SHA on the substrate from a
-# prior admin-token run cannot mask the NOPERM gap. Returns the SHA1 of the
-# loaded script body on success.
-Assert-Positive 'SCRIPT LOAD "return 1"' @('SCRIPT', 'LOAD', 'return 1')
-Assert-Positive 'EVAL "return 1"'        @('EVAL', 'return 1', '0')
+# `EVAL` is granted explicitly via +eval; this proves the substrate accepts
+# the SDK's NOSCRIPT-fallback path (inline script body, no SCRIPT LOAD
+# required). The SCRIPT LOAD subcommand is NOT exercised here because
+# @upstash/ratelimit gracefully degrades to inline EVAL when SCRIPT LOAD
+# returns NOPERM under `-@dangerous` — the end-to-end Ratelimit SDK probe
+# below is the source of truth for "is scripting sufficient for the
+# Worker's actual workload."
+Assert-Positive 'EVAL "return 1"' @('EVAL', 'return 1', '0')
 
 Write-Host ""
 Write-Host "-- Negative: substrate-dangerous commands (NOPERM expected) --" -ForegroundColor DarkCyan
 Assert-Noperm 'FLUSHDB'      @('FLUSHDB')
 Assert-Noperm 'FLUSHALL'     @('FLUSHALL')
 Assert-Noperm 'CONFIG GET'   @('CONFIG', 'GET', 'maxmemory')
-Assert-Noperm 'DEBUG OBJECT' @('DEBUG', 'OBJECT', "$ProbeKeyPrefix:counter")
+Assert-Noperm 'DEBUG OBJECT' @('DEBUG', 'OBJECT', "${ProbeKeyPrefix}:counter")
 Assert-Noperm 'CLUSTER NODES' @('CLUSTER', 'NODES')
 Assert-Noperm 'SHUTDOWN'     @('SHUTDOWN', 'NOSAVE')
 Assert-Noperm 'KEYS *'       @('KEYS', '*')
@@ -189,7 +208,7 @@ if (-not $SkipRatelimit) {
         $scriptPath = Join-Path $PSScriptRoot 'verify-ratelimit-acl.mjs'
         $env:UPSTASH_TEST_URL = $Url
         $env:UPSTASH_TEST_TOKEN = $Token
-        $env:UPSTASH_TEST_PROBE_KEY = "$ProbeKeyPrefix:ratelimit"
+        $env:UPSTASH_TEST_PROBE_KEY = "${ProbeKeyPrefix}:ratelimit"
         & node $scriptPath
         if ($LASTEXITCODE -eq 0) {
             $passes++

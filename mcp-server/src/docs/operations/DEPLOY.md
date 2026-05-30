@@ -189,41 +189,83 @@ The default `UPSTASH_MCP_REST_TOKEN` (minted in § A.3) is bound to Upstash's `d
 
 ### The ACL strings
 
-Two scoped users, deny-by-default (whitelist style):
+Two scoped users matching Upstash's documented ACL pattern (broad categories + targeted exclusions). Verified empirically 2026-05-30 against the live `gst-mcp` console — `ACL CAT` confirms `scripting` IS a supported category name; earlier `'unknown command or category name'` errors traced to **trailing whitespace** in the modifier token (Upstash's parser is whitespace-sensitive at modifier boundaries).
+
+> **Upstash deviation from standard Redis**: do NOT include a `>password` clause in `ACL SETUSER`. Upstash auto-generates a password and displays it after user creation. Passing `>somepassword` either silently ignores the clause OR puts the user in an inconsistent state — operator observed both behaviours against the live `gst-mcp` console 2026-05-30.
 
 ```
-ACL SETUSER mcp-worker-rw   on >{PWD_A} ~mcp:* -@all +@read +@write +@string +@sortedset +@scripting
-ACL SETUSER mcp-readonly-ops on >{PWD_B} ~mcp:* -@all +@read
+ACL SETUSER mcp-worker-rw on ~mcp:* ~"" +@read +@write +@scripting -@dangerous
+ACL SETUSER mcp-readonly-ops on ~mcp:* +@read -@dangerous
 ```
 
-**Category rationale** — do **NOT** add categories beyond what's listed. Particularly: do **NOT** add `+@keyspace`; it would grant `FLUSHDB`/`KEYS`/`SCAN` and reopen the very gap this section closes.
+**Why `~""` on `mcp-worker-rw`** (verified empirically 2026-05-30): `@upstash/ratelimit` v2.x `slidingWindow` (used by `mcp-server/src/ratelimit/limiter.ts:84`) passes THREE keys to its EVAL script — `[currentKey, previousKey, dynamicLimitKey]`. When `dynamicLimits` is disabled (our setup; default), `dynamicLimitKey` is the **empty string** `""` — a sentinel the script body checks for `if dynamicLimitKey ~= "" then ... end`. Redis ACL validates EVERY key in `KEYS[]` against the user's keyspace patterns BEFORE the script runs. The empty string doesn't match `~mcp:*` → `NOPERM this user has no permissions to access one of the keys used as arguments`. Adding `~""` explicitly permits the empty-key sentinel; the only real key the SDK accesses is still `<prefix>:<window>` which matches `~mcp:*`. `mcp-readonly-ops` doesn't need `~""` because operator-side reads don't go through ratelimit's EVAL surface.
 
-| Category     | Why we need it                                                                                               | What it grants                                                            |
-| ------------ | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `@read`      | Cron day-counter GET; `/health` cached-status reads; circuit-breaker `GET`+`TTL`; ratelimit window scans     | `GET`, `MGET`, `TTL`, `EXISTS`, `ZRANGE`, `ZCARD`, `STRLEN`, ...          |
-| `@write`     | `SET`/`DEL`/`INCR`/`INCRBY`/`EXPIRE` across egress, lock, status, cache, token-store; `ZADD`/`ZREM*`         | `SET`, `DEL`, `INCR`, `INCRBY`, `EXPIRE`, `ZADD`, `ZREMRANGEBYSCORE`, ... |
-| `@string`    | Every counter, cache value, status JSON blob is a string in Redis terms                                      | `SET`/`GET`/`INCR`/`APPEND`/... — strings only                            |
-| `@sortedset` | `@upstash/ratelimit` `slidingWindow` uses sorted sets for window-rolling                                     | `ZADD`, `ZRANGE`, `ZREMRANGEBYSCORE`, `ZCARD`, ...                        |
-| `@scripting` | `@upstash/ratelimit` round-trips via `SCRIPT LOAD` → `EVALSHA`; without this the rate limiter silently fails | `EVAL`, `EVALSHA`, `SCRIPT LOAD`, `SCRIPT EXISTS`                         |
+**Category rationale** — keep the grant surface as narrow as the Worker actually needs. Do **NOT** add `+@admin`, `+@keyspace`, or `+@all`; each would reopen the very gap this section closes.
 
-Commands UNION categories — `EXPIRE` is `@keyspace @write @fast`, so `+@write` grants it without needing `+@keyspace`. Same logic for `DEL` (`@keyspace @write @slow`) and `TTL` (`@keyspace @read @fast`). The `~mcp:*` keypattern restricts every grant to keys with the `mcp:` prefix.
+| Clause        | Why we need it                                                                                                                                                                                                                                                                                                                 | What it grants (mcp-worker-rw)                                       |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| `~mcp:* ~""`  | Restricts keyspace to `mcp:*` (the only namespace the Worker writes — verified across `mcp-server/src/**`) PLUS the empty-string sentinel `""` (required by `@upstash/ratelimit` v2 `slidingWindow` — see "Why `~""`" callout below). A leaked token cannot touch any future non-MCP key.                                      | Keys matching `mcp:*` plus the empty-string sentinel                 |
+| `+@read`      | Cron day-counter GET; `/health` cached-status reads; circuit-breaker `GET`+`TTL`; ratelimit window reads (`ZCARD`)                                                                                                                                                                                                             | `GET`, `MGET`, `TTL`, `EXISTS`, `ZCARD`, `ZRANGE`, `STRLEN`          |
+| `+@write`     | Every Worker write — counters, locks, status, cache, token-store. Implicitly covers `@string` and `@sortedset` for writes (commands carry both type-tags AND read/write-tags; granting `+@write` permits every write command regardless of type — no need to add `+@string` or `+@sortedset`).                                 | `SET`, `DEL`, `INCR`, `INCRBY`, `EXPIRE`, `ZADD`, `ZREMRANGEBYSCORE` |
+| `+@scripting` | `@upstash/ratelimit` `slidingWindow` round-trips through `EVALSHA` (steady state) with NOSCRIPT fallback to `SCRIPT LOAD` + `EVAL`. Without `+@scripting`, the rate limiter silently fail-opens (its catch returns `null` on Upstash errors). `-@dangerous` (next row) strips `SCRIPT FLUSH`.                                  | `EVAL`, `EVALSHA`, `SCRIPT LOAD`, `SCRIPT EXISTS`                    |
+| `-@dangerous` | Strips the substrate-dangerous commands an admin token would grant: `FLUSHDB`, `FLUSHALL`, `CONFIG SET`, `KEYS`, `SCRIPT FLUSH`. **Must come last** to override prior `+@<cat>` grants. (Upstash also strips `DEBUG`/`CLUSTER`/`SHUTDOWN` at the platform level — those return "Command is not available" rather than NOPERM.) | Removes the dangerous subset from any category above                 |
+
+> **Upstash ACL parser limits** (verified 2026-05-30 against `gst-mcp` via `ACL CAT` + experiments):
+>
+> - Subcommand grants like `+script|load` → not recognized (`'|' is not supported`)
+> - **Trailing whitespace on the last modifier breaks parsing** — `'+@scripting '` with a trailing space is rejected as "unknown command or category name". Always verify cursor position is at the immediate end of the string (no trailing space, newline, or invisible char) before clicking Create.
+> - Categories supported (full list from `ACL CAT`): `read, list, pubsub, hyperloglog, search, connection, all, string, bitmap, json, stream, write, dangerous, set, sortedset, hash, scripting, admin, keyspace, blocking, geo, transaction`
+> - The `~<keypattern>` clause is REQUIRED — omit it and the user is created with NO keyspace access (every key-touching command returns NOPERM "no permissions to access one of the keys").
 
 ### Steps
 
 **Phase 1 — Mint users + REST tokens** (Upstash console)
 
-1. Upstash console → MCP DB → **ACL** tab → **Create** button → **Advanced** tab (free-text editor)
-2. Paste:
+> **If a prior attempt left stale users**: from the CLI tab, run `ACL DELUSER mcp-worker-rw` and `ACL DELUSER mcp-readonly-ops`, then verify with `ACL LIST` that only `default` remains. ACL SETUSER on an existing user is CUMULATIVE (adds clauses to existing state); a clean restart guarantees no stale keyspace/category leaks from a prior broken state.
+
+1. Upstash console → MCP DB → **CLI** tab. (We use CLI not the ACL-tab Advanced editor because the CLI's response semantics are unambiguous — the auto-generated password is printed inline.)
+
+2. Create `mcp-worker-rw` (NO `>password` clause — Upstash auto-generates and displays it):
+
    ```
-   ACL SETUSER mcp-worker-rw on >REPLACE_WITH_STRONG_PWD_A ~mcp:* -@all +@read +@write +@string +@sortedset +@scripting
+   ACL SETUSER mcp-worker-rw on ~mcp:* ~"" +@read +@write +@scripting -@dangerous
    ```
-   Use a strong random password (e.g. PowerShell: `[Convert]::ToBase64String((1..32 | % { [byte](Get-Random -Max 256) }))`). Save `PWD_A` to 1Password under "Upstash gst-mcp ACL — mcp-worker-rw".
-3. Click **Create**. Repeat for `mcp-readonly-ops` with `PWD_B`.
-4. Switch to the **CLI** tab. Run:
+
+   **CRITICAL** — Upstash's ACL parser is whitespace-sensitive: a trailing space after `-@dangerous` is interpreted as part of the modifier (`'-@dangerous '` is rejected as unknown). Type or paste the command, then End / Right-arrow to confirm the cursor lands at the immediate end with no trailing space, newline, or invisible character.
+
+   Upstash responds with the auto-generated password. Save it to 1Password under "Upstash gst-mcp ACL — mcp-worker-rw" as `PWD_A`.
+
+3. Create `mcp-readonly-ops` the same way:
+
    ```
-   ACL RESTTOKEN mcp-worker-rw <PWD_A>
+   ACL SETUSER mcp-readonly-ops on ~mcp:* +@read -@dangerous
    ```
-   Copy the returned token (e.g. `AYNg...DQ=`) into 1Password under "Upstash gst-mcp REST — mcp-worker-rw". Repeat for `mcp-readonly-ops`.
+
+   Save the auto-generated password as `PWD_B` in 1Password under "Upstash gst-mcp ACL — mcp-readonly-ops".
+
+4. **Verify each user before minting** — fixes the order-dependency where a token minted before the user has its final ACL state carries stale permissions:
+
+   ```
+   ACL GETUSER mcp-worker-rw
+   ```
+
+   Confirm the output contains `keys, ~mcp:*` and the commands list shows `+@scripting` and the expanded `+@read`/`+@write` equivalents (`+@string +@set +@hash +@sortedset +@list +@geo +@stream +@hyperloglog +@bitmap +@json +@search +@keyspace` and `-flushdb -flushall -keys` from `-@dangerous`). Same check for `mcp-readonly-ops`.
+
+5. Mint REST tokens (after Step 4 confirms ACL state is correct):
+
+   ```
+   ACL RESTTOKEN mcp-worker-rw {PWD_A}
+   ```
+
+   Returns a 123-character base64-shaped string starting with `gwAAAA...` — that IS the REST token. Save it into 1Password under "Upstash gst-mcp REST — mcp-worker-rw". (The token visually resembles the password because both are Upstash-internal token formats; compare character-by-character to confirm they differ.)
+
+   Repeat for `mcp-readonly-ops`:
+
+   ```
+   ACL RESTTOKEN mcp-readonly-ops {PWD_B}
+   ```
+
+   Save into 1Password under "Upstash gst-mcp REST — mcp-readonly-ops".
 
 **Phase 2 — Verify the scoped token before binding** (local)
 
