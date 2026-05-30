@@ -99,6 +99,15 @@ export interface Env {
   // Falls back to 'unknown' when missing (e.g., local `wrangler dev` runs).
   GIT_SHA?: string;
 
+  // Environment discriminator — `'staging'` / `'production'` (or `'dev'`
+  // under `wrangler dev`). Bound in `wrangler.toml` per `[env.<name>]`
+  // block. BL-041 follow-up: prepends this to per-deploy Upstash state
+  // keys (e.g. `mcp:acl-selfcheck:result:<env>:<gitSha>`) so both envs
+  // can share the MCP DB without their per-deploy state colliding.
+  // Falls back to `'unknown'` when missing — keeps the key shape stable
+  // for local runs but flags the gap in case env binding is forgotten.
+  ENV_NAME?: string;
+
   // Sentry release identifier — injected by `scripts/deploy.mjs` via
   // `wrangler deploy --var SENTRY_RELEASE:<sha>`. Tells Sentry which
   // uploaded source-map bundle matches the running Worker so stack traces

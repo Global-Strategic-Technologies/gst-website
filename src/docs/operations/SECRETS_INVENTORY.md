@@ -184,21 +184,25 @@ The Worker's bound `UPSTASH_MCP_REST_TOKEN` is minted from a scoped ACL user, **
 
 **Procedure for minting + rotating scoped tokens**: [`mcp-server/src/docs/operations/DEPLOY.md` § A.3.5 — Upstash ACL hardening](../../../mcp-server/src/docs/operations/DEPLOY.md#a35--upstash-acl-hardening-bl-041).
 
-| Username           | Bound to             | Permissions (ACL string)                                          | 1Password item                            |
-| ------------------ | -------------------- | ----------------------------------------------------------------- | ----------------------------------------- |
-| `default`          | Break-glass only     | Full admin                                                        | "Upstash gst-mcp — default (break-glass)" |
-| `mcp-worker-rw`    | Worker (both envs)   | `on ~mcp:* -@all +@read +@write +@string +@sortedset +@scripting` | "Upstash gst-mcp ACL — mcp-worker-rw"     |
-| `mcp-readonly-ops` | Operator triage only | `on ~mcp:* -@all +@read`                                          | "Upstash gst-mcp ACL — mcp-readonly-ops"  |
+**ACL strings** (verified live against the Upstash console 2026-05-30 — see DEPLOY.md § A.3.5 "Upstash ACL parser limits" callout for the empirical deviations from documented Redis 7 syntax):
+
+| Username           | Bound to             | Permissions (ACL string)                               | 1Password item                            |
+| ------------------ | -------------------- | ------------------------------------------------------ | ----------------------------------------- |
+| `default`          | Break-glass only     | Full admin (factory default)                           | "Upstash gst-mcp — default (break-glass)" |
+| `mcp-worker-rw`    | Worker (both envs)   | `on ~mcp:* ~"" +@read +@write +@scripting -@dangerous` | "Upstash gst-mcp ACL — mcp-worker-rw"     |
+| `mcp-readonly-ops` | Operator triage only | `on ~mcp:* +@read -@dangerous`                         | "Upstash gst-mcp ACL — mcp-readonly-ops"  |
+
+The `~""` clause on `mcp-worker-rw` permits the empty-string sentinel that `@upstash/ratelimit` v2 sliding-window passes as `dynamicLimitKey` when `dynamicLimits` is disabled — required for the rate-limiter to function under the scoped token. See DEPLOY.md § A.3.5 for the technical rationale.
 
 **Verification** (post-rotation): `mcp-server/scripts/Test-UpstashAcl.ps1` exit code 0 + `/health.aclSelfCheck.status: 'ok'` against the freshly deployed Worker. Both gate the rotation as complete.
 
 ### MFA enforcement log
 
+> Operator Phase D of BL-041 — pending. Fill in each row when the audit happens. Re-verify on every team-membership change (add/remove operator).
+
 | Date  | Member | Upstream SSO MFA | Upstash account TOTP | Verified by |
 | ----- | ------ | ---------------- | -------------------- | ----------- |
 | _TBD_ | _TBD_  | _TBD_            | _TBD_                | _TBD_       |
-
-> Phase D of BL-041 fills in this table during the rotation session. Re-verify on every team-membership change (add/remove operator).
 
 ---
 

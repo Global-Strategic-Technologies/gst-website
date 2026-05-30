@@ -3041,7 +3041,7 @@ Three architectural options, in order of preference:
 
 ### BL-041: Upstash Database Security Hardening — Redis ACL + Account MFA
 
-**Source**: Surfaced during BL-032.8 honest closure (2026-05-27) — the operator-side decom of the legacy `gst-radar-tokens` DB highlighted that the surviving `gst-mcp` Upstash database is still accessed via a single admin-scoped REST token (`UPSTASH_MCP_REST_TOKEN`) with full keyspace + dangerous-command access, and the Upstash account itself has no enforced MFA policy. | **Effort**: ~half-day engineering + operator runbook | **Status**: 📋 Filed 2026-05-27 | **Depends on**: nothing (independent hardening) | **Blocks**: nothing today; recommended before BL-033 broadens client surface
+**Source**: Surfaced during BL-032.8 honest closure (2026-05-27) — the operator-side decom of the legacy `gst-radar-tokens` DB highlighted that the surviving `gst-mcp` Upstash database is still accessed via a single admin-scoped REST token (`UPSTASH_MCP_REST_TOKEN`) with full keyspace + dangerous-command access, and the Upstash account itself has no enforced MFA policy. | **Effort**: ~half-day engineering + operator runbook (actual: ~1.5 days across PR #186 + PR #187 + closeout, all in 2026-05-30 — empirical iteration against the live Upstash console added unforeseen scope) | **Status**: ✅ **SHIPPED 2026-05-30** — scoped REST token from `mcp-worker-rw` bound to both envs; default admin token retained as 1Password break-glass; verified end-to-end via `Test-UpstashAcl.ps1` (24/24 pass), `/health.aclSelfCheck.status: 'ok'` on both envs, and live `search_portfolio` tool dispatch on production. Implementation across PR #186 (engineering artifacts), PR #187 (verified-against-reality ACL string + script bugfixes), and the closeout work in PR #189 (env-scoped acl-selfcheck keys). | **Depends on**: nothing | **Blocks**: BL-033 unblocked (scoped credential model in place ahead of external pilot)
 
 **As an** operator of the MCP Worker, **I want** the Upstash MCP database access scoped via per-purpose ACL users and the Upstash account protected with MFA, **so that** a leaked Worker secret can't issue dangerous commands (FLUSHDB, CONFIG, etc.) and an attacker phishing the operator's SSO provider can't take over the database fleet.
 
@@ -3082,13 +3082,23 @@ Three architectural options, in order of preference:
 
 #### Acceptance Criteria
 
-- [ ] ACL users `mcp-worker-rw` and `mcp-readonly-ops` created on `gst-mcp`; passwords stored in 1Password (operator vault)
-- [ ] `UPSTASH_MCP_REST_TOKEN` for both staging + production rotated to a token minted from `mcp-worker-rw` via `ACL RESTTOKEN`; old default-user token revoked
-- [ ] `/health` probe (T.X.2 SET-then-DEL) still passes against the new scoped token — confirms `+@write +@read` ACL covers the probe path
-- [ ] Negative test: from `redis-cli` authed as `mcp-worker-rw`, `FLUSHDB` returns `(error) NOPERM` — codifies the dangerous-command revocation
-- [ ] Upstash account MFA verified for every team member; finding documented in `src/docs/operations/SECRETS_INVENTORY.md`
-- [ ] DEPLOY.md gains a short "Upstash account hygiene" section (or extends § A.3) covering ACL user purpose + the MFA verification checklist
-- [ ] Operator runbook: how to rotate the scoped token (re-mint via `ACL RESTTOKEN` and `wrangler secret put`) — small enough to inline in DEPLOY.md
+- [x] ACL users `mcp-worker-rw` and `mcp-readonly-ops` created on `gst-mcp`; passwords stored in 1Password (operator vault). Final verified ACL strings (PR #187):
+  - `mcp-worker-rw`: `on ~mcp:* ~"" +@read +@write +@scripting -@dangerous`
+  - `mcp-readonly-ops`: `on ~mcp:* +@read -@dangerous`
+- [x] `UPSTASH_MCP_REST_TOKEN` for both staging + production rotated to a token minted from `mcp-worker-rw` via `ACL RESTTOKEN`; default admin token kept in 1Password as break-glass per DEPLOY.md § A.3.5 Phase 4 rollback procedure (not revoked because revocation is unsafe — re-binding is the recovery path, not key revocation)
+- [x] `/health` SET+DEL probe passes against the new scoped token — verified empirically on both envs 2026-05-30
+- [x] Worker-side ACL self-check on full command surface (`SET`/`INCR`/`EXPIRE`/`ZADD`/`ZREMRANGEBYSCORE`/`EVAL`) — supersedes the original "FLUSHDB returns NOPERM" AC. Implemented in `mcp-server/src/observability/acl-selfcheck.ts` with results surfaced at `/health.aclSelfCheck`; both envs report `status: 'ok'` against the rotated token. The dangerous-command-deny half of the original AC validated via `Test-UpstashAcl.ps1` 24/24 pass (negative-surface tests assert NOPERM on FLUSHDB / FLUSHALL / CONFIG GET / KEYS \*)
+- [ ] **Upstash account MFA verified for every team member; finding documented in `src/docs/operations/SECRETS_INVENTORY.md`** — operator Phase D, pending. SECRETS_INVENTORY "MFA enforcement log" section staged (per PR #186); operator audits team membership + fills in the table during a console session
+- [x] DEPLOY.md § A.3.5 "Upstash ACL hardening (BL-041)" covers ACL user purpose, category-rationale table (pinning the `+@read +@write +@scripting -@dangerous +~mcp:* +~""` rationale to prevent a future well-intentioned widen), step-by-step mint + rotation runbook, Phase 4 rollback semantics for non-atomic `wrangler secret put` / `wrangler deploy`, account-level MFA checklist
+- [x] Operator runbook: how to rotate the scoped token (re-mint via `ACL RESTTOKEN` + `wrangler secret put`) — inline in DEPLOY.md § A.3.5 "Scoped-token rotation (annual or after suspected leak)"
+
+#### What Shipped Beyond the Original AC List
+
+- **Verification artifacts**: `mcp-server/scripts/Test-UpstashAcl.ps1` (positive + negative surface, 24-assertion probe) + `mcp-server/scripts/verify-ratelimit-acl.mjs` (Node sibling that imports the real `@upstash/ratelimit` SDK and round-trips a `slidingWindow().limit()` against the scoped token) — reusable for every future ACL rotation
+- **Worker-side guardrail**: `acl-selfcheck.ts` — one-shot per deploy via SET-NX-EX gate; short-circuits at the first failing command with a per-command failure name; surfaces at `/health.aclSelfCheck`. PR #189 followup made the keys env-scoped (`<env>:<gitSha>`) to fix a shared-state false-green where staging's probe result was shadowing production's
+- **Empirical Upstash deviations documented in DEPLOY.md § A.3.5** for future operators: (a) `>password` clause silently ignored — Upstash auto-generates the password; (b) `@scripting` rejected as "unknown category" when there's trailing whitespace at end of ACL string (parser is whitespace-sensitive at modifier boundaries); (c) `+script|load` subcommand syntax rejected ("'|' is not supported"); (d) `~""` empty-string sentinel required alongside `~mcp:*` because `@upstash/ratelimit` v2 sliding-window passes `dynamicLimitKey: ""` as a third EVAL key when dynamic limits are off
+- **PR sequence**: [PR #186](https://github.com/Global-Strategic-Technologies/gst-website/pull/186) (engineering artifacts), [PR #187](https://github.com/Global-Strategic-Technologies/gst-website/pull/187) (verified-against-reality ACL string + script bugfixes), [PR #189](https://github.com/Global-Strategic-Technologies/gst-website/pull/189) (env-scoped acl-selfcheck + this AC closure)
+- **BL-042 filed as a follow-up** (PR #188) — Inoreader OAuth resilience surfaced during Phase 3 production verification when `oauth-refresh-invalid-refresh-token` fired and required ~15min manual local-terminal recovery. Not a BL-041 regression; surfaced by BL-041's first live production probe.
 
 **Why now**
 
