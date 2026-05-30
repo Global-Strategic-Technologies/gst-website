@@ -174,7 +174,31 @@ When values disagree across stores (the situation that caused today's confusion)
 | `SENTRY_DSN` (each project)     | Sentry project settings | Sentry owns it; build env mirrors                                                                                                                                                                                                                                                                                                                                                                                          | Copy from Sentry → `vercel env add` / `wrangler secret put`             |
 | `CLOUDFLARE_AE_READ_TOKEN`      | Cloudflare API tokens   | ✅ **Minted 2026-05-29** (Phase 1 verification — rotates annually). Read-only token for Account Analytics; consumed by `mcp-server/scripts/Verify-AeEmission.ps1` today and by Grafana / `/status` page when Phase 3 lands. Procedure: [`mcp-server/src/docs/operations/DEPLOY.md` § C.X — Analytics Engine SQL query](../../../mcp-server/src/docs/operations/DEPLOY.md#cx--analytics-engine-sql-query-bl-03275-phase-3). | Re-mint via Cloudflare dashboard → API Tokens (annual rotation cadence) |
 
-**Rule of thumb**: if a Vercel and Worker value disagree, the Worker wins for shared-secret cases (`MCP_KEY_WEBSITE_RADAR`); the upstream provider wins for everything else (Sentry DSN, Upstash token, Inoreader OAuth).
+**Rule of thumb**: if a Vercel and Worker value disagree, the Worker wins for shared-secret cases (`MCP_KEY_WEBSITE_RADAR`); the upstash provider wins for everything else (Sentry DSN, Upstash token, Inoreader OAuth).
+
+---
+
+## Upstash ACL users (BL-041)
+
+The Worker's bound `UPSTASH_MCP_REST_TOKEN` is minted from a scoped ACL user, **not** the default admin token. The default token remains in 1Password as break-glass only — never bound to a Worker secret in steady state.
+
+**Procedure for minting + rotating scoped tokens**: [`mcp-server/src/docs/operations/DEPLOY.md` § A.3.5 — Upstash ACL hardening](../../../mcp-server/src/docs/operations/DEPLOY.md#a35--upstash-acl-hardening-bl-041).
+
+| Username           | Bound to             | Permissions (ACL string)                                          | 1Password item                            |
+| ------------------ | -------------------- | ----------------------------------------------------------------- | ----------------------------------------- |
+| `default`          | Break-glass only     | Full admin                                                        | "Upstash gst-mcp — default (break-glass)" |
+| `mcp-worker-rw`    | Worker (both envs)   | `on ~mcp:* -@all +@read +@write +@string +@sortedset +@scripting` | "Upstash gst-mcp ACL — mcp-worker-rw"     |
+| `mcp-readonly-ops` | Operator triage only | `on ~mcp:* -@all +@read`                                          | "Upstash gst-mcp ACL — mcp-readonly-ops"  |
+
+**Verification** (post-rotation): `mcp-server/scripts/Test-UpstashAcl.ps1` exit code 0 + `/health.aclSelfCheck.status: 'ok'` against the freshly deployed Worker. Both gate the rotation as complete.
+
+### MFA enforcement log
+
+| Date  | Member | Upstream SSO MFA | Upstash account TOTP | Verified by |
+| ----- | ------ | ---------------- | -------------------- | ----------- |
+| _TBD_ | _TBD_  | _TBD_            | _TBD_                | _TBD_       |
+
+> Phase D of BL-041 fills in this table during the rotation session. Re-verify on every team-membership change (add/remove operator).
 
 ---
 
