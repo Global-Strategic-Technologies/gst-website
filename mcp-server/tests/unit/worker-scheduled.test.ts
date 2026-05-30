@@ -136,6 +136,125 @@ describe('worker default export — withSentry wraps fetch only (BL-032.76 regre
   });
 });
 
+describe('worker.ts scheduled handler — BL-047 T1 alert-rule synthetic branch', () => {
+  // The synthetic cron (`0 14 * * 1`) MUST short-circuit before any
+  // radar-refresh work runs. A regression that lets the synthetic firing
+  // through to refreshRadarSnapshot would double the cron's Inoreader
+  // spend every Monday — a measurable Zone-1 burn against the 100/day cap.
+  beforeEach(() => {
+    mockPostCheckIn.mockReset();
+    mockPostEvent.mockReset();
+    mockSafeLog.mockReset();
+    vi.mocked(cron.refreshRadarSnapshot).mockReset();
+    // Set a benign default so a regression that lets the synthetic branch
+    // fall through to the radar-refresh path produces an observable test
+    // failure (`refreshRadarSnapshot.toHaveBeenCalled() === true`), not a
+    // `TypeError: cannot read .kind of undefined` from `refreshOutcomeToAe`.
+    vi.mocked(cron.refreshRadarSnapshot).mockResolvedValue({
+      kind: 'success',
+      wireItems: 0,
+      fyiItems: 0,
+      callsConsumed: 0,
+    });
+    mockAcquire.mockReset();
+    mockAcquire.mockResolvedValue(true);
+  });
+
+  it('synthetic cron expression fires postSentryEvent with alert-rule-synthetic tag and skips radar-refresh', async () => {
+    const syntheticEvent = {
+      cron: '0 14 * * 1',
+      scheduledTime: FAKE_SCHEDULED_TIME,
+      type: 'scheduled',
+      noRetry: () => {},
+    } as unknown as ScheduledController;
+
+    const { ctx, waitUntilPromises } = makeCtx();
+    handler.scheduled!(syntheticEvent, FAKE_ENV, ctx);
+    await Promise.all(waitUntilPromises);
+
+    // Synthetic emits exactly one tagged event.
+    expect(mockPostEvent).toHaveBeenCalledTimes(1);
+    expect(mockPostEvent).toHaveBeenCalledWith(
+      FAKE_ENV,
+      expect.objectContaining({
+        // level=info is load-bearing — a regression to 'warning' or
+        // 'error' would page the operator weekly as a real incident,
+        // defeating the synthetic's purpose.
+        level: 'info',
+        // The ISO year-week is appended to the message so each week's
+        // firing creates a new Sentry Issue (Sentry groups by message
+        // text). Without per-week variation, every Monday after the
+        // first would silently group into a long-lived issue and the
+        // "A new issue is created" trigger would never fire again.
+        message: expect.stringMatching(/^alert-rule-synthetic: weekly heartbeat \d{4}-W\d{2}$/),
+        tags: expect.objectContaining({
+          event: 'alert-rule-synthetic',
+          // The numeric tag is what the runbook's Sentry rule
+          // subscribes to via `tag:alert-rule-synthetic equals 1`.
+          // Drop it and Sentry's rule no longer matches.
+          'alert-rule-synthetic': '1',
+          // The year-week tag mirrors the message-suffix so operators
+          // can filter the Issues feed by week.
+          'year-week': expect.stringMatching(/^\d{4}-W\d{2}$/),
+        }),
+      })
+    );
+
+    // Critical regression guard: radar-refresh MUST NOT run on the
+    // synthetic cron. Otherwise the synthetic doubles Inoreader spend.
+    expect(cron.refreshRadarSnapshot).not.toHaveBeenCalled();
+    expect(mockPostCheckIn).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
+  });
+
+  it('synthetic dispatch never escapes ctx.waitUntil when postSentryEvent rejects', async () => {
+    // The dispatcher's never-throws contract is load-bearing because the
+    // synthetic shares the scheduled handler's ctx.waitUntil with the
+    // radar-refresh path. A rejection escaping the outer try/catch would
+    // re-introduce the 2026-05-19 incident shape (Cloudflare reports
+    // `Exception Thrown` on the cron). Force the underlying transport to
+    // reject and assert the handler still resolves cleanly.
+    mockPostEvent.mockRejectedValueOnce(new Error('sentry ingest 502'));
+
+    const syntheticEvent = {
+      cron: '0 14 * * 1',
+      scheduledTime: FAKE_SCHEDULED_TIME,
+      type: 'scheduled',
+      noRetry: () => {},
+    } as unknown as ScheduledController;
+
+    const { ctx, waitUntilPromises } = makeCtx();
+    handler.scheduled!(syntheticEvent, FAKE_ENV, ctx);
+
+    await expect(Promise.all(waitUntilPromises)).resolves.toBeDefined();
+    // Even on rejection, radar-refresh still must not run.
+    expect(cron.refreshRadarSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('radar-refresh cron expression does NOT fire the synthetic event', async () => {
+    vi.mocked(cron.refreshRadarSnapshot).mockResolvedValue({
+      kind: 'success',
+      wireItems: 5,
+      fyiItems: 3,
+      callsConsumed: 6,
+    });
+
+    const { ctx, waitUntilPromises } = makeCtx();
+    handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);
+    await Promise.all(waitUntilPromises);
+
+    // No alert-rule-synthetic tagged event should appear from the
+    // radar-refresh path. (postSentryEvent fires on error only — here we
+    // assert it's not called with the synthetic tag.)
+    const syntheticCalls = mockPostEvent.mock.calls.filter(([, body]) => {
+      const tags = (body as { tags?: Record<string, unknown> }).tags;
+      return tags && tags['alert-rule-synthetic'] !== undefined;
+    });
+    expect(syntheticCalls).toHaveLength(0);
+    expect(cron.refreshRadarSnapshot).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('worker.ts scheduled handler — envelope check-in lifecycle (BL-032.76)', () => {
   beforeEach(() => {
     mockPostCheckIn.mockReset();

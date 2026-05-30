@@ -40,7 +40,9 @@ import { captureMessage, sentryOptions, tagRequest, withSentry } from './observa
 import { AnalyticsEngineSink, emit } from './metrics/_index';
 import type { RefreshOutcome } from './cron/radar-refresh';
 import { postSentryCheckIn, postSentryEvent } from './observability/sentry-envelope';
+import { dispatchAlertRuleSynthetic, SYNTHETIC_CRON } from './observability/alert-rule-synthetic';
 import { buildHealthPayload } from './observability/health';
+import { runAclSelfCheckOnce } from './observability/acl-selfcheck';
 import { acquire } from './lib/single-flight-lock';
 import { refreshRadarSnapshot } from './cron/radar-refresh';
 import { readWireLive, readFyiLive } from './content/radar-live-store';
@@ -97,6 +99,15 @@ export interface Env {
   // can verify which commit is running on the edge after a deploy.
   // Falls back to 'unknown' when missing (e.g., local `wrangler dev` runs).
   GIT_SHA?: string;
+
+  // Environment discriminator — `'staging'` / `'production'` (or `'dev'`
+  // under `wrangler dev`). Bound in `wrangler.toml` per `[env.<name>]`
+  // block. BL-041 follow-up: prepends this to per-deploy Upstash state
+  // keys (e.g. `mcp:acl-selfcheck:result:<env>:<gitSha>`) so both envs
+  // can share the MCP DB without their per-deploy state colliding.
+  // Falls back to `'unknown'` when missing — keeps the key shape stable
+  // for local runs but flags the gap in case env binding is forgotten.
+  ENV_NAME?: string;
 
   // Sentry release identifier — injected by `scripts/deploy.mjs` via
   // `wrangler deploy --var SENTRY_RELEASE:<sha>`. Tells Sentry which
@@ -199,6 +210,29 @@ export const handler: ExportedHandler<Env> = {
         // — the safeLog inside the inner catch is the operator-visible
         // signal on the failure path.
         try {
+          // BL-047 T1 — alert-rule synthetic dispatch.
+          //
+          // Production wrangler.toml registers TWO cron expressions:
+          //   - `0 */6 * * *` → radar-refresh (BL-032.7 cadence)
+          //   - `0 14 * * 1`  → alert-rule synthetic (Mondays 14:00 UTC)
+          //
+          // The synthetic posts a single tagged Sentry event whose only
+          // purpose is to exercise the operator paging path end-to-end.
+          // Its presence in Slack on Monday afternoon is the operator's
+          // weekly proof that the BL-047 T1 alert rules are still wired
+          // — without it, a silently-removed Slack integration would
+          // first surface only on a real outage. See
+          // src/docs/operations/SENTRY_ALERT_RULES.md § Synthetic.
+          //
+          // Synthetic is independent of the radar-refresh dedup lock —
+          // a separate cron expression cannot collide with the radar
+          // firing (different scheduledTime, different lockKey), and
+          // the synthetic itself is idempotent (one fire-and-forget POST).
+          if (event.cron === SYNTHETIC_CRON) {
+            await dispatchAlertRuleSynthetic(env);
+            return;
+          }
+
           // BL-032.77 — Cloudflare's `ScheduledController` may invoke the
           // scheduled handler multiple times for the same scheduled fire
           // (documented platform behavior; see
@@ -320,6 +354,13 @@ export const handler: ExportedHandler<Env> = {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin');
+
+    // BL-041: one-shot ACL self-check per deploy. Fire-and-forget via
+    // waitUntil — first isolate to win the Upstash gate runs the probe;
+    // every other request no-ops cheaply at the gate. Result lands in
+    // `mcp:acl-selfcheck:result:<gitSha>` and is surfaced by /health.
+    // Never blocks the request path; fail-open if Upstash is down.
+    ctx.waitUntil(runAclSelfCheckOnce(env).catch(() => undefined));
 
     // 1. CORS preflight — never authenticated; never logged (high-volume noise).
     if (isPreflight(request)) {
@@ -463,8 +504,8 @@ export const handler: ExportedHandler<Env> = {
       // MCP-tool live calls. Lets dashboards distinguish website cache-miss
       // bursts (e.g. during redeploys) from real MCP-tool traffic.
       const [wire, fyi] = await Promise.all([
-        readWireLive(env, { source: 'http-snapshot' }),
-        readFyiLive(env, 30, { source: 'http-snapshot' }),
+        readWireLive(env, { source: 'http-snapshot', keyOwner: auth.keyOwner }),
+        readFyiLive(env, 30, { source: 'http-snapshot', keyOwner: auth.keyOwner }),
       ]);
       const payload = JSON.stringify({
         wire,

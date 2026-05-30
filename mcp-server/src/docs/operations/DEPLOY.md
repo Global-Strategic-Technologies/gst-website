@@ -179,6 +179,186 @@ If the MCP-DB Standard token is ever compromised, regenerate it from the Upstash
 
 ---
 
+## A.3.5 — Upstash ACL hardening (BL-041)
+
+> **Audience**: operator hardening the Upstash MCP DB to per-purpose ACL users + scoped REST tokens, retiring the default admin token from the Worker binding. Run after § A.3 has provisioned the database. Independent of every other section — safe to run on a live deploy.
+
+### Why
+
+The default `UPSTASH_MCP_REST_TOKEN` (minted in § A.3) is bound to Upstash's `default` user with **full admin permissions on the entire keyspace**. A leak gives an attacker `FLUSHDB`, `CONFIG SET`, `SCRIPT FLUSH`, `KEYS *`, and access to every key — not just our `mcp:*` namespace. The Worker only needs read+write on `mcp:*`. Closing this gap before [BL-033](../../../../src/docs/development/BACKLOG.md#bl-033) broadens the operator pool means access-control is settled before stakes rise.
+
+### The ACL strings
+
+Two scoped users matching Upstash's documented ACL pattern (broad categories + targeted exclusions). Verified empirically 2026-05-30 against the live `gst-mcp` console — `ACL CAT` confirms `scripting` IS a supported category name; earlier `'unknown command or category name'` errors traced to **trailing whitespace** in the modifier token (Upstash's parser is whitespace-sensitive at modifier boundaries).
+
+> **Upstash deviation from standard Redis**: do NOT include a `>password` clause in `ACL SETUSER`. Upstash auto-generates a password and displays it after user creation. Passing `>somepassword` either silently ignores the clause OR puts the user in an inconsistent state — operator observed both behaviours against the live `gst-mcp` console 2026-05-30.
+
+```
+ACL SETUSER mcp-worker-rw on ~mcp:* ~"" +@read +@write +@scripting -@dangerous
+ACL SETUSER mcp-readonly-ops on ~mcp:* +@read -@dangerous
+```
+
+**Why `~""` on `mcp-worker-rw`** (verified empirically 2026-05-30): `@upstash/ratelimit` v2.x `slidingWindow` (used by `mcp-server/src/ratelimit/limiter.ts:84`) passes THREE keys to its EVAL script — `[currentKey, previousKey, dynamicLimitKey]`. When `dynamicLimits` is disabled (our setup; default), `dynamicLimitKey` is the **empty string** `""` — a sentinel the script body checks for `if dynamicLimitKey ~= "" then ... end`. Redis ACL validates EVERY key in `KEYS[]` against the user's keyspace patterns BEFORE the script runs. The empty string doesn't match `~mcp:*` → `NOPERM this user has no permissions to access one of the keys used as arguments`. Adding `~""` explicitly permits the empty-key sentinel; the only real key the SDK accesses is still `<prefix>:<window>` which matches `~mcp:*`. `mcp-readonly-ops` doesn't need `~""` because operator-side reads don't go through ratelimit's EVAL surface.
+
+**Category rationale** — keep the grant surface as narrow as the Worker actually needs. Do **NOT** add `+@admin`, `+@keyspace`, or `+@all`; each would reopen the very gap this section closes.
+
+| Clause        | Why we need it                                                                                                                                                                                                                                                                                                                 | What it grants (mcp-worker-rw)                                       |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| `~mcp:* ~""`  | Restricts keyspace to `mcp:*` (the only namespace the Worker writes — verified across `mcp-server/src/**`) PLUS the empty-string sentinel `""` (required by `@upstash/ratelimit` v2 `slidingWindow` — see "Why `~""`" callout below). A leaked token cannot touch any future non-MCP key.                                      | Keys matching `mcp:*` plus the empty-string sentinel                 |
+| `+@read`      | Cron day-counter GET; `/health` cached-status reads; circuit-breaker `GET`+`TTL`; ratelimit window reads (`ZCARD`)                                                                                                                                                                                                             | `GET`, `MGET`, `TTL`, `EXISTS`, `ZCARD`, `ZRANGE`, `STRLEN`          |
+| `+@write`     | Every Worker write — counters, locks, status, cache, token-store. Implicitly covers `@string` and `@sortedset` for writes (commands carry both type-tags AND read/write-tags; granting `+@write` permits every write command regardless of type — no need to add `+@string` or `+@sortedset`).                                 | `SET`, `DEL`, `INCR`, `INCRBY`, `EXPIRE`, `ZADD`, `ZREMRANGEBYSCORE` |
+| `+@scripting` | `@upstash/ratelimit` `slidingWindow` round-trips through `EVALSHA` (steady state) with NOSCRIPT fallback to `SCRIPT LOAD` + `EVAL`. Without `+@scripting`, the rate limiter silently fail-opens (its catch returns `null` on Upstash errors). `-@dangerous` (next row) strips `SCRIPT FLUSH`.                                  | `EVAL`, `EVALSHA`, `SCRIPT LOAD`, `SCRIPT EXISTS`                    |
+| `-@dangerous` | Strips the substrate-dangerous commands an admin token would grant: `FLUSHDB`, `FLUSHALL`, `CONFIG SET`, `KEYS`, `SCRIPT FLUSH`. **Must come last** to override prior `+@<cat>` grants. (Upstash also strips `DEBUG`/`CLUSTER`/`SHUTDOWN` at the platform level — those return "Command is not available" rather than NOPERM.) | Removes the dangerous subset from any category above                 |
+
+> **Upstash ACL parser limits** (verified 2026-05-30 against `gst-mcp` via `ACL CAT` + experiments):
+>
+> - Subcommand grants like `+script|load` → not recognized (`'|' is not supported`)
+> - **Trailing whitespace on the last modifier breaks parsing** — `'+@scripting '` with a trailing space is rejected as "unknown command or category name". Always verify cursor position is at the immediate end of the string (no trailing space, newline, or invisible char) before clicking Create.
+> - Categories supported (full list from `ACL CAT`): `read, list, pubsub, hyperloglog, search, connection, all, string, bitmap, json, stream, write, dangerous, set, sortedset, hash, scripting, admin, keyspace, blocking, geo, transaction`
+> - The `~<keypattern>` clause is REQUIRED — omit it and the user is created with NO keyspace access (every key-touching command returns NOPERM "no permissions to access one of the keys").
+
+### Steps
+
+**Phase 1 — Mint users + REST tokens** (Upstash console)
+
+> **If a prior attempt left stale users**: from the CLI tab, run `ACL DELUSER mcp-worker-rw` and `ACL DELUSER mcp-readonly-ops`, then verify with `ACL LIST` that only `default` remains. ACL SETUSER on an existing user is CUMULATIVE (adds clauses to existing state); a clean restart guarantees no stale keyspace/category leaks from a prior broken state.
+
+1. Upstash console → MCP DB → **CLI** tab. (We use CLI not the ACL-tab Advanced editor because the CLI's response semantics are unambiguous — the auto-generated password is printed inline.)
+
+2. Create `mcp-worker-rw` (NO `>password` clause — Upstash auto-generates and displays it):
+
+   ```
+   ACL SETUSER mcp-worker-rw on ~mcp:* ~"" +@read +@write +@scripting -@dangerous
+   ```
+
+   **CRITICAL** — Upstash's ACL parser is whitespace-sensitive: a trailing space after `-@dangerous` is interpreted as part of the modifier (`'-@dangerous '` is rejected as unknown). Type or paste the command, then End / Right-arrow to confirm the cursor lands at the immediate end with no trailing space, newline, or invisible character.
+
+   Upstash responds with the auto-generated password. Save it to 1Password under "Upstash gst-mcp ACL — mcp-worker-rw" as `PWD_A`.
+
+3. Create `mcp-readonly-ops` the same way:
+
+   ```
+   ACL SETUSER mcp-readonly-ops on ~mcp:* +@read -@dangerous
+   ```
+
+   Save the auto-generated password as `PWD_B` in 1Password under "Upstash gst-mcp ACL — mcp-readonly-ops".
+
+4. **Verify each user before minting** — fixes the order-dependency where a token minted before the user has its final ACL state carries stale permissions:
+
+   ```
+   ACL GETUSER mcp-worker-rw
+   ```
+
+   Confirm the output contains `keys, ~mcp:*` and the commands list shows `+@scripting` and the expanded `+@read`/`+@write` equivalents (`+@string +@set +@hash +@sortedset +@list +@geo +@stream +@hyperloglog +@bitmap +@json +@search +@keyspace` and `-flushdb -flushall -keys` from `-@dangerous`). Same check for `mcp-readonly-ops`.
+
+5. Mint REST tokens (after Step 4 confirms ACL state is correct):
+
+   ```
+   ACL RESTTOKEN mcp-worker-rw {PWD_A}
+   ```
+
+   Returns a 123-character base64-shaped string starting with `gwAAAA...` — that IS the REST token. Save it into 1Password under "Upstash gst-mcp REST — mcp-worker-rw". (The token visually resembles the password because both are Upstash-internal token formats; compare character-by-character to confirm they differ.)
+
+   Repeat for `mcp-readonly-ops`:
+
+   ```
+   ACL RESTTOKEN mcp-readonly-ops {PWD_B}
+   ```
+
+   Save into 1Password under "Upstash gst-mcp REST — mcp-readonly-ops".
+
+**Phase 2 — Verify the scoped token before binding** (local)
+
+5. Smoke-probe the new token end-to-end (positive surface + negative surface + Ratelimit SDK round-trip):
+   ```powershell
+   cd c:\Code\gst-website\mcp-server
+   $env:UPSTASH_TEST_URL   = 'https://<db>.upstash.io'          # from § A.3
+   $env:UPSTASH_TEST_TOKEN = '<paste mcp-worker-rw REST token>'
+   .\scripts\Test-UpstashAcl.ps1
+   ```
+   Exit code 0 means: every Worker command path passed AND `FLUSHDB`/`CONFIG GET`/`KEYS *`/etc. returned NOPERM AND the `@upstash/ratelimit` SDK round-trip completed cleanly. **If anything fails, do not bind the token** — investigate the ACL string (compare to the Category Rationale table above).
+
+**Phase 3 — Rotate the Worker binding** (one env at a time)
+
+6. **Staging first**:
+   ```powershell
+   npx wrangler secret put UPSTASH_MCP_REST_TOKEN --env staging
+   # paste the mcp-worker-rw REST token; never inline it on the CLI
+   npm run deploy:staging
+   ```
+7. Verify staging:
+   ```powershell
+   curl https://mcp-staging.globalstrategic.tech/health | ConvertFrom-Json |
+     Select-Object upstashMcp, aclSelfCheck
+   ```
+   Expect `upstashMcp: 'ok'` AND `aclSelfCheck.status: 'ok'`. (`aclSelfCheck` is set in the background by the first request after deploy — give it a few seconds, then re-probe.)
+8. Dry-run the cron handler so the 6h cron-window doesn't sit on uncertainty:
+   ```powershell
+   npx wrangler dev --env staging --test-scheduled
+   # in another terminal, with the dev server running:
+   curl 'http://localhost:8787/__scheduled?cron=0+*/6+*+*+*'
+   ```
+   Confirm logs show `cron.scheduled.started` → `cron.radar-refresh.success` (no NOPERM).
+9. Run the integration suite against staging:
+
+   ```powershell
+   $env:MCP_URL = 'https://mcp-staging.globalstrategic.tech'
+   .\scripts\Test-Bl0325.ps1
+   ```
+
+   All checks pass = scoped token covers the live tool/resource/prompt surface.
+
+10. **Production**: repeat steps 6–9 with `--env production` and `https://mcp.globalstrategic.tech`.
+
+**Phase 4 — Rollback semantics** (only if something breaks)
+
+`wrangler secret put` and `wrangler deploy` are NOT atomic. If `secret put` succeeds but `deploy` fails (lint gate, build error, network blip), Cloudflare has the new token but the running Worker is still on the OLD secret. To recover:
+
+```powershell
+# 1. Re-put the original admin token (kept in 1Password from § A.3)
+npx wrangler secret put UPSTASH_MCP_REST_TOKEN --env staging   # or production
+# 2. Redeploy to refresh the binding
+npm run deploy:staging                                          # or :production
+# 3. Verify
+curl https://mcp-staging.globalstrategic.tech/health | ConvertFrom-Json |
+  Select-Object upstashMcp, aclSelfCheck
+```
+
+Worker should return to baseline within ~30 s of the redeploy. The default admin token never gets revoked in Upstash — it stays as the break-glass credential.
+
+### Scoped-token rotation (annual or after suspected leak)
+
+Distinct from the admin-token rotation in [§ A.3 — Reference](#reference--rotating-the-mcp-db-token):
+
+1. Upstash console → CLI tab → `ACL RESTTOKEN mcp-worker-rw <PWD_A>` (yes, the same password — the command re-mints a fresh REST token; the old one is invalidated server-side)
+2. Update 1Password with the new token + rotation date
+3. Follow Phase 3 above (verify locally → rotate staging → rotate production)
+
+### Using `mcp-readonly-ops`
+
+The readonly user is operator-only — no Worker binding. Use it from `redis-cli` (TLS) or the Upstash console CLI tab for incident triage:
+
+- Inspect `mcp:inoreader:*` to debug OAuth state without risking a mutation
+- Inspect `mcp:radar:cache:*` to confirm a Cron firing landed
+- Inspect `mcp:ratelimit:*` / `mcp:circuit:*` to debug a rate-limit incident
+
+Connection string + credentials live in 1Password under "Upstash gst-mcp — mcp-readonly-ops".
+
+### Account-level MFA (defense in depth)
+
+Even with scoped tokens on the data plane, an attacker who phishes the operator's Upstash account login can mint a new admin token. Two layers:
+
+1. **Upstream SSO MFA** — log into the upstream auth provider (GitHub / Google) and confirm MFA is enforced organization-wide.
+2. **Upstash account TOTP** — Upstash supports a 2FA setting in account preferences independent of SSO. **Enable this too** — covers the case where someone bypasses SSO via Upstash's email/password fallback.
+
+Record both checks in [`SECRETS_INVENTORY.md`](../../../../src/docs/operations/SECRETS_INVENTORY.md) → Upstash ACL users subsection.
+
+### What you've completed
+
+✅ Worker binds a scoped REST token minted from `mcp-worker-rw`; the default admin token remains in 1Password as break-glass only. `mcp-readonly-ops` available for operator triage. Account-level MFA enforced on every member. `/health.aclSelfCheck` surfaces NOPERM regressions as a deploy-level signal — see [`acl-selfcheck.ts`](../../observability/acl-selfcheck.ts) for the probe surface.
+
+---
+
 ## A.4 — Inoreader credentials — copy from Vercel
 
 ### What you need
@@ -1044,10 +1224,18 @@ See [`mcp-server/src/metrics/_schema.ts`](../../metrics/_schema.ts) — the snap
 | `blob3`   | `keyOwner` (or `__none__` placeholder when not authenticated)                                                                                                         |
 | `blob4`   | `outcome` (`success` / `error` / category-specific)                                                                                                                   |
 | `blob5`   | `correlation_id` (prompt_span only)                                                                                                                                   |
-| `blob6`   | `status_code` (string, e.g. `'200'`)                                                                                                                                  |
+| `blob6`   | `status_code` (string, e.g. `'200'`; `'0'` = no response received / network error)                                                                                    |
+| `blob7`   | `zone1` (`'1'` / `'0'`; `inoreader_call` only — Zone-1 quota classification; absent for other event types)                                                            |
 | `double1` | `duration_ms`                                                                                                                                                         |
 | `double2` | `seq` (prompt_span step index)                                                                                                                                        |
 | `index1`  | `keyOwner` (mirror of blob3 for AE sampling)                                                                                                                          |
+
+**Phase 1 Step 6 dashboard SQL hints** (BL-032.75 Phase 1 closure):
+
+- Zone-1 daily spend: `SELECT count() FROM mcp_events WHERE blob1='inoreader_call' AND blob7='1' AND timestamp > NOW() - INTERVAL '1' DAY`
+- Per-category breakdown: `... GROUP BY blob2` (excludes `oauth-refresh` automatically via `blob7='1'` filter)
+- Inoreader error rate: `... WHERE blob1='inoreader_call' AND blob4='error' GROUP BY blob6` (status code distribution; `'0'` rows isolate network-side failures from Inoreader-side ones)
+- Per-keyOwner attribution: `... GROUP BY index1` (authenticated traffic only — cron/oauth-refresh land in `'__none__'`)
 
 ### Token rotation
 

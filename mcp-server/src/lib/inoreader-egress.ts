@@ -58,6 +58,7 @@ import type { Redis } from '@upstash/redis';
 import { createMcpClient } from './upstash-clients';
 import { safeLog } from '../auth/safe-logger';
 import { captureMessageEnvelope } from '../observability/sentry-envelope';
+import { AnalyticsEngineSink, emit } from '../metrics/_index';
 import type { Env } from '../worker';
 
 /**
@@ -140,7 +141,13 @@ export function categorySpendKey(cat: InoreaderEgressCategory, date: string = to
 export interface RecordEgressOptions {
   readonly env: Env;
   readonly category: InoreaderEgressCategory;
-  /** HTTP status received from Inoreader. */
+  /**
+   * HTTP status received from Inoreader. `0` is the convention for
+   * "no response was received" (network timeout / abort / DNS failure) —
+   * distinct from a real Inoreader 504 (which is a server response).
+   * Phase 1 Step 6: AE dashboards filter `status_code='0'` to isolate
+   * client-side failures from Inoreader-side ones.
+   */
   readonly status: number;
   /**
    * `X-Reader-Zone1-Usage` from the response, if present. When supplied AND
@@ -150,6 +157,25 @@ export interface RecordEgressOptions {
   readonly zone1UsageHeader?: number;
   /** Short identifier of the call site (e.g. 'fetchAllStreams', 'oauth-refresh'). Logged only. */
   readonly source?: string;
+  /**
+   * Wall-clock duration of the Inoreader fetch in ms. Threaded into the
+   * `inoreader_call` AE event for Phase 3 latency dashboards. Optional —
+   * absent for synthetic call sites; emitted as 0 in AE when omitted.
+   */
+  readonly durationMs?: number;
+  /**
+   * Authenticated keyOwner from the request context, when available.
+   * Threaded down from MCP tool / resource / prompt HOFs via the call chain
+   * (radar-live-store → fetchAllStreams → authenticatedFetch). Cron paths
+   * and OAuth refresh have no caller context — `undefined` here becomes the
+   * `__none__` placeholder in AE index1 (per `_schema.ts` KEYOWNER_PLACEHOLDER).
+   *
+   * **Why the threading matters**: AE samples by index1 under high load;
+   * authenticated traffic that lands in `__none__` collapses the sampling
+   * key for the most-attributable rows, which is the opposite of the
+   * intended dashboard behavior.
+   */
+  readonly keyOwner?: string;
 }
 
 /**
@@ -177,6 +203,23 @@ export async function recordInoreaderEgress(opts: RecordEgressOptions): Promise<
     ...(opts.zone1UsageHeader !== undefined ? { zone1Usage: opts.zone1UsageHeader } : {}),
     ...(opts.source ? { egressSource: opts.source } : {}),
   });
+
+  // BL-032.75 Phase 1 Step 6: emit one `inoreader_call` AE event per
+  // outbound Inoreader request, before the redis write so emission is
+  // independent of Upstash availability. The retry leg of authenticatedFetch
+  // legitimately produces two events (the original 401 + the 401-retry) —
+  // dashboards count both deliberately, since both consume Zone-1 quota.
+  if (opts.env.METRICS) {
+    emit(new AnalyticsEngineSink(opts.env.METRICS), {
+      event_type: 'inoreader_call',
+      name: opts.category,
+      outcome: opts.status >= 200 && opts.status < 300 ? 'success' : 'error',
+      status_code: String(opts.status),
+      zone1: inZone1 ? '1' : '0',
+      ...(opts.keyOwner ? { keyOwner: opts.keyOwner } : {}),
+      ...(opts.durationMs !== undefined ? { duration_ms: opts.durationMs } : {}),
+    });
+  }
 
   const redis = createMcpClient(opts.env);
   if (!redis) return;

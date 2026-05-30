@@ -36,7 +36,12 @@
 import type { InoreaderStreamResponse, InoreaderItem } from '../../../src/lib/inoreader/types';
 import { readAccessToken } from './inoreader-token-store';
 import { refreshAccessToken } from './inoreader-oauth';
-import { recordInoreaderEgress, type InoreaderEgressCategory } from './inoreader-egress';
+import {
+  recordInoreaderEgress,
+  categoryCountsAgainstZone1,
+  type InoreaderEgressCategory,
+} from './inoreader-egress';
+import { AnalyticsEngineSink, emit } from '../metrics/_index';
 import type { Env } from '../worker';
 
 const API_BASE = 'https://www.inoreader.com/reader/api/0';
@@ -202,10 +207,16 @@ export function parseZone1UsageHeader(res: Response): number | undefined {
 async function singleFetch(
   url: string,
   config: ResolvedConfig,
-  egressMeta?: { env: Env; category: InoreaderEgressCategory; source?: string }
+  egressMeta?: {
+    env: Env;
+    category: InoreaderEgressCategory;
+    source?: string;
+    keyOwner?: string;
+  }
 ): Promise<Response | InoreaderFailure> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const startedAt = Date.now();
   try {
     const res = await fetch(url, { headers: buildAuthHeaders(config), signal: controller.signal });
     if (egressMeta) {
@@ -214,12 +225,31 @@ async function singleFetch(
         env: egressMeta.env,
         category: egressMeta.category,
         status: res.status,
+        durationMs: Date.now() - startedAt,
         ...(zone1UsageHeader !== undefined ? { zone1UsageHeader } : {}),
         ...(egressMeta.source ? { source: egressMeta.source } : {}),
+        ...(egressMeta.keyOwner ? { keyOwner: egressMeta.keyOwner } : {}),
       });
     }
     return res;
   } catch (e) {
+    // Network-timeout / abort / DNS failure path. Audit fix B1: emit a
+    // failure egress record so AE captures the call. `status: 0` is the
+    // convention for "no response received" — distinct from a real
+    // Inoreader 504. The Upstash counter intentionally does NOT increment
+    // here (Inoreader counted nothing, so neither should we), so the
+    // emit happens in a parallel branch outside `recordInoreaderEgress`.
+    if (egressMeta?.env.METRICS) {
+      emit(new AnalyticsEngineSink(egressMeta.env.METRICS), {
+        event_type: 'inoreader_call',
+        name: egressMeta.category,
+        outcome: 'error',
+        status_code: '0',
+        zone1: categoryCountsAgainstZone1(egressMeta.category) ? '1' : '0',
+        duration_ms: Date.now() - startedAt,
+        ...(egressMeta.keyOwner ? { keyOwner: egressMeta.keyOwner } : {}),
+      });
+    }
     return {
       ok: false,
       status: 504,
@@ -251,10 +281,16 @@ async function authenticatedFetch(
   url: string,
   config: ResolvedConfig,
   egressCategory?: InoreaderEgressCategory,
-  source?: string
+  source?: string,
+  keyOwner?: string
 ): Promise<Response | InoreaderFailure> {
   const egressMeta = egressCategory
-    ? { env, category: egressCategory, ...(source ? { source } : {}) }
+    ? {
+        env,
+        category: egressCategory,
+        ...(source ? { source } : {}),
+        ...(keyOwner ? { keyOwner } : {}),
+      }
     : undefined;
 
   const first = await singleFetch(url, config, egressMeta);
@@ -263,7 +299,12 @@ async function authenticatedFetch(
 
   const refreshResult = await refreshAccessToken(env, 'live-tool');
   if (refreshResult.ok) {
-    return retryWithFreshConfig(env, url, first, egressCategory ? { env, source } : undefined);
+    return retryWithFreshConfig(
+      env,
+      url,
+      first,
+      egressCategory ? { env, source, keyOwner } : undefined
+    );
   }
 
   // Refresh failed — surface original 401 as token-stale. No fallback path
@@ -283,7 +324,7 @@ async function retryWithFreshConfig(
   env: Env,
   url: string,
   originalFirstAttempt: Response,
-  retryEgressMeta?: { env: Env; source?: string }
+  retryEgressMeta?: { env: Env; source?: string; keyOwner?: string }
 ): Promise<Response | InoreaderFailure> {
   const reResolved = await resolveConfig(env);
   if ('ok' in reResolved && !reResolved.ok) {
@@ -297,6 +338,7 @@ async function retryWithFreshConfig(
         env: retryEgressMeta.env,
         category: '401-retry' as InoreaderEgressCategory,
         ...(retryEgressMeta.source ? { source: retryEgressMeta.source } : {}),
+        ...(retryEgressMeta.keyOwner ? { keyOwner: retryEgressMeta.keyOwner } : {}),
       }
     : undefined;
   return await singleFetch(url, reResolved as ResolvedConfig, retryMeta);
@@ -405,7 +447,8 @@ async function parseStream(res: Response): Promise<InoreaderResult> {
 export async function fetchAnnotatedItems(
   env: Env,
   count: number = 30,
-  egressCategory?: InoreaderEgressCategory
+  egressCategory?: InoreaderEgressCategory,
+  keyOwner?: string
 ): Promise<InoreaderResult> {
   const config = await resolveConfig(env);
   if ('ok' in config && !config.ok) return config;
@@ -420,7 +463,8 @@ export async function fetchAnnotatedItems(
     url,
     config as ResolvedConfig,
     egressCategory,
-    'fetchAnnotatedItems'
+    'fetchAnnotatedItems',
+    keyOwner
   );
   if (!(res instanceof Response)) return res;
   if (!res.ok) return await mapHttpStatus(res);
@@ -435,7 +479,8 @@ export async function fetchFolderStream(
   env: Env,
   folderName: string,
   count: number = 20,
-  egressCategory?: InoreaderEgressCategory
+  egressCategory?: InoreaderEgressCategory,
+  keyOwner?: string
 ): Promise<InoreaderResult> {
   const config = await resolveConfig(env);
   if ('ok' in config && !config.ok) return config;
@@ -450,7 +495,8 @@ export async function fetchFolderStream(
     url,
     config as ResolvedConfig,
     egressCategory,
-    'fetchFolderStream'
+    'fetchFolderStream',
+    keyOwner
   );
   if (!(res instanceof Response)) return res;
   if (!res.ok) return await mapHttpStatus(res);
@@ -472,7 +518,8 @@ export async function fetchAllStreams(
   env: Env,
   folderPrefix: string = 'GST-',
   countPerFolder: number = 15,
-  egressCategory?: InoreaderEgressCategory
+  egressCategory?: InoreaderEgressCategory,
+  keyOwner?: string
 ): Promise<InoreaderResult> {
   const config = await resolveConfig(env);
   if ('ok' in config && !config.ok) return config;
@@ -480,7 +527,7 @@ export async function fetchAllStreams(
 
   // 1. Tags list — find all GST-prefixed folder IDs.
   const tagsUrl = `${API_BASE}/tag/list?output=json`;
-  const tagsRes = await authenticatedFetch(env, tagsUrl, cfg, egressCategory, 'tag-list');
+  const tagsRes = await authenticatedFetch(env, tagsUrl, cfg, egressCategory, 'tag-list', keyOwner);
   if (!(tagsRes instanceof Response)) return tagsRes;
   if (!tagsRes.ok) return await mapHttpStatus(tagsRes);
 
@@ -522,7 +569,7 @@ export async function fetchAllStreams(
   const results = await Promise.allSettled(
     folders.map((folderId) => {
       const label = folderId.split('/').pop()!;
-      return fetchFolderStreamWithConfig(env, cfg, label, countPerFolder, egressCategory);
+      return fetchFolderStreamWithConfig(env, cfg, label, countPerFolder, egressCategory, keyOwner);
     })
   );
 
@@ -570,13 +617,21 @@ async function fetchFolderStreamWithConfig(
   config: ResolvedConfig,
   folderName: string,
   count: number,
-  egressCategory?: InoreaderEgressCategory
+  egressCategory?: InoreaderEgressCategory,
+  keyOwner?: string
 ): Promise<InoreaderResult> {
   const streamId = encodeURIComponent(`user/-/label/${folderName}`);
   const url =
     `${API_BASE}/stream/contents/${streamId}?` +
     new URLSearchParams({ n: String(count), output: 'json' }).toString();
-  const res = await authenticatedFetch(env, url, config, egressCategory, `folder:${folderName}`);
+  const res = await authenticatedFetch(
+    env,
+    url,
+    config,
+    egressCategory,
+    `folder:${folderName}`,
+    keyOwner
+  );
   if (!(res instanceof Response)) return res;
   if (!res.ok) return await mapHttpStatus(res);
   return parseStream(res);

@@ -2,7 +2,11 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items**: 30 items were completed or closed through April 2026 (BL-002, 003, 008–019, 021–026, 027–030, 036–041). Use `git log` to find their original acceptance criteria and technical context.
+> **Completed and closed items**: items pruned through April 2026 include BL-002, 003, 008–019, 021–026, 027–030. Use `git log` to find their original acceptance criteria and technical context.
+>
+> Major May 2026 ships (stanzas retained for closure history): BL-039 delivered 2026-05-13 (PR #114); BL-040 superseded 2026-05-17 by BL-032.8 Phase B; BL-032.76 ✅ shipped 2026-05-27; BL-032.8 ✅ shipped 2026-05-27 (PRs #139 + #140 + #178 honest closure); BL-032.75 Phase 1 ✅ shipped 2026-05-28 (PR #179, promoted via PR #180); BL-032.77 ✅ shipped 2026-05-29 (PRs #181 + #183 + #184); BL-041 ✅ shipped 2026-05-30 (PRs #186 + #187 + #189 + #190); BL-047 T0+T1 ✅ shipped 2026-05-30 (PR #191).
+>
+> BL-036, BL-037, BL-038 remain **open** despite the historical April rollup phrasing — see their stanzas for current state.
 >
 > **BL-034** was previously closed and has been re-opened with new scope as the MCP-server doc-cleanup catch-all (April 2026). The historical BL-034 contents are reachable via `git log -- src/docs/development/BACKLOG.md`.
 
@@ -1783,13 +1787,13 @@ BL-032's Section K soak (31 of 40 tests recorded as of 2026-05-12) surfaced a ti
 
 #### Acceptance Criteria
 
-**Phase 1 — Instrumentation**
+**Phase 1 — Instrumentation** ✅ **SHIPPED 2026-05-28** via PR #179 (promoted to master via PR #180); Step 6 `inoreader_call` emission added 2026-05-30 via PR #191 commit `8cffd29`
 
-- [ ] Typed metric emitters introduced in `mcp-server/src/metrics/` for: `tool_invocation`, `resource_read`, `prompt_invocation`, `prompt_tool_fanout`, `rate_limit_decision`, `inoreader_call`, `radar_snapshot_age`, `health_check_duration`
-- [ ] Tool / Resource / Prompt registry decorators auto-emit metrics — no per-handler boilerplate; handlers stay focused on their domain logic
-- [ ] Cloudflare Analytics Engine binding configured in `wrangler.toml` (`env.METRICS`); each emitter writes structured events with the dimensions documented in [MCP_SERVER_OBSERVABILITY_BL-032_75.md § Metrics](MCP_SERVER_OBSERVABILITY_BL-032_75.md#1-metrics--whats-happening-in-numbers)
-- [ ] Vitest test asserts every registered Tool / Resource / Prompt emits at least one metric event in a representative invocation
-- [ ] Cardinality budget per metric documented in `metrics/_index.ts`; CI test caps emission cardinality to prevent dimension explosion
+- [x] Typed metric emitters introduced in `mcp-server/src/metrics/` for: `tool_invocation`, `resource_read`, `prompt_invocation`, `prompt_tool_fanout`, `rate_limit_decision`, `inoreader_call`, `radar_snapshot_age`, `health_check_duration` (PR #179 + PR #191 for `inoreader_call`)
+- [x] Tool / Resource / Prompt registry decorators auto-emit metrics via `withMetrics` HOF — no per-handler boilerplate; handlers stay focused on their domain logic (PR #179)
+- [x] Cloudflare Analytics Engine binding configured in `wrangler.toml` (`env.METRICS`); each emitter writes structured events with the dimensions documented in [MCP_SERVER_OBSERVABILITY_BL-032_75.md § Metrics](MCP_SERVER_OBSERVABILITY_BL-032_75.md#1-metrics--whats-happening-in-numbers) (PR #179)
+- [x] Vitest test asserts every registered Tool / Resource / Prompt emits at least one metric event in a representative invocation (`tests/integration/metrics-emission.test.ts`, PR #179)
+- [x] Cardinality budget per metric documented in `metrics/_index.ts` + `_schema.ts`; runtime + snapshot tests cap emission cardinality to prevent dimension explosion (PR #179)
 
 **Phase 2 — Baselining**
 
@@ -2224,7 +2228,7 @@ All three audits converged on: **bypass the SDK on the scheduled path entirely**
 
 ### BL-032.77: Sentry envelope-POST reliability + cron drift-detection refinement
 
-**Source**: 2026-05-28 post-deploy observation session — three open Sentry issues on the `gst-mcp-server` project, none of which match the underlying reality of the system (Cloudflare cron logs show 100% success; `/health` confirms radar substrate healthy; Inoreader Developer Console shows 25% daily usage well under budget). | **Effort**: ~half-day investigation (instrumentation) + ~half-day fix once root cause confirmed | **Status**: 🟡 **In progress** — instrumentation PR (TBD) lands the observability-of-observability layer; fixes follow after the next ~1-2 missed check-in events surface the root cause | **Depends on**: BL-032.76 (the envelope path this ticket investigates) | **Blocks**: BL-032.75 Phase 3 alerting credibility (alerts on `cron.radar-refresh.*` Sentry events are unreliable signal while every successful firing surfaces as a noisy Issue + occasional false-positive "timeout check-in")
+**Source**: 2026-05-28 post-deploy observation session — three open Sentry issues on the `gst-mcp-server` project, none of which match the underlying reality of the system (Cloudflare cron logs show 100% success; `/health` confirms radar substrate healthy; Inoreader Developer Console shows 25% daily usage well under budget). | **Effort**: ~half-day investigation (instrumentation) + ~half-day fix once root cause confirmed | **Status**: ✅ **SHIPPED 2026-05-29** — instrumentation via PR #181 (envelope failure-mode logging + persistent Workers observability); Issue B + C root cause identified as Cloudflare double-firing scheduled handlers (post-deploy discovery, 2026-05-29 — see § Post-deploy discovery below); fix via PR #183 (drift threshold raise + cron AE emission + retire noise captureMessage) and PR #184 (cron single-flight dedup lock). One AC deferred — Issue A success captureMessage retirement (per decision below, kept as backup heartbeat until ≥7 days clean Sentry Crons signal post-dedup; revisit ≥2026-06-05) | **Depends on**: BL-032.76 (the envelope path this ticket investigates) | **Blocks**: BL-032.75 Phase 3 alerting credibility (alerts on `cron.radar-refresh.*` Sentry events are unreliable signal while every successful firing surfaces as a noisy Issue + occasional false-positive "timeout check-in")
 
 **As an** operator monitoring the MCP Worker, **I want** Sentry's `gst-mcp-server` Issues view to reflect actionable failures only (not "every cron success creates an Issue" and not "false-positive missed check-in alerts"), AND I want the Phase 0 `inoreader.spend.drift` detection to fire only on real drift (not on parallel-cron eventual-consistency races), **so that** I can trust the Sentry signal as the canonical operations dashboard for BL-033 SLA reporting.
 
@@ -2248,7 +2252,7 @@ The radar loads correctly via `/hub/radar` (Cloudflare cron dashboard reports 10
 
 **Why it used to make sense**: pre-BL-032.76, this was the only Sentry-side signal that crons were running. Defended as a positive heartbeat.
 
-**Why it's now redundant**: BL-032.76 ships a proper Sentry Crons check-in (`postSentryCheckIn(env, 'radar-refresh', 'ok', ...)`) for the same signal. BL-032.75 Phase 1 (PR #179) will dual-write a `cron_outcome` event to AE once Step 6 wires the emitter post-soak. The captureMessage is duplicate signal AND actively misleading (green successes show up as an unresolved Issue).
+**Why it's now redundant**: BL-032.76 shipped a proper Sentry Crons check-in (`postSentryCheckIn(env, 'radar-refresh', 'ok', ...)`) for the same signal. BL-032.75 Phase 1 (PR #179, promoted via PR #180) dual-writes a `cron_outcome` event to AE; the cron-outcome emitter was wired in worker.ts via PR #183 (BL-032.77 Fix C). The captureMessage is duplicate signal AND actively misleading (green successes show up as an unresolved Issue).
 
 **Decision (2026-05-28)**: **keep the success captureMessage for now**, as a backup heartbeat until Issue B (envelope check-in reliability) is fully diagnosed and resolved. Once we have ≥7 days of clean Sentry Crons check-ins post-fix, drop the captureMessage in a one-line follow-up commit.
 
@@ -2313,13 +2317,13 @@ Option (a) is cheapest; option (b) is most correct. Pick after instrumentation d
 
 #### Acceptance criteria
 
-- [ ] **Instrumentation lands** — `postEnvelope` checks `response.ok`; logs non-2xx status + URL via `safeLog`; logs abort/timeout separately. No behavioral change to the success path; net +20 LOC.
-- [ ] **Cloudflare Worker observability** enabled persistently via wrangler config (`[observability]` block with `logs.enabled = true` + `traces.enabled = true`) so operators don't have to toggle via dashboard every deploy.
-- [ ] **Diagnosis deliverable** — after 1-week post-deploy window OR 3 missed check-in events (whichever comes first), file a follow-up commit documenting which failure mode dominates. Update this stanza with findings.
-- [ ] **Issue B fix lands** — choice driven by diagnosis data; could be retry-once / Sentry Spike Protection adjustment / envelope-emit throttling / something else.
-- [ ] **Issue C fix lands** — one of the three options above; choice driven by whether the post-instrumentation data shows persistent drift (real bug) or transient firing-window drift (parallel race).
-- [ ] **Issue A captureMessage retired** — only after Issue B's check-in reliability is verified over 7+ days of clean Sentry Crons signal.
-- [ ] BL-032.76 stanza updated with cross-reference to this ticket as the "verification-pass follow-up."
+- [x] **Instrumentation lands** — `postEnvelope` checks `response.ok`; logs non-2xx status + URL via `safeLog`; logs abort/timeout separately (PR #181).
+- [x] **Cloudflare Worker observability** enabled persistently via wrangler config (`[observability]` block with `logs.enabled = true` + `traces.enabled = true`) — verified empirically 2026-05-29 against production Logs + Traces output (PR #181).
+- [x] **Diagnosis deliverable** — dominant failure mode identified as Cloudflare double-firing scheduled handlers (production observation 2026-05-29; see § Post-deploy discovery). Documented in-place in this stanza.
+- [x] **Issue B fix lands** — single-flight Upstash lock at top of `scheduled` handler keyed on `event.cron:event.scheduledTime`; loser emits `cron_outcome:'deduplicated'` AE event (PR #184).
+- [x] **Issue C fix lands** — Option (a) selected: `DRIFT_THRESHOLD_ABS` raised 2 → 6 (PR #183).
+- [ ] **Issue A captureMessage retired** — **Deferred** per 2026-05-28 decision: keep success captureMessage as backup heartbeat until ≥7 days clean Sentry Crons signal post-PR-#184 dedup. Revisit ≥2026-06-05.
+- [x] BL-032.76 stanza updated with cross-reference (PR #181).
 
 #### Out of scope
 
@@ -3041,7 +3045,7 @@ Three architectural options, in order of preference:
 
 ### BL-041: Upstash Database Security Hardening — Redis ACL + Account MFA
 
-**Source**: Surfaced during BL-032.8 honest closure (2026-05-27) — the operator-side decom of the legacy `gst-radar-tokens` DB highlighted that the surviving `gst-mcp` Upstash database is still accessed via a single admin-scoped REST token (`UPSTASH_MCP_REST_TOKEN`) with full keyspace + dangerous-command access, and the Upstash account itself has no enforced MFA policy. | **Effort**: ~half-day engineering + operator runbook | **Status**: 📋 Filed 2026-05-27 | **Depends on**: nothing (independent hardening) | **Blocks**: nothing today; recommended before BL-033 broadens client surface
+**Source**: Surfaced during BL-032.8 honest closure (2026-05-27) — the operator-side decom of the legacy `gst-radar-tokens` DB highlighted that the surviving `gst-mcp` Upstash database is still accessed via a single admin-scoped REST token (`UPSTASH_MCP_REST_TOKEN`) with full keyspace + dangerous-command access, and the Upstash account itself has no enforced MFA policy. | **Effort**: ~half-day engineering + operator runbook (actual: ~1.5 days across PR #186 + PR #187 + closeout, all in 2026-05-30 — empirical iteration against the live Upstash console added unforeseen scope) | **Status**: ✅ **SHIPPED 2026-05-30** — scoped REST token from `mcp-worker-rw` bound to both envs; default admin token retained as 1Password break-glass; verified end-to-end via `Test-UpstashAcl.ps1` (24/24 pass), `/health.aclSelfCheck.status: 'ok'` on both envs, and live `search_portfolio` tool dispatch on production. Implementation across PR #186 (engineering artifacts), PR #187 (verified-against-reality ACL string + script bugfixes), and the closeout work in PR #189 (env-scoped acl-selfcheck keys). | **Depends on**: nothing | **Blocks**: BL-033 unblocked (scoped credential model in place ahead of external pilot)
 
 **As an** operator of the MCP Worker, **I want** the Upstash MCP database access scoped via per-purpose ACL users and the Upstash account protected with MFA, **so that** a leaked Worker secret can't issue dangerous commands (FLUSHDB, CONFIG, etc.) and an attacker phishing the operator's SSO provider can't take over the database fleet.
 
@@ -3082,13 +3086,23 @@ Three architectural options, in order of preference:
 
 #### Acceptance Criteria
 
-- [ ] ACL users `mcp-worker-rw` and `mcp-readonly-ops` created on `gst-mcp`; passwords stored in 1Password (operator vault)
-- [ ] `UPSTASH_MCP_REST_TOKEN` for both staging + production rotated to a token minted from `mcp-worker-rw` via `ACL RESTTOKEN`; old default-user token revoked
-- [ ] `/health` probe (T.X.2 SET-then-DEL) still passes against the new scoped token — confirms `+@write +@read` ACL covers the probe path
-- [ ] Negative test: from `redis-cli` authed as `mcp-worker-rw`, `FLUSHDB` returns `(error) NOPERM` — codifies the dangerous-command revocation
-- [ ] Upstash account MFA verified for every team member; finding documented in `src/docs/operations/SECRETS_INVENTORY.md`
-- [ ] DEPLOY.md gains a short "Upstash account hygiene" section (or extends § A.3) covering ACL user purpose + the MFA verification checklist
-- [ ] Operator runbook: how to rotate the scoped token (re-mint via `ACL RESTTOKEN` and `wrangler secret put`) — small enough to inline in DEPLOY.md
+- [x] ACL users `mcp-worker-rw` and `mcp-readonly-ops` created on `gst-mcp`; passwords stored in 1Password (operator vault). Final verified ACL strings (PR #187):
+  - `mcp-worker-rw`: `on ~mcp:* ~"" +@read +@write +@scripting -@dangerous`
+  - `mcp-readonly-ops`: `on ~mcp:* +@read -@dangerous`
+- [x] `UPSTASH_MCP_REST_TOKEN` for both staging + production rotated to a token minted from `mcp-worker-rw` via `ACL RESTTOKEN`; default admin token kept in 1Password as break-glass per DEPLOY.md § A.3.5 Phase 4 rollback procedure (not revoked because revocation is unsafe — re-binding is the recovery path, not key revocation)
+- [x] `/health` SET+DEL probe passes against the new scoped token — verified empirically on both envs 2026-05-30
+- [x] Worker-side ACL self-check on full command surface (`SET`/`INCR`/`EXPIRE`/`ZADD`/`ZREMRANGEBYSCORE`/`EVAL`) — supersedes the original "FLUSHDB returns NOPERM" AC. Implemented in `mcp-server/src/observability/acl-selfcheck.ts` with results surfaced at `/health.aclSelfCheck`; both envs report `status: 'ok'` against the rotated token. The dangerous-command-deny half of the original AC validated via `Test-UpstashAcl.ps1` 24/24 pass (negative-surface tests assert NOPERM on FLUSHDB / FLUSHALL / CONFIG GET / KEYS \*)
+- [x] **Upstash account MFA verified** — completed 2026-05-30 via Upstash's account-level **MFA Requirement** setting (account-wide forced 2FA on every login, independent of upstream SSO provider). Both halves of the Upstash console "Security Configuration Complete" panel checked: ✅ Setup Redis ACL + ✅ MFA Requirement. Documented in [`SECRETS_INVENTORY.md` § Upstash ACL users → MFA enforcement log](../../../src/docs/operations/SECRETS_INVENTORY.md). Paid-plan-only items (IP Allowlist, Encryption at Rest, SOC-2, Protect Credentials) explicitly out of scope; logged for future reference if BL-033's compliance review surfaces them
+- [x] DEPLOY.md § A.3.5 "Upstash ACL hardening (BL-041)" covers ACL user purpose, category-rationale table (pinning the `+@read +@write +@scripting -@dangerous +~mcp:* +~""` rationale to prevent a future well-intentioned widen), step-by-step mint + rotation runbook, Phase 4 rollback semantics for non-atomic `wrangler secret put` / `wrangler deploy`, account-level MFA checklist
+- [x] Operator runbook: how to rotate the scoped token (re-mint via `ACL RESTTOKEN` + `wrangler secret put`) — inline in DEPLOY.md § A.3.5 "Scoped-token rotation (annual or after suspected leak)"
+
+#### What Shipped Beyond the Original AC List
+
+- **Verification artifacts**: `mcp-server/scripts/Test-UpstashAcl.ps1` (positive + negative surface, 24-assertion probe) + `mcp-server/scripts/verify-ratelimit-acl.mjs` (Node sibling that imports the real `@upstash/ratelimit` SDK and round-trips a `slidingWindow().limit()` against the scoped token) — reusable for every future ACL rotation
+- **Worker-side guardrail**: `acl-selfcheck.ts` — one-shot per deploy via SET-NX-EX gate; short-circuits at the first failing command with a per-command failure name; surfaces at `/health.aclSelfCheck`. PR #189 followup made the keys env-scoped (`<env>:<gitSha>`) to fix a shared-state false-green where staging's probe result was shadowing production's
+- **Empirical Upstash deviations documented in DEPLOY.md § A.3.5** for future operators: (a) `>password` clause silently ignored — Upstash auto-generates the password; (b) `@scripting` rejected as "unknown category" when there's trailing whitespace at end of ACL string (parser is whitespace-sensitive at modifier boundaries); (c) `+script|load` subcommand syntax rejected ("'|' is not supported"); (d) `~""` empty-string sentinel required alongside `~mcp:*` because `@upstash/ratelimit` v2 sliding-window passes `dynamicLimitKey: ""` as a third EVAL key when dynamic limits are off
+- **PR sequence**: [PR #186](https://github.com/Global-Strategic-Technologies/gst-website/pull/186) (engineering artifacts), [PR #187](https://github.com/Global-Strategic-Technologies/gst-website/pull/187) (verified-against-reality ACL string + script bugfixes), [PR #189](https://github.com/Global-Strategic-Technologies/gst-website/pull/189) (env-scoped acl-selfcheck + this AC closure)
+- **BL-047 filed as a follow-up** (PR #188, originally filed as BL-042 but renumbered when the ID collision with the existing TechPar PresetInput BL-042 was caught) — Inoreader OAuth resilience surfaced during Phase 3 production verification when `oauth-refresh-invalid-refresh-token` fired and required ~15min manual local-terminal recovery. Not a BL-041 regression; surfaced by BL-041's first live production probe. T0+T1 (detection hardening) subsequently shipped 2026-05-30 via PR #191; T2-T4 (recovery + telemetry) remain open.
 
 **Why now**
 
@@ -3098,4 +3112,147 @@ Three architectural options, in order of preference:
 
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026_
+### BL-047: Inoreader OAuth Resilience — Reduce Manual Re-Link to a 1-Click Operator Flow
+
+**Source**: Surfaced 2026-05-30 during BL-041 Phase 3 closeout — `oauth-refresh-invalid-refresh-token` Sentry issue surfaced via live `search_radar` probe against production. Recovery required `node scripts/inoreader-auth.mjs setup` + browser auth + `exchange CODE` + 4× `wrangler secret put` + 2× `npm run deploy:*` — ~15 minutes of operator time at a terminal. Token death will recur whenever Inoreader's refresh-token grace window lapses (revocation, long inactivity, server-side policy change). The current recovery surface is not acceptable for a service surface that BL-033 broadens to external clients. | **Effort**: ~2 days engineering for T1+T2 (the operator-facing slice); T3-T4 fold in as ~1 day of incremental work afterward | **Status**: 🟡 **PARTIALLY SHIPPED 2026-05-30** — T0 + T1 (detection hardening) shipped via PR #191; T2 (in-browser recovery), T3 (rotation signal), T4 (`/health` surface) outstanding. Filed 2026-05-30, revised after impartial audit | **Depends on**: nothing (independent hardening) | **Blocks**: BL-033 only loosely (acceptable to ship in parallel; not a hard gate)
+
+**As an** operator of the MCP Worker, **I want** Inoreader refresh-token failures to be detected proactively, paged immediately, and recoverable in under 2 minutes from any browser, **so that** a refresh-token death doesn't manifest as a stale radar surface for users while I'm away from a terminal.
+
+#### Planning Criteria
+
+**What can NEVER be automated**: the initial OAuth authorization grant. OAuth's RFC 6749 design fundamentally requires a human to authorize the app via Inoreader's web UI — there's no API to bypass that consent step. Any first-time setup OR any re-authorization after refresh-token revocation will always involve a human consenting in a browser. The achievable goal is to make that human consent as fast and accessible as possible (mobile-friendly, no local tooling required).
+
+**Current state — what we have** (BL-032.8 Phase B + BL-032.77 inheritance):
+
+- Auto-refresh on Inoreader 401 via single-flight Upstash lock (handles transient access-token expiry within the refresh grace window)
+- Structured `invalid-refresh-token` failure mode emitted to Sentry as `oauth-refresh-invalid-refresh-token` ([`inoreader-oauth.ts:285-296`](../../../mcp-server/src/lib/inoreader-oauth.ts#L285-L296))
+- **Rotation detection ALREADY EXISTS** ([`inoreader-oauth.ts:332`](../../../mcp-server/src/lib/inoreader-oauth.ts#L332)) — the Worker compares response `refresh_token` against the request value and writes only on rotation. The gap is that this signal isn't EMITTED anywhere observable.
+- Recovery script [`scripts/inoreader-auth.mjs`](../../../scripts/inoreader-auth.mjs) — local Node script with `setup` / `exchange` / `refresh` subcommands
+- Recovery runbook documented in [`DEPLOY.md § C.5`](../../../mcp-server/src/docs/operations/DEPLOY.md)
+
+**What's missing — four gaps** (revised from original five after impartial audit; T5 dropped):
+
+1. **No proactive alerting** — Sentry issue fires but reaches the operator only if they're already looking. No Slack/email page; no PagerDuty rule.
+2. **No emission of existing rotation signal** — the Worker already detects rotation at [`inoreader-oauth.ts:332`](../../../mcp-server/src/lib/inoreader-oauth.ts#L332) but doesn't surface it. We can't tell empirically whether we're in a rotation regime, which matters for sizing future hedging decisions.
+3. **No automated re-auth bootstrap** — recovery is local-terminal-only. If the operator isn't at a desktop when the token dies, the system stays broken for hours.
+4. **No early-warning telemetry surface** — refresh-token meta-state (last successful refresh, rotation timeline, failure counters) isn't readable from `/health` or anywhere else; we learn the token is dead _after_ it fails.
+
+#### Four-Track Hardening Plan (revised post-audit)
+
+**Pre-flight (T0) — Verify Inoreader OAuth contract via Context7** (1h, blocks T1/T2 scoping)
+
+Before scoping the alert-rule semantics + the callback handler, confirm against current Inoreader docs (via Context7 + a manual `curl` test against a known-good refresh token):
+
+- Exact response shape on `invalid_grant` — HTTP status code (400 vs 401), body JSON shape, exact `error` field value
+- Whether every successful `/oauth2/token` response includes `refresh_token` (rotation regime) OR only when rotated (sparse regime). [`inoreader-oauth.ts:332`](../../../mcp-server/src/lib/inoreader-oauth.ts#L332) currently treats absence-of-`refresh_token` as "no rotation" — verify this is the documented semantic
+- Documented refresh-token TTL / grace window — if Inoreader publishes one, that's a real signal for T4; if not, "age since last rotation" is the actual telemetry to surface
+
+Output: a 1-page reference at `mcp-server/src/docs/operations/INOREADER_OAUTH_CONTRACT.md` that T1-T4 scope against.
+
+**Track 1 — Sentry alert ruleset on the Worker's structured OAuth failures** (4h)
+
+The Worker's existing structured failures already fire as Sentry events:
+
+- `oauth-refresh-invalid-refresh-token` (the smoking gun)
+- `oauth-refresh-token-missing` ([`inoreader-oauth.ts:198-202`](../../../mcp-server/src/lib/inoreader-oauth.ts#L198-L202))
+- `oauth-refresh-upstash-write-failed` ([`inoreader-oauth.ts:336-343`](../../../mcp-server/src/lib/inoreader-oauth.ts#L336-L343))
+
+Audit caught that T1 must alert on ALL three, not just `invalid_refresh_token` — each is a paging-worthy state. Configure as a Sentry Alert Rule SET:
+
+- Each rule channels to Slack `#mcp-alerts` immediately
+- Each carries a distinct payload + deep link to the relevant DEPLOY.md § C.5 sub-procedure
+- Daily debounce per rule (page on first event per UTC-day)
+- Pure Sentry-side config — no code change for the rules themselves
+- **Monitor-the-monitor**: scheduled `captureMessageEnvelope` synthetic at `0 14 * * 1` UTC (weekly Monday 14:00) emits a test event tagged `tag.alert-rule-synthetic: 1`; operator confirms paging path on receipt. Documented in the AC.
+
+**Track 2 — Worker-served re-auth endpoint** (~1.5 days, audit revised up from 1 day)
+
+Replace the local `scripts/inoreader-auth.mjs` flow with a Worker-served re-auth surface. Three audit-derived design constraints:
+
+- **Auth model**: gate via a new `MCP_ADMIN_KEY` env var (bound separately from team `MCP_KEY_*` keys). Match by key identity, NOT by scope — current `DEFAULT_SCOPES` ([`scopes.ts:49-55`](../../../mcp-server/src/auth/scopes.ts#L49-L55)) is uniform across all keys; per-key scope variation is a BL-033 unlock and BL-047 must not pre-empt it. The `MCP_ADMIN_KEY` binding is a single-key surface independent of the team key set.
+- **CSRF defense**: HMAC alone is insufficient — an attacker who triggers `/start` themselves gets a valid HMAC and can lure the operator into completing it. Use **Upstash-stored opaque state** (key: `mcp:inoreader:reauth-state:<nonce>`, TTL 5min, value: SHA256(admin-key)). Callback handler requires the SAME bearer key as `/start` — bound to operator identity.
+- **Race with cron refresh**: T2's callback writes via `writeRefreshToken/writeAccessToken` which DON'T acquire `REFRESH_LOCK_KEY` ([`inoreader-oauth.ts`](../../../mcp-server/src/lib/inoreader-oauth.ts)). Sequence: cron acquires lock, POSTs with OLD refresh token (~1s in flight), operator completes re-auth + writes NEW tokens, cron returns success and overwrites with stale rotated token from the OLD chain. **T2 callback MUST acquire `REFRESH_LOCK_KEY` before writing** — bounded ~5s lock TTL, same primitive as the existing single-flight.
+
+Endpoints:
+
+- `GET /admin/inoreader/reauth/start` (admin-key gated) — Worker mints opaque nonce, writes `mcp:inoreader:reauth-state:<nonce>` → SHA256(admin-key) with 5-min TTL, returns the Inoreader OAuth URL as a clickable link
+- `GET /admin/inoreader/reauth/callback?code=...&state=...` — Worker (a) validates state (Upstash read, identity check), (b) acquires `REFRESH_LOCK_KEY`, (c) exchanges code via `POST /oauth2/token`, (d) writes new tokens, (e) releases lock, (f) returns a plaintext success page
+- **Audit log**: every `/admin/*` hit emits a `safeLog` entry with `auth.keyOwner` (the stripped-suffix identifier, never the key itself) so after-the-fact incident review knows who triggered the re-auth
+- **URL-param scrubbing**: extend [`safe-logger.ts`](../../../mcp-server/src/auth/safe-logger.ts) to strip `code`, `state`, `access_token`, `refresh_token` from any logged URL query string. The callback URL contains the auth code; without this, the code leaks to Sentry via the request breadcrumb
+
+**Recovery flow becomes**: operator gets paged → clicks Slack link → authorizes in browser → done. Target ~2 min from mobile **under the precondition** that the operator already has the Inoreader app session + `MCP_ADMIN_KEY` in a mobile password manager. Validate this precondition in the AC test plan.
+
+**Track 3 — Emit existing rotation signal** (2h, audit revised down from ½ day)
+
+The Worker already detects rotation at [`inoreader-oauth.ts:332`](../../../mcp-server/src/lib/inoreader-oauth.ts#L332). The missing piece is just emitting the signal:
+
+- Emit `inoreader.oauth.refresh-token.rotated` Sentry event when the rotation branch is taken at line 332
+- Don't log tokens — just `safeLog` an `event: 'inoreader.oauth.rotation'` with `success: true` so it lands in Sentry-via-existing-pipeline
+- Surface `inoreaderRotationsLast24h` count by reading a new Upstash counter `mcp:inoreader:rotations:<YYYY-MM-DD>` (1 INCR + 1 EXPIRE per rotation event; ~negligible substrate cost)
+- No AE event type change needed for this phase — fold in if Phase 3 dashboards want it later
+
+**Track 4 — `/health.inoreaderRefreshTokenHealth`** (1 day, audit revised up from ½ day)
+
+Audit caught that the counters T4 surfaces don't exist yet — they require new INCR sites in `inoreader-oauth.ts`. Honest scope:
+
+- New Upstash counters incremented at the existing refresh sites:
+  - `mcp:inoreader:refresh-success:<YYYY-MM-DD>` (incremented on `RefreshResult.ok`)
+  - `mcp:inoreader:refresh-failure:<reason>:<YYYY-MM-DD>` (one counter per reason: `invalid-refresh-token` / `token-missing` / `upstash-write-failed` / `inoreader-error`)
+  - `mcp:inoreader:last-refresh-success-at` (timestamp; SET on each success)
+  - `mcp:inoreader:last-rotation-at` (timestamp; SET on each T3 rotation event)
+- New `/health` block read via MGET (single round-trip; mirrors `/health.inoreaderSpend` pattern):
+  ```ts
+  inoreaderRefreshTokenHealth: {
+    lastSuccessfulRefreshAt: string | null,
+    ageSinceLastSuccessfulRefreshSeconds: number | null,
+    lastRotationAt: string | null,
+    recentRefreshFailureCounts: { 'invalid-refresh-token': number, 'token-missing': number, 'upstash-write-failed': number, 'inoreader-error': number },
+  }
+  ```
+- Integration test asserts the contract + the counter-increment paths
+
+**T5 deleted** (was: secondary refresh-token slot). Audit caught that Inoreader's documented `invalid_grant` behaviour likely invalidates the whole refresh-token chain — retrying with the "previous" token is more likely to (a) hit `invalid_grant` again, (b) trigger fraud-detection on `client_id`, (c) muddy the Sentry signal. T2's in-browser flow IS the recovery, and is fast enough that a hedge isn't worth the risk. If T3 data later reveals a substantial rotation regime AND a real race we can't otherwise close, file a successor ticket then.
+
+#### Acceptance Criteria
+
+- [x] **T0** (2026-05-30): [`INOREADER_OAUTH_CONTRACT.md`](../../../mcp-server/src/docs/operations/INOREADER_OAUTH_CONTRACT.md) written; Context7-verified contract pinned with `invalid_grant` shape (401 + `{"error":"invalid_grant"}`), refresh-token rotation regime (open question — closes via T3 telemetry), TTL (undocumented upstream — surface "age since last successful refresh" instead via T4)
+
+- [x] **T1 alert rules** (2026-05-30): four Sentry Issue Alerts configured by operator against `gst-mcp-server` project per [`SENTRY_ALERT_RULES.md`](../../../mcp-server/src/docs/operations/SENTRY_ALERT_RULES.md) § 3 — three OAuth failure rules (dual-trigger pattern: `A new issue is created` + `A resolved issue becomes unresolved`, Slack-routed to `#mcp-alerts`, 60min action frequency) and one synthetic rule (single trigger, 1d action frequency). Worker code emits the underlying tagged events from `inoreader-oauth.ts` (refresh failures) + `alert-rule-synthetic.ts` (heartbeat)
+- [x] **T1 monitor-the-monitor — wiring** (2026-05-30): weekly synthetic dispatcher [`alert-rule-synthetic.ts`](../../../mcp-server/src/observability/alert-rule-synthetic.ts) wired to `0 14 * * 1` production cron; emits `event:alert-rule-synthetic` tagged Sentry event Mondays 14:00 UTC; weekly-checklist procedure documented in [`SENTRY_ALERT_RULES.md`](../../../mcp-server/src/docs/operations/SENTRY_ALERT_RULES.md) § 3
+- [x] **T1 monitor-the-monitor — Sentry transport verified** (2026-05-30): force-fire via `wrangler dev --remote` succeeded; Worker dispatch log `{event:'alert-rule-synthetic.dispatch', success:true}` + Sentry Issue `event:alert-rule-synthetic` both observed end-to-end. First-firing date filled into [`SENTRY_ALERT_RULES.md`](../../../mcp-server/src/docs/operations/SENTRY_ALERT_RULES.md) § 4
+- [x] **T1 monitor-the-monitor — paging-channel verification** (2026-05-30): Sentry email notification confirmed at operator's address ~1 min after the force-fire. Full path verified end-to-end: Worker dispatch → Sentry Issue → Sentry email. No real-cron wait needed; force-fire substituted cleanly
+- [ ] **T2 endpoints**: `/admin/inoreader/reauth/{start,callback}` implemented + integration-tested; gated by `MCP_ADMIN_KEY` env-var bearer match (not scope); CSRF defense via Upstash-stored opaque state bound to operator-key identity (5-min TTL)
+- [ ] **T2 race-safety**: callback handler acquires `REFRESH_LOCK_KEY` before writing tokens; integration test asserts cron-in-flight + operator-callback ordering preserves new tokens
+- [ ] **T2 audit log**: every `/admin/*` hit emits a `safeLog` with `auth.keyOwner` + URL; `safe-logger.ts` extended to scrub `code`, `state`, `access_token`, `refresh_token` query params from logged URLs
+- [ ] **T2 redirect-URI provisioning**: BOTH `https://mcp-staging.globalstrategic.tech/admin/inoreader/reauth/callback` AND `https://mcp.globalstrategic.tech/.../callback` registered against the Inoreader app; documented in DEPLOY.md § A.4
+- [ ] **T2 validation**: operator runs full recovery on staging from a mobile browser under the precondition "operator has Inoreader session + `MCP_ADMIN_KEY` in mobile password manager"; total elapsed time documented; ≤ 3 minutes (audit-revised target — original 2 min was unsubstantiated)
+- [ ] **T2 docs**: DEPLOY.md § C.5 rewritten with in-browser flow as primary path; local-Node `scripts/inoreader-auth.mjs` retained as the FIRST-TIME bootstrap path (before T2's redirect URIs are registered) — explicit lifecycle decision per CLAUDE.md §4a
+- [ ] **T3**: rotation signal emitted at the existing detection site (`inoreader-oauth.ts:332`); `mcp:inoreader:rotations:<YYYY-MM-DD>` counter incremented; `inoreaderRotationsLast24h` surfaced in `/health` via single MGET op
+- [ ] **T4**: `/health.inoreaderRefreshTokenHealth` block live with all four fields; new counters wired at the existing refresh sites in `inoreader-oauth.ts`; integration test asserts every reason-counter increments on its trigger path
+- [ ] **SECRETS_INVENTORY**: new "Inoreader Account of Record" section documenting which Inoreader account owns the registered GST app, who the operator-of-record is, the redirect URIs registered, and the team-change review cadence
+- [ ] **Recovery drill cadence**: quarterly synthetic operator drill (invalidate a staging refresh token, exercise T1 alert → T2 in-browser recovery → verify timing under the SLA); documented in DEPLOY.md as a recurring operations checklist item
+
+#### Telemetry to Validate
+
+- 7-day window post-Track-1 ship: operator paged ≤ 1 min after `oauth-refresh-invalid-refresh-token` fires (test by intentionally invalidating a staging refresh token)
+- 30-day window post-Track-2 ship: at least one real recovery completed via the in-browser flow in ≤ 2 minutes (or, if no real failure: synthetic exercise during a quarterly drill)
+- 30-day window post-Track-3 ship: telemetry confirms or refutes the rotation hypothesis. If rotations DO happen, ship Track 5.
+
+#### Why Now
+
+- BL-041 Phase 3 today (2026-05-30) surfaced the gap operationally — first time the manual recovery was exercised end-to-end and it took ~15 min from a desktop
+- BL-033 external pilot broadens the user surface — once non-operator clients are calling radar tools, the impact of a 15-min outage is no longer "just our session". Closing this hardening gap before BL-033 ships means external users never see a `token-stale` surface
+- Tracks 1+2 are independently shippable in ~1.5 days; the rest can be sequenced opportunistically
+- Cost: zero new infrastructure — Sentry alert rules + a Worker endpoint + Upstash counter reads. No third-party services, no new secret rotations
+
+#### Risks + Trade-offs
+
+- **Risk (resolved by T2 design)**: auth-code leak via Sentry breadcrumb on the callback URL. Mitigation: `safe-logger.ts` URL query-param scrubbing per the AC (`code` / `state` / `access_token` / `refresh_token` stripped from any logged URL).
+- **Risk (resolved by T2 design)**: CSRF where an attacker triggers `/start` and lures the operator to complete it. Mitigation: opaque Upstash-stored state bound to operator-key identity at `/start`, identity-checked at `/callback`. HMAC-only state (the original proposal) is insufficient — see audit notes.
+- **Risk (resolved by T2 design)**: callback race with in-flight cron refresh overwriting newly-minted tokens. Mitigation: callback acquires the existing `REFRESH_LOCK_KEY` before writing.
+- **Trade-off**: in-browser flow requires the operator to be logged into the Inoreader account that owns the GST radar folders. If the operator changes (BL-033 expands operator pool), the Inoreader app must be accessible. Mitigation: SECRETS_INVENTORY "Inoreader Account of Record" section + team-change review cadence per the AC.
+- **Residual risk**: T2 deploys a new `/admin/*` route. Compromising `MCP_ADMIN_KEY` permits an attacker to force-refresh the Inoreader binding (substituting their own access/refresh tokens via a controlled OAuth grant). Mitigation: `MCP_ADMIN_KEY` is treated as the highest-sensitivity Worker secret (1Password + rotation cadence documented in SECRETS_INVENTORY); the audit log surface (per AC) captures every use for after-the-fact review.
+
+---
+
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | Last reconciled: May 30, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 → superseded May 17, 2026 by BL-032.8 Phase B | BL-032.76 shipped: May 27, 2026 | BL-032.8 shipped: May 27, 2026 (PRs #139 + #140 + #178) | BL-032.75 Phase 1 shipped: May 28, 2026 (PR #179 / #180) | BL-032.77 shipped: May 29, 2026 (PRs #181 + #183 + #184) | BL-041 filed: May 27, 2026, closed: May 30, 2026 | BL-047 filed: May 30, 2026, T0+T1 shipped: May 30, 2026_

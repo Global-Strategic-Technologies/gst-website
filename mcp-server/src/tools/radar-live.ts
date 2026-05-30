@@ -180,11 +180,14 @@ async function checkCircuitBreaker(env: Env) {
 // search_radar handler
 // ---------------------------------------------------------------------------
 
-export async function handleSearchRadar(env: Env, input: SearchRadarInput) {
+export async function handleSearchRadar(env: Env, input: SearchRadarInput, keyOwner?: string) {
   const breakerCheck = await checkCircuitBreaker(env);
   if (breakerCheck) return breakerCheck;
 
-  const [wireResult, fyiResult] = await Promise.all([readWireLive(env), readFyiLive(env, 30)]);
+  const [wireResult, fyiResult] = await Promise.all([
+    readWireLive(env, { keyOwner }),
+    readFyiLive(env, 30, { keyOwner }),
+  ]);
 
   if (!wireResult.ok) return failureResponse(env, wireResult, 'live-search-radar');
   if (!fyiResult.ok) return failureResponse(env, fyiResult, 'live-search-radar');
@@ -236,12 +239,16 @@ export async function handleSearchRadar(env: Env, input: SearchRadarInput) {
 // get_latest_insights handler
 // ---------------------------------------------------------------------------
 
-export async function handleGetLatestInsights(env: Env, input: GetLatestInsightsInput) {
+export async function handleGetLatestInsights(
+  env: Env,
+  input: GetLatestInsightsInput,
+  keyOwner?: string
+) {
   const breakerCheck = await checkCircuitBreaker(env);
   if (breakerCheck) return breakerCheck;
 
   const limit = input.limit ?? 10;
-  const fyiResult = await readFyiLive(env, Math.max(limit, 30)); // fetch 30 always so cache shared with search_radar
+  const fyiResult = await readFyiLive(env, Math.max(limit, 30), { keyOwner }); // fetch 30 always so cache shared with search_radar
   if (!fyiResult.ok) return failureResponse(env, fyiResult, 'live-get-latest-insights');
 
   const filtered = fyiResult.items
@@ -297,7 +304,7 @@ export function registerRadarLiveTools(
       },
     },
     withToolMetrics('search_radar', metrics, (input: SearchRadarInput) =>
-      handleSearchRadar(env, input)
+      handleSearchRadar(env, input, metrics.keyOwner)
     )
   );
 
@@ -313,7 +320,7 @@ export function registerRadarLiveTools(
       },
     },
     withToolMetrics('get_latest_insights', metrics, (input: GetLatestInsightsInput) =>
-      handleGetLatestInsights(env, input)
+      handleGetLatestInsights(env, input, metrics.keyOwner)
     )
   );
 }
