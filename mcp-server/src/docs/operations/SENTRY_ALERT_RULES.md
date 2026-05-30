@@ -110,7 +110,7 @@ curl "http://localhost:8787/__scheduled?cron=0+14+*+*+1"
 
 Document the first verified firing date in this section once complete:
 
-> **First verified synthetic firing**: **2026-05-30** — force-fire via `wrangler dev --remote` + `curl /__scheduled?cron=...` (per the procedure above). Worker dispatch log + Sentry Issue both confirmed (`event:alert-rule-synthetic` issue created in `gst-mcp-server` project). Paging-channel half (email/Slack) verified separately at the operator's notification address — re-verify the email arrival after the first real production cron tick (2026-06-01 14:00 UTC) and update this line with the email-receipt timestamp.
+> **First verified synthetic firing**: **2026-05-30** — force-fire via `wrangler dev --remote` + `curl /__scheduled?cron=...` (per the procedure above) verified the full path end-to-end: Worker dispatch log (`{event:'alert-rule-synthetic.dispatch', success:true}`) → Sentry Issue (`event:alert-rule-synthetic` in `gst-mcp-server`) → Sentry email notification at the operator's address. Total latency ~1 min from force-fire to email arrival.
 
 For Rules 1-3, the cheapest production-safe verification is: open `mcp-server/scripts/inoreader-auth.mjs`, intentionally bind an invalid `INOREADER_REFRESH_TOKEN` on **staging only**, observe `oauth-refresh-invalid-refresh-token` event in Sentry → Slack page in `#mcp-alerts`. Then restore the real token. (Staging has no cron so this requires manually invoking the refresh path — `npx wrangler dev --env staging --remote` + the equivalent of a radar tool call. Out of scope for this PR; treat as the BL-047 T2 endpoint-arrival validation moment.)
 
