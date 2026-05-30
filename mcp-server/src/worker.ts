@@ -40,6 +40,7 @@ import { captureMessage, sentryOptions, tagRequest, withSentry } from './observa
 import { AnalyticsEngineSink, emit } from './metrics/_index';
 import type { RefreshOutcome } from './cron/radar-refresh';
 import { postSentryCheckIn, postSentryEvent } from './observability/sentry-envelope';
+import { dispatchAlertRuleSynthetic } from './observability/alert-rule-synthetic';
 import { buildHealthPayload } from './observability/health';
 import { runAclSelfCheckOnce } from './observability/acl-selfcheck';
 import { acquire } from './lib/single-flight-lock';
@@ -209,6 +210,29 @@ export const handler: ExportedHandler<Env> = {
         // — the safeLog inside the inner catch is the operator-visible
         // signal on the failure path.
         try {
+          // BL-047 T1 — alert-rule synthetic dispatch.
+          //
+          // Production wrangler.toml registers TWO cron expressions:
+          //   - `0 */6 * * *` → radar-refresh (BL-032.7 cadence)
+          //   - `0 14 * * 1`  → alert-rule synthetic (Mondays 14:00 UTC)
+          //
+          // The synthetic posts a single tagged Sentry event whose only
+          // purpose is to exercise the operator paging path end-to-end.
+          // Its presence in Slack on Monday afternoon is the operator's
+          // weekly proof that the BL-047 T1 alert rules are still wired
+          // — without it, a silently-removed Slack integration would
+          // first surface only on a real outage. See
+          // src/docs/operations/SENTRY_ALERT_RULES.md § Synthetic.
+          //
+          // Synthetic is independent of the radar-refresh dedup lock —
+          // a separate cron expression cannot collide with the radar
+          // firing (different scheduledTime, different lockKey), and
+          // the synthetic itself is idempotent (one fire-and-forget POST).
+          if (event.cron === '0 14 * * 1') {
+            await dispatchAlertRuleSynthetic(env);
+            return;
+          }
+
           // BL-032.77 — Cloudflare's `ScheduledController` may invoke the
           // scheduled handler multiple times for the same scheduled fire
           // (documented platform behavior; see

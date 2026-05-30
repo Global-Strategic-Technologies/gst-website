@@ -3211,10 +3211,10 @@ Audit caught that the counters T4 surfaces don't exist yet — they require new 
 
 #### Acceptance Criteria
 
-- [ ] **T0**: `mcp-server/src/docs/operations/INOREADER_OAUTH_CONTRACT.md` written with verified `invalid_grant` response shape, rotation-vs-echo regime, refresh-token TTL (if documented); T1 + T2 + T3 scope against this doc
+- [x] **T0** (2026-05-30): [`INOREADER_OAUTH_CONTRACT.md`](../../../mcp-server/src/docs/operations/INOREADER_OAUTH_CONTRACT.md) written; Context7-verified contract pinned with `invalid_grant` shape (401 + `{"error":"invalid_grant"}`), refresh-token rotation regime (open question — closes via T3 telemetry), TTL (undocumented upstream — surface "age since last successful refresh" instead via T4)
 
-- [ ] **T1**: Sentry alert rules live for ALL three OAuth failure signals (`oauth-refresh-invalid-refresh-token`, `oauth-refresh-token-missing`, `oauth-refresh-upstash-write-failed`); each delivered to Slack within 1 min of first daily event; each carries a deep link to its specific DEPLOY.md § C.5 sub-procedure
-- [ ] **T1 monitor-the-monitor**: weekly synthetic event (`captureMessageEnvelope` tagged `tag.alert-rule-synthetic: 1`) confirms the alert path is live; documented in DEPLOY.md as part of the operator weekly checklist
+- [ ] **T1 alert rules** — code-side wired (Worker emits the three OAuth failure signals), [`SENTRY_ALERT_RULES.md`](../../../mcp-server/src/docs/operations/SENTRY_ALERT_RULES.md) runbook written; **operator configuration deferred to first deploy** — Sentry UI doesn't have an in-repo source of truth, runbook § 2 walks through the per-event rule setup
+- [x] **T1 monitor-the-monitor** (2026-05-30): weekly synthetic dispatcher [`alert-rule-synthetic.ts`](../../../mcp-server/src/observability/alert-rule-synthetic.ts) wired to `0 14 * * 1` production cron; emits `event:alert-rule-synthetic` tagged Sentry event Mondays 14:00 UTC; documented in [`SENTRY_ALERT_RULES.md`](../../../mcp-server/src/docs/operations/SENTRY_ALERT_RULES.md) § 3 with operator weekly checklist
 - [ ] **T2 endpoints**: `/admin/inoreader/reauth/{start,callback}` implemented + integration-tested; gated by `MCP_ADMIN_KEY` env-var bearer match (not scope); CSRF defense via Upstash-stored opaque state bound to operator-key identity (5-min TTL)
 - [ ] **T2 race-safety**: callback handler acquires `REFRESH_LOCK_KEY` before writing tokens; integration test asserts cron-in-flight + operator-callback ordering preserves new tokens
 - [ ] **T2 audit log**: every `/admin/*` hit emits a `safeLog` with `auth.keyOwner` + URL; `safe-logger.ts` extended to scrub `code`, `state`, `access_token`, `refresh_token` query params from logged URLs

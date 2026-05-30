@@ -136,6 +136,77 @@ describe('worker default export — withSentry wraps fetch only (BL-032.76 regre
   });
 });
 
+describe('worker.ts scheduled handler — BL-047 T1 alert-rule synthetic branch', () => {
+  // The synthetic cron (`0 14 * * 1`) MUST short-circuit before any
+  // radar-refresh work runs. A regression that lets the synthetic firing
+  // through to refreshRadarSnapshot would double the cron's Inoreader
+  // spend every Monday — a measurable Zone-1 burn against the 100/day cap.
+  beforeEach(() => {
+    mockPostCheckIn.mockReset();
+    mockPostEvent.mockReset();
+    mockSafeLog.mockReset();
+    vi.mocked(cron.refreshRadarSnapshot).mockReset();
+    mockAcquire.mockReset();
+    mockAcquire.mockResolvedValue(true);
+  });
+
+  it('synthetic cron expression fires postSentryEvent with alert-rule-synthetic tag and skips radar-refresh', async () => {
+    const syntheticEvent = {
+      cron: '0 14 * * 1',
+      scheduledTime: FAKE_SCHEDULED_TIME,
+      type: 'scheduled',
+      noRetry: () => {},
+    } as unknown as ScheduledController;
+
+    const { ctx, waitUntilPromises } = makeCtx();
+    handler.scheduled!(syntheticEvent, FAKE_ENV, ctx);
+    await Promise.all(waitUntilPromises);
+
+    // Synthetic emits exactly one tagged event.
+    expect(mockPostEvent).toHaveBeenCalledTimes(1);
+    expect(mockPostEvent).toHaveBeenCalledWith(
+      FAKE_ENV,
+      expect.objectContaining({
+        level: 'info',
+        message: expect.stringContaining('alert-rule-synthetic'),
+        tags: expect.objectContaining({
+          event: 'alert-rule-synthetic',
+          'alert-rule-synthetic': '1',
+        }),
+      })
+    );
+
+    // Critical regression guard: radar-refresh MUST NOT run on the
+    // synthetic cron. Otherwise the synthetic doubles Inoreader spend.
+    expect(cron.refreshRadarSnapshot).not.toHaveBeenCalled();
+    expect(mockPostCheckIn).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
+  });
+
+  it('radar-refresh cron expression does NOT fire the synthetic event', async () => {
+    vi.mocked(cron.refreshRadarSnapshot).mockResolvedValue({
+      kind: 'success',
+      wireItems: 5,
+      fyiItems: 3,
+      callsConsumed: 6,
+    });
+
+    const { ctx, waitUntilPromises } = makeCtx();
+    handler.scheduled!(makeScheduledEvent(), FAKE_ENV, ctx);
+    await Promise.all(waitUntilPromises);
+
+    // No alert-rule-synthetic tagged event should appear from the
+    // radar-refresh path. (postSentryEvent fires on error only — here we
+    // assert it's not called with the synthetic tag.)
+    const syntheticCalls = mockPostEvent.mock.calls.filter(([, body]) => {
+      const tags = (body as { tags?: Record<string, unknown> }).tags;
+      return tags && tags['alert-rule-synthetic'] !== undefined;
+    });
+    expect(syntheticCalls).toHaveLength(0);
+    expect(cron.refreshRadarSnapshot).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('worker.ts scheduled handler — envelope check-in lifecycle (BL-032.76)', () => {
   beforeEach(() => {
     mockPostCheckIn.mockReset();
