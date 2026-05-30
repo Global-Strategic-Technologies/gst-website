@@ -3098,4 +3098,145 @@ Three architectural options, in order of preference:
 
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026_
+### BL-042: Inoreader OAuth Resilience — Reduce Manual Re-Link to a 1-Click Operator Flow
+
+**Source**: Surfaced 2026-05-30 during BL-041 Phase 3 closeout — `oauth-refresh-invalid-refresh-token` Sentry issue surfaced via live `search_radar` probe against production. Recovery required `node scripts/inoreader-auth.mjs setup` + browser auth + `exchange CODE` + 4× `wrangler secret put` + 2× `npm run deploy:*` — ~15 minutes of operator time at a terminal. Token death will recur whenever Inoreader's refresh-token grace window lapses (revocation, long inactivity, server-side policy change). The current recovery surface is not acceptable for a service surface that BL-033 broadens to external clients. | **Effort**: ~2 days engineering for T1+T2 (the operator-facing slice); T3-T4 fold in as ~1 day of incremental work afterward | **Status**: 📋 Filed 2026-05-30, revised after impartial audit | **Depends on**: nothing (independent hardening) | **Blocks**: BL-033 only loosely (acceptable to ship in parallel; not a hard gate)
+
+**As an** operator of the MCP Worker, **I want** Inoreader refresh-token failures to be detected proactively, paged immediately, and recoverable in under 2 minutes from any browser, **so that** a refresh-token death doesn't manifest as a stale radar surface for users while I'm away from a terminal.
+
+#### Planning Criteria
+
+**What can NEVER be automated**: the initial OAuth authorization grant. OAuth's RFC 6749 design fundamentally requires a human to authorize the app via Inoreader's web UI — there's no API to bypass that consent step. Any first-time setup OR any re-authorization after refresh-token revocation will always involve a human consenting in a browser. The achievable goal is to make that human consent as fast and accessible as possible (mobile-friendly, no local tooling required).
+
+**Current state — what we have** (BL-032.8 Phase B + BL-032.77 inheritance):
+
+- Auto-refresh on Inoreader 401 via single-flight Upstash lock (handles transient access-token expiry within the refresh grace window)
+- Structured `invalid-refresh-token` failure mode emitted to Sentry as `oauth-refresh-invalid-refresh-token` ([`inoreader-oauth.ts:285-296`](../../../mcp-server/src/lib/inoreader-oauth.ts#L285-L296))
+- **Rotation detection ALREADY EXISTS** ([`inoreader-oauth.ts:332`](../../../mcp-server/src/lib/inoreader-oauth.ts#L332)) — the Worker compares response `refresh_token` against the request value and writes only on rotation. The gap is that this signal isn't EMITTED anywhere observable.
+- Recovery script [`scripts/inoreader-auth.mjs`](../../../scripts/inoreader-auth.mjs) — local Node script with `setup` / `exchange` / `refresh` subcommands
+- Recovery runbook documented in [`DEPLOY.md § C.5`](../../../mcp-server/src/docs/operations/DEPLOY.md)
+
+**What's missing — four gaps** (revised from original five after impartial audit; T5 dropped):
+
+1. **No proactive alerting** — Sentry issue fires but reaches the operator only if they're already looking. No Slack/email page; no PagerDuty rule.
+2. **No emission of existing rotation signal** — the Worker already detects rotation at [`inoreader-oauth.ts:332`](../../../mcp-server/src/lib/inoreader-oauth.ts#L332) but doesn't surface it. We can't tell empirically whether we're in a rotation regime, which matters for sizing future hedging decisions.
+3. **No automated re-auth bootstrap** — recovery is local-terminal-only. If the operator isn't at a desktop when the token dies, the system stays broken for hours.
+4. **No early-warning telemetry surface** — refresh-token meta-state (last successful refresh, rotation timeline, failure counters) isn't readable from `/health` or anywhere else; we learn the token is dead _after_ it fails.
+
+#### Four-Track Hardening Plan (revised post-audit)
+
+**Pre-flight (T0) — Verify Inoreader OAuth contract via Context7** (1h, blocks T1/T2 scoping)
+
+Before scoping the alert-rule semantics + the callback handler, confirm against current Inoreader docs (via Context7 + a manual `curl` test against a known-good refresh token):
+
+- Exact response shape on `invalid_grant` — HTTP status code (400 vs 401), body JSON shape, exact `error` field value
+- Whether every successful `/oauth2/token` response includes `refresh_token` (rotation regime) OR only when rotated (sparse regime). [`inoreader-oauth.ts:332`](../../../mcp-server/src/lib/inoreader-oauth.ts#L332) currently treats absence-of-`refresh_token` as "no rotation" — verify this is the documented semantic
+- Documented refresh-token TTL / grace window — if Inoreader publishes one, that's a real signal for T4; if not, "age since last rotation" is the actual telemetry to surface
+
+Output: a 1-page reference at `mcp-server/src/docs/operations/INOREADER_OAUTH_CONTRACT.md` that T1-T4 scope against.
+
+**Track 1 — Sentry alert ruleset on the Worker's structured OAuth failures** (4h)
+
+The Worker's existing structured failures already fire as Sentry events:
+
+- `oauth-refresh-invalid-refresh-token` (the smoking gun)
+- `oauth-refresh-token-missing` ([`inoreader-oauth.ts:198-202`](../../../mcp-server/src/lib/inoreader-oauth.ts#L198-L202))
+- `oauth-refresh-upstash-write-failed` ([`inoreader-oauth.ts:336-343`](../../../mcp-server/src/lib/inoreader-oauth.ts#L336-L343))
+
+Audit caught that T1 must alert on ALL three, not just `invalid_refresh_token` — each is a paging-worthy state. Configure as a Sentry Alert Rule SET:
+
+- Each rule channels to Slack `#mcp-alerts` immediately
+- Each carries a distinct payload + deep link to the relevant DEPLOY.md § C.5 sub-procedure
+- Daily debounce per rule (page on first event per UTC-day)
+- Pure Sentry-side config — no code change for the rules themselves
+- **Monitor-the-monitor**: scheduled `captureMessageEnvelope` synthetic at `0 14 * * 1` UTC (weekly Monday 14:00) emits a test event tagged `tag.alert-rule-synthetic: 1`; operator confirms paging path on receipt. Documented in the AC.
+
+**Track 2 — Worker-served re-auth endpoint** (~1.5 days, audit revised up from 1 day)
+
+Replace the local `scripts/inoreader-auth.mjs` flow with a Worker-served re-auth surface. Three audit-derived design constraints:
+
+- **Auth model**: gate via a new `MCP_ADMIN_KEY` env var (bound separately from team `MCP_KEY_*` keys). Match by key identity, NOT by scope — current `DEFAULT_SCOPES` ([`scopes.ts:49-55`](../../../mcp-server/src/auth/scopes.ts#L49-L55)) is uniform across all keys; per-key scope variation is a BL-033 unlock and BL-042 must not pre-empt it. The `MCP_ADMIN_KEY` binding is a single-key surface independent of the team key set.
+- **CSRF defense**: HMAC alone is insufficient — an attacker who triggers `/start` themselves gets a valid HMAC and can lure the operator into completing it. Use **Upstash-stored opaque state** (key: `mcp:inoreader:reauth-state:<nonce>`, TTL 5min, value: SHA256(admin-key)). Callback handler requires the SAME bearer key as `/start` — bound to operator identity.
+- **Race with cron refresh**: T2's callback writes via `writeRefreshToken/writeAccessToken` which DON'T acquire `REFRESH_LOCK_KEY` ([`inoreader-oauth.ts`](../../../mcp-server/src/lib/inoreader-oauth.ts)). Sequence: cron acquires lock, POSTs with OLD refresh token (~1s in flight), operator completes re-auth + writes NEW tokens, cron returns success and overwrites with stale rotated token from the OLD chain. **T2 callback MUST acquire `REFRESH_LOCK_KEY` before writing** — bounded ~5s lock TTL, same primitive as the existing single-flight.
+
+Endpoints:
+
+- `GET /admin/inoreader/reauth/start` (admin-key gated) — Worker mints opaque nonce, writes `mcp:inoreader:reauth-state:<nonce>` → SHA256(admin-key) with 5-min TTL, returns the Inoreader OAuth URL as a clickable link
+- `GET /admin/inoreader/reauth/callback?code=...&state=...` — Worker (a) validates state (Upstash read, identity check), (b) acquires `REFRESH_LOCK_KEY`, (c) exchanges code via `POST /oauth2/token`, (d) writes new tokens, (e) releases lock, (f) returns a plaintext success page
+- **Audit log**: every `/admin/*` hit emits a `safeLog` entry with `auth.keyOwner` (the stripped-suffix identifier, never the key itself) so after-the-fact incident review knows who triggered the re-auth
+- **URL-param scrubbing**: extend [`safe-logger.ts`](../../../mcp-server/src/auth/safe-logger.ts) to strip `code`, `state`, `access_token`, `refresh_token` from any logged URL query string. The callback URL contains the auth code; without this, the code leaks to Sentry via the request breadcrumb
+
+**Recovery flow becomes**: operator gets paged → clicks Slack link → authorizes in browser → done. Target ~2 min from mobile **under the precondition** that the operator already has the Inoreader app session + `MCP_ADMIN_KEY` in a mobile password manager. Validate this precondition in the AC test plan.
+
+**Track 3 — Emit existing rotation signal** (2h, audit revised down from ½ day)
+
+The Worker already detects rotation at [`inoreader-oauth.ts:332`](../../../mcp-server/src/lib/inoreader-oauth.ts#L332). The missing piece is just emitting the signal:
+
+- Emit `inoreader.oauth.refresh-token.rotated` Sentry event when the rotation branch is taken at line 332
+- Don't log tokens — just `safeLog` an `event: 'inoreader.oauth.rotation'` with `success: true` so it lands in Sentry-via-existing-pipeline
+- Surface `inoreaderRotationsLast24h` count by reading a new Upstash counter `mcp:inoreader:rotations:<YYYY-MM-DD>` (1 INCR + 1 EXPIRE per rotation event; ~negligible substrate cost)
+- No AE event type change needed for this phase — fold in if Phase 3 dashboards want it later
+
+**Track 4 — `/health.inoreaderRefreshTokenHealth`** (1 day, audit revised up from ½ day)
+
+Audit caught that the counters T4 surfaces don't exist yet — they require new INCR sites in `inoreader-oauth.ts`. Honest scope:
+
+- New Upstash counters incremented at the existing refresh sites:
+  - `mcp:inoreader:refresh-success:<YYYY-MM-DD>` (incremented on `RefreshResult.ok`)
+  - `mcp:inoreader:refresh-failure:<reason>:<YYYY-MM-DD>` (one counter per reason: `invalid-refresh-token` / `token-missing` / `upstash-write-failed` / `inoreader-error`)
+  - `mcp:inoreader:last-refresh-success-at` (timestamp; SET on each success)
+  - `mcp:inoreader:last-rotation-at` (timestamp; SET on each T3 rotation event)
+- New `/health` block read via MGET (single round-trip; mirrors `/health.inoreaderSpend` pattern):
+  ```ts
+  inoreaderRefreshTokenHealth: {
+    lastSuccessfulRefreshAt: string | null,
+    ageSinceLastSuccessfulRefreshSeconds: number | null,
+    lastRotationAt: string | null,
+    recentRefreshFailureCounts: { 'invalid-refresh-token': number, 'token-missing': number, 'upstash-write-failed': number, 'inoreader-error': number },
+  }
+  ```
+- Integration test asserts the contract + the counter-increment paths
+
+**T5 deleted** (was: secondary refresh-token slot). Audit caught that Inoreader's documented `invalid_grant` behaviour likely invalidates the whole refresh-token chain — retrying with the "previous" token is more likely to (a) hit `invalid_grant` again, (b) trigger fraud-detection on `client_id`, (c) muddy the Sentry signal. T2's in-browser flow IS the recovery, and is fast enough that a hedge isn't worth the risk. If T3 data later reveals a substantial rotation regime AND a real race we can't otherwise close, file a successor ticket then.
+
+#### Acceptance Criteria
+
+- [ ] **T0**: `mcp-server/src/docs/operations/INOREADER_OAUTH_CONTRACT.md` written with verified `invalid_grant` response shape, rotation-vs-echo regime, refresh-token TTL (if documented); T1 + T2 + T3 scope against this doc
+
+- [ ] **T1**: Sentry alert rules live for ALL three OAuth failure signals (`oauth-refresh-invalid-refresh-token`, `oauth-refresh-token-missing`, `oauth-refresh-upstash-write-failed`); each delivered to Slack within 1 min of first daily event; each carries a deep link to its specific DEPLOY.md § C.5 sub-procedure
+- [ ] **T1 monitor-the-monitor**: weekly synthetic event (`captureMessageEnvelope` tagged `tag.alert-rule-synthetic: 1`) confirms the alert path is live; documented in DEPLOY.md as part of the operator weekly checklist
+- [ ] **T2 endpoints**: `/admin/inoreader/reauth/{start,callback}` implemented + integration-tested; gated by `MCP_ADMIN_KEY` env-var bearer match (not scope); CSRF defense via Upstash-stored opaque state bound to operator-key identity (5-min TTL)
+- [ ] **T2 race-safety**: callback handler acquires `REFRESH_LOCK_KEY` before writing tokens; integration test asserts cron-in-flight + operator-callback ordering preserves new tokens
+- [ ] **T2 audit log**: every `/admin/*` hit emits a `safeLog` with `auth.keyOwner` + URL; `safe-logger.ts` extended to scrub `code`, `state`, `access_token`, `refresh_token` query params from logged URLs
+- [ ] **T2 redirect-URI provisioning**: BOTH `https://mcp-staging.globalstrategic.tech/admin/inoreader/reauth/callback` AND `https://mcp.globalstrategic.tech/.../callback` registered against the Inoreader app; documented in DEPLOY.md § A.4
+- [ ] **T2 validation**: operator runs full recovery on staging from a mobile browser under the precondition "operator has Inoreader session + `MCP_ADMIN_KEY` in mobile password manager"; total elapsed time documented; ≤ 3 minutes (audit-revised target — original 2 min was unsubstantiated)
+- [ ] **T2 docs**: DEPLOY.md § C.5 rewritten with in-browser flow as primary path; local-Node `scripts/inoreader-auth.mjs` retained as the FIRST-TIME bootstrap path (before T2's redirect URIs are registered) — explicit lifecycle decision per CLAUDE.md §4a
+- [ ] **T3**: rotation signal emitted at the existing detection site (`inoreader-oauth.ts:332`); `mcp:inoreader:rotations:<YYYY-MM-DD>` counter incremented; `inoreaderRotationsLast24h` surfaced in `/health` via single MGET op
+- [ ] **T4**: `/health.inoreaderRefreshTokenHealth` block live with all four fields; new counters wired at the existing refresh sites in `inoreader-oauth.ts`; integration test asserts every reason-counter increments on its trigger path
+- [ ] **SECRETS_INVENTORY**: new "Inoreader Account of Record" section documenting which Inoreader account owns the registered GST app, who the operator-of-record is, the redirect URIs registered, and the team-change review cadence
+- [ ] **Recovery drill cadence**: quarterly synthetic operator drill (invalidate a staging refresh token, exercise T1 alert → T2 in-browser recovery → verify timing under the SLA); documented in DEPLOY.md as a recurring operations checklist item
+
+#### Telemetry to Validate
+
+- 7-day window post-Track-1 ship: operator paged ≤ 1 min after `oauth-refresh-invalid-refresh-token` fires (test by intentionally invalidating a staging refresh token)
+- 30-day window post-Track-2 ship: at least one real recovery completed via the in-browser flow in ≤ 2 minutes (or, if no real failure: synthetic exercise during a quarterly drill)
+- 30-day window post-Track-3 ship: telemetry confirms or refutes the rotation hypothesis. If rotations DO happen, ship Track 5.
+
+#### Why Now
+
+- BL-041 Phase 3 today (2026-05-30) surfaced the gap operationally — first time the manual recovery was exercised end-to-end and it took ~15 min from a desktop
+- BL-033 external pilot broadens the user surface — once non-operator clients are calling radar tools, the impact of a 15-min outage is no longer "just our session". Closing this hardening gap before BL-033 ships means external users never see a `token-stale` surface
+- Tracks 1+2 are independently shippable in ~1.5 days; the rest can be sequenced opportunistically
+- Cost: zero new infrastructure — Sentry alert rules + a Worker endpoint + Upstash counter reads. No third-party services, no new secret rotations
+
+#### Risks + Trade-offs
+
+- **Risk (resolved by T2 design)**: auth-code leak via Sentry breadcrumb on the callback URL. Mitigation: `safe-logger.ts` URL query-param scrubbing per the AC (`code` / `state` / `access_token` / `refresh_token` stripped from any logged URL).
+- **Risk (resolved by T2 design)**: CSRF where an attacker triggers `/start` and lures the operator to complete it. Mitigation: opaque Upstash-stored state bound to operator-key identity at `/start`, identity-checked at `/callback`. HMAC-only state (the original proposal) is insufficient — see audit notes.
+- **Risk (resolved by T2 design)**: callback race with in-flight cron refresh overwriting newly-minted tokens. Mitigation: callback acquires the existing `REFRESH_LOCK_KEY` before writing.
+- **Trade-off**: in-browser flow requires the operator to be logged into the Inoreader account that owns the GST radar folders. If the operator changes (BL-033 expands operator pool), the Inoreader app must be accessible. Mitigation: SECRETS_INVENTORY "Inoreader Account of Record" section + team-change review cadence per the AC.
+- **Residual risk**: T2 deploys a new `/admin/*` route. Compromising `MCP_ADMIN_KEY` permits an attacker to force-refresh the Inoreader binding (substituting their own access/refresh tokens via a controlled OAuth grant). Mitigation: `MCP_ADMIN_KEY` is treated as the highest-sensitivity Worker secret (1Password + rotation cadence documented in SECRETS_INVENTORY); the audit log surface (per AC) captures every use for after-the-fact review.
+
+---
+
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-042 filed: May 30, 2026_
