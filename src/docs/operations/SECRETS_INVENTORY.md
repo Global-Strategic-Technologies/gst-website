@@ -198,11 +198,18 @@ The `~""` clause on `mcp-worker-rw` permits the empty-string sentinel that `@ups
 
 ### MFA enforcement log
 
-> Operator Phase D of BL-041 — pending. Fill in each row when the audit happens. Re-verify on every team-membership change (add/remove operator).
+> Operator Phase D of BL-041 — **✅ Completed 2026-05-30**. Upstash's account-level "MFA Requirement" setting is account-wide (not per-member); enabling it forces 2FA on every login for every team member regardless of SSO provider. Re-verify on every team-membership change (add/remove operator) — confirm the new member completes their TOTP setup before granting Upstash access.
 
-| Date  | Member | Upstream SSO MFA | Upstash account TOTP | Verified by |
-| ----- | ------ | ---------------- | -------------------- | ----------- |
-| _TBD_ | _TBD_  | _TBD_            | _TBD_                | _TBD_       |
+| Date       | Scope                | Mechanism                                                | Verified by                                                                                                                      |
+| ---------- | -------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-30 | Upstash account-wide | Account-level TOTP via Upstash "MFA Requirement" setting | RP — confirmed via Upstash console "Security Configuration Complete" panel: ✅ Setup Redis ACL + ✅ MFA Requirement both checked |
+
+**Out of scope** (Upstash paid-plan features — not part of BL-041; may file as a separate ticket if BL-033 external pilot's compliance review requires them):
+
+- IP Allowlist — restricts Upstash connections to listed source IPs. Cloudflare Workers don't have stable egress IPs, so this would require either a paid Cloudflare egress feature or moving to a Worker→Upstash architecture where the IP is fixed
+- Protect Credentials — additional credential management features
+- Encryption at Rest — substrate-level disk encryption
+- SOC-2 — formal SOC-2 attestation tier
 
 ---
 
