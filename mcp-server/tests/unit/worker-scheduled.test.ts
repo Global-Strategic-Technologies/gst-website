@@ -181,13 +181,21 @@ describe('worker.ts scheduled handler — BL-047 T1 alert-rule synthetic branch'
         // 'error' would page the operator weekly as a real incident,
         // defeating the synthetic's purpose.
         level: 'info',
-        message: expect.stringContaining('alert-rule-synthetic'),
+        // The ISO year-week is appended to the message so each week's
+        // firing creates a new Sentry Issue (Sentry groups by message
+        // text). Without per-week variation, every Monday after the
+        // first would silently group into a long-lived issue and the
+        // "A new issue is created" trigger would never fire again.
+        message: expect.stringMatching(/^alert-rule-synthetic: weekly heartbeat \d{4}-W\d{2}$/),
         tags: expect.objectContaining({
           event: 'alert-rule-synthetic',
           // The numeric tag is what the runbook's Sentry rule
           // subscribes to via `tag:alert-rule-synthetic equals 1`.
           // Drop it and Sentry's rule no longer matches.
           'alert-rule-synthetic': '1',
+          // The year-week tag mirrors the message-suffix so operators
+          // can filter the Issues feed by week.
+          'year-week': expect.stringMatching(/^\d{4}-W\d{2}$/),
         }),
       })
     );
