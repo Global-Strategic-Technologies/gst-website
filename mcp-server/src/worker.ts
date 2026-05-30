@@ -41,6 +41,7 @@ import { AnalyticsEngineSink, emit } from './metrics/_index';
 import type { RefreshOutcome } from './cron/radar-refresh';
 import { postSentryCheckIn, postSentryEvent } from './observability/sentry-envelope';
 import { buildHealthPayload } from './observability/health';
+import { runAclSelfCheckOnce } from './observability/acl-selfcheck';
 import { acquire } from './lib/single-flight-lock';
 import { refreshRadarSnapshot } from './cron/radar-refresh';
 import { readWireLive, readFyiLive } from './content/radar-live-store';
@@ -320,6 +321,13 @@ export const handler: ExportedHandler<Env> = {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin');
+
+    // BL-041: one-shot ACL self-check per deploy. Fire-and-forget via
+    // waitUntil — first isolate to win the Upstash gate runs the probe;
+    // every other request no-ops cheaply at the gate. Result lands in
+    // `mcp:acl-selfcheck:result:<gitSha>` and is surfaced by /health.
+    // Never blocks the request path; fail-open if Upstash is down.
+    ctx.waitUntil(runAclSelfCheckOnce(env).catch(() => undefined));
 
     // 1. CORS preflight — never authenticated; never logged (high-volume noise).
     if (isPreflight(request)) {

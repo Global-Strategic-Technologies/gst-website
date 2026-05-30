@@ -59,6 +59,7 @@ import {
 } from './inoreader-status';
 import { createMcpClient } from '../lib/upstash-clients';
 import { readInoreaderSpend, type InoreaderEgressCategory } from '../lib/inoreader-egress';
+import { readAclSelfCheck, type AclSelfCheckResult } from './acl-selfcheck';
 import type { Env } from '../worker';
 
 const VERSION = '0.1.0'; // bumped in lockstep with mcp-server/package.json (see BREAKING_CHANGES.md)
@@ -116,6 +117,19 @@ interface HealthResponse {
     total: number;
     byCategory: Record<InoreaderEgressCategory, number>;
   };
+  /**
+   * BL-041 — Worker-side ACL self-check result for the current deploy.
+   * Set after the first request post-deploy via `runAclSelfCheckOnce`;
+   * `'unknown'` until the probe lands or when Upstash is unreachable.
+   * `'degraded'` carries the first command that returned NOPERM so an
+   * operator can pinpoint the missing ACL category at a glance.
+   *
+   * **Read-only here**: this endpoint never RUNS the probe; the worker.ts
+   * fetch handler triggers it once per deploy in the background. /health
+   * reads the recorded result so a uptime monitor or operator curl sees
+   * the same value regardless of which isolate served the request.
+   */
+  aclSelfCheck: AclSelfCheckResult;
 }
 
 const HEALTH_PROBE_KEY_PREFIX = 'mcp:health:probe:';
@@ -206,12 +220,14 @@ async function probeRadarSnapshotAge(env: Env): Promise<number | null> {
  * the Inoreader DB probe) shaved one Upstash round-trip off this path.
  */
 export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
-  const [upstashMcp, inoreader, radarSnapshotAgeSeconds, inoreaderSpend] = await Promise.all([
-    probeMcp(env),
-    readInoreaderStatus(env),
-    probeRadarSnapshotAge(env),
-    readInoreaderSpend(env),
-  ]);
+  const [upstashMcp, inoreader, radarSnapshotAgeSeconds, inoreaderSpend, aclSelfCheck] =
+    await Promise.all([
+      probeMcp(env),
+      readInoreaderStatus(env),
+      probeRadarSnapshotAge(env),
+      readInoreaderSpend(env),
+      readAclSelfCheck(env),
+    ]);
 
   // ok: true iff MCP DB is reachable AND the last observed Inoreader API
   // call was not degraded. `inoreader: 'unknown'` is intentionally NOT a
@@ -233,5 +249,6 @@ export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
     inoreaderObservedSource: inoreader.source,
     radarSnapshotAgeSeconds,
     inoreaderSpend,
+    aclSelfCheck,
   };
 }
