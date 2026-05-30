@@ -23,7 +23,7 @@
 
 .EXAMPLE
     PS> $env:CF_AE_TOKEN = '<token>'
-    PS> $env:CF_ACCOUNT_ID = '<account id>'
+    PS> $env:CLOUDFLARE_ACCOUNT_ID = '<account id>'
     PS> .\scripts\Verify-AeEmission.ps1
 
 .EXAMPLE
@@ -31,7 +31,7 @@
 
 .NOTES
     Requires `$env:CF_AE_TOKEN` (Account | Account Analytics | Read) and
-    `$env:CF_ACCOUNT_ID`. The script fails loudly if either is unset —
+    `$env:CLOUDFLARE_ACCOUNT_ID`. The script fails loudly if either is unset —
     keeping the token out of script arguments avoids leaking it into
     shell history / transcripts.
 #>
@@ -49,8 +49,15 @@ $ErrorActionPreference = 'Stop'
 if (-not $env:CF_AE_TOKEN) {
     throw 'CF_AE_TOKEN not set. Mint per DEPLOY.md C.X and run: $env:CF_AE_TOKEN = ''<token>'''
 }
-if (-not $env:CF_ACCOUNT_ID) {
-    throw 'CF_ACCOUNT_ID not set. Get via "npx wrangler whoami" and run: $env:CF_ACCOUNT_ID = ''<id>'''
+# Wrangler 4.x renamed `CF_ACCOUNT_ID` → `CLOUDFLARE_ACCOUNT_ID` (the
+# legacy name still works but emits a deprecation warning on every
+# invocation). Prefer the new name; fall back to the legacy name so
+# operators with the old export don't break mid-session.
+if (-not $env:CLOUDFLARE_ACCOUNT_ID -and $env:CF_ACCOUNT_ID) {
+    $env:CLOUDFLARE_ACCOUNT_ID = $env:CF_ACCOUNT_ID
+}
+if (-not $env:CLOUDFLARE_ACCOUNT_ID) {
+    throw 'CLOUDFLARE_ACCOUNT_ID not set. Get via "npx wrangler whoami" and run: $env:CLOUDFLARE_ACCOUNT_ID = ''<id>'''
 }
 
 $datasets = @{
@@ -60,7 +67,7 @@ $datasets = @{
 
 $targets = if ($Env -eq 'both') { @('staging', 'production') } else { @($Env) }
 
-$uri = "https://api.cloudflare.com/client/v4/accounts/$env:CF_ACCOUNT_ID/analytics_engine/sql"
+$uri = "https://api.cloudflare.com/client/v4/accounts/$env:CLOUDFLARE_ACCOUNT_ID/analytics_engine/sql"
 $headers = @{
     'Authorization' = "Bearer $env:CF_AE_TOKEN"
     'Content-Type'  = 'application/json'
