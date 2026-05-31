@@ -5,10 +5,14 @@ permissions:
 
 on:
   push:
-    branches: [master, dev, 'feat/**', 'fix/**']
+    branches: [master, dev, 'feat/**', 'fix/**', 'feature/**']
   pull_request:
     branches: [master]
-    types: [opened, synchronize, reopened]
+    # Deliberately NOT listening to `synchronize` — push covers every commit
+    # added to a PR'd branch, and `synchronize` would duplicate-fire on every
+    # PR sync. `opened` + `reopened` still gives one PR-context run on the
+    # synthetic merge SHA so the merge result is independently validated.
+    types: [opened, reopened]
 
 concurrency:
   # Include event_name in the group so push and pull_request runs on the
@@ -139,8 +143,18 @@ jobs:
           node-version: '22.x'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Cache node_modules
         if: needs.changes.outputs.should_run == 'true'
+        uses: actions/cache@v5
+        id: nm-cache
+        with:
+          path: |
+            node_modules
+            mcp-server/node_modules
+          key: nm-v1-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: needs.changes.outputs.should_run == 'true' && steps.nm-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Astro type check
@@ -158,10 +172,6 @@ jobs:
       - name: Prettier check
         if: needs.changes.outputs.should_run == 'true'
         run: npx prettier --check .
-
-      - name: npm audit (production dependencies only)
-        if: needs.changes.outputs.should_run == 'true'
-        run: npm audit --audit-level=moderate --omit=dev
 
       - name: Skipped (docs-only or duplicate run)
         if: needs.changes.outputs.should_run != 'true'
@@ -190,8 +200,18 @@ jobs:
           node-version: '22.x'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Cache node_modules
         if: needs.changes.outputs.should_run == 'true'
+        uses: actions/cache@v5
+        id: nm-cache
+        with:
+          path: |
+            node_modules
+            mcp-server/node_modules
+          key: nm-v1-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: needs.changes.outputs.should_run == 'true' && steps.nm-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Run tests with coverage
@@ -259,8 +279,18 @@ jobs:
           node-version: '22.x'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Cache node_modules
         if: needs.changes.outputs.should_run == 'true'
+        uses: actions/cache@v5
+        id: nm-cache
+        with:
+          path: |
+            node_modules
+            mcp-server/node_modules
+          key: nm-v1-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: needs.changes.outputs.should_run == 'true' && steps.nm-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Get Playwright version

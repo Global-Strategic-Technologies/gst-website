@@ -60,15 +60,19 @@ if (!ALLOWED_ENVS.includes(env)) {
 
 let sha;
 try {
-  sha = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
+  // `--short=7` pins the length explicitly. The default `--short` honors
+  // `core.abbrev` AND auto-extends on ambiguity — both of which would silently
+  // break the CI smoke probe's prefix compare. Pinning to 7 keeps deploy.mjs
+  // and the workflow probe agreeing byte-for-byte.
+  sha = execSync('git rev-parse --short=7 HEAD', { encoding: 'utf-8' }).trim();
 } catch (err) {
   console.error(`Failed to read git SHA: ${err.message}`);
   console.error('Are you inside a git repo? Refusing to deploy without a SHA.');
   process.exit(1);
 }
 
-// `git rev-parse --short` returns 7+ hex chars. Anything else is suspicious.
-if (!/^[0-9a-f]{7,}$/.test(sha)) {
+// `git rev-parse --short=7` returns exactly 7 hex chars. Anything else is suspicious.
+if (!/^[0-9a-f]{7}$/.test(sha)) {
   console.error(
     `Refusing to deploy: git rev-parse returned a suspicious value: ${JSON.stringify(sha)}`
   );

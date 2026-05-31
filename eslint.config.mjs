@@ -21,6 +21,7 @@ export default [
       'dist/**',
       '**/dist/**',
       '.astro/**',
+      '**/.astro/**',
       '.vercel/**',
       'coverage/**',
       'playwright-report/**',

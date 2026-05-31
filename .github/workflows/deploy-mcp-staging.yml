@@ -20,14 +20,24 @@ on:
   workflow_run:
     workflows: ['MCP Server Test Suite']
     types: [completed]
-    branches: [dev, 'feature-*']
+    # Branch list harmonized with `test.yml` and `test-mcp-server.yml` — all
+    # three workflows now share the canonical set so the chain is never
+    # short-circuited by a filter mismatch (BL-037 follow-up after BL-038
+    # surfaced two gaps: `feature-*` didn't match slash-style branches, and
+    # `master` was missing so the merge commit never got staging validation).
+    branches: [master, dev, 'feat/**', 'fix/**', 'feature/**']
 
 permissions:
   contents: read
 
 concurrency:
+  # Per-branch group: rapid successive merges to the same branch queue rather
+  # than race. `cancel-in-progress: false` because mid-flight cancellation of
+  # `wrangler deploy` could leave the Worker partially uploaded — for a
+  # deploy workflow the queue-and-wait semantic is the correct safety
+  # property, even though "only the latest matters" is intuitively appealing.
   group: deploy-mcp-staging-${{ github.event.workflow_run.head_branch }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy-staging:
@@ -58,10 +68,27 @@ jobs:
         env:
           DEPLOYED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
+          # `deploy.mjs` pins SHA to `--short=7`, so we compare against the
+          # leading 7 chars of the workflow_run head_sha. The two must agree
+          # byte-for-byte; if either side ever changes the abbreviation
+          # length, this probe will fail loud rather than silently mismatching.
           EXPECTED=${DEPLOYED_SHA:0:7}
+          if ! [[ "$EXPECTED" =~ ^[0-9a-f]{7}$ ]]; then
+            echo "Refusing to probe: EXPECTED='$EXPECTED' is not a 7-char hex SHA"
+            exit 1
+          fi
           echo "Expecting /health.gitSha to report $EXPECTED"
           for i in $(seq 1 10); do
-            ACTUAL=$(curl -fsS https://mcp-staging.globalstrategic.tech/health | jq -r .gitSha || echo "")
+            # Cache-buster query + no-cache headers defeat any Cloudflare-edge
+            # caching of `/health` between attempts. The query string is part
+            # of the cache key by default; the headers cover origin-side
+            # caches if /health ever sprouts one.
+            CACHE_BUSTER="t=$(date +%s%N)"
+            ACTUAL=$(curl -fsS \
+              -H "Cache-Control: no-cache" \
+              -H "Pragma: no-cache" \
+              "https://mcp-staging.globalstrategic.tech/health?${CACHE_BUSTER}" \
+              | jq -r .gitSha || echo "")
             if [ "$ACTUAL" = "$EXPECTED" ]; then
               echo "Smoke probe OK: gitSha=$ACTUAL on attempt $i"
               exit 0
