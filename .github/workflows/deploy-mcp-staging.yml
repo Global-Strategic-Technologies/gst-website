@@ -20,7 +20,13 @@ on:
   workflow_run:
     workflows: ['MCP Server Test Suite']
     types: [completed]
-    branches: [dev, 'feature-*']
+    # `feature/**` is required because GitHub Actions globs treat `/` as a
+    # path separator — `feature-*` does NOT match `feature/bl-038-...`
+    # (slash-style is the team's actual convention; dash-style left in for
+    # back-compat). `master` is included so the merge commit ALSO gets a
+    # staging validation, closing the gap where the post-merge tip ships to
+    # production without ever touching staging.
+    branches: [master, dev, 'feature/**', 'feature-*']
 
 permissions:
   contents: read
