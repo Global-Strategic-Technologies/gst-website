@@ -1663,7 +1663,7 @@ Two end-state options were considered:
 
 ### BL-032.75: MCP Server — Production Observability Maturity
 
-**Source**: BL-032.75 — extends Phase 2 substrate | **Architecture & plan**: [MCP_SERVER_OBSERVABILITY_BL-032_75.md](MCP_SERVER_OBSERVABILITY_BL-032_75.md) | **Effort**: 1 sprint engineering + 10-14 day baselining window | **Status**: Open | **Depends on**: BL-032 (BL-032.5 strongly preferred for full surface coverage)
+**Source**: BL-032.75 — extends Phase 2 substrate | **Architecture & plan**: [MCP_SERVER_OBSERVABILITY_BL-032_75.md](MCP_SERVER_OBSERVABILITY_BL-032_75.md) | **Effort**: 1 sprint engineering + 7 day baselining window | **Status**: 🟢 **Phase 0 ✅ SHIPPED 2026-05-26** (spend accounting + drift detection); **Phase 1 ✅ SHIPPED 2026-05-31** (AE schema + sinks + guard + `withMetrics` HOF + 10 tools / 5 resources / all prompts wrapped + `inoreader_call` chokepoint emit + AE binding in wrangler.toml + 76/76 metrics tests passing — formally closed 2026-05-31 after audit found the BACKLOG status had drifted from code reality); **Phase 2 baselining started 2026-05-31, first data-pull 2026-06-07** (tracking artifact: [`mcp-server/observability/slo-baselines.md`](../../../mcp-server/observability/slo-baselines.md)); **Phase 3 dashboards + alerts open**, unblocked once Phase 2 baselines + SLO targets land. | **Depends on**: BL-032 (closed); BL-032.5 substrate (closed)
 
 **As a** GST engineering lead approaching BL-033's contractual SLA commitments, **I want** SLO dashboards, alerting, and error-budget tracking against measured production baselines **so that** the SLAs we commit to in pilot legal paper are defensible operational reality, not aspirational numbers.
 
