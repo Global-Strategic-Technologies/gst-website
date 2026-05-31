@@ -1,0 +1,187 @@
+name: Rollback MCP Worker
+
+# BL-037 Phase C — manual rollback of the MCP Worker to a prior deployment.
+#
+# Workflow_dispatch only. Operator provides:
+#   - environment: staging | production (which env to roll back)
+#   - version-id: the Cloudflare Worker deployment ID to restore. Find it
+#       via `npx wrangler deployments list --env <env>` from a machine with
+#       wrangler creds, OR via the Cloudflare dashboard.
+#   - reason: free-text recorded in the run summary for the audit trail
+#
+# Reviewer gate: production rollbacks bind the `mcp-production-rollback`
+# GitHub Environment (separate from `mcp-production` so the rollback
+# reviewer list can diverge from the deploy reviewer list if needed).
+# Staging rollbacks have no environment / no reviewer — they're cheap
+# enough to be self-service.
+#
+# Sentry source maps: NOT re-uploaded. The rollback target was a prior
+# deploy that already uploaded its source maps; Sentry's release-pinning
+# resolves stack traces against the historical bundle automatically.
+#
+# Smoke probe: same shape as the deploy workflows (shared
+# `mcp-server/scripts/smoke-probe.sh`). The expected SHA is the rollback
+# target's git SHA, which the operator records alongside the deployment
+# ID per DEPLOY.md § C.
+#
+# Failure semantics: louder than a deploy failure because rollback IS the
+# recovery path. A failed rollback means falling through to operator-direct
+# (`wrangler rollback` from a laptop with creds) — documented in
+# `mcp-server/src/docs/operations/DEPLOY.md`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Which env to roll back'
+        type: choice
+        required: true
+        options:
+          - staging
+          - production
+      version-id:
+        description: 'Cloudflare Worker deployment ID (find via `wrangler deployments list`)'
+        type: string
+        required: true
+      target-sha:
+        description: 'Git SHA of the rollback target (full 40-char or 7-char; for smoke probe)'
+        type: string
+        required: true
+      reason:
+        description: 'Reason for rollback (recorded in run summary)'
+        type: string
+        required: false
+        default: 'No reason provided'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  # Per-environment serialization: a rollback and a deploy targeting the
+  # same env must not race. The deploy workflows use `deploy-mcp-staging-*`
+  # / `deploy-mcp-production`; this workflow shares the production group so
+  # a production rollback queues behind any in-flight production deploy.
+  # Staging gets its own rollback group (deploys to staging use a per-branch
+  # group, so a global staging-rollback group is fine — they'll never share
+  # a key with a deploy).
+  group: ${{ inputs.environment == 'production' && 'deploy-mcp-production' || format('rollback-mcp-staging-{0}', inputs.environment) }}
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    name: Roll back MCP Worker (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      # Production rollbacks bind a separate environment from the deploy
+      # workflow so the reviewer list can diverge. Operator one-time
+      # setup: Settings → Environments → New environment named
+      # `mcp-production-rollback` with required reviewers. Staging
+      # rollbacks bind no environment.
+      name: ${{ inputs.environment == 'production' && 'mcp-production-rollback' || '' }}
+      url: ${{ inputs.environment == 'production' && 'https://mcp.globalstrategic.tech/health' || 'https://mcp-staging.globalstrategic.tech/health' }}
+
+    steps:
+      - name: Validate inputs
+        run: |
+          # version-id format: Cloudflare deployment IDs are UUIDs.
+          if ! [[ "${{ inputs.version-id }}" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            echo "Refusing: version-id '${{ inputs.version-id }}' is not a UUID"
+            exit 1
+          fi
+          # target-sha format: 7-40 char hex.
+          if ! [[ "${{ inputs.target-sha }}" =~ ^[0-9a-fA-F]{7,40}$ ]]; then
+            echo "Refusing: target-sha '${{ inputs.target-sha }}' is not 7-40 hex chars"
+            exit 1
+          fi
+
+      - name: Write audit trail to run summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Rollback parameters
+
+          | Field | Value |
+          |---|---|
+          | Environment | \`${{ inputs.environment }}\` |
+          | Version ID  | \`${{ inputs.version-id }}\` |
+          | Target SHA  | \`${{ inputs.target-sha }}\` |
+          | Operator    | @${{ github.actor }} |
+          | Reason      | ${{ inputs.reason }} |
+
+          EOF
+
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22.x'
+          cache: npm
+
+      - name: Cache node_modules
+        uses: actions/cache@v5
+        id: nm-cache
+        with:
+          path: |
+            node_modules
+            mcp-server/node_modules
+          key: nm-v1-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Roll back via wrangler
+        working-directory: mcp-server
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler rollback \
+            --env "${{ inputs.environment }}" \
+            "${{ inputs.version-id }}" \
+            --message "rollback via GHA by @${{ github.actor }}: ${{ inputs.reason }}"
+
+      - name: Smoke probe — /health gitSha matches rollback target
+        env:
+          HOST: ${{ inputs.environment == 'production' && 'https://mcp.globalstrategic.tech' || 'https://mcp-staging.globalstrategic.tech' }}
+          EXPECTED_SHA: ${{ inputs.target-sha }}
+        run: bash mcp-server/scripts/smoke-probe.sh
+
+      - name: Open Issue on rollback failure
+        # Rollback failure is LOUDER than a deploy failure — the deploy
+        # was the symptom; rollback IS the recovery. Falling through to
+        # operator-direct (`wrangler rollback` from a laptop) is the next
+        # step.
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue create \
+            --title "🚨 MCP rollback FAILED on ${{ inputs.environment }} → ${{ inputs.target-sha }}" \
+            --label "incident,mcp-rollback,P1" \
+            --body "$(cat <<EOF
+          **Workflow run**: $RUN_URL
+          **Environment**: \`${{ inputs.environment }}\`
+          **Version ID**: \`${{ inputs.version-id }}\`
+          **Target SHA**: \`${{ inputs.target-sha }}\`
+          **Operator**: @${{ github.actor }}
+          **Reason given**: ${{ inputs.reason }}
+
+          The rollback workflow failed. **Recovery path**:
+
+          1. Read the failing step in the run URL.
+          2. If \`wrangler rollback\` itself failed (Cloudflare API blip / invalid version-id): fix and re-run the workflow.
+          3. If smoke probe failed: rollback IS already on the Worker but \`/health\` didn't reflect it within 70s. Curl \`/health\` directly to confirm state; investigate Cloudflare propagation / Upstash.
+          4. **Operator-direct fallback** (per DEPLOY.md): from a machine with wrangler creds:
+             \`\`\`
+             cd mcp-server
+             npx wrangler rollback --env ${{ inputs.environment }} ${{ inputs.version-id }}
+             \`\`\`
+
+          Close this Issue once the rollback target is verified clean on \`/health\`.
+          EOF
+          )"
