@@ -81,22 +81,25 @@ This is intentionally permissive — it accepts both the documented 401 status a
 
 ## 5. Refresh-token lifetime / TTL
 
-**Inoreader publishes NO refresh-token TTL.** Verified absent from the official OAuth doc as of 2026-05-30. Production observation: our long-lived refresh tokens have run for weeks at a time without rotation, then died abruptly with no advance signal.
+**Inoreader publishes NO refresh-token TTL.** Verified absent from the official OAuth doc as of 2026-05-30.
+
+**Empirical observation (2026-05-31)**: Inoreader implements a **grace window of ≥60 seconds** during which the previously-issued refresh_token remains valid after a successful refresh that rotated it. Verified via [`mcp-server/scripts/Test-InoreaderRefreshGrace.ps1`](../../../scripts/Test-InoreaderRefreshGrace.ps1) at 5s, 30s, and 60s — all three retries with the previous token succeeded. **This is NOT the strict RFC 6749 § 10.4 / BCP 240 reuse-detection semantic** some modern providers (Microsoft Entra ID, modern OAuth 2.1) implement.
 
 **Implication for BL-047 T4**: surface "age since last successful refresh" + "age since last rotation" rather than a "% of refresh-token TTL remaining" indicator. We cannot compute the latter without a documented TTL; age-since-last-success is the actual signal we have.
 
-## 6. Rotation regime — open question
+**Implication for the grace-window hedge** ([`inoreader-oauth-grace-cache.ts`](../../lib/inoreader-oauth-grace-cache.ts)): the in-isolate cache holds a previously-rotated refresh_token for 60s. On `invalid_grant` from the primary, one retry with the cached token is attempted; within the grace window it succeeds and the operator never sees the failure. Beyond the grace window (or for true revocation), the hedge fails and the original `invalid-refresh-token` reaches the operator unchanged.
 
-Observed reality (2026-05-13 BL-039 ship date through 2026-05-30): we have not yet captured production data on whether `refresh_token` is **always rotated** (every successful refresh returns a NEW refresh_token) or **rotated sparsely** (most refreshes return the SAME refresh_token, with rotation only on specific triggers).
+## 6. Rotation regime — ANSWERED 2026-05-31
 
-**BL-047 T3 shipped 2026-05-31** — telemetry now live:
+**Dense rotation confirmed.** Every successful `POST /oauth2/token` returns a NEW `refresh_token`, invalidating the previous one in Inoreader's index after the grace window expires. Verified empirically via [`Test-InoreaderRefreshGrace.ps1`](../../../scripts/Test-InoreaderRefreshGrace.ps1) — two consecutive calls within 5-60s both produced rotations (`rotationsObservedInTest: 2`).
 
-- Sentry event `inoreader.oauth.refresh-token.rotated` (info-level) fires on every rotation
-- Upstash counter `mcp:inoreader:rotations:<YYYY-MM-DD>` increments per rotation (25h TTL)
-- `/health.inoreaderRefreshTokenHealth.lastRotationAt` + `.rotationsLast24h` operator-readable
-- All wired through [`inoreader-refresh-health.ts`](../../lib/inoreader-refresh-health.ts) recorder at the rotation branch of [`inoreader-oauth.ts:332`](../../lib/inoreader-oauth.ts)
+The 30-day BL-047 T3 telemetry soak ([`inoreader-refresh-health.ts`](../../lib/inoreader-refresh-health.ts)) will confirm whether this pattern persists across longer cadences (e.g., is the rotation rate the same when the cron fires once every 6 hours vs. continuous rapid calls?). The single-flight lock at the OAuth boundary remains load-bearing under dense rotation — without it, parallel refresh calls would each issue separate rotations with no coordination.
 
-**Regime answer window opens 2026-05-31**: 30 days of T3 data (closes ~2026-06-30) is the empirical answer. Until then we assume the safer (dense rotation) regime by default and the single-flight lock at the OAuth boundary mitigates the parallel-fetch race.
+**Implications**:
+
+- The Worker's rotation-detection logic at [`inoreader-oauth.ts:337`](../../lib/inoreader-oauth.ts) is correct and load-bearing.
+- The grace-window hedge (§ 5) closes the "Worker isolate stranded after external invalidation" failure mode that dense rotation makes more likely.
+- BL-047 T2 (in-browser recovery) handles the case where BOTH the cached and the stored tokens die together (true chain death from operator revocation, password change, etc.).
 
 **Why it matters**: if Inoreader is in a rotation regime (every refresh issues a new refresh_token), our cron's parallel-fetch races become more dangerous — the loser of a race writes a stale refresh_token. The existing single-flight lock at the OAuth boundary already mitigates this, but a known rotation regime would re-elevate the risk profile and likely justify Track-5-equivalent hedging. Until T3 ships, we assume the safer (rotation) regime by default.
 

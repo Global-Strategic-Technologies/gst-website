@@ -177,6 +177,43 @@ export async function recordRotation(env: Env): Promise<void> {
 }
 
 /**
+ * BL-047 — record a grace-window hedge recovery event. Fires when a
+ * primary refresh failed with `invalid_grant` but a retry with the
+ * in-memory cached previous token succeeded. Empirically observable
+ * proof that the grace-window hedge is closing real failure modes;
+ * sustained zero-count would suggest the hedge could be retired.
+ *
+ * Emits:
+ *   - safeLog `{ event: 'inoreader.oauth.grace-window-recovery' }`
+ *   - Sentry envelope event tagged `inoreader.oauth.grace-window-recovery`
+ *     (info-level — never pages; the recovery itself is the success)
+ *   - Upstash counter `mcp:inoreader:grace-recovery:<YYYY-MM-DD>`
+ *
+ * Never throws.
+ */
+export async function recordGraceWindowRecovery(env: Env): Promise<void> {
+  const redis = createMcpClient(env);
+  const now = new Date();
+  safeLog({
+    event: 'inoreader.oauth.grace-window-recovery',
+    success: true,
+  });
+  await captureMessageEnvelope(
+    env,
+    'Inoreader refresh-token grace-window recovery',
+    'info',
+    { occurredAt: now.toISOString() },
+    'inoreader.oauth.grace-window-recovery'
+  );
+  if (!redis) return;
+  try {
+    await bump(redis, `mcp:inoreader:grace-recovery:${utcDayBucket(now)}`);
+  } catch {
+    // Fail-open.
+  }
+}
+
+/**
  * T4 — read the refresh-token health surface for `/health`. Single
  * round-trip via MGET (Upstash REST batches). Fail-open: returns all
  * zeros / nulls when Upstash is unreachable.

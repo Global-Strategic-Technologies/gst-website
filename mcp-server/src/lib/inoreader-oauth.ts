@@ -51,10 +51,16 @@ import { captureMessageEnvelope } from '../observability/sentry-envelope';
 import { safeLog } from '../auth/safe-logger';
 import { recordInoreaderEgress } from './inoreader-egress';
 import {
+  recordGraceWindowRecovery,
   recordRefreshFailure,
   recordRefreshSuccess,
   recordRotation,
 } from './inoreader-refresh-health';
+import {
+  cachePreviousToken,
+  clearPreviousToken,
+  getPreviousToken,
+} from './inoreader-oauth-grace-cache';
 import type { Env } from '../worker';
 
 /** Inoreader OAuth token-refresh endpoint. */
@@ -190,6 +196,14 @@ async function waitForPeerRefresh(
   };
 }
 
+/**
+ * Orchestrates one refresh attempt against the primary refresh_token
+ * (read from Upstash) and, on `invalid-refresh-token`, optionally retries
+ * once with an in-memory cached previous token (BL-047 grace-window
+ * hedge). Logs the FINAL result exactly once via `logAndCapture` — the
+ * primary's `invalid-refresh-token` is suppressed when the hedge recovers,
+ * so operators only see paging-class events that actually need attention.
+ */
 async function performRefresh(
   env: Env,
   source: RefreshSource,
@@ -224,6 +238,51 @@ async function performRefresh(
     return result;
   }
 
+  // Primary attempt with the token read from Upstash.
+  let result = await tryRefresh(env, refreshToken, source, appId, appKey);
+
+  // BL-047 grace-window hedge: on `invalid-refresh-token`, check for a
+  // previously-cached token from a rotation in this isolate's lifetime
+  // and retry once within Inoreader's empirically-verified ≥60s grace
+  // window. Catches the case where Upstash's token has been invalidated
+  // by an out-of-band rotation but our in-isolate cache still has a
+  // chain-valid predecessor.
+  if (!result.ok && result.reason === 'invalid-refresh-token') {
+    const cachedPrevious = getPreviousToken();
+    if (cachedPrevious && cachedPrevious !== refreshToken) {
+      const hedgeResult = await tryRefresh(env, cachedPrevious, source, appId, appKey);
+      if (hedgeResult.ok) {
+        // Recovery observed. Evict the now-known-dead cache entry to
+        // avoid presenting it on the next failure (would just produce
+        // a second invalid_grant since Inoreader has moved past it).
+        clearPreviousToken();
+        await recordGraceWindowRecovery(env);
+        result = hedgeResult;
+      }
+      // If hedge also returned invalid_grant, the chain is truly dead;
+      // keep the original `result` so the operator sees the primary
+      // failure mode (not the redundant hedge attempt's).
+    }
+  }
+
+  await logAndCapture(env, result, source, Date.now() - startedAt);
+  return result;
+}
+
+/**
+ * Single POST to Inoreader's `/oauth2/token` with the supplied refresh
+ * token. Handles response shaping, rotation detection + caching, and
+ * the Upstash persistence path. Does NOT call `logAndCapture` — the
+ * caller (`performRefresh`) does that once with the final result so
+ * a self-healed hedge attempt doesn't double-fire Sentry events.
+ */
+async function tryRefresh(
+  env: Env,
+  refreshTokenToUse: string,
+  source: RefreshSource,
+  appId: string,
+  appKey: string
+): Promise<RefreshResult> {
   // Build form-encoded body per Inoreader's documented contract (Phase 0
   // Context7 confirmed). URLSearchParams stringifies into
   // application/x-www-form-urlencoded shape natively.
@@ -231,7 +290,7 @@ async function performRefresh(
     client_id: appId,
     client_secret: appKey,
     grant_type: 'refresh_token',
-    refresh_token: refreshToken,
+    refresh_token: refreshTokenToUse,
   });
 
   const controller = new AbortController();
@@ -249,37 +308,25 @@ async function performRefresh(
     });
   } catch (e) {
     // No Response — the call aborted (timeout) or threw before reaching
-    // Inoreader. The egress wrapper is intentionally NOT invoked here,
-    // for BOTH counters it would have touched:
-    //
-    //   - Zone-1 total: `oauth-refresh` doesn't contribute anyway, so this
-    //     branch is moot for the Zone-1 dashboard.
-    //   - Per-category `oauth-refresh` counter: skipping aligns with the
-    //     same rule the Zone-1 path follows ("nothing reached Inoreader,
-    //     nothing was counted by them"). If we ticked here, the
-    //     `oauth-refresh` rate would over-count auth churn during
-    //     network-degraded windows — exactly when an operator would be
-    //     reading the counter to diagnose.
-    //
-    // Documented at BL-032.75 Phase 0 audit fix M3.
-    const result: RefreshResult = {
+    // Inoreader. The egress wrapper is intentionally NOT invoked here;
+    // see BL-032.75 Phase 0 audit fix M3 for the full rationale (Zone-1
+    // total is unaffected; per-category counter would over-count auth
+    // churn during network-degraded windows).
+    return {
       ok: false,
       reason: 'inoreader-error',
       message: `Inoreader /oauth2/token network error: ${(e as Error).message}`,
     };
-    await logAndCapture(env, result, source, Date.now() - startedAt);
-    return result;
   } finally {
     clearTimeout(timeoutId);
   }
 
   // BL-032.75 Phase 0: record the OAuth POST as an 'oauth-refresh' egress
-  // event. /oauth2/token is not in either Inoreader Zone table at
-  // https://www.inoreader.com/developers/rate-limiting (verified 2026-05-26
-  // — Zone tables cover /reader/api/0/* endpoints only). The recorder
-  // increments the per-category counter but EXCLUDES this from the Zone-1
-  // total, so OAuth refresh churn doesn't pollute spend dashboards.
-  // Best-effort — recorder failures never propagate.
+  // event. /oauth2/token is not in either Inoreader Zone table — Zone
+  // tables cover /reader/api/0/* endpoints only. The recorder increments
+  // the per-category counter but EXCLUDES this from the Zone-1 total.
+  // Hedge retries DO record an additional egress event (both POSTs hit
+  // Inoreader), which correctly reflects upstream call cost.
   await recordInoreaderEgress({
     env,
     category: 'oauth-refresh',
@@ -288,12 +335,9 @@ async function performRefresh(
   });
 
   if (!res.ok) {
-    // Differentiate invalid_grant from other failures. Inoreader returns
-    // `{"error":"invalid_grant"}` in the body on a dead refresh_token;
-    // we read the body once to inspect, then map.
     const bodyText = await safeReadText(res);
     const isInvalidGrant = res.status === 401 || /invalid_grant/.test(bodyText);
-    const result: RefreshResult = isInvalidGrant
+    return isInvalidGrant
       ? {
           ok: false,
           reason: 'invalid-refresh-token',
@@ -304,75 +348,80 @@ async function performRefresh(
           reason: 'inoreader-error',
           message: `Inoreader /oauth2/token returned ${res.status} ${res.statusText} (body excerpt: ${bodyText.slice(0, 200)})`,
         };
-    await logAndCapture(env, result, source, Date.now() - startedAt);
-    return result;
   }
 
   let parsed: InoreaderTokenResponse;
   try {
     parsed = (await res.json()) as InoreaderTokenResponse;
   } catch (e) {
-    const result: RefreshResult = {
+    return {
       ok: false,
       reason: 'inoreader-error',
       message: `Inoreader /oauth2/token returned non-JSON body: ${(e as Error).message}`,
     };
-    await logAndCapture(env, result, source, Date.now() - startedAt);
-    return result;
   }
 
   if (!parsed.access_token) {
-    const result: RefreshResult = {
+    return {
       ok: false,
       reason: 'inoreader-error',
       message: 'Inoreader /oauth2/token response had no access_token field',
     };
-    await logAndCapture(env, result, source, Date.now() - startedAt);
-    return result;
   }
 
   // Persistence ordering: refresh_token first (only if rotated), then
   // access_token. A crash between the two writes preserves the credential
   // that can rebuild the access token.
-  if (parsed.refresh_token && parsed.refresh_token !== refreshToken) {
-    // BL-047 T3 — rotation detected. Emit observability event + counters
-    // BEFORE the write so a write-failure still records the rotation
-    // (the counter answers "is Inoreader rotating us?"; the write
-    // failure is separately surfaced via the upstash-write-failed path).
+  if (parsed.refresh_token && parsed.refresh_token !== refreshTokenToUse) {
+    // BL-047 grace-window hedge: cache the OLD token (the one we just
+    // used and confirmed working) BEFORE writing the new one to Upstash.
+    // If the subsequent write fails OR the new token is invalidated
+    // out-of-band within the next 60s, the cached previous still works
+    // within Inoreader's empirically-verified grace window.
+    cachePreviousToken(refreshTokenToUse);
+
+    // BL-047 T3 — rotation telemetry fires BEFORE the write so a write
+    // failure still records the rotation event (the counter answers
+    // "is Inoreader rotating us?"; the write failure is separately
+    // surfaced via the upstash-write-failed path).
     await recordRotation(env);
-    const refreshOk = await writeRefreshToken(env, parsed.refresh_token);
+
+    // Retry the write once on failure — small targeted defense against
+    // a transient Upstash blip. Within Inoreader's grace window the
+    // alternative (returning upstash-write-failed and letting the next
+    // call self-heal) also works, but the in-band retry produces a
+    // cleaner success signal.
+    let refreshOk = await writeRefreshToken(env, parsed.refresh_token);
     if (!refreshOk) {
-      const result: RefreshResult = {
+      await new Promise((r) => setTimeout(r, 250));
+      refreshOk = await writeRefreshToken(env, parsed.refresh_token);
+    }
+    if (!refreshOk) {
+      return {
         ok: false,
         reason: 'upstash-write-failed',
         message:
-          'Refresh succeeded but rotated refresh_token persistence failed; token is now in an inconsistent state.',
+          'Refresh succeeded but rotated refresh_token persistence failed after one retry; token is now in an inconsistent state.',
       };
-      await logAndCapture(env, result, source, Date.now() - startedAt);
-      return result;
     }
   }
 
   const accessOk = await writeAccessToken(env, parsed.access_token, parsed.expires_in);
   if (!accessOk) {
-    const result: RefreshResult = {
+    return {
       ok: false,
       reason: 'upstash-write-failed',
       message: 'Refresh succeeded but access_token persistence failed; next call will re-refresh.',
     };
-    await logAndCapture(env, result, source, Date.now() - startedAt);
-    return result;
   }
 
   const expiresIn = parsed.expires_in ?? 3600;
-  const result: RefreshResult = {
+  return {
     ok: true,
     accessToken: parsed.access_token,
     expiresAt: Date.now() + expiresIn * 1000,
     refreshSource: 'fresh',
   };
-  await logAndCapture(env, result, source, Date.now() - startedAt);
-  return result;
 }
 
 async function safeReadText(res: Response): Promise<string> {
