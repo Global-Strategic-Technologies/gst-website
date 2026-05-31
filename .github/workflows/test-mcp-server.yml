@@ -49,6 +49,13 @@ on:
 concurrency:
   # Distinct group from test.yml so the two workflows run truly in parallel.
   # event_name in the key prevents push/PR cross-cancellation on the same ref.
+  #
+  # cancel-in-progress: true interacts with deploy-mcp-staging.yml's
+  # workflow_run consumer correctly: if two pushes arrive ~simultaneously,
+  # the in-progress test run is cancelled (status: cancelled, not success).
+  # The downstream deploy workflow's `if: workflow_run.conclusion == 'success'`
+  # filter then correctly suppresses the cancelled run's deploy chain, while
+  # the winning push's deploy proceeds. Verified empirically 2026-05-31.
   group: mcp-server-${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 

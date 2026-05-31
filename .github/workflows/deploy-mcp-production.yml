@@ -21,6 +21,15 @@ name: Deploy MCP Worker — production
 on:
   push:
     branches: [master]
+    # Paths intentionally MATCH `test-mcp-server.yml` exactly. The production
+    # deploy must never fire on a commit the MCP test suite did not also run
+    # on (audit gap #7, 2026-05-31): originally the prod workflow's paths
+    # included its own filename so the workflow could "self-validate on
+    # creation" — but the upstream MCP test suite did NOT include the prod
+    # workflow filename in its paths, so a commit touching only the prod
+    # workflow file would deploy production with no MCP test on that SHA.
+    # Resolved by mirroring the upstream paths exactly. Edits to this
+    # workflow file itself now go via `workflow_dispatch` for ad-hoc verify.
     paths:
       - 'mcp-server/**'
       - '!mcp-server/**/*.md'
@@ -31,19 +40,28 @@ on:
       - 'src/data/ma-portfolio/projects.json'
       - 'package.json'
       - 'package-lock.json'
-      - '.github/workflows/deploy-mcp-production.yml'
+      - '.github/workflows/test-mcp-server.yml'
   workflow_dispatch:
     # Manual trigger for re-deploys (e.g., after fixing a smoke-probe failure
     # without changing source). Same reviewer gate applies via the environment.
 
 permissions:
   contents: read
+  # `issues: write` is required by the failure-notification step (audit
+  # gap #10) so the workflow can open an incident issue when a deploy
+  # fails. Scoped to issues only; the rest of the workflow runs with
+  # read-only contents.
+  issues: write
 
 concurrency:
-  # Per-branch group: rapid successive merges to master queue rather than
-  # race. cancel-in-progress: false because mid-flight cancellation of
-  # `wrangler deploy` could leave the Worker partially uploaded — for a
-  # deploy workflow, queue-and-wait is the correct safety property.
+  # Single global queue: production only deploys from master (enforced
+  # via the `if: github.ref == 'refs/heads/master'` job guard), so a
+  # branch-keyed group would never collide. Keeping the group key static
+  # makes the serialization semantic explicit: rapid successive merges
+  # queue strictly in arrival order. cancel-in-progress: false because
+  # mid-flight cancellation of `wrangler deploy` could leave the Worker
+  # partially uploaded — for a deploy workflow, queue-and-wait is the
+  # correct safety property.
   group: deploy-mcp-production
   cancel-in-progress: false
 
@@ -64,9 +82,40 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
+      - name: Verify MCP Server Test Suite passed on this SHA
+        # Defense vs. audit gap #7: the upstream `test-mcp-server.yml` paths
+        # filter intentionally excludes its own workflow file changes. If it
+        # didn't run on this SHA (e.g., a workflow-only commit), we have no
+        # CI signal that the Worker source is safe to deploy. Query the
+        # GitHub API for a successful MCP test run on this exact SHA before
+        # proceeding. `workflow_dispatch` bypasses this check (operator
+        # explicitly accountable for the re-deploy).
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOYED_SHA: ${{ github.sha }}
+        run: |
+          echo "Checking MCP Server Test Suite for SHA $DEPLOYED_SHA"
+          # Query last 30 runs of the MCP test workflow on master; filter
+          # for the deployed SHA + success conclusion. 30 is enough to
+          # cover ~a day of typical activity even if other branches were
+          # busy. If no match, hard-fail before consuming any deploy minutes.
+          CONCLUSION=$(gh api \
+            "repos/${{ github.repository }}/actions/workflows/test-mcp-server.yml/runs?branch=master&per_page=30" \
+            --jq ".workflow_runs[] | select(.head_sha == \"$DEPLOYED_SHA\") | .conclusion" \
+            | head -1)
+          if [ "$CONCLUSION" = "success" ]; then
+            echo "OK: MCP Server Test Suite passed on $DEPLOYED_SHA"
+            exit 0
+          fi
+          echo "REFUSING TO DEPLOY: MCP Server Test Suite did not pass on $DEPLOYED_SHA"
+          echo "  observed conclusion: '${CONCLUSION:-not-found}'"
+          echo "If you need to deploy a workflow-only change, use workflow_dispatch."
+          exit 1
+
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: '22.x'
           cache: npm
 
       - name: Cache node_modules
@@ -92,37 +141,40 @@ jobs:
 
       - name: Smoke probe — /health gitSha matches deployed commit
         env:
+          HOST: https://mcp.globalstrategic.tech
+          EXPECTED_SHA: ${{ github.sha }}
+        run: bash mcp-server/scripts/smoke-probe.sh
+
+      - name: Open Issue on deploy failure
+        # Audit gap #10: production deploy failures had no operator
+        # notification path. Opens a P1-labeled Issue with the run URL +
+        # SHA so the failure surfaces in the GitHub Issues view rather
+        # than only in the Actions tab.
+        if: failure() && github.ref == 'refs/heads/master'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           DEPLOYED_SHA: ${{ github.sha }}
         run: |
-          # `deploy.mjs` pins SHA to `--short=7`, so we compare against the
-          # leading 7 chars of github.sha. The two must agree byte-for-byte;
-          # if either side ever changes the abbreviation length, this probe
-          # will fail loud rather than silently mismatching.
-          EXPECTED=${DEPLOYED_SHA:0:7}
-          if ! [[ "$EXPECTED" =~ ^[0-9a-f]{7}$ ]]; then
-            echo "Refusing to probe: EXPECTED='$EXPECTED' is not a 7-char hex SHA"
-            exit 1
-          fi
-          echo "Expecting /health.gitSha to report $EXPECTED"
-          for i in $(seq 1 10); do
-            # Cache-buster query + no-cache headers defeat any Cloudflare-edge
-            # caching of `/health` between attempts.
-            CACHE_BUSTER="t=$(date +%s%N)"
-            ACTUAL=$(curl -fsS \
-              -H "Cache-Control: no-cache" \
-              -H "Pragma: no-cache" \
-              "https://mcp.globalstrategic.tech/health?${CACHE_BUSTER}" \
-              | jq -r .gitSha || echo "")
-            if [ "$ACTUAL" = "$EXPECTED" ]; then
-              echo "Smoke probe OK: gitSha=$ACTUAL on attempt $i"
-              exit 0
-            fi
-            echo "Attempt $i — saw gitSha=$ACTUAL, sleeping 6s"
-            sleep 6
-          done
-          echo "Smoke probe FAILED: expected gitSha=$EXPECTED, last seen $ACTUAL"
-          echo "Deploy IS already on the Worker (wrangler succeeded). The probe"
-          echo "gap may indicate a /health regression, a Cloudflare propagation"
-          echo "stall, or an Upstash blip. Operator decision: re-deploy a fix"
-          echo "or invoke the Phase C rollback workflow."
-          exit 1
+          gh issue create \
+            --title "🚨 Production MCP deploy failed at ${DEPLOYED_SHA:0:7}" \
+            --label "incident,mcp-prod-deploy" \
+            --body "$(cat <<EOF
+          **Workflow run**: $RUN_URL
+          **SHA**: \`$DEPLOYED_SHA\`
+          **Triggered by**: @${{ github.actor }}
+
+          The production MCP deploy workflow failed. Most likely cause is one of:
+          - \`wrangler deploy\` failure (Cloudflare API error, credential expiry)
+          - Smoke probe gap (/health.gitSha didn't match within 70s)
+          - Test-suite verification step (no green MCP test run on this SHA)
+
+          **Operator actions**:
+          1. Open the run URL above and read the failing step's log.
+          2. If \`wrangler deploy\` failed: deploy IS NOT on the Worker; re-run after fix.
+          3. If smoke probe failed: deploy IS on the Worker but \`/health\` didn't reflect it. Check \`mcp.globalstrategic.tech/health\` manually; consider invoking the rollback workflow.
+          4. If pre-deploy verification failed: a workflow-only commit slipped past the gate. Use \`workflow_dispatch\` to deploy with explicit operator accountability.
+
+          Close this Issue once the production state is verified clean.
+          EOF
+          )"

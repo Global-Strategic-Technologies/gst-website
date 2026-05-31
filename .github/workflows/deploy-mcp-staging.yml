@@ -43,6 +43,7 @@ jobs:
   deploy-staging:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
         with:
@@ -50,10 +51,23 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: '22.x'
           cache: npm
 
+      - name: Cache node_modules
+        uses: actions/cache@v5
+        id: nm-cache
+        with:
+          # Reuses the cache key shape from test.yml + test-mcp-server.yml so
+          # a warm install from the upstream test run is reused here. Skips
+          # ~30-40s of npm ci on hit.
+          path: |
+            node_modules
+            mcp-server/node_modules
+          key: nm-v1-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Deploy MCP Worker to staging
@@ -66,35 +80,6 @@ jobs:
 
       - name: Smoke probe — /health gitSha matches deployed commit
         env:
-          DEPLOYED_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: |
-          # `deploy.mjs` pins SHA to `--short=7`, so we compare against the
-          # leading 7 chars of the workflow_run head_sha. The two must agree
-          # byte-for-byte; if either side ever changes the abbreviation
-          # length, this probe will fail loud rather than silently mismatching.
-          EXPECTED=${DEPLOYED_SHA:0:7}
-          if ! [[ "$EXPECTED" =~ ^[0-9a-f]{7}$ ]]; then
-            echo "Refusing to probe: EXPECTED='$EXPECTED' is not a 7-char hex SHA"
-            exit 1
-          fi
-          echo "Expecting /health.gitSha to report $EXPECTED"
-          for i in $(seq 1 10); do
-            # Cache-buster query + no-cache headers defeat any Cloudflare-edge
-            # caching of `/health` between attempts. The query string is part
-            # of the cache key by default; the headers cover origin-side
-            # caches if /health ever sprouts one.
-            CACHE_BUSTER="t=$(date +%s%N)"
-            ACTUAL=$(curl -fsS \
-              -H "Cache-Control: no-cache" \
-              -H "Pragma: no-cache" \
-              "https://mcp-staging.globalstrategic.tech/health?${CACHE_BUSTER}" \
-              | jq -r .gitSha || echo "")
-            if [ "$ACTUAL" = "$EXPECTED" ]; then
-              echo "Smoke probe OK: gitSha=$ACTUAL on attempt $i"
-              exit 0
-            fi
-            echo "Attempt $i — saw gitSha=$ACTUAL, sleeping 6s"
-            sleep 6
-          done
-          echo "Smoke probe FAILED: expected gitSha=$EXPECTED, last seen $ACTUAL"
-          exit 1
+          HOST: https://mcp-staging.globalstrategic.tech
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: bash mcp-server/scripts/smoke-probe.sh

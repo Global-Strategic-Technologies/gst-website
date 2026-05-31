@@ -22,6 +22,9 @@ on:
   schedule:
     - cron: '0 6 * * 1'
   push:
+    # Branch list harmonized with test.yml, test-mcp-server.yml,
+    # deploy-mcp-staging.yml, and deploy-mcp-production.yml. All five
+    # workflows share `[master, dev, 'feat/**', 'fix/**', 'feature/**']`.
     branches: [master, dev, 'feat/**', 'fix/**', 'feature/**']
     paths:
       - 'package-lock.json'
