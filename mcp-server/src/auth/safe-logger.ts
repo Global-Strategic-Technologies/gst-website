@@ -139,3 +139,42 @@ export function safeLog(event: LogEvent): void {
   // eslint-disable-next-line no-console
   console.log(JSON.stringify(payload));
 }
+
+/**
+ * BL-047 T2 — strip OAuth-sensitive query parameters from a URL string
+ * before logging. The `/admin/inoreader/reauth/callback` URL carries
+ * `code` + `state` query params; if logged verbatim they'd leak via
+ * Sentry breadcrumbs, Cloudflare logs, and any other downstream sink.
+ *
+ * Strips: `code`, `state`, `access_token`, `refresh_token`. Values are
+ * replaced with `[REDACTED]` (NOT removed entirely) so a future
+ * operator reading the log can see the param was present but the
+ * value was masked.
+ *
+ * Returns the original input unchanged when the input is not a valid
+ * URL — safe-logger callers pass user-supplied strings and should not
+ * crash on garbage.
+ */
+const URL_SCRUB_PARAMS: ReadonlySet<string> = new Set([
+  'code',
+  'state',
+  'access_token',
+  'refresh_token',
+]);
+
+export function scrubUrlForLog(input: string): string {
+  let url: URL;
+  try {
+    url = new URL(input);
+  } catch {
+    return input;
+  }
+  let mutated = false;
+  for (const param of URL_SCRUB_PARAMS) {
+    if (url.searchParams.has(param)) {
+      url.searchParams.set(param, '[REDACTED]');
+      mutated = true;
+    }
+  }
+  return mutated ? url.toString() : input;
+}
