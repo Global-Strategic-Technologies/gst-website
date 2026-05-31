@@ -61,7 +61,12 @@ Inoreader uses standard HTTP status codes; the `/developers/error-handling` page
 
 ### Sentry event-tag names
 
-Worker code maps these error states to Sentry events via the `event` tag. The canonical tag values (composite strings, NOT just the `reason` field) are pinned in [`SENTRY_ALERT_RULES.md`](./SENTRY_ALERT_RULES.md) § 1 — operators writing Sentry filters should use those exact strings (`oauth-refresh-invalid-refresh-token`, `oauth-refresh-token-missing`, `oauth-refresh-upstash-write-failed`).
+Worker code maps these error states to Sentry events via the `event` tag. The canonical tag values (composite strings, NOT just the `reason` field) are pinned in [`SENTRY_ALERT_RULES.md`](./SENTRY_ALERT_RULES.md) § 1 — operators writing Sentry filters should use those exact strings:
+
+- **Paging-class** (operator action required): `oauth-refresh-invalid-refresh-token`, `oauth-refresh-token-missing`, `oauth-refresh-upstash-write-failed`
+- **Info-class** (no operator action; observability only, BL-047 telemetry): `inoreader.oauth.refresh-token.rotated`, `inoreader.oauth.grace-window-recovery`, `inoreader.oauth.rotation`
+
+The info-class events were added by BL-047 T3 (rotation telemetry) and BL-047 PR #196 (grace-window hedge). Sentry alert rules should NOT subscribe to these tags — they're informational only.
 
 ### Critical contract statement
 
