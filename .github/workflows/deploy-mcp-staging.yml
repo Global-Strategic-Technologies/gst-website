@@ -1,0 +1,73 @@
+name: Deploy MCP Worker — staging
+
+# BL-037 Phase A — automated staging deploy on green MCP test suite.
+#
+# Gating: this workflow has NO `paths:` filter of its own. Gating lives
+# upstream in `.github/workflows/test-mcp-server.yml` (its `paths:` block
+# already excludes website-only changes — Astro pages, components, styles).
+# `workflow_run` does not honor consumer-side `paths:`, so adding one here
+# would be a no-op. The chain is: a push lands → test-mcp-server.yml
+# decides whether to run based on its paths filter → if it runs and
+# succeeds, this workflow fires. Website-only changes never trigger the
+# upstream workflow and so never reach this one.
+#
+# Deploy is delegated to `npm run deploy:staging` (mcp-server/scripts/
+# deploy.mjs) — the same script operators run locally. This keeps the
+# workflow thin and the build/upload-source-maps/Sentry-release wiring
+# in one place.
+
+on:
+  workflow_run:
+    workflows: ['MCP Server Test Suite']
+    types: [completed]
+    branches: [dev, 'feature-*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-mcp-staging-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-staging:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy MCP Worker to staging
+        working-directory: mcp-server
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: npm run deploy:staging
+
+      - name: Smoke probe — /health gitSha matches deployed commit
+        env:
+          DEPLOYED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          EXPECTED=${DEPLOYED_SHA:0:7}
+          echo "Expecting /health.gitSha to report $EXPECTED"
+          for i in $(seq 1 10); do
+            ACTUAL=$(curl -fsS https://mcp-staging.globalstrategic.tech/health | jq -r .gitSha || echo "")
+            if [ "$ACTUAL" = "$EXPECTED" ]; then
+              echo "Smoke probe OK: gitSha=$ACTUAL on attempt $i"
+              exit 0
+            fi
+            echo "Attempt $i — saw gitSha=$ACTUAL, sleeping 6s"
+            sleep 6
+          done
+          echo "Smoke probe FAILED: expected gitSha=$EXPECTED, last seen $ACTUAL"
+          exit 1
