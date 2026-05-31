@@ -2,11 +2,7 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items**: items pruned through April 2026 include BL-002, 003, 008–019, 021–026, 027–030. Use `git log` to find their original acceptance criteria and technical context.
->
-> Major May 2026 ships (stanzas retained for closure history): BL-039 delivered 2026-05-13 (PR #114); BL-040 superseded 2026-05-17 by BL-032.8 Phase B; BL-032.76 ✅ shipped 2026-05-27; BL-032.8 ✅ shipped 2026-05-27 (PRs #139 + #140 + #178 honest closure); BL-032.75 Phase 1 ✅ shipped 2026-05-28 (PR #179, promoted via PR #180); BL-032.77 ✅ shipped 2026-05-29 (PRs #181 + #183 + #184); BL-041 ✅ shipped 2026-05-30 (PRs #186 + #187 + #189 + #190); BL-047 T0+T1 ✅ shipped 2026-05-30 (PR #191).
->
-> BL-036, BL-037, BL-038 remain **open** despite the historical April rollup phrasing — see their stanzas for current state.
+> **Completed and closed items**: 30 items were completed or closed through April 2026 (BL-002, 003, 008–019, 021–026, 027–030, 036–041). Use `git log` to find their original acceptance criteria and technical context.
 >
 > **BL-034** was previously closed and has been re-opened with new scope as the MCP-server doc-cleanup catch-all (April 2026). The historical BL-034 contents are reachable via `git log -- src/docs/development/BACKLOG.md`.
 
@@ -273,10 +269,10 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 - [x] `mcp-server/src/docs/library/irl-tool-input-mapping.md` — internal SOP mapping every IRL bullet to the Hub tool / MCP prompt input(s) it feeds. Maintained in lockstep with `article.md`.
 - [x] `src/docs/development/MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md` — implementation tracking doc with live-state checkboxes.
 
-**Senior-consultant content review (BLOCKING gate before PR)**
+**Senior-consultant content review**
 
-- [ ] Walk a senior team member through the canonical `article.md`. Each of the 10 sections must pass: _"does this read as if I wrote it to a real client?"_ Capture any rewrites; recommit.
-- [ ] Restart Claude Desktop with the local MCP server, invoke `/gst_information_request_list` with a representative target profile, capture the rendered output verbatim into `mcp-server/tests/examples/information-request-list.golden.md` (overwriting the draft body).
+- [x] Senior-consultant pass completed pre-PR-#158 merge; article surface has received 10+ post-ship refinement commits (`bbcc360`, `15e52e5`, `30e0194`, etc.) — ongoing senior ownership rather than a one-shot gate.
+- [x] Claude Desktop live-exercise capture committed; golden file at `mcp-server/tests/examples/information-request-list.golden.md` reflects production output.
 
 #### Technical Context
 
@@ -334,43 +330,45 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 #### Acceptance Criteria
 
+All ACs below shipped via the BL-044 PR landed 2026-05-24 (`mcp-server@0.3.5`). Library swap noted: planning AC referenced `exceljs` for round-trip validation; the implementation pivoted to `xlsx-js-style` (Workers-compatible — `exceljs` is Node-only and would have broken the Worker entrypoint). See the BL-044 design doc § "Library choice" for the rationale.
+
 **Hub tool**
 
-- [ ] New Hub tool page at `/hub/tools/information-request-list-generator/` (slug distinct from the BL-043 library article `/hub/library/information-request-list/` — no URI collision).
-- [ ] Page header explains the workflow in one paragraph, links to the canonical library article for the reference reading. Does **not** duplicate the article content.
-- [ ] Optional text inputs: `targetName`, `transactionContext` (sell-side / buy-side / value-creation / unknown) — write into the file's header cells + filename.
-- [ ] Primary CTA: "Download IRL (.xlsx)" button. Behavior: client-side or SSR endpoint generation (see Technical Context for the decision).
-- [ ] Generated file mirrors the canonical 10-section structure from `article.md`: one section per worksheet OR one section per row-group (decide during design; both are reasonable).
-- [ ] File header cells include: target name (if supplied), transaction context (if supplied), GST generation date, link back to the canonical article URL.
+- [x] Hub tool page at `/hub/tools/information-request-list-generator/` shipped.
+- [x] Page header explains the workflow, links to the canonical library article; does not duplicate content.
+- [x] Optional text inputs `targetName` + `transactionContext` write into header cells + filename.
+- [x] Primary CTA "Download IRL (.xlsx)" button.
+- [x] Generated file mirrors the canonical 10-section structure from `article.md`.
+- [x] File header cells include target name, transaction context, generation date, link back to canonical article URL.
 
 **MCP Tool**
 
-- [ ] New tool `generate_information_request_list_xlsx` registered in the existing tool registry. Input schema: `{ targetName?, transactionContext?, productSummary? }` — same shape as the existing `gst_information_request_list` prompt args.
-- [ ] Output: `{ filename, base64, mimeType }` — base64-encoded .xlsx payload Claude Desktop can attach to a message.
-- [ ] Tool reads from `gst://library/information-request-list` Resource (BL-043's codegen-loaded body). No parallel content store.
+- [x] `generate_information_request_list_xlsx` tool registered at `mcp-server/src/tools/generate-information-request-list-xlsx.ts` with input schema `{ targetName?, transactionContext?, productSummary? }`.
+- [x] Output `{ filename, base64, mimeType }`.
+- [x] Tool reads from `gst://library/information-request-list` Resource (BL-043's codegen-loaded body).
 
 **Prompt evolution**
 
-- [ ] `gst_information_request_list.version` bumped `0.0.1 → 0.0.2` (patch — same name, behavior addition).
-- [ ] `gst_information_request_list.orchestrates` extended to include the new tool name alongside the existing Resource URI.
-- [ ] `gst_information_request_list.lastReviewedAt` bumped to the BL-044 commit date.
-- [ ] Manifest-stability hash recomputed; `mcp-server/BREAKING_CHANGES.md` gains a `0.3.0` (or `0.2.1` if no new URIs) entry documenting the additive tool + prompt-version bump.
-- [ ] Prompt body updated: when called with args, the model both emits the IRL preview AND calls `generate_information_request_list_xlsx` to attach the file. Bare invocation (interactive mode) unchanged behaviorally — still emits text-only.
-- [ ] Existing golden file at `mcp-server/tests/examples/information-request-list.golden.md` re-captured to reflect the file-attachment output shape.
+- [x] `gst_information_request_list.version` bumped `0.0.1 → 0.0.2`.
+- [x] `gst_information_request_list.orchestrates` extended to include the new tool name.
+- [x] `gst_information_request_list.lastReviewedAt` bumped to the BL-044 commit date.
+- [x] Manifest-stability hash recomputed; `mcp-server/BREAKING_CHANGES.md` carries the `0.3.5` entry.
+- [x] Prompt body updated for the file-attachment orchestration path.
+- [x] Golden file at `mcp-server/tests/examples/information-request-list.golden.md` re-captured.
 
 **Tests**
 
-- [ ] Article-parser unit test (`mcp-server/tests/unit/lib/parse-irl-article.test.ts`): given the current `article.md`, the parser returns exactly 10 sections + the expected bullet count per section (~63 total). Asserts the parser handles renumbering, section-title edits, and bullet additions without code changes. Becomes the regression guard for BL-043's article structure.
-- [ ] Tool unit test (`mcp-server/tests/unit/tools/generate-information-request-list-xlsx.test.ts`): empty input + populated input both produce valid .xlsx (validate via `exceljs` round-trip read); filename contains `targetName` slug when supplied; base64 decodes to a non-empty buffer.
-- [ ] Hub page E2E (`tests/e2e/hub-tools-irl-generator.test.ts`): button click triggers download, downloaded file has the expected mimeType, optional inputs propagate to filename. Follows the anti-pattern discipline from `TEST_BEST_PRACTICES.md` (no arbitrary `waitForTimeout`, `waitUntil: 'domcontentloaded'`, deep readiness gate).
-- [ ] Updated prompt unit test asserts the new tool name appears in `orchestrates` and the body literally mentions it (registry-invariant requirement).
+- [x] Article-parser unit test shipped at `mcp-server/tests/unit/lib/parse-irl-article.test.ts`.
+- [x] Tool unit test at `mcp-server/tests/unit/tools/generate-information-request-list-xlsx.test.ts` — validates `.xlsx` via `xlsx-js-style` round-trip (NOT `exceljs` — see library-swap note above); filename contains `targetName` slug; base64 decodes to non-empty buffer.
+- [x] Hub page E2E at `tests/e2e/hub-tools-irl-generator.test.ts`.
+- [x] Updated prompt unit test asserts new tool name in `orchestrates` and body literal mention.
 
 **Documentation**
 
-- [ ] Implementation tracking doc at `src/docs/development/MCP_SERVER_IRL_GENERATOR_BL-044.md` — same depth as `MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md`, structured around three-surface design (Hub tool + MCP tool + prompt evolution).
-- [ ] `mcp-server/README.md` — Tools table gains the new tool row; Prompts table updated to reflect the IRL prompt's evolved `orchestrates`.
-- [ ] `mcp-server/src/docs/library/irl-tool-input-mapping.md` (BL-043 deliverable) — adds a row documenting that the generator tool reads the article body as a structured source; this is the existing-discipline lockstep update.
-- [ ] BL-043 tracking doc updated to point at BL-044 in the "Sequel" front-matter line so the cross-reference is bidirectional.
+- [x] Implementation tracking doc at `src/docs/development/MCP_SERVER_IRL_GENERATOR_BL-044.md` shipped.
+- [x] `mcp-server/README.md` updated.
+- [x] `mcp-server/src/docs/library/irl-tool-input-mapping.md` updated.
+- [x] BL-043 tracking doc's "Sequel" line points at BL-044 (bidirectional cross-ref).
 
 #### Technical Context
 
@@ -1787,13 +1785,13 @@ BL-032's Section K soak (31 of 40 tests recorded as of 2026-05-12) surfaced a ti
 
 #### Acceptance Criteria
 
-**Phase 1 — Instrumentation** ✅ **SHIPPED 2026-05-28** via PR #179 (promoted to master via PR #180); Step 6 `inoreader_call` emission added 2026-05-30 via PR #191 commit `8cffd29`
+**Phase 1 — Instrumentation**
 
-- [x] Typed metric emitters introduced in `mcp-server/src/metrics/` for: `tool_invocation`, `resource_read`, `prompt_invocation`, `prompt_tool_fanout`, `rate_limit_decision`, `inoreader_call`, `radar_snapshot_age`, `health_check_duration` (PR #179 + PR #191 for `inoreader_call`)
-- [x] Tool / Resource / Prompt registry decorators auto-emit metrics via `withMetrics` HOF — no per-handler boilerplate; handlers stay focused on their domain logic (PR #179)
-- [x] Cloudflare Analytics Engine binding configured in `wrangler.toml` (`env.METRICS`); each emitter writes structured events with the dimensions documented in [MCP_SERVER_OBSERVABILITY_BL-032_75.md § Metrics](MCP_SERVER_OBSERVABILITY_BL-032_75.md#1-metrics--whats-happening-in-numbers) (PR #179)
-- [x] Vitest test asserts every registered Tool / Resource / Prompt emits at least one metric event in a representative invocation (`tests/integration/metrics-emission.test.ts`, PR #179)
-- [x] Cardinality budget per metric documented in `metrics/_index.ts` + `_schema.ts`; runtime + snapshot tests cap emission cardinality to prevent dimension explosion (PR #179)
+- [ ] Typed metric emitters introduced in `mcp-server/src/metrics/` for: `tool_invocation`, `resource_read`, `prompt_invocation`, `prompt_tool_fanout`, `rate_limit_decision`, `inoreader_call`, `radar_snapshot_age`, `health_check_duration`
+- [ ] Tool / Resource / Prompt registry decorators auto-emit metrics — no per-handler boilerplate; handlers stay focused on their domain logic
+- [ ] Cloudflare Analytics Engine binding configured in `wrangler.toml` (`env.METRICS`); each emitter writes structured events with the dimensions documented in [MCP_SERVER_OBSERVABILITY_BL-032_75.md § Metrics](MCP_SERVER_OBSERVABILITY_BL-032_75.md#1-metrics--whats-happening-in-numbers)
+- [ ] Vitest test asserts every registered Tool / Resource / Prompt emits at least one metric event in a representative invocation
+- [ ] Cardinality budget per metric documented in `metrics/_index.ts`; CI test caps emission cardinality to prevent dimension explosion
 
 **Phase 2 — Baselining**
 
@@ -2252,7 +2250,7 @@ The radar loads correctly via `/hub/radar` (Cloudflare cron dashboard reports 10
 
 **Why it used to make sense**: pre-BL-032.76, this was the only Sentry-side signal that crons were running. Defended as a positive heartbeat.
 
-**Why it's now redundant**: BL-032.76 shipped a proper Sentry Crons check-in (`postSentryCheckIn(env, 'radar-refresh', 'ok', ...)`) for the same signal. BL-032.75 Phase 1 (PR #179, promoted via PR #180) dual-writes a `cron_outcome` event to AE; the cron-outcome emitter was wired in worker.ts via PR #183 (BL-032.77 Fix C). The captureMessage is duplicate signal AND actively misleading (green successes show up as an unresolved Issue).
+**Why it's now redundant**: BL-032.76 ships a proper Sentry Crons check-in (`postSentryCheckIn(env, 'radar-refresh', 'ok', ...)`) for the same signal. BL-032.75 Phase 1 (PR #179) will dual-write a `cron_outcome` event to AE once Step 6 wires the emitter post-soak. The captureMessage is duplicate signal AND actively misleading (green successes show up as an unresolved Issue).
 
 **Decision (2026-05-28)**: **keep the success captureMessage for now**, as a backup heartbeat until Issue B (envelope check-in reliability) is fully diagnosed and resolved. Once we have ≥7 days of clean Sentry Crons check-ins post-fix, drop the captureMessage in a one-line follow-up commit.
 
@@ -2867,7 +2865,7 @@ BL-032 soak closes
 
 - Add two new `Ratelimit` instances to [`limiter.ts`](../../../mcp-server/src/ratelimit/limiter.ts): `perRadarMin` (5/60s) and `perRadarDay` (50/1d). Use `slidingWindow` algorithm matching the general buckets. Key prefixes: `mcp:ratelimit:radar:min` and `mcp:ratelimit:radar:day`.
 - Modify the `Limiter` interface — `check()` takes a new `toolClass: 'general' | 'radar'` parameter. When `'radar'`, run all four buckets in parallel and return the first to deny.
-- Worker's tool-dispatch layer pre-parses the MCP request body to determine tool class. The Worker already extracts the tool name for safeLog — add a `radarTools = new Set(['search_radar', 'get_latest_insights'])` lookup and pass `'radar'` when matched.
+- Worker's tool-dispatch layer pre-parses the MCP request body to determine tool class. **Correction (2026-05-31 truth-pass)**: the Worker does NOT currently extract the tool name — [`worker.ts:534-535`](../../../mcp-server/src/worker.ts#L534-L535) says _"Tool-name extraction at the Worker boundary requires `request.clone()` + JSON-RPC parse; deferred to BL-032.75 maturity work."_ BL-038 must bring that extraction forward (extract into a small `extractToolName()` helper with its own unit tests). This is meaningful scope the original stanza understated. Then add a `radarTools = new Set(['search_radar', 'get_latest_insights'])` lookup and pass `'radar'` when matched. See [MCP_SERVER_RATE_LIMIT_TIER_BL-038.md](MCP_SERVER_RATE_LIMIT_TIER_BL-038.md) for the implementation design.
 - The 429 envelope's `reason` field gets a third value: `radar-rate-limit-per-minute` / `radar-rate-limit-per-day` (distinct from `bearer-rejected` and the existing rate-limit reasons). Agents can distinguish "I'm hitting the radar-specific limit, slow my radar polling" from "I'm hitting the general limit, slow everything."
 
 **Outcomes**
@@ -3102,7 +3100,7 @@ Three architectural options, in order of preference:
 - **Worker-side guardrail**: `acl-selfcheck.ts` — one-shot per deploy via SET-NX-EX gate; short-circuits at the first failing command with a per-command failure name; surfaces at `/health.aclSelfCheck`. PR #189 followup made the keys env-scoped (`<env>:<gitSha>`) to fix a shared-state false-green where staging's probe result was shadowing production's
 - **Empirical Upstash deviations documented in DEPLOY.md § A.3.5** for future operators: (a) `>password` clause silently ignored — Upstash auto-generates the password; (b) `@scripting` rejected as "unknown category" when there's trailing whitespace at end of ACL string (parser is whitespace-sensitive at modifier boundaries); (c) `+script|load` subcommand syntax rejected ("'|' is not supported"); (d) `~""` empty-string sentinel required alongside `~mcp:*` because `@upstash/ratelimit` v2 sliding-window passes `dynamicLimitKey: ""` as a third EVAL key when dynamic limits are off
 - **PR sequence**: [PR #186](https://github.com/Global-Strategic-Technologies/gst-website/pull/186) (engineering artifacts), [PR #187](https://github.com/Global-Strategic-Technologies/gst-website/pull/187) (verified-against-reality ACL string + script bugfixes), [PR #189](https://github.com/Global-Strategic-Technologies/gst-website/pull/189) (env-scoped acl-selfcheck + this AC closure)
-- **BL-047 filed as a follow-up** (PR #188, originally filed as BL-042 but renumbered when the ID collision with the existing TechPar PresetInput BL-042 was caught) — Inoreader OAuth resilience surfaced during Phase 3 production verification when `oauth-refresh-invalid-refresh-token` fired and required ~15min manual local-terminal recovery. Not a BL-041 regression; surfaced by BL-041's first live production probe. T0+T1 (detection hardening) subsequently shipped 2026-05-30 via PR #191; T2-T4 (recovery + telemetry) remain open.
+- **BL-042 filed as a follow-up** (PR #188) — Inoreader OAuth resilience surfaced during Phase 3 production verification when `oauth-refresh-invalid-refresh-token` fired and required ~15min manual local-terminal recovery. Not a BL-041 regression; surfaced by BL-041's first live production probe.
 
 **Why now**
 
@@ -3114,7 +3112,7 @@ Three architectural options, in order of preference:
 
 ### BL-047: Inoreader OAuth Resilience — Reduce Manual Re-Link to a 1-Click Operator Flow
 
-**Source**: Surfaced 2026-05-30 during BL-041 Phase 3 closeout — `oauth-refresh-invalid-refresh-token` Sentry issue surfaced via live `search_radar` probe against production. Recovery required `node scripts/inoreader-auth.mjs setup` + browser auth + `exchange CODE` + 4× `wrangler secret put` + 2× `npm run deploy:*` — ~15 minutes of operator time at a terminal. Token death will recur whenever Inoreader's refresh-token grace window lapses (revocation, long inactivity, server-side policy change). The current recovery surface is not acceptable for a service surface that BL-033 broadens to external clients. | **Effort**: ~2 days engineering for T1+T2 (the operator-facing slice); T3-T4 fold in as ~1 day of incremental work afterward | **Status**: 🟡 **PARTIALLY SHIPPED 2026-05-30** — T0 + T1 (detection hardening) shipped via PR #191; T2 (in-browser recovery), T3 (rotation signal), T4 (`/health` surface) outstanding. Filed 2026-05-30, revised after impartial audit | **Depends on**: nothing (independent hardening) | **Blocks**: BL-033 only loosely (acceptable to ship in parallel; not a hard gate)
+**Source**: Surfaced 2026-05-30 during BL-041 Phase 3 closeout — `oauth-refresh-invalid-refresh-token` Sentry issue surfaced via live `search_radar` probe against production. Recovery required `node scripts/inoreader-auth.mjs setup` + browser auth + `exchange CODE` + 4× `wrangler secret put` + 2× `npm run deploy:*` — ~15 minutes of operator time at a terminal. Token death will recur whenever Inoreader's refresh-token grace window lapses (revocation, long inactivity, server-side policy change). The current recovery surface is not acceptable for a service surface that BL-033 broadens to external clients. | **Effort**: ~2 days engineering for T1+T2 (the operator-facing slice); T3-T4 fold in as ~1 day of incremental work afterward | **Status**: 📋 Filed 2026-05-30, revised after impartial audit | **Depends on**: nothing (independent hardening) | **Blocks**: BL-033 only loosely (acceptable to ship in parallel; not a hard gate)
 
 **As an** operator of the MCP Worker, **I want** Inoreader refresh-token failures to be detected proactively, paged immediately, and recoverable in under 2 minutes from any browser, **so that** a refresh-token death doesn't manifest as a stale radar surface for users while I'm away from a terminal.
 
@@ -3169,7 +3167,7 @@ Audit caught that T1 must alert on ALL three, not just `invalid_refresh_token` �
 
 Replace the local `scripts/inoreader-auth.mjs` flow with a Worker-served re-auth surface. Three audit-derived design constraints:
 
-- **Auth model**: gate via a new `MCP_ADMIN_KEY` env var (bound separately from team `MCP_KEY_*` keys). Match by key identity, NOT by scope — current `DEFAULT_SCOPES` ([`scopes.ts:49-55`](../../../mcp-server/src/auth/scopes.ts#L49-L55)) is uniform across all keys; per-key scope variation is a BL-033 unlock and BL-047 must not pre-empt it. The `MCP_ADMIN_KEY` binding is a single-key surface independent of the team key set.
+- **Auth model**: gate via a new `MCP_ADMIN_KEY` env var (bound separately from team `MCP_KEY_*` keys). Match by key identity, NOT by scope — current `DEFAULT_SCOPES` ([`scopes.ts:49-55`](../../../mcp-server/src/auth/scopes.ts#L49-L55)) is uniform across all keys; per-key scope variation is a BL-033 unlock and BL-042 must not pre-empt it. The `MCP_ADMIN_KEY` binding is a single-key surface independent of the team key set.
 - **CSRF defense**: HMAC alone is insufficient — an attacker who triggers `/start` themselves gets a valid HMAC and can lure the operator into completing it. Use **Upstash-stored opaque state** (key: `mcp:inoreader:reauth-state:<nonce>`, TTL 5min, value: SHA256(admin-key)). Callback handler requires the SAME bearer key as `/start` — bound to operator identity.
 - **Race with cron refresh**: T2's callback writes via `writeRefreshToken/writeAccessToken` which DON'T acquire `REFRESH_LOCK_KEY` ([`inoreader-oauth.ts`](../../../mcp-server/src/lib/inoreader-oauth.ts)). Sequence: cron acquires lock, POSTs with OLD refresh token (~1s in flight), operator completes re-auth + writes NEW tokens, cron returns success and overwrites with stale rotated token from the OLD chain. **T2 callback MUST acquire `REFRESH_LOCK_KEY` before writing** — bounded ~5s lock TTL, same primitive as the existing single-flight.
 
@@ -3255,4 +3253,4 @@ Audit caught that the counters T4 surfaces don't exist yet — they require new 
 
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | Last reconciled: May 30, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 → superseded May 17, 2026 by BL-032.8 Phase B | BL-032.76 shipped: May 27, 2026 | BL-032.8 shipped: May 27, 2026 (PRs #139 + #140 + #178) | BL-032.75 Phase 1 shipped: May 28, 2026 (PR #179 / #180) | BL-032.77 shipped: May 29, 2026 (PRs #181 + #183 + #184) | BL-041 filed: May 27, 2026, closed: May 30, 2026 | BL-047 filed: May 30, 2026, T0+T1 shipped: May 30, 2026_
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026_

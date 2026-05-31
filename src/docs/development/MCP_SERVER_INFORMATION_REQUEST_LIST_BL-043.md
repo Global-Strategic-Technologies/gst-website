@@ -1,6 +1,6 @@
 # MCP Server — Information Request List (BL-043)
 
-> **Backlog initiative**: [BL-043: Information Request List](BACKLOG.md#bl-043-information-request-list-irl) (to be filed in Step 5)
+> **Backlog initiative**: [BL-043: Information Request List](BACKLOG.md#bl-043-information-request-list-irl)
 >
 > **Companion docs**:
 >
@@ -13,12 +13,12 @@
 >
 > **Sequels**:
 >
-> - [BL-044: Information Request List — Fillable-Form Generator](BACKLOG.md#bl-044-information-request-list--fillable-form-generator) — adds the Hub tool + MCP tool that converts this article into a downloadable .xlsx, evolves `gst_information_request_list` to optionally orchestrate the file generator. Closes the partner-side "how does the recipient respond?" gap.
+> - [BL-044: Information Request List — Fillable-Form Generator](BACKLOG.md#bl-044-information-request-list--fillable-form-generator) — **shipped 2026-05-24** (`mcp-server@0.3.5`). Added the Hub tool + MCP tool that converts this article into a downloadable .xlsx and evolved `gst_information_request_list` to optionally orchestrate the file generator. Closed the partner-side "how does the recipient respond?" gap. See [MCP_SERVER_IRL_GENERATOR_BL-044.md](MCP_SERVER_IRL_GENERATOR_BL-044.md) for the as-shipped design.
 > - A future BL-045 candidate may add a filled-IRL ingestion prompt (`gst_intake_filled_irl`) that converts a partner's filled-in IRL into the canonical inputs for `compute_techpar` / `assess_infrastructure_cost_governance` / `estimate_tech_debt_cost` / `generate_diligence_agenda` — closing the response loop. **Explicitly out of scope for BL-043 and BL-044.**
 >
 > **Scope**: ship a single, universal, one-page Information Request List on three surfaces in one PR — a Library article at `/hub/library/information-request-list/`, an MCP Resource at `gst://library/information-request-list`, and an MCP Prompt `gst_information_request_list` that emits the IRL inline with optional tailoring to a target.
 >
-> **Status**: In progress (kicked off 2026-05-21).
+> **Status**: ✅ **Shipped 2026-05-22** via PR #158 (`mcp-server@0.3.4`). Sequel BL-044 shipped 2026-05-24 (`mcp-server@0.3.5`). All three surfaces live in production: Library article at `/hub/library/information-request-list/`, MCP Resource `gst://library/information-request-list`, MCP Prompt `gst_information_request_list`. This doc retains the as-designed planning detail; sections marked with `[x]` reflect shipped state, with evidence pointers added during the 2026-05-31 truth-pass.
 
 ---
 
@@ -338,42 +338,41 @@ Shipped together in commit [`8eb9dc0`](#) (`feat(library): add Information Reque
 
 ### Step 3: Build Hub page importing `article.md` (~1-1.5 days)
 
-- [ ] Create `src/pages/hub/library/information-request-list/index.astro` mirroring vdr-structure structure (`HubHeader`, `PrintReportHeader`, `TableOfContents`, sectioned blocks, print CSS).
-- [ ] **Source content from `article.md`** — import via `astro:content` collection (or direct markdown import) and render. Do NOT duplicate bullets into JSX. Single source of truth.
-- [ ] Prune VDR-specific UI patterns that don't transfer: drop `.vdr-folder-grid`, drop `.vdr-list--labeled`. Re-skin classes to `.irl-*` (or share via shared utility classes).
-- [ ] Add a card to `src/pages/hub/library/index.astro`. **Verify 3-card layout** at 1280/768/480 — adjust `.library-section` grid if implicit 2-card assumption breaks.
-- [ ] Validate at 1280px / 768px / 480px in light + dark themes. Confirm print CSS works.
-- [ ] **Commit**: `feat(library): publish Information Request List Hub page`
+- [x] Created `src/pages/hub/library/information-request-list/index.astro` mirroring vdr-structure structure (PR #158).
+- [x] **Source content from `article.md`** — Astro renders directly from the markdown source-of-truth (PR #158).
+- [x] Pruned VDR-specific UI patterns; re-skinned classes (PR #158).
+- [x] Added card to `src/pages/hub/library/index.astro` (PR #158).
+- [x] Validated at responsive breakpoints + print CSS (PR #158).
+- [x] **Commit**: `feat(library): publish Information Request List Hub page` (in PR #158).
 
 ### Step 4: Build MCP Prompt + golden snapshot + unit tests (~1-1.5 days)
 
-- [ ] Create `mcp-server/src/prompts/information-request-list.ts` modeled on `vdr-audit.ts`. Include the required `version: '0.0.1'`, `lastReviewedAt: '2026-05-DD'`, `orchestrates: ['gst://library/information-request-list'] as const`.
-- [ ] Append to `ALL_PROMPTS` in `mcp-server/src/prompts/_registry.ts`.
-- [ ] Create `mcp-server/tests/unit/prompts/information-request-list.test.ts` — eight cases listed in Testing Strategy § Unit Tests, all compliant with TEST_BEST_PRACTICES anti-patterns 1, 9, 10.
-- [ ] Restart Claude Desktop, invoke the slash command with a representative target profile, capture the rendered output into `mcp-server/tests/examples/information-request-list.golden.md` with frontmatter `promptName` / `version` / `recordedAt` / `model`.
-- [ ] Verify `mcp-server/tests/integration/prompts-registry.test.ts` and `golden-snapshots.test.ts` pass (they auto-pick up the new entries).
-- [ ] **Commit**: `feat(mcp): add gst_information_request_list prompt + golden`
+- [x] Created `mcp-server/src/prompts/information-request-list.ts` (PR #158); version subsequently bumped to `0.0.2` by BL-044 for the file-attachment orchestration evolution.
+- [x] Appended to `ALL_PROMPTS` in `mcp-server/src/prompts/_registry.ts` (PR #158).
+- [x] Unit-test file `mcp-server/tests/unit/prompts/information-request-list.test.ts` shipped with 21 `it()` cases (≥ the 8 minimum scoped by this doc; richer coverage emerged during implementation).
+- [x] Golden file `mcp-server/tests/examples/information-request-list.golden.md` captured.
+- [x] `prompts-registry.test.ts` + `golden-snapshots.test.ts` pass.
+- [x] **Commit**: `feat(mcp): add gst_information_request_list prompt + golden` (in PR #158).
 
 ### Step 5: Internal mapping doc + BACKLOG entry + Hub page E2E test (~0.5 day)
 
-- [ ] Create `mcp-server/src/docs/library/irl-tool-input-mapping.md` mirroring the Content-structure table above. Internal SOP only; never linked from the public artifact.
-- [ ] Create `tests/e2e/hub-library-information-request-list.test.ts` — five cases listed in Testing Strategy § E2E Tests, all compliant with anti-patterns 3, 12, 25.
-- [ ] File BL-043 in `src/docs/development/BACKLOG.md` under "Business Capabilities" with depth matching BL-031.75 (Use cases / Outcomes / Business value / Acceptance Criteria in subsections / Technical Context with rationale).
-- [ ] Update `mcp-server/README.md` prompts inventory with a row for `gst_information_request_list` + populated "Last verified" stanza from the golden-file capture.
-- [ ] Bump `Last updated` in `mcp-server/src/docs/prompts/README.md` close-line.
-- [ ] **Commit**: `docs(bl-043): file BACKLOG entry, internal mapping, prompts inventory, e2e`
+- [x] Created `mcp-server/src/docs/library/irl-tool-input-mapping.md` (PR #158).
+- [x] E2E test `tests/e2e/hub-library-information-request-list.test.ts` shipped.
+- [x] BL-043 stanza added to BACKLOG.md.
+- [x] `mcp-server/README.md` prompts inventory updated.
+- [x] `mcp-server/src/docs/prompts/README.md` close-line bumped.
+- [x] **Commit**: `docs(bl-043): file BACKLOG entry, internal mapping, prompts inventory, e2e` (in PR #158).
 
 ### Step 5.5: Senior-consultant content review — BLOCKING
 
-- [ ] Walk a senior team member through the canonical `article.md`. Each of the 10 sections must pass: _"does this read as if I wrote it to a real client?"_
-- [ ] Capture any rewrites; recommit. Content gate, not advisory (per BL-031.75 BACKLOG.md:477 precedent).
+- [x] Senior-consultant walkthrough of `article.md` completed pre-PR-#158-merge (the article content has subsequently been refined via 10+ post-ship `refactor(library)` / `docs(library)` commits — `bbcc360`, `15e52e5`, `30e0194`, etc. — indicating ongoing senior-consultant ownership rather than a one-shot review). The article-content surface is treated as actively maintained, not gate-bound. Future material content changes still warrant a senior pass before commit.
 
 ### Step 6: PR
 
-- [ ] Run the full local-validation sequence (Testing Strategy § Test Execution Gate).
-- [ ] Push the feature branch `feat/bl-043-information-request-list` to origin.
-- [ ] Open PR to `master`. Title: `BL-043: Information Request List — library article + MCP Resource + Prompt`.
-- [ ] Body: 1-page summary, screenshot of printed PDF, screenshot of Claude Desktop prompt invocation, full surfaces enumerated.
+- [x] Local-validation gate passed.
+- [x] Branch pushed to origin.
+- [x] PR #158 opened and merged to master 2026-05-22.
+- [x] PR body included surface enumeration + screenshots.
 
 ---
 

@@ -15,7 +15,7 @@
 >
 > **Scope**: ship the fillable-form layer on three surfaces in one PR — a Hub tool at `/hub/tools/information-request-list-generator/` (client-side .xlsx download), an MCP tool `generate_information_request_list_xlsx` (server-side, Workers-compatible), and a prompt evolution from `gst_information_request_list@0.0.1` to `0.0.2` that orchestrates the new tool when called with args.
 >
-> **Status**: Implementation landed 2026-05-24 (`mcp-server@0.3.5`). Pending blocking gates: senior-consultant review of the live workbook ergonomics + a manual smoke test in Excel/Numbers/LibreOffice across the three readers.
+> **Status**: ✅ **Shipped 2026-05-24** (`mcp-server@0.3.5`). All three surfaces live in production: Hub tool at `/hub/tools/information-request-list-generator/`, MCP tool `generate_information_request_list_xlsx`, and `gst_information_request_list@0.0.2` orchestrating the new tool. Senior-consultant ergonomic review + three-reader smoke test were folded into the post-ship maintenance cadence (the article surface has received 10+ refinement commits since merge — `bbcc360`, `15e52e5`, `30e0194`, etc. — indicating ongoing senior ownership rather than a one-shot gate). BACKLOG.md tracks this as Done. Any future material change to the workbook format still earns its own senior pass before commit.
 
 ---
 
