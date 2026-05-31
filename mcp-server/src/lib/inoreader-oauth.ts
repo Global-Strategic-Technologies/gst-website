@@ -50,6 +50,11 @@ import {
 import { captureMessageEnvelope } from '../observability/sentry-envelope';
 import { safeLog } from '../auth/safe-logger';
 import { recordInoreaderEgress } from './inoreader-egress';
+import {
+  recordRefreshFailure,
+  recordRefreshSuccess,
+  recordRotation,
+} from './inoreader-refresh-health';
 import type { Env } from '../worker';
 
 /** Inoreader OAuth token-refresh endpoint. */
@@ -330,6 +335,11 @@ async function performRefresh(
   // access_token. A crash between the two writes preserves the credential
   // that can rebuild the access token.
   if (parsed.refresh_token && parsed.refresh_token !== refreshToken) {
+    // BL-047 T3 — rotation detected. Emit observability event + counters
+    // BEFORE the write so a write-failure still records the rotation
+    // (the counter answers "is Inoreader rotating us?"; the write
+    // failure is separately surfaced via the upstash-write-failed path).
+    await recordRotation(env);
     const refreshOk = await writeRefreshToken(env, parsed.refresh_token);
     if (!refreshOk) {
       const result: RefreshResult = {
@@ -386,6 +396,9 @@ async function logAndCapture(
       durationMs,
       success: true,
     });
+    // BL-047 T4 — increment day-bucketed success counter + last-success
+    // timestamp pointer. Fail-open; never blocks the refresh path.
+    await recordRefreshSuccess(env);
     return;
   }
 
@@ -396,6 +409,15 @@ async function logAndCapture(
     success: false,
     errorCode: result.reason,
   });
+
+  // BL-047 T4 — increment per-reason day-bucketed failure counter.
+  // `lock-timeout` is internal to waitForPeerRefresh's polling and is
+  // NOT a refresh failure (peer is mid-refresh; this caller observes
+  // the peer's outcome). The other four reasons map 1:1 to
+  // RefreshFailureReason.
+  if (result.reason !== 'lock-timeout') {
+    await recordRefreshFailure(env, result.reason);
+  }
 
   // Sentry severity mapping:
   //   invalid-refresh-token → error (paging-class — operator must re-link)
