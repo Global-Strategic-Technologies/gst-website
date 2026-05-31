@@ -1113,6 +1113,10 @@ At typical usage, total is well under 200/day. If the per-key cap isn't sufficie
 
 **Post-BL-032.8 Phase B (2026-05-17)**: the Worker self-heals on Inoreader 401 by calling Inoreader's `/oauth2/token` directly via `inoreader-oauth.ts` and retrying the original request once. Concurrent refresh attempts (cron + live-tool) are coalesced to a single POST via an Upstash SET-NX-EX lock on `mcp:inoreader:refresh-lock`. Manual recovery is only needed when the **refresh-token itself** is dead (expired, revoked at Inoreader) — at that point neither cron nor live-tool retry can recover, and an operator must mint new tokens.
 
+**Post-BL-047 grace-window hedge (PR #196, 2026-05-31)**: the Worker additionally caches the previously-rotated refresh_token in-isolate for 60s (Inoreader's empirically-verified grace window — see [`INOREADER_OAUTH_CONTRACT.md`](./INOREADER_OAUTH_CONTRACT.md) § 5). On `invalid_grant` from the primary token, one retry with the cached previous token is attempted; within the grace window it succeeds and the failure never surfaces. The `oauth-refresh-invalid-refresh-token` Sentry event fires ONLY when BOTH the primary AND the hedge have failed — meaning the chain is genuinely dead and operator action is required (not a transient).
+
+**Pre-recovery triage** — before running the steps below, confirm the hedge ALSO failed. In Sentry, the alert that fired should be `oauth-refresh-invalid-refresh-token` with NO accompanying `inoreader.oauth.grace-window-recovery` event from the same minute. If a `grace-window-recovery` event IS present, the hedge already self-healed and no manual action is needed.
+
 **Telemetry to distinguish the two cases**:
 
 - `inoreader: 'degraded'` in `/health` followed by `inoreader: 'ok'` within 1-2 Cron ticks → Worker self-heal succeeded. No action needed

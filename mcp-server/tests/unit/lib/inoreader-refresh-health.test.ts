@@ -126,6 +126,37 @@ describe('recordRefreshFailure', () => {
   });
 });
 
+describe('recordGraceWindowRecovery', () => {
+  it('fires safeLog + Sentry envelope + Upstash counter on grace-window recovery', async () => {
+    const { recordGraceWindowRecovery } = await import('../../../src/lib/inoreader-refresh-health');
+    await recordGraceWindowRecovery(env);
+
+    expect(mockSafeLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'inoreader.oauth.grace-window-recovery',
+        success: true,
+      })
+    );
+    expect(mockCaptureMessageEnvelope).toHaveBeenCalledWith(
+      env,
+      'Inoreader refresh-token grace-window recovery',
+      'info',
+      expect.objectContaining({ occurredAt: expect.any(String) }),
+      'inoreader.oauth.grace-window-recovery'
+    );
+    expect(mockIncr).toHaveBeenCalledTimes(1);
+    expect(mockIncr.mock.calls[0]![0]).toMatch(/^mcp:inoreader:grace-recovery:\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('fail-open: still fires Sentry event when Upstash bindings missing', async () => {
+    const { recordGraceWindowRecovery } = await import('../../../src/lib/inoreader-refresh-health');
+    const unbound: Env = {};
+    await recordGraceWindowRecovery(unbound);
+    expect(mockCaptureMessageEnvelope).toHaveBeenCalledTimes(1);
+    expect(mockIncr).not.toHaveBeenCalled();
+  });
+});
+
 describe('recordRotation', () => {
   it('fires safeLog + Sentry envelope BEFORE the Upstash counter — telemetry survives Upstash outage', async () => {
     mockIncr.mockRejectedValueOnce(new Error('upstash down'));

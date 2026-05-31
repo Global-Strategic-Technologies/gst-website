@@ -449,3 +449,231 @@ describe('refreshAccessToken — single-flight', () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// BL-047 grace-window hedge — empirically verified ≥60s grace at Inoreader
+// ---------------------------------------------------------------------------
+
+import {
+  cachePreviousToken,
+  clearPreviousToken,
+} from '../../../src/lib/inoreader-oauth-grace-cache';
+
+describe('refreshAccessToken — BL-047 grace-window hedge', () => {
+  beforeEach(() => {
+    clearPreviousToken();
+  });
+
+  it('recovers via cached previous token when primary returns invalid_grant', async () => {
+    // Setup: cache a "previous" token (simulates a successful rotation in
+    // this isolate's recent history). Primary read returns the CURRENT
+    // Upstash token which Inoreader now rejects; hedge retries with the
+    // cached previous token which is still within the grace window.
+    cachePreviousToken('grace-previous-token');
+
+    fetchSpy
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: 'invalid_grant' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            access_token: 'hedge-recovered-access',
+            refresh_token: 'hedge-rotated-refresh',
+            expires_in: 3600,
+            token_type: 'Bearer',
+            scope: 'read',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+
+    const result = await refreshAccessToken(env, 'cron');
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.accessToken).toBe('hedge-recovered-access');
+
+    // Two POSTs: primary (failed) + hedge (succeeded).
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    // Hedge POST carried the previously-cached token.
+    const hedgeBody = fetchSpy.mock.calls[1]![1] as RequestInit;
+    expect((hedgeBody.body as URLSearchParams).get('refresh_token')).toBe('grace-previous-token');
+
+    // The recovered hedge does NOT fire a Sentry capture for the primary's
+    // invalid_grant — the operator should not be paged on a self-healed
+    // event. The final logged outcome is success.
+    expect(mockCaptureMessage).not.toHaveBeenCalledWith(
+      env,
+      expect.stringContaining('oauth-refresh-invalid-refresh-token'),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything()
+    );
+    // safeLog reflects the success outcome.
+    expect(mockSafeLog).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'oauth.refresh.success' })
+    );
+  });
+
+  it('falls through to invalid-refresh-token when BOTH primary AND hedge fail (true chain death)', async () => {
+    cachePreviousToken('grace-previous-token');
+
+    // Both POSTs return invalid_grant — chain genuinely dead.
+    const invalidGrantResponse = () =>
+      new Response(JSON.stringify({ error: 'invalid_grant' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    fetchSpy
+      .mockResolvedValueOnce(invalidGrantResponse())
+      .mockResolvedValueOnce(invalidGrantResponse());
+
+    const result = await refreshAccessToken(env, 'cron');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('invalid-refresh-token');
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    // Original primary's diagnostic is preserved (not masked by the redundant hedge attempt's).
+    expect(mockCaptureMessage).toHaveBeenCalledWith(
+      env,
+      expect.stringContaining('oauth-refresh-invalid-refresh-token'),
+      'error',
+      expect.anything(),
+      expect.anything(),
+      expect.anything()
+    );
+  });
+
+  it('does NOT attempt hedge when cache is empty (preserves pre-BL-047 behavior)', async () => {
+    // No cache → exactly the legacy single-POST path.
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: 'invalid_grant' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+
+    const result = await refreshAccessToken(env, 'cron');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('invalid-refresh-token');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT attempt hedge when cached previous equals primary (defensive guard)', async () => {
+    // If the cached token happens to match the Upstash token, retrying
+    // would just repeat the failure. Skip the hedge.
+    cachePreviousToken('stored-refresh-token'); // Same as the redisGet default.
+
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: 'invalid_grant' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+
+    const result = await refreshAccessToken(env, 'cron');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('invalid-refresh-token');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('on rotation, caches the OLD token so a future invalidation can self-heal', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          access_token: 'fresh-access',
+          refresh_token: 'rotated-new-refresh', // DIFFERENT from stored
+          expires_in: 3600,
+          token_type: 'Bearer',
+          scope: 'read',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+
+    const result = await refreshAccessToken(env, 'cron');
+    expect(result.ok).toBe(true);
+
+    // Cache now holds the OLD (the one we just used and saw rotated past).
+    const { getPreviousToken } = await import('../../../src/lib/inoreader-oauth-grace-cache');
+    expect(getPreviousToken()).toBe('stored-refresh-token');
+  });
+});
+
+describe('refreshAccessToken — upstash-write-failed retry', () => {
+  it('retries writeRefreshToken once before surfacing upstash-write-failed', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          access_token: 'fresh-access',
+          refresh_token: 'rotated-new-refresh',
+          expires_in: 3600,
+          token_type: 'Bearer',
+          scope: 'read',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+
+    // The first write to mcp:inoreader:refresh_token fails; the retry succeeds.
+    // We use a call-counter that distinguishes refresh-token writes from other
+    // writes (lock SET, access-token SET, etc.).
+    let refreshWriteCount = 0;
+    redisSet.mockImplementation(async (key: string, _value: unknown, opts?: unknown) => {
+      if (key === 'mcp:inoreader:refresh_token') {
+        refreshWriteCount++;
+        if (refreshWriteCount === 1) throw new Error('upstash blip');
+        return 'OK';
+      }
+      // Lock SET (nx:true) and access-token SET use the normal happy path.
+      void opts;
+      return 'OK';
+    });
+
+    const result = await refreshAccessToken(env, 'cron');
+
+    expect(result.ok).toBe(true);
+    expect(refreshWriteCount).toBe(2); // Initial + 1 retry.
+  });
+
+  it('returns upstash-write-failed when BOTH the initial write AND the retry fail', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          access_token: 'fresh-access',
+          refresh_token: 'rotated-new-refresh',
+          expires_in: 3600,
+          token_type: 'Bearer',
+          scope: 'read',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+
+    let refreshWriteCount = 0;
+    redisSet.mockImplementation(async (key: string, _value: unknown, _opts?: unknown) => {
+      if (key === 'mcp:inoreader:refresh_token') {
+        refreshWriteCount++;
+        throw new Error('upstash blip');
+      }
+      return 'OK';
+    });
+
+    const result = await refreshAccessToken(env, 'cron');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe('upstash-write-failed');
+    expect(refreshWriteCount).toBe(2); // Initial + 1 retry, both fail.
+  });
+});
