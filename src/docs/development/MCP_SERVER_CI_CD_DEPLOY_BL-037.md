@@ -191,7 +191,13 @@ git push origin <branch>
 
 ---
 
-### Phase D — Wrangler secret sync (~1 day; optional, deferred)
+### Phase D — Wrangler secret sync (~1 day; **EXTRACTED 2026-05-31 → BL-048, indefinitely deprioritized**)
+
+**2026-05-31 extraction note**: Phase D has been moved to its own backlog entry [BL-048](BACKLOG.md#bl-048-mcp-server--wrangler-secret-sync-extracted-from-bl-037-phase-d) so BL-037 can close cleanly after Phase C ships. BL-048's status is "open · deprioritized — indefinitely deferred" with written trigger thresholds for revisit (BL-033 ramp + first env-drift incident; rotation cadence exceeds monthly; compliance audit-trail mandate; operator-direct path breaks). The original implementation sketch below is retained for reference when BL-048 is eventually scheduled.
+
+---
+
+(Original Phase D scope, retained as design reference for BL-048):
 
 **Trigger** — `workflow_dispatch` + (optionally) a `repository_dispatch` event from the chosen secret manager's webhook on rotation.
 

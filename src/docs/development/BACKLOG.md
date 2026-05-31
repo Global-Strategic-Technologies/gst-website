@@ -2732,7 +2732,7 @@ Tier 1 (DONE in BL-031.75 V5 closure)
 
 ### BL-037: MCP Server — CI/CD Deploy Workflows
 
-**Source**: BL-037 — surfaced during BL-032 soak (2026-05-10) when the operator asked why Cloudflare deploys aren't CI/CD-driven. The current BL-032 ops model (operator-driven `npx wrangler deploy --env staging` per [DEPLOY.md](../../../mcp-server/src/docs/operations/DEPLOY.md)) is a deliberate phase choice for soak-velocity, not best practice for steady state. | **Effort**: ~2-3 days engineering | **Status**: ✅ **Phase A + Phase B SHIPPED 2026-05-31** — Phase A via PR #199 (auto-deploy to staging on green tests); Phase A hardening via PR #201 (every audit-flagged gap closed); Phase B via PR <TBD> (auto-deploy to production on master merge, gated by `mcp-production` GitHub Environment's required-reviewer approval). Phases C (rollback) + D (secret sync) remain open. | **Depends on**: BL-032 (closed); BL-033 originally listed as a Phase B precondition — reconsidered 2026-05-31 because the dependency was about the reviewer gate's value (highest with external consumers), not about deploy plumbing being impossible.
+**Source**: BL-037 — surfaced during BL-032 soak (2026-05-10) when the operator asked why Cloudflare deploys aren't CI/CD-driven. The current BL-032 ops model (operator-driven `npx wrangler deploy --env staging` per [DEPLOY.md](../../../mcp-server/src/docs/operations/DEPLOY.md)) is a deliberate phase choice for soak-velocity, not best practice for steady state. | **Effort**: ~2-3 days engineering | **Status**: ✅ **Phases A + B SHIPPED 2026-05-31** — Phase A via PR #199 + hardening PR #201; Phase B via PR #202. Phase C (rollback automation) remains open. **Phase D (secret sync) extracted to [BL-048](#bl-048-mcp-server--wrangler-secret-sync-extracted-from-bl-037-phase-d) — deprioritized + indefinite defer with documented revisit thresholds**, so BL-037 can close after Phase C ships. | **Depends on**: BL-032 (closed); BL-033 originally listed as a Phase B precondition — reconsidered 2026-05-31 because the dependency was about the reviewer gate's value (highest with external consumers), not about deploy plumbing being impossible.
 
 **As a** GST operator running the MCP server, **I want** Cloudflare Workers deploys to be triggered by CI/CD on push to long-lived branches **so that** the deploy story is reproducible, auditable, secret-free on developer machines, and gated on test pass — without giving up the operator-direct path needed for emergency rollback. This closes the "wrangler runs from my laptop" pattern that's acceptable during BL-032 soak but doesn't scale beyond it.
 
@@ -3253,4 +3253,36 @@ Audit caught that the counters T4 surfaces don't exist yet — they require new 
 
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026_
+### BL-048: MCP Server — Wrangler Secret Sync (extracted from BL-037 Phase D)
+
+**Source**: BL-048 — extracted from [BL-037 § Phase D — Wrangler secret sync](MCP_SERVER_CI_CD_DEPLOY_BL-037.md#phase-d--wrangler-secret-sync-1-day-optional-deferred). Originally scoped inside BL-037 as the fourth and lowest-priority phase ("optional, deferred"). 2026-05-31 audit recommended extraction so BL-037 can close after Phase C ships without carrying an indefinitely-deferred phase. | **Effort**: ~1 day implementation after a secret-manager substrate is chosen | **Status**: 🟦 **Open · DEPRIORITIZED — indefinitely deferred** until rotation friction or audit-trail need crosses a threshold | **Depends on**: BL-037 Phases A/B (shipped 2026-05-31) for the deploy substrate; selection of a secret-manager substrate (1Password Secrets Automation, Doppler, AWS Secrets Manager, HashiCorp Vault, or other)
+
+**As a** GST operator running the MCP server, **I want** Cloudflare Worker secrets (`MCP_KEY_*`, `UPSTASH_MCP_REST_*`, `SENTRY_DSN`, `INOREADER_*`, `MCP_ADMIN_KEY`) to sync from a single canonical secret manager into Cloudflare via CI/CD **so that** secret rotation becomes a one-click operation, every rotation has an audit trail, and staging/production stay in lockstep without manual paste from my laptop.
+
+#### Why deprioritized
+
+- **Rotation cadence is low** — current secret families rotate quarterly at most (BL-047 INOREADER OAuth bindings on token death; team-key rotation on operator turnover). At that frequency the per-rotation friction (~5-15 min of laptop paste) does not compound the way per-merge deploy friction compounded under BL-037 Phase A/B.
+- **Multi-environment consistency risk is currently low** — single-operator scale + the SECRETS_INVENTORY.md audit at PR #186 demonstrated env-binding parity. Risk grows with BL-033 (external pilot expands operator pool).
+- **Material upstream decision required** — picking the secret-manager substrate (1Password vs Doppler vs AWS SM vs Vault) is a multi-quarter commitment with material per-month cost. Should not be made under deploy-automation pressure.
+- **Operator-direct path remains documented** — `wrangler secret put` from a laptop with creds works fine. DEPLOY.md § C is the canonical reference and stays current.
+
+#### Trigger thresholds — revisit when
+
+- BL-033 external pilot ramps (multiple operators) AND first incident occurs where staging/prod secret drift is the root cause.
+- Routine secret rotation cadence exceeds monthly for any single secret family.
+- A compliance/audit requirement explicitly mandates per-rotation audit-trail records.
+- Operator-direct rotation path breaks (e.g., Cloudflare API changes; `wrangler secret put` is deprecated).
+
+#### Out of scope for this stanza — but documented for revisit
+
+- Substrate choice (1Password Connect / Doppler / AWS SM / Vault) — see [BL-037 § Phase D](MCP_SERVER_CI_CD_DEPLOY_BL-037.md#phase-d--wrangler-secret-sync-1-day-optional-deferred) for the original sketch including the `cloudflare/wrangler-action@v3` `secrets:` input contract.
+- Trigger model (workflow_dispatch only vs repository_dispatch from secret-manager webhook on rotation).
+- Filename: design doc proposes `secrets-sync-mcp.yml`.
+
+#### Why "deprioritized + indefinite defer" and not "won't do"
+
+Per CLAUDE.md § 4a "no deferred tech debt": deferral is acceptable when there is a written trigger condition for revisit and the deferred work is NOT verification of code currently in scope. Phase D meets both criteria — it's net-new automation with explicit trigger thresholds above, not unfinished verification. The deprioritization stays honest by naming the conditions under which it gets re-evaluated.
+
+---
+
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026_
