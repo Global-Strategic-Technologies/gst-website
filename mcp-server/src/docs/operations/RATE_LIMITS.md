@@ -12,10 +12,10 @@
 
 Every authenticated request consumes one token from the budgets below. Buckets are **per `keyOwner`** (see [`AUTH.md`](./AUTH.md) — your `MCP_KEY_<INITIALS>` suffix is the bucket identifier). Two team members hammering tools at the same time get independent budgets; one team member can't deny service to another.
 
-| Tool family       | Per-minute (sliding) | Per-day (sliding) | Status                                          |
-| ----------------- | -------------------- | ----------------- | ----------------------------------------------- |
-| **General tools** | 60                   | 1000              | ✅ Active in Phase 3                            |
-| **Radar tools**   | 5                    | 50                | ⏳ Activated in Phase 4 (when radar tools ship) |
+| Tool family       | Per-minute (sliding) | Per-day (sliding) | Status                           |
+| ----------------- | -------------------- | ----------------- | -------------------------------- |
+| **General tools** | 60                   | 1000              | ✅ Active in Phase 3             |
+| **Radar tools**   | 5                    | 50                | ✅ Active in BL-038 (2026-05-31) |
 
 **Sliding window** (vs. fixed-bucket): the budget rolls continuously — the 60th request in the past 60 seconds tips you over, regardless of when the prior 59 happened. No "burst at the top of every minute" exploit.
 
@@ -48,12 +48,13 @@ The 429 response body adds a structured JSON envelope:
   "error": "rate_limit_exceeded",
   "message": "Per-minute rate limit exceeded; retry after 30 seconds.",
   "tier": "minute",
+  "reason": "rate-limit-per-minute",
   "limit": 60,
   "retryAfterSeconds": 30
 }
 ```
 
-The `tier` field tells you which bucket triggered (`"minute"` or `"day"`). For a per-day cap hit, `retryAfterSeconds` can be many hours — sleep until tomorrow.
+The `tier` field tells you which bucket triggered. With BL-038's radar-tier activation it can now be one of `"minute"`, `"day"`, `"radar-minute"`, or `"radar-day"`. The `reason` field carries a stable string designed for agent-side classification — values are `rate-limit-per-minute`, `rate-limit-per-day`, `radar-rate-limit-per-minute`, `radar-rate-limit-per-day`. Use `reason` to distinguish "slow my radar polling specifically" (`radar-rate-limit-*`) from "slow everything" (the general `rate-limit-*`). For a per-day cap hit, `retryAfterSeconds` can be many hours — sleep until tomorrow.
 
 ---
 
@@ -157,12 +158,14 @@ When Upstash credentials aren't bound on the Worker `env` (or Upstash is down):
 
 This is intentional fail-open — the bearer-token check still gates access. Rate limiting is defense-in-depth; a transient Upstash outage shouldn't take down MCP entirely.
 
-### Phase 4 — radar-tier activation
+### Radar-tier activation (shipped via BL-038, 2026-05-31)
 
-When [Phase 4 ships radar tools](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#phase-4--inoreader-client-refactor--live-radar-tools-15-2-days), the limiter gains a third `Ratelimit` instance scoped to `mcp:ratelimit:radar:*` keys with the 5/min and 50/day caps. The Worker pre-parses the MCP request body to determine if a radar tool is being called; if yes, both general AND radar buckets get checked.
+The limiter carries a third + fourth `Ratelimit` instance scoped to `mcp:ratelimit:radar:min` and `mcp:ratelimit:radar:day` with the 5/min and 50/day caps. The Worker pre-parses the MCP request body via [`extractToolName`](../../dispatch/extract-tool-name.ts) at the rate-limit gate; if the call is `tools/call` for `search_radar` or `get_latest_insights`, all four buckets (general AND radar) get checked in parallel. Non-radar calls + non-`tools/call` requests + parse failures fail-safe to the general-only 2-bucket path.
 
 The general tier still applies to radar calls — they count toward the general 60/min, 1000/day allowance too. The radar tier is **additive** (a stricter parallel constraint), not replacement.
 
+**Upstash command budget**: each `Ratelimit.limit()` call costs 2 Redis commands. A general request consumes 4 commands (2 buckets), a radar request consumes 8 commands (4 buckets). Worst-case sizing for the Upstash free tier (10k commands/day): one operator at 1000 general + 50 radar calls/day = 4,400 commands; sized for 2 active operators (8,800/day) within free tier headroom. A third active operator pushes the math over the 10k threshold — the upgrade trigger is documented in the BL-038 design doc § Risks.
+
 ---
 
-_Last updated: 2026-05-04 (Phase 3)_
+_Last updated: 2026-05-31 (BL-038 — radar tier shipped)_

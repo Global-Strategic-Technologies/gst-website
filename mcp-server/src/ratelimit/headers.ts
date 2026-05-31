@@ -17,6 +17,25 @@
 import type { CheckResult } from './limiter';
 
 /**
+ * Map the binding tier to a stable `reason` string for the 429 JSON body
+ * and the safeLog `ratelimit.exceeded` event. Lets agents distinguish
+ * "I'm hitting the radar-specific limit, slow my radar polling" from
+ * "I'm hitting the general limit, slow everything." (BL-038)
+ */
+export function reasonForTier(tier: CheckResult['tier']): string {
+  switch (tier) {
+    case 'minute':
+      return 'rate-limit-per-minute';
+    case 'day':
+      return 'rate-limit-per-day';
+    case 'radar-minute':
+      return 'radar-rate-limit-per-minute';
+    case 'radar-day':
+      return 'radar-rate-limit-per-day';
+  }
+}
+
+/**
  * Build RFC 9331 headers from a check result. Round-up to whole seconds —
  * the spec requires an integer; floor would tell clients to retry slightly
  * before the window actually resets.
@@ -46,6 +65,7 @@ export function tooManyRequestsResponse(result: CheckResult): Response {
     error: 'rate_limit_exceeded',
     message: `Per-${result.tier} rate limit exceeded; retry after ${retryAfter} seconds.`,
     tier: result.tier,
+    reason: reasonForTier(result.tier),
     limit: result.limit,
     retryAfterSeconds: Number(retryAfter),
   });

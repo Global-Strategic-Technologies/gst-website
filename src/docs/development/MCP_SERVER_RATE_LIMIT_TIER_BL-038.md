@@ -258,4 +258,27 @@ Extend `mcp-server/tests/unit/ratelimit-headers.test.ts`:
 
 ---
 
-_Last updated: 2026-05-30 (initiative kicked off; implementation pending)._
+## Closure note
+
+**Shipped 2026-05-31 via PR <TBD>.**
+
+Implementation landed in a single atomic commit (typecheck contract preserved at every commit boundary — the `Limiter.check` signature widening required updating the worker call site in the same commit to avoid a broken intermediate). All 8 BACKLOG ACs + the 9th design-doc-internal AC (manifest-hash stability) delivered:
+
+- `perRadarMinute` (5/60s) + `perRadarDay` (50/1d) instances live at [`limiter.ts`](../../../mcp-server/src/ratelimit/limiter.ts).
+- `Limiter.check(keyOwner, toolClass: 'general' | 'radar')` signature shipped; 2 buckets for general, 4 for radar.
+- Worker dispatch via new [`extractToolName`](../../../mcp-server/src/dispatch/extract-tool-name.ts) + `toolClassFor` resolution at the rate-limit gate.
+- 429 envelope `reason` field maps tier → stable agent-facing string via new `reasonForTier()` helper in [`headers.ts`](../../../mcp-server/src/ratelimit/headers.ts).
+- Unit tests: 8 `chooseBindingTier4` priority cases + 4 reason-field envelope cases + 7 `extractToolName` cases (including empty-body fail-safe + body-consumption regression guard) + `RADAR_TOOLS` resolution table.
+- `RATE_LIMITS.md` flipped past-tense; 429 envelope example updated; Upstash command-budget math added.
+- `limiter.ts:6` aspirational comment retired.
+- Manifest-hash stability test passing — internal `Limiter.check` signature widening is NOT an MCP-protocol surface change.
+
+Integration-test integration deliberately deferred to a post-merge live probe against staging — the existing integration test gates on `UPSTASH_MCP_REST_URL` and CI doesn't bind it, so a CI-skip-only test would be cargo-cult scaffolding.
+
+**Audit minor #5 follow-up — operator-count reconciliation**: § Risks line 224 quotes "3 active operators" against Inoreader budget; line 226 quotes "2 operators" against Upstash command budget. At 3 operators × 8 cmds × 1000 calls/day = 24k/day, over Upstash's 10k free tier. `RATE_LIMITS.md` now documents the 2-operator sizing explicitly + the 3rd-operator upgrade trigger.
+
+**First MCP-surface change to exercise the BL-037 Phase A `workflow_run` deploy chain end-to-end** — push to `feature/bl-038-*` triggers `test-mcp-server.yml` (paths filter matches `mcp-server/**/*.ts`) → on green, `Deploy MCP Worker — staging` auto-fires → smoke probe validates `/health.gitSha` matches deployed commit within ~60s.
+
+---
+
+_Last updated: 2026-05-31 (shipped)._

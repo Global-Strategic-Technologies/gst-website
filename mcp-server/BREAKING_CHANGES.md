@@ -28,6 +28,20 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.3.14 — 2026-05-31 — BL-038: `Limiter.check()` signature widening (internal-only)
+
+**Theme**: BL-038 ships the radar-tier rate limit (5/min, 50/day) by widening `Limiter.check(keyOwner)` to `Limiter.check(keyOwner, toolClass: 'general' | 'radar')`. `CheckResult.tier` widens from `'minute' | 'day'` to `'minute' | 'day' | 'radar-minute' | 'radar-day'`. 429 envelope adds a new top-level `reason` field via `reasonForTier(tier)`; existing fields preserved.
+
+**Surface impact**: **None — internal only.** Limiter is consumed only by the Worker `fetch` handler at the single call site `worker.ts:482`. No MCP-protocol surface changes; no Tool/Prompt/Resource registry shape changes. Manifest-hash unchanged (`b702aa38df95e959bbf6f9f8ffac27460f0bbb7e3511c4253eb1781692d1a84d`).
+
+**Client impact**: 429 response bodies gain a new top-level `reason` field. Existing consumers reading `tier`, `limit`, `retryAfterSeconds`, `message`, or `error` are unaffected — additive change.
+
+**Behavior change visible to operators**: radar tools (`search_radar`, `get_latest_insights`) now consume from `mcp:ratelimit:radar:{min,day}` Upstash keys in addition to the existing `mcp:ratelimit:gen:{min,day}` keys. A key making 6+ radar calls in <60s will see a 429 with `reason: 'radar-rate-limit-per-minute'` while general-tool calls continue to flow against the unchanged 60/min general budget.
+
+**Reference**: [BL-038 design doc](../src/docs/development/MCP_SERVER_RATE_LIMIT_TIER_BL-038.md); [BACKLOG.md BL-038](../src/docs/development/BACKLOG.md#bl-038-mcp-server--radar-rate-limit-tier-5min-50day).
+
+---
+
 ## 0.3.13 — 2026-05-25 — scheduled handler: outer catch around Sentry plumbing (Cloudflare `outcome:exception` regression)
 
 **Theme**: 0.3.12 added a `catch` for `refreshRadarSnapshot` rejections, but `await flushSentry()` in the `finally` block and the Sentry SDK internals invoked by `withMonitor` were still unguarded. When a flush rejected (Sentry ingest network blip, quota, internal SDK error) or `withMonitor`'s check-in HTTP traffic threw, the exception escaped the IIFE → `ctx.waitUntil` rejected → Cloudflare reported `outcome:exception` even on firings where the radar work succeeded.
