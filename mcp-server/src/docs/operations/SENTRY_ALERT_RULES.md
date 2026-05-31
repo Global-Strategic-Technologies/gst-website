@@ -6,9 +6,9 @@
 
 ---
 
-## 1. The three OAuth failure signals
+## 1. OAuth event tags emitted by the Worker
 
-The Worker emits structured Sentry events at three failure points on the Inoreader OAuth refresh path. Each is paging-worthy.
+Five `event` tags fire on the Inoreader OAuth refresh path — **three paging-class** (operator action required) and **two info-class** (observability only; alert rules MUST NOT subscribe to these). The paging-class events are what the four Sentry rules in § 3 subscribe to; the info-class events surface in the Sentry timeline + Upstash counters but never page.
 
 | Sentry event tag                        | Worker source                                                                                                                                | When it fires                                                                                                                                                                                         | Recovery                                                                                                                                                                                                                                                                                                                        |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
