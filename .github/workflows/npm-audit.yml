@@ -1,0 +1,52 @@
+name: npm audit
+
+# Production-dependency vulnerability scan. Runs:
+#   - Weekly cron (Monday 06:00 UTC) — catches advisories published after the
+#     last lockfile change, so dormant dependencies don't quietly age into
+#     CVE territory.
+#   - On lockfile change — every PR that touches `package-lock.json` or
+#     `mcp-server/package-lock.json` runs the audit so new vulnerabilities
+#     surface at the moment the dependency is added.
+#
+# Moved out of the main Test Suite (2026-05-31) — running on every code
+# change was wasteful: the audit result is a function of the lockfile only,
+# not of source. The CLAUDE.md policy stays the same: "production
+# dependencies must stay at zero advisories (enforced via
+# `--audit-level=moderate --omit=dev` in CI). Dev-only advisories are
+# tolerated case-by-case."
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  push:
+    branches: [master, dev, 'feat/**', 'fix/**', 'feature/**']
+    paths:
+      - 'package-lock.json'
+      - 'mcp-server/package-lock.json'
+      - '.github/workflows/npm-audit.yml'
+  pull_request:
+    branches: [master]
+    types: [opened, reopened]
+    paths:
+      - 'package-lock.json'
+      - 'mcp-server/package-lock.json'
+      - '.github/workflows/npm-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: npm audit (production dependencies only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+      - name: npm audit --audit-level=moderate --omit=dev
+        run: npm audit --audit-level=moderate --omit=dev

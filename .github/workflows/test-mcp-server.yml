@@ -15,7 +15,7 @@ permissions:
 
 on:
   push:
-    branches: [master, dev, 'feat/**', 'fix/**', 'feature-*']
+    branches: [master, dev, 'feat/**', 'fix/**', 'feature/**']
     paths:
       - 'mcp-server/**'
       - '!mcp-server/**/*.md'
@@ -29,7 +29,11 @@ on:
       - '.github/workflows/test-mcp-server.yml'
   pull_request:
     branches: [master]
-    types: [opened, synchronize, reopened]
+    # Deliberately NOT listening to `synchronize` — push covers every commit
+    # added to a PR'd branch, and `synchronize` would duplicate-fire on every
+    # PR sync. `opened` + `reopened` still gives one PR-context run on the
+    # synthetic merge SHA so the merge result is independently validated.
+    types: [opened, reopened]
     paths:
       - 'mcp-server/**'
       - '!mcp-server/**/*.md'
@@ -64,7 +68,22 @@ jobs:
           node-version: '22.x'
           cache: 'npm'
 
+      - name: Cache node_modules
+        uses: actions/cache@v5
+        id: nm-cache
+        with:
+          # `setup-node`'s `cache: 'npm'` only caches the ~/.npm tarball
+          # cache — `npm ci` still does the link/install pass (~30-40s).
+          # Caching node_modules directly skips that step on cache hit.
+          # Key includes lockfile + node version + a manual epoch we can
+          # bump when we want to force a fresh install.
+          path: |
+            node_modules
+            mcp-server/node_modules
+          key: nm-v1-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Typecheck

@@ -2,3 +2,7 @@ dist/
 node_modules/
 coverage/
 *.tsbuildinfo
+# Local skip-cache for scripts/generate-regulations-index.mjs — input-hash
+# based; safe to delete (next run will regenerate it). Not committed because
+# its hash includes absolute paths that differ per checkout.
+src/content/.regen-cache.json

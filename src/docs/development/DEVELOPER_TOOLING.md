@@ -88,7 +88,7 @@ git commit -m "..."
 
 **Important**: the hook runs **before** the commit is recorded. A file you staged with double-quotes and 4-space indent may end up in the commit with single-quotes and 2-space indent — that's Prettier doing its job between the stash and the record. If you see your commit look different than your working tree expected, that's why.
 
-### On every push to `master`, `dev`, `feat/**`, `fix/**` and PRs to `master`
+### On every push to `master`, `dev`, `feat/**`, `fix/**`, `feature/**` and PRs to `master`
 
 The GitHub Actions workflow [.github/workflows/test.yml](../../../.github/workflows/test.yml) runs a 3-job parallel-then-gate pipeline:
 
@@ -114,8 +114,10 @@ The GitHub Actions workflow [.github/workflows/test.yml](../../../.github/workfl
 │   │  astro check                  │                             │
 │   │  eslint .                     │ runs in parallel            │
 │   │  stylelint                    │ with the tests job          │
-│   │  npm audit --omit=dev         │                             │
+│   │  prettier --check .           │                             │
 │   │  (~30-60s when code changed)  │                             │
+│   │  (npm audit moved to its own  │                             │
+│   │   workflow — see § npm audit) │                             │
 │   └───────────────┐                                             │
 │                   │                                             │
 │   ┌─ Unit & Integration Tests ─┐  │                             │
@@ -219,9 +221,12 @@ The `actions: write` permission on the gate job is required by skip-duplicate-ac
 | [eslint.config.mjs](../../../eslint.config.mjs)                   | ESLint flat config — recommended rules + overrides for tests, node scripts, and browser globals |
 | [.stylelintrc.json](../../../.stylelintrc.json)                   | CSS lint rules                                                                                  |
 | [tsconfig.json](../../../tsconfig.json)                           | TypeScript config, including the `@/*` → `src/*` path alias                                     |
-| [.husky/pre-commit](../../../.husky/pre-commit)                   | Single line: `npx lint-staged`                                                                  |
-| [.github/workflows/test.yml](../../../.github/workflows/test.yml) | CI pipeline (3 jobs + changes gate)                                                             |
-| [.github/dependabot.yml](../../../.github/dependabot.yml)         | Automated dependency updates (npm + GitHub Actions)                                             |
+| [.husky/pre-commit](../../../.husky/pre-commit)                                   | Single line: `npx lint-staged`                                                                  |
+| [.github/workflows/test.yml](../../../.github/workflows/test.yml)                 | Website CI pipeline (3 jobs + changes gate)                                                     |
+| [.github/workflows/test-mcp-server.yml](../../../.github/workflows/test-mcp-server.yml) | MCP server CI (runs in parallel to the website Test Suite)                                |
+| [.github/workflows/deploy-mcp-staging.yml](../../../.github/workflows/deploy-mcp-staging.yml) | Auto-deploys the MCP Worker to staging on a green MCP test run (BL-037 Phase A)         |
+| [.github/workflows/npm-audit.yml](../../../.github/workflows/npm-audit.yml)       | Production-dep vuln scan — weekly cron + lockfile-change trigger                                 |
+| [.github/dependabot.yml](../../../.github/dependabot.yml)                         | Automated dependency updates (npm + GitHub Actions)                                             |
 
 ---
 
@@ -546,11 +551,17 @@ If you need to add or remove supported browsers:
 
 ## npm audit policy
 
-Phase 2 CI runs:
+Production-dep audit lives in its own workflow at [.github/workflows/npm-audit.yml](../../../.github/workflows/npm-audit.yml). It runs on:
+
+- **Weekly cron** (Mondays 06:00 UTC) — catches advisories published between lockfile changes.
+- **Lockfile-change push or PR** — runs the moment a dependency is added, so new vulnerabilities are surfaced at the PR diff rather than at the next weekly cron tick.
+- **Manual `workflow_dispatch`** — for ad-hoc verification after editing the `overrides` block.
 
 ```bash
 npm audit --audit-level=moderate --omit=dev
 ```
+
+Moved here from the main Test Suite (2026-05-31): the audit result is a function of the lockfile only, so running on every code push was pure waste.
 
 **Why `--omit=dev`**: dev-only advisories (e.g., `@astrojs/check` → `yaml-language-server` → `yaml`) affect local development tooling but never reach users. Production dependencies must stay at zero advisories; dev-only moderate advisories are tolerated and revisited case-by-case.
 
