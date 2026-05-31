@@ -43,6 +43,11 @@ import { postSentryCheckIn, postSentryEvent } from './observability/sentry-envel
 import { dispatchAlertRuleSynthetic, SYNTHETIC_CRON } from './observability/alert-rule-synthetic';
 import { buildHealthPayload } from './observability/health';
 import { runAclSelfCheckOnce } from './observability/acl-selfcheck';
+import {
+  handleReauthCallback,
+  handleReauthStartGet,
+  handleReauthStartPost,
+} from './admin/inoreader-reauth';
 import { acquire } from './lib/single-flight-lock';
 import { refreshRadarSnapshot } from './cron/radar-refresh';
 import { readWireLive, readFyiLive } from './content/radar-live-store';
@@ -90,6 +95,19 @@ export interface Env {
   INOREADER_APP_KEY?: string;
   INOREADER_ACCESS_TOKEN?: string;
   INOREADER_REFRESH_TOKEN?: string;
+  // BL-047 T2 — Worker-served re-auth flow. Single registered redirect
+  // URI per Inoreader-tier constraint; production-only. Bound via
+  // `wrangler secret put INOREADER_REDIRECT_URI --env production` to
+  // `https://mcp.globalstrategic.tech/admin/inoreader/reauth/callback`.
+  // Required for both `/oauth2/auth` URL minting AND the
+  // `/oauth2/token` exchange POST body (OAuth 2.0 § 4.1.3 byte-exact
+  // match — mismatch yields `invalid_grant`).
+  INOREADER_REDIRECT_URI?: string;
+  // BL-047 T2 — admin gate for the in-browser re-auth flow. Single
+  // secret distinct from the `MCP_KEY_*` team-key family; team bearers
+  // do NOT grant admin access. Operator types/pastes this into the
+  // `/admin/inoreader/reauth/start` HTML form; constant-time compared.
+  MCP_ADMIN_KEY?: string;
 
   // Sentry — new project for service:mcp-server (Q6).
   SENTRY_DSN?: string;
@@ -374,6 +392,27 @@ export const handler: ExportedHandler<Env> = {
     if (url.pathname === '/health' && request.method === 'GET') {
       const payload = await buildHealthPayload(env);
       return withCors(Response.json(payload), origin);
+    }
+
+    // 2.5. BL-047 T2 — Inoreader OAuth re-auth flow. Admin-gated browser
+    //      surface. Slotted BEFORE the known-route allowlist (which would
+    //      404 these otherwise) AND BEFORE the standard `authenticate()`
+    //      call (admin uses `MCP_ADMIN_KEY` form submission, not
+    //      `MCP_KEY_*` Bearer). Also bypasses the per-key rate limiter
+    //      since these are operator-driven rare-recovery endpoints.
+    if (url.pathname === '/admin/inoreader/reauth/start') {
+      if (request.method === 'GET') return handleReauthStartGet(env);
+      if (request.method === 'POST') return handleReauthStartPost(request, env);
+      return new Response('Method Not Allowed', {
+        status: 405,
+        headers: { Allow: 'GET, POST' },
+      });
+    }
+    if (url.pathname === '/admin/inoreader/reauth/callback') {
+      if (request.method !== 'GET') {
+        return new Response('Method Not Allowed', { status: 405, headers: { Allow: 'GET' } });
+      }
+      return handleReauthCallback(request, env);
     }
 
     // 3. Known-route allowlist — anything we don't actually serve gets a

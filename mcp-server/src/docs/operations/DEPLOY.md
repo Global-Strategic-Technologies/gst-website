@@ -1123,6 +1123,29 @@ At typical usage, total is well under 200/day. If the per-key cap isn't sufficie
 - `inoreader: 'degraded'` persists across multiple Cron ticks AND Sentry shows `oauth-refresh-invalid-refresh-token` from the Worker → refresh-token is dead; operator action required (steps below)
 - `inoreader: 'degraded'` persists AND Sentry shows `oauth-refresh-token-missing` → neither the MCP-DB `mcp:inoreader:refresh_token` key nor the `INOREADER_REFRESH_TOKEN` Worker env var holds a value. Manual re-link required
 
+#### Recovery — primary path: in-browser re-auth (BL-047 T2)
+
+**Production-only by Inoreader-tier constraint.** The registered Inoreader app accepts ONE redirect URI; the production callback URL is the only one registered. Operators recover via the production Worker even when an incident is observed on staging.
+
+1. From any browser (mobile included) navigate to **https://mcp.globalstrategic.tech/admin/inoreader/reauth/start**
+2. Paste `MCP_ADMIN_KEY` from your password manager into the admin-key field; tap Continue
+3. You'll be 302'd to Inoreader's consent screen — tap Authorize
+4. Inoreader redirects back to `/callback`; the Worker exchanges the code, writes new tokens to Upstash, evicts the grace-window cache, and shows a "Re-auth complete" page
+5. Verify in Sentry: the `admin-reauth-callback-success` info-level event should appear within ~1 minute
+
+**T2 failure modes** (each fires a distinct Sentry event tag):
+
+- **`admin-reauth-persist-failed`** (paging) — Inoreader returned tokens but the Worker could not write them to Upstash. The new chain is valid on Inoreader's side but not on ours. **Action**: re-run `/start` within ~5 minutes to mint another fresh chain before the unpersisted one rotates further. The stranded chain self-invalidates once a fresh exchange overwrites it.
+- **`admin-reauth-token-exchange-failed`** (paging) — Inoreader rejected the code (expired, redirect_uri mismatch). Re-run `/start` and try again. If recurrent, verify `INOREADER_REDIRECT_URI` matches the URI registered in the Inoreader app dashboard byte-for-byte.
+- **`admin-reauth-state-rejected`** (capture-only) — stale link, replay attempt, or operator opened the consent flow in a different browser than `/start`. Restart from `/start` in the same browser.
+
+#### Recovery — fallback path: local Node script (bootstrap-only)
+
+The legacy `scripts/inoreader-auth.mjs` flow remains valid for two narrow cases:
+
+1. **First-time bootstrap** — before the production redirect URI is registered with the Inoreader app
+2. **`MCP_ADMIN_KEY` lost or rotated** — set a fresh one via `wrangler secret put MCP_ADMIN_KEY --env production`, then the in-browser path is back
+
 Recovery via the Inoreader OAuth setup flow:
 
 ```bash
