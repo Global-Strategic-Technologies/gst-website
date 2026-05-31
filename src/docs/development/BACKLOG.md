@@ -2849,7 +2849,7 @@ BL-032 soak closes
 
 ### BL-038: MCP Server — Radar Rate-Limit Tier (5/min, 50/day)
 
-**Source**: BL-038 — surfaced during BL-032 soak T.C.6 (2026-05-11). The documentation in [`mcp-server/src/ratelimit/limiter.ts:6`](../../../mcp-server/src/ratelimit/limiter.ts#L6) and [`RATE_LIMITS.md:162`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md#L162) claims a radar-specific rate-limit tier (5/min, 50/day) was to ship with Phase 4. Phase 4 (the radar tools themselves — `search_radar`, `get_latest_insights`) DID ship, but the third `Ratelimit` instance scoped to `mcp:ratelimit:radar:*` never made it into the code. T.C.6's counter inspection confirmed: zero radar-pattern keys in Upstash despite ~12 radar calls in the soak. | **Effort**: ~0.5 day engineering + tests | **Status**: Open · defense-in-depth gap, not critical | **Depends on**: nothing (can ship independently)
+**Source**: BL-038 — surfaced during BL-032 soak T.C.6 (2026-05-11). The documentation in [`mcp-server/src/ratelimit/limiter.ts:6`](../../../mcp-server/src/ratelimit/limiter.ts#L6) and [`RATE_LIMITS.md:162`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md#L162) claims a radar-specific rate-limit tier (5/min, 50/day) was to ship with Phase 4. Phase 4 (the radar tools themselves — `search_radar`, `get_latest_insights`) DID ship, but the third `Ratelimit` instance scoped to `mcp:ratelimit:radar:*` never made it into the code. T.C.6's counter inspection confirmed: zero radar-pattern keys in Upstash despite ~12 radar calls in the soak. | **Effort**: ~0.5 day engineering + tests | **Status**: ✅ **SHIPPED 2026-05-31** — `mcp-server@0.3.14` via PR <TBD>. First MCP-surface change to exercise the BL-037 Phase A `workflow_run` deploy chain end-to-end. | **Depends on**: nothing (can ship independently)
 
 **As a** GST operator running the MCP server, **I want** radar-tool calls to be capped at 5/min and 50/day per key, separate from the 60/min and 1000/day general bucket, **so that** a buggy agent loop or low-privilege key with an abuse pattern can't burn through the per-minute general budget making radar calls and indirectly stress the shared Inoreader 200 req/day budget during cache-miss windows.
 
@@ -2883,14 +2883,14 @@ BL-032 soak closes
 
 #### Acceptance Criteria
 
-- [ ] `perRadarMin` (5/60s) and `perRadarDay` (50/1d) `Ratelimit` instances added to `createLimiter()`
-- [ ] `Limiter.check()` accepts `toolClass: 'general' | 'radar'`; runs 4 buckets when `'radar'`
-- [ ] Worker tool-dispatch pre-parses MCP request body to determine tool class; passes correctly to `check()`
-- [ ] 429 envelope distinguishes radar-tier denial from general-tier denial in the `reason` field
-- [ ] Unit tests cover 4-bucket priority logic in `chooseBindingTier`
-- [ ] Integration test asserts `search_radar` 429s at request 6 within 60s while `list_portfolio_facets` continues to accept calls
-- [ ] [`RATE_LIMITS.md`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md) updated from "Phase 4 will add" to "implemented in BL-038"
-- [ ] Removed the "Phase 4 adds" aspirational comment at `limiter.ts:6` and replace with a description of the implemented behavior
+- [x] `perRadarMinute` (5/60s) and `perRadarDay` (50/1d) `Ratelimit` instances added to `createLimiter()` — see [`limiter.ts`](../../../mcp-server/src/ratelimit/limiter.ts) prefixes `mcp:ratelimit:radar:{min,day}`.
+- [x] `Limiter.check()` accepts `toolClass: 'general' | 'radar'`; runs 4 buckets when `'radar'`, 2 when `'general'`.
+- [x] Worker tool-dispatch pre-parses MCP request body to determine tool class via new [`extractToolName`](../../../mcp-server/src/dispatch/extract-tool-name.ts) + `toolClassFor` helpers; passes resolved class to `limiter.check()`.
+- [x] 429 envelope distinguishes radar-tier denial from general-tier denial in a new top-level `reason` field via `reasonForTier()` (values: `radar-rate-limit-per-minute`, `radar-rate-limit-per-day`, `rate-limit-per-minute`, `rate-limit-per-day`).
+- [x] Unit tests cover 4-bucket priority logic in `chooseBindingTier4` — 8 cases in [`tests/unit/ratelimit/limiter.test.ts`](../../../mcp-server/tests/unit/ratelimit/limiter.test.ts) (deny precedence, all-pass tie-break, latest-reset wins).
+- [ ] **Deferred — integration test** asserts `search_radar` 429s at request 6 within 60s while `list_portfolio_facets` continues to accept calls. Substituted by a post-merge live probe against staging (existing integration test is gated on `UPSTASH_MCP_REST_URL` presence and CI doesn't bind it; a CI-skip-only test would be cargo-cult scaffolding). Probe steps live in [`MCP_SERVER_RATE_LIMIT_TIER_BL-038.md § Closure note`](MCP_SERVER_RATE_LIMIT_TIER_BL-038.md).
+- [x] [`RATE_LIMITS.md`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md) updated: tool-family table flipped to "✅ Active in BL-038 (2026-05-31)"; "Phase 4 — radar-tier activation" stanza rewritten in past tense; 429 envelope example carries the new `reason` field; Upstash command-budget math added (2-operator free-tier sizing + 3rd-operator upgrade trigger).
+- [x] `limiter.ts` aspirational "Phase 4 adds" comment retired; replaced with description of the now-implemented 4-bucket behavior.
 
 **Why not roll into BL-032.75 (production observability)**
 
