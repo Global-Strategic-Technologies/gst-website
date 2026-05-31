@@ -35,7 +35,8 @@ import { isPreflight, preflightResponse, withCors } from './auth/cors';
 import { safeLog } from './auth/safe-logger';
 import { hasScope } from './auth/scopes';
 import { createLimiter } from './ratelimit/limiter';
-import { tooManyRequestsResponse, withRateLimitHeaders } from './ratelimit/headers';
+import { reasonForTier, tooManyRequestsResponse, withRateLimitHeaders } from './ratelimit/headers';
+import { extractToolName, toolClassFor } from './dispatch/extract-tool-name';
 import { captureMessage, sentryOptions, tagRequest, withSentry } from './observability/sentry';
 import { AnalyticsEngineSink, emit } from './metrics/_index';
 import type { RefreshOutcome } from './cron/radar-refresh';
@@ -475,20 +476,27 @@ export const handler: ExportedHandler<Env> = {
     // events.
     tagRequest(auth.keyOwner, url.pathname);
 
-    // 4. Per-key rate limit (Phase 3). Sliding-window check via Upstash;
-    //    null → graceful skip (Upstash creds not bound — fail open with a
-    //    warning). Phase 4 adds a stricter parallel bucket for radar tools.
+    // 4. Per-key rate limit (Phase 3 + BL-038). Sliding-window check via
+    //    Upstash; null → graceful skip (Upstash creds not bound — fail open
+    //    with a warning). Radar tools (`search_radar`, `get_latest_insights`)
+    //    additionally consume from a stricter 5/min, 50/day pair keyed under
+    //    `mcp:ratelimit:radar:*` — BL-038 defense-in-depth for the shared
+    //    Inoreader budget. Tool name is extracted at the Worker boundary via
+    //    a cloned-body JSON-RPC parse; non-tools/call requests + parse
+    //    failures fail-safe to `'general'`.
+    const toolName = await extractToolName(request);
+    const toolClass = toolClassFor(toolName);
     const limiter = createLimiter(env);
     let rlResult = null;
     if (limiter) {
-      rlResult = await limiter.check(auth.keyOwner);
+      rlResult = await limiter.check(auth.keyOwner, toolClass);
       if (!rlResult.allowed) {
         safeLog({
           event: 'ratelimit.exceeded',
           keyOwner: auth.keyOwner,
           path: url.pathname,
           status: 429,
-          reason: `tier=${rlResult.tier}`,
+          reason: reasonForTier(rlResult.tier),
           success: false,
           errorCode: 'rate-limit',
         });
@@ -570,8 +578,10 @@ export const handler: ExportedHandler<Env> = {
 
     // 5. Authenticated + within rate limit — log + delegate to MCP handler.
     //    Wall-clock timing recorded via durationMs for Phase 5 observability.
-    //    Tool-name extraction at the Worker boundary requires request.clone()
-    //    + JSON-RPC parse; deferred to BL-032.75 maturity work.
+    //    Tool-name extraction at the Worker boundary is now ACTIVE for the
+    //    rate-limit gate (BL-038, via `extractToolName` above); broader
+    //    tagging of safeLog events with the resolved tool name remains in
+    //    BL-032.75 maturity scope.
     const startedAt = Date.now();
 
     // Build the MCP handler per-request — radar-live tools (Phase 4c) capture

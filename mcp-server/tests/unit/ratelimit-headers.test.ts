@@ -9,6 +9,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   rateLimitHeaders,
+  reasonForTier,
   tooManyRequestsResponse,
   withRateLimitHeaders,
 } from '../../src/ratelimit/headers';
@@ -107,6 +108,64 @@ describe('tooManyRequestsResponse', () => {
     expect(body.limit).toBe(60);
     expect(body.retryAfterSeconds).toBe(45);
     expect(body.message).toMatch(/per-minute/i);
+    // BL-038: stable `reason` field for agent classification
+    expect((body as unknown as { reason: string }).reason).toBe('rate-limit-per-minute');
+  });
+
+  it('emits reason=rate-limit-per-day for tier=day', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FIXED_NOW);
+
+    const result: CheckResult = {
+      allowed: false,
+      limit: 1000,
+      remaining: 0,
+      resetAt: FIXED_NOW + 3600_000,
+      tier: 'day',
+    };
+
+    const res = tooManyRequestsResponse(result);
+    const body = (await res.json()) as { tier: string; reason: string };
+    expect(body.tier).toBe('day');
+    expect(body.reason).toBe('rate-limit-per-day');
+  });
+
+  it('emits reason=radar-rate-limit-per-minute for tier=radar-minute (BL-038)', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FIXED_NOW);
+
+    const result: CheckResult = {
+      allowed: false,
+      limit: 5,
+      remaining: 0,
+      resetAt: FIXED_NOW + 30_000,
+      tier: 'radar-minute',
+    };
+
+    const res = tooManyRequestsResponse(result);
+    const body = (await res.json()) as { tier: string; reason: string; limit: number };
+    expect(body.tier).toBe('radar-minute');
+    expect(body.reason).toBe('radar-rate-limit-per-minute');
+    expect(body.limit).toBe(5);
+  });
+
+  it('emits reason=radar-rate-limit-per-day for tier=radar-day (BL-038)', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FIXED_NOW);
+
+    const result: CheckResult = {
+      allowed: false,
+      limit: 50,
+      remaining: 0,
+      resetAt: FIXED_NOW + 3600_000,
+      tier: 'radar-day',
+    };
+
+    const res = tooManyRequestsResponse(result);
+    const body = (await res.json()) as { tier: string; reason: string; limit: number };
+    expect(body.tier).toBe('radar-day');
+    expect(body.reason).toBe('radar-rate-limit-per-day');
+    expect(body.limit).toBe(50);
   });
 
   it('throws if called with allowed=true (programmer error guard)', () => {
@@ -202,5 +261,14 @@ describe('chooseBindingTier', () => {
     const result = chooseBindingTier(minute, day);
     expect(result.allowed).toBe(true);
     expect(result.tier).toBe('minute');
+  });
+});
+
+describe('reasonForTier (BL-038)', () => {
+  it('maps each tier to its stable reason string', () => {
+    expect(reasonForTier('minute')).toBe('rate-limit-per-minute');
+    expect(reasonForTier('day')).toBe('rate-limit-per-day');
+    expect(reasonForTier('radar-minute')).toBe('radar-rate-limit-per-minute');
+    expect(reasonForTier('radar-day')).toBe('radar-rate-limit-per-day');
   });
 });
