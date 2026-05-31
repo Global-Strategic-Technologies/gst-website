@@ -131,7 +131,9 @@ git push origin <branch>
 
 ---
 
-### Phase B — Production deploy on merge to master (~half-day, after BL-033 ramp)
+### Phase B — Production deploy on merge to master (~half-day, shipped 2026-05-31)
+
+**Closure note 2026-05-31**: shipped via `.github/workflows/deploy-mcp-production.yml`. The original "after BL-033 ramp" deferral was reconsidered — the BL-033 dependency was about the VALUE of the reviewer gate (highest with external consumers), not about the deploy plumbing being impossible to ship. Per CLAUDE.md § 4a "no deferred tech debt," shipped now with the reviewer gate enabled by default (single-operator approval); the gate scales naturally when BL-033 expands the reviewer pool. Without Phase B, every master merge that touches MCP source still required manual `npm run deploy:production` from the operator's laptop — that's exactly the friction BL-037 was scoped to remove.
 
 **Trigger**
 
