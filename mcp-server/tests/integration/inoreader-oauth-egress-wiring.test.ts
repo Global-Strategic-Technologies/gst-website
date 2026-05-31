@@ -111,14 +111,23 @@ describe('refreshAccessToken × egress recorder (BL-032.75 Phase 0)', () => {
     expect(redisIncr).not.toHaveBeenCalledWith(totalSpendKey());
   });
 
-  it('does NOT record when the OAuth POST throws (no Response received)', async () => {
+  it('does NOT record the egress counter when the OAuth POST throws (no Response received)', async () => {
     fetchSpy.mockRejectedValue(new Error('network down'));
 
     await refreshAccessToken(env, 'cron');
 
     // A network error means nothing reached Inoreader's quota counter; we
-    // must not tick ours either, otherwise drift detection would flag the
-    // wrapper itself as the bug source.
-    expect(redisIncr).not.toHaveBeenCalled();
+    // must not tick the egress counter either, otherwise drift detection
+    // would flag the wrapper itself as the bug source.
+    //
+    // **Scoped assertion (BL-047 T4 update)**: BL-047 T4 records a
+    // refresh-failure counter on `inoreader-error` at this code path
+    // (different counter family, different keyspace —
+    // `mcp:inoreader:refresh-failure:*` vs `mcp:inoreader:spend:*`).
+    // That INCR is correct behavior and unrelated to the egress
+    // accounting assertion below. The original "no INCR at all" check
+    // is replaced with a per-key check against the egress prefixes only.
+    expect(redisIncr).not.toHaveBeenCalledWith(categorySpendKey('oauth-refresh'));
+    expect(redisIncr).not.toHaveBeenCalledWith(totalSpendKey());
   });
 });

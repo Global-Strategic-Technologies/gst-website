@@ -89,7 +89,14 @@ This is intentionally permissive — it accepts both the documented 401 status a
 
 Observed reality (2026-05-13 BL-039 ship date through 2026-05-30): we have not yet captured production data on whether `refresh_token` is **always rotated** (every successful refresh returns a NEW refresh_token) or **rotated sparsely** (most refreshes return the SAME refresh_token, with rotation only on specific triggers).
 
-**BL-047 T3 closes this**: emit `inoreader.oauth.refresh-token.rotated` Sentry event + `mcp:inoreader:rotations:<YYYY-MM-DD>` counter at the rotation branch of [`inoreader-oauth.ts:332`](../../lib/inoreader-oauth.ts). After 30 days of T3 data we can answer the regime question empirically.
+**BL-047 T3 shipped 2026-05-31** — telemetry now live:
+
+- Sentry event `inoreader.oauth.refresh-token.rotated` (info-level) fires on every rotation
+- Upstash counter `mcp:inoreader:rotations:<YYYY-MM-DD>` increments per rotation (25h TTL)
+- `/health.inoreaderRefreshTokenHealth.lastRotationAt` + `.rotationsLast24h` operator-readable
+- All wired through [`inoreader-refresh-health.ts`](../../lib/inoreader-refresh-health.ts) recorder at the rotation branch of [`inoreader-oauth.ts:332`](../../lib/inoreader-oauth.ts)
+
+**Regime answer window opens 2026-05-31**: 30 days of T3 data (closes ~2026-06-30) is the empirical answer. Until then we assume the safer (dense rotation) regime by default and the single-flight lock at the OAuth boundary mitigates the parallel-fetch race.
 
 **Why it matters**: if Inoreader is in a rotation regime (every refresh issues a new refresh_token), our cron's parallel-fetch races become more dangerous — the loser of a race writes a stale refresh_token. The existing single-flight lock at the OAuth boundary already mitigates this, but a known rotation regime would re-elevate the risk profile and likely justify Track-5-equivalent hedging. Until T3 ships, we assume the safer (rotation) regime by default.
 

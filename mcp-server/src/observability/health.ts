@@ -60,6 +60,10 @@ import {
 import { createMcpClient } from '../lib/upstash-clients';
 import { readInoreaderSpend, type InoreaderEgressCategory } from '../lib/inoreader-egress';
 import { readAclSelfCheck, type AclSelfCheckResult } from './acl-selfcheck';
+import {
+  readRefreshHealth,
+  type InoreaderRefreshTokenHealth,
+} from '../lib/inoreader-refresh-health';
 import type { Env } from '../worker';
 
 const VERSION = '0.1.0'; // bumped in lockstep with mcp-server/package.json (see BREAKING_CHANGES.md)
@@ -130,6 +134,31 @@ interface HealthResponse {
    * the same value regardless of which isolate served the request.
    */
   aclSelfCheck: AclSelfCheckResult;
+  /**
+   * BL-047 T3+T4 — Inoreader OAuth refresh-token health surface.
+   * Operator-visible leading indicators on the refresh path so token
+   * degradation can be seen BEFORE the next refresh attempts and fails:
+   *
+   *   - `lastSuccessfulRefreshAt` / `ageSinceLastSuccessfulRefreshSeconds`
+   *     answer "are we still refreshing?" — `null` after a fresh deploy
+   *     with no refresh observed; the age field becomes the primary
+   *     "are we dying?" signal once non-null
+   *   - `lastRotationAt` + `rotationsLast24h` answer the rotation-regime
+   *     open question pinned in
+   *     `mcp-server/src/docs/operations/INOREADER_OAUTH_CONTRACT.md` § 6.
+   *     30 days of this data tells us empirically whether Inoreader is
+   *     in a dense or sparse rotation mode
+   *   - `refreshSuccessLast24h` + `recentRefreshFailureCounts` give a
+   *     direct failure-rate read. Per-reason breakdown is non-negotiable
+   *     because the four failure modes have different recovery
+   *     procedures (see SENTRY_ALERT_RULES.md § 1)
+   *
+   * Read-only on `/health` — the underlying counters + pointers are
+   * written by `inoreader-refresh-health.ts` recorders at the OAuth
+   * refresh call sites in `inoreader-oauth.ts`. Fail-open: returns zero
+   * counters + null pointers when Upstash is unreachable.
+   */
+  inoreaderRefreshTokenHealth: InoreaderRefreshTokenHealth;
 }
 
 const HEALTH_PROBE_KEY_PREFIX = 'mcp:health:probe:';
@@ -220,14 +249,21 @@ async function probeRadarSnapshotAge(env: Env): Promise<number | null> {
  * the Inoreader DB probe) shaved one Upstash round-trip off this path.
  */
 export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
-  const [upstashMcp, inoreader, radarSnapshotAgeSeconds, inoreaderSpend, aclSelfCheck] =
-    await Promise.all([
-      probeMcp(env),
-      readInoreaderStatus(env),
-      probeRadarSnapshotAge(env),
-      readInoreaderSpend(env),
-      readAclSelfCheck(env),
-    ]);
+  const [
+    upstashMcp,
+    inoreader,
+    radarSnapshotAgeSeconds,
+    inoreaderSpend,
+    aclSelfCheck,
+    inoreaderRefreshTokenHealth,
+  ] = await Promise.all([
+    probeMcp(env),
+    readInoreaderStatus(env),
+    probeRadarSnapshotAge(env),
+    readInoreaderSpend(env),
+    readAclSelfCheck(env),
+    readRefreshHealth(env),
+  ]);
 
   // ok: true iff MCP DB is reachable AND the last observed Inoreader API
   // call was not degraded. `inoreader: 'unknown'` is intentionally NOT a
@@ -250,5 +286,6 @@ export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
     radarSnapshotAgeSeconds,
     inoreaderSpend,
     aclSelfCheck,
+    inoreaderRefreshTokenHealth,
   };
 }
