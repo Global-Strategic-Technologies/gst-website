@@ -226,6 +226,7 @@ The `actions: write` permission on the gate job is required by skip-duplicate-ac
 | [.github/workflows/test-mcp-server.yml](../../../.github/workflows/test-mcp-server.yml) | MCP server CI (runs in parallel to the website Test Suite)                                |
 | [.github/workflows/deploy-mcp-staging.yml](../../../.github/workflows/deploy-mcp-staging.yml) | Auto-deploys the MCP Worker to staging on a green MCP test run (BL-037 Phase A)         |
 | [.github/workflows/deploy-mcp-production.yml](../../../.github/workflows/deploy-mcp-production.yml) | Auto-deploys the MCP Worker to production on master merge, gated by the `mcp-production` GitHub Environment's required-reviewer approval (BL-037 Phase B) |
+| [.github/workflows/rollback-mcp.yml](../../../.github/workflows/rollback-mcp.yml) | Manual `workflow_dispatch` rollback of the MCP Worker to a prior deployment ID; production rollbacks gated by the `mcp-production-rollback` environment (BL-037 Phase C) |
 | [.github/workflows/npm-audit.yml](../../../.github/workflows/npm-audit.yml)       | Production-dep vuln scan — weekly cron + lockfile-change trigger                                 |
 | [.github/dependabot.yml](../../../.github/dependabot.yml)                         | Automated dependency updates (npm + GitHub Actions)                                             |
 

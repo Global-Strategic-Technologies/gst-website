@@ -158,7 +158,13 @@ git push origin <branch>
 
 ---
 
-### Phase C — Rollback automation (~half-day)
+### Phase C — Rollback automation (~half-day, shipped 2026-05-31)
+
+**Closure note 2026-05-31**: shipped via `.github/workflows/rollback-mcp.yml`. Operator one-time step: create the `mcp-production-rollback` GitHub Environment with required reviewers (same pool as `mcp-production`). The smoke probe is delegated to the shared `mcp-server/scripts/smoke-probe.sh` introduced in PR #203 (audit gap closure) — same exact-7-char SHA compare, cache-buster, raw-body-on-failure logic. Failure opens a P1 incident issue with operator-direct fallback instructions per DEPLOY.md.
+
+---
+
+(Original Phase C scope, retained as reference):
 
 **Trigger**
 
