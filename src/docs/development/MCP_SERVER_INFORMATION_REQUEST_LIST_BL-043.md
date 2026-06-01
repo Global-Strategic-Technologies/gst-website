@@ -32,7 +32,7 @@ Sales-side and value-creation workflows need a **universal, one-page Information
 
 1. **MCP/Agent enablement**: the Resource form lets agent contexts (Claude Desktop pinned Resources, BL-033 pilot orchestrators, OpenClaw agents) scope to "everything we need to know about a target" with one `resources/read` call. Versatile substrate for new sales motions.
 2. **Diligence Machine fidelity uplift**: with the IRL filled, the 13-field `'unknown'`-aware wizard becomes deterministic — no more conservative-widening trigger.
-3. **Compounds with `gst_vdr_audit`**: the IRL is the _request side_; `gst_vdr_audit` is the _response audit_. Together they bracket the diligence intake loop.
+3. **Bracketing the diligence intake loop**: the IRL is the _request side_ — paired downstream with the analyst's review of the eventual filled VDR. (Historical note: the original design positioned this as a companion to `gst_vdr_audit`, retired 2026-05-31 via BL-036 Tier 3.)
 
 ---
 
@@ -132,7 +132,7 @@ Ten sections — one "00 — Basics" prelude that captures deal/profile fields n
 
 ## MCP Prompt — `gst_information_request_list`
 
-Mirrors `vdr-audit.ts` (embed-Resource-as-second-message pattern).
+Follows the embed-Resource-as-second-message pattern shared across the prompt registry (canonical Library article embedded inline; body references it by URI).
 
 ### Required `GstPrompt` fields
 
@@ -185,7 +185,7 @@ const argsSchema = z.object({
 
 - Embed `gst://library/information-request-list` Resource inline via `embedLibraryArticle` (second message).
 - Instruct the model to deliver the IRL as a paste-ready request artifact, with optional light personalization from the args.
-- Two modes (mirroring `vdr-audit.ts`):
+- Two modes (the registry-wide arg-presence-branches-on-build pattern):
   - `ONE_SHOT_BODY` when any arg is provided — uses the args to personalize voice/framing.
   - `INTERACTIVE_BODY` when no args supplied — model first asks the user for the target context, then emits.
 
@@ -201,7 +201,7 @@ Compliance with [TEST_STRATEGY.md § Test Pyramid](../testing/TEST_STRATEGY.md#t
 
 ### Unit tests (~60-70% of coverage)
 
-**File**: `mcp-server/tests/unit/prompts/information-request-list.test.ts` (mirrors `mcp-server/tests/unit/prompts/vdr-audit.test.ts`)
+**File**: `mcp-server/tests/unit/prompts/information-request-list.test.ts` (follows the per-prompt unit-test shape established across the registry — name + args + body invariants + interactive vs one-shot branches).
 
 Required cases:
 
@@ -229,7 +229,7 @@ Required cases:
 
 **File**: `mcp-server/tests/examples/information-request-list.golden.md`
 
-Format mirrors the 8 existing goldens (e.g., `mcp-server/tests/examples/vdr-audit.golden.md`):
+Format follows the existing goldens in `mcp-server/tests/examples/` (e.g., `diligence-kickoff.golden.md`):
 
 ```markdown
 ---
@@ -397,7 +397,7 @@ End-to-end checks before marking complete:
 | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Partner ships inconsistent IRL** (agent reads `article.md`, partner prints `.astro` divergence) | **Resolved at design**: Astro Hub page imports `article.md` directly via `astro:content`. Single source of truth. No drift surface — agent-side and partner-side are the same bytes.                                                              |
 | **Boot failure from missing required `GstPrompt` fields**                                         | Plan explicitly lists `version`, `lastReviewedAt`, `orchestrates`. Validated at `_registry.ts:51-83`. Step 4 commits include them. Caught at unit-test run time, not in production.                                                               |
-| **Registry test fails because Resource URI not mentioned in body**                                | `embedLibraryArticle('gst://library/information-request-list')` as second message satisfies the body-mention invariant. Confirmed by reading `vdr-audit.ts`.                                                                                      |
+| **Registry test fails because Resource URI not mentioned in body**                                | `embedLibraryArticle('gst://library/information-request-list')` as second message satisfies the body-mention invariant. Confirmed by reading any embed-pattern prompt in the registry (e.g., `diligence-kickoff.ts`).                             |
 | **3-card library index layout breaks**                                                            | Step 3 includes explicit 3-card check at 1280/768/480. Adjust `.library-section` grid if needed.                                                                                                                                                  |
 | **E2E test brittleness from shallow readiness gates**                                             | Test plan explicitly applies [TEST_BEST_PRACTICES § 25](../testing/TEST_BEST_PRACTICES.md#25--shallow-readiness-gates-in-beforeeach-that-dont-match-test-dependencies) — wait for deepest shared element.                                         |
 | **Unit-test silent registration failure**                                                         | Test plan explicitly applies [TEST_BEST_PRACTICES § 9 + § 10](../testing/TEST_BEST_PRACTICES.md#9--explicit-vitest-imports-when-globals-true-is-enabled) — no `vitest` imports for `describe`/`it`/`expect`; lifecycle hooks inside `describe()`. |

@@ -67,7 +67,7 @@ The full GST MCP surface delivered through BL-031.5 → BL-031.75 → BL-032 →
 
 - **12+ Tools**: portfolio search, radar (FYI + Wire tiers), regulations, ICG, TechPar, tech-debt estimation, diligence agenda
 - **6 Resource URIs**: Library articles (`gst://library/*`), Regulations (`gst://regulations/*`, 120+ files), Radar snapshots (6 URIs across FYI + Wire tiers)
-- **8 GST consultant Prompts** (`gst_*`): VDR audit, target quick-look, diligence kickoff/handoff, architecture review, radar brief, regulatory brief, comparable engagements
+- **7 GST consultant Prompts** (`gst_*`): target quick-look, diligence kickoff/handoff, architecture review, radar brief, regulatory brief, comparable engagements (post-BL-036 Tier 3; `gst_vdr_audit` retired 2026-05-31)
 - **Production-grade substrate**: bearer auth, per-key rate limits, OAuth self-heal (BL-039), Cron-pre-warmed radar cache, Sentry observability
 
 ### Proposed demo scenarios

@@ -266,7 +266,6 @@ populated-IRL ingestion:
    - Cross-jurisdictional regulatory exposure brief: invoke `gst_regulatory_exposure_brief`
    - Architecture review across the four-layer framework: invoke `gst_architecture_layer_review`
    - Today's GST radar briefing in GST Take voice: invoke `gst_radar_brief_today`
-   - VDR-folder taxonomy audit against a target's actual data room: invoke `gst_vdr_audit`
    GST Prompts orchestrate the tools with the right sequence, conditionals, and
    output structure; re-deriving from tools loses that discipline.
 ```

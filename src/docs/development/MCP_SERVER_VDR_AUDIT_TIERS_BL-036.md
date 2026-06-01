@@ -1,6 +1,20 @@
-# MCP Server — `gst_vdr_audit` Quality Maturity Roadmap (BL-036, Tiers 2–6)
+# MCP Server — `gst_vdr_audit` Quality Maturity Roadmap — ❌ RETIRED 2026-05-31 (BL-036 Tier 3)
 
-> **Backlog initiative**: [BL-036: MCP Server — `gst_vdr_audit` Quality Maturity Roadmap (Tiers 2–6)](BACKLOG.md#bl-036-mcp-server--gst_vdr_audit-quality-maturity-roadmap-tiers-26)
+> **❌ RETIRED 2026-05-31**
+>
+> **`gst_vdr_audit` was retired entirely via BL-036 Tier 3 closure.** Operator assessment 2026-05-31 determined the capability's business value insufficient to justify the contents-grounded improvements originally scoped here under Tiers 2-6. The prompt itself, its tests, and its golden snapshot were all deleted; cross-doc citations cleaned across the docs surface.
+>
+> **What was removed**: `mcp-server/src/prompts/vdr-audit.ts`, `tests/unit/prompts/vdr-audit.test.ts`, `tests/examples/vdr-audit.golden.md`, the import + `ALL_PROMPTS` entry in `_registry.ts`, and all operational cross-doc citations. See [BACKLOG.md § BL-036](BACKLOG.md#bl-036) for the full inventory + rationale, and [BREAKING_CHANGES.md § 0.3.15](../../../mcp-server/BREAKING_CHANGES.md) for the manifest-hash impact.
+>
+> **What stays**: the Library Resource `gst://library/vdr-structure` (still used by `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, and `gst_diligence_sweep`). Operators wanting the canonical VDR taxonomy still get it via those prompts or by reading the Library article directly.
+>
+> **Why this doc is retained**: design rationale + tier sketches preserve the institutional knowledge for any future contributor considering a similar audit surface. **Do NOT re-author a similar capability without first reading this doc + the BL-036 retirement record in BACKLOG.** The Tier 2-6 designs survived enough planning to be worth recovering before any reinvention attempt.
+>
+> ---
+>
+> (Original document follows; tier designs are now historical reference only.)
+
+> **Backlog initiative**: [BL-036: MCP Server — `gst_vdr_audit` Quality Maturity Roadmap (Tier 3 RETIREMENT)](BACKLOG.md#bl-036-mcp-server--gst_vdr_audit-quality-maturity-roadmap-tiers-26)
 >
 > **Companion docs**:
 >
