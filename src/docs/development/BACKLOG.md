@@ -229,7 +229,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 - **Reduces partner overhead** by eliminating the mental translation step between unstructured sales-call notes and canonical Hub-tool inputs.
 - **MCP/Agent enablement** for BL-033 pilot clients — pilot teams can pin one Resource to scope an engagement's full intake surface; no per-pilot context-engineering required.
 - **Brand-bearing artifact** — printed PDF is a partner-presentable deliverable in the GST voice; reinforces the firm's "structured-information-first" posture in early client conversations.
-- **Compounds with existing prompts** — `gst_information_request_list` is the _request_ side of the diligence-intake loop; pair with `gst_diligence_kickoff` once filled, and `gst_vdr_audit` for the response audit.
+- **Compounds with existing prompts** — `gst_information_request_list` is the _request_ side of the diligence-intake loop; pair with `gst_diligence_kickoff` once filled. (Historical: the original framing also paired this with `gst_vdr_audit` for the response audit; that prompt was retired 2026-05-31 via BL-036 Tier 3.)
 
 #### Acceptance Criteria
 
@@ -280,7 +280,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 - **No tool attribution in the public artifact** — by design, per the BL-043 planning conversation. The internal `irl-tool-input-mapping.md` doc carries the engineering-side map of which IRL bullet feeds which Hub-tool / MCP-prompt input.
 - **VDR-9 taxonomy + "00 Basics" prelude**: sections `01-09` mirror the canonical VDR taxonomy. Section `00` captures the cross-cutting deal/profile facts (target name, transaction type, ARR, stage, business model, geos) that no single VDR folder owns but every downstream analysis depends on.
 - **CSS-ID slug quirk**: auto-generated heading slugs use github-slugger; em-dashes in section titles ("00 — Basics") collapse to double-dashes ("00--basics"). Bare CSS ID selectors that start with a digit are invalid — E2E tests use attribute-form selectors (`h2[id="..."]`) instead.
-- **Companion to existing prompts**: `gst_information_request_list` is the _request_ artifact; `gst_diligence_kickoff` consumes filled answers as the diligence-agenda generator; `gst_vdr_audit` audits the target's eventual VDR against the canonical taxonomy.
+- **Companion to existing prompts**: `gst_information_request_list` is the _request_ artifact; `gst_diligence_kickoff` consumes filled answers as the diligence-agenda generator. (Historical: the original design also paired this with `gst_vdr_audit`; that prompt was retired 2026-05-31 via BL-036 Tier 3.)
 - **Future work** (tracked separately, do not bundle into BL-043):
   - **[BL-044](#bl-044-information-request-list--fillable-form-generator)** — fillable-form generator (Hub tool + MCP tool) that produces a downloadable `.xlsx` from this article. Closes the partner-side "recipient response surface" gap. Filed; not yet started.
   - **BL-045 candidate** (`gst_intake_filled_irl`) — paste-a-filled-IRL → canonical Hub-tool inputs converter. The response side of the loop. Premature to design without BL-044 + v1 usage evidence; file when prioritized.
@@ -768,6 +768,8 @@ The local MCP server MUST NOT make Inoreader API calls. The 200 req/day budget i
 ---
 
 ### BL-031.75: MCP Server — Consultant Prompt Library
+
+> **Note on retired references (2026-05-31)**: this stanza documents the BL-031.75 shipment as recorded at the time of the V1–V8 sign-off. One of the eight prompts described below (`gst_vdr_audit`) was subsequently retired via BL-036 Tier 3 (insufficient business value). Mentions of `gst_vdr_audit` in this stanza are preserved as historical record of what shipped under BL-031.75 — they are not active surface and should not be edited to maintain the integrity of the V1–V8 sign-off trail. The current prompt registry contains 9 prompts; see [`mcp-server/README.md` § Prompts](../../../mcp-server/README.md) for the live inventory.
 
 **Source**: BL-031.75 — extends Phase 1 surface with Prompts | **Architecture & plan**: [MCP_SERVER_PROMPTS_BL-031_75.md](MCP_SERVER_PROMPTS_BL-031_75.md) | **Effort**: 2-3 days engineering + senior-consultant review time | **Status**: Complete (May 1, 2026); V1–V8 senior-consultant sign-off recorded in `mcp-server/README.md` § "Last verified (BL-031.75 surface)" + `mcp-server/tests/examples/*.golden.md` | **Depends on**: BL-031, BL-031.5
 

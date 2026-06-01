@@ -1,5 +1,7 @@
 # MCP Server — Consultant Prompt Library (BL-031.75)
 
+> **🟡 Note on retired references (2026-05-31)**: this design doc records the BL-031.75 shipment as it existed at the V1–V8 sign-off (May 1, 2026). One of the eight prompts described throughout (`gst_vdr_audit`) was subsequently retired via BL-036 Tier 3 (insufficient business value). The many mentions of `gst_vdr_audit` below are preserved as historical record of what shipped under BL-031.75 — they are not active surface and should not be edited to maintain the integrity of the V1–V8 sign-off trail. The current prompt registry contains 9 prompts; see [`mcp-server/README.md` § Prompts](../../../mcp-server/README.md) for the live inventory and [BACKLOG.md § BL-036](BACKLOG.md#bl-036) for the retirement rationale.
+>
 > **Backlog initiative**: [BL-031.75: MCP Server — Consultant Prompt Library](BACKLOG.md#bl-03175-mcp-server--consultant-prompt-library)
 >
 > **Predecessors**:

@@ -170,7 +170,6 @@ Prompts are **typed, versioned macros** that orchestrate one or more Tools and R
 | `gst_diligence_kickoff`           | `generate_diligence_agenda` + VDR Library Resource             | [`mcp-server/src/prompts/diligence-kickoff.ts`](../../../mcp-server/src/prompts/diligence-kickoff.ts)                     |
 | `gst_diligence_handoff_memo`      | `generate_diligence_agenda` + `search_portfolio` + VDR Library | [`mcp-server/src/prompts/diligence-handoff-memo.ts`](../../../mcp-server/src/prompts/diligence-handoff-memo.ts)           |
 | `gst_architecture_layer_review`   | `gst://library/business-architectures` Resource                | [`mcp-server/src/prompts/architecture-layer-review.ts`](../../../mcp-server/src/prompts/architecture-layer-review.ts)     |
-| `gst_vdr_audit`                   | `gst://library/vdr-structure` Resource                         | [`mcp-server/src/prompts/vdr-audit.ts`](../../../mcp-server/src/prompts/vdr-audit.ts)                                     |
 | `gst_radar_brief_today`           | `gst://radar/fyi/latest` Resource                              | [`mcp-server/src/prompts/radar-brief-today.ts`](../../../mcp-server/src/prompts/radar-brief-today.ts)                     |
 | `gst_regulatory_exposure_brief`   | `search_regulations` + `gst://regulations/*`                   | [`mcp-server/src/prompts/regulatory-exposure-brief.ts`](../../../mcp-server/src/prompts/regulatory-exposure-brief.ts)     |
 | `gst_comparable_engagements_memo` | `search_portfolio` + `list_portfolio_facets`                   | [`mcp-server/src/prompts/comparable-engagements-memo.ts`](../../../mcp-server/src/prompts/comparable-engagements-memo.ts) |
@@ -191,10 +190,10 @@ Resources are URI-addressable read-only content. Three families:
 
 GST Library articles — canonical taxonomies and reference content baked into the Worker bundle at build time:
 
-| URI                                    | Content                                                                                  |
-| -------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `gst://library/vdr-structure`          | The canonical 10-folder VDR taxonomy used by `gst_vdr_audit` and `gst_diligence_kickoff` |
-| `gst://library/business-architectures` | Business-architecture taxonomy used by `gst_architecture_layer_review`                   |
+| URI                                    | Content                                                                                                                       |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `gst://library/vdr-structure`          | The canonical 10-folder VDR taxonomy used by `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, and `gst_diligence_sweep` |
+| `gst://library/business-architectures` | Business-architecture taxonomy used by `gst_architecture_layer_review`                                                        |
 
 #### Regulation Resources (`gst://regulations/<jurisdiction>/<framework>`)
 
