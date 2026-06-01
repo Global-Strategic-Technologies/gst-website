@@ -1509,7 +1509,14 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
   }
 
   /* ── ARR quick-pick chips ──────────────────────────────────── */
-  .tp-arr-quick {
+  /* :global() because these selectors are also targeted by chips rendered
+     from <PresetInput> (src/components/techpar/PresetInput.astro), which
+     carries its own Astro scope hash. Without :global(), Astro adds
+     index.astro's hash to the selector and the component-rendered chips
+     fall back to unstyled <button>s — visible regression on TechPar's
+     Costs tab. The ARR chips inside this file still match because the
+     selectors are global; class structure unchanged. */
+  :global(.tp-arr-quick) {
     display: flex;
     flex-wrap: wrap;
     margin-bottom: var(--spacing-sm);
@@ -1518,7 +1525,7 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
     max-width: 280px;
   }
 
-  .tp-arr-chip {
+  :global(.tp-arr-chip) {
     flex: 1;
     background: transparent;
     border: none;
@@ -1536,27 +1543,27 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
     text-align: center;
   }
 
-  .tp-arr-chip:nth-child(4),
-  .tp-arr-chip:last-child {
+  :global(.tp-arr-chip:nth-child(4)),
+  :global(.tp-arr-chip:last-child) {
     border-right: none;
   }
 
-  .tp-arr-chip:focus-visible {
+  :global(.tp-arr-chip:focus-visible) {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
 
-  .tp-arr-chip:hover:not(.tp-arr-chip--active) {
+  :global(.tp-arr-chip:hover:not(.tp-arr-chip--active)) {
     color: var(--text-secondary);
   }
 
-  .tp-arr-chip--active {
+  :global(.tp-arr-chip--active) {
     background: transparent;
     color: var(--color-primary);
     box-shadow: inset 0 0 0 2px var(--color-primary);
   }
 
-  .tp-arr-chip--active:hover {
+  :global(.tp-arr-chip--active:hover) {
     background: transparent;
     color: var(--color-primary);
   }
