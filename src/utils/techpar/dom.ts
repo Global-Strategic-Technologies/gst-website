@@ -699,7 +699,11 @@ export function hydrateFromUrl() {
   const setInput = (name: string, val: number | undefined) => {
     if (val === undefined) return;
     const el = document.querySelector(`[data-input="${name}"]`) as HTMLInputElement | null;
-    if (el) el.value = String(val);
+    if (!el) return;
+    el.value = String(val);
+    // BL-042: <PresetInput>'s chip-active sync is driven by input events. URL
+    // hydration must dispatch one so the matching chip paints active on load.
+    el.dispatchEvent(new Event('input', { bubbles: true }));
   };
 
   if (state.arr) {
