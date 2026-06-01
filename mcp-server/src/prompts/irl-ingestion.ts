@@ -1,18 +1,19 @@
 /**
- * Prompt: gst_diligence_sweep
+ * Prompt: gst_irl_ingestion (renamed from `gst_diligence_sweep` under BL-045).
  *
  * Bookend to `gst_information_request_list`. Where the IRL prompt emits the
  * *request* artifact (universal intake checklist), this prompt ingests a
  * *populated* IRL — the structured response a target returns — and uses the
- * full content to drive every Hub tool surface and downstream prompt
- * artifact GST exposes. The output is a unified diligence dossier with no
- * `'unknown'` defensive widening: high-fidelity intake produces high-
- * fidelity sweep.
+ * full content to drive every applicable Hub tool surface and downstream
+ * prompt artifact GST exposes. Scenario-neutral surface: serves buy-side
+ * diligence, sell-side prep, value-creation engagements, and post-close
+ * hardening; the `transactionContext` arg modulates voice cues without
+ * gating tool selection.
  *
  * Input modes:
- *   1. `filledIrl` supplied — one-shot mode; runs the full sweep.
+ *   1. `filledIrl` supplied — one-shot mode; runs the full ingestion.
  *   2. `filledIrl` omitted — interactive mode; the model asks the user to
- *      paste the populated IRL before sweeping.
+ *      paste the populated IRL before ingesting.
  *
  * Resource embedding: the canonical `gst://library/information-request-list`
  * article is embedded so the model can reconcile the user's filled bullets
@@ -20,6 +21,8 @@
  * minimally-formatted reply rather than the verbatim IRL skeleton);
  * `gst://library/vdr-structure` is embedded so the synthesis section can
  * use the canonical VDR-folder labels for follow-up requests verbatim.
+ *
+ * See: src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md
  */
 
 import { z } from 'zod';
@@ -76,7 +79,7 @@ const argsSchema = z.object({
     ),
 });
 
-const PROMPT_NAME = 'gst_diligence_sweep';
+const PROMPT_NAME = 'gst_irl_ingestion';
 
 const VOICE_CUES: Record<(typeof transactionContextValues)[number], string> = {
   'sell-side':
@@ -172,7 +175,7 @@ function buildOneShotBody(args: {
     '- Surface concrete numbers (ARR, headcount, cloud spend, MTTR) from the IRL verbatim — they are the evidence behind every claim.',
     '- Do NOT fabricate data the IRL did not supply. If the filled IRL is sparse on a dimension, flag the gap honestly in the relevant section.',
     "- Honor every tool's `deeplink` field when surfaced — pass it through as a clickable Hub link, do not invent URLs. **Every section (C / D / E / F / G / H) that pulled from a tool MUST close with the corresponding Open-in-Hub link** — this is the bridge between the Claude Desktop dossier and the partner-refinable Hub surface; without it the dossier is read-only.",
-    '- Do NOT pad the dossier with section-divider commentary or `gst_diligence_sweep`-meta commentary; the partner reads the artifact, not the process.',
+    '- Do NOT pad the dossier with section-divider commentary or `gst_irl_ingestion`-meta commentary; the partner reads the artifact, not the process.',
   ].join('\n');
 }
 
@@ -194,17 +197,17 @@ const INTERACTIVE_BODY = [
   `  - Step 2f — Call \`estimate_tech_debt_cost\` using IRL Section 04 + 07.`,
   `  - Step 2g — Call \`search_radar\` for the target's product segment + geographies.`,
   '',
-  `Step 3. Compose the unified dossier — nine sections (A–I) following the gst_diligence_sweep one-shot layout (target snapshot · diligence agenda · architecture · ICG · tech debt · regulatory · comparables · market signal · synthesis). **Every section that pulls from a tool MUST close with that tool's \`deeplink\` URL as an "Open in Hub" link** — TechPar wizard for (C), ICG wizard for (D), Tech Debt Calculator for (E), Regulatory Map for (F, one per framework), portfolio view for (G), Radar feed for (H). The deeplinks open the corresponding Hub surface with state pre-populated; this is the bridge between the read-only dossier and the partner-refinable interactive tool. Reference the canonical VDR taxonomy (\`${VDR_RESOURCE_URI}\`) verbatim for follow-up document requests in the synthesis section.`,
+  `Step 3. Compose the unified dossier — nine sections (A–I): target snapshot · diligence agenda · architecture · ICG · tech debt · regulatory · comparables · market signal · synthesis. **Every section that pulls from a tool MUST close with that tool's \`deeplink\` URL as an "Open in Hub" link** — TechPar wizard for (C), ICG wizard for (D), Tech Debt Calculator for (E), Regulatory Map for (F, one per framework), portfolio view for (G), Radar feed for (H). The deeplinks open the corresponding Hub surface with state pre-populated; this is the bridge between the read-only dossier and the partner-refinable interactive tool. Reference the canonical VDR taxonomy (\`${VDR_RESOURCE_URI}\`) verbatim for follow-up document requests in the synthesis section.`,
   '',
   "Voice: dossier-quality. The output reads as a single coherent partner-level document. Surface concrete numbers from the IRL verbatim. Honor every tool's `deeplink` field as a clickable Hub link (do NOT invent URLs). Do NOT fabricate data the IRL did not supply.",
 ].join('\n');
 
-export const diligenceSweepPrompt: GstPrompt<typeof argsSchema> = {
+export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
-    'Bookend to gst_information_request_list — ingest a populated IRL and sweep every Hub tool + downstream artifact to produce a unified diligence dossier. The "high-fidelity intake → full platform sweep" workflow.',
-  version: '0.0.5',
-  lastReviewedAt: '2026-05-24',
+    'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
+  version: '0.1.0',
+  lastReviewedAt: '2026-06-01',
   orchestrates: [
     'generate_diligence_agenda',
     'list_portfolio_facets',
