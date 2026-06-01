@@ -169,9 +169,44 @@ jobs:
         if: needs.changes.outputs.should_run == 'true'
         run: npm run lint:css
 
-      - name: Prettier check
+      - name: Prettier check (PR-diff scoped)
+        # Scoped to files changed in this PR so latent drift in unrelated
+        # files cannot block an otherwise-clean PR. The weekly drift cron
+        # at `.github/workflows/prettier-drift-check.yml` is the counter-
+        # pressure that surfaces accumulated drift in a tracked Issue.
         if: needs.changes.outputs.should_run == 'true'
-        run: npx prettier --check .
+        shell: bash
+        run: |
+          # Determine the base SHA to diff against:
+          #   - PR events: github.event.pull_request.base.sha
+          #   - Push to a tracked branch: github.event.before
+          #   - First push to a fresh branch (before=000...): fall back to
+          #     the merge-base against origin/master
+          BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA="$(git merge-base origin/master HEAD)"
+          fi
+          echo "Diffing against base: $BASE_SHA"
+
+          # `--diff-filter=AMRCT` excludes deletions (D) and untracked (U).
+          DIFF_FILES=$(git diff --name-only --diff-filter=AMRCT "$BASE_SHA"...HEAD -- \
+            '*.ts' '*.tsx' '*.mjs' '*.cjs' '*.js' '*.astro' \
+            '*.css' '*.json' '*.md' '*.yaml' '*.yml' || true)
+
+          if [ -z "$DIFF_FILES" ]; then
+            echo "No prettier-relevant files changed; skipping check"
+            exit 0
+          fi
+
+          FILE_COUNT=$(echo "$DIFF_FILES" | wc -l)
+          echo "Checking $FILE_COUNT files in PR diff:"
+          echo "$DIFF_FILES" | sed 's/^/  - /'
+
+          # `.prettierignore` is honored when files are passed as explicit
+          # args (verified — prettier 2.x+ behavior). `--ignore-unknown`
+          # silently skips unknown extensions, defense-in-depth.
+          # `xargs` to defeat shell arg-length limits on big PRs.
+          echo "$DIFF_FILES" | xargs npx prettier --check --ignore-unknown
 
       - name: Skipped (docs-only or duplicate run)
         if: needs.changes.outputs.should_run != 'true'
