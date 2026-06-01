@@ -184,6 +184,12 @@ jobs:
           #     the merge-base against origin/master
           BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
           if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            # actions/checkout is shallow (depth=1) by default; origin/master
+            # isn't in the clone. Fetch enough of master to compute a
+            # merge-base. Depth 50 covers any realistic feature-branch fork
+            # point; if a contributor's branch diverged >50 commits behind
+            # they probably need to rebase anyway.
+            git fetch origin master --depth=50
             BASE_SHA="$(git merge-base origin/master HEAD)"
           fi
           echo "Diffing against base: $BASE_SHA"
