@@ -466,9 +466,9 @@ BL-044's parser (already a v1 deliverable — required for XLS generation) is th
 
 ---
 
-### BL-045: Filled-IRL Ingestion → Canonical Hub-Tool Inputs (candidate)
+### BL-045: Sweep IRL-Ingestion Hardening + Rename (`gst_diligence_sweep` → `gst_irl_ingestion`)
 
-**Source**: Sequel work explicitly scoped out of BL-044 (closing the request → response side of the loop) | **Effort**: 3-5 days (estimate; refine during scoping spike) | **Status**: Candidate — not committed; awaits v1 usage evidence | **Depends on**: BL-044 (consumes its generated workbook format)
+**Source**: Sequel work scoped out of BL-044, rescoped 2026-06-01 from "ship a second prompt" to "harden + rename the existing ingestion surface" so one prompt cleanly serves buy-side, sell-side, value-creation, and unknown engagement scenarios with IRL-content-aware tool selection. Strategic-audit additions bundled 2026-06-01: meta JSON fence + schema self-check + BL-032.75 instrumentation + SOP-as-Resource + fill-ratio surfacing + derived `forceTools` enum + four robustness stretches (tool-error degradation, provenance self-check, deterministic dispatch test, build-time schema test) | **Architecture & plan**: [MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md](MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md) | **Effort**: ~0.5 day (PR A, refactor) + 5-7 days (PR B, rename + harden + bundled enhancements + senior-consultant 9×4 review) | **Status**: Candidate — design doc landed 2026-06-01 after four audit cycles (three correctness + one strategic), awaits senior-consultant content review scheduling to promote Candidate → Committed | **Depends on**: BL-031.95 (deeplink contract reused via existing tool wrappers), BL-031.75 (registered-prompt maturity bar), BL-044 (parent IRL generator), BL-032.75 (instrumentation hooks emit into Phase 1's AE schema)
 
 **As a** GST partner receiving a filled IRL `.xlsx` back from a target/client, **I want** to invoke `/gst_intake_filled_irl` in Claude Desktop with the filled workbook attached **so that** the model parses the answer cells into structured inputs for every relevant Hub tool — `compute_techpar`, `assess_infrastructure_cost_governance`, `estimate_tech_debt_cost`, `generate_diligence_agenda`, `search_regulations` — in one assistant turn, instead of manually re-typing each value across multiple wizards.
 

@@ -28,6 +28,22 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.3.16 — 2026-06-01 — BL-045 PR A: extraction-rule constants extracted (no surface change)
+
+**Theme**: BL-045 PR A — pre-implementation refactor for the upcoming `gst_diligence_sweep` → `gst_irl_ingestion` rename + harden initiative. The load-bearing IRL→tool-input rule prose currently fused inline with sweep orchestration at `diligence-sweep.ts:123/127/129/131/133` is extracted into a shared module at [`src/prompts/extraction-rules.ts`](./src/prompts/extraction-rules.ts) exporting six named constants (`UNKNOWN_PROPAGATION_RULE`, `EU_AI_ACT_CONDITIONAL_TRIGGER`, `NIS2_CONDITIONAL_TRIGGER`, `ENG_COST_DEDUP_RULE`, `ICG_SEEDING_RULES`, `MTTR_P1_RULE`). Sweep imports each constant and interpolates them back at the same body positions.
+
+**Surface impact**: **None — internal refactor.** The rendered prompt body is character-identical pre- and post-refactor (verified by the existing `diligence-sweep-body-hash-stability` integration test: all three scenario hashes unchanged). All 29 existing unit tests pass without modification; a new constant-presence test (test #30) locks the single-source-of-truth invariant. `gst_diligence_sweep` prompt version stays at `0.0.5`; no change to `argsSchema`, `orchestrates`, or `description`.
+
+**Client impact**: None.
+
+**Manifest-hash impact**: Unchanged at `4941f4bface7f2cddf28ed7abe34912a14f5072d8d3ce7595e9d721c1a7edb9a` (prompt `name@version` tuple unchanged; Library/Regulation/Radar URI sets unchanged).
+
+**Why this is its own PR**: per BL-045's design doc, the refactor lands first so PR B (the rename + behavior expansion) starts from a clean shared-constants foundation. Future ingestion-style prompts (the renamed sweep, any subsequent BL-04N sibling) import the same constants — no duplication.
+
+**Reference**: [BL-045 design doc](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md) § Pre-implementation refactor.
+
+---
+
 ## 0.3.15 — 2026-05-31 — BL-036 Tier 3: `gst_vdr_audit` Prompt retired
 
 **Theme**: BL-036 Tier 3 retires the `gst_vdr_audit` Prompt entirely. Tier 1 (folder-name input) shipped May 2026; Tiers 2-6 (file-contents enhancements and downstream maturity) are canceled — operator assessment 2026-05-31 determined the capability's business value insufficient to justify continued maintenance or further investment in the contents-grounded improvements originally scoped.
