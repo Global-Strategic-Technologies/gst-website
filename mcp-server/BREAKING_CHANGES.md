@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-b702aa38df95e959bbf6f9f8ffac27460f0bbb7e3511c4253eb1781692d1a84d
+4941f4bface7f2cddf28ed7abe34912a14f5072d8d3ce7595e9d721c1a7edb9a
 ```
 
 Computed over (sorted):
@@ -19,12 +19,26 @@ Computed over (sorted):
 - 3 Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`)
 - 120 Regulation URIs (`gst://regulations/<jurisdiction>/<framework-id>`)
 - 6 Radar URIs (FYI latest + Wire latest + 4 Wire categories)
-- 10 prompt `name@version` tuples (`gst_*`) — `gst_information_request_list` at `0.0.4` (Claude Desktop redirect) + `gst_diligence_sweep` at `0.0.5`
+- **9** prompt `name@version` tuples (`gst_*`) — `gst_information_request_list` at `0.0.4` (Claude Desktop redirect) + `gst_diligence_sweep` at `0.0.5`. (Was 10 prior to BL-036 Tier 3 retirement of `gst_vdr_audit` — 2026-05-31, mcp-server@0.3.15.)
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.3.15 — 2026-05-31 — BL-036 Tier 3: `gst_vdr_audit` Prompt retired
+
+**Theme**: BL-036 Tier 3 retires the `gst_vdr_audit` Prompt entirely. Tier 1 (folder-name input) shipped May 2026; Tiers 2-6 (file-contents enhancements and downstream maturity) are canceled — operator assessment 2026-05-31 determined the capability's business value insufficient to justify continued maintenance or further investment in the contents-grounded improvements originally scoped.
+
+**Surface impact**: **BREAKING** for any consumer that invokes `gst_vdr_audit` directly. The Prompt is removed from the registry; an MCP `prompts/get` for `gst_vdr_audit` returns "prompt not found." `prompts/list` returns 9 prompts instead of 10.
+
+**Mitigation**: no successor. The Library Resource `gst://library/vdr-structure` remains (still used by `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, and `gst_diligence_sweep`), so any consumer that wants the canonical VDR taxonomy can still embed the article directly or invoke one of those prompts.
+
+**Manifest-hash impact**: hash changes from `b702aa38…` to `4941f4bf…` (9 prompts post-retirement, was 10). Library/Regulation/Radar URI sets unchanged. Updated in `tests/integration/manifest-stability.test.ts` and the "Current manifest hash" section above.
+
+**Reference**: [BACKLOG.md § BL-036](../src/docs/development/BACKLOG.md#bl-036), [design doc](../src/docs/development/MCP_SERVER_VDR_AUDIT_TIERS_BL-036.md) (retained with closure banner — preserves the original tier sketches as institutional reference for any future contributor considering a similar surface).
 
 ---
 

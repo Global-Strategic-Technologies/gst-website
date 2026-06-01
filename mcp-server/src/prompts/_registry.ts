@@ -22,7 +22,6 @@ import { targetQuickLookPrompt } from './target-quick-look';
 import { comparableEngagementsMemoPrompt } from './comparable-engagements-memo';
 import { regulatoryExposureBriefPrompt } from './regulatory-exposure-brief';
 import { diligenceHandoffMemoPrompt } from './diligence-handoff-memo';
-import { vdrAuditPrompt } from './vdr-audit';
 import { architectureLayerReviewPrompt } from './architecture-layer-review';
 import { radarBriefTodayPrompt } from './radar-brief-today';
 import { informationRequestListPrompt } from './information-request-list';
@@ -36,7 +35,6 @@ export const ALL_PROMPTS: ReadonlyArray<GstPrompt<any>> = [
   comparableEngagementsMemoPrompt,
   regulatoryExposureBriefPrompt,
   diligenceHandoffMemoPrompt,
-  vdrAuditPrompt,
   architectureLayerReviewPrompt,
   radarBriefTodayPrompt,
   informationRequestListPrompt,
