@@ -2,6 +2,7 @@
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
 import DeltaIcon from '../../../../components/DeltaIcon.astro';
+import PresetInput from '../../../../components/techpar/PresetInput.astro';
 ---
 
 <BaseLayout
@@ -488,55 +489,22 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
             <label class="brutal-field__label brutal-text-small" for="tp-exit-mult"
               >Exit multiple assumption</label
             >
-            <div class="tp-arr-quick">
-              <button
-                class="tp-arr-chip"
-                aria-pressed="false"
-                data-preset-for="exitMult"
-                data-preset-val="6"
-                type="button">6×</button
-              >
-              <button
-                class="tp-arr-chip"
-                aria-pressed="false"
-                data-preset-for="exitMult"
-                data-preset-val="10"
-                type="button">10×</button
-              >
-              <button
-                class="tp-arr-chip"
-                aria-pressed="false"
-                data-preset-for="exitMult"
-                data-preset-val="12"
-                type="button">12×</button
-              >
-              <button
-                class="tp-arr-chip"
-                aria-pressed="false"
-                data-preset-for="exitMult"
-                data-preset-val="15"
-                type="button">15×</button
-              >
-              <button
-                class="tp-arr-chip"
-                aria-pressed="false"
-                data-preset-for="exitMult"
-                data-preset-val="20"
-                type="button">20×</button
-              >
-            </div>
-            <div class="brutal-field__input-wrap">
-              <input
-                type="number"
-                id="tp-exit-mult"
-                data-input="exitMult"
-                class="brutal-field__input--no-prefix brutal-field__input--has-suffix"
-                min="1"
-                max="30"
-                value="12"
-              />
-              <span class="brutal-field__suffix">&times;</span>
-            </div>
+            <PresetInput
+              inputName="exitMult"
+              inputId="tp-exit-mult"
+              presets={[
+                { value: 6, label: '6×' },
+                { value: 10, label: '10×' },
+                { value: 12, label: '12×' },
+                { value: 15, label: '15×' },
+                { value: 20, label: '20×' },
+              ]}
+              suffix="×"
+              inputClasses="brutal-field__input--no-prefix brutal-field__input--has-suffix"
+              min={1}
+              max={30}
+              initialValue={12}
+            />
             <div class="brutal-field__hint brutal-text-tiny">
               Revenue multiple at exit. Used in exit value calculations.
             </div>
@@ -645,92 +613,37 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
                   aria-checked="false">Annual</button
                 >
               </div>
-              <div class="tp-arr-quick" data-infra-chips-monthly>
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infra"
-                  data-preset-val="5000"
-                  type="button">$5K</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infra"
-                  data-preset-val="15000"
-                  type="button">$15K</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infra"
-                  data-preset-val="50000"
-                  type="button">$50K</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infra"
-                  data-preset-val="150000"
-                  type="button">$150K</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infra"
-                  data-preset-val="500000"
-                  type="button">$500K</button
-                >
-              </div>
-              <div class="tp-arr-quick" data-infra-chips-annual style="display:none">
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infra"
-                  data-preset-val="50000"
-                  type="button">$50K</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infra"
-                  data-preset-val="200000"
-                  type="button">$200K</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infra"
-                  data-preset-val="500000"
-                  type="button">$500K</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infra"
-                  data-preset-val="2000000"
-                  type="button">$2M</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infra"
-                  data-preset-val="5000000"
-                  type="button">$5M</button
-                >
-              </div>
-              <div class="brutal-field__input-wrap">
-                <span class="brutal-field__prefix">$</span>
-                <input
-                  type="number"
-                  id="tp-infra"
-                  data-input="infra"
-                  min="0"
-                  step="1000"
-                  placeholder="0"
-                />
-                <span class="brutal-field__suffix" data-infra-suf>/ mo</span>
-              </div>
+              <PresetInput
+                inputName="infra"
+                chipsOnly
+                chipGroupAttr="data-infra-chips-annual"
+                containerStyle="display:none"
+                presets={[
+                  { value: 50000, label: '$50K' },
+                  { value: 200000, label: '$200K' },
+                  { value: 500000, label: '$500K' },
+                  { value: 2000000, label: '$2M' },
+                  { value: 5000000, label: '$5M' },
+                ]}
+              />
+              <PresetInput
+                inputName="infra"
+                inputId="tp-infra"
+                presets={[
+                  { value: 5000, label: '$5K' },
+                  { value: 15000, label: '$15K' },
+                  { value: 50000, label: '$50K' },
+                  { value: 150000, label: '$150K' },
+                  { value: 500000, label: '$500K' },
+                ]}
+                prefix="$"
+                suffix="/ mo"
+                suffixAttr="data-infra-suf"
+                chipGroupAttr="data-infra-chips-monthly"
+                min={0}
+                step={1000}
+                placeholder="0"
+              />
               <div class="brutal-field__hint brutal-text-tiny" data-infra-hint>
                 Cloud, data center, CDN, observability, managed services. Auto-converted to annual.
               </div>
@@ -754,54 +667,21 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
               <label class="brutal-field__label brutal-text-small" for="tp-infra-pers"
                 >Annual fully-loaded cost</label
               >
-              <div class="tp-arr-quick">
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infraPers"
-                  data-preset-val="250000"
-                  type="button">$250K</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infraPers"
-                  data-preset-val="500000"
-                  type="button">$500K</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infraPers"
-                  data-preset-val="1000000"
-                  type="button">$1M</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infraPers"
-                  data-preset-val="2000000"
-                  type="button">$2M</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="infraPers"
-                  data-preset-val="5000000"
-                  type="button">$5M</button
-                >
-              </div>
-              <div class="brutal-field__input-wrap">
-                <span class="brutal-field__prefix">$</span>
-                <input
-                  type="number"
-                  id="tp-infra-pers"
-                  data-input="infraPers"
-                  min="0"
-                  step="10000"
-                  placeholder="—"
-                />
-              </div>
+              <PresetInput
+                inputName="infraPers"
+                inputId="tp-infra-pers"
+                presets={[
+                  { value: 250000, label: '$250K' },
+                  { value: 500000, label: '$500K' },
+                  { value: 1000000, label: '$1M' },
+                  { value: 2000000, label: '$2M' },
+                  { value: 5000000, label: '$5M' },
+                ]}
+                prefix="$"
+                min={0}
+                step={10000}
+                placeholder="—"
+              />
               <div class="brutal-field__hint brutal-text-tiny">
                 DevOps, SRE, platform engineering, cloud architecture headcount.
               </div>
@@ -826,54 +706,21 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
                 <label class="brutal-field__label brutal-text-small" for="tp-rd-opex"
                   >Annual fully-loaded cost</label
                 >
-                <div class="tp-arr-quick">
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdOpEx"
-                    data-preset-val="1000000"
-                    type="button">$1M</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdOpEx"
-                    data-preset-val="3000000"
-                    type="button">$3M</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdOpEx"
-                    data-preset-val="5000000"
-                    type="button">$5M</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdOpEx"
-                    data-preset-val="10000000"
-                    type="button">$10M</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdOpEx"
-                    data-preset-val="25000000"
-                    type="button">$25M</button
-                  >
-                </div>
-                <div class="brutal-field__input-wrap">
-                  <span class="brutal-field__prefix">$</span>
-                  <input
-                    type="number"
-                    id="tp-rd-opex"
-                    data-input="rdOpEx"
-                    min="0"
-                    step="100000"
-                    placeholder="0"
-                  />
-                </div>
+                <PresetInput
+                  inputName="rdOpEx"
+                  inputId="tp-rd-opex"
+                  presets={[
+                    { value: 1000000, label: '$1M' },
+                    { value: 3000000, label: '$3M' },
+                    { value: 5000000, label: '$5M' },
+                    { value: 10000000, label: '$10M' },
+                    { value: 25000000, label: '$25M' },
+                  ]}
+                  prefix="$"
+                  min={0}
+                  step={100000}
+                  placeholder="0"
+                />
                 <div class="brutal-field__hint brutal-text-tiny">
                   Engineering and product headcount plus tooling subscriptions. Annual fully-loaded.
                 </div>
@@ -893,54 +740,21 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
                 <label class="brutal-field__label brutal-text-tiny" for="tp-rd-eng"
                   >Engineering headcount</label
                 >
-                <div class="tp-arr-quick">
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdEng"
-                    data-preset-val="500000"
-                    type="button">$500K</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdEng"
-                    data-preset-val="1000000"
-                    type="button">$1M</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdEng"
-                    data-preset-val="3000000"
-                    type="button">$3M</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdEng"
-                    data-preset-val="5000000"
-                    type="button">$5M</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdEng"
-                    data-preset-val="10000000"
-                    type="button">$10M</button
-                  >
-                </div>
-                <div class="brutal-field__input-wrap">
-                  <span class="brutal-field__prefix">$</span>
-                  <input
-                    type="number"
-                    id="tp-rd-eng"
-                    data-input="rdEng"
-                    min="0"
-                    step="100000"
-                    placeholder="—"
-                  />
-                </div>
+                <PresetInput
+                  inputName="rdEng"
+                  inputId="tp-rd-eng"
+                  presets={[
+                    { value: 500000, label: '$500K' },
+                    { value: 1000000, label: '$1M' },
+                    { value: 3000000, label: '$3M' },
+                    { value: 5000000, label: '$5M' },
+                    { value: 10000000, label: '$10M' },
+                  ]}
+                  prefix="$"
+                  min={0}
+                  step={100000}
+                  placeholder="—"
+                />
                 <div class="brutal-field__hint brutal-text-tiny">
                   Salaries, benefits, and contractor costs for software engineers. Annual
                   fully-loaded.
@@ -950,54 +764,21 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
                 <label class="brutal-field__label brutal-text-tiny" for="tp-rd-prod"
                   >Product headcount</label
                 >
-                <div class="tp-arr-quick">
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdProd"
-                    data-preset-val="250000"
-                    type="button">$250K</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdProd"
-                    data-preset-val="500000"
-                    type="button">$500K</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdProd"
-                    data-preset-val="1000000"
-                    type="button">$1M</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdProd"
-                    data-preset-val="2000000"
-                    type="button">$2M</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdProd"
-                    data-preset-val="5000000"
-                    type="button">$5M</button
-                  >
-                </div>
-                <div class="brutal-field__input-wrap">
-                  <span class="brutal-field__prefix">$</span>
-                  <input
-                    type="number"
-                    id="tp-rd-prod"
-                    data-input="rdProd"
-                    min="0"
-                    step="100000"
-                    placeholder="—"
-                  />
-                </div>
+                <PresetInput
+                  inputName="rdProd"
+                  inputId="tp-rd-prod"
+                  presets={[
+                    { value: 250000, label: '$250K' },
+                    { value: 500000, label: '$500K' },
+                    { value: 1000000, label: '$1M' },
+                    { value: 2000000, label: '$2M' },
+                    { value: 5000000, label: '$5M' },
+                  ]}
+                  prefix="$"
+                  min={0}
+                  step={100000}
+                  placeholder="—"
+                />
                 <div class="brutal-field__hint brutal-text-tiny">
                   Product managers, designers, and QA. Annual fully-loaded.
                 </div>
@@ -1006,54 +787,21 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
                 <label class="brutal-field__label brutal-text-tiny" for="tp-rd-tool"
                   >Tooling and subscriptions</label
                 >
-                <div class="tp-arr-quick">
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdTool"
-                    data-preset-val="50000"
-                    type="button">$50K</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdTool"
-                    data-preset-val="100000"
-                    type="button">$100K</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdTool"
-                    data-preset-val="250000"
-                    type="button">$250K</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdTool"
-                    data-preset-val="500000"
-                    type="button">$500K</button
-                  >
-                  <button
-                    class="tp-arr-chip"
-                    aria-pressed="false"
-                    data-preset-for="rdTool"
-                    data-preset-val="1000000"
-                    type="button">$1M</button
-                  >
-                </div>
-                <div class="brutal-field__input-wrap">
-                  <span class="brutal-field__prefix">$</span>
-                  <input
-                    type="number"
-                    id="tp-rd-tool"
-                    data-input="rdTool"
-                    min="0"
-                    step="10000"
-                    placeholder="—"
-                  />
-                </div>
+                <PresetInput
+                  inputName="rdTool"
+                  inputId="tp-rd-tool"
+                  presets={[
+                    { value: 50000, label: '$50K' },
+                    { value: 100000, label: '$100K' },
+                    { value: 250000, label: '$250K' },
+                    { value: 500000, label: '$500K' },
+                    { value: 1000000, label: '$1M' },
+                  ]}
+                  prefix="$"
+                  min={0}
+                  step={10000}
+                  placeholder="—"
+                />
                 <div class="brutal-field__hint brutal-text-tiny">
                   IDEs, CI/CD, monitoring, SaaS dev tools, and license fees. Annual cost.
                 </div>
@@ -1071,54 +819,21 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
               <label class="brutal-field__label brutal-text-small" for="tp-eng-fte"
                 >Engineering FTEs</label
               >
-              <div class="tp-arr-quick">
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="engFTE"
-                  data-preset-val="5"
-                  type="button">5</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="engFTE"
-                  data-preset-val="10"
-                  type="button">10</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="engFTE"
-                  data-preset-val="25"
-                  type="button">25</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="engFTE"
-                  data-preset-val="50"
-                  type="button">50</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="engFTE"
-                  data-preset-val="100"
-                  type="button">100</button
-                >
-              </div>
-              <div class="brutal-field__input-wrap">
-                <input
-                  type="number"
-                  id="tp-eng-fte"
-                  data-input="engFTE"
-                  class="brutal-field__input--no-prefix"
-                  min="0"
-                  step="1"
-                  placeholder="—"
-                />
-              </div>
+              <PresetInput
+                inputName="engFTE"
+                inputId="tp-eng-fte"
+                presets={[
+                  { value: 5, label: '5' },
+                  { value: 10, label: '10' },
+                  { value: 25, label: '25' },
+                  { value: 50, label: '50' },
+                  { value: 100, label: '100' },
+                ]}
+                inputClasses="brutal-field__input--no-prefix"
+                min={0}
+                step={1}
+                placeholder="—"
+              />
               <div class="brutal-field__hint brutal-text-tiny">
                 Number of full-time-equivalent engineers. Unlocks the revenue-per-engineer KPI on
                 the Analysis tab.
@@ -1135,54 +850,21 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
               <label class="brutal-field__label brutal-text-small" for="tp-rd-capex"
                 >Annual capitalized software development</label
               >
-              <div class="tp-arr-quick">
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="rdCapEx"
-                  data-preset-val="500000"
-                  type="button">$500K</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="rdCapEx"
-                  data-preset-val="1000000"
-                  type="button">$1M</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="rdCapEx"
-                  data-preset-val="2000000"
-                  type="button">$2M</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="rdCapEx"
-                  data-preset-val="5000000"
-                  type="button">$5M</button
-                >
-                <button
-                  class="tp-arr-chip"
-                  aria-pressed="false"
-                  data-preset-for="rdCapEx"
-                  data-preset-val="10000000"
-                  type="button">$10M</button
-                >
-              </div>
-              <div class="brutal-field__input-wrap">
-                <span class="brutal-field__prefix">$</span>
-                <input
-                  type="number"
-                  id="tp-rd-capex"
-                  data-input="rdCapEx"
-                  min="0"
-                  step="100000"
-                  placeholder="—"
-                />
-              </div>
+              <PresetInput
+                inputName="rdCapEx"
+                inputId="tp-rd-capex"
+                presets={[
+                  { value: 500000, label: '$500K' },
+                  { value: 1000000, label: '$1M' },
+                  { value: 2000000, label: '$2M' },
+                  { value: 5000000, label: '$5M' },
+                  { value: 10000000, label: '$10M' },
+                ]}
+                prefix="$"
+                min={0}
+                step={100000}
+                placeholder="—"
+              />
               <div class="brutal-field__hint brutal-text-tiny">
                 Enables GAAP view toggle above and CapEx-of-R&D benchmark.
               </div>
