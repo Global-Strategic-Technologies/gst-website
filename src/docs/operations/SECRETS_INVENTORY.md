@@ -243,7 +243,7 @@ Per-secret rotation steps live in [`mcp-server/src/docs/operations/DEPLOY.md`](.
 1. Decide which stores need it (most often: only one).
 2. If it's a **shared secret** (validator + sender), follow the rotation order rule above when first introducing it.
 3. Add the secret via the appropriate `secret put` / `env add` command.
-4. Add a row to the [at-a-glance table](#at-a-glance-mid-phase-b-2026-05-19).
+4. Add a row to the [at-a-glance table](#at-a-glance-post-phase-b-2026-05-27).
 5. If it's load-bearing for runtime, add an entry to the [Per-secret canonical detail](#source-of-truth-per-secret) section.
 
 ---
@@ -256,4 +256,4 @@ Per-secret rotation steps live in [`mcp-server/src/docs/operations/DEPLOY.md`](.
 
 ---
 
-_Last updated: 2026-05-19 — created during BL-032.8 Phase B soak, Day 3. Initial draft was rewritten same-day against the authoritative `vercel env ls` + `wrangler secret list` output to correct several initial-draft misattributions (Vercel-side Upstash bindings are `KV__`+`REDIS*URL`from the Vercel Upstash integration, not`UPSTASH_INOREADER_REST\*_`; `INOREADER*FOLDER_PREFIX`was never bound on Vercel;`INOREADER_REFRESH_SECRET` is Production + Preview only; website-side Sentry source-map upload vars ARE already wired).*
+_Last updated: 2026-05-31 — BL-034 documentation cleanup pass (broken anchor fix + footer date refresh + soak-gate link rerouted through `_archive/`). Original draft 2026-05-19 during BL-032.8 Phase B soak Day 3, rewritten same-day against the authoritative `vercel env ls` + `wrangler secret list` output to correct several initial-draft misattributions (Vercel-side Upstash bindings are `KV__`+`REDIS*URL`from the Vercel Upstash integration, not`UPSTASH_INOREADER_REST*_`; `INOREADER*FOLDER_PREFIX`was never bound on Vercel;`INOREADER_REFRESH_SECRET` is Production + Preview only; website-side Sentry source-map upload vars ARE already wired).*
