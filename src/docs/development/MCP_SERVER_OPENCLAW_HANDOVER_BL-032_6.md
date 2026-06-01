@@ -97,7 +97,7 @@ After registration, verify discovery:
 openclaw mcp inspect gst-mcp
 ```
 
-Expected output: surface enumeration showing **12+ Tools, 6 Resources (radar URIs), 120+ Resources (regulations), 2 Resources (Library), 8 Prompts**. If any of these are missing, the connector handshake didn't complete — check the bearer header + URL + `wrangler tail --env staging` for server-side rejection logs.
+Expected output: surface enumeration showing **12+ Tools, 6 Resources (radar URIs), 120+ Resources (regulations), 2 Resources (Library), 9 Prompts** (post-BL-036 Tier 3; was 8 when this doc was authored, ramped to 10 after BL-043/BL-044 added IRL + sweep, and back to 9 after `gst_vdr_audit` retired 2026-05-31). If any of these are missing, the connector handshake didn't complete — check the bearer header + URL + `wrangler tail --env staging` for server-side rejection logs.
 
 ### 1.5 First request smoke test
 
@@ -521,7 +521,7 @@ RATE LIMIT   60/min, 1000/day general tools
              5/min, 50/day radar tools
              Watch RateLimit-* response headers
 
-SURFACE      12+ Tools, 8 Prompts, ~130 Resources
+SURFACE      12+ Tools, 9 Prompts, ~130 Resources
              Tools = single-purpose engine calls
              Prompts = versioned consultant workflows
              Resources = pinnable read-only content (Library, Regulations, Radar)

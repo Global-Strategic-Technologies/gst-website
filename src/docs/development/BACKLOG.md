@@ -2628,9 +2628,42 @@ When implementing any BL-031.x / BL-032.x / BL-033 initiative:
 
 ---
 
-### BL-036: MCP Server — `gst_vdr_audit` Quality Maturity Roadmap (Tiers 2–6)
+### BL-036: MCP Server — `gst_vdr_audit` Quality Maturity Roadmap (Tier 3 RETIREMENT)
 
-**Source**: BL-036 — surfaces the substantive critique recorded during BL-031.75 V5 sign-off (`gst_vdr_audit` produces structured output but operates on weak input signal — folder names alone — so most of the deliverable is the canonical taxonomy elaborated against training, not contents-grounded audit). | **Effort**: 1-3 weeks engineering across the five tiers (each is independently shippable) | **Status**: Open · Tier 1 (file-list input) shipped in the BL-031.75 V5 sign-off commit | **Depends on**: BL-031.75 (closed); some tiers depend on BL-031.95 (URL state) and on portfolio search
+**Source**: BL-036 — originally scoped 5 maturity tiers (file metadata → comparable cross-reference → VDR provider API integration → ongoing audit deltas → sell-side workflow polarity). Tier 1 (folder-name input) shipped May 2026 via the BL-031.75 V5 sign-off. | **Effort**: original 1-3 weeks across 5 tiers; ❌ **RETIRED 2026-05-31** instead — net retirement effort ~3 hours engineering + doc cleanup. | **Status**: ❌ **RETIRED 2026-05-31** — operator assessment 2026-05-31 determined the capability's business value insufficient to justify the contents-grounded improvements originally scoped under Tiers 2-6. Tier 3 (this stanza) closes the surface entirely: prompt deleted, tests deleted, golden snapshot deleted, cross-doc citations cleaned. Library Resource `gst://library/vdr-structure` retained (still used by 3 other prompts). | **Depends on**: BL-031.75 (closed).
+
+#### Retirement record (this is the live stanza)
+
+**Decision**: `gst_vdr_audit` retired entirely. The original Tier 2-6 maturity roadmap (below, preserved as historical context) is **canceled in full**. The prompt's "thin checklist generator" character that V5 sign-off critiqued was not improved by the (intended) Tier 1 file-list input — operator judgment is that the deliverable does not earn the maintenance + further-investment cost.
+
+**Tier status**:
+
+- **Tier 1** (folder-name + file-list input) — shipped May 2026 under BL-031.75 V5; **deleted as part of Tier 3 retirement 2026-05-31**.
+- **Tier 2** (file metadata) — ❌ canceled.
+- **Tier 3** (this stanza) — **retirement** of the entire surface, including Tier 1.
+- **Tiers 4-6** (VDR provider API / ongoing deltas / sell-side workflow flip) — ❌ canceled with the capability.
+
+**Retirement scope** (delivered via PR <TBD>):
+
+- **Code**: `mcp-server/src/prompts/vdr-audit.ts` deleted; import + `ALL_PROMPTS` entry removed from `_registry.ts`; comment cross-reference scrubbed from `information-request-list.ts`.
+- **Tests**: `tests/unit/prompts/vdr-audit.test.ts` (15 cases) + `tests/examples/vdr-audit.golden.md` (V5 sign-off snapshot) deleted. Test suite now 93 files / 1090 tests (was 94 / 1105).
+- **Manifest contract**: hash bumped `b702aa38…` → `4941f4bf…`; prompt count 10 → 9; `mcp-server/BREAKING_CHANGES.md` § 0.3.15 entry added; `mcp-server/package.json` 0.3.14 → 0.3.15.
+- **Cross-doc operational citations** (7 docs edited): `mcp-server/README.md` (Prompts table row + Resource consumer list + Last-verified trial + Tier 1 sentence + test-count narrative), `REMOTE_CLIENT_SETUP.md:269`, `MCP_SERVER_OPENCLAW_HANDOVER_BL-032_6.md` (table row + consumer list + Prompts count), `MCP_SERVER_OPENCLAW_DEMO_BL-032_6.md:70` (operational inventory count), `MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md` (5 broken `mirrors vdr-audit.ts` template-pattern pointers rewritten to a surviving exemplar), `BACKLOG.md` L232 + L283 (BL-043 stanza companion-prompts framing).
+- **Historical-record retention banners** (2 doc tops): `BACKLOG.md` BL-031.75 stanza + `MCP_SERVER_PROMPTS_BL-031_75.md` design doc each gain a top-of-doc banner explaining that `gst_vdr_audit` mentions below are preserved as the V1–V8 sign-off historical record, not active surface. Covers ~14 references in two edits without falsifying the original ship trail.
+- **Design doc closure** (this commit): `MCP_SERVER_VDR_AUDIT_TIERS_BL-036.md` title rewritten + closure banner added; body retained as institutional knowledge for any future contributor considering a similar surface.
+
+**What's NOT removed**:
+
+- The Library Resource `gst://library/vdr-structure` — still used by `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, and `gst_diligence_sweep`. Operators who want the canonical VDR taxonomy still get it via those prompts or by reading the Library article directly via `resources/read`.
+- The BL-031.75 V5 sign-off historical record — preserved with retention banners so the original ship trail can be read accurately.
+
+**Why retain this stanza after retirement**: documents the rationale + the inventory of what was removed, so a future contributor proposing a similar audit surface has the prior-art context readily searchable. The dedicated design doc [MCP_SERVER_VDR_AUDIT_TIERS_BL-036.md](MCP_SERVER_VDR_AUDIT_TIERS_BL-036.md) is retained with a closure banner for the same reason.
+
+---
+
+#### Original Tier 2-6 roadmap (preserved as historical reference)
+
+The text below describes the maturity plan as it stood prior to retirement. Tiers 2-6 are now ❌ canceled in full; the content survives so future contributors considering a similar surface can read the prior-art design decisions.
 
 **As a** GST consultant running technology diligence in Claude Desktop, **I want** the `gst_vdr_audit` prompt to operate on richer VDR signal than folder names alone **so that** the audit deliverable reflects contents quality, deal-shape comparables, and (eventually) live VDR provider state — not just structural mapping against the canonical 9-folder taxonomy. This closes the "thin checklist generator" gap surfaced during V5 sign-off and matures the prompt's value-per-invocation to match V1 / V3 / V4.
 
