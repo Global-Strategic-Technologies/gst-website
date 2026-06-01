@@ -413,4 +413,32 @@ Why bundle instead of vanilla `tsc`? The website source uses extensionless impor
 
 ---
 
-_Last Updated: 2026-04-29_
+## Documentation map
+
+**Operator runbooks (current)** — `src/docs/operations/`
+
+- [DEPLOY.md](src/docs/operations/DEPLOY.md) — deploy + secret binding + recovery
+- [AUTH.md](src/docs/operations/AUTH.md) — bearer-token issuance + rotation
+- [RATE_LIMITS.md](src/docs/operations/RATE_LIMITS.md) — per-key budgets + 429 envelope
+- [REMOTE_CLIENT_SETUP.md](src/docs/operations/REMOTE_CLIENT_SETUP.md) — Claude Desktop client config
+- [SENTRY_ALERT_RULES.md](src/docs/operations/SENTRY_ALERT_RULES.md) — operator paging configuration (BL-047 T1)
+- [INOREADER_OAUTH_CONTRACT.md](src/docs/operations/INOREADER_OAUTH_CONTRACT.md) — verified upstream OAuth contract
+- [\_archive/](src/docs/operations/_archive/) — closed-initiative runbooks, historical reference
+
+**Cross-cutting secrets** — [`../src/docs/operations/SECRETS_INVENTORY.md`](../src/docs/operations/SECRETS_INVENTORY.md)
+
+**Per-tool docs** — `src/docs/<tool>/` each contains a `CONTRACT.md` (input schema + downstream effects) and `USAGE.md` (operator-facing how-to):
+
+- Contracts: [diligence/CONTRACT.md](src/docs/diligence/CONTRACT.md) · [portfolio/CONTRACT.md](src/docs/portfolio/CONTRACT.md) · [icg/CONTRACT.md](src/docs/icg/CONTRACT.md) · [techpar/CONTRACT.md](src/docs/techpar/CONTRACT.md) · [tech-debt/CONTRACT.md](src/docs/tech-debt/CONTRACT.md) · [regulatory-map/CONTRACT.md](src/docs/regulatory-map/CONTRACT.md) · [radar/CONTRACT.md](src/docs/radar/CONTRACT.md)
+- Registries / indexes: [contracts/](src/docs/contracts/) (per-tool input contract registry) · [library/](src/docs/library/) · [prompts/](src/docs/prompts/)
+
+**Architecture / design** — `../src/docs/development/MCP_SERVER_*.md` (22 docs spanning BL-031 → BL-048). Master index: [BACKLOG.md](../src/docs/development/BACKLOG.md).
+
+**Observability** — `observability/`
+
+- [slo-baselines.md](observability/slo-baselines.md) — Phase 2 baselining in progress (first data-pull 2026-06-07)
+- Design + closure: [MCP_SERVER_OBSERVABILITY_BL-032_75.md](../src/docs/development/MCP_SERVER_OBSERVABILITY_BL-032_75.md)
+
+---
+
+_Last updated: 2026-05-31 — BL-034 documentation cleanup pass_

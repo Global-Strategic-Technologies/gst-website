@@ -5,7 +5,7 @@
 > - **Phase A** shipped via PR #139 (commit `89e5933`, merged 2026-05-17)
 > - **Phase B** retirement shipped via PR #140 (commit `794190c`, merged 2026-05-27)
 > - **Honest closure** via PR #<TBD> — source/test cleanup of stale BL-039 references + doc reconciliation + BACKLOG truth pass
-> - **Operator-side decom** of legacy `gst-radar-tokens` Upstash DB + Vercel `INOREADER_*` env vars + Worker `UPSTASH_INOREADER_REST_*` / `INOREADER_REFRESH_SECRET` secrets completed 2026-05-27 (see [`mcp-server/src/docs/operations/BL-032_8_SOAK_GATE.md`](../../../mcp-server/src/docs/operations/BL-032_8_SOAK_GATE.md))
+> - **Operator-side decom** of legacy `gst-radar-tokens` Upstash DB + Vercel `INOREADER_*` env vars + Worker `UPSTASH_INOREADER_REST_*` / `INOREADER_REFRESH_SECRET` secrets completed 2026-05-27 (see [`mcp-server/src/docs/operations/_archive/BL-032_8_SOAK_GATE.md`](../../../mcp-server/src/docs/operations/_archive/BL-032_8_SOAK_GATE.md))
 > - **Substrate verified**: `/health` returns `upstashMcp: "ok"` with no `upstashInoreader` field; Inoreader Developer Console shows single-app traffic; zero `triggerWebsiteRefresh` invocations in Sentry post-Phase-B
 >
 > Sections below preserve the original design narrative as historical reference.
@@ -656,6 +656,6 @@ If any check fails, document the gap and decide whether to ship a corrective PR 
 
 ---
 
-_Last updated: 2026-05-25 — delivery log added; Phases 0–5 marked shipped (PR #139 + soak hardening PRs #141/143/144/145/149/150/152/153/156); Phase 6 status updated to pending merge on draft PR #140. **Soak-gate tracker**: [`mcp-server/src/docs/operations/BL-032_8_SOAK_GATE.md`](../../../mcp-server/src/docs/operations/BL-032_8_SOAK_GATE.md) — operator runbook for the 2026-05-17 → 2026-05-24 window between Phase A merge and PR #140 merge._
+_Last updated: 2026-05-25 — delivery log added; Phases 0–5 marked shipped (PR #139 + soak hardening PRs #141/143/144/145/149/150/152/153/156); Phase 6 status updated to pending merge on draft PR #140. **Soak-gate tracker**: [`mcp-server/src/docs/operations/_archive/BL-032_8_SOAK_GATE.md`](../../../mcp-server/src/docs/operations/_archive/BL-032_8_SOAK_GATE.md) — operator runbook for the 2026-05-17 → 2026-05-24 window between Phase A merge and PR #140 merge._
 
 _Originally filed: 2026-05-17._

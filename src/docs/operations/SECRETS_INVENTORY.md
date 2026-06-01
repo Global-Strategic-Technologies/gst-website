@@ -4,7 +4,7 @@
 > **Scope**: every secret/env-var that lives in Vercel, Cloudflare Workers, or Upstash for the website + MCP Worker.
 > **Sister docs**:
 >
-> - [`mcp-server/src/docs/operations/BL-032_8_SOAK_GATE.md`](../../../mcp-server/src/docs/operations/BL-032_8_SOAK_GATE.md) — Phase B retirement window (ran 2026-05-17 → 2026-05-27, ✅ closed)
+> - [`mcp-server/src/docs/operations/_archive/BL-032_8_SOAK_GATE.md`](../../../mcp-server/src/docs/operations/_archive/BL-032_8_SOAK_GATE.md) — Phase B retirement window (ran 2026-05-17 → 2026-05-27, ✅ closed; archived 2026-05-31)
 > - [`mcp-server/src/docs/operations/DEPLOY.md`](../../../mcp-server/src/docs/operations/DEPLOY.md) § A.3 — secret rotation procedure
 > - [`security/SECURITY_HEADERS.md`](../security/SECURITY_HEADERS.md) — CSP allowlist (not secrets, but adjacent)
 
@@ -223,7 +223,7 @@ The `~""` clause on `mcp-worker-rw` permits the empty-string sentinel that `@ups
 | **2026-05-27** | ✅ Completed | Vercel↔Upstash integration disconnect (combined disconnect+DB-delete via dashboard) | **Vercel**: 5 vars from the Upstash integration (`KV_URL`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `KV_REST_API_READ_ONLY_TOKEN`, `REDIS_URL`) × 3 envs auto-removed by the integration disconnect. **Upstash**: `gst-radar-tokens` database deleted in the same dashboard action (Vercel's UI now collapses disconnect+delete into one button when the integration has a single attached DB; safe to use given Phase B's `/health` had already confirmed substrate independence from the legacy DB). |
 | TBD            | Pending      | BL-037 Phase A delivery                                                             | _Adds_ `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` to MCP Worker build env (website side is already wired).                                                                                                                                                                                                                                                                                                                                                                                 |
 
-Operator walkthrough for the 2026-05-27 cleanup: [`mcp-server/src/docs/operations/BL-032_8_SOAK_GATE.md` § Pre-merge operator tasks](../../../mcp-server/src/docs/operations/BL-032_8_SOAK_GATE.md) (now closed; preserved as historical reference).
+Operator walkthrough for the 2026-05-27 cleanup: [`mcp-server/src/docs/operations/_archive/BL-032_8_SOAK_GATE.md` § Pre-merge operator tasks](../../../mcp-server/src/docs/operations/_archive/BL-032_8_SOAK_GATE.md) (now closed; archived 2026-05-31 as historical reference).
 
 ---
 
@@ -233,7 +233,7 @@ Per-secret rotation steps live in [`mcp-server/src/docs/operations/DEPLOY.md`](.
 
 1. Generate new value at the canonical store (Cloudflare for `MCP_KEY_*`; Upstash console for `UPSTASH_*`; Inoreader dev console for `INOREADER_APP_*`).
 2. Push to every dependent store **in this order**: validators before senders. For `MCP_KEY_WEBSITE_RADAR`: update the Worker first (validator), then update Vercel (sender). Reverse order causes a window where the website sends the old key while the Worker only accepts the new one → website outage.
-3. Confirm propagation by running the [active verification block in the soak gate doc](../../../mcp-server/src/docs/operations/BL-032_8_SOAK_GATE.md#active-verification-one-time-recommend-day-3-or-4).
+3. Confirm propagation by running the [active verification block in the soak gate doc (archived)](../../../mcp-server/src/docs/operations/_archive/BL-032_8_SOAK_GATE.md#active-verification-one-time-recommend-day-3-or-4).
 4. Update this document if the secret set, location, or canonical store changed.
 
 ---
@@ -243,7 +243,7 @@ Per-secret rotation steps live in [`mcp-server/src/docs/operations/DEPLOY.md`](.
 1. Decide which stores need it (most often: only one).
 2. If it's a **shared secret** (validator + sender), follow the rotation order rule above when first introducing it.
 3. Add the secret via the appropriate `secret put` / `env add` command.
-4. Add a row to the [at-a-glance table](#at-a-glance-mid-phase-b-2026-05-19).
+4. Add a row to the [at-a-glance table](#at-a-glance-post-phase-b-2026-05-27).
 5. If it's load-bearing for runtime, add an entry to the [Per-secret canonical detail](#source-of-truth-per-secret) section.
 
 ---
@@ -256,4 +256,4 @@ Per-secret rotation steps live in [`mcp-server/src/docs/operations/DEPLOY.md`](.
 
 ---
 
-_Last updated: 2026-05-19 — created during BL-032.8 Phase B soak, Day 3. Initial draft was rewritten same-day against the authoritative `vercel env ls` + `wrangler secret list` output to correct several initial-draft misattributions (Vercel-side Upstash bindings are `KV__`+`REDIS*URL`from the Vercel Upstash integration, not`UPSTASH_INOREADER_REST\*_`; `INOREADER*FOLDER_PREFIX`was never bound on Vercel;`INOREADER_REFRESH_SECRET` is Production + Preview only; website-side Sentry source-map upload vars ARE already wired).*
+_Last updated: 2026-05-31 — BL-034 documentation cleanup pass (broken anchor fix + footer date refresh + soak-gate link rerouted through `_archive/`). Original draft 2026-05-19 during BL-032.8 Phase B soak Day 3, rewritten same-day against the authoritative `vercel env ls` + `wrangler secret list` output to correct several initial-draft misattributions (Vercel-side Upstash bindings are `KV__`+`REDIS*URL`from the Vercel Upstash integration, not`UPSTASH_INOREADER_REST*_`; `INOREADER*FOLDER_PREFIX`was never bound on Vercel;`INOREADER_REFRESH_SECRET` is Production + Preview only; website-side Sentry source-map upload vars ARE already wired).*
