@@ -42,6 +42,29 @@ const VDR_RESOURCE_URI = 'gst://library/vdr-structure';
 
 const transactionContextValues = ['sell-side', 'buy-side', 'value-creation', 'unknown'] as const;
 
+const modeValues = ['full', 'extract-only'] as const;
+const verbosityValues = ['verbose', 'compact'] as const;
+
+/**
+ * Authoritative list of tool names this prompt may orchestrate.
+ * Single source of truth — drives BOTH the `orchestrates` array (which
+ * also includes the embedded Library Resource URIs) AND the `forceTools`
+ * arg's accepted-value enum. Adding a tool here automatically expands
+ * both surfaces (Acceptance Criteria: "forceTools enum derived from
+ * orchestrates at build time, not hand-maintained").
+ */
+const ORCHESTRATED_TOOLS = [
+  'generate_diligence_agenda',
+  'list_portfolio_facets',
+  'search_portfolio',
+  'list_regulation_facets',
+  'search_regulations',
+  'compute_techpar',
+  'assess_infrastructure_cost_governance',
+  'estimate_tech_debt_cost',
+  'search_radar',
+] as const;
+
 const argsSchema = z.object({
   targetName: z
     .string()
@@ -76,6 +99,27 @@ const argsSchema = z.object({
     .optional()
     .describe(
       "Engagement code name for the synthesis handoff section (e.g., 'Cygnet'). Omit to use the target name."
+    ),
+  mode: z
+    .enum(modeValues)
+    .optional()
+    .default('full')
+    .describe(
+      "Execution mode. 'full' (default) extracts inputs, invokes every applicable Hub tool through its inclusion gate, and synthesizes a dossier. 'extract-only' extracts inputs and emits JSON payloads + provenance + a gap list with NO tool invocations and NO synthesis prose — cheap, fast, audit-focused, and downstream-feedable."
+    ),
+  verbosity: z
+    .enum(verbosityValues)
+    .optional()
+    .default('verbose')
+    .describe(
+      "Output verbosity. 'verbose' (default) emits per-field provenance footers + schema-validated JSON-fence self-check directives. 'compact' elides both — useful when piping the dossier JSON downstream to automation that does not need the audit prose."
+    ),
+  forceTools: z
+    .array(z.enum(ORCHESTRATED_TOOLS))
+    .optional()
+    .default([])
+    .describe(
+      "Escape hatch — explicit override that bypasses inclusion gates for the listed tool names. Default `[]`. Use when (a) the partner wants a tool output despite sparse IRL signal, or (b) the partner is refining a single section. Strict enum — accepted values are derived from the prompt's orchestrates array at build time, so an unknown tool name is rejected at parse time."
     ),
 });
 
@@ -208,19 +252,7 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
   version: '0.1.0',
   lastReviewedAt: '2026-06-01',
-  orchestrates: [
-    'generate_diligence_agenda',
-    'list_portfolio_facets',
-    'search_portfolio',
-    'list_regulation_facets',
-    'search_regulations',
-    'compute_techpar',
-    'assess_infrastructure_cost_governance',
-    'estimate_tech_debt_cost',
-    'search_radar',
-    IRL_RESOURCE_URI,
-    VDR_RESOURCE_URI,
-  ] as const,
+  orchestrates: [...ORCHESTRATED_TOOLS, IRL_RESOURCE_URI, VDR_RESOURCE_URI] as const,
   argsSchema,
   build: (args) => {
     const bodyText = args.filledIrl
