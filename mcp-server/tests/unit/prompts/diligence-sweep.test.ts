@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { diligenceSweepPrompt } from '../../../src/prompts/diligence-sweep';
+import {
+  UNKNOWN_PROPAGATION_RULE,
+  EU_AI_ACT_CONDITIONAL_TRIGGER,
+  NIS2_CONDITIONAL_TRIGGER,
+  ENG_COST_DEDUP_RULE,
+  ICG_SEEDING_RULES,
+  MTTR_P1_RULE,
+} from '../../../src/prompts/extraction-rules';
 
 const IRL_RESOURCE_URI = 'gst://library/information-request-list';
 const VDR_RESOURCE_URI = 'gst://library/vdr-structure';
@@ -371,6 +379,29 @@ describe('gst_diligence_sweep', () => {
       expect(text).toMatch(/(?:Strategic|practice).+(?:wins shipped|architectural influence)/);
       // The <12-month tenure cutoff is the operational anchor:
       expect(text).toMatch(/<\s*12 months/);
+    });
+  });
+
+  describe('BL-045 PR A: extraction-rules constant interpolation', () => {
+    it('interpolates every named extraction-rule constant verbatim in the one-shot body', () => {
+      // R3 of BL-045 PR A — locks the structural-only refactor: the rule
+      // prose that lived inline in diligence-sweep.ts:123/127/129/131/133
+      // pre-refactor now lives in extraction-rules.ts and is interpolated
+      // back at the same body positions. Any future edit that bypasses
+      // the constant module (re-inlining prose or paraphrasing) breaks
+      // this test, alerting the editor to revisit the design doc's
+      // single-source-of-truth invariant.
+      const text = bodyText(diligenceSweepPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      for (const [name, constant] of Object.entries({
+        UNKNOWN_PROPAGATION_RULE,
+        EU_AI_ACT_CONDITIONAL_TRIGGER,
+        NIS2_CONDITIONAL_TRIGGER,
+        ENG_COST_DEDUP_RULE,
+        ICG_SEEDING_RULES,
+        MTTR_P1_RULE,
+      })) {
+        expect(text, `sweep body missing extraction-rules.${name}`).toContain(constant);
+      }
     });
   });
 
