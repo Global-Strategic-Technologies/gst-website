@@ -114,8 +114,8 @@ The GitHub Actions workflow [.github/workflows/test.yml](../../../.github/workfl
 │   │  astro check                  │                             │
 │   │  eslint .                     │ runs in parallel            │
 │   │  stylelint                    │ with the tests job          │
-│   │  prettier --check .           │                             │
-│   │  (~30-60s when code changed)  │                             │
+│   │  prettier --check <pr-diff>   │ (PR-scoped — see § Prettier │
+│   │  (~30-60s when code changed)  │  idempotency + drift)       │
 │   │  (npm audit moved to its own  │                             │
 │   │   workflow — see § npm audit) │                             │
 │   └───────────────┐                                             │
@@ -228,6 +228,7 @@ The `actions: write` permission on the gate job is required by skip-duplicate-ac
 | [.github/workflows/deploy-mcp-production.yml](../../../.github/workflows/deploy-mcp-production.yml) | Auto-deploys the MCP Worker to production on master merge, gated by the `mcp-production` GitHub Environment's required-reviewer approval (BL-037 Phase B) |
 | [.github/workflows/rollback-mcp.yml](../../../.github/workflows/rollback-mcp.yml) | Manual `workflow_dispatch` rollback of the MCP Worker to a prior deployment ID; production rollbacks gated by the `mcp-production-rollback` environment (BL-037 Phase C) |
 | [.github/workflows/npm-audit.yml](../../../.github/workflows/npm-audit.yml)       | Production-dep vuln scan — weekly cron + lockfile-change trigger                                 |
+| [.github/workflows/prettier-drift-check.yml](../../../.github/workflows/prettier-drift-check.yml) | Weekly cron + manual `workflow_dispatch` — runs `prettier --check .` repo-wide; opens a `tech-debt` Issue if drift accumulates (counter-pressure for the diff-scoped PR check; see § Prettier idempotency + drift) |
 | [.github/dependabot.yml](../../../.github/dependabot.yml)                         | Automated dependency updates (npm + GitHub Actions)                                             |
 
 ---
@@ -256,13 +257,25 @@ See [.prettierignore](../../../.prettierignore) for the full list. Notable entri
 - **Lock files**: `package-lock.json`
 - **Generated output**: `dist/`, `.astro/`, `.vercel/`, `coverage/`, `playwright-report/`, `test-results/`
 
-### Known gap — the full-codebase Prettier sweep is deferred
+## Prettier idempotency + drift detection
 
-Phase 2 Commit 4 added `.prettierrc.json` but deliberately did NOT run `prettier --write .` on the codebase. Instead, the pre-commit hook formats files incrementally as they're touched. `npm run format:check` currently fails on a large number of legacy files and is therefore NOT wired into CI.
+Four-part defense against the class of bug that surfaced in PR #207 (a markdown italic-context escape regression introduced by hand-editing in PR #206; the file landed prettier-clean at PR #206 commit time but a later prettier patch version disagreed, blocking unrelated PR #207's CI on an untouched file):
 
-**A full `prettier --write .` sweep is tracked as a Phase 9 backlog item** in [PLATFORM_HARDENING_V1.md](./PLATFORM_HARDENING_V1.md). Once the legacy files are swept, `format:check` will be added to the `lint-and-typecheck` CI job.
+1. **Pre-commit idempotency check** (`package.json` lint-staged): every chain runs `prettier --check` immediately after `prettier --write`. If `--write`'s output isn't its own fixed point at the currently-installed prettier version, the commit is rejected locally with prettier's standard error message. Contributors see the failure at commit time, not via CI on someone else's later unrelated PR. Catches the narrow class where prettier is internally inconsistent at commit time.
 
-Until then: if you want a specific file or directory formatted, run `npx prettier --write <path>` manually.
+2. **Prettier pinned to exact `3.8.3`** (`package.json` `devDependencies.prettier`): no caret. Every CI run installs exactly the same prettier version. Eliminates the patch-version-drift class that caused PR #207. To bump: edit `package.json` deliberately, run `npx prettier --write .` locally to flush any drift the new version surfaces, ship the bump alongside the cleanup in one PR.
+
+3. **CI Prettier check is scoped to PR diff** (`.github/workflows/test.yml` "Prettier check (PR-diff scoped)" step): computes the changed-files list against the merge base via `git diff --name-only --diff-filter=AMRCT <base>...HEAD -- <prettier-relevant globs>` and only checks those files. Latent drift in unrelated files no longer blocks a PR. The trade-off is intentional: PRs validate their own changes, not the whole repo's hygiene.
+
+4. **Weekly drift cron** (`.github/workflows/prettier-drift-check.yml`): runs `prettier --check .` against the whole repo every Monday 13:00 UTC (10:00 Sao Paulo). If drift exists, opens (or updates) a `tech-debt` + `prettier-drift` Issue listing the drifted files. The Issue is the visible counter-pressure that prevents latent drift from accumulating invisibly. Operator-triggerable via `workflow_dispatch` for ad-hoc validation.
+
+**Why all four**: each layer catches a different class.
+- (1) catches author-side prettier non-idempotency
+- (2) closes the version-drift class at root cause
+- (3) prevents one PR's latent debt from blocking another's CI
+- (4) ensures the latent debt that (3) tolerates doesn't grow unbounded
+
+If you see a `prettier-drift` Issue: run `npx prettier --write .` locally, open a cleanup PR with the resulting changes, close the Issue once merged.
 
 ---
 

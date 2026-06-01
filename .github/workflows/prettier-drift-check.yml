@@ -1,0 +1,117 @@
+name: Prettier drift check (weekly)
+
+# Counter-pressure for the diff-scoped PR check at `test.yml` —
+# `test.yml` only validates files changed in the PR, so latent drift
+# in unrelated files would otherwise accumulate invisibly. This weekly
+# cron runs `prettier --check` against the whole repo and opens (or
+# updates) a `tech-debt + prettier-drift` Issue listing any drifted
+# files. Drift surfaces weekly; doesn't block PRs.
+#
+# Operator-triggerable via `workflow_dispatch` for ad-hoc validation
+# (e.g., right after merging a major refactor).
+
+permissions:
+  contents: read
+  issues: write
+
+on:
+  schedule:
+    # Mondays 13:00 UTC = 10:00 Sao Paulo (UTC-3) — operator sees the
+    # Issue during work hours.
+    - cron: '0 13 * * 1'
+  workflow_dispatch:
+
+jobs:
+  drift-check:
+    name: Run prettier --check against the whole repo
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22.x'
+          cache: npm
+
+      - name: Cache node_modules
+        uses: actions/cache@v5
+        id: nm-cache
+        with:
+          path: |
+            node_modules
+            mcp-server/node_modules
+          key: nm-v1-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Run prettier --check on the whole repo
+        id: drift
+        shell: bash
+        run: |
+          # `tee` always exits 0; capture prettier's actual exit via
+          # PIPESTATUS[0]. Same pattern as test.yml's vitest step —
+          # without this, a failing prettier-check would be masked by
+          # tee's success exit and the workflow would silently pass.
+          npx prettier --check . 2>&1 | tee /tmp/drift.txt
+          PRETTIER_EXIT=${PIPESTATUS[0]}
+          if [ "$PRETTIER_EXIT" -eq 0 ]; then
+            echo "drift_found=false" >> "$GITHUB_OUTPUT"
+            echo "No drift. Repo is prettier-clean."
+          else
+            echo "drift_found=true" >> "$GITHUB_OUTPUT"
+            # Capture the file list for the Issue body
+            grep -E '^\[warn\]' /tmp/drift.txt | sed 's/^\[warn\] //' > /tmp/drift-files.txt
+            DRIFT_COUNT=$(wc -l < /tmp/drift-files.txt)
+            echo "Drift found in $DRIFT_COUNT files. Will open/update Issue."
+          fi
+
+      - name: Ensure labels exist
+        if: steps.drift.outputs.drift_found == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # `gh issue create --label` fails if the label doesn't exist.
+          # Pre-create idempotently; --force is a no-op if it already
+          # exists with the same settings.
+          gh label create prettier-drift \
+            --color "fbca04" \
+            --description "Latent prettier-check drift surfaced by the weekly cron" \
+            --force
+          gh label create tech-debt \
+            --color "d73a4a" \
+            --description "Accumulated technical debt requiring cleanup" \
+            --force
+
+      - name: Open or update drift Issue
+        if: steps.drift.outputs.drift_found == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BODY="$(cat <<EOF
+          Weekly \`prettier --check\` against the whole repo found drift in the following files. Run \`npx prettier --write .\` locally and open a cleanup PR.
+
+          \`\`\`
+          $(cat /tmp/drift-files.txt)
+          \`\`\`
+
+          **Workflow run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          **Why this Issue exists**: PRs use a diff-scoped prettier check (see \`.github/workflows/test.yml\`) so latent drift can't block unrelated PRs. This cron is the counter-pressure that prevents drift from accumulating invisibly. Close this Issue once the drift is fixed; the workflow reopens it weekly only when new drift appears.
+          EOF
+          )"
+          # Look for an existing open Issue with the label; update if found,
+          # create new otherwise.
+          EXISTING=$(gh issue list --label "prettier-drift" --state open --json number --jq '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            gh issue edit "$EXISTING" --body "$BODY"
+            echo "Updated existing Issue #$EXISTING"
+          else
+            NEW=$(gh issue create \
+              --title "Prettier drift detected ($(date -u +%Y-%m-%d))" \
+              --label "tech-debt,prettier-drift" \
+              --body "$BODY")
+            echo "Opened new Issue: $NEW"
+          fi
