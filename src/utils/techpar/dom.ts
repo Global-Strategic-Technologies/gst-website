@@ -434,11 +434,11 @@ export function syncArrChips() {
   });
 }
 
-// Mirrors syncArrChips for cost preset chips. Activates the chip whose
-// data-preset-val matches the current input value; deactivates the rest. This
-// is the second half of the chip↔input contract — without it, manually
-// overriding the input value leaves a stale preset chip visually selected.
-export function syncCostChips(inputName: string): void {
+// BL-042: chip-active paint helper used by hydrateFromUrl's setInput(). The
+// per-control sync (chip click + input typing) lives inside <PresetInput>; this
+// helper is the only direct caller path remaining and avoids fanning out via
+// 'input' events when restoring deeplinked URL state.
+export function paintCostChips(inputName: string): void {
   const input = document.querySelector<HTMLInputElement>(`[data-input="${inputName}"]`);
   const current = input ? parseFloat(input.value.replace(/,/g, '')) || 0 : 0;
   document
@@ -699,7 +699,13 @@ export function hydrateFromUrl() {
   const setInput = (name: string, val: number | undefined) => {
     if (val === undefined) return;
     const el = document.querySelector(`[data-input="${name}"]`) as HTMLInputElement | null;
-    if (el) el.value = String(val);
+    if (!el) return;
+    el.value = String(val);
+    // BL-042: paint matching chip directly. We deliberately do NOT dispatch
+    // an 'input' event here — that would fan out to ~9 updateAll() listeners
+    // on every hydrated field. updateAll() is invoked once at the end of
+    // hydration anyway.
+    paintCostChips(name);
   };
 
   if (state.arr) {

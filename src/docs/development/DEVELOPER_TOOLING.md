@@ -267,6 +267,8 @@ Four-part defense against the class of bug that surfaced in PR #207 (a markdown 
 
 3. **CI Prettier check is scoped to PR diff** (`.github/workflows/test.yml` "Prettier check (PR-diff scoped)" step): computes the changed-files list against the merge base via `git diff --name-only --diff-filter=AMRCT <base>...HEAD -- <prettier-relevant globs>` and only checks those files. Latent drift in unrelated files no longer blocks a PR. The trade-off is intentional: PRs validate their own changes, not the whole repo's hygiene.
 
+   The `lint-and-typecheck` job's checkout uses `fetch-depth: 50` (not the default `1`) because the `push` event on a brand-new branch reports `github.event.before` as `0000…` and falls back to `git merge-base origin/master HEAD`. With a shallow HEAD that path exits 1 silently under `set -e` and prints no prettier output — making the failure look like a real lint failure when it's actually a missing-history failure. 50 covers any realistic feature-branch fork point and matches `git fetch origin master --depth=50` in the diff step. If a contributor's branch is >50 commits behind master, the step now fails loudly with a rebase-instruction error message instead of silently exiting 1.
+
 4. **Weekly drift cron** (`.github/workflows/prettier-drift-check.yml`): runs `prettier --check .` against the whole repo every Monday 13:00 UTC (10:00 Sao Paulo). If drift exists, opens (or updates) a `tech-debt` + `prettier-drift` Issue listing the drifted files. The Issue is the visible counter-pressure that prevents latent drift from accumulating invisibly. Operator-triggerable via `workflow_dispatch` for ad-hoc validation.
 
 **Why all four**: each layer catches a different class.

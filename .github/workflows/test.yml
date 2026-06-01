@@ -135,6 +135,15 @@ jobs:
       - name: Checkout code
         if: needs.changes.outputs.should_run == 'true'
         uses: actions/checkout@v6
+        with:
+          # The Prettier-diff step below needs `git merge-base origin/master HEAD`
+          # to succeed on the merge-base fallback path (push event to a fresh
+          # branch where `github.event.before` is 0000…). With the default
+          # `fetch-depth: 1` HEAD is a single commit whose parent SHAs are
+          # unknown, so merge-base exits 1 silently under `set -e`. 50 covers
+          # any realistic feature-branch fork point and matches the depth of
+          # `git fetch origin master --depth=50` in the diff step.
+          fetch-depth: 50
 
       - name: Setup Node.js
         if: needs.changes.outputs.should_run == 'true'
@@ -184,13 +193,16 @@ jobs:
           #     the merge-base against origin/master
           BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
           if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            # actions/checkout is shallow (depth=1) by default; origin/master
-            # isn't in the clone. Fetch enough of master to compute a
-            # merge-base. Depth 50 covers any realistic feature-branch fork
-            # point; if a contributor's branch diverged >50 commits behind
-            # they probably need to rebase anyway.
+            # First push to a fresh branch. origin/master isn't in the clone;
+            # fetch it deep enough to find a merge-base. The checkout step
+            # above also fetched HEAD with fetch-depth: 50 so BOTH sides of
+            # the merge-base computation have history. If a contributor's
+            # branch diverged >50 commits behind master they need to rebase.
             git fetch origin master --depth=50
-            BASE_SHA="$(git merge-base origin/master HEAD)"
+            if ! BASE_SHA="$(git merge-base origin/master HEAD)"; then
+              echo "::error::git merge-base origin/master HEAD failed. HEAD may be a shallow clone whose history doesn't reach the master fork point. Rebase the branch onto recent master."
+              exit 1
+            fi
           fi
           echo "Diffing against base: $BASE_SHA"
 

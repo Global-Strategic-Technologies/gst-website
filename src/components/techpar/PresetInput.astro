@@ -1,0 +1,192 @@
+---
+/**
+ * <PresetInput> — encapsulates a chip group + numeric input + bidirectional
+ * chip↔input sync for the TechPar tool. Replaces ~150 LOC of hand-rolled
+ * chip+input blocks distributed across `src/pages/hub/tools/techpar/index.astro`.
+ *
+ * Modes:
+ *   - default: renders chips + input wrap, owns the sync contract for its input
+ *   - chipsOnly: renders chip group only (the chip group IS the root); finds
+ *     the shared `[data-input={inputName}]` globally — used for the infra
+ *     monthly/annual asymmetric split.
+ *
+ * chipsOnly contract: a chipsOnly companion MUST be paired with a full-mode
+ * `<PresetInput inputName="X">` elsewhere on the page. The companion does NOT
+ * own the input listener — clicks set the shared input's value, and the
+ * paired full-mode root's syncAll() repaints both chip groups (it walks
+ * `[data-preset-for=X]` globally). Without a paired root the companion's
+ * clicks still mutate the input but no chip will paint active on typed input.
+ *
+ * Selectors preserved (load-bearing for E2E + page-level helpers):
+ *   - `[data-preset-for]`, `[data-input]`, `[data-preset-val]`, `.tp-arr-chip`,
+ *     `.tp-arr-chip--active`, `aria-pressed`
+ *
+ * URL hydration: `setInput()` in `src/utils/techpar/dom.ts` calls
+ * `paintCostChips(name)` directly rather than dispatching an input event,
+ * to avoid fan-out to ~9 page-level `updateAll` listeners on every hydrated
+ * field. The chip-active paint logic in `syncAll()` here and `paintCostChips()`
+ * there are intentionally identical and must stay in sync.
+ */
+interface PresetEntry {
+  value: number;
+  label: string;
+}
+
+interface Props {
+  inputName: string;
+  presets: PresetEntry[];
+  inputId?: string;
+  prefix?: string;
+  suffix?: string;
+  suffixAttr?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  placeholder?: string;
+  initialValue?: number | string;
+  inputClasses?: string;
+  chipGroupAttr?: string;
+  containerStyle?: string;
+  chipsOnly?: boolean;
+}
+
+const {
+  inputName,
+  presets,
+  inputId,
+  prefix,
+  suffix,
+  suffixAttr,
+  min,
+  max,
+  step,
+  placeholder,
+  initialValue,
+  inputClasses,
+  chipGroupAttr,
+  containerStyle,
+  chipsOnly = false,
+} = Astro.props;
+
+// Fallback if a caller omits inputId. All current TechPar callers pass it
+// explicitly to preserve their original `tp-*` ids, but the derivation keeps
+// the component self-sufficient for future controls.
+const resolvedInputId =
+  inputId ?? `tp-${inputName.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())}`;
+
+// chipGroupAttr is rendered as a bare data-* attribute (no value) for parity
+// with the existing hand-written markup (e.g., `data-infra-chips-monthly`).
+const chipGroupExtra: Record<string, boolean> = chipGroupAttr ? { [chipGroupAttr]: true } : {};
+const suffixExtra: Record<string, boolean> = suffixAttr ? { [suffixAttr]: true } : {};
+---
+
+{
+  chipsOnly ? (
+    <div
+      class="tp-arr-quick"
+      data-preset-input
+      data-input-name={inputName}
+      style={containerStyle}
+      {...chipGroupExtra}
+    >
+      {presets.map((p) => (
+        <button
+          class="tp-arr-chip"
+          aria-pressed="false"
+          data-preset-for={inputName}
+          data-preset-val={p.value}
+          type="button"
+        >
+          {p.label}
+        </button>
+      ))}
+    </div>
+  ) : (
+    <div class="preset-input" data-preset-input data-input-name={inputName} style={containerStyle}>
+      <div class="tp-arr-quick" {...chipGroupExtra}>
+        {presets.map((p) => (
+          <button
+            class="tp-arr-chip"
+            aria-pressed="false"
+            data-preset-for={inputName}
+            data-preset-val={p.value}
+            type="button"
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <div class="brutal-field__input-wrap">
+        {prefix && <span class="brutal-field__prefix" set:html={prefix} />}
+        <input
+          type="number"
+          id={resolvedInputId}
+          data-input={inputName}
+          class={inputClasses}
+          min={min}
+          max={max}
+          step={step}
+          placeholder={placeholder}
+          value={initialValue}
+        />
+        {suffix && <span class="brutal-field__suffix" {...suffixExtra} set:html={suffix} />}
+      </div>
+    </div>
+  )
+}
+
+<script>
+  // Hoisted: runs once after DOM parse regardless of how many <PresetInput>
+  // instances exist on the page. Walks every root marked `[data-preset-input]`
+  // and wires its chip↔input contract. Companions (chipsOnly) share an input
+  // with the full-mode root via the global `[data-input="{inputName}"]` query.
+  function initPresetInputs() {
+    document.querySelectorAll<HTMLElement>('[data-preset-input]').forEach((root) => {
+      const inputName = root.dataset.inputName;
+      if (!inputName) return;
+      const localInput = root.querySelector<HTMLInputElement>('[data-input]');
+      const input =
+        localInput ||
+        (document.querySelector(`[data-input="${inputName}"]`) as HTMLInputElement | null);
+      if (!input) return;
+
+      root.querySelectorAll<HTMLButtonElement>('.tp-arr-chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+          const val = Number(chip.dataset.presetVal);
+          const current = parseFloat(input.value.replace(/,/g, '')) || 0;
+          // Preserve current toggle-off-on-active-click behavior: clicking the
+          // chip whose value already matches the input clears it.
+          input.value = val === current ? '' : String(val);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      });
+
+      // Only the root that owns the input attaches the input listener + does
+      // initial paint. Its syncAll() walks ALL chips with
+      // [data-preset-for={inputName}] globally so the chipsOnly companion
+      // chips are repainted too. chipsOnly companions skip this block —
+      // intentional, prevents double-binding two input listeners to the
+      // shared input.
+      if (localInput) {
+        const syncAll = () => {
+          const current = parseFloat(input.value.replace(/,/g, '')) || 0;
+          document
+            .querySelectorAll<HTMLButtonElement>(`[data-preset-for="${inputName}"]`)
+            .forEach((c) => {
+              const isActive = Number(c.dataset.presetVal) === current && current > 0;
+              c.classList.toggle('tp-arr-chip--active', isActive);
+              c.setAttribute('aria-pressed', String(isActive));
+            });
+        };
+        input.addEventListener('input', syncAll);
+        syncAll();
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPresetInputs);
+  } else {
+    initPresetInputs();
+  }
+</script>
