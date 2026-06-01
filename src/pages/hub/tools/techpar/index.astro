@@ -613,6 +613,11 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
                   aria-checked="false">Annual</button
                 >
               </div>
+              {
+                /* Annual chipsOnly companion renders BEFORE the monthly+input pair
+                  so the visible chip group sits above the input in both modes.
+                  syncInfraPeriodUI() toggles by data attribute, not DOM order. */
+              }
               <PresetInput
                 inputName="infra"
                 chipsOnly

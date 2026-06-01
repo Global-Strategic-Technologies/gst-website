@@ -10,9 +10,22 @@
  *     the shared `[data-input={inputName}]` globally — used for the infra
  *     monthly/annual asymmetric split.
  *
+ * chipsOnly contract: a chipsOnly companion MUST be paired with a full-mode
+ * `<PresetInput inputName="X">` elsewhere on the page. The companion does NOT
+ * own the input listener — clicks set the shared input's value, and the
+ * paired full-mode root's syncAll() repaints both chip groups (it walks
+ * `[data-preset-for=X]` globally). Without a paired root the companion's
+ * clicks still mutate the input but no chip will paint active on typed input.
+ *
  * Selectors preserved (load-bearing for E2E + page-level helpers):
  *   - `[data-preset-for]`, `[data-input]`, `[data-preset-val]`, `.tp-arr-chip`,
  *     `.tp-arr-chip--active`, `aria-pressed`
+ *
+ * URL hydration: `setInput()` in `src/utils/techpar/dom.ts` calls
+ * `paintCostChips(name)` directly rather than dispatching an input event,
+ * to avoid fan-out to ~9 page-level `updateAll` listeners on every hydrated
+ * field. The chip-active paint logic in `syncAll()` here and `paintCostChips()`
+ * there are intentionally identical and must stay in sync.
  */
 interface PresetEntry {
   value: number;
@@ -55,6 +68,9 @@ const {
   chipsOnly = false,
 } = Astro.props;
 
+// Fallback if a caller omits inputId. All current TechPar callers pass it
+// explicitly to preserve their original `tp-*` ids, but the derivation keeps
+// the component self-sufficient for future controls.
 const resolvedInputId =
   inputId ?? `tp-${inputName.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())}`;
 
@@ -148,7 +164,9 @@ const suffixExtra: Record<string, boolean> = suffixAttr ? { [suffixAttr]: true }
       // Only the root that owns the input attaches the input listener + does
       // initial paint. Its syncAll() walks ALL chips with
       // [data-preset-for={inputName}] globally so the chipsOnly companion
-      // chips are repainted too.
+      // chips are repainted too. chipsOnly companions skip this block —
+      // intentional, prevents double-binding two input listeners to the
+      // shared input.
       if (localInput) {
         const syncAll = () => {
           const current = parseFloat(input.value.replace(/,/g, '')) || 0;

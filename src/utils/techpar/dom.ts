@@ -434,6 +434,22 @@ export function syncArrChips() {
   });
 }
 
+// BL-042: chip-active paint helper used by hydrateFromUrl's setInput(). The
+// per-control sync (chip click + input typing) lives inside <PresetInput>; this
+// helper is the only direct caller path remaining and avoids fanning out via
+// 'input' events when restoring deeplinked URL state.
+export function paintCostChips(inputName: string): void {
+  const input = document.querySelector<HTMLInputElement>(`[data-input="${inputName}"]`);
+  const current = input ? parseFloat(input.value.replace(/,/g, '')) || 0 : 0;
+  document
+    .querySelectorAll<HTMLButtonElement>(`[data-preset-for="${inputName}"]`)
+    .forEach((chip) => {
+      const isActive = Number(chip.dataset.presetVal) === current && current > 0;
+      chip.classList.toggle('tp-arr-chip--active', isActive);
+      chip.setAttribute('aria-pressed', String(isActive));
+    });
+}
+
 // ─── Config display sync ──────────────────────────────────
 export function updateChipCurrencies() {
   document
@@ -685,9 +701,11 @@ export function hydrateFromUrl() {
     const el = document.querySelector(`[data-input="${name}"]`) as HTMLInputElement | null;
     if (!el) return;
     el.value = String(val);
-    // BL-042: <PresetInput>'s chip-active sync is driven by input events. URL
-    // hydration must dispatch one so the matching chip paints active on load.
-    el.dispatchEvent(new Event('input', { bubbles: true }));
+    // BL-042: paint matching chip directly. We deliberately do NOT dispatch
+    // an 'input' event here — that would fan out to ~9 updateAll() listeners
+    // on every hydrated field. updateAll() is invoked once at the end of
+    // hydration anyway.
+    paintCostChips(name);
   };
 
   if (state.arr) {
