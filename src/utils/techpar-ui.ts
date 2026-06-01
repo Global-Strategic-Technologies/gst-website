@@ -27,7 +27,6 @@ import {
   sumDeep,
   formatWithCommas,
   syncArrChips,
-  syncCostChips,
   updateChipCurrencies,
   syncInfraPeriodUI,
   updateInfraAnnotation,
@@ -355,29 +354,9 @@ if (arrInput) {
   });
 }
 
-// Cost preset chips
-const costInputNames = new Set<string>();
-document.querySelectorAll<HTMLButtonElement>('[data-preset-for]').forEach((chip) => {
-  const inputName = chip.dataset.presetFor!;
-  costInputNames.add(inputName);
-  chip.addEventListener('click', () => {
-    const val = Number(chip.dataset.presetVal);
-    const input = document.querySelector(`[data-input="${inputName}"]`) as HTMLInputElement | null;
-    if (!input) return;
-    const current = parseFloat(input.value) || 0;
-    input.value = val === current ? '' : String(val);
-    syncCostChips(inputName);
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-});
-
-// Symmetric direction: typing in the input must deactivate any stale chip
-// whose preset value no longer matches what the user actually entered.
-costInputNames.forEach((inputName) => {
-  const input = document.querySelector(`[data-input="${inputName}"]`) as HTMLInputElement | null;
-  if (!input) return;
-  input.addEventListener('input', () => syncCostChips(inputName));
-});
+// BL-042: cost-preset chip↔input sync now lives inside the <PresetInput>
+// component (src/components/techpar/PresetInput.astro) — see its hoisted
+// initializer. The previous page-level listener loop has been removed.
 
 // ─── Onboarding ───────────────────────────────────────────
 try {
