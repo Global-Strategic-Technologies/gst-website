@@ -90,6 +90,49 @@ const citationSchema = z
 
 // ─── Per-field audit ────────────────────────────────────────────────────
 
+/**
+ * Phase 2A arithmetic-consistency check for YTD-annualized fields.
+ *
+ * **Why this exists**: the v6 StoreForce run (2026-06-02) showed the
+ * audit forces `ytdMonths` declaration but doesn't enforce the period is
+ * correct. Model declared `ytdMonths: 4` for StoreForce's Apr-2026 board
+ * view (assumed calendar fiscal Jan-Apr), but the IRL's recurring-revenue
+ * math (`$2.64M/mo × 3 = $7.92M ≈ $7.86M YTD stated`) implies 3 months.
+ * Result: TechPar landed at 38.8% "Healthy" when the math-correct
+ * ytdMonths=3 puts it at ~46% "Above" — a partner-misleading inversion.
+ *
+ * **The fix**: when the model declares `ytd-annualized-with-period`, it
+ * must ALSO declare a `ytdMathCheck` object carrying the IRL anchors the
+ * YTD claim should reconcile against. The handler computes
+ * `monthlyAnchor × ytdMonths` and rejects if the result diverges from the
+ * IRL-stated YTD by more than 10%. The model can lie about citations
+ * (residual fabrication risk — addressed separately by the spec § M6
+ * `validate_irl_provenance` tool); it cannot lie about arithmetic that
+ * the handler verifies.
+ */
+const ytdMathCheckSchema = z.object({
+  monthlyAnchorAmount: z
+    .number()
+    .positive()
+    .describe(
+      'The monthly anchor figure from the IRL that the YTD-annualization should reconcile against (e.g., recurring revenue per month for ARR, hosting per month for infraHostingAnnual). The handler does monthlyAnchorAmount × ytdMonths and compares to ytdActualReportedAmount.'
+    ),
+  monthlyAnchorCitation: citationSchema.describe(
+    'IRL citation for the monthly anchor (e.g., Section 00 row 10: recurring revenue $2.64M CAD/mo Apr-2026).'
+  ),
+  ytdActualReportedAmount: z
+    .number()
+    .positive()
+    .describe(
+      'The YTD figure the IRL actually reports (e.g., $7.86M YTD recurring). Must be in the SAME currency as monthlyAnchorAmount; handler does not auto-convert.'
+    ),
+  ytdActualReportedCitation: citationSchema.describe(
+    'IRL citation for the reported YTD figure (e.g., Section 00 row 10: $7.86M YTD FY27 recurring).'
+  ),
+});
+
+export type YtdMathCheck = z.infer<typeof ytdMathCheckSchema>;
+
 const monetaryFieldAuditSchema = z.object({
   annualizationSource: annualizationSourceEnum.describe(
     'How was this annual figure derived? Per BL-045 fabrication guard, ad-hoc annualization is not allowed; the source must be one of the named patterns.'
@@ -102,6 +145,11 @@ const monetaryFieldAuditSchema = z.object({
     .optional()
     .describe(
       'Required when annualizationSource = "ytd-annualized-with-period". The number of months of YTD actuals (1-11) that were extrapolated to a full year. Example: $2.42M FY27 YTD with YTD through Apr (after Jan/Feb/Mar/Apr) = 4 months. The handler rejects ytd-annualized-with-period without ytdMonths.'
+    ),
+  ytdMathCheck: ytdMathCheckSchema
+    .optional()
+    .describe(
+      'Phase 2A arithmetic consistency check. Required when annualizationSource = "ytd-annualized-with-period". Supply the IRL\'s monthly anchor + reported YTD; the handler verifies monthlyAnchor × ytdMonths matches the reported YTD within 10%, catching wrong-period declarations before they cascade into a partner-misleading dossier number.'
     ),
   citation: citationSchema.describe(
     'IRL provenance citation. Form: "Section NN — <excerpt>". For partner-supplied form input, use "Section -- — partner-supplied form input — <field>".'
@@ -205,9 +253,44 @@ export function runTechParAuditRefinements(payload: AuditedTechParInputs): TechP
         ruleId: 'BL-045-TECHPAR-YTD-MONTHS-REQUIRED',
         message:
           `_audit.${fieldName}.annualizationSource = "ytd-annualized-with-period" but ytdMonths was not supplied. ` +
-          `Per BL-045 anti-fabrication guard, ad-hoc YTD annualization (where the period is implicit in the model's judgment) is the root cause of the cross-run swings observed for compute_techpar inputs (v2 ×4 vs v3 ×1.2 vs v5 ad-hoc on the same fixture). ` +
-          `Supply ytdMonths (1-11) so the annualization is auditable. Example: $2.42M FY27 YTD through Apr-2026 (Feb/Mar/Apr) = ytdMonths: 3.`,
+          `Per BL-045 anti-fabrication guard, ad-hoc YTD annualization (where the period is implicit in the model's judgment) is the root cause of the cross-run swings observed for compute_techpar inputs. ` +
+          `Supply ytdMonths (1-11) so the annualization is auditable.`,
       });
+    }
+    // Phase 2A: ytdMathCheck required + arithmetic consistency
+    if (fieldAudit.annualizationSource === 'ytd-annualized-with-period') {
+      if (!fieldAudit.ytdMathCheck) {
+        issues.push({
+          path: ['_audit', fieldName, 'ytdMathCheck'],
+          ruleId: 'BL-045-TECHPAR-YTD-MATH-CHECK-REQUIRED',
+          message:
+            `_audit.${fieldName}.annualizationSource = "ytd-annualized-with-period" but ytdMathCheck was not supplied. ` +
+            `Per BL-045 Phase 2A, the ytdMonths declaration MUST be cross-validated against an IRL anchor. Supply ytdMathCheck: { monthlyAnchorAmount, monthlyAnchorCitation, ytdActualReportedAmount, ytdActualReportedCitation }. ` +
+            `Example for StoreForce ARR: { monthlyAnchorAmount: 2640000, monthlyAnchorCitation: "Section 00 row 10 — Recurring $2.64M CAD/mo Apr-2026", ytdActualReportedAmount: 7860000, ytdActualReportedCitation: "Section 00 row 10 — $7.86M YTD FY27 recurring" } — the handler then verifies monthlyAnchor × ytdMonths matches reportedYTD within 10%.`,
+        });
+      } else if (fieldAudit.ytdMonths !== undefined) {
+        const expected = fieldAudit.ytdMathCheck.monthlyAnchorAmount * fieldAudit.ytdMonths;
+        const reported = fieldAudit.ytdMathCheck.ytdActualReportedAmount;
+        const pctOff = Math.abs(expected - reported) / reported;
+        if (pctOff > 0.1) {
+          const expectedDisplay = expected.toLocaleString('en-US', { maximumFractionDigits: 0 });
+          const reportedDisplay = reported.toLocaleString('en-US', { maximumFractionDigits: 0 });
+          const pctDisplay = (pctOff * 100).toFixed(1);
+          // Compute a hint: what ytdMonths value would make the math balance within 10%?
+          const hintMonths = Math.round(reported / fieldAudit.ytdMathCheck.monthlyAnchorAmount);
+          issues.push({
+            path: ['_audit', fieldName, 'ytdMonths'],
+            ruleId: 'BL-045-TECHPAR-YTD-ARITHMETIC-INCONSISTENT',
+            message:
+              `_audit.${fieldName}.ytdMonths = ${fieldAudit.ytdMonths} is INCONSISTENT with the supplied ytdMathCheck anchors. ` +
+              `Math: monthlyAnchorAmount (${fieldAudit.ytdMathCheck.monthlyAnchorAmount.toLocaleString('en-US')}) × ytdMonths (${fieldAudit.ytdMonths}) = ${expectedDisplay}. ` +
+              `But ytdActualReportedAmount = ${reportedDisplay} (${pctDisplay}% off). ` +
+              `Per BL-045 Phase 2A arithmetic-consistency rule, the discrepancy must be ≤ 10%. ` +
+              `Hint: ytdMonths = ${hintMonths} would balance the math (the IRL's monthly × ${hintMonths} ≈ the reported YTD). ` +
+              `Re-check the YTD period — common errors: assuming calendar fiscal year when the company uses a non-calendar fiscal year (e.g., FY27 starting Feb), or confusing "YTD through month N" with "N months elapsed in fiscal year."`,
+          });
+        }
+      }
     }
   }
 
@@ -241,8 +324,8 @@ export function runTechParAuditRefinements(payload: AuditedTechParInputs): TechP
       ['toolingCost', audit.toolingCost],
     ] as const;
     for (const [fieldName, fieldAudit] of deepdiveFields) {
+      if (!fieldAudit) continue;
       if (
-        fieldAudit &&
         fieldAudit.annualizationSource === 'ytd-annualized-with-period' &&
         fieldAudit.ytdMonths === undefined
       ) {
@@ -253,6 +336,31 @@ export function runTechParAuditRefinements(payload: AuditedTechParInputs): TechP
             `_audit.${fieldName}.annualizationSource = "ytd-annualized-with-period" but ytdMonths was not supplied. ` +
             `Supply ytdMonths (1-11).`,
         });
+      }
+      // Phase 2A arithmetic check for deepdive fields too
+      if (fieldAudit.annualizationSource === 'ytd-annualized-with-period') {
+        if (!fieldAudit.ytdMathCheck) {
+          issues.push({
+            path: ['_audit', fieldName, 'ytdMathCheck'],
+            ruleId: 'BL-045-TECHPAR-YTD-MATH-CHECK-REQUIRED',
+            message: `_audit.${fieldName}.annualizationSource = "ytd-annualized-with-period" but ytdMathCheck was not supplied.`,
+          });
+        } else if (fieldAudit.ytdMonths !== undefined) {
+          const expected = fieldAudit.ytdMathCheck.monthlyAnchorAmount * fieldAudit.ytdMonths;
+          const reported = fieldAudit.ytdMathCheck.ytdActualReportedAmount;
+          const pctOff = Math.abs(expected - reported) / reported;
+          if (pctOff > 0.1) {
+            const hintMonths = Math.round(reported / fieldAudit.ytdMathCheck.monthlyAnchorAmount);
+            issues.push({
+              path: ['_audit', fieldName, 'ytdMonths'],
+              ruleId: 'BL-045-TECHPAR-YTD-ARITHMETIC-INCONSISTENT',
+              message:
+                `_audit.${fieldName}.ytdMonths = ${fieldAudit.ytdMonths} is INCONSISTENT with the supplied ytdMathCheck anchors. ` +
+                `Math: ${fieldAudit.ytdMathCheck.monthlyAnchorAmount.toLocaleString('en-US')} × ${fieldAudit.ytdMonths} = ${expected.toLocaleString('en-US', { maximumFractionDigits: 0 })} vs reported ${reported.toLocaleString('en-US')} (${(pctOff * 100).toFixed(1)}% off). ` +
+                `Hint: ytdMonths = ${hintMonths} would balance the math.`,
+            });
+          }
+        }
       }
     }
   } else {

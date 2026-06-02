@@ -28,6 +28,38 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.5.1 — 2026-06-02 — BL-045 PR B Phase 2A: TechPar YTD arithmetic-consistency refinement
+
+**Theme**: the StoreForce v6 dossier (post-`0.5.0`) showed `compute_techpar`'s currency + per-field-annualization audit forces declaration but doesn't enforce that the declared period is _correct_. Model declared `ytdMonths: 4` for StoreForce's Apr-2026 board view (assumed calendar-fiscal Jan-Apr); the IRL's recurring-revenue math (`$2.64M CAD/mo × 3 = $7.92M ≈ $7.86M YTD stated`) implies 3 months. Result: TechPar landed at 38.8% "Healthy, just under the 40% PE ceiling" when the math-correct ytdMonths=3 puts it at ~46% "Above zone, every point compresses EBITDA and exit value." A partner-misleading inversion hidden inside one declared field.
+
+**Surface impact**: **ADDITIVE-required** when `annualizationSource: "ytd-annualized-with-period"`. Adds a required `ytdMathCheck` field to the per-monetary-field audit. Callers that already use the default `irl-annualized-stated` source (the partner-supplied path, including `gst_target_quick_look`) are unaffected.
+
+For `compute_techpar`:
+
+- New required field `_audit.{field}.ytdMathCheck` when `annualizationSource: "ytd-annualized-with-period"`:
+  - `monthlyAnchorAmount` — the monthly anchor from the IRL the YTD claim should reconcile against (e.g., recurring revenue per month).
+  - `monthlyAnchorCitation` — IRL citation for the anchor.
+  - `ytdActualReportedAmount` — what the IRL says YTD is.
+  - `ytdActualReportedCitation` — IRL citation for the reported YTD.
+- New handler refinement: `Math.abs(monthlyAnchor × ytdMonths − ytdActualReported) / ytdActualReported` must be ≤ 10%. Rejection diagnostic includes a hinted `ytdMonths` value that would balance the math.
+- For StoreForce: model attempts `ytdMonths: 4` with anchors `$2.64M/mo`, `$7.86M YTD` → handler computes `$10.56M expected vs $7.86M reported, 34% off` → REJECT with hint `ytdMonths = 3 would balance` → model corrects → `$2.64M × 3 = $7.92M ≈ $7.86M, 0.7% off` → ACCEPT → R&D becomes the math-correct $9.68M → TechPar reports ~46% Above zone.
+
+**Client migration**:
+
+- `gst_irl_ingestion` Step 4 body updated — worked StoreForce-shape `_audit` example now includes `ytdMathCheck` showing the IRL anchors that balance the math.
+- `gst_target_quick_look` Step 2 body unaffected — `irl-annualized-stated` defaults don't trip the new refinement.
+- External consumers using `ytd-annualized-with-period` must add `ytdMathCheck`.
+
+**Manifest-hash impact**: unchanged.
+
+**Closes the structural-math gap**: with `0.5.1`, the same fixture should now produce the same TechPar number across runs because the audit metadata both declares the period AND verifies its arithmetic consistency. Cross-run reproducibility becomes empirically testable on the next StoreForce re-test.
+
+**Residual fabrication risk**: model can still fabricate the `monthlyAnchorAmount` value if the citation isn't grounded in the actual IRL body. Phase 2B (`validate_irl_provenance` tool per spec § M6) addresses this — substring-verifies citations against the IRL body. Tracked as the next escalation if v7 reveals citation truthfulness as the remaining failure mode.
+
+**Reference**: [spec § M6](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md).
+
+---
+
 ## 0.5.0 — 2026-06-02 — BL-045 PR B Phase 2: `compute_techpar` audit (currency + per-field annualization)
 
 **Theme**: the StoreForce v5 dossier validated `0.4.0`'s schema enforcement for diligence-agenda + tech-debt — model corrected on first rejection and proceeded with calibrated inputs. But `compute_techpar` was still called with ad-hoc judgments: model converted CAD→USD without declaring a basis, and annualized R&D OpEx from a YTD figure using a different multiplier on each run (v2 ×4 = $9.68M, v3 ×1.2 = $2.9M, v5 ad-hoc = $3.2M — same fixture, three different R&D-as-%-of-ARR readings, swung TechPar zone classification). Per CLAUDE.md § 4a (no deferred tech debt), this is addressed in PR B, not tracked.
