@@ -28,6 +28,42 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.5.0 — 2026-06-02 — BL-045 PR B Phase 2: `compute_techpar` audit (currency + per-field annualization)
+
+**Theme**: the StoreForce v5 dossier validated `0.4.0`'s schema enforcement for diligence-agenda + tech-debt — model corrected on first rejection and proceeded with calibrated inputs. But `compute_techpar` was still called with ad-hoc judgments: model converted CAD→USD without declaring a basis, and annualized R&D OpEx from a YTD figure using a different multiplier on each run (v2 ×4 = $9.68M, v3 ×1.2 = $2.9M, v5 ad-hoc = $3.2M — same fixture, three different R&D-as-%-of-ARR readings, swung TechPar zone classification). Per CLAUDE.md § 4a (no deferred tech debt), this is addressed in PR B, not tracked.
+
+**Surface impact**: **BREAKING** for any consumer that called `compute_techpar` with the legacy input shape. The tool now requires a sibling `_audit` field carrying currency-basis declaration + per-monetary-field annualization provenance.
+
+For `compute_techpar`:
+
+- New required field `_audit` (sibling of the engine inputs). See [`mcp-server/src/schemas/techpar-audit.ts`](./src/schemas/techpar-audit.ts).
+- `_audit.monetaryBasis`:
+  - `currency` (enum: USD / CAD / EUR / GBP / AUD / JPY / CHF / CNY / INR / BRL / MXN / OTHER) — the currency ALL monetary inputs are denominated in. The engine's percentage calculations only make sense within a single currency.
+  - `conversionRate` (number, USD rate) — REQUIRED when `currency != USD`. Approximate is fine.
+  - `citation` (regex-enforced shape).
+- Per-monetary-field audit (`arr`, `infraHostingAnnual`, `infraPersonnel`, `rdOpEx`, `rdCapEx`, plus `engCost`/`prodCost`/`toolingCost` for deepdive mode):
+  - `annualizationSource` (enum: `irl-annualized-stated` / `monthly-x12` / `ytd-annualized-with-period` / `estimated-from-headcount` / `estimated-from-anchor`).
+  - `ytdMonths` (1-11) — REQUIRED when `annualizationSource = "ytd-annualized-with-period"`. This closes the root cause of cross-run TechPar swings: the model must commit to a YTD period rather than guessing implicitly.
+  - `citation` (regex-enforced shape).
+- Cross-field refinements run in the handler body (same SDK-shape pattern as 0.4.0). Refinement failures return `isError: true` with structured BL-045 rule citations.
+- Tool response payload now includes `monetaryBasis` (currency + conversionRate) so the dossier rendering step can quote dollar figures with explicit currency provenance.
+
+**Client migration**:
+
+- `gst_irl_ingestion` Step 4 body migrated — directs the model to supply a worked StoreForce-shape `_audit` example showing CAD→USD conversion + per-field annualization with `ytdMonths`.
+- `gst_target_quick_look` Step 2 body migrated — directs the model to supply Tier-3 partner-supplied defaults (`monetaryBasis.currency: USD`, `annualizationSource: irl-annualized-stated` for fields sourced from form input).
+- External consumers calling `compute_techpar` directly must upgrade their payloads.
+
+**Helper**: [`buildPartnerSuppliedTechParAudit(mode)`](./src/schemas/techpar-audit.ts) — Tier-3 audit defaults for non-IRL callers + tests.
+
+**Manifest-hash impact**: unchanged (prompt name@version tuples + URI sets — neither changes here).
+
+**Why now, not later**: empirically, the v5 dossier explicitly noted: _"the 'ahead' (under-band) R&D reading is sensitive to (a) the CAD→USD conversion and (b) whether the YTD R&D figure was correctly annualized"_ — the model was self-aware about the uncertainty but had no enforcement mechanism. Same architectural pattern as 0.4.0 applies. The TechPar swings across runs are exactly the failure mode the audit pattern was designed to close.
+
+**Reference**: [spec](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md), [parent design doc](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md).
+
+---
+
 ## 0.4.0 — 2026-06-02 — BL-045 PR B Option A′: tool-schema enforcement of calibration clauses
 
 **Theme**: three rounds of body-level enforcement (v2/v3/v4) failed to make the model apply BL-045's calibration clauses (currency normalization, headcount scope, dataSensitivity bucket boundaries, growthStage Tier discipline, MTTR-OPEN guard). Real-world testing against a client IRL (StoreForce, 2026-06-02) showed the model treats prompt-body directives as descriptive context, not as a procedure to execute. This PR moves enforcement from prompt body to the tool-input-schema layer, where MCP-SDK rejection of malformed payloads forces the model to retry with conformant inputs.

@@ -42,8 +42,16 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { handleTechparTool } from '../../mcp-server/src/tools/techpar';
+import { buildPartnerSuppliedTechParAudit } from '../../mcp-server/src/schemas/techpar-audit';
 import { hydrateFromUrl } from '../../src/utils/techpar/dom';
 import { tp } from '../../src/utils/techpar/state';
+
+// BL-045 PR B Phase 2 — compute_techpar requires `_audit`. Use the
+// partner-supplied Tier-3 helper for the engine-pipeline round-trip test;
+// audit-refinement coverage lives in tests/unit/schemas/techpar-audit.test.ts.
+function withAudit<T extends { mode: 'quick' | 'deepdive' }>(inputs: T) {
+  return { ...inputs, _audit: buildPartnerSuppliedTechParAudit(inputs.mode) };
+}
 
 const MEDSIG_TECHPAR_INPUTS = {
   arr: 45_200_000,
@@ -73,7 +81,7 @@ describe('MCP ↔ wizard TechPar deeplink round-trip', () => {
 
   it('MCP-emitted deeplink hydrates wizard to annual mode (catches the b=annual regression)', async () => {
     // 1. MCP tool computes against MedSig-shape inputs and emits a deeplink.
-    const result = await handleTechparTool(MEDSIG_TECHPAR_INPUTS);
+    const result = await handleTechparTool(withAudit(MEDSIG_TECHPAR_INPUTS));
     const payload = result.structuredContent as Record<string, unknown>;
     const deeplink = payload.deeplink as string;
     expect(typeof deeplink).toBe('string');
@@ -109,7 +117,7 @@ describe('MCP ↔ wizard TechPar deeplink round-trip', () => {
     // critical state-bit (`infraPeriod === 'annual'`) AND the MCP's
     // totalTechPct, and rely on the unit-test coverage of compute() in
     // `mcp-server/tests/unit/techpar.test.ts` for the engine math.
-    const result = await handleTechparTool(MEDSIG_TECHPAR_INPUTS);
+    const result = await handleTechparTool(withAudit(MEDSIG_TECHPAR_INPUTS));
     const payload = result.structuredContent as Record<string, unknown>;
     const totalTechPct = payload.totalTechPct as number;
 
