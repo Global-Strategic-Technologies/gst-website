@@ -103,23 +103,20 @@ const argsSchema = z.object({
   mode: z
     .enum(modeValues)
     .optional()
-    .default('full')
     .describe(
-      "Execution mode. 'full' (default) extracts inputs, invokes every applicable Hub tool through its inclusion gate, and synthesizes a dossier. 'extract-only' extracts inputs and emits JSON payloads + provenance + a gap list with NO tool invocations and NO synthesis prose — cheap, fast, audit-focused, and downstream-feedable."
+      "Execution mode. Defaults to 'full' (extract inputs, invoke every applicable Hub tool through its inclusion gate, synthesize a dossier). 'extract-only' extracts inputs and emits JSON payloads + provenance + a gap list with NO tool invocations and NO synthesis prose — cheap, fast, audit-focused, and downstream-feedable."
     ),
   verbosity: z
     .enum(verbosityValues)
     .optional()
-    .default('verbose')
     .describe(
-      "Output verbosity. 'verbose' (default) emits per-field provenance footers + schema-validated JSON-fence self-check directives. 'compact' elides both — useful when piping the dossier JSON downstream to automation that does not need the audit prose."
+      "Output verbosity. Defaults to 'verbose' (emits per-field provenance footers + schema-validated JSON-fence self-check directives). 'compact' elides both — useful when piping the dossier JSON downstream to automation that does not need the audit prose."
     ),
   forceTools: z
     .array(z.enum(ORCHESTRATED_TOOLS))
     .optional()
-    .default([])
     .describe(
-      "Escape hatch — explicit override that bypasses inclusion gates for the listed tool names. Default `[]`. Use when (a) the partner wants a tool output despite sparse IRL signal, or (b) the partner is refining a single section. Strict enum — accepted values are derived from the prompt's orchestrates array at build time, so an unknown tool name is rejected at parse time."
+      "Escape hatch — explicit override that bypasses inclusion gates for the listed tool names. Defaults to `[]` (gates fully apply). Use when (a) the partner wants a tool output despite sparse IRL signal, or (b) the partner is refining a single section. Strict enum — accepted values are derived from the prompt's orchestrates array at build time, so an unknown tool name is rejected at parse time."
     ),
 });
 
