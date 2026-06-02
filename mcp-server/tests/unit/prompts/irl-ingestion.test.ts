@@ -263,17 +263,40 @@ describe('gst_irl_ingestion', () => {
       expect(text).toContain('Step 8 —');
     });
 
-    it('enforces sentinel-discipline on businessModel / operatingModel (v0.0.4 anti-inference contract)', () => {
-      // v0.0.4 replaced the v0.0.3 "do NOT default to unknown" framing with
-      // explicit anti-inference anti-examples after a post-demo audit
-      // showed v0.0.3 produced OVER-confident outputs on bm and om —
-      // canonical forbidden patterns per the diligence tool's USAGE RULE.
+    it('enforces 3-tier extraction discipline (BL-045 PR B recalibration + StoreForce walkthrough)', () => {
+      // BL-045 PR B (2026-06-02, senior-consultant review Axis 1) recalibrated
+      // the rule. The v0.0.4 anti-inference framing collapsed Tier-2 direct
+      // derivation into Tier-3 vibes-based inference and forced 'unknown'-
+      // bloated dossiers. The recalibration ALLOWS Tier-2 derivation while
+      // keeping the (one) remaining anti-example.
+      //
+      // Retired anti-examples (reviewer-confirmed wrong):
+      //   - squad-model → operatingModel: product-aligned-teams (v0.0.4 → PR B initial)
+      //   - b2b-saas → businessModel: productized-platform (PR B initial → PR B 2nd pass,
+      //     StoreForce walkthrough finding #9 — this mapping IS correct for the canonical
+      //     B2B SaaS pattern)
+      //
+      // Surviving anti-example:
+      //   - present-tense capability statement → transformationState: actively-modernizing
+      //     (cloud-native ≠ in-flight change; the transformationState clause requires a
+      //     specific named in-flight rewrite for literal mapping)
       const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
-      // The sentinel-discipline framing must be present:
+      // Tier-3 sentinel directive must be present:
       expect(text).toMatch(/otherwise pass.*'unknown'/i);
-      // Both canonical forbidden anti-examples must be named explicitly:
-      expect(text).toMatch(/productized-platform/);
-      expect(text).toMatch(/product-aligned-teams/);
+      // 3-tier framing must be visible to the model:
+      expect(text).toMatch(/Tier 1/);
+      expect(text).toMatch(/Tier 2/);
+      expect(text).toMatch(/Tier 3/);
+      // Surviving anti-example: present-tense capability vs transformationState
+      expect(text).toMatch(/cloud-native/);
+      expect(text).toMatch(/present-tense capability/);
+      // Retired anti-examples must NOT be re-introduced:
+      expect(text).not.toMatch(/product-aligned-teams/);
+      expect(text).not.toMatch(/productized-platform/);
+      // Calibration clauses (StoreForce walkthrough) must be present:
+      expect(text).toMatch(/Currency normalization/);
+      expect(text).toMatch(/headcount.*scope/);
+      expect(text).toMatch(/transformationState.*tie-break/);
     });
   });
 

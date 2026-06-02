@@ -25,12 +25,39 @@
  * SOP § "Section 00–02 → diligence dimensions" + § "Sentinel discipline".
  *
  * Governs how the model maps IRL bullets to the 13 `generate_diligence_agenda`
- * input dimensions. Strict propagation of the `'unknown'` sentinel; named
- * anti-inference anti-examples (`productized-platform`, `product-aligned-teams`)
- * that the diligence tool's USAGE RULE forbids.
+ * input dimensions. Three confidence tiers — Tier 1 (literal) and Tier 2
+ * (direct one-step derivation) both pass concrete values; Tier 3 (correlation
+ * / vibes) passes `'unknown'`. Named Tier-3 traps are explicit anti-examples
+ * surfaced by past engagement audits.
+ *
+ * **Recalibrated under BL-045 PR B** (2026-06-02, senior-consultant review
+ * Axis 1 feedback): the prior framing ("indirect inference is forbidden")
+ * collapsed Tier-2 direct derivation into Tier-3 vibes-based inference and
+ * mechanically forced `'unknown'`-bloated dossiers. The new framing keeps
+ * the named anti-examples (which prevent observed defects) while allowing
+ * the Tier-2 derivation the IRL ingestion surface is designed to do. The
+ * "squad model → operatingModel: product-aligned-teams" anti-example from
+ * v0.0.4 was retired — reviewer confirmed that mapping IS correct.
+ *
+ * **Three calibration clauses added** (PR B, 2026-06-02, real-world IRL
+ * walkthrough — PRAXIS-IRL-StoreForce_JLIVET.xlsx):
+ *   (a) Currency normalization for bracketed dimensions (revenueRange);
+ *   (b) `transformationState` tie-break between `mid-migration` and
+ *       `actively-modernizing` when both fit;
+ *   (c) `headcount` scope clarification (engineering ICs + management,
+ *       excludes product/design/standalone-QA unless reporting into eng).
+ *
+ * **Second pass — b2b-saas anti-example retired** (PR B, 2026-06-02,
+ * StoreForce walkthrough finding #9): the `b2b-saas → productized-platform`
+ * forbidden mapping from sweep v0.0.4 was overcautious. The canonical B2B
+ * SaaS pattern (packaged product + recurring subscription + per-seat or
+ * per-location pricing) IS a productized platform; forcing `'unknown'`
+ * here is exactly the `'unknown'`-bloat the recalibration was meant to
+ * prevent. Anti-example removed. Reviewer retained the cloud-native
+ * trap (still defensible — capability != in-flight change).
  */
 export const UNKNOWN_PROPAGATION_RULE =
-  "Because the IRL is filled, you should be able to derive concrete values for many dimensions — but the tool's USAGE RULE on the `'unknown'` sentinel is strict and indirect inference is forbidden. **A dimension passes a literal value ONLY IF the IRL directly states it or maps one-to-one from the IRL text; otherwise pass `'unknown'`.** Map IRL sections to dimensions: Section 00 → transactionType (from engagement-context bullet), revenueRange (from ARR bullet), growthStage (from growth-rate bullet), companyAge (from founding year), headcount (from total-headcount bullet), geographies (from geographies bullet); Section 01 → productType, scaleIntensity (only if IRL literally uses 'low'/'moderate'/'high'); Section 02 → techArchetype; Section 05/09 → dataSensitivity. **For `businessModel` and `operatingModel`: default to `'unknown'` unless the IRL uses one of the enum values literally.** Specifically: do NOT map `productType: b2b-saas` → `businessModel: productized-platform` (forbidden — many B2B SaaS are usage-based or services-led; the IRL bullet \"B2B SaaS multi-year subscription with per-claim transactional uplift\" is mixed-model and should pass `'unknown'` unless the partner confirms). Do NOT map \"squad model\" → `operatingModel: product-aligned-teams` (forbidden — \"squad\" is a colloquialism, not a one-to-one enum mapping; the tool's USAGE RULE says \"do NOT infer operatingModel from anything\"). For `transformationState`: if Section 02 or 04 names an in-flight rewrite of a specific service (\"denial-appeals rewrite Q1-Q3 FY26\"), that maps LITERALLY to `actively-modernizing`; if the IRL is silent, pass `'unknown'`.";
+  'Because the IRL is filled, derive concrete values wherever the bullets support it. **Extraction discipline — three confidence tiers, ordered by directness of evidence**: **Tier 1 (literal)**: the IRL bullet states the enum value verbatim — use it. **Tier 2 (direct one-step derivation)**: the IRL bullet contains the specific data that uniquely maps to one enum value (e.g., "Geographies: US (~88%), EU (~12%)" → `geographies: [US, EU]`; "ARR $45.2M Q1-FY26 annualized" + a known revenueRange schema → the bracket the value falls in; "Engagement context: buy-side review on behalf of a strategic investor" → `transactionType: buy-side`) — use the value and cite the source bullet in the provenance footer. **Tier 3 (correlation / vibes)**: the IRL bullet correlates with an enum value but does NOT determine it — pass `\'unknown\'`. Map IRL sections to dimensions: Section 00 → transactionType (engagement-context bullet), revenueRange (ARR bullet), growthStage (growth-rate bullet), companyAge (founding year), headcount (total-headcount bullet), geographies (geographies bullet); Section 01 → productType, scaleIntensity (only if IRL literally uses \'low\'/\'moderate\'/\'high\' — that\'s Tier 1); Section 02 → techArchetype; Section 05/09 → dataSensitivity. Each is Tier-2-or-better when the IRL bullet contains the specific signal; otherwise pass `\'unknown\'`. **For `businessModel` and `operatingModel`**: default to `\'unknown\'` unless the IRL uses one of the enum values literally (Tier 1) OR provides direct evidence that uniquely maps (Tier 2). **Currency normalization** (bracketed dimensions — `revenueRange` and any future bracketed monetary enum): bullets in non-USD currencies must be converted to USD before bracket assignment; the provenance footer cites the conversion (e.g., `revenueRange ← ARR $31M CAD ≈ $23M USD at 0.73 ⇒ 5-25m`). If the converted value lands within 10% of a bracket boundary, pass `\'unknown\'` and surface the currency / conversion question in the (J) gap list — bracket misassignment compounds downstream so prefer `\'unknown\'` to a fragile commitment. **`headcount` scope**: "engineering headcount" means engineering ICs + engineering management; explicitly EXCLUDES product managers, designers, and standalone QA UNLESS QA reports into engineering. When the IRL distinguishes "engineering ~N1" from "R&D + Product ~N2", use N1; cite the distinction in the provenance footer. **`transformationState` tie-break** between `mid-migration` and `actively-modernizing` when both fit the IRL evidence: prefer `mid-migration` when the IRL names a specific cutover date with parallel legacy + new operation during a window (e.g., "new clients on platform B from August; legacy clients migrate from January"); prefer `actively-modernizing` when the IRL describes broader transformation work without a single migration spine (org reorg + tech reset + new product line in parallel). Cite the tie-break choice in the provenance footer. **Named Tier-3 trap** (explicit anti-example — observed wrong in past engagements): do NOT map a present-tense capability statement (e.g., "cloud-native", "AI-powered") → `transformationState: actively-modernizing` — present-tense capability ≠ in-flight change. `transformationState` maps LITERALLY to `actively-modernizing` only when Section 02 or 04 names a specific in-flight rewrite (e.g., "denial-appeals rewrite Q1-Q3 FY26"); otherwise pass `\'unknown\'`.';
 
 /**
  * SOP § "Section 05 ML/AI + EU geography → EU AI Act gap-fill".

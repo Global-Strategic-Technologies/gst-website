@@ -97,9 +97,9 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 const EXPECTED_HASH_INTERACTIVE =
   'a82c5cc8e8ea1354b6d186b19f93804f31ab5e4ae2eb3ad1cc63e039fea4e773';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '527a148b0c08145df2b6c714b8d8cee573f2b52c606b5ec2624a1e1e5575c75b';
+  '9b28cba825d5cc730443925f5fc39808637ca181bf0ea0da094c3eb7fc817603';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '7617fd2fabfd6a17f085e1b2329874a459506babf7adfec8efbeeb86e85c4582';
+  '69364bdaee23c3027c5fa41a3e29a5859440414b181b1adcc133a36422a5bace';
 
 interface Scenario {
   name: string;
