@@ -28,6 +28,48 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.4.0 — 2026-06-02 — BL-045 PR B Option A′: tool-schema enforcement of calibration clauses
+
+**Theme**: three rounds of body-level enforcement (v2/v3/v4) failed to make the model apply BL-045's calibration clauses (currency normalization, headcount scope, dataSensitivity bucket boundaries, growthStage Tier discipline, MTTR-OPEN guard). Real-world testing against a client IRL (StoreForce, 2026-06-02) showed the model treats prompt-body directives as descriptive context, not as a procedure to execute. This PR moves enforcement from prompt body to the tool-input-schema layer, where MCP-SDK rejection of malformed payloads forces the model to retry with conformant inputs.
+
+**Surface impact**: **BREAKING** for any consumer that called `generate_diligence_agenda` or `estimate_tech_debt_cost` with the legacy input shape. Both tools now require a sibling `_audit` field carrying per-dimension provenance + calibration metadata.
+
+For `generate_diligence_agenda`:
+
+- New required field `_audit` (sibling of the 13 dimension fields). See [`mcp-server/src/schemas/diligence-audit.ts`](./src/schemas/diligence-audit.ts) — the schema is published in `tools/list` so clients see the full shape.
+- Per-dimension entries carry `tier` (1/2/3) + `citation` (regex-enforced shape "Section NN — <≥20 char excerpt>") plus dimension-specific fields:
+  - `revenueRange._audit.nativeCurrency` + `currencyConversion`
+  - `headcount._audit.scope` (`engineering-only` required for non-`'unknown'` values)
+  - `growthStage._audit.velocityEvidence`
+  - `dataSensitivity._audit.piiCategoriesPresent`
+- Cross-field refinements run in the handler body (not via `.superRefine` — that wrapper breaks MCP-SDK JSON Schema publication). Refinement failures return `{ isError: true }` with structured diagnostics citing the BL-045 rule ID and the corrective action.
+
+For `estimate_tech_debt_cost`:
+
+- New required field `_audit` with `mttrSource` and `incidentsSource` (enum: `irl-stated` / `irl-open` / `irl-absent` / `irl-scope-mismatch`).
+- `mttrHours` and `incidents` schema fields become nullable.
+- For OPEN-source declarations, the corresponding numeric field MUST be null — placeholder substitution is rejected.
+- Tool response now includes `extractionOnly: ['mttrHours', 'incidents']?` so the prompt body can render the section correctly.
+
+**Client migration**:
+
+- All three GST prompt callers (`gst_irl_ingestion`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`) are migrated in this PR. Their bodies direct the model to supply the audit shape.
+- Non-IRL prompt callers populate the audit with Tier-3 defaults (`citation: "Section -- — partner-supplied form input — …"`).
+- External consumers calling the tools directly must upgrade their payloads.
+
+**Manifest-hash impact**: unchanged at `84fd0dbd66ea7a78b2de516b0c7f8f7abe5a68eb1f1f99360aaa45145231647e` (prompt `name@version` tuples + URI sets — neither changes here). Tool input schemas changed but they don't contribute to the manifest hash.
+
+**Behavior verification**: see [BL-045 PR B Option A′ spec](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md) for the empirical hypothesis being tested. Re-test against the StoreForce IRL in Claude Desktop expected to show:
+
+- revenueRange = `5-25m` (CAD→USD conversion forced)
+- headcount = `1-50` (engineering-only scope forced)
+- dataSensitivity = `low` (bucket boundary forced)
+- Tech Debt MTTR = field omitted with extractionOnly response (placeholder substitution forced to null)
+
+**Reference**: [spec](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md), [parent design doc](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md), [review packet](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_REVIEW_PACKET.md).
+
+---
+
 ## 0.3.16 — 2026-06-01 — BL-045 PR A: extraction-rule constants extracted (no surface change)
 
 **Theme**: BL-045 PR A — pre-implementation refactor for the upcoming `gst_diligence_sweep` → `gst_irl_ingestion` rename + harden initiative. The load-bearing IRL→tool-input rule prose currently fused inline with sweep orchestration at `diligence-sweep.ts:123/127/129/131/133` is extracted into a shared module at [`src/prompts/extraction-rules.ts`](./src/prompts/extraction-rules.ts) exporting six named constants (`UNKNOWN_PROPAGATION_RULE`, `EU_AI_ACT_CONDITIONAL_TRIGGER`, `NIS2_CONDITIONAL_TRIGGER`, `ENG_COST_DEDUP_RULE`, `ICG_SEEDING_RULES`, `MTTR_P1_RULE`). Sweep imports each constant and interpolates them back at the same body positions.

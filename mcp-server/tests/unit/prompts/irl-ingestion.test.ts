@@ -290,9 +290,20 @@ describe('gst_irl_ingestion', () => {
       // Surviving anti-example: present-tense capability vs transformationState
       expect(text).toMatch(/cloud-native/);
       expect(text).toMatch(/present-tense capability/);
-      // Retired anti-examples must NOT be re-introduced:
-      expect(text).not.toMatch(/product-aligned-teams/);
-      expect(text).not.toMatch(/productized-platform/);
+      // Retired anti-examples must NOT be re-introduced as forbidden mappings.
+      // Note: under BL-045 PR B Option A' (tool-schema enforcement), the
+      // StoreForce-shape worked example in Step 1a does reference
+      // `productized-platform` and `centralized-eng` (correct Tier-2 values
+      // for StoreForce). The assertion below only locks that the term doesn't
+      // appear in an *anti-example* context — the `productized-platform` ban
+      // language ("do NOT map b2b-saas → productized-platform") must stay
+      // retired. We check the surrounding context, not just the substring.
+      expect(text, 'product-aligned-teams must not appear as a forbidden mapping').not.toMatch(
+        /do NOT map.*product-aligned-teams/i
+      );
+      expect(text, 'productized-platform must not appear as a forbidden mapping').not.toMatch(
+        /do NOT map.*productized-platform/i
+      );
       // Calibration clauses (StoreForce walkthrough) must be present:
       expect(text).toMatch(/Currency normalization/);
       expect(text).toMatch(/headcount.*scope/);

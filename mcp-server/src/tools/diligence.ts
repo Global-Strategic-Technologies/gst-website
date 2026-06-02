@@ -11,7 +11,13 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { generateScript } from '../../../src/utils/diligence-engine';
 import { serializeToParams as serializeDiligenceUrl } from '../../../src/utils/diligence-url';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
-import { UserInputsSchema, type ValidatedUserInputs } from '../schemas';
+import { type ValidatedUserInputs } from '../schemas';
+import {
+  AuditedUserInputsSchema,
+  formatAuditIssues,
+  runAuditRefinements,
+  type AuditedUserInputs,
+} from '../schemas/diligence-audit';
 import { HUB_BASE } from '../config';
 
 /**
@@ -85,7 +91,7 @@ export function countUnknownDimensions(inputs: ValidatedUserInputs): number {
  * through the MCP transport. The MCP registration below wraps this
  * same handler.
  */
-export async function handleDiligenceTool(inputs: ValidatedUserInputs) {
+export async function handleDiligenceTool(payload: AuditedUserInputs) {
   // BL-032.25 § 3 instrumentation: when MCP_REPRO_TIMING=1, emit three
   // high-resolution checkpoints to stderr so the repro-k2b3.mjs script can
   // classify the timing distribution (engine / serialization / wire).
@@ -95,13 +101,33 @@ export async function handleDiligenceTool(inputs: ValidatedUserInputs) {
     if (trace) console.error(`[REPRO] ${label} t=${performance.now().toFixed(2)}ms`);
   };
   mark('handler:enter');
+
+  // BL-045 PR B — calibration cross-field refinements. Per the SDK shape
+  // constraint (see schemas/diligence-audit.ts module JSDoc), these checks
+  // cannot live in `.superRefine` on the registered schema without breaking
+  // the published JSON Schema. They run here in the handler body. On
+  // failure, return `{ isError: true }` with a structured diagnostic so the
+  // model retries with corrected values.
+  const auditIssues = runAuditRefinements(payload);
+  mark('audit:complete');
+  if (auditIssues.length > 0) {
+    return {
+      content: [{ type: 'text' as const, text: formatAuditIssues(auditIssues) }],
+      isError: true,
+    };
+  }
+
   try {
-    const result = generateScript(inputs);
+    // Strip the _audit sibling before invoking the engine — the engine
+    // operates on the 13 dimension fields only.
+    const { _audit: _ignored, ...inputs } = payload;
+    void _ignored;
+    const result = generateScript(inputs as ValidatedUserInputs);
     mark('engine:returned');
-    const unknownDimensionCount = countUnknownDimensions(inputs);
-    const deeplink = buildDiligenceDeeplink(inputs);
-    const payload = { ...result, unknownDimensionCount, deeplink };
-    const text = JSON.stringify(payload, null, 2);
+    const unknownDimensionCount = countUnknownDimensions(inputs as ValidatedUserInputs);
+    const deeplink = buildDiligenceDeeplink(inputs as ValidatedUserInputs);
+    const responsePayload = { ...result, unknownDimensionCount, deeplink };
+    const text = JSON.stringify(responsePayload, null, 2);
     if (trace) console.error(`[REPRO] serialized text bytes=${text.length}`);
     mark('handler:returning');
     return {
@@ -111,7 +137,7 @@ export async function handleDiligenceTool(inputs: ValidatedUserInputs) {
           text,
         },
       ],
-      structuredContent: payload as unknown as Record<string, unknown>,
+      structuredContent: responsePayload as unknown as Record<string, unknown>,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -131,7 +157,7 @@ export function registerDiligenceTool(
     {
       title: 'Generate Diligence Agenda',
       description: TOOL_DESCRIPTION,
-      inputSchema: UserInputsSchema,
+      inputSchema: AuditedUserInputsSchema,
       annotations: {
         readOnlyHint: true,
         idempotentHint: true,

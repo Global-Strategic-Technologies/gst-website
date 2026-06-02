@@ -16,7 +16,12 @@ import {
   type CalcState,
   type RawTechDebtInputs,
 } from '../../../src/utils/tech-debt-engine';
-import { TechDebtInputsSchema } from '../schemas';
+import {
+  AuditedTechDebtInputsSchema,
+  formatTechDebtAuditIssues,
+  runTechDebtAuditRefinements,
+  type AuditedTechDebtInputs,
+} from '../schemas/tech-debt-audit';
 import { HUB_BASE } from '../config';
 
 const TOOL_DESCRIPTION = `Estimate the carrying cost of accumulated technical debt for a target organization.
@@ -72,30 +77,60 @@ export function registerTechDebtTool(
     {
       title: 'Estimate Tech Debt Cost',
       description: TOOL_DESCRIPTION,
-      inputSchema: TechDebtInputsSchema,
+      inputSchema: AuditedTechDebtInputsSchema,
       annotations: {
         readOnlyHint: true,
         idempotentHint: true,
       },
     },
-    withToolMetrics('estimate_tech_debt_cost', metrics, async (inputs) => {
+    withToolMetrics('estimate_tech_debt_cost', metrics, async (payload: AuditedTechDebtInputs) => {
+      // BL-045 PR B — MTTR + incident-count fabrication guard.
+      const auditIssues = runTechDebtAuditRefinements(payload);
+      if (auditIssues.length > 0) {
+        return {
+          content: [{ type: 'text' as const, text: formatTechDebtAuditIssues(auditIssues) }],
+          isError: true,
+        };
+      }
+
       try {
-        const result = calculateFromRawInputs(inputs);
-        const deeplink = buildTechDebtDeeplink(inputs);
-        const payload = { ...result, deeplink };
+        // Strip _audit; substitute 0 for null mttrHours / incidents fields
+        // (the engine multiplies them linearly so 0 elides the line item).
+        // Track which fields were elided so the response can surface
+        // extractionOnly[] for the prompt to render the section correctly.
+        const { _audit, ...rest } = payload;
+        const extractionOnly: Array<'mttrHours' | 'incidents'> = [];
+        if (rest.mttrHours === null) extractionOnly.push('mttrHours');
+        if (rest.incidents === null) extractionOnly.push('incidents');
+        const inputsForEngine: RawTechDebtInputs = {
+          ...rest,
+          mttrHours: rest.mttrHours ?? 0,
+          incidents: rest.incidents ?? 0,
+        };
+        const result = calculateFromRawInputs(inputsForEngine);
+        const deeplink = buildTechDebtDeeplink(inputsForEngine);
+        const responsePayload = {
+          ...result,
+          deeplink,
+          extractionOnly,
+          mttrSource: _audit.mttrSource,
+          incidentsSource: _audit.incidentsSource,
+        };
         return {
           content: [
             {
-              type: 'text',
-              text: JSON.stringify(payload, null, 2),
+              type: 'text' as const,
+              text: JSON.stringify(responsePayload, null, 2),
             },
           ],
-          structuredContent: payload as unknown as Record<string, unknown>,
+          structuredContent: responsePayload as unknown as Record<string, unknown>,
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return {
-          content: [{ type: 'text', text: `Failed to estimate tech-debt cost: ${message}` }],
+          content: [
+            { type: 'text' as const, text: `Failed to estimate tech-debt cost: ${message}` },
+          ],
           isError: true,
         };
       }

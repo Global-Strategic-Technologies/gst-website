@@ -64,20 +64,34 @@ interface ReadResourceResultPayload {
   contents: ResourceContent[];
 }
 
+const validDiligenceDimensions = {
+  transactionType: 'majority-stake' as const,
+  productType: 'b2b-saas' as const,
+  techArchetype: 'modern-cloud-native' as const,
+  headcount: '51-200' as const,
+  revenueRange: '5-25m' as const,
+  growthStage: 'scaling' as const,
+  companyAge: '5-10yr' as const,
+  geographies: ['us', 'eu'] as const,
+  businessModel: 'productized-platform' as const,
+  scaleIntensity: 'moderate' as const,
+  transformationState: 'actively-modernizing' as const,
+  dataSensitivity: 'high' as const,
+  operatingModel: 'product-aligned-teams' as const,
+};
+
+// BL-045 PR B — generate_diligence_agenda now requires the `_audit` sibling.
+// Protocol-roundtrip exercises the tool-call wire shape; supply the audit
+// metadata via the partner-supplied Tier-3 helper. The audit refinement
+// layer has dedicated coverage in tests/unit/schemas/diligence-audit.test.ts.
+import { buildPartnerSuppliedAudit } from '../../src/schemas/diligence-audit';
 const validDiligencePayload = {
-  transactionType: 'majority-stake',
-  productType: 'b2b-saas',
-  techArchetype: 'modern-cloud-native',
-  headcount: '51-200',
-  revenueRange: '5-25m',
-  growthStage: 'scaling',
-  companyAge: '5-10yr',
-  geographies: ['us', 'eu'],
-  businessModel: 'productized-platform',
-  scaleIntensity: 'moderate',
-  transformationState: 'actively-modernizing',
-  dataSensitivity: 'high',
-  operatingModel: 'product-aligned-teams',
+  ...validDiligenceDimensions,
+  geographies: [...validDiligenceDimensions.geographies] as ('us' | 'eu')[],
+  _audit: buildPartnerSuppliedAudit({
+    ...validDiligenceDimensions,
+    geographies: [...validDiligenceDimensions.geographies] as ('us' | 'eu')[],
+  }),
 };
 
 describe('protocol roundtrip', () => {
