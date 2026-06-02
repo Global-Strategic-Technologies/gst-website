@@ -317,19 +317,21 @@ describe('gst_irl_ingestion', () => {
       // (output verb), mirroring the v0.0.1-era directive on Steps 1+2
       // that the model honored cleanly. This test locks that contract.
       const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
-      // Each tool-pulling step (3-7) must contain the Surface output verb:
+      // Each tool-pulling step (3-7) must contain the Surface output verb.
+      // Bold sub-steps (e.g., "**Step 1a — ...**", "**Step 6a — ...**" added
+      // under BL-045 PR B for the calibration-self-audit and MTTR-OPEN guard)
+      // are NOT next-step boundaries — the block walker skips them by looking
+      // for newline-prefixed "Step N+1" (not bold-prefixed sub-steps).
       const stepBlocks = ['Step 3', 'Step 4', 'Step 5', 'Step 6', 'Step 7'];
       for (const step of stepBlocks) {
-        // Find the step block (from "Step N —" up to the next "Step" or section heading)
         const stepIdx = text.indexOf(step + ' —');
         expect(stepIdx, `${step} not found in body`).toBeGreaterThan(-1);
-        const nextStepIdx = text.indexOf('Step ', stepIdx + 1);
+        const stepNumber = parseInt(step.replace('Step ', ''), 10);
+        const nextStepIdx = text.indexOf(`\nStep ${stepNumber + 1} —`, stepIdx + 1);
         const stepBlock = text.slice(stepIdx, nextStepIdx > 0 ? nextStepIdx : undefined);
         expect(stepBlock, `${step} missing 'Surface ... deeplink' output-verb directive`).toMatch(
           /Surface.+`?deeplink`?/i
         );
-        // The dropped 'Capture' verb must NOT appear as a deeplink directive
-        // (it's OK in other contexts; we only forbid it adjacent to deeplink):
         expect(
           stepBlock,
           `${step} reverted to 'Capture the deeplink' (v0.0.2 regression)`
