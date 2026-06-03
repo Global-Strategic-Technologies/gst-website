@@ -37,6 +37,9 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
         "inoreader_call",
         "health_check",
         "cron_outcome",
+        "force_tools_used",
+        "wrong_irl_detected",
+        "gate_elided",
       ]
     `);
   });
@@ -125,6 +128,12 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
           "skipped-budget",
           "deduplicated",
         ],
+        "force_tools_used": [
+          "applied",
+        ],
+        "gate_elided": [
+          "elided",
+        ],
         "health_check": [
           "ok",
           "degraded",
@@ -154,6 +163,11 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
         "tool_invocation": [
           "success",
           "error",
+        ],
+        "wrong_irl_detected": [
+          "halt",
+          "partial",
+          "ok",
         ],
       }
     `);
