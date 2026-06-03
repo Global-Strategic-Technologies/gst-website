@@ -12,7 +12,8 @@
  * `buildTechparDeeplink` was NOT setting `b` at all (until commit `e40bdcc`).
  *
  * Effect of the regression: when a partner clicked an "Open TechPar Wizard"
- * link emitted by `gst_diligence_sweep`, the wizard hydrated in monthly
+ * link emitted by `gst_diligence_sweep` (renamed to `gst_irl_ingestion`
+ * under BL-045 PR B), the wizard hydrated in monthly
  * mode and multiplied the already-annualized hosting figure by 12 —
  * producing a totalTechPct ~7× the value the MCP tool computed server-side
  * (live finding: 655.6% vs 92.4%).

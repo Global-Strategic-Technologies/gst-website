@@ -2641,7 +2641,7 @@ When implementing any BL-031.x / BL-032.x / BL-033 initiative:
 
 **What's NOT removed**:
 
-- The Library Resource `gst://library/vdr-structure` — still used by `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, and `gst_diligence_sweep`. Operators who want the canonical VDR taxonomy still get it via those prompts or by reading the Library article directly via `resources/read`.
+- The Library Resource `gst://library/vdr-structure` — still used by `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, and `gst_irl_ingestion` (renamed from `gst_diligence_sweep` under BL-045 PR B). Operators who want the canonical VDR taxonomy still get it via those prompts or by reading the Library article directly via `resources/read`.
 - The BL-031.75 V5 sign-off historical record — preserved with retention banners so the original ship trail can be read accurately.
 
 **Why retain this stanza after retirement**: documents the rationale + the inventory of what was removed, so a future contributor proposing a similar audit surface has the prior-art context readily searchable. The dedicated design doc [MCP_SERVER_VDR_AUDIT_TIERS_BL-036.md](MCP_SERVER_VDR_AUDIT_TIERS_BL-036.md) is retained with a closure banner for the same reason.

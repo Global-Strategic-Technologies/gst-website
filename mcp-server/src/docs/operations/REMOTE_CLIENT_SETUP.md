@@ -258,7 +258,7 @@ populated-IRL ingestion:
    than orchestrating its underlying tool calls ad-hoc. Specifically:
    - Intake / pre-diligence ask to a target: invoke `gst_information_request_list`
    - Ingesting a populated IRL and producing the full platform-sweep dossier:
-     invoke `gst_diligence_sweep`
+     invoke `gst_irl_ingestion`
    - Drafting a buy-side / sell-side handoff memo: invoke `gst_diligence_handoff_memo`
    - Target snapshot / quick-look: invoke `gst_target_quick_look`
    - Diligence kickoff agenda from sales notes: invoke `gst_diligence_kickoff`

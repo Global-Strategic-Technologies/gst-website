@@ -1,13 +1,13 @@
 /**
- * Shared IRL-extraction rule constants — load-bearing prose extracted from
- * `gst_diligence_sweep` so it can be reused by future ingestion-style
- * prompts (BL-045 PR B will rename sweep to `gst_irl_ingestion` and import
- * these constants directly).
+ * Shared IRL-extraction rule constants — load-bearing prose originally
+ * extracted from the BL-032.6 sweep prompt (since renamed to
+ * `gst_irl_ingestion` under BL-045 PR B), now imported directly by the
+ * ingestion prompt and any sibling ingestion-style prompts that ship.
  *
- * Each constant is the rule sentence(s) without sweep-specific orchestration
- * framing ("Step N — Invoke `X`…", "Surface the resulting `deeplink`…").
- * The sweep body interpolates each constant between its orchestration
- * opener and closer. JSDoc above each constant cites the
+ * Each constant is the rule sentence(s) without ingestion-specific
+ * orchestration framing ("Step N — Invoke `X`…", "Surface the resulting
+ * `deeplink`…"). The ingestion body interpolates each constant between
+ * its orchestration opener and closer. JSDoc above each constant cites the
  * `irl-tool-input-mapping.md` SOP section it derives from.
  *
  * **Refactor intent (BL-045 PR A)**: structural-only diff against the
