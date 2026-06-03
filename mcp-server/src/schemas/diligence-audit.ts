@@ -36,10 +36,36 @@
 
 import { z } from 'zod';
 import { UserInputsSchema } from '../../../src/schemas/diligence';
-import {
-  REVENUE_RANGE_IDS,
-  HEADCOUNT_IDS,
-} from '../../../src/data/diligence-machine/wizard-config';
+import { REVENUE_RANGE_IDS } from '../../../src/data/diligence-machine/wizard-config';
+import { extractExcerpt } from './validate-irl-provenance';
+
+/**
+ * Test whether `value` appears as a whole-token literal inside `text`.
+ * Used by the Tier-1 substring rule to avoid two false-positive paths
+ * the impartial audit flagged (BL-045 PR B audit B1):
+ *
+ *   - Plain `.includes()` against the full citation matched the section-
+ *     header prefix (e.g., citation `"Section 09 row 134 — Employee PII…"`
+ *     trivially contains `"09"`, `"row"`, etc.); we restrict matching to
+ *     the post-em-dash excerpt.
+ *   - Plain `.includes()` against a short enum value like `"us"` matched
+ *     unrelated substrings (`"explicitly"`, `"businessmodel"`); we require
+ *     a token boundary on both sides of the value.
+ *
+ * The token boundary is whitespace, punctuation, or string edge — chosen
+ * to permit hyphens INSIDE the value (so `customer-pii-at-scale` still
+ * matches `Customer-PII-at-Scale`).
+ */
+function citationContainsValueLiteral(citation: string, value: string): boolean {
+  const excerpt = extractExcerpt(citation).toLowerCase();
+  const needle = value.toLowerCase();
+  // Match start/end edges OR non-alphanumeric chars before and after the
+  // needle. Using a regex with escaped needle so values with regex
+  // metacharacters (`+`, `.`, etc.) match literally.
+  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`(?:^|[^a-z0-9])${escaped}(?:$|[^a-z0-9])`);
+  return pattern.test(excerpt);
+}
 
 // ─── Audit metadata enums ───────────────────────────────────────────────
 
@@ -393,14 +419,14 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
     if (
       dimAudit.tier === '1' &&
       dimValue !== 'unknown' &&
-      !dimAudit.citation.toLowerCase().includes(String(dimValue).toLowerCase())
+      !citationContainsValueLiteral(dimAudit.citation, String(dimValue))
     ) {
       issues.push({
         path: ['_audit', dimName, 'tier'],
         ruleId: 'BL-045-TIER-1-LITERAL-MISMATCH',
         message:
-          `${dimName} = "${dimValue}" with tier = "1" (literal) but the citation does not contain the literal enum value. ` +
-          `Tier 1 means the IRL bullet states the enum value verbatim. If the value was derived from a different bullet (e.g. "B2B SaaS multi-year subscription" → "productized-platform"), set tier = "2" instead.`,
+          `${dimName} = "${dimValue}" with tier = "1" (literal) but the citation excerpt does not contain the literal enum value as a token. ` +
+          `Tier 1 means the IRL bullet states the enum value verbatim (post em-dash excerpt). If the value was derived from a different bullet (e.g. "B2B SaaS multi-year subscription" → "productized-platform"), set tier = "2" instead.`,
       });
     }
   }
@@ -414,6 +440,26 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
       ruleId: 'BL-045-TIER-3-REQUIRED-FOR-UNKNOWN',
       message: `geographies = ["unknown"] requires _audit.geographies.tier = "3". Got tier = "${geoAudit.tier}".`,
     });
+  }
+  // Tier-1 literal-match extension to the geographies array (BL-045 PR B
+  // audit M2): tier=1 means "the IRL bullet states the enum value
+  // verbatim" — for an array dimension, every supplied geography MUST
+  // appear as a literal token in the citation excerpt. Models that
+  // declare `geographies: ["us","eu","uk"]` while citing only `"US"`
+  // are demoted to tier=2 (one-step derivation) rather than tier=1.
+  if (geoAudit.tier === '1' && !(geoValue.length === 1 && geoValue[0] === 'unknown')) {
+    const missing = geoValue.filter(
+      (g) => g !== 'unknown' && !citationContainsValueLiteral(geoAudit.citation, g)
+    );
+    if (missing.length > 0) {
+      issues.push({
+        path: ['_audit', 'geographies', 'tier'],
+        ruleId: 'BL-045-TIER-1-LITERAL-MISMATCH',
+        message:
+          `geographies = [${geoValue.join(', ')}] with tier = "1" but the citation excerpt does not contain the literal token(s): ${missing.join(', ')}. ` +
+          `Tier 1 requires every geography in the array to appear verbatim in the post-em-dash citation excerpt. If some geographies were derived rather than literal, set tier = "2".`,
+      });
+    }
   }
 
   return issues;
@@ -440,11 +486,11 @@ export function formatAuditIssues(issues: AuditRefinementIssue[]): string {
   return lines.join('\n');
 }
 
-// Stub uses of imports kept for tree-shaking visibility / explicit dep.
-// (These constants are referenced via type-level imports elsewhere; the
-// explicit value imports above prevent dead-code elimination of the
-// schema constants when the bundle is built.)
-void HEADCOUNT_IDS;
+// `REVENUE_RANGE_IDS` is referenced as a type via
+// `(typeof REVENUE_RANGE_IDS)[number]` in `bracketForUsdMillions`; the
+// explicit value import above prevents dead-code elimination when the
+// bundle is built. (`HEADCOUNT_IDS` was previously imported but is
+// unreferenced — removed in the BL-045 PR B audit cleanup, m1.)
 void REVENUE_RANGE_IDS;
 
 // ─── Helpers — Tier-3 audit defaults ───────────────────────────────────

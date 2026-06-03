@@ -154,6 +154,46 @@ describe('runIrlProvenanceCheck — partner-supplied passthrough', () => {
     expect(result.verdicts[0].status).toBe('partner-supplied');
   });
 
+  // BL-045 PR B audit M3 — coupling guard. The partner-supplied
+  // classification REQUIRES both markers (`Section --` AND the literal
+  // phrase `partner-supplied form input`). If a future kickoff/handoff
+  // prompt rev shortens the citation to omit `partner-supplied form
+  // input`, every Tier-3 partner-form citation falls through to the
+  // fuzzy matcher and almost certainly classifies as `unverified` —
+  // surfacing fake `provenance-gap:` entries in (J) for every
+  // partner-form dimension.
+  //
+  // This test fails fast if the helper `buildPartnerSuppliedAudit`
+  // citation prose drifts away from the dual-marker shape.
+  it('verifies buildPartnerSuppliedAudit citations are recognized as partner-supplied', async () => {
+    // Import lazily to avoid a cross-package cycle at module-load.
+    const { buildPartnerSuppliedAudit } = await import('../../../src/schemas/diligence-audit');
+    const audit = buildPartnerSuppliedAudit({
+      transactionType: 'majority-stake',
+      productType: 'b2b-saas',
+      techArchetype: 'modern-cloud-native',
+      headcount: '201-500',
+      revenueRange: '25-100m',
+      growthStage: 'scaling',
+      companyAge: '10-20yr',
+      geographies: ['us'],
+      businessModel: 'productized-platform',
+      scaleIntensity: 'moderate',
+      transformationState: 'actively-modernizing',
+      dataSensitivity: 'high',
+      operatingModel: 'product-aligned-teams',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    // Sample one citation and verify the dual-marker classifier
+    // accepts it.
+    const citations = [
+      { path: '_audit.transactionType.citation', citation: audit.transactionType.citation },
+      { path: '_audit.headcount.citation', citation: audit.headcount.citation },
+    ];
+    const result = runIrlProvenanceCheck({ filledIrl: SAMPLE_IRL, citations });
+    expect(result.partnerSupplied).toBe(citations.length);
+  });
+
   it('does NOT classify a real "Section --" header as partner-supplied (requires both markers)', () => {
     // Edge case: an IRL with a literal "Section --" header wouldn't carry
     // the partner-supplied phrase. Verify the dual-marker discipline.

@@ -107,6 +107,15 @@ const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   '7ca109ba80c4cb95b54faed38125daa74e370f55f3c652eb95f2e318c144caf2';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
   'cc641b8888efee577c49fd44b7c3c0628d98199cc553a016b23c4ed9e892da2f';
+// BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
+// scenarios above don't catch a regression where compact mode silently
+// gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
+// PROVENANCE_FOOTER_DIRECTIVE, PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE).
+// These two scenarios hash-lock the compact-mode bodies.
+const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
+  '7ed2d19cdb90865501d7643e9ae49337dadd5da0444dbe6bc6fed0affc96a68c';
+const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
+  '3d37f5a4fc267fa65a739ee3d1d12e35adcc8a0845656b54cbc929040eea3b8a';
 
 interface Scenario {
   name: string;
@@ -152,6 +161,31 @@ const SCENARIOS: Scenario[] = [
       mode: 'extract-only',
     },
     expected: EXPECTED_HASH_EXTRACT_ONLY_FULL,
+  },
+  {
+    name: 'one-shot full + verbosity=compact (audit M1)',
+    args: {
+      targetName: 'TestCo',
+      filledIrl: STABLE_FILLED_IRL,
+      transactionContext: 'buy-side',
+      partnerLead: 'Reid Peryam',
+      projectCodeName: 'Cygnet',
+      verbosity: 'compact',
+    },
+    expected: EXPECTED_HASH_ONESHOT_FULL_COMPACT,
+  },
+  {
+    name: 'extract-only full + verbosity=compact (audit M1)',
+    args: {
+      targetName: 'TestCo',
+      filledIrl: STABLE_FILLED_IRL,
+      transactionContext: 'value-creation',
+      partnerLead: 'Reid Peryam',
+      projectCodeName: 'Cygnet',
+      mode: 'extract-only',
+      verbosity: 'compact',
+    },
+    expected: EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT,
   },
 ];
 

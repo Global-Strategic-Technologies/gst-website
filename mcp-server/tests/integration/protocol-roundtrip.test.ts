@@ -197,6 +197,48 @@ describe('protocol roundtrip', () => {
         expect(tool.inputSchema.type).toBe('object');
       }
     });
+
+    // BL-045 PR B audit M8 — the architectural justification for landing
+    // calibration refinements in handler bodies (rather than `.superRefine`)
+    // is that the SDK's `normalizeObjectSchema` only recognizes plain
+    // `ZodObject`. A `.superRefine` wrapper would publish EMPTY input
+    // schema to clients. This test asserts the `_audit` sibling actually
+    // appears in the published JSON Schema for the three audit-bearing
+    // tools — if any future schema refactor accidentally wraps the
+    // schema in `ZodEffects`, the model would see no `_audit` field and
+    // the entire audit architecture would silently degrade.
+    it('the audit-bearing tools publish _audit in their input schema (BL-045 audit M8)', async () => {
+      const res = await rpc('tools/list', {});
+      expect(isErrorResponse(res)).toBe(false);
+      if (isErrorResponse(res)) return;
+      const payload = res.result as unknown as ListToolsResultPayload;
+      const auditBearingTools = [
+        'generate_diligence_agenda',
+        'compute_techpar',
+        'estimate_tech_debt_cost',
+      ];
+      for (const toolName of auditBearingTools) {
+        const tool = payload.tools.find((t) => t.name === toolName);
+        expect(tool, `tool ${toolName} must be registered`).toBeDefined();
+        expect(tool!.inputSchema.type).toBe('object');
+        expect(
+          tool!.inputSchema.properties,
+          `tool ${toolName} must publish .properties (Zod→JSON-Schema must not collapse to empty)`
+        ).toBeDefined();
+        expect(
+          tool!.inputSchema.properties!._audit,
+          `tool ${toolName} must publish _audit in its input schema — empty properties indicates the schema was wrapped in ZodEffects (e.g. .superRefine), which normalizeObjectSchema cannot lift through`
+        ).toBeDefined();
+        expect(
+          tool!.inputSchema.required,
+          `tool ${toolName} must publish a required[] array`
+        ).toBeDefined();
+        expect(
+          tool!.inputSchema.required,
+          `tool ${toolName} must declare _audit as required (model would otherwise default to omitting it)`
+        ).toContain('_audit');
+      }
+    });
   });
 
   describe('happy path — each tool returns valid content', () => {

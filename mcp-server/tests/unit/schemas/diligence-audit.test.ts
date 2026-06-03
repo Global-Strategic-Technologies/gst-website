@@ -355,6 +355,91 @@ describe('runAuditRefinements — Tier-1-literal-match (BL-045-TIER-1-LITERAL-MI
     };
     expect(ruleIds(p)).not.toContain('BL-045-TIER-1-LITERAL-MISMATCH');
   });
+
+  // BL-045 PR B audit B1 — false-positive on section-header prefix.
+  // The pre-audit substring check matched ANY occurrence of the enum
+  // value in the full citation (including the "Section NN row M" header)
+  // — letting fabricated tier-1 claims pass when the IRL section header
+  // happened to contain a numeric value matching the dimension.
+  it('rejects tier=1 when the literal match is in the section-header prefix only', () => {
+    const p = baseline();
+    p.revenueRange = '5-25m';
+    p._audit.revenueRange = {
+      ...p._audit.revenueRange,
+      tier: '1',
+      // "5-25m" appears in the header prefix ("row 5-25m") but the
+      // post-em-dash excerpt does NOT mention it. Pre-audit would pass;
+      // fixed check rejects.
+      citation: 'Section 00 row 5-25m — ARR and growth-rate context per board pack',
+    };
+    expect(ruleIds(p)).toContain('BL-045-TIER-1-LITERAL-MISMATCH');
+  });
+
+  // BL-045 PR B audit B1 — false-positive on short tokens that match
+  // as a substring of a different word. The pre-audit `.includes("us")`
+  // matched "explicitly", "businessmodel", etc.
+  it('rejects tier=1 when a short enum value matches only as a substring of an unrelated word', () => {
+    const p = baseline();
+    p.geographies = ['us'];
+    p._audit.geographies = {
+      tier: '1',
+      // The literal token "us" does NOT appear; "explicitly" contains
+      // "us" as a substring but is not a token. Pre-audit would pass.
+      citation:
+        'Section 00 row 13 — Revenue presence stated explicitly across multiple regions worldwide',
+    };
+    expect(ruleIds(p)).toContain('BL-045-TIER-1-LITERAL-MISMATCH');
+  });
+
+  // BL-045 PR B audit m2 — hyphen-in-enum normalization pin. Values
+  // like "b2b-saas" and "modern-cloud-native" must still match as tokens
+  // even though the regex word-boundary treats internal hyphens as part
+  // of the token, not separators.
+  it('accepts tier=1 for hyphen-bearing enum values that appear as a token', () => {
+    const p = baseline();
+    p._audit.techArchetype = {
+      tier: '1',
+      citation:
+        'Section 02 row 43 — Stack: modern-cloud-native AWS-only deployment for all services',
+    };
+    expect(ruleIds(p)).not.toContain('BL-045-TIER-1-LITERAL-MISMATCH');
+  });
+});
+
+// BL-045 PR B audit M2 — Tier-1 literal-match extended to geographies.
+// The scalar Tier-1 rule never ran over array dimensions; a model could
+// claim tier=1 for `geographies: ["us","eu","uk"]` while citing only "US".
+describe('runAuditRefinements — Tier-1 literal-match for geographies array', () => {
+  it('rejects tier=1 when only one of the supplied geographies appears in the citation', () => {
+    const p = baseline();
+    p.geographies = ['us', 'eu', 'uk'];
+    p._audit.geographies = {
+      tier: '1',
+      citation: 'Section 00 row 13 — US revenue presence only, no other regions stated verbatim',
+    };
+    expect(ruleIds(p)).toContain('BL-045-TIER-1-LITERAL-MISMATCH');
+  });
+
+  it('accepts tier=1 when every supplied geography appears as a token in the citation', () => {
+    const p = baseline();
+    p.geographies = ['us', 'eu', 'uk'];
+    p._audit.geographies = {
+      tier: '1',
+      citation:
+        'Section 00 row 13 — US, EU, UK named explicitly as the three primary revenue regions',
+    };
+    expect(ruleIds(p)).not.toContain('BL-045-TIER-1-LITERAL-MISMATCH');
+  });
+
+  it('does NOT fire the array tier-1 rule when geographies=["unknown"] (delegated to tier-3 rule)', () => {
+    const p = baseline();
+    p.geographies = ['unknown'];
+    p._audit.geographies = {
+      tier: '3',
+      citation: 'Section 00 row 13 — geography signal absent; defaulted to unknown sentinel',
+    };
+    expect(ruleIds(p)).not.toContain('BL-045-TIER-1-LITERAL-MISMATCH');
+  });
 });
 
 describe('formatAuditIssues', () => {

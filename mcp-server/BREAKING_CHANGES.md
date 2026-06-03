@@ -28,6 +28,38 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.10.1 — 2026-06-03 — BL-045 PR B audit remediation
+
+**Theme**: impartial code-review pass identified 1 BLOCKER + 4 substantive MAJORS + 2 MINORS in the BL-045 PR B work. This commit lands the in-scope fixes per CLAUDE.md § 4a (no deferred tech debt).
+
+**Surface impact**: **None — additive test coverage + bug-fix on an internal refinement rule.** No tool surface changed, no prompt body changed.
+
+**Correctness fixes**:
+
+- **B1 — Tier-1 literal-substring rule (`diligence-audit.ts:393-405`)**. The pre-fix check ran `citation.toLowerCase().includes(value.toLowerCase())` against the FULL citation. Two false-positive paths: (a) section-header prefixes (e.g., `Section 02 row 201-500 — …`) trivially matched the value, (b) short tokens like `"us"` matched as a substring of unrelated words (`"explicitly"`, `"businessmodel"`). Fix: new `citationContainsValueLiteral` helper extracts the post-em-dash excerpt and uses a non-alphanumeric-boundary regex, permitting internal hyphens so hyphen-bearing enum values (`b2b-saas`, `modern-cloud-native`, `customer-pii-at-scale`) still match.
+- **M2 — Tier-1 rule extension to `geographies` array**. The pre-fix scalar loop skipped the array dimension entirely. A model could claim `tier=1` for `geographies: ["us","eu","uk"]` while citing only `"US"`. Fix: explicit loop validating every supplied geography appears as a literal token in the citation excerpt.
+- **m1 — dead `HEADCOUNT_IDS` import** removed; `REVENUE_RANGE_IDS` retained as it's referenced via `(typeof REVENUE_RANGE_IDS)[number]`.
+
+**Coverage additions**:
+
+- **M1 — body-hash test extended with 2 compact-verbosity scenarios** (`tests/integration/irl-ingestion-body-hash-stability.test.ts`). Pre-fix all 5 scenarios used default verbosity; compact-mode bodies could silently regress into emitting verbose-only directives. Now hash-locked.
+- **M6 — SOP dual-source drift guard** (`tests/integration/sop-dual-source-drift-guard.test.ts`). `src/data/library/irl-tool-input-mapping/article.md` and `mcp-server/src/docs/library/irl-tool-input-mapping.md` are byte-identical today; this test fails fast on drift with operator instructions for the intentional-divergence escape hatch.
+- **M8 — `tools/list` round-trip assertion** (`tests/integration/protocol-roundtrip.test.ts`). The whole architectural justification for landing calibration refinements in handler bodies (rather than `.superRefine`) rests on the SDK publishing `_audit` in the JSON Schema. New test introspects the published schema for `generate_diligence_agenda` + `compute_techpar` + `estimate_tech_debt_cost`, asserts `_audit` appears in `properties` AND `required`. If any future refactor accidentally wraps the schema in `ZodEffects` the audit architecture silently degrades — this test catches that.
+- **M3 — partner-supplied coupling guard** (`tests/unit/schemas/validate-irl-provenance.test.ts`). Pins the dependency between `buildPartnerSuppliedAudit` citation prose and the `isPartnerSupplied` dual-marker classifier. If a future kickoff/handoff prompt rev shortens the citation to omit `partner-supplied form input`, this test fails before partner-form citations start mis-classifying as `unverified`.
+- **m2 — hyphen-in-enum normalization pin** added to the Tier-1 rule test surface.
+
+**Explicitly deferred**:
+
+- M4 unicode coverage (Turkish-i, German ß) — real but low-impact; live exercise will surface it if it bites in practice.
+- M4 huge-IRL perf bound on `longestContiguousRun` — quadratic but at typical IRL sizes (~10k words) the bound is well under MCP tool timeout.
+- M7 `any`-typed registry wrap — consistent with the pre-existing `ALL_PROMPTS: ReadonlyArray<GstPrompt<any>>` pattern; no regression.
+
+**Manifest-hash impact**: unchanged.
+**Body-hash impact**: unchanged.
+**Test deltas**: +11 cases (1213 total, +0.9% from prior baseline).
+
+---
+
 ## 0.10.0 — 2026-06-03 — BL-045 PR B Phase 2B — `validate_irl_provenance` tool
 
 **Theme**: closes the M6 residual-fabrication gap honestly scoped during Phase 1/2. Structural audit refinements verify citation shape; this tool verifies citation truthfulness against the supplied IRL body.
