@@ -28,6 +28,28 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.10.0 — 2026-06-03 — BL-045 PR B Phase 2B — `validate_irl_provenance` tool
+
+**Theme**: closes the M6 residual-fabrication gap honestly scoped during Phase 1/2. Structural audit refinements verify citation shape; this tool verifies citation truthfulness against the supplied IRL body.
+
+**Surface impact**: **Additive**. One new MCP tool registered at server boot; no existing tool changed.
+
+- New tool `validate_irl_provenance` — pure function (no engine call, no Hub deeplink). Input: `{ filledIrl, citations: [{ path, citation }] }`. Output: per-citation verdict bucketed into `verified` / `verified-fuzzy` / `partner-supplied` / `unverified` plus aggregate counts.
+- Matching engine in `src/schemas/validate-irl-provenance.ts` exposes pure `runIrlProvenanceCheck(input)` for unit testing in isolation from the MCP transport. Algorithm: normalize both texts (lowercase, strip markdown noise, flatten dashes, collapse whitespace), test verbatim substring → `verified`. On miss, find the longest contiguous-word run from the excerpt that appears in the IRL; if ≥ `FUZZY_MIN_RUN` (8) → `verified-fuzzy`. Otherwise `unverified`. The 8-word threshold is empirically calibrated from the StoreForce v5+ runs (real paraphrasings ≥12; fabrications ≤4).
+- `Section --` + `partner-supplied form input` dual-marker discipline classifies kickoff/handoff partner-form citations as `partner-supplied` (no IRL anchor expected).
+
+**Intended caller**: the model invokes this during its (K) provenance footer + provenance-citation self-check pass, supplying the load-bearing citations from `_audit` blocks. Unverified verdicts feed (J) gap-list `provenance-gap:` entries — the model either removes the dossier claim or honestly marks it open.
+
+**Client migration**: none. Existing callers continue to work; new callers gain the tool.
+
+**Manifest-hash impact**: unchanged (prompts list + Library/Regulation/Radar URIs unchanged; manifest hash does NOT include tool names).
+
+**Body-hash impact**: unchanged.
+
+**Test deltas**: 17 new unit cases in `tests/unit/schemas/validate-irl-provenance.test.ts` covering normalization round-trips, excerpt extraction, verbatim match, fuzzy boundary at FUZZY_MIN_RUN, partner-supplied dual-marker discipline, true-fabrication rejection, aggregate counts across mixed inputs. `tests/integration/protocol-roundtrip.test.ts` tools-list assertion extended to 14 tools.
+
+---
+
 ## 0.9.0 — 2026-06-03 — BL-045 PR B — SOP promoted to Library Resource
 
 **Theme**: the IRL → Hub Tool Input Mapping SOP (engineering-internal at `mcp-server/src/docs/library/irl-tool-input-mapping.md`) is promoted to a fourth Library Resource at `gst://library/irl-tool-input-mapping` so the model can fetch it via the standard MCP `resources/read` interface during IRL ingestion.

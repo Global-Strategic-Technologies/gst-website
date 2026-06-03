@@ -186,6 +186,7 @@ describe('protocol roundtrip', () => {
           'search_radar_cache', // deprecated alias — removed in 0.2.0
           'search_radar_offline', // BL-032 Phase 4b rename
           'search_regulations',
+          'validate_irl_provenance', // BL-045 PR B Phase 2B residual-fabrication guard
         ].sort()
       );
 
