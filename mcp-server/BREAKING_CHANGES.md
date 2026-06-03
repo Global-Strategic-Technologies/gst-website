@@ -11,20 +11,45 @@
 ## Current manifest hash
 
 ```
-80f0d4a3a81a88b3a57ce0121bd220179b35abfbf9a23c1546846db1c6677849
+9d3819b3f6ed5d13b21f2c77b57ad09e429952bc8dc96e95d36c71e1a84fa5b2
 ```
 
 Computed over (sorted):
 
-- **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`) — fourth URI added under BL-045 PR B (SOP-as-Resource promotion).
-- 120 Regulation URIs (`gst://regulations/<jurisdiction>/<framework-id>`)
-- 6 Radar URIs (FYI latest + Wire latest + 4 Wire categories)
-- **9** prompt `name@version` tuples (`gst_*`) — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.3.0` (renamed from `gst_diligence_sweep` under BL-045 PR B; bumped to `0.3.0` for the post-audit forcing-function tightening that mandates `compose_dossier_envelope` as the closing dossier step).
+- **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`).
+- 120 Regulation URIs.
+- 6 Radar URIs.
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.4.0` (BL-045 PR B audit-2 tightening: hash-bind forcing function on `filledIrl`, server-derived `promptVersion`, schema enum tightening on `gatesPassed`/`conditionalTriggersFired`/`forceToolsApplied`, tier-mismatch surface).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.12.0 — 2026-06-03 — BL-045 PR B audit-2 tightening — hash-bind forcing function + schema enum hardening
+
+**Theme**: closes the v10 dossier compliance gaps and the impartial code-review audit-2 findings (1 BLOCKER + 6 MAJORS + 3 ALTERNATIVES). The previous v0.11.0 commit got the model to call `compose_dossier_envelope` and emit the meta fence + (J) + (K) — but the meta fence had hallucinated `promptVersion: "0.0.2"`, the `conditionalTriggersFired` array was over-populated with 7 entries (only `EU_AI_ACT` qualifies), and 25 of 29 claims came back as false-positive `unverified` because the model passed a paraphrased IRL as `filledIrl` rather than the verbatim bytes.
+
+**Surface impact** (minor — schema-breaking on `compose_dossier_envelope` inputs):
+
+- **Hash-bind forcing function (BL-2 via ALT-1)** — schema requires a new `irlBodyHash` field; prompt body embeds `**Body-binding hash:** <16hex>` directive (sha256 of args.filledIrl, first 16 hex chars). The tool computes `sha256(input.filledIrl).slice(0,16)` and rejects on mismatch via `IrlBodyHashMismatchError`. **Architecturally identical to the dimension-layer schema enforcement**: the model can't pass a paraphrased filledIrl because sha256 doesn't paraphrase.
+- **Server-derived `promptVersion` (BL-1)** — schema field is now optional; tool handler reads canonical version from `irlIngestionPrompt.version` (leaf module, no circular-dep risk). Meta-fence rendering ignores whatever the model passes.
+- **`conditionalTriggersFired` enum tightened (BL-3)** — `z.enum(CONDITIONAL_TRIGGER_NAMES)` where the const is exported from `extraction-rules.ts`. Future trigger additions are a single-edit-in-lockstep. Schema rejects `"GDPR"` / `"PIPEDA"` / etc. (v10 over-population mode).
+- **`gatesPassed` + `forceToolsApplied` enums tightened (MA-5)** — `z.enum(ORCHESTRATED_TOOLS)`. Same maintenance-debt-elimination principle.
+- **`modelVersion` regex (MA-2)** — `^[a-z][a-z0-9_-]*\d[a-z0-9_-]*$` rejects sentinel hallucinations (`""`, `"x"`, `"claude"`, `"unknown"`). Accepts canonical shapes (`claude-opus-4-7`, `gpt-4-turbo`).
+- **Tier-mismatch surface (MA-6)** — tier-1 claim returning `unverified` is now its own gap category `tier-mismatch:` (structurally more damning than generic `provenance-gap:` because the model declared verbatim IRL bullet but cited a paraphrase or fabrication). Returns `tierMismatches` count in `provenanceVerification`.
+- **Deterministic meta-fence key order (MI-1)** — manual line-by-line concat replaces `JSON.stringify`, making key order a property of source rather than V8 implementation.
+
+**Body changes**:
+
+- New `## Body-binding hash` directive in `buildOneShotBody` verbose mode.
+- `ENVELOPE_COMPOSITION_DIRECTIVE` updated to reference the body-binding hash.
+
+**Versioning**: `mcp-server` 0.11.0 → 0.12.0 (minor — schema-breaking inputs); `gst_irl_ingestion` prompt 0.3.0 → 0.4.0. Manifest hash + 6 of 7 body hashes re-baselined (interactive unchanged).
+
+**Test deltas**: existing 12 tests for the envelope tool refactored for new signature + server context; +13 new tests covering hash-bind happy path / mismatch / IRL paraphrase rejection / schema enum rejection / modelVersion regex / promptVersion override; 1208 → 1238 test count after rebuild.
 
 ---
 

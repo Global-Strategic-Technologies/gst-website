@@ -100,22 +100,22 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 const EXPECTED_HASH_INTERACTIVE =
   '133f5db02eebb6bca05f214aceeadb38f64c632c207891f04dff7478b3f5956d';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '931d7ac403f46a7af0cee450ef5b2cc18cc3475ef02f1fdfb17c57c8ec1c9040';
+  'b3d752d2b810f6b3445dcb9a04964f9bc8bd35bf9cb1aaa9a1b4f84f01d6b135';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '50b841b750977a4e72efd61315cab54df7a2369ed9325777e282db24bec4e29b';
+  'ec724fdef7baf08f268da09eddd01e58adbc50c1fab96ee4feae08d04e1e5adc';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '7db9d980cc782ddb5586b9af2b7e0b49c70285d3d824782de3a70caf05dfa364';
+  '6c04170cc39008ec7d15728d6e0b67cb1c252127eee5dc0d44c37f871f2ab366';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  'aa6a253550b8cc23902b7677d35bdaebf40ef2f4f0fad8781fb8d97b7cc52a52';
+  '16ff440cd0c5c9e9108eccdf4252b80184b2b1dbb8524505476c9a3da9ca3d93';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
 // PROVENANCE_FOOTER_DIRECTIVE, PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE).
 // These two scenarios hash-lock the compact-mode bodies.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  'ec4e74b81db484c17e76b1f9dfb6bf9a999b321de70772ec1d3708fee35c4ab6';
+  '7e969c584b911fbd2548f77a79667c563a1dfd40d705f589733e3b43320b61e4';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  'ec1e2a183a9fa34c922613a00c0fff23c6eb0120dfd20a951875b0b927f47734';
+  '545b5ce0e9c601c233be1a42f4ef7ad72bc41f4e427d3b1c6810002c548121d7';
 
 interface Scenario {
   name: string;

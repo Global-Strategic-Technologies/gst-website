@@ -17,8 +17,10 @@
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
+import { irlIngestionPrompt } from '../prompts/irl-ingestion';
 import {
   ComposeDossierEnvelopeInputSchema,
+  IrlBodyHashMismatchError,
   runComposeDossierEnvelope,
   type ComposeDossierEnvelopeInput,
 } from '../schemas/compose-dossier-envelope';
@@ -47,13 +49,27 @@ const TOOL_DESCRIPTION = `Render the dossier's structural envelope (top-of-docum
  */
 export async function handleComposeDossierEnvelopeTool(payload: ComposeDossierEnvelopeInput) {
   try {
-    const result = runComposeDossierEnvelope(payload);
+    // BL-045 PR B audit ALT-2: derive `promptVersion` from the prompt
+    // module (a leaf import — no circular-dep risk via the registry).
+    // Overrides whatever the model passed; closes the v10 hallucination
+    // failure mode where the model emitted `"0.0.2"` in the meta fence.
+    const result = runComposeDossierEnvelope(payload, {
+      promptVersion: irlIngestionPrompt.version,
+    });
     const text = JSON.stringify(result, null, 2);
     return {
       content: [{ type: 'text' as const, text }],
       structuredContent: result as unknown as Record<string, unknown>,
     };
   } catch (error) {
+    // BL-045 PR B audit BL-2 → ALT-1: surface hash-bind diagnostic
+    // verbatim so the model can act on it and retry with verbatim IRL.
+    if (error instanceof IrlBodyHashMismatchError) {
+      return {
+        content: [{ type: 'text' as const, text: error.message }],
+        isError: true,
+      };
+    }
     const message = error instanceof Error ? error.message : String(error);
     return {
       content: [{ type: 'text' as const, text: `Failed to compose dossier envelope: ${message}` }],

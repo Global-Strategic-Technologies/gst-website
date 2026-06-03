@@ -25,6 +25,7 @@
  * See: src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md
  */
 
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { GstPrompt } from './types';
 import { authorialIntentLine, embedLibraryArticle } from './embed';
@@ -36,6 +37,18 @@ import {
   ICG_SEEDING_RULES,
   MTTR_P1_RULE,
 } from './extraction-rules';
+
+/**
+ * Compute the 16-character hex prefix of sha256(filledIrl). Inlined here
+ * (rather than imported from `src/schemas/compose-dossier-envelope.ts`)
+ * to avoid a circular import — the schema imports `ORCHESTRATED_TOOLS`
+ * from this module. MUST match the algorithm in
+ * `computeIrlBodyHash` in the schema; both functions feed the same
+ * hash-bind forcing function (BL-045 PR B audit BL-2 → ALT-1).
+ */
+function computeIrlBodyHashForBody(filledIrl: string): string {
+  return createHash('sha256').update(filledIrl).digest('hex').slice(0, 16);
+}
 
 const IRL_RESOURCE_URI = 'gst://library/information-request-list';
 const VDR_RESOURCE_URI = 'gst://library/vdr-structure';
@@ -53,7 +66,7 @@ const verbosityValues = ['verbose', 'compact'] as const;
  * both surfaces (Acceptance Criteria: "forceTools enum derived from
  * orchestrates at build time, not hand-maintained").
  */
-const ORCHESTRATED_TOOLS = [
+export const ORCHESTRATED_TOOLS = [
   'generate_diligence_agenda',
   'list_portfolio_facets',
   'search_portfolio',
@@ -224,7 +237,7 @@ const META_JSON_FENCE_DIRECTIVE = [
   '```json',
   '{',
   '  "promptName": "gst_irl_ingestion",',
-  '  "promptVersion": "0.3.0",',
+  '  "promptVersion": "0.4.0",',
   '  "modelVersion": "<your model id at invocation time, e.g. claude-opus-4-7>",',
   '  "mode": "full | extract-only",',
   '  "verbosity": "verbose | compact",',
@@ -405,6 +418,21 @@ function buildOneShotBody(args: {
   verbosity: (typeof verbosityValues)[number];
 }): string {
   const isVerbose = args.verbosity === 'verbose';
+  // BL-045 PR B audit BL-2 → ALT-1: hash-bind. Compute the canonical
+  // 16-hex prefix of sha256(filledIrl) and embed it as a Body-binding
+  // hash directive the model copies into `compose_dossier_envelope`'s
+  // `irlBodyHash` input. The tool rejects on sha256(supplied) mismatch,
+  // which catches paraphrased filledIrl payloads (v10 failure mode).
+  const irlBodyHash = computeIrlBodyHashForBody(args.filledIrl);
+  const bodyBindingDirective = isVerbose
+    ? [
+        '## Body-binding hash (BLOCKING — pass to compose_dossier_envelope.irlBodyHash)',
+        '',
+        `**Body-binding hash:** \`${irlBodyHash}\``,
+        '',
+        "When you call `compose_dossier_envelope` (the mandatory closing step), copy the 16-character hex string above into the `irlBodyHash` input AND pass the VERBATIM IRL body (the markdown between the `## Filled IRL` header and the next `##` below it) as `filledIrl`. The tool computes `sha256(filledIrl).slice(0,16)` and rejects on mismatch — this catches paraphrased / summarized IRL bodies that would otherwise pass through and produce false-positive provenance gaps in (J)/(K). Do NOT condense, do NOT paraphrase, do NOT abridge the IRL body when supplying `filledIrl` — the tool's hash check is non-negotiable.",
+      ].join('\n')
+    : '';
   const targetClause = args.targetName
     ? `The target is **${args.targetName}**.`
     : 'Infer the target name from the IRL header (Section 00 — Basics, first bullet) and use it consistently throughout the dossier.';
@@ -621,6 +649,8 @@ function buildOneShotBody(args: {
           '',
           PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE,
           '',
+          bodyBindingDirective,
+          '',
           ENVELOPE_COMPOSITION_DIRECTIVE,
         ]
       : []),
@@ -738,7 +768,7 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
-  version: '0.3.0',
+  version: '0.4.0',
   lastReviewedAt: '2026-06-01',
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_RESOURCE_URI, VDR_RESOURCE_URI] as const,
   argsSchema,
