@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-4941f4bface7f2cddf28ed7abe34912a14f5072d8d3ce7595e9d721c1a7edb9a
+aa1c5c303e3336d602798d1becebf0e5cd5f38c11a78b13bfe3b1de442cb0a3a
 ```
 
 Computed over (sorted):
@@ -19,12 +19,34 @@ Computed over (sorted):
 - 3 Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`)
 - 120 Regulation URIs (`gst://regulations/<jurisdiction>/<framework-id>`)
 - 6 Radar URIs (FYI latest + Wire latest + 4 Wire categories)
-- **9** prompt `name@version` tuples (`gst_*`) — `gst_information_request_list` at `0.0.4` (Claude Desktop redirect) + `gst_diligence_sweep` at `0.0.5`. (Was 10 prior to BL-036 Tier 3 retirement of `gst_vdr_audit` — 2026-05-31, mcp-server@0.3.15.)
+- **9** prompt `name@version` tuples (`gst_*`) — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.2.0` (renamed from `gst_diligence_sweep` under BL-045 PR B; bumped to `0.2.0` for the body rewrite 3/N — per-section JSON fences + (K) provenance footer + provenance-citation self-check).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.8.0 — 2026-06-03 — BL-045 PR B body rewrite (3/N): per-section JSON fences + (K) provenance footer + provenance-citation self-check
+
+**Theme**: continues the body-rewrite work past `0.7.0`. This commit lands the three verbose-mode directives that close the design doc's "Body rendering strategy" scope: per-section audit JSON fences after each tool-backed dossier section, a (K) provenance footer mapping every load-bearing claim to its IRL anchor, and a final provenance-citation self-check that surfaces gaps in (J) rather than silently dropping them.
+
+**Surface impact**: **None — additive prompt-body change**. Behavior added (verbose mode only — the default):
+
+- `PER_SECTION_JSON_FENCE_DIRECTIVE` — full-mode only. Each tool-backed dossier section (C/D/E/F/G/H) now closes with a JSON code fence `audit: <letter>` carrying `{ tool, inputPayload, outputSummary, deeplink }` plus a self-check line. Failures surface in (J), not silently overwritten. (F) regulatory subsections emit one fence per framework.
+- `PROVENANCE_FOOTER_DIRECTIVE` — both modes. New `(K) Provenance footer` section after (J), listing every load-bearing claim (monetary, headcount, regulatory framework, paradigm verdict, ICG maturity score, comparable engagement) with its IRL anchor in `Section NN row M: "<verbatim excerpt>" (tier T)` shape.
+- `PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE` — both modes. Final BLOCKING pass before emit: every (C)-(I) claim cross-checked against (K) anchors; unanchored claims become numbered `provenance-gap:` entries in (J). Common patterns called out: tool-output verbatims without (K) anchors, conditional-trigger frameworks without trigger-predicate anchors, comparables without dimension-justification anchors.
+
+**Wiring**: `verbosity` arg threaded into `buildOneShotBody` + `buildExtractOnlyBody`. Compact mode elides all three directives (use case: piping the dossier JSON downstream to automation that doesn't need the audit prose).
+
+**Client migration**: none. No new args. Existing callers benefit automatically (default `verbosity: verbose`).
+
+**Manifest-hash impact**: changed (prompt version bumped `0.1.0` → `0.2.0`).
+
+**Body-hash impact**: 4 of 5 scenarios re-baselined (interactive unchanged).
+
+**Reference**: [design doc § Body rendering strategy, § Output structure (K)](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md).
 
 ---
 

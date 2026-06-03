@@ -223,7 +223,7 @@ const META_JSON_FENCE_DIRECTIVE = [
   '```json',
   '{',
   '  "promptName": "gst_irl_ingestion",',
-  '  "promptVersion": "0.1.0",',
+  '  "promptVersion": "0.2.0",',
   '  "modelVersion": "<your model id at invocation time, e.g. claude-opus-4-7>",',
   '  "mode": "full | extract-only",',
   '  "verbosity": "verbose | compact",',
@@ -265,6 +265,75 @@ const TOOL_ERROR_DEGRADATION_DIRECTIVE = [
   '- If `generate_diligence_agenda` itself errors (the prerequisite for every other tool), HALT the sweep and emit only (A) snapshot + the meta fence + (J) gap list explaining the precondition failure.',
 ].join('\n');
 
+// ─── Shared helper: per-section JSON fence + schema self-check ─────────
+//
+// Per BL-045 design doc § Body rendering strategy — verbose mode emits an
+// auditable JSON payload after each tool-backed dossier section (C-H).
+// This is the surface that turns each section into a partner-debuggable
+// artifact: the narrative + the inputs that produced it + the deeplink.
+// Verbose + full mode only — extract-only IS structured JSON throughout
+// so the per-section fence would be redundant.
+
+const PER_SECTION_JSON_FENCE_DIRECTIVE = [
+  '## Per-section JSON fence + schema self-check (REQUIRED — verbose mode)',
+  '',
+  'For each tool-backed dossier section (C, D, E, F, G, H), emit IMMEDIATELY AFTER the closing "Open in Hub" deeplink line a single JSON code fence labeled `audit: <section-letter>` with this shape:',
+  '',
+  '```json',
+  '{',
+  '  "tool": "<orchestrated-tool-name>",',
+  '  "inputPayload": { /* the audited input that was sent — _audit included */ },',
+  '  "outputSummary": { /* the load-bearing fields from the tool response */ },',
+  '  "deeplink": "<URL the section closed with>"',
+  '}',
+  '```',
+  '',
+  "Then on the next line, emit a self-check sentence: `Self-check: inputPayload._audit citations point at IRL sections cited in the prose; outputSummary values match the section's headline numbers; deeplink is the verbatim string returned by the tool.` If any of the three checks fail, do NOT silently rewrite — surface the failure as a numbered entry in (J) gap list (`provenance-mismatch: <section> — <which check failed>`).",
+  '',
+  '(F) Regulatory exposure — one `audit: F.<framework>` fence per framework subsection (HIPAA, GDPR, NIS2, EU-AI-Act, etc.); each fence carries its own `tool: search_regulations` + per-framework inputPayload + per-framework deeplink. Do NOT collapse the regulatory frameworks into a single fence.',
+].join('\n');
+
+// ─── Shared helper: provenance footer (K) ──────────────────────────────
+//
+// Per BL-045 design doc § Output structure section (K). Verbose mode
+// only — applies to BOTH full mode and extract-only mode. The (K) footer
+// is the audit reviewer's single-surface scan: every load-bearing claim
+// in the dossier → its IRL anchor. Partner can verify the dossier without
+// re-reading the IRL.
+
+const PROVENANCE_FOOTER_DIRECTIVE = [
+  '## (K) Provenance footer — required in verbose mode',
+  '',
+  'AFTER (J) gap list, emit a section labeled `(K) Provenance footer`. For every load-bearing claim in the dossier, list one line:',
+  '',
+  '- `<claim summary> ← Section NN row M: "<verbatim excerpt from the IRL>" (tier <1|2|3>)`',
+  '',
+  'Load-bearing = every monetary figure (ARR, hosting spend, R&D OpEx, salary), every headcount number, every named regulatory framework, every paradigm verdict from TechPar (Brutalist / Steel-and-Glass / Productized), every ICG maturity score, every Tech Debt carrying-cost figure, every code-named comparable engagement. Each line is one claim → one IRL anchor.',
+  '',
+  'When a tool returned `extractionOnly: [...]` (Tech Debt MTTR null, ICG seed defaulted to `-1`), the (K) line for that surface reads `<claim> ← Section NN: OPEN; honest extraction-only per BL-045 schema enforcement (tier 3)`. Do NOT fabricate an anchor.',
+  '',
+  'Partner scans (K) before reading (I) synthesis — every claim should resolve to an IRL excerpt without context-switching back to the IRL document.',
+].join('\n');
+
+// ─── Shared helper: provenance citation self-check (final pass) ────────
+//
+// Per BL-045 design doc § Body rendering strategy — verbose mode runs a
+// final cross-check between dossier prose and (K) footer; gaps surface
+// in (J) rather than being silently dropped. Applies to BOTH modes.
+
+const PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE = [
+  '## Provenance citation self-check (BLOCKING — verbose mode, runs LAST)',
+  '',
+  'Before finalizing the dossier, walk every numeric / framework / verdict claim in (C) through (I) and confirm it appears in the (K) provenance footer with an IRL anchor. For each claim missing an anchor: do NOT delete the claim, do NOT invent an anchor — instead append a numbered entry to (J) gap list: `provenance-gap: <claim summary> — claim used in dossier but no IRL row supports it; partner should verify or remove`.',
+  '',
+  'Common provenance-gap patterns to watch for:',
+  '- Tool output values quoted verbatim (e.g., "carrying cost $X.XM/yr") with no `(K)` line tying them back to an IRL input row.',
+  '- Conditional-trigger frameworks (EU AI Act, NIS2) cited in (F) but with no `(K)` anchor for the trigger predicate (EU geography + ML/AI use OR EU + NIS2 sector).',
+  '- Comparable code-named engagements in (G) cited without a `(K)` line explaining which IRL dimensions justified the match.',
+  '',
+  'Surface every gap. The (J) section is allowed to grow; the dossier is allowed to be honest about what it has and has not anchored.',
+].join('\n');
+
 // ─── Shared helper: gap list (J) directive ─────────────────────────────
 //
 // Per BL-045 design doc § Output structure section (J). Always emitted
@@ -292,7 +361,9 @@ function buildOneShotBody(args: {
   transactionContext?: (typeof transactionContextValues)[number];
   partnerLead?: string;
   projectCodeName?: string;
+  verbosity: (typeof verbosityValues)[number];
 }): string {
+  const isVerbose = args.verbosity === 'verbose';
   const targetClause = args.targetName
     ? `The target is **${args.targetName}**.`
     : 'Infer the target name from the IRL header (Section 00 — Basics, first bullet) and use it consistently throughout the dossier.';
@@ -332,6 +403,7 @@ function buildOneShotBody(args: {
     INCLUSION_GATES_DIRECTIVE,
     '',
     TOOL_ERROR_DEGRADATION_DIRECTIVE,
+    ...(isVerbose ? ['', PER_SECTION_JSON_FENCE_DIRECTIVE] : []),
     '',
     `Step 1 — Extract the 13 diligence dimensions from the IRL, then invoke \`generate_diligence_agenda\` with the dimension values AND the required \`_audit\` sibling that carries per-dimension provenance + calibration metadata. ${UNKNOWN_PROPAGATION_RULE}`,
     '',
@@ -501,6 +573,9 @@ function buildOneShotBody(args: {
       '`) should be requested before the next milestone?',
     '',
     GAP_LIST_DIRECTIVE,
+    ...(isVerbose
+      ? ['', PROVENANCE_FOOTER_DIRECTIVE, '', PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE]
+      : []),
     '',
     '## Voice + format directives',
     '',
@@ -530,7 +605,9 @@ function buildExtractOnlyBody(args: {
   transactionContext?: (typeof transactionContextValues)[number];
   partnerLead?: string;
   projectCodeName?: string;
+  verbosity: (typeof verbosityValues)[number];
 }): string {
+  const isVerbose = args.verbosity === 'verbose';
   const targetClause = args.targetName
     ? `The target is **${args.targetName}**.`
     : 'Infer the target name from the IRL header (Section 00 — Basics, first bullet).';
@@ -570,6 +647,9 @@ function buildExtractOnlyBody(args: {
     'If an inclusion gate fails for a tool (per § Tool inclusion gates of the BL-045 design doc), emit a fence labeled `elided: <tool-name>` with `{ "reason": "<which gate predicate failed>", "irlSection": "<which IRL section would have satisfied it>" }` instead of the payload.',
     '',
     GAP_LIST_DIRECTIVE,
+    ...(isVerbose
+      ? ['', PROVENANCE_FOOTER_DIRECTIVE, '', PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE]
+      : []),
     '',
     '## Voice + format directives (extract-only)',
     '',
@@ -608,7 +688,7 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
-  version: '0.1.0',
+  version: '0.2.0',
   lastReviewedAt: '2026-06-01',
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_RESOURCE_URI, VDR_RESOURCE_URI] as const,
   argsSchema,
@@ -621,13 +701,14 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
     // mode defaults to 'full' when undefined (matches the design doc's
     // default semantics; the Zod arg description states default 'full').
     const mode = args.mode ?? 'full';
+    const verbosity = args.verbosity ?? 'verbose';
     let bodyText: string;
     if (!args.filledIrl) {
       bodyText = INTERACTIVE_BODY;
     } else if (mode === 'extract-only') {
-      bodyText = buildExtractOnlyBody({ ...args, filledIrl: args.filledIrl });
+      bodyText = buildExtractOnlyBody({ ...args, filledIrl: args.filledIrl, verbosity });
     } else {
-      bodyText = buildOneShotBody({ ...args, filledIrl: args.filledIrl });
+      bodyText = buildOneShotBody({ ...args, filledIrl: args.filledIrl, verbosity });
     }
     return {
       messages: [
