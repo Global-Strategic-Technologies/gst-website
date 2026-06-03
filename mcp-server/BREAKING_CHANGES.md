@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-1c1ccf0de4f50be6f0d94f3a9366b4c7242e785403507d0d0e6cc8d96bee7ce0
+80f0d4a3a81a88b3a57ce0121bd220179b35abfbf9a23c1546846db1c6677849
 ```
 
 Computed over (sorted):
@@ -19,12 +19,33 @@ Computed over (sorted):
 - **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`) — fourth URI added under BL-045 PR B (SOP-as-Resource promotion).
 - 120 Regulation URIs (`gst://regulations/<jurisdiction>/<framework-id>`)
 - 6 Radar URIs (FYI latest + Wire latest + 4 Wire categories)
-- **9** prompt `name@version` tuples (`gst_*`) — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.2.0` (renamed from `gst_diligence_sweep` under BL-045 PR B).
+- **9** prompt `name@version` tuples (`gst_*`) — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.3.0` (renamed from `gst_diligence_sweep` under BL-045 PR B; bumped to `0.3.0` for the post-audit forcing-function tightening that mandates `compose_dossier_envelope` as the closing dossier step).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.11.0 — 2026-06-03 — BL-045 PR B post-audit forcing-function tightening — `compose_dossier_envelope` tool
+
+**Theme**: closes the dossier-rendering compliance gap empirically exposed by the v8 + v9 StoreForce live runs. v9 produced A-grade content but no top-of-dossier meta JSON fence, no per-section `audit:` fences, and no `(K)` provenance footer — the verbose-mode body-rewrite 2/N + 3/N rendering directives were treated as descriptive context, not as a procedure. **Same finding the v2/v3/v4 dimension-layer traces produced**, now at the rendering layer.
+
+**The fix** — apply the architectural pattern that solved the dimension-layer fabrication risk: externalize the structure into a tool input. The model can't compose the dossier without the envelope because the envelope IS what the model has to call the tool to produce.
+
+**Surface impact**: **Additive — one new MCP tool + one new prompt-body directive.**
+
+- New tool `compose_dossier_envelope` — pure (no engine, no Hub deeplink). Input: structured envelope inputs (meta-fence fields + categorized `gaps` + `claims` with per-claim citations + `filledIrl`). Output: three markdown blocks (`metaFenceMarkdown`, `gapListMarkdown`, `provenanceFooterMarkdown`) the model transcribes verbatim into the dossier, plus a `provenanceVerification` summary.
+- **Internal provenance enforcement**: the tool calls `runIrlProvenanceCheck` against every claim's citation; unverified claims auto-append `provenance-gap:` entries to the (J) gap list. The provenance-citation self-check fires as a side-effect of calling the tool rather than relying on the model to remember the directive.
+- New prompt-body directive `ENVELOPE_COMPOSITION_DIRECTIVE` — verbose-mode + full-mode only. Marks the tool call as BLOCKING and non-optional; specifies the transcription discipline (meta fence first, (J) before (K), (K) last).
+- Interactive body gains a Step 4 mention of the tool so the orchestrates body-mention invariant holds across both interactive and one-shot bodies.
+
+**Why this is the forcing function**: the BLOCKING-marked body directives in 2/N and 3/N (`META_JSON_FENCE_DIRECTIVE`, `PER_SECTION_JSON_FENCE_DIRECTIVE`, `PROVENANCE_FOOTER_DIRECTIVE`, `PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE`) all still ship, but they're now supplemented by a tool call that PRODUCES the structural markdown. The model can ignore the directive prose, but it can't ignore a tool whose return value the body says to paste verbatim.
+
+**Versioning**: `mcp-server` 0.10.1 → 0.11.0. `gst_irl_ingestion` prompt 0.2.0 → 0.3.0 (body materially changed; orchestrates extended). Manifest hash re-baselined (prompt version contributes to the manifest set). Body hashes re-baselined across all 7 scenarios.
+
+**Test deltas**: +12 unit cases for the new tool's render functions and engine; tools-list assertion extended to 15 tools; prompts-registry KNOWN_TOOL_NAMES extended; orchestrates body-mention test passes for both interactive and one-shot bodies. All 1225 mcp-server tests pass.
 
 ---
 

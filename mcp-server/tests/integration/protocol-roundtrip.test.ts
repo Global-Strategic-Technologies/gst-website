@@ -187,6 +187,7 @@ describe('protocol roundtrip', () => {
           'search_radar_offline', // BL-032 Phase 4b rename
           'search_regulations',
           'validate_irl_provenance', // BL-045 PR B Phase 2B residual-fabrication guard
+          'compose_dossier_envelope', // BL-045 PR B post-audit forcing-function tightening
         ].sort()
       );
 

@@ -63,6 +63,7 @@ const ORCHESTRATED_TOOLS = [
   'assess_infrastructure_cost_governance',
   'estimate_tech_debt_cost',
   'search_radar',
+  'compose_dossier_envelope',
 ] as const;
 
 const argsSchema = z.object({
@@ -223,7 +224,7 @@ const META_JSON_FENCE_DIRECTIVE = [
   '```json',
   '{',
   '  "promptName": "gst_irl_ingestion",',
-  '  "promptVersion": "0.2.0",',
+  '  "promptVersion": "0.3.0",',
   '  "modelVersion": "<your model id at invocation time, e.g. claude-opus-4-7>",',
   '  "mode": "full | extract-only",',
   '  "verbosity": "verbose | compact",',
@@ -332,6 +333,46 @@ const PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE = [
   '- Comparable code-named engagements in (G) cited without a `(K)` line explaining which IRL dimensions justified the match.',
   '',
   'Surface every gap. The (J) section is allowed to grow; the dossier is allowed to be honest about what it has and has not anchored.',
+].join('\n');
+
+// ─── Shared helper: mandatory envelope-composition directive ───────────
+//
+// Per BL-045 PR B post-audit empirical evidence (v8 + v9 StoreForce
+// traces): the model treats body-text directives for meta fence + (J) +
+// (K) as descriptive context, not as a procedure. Same finding the
+// v2/v3/v4 dimension-layer traces produced, now at the rendering layer.
+//
+// The forcing function is the new `compose_dossier_envelope` tool — the
+// model can't compose the dossier without externalizing the structure
+// into the tool input, and the tool returns the literal markdown to
+// transcribe. The tool internally verifies every load-bearing claim's
+// citation against the IRL and auto-appends `provenance-gap:` entries
+// to (J), so the provenance-citation self-check fires as a side-effect
+// of calling the tool rather than relying on the model to remember.
+
+const ENVELOPE_COMPOSITION_DIRECTIVE = [
+  '## Envelope composition (BLOCKING — full mode + verbose verbosity only)',
+  '',
+  'Before composing the dossier prose, you MUST call `compose_dossier_envelope` with the structured inputs the tool requires. The tool returns three markdown blocks (`metaFenceMarkdown`, `gapListMarkdown`, `provenanceFooterMarkdown`) you then transcribe VERBATIM into the dossier:',
+  '',
+  '- `metaFenceMarkdown` becomes the FIRST content of the dossier — before section (A). It is the auditable spine of the run (promptVersion, mode, verbosity, fillRatio, gatesPassed, gatesElided, conditionalTriggersFired, forceToolsApplied).',
+  '- `gapListMarkdown` becomes section `(J) Gap list`, between (I) synthesis and (K) provenance footer.',
+  '- `provenanceFooterMarkdown` becomes section `(K) Provenance footer`, the LAST section of the dossier.',
+  '',
+  'Input contract for the call:',
+  '',
+  '- `promptName` / `promptVersion` / `modelVersion` / `mode` / `verbosity` / `transactionContext` — copy from this prompt run.',
+  '- `fillRatio` — the output of the wrong-IRL pre-flight (percent + substantiveCells + totalCells + status).',
+  '- `gatesPassed`, `gatesElided`, `conditionalTriggersFired`, `forceToolsApplied` — your inclusion-gate evaluation results.',
+  '- `claims` — EVERY load-bearing claim the dossier will make: every monetary figure (ARR, hosting, R&D, salary, carry cost), every headcount number, every regulatory framework cited, every TechPar verdict, every ICG maturity score, every comparable code name surfaced in (G), every TechPar/Tech Debt/ICG headline number from (C)/(D)/(E). Each carries `{claim, citation, tier}`. The tool renders (K) from this array AND runs an internal `validate_irl_provenance` pass.',
+  '- `gaps` — categorized entries you have already identified, using the enum: `defaulted-dimension` (any dimension defaulted to `unknown`), `extraction-only` (Tech Debt MTTR null, ICG defaults, etc.), `gate-elided` (each tool whose gate failed and was not forced), `conditional-trigger` (EU AI Act / NIS2 fired without explicit Section 09 backing), `currency-assumption` (TechPar run in non-USD basis), `map-absent` (regulatory frameworks named but not in the Map). Do NOT pre-populate `provenance-gap` — the tool auto-appends those.',
+  '- `filledIrl` — the populated IRL body, used for the internal provenance verification of every claim.',
+  '',
+  'The tool returns `provenanceVerification` summarizing how many of your claims verified. If `unverified > 0`, the tool has already appended `provenance-gap:` entries to the gap list — read them, and either correct the citation (re-call the tool) or accept the flag (the partner needs to see what was unverifiable).',
+  '',
+  'Re-calling: if you discover additional claims or gaps mid-composition, re-call the tool with the updated arrays rather than editing the markdown by hand. The tool is pure and cheap.',
+  '',
+  '**This step is non-optional in `mode: full` + `verbosity: verbose` (the default).** A dossier emitted without the envelope is non-conformant; treat the tool call as the final required step of the sweep.',
 ].join('\n');
 
 // ─── Shared helper: gap list (J) directive ─────────────────────────────
@@ -574,7 +615,14 @@ function buildOneShotBody(args: {
     '',
     GAP_LIST_DIRECTIVE,
     ...(isVerbose
-      ? ['', PROVENANCE_FOOTER_DIRECTIVE, '', PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE]
+      ? [
+          '',
+          PROVENANCE_FOOTER_DIRECTIVE,
+          '',
+          PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE,
+          '',
+          ENVELOPE_COMPOSITION_DIRECTIVE,
+        ]
       : []),
     '',
     '## Voice + format directives',
@@ -681,6 +729,8 @@ const INTERACTIVE_BODY = [
   '',
   `Step 3. Compose the unified dossier — nine sections (A–I): target snapshot · diligence agenda · architecture · ICG · tech debt · regulatory · comparables · market signal · synthesis. **Every section that pulls from a tool MUST close with that tool's \`deeplink\` URL as an "Open in Hub" link** — TechPar wizard for (C), ICG wizard for (D), Tech Debt Calculator for (E), Regulatory Map for (F, one per framework), portfolio view for (G), Radar feed for (H). The deeplinks open the corresponding Hub surface with state pre-populated; this is the bridge between the read-only dossier and the partner-refinable interactive tool. Reference the canonical VDR taxonomy (\`${VDR_RESOURCE_URI}\`) verbatim for follow-up document requests in the synthesis section.`,
   '',
+  `Step 4. **Mandatory closing step.** Before emitting the dossier prose, call \`compose_dossier_envelope\` with the structured inputs (promptName/promptVersion/modelVersion/mode/verbosity/transactionContext/fillRatio/gatesPassed/gatesElided/conditionalTriggersFired/forceToolsApplied/claims/gaps/filledIrl). It returns three markdown blocks the dossier MUST include verbatim: \`metaFenceMarkdown\` as the FIRST content (before A), \`gapListMarkdown\` as section (J), \`provenanceFooterMarkdown\` as section (K). The tool also internally verifies every load-bearing claim against the IRL and auto-appends \`provenance-gap:\` entries for unverifiable claims.`,
+  '',
   "Voice: dossier-quality. The output reads as a single coherent partner-level document. Surface concrete numbers from the IRL verbatim. Honor every tool's `deeplink` field as a clickable Hub link (do NOT invent URLs). Do NOT fabricate data the IRL did not supply.",
 ].join('\n');
 
@@ -688,7 +738,7 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
-  version: '0.2.0',
+  version: '0.3.0',
   lastReviewedAt: '2026-06-01',
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_RESOURCE_URI, VDR_RESOURCE_URI] as const,
   argsSchema,

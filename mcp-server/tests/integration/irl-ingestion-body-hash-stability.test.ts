@@ -98,24 +98,24 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // raises the scenario count from 3 to 5 so both mode branches (full +
 // extract-only) are independently hash-locked.
 const EXPECTED_HASH_INTERACTIVE =
-  'a82c5cc8e8ea1354b6d186b19f93804f31ab5e4ae2eb3ad1cc63e039fea4e773';
+  '133f5db02eebb6bca05f214aceeadb38f64c632c207891f04dff7478b3f5956d';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'f2d8866e977a744e4dd450e4c96651e9f8af241bbfb24bae257ea8c0259454e1';
+  '931d7ac403f46a7af0cee450ef5b2cc18cc3475ef02f1fdfb17c57c8ec1c9040';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'e6a6c35a6703132352455e23f159c7d6d5ede9e67003ba718f30772ed7223215';
+  '50b841b750977a4e72efd61315cab54df7a2369ed9325777e282db24bec4e29b';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '7ca109ba80c4cb95b54faed38125daa74e370f55f3c652eb95f2e318c144caf2';
+  '7db9d980cc782ddb5586b9af2b7e0b49c70285d3d824782de3a70caf05dfa364';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  'cc641b8888efee577c49fd44b7c3c0628d98199cc553a016b23c4ed9e892da2f';
+  'aa6a253550b8cc23902b7677d35bdaebf40ef2f4f0fad8781fb8d97b7cc52a52';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
 // PROVENANCE_FOOTER_DIRECTIVE, PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE).
 // These two scenarios hash-lock the compact-mode bodies.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '7ed2d19cdb90865501d7643e9ae49337dadd5da0444dbe6bc6fed0affc96a68c';
+  'ec4e74b81db484c17e76b1f9dfb6bf9a999b321de70772ec1d3708fee35c4ab6';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  '3d37f5a4fc267fa65a739ee3d1d12e35adcc8a0845656b54cbc929040eea3b8a';
+  'ec1e2a183a9fa34c922613a00c0fff23c6eb0120dfd20a951875b0b927f47734';
 
 interface Scenario {
   name: string;
