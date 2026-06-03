@@ -28,6 +28,27 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.7.0 — 2026-06-03 — BL-045 PR B body rewrite (2/N): 9 inclusion gates + meta JSON fence + tool-error degradation + 4-scenario voice cues
+
+**Theme**: continues the body-rewrite work past `0.6.0`. This commit closes four design-doc directives that were specified but not yet body-rendered: numbered inclusion gates the model evaluates before each tool, a top-of-dossier meta JSON fence that turns every dossier into an auditable artifact, a tool-error degradation directive that prevents premature sweep abort on a single tool failure, and per-scenario voice cues with meaningful posture for each of buy-side / sell-side / value-creation / unknown.
+
+**Surface impact**: **None — additive prompt-body change**. Behavior added:
+
+- `INCLUSION_GATES_DIRECTIVE` — 9 numbered tool-gate predicates emitted in both full + extract-only bodies. The model evaluates each gate before its corresponding step.
+- `META_JSON_FENCE_DIRECTIVE` — required JSON code fence at the top of every dossier with 12 structured fields (promptName, promptVersion, modelVersion, mode, verbosity, transactionContext, fixtureFillRatio, fixtureFillRatioStatus, gatesPassed, gatesElided, conditionalTriggersFired, forceToolsApplied). Downstream automation parses this fence first; cross-run comparison keys off this block.
+- `TOOL_ERROR_DEGRADATION_DIRECTIVE` — full-mode-only. If a tool errors mid-sweep, emit the error verbatim, mark the section extraction-only, continue. The meta fence's `gatesPassed` entry for the failing tool becomes `{tool, errorVerbatim}` instead of the bare name.
+- Expanded `VOICE_CUES` — each of the four `transactionContext` cues now carries 3 sentences with meaningful, distinct posture (sell-side credibility / buy-side confirmation / value-creation work-plan / unknown balanced-read).
+
+**Client migration**: none. No new args. Existing callers benefit automatically.
+
+**Manifest-hash impact**: unchanged.
+
+**Body-hash impact**: 4 of 5 scenarios re-baselined (interactive unchanged).
+
+**Reference**: [design doc § Tool inclusion gates, § Output structure, § Decisions](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md).
+
+---
+
 ## 0.6.0 — 2026-06-03 — BL-045 PR B body rewrite (1/N): wrong-IRL detector pre-flight + (J) gap list + extract-only mode dispatch
 
 **Theme**: with the audit architecture empirically validated across 7 StoreForce runs, BL-045 PR B's remaining work is the design doc's body-rewrite scope. This commit lands the first batch: a structural fill-ratio pre-flight that fires BEFORE any extraction, a (J) gap-list directive emitted in every dossier, and a working `mode: 'extract-only'` dispatch through a new `buildExtractOnlyBody`.

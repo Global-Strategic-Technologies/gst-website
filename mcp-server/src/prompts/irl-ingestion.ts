@@ -122,15 +122,20 @@ const argsSchema = z.object({
 
 const PROMPT_NAME = 'gst_irl_ingestion';
 
+// Per BL-045 design doc § Decisions row "Scenario reframing", each of the
+// four `transactionContext` values gets a meaningful, distinct posture.
+// The body-mention invariant (orchestrates → body) means every cue must
+// be visible; the per-scenario sentence count is intentionally 3 so each
+// scenario reads as a complete framing.
 const VOICE_CUES: Record<(typeof transactionContextValues)[number], string> = {
   'sell-side':
-    "Sell-side: framing emphasizes the target's defensible story and where GST can sharpen positioning before buyers see the data room.",
+    "Sell-side: framing emphasizes the target's defensible story and where GST can sharpen positioning before buyers see the data room. The dossier reads as a credibility document — the target can hand it to the buyer side as a pre-emptive answer to the questions a strategic acquirer will ask. Highlight the durable signal (proprietary engines, retention curves, unit economics, certifications) and frame open items as known-and-managed rather than blind spots.",
   'buy-side':
-    'Buy-side: framing emphasizes the technical, regulatory, and organizational risks the data confirms, denies, or fails to address — what the buyer needs to weigh against the deal thesis (whether pre-LOI or LOI-stage).',
+    'Buy-side: framing emphasizes the technical, regulatory, and organizational risks the data confirms, denies, or fails to address — what the buyer needs to weigh against the deal thesis (whether pre-LOI or LOI-stage). The dossier reads as a confirmation document — does the technology shape match the deal model? Highlight the magnitude of TechPar + tech-debt + ICG gaps that would materially shift the entry price, and frame open items as discovery work to put on the timeline before closing.',
   'value-creation':
-    'Value-creation: framing emphasizes the 100-day plan and the highest-leverage platform investments the dossier reveals.',
+    'Value-creation: framing emphasizes the 100-day plan and the highest-leverage platform investments the dossier reveals. The dossier reads as a sequenced work plan — what does the post-close team do first, second, third? Highlight the 1-2 architectural decisions that compound across multiple value-creation plays (data architecture, AI moat, FinOps maturity), and frame open items as Day-100 deliverables with named owners rather than gaps.',
   unknown:
-    'Engagement context unspecified — write the dossier in universal voice; the partner can sharpen framing on read.',
+    'Engagement context unspecified — write the dossier in universal voice; the partner can sharpen framing on read. The dossier reads as a balanced read — neither prosecution (buy-side) nor defense (sell-side) nor work plan (value-creation). Surface the same evidence with equal weight on each side and let the partner choose the framing in the cover note.',
 };
 
 // ─── Shared helper: wrong-IRL detector pre-flight ──────────────────────
@@ -159,6 +164,105 @@ const WRONG_IRL_DETECTOR_PREFLIGHT = [
   '- **`fillRatio ≥ 40%`** → PROCEED normally.',
   '',
   'Surface the computed `fillRatio` as the FIRST sentence of section (A) in all three paths (e.g., `"IRL completeness: 58% (8 of 10 sections substantively filled)."`). This is a structural quality signal the partner reads before any extraction value.',
+].join('\n');
+
+// ─── Shared helper: tool inclusion gates ───────────────────────────────
+//
+// Per BL-045 design doc § Tool inclusion gates. Each tool the prompt
+// orchestrates has an explicit gate — a predicate over which IRL sections
+// must provide non-empty signal. In `mode: full`, gates whose predicate
+// fails are elided (the tool isn't invoked; the section is skipped with
+// a note in (A) and a (J) gap-list entry). In `mode: extract-only`, the
+// same gates decide whether to emit the section's audited input payload.
+//
+// transactionContext is advisory-only — scenarios modulate voice cues
+// but do NOT modulate the gate predicates. forceTools is the partner
+// escape hatch.
+
+const INCLUSION_GATES_DIRECTIVE = [
+  '## Tool inclusion gates (evaluate BEFORE each per-tool step)',
+  '',
+  'For each orchestrated tool, evaluate the inclusion gate against the filled IRL. If the gate FAILS and the tool is NOT in `forceTools`, elide the tool: skip the invocation, skip the dossier section, and add an entry in (J) gap list ("tool X elided — gate predicate <P> failed; IRL Section <S> would have satisfied").',
+  '',
+  '1. **`generate_diligence_agenda`** — **Always pass.** Every dimension can default to `unknown`; the agenda is still useful as a "what\'s known vs not" inventory.',
+  '',
+  '2. **`compute_techpar`** — Pass if `(Section 00 ARR bullet supplies non-empty signal) AND (Section 02 engineering-cost signal OR Section 03 hosting signal)`. The TechPar engine returns null if either `arr` or `infraHostingAnnual` is zero, so the gate must require BOTH a denominator (ARR) AND a numerator (eng-cost OR hosting). Section 07 average salary is a refinement that improves accuracy when both halves of the gate already pass — NOT a sufficient trigger on its own.',
+  '',
+  '3. **`assess_infrastructure_cost_governance`** — **Always pass.** `companyStage` from Section 00 + seven seeding rules each have fallback-to-`-1` semantics; the dossier section is the value even when most answers default.',
+  '',
+  "4. **`estimate_tech_debt_cost`** — Pass if `Section 04 (SDLC / technical-debt assessment) has ≥1 non-empty Response cell`. Section 04 is the canonical Tech Debt input section; if it's wholly empty, no IRL signal supports the calculation.",
+  '',
+  '5. **`search_regulations`** — Pass if `(Section 09 names ≥1 framework) OR (EU AI Act conditional trigger fires) OR (NIS2 conditional trigger fires)`. The conditional triggers (EU + Section 05 ML/AI; EU + Section 01 NIS2 Annex sector) gap-fill Section 09 when the partner missed a framework that the engagement clearly faces.',
+  '',
+  '6. **`search_portfolio`** — Pass if `(Section 00 productType-like signal present) OR (Section 01 industry / competitive landscape signal present)`. Gate passes for any non-trivial IRL; portfolio is the comparables corpus.',
+  '',
+  '7. **`search_radar`** — **Always pass.** Any non-trivial IRL provides at least a product description or geography that maps to a Radar category. Synthesis directives weight radar output as supplementary context, not load-bearing.',
+  '',
+  '8. **`list_portfolio_facets`** — Inherits from `search_portfolio`. Called as preface to obtain canonical facet values.',
+  '',
+  '9. **`list_regulation_facets`** — Inherits from `search_regulations`. Called as preface to obtain canonical facet values.',
+  '',
+  '**`forceTools` override.** When the partner supplies `forceTools` with a tool name, that tool runs regardless of gate failure (and emits a payload in extract-only mode). Surface `forceToolsApplied` in the meta JSON fence so the partner can see which gates were overridden.',
+  '',
+  '**Partial-IRL handling.** When the wrong-IRL pre-flight returned `15-40%` fillRatio (partial-IRL flag), tighten elision: any tool whose source-IRL sections are ALL empty is elided automatically (even if its gate predicate technically passes on a single trivial cell). Surface every partial-IRL elision in (J) with the IRL sections that would have been load-bearing.',
+].join('\n');
+
+// ─── Shared helper: top-of-dossier meta JSON fence ─────────────────────
+//
+// Per BL-045 design doc § Decisions row "Top-of-dossier meta JSON fence"
+// + § Output structure. Emitted as the FIRST content of every dossier
+// (both full and extract-only). Turns each dossier into an auditable
+// artifact: cross-run comparison, telemetry consumption, partner
+// debugging all key off this block.
+
+const META_JSON_FENCE_DIRECTIVE = [
+  '## Top-of-dossier meta JSON fence (REQUIRED — emit BEFORE section (A))',
+  '',
+  'Emit a single JSON code fence as the first content of the output. Shape:',
+  '',
+  '```json',
+  '{',
+  '  "promptName": "gst_irl_ingestion",',
+  '  "promptVersion": "0.1.0",',
+  '  "modelVersion": "<your model id at invocation time, e.g. claude-opus-4-7>",',
+  '  "mode": "full | extract-only",',
+  '  "verbosity": "verbose | compact",',
+  '  "transactionContext": "buy-side | sell-side | value-creation | unknown",',
+  '  "fixtureFillRatio": 0.58,',
+  '  "fixtureFillRatioStatus": "ok | partial | halt",',
+  '  "gatesPassed": ["generate_diligence_agenda", "compute_techpar", "..."],',
+  '  "gatesElided": [{ "tool": "estimate_tech_debt_cost", "reason": "Section 04 silent" }],',
+  '  "conditionalTriggersFired": ["EU_AI_ACT", "NIS2"],',
+  '  "forceToolsApplied": []',
+  '}',
+  '```',
+  '',
+  'Field rules:',
+  '- `fixtureFillRatio` is the value the wrong-IRL pre-flight computed; `fixtureFillRatioStatus` is `halt` if `<15%`, `partial` if `15-40%`, `ok` if `≥40%`.',
+  '- `gatesPassed` lists tool names whose inclusion-gate predicate fired or were forced via `forceTools`.',
+  '- `gatesElided` is an array of `{tool, reason, irlSection}` for tools whose predicate failed and were NOT forced.',
+  '- `conditionalTriggersFired` lists the named triggers from the rule constants (`EU_AI_ACT_CONDITIONAL_TRIGGER` → `"EU_AI_ACT"`; `NIS2_CONDITIONAL_TRIGGER` → `"NIS2"`).',
+  '- `forceToolsApplied` echoes the `forceTools` arg passed to the prompt (may be `[]`).',
+  '',
+  'Cross-run comparison works off this block. Downstream automation parses this fence first to decide what to render. The meta fence is the only JSON output in `verbosity: compact` mode that comes before the human-readable dossier.',
+].join('\n');
+
+// ─── Shared helper: tool-error degradation directive ───────────────────
+//
+// Per BL-045 design doc § Decisions row "Graceful tool-error degradation".
+// Full-mode only — extract-only doesn't invoke tools so this doesn't apply.
+
+const TOOL_ERROR_DEGRADATION_DIRECTIVE = [
+  '## Tool-error degradation (BLOCKING — full mode only)',
+  '',
+  'If a tool invocation errors mid-sweep (the tool returns `isError: true` or a network error, OR the schema audit rejected the input payload and you exhausted reasonable retries): emit the error VERBATIM in the dossier section that would have been built from that tool, mark the section `extraction-only`, and continue to the next gate-passing tool.',
+  '',
+  'Specific behavior:',
+  '- Do NOT swallow or paraphrase the error. The partner needs the verbatim error text to know what to fix.',
+  '- Do NOT skip to synthesis (I) prematurely. Other tools still run; their sections still emit.',
+  '- The meta JSON fence `gatesPassed` entry for the failing tool becomes `{ "tool": <name>, "errorVerbatim": <error text> }` (an object) rather than the bare tool name.',
+  '- Surface the failure in (J) gap list with the corrective action (e.g., "compute_techpar rejected: ytdMonths/ytdMathCheck arithmetic inconsistent — recheck the YTD period").',
+  '- If `generate_diligence_agenda` itself errors (the prerequisite for every other tool), HALT the sweep and emit only (A) snapshot + the meta fence + (J) gap list explaining the precondition failure.',
 ].join('\n');
 
 // ─── Shared helper: gap list (J) directive ─────────────────────────────
@@ -221,7 +325,13 @@ function buildOneShotBody(args: {
     '',
     '## Sweep plan — execute the steps in order, do not skip any',
     '',
+    META_JSON_FENCE_DIRECTIVE,
+    '',
     WRONG_IRL_DETECTOR_PREFLIGHT,
+    '',
+    INCLUSION_GATES_DIRECTIVE,
+    '',
+    TOOL_ERROR_DEGRADATION_DIRECTIVE,
     '',
     `Step 1 — Extract the 13 diligence dimensions from the IRL, then invoke \`generate_diligence_agenda\` with the dimension values AND the required \`_audit\` sibling that carries per-dimension provenance + calibration metadata. ${UNKNOWN_PROPAGATION_RULE}`,
     '',
@@ -445,7 +555,11 @@ function buildExtractOnlyBody(args: {
     '',
     '## Extraction plan — execute the steps in order',
     '',
+    META_JSON_FENCE_DIRECTIVE,
+    '',
     WRONG_IRL_DETECTOR_PREFLIGHT,
+    '',
+    INCLUSION_GATES_DIRECTIVE,
     '',
     `**Step 1 — Dimension extraction worksheet (REQUIRED).** Apply the BL-045 extraction discipline to derive the 13 \`generate_diligence_agenda\` dimensions: ${UNKNOWN_PROPAGATION_RULE}`,
     '',
