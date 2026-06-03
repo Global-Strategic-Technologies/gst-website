@@ -28,6 +28,32 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.6.0 — 2026-06-03 — BL-045 PR B body rewrite (1/N): wrong-IRL detector pre-flight + (J) gap list + extract-only mode dispatch
+
+**Theme**: with the audit architecture empirically validated across 7 StoreForce runs, BL-045 PR B's remaining work is the design doc's body-rewrite scope. This commit lands the first batch: a structural fill-ratio pre-flight that fires BEFORE any extraction, a (J) gap-list directive emitted in every dossier, and a working `mode: 'extract-only'` dispatch through a new `buildExtractOnlyBody`.
+
+**Surface impact**: **None — additive prompt-body change**. Behavior:
+
+- `mode: 'full'` (default) — unchanged dossier flow, but now leads with the wrong-IRL pre-flight directive (model computes fill ratio; <15% halts, 15-40% partial-flag, ≥40% proceeds) and closes with the (J) gap list before voice/format directives.
+- `mode: 'extract-only'` — NEW dispatch path. Emits worksheet + per-tool audited input-payload JSON fences + (J) gap list. NO tool invocations, NO synthesis prose. Use case: audit-trail JSON dump for downstream automation; partner inspection of model extraction before committing to a full sweep; single-section refinement.
+- `mode` interactive (no `filledIrl`) — unchanged.
+
+Specific changes:
+
+- NEW `WRONG_IRL_DETECTOR_PREFLIGHT` constant — structural fill-ratio detector with 15%/40% thresholds; emitted at the top of both `buildOneShotBody` (renamed conceptually to `buildFullBody`) and `buildExtractOnlyBody`.
+- NEW `GAP_LIST_DIRECTIVE` constant — categorizes gaps the dossier must surface (unknown dimensions, extraction-only fields, elided tools, conditional triggers, currency/annualization assumptions, map-absent regulatory items).
+- NEW `buildExtractOnlyBody` function — full extraction discipline + per-tool JSON-fence emission, no tool invocations, no synthesis.
+- UPDATED `build()` dispatch — three-way: interactive (no `filledIrl`) / extract-only (`mode: 'extract-only'`) / full (default).
+- UPDATED body-hash stability test from 3 scenarios to 5 (interactive + 2× full + 2× extract-only) per design doc § Body rendering strategy.
+
+**Client migration**: none. Callers that didn't supply `mode` continue to get full-mode behavior. The new extract-only mode is opt-in via `mode: 'extract-only'`.
+
+**Manifest-hash impact**: unchanged.
+
+**Reference**: [design doc § Output structure + § Body rendering strategy](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md).
+
+---
+
 ## 0.5.1 — 2026-06-02 — BL-045 PR B Phase 2A: TechPar YTD arithmetic-consistency refinement
 
 **Theme**: the StoreForce v6 dossier (post-`0.5.0`) showed `compute_techpar`'s currency + per-field-annualization audit forces declaration but doesn't enforce that the declared period is _correct_. Model declared `ytdMonths: 4` for StoreForce's Apr-2026 board view (assumed calendar-fiscal Jan-Apr); the IRL's recurring-revenue math (`$2.64M CAD/mo × 3 = $7.92M ≈ $7.86M YTD stated`) implies 3 months. Result: TechPar landed at 38.8% "Healthy, just under the 40% PE ceiling" when the math-correct ytdMonths=3 puts it at ~46% "Above zone, every point compresses EBITDA and exit value." A partner-misleading inversion hidden inside one declared field.

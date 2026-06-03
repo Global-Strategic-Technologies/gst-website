@@ -133,6 +133,55 @@ const VOICE_CUES: Record<(typeof transactionContextValues)[number], string> = {
     'Engagement context unspecified — write the dossier in universal voice; the partner can sharpen framing on read.',
 };
 
+// ─── Shared helper: wrong-IRL detector pre-flight ──────────────────────
+//
+// Per BL-045 design doc § Acceptance Criteria "Wrong-IRL detector".
+// Structural + semantic detector that fires BEFORE any extraction step.
+// Forces the model to compute a fill ratio and either halt (<15%),
+// proceed with partial-IRL framing (15-40%), or proceed normally (≥40%).
+// Lives in both buildFullBody and buildExtractOnlyBody — the only
+// divergence between modes is what happens AFTER the pre-flight passes.
+
+const WRONG_IRL_DETECTOR_PREFLIGHT = [
+  '## Pre-flight — wrong-IRL structural detector (BLOCKING — perform BEFORE any extraction)',
+  '',
+  'Before extracting any dimension or invoking any tool, compute the IRL fill ratio:',
+  '',
+  '1. Walk the 10 canonical IRL sections (00 BASICS · 01 PRODUCT · 02 SOFTWARE ARCHITECTURE · 03 INFRASTRUCTURE & OPERATIONS · 04 SDLC · 05 DATA, ANALYTICS & AI · 06 SECURITY · 07 PEOPLE & ORGANIZATION · 08 CORPORATE IT · 09 GOVERNANCE & COMPLIANCE). Optional engagement-specific sections (10, 11) do NOT count toward the ratio.',
+  '2. Count `totalResponseCells` = the total number of Response cells (rows tagged with reference IDs like `0-01`, `0-02`, …, `9-NN`).',
+  '3. Count `substantiveCells` = the number of Response cells containing substantive content. Substantive = not blank AND not just `"n/a"` / `"not yet tracked"` / `"open"` / `"--"` / `"TBD"` / one-character placeholders.',
+  '4. `fillRatio = substantiveCells / totalResponseCells` (express as a percentage rounded to nearest integer).',
+  '',
+  'Then act on the ratio:',
+  '',
+  '- **`fillRatio < 15%`** → HALT. Output in (A): `"This looks like an unfilled request IRL or a substantially-empty filled IRL — confirm before proceeding. IRL completeness: <pct>% (<substantive> of <total> Response cells filled). If you intended to run against this artifact, re-submit with explicit acknowledgement."`. Emit NO per-tool sections. STOP after (A).',
+  '- **`15% ≤ fillRatio < 40%`** → PROCEED with partial-IRL framing. Flag partial-IRL status explicitly in (A). Tighten elision: any tool whose source-IRL sections are ALL empty is skipped automatically; surface the skip in (J) gap list.',
+  '- **`fillRatio ≥ 40%`** → PROCEED normally.',
+  '',
+  'Surface the computed `fillRatio` as the FIRST sentence of section (A) in all three paths (e.g., `"IRL completeness: 58% (8 of 10 sections substantively filled)."`). This is a structural quality signal the partner reads before any extraction value.',
+].join('\n');
+
+// ─── Shared helper: gap list (J) directive ─────────────────────────────
+//
+// Per BL-045 design doc § Output structure section (J). Always emitted
+// in both full and extract-only modes. The highest-leverage diligence-
+// prep deliverable: the "ask the target a follow-up" checklist.
+
+const GAP_LIST_DIRECTIVE = [
+  '## (J) Gap list — always emitted',
+  '',
+  'After every other section, emit a `(J) Gap list` section that enumerates EVERY explicit gap the sweep surfaced. Categories:',
+  '',
+  '- **Dimensions defaulted to `unknown`** across the `generate_diligence_agenda` payload (with the IRL section that would have answered each).',
+  '- **`extraction-only` fields surfaced by tools** (e.g., Tech Debt MTTR / incidents null with `source: irl-open`) — list the concrete follow-up the partner should pull (JQL queries, file requests, named owners to interview).',
+  '- **Tool sections elided** by inclusion gates (if `mode: full`) with the gate that failed and the IRL section that would have satisfied it.',
+  '- **Conditional triggers that fired without explicit Section 09 backing** (e.g., NIS2 added because EU geography + regulated sector — partner should confirm with target).',
+  '- **Currency / annualization assumptions** the audit forced (e.g., "TechPar run in CAD basis with conversionRate 0.73 — confirm actual basis with partner").',
+  '- **Map-absent regulatory frameworks** named by the IRL Section 09 but not in the curated Regulatory Map (e.g., Canada AIDA, NIST AI RMF) — flagged for manual tracking rather than fabricated.',
+  '',
+  'This section is the "ask the target a follow-up" checklist — every item is a concrete deliverable for the next data room request, not an abstract concern. Number each item.',
+].join('\n');
+
 function buildOneShotBody(args: {
   targetName?: string;
   filledIrl: string;
@@ -171,6 +220,8 @@ function buildOneShotBody(args: {
     '```',
     '',
     '## Sweep plan — execute the steps in order, do not skip any',
+    '',
+    WRONG_IRL_DETECTOR_PREFLIGHT,
     '',
     `Step 1 — Extract the 13 diligence dimensions from the IRL, then invoke \`generate_diligence_agenda\` with the dimension values AND the required \`_audit\` sibling that carries per-dimension provenance + calibration metadata. ${UNKNOWN_PROPAGATION_RULE}`,
     '',
@@ -339,6 +390,8 @@ function buildOneShotBody(args: {
       VDR_RESOURCE_URI +
       '`) should be requested before the next milestone?',
     '',
+    GAP_LIST_DIRECTIVE,
+    '',
     '## Voice + format directives',
     '',
     '- Dossier-quality. The output should read as a single coherent partner-level document, not a stitched-together set of tool outputs. Every tool result is a means to a sentence.',
@@ -348,6 +401,69 @@ function buildOneShotBody(args: {
     '- Do NOT fabricate data the IRL did not supply. If the filled IRL is sparse on a dimension, flag the gap honestly in the relevant section.',
     "- Honor every tool's `deeplink` field when surfaced — pass it through as a clickable Hub link, do not invent URLs. **Every section (C / D / E / F / G / H) that pulled from a tool MUST close with the corresponding Open-in-Hub link** — this is the bridge between the Claude Desktop dossier and the partner-refinable Hub surface; without it the dossier is read-only.",
     '- Do NOT pad the dossier with section-divider commentary or `gst_irl_ingestion`-meta commentary; the partner reads the artifact, not the process.',
+  ].join('\n');
+}
+
+// ─── buildExtractOnlyBody ──────────────────────────────────────────────
+//
+// mode: 'extract-only' renders a body that performs the wrong-IRL
+// pre-flight + dimension extraction with the same _audit shape as full
+// mode, then emits one JSON code fence per tool (with the audited input
+// payload that WOULD have been sent if the tool ran). No tool invocation,
+// no synthesis prose. Use case: audit-trail JSON dump for downstream
+// automation, refinement of a single section without re-running the
+// whole sweep, partner inspection of model extraction before committing
+// to ~5 min and ~9 tool calls.
+function buildExtractOnlyBody(args: {
+  targetName?: string;
+  filledIrl: string;
+  transactionContext?: (typeof transactionContextValues)[number];
+  partnerLead?: string;
+  projectCodeName?: string;
+}): string {
+  const targetClause = args.targetName
+    ? `The target is **${args.targetName}**.`
+    : 'Infer the target name from the IRL header (Section 00 — Basics, first bullet).';
+  const voiceClause = args.transactionContext
+    ? `Voice cue: ${VOICE_CUES[args.transactionContext]}`
+    : 'Voice cue: universal. No engagement-specific framing.';
+
+  return [
+    authorialIntentLine(PROMPT_NAME),
+    '',
+    `Run the GST IRL ingestion in **EXTRACT-ONLY mode** against the populated Information Request List below. This is the bookend to \`gst_information_request_list\` — the request the partner sent (\`${IRL_RESOURCE_URI}\`, embedded as the next message for taxonomy reference) has come back filled. **In extract-only mode you DO NOT invoke any tools and DO NOT compose a dossier.** You produce a structured JSON artifact: the dimension worksheet + the per-tool input payloads that WOULD have been submitted if the sweep ran. This is the audit-trail surface for downstream automation, partner inspection, or single-section refinement.`,
+    '',
+    'Engagement context:',
+    `- ${targetClause}`,
+    `- ${voiceClause}`,
+    '',
+    '## Filled IRL (paste from the target — read carefully, all 10 sections)',
+    '',
+    '```markdown',
+    args.filledIrl,
+    '```',
+    '',
+    '## Extraction plan — execute the steps in order',
+    '',
+    WRONG_IRL_DETECTOR_PREFLIGHT,
+    '',
+    `**Step 1 — Dimension extraction worksheet (REQUIRED).** Apply the BL-045 extraction discipline to derive the 13 \`generate_diligence_agenda\` dimensions: ${UNKNOWN_PROPAGATION_RULE}`,
+    '',
+    'Emit ONE JSON code fence labeled `worksheet: generate_diligence_agenda` containing the 13 dimensions + the `_audit` sibling in the canonical shape (per-dimension tier + citation + dimension-specific calibration fields). Do NOT invoke the tool. This is the payload that would be submitted in full mode.',
+    '',
+    "**Step 2 — Per-tool input payloads (REQUIRED, one JSON fence per tool).** For each of the orchestrated tools (`compute_techpar`, `estimate_tech_debt_cost`, `assess_infrastructure_cost_governance`, `search_portfolio`, `search_regulations`, `search_radar`, `list_portfolio_facets`, `list_regulation_facets`), emit a JSON code fence labeled `payload: <tool-name>` containing the audited input payload — including all `_audit` calibration fields per the tool's schema. Use the same currency basis / annualization sources / scope declarations the full-mode invocation would use. Do NOT invoke the tools.",
+    '',
+    'If an inclusion gate fails for a tool (per § Tool inclusion gates of the BL-045 design doc), emit a fence labeled `elided: <tool-name>` with `{ "reason": "<which gate predicate failed>", "irlSection": "<which IRL section would have satisfied it>" }` instead of the payload.',
+    '',
+    GAP_LIST_DIRECTIVE,
+    '',
+    '## Voice + format directives (extract-only)',
+    '',
+    '- NO synthesis prose. NO dossier sections (A) – (I). The only narrative content is the (J) gap list.',
+    '- NO tool invocations. The output is a sequence of JSON code fences.',
+    '- Surface the computed `fillRatio` above the first JSON fence as a one-line summary (per the pre-flight directive).',
+    '- Do NOT fabricate IRL content. Cite every claim back to a specific section / row in the per-payload audit metadata.',
+    '- Do NOT invent tool deeplinks. The extract-only mode produces no Hub URLs (those come from the tools, which were not invoked).',
   ].join('\n');
 }
 
@@ -383,9 +499,22 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_RESOURCE_URI, VDR_RESOURCE_URI] as const,
   argsSchema,
   build: (args) => {
-    const bodyText = args.filledIrl
-      ? buildOneShotBody({ ...args, filledIrl: args.filledIrl })
-      : INTERACTIVE_BODY;
+    // BL-045 PR B body dispatch — three builders:
+    //   - filledIrl absent              → buildInteractiveBody (paste ask)
+    //   - filledIrl present, full mode  → buildFullBody (full sweep)
+    //   - filledIrl present, extract-only → buildExtractOnlyBody (audit-trail JSON)
+    //
+    // mode defaults to 'full' when undefined (matches the design doc's
+    // default semantics; the Zod arg description states default 'full').
+    const mode = args.mode ?? 'full';
+    let bodyText: string;
+    if (!args.filledIrl) {
+      bodyText = INTERACTIVE_BODY;
+    } else if (mode === 'extract-only') {
+      bodyText = buildExtractOnlyBody({ ...args, filledIrl: args.filledIrl });
+    } else {
+      bodyText = buildOneShotBody({ ...args, filledIrl: args.filledIrl });
+    }
     return {
       messages: [
         {

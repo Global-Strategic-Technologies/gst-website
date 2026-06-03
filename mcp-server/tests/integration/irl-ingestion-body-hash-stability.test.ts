@@ -94,12 +94,19 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // identical to gst_diligence_sweep@0.0.5 at this point; subsequent
 // PR B commits (mode args, inclusion gates, JSON fences, meta fence,
 // provenance footer, gap list, etc.) will re-baseline again.
+// BL-045 PR B body-rewrite scenarios — design doc § Body rendering strategy
+// raises the scenario count from 3 to 5 so both mode branches (full +
+// extract-only) are independently hash-locked.
 const EXPECTED_HASH_INTERACTIVE =
   'a82c5cc8e8ea1354b6d186b19f93804f31ab5e4ae2eb3ad1cc63e039fea4e773';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '8ee713fc74cbbf88a9301818824866708f349b2ed372d8b2a742544e9512a1fe';
+  '570de4e0df52afe9ca751fc9a7a9c7cc614c029cb03033b1bc5dda735d0c987d';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'aa2ec675284d027653ebf19620c7eff97cdeb80fb42d007f221b20dce8852437';
+  'd64567e7bd591c054bd36e6a3860e1e98f61e2de9783bb22253577e36eacb31a';
+const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
+  '7a9d14621e114796c493a23419ad90b3a4b9d4df2e35081adcd4f4b6b416ec6b';
+const EXPECTED_HASH_EXTRACT_ONLY_FULL =
+  '4490158db68224aa358ba5ed3b7070943cc21202abe3d434c8f411fa3882b7e7';
 
 interface Scenario {
   name: string;
@@ -128,6 +135,23 @@ const SCENARIOS: Scenario[] = [
       projectCodeName: 'Cygnet',
     },
     expected: EXPECTED_HASH_ONESHOT_FULL,
+  },
+  {
+    name: 'extract-only minimal (filledIrl + mode)',
+    args: { filledIrl: STABLE_FILLED_IRL, mode: 'extract-only' },
+    expected: EXPECTED_HASH_EXTRACT_ONLY_MINIMAL,
+  },
+  {
+    name: 'extract-only full (all five args + mode)',
+    args: {
+      targetName: 'TestCo',
+      filledIrl: STABLE_FILLED_IRL,
+      transactionContext: 'value-creation',
+      partnerLead: 'Reid Peryam',
+      projectCodeName: 'Cygnet',
+      mode: 'extract-only',
+    },
+    expected: EXPECTED_HASH_EXTRACT_ONLY_FULL,
   },
 ];
 
