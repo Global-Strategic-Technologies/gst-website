@@ -371,7 +371,7 @@ describe('protocol roundtrip', () => {
       const regulationEntries = payload.resources.filter((r) =>
         r.uri.startsWith('gst://regulations/')
       );
-      expect(libraryEntries.length).toBe(3);
+      expect(libraryEntries.length).toBe(4);
       expect(regulationEntries.length).toBe(120);
 
       for (const r of libraryEntries) {

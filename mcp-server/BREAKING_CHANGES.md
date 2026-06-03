@@ -11,20 +11,40 @@
 ## Current manifest hash
 
 ```
-aa1c5c303e3336d602798d1becebf0e5cd5f38c11a78b13bfe3b1de442cb0a3a
+1c1ccf0de4f50be6f0d94f3a9366b4c7242e785403507d0d0e6cc8d96bee7ce0
 ```
 
 Computed over (sorted):
 
-- 3 Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`)
+- **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`) — fourth URI added under BL-045 PR B (SOP-as-Resource promotion).
 - 120 Regulation URIs (`gst://regulations/<jurisdiction>/<framework-id>`)
 - 6 Radar URIs (FYI latest + Wire latest + 4 Wire categories)
-- **9** prompt `name@version` tuples (`gst_*`) — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.2.0` (renamed from `gst_diligence_sweep` under BL-045 PR B; bumped to `0.2.0` for the body rewrite 3/N — per-section JSON fences + (K) provenance footer + provenance-citation self-check).
+- **9** prompt `name@version` tuples (`gst_*`) — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.2.0` (renamed from `gst_diligence_sweep` under BL-045 PR B).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.9.0 — 2026-06-03 — BL-045 PR B — SOP promoted to Library Resource
+
+**Theme**: the IRL → Hub Tool Input Mapping SOP (engineering-internal at `mcp-server/src/docs/library/irl-tool-input-mapping.md`) is promoted to a fourth Library Resource at `gst://library/irl-tool-input-mapping` so the model can fetch it via the standard MCP `resources/read` interface during IRL ingestion.
+
+**Surface impact**: **Additive**. One new Library URI; no existing URI changed.
+
+- New Resource: `gst://library/irl-tool-input-mapping` — engineering SOP body served at `text/markdown`, ~14KB.
+- The SOP body is now codegenned from `src/data/library/irl-tool-input-mapping/article.md` into `src/content/library-data.generated.ts` at prebuild/pretest time, matching the existing Library article shape.
+- `irlIngestionPrompt`'s `orchestrates` array is intentionally NOT extended in this commit — the model already embeds the IRL + VDR articles; the mapping SOP is reachable on-demand via `resources/read` rather than being force-embedded into every prompt body. (Body-embedding can be added in a follow-up if the model consistently misses the mapping cues without it.)
+
+**Client migration**: none. Existing callers continue to work.
+
+**Manifest-hash impact**: changed — new URI `gst://library/irl-tool-input-mapping` enters the sorted-URI set the manifest hash is computed over.
+
+**Body-hash impact**: unchanged (irlIngestionPrompt's body did not change in this commit).
+
+**Test deltas**: existing length-assertions in `tests/unit/library.test.ts`, `tests/integration/protocol-roundtrip.test.ts`, `tests/integration/resource-uri-stability.test.ts` updated from 3→4 Library URIs.
 
 ---
 
