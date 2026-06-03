@@ -2641,7 +2641,7 @@ When implementing any BL-031.x / BL-032.x / BL-033 initiative:
 
 **What's NOT removed**:
 
-- The Library Resource `gst://library/vdr-structure` — still used by `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, and `gst_diligence_sweep`. Operators who want the canonical VDR taxonomy still get it via those prompts or by reading the Library article directly via `resources/read`.
+- The Library Resource `gst://library/vdr-structure` — still used by `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, and `gst_irl_ingestion` (renamed from `gst_diligence_sweep` under BL-045 PR B). Operators who want the canonical VDR taxonomy still get it via those prompts or by reading the Library article directly via `resources/read`.
 - The BL-031.75 V5 sign-off historical record — preserved with retention banners so the original ship trail can be read accurately.
 
 **Why retain this stanza after retirement**: documents the rationale + the inventory of what was removed, so a future contributor proposing a similar audit surface has the prior-art context readily searchable. The dedicated design doc [MCP_SERVER_VDR_AUDIT_TIERS_BL-036.md](MCP_SERVER_VDR_AUDIT_TIERS_BL-036.md) is retained with a closure banner for the same reason.
@@ -3305,6 +3305,56 @@ Audit caught that the counters T4 surfaces don't exist yet — they require new 
 
 Per CLAUDE.md § 4a "no deferred tech debt": deferral is acceptable when there is a written trigger condition for revisit and the deferred work is NOT verification of code currently in scope. Phase D meets both criteria — it's net-new automation with explicit trigger thresholds above, not unfinished verification. The deprioritization stays honest by naming the conditions under which it gets re-evaluated.
 
+### BL-049: `gst_irl_ingestion` — Server-Side xlsx Canonicalization for Hash-Bind Authority
+
+**Source**: BL-045 PR B v11 StoreForce live exercise (2026-06-03) — the hash-bind forcing function in `compose_dossier_envelope` (shipped under v0.12.0 / prompt `gst_irl_ingestion@0.4.0`) empirically validated the architectural pattern: when the model passes the verbatim IRL bytes as `filledIrl`, the verifier authoritatively confirms each citation's substring presence. **But the v11 trace also exposed an upstream workflow gap**: when partners attach an `.xlsx` IRL file in Claude Desktop rather than pasting markdown into the `filledIrl` prompt arg, the model must reconstruct the IRL body from spreadsheet cells — and BOTH the body AND the citations become model-generated. Hash-bind then validates internal consistency (the model's bytes hash to the model's hash) but cannot bind to the original spreadsheet as an authoritative source. The v11 dossier produced 30 false-positive `tier-mismatch:` entries on this exact mechanism even after the model executed a substring-validation loop, because the model regenerated the body and citations as two separate text streams with subtle encoding drift between them. | **Effort**: 2-4 hours (Path A — new MCP tool) OR 4-6 hours (Path B — extended prompt arg). | **Status**: 🟦 **Open · Priority: medium** — closes the architecture's last empirical gap for the most operator-natural workflow (xlsx file attachment). Senior-consultant 9×4 review (BL-045 PR B closure) can proceed at v0.12.0 because the v11 trace demonstrates the model self-correction loop works; this ticket eliminates the remaining false-positive class. | **Depends on**: BL-045 PR B merged at v0.12.0.
+
+**As a** GST partner ingesting a populated IRL via Claude Desktop, **I want** to attach the `.xlsx` directly to the conversation instead of pre-converting to markdown **so that** the hash-bind forcing function in `compose_dossier_envelope` validates citations against an authoritative server-canonicalized IRL body — eliminating the v11-class false-positive `tier-mismatch` entries that occur when the model regenerates both the body and the citations independently.
+
+#### Background — what hash-bind does and why xlsx breaks it
+
+Under v0.12.0 the prompt body embeds `**Body-binding hash:** <16-hex>` computed from `sha256(args.filledIrl).slice(0, 16)`. The model copies the hash into `compose_dossier_envelope`'s `irlBodyHash` input. The tool re-computes `sha256(input.filledIrl).slice(0, 16)` and rejects on mismatch via `IrlBodyHashMismatchError`. This catches paraphrased IRL bodies because sha256 doesn't paraphrase.
+
+**The xlsx-attachment workflow defeats this** because:
+
+1. Partner invokes `/gst_irl_ingestion` with NO `filledIrl` arg, then attaches the xlsx in the conversation.
+2. Prompt renders interactive body (no body-binding hash directive — there's no `filledIrl` to hash).
+3. Model reads xlsx into context, runs the eight content tools (which don't need `filledIrl`), then must call `compose_dossier_envelope` which requires `irlBodyHash`.
+4. Model reconstructs a markdown IRL body from xlsx cells + computes its own hash. Tool's hash check passes (model's bytes hash to model's hash) but the binding is to **the model's reconstruction**, not the original spreadsheet.
+5. Citations the model emits are also reconstructed from the spreadsheet; subtle encoding drift between the body and citations (em-dash vs hyphen, smart quotes, NBSP) causes substring matching to fail even after normalization.
+
+#### Two implementation paths (pick during scoping)
+
+**Path A — New MCP tool `extract_irl_from_xlsx`**
+
+- New pure tool taking `xlsxBase64: string` (or `resourceUri: string` pointing at a session-scoped cached file) → returns `{ filledIrlMarkdown: string, irlBodyHash: string, sectionsParsed: number, substantiveCellsCounted: number }`.
+- Operator workflow: attach xlsx → invoke `/gst_irl_ingestion` interactive → ask model to call `extract_irl_from_xlsx` first → model re-invokes `/gst_irl_ingestion` with the returned `filledIrlMarkdown` as the `filledIrl` arg. From that point the existing hash-bind architecture fires correctly.
+- Effort: ~2-4 hours (xlsx parsing via the existing `xlsx-js-style` dep already in `mcp-server/package.json`; canonical-form serializer per the IRL article shape; unit tests against the StoreForce + MedSig fixtures).
+- Drawback: two-step model interaction (extract, then re-invoke) — adds one round-trip but keeps the prompt arg contract pure.
+
+**Path B — Extended `gst_irl_ingestion` prompt arg `filledIrlXlsx?: string`**
+
+- Extend `argsSchema` with an optional `filledIrlXlsx: z.string()` arg accepting base64 xlsx bytes.
+- Prompt build seam: if `filledIrlXlsx` is supplied, server-side decodes + canonicalizes to markdown BEFORE computing the body-binding hash. The body-shown hash binds to the canonicalized markdown, which IS what gets passed downstream.
+- Operator workflow: paste base64-encoded xlsx into the slash-menu arg field (or have a future Claude Desktop attachment-to-arg adapter handle the encoding).
+- Effort: ~4-6 hours (arg schema extension; build-time xlsx decoding; cross-section interaction with existing args; body-hash test scenarios for the new arg).
+- Drawback: base64 input via slash menu is awkward UX; really wants attachment → arg automation that doesn't exist yet (overlaps with BL-046).
+
+#### Acceptance criteria
+
+- A v12 (or higher) StoreForce live exercise against the same `PRAXIS-IRL-StoreForce_JLIVET.xlsx` produces a dossier with:
+  - `provenanceVerification.verified + verifiedFuzzy >= 25` (out of ~30 IRL-cited claims)
+  - `provenanceVerification.tierMismatches == 0` for properly-cited tier-1 claims
+  - `(J)` gap list contains ≤ 2 auto-appended entries (real fabrications would still surface; encoding-drift false positives eliminated)
+- The forcing function tests in `mcp-server/tests/unit/schemas/compose-dossier-envelope.test.ts` extend to cover the xlsx-canonicalized round-trip.
+- BREAKING_CHANGES entry documents the version bump (likely `mcp-server` 0.12.x → 0.13.0 for Path A's new tool; → 0.12.1 for Path B's additive arg).
+
+#### Why "medium priority" not "high"
+
+The BL-045 PR B v11 trace empirically demonstrated that the **forcing-function architecture itself works** — the model used the (K) verdict surface as actionable feedback and executed a real self-correction loop (substring validation script, citation re-write, tier demotion). The remaining false-positive class is a **verifier-input-quality artifact**, not an architectural failure. A partner reading the v11 dossier sees explicit disclosure of the artifact (the model's own footnote on `(J)` entries 12-41 explains the mechanism). BL-049 closes the cosmetic gap by giving the hash-bind an authoritative source; it does not unblock anything currently load-bearing.
+
+Senior-consultant 9×4 review against v0.12.0 + the v11 trace evidence proceeds without this ticket. BL-049 ships as a clean post-merge follow-up.
+
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026_
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority)_

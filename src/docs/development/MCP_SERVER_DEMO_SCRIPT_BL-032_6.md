@@ -732,7 +732,7 @@ _Returned 2026-05-20 in response to GST's Information Request List dated 2026-05
 📋 **PASTE** as the next message:
 
 ```
-Run the `gst_diligence_sweep` prompt against the populated IRL above. Target: MedSig Health. Transaction context: buy-side. Partner lead: Reid Peryam. Project code name: Cygnet. Surface each GST Hub Tool deeplink at the close of its corresponding section (TechPar in C, ICG in D, Tech Debt in E, Regulatory in F per framework, Portfolio in G, Radar in H) — not only in an appendix.
+Run the `gst_irl_ingestion` prompt (renamed from `gst_diligence_sweep` under BL-045 PR B) against the populated IRL above. Target: MedSig Health. Transaction context: buy-side. Partner lead: Reid Peryam. Project code name: Cygnet. Surface each GST Hub Tool deeplink at the close of its corresponding section (TechPar in C, ICG in D, Tech Debt in E, Regulatory in F per framework, Portfolio in G, Radar in H) — not only in an appendix.
 ```
 
 ### Narrate as the sweep runs
@@ -1099,7 +1099,7 @@ _Returned 2026-05-20 in response to GST's Information Request List dated 2026-05
 ### A.9 Scenario 7 — sweep invocation prompt
 
 ```
-Run the `gst_diligence_sweep` prompt against the populated IRL above. Target: MedSig Health. Transaction context: buy-side. Partner lead: Reid Peryam. Project code name: Cygnet. Surface each GST Hub Tool deeplink at the close of its corresponding section (TechPar in C, ICG in D, Tech Debt in E, Regulatory in F per framework, Portfolio in G, Radar in H) — not only in an appendix.
+Run the `gst_irl_ingestion` prompt (renamed from `gst_diligence_sweep` under BL-045 PR B) against the populated IRL above. Target: MedSig Health. Transaction context: buy-side. Partner lead: Reid Peryam. Project code name: Cygnet. Surface each GST Hub Tool deeplink at the close of its corresponding section (TechPar in C, ICG in D, Tech Debt in E, Regulatory in F per framework, Portfolio in G, Radar in H) — not only in an appendix.
 ```
 
 ---

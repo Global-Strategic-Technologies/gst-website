@@ -16,6 +16,7 @@
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NOOP_METRICS_CONTEXT, withPromptMetrics, type MetricsContext } from '../metrics/_index';
+import { emitForceToolsUsed } from '../metrics/irl-ingestion-events';
 import type { GstPrompt } from './types';
 import { diligenceKickoffPrompt } from './diligence-kickoff';
 import { targetQuickLookPrompt } from './target-quick-look';
@@ -25,7 +26,7 @@ import { diligenceHandoffMemoPrompt } from './diligence-handoff-memo';
 import { architectureLayerReviewPrompt } from './architecture-layer-review';
 import { radarBriefTodayPrompt } from './radar-brief-today';
 import { informationRequestListPrompt } from './information-request-list';
-import { diligenceSweepPrompt } from './diligence-sweep';
+import { irlIngestionPrompt } from './irl-ingestion';
 
 /** Frozen list of every prompt the server registers. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,7 +39,7 @@ export const ALL_PROMPTS: ReadonlyArray<GstPrompt<any>> = [
   architectureLayerReviewPrompt,
   radarBriefTodayPrompt,
   informationRequestListPrompt,
-  diligenceSweepPrompt,
+  irlIngestionPrompt,
 ];
 
 const NAME_PATTERN = /^gst_[a-z][a-z_]*$/;
@@ -98,13 +99,26 @@ export function registerPrompts(
     // if they were arguments — surfacing in Claude Desktop as bogus form
     // fields. `.shape` extracts the raw map. See registry-shape regression
     // test alongside this file.
+    // BL-045 PR B: instrument `gst_irl_ingestion`'s server-side-observable
+    // signals (forceTools usage) at the build seam. Wrap the build function
+    // with a forceTools sniffer; the wrapper emits the `force_tools_used`
+    // counter then delegates to the original build. Other prompts pass
+    // through unchanged.
+    const wrappedBuild =
+      prompt.name === 'gst_irl_ingestion'
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (args: any) => {
+            emitForceToolsUsed(metrics, args?.forceTools);
+            return prompt.build(args);
+          }
+        : prompt.build;
     server.registerPrompt(
       prompt.name,
       {
         description: prompt.description,
         argsSchema: prompt.argsSchema.shape,
       },
-      withPromptMetrics(prompt.name, metrics, prompt.build)
+      withPromptMetrics(prompt.name, metrics, wrappedBuild)
     );
   }
 }

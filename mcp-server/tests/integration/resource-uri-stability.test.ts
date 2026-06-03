@@ -37,6 +37,7 @@ const EXPECTED_LIBRARY_URIS: ReadonlyArray<string> = [
   'gst://library/business-architectures',
   'gst://library/vdr-structure',
   'gst://library/information-request-list',
+  'gst://library/irl-tool-input-mapping',
 ];
 
 const EXPECTED_RADAR_URIS: ReadonlyArray<string> = [

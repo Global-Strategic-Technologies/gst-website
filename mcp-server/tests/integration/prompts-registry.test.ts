@@ -34,6 +34,10 @@ const KNOWN_TOOL_NAMES = new Set([
   'search_radar',
   // BL-044 — fillable-form (.xlsx) generator orchestrated by gst_information_request_list v0.0.2+.
   'generate_information_request_list_xlsx',
+  // BL-045 PR B Phase 2B — residual-fabrication guard.
+  'validate_irl_provenance',
+  // BL-045 PR B post-audit forcing-function tightening — mandatory dossier envelope (meta fence + (J) + (K)).
+  'compose_dossier_envelope',
 ]);
 
 const KNOWN_RESOURCE_URI_PREFIXES = ['gst://library/', 'gst://regulations/', 'gst://radar/'];

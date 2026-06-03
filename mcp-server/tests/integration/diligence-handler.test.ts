@@ -22,7 +22,19 @@ import {
   buildDiligenceDeeplink,
 } from '../../src/tools/diligence';
 import { UserInputsSchema, type ValidatedUserInputs } from '../../src/schemas';
+import { buildPartnerSuppliedAudit } from '../../src/schemas/diligence-audit';
 import { HUB_BASE } from '../../src/config';
+
+/**
+ * Test helper: wrap a ValidatedUserInputs payload with the partner-supplied
+ * Tier-3 audit defaults so the BL-045 cross-field refinements pass. Used by
+ * the engine-pipeline tests below — they exercise the engine + handler
+ * pipeline, not the audit-refinement layer (those have dedicated tests
+ * elsewhere).
+ */
+function withAudit(inputs: ValidatedUserInputs) {
+  return { ...inputs, _audit: buildPartnerSuppliedAudit(inputs) };
+}
 
 const allKnown: ValidatedUserInputs = {
   transactionType: 'majority-stake',
@@ -106,7 +118,7 @@ describe("handleDiligenceTool — BL-031.95 Phase 2 'unknown' integration", () =
 
   it('all-known payload produces a result with unknownDimensionCount=0', async () => {
     const parsed = UserInputsSchema.parse(allKnown);
-    const response = await handleDiligenceTool(parsed);
+    const response = await handleDiligenceTool(withAudit(parsed));
     expect(response.isError).toBeUndefined();
     const payload = response.structuredContent as Record<string, unknown>;
     expect(payload.unknownDimensionCount).toBe(0);
@@ -116,7 +128,7 @@ describe("handleDiligenceTool — BL-031.95 Phase 2 'unknown' integration", () =
 
   it('all-unknown payload produces a maximally-wide agenda with unknownDimensionCount=13', async () => {
     const parsed = UserInputsSchema.parse(allUnknown);
-    const response = await handleDiligenceTool(parsed);
+    const response = await handleDiligenceTool(withAudit(parsed));
     expect(response.isError).toBeUndefined();
     const payload = response.structuredContent as Record<string, unknown>;
     expect(payload.unknownDimensionCount).toBe(13);
@@ -127,8 +139,10 @@ describe("handleDiligenceTool — BL-031.95 Phase 2 'unknown' integration", () =
   });
 
   it('all-unknown payload produces an agenda with at least as many questions as the all-known baseline (widening invariant)', async () => {
-    const knownResponse = await handleDiligenceTool(UserInputsSchema.parse(allKnown));
-    const unknownResponse = await handleDiligenceTool(UserInputsSchema.parse(allUnknown));
+    const knownResponse = await handleDiligenceTool(withAudit(UserInputsSchema.parse(allKnown)));
+    const unknownResponse = await handleDiligenceTool(
+      withAudit(UserInputsSchema.parse(allUnknown))
+    );
     const knownPayload = knownResponse.structuredContent as Record<string, unknown>;
     const unknownPayload = unknownResponse.structuredContent as Record<string, unknown>;
     const knownTotal = (knownPayload.metadata as { totalQuestions: number }).totalQuestions;
@@ -146,7 +160,7 @@ describe("handleDiligenceTool — BL-031.95 Phase 2 'unknown' integration", () =
       growthStage: 'unknown',
       dataSensitivity: 'unknown',
     });
-    const response = await handleDiligenceTool(partial);
+    const response = await handleDiligenceTool(withAudit(partial));
     const payload = response.structuredContent as Record<string, unknown>;
     expect(payload.unknownDimensionCount).toBe(4);
   });
@@ -155,7 +169,7 @@ describe("handleDiligenceTool — BL-031.95 Phase 2 'unknown' integration", () =
 describe('handleDiligenceTool — BL-031.95 Phase 2.B deeplink emission', () => {
   it('response payload includes a well-formed deeplink URL', async () => {
     const parsed = UserInputsSchema.parse(allKnown);
-    const response = await handleDiligenceTool(parsed);
+    const response = await handleDiligenceTool(withAudit(parsed));
     const payload = response.structuredContent as Record<string, unknown>;
     expect(typeof payload.deeplink).toBe('string');
     const deeplink = payload.deeplink as string;
@@ -169,7 +183,7 @@ describe('handleDiligenceTool — BL-031.95 Phase 2.B deeplink emission', () => 
 
   it("deeplink encodes 'unknown' sentinels verbatim (no special casing)", async () => {
     const parsed = UserInputsSchema.parse(allUnknown);
-    const response = await handleDiligenceTool(parsed);
+    const response = await handleDiligenceTool(withAudit(parsed));
     const payload = response.structuredContent as Record<string, unknown>;
     const deeplink = payload.deeplink as string;
     expect(deeplink).toContain('tt=unknown');

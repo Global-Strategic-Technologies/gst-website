@@ -8,10 +8,15 @@
 import { LIBRARY_ENTRIES, loadLibraryByUri } from '../../src/content/library-loader';
 
 describe('LIBRARY_ENTRIES', () => {
-  it('exposes all three library articles with text/markdown mime type', () => {
-    expect(LIBRARY_ENTRIES.length).toBe(3);
+  it('exposes all four library articles with text/markdown mime type', () => {
+    expect(LIBRARY_ENTRIES.length).toBe(4);
     const slugs = LIBRARY_ENTRIES.map((e) => e.slug).sort();
-    expect(slugs).toEqual(['business-architectures', 'information-request-list', 'vdr-structure']);
+    expect(slugs).toEqual([
+      'business-architectures',
+      'information-request-list',
+      'irl-tool-input-mapping',
+      'vdr-structure',
+    ]);
     for (const e of LIBRARY_ENTRIES) {
       expect(e.mimeType).toBe('text/markdown');
       expect(e.uri).toBe(`gst://library/${e.slug}`);
@@ -71,10 +76,11 @@ describe('LIBRARY_ENTRIES', () => {
 });
 
 describe('loadLibraryByUri', () => {
-  it('resolves all three canonical Library URIs', () => {
+  it('resolves all four canonical Library URIs', () => {
     expect(loadLibraryByUri('gst://library/business-architectures')).not.toBeNull();
     expect(loadLibraryByUri('gst://library/vdr-structure')).not.toBeNull();
     expect(loadLibraryByUri('gst://library/information-request-list')).not.toBeNull();
+    expect(loadLibraryByUri('gst://library/irl-tool-input-mapping')).not.toBeNull();
   });
 
   it('returns null for an unknown slug', () => {

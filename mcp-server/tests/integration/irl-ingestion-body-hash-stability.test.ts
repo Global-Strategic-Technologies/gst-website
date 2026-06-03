@@ -1,9 +1,9 @@
 /**
- * Prompt-body hash stability test for `gst_diligence_sweep`.
+ * Prompt-body hash stability test for `gst_irl_ingestion`.
  *
  * **Why this test exists** (post-demo audit, 2026-05-22):
  *
- * Most regression tests in `tests/unit/prompts/diligence-sweep.test.ts`
+ * Most regression tests in `tests/unit/prompts/irl-ingestion.test.ts`
  * are string-presence assertions (`expect(text).toContain('...')`,
  * `expect(text).toMatch(/.../)`). Per
  * [`src/docs/testing/TEST_BEST_PRACTICES.md`] § 2, this is the classic
@@ -17,7 +17,7 @@
  * change to land in CI with a deliberate hash bump. Same pattern as
  * `manifest-stability.test.ts`, applied to prompt bodies.
  *
- * **What this catches**: any non-trivial change to the `gst_diligence_sweep`
+ * **What this catches**: any non-trivial change to the `gst_irl_ingestion`
  * prompt body — including the kind of soft-directive regressions that
  * existing string-match tests miss. The diagnostic forces the change
  * author to (1) verify the body change is intentional, (2) regenerate
@@ -36,7 +36,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { createHash } from 'node:crypto';
-import { diligenceSweepPrompt } from '../../src/prompts/diligence-sweep';
+import { irlIngestionPrompt } from '../../src/prompts/irl-ingestion';
 
 /** Stable representative filledIrl payload — short, deterministic, kept under 500 chars so the hash output is reproducible across machines. */
 const STABLE_FILLED_IRL = `# IRL — TestCo (returned 2026-05-22)
@@ -60,8 +60,8 @@ const STABLE_FILLED_IRL = `# IRL — TestCo (returned 2026-05-22)
  * text and resource content block in order, joining with a newline so
  * resource embeddings contribute to the hash too.
  */
-function hashPromptOutput(args: Parameters<typeof diligenceSweepPrompt.build>[0]): string {
-  const result = diligenceSweepPrompt.build(args);
+function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]): string {
+  const result = irlIngestionPrompt.build(args);
   const canonical = result.messages
     .map((m) => {
       if (m.content.type === 'text') return m.content.text;
@@ -83,21 +83,43 @@ function hashPromptOutput(args: Parameters<typeof diligenceSweepPrompt.build>[0]
   return createHash('sha256').update(canonical).digest('hex');
 }
 
-// ─── Expected hashes for the v0.0.4 body shape ───────────────────────────
+// ─── Expected hashes for the gst_irl_ingestion@0.1.0 body shape ─────────
 //
 // These are the canonical hashes for three representative invocations.
 // Update in lockstep with intentional prompt-body changes (the test
 // failure message tells you exactly what to paste).
+//
+// Re-baselined under BL-045 PR B for the rename + scenario-neutral
+// description + version 0.1.0. Body shape otherwise structurally
+// identical to gst_diligence_sweep@0.0.5 at this point; subsequent
+// PR B commits (mode args, inclusion gates, JSON fences, meta fence,
+// provenance footer, gap list, etc.) will re-baseline again.
+// BL-045 PR B body-rewrite scenarios — design doc § Body rendering strategy
+// raises the scenario count from 3 to 5 so both mode branches (full +
+// extract-only) are independently hash-locked.
 const EXPECTED_HASH_INTERACTIVE =
-  '473dcc770ea0c9dcf9e292e43de9843a30a261531f4aa9d548abbd9f9d355eb1';
+  '133f5db02eebb6bca05f214aceeadb38f64c632c207891f04dff7478b3f5956d';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'e71a43708b458147b05e760599617f3b7b66ada966dc77cdfd5c62c989c48859';
+  'b3d752d2b810f6b3445dcb9a04964f9bc8bd35bf9cb1aaa9a1b4f84f01d6b135';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'b5c0eadc724051975853bbfbf29912d11ee5da2168567fda46e28077c9b78851';
+  'ec724fdef7baf08f268da09eddd01e58adbc50c1fab96ee4feae08d04e1e5adc';
+const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
+  '6c04170cc39008ec7d15728d6e0b67cb1c252127eee5dc0d44c37f871f2ab366';
+const EXPECTED_HASH_EXTRACT_ONLY_FULL =
+  '16ff440cd0c5c9e9108eccdf4252b80184b2b1dbb8524505476c9a3da9ca3d93';
+// BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
+// scenarios above don't catch a regression where compact mode silently
+// gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
+// PROVENANCE_FOOTER_DIRECTIVE, PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE).
+// These two scenarios hash-lock the compact-mode bodies.
+const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
+  '7e969c584b911fbd2548f77a79667c563a1dfd40d705f589733e3b43320b61e4';
+const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
+  '545b5ce0e9c601c233be1a42f4ef7ad72bc41f4e427d3b1c6810002c548121d7';
 
 interface Scenario {
   name: string;
-  args: Parameters<typeof diligenceSweepPrompt.build>[0];
+  args: Parameters<typeof irlIngestionPrompt.build>[0];
   expected: string;
 }
 
@@ -123,9 +145,51 @@ const SCENARIOS: Scenario[] = [
     },
     expected: EXPECTED_HASH_ONESHOT_FULL,
   },
+  {
+    name: 'extract-only minimal (filledIrl + mode)',
+    args: { filledIrl: STABLE_FILLED_IRL, mode: 'extract-only' },
+    expected: EXPECTED_HASH_EXTRACT_ONLY_MINIMAL,
+  },
+  {
+    name: 'extract-only full (all five args + mode)',
+    args: {
+      targetName: 'TestCo',
+      filledIrl: STABLE_FILLED_IRL,
+      transactionContext: 'value-creation',
+      partnerLead: 'Reid Peryam',
+      projectCodeName: 'Cygnet',
+      mode: 'extract-only',
+    },
+    expected: EXPECTED_HASH_EXTRACT_ONLY_FULL,
+  },
+  {
+    name: 'one-shot full + verbosity=compact (audit M1)',
+    args: {
+      targetName: 'TestCo',
+      filledIrl: STABLE_FILLED_IRL,
+      transactionContext: 'buy-side',
+      partnerLead: 'Reid Peryam',
+      projectCodeName: 'Cygnet',
+      verbosity: 'compact',
+    },
+    expected: EXPECTED_HASH_ONESHOT_FULL_COMPACT,
+  },
+  {
+    name: 'extract-only full + verbosity=compact (audit M1)',
+    args: {
+      targetName: 'TestCo',
+      filledIrl: STABLE_FILLED_IRL,
+      transactionContext: 'value-creation',
+      partnerLead: 'Reid Peryam',
+      projectCodeName: 'Cygnet',
+      mode: 'extract-only',
+      verbosity: 'compact',
+    },
+    expected: EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT,
+  },
 ];
 
-describe('gst_diligence_sweep — prompt-body hash stability', () => {
+describe('gst_irl_ingestion — prompt-body hash stability', () => {
   for (const scenario of SCENARIOS) {
     it(`hash matches the committed value for: ${scenario.name}`, () => {
       const actual = hashPromptOutput(scenario.args);
@@ -137,7 +201,7 @@ describe('gst_diligence_sweep — prompt-body hash stability', () => {
             `  Expected: ${scenario.expected}`,
             `  Actual:   ${actual}`,
             '',
-            'The `gst_diligence_sweep` prompt body changed since the hash was committed.',
+            'The `gst_irl_ingestion` prompt body changed since the hash was committed.',
             'If this change was INTENTIONAL:',
             '',
             '  1. Verify the change matches the v0.0.X version bump described in',
@@ -145,8 +209,8 @@ describe('gst_diligence_sweep — prompt-body hash stability', () => {
             '  2. Update the corresponding EXPECTED_HASH_* constant at the top of',
             '     this file to the actual value above.',
             '  3. Regenerate the live-exercise transcript in',
-            '     `mcp-server/tests/examples/diligence-sweep.golden.md` against the new body.',
-            '  4. Bump `mcp-server/src/prompts/diligence-sweep.ts` `version` field if',
+            '     `mcp-server/tests/examples/irl-ingestion.golden.md` against the new body.',
+            '  4. Bump `mcp-server/src/prompts/irl-ingestion.ts` `version` field if',
             '     not already bumped, and `mcp-server/package.json` version per the',
             '     semver-as-contract discipline.',
             '',
@@ -172,7 +236,7 @@ describe('gst_diligence_sweep — prompt-body hash stability', () => {
     // codegen step fails and the article body is empty, the resource
     // hash will be the empty-string hash — which would silently corrupt
     // the prompt-body hash. This test guards that boundary.
-    const result = diligenceSweepPrompt.build({});
+    const result = irlIngestionPrompt.build({});
     for (const msg of result.messages) {
       if (msg.content.type === 'resource') {
         const r = msg.content.resource;

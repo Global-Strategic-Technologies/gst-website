@@ -10,12 +10,13 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import { compute, serializeToParams } from '../../../src/utils/techpar-engine';
 import type { TechParInputs } from '../../../src/schemas/techpar';
+import { TECHPAR_STAGE_ADAPTER, resolveTechparStageInput } from '../schemas';
 import {
-  TechParMcpInputsSchema,
-  type TechParMcpInputs,
-  TECHPAR_STAGE_ADAPTER,
-  resolveTechparStageInput,
-} from '../schemas';
+  AuditedTechParInputsSchema,
+  formatTechParAuditIssues,
+  runTechParAuditRefinements,
+  type AuditedTechParInputs,
+} from '../schemas/techpar-audit';
 import { HUB_BASE } from '../config';
 
 /**
@@ -63,9 +64,23 @@ Given a 14-field input (ARR, funding stage, mode, capex view, growth rate, exit 
  * isError shape) without going through the MCP transport. The MCP
  * registration below wraps this same handler.
  */
-export async function handleTechparTool(mcpInputs: TechParMcpInputs) {
+export async function handleTechparTool(payload: AuditedTechParInputs) {
+  // BL-045 PR B Phase 2 — TechPar calibration audit (currency basis +
+  // per-monetary-field annualization provenance). Refinements run here in
+  // the handler body, same pattern as diligence + tech-debt audits.
+  const auditIssues = runTechParAuditRefinements(payload);
+  if (auditIssues.length > 0) {
+    return {
+      content: [{ type: 'text' as const, text: formatTechParAuditIssues(auditIssues) }],
+      isError: true,
+    };
+  }
+
   try {
-    // Resolve canonical-or-native stage to native (BL-031.87).
+    // Strip _audit before invoking the engine. Audit metadata is surfaced
+    // back to the caller in the response payload (alongside the deeplink)
+    // so the dossier rendering step can show partner-readable provenance.
+    const { _audit, ...mcpInputs } = payload;
     const nativeStage = resolveTechparStageInput(mcpInputs.stage);
     const inputs: TechParInputs = { ...mcpInputs, stage: nativeStage };
     const result = compute(inputs);
@@ -85,15 +100,20 @@ export async function handleTechparTool(mcpInputs: TechParMcpInputs) {
       canonical: TECHPAR_STAGE_ADAPTER.toCanonical[nativeStage],
     };
     const deeplink = buildTechparDeeplink(inputs);
-    const payload = { ...result, stageContext, deeplink };
+    const responsePayload = {
+      ...result,
+      stageContext,
+      deeplink,
+      monetaryBasis: _audit.monetaryBasis,
+    };
     return {
       content: [
         {
           type: 'text' as const,
-          text: JSON.stringify(payload, null, 2),
+          text: JSON.stringify(responsePayload, null, 2),
         },
       ],
-      structuredContent: payload as unknown as Record<string, unknown>,
+      structuredContent: responsePayload as unknown as Record<string, unknown>,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -113,7 +133,7 @@ export function registerTechparTool(
     {
       title: 'Compute TechPar Benchmark',
       description: TOOL_DESCRIPTION,
-      inputSchema: TechParMcpInputsSchema,
+      inputSchema: AuditedTechParInputsSchema,
       annotations: {
         readOnlyHint: true,
         idempotentHint: true,

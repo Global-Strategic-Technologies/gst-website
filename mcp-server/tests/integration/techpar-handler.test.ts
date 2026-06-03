@@ -19,7 +19,16 @@
 import { describe, it, expect } from 'vitest';
 
 import { handleTechparTool } from '../../src/tools/techpar';
-import { TechParMcpInputsSchema } from '../../src/schemas';
+import { TechParMcpInputsSchema, type TechParMcpInputs } from '../../src/schemas';
+import { buildPartnerSuppliedTechParAudit } from '../../src/schemas/techpar-audit';
+
+// BL-045 PR B Phase 2 — TechPar now requires `_audit`. Engine-pipeline
+// tests below use buildPartnerSuppliedTechParAudit() to supply Tier-3
+// defaults; the audit-refinement layer has dedicated coverage in
+// tests/unit/schemas/techpar-audit.test.ts.
+function withAudit(inputs: TechParMcpInputs) {
+  return { ...inputs, _audit: buildPartnerSuppliedTechParAudit(inputs.mode) };
+}
 
 const validInputs = {
   arr: 25_000_000,
@@ -41,7 +50,7 @@ const validInputs = {
 describe('handleTechparTool — BL-031.95 Phase 1 integration (renamed field + canonical stage + deeplink)', () => {
   it('canonical stage `series-b` resolves to native `series_bc`; engine produces non-null result; deeplink + stageContext attached', async () => {
     const parsed = TechParMcpInputsSchema.parse(validInputs);
-    const response = await handleTechparTool(parsed);
+    const response = await handleTechparTool(withAudit(parsed));
     expect(response.isError).toBeUndefined();
     const payload = response.structuredContent as Record<string, unknown>;
 
@@ -79,8 +88,8 @@ describe('handleTechparTool — BL-031.95 Phase 1 integration (renamed field + c
   it('native stage `series_bc` produces identical engine output to canonical `series-b` (canonical layer is purely additive)', async () => {
     const canonicalParsed = TechParMcpInputsSchema.parse(validInputs);
     const nativeParsed = TechParMcpInputsSchema.parse({ ...validInputs, stage: 'series_bc' });
-    const canonicalResponse = await handleTechparTool(canonicalParsed);
-    const nativeResponse = await handleTechparTool(nativeParsed);
+    const canonicalResponse = await handleTechparTool(withAudit(canonicalParsed));
+    const nativeResponse = await handleTechparTool(withAudit(nativeParsed));
     const canonicalPayload = canonicalResponse.structuredContent as Record<string, unknown>;
     const nativePayload = nativeResponse.structuredContent as Record<string, unknown>;
     expect(canonicalPayload.total).toBe(nativePayload.total);
@@ -92,7 +101,7 @@ describe('handleTechparTool — BL-031.95 Phase 1 integration (renamed field + c
 
   it('infraHostingAnnual = 0 produces an isError response with the explicit error message', async () => {
     const parsed = TechParMcpInputsSchema.parse({ ...validInputs, infraHostingAnnual: 0 });
-    const response = await handleTechparTool(parsed);
+    const response = await handleTechparTool(withAudit(parsed));
     expect(response.isError).toBe(true);
     const text = (response.content[0] as { type: 'text'; text: string }).text;
     expect(text).toContain('infraHostingAnnual');
@@ -101,7 +110,7 @@ describe('handleTechparTool — BL-031.95 Phase 1 integration (renamed field + c
 
   it('arr = 0 produces the same isError shape as zero hosting', async () => {
     const parsed = TechParMcpInputsSchema.parse({ ...validInputs, arr: 0 });
-    const response = await handleTechparTool(parsed);
+    const response = await handleTechparTool(withAudit(parsed));
     expect(response.isError).toBe(true);
     const text = (response.content[0] as { type: 'text'; text: string }).text;
     expect(text).toContain('arr');
@@ -114,7 +123,7 @@ describe('handleTechparTool — BL-031.95 Phase 1 integration (renamed field + c
     // Post-BL-031.95: the same value is treated as annual directly.
     // Per the canonical sample: total = $6.06M, totalTechPct = 24.24%.
     const parsed = TechParMcpInputsSchema.parse(validInputs);
-    const response = await handleTechparTool(parsed);
+    const response = await handleTechparTool(withAudit(parsed));
     const payload = response.structuredContent as Record<string, unknown>;
     expect(payload.totalTechPct).toBeCloseTo(24.24, 1);
     expect(payload.total).toBe(6_060_000);

@@ -1,13 +1,13 @@
 /**
- * Shared IRL-extraction rule constants — load-bearing prose extracted from
- * `gst_diligence_sweep` so it can be reused by future ingestion-style
- * prompts (BL-045 PR B will rename sweep to `gst_irl_ingestion` and import
- * these constants directly).
+ * Shared IRL-extraction rule constants — load-bearing prose originally
+ * extracted from the BL-032.6 sweep prompt (since renamed to
+ * `gst_irl_ingestion` under BL-045 PR B), now imported directly by the
+ * ingestion prompt and any sibling ingestion-style prompts that ship.
  *
- * Each constant is the rule sentence(s) without sweep-specific orchestration
- * framing ("Step N — Invoke `X`…", "Surface the resulting `deeplink`…").
- * The sweep body interpolates each constant between its orchestration
- * opener and closer. JSDoc above each constant cites the
+ * Each constant is the rule sentence(s) without ingestion-specific
+ * orchestration framing ("Step N — Invoke `X`…", "Surface the resulting
+ * `deeplink`…"). The ingestion body interpolates each constant between
+ * its orchestration opener and closer. JSDoc above each constant cites the
  * `irl-tool-input-mapping.md` SOP section it derives from.
  *
  * **Refactor intent (BL-045 PR A)**: structural-only diff against the
@@ -25,12 +25,88 @@
  * SOP § "Section 00–02 → diligence dimensions" + § "Sentinel discipline".
  *
  * Governs how the model maps IRL bullets to the 13 `generate_diligence_agenda`
- * input dimensions. Strict propagation of the `'unknown'` sentinel; named
- * anti-inference anti-examples (`productized-platform`, `product-aligned-teams`)
- * that the diligence tool's USAGE RULE forbids.
+ * input dimensions. Three confidence tiers — Tier 1 (literal) and Tier 2
+ * (direct one-step derivation) both pass concrete values; Tier 3 (correlation
+ * / vibes) passes `'unknown'`. Named Tier-3 traps are explicit anti-examples
+ * surfaced by past engagement audits.
+ *
+ * **Recalibrated under BL-045 PR B** (2026-06-02, senior-consultant review
+ * Axis 1 feedback): the prior framing ("indirect inference is forbidden")
+ * collapsed Tier-2 direct derivation into Tier-3 vibes-based inference and
+ * mechanically forced `'unknown'`-bloated dossiers. The new framing keeps
+ * the named anti-examples (which prevent observed defects) while allowing
+ * the Tier-2 derivation the IRL ingestion surface is designed to do. The
+ * "squad model → operatingModel: product-aligned-teams" anti-example from
+ * v0.0.4 was retired — reviewer confirmed that mapping IS correct.
+ *
+ * **Three calibration clauses added** (PR B, 2026-06-02, real-world IRL
+ * walkthrough — PRAXIS-IRL-StoreForce_JLIVET.xlsx):
+ *   (a) Currency normalization for bracketed dimensions (revenueRange);
+ *   (b) `transformationState` tie-break between `mid-migration` and
+ *       `actively-modernizing` when both fit;
+ *   (c) `headcount` scope clarification (engineering ICs + management,
+ *       excludes product/design/standalone-QA unless reporting into eng).
+ *
+ * **Second pass — b2b-saas anti-example retired** (PR B, 2026-06-02,
+ * StoreForce walkthrough finding #9): the `b2b-saas → productized-platform`
+ * forbidden mapping from sweep v0.0.4 was overcautious. The canonical B2B
+ * SaaS pattern (packaged product + recurring subscription + per-seat or
+ * per-location pricing) IS a productized platform; forcing `'unknown'`
+ * here is exactly the `'unknown'`-bloat the recalibration was meant to
+ * prevent. Anti-example removed. Reviewer retained the cloud-native
+ * trap (still defensible — capability != in-flight change).
+ *
+ * **Third pass — v3 calibration tightening** (PR B, 2026-06-02,
+ * StoreForce live-run grading against Claude Desktop): the v2 currency
+ * + headcount clauses were buried mid-paragraph and the model skimmed
+ * past them — Claude treated `$31M CAD` as if it were USD (→ wrong
+ * bracket) and used `R&D + Product ~48` instead of `Eng ~42` for
+ * headcount. Restructured each clause onto its own line and led with
+ * the StoreForce-shape worked example, mirroring how the Tier 1/2/3
+ * worked examples already drive the rest of the rule. Also added a
+ * dataSensitivity bucket clause (the v2 rule had no guidance and the
+ * model defaulted to `moderate` for employee-PII-only — reviewer's call
+ * was `low`).
  */
-export const UNKNOWN_PROPAGATION_RULE =
-  "Because the IRL is filled, you should be able to derive concrete values for many dimensions — but the tool's USAGE RULE on the `'unknown'` sentinel is strict and indirect inference is forbidden. **A dimension passes a literal value ONLY IF the IRL directly states it or maps one-to-one from the IRL text; otherwise pass `'unknown'`.** Map IRL sections to dimensions: Section 00 → transactionType (from engagement-context bullet), revenueRange (from ARR bullet), growthStage (from growth-rate bullet), companyAge (from founding year), headcount (from total-headcount bullet), geographies (from geographies bullet); Section 01 → productType, scaleIntensity (only if IRL literally uses 'low'/'moderate'/'high'); Section 02 → techArchetype; Section 05/09 → dataSensitivity. **For `businessModel` and `operatingModel`: default to `'unknown'` unless the IRL uses one of the enum values literally.** Specifically: do NOT map `productType: b2b-saas` → `businessModel: productized-platform` (forbidden — many B2B SaaS are usage-based or services-led; the IRL bullet \"B2B SaaS multi-year subscription with per-claim transactional uplift\" is mixed-model and should pass `'unknown'` unless the partner confirms). Do NOT map \"squad model\" → `operatingModel: product-aligned-teams` (forbidden — \"squad\" is a colloquialism, not a one-to-one enum mapping; the tool's USAGE RULE says \"do NOT infer operatingModel from anything\"). For `transformationState`: if Section 02 or 04 names an in-flight rewrite of a specific service (\"denial-appeals rewrite Q1-Q3 FY26\"), that maps LITERALLY to `actively-modernizing`; if the IRL is silent, pass `'unknown'`.";
+export const UNKNOWN_PROPAGATION_RULE = [
+  'Because the IRL is filled, derive concrete values wherever the bullets support it.',
+  '',
+  '**Extraction discipline — three confidence tiers, ordered by directness of evidence**:',
+  '',
+  '- **Tier 1 (literal)**: the IRL bullet states the enum value verbatim — use it.',
+  '- **Tier 2 (direct one-step derivation)**: the IRL bullet contains the specific data that uniquely maps to one enum value (e.g., "Geographies: US (~88%), EU (~12%)" → `geographies: [US, EU]`; "ARR $45.2M Q1-FY26 annualized" + a known revenueRange schema → the bracket the value falls in; "Engagement context: buy-side review on behalf of a strategic investor" → `transactionType: buy-side`) — use the value and cite the source bullet in the provenance footer.',
+  "- **Tier 3 (correlation / vibes)**: the IRL bullet correlates with an enum value but does NOT determine it — pass `'unknown'`.",
+  '',
+  "Map IRL sections to dimensions: Section 00 → transactionType (engagement-context bullet), revenueRange (ARR bullet), growthStage (growth-rate bullet), companyAge (founding year), headcount (engineering-FTE bullet), geographies (geographies bullet); Section 01 → productType, scaleIntensity (only if IRL literally uses 'low'/'moderate'/'high' — that's Tier 1); Section 02 → techArchetype; Section 05/09 → dataSensitivity. Each is Tier-2-or-better when the IRL bullet contains the specific signal; otherwise pass `'unknown'`.",
+  '',
+  "**For `businessModel` and `operatingModel`**: default to `'unknown'` unless the IRL uses one of the enum values literally (Tier 1) OR provides direct evidence that uniquely maps (Tier 2).",
+  '',
+  '**Currency normalization (BLOCKING — applies BEFORE any bracketed-monetary dimension is assigned)**: every monetary bullet in a non-USD currency MUST be converted to USD before bracket assignment, and the provenance footer MUST cite the conversion. Worked example — StoreForce shape: an IRL bullet "Implied ARR run-rate ~$31M CAD" converts as `$31M CAD × 0.73 USD/CAD ≈ $22.6M USD ⇒ revenueRange: 5-25m`. Worked example — EUR shape: "ARR €18M FY26" converts as `€18M × 1.08 USD/EUR ≈ $19.4M USD ⇒ revenueRange: 5-25m`. Worked example — GBP shape: same form. If the converted value lands within 10% of a bracket boundary (e.g., USD $23-27M against the 25m boundary), pass `\'unknown\'` and surface the currency / conversion question in the (J) gap list — bracket misassignment compounds downstream so prefer `\'unknown\'` to a fragile commitment. **Treating a non-USD bullet as if it were USD is the most common bracketing error in real-world runs — do NOT skip this step.**',
+  '',
+  '**`headcount` scope (BLOCKING — applies to the `generate_diligence_agenda` `headcount` field)**: "engineering headcount" means engineering ICs + engineering management ONLY. It EXCLUDES product managers, designers, and standalone QA UNLESS QA reports into engineering. Worked example — StoreForce shape: IRL Section 02 bullet "Engineering ~42: Development team 33 ... Infra/DevOps/DBA 9. Product ~6. ~15 of 48 R&D+Product are contractors" → use 42 (Eng-only), NOT 48 (R&D+Product), and cite the distinction in the provenance footer (`headcount ← Section 02: Engineering 42 (Dev 33 + Infra 9); Product 6 excluded`). When the IRL distinguishes "engineering ~N1" from "R&D + Product ~N2" or similar, N1 is always the right input. **Lumping product/design into engineering headcount mis-routes the agenda to higher-tier probes — do NOT skip this distinction.**',
+  '',
+  '**`dataSensitivity` bucket boundaries (Tier 2 guidance)**: the enum is `low` / `moderate` / `high`. Bucket boundaries:',
+  '- **`low`**: employee PII only (names, schedules, wages, performance, HR-IDs) and/or operational metadata + telemetry; no regulated category; no customer/shopper PII at scale; no PHI; no PCI card data; no government-classified data.',
+  '- **`moderate`**: customer/shopper PII at scale; financial-transaction metadata (not card numbers); employee PII combined with customer PII at scale; non-card financial data.',
+  '- **`high`**: PHI (HIPAA-regulated); PCI card data; regulated-health beyond HIPAA; government-classified; large-scale identifiable consumer financial data; biometric data at scale.',
+  '',
+  'Worked example — StoreForce shape: "Employee PII (associate names, schedules, wages, performance). Store operational + sales/KPI data (not personal). No customer/shopper PII; no PHI" → `dataSensitivity: low` (employee PII alone is `low`; the threshold to `moderate` requires customer/shopper PII at scale). Cite the bucket choice in the provenance footer.',
+  '',
+  '**`transformationState` tie-break** between `mid-migration` and `actively-modernizing` when both fit the IRL evidence: prefer `mid-migration` when the IRL names a specific cutover date with parallel legacy + new operation during a window (e.g., "new clients on platform B from August; legacy clients migrate from January"); prefer `actively-modernizing` when the IRL describes broader transformation work without a single migration spine (org reorg + tech reset + new product line in parallel). Cite the tie-break choice in the provenance footer.',
+  '',
+  '**Named Tier-3 trap** (explicit anti-example — observed wrong in past engagements): do NOT map a present-tense capability statement (e.g., "cloud-native", "AI-powered") → `transformationState: actively-modernizing` — present-tense capability ≠ in-flight change. `transformationState` maps LITERALLY to `actively-modernizing` only when Section 02 or 04 names a specific in-flight rewrite (e.g., "denial-appeals rewrite Q1-Q3 FY26"); otherwise pass `\'unknown\'`.',
+].join('\n');
+
+/**
+ * Authoritative enum of named conditional-trigger constants — single source
+ * of truth for the `conditionalTriggersFired` schema in
+ * `compose_dossier_envelope`. Adding a new conditional trigger requires
+ * extending this tuple AND the corresponding `*_CONDITIONAL_TRIGGER` prose
+ * constant + body wiring; the schema then accepts the new name without
+ * further drift (BL-045 PR B audit BL-3).
+ */
+export const CONDITIONAL_TRIGGER_NAMES = ['EU_AI_ACT', 'NIS2'] as const;
+export type ConditionalTriggerName = (typeof CONDITIONAL_TRIGGER_NAMES)[number];
 
 /**
  * SOP § "Section 05 ML/AI + EU geography → EU AI Act gap-fill".
@@ -86,7 +162,7 @@ export const ICG_SEEDING_RULES =
  * incident-frequency input rule (most-recent quarter monthly equivalent).
  */
 export const MTTR_P1_RULE =
-  '**MTTR input — use P1 (the workhorse number):** if Section 04 lists MTTR separately for P0 and P1 (e.g., "Mean time to resolution P0 2.4h, P1 7.8h"), pass the P1 value to the tool. P0s are rare (typically one or two per year at this scale); P1s drive the steady-state incident-carrying cost the model is computing. **Do NOT use the P0 number, do NOT use a midpoint, do NOT use an average** — the engine multiplies MTTR × incidents linearly, so picking the wrong scalar understates carrying cost by the full ratio (P1/P0 ≈ 3× for typical operations). **Incident frequency input:** use the most recent quarterly count from the trend, converted to monthly. If Section 04 shows a declining trend (e.g., "FY24-Q1 8 incidents... FY25-Q4 4 incidents"), use the most-recent quarter\'s monthly equivalent (4/3 ≈ 1.3/month), not an inflated round number.';
+  '**MTTR input — use P1 (the workhorse number):** if Section 04 lists MTTR separately for P0 and P1 (e.g., "Mean time to resolution P0 2.4h, P1 7.8h"), pass the P1 value to the tool. P0s are rare (typically one or two per year at this scale); P1s drive the steady-state incident-carrying cost the model is computing. **Do NOT use the P0 number, do NOT use a midpoint, do NOT use an average** — the engine multiplies MTTR × incidents linearly, so picking the wrong scalar understates carrying cost by the full ratio (P1/P0 ≈ 3× for typical operations). **MTTR-unfilled guard (BLOCKING)**: if Section 04 lists no MTTR value, marks MTTR as OPEN, or says "not yet tracked" / "n/a" — DO NOT substitute a placeholder (24h, 8h, or any arbitrary anchor). Instead omit the MTTR field from the `estimate_tech_debt_cost` payload (or pass it explicitly null) and mark the Tech Debt section in the dossier as `extraction-only` for that field, with a provenance line `mttrHours ← Section 04 OPEN / not stated; placeholder substitution refused; surfaced in (J) gap list`. Surface the missing MTTR in (J) as a target follow-up (e.g., "Pull 24-month JQL for client-incident MTTR over the period; replace the omitted-field marker once available"). **A fabricated MTTR value passes through the engine\'s linear multiplier and produces an unrecoverable false carrying-cost number — do NOT do this.** **Incident frequency input:** use the most recent quarterly count from the trend, converted to monthly. If Section 04 shows a declining trend (e.g., "FY24-Q1 8 incidents... FY25-Q4 4 incidents"), use the most-recent quarter\'s monthly equivalent (4/3 ≈ 1.3/month), not an inflated round number. **If incident counts are themselves OPEN/unfilled**, apply the same guard — omit, mark extraction-only, surface in (J).';
 
 /**
  * Aggregate object — convenient re-export for callers that want to spread the

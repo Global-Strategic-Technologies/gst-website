@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { diligenceSweepPrompt } from '../../../src/prompts/diligence-sweep';
+import { irlIngestionPrompt } from '../../../src/prompts/irl-ingestion';
 import {
   UNKNOWN_PROPAGATION_RULE,
   EU_AI_ACT_CONDITIONAL_TRIGGER,
@@ -70,7 +70,7 @@ const SAMPLE_FILLED_IRL = `
 `;
 
 function bodyText(
-  prompt: typeof diligenceSweepPrompt,
+  prompt: typeof irlIngestionPrompt,
   args: Parameters<typeof prompt.build>[0]
 ): string {
   return prompt
@@ -79,34 +79,35 @@ function bodyText(
     .join('\n');
 }
 
-describe('gst_diligence_sweep', () => {
+describe('gst_irl_ingestion', () => {
   it('uses the gst_ slash-menu prefix', () => {
-    expect(diligenceSweepPrompt.name).toMatch(/^gst_/);
-    expect(diligenceSweepPrompt.name).toBe('gst_diligence_sweep');
+    expect(irlIngestionPrompt.name).toMatch(/^gst_/);
+    expect(irlIngestionPrompt.name).toBe('gst_irl_ingestion');
   });
 
   it('declares the required GstPrompt fields with concrete values', () => {
-    // v0.0.5 = voice-cue copy fix (drop "underwriting"/"before the LOI" buy-side
-    // anchor + "post-close" value-creation anchor — accuracy + label alignment).
-    expect(diligenceSweepPrompt.version).toBe('0.0.5');
-    expect(diligenceSweepPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(diligenceSweepPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
+    // BL-045 reset: prompt version restarts at 0.1.0 to signal the substantive
+    // rescope (rename, scenario-neutral framing, mode/verbosity/forceTools args,
+    // inclusion gates, JSON fences, provenance footer, gap list).
+    expect(irlIngestionPrompt.version).toBe('0.4.0');
+    expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
 
   describe('argsSchema', () => {
     it('accepts an empty payload (interactive mode)', () => {
-      expect(diligenceSweepPrompt.argsSchema.safeParse({}).success).toBe(true);
+      expect(irlIngestionPrompt.argsSchema.safeParse({}).success).toBe(true);
     });
 
     it('accepts filledIrl alone (one-shot mode)', () => {
       expect(
-        diligenceSweepPrompt.argsSchema.safeParse({ filledIrl: SAMPLE_FILLED_IRL }).success
+        irlIngestionPrompt.argsSchema.safeParse({ filledIrl: SAMPLE_FILLED_IRL }).success
       ).toBe(true);
     });
 
     it('accepts the full arg set', () => {
       expect(
-        diligenceSweepPrompt.argsSchema.safeParse({
+        irlIngestionPrompt.argsSchema.safeParse({
           targetName: 'MedSig Health',
           filledIrl: SAMPLE_FILLED_IRL,
           transactionContext: 'buy-side',
@@ -117,7 +118,7 @@ describe('gst_diligence_sweep', () => {
     });
 
     it('rejects an invalid transactionContext enum value', () => {
-      const result = diligenceSweepPrompt.argsSchema.safeParse({
+      const result = irlIngestionPrompt.argsSchema.safeParse({
         transactionContext: 'weird-value',
       });
       expect(result.success).toBe(false);
@@ -127,7 +128,7 @@ describe('gst_diligence_sweep', () => {
     });
 
     it('rejects an empty targetName (min length 1)', () => {
-      const result = diligenceSweepPrompt.argsSchema.safeParse({ targetName: '' });
+      const result = irlIngestionPrompt.argsSchema.safeParse({ targetName: '' });
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.issues[0].path).toEqual(['targetName']);
@@ -135,7 +136,7 @@ describe('gst_diligence_sweep', () => {
     });
 
     it('rejects a filledIrl below the 200-char minimum (catches "" / "<paste>" placeholder)', () => {
-      const result = diligenceSweepPrompt.argsSchema.safeParse({ filledIrl: 'tiny' });
+      const result = irlIngestionPrompt.argsSchema.safeParse({ filledIrl: 'tiny' });
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.issues[0].path).toEqual(['filledIrl']);
@@ -146,14 +147,14 @@ describe('gst_diligence_sweep', () => {
   describe('build() — message structure', () => {
     it('returns three messages in both interactive and one-shot modes (text + IRL embed + VDR embed)', () => {
       for (const args of [{}, { filledIrl: SAMPLE_FILLED_IRL }] as const) {
-        const result = diligenceSweepPrompt.build(args);
+        const result = irlIngestionPrompt.build(args);
         expect(result.messages.length).toBe(3);
       }
     });
 
     it('embeds the IRL Library Resource as the second message in both modes', () => {
       for (const args of [{}, { filledIrl: SAMPLE_FILLED_IRL }] as const) {
-        const result = diligenceSweepPrompt.build(args);
+        const result = irlIngestionPrompt.build(args);
         const second = result.messages[1].content;
         expect(second.type).toBe('resource');
         if (second.type === 'resource' && 'text' in second.resource) {
@@ -166,7 +167,7 @@ describe('gst_diligence_sweep', () => {
 
     it('embeds the VDR Library Resource as the third message in both modes', () => {
       for (const args of [{}, { filledIrl: SAMPLE_FILLED_IRL }] as const) {
-        const result = diligenceSweepPrompt.build(args);
+        const result = irlIngestionPrompt.build(args);
         const third = result.messages[2].content;
         expect(third.type).toBe('resource');
         if (third.type === 'resource' && 'text' in third.resource) {
@@ -179,8 +180,8 @@ describe('gst_diligence_sweep', () => {
 
     it('mentions every orchestrates entry literally in the body', () => {
       for (const args of [{}, { filledIrl: SAMPLE_FILLED_IRL }] as const) {
-        const text = bodyText(diligenceSweepPrompt, args);
-        for (const ref of diligenceSweepPrompt.orchestrates) {
+        const text = bodyText(irlIngestionPrompt, args);
+        for (const ref of irlIngestionPrompt.orchestrates) {
           expect(text, `body missing orchestrates entry: ${ref}`).toContain(ref);
         }
       }
@@ -189,26 +190,26 @@ describe('gst_diligence_sweep', () => {
 
   describe('build() — interactive mode (no filledIrl)', () => {
     it('asks the user to paste the populated IRL before sweeping', () => {
-      const text = bodyText(diligenceSweepPrompt, {});
+      const text = bodyText(irlIngestionPrompt, {});
       expect(text.toLowerCase()).toMatch(/paste.*populated.*information request list/i);
     });
 
     it('mentions the dossier 9-section layout (A-I) so the model knows the output shape', () => {
-      const text = bodyText(diligenceSweepPrompt, {});
+      const text = bodyText(irlIngestionPrompt, {});
       expect(text).toMatch(/A.{0,4}I/);
     });
   });
 
   describe('build() — one-shot mode (filledIrl supplied)', () => {
     it('embeds the supplied filledIrl verbatim in the body', () => {
-      const text = bodyText(diligenceSweepPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       expect(text).toContain('MedSig Health, Inc.');
       expect(text).toContain('$45.2M Q1-FY26 annualized');
       expect(text).toContain('HIPAA, GDPR, Germany BDSG, France CNIL');
     });
 
     it('embeds the supplied targetName verbatim when provided', () => {
-      const text = bodyText(diligenceSweepPrompt, {
+      const text = bodyText(irlIngestionPrompt, {
         filledIrl: SAMPLE_FILLED_IRL,
         targetName: 'MedSig-Marker-XYZ',
       });
@@ -216,7 +217,7 @@ describe('gst_diligence_sweep', () => {
     });
 
     it('embeds the partner lead in the synthesis attribution when provided', () => {
-      const text = bodyText(diligenceSweepPrompt, {
+      const text = bodyText(irlIngestionPrompt, {
         filledIrl: SAMPLE_FILLED_IRL,
         partnerLead: 'Reid-Marker-XYZ',
       });
@@ -224,7 +225,7 @@ describe('gst_diligence_sweep', () => {
     });
 
     it('embeds the engagement code name in the project label when provided', () => {
-      const text = bodyText(diligenceSweepPrompt, {
+      const text = bodyText(irlIngestionPrompt, {
         filledIrl: SAMPLE_FILLED_IRL,
         projectCodeName: 'CodeName-Marker-XYZ',
       });
@@ -232,7 +233,7 @@ describe('gst_diligence_sweep', () => {
     });
 
     it('includes a buy-side voice cue framing the dossier as weighing risks against the deal thesis (not underwriting) + acknowledging both pre-LOI and LOI-stage engagements', () => {
-      const text = bodyText(diligenceSweepPrompt, {
+      const text = bodyText(irlIngestionPrompt, {
         filledIrl: SAMPLE_FILLED_IRL,
         transactionContext: 'buy-side',
       });
@@ -248,7 +249,7 @@ describe('gst_diligence_sweep', () => {
     });
 
     it('includes a sell-side voice cue when transactionContext is sell-side', () => {
-      const text = bodyText(diligenceSweepPrompt, {
+      const text = bodyText(irlIngestionPrompt, {
         filledIrl: SAMPLE_FILLED_IRL,
         transactionContext: 'sell-side',
       });
@@ -257,22 +258,56 @@ describe('gst_diligence_sweep', () => {
     });
 
     it('switches to one-shot Step pattern when filledIrl is supplied', () => {
-      const text = bodyText(diligenceSweepPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       expect(text).toContain('Step 1 —');
       expect(text).toContain('Step 8 —');
     });
 
-    it('enforces sentinel-discipline on businessModel / operatingModel (v0.0.4 anti-inference contract)', () => {
-      // v0.0.4 replaced the v0.0.3 "do NOT default to unknown" framing with
-      // explicit anti-inference anti-examples after a post-demo audit
-      // showed v0.0.3 produced OVER-confident outputs on bm and om —
-      // canonical forbidden patterns per the diligence tool's USAGE RULE.
-      const text = bodyText(diligenceSweepPrompt, { filledIrl: SAMPLE_FILLED_IRL });
-      // The sentinel-discipline framing must be present:
+    it('enforces 3-tier extraction discipline (BL-045 PR B recalibration + StoreForce walkthrough)', () => {
+      // BL-045 PR B (2026-06-02, senior-consultant review Axis 1) recalibrated
+      // the rule. The v0.0.4 anti-inference framing collapsed Tier-2 direct
+      // derivation into Tier-3 vibes-based inference and forced 'unknown'-
+      // bloated dossiers. The recalibration ALLOWS Tier-2 derivation while
+      // keeping the (one) remaining anti-example.
+      //
+      // Retired anti-examples (reviewer-confirmed wrong):
+      //   - squad-model → operatingModel: product-aligned-teams (v0.0.4 → PR B initial)
+      //   - b2b-saas → businessModel: productized-platform (PR B initial → PR B 2nd pass,
+      //     StoreForce walkthrough finding #9 — this mapping IS correct for the canonical
+      //     B2B SaaS pattern)
+      //
+      // Surviving anti-example:
+      //   - present-tense capability statement → transformationState: actively-modernizing
+      //     (cloud-native ≠ in-flight change; the transformationState clause requires a
+      //     specific named in-flight rewrite for literal mapping)
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      // Tier-3 sentinel directive must be present:
       expect(text).toMatch(/otherwise pass.*'unknown'/i);
-      // Both canonical forbidden anti-examples must be named explicitly:
-      expect(text).toMatch(/productized-platform/);
-      expect(text).toMatch(/product-aligned-teams/);
+      // 3-tier framing must be visible to the model:
+      expect(text).toMatch(/Tier 1/);
+      expect(text).toMatch(/Tier 2/);
+      expect(text).toMatch(/Tier 3/);
+      // Surviving anti-example: present-tense capability vs transformationState
+      expect(text).toMatch(/cloud-native/);
+      expect(text).toMatch(/present-tense capability/);
+      // Retired anti-examples must NOT be re-introduced as forbidden mappings.
+      // Note: under BL-045 PR B Option A' (tool-schema enforcement), the
+      // StoreForce-shape worked example in Step 1a does reference
+      // `productized-platform` and `centralized-eng` (correct Tier-2 values
+      // for StoreForce). The assertion below only locks that the term doesn't
+      // appear in an *anti-example* context — the `productized-platform` ban
+      // language ("do NOT map b2b-saas → productized-platform") must stay
+      // retired. We check the surrounding context, not just the substring.
+      expect(text, 'product-aligned-teams must not appear as a forbidden mapping').not.toMatch(
+        /do NOT map.*product-aligned-teams/i
+      );
+      expect(text, 'productized-platform must not appear as a forbidden mapping').not.toMatch(
+        /do NOT map.*productized-platform/i
+      );
+      // Calibration clauses (StoreForce walkthrough) must be present:
+      expect(text).toMatch(/Currency normalization/);
+      expect(text).toMatch(/headcount.*scope/);
+      expect(text).toMatch(/transformationState.*tie-break/);
     });
   });
 
@@ -292,20 +327,22 @@ describe('gst_diligence_sweep', () => {
       // v0.0.3 replaced with 'Surface the deeplink URL in the dossier'
       // (output verb), mirroring the v0.0.1-era directive on Steps 1+2
       // that the model honored cleanly. This test locks that contract.
-      const text = bodyText(diligenceSweepPrompt, { filledIrl: SAMPLE_FILLED_IRL });
-      // Each tool-pulling step (3-7) must contain the Surface output verb:
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      // Each tool-pulling step (3-7) must contain the Surface output verb.
+      // Bold sub-steps (e.g., "**Step 1a — ...**", "**Step 6a — ...**" added
+      // under BL-045 PR B for the calibration-self-audit and MTTR-OPEN guard)
+      // are NOT next-step boundaries — the block walker skips them by looking
+      // for newline-prefixed "Step N+1" (not bold-prefixed sub-steps).
       const stepBlocks = ['Step 3', 'Step 4', 'Step 5', 'Step 6', 'Step 7'];
       for (const step of stepBlocks) {
-        // Find the step block (from "Step N —" up to the next "Step" or section heading)
         const stepIdx = text.indexOf(step + ' —');
         expect(stepIdx, `${step} not found in body`).toBeGreaterThan(-1);
-        const nextStepIdx = text.indexOf('Step ', stepIdx + 1);
+        const stepNumber = parseInt(step.replace('Step ', ''), 10);
+        const nextStepIdx = text.indexOf(`\nStep ${stepNumber + 1} —`, stepIdx + 1);
         const stepBlock = text.slice(stepIdx, nextStepIdx > 0 ? nextStepIdx : undefined);
         expect(stepBlock, `${step} missing 'Surface ... deeplink' output-verb directive`).toMatch(
           /Surface.+`?deeplink`?/i
         );
-        // The dropped 'Capture' verb must NOT appear as a deeplink directive
-        // (it's OK in other contexts; we only forbid it adjacent to deeplink):
         expect(
           stepBlock,
           `${step} reverted to 'Capture the deeplink' (v0.0.2 regression)`
@@ -318,7 +355,7 @@ describe('gst_diligence_sweep', () => {
       // sentence of each section description with 'MUST close ... this
       // is non-optional' framing — the model's prior 'soft-suggestion'
       // interpretation dropped the links silently.
-      const text = bodyText(diligenceSweepPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       expect(text).toMatch(/\*\*\(C\).+\*\*.+MUST close.+Open TechPar Wizard/s);
       expect(text).toMatch(/\*\*\(D\).+\*\*.+MUST close.+Open ICG Wizard/s);
       expect(text).toMatch(/\*\*\(E\).+\*\*.+MUST close.+Open Tech Debt Calculator/s);
@@ -334,7 +371,7 @@ describe('gst_diligence_sweep', () => {
       // mis-applied it (subtracted 3 security instead of 8 SRE).
       // v0.0.4 added explicit worked math matching the IRL fixture's
       // sub-count wording.
-      const text = bodyText(diligenceSweepPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       // The worked math example with the exact subtraction:
       expect(text).toMatch(/58.{0,5}−.{0,5}8.{0,15}=.{0,5}50/);
       // The explicit anti-instruction naming the wrong subtractions:
@@ -349,7 +386,7 @@ describe('gst_diligence_sweep', () => {
       // The post-demo run used mttr=3 (midway between P0=2.4 and
       // P1=7.8), understating carrying cost by ~62%. v0.0.4 hard-codes
       // the P1 directive.
-      const text = bodyText(diligenceSweepPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       expect(text).toMatch(/use P1 \(the workhorse number\)/);
       expect(text).toMatch(/Do NOT use the P0 number/);
       expect(text).toMatch(/do NOT use a midpoint, do NOT use an average/);
@@ -361,7 +398,7 @@ describe('gst_diligence_sweep', () => {
       // v0.0.3 was directionally clean but produced 2/100 Reactive
       // where ~26-30 Aware was defensible (over-conservatism worse than
       // calibrated seeding because the -1 penalty is harsher than 0).
-      const text = bodyText(diligenceSweepPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       // The seeding-philosophy framing:
       expect(text).toMatch(/penalizes.+`?-1`?.+more harshly/i);
       // The mapping table must enumerate the foundational q-IDs:
@@ -374,7 +411,7 @@ describe('gst_diligence_sweep', () => {
     it('Step 5 carries the q5_3 tenure caveat (level 2 NOT level 3 for new FinOps hires)', () => {
       // The post-demo run scored q5_3=3 (Strategic) for a 5-month
       // FinOps hire. v0.0.4 added the tenure caveat.
-      const text = bodyText(diligenceSweepPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       expect(text).toMatch(/q5_3.+level 2.+NOT level 3/s);
       expect(text).toMatch(/(?:Strategic|practice).+(?:wins shipped|architectural influence)/);
       // The <12-month tenure cutoff is the operational anchor:
@@ -391,7 +428,7 @@ describe('gst_diligence_sweep', () => {
       // the constant module (re-inlining prose or paraphrasing) breaks
       // this test, alerting the editor to revisit the design doc's
       // single-source-of-truth invariant.
-      const text = bodyText(diligenceSweepPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       for (const [name, constant] of Object.entries({
         UNKNOWN_PROPAGATION_RULE,
         EU_AI_ACT_CONDITIONAL_TRIGGER,
@@ -410,7 +447,7 @@ describe('gst_diligence_sweep', () => {
       // Post-demo audit found NIS2 missing despite MedSig serving EU
       // healthcare (Annex II "important entity"). v0.0.4 added the
       // gap-fill conditional.
-      const text = bodyText(diligenceSweepPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       expect(text).toContain('NIS2');
       expect(text).toMatch(/add an NIS2 search/);
       // The Annex I/II sector framing:

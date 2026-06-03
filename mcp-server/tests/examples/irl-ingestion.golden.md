@@ -1,13 +1,13 @@
 ---
-promptName: gst_diligence_sweep
-version: 0.0.5
+promptName: gst_irl_ingestion
+version: 0.1.0
 recordedAt: 2026-05-24
 model: claude-opus-4-7
 ---
 
-# Worked example output for `gst_diligence_sweep`
+# Worked example output for `gst_irl_ingestion`
 
-Live-exercise transcript captured 2026-05-22 against the MedSig Health populated-IRL fixture ([`mcp-server/tests/fixtures/medsig-health-filled-irl.md`](../fixtures/medsig-health-filled-irl.md)). This recording supersedes the v0.0.1 V1 draft and is the source-of-truth shape the v0.0.2 body refinements were calibrated against.
+Live-exercise transcript captured 2026-05-22 against the MedSig Health populated-IRL fixture ([`mcp-server/tests/fixtures/medsig-health-filled-irl.md`](../fixtures/medsig-health-filled-irl.md)). Originally recorded against `gst_diligence_sweep@0.0.5`; carried forward as the BL-045 PR B rename-commit baseline. **PENDING re-record** at PR B close against the renamed prompt's final body (mode / verbosity / forceTools args, inclusion gates, meta JSON fence, provenance footer, gap list).
 
 ## Input
 

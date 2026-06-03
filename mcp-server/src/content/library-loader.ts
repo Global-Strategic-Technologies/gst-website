@@ -43,6 +43,14 @@ const LIBRARY_METADATA: ReadonlyArray<Omit<LibraryEntry, 'body'>> = [
       'GST one-page intake checklist organized by VDR taxonomy — the structured information needed to execute Hub diligence tools against a target or client.',
     mimeType: 'text/markdown',
   },
+  {
+    slug: 'irl-tool-input-mapping',
+    uri: 'gst://library/irl-tool-input-mapping',
+    name: 'IRL → Hub Tool Input Mapping (engineering SOP)',
+    description:
+      'GST engineering SOP mapping every IRL bullet to its consumer Hub tool / MCP prompt input. The model fetches this Resource when ingesting a populated IRL to resolve ambiguous bullets to the correct tool-input field. Promoted to a Resource under BL-045 PR B so the mapping is discoverable at inference time rather than implicit-in-prompt-body.',
+    mimeType: 'text/markdown',
+  },
 ];
 
 export const LIBRARY_ENTRIES: readonly LibraryEntry[] = LIBRARY_METADATA.map((meta) => {
