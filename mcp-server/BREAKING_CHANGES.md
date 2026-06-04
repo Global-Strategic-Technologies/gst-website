@@ -110,7 +110,7 @@ This is not a Windows-specific problem — it's the default Claude Desktop topol
 
 **Test deltas**: 1278 → 1241 (-37). Removed: receipt-hmac unit tests (15), extract-irl-from-xlsx parser tests (9), cross-tool integration tests (13). Updated: existing tests rebaselined for the 15-tool count + 0.5.1 prompt version + new body hashes. **Tier-discipline tests preserved** — the v11 Finding B closure remains under test coverage.
 
-**Deferred work**: BL-054 captures the deferred xlsx-canonicalized hash-bind authority path. Revisit if/when an MCP spec primitive ships for binary resource delivery OR Claude Desktop ships an attachment-to-host bridge.
+**Deferred work**: the xlsx-canonicalized hash-bind authority path is deferred indefinitely. BL-054 was filed and retired same-day on 2026-06-04 — a backlog item gated on external infrastructure with no public roadmap is a tombstone, not a queueable initiative. The architecture survives as a revisit blueprint at [`src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md`](../src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); re-engage by re-reading that doc when an MCP spec primitive ships for binary-resource delivery OR Claude Desktop ships an attachment-to-host bridge OR the topology pivots away from Claude Desktop + stdio.
 
 **Also in 0.13.1** — **BL-055 — hash-bind discipline split** (live-exercise empirical fix, 2026-06-04):
 
