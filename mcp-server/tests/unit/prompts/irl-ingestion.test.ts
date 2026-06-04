@@ -89,7 +89,7 @@ describe('gst_irl_ingestion', () => {
     // BL-045 reset: prompt version restarts at 0.1.0 to signal the substantive
     // rescope (rename, scenario-neutral framing, mode/verbosity/forceTools args,
     // inclusion gates, JSON fences, provenance footer, gap list).
-    expect(irlIngestionPrompt.version).toBe('0.4.0');
+    expect(irlIngestionPrompt.version).toBe('0.5.3');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });

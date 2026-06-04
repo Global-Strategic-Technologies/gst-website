@@ -69,6 +69,14 @@ const tierValues = ['1', '2', '3'] as const;
 // BL-045 PR B audit MA-6: tier-mismatch surfaced as its own category so the
 // partner can distinguish "this tier-1 claim's excerpt isn't in the IRL"
 // (structurally damning) from a generic "we couldn't verify this".
+// BL-049 v11 Finding B (KEPT after v0.13.1 partial revert): tier-fabrication
+// surfaced as its own category to close the demote-to-dodge gaming pattern.
+// Empirically validated in the v12 StoreForce live exercise (2026-06-04):
+// model read the verifier's tier-fabrication diagnostic and chose to re-cite
+// rather than relabel a tier-1 fabrication as tier-2 to dodge the discipline
+// check. The verdict is derived from citation properties (substring +
+// partner-supplied sentinel), not from model-declared tier, so demotion does
+// not satisfy the check.
 const gapCategoryValues = [
   'defaulted-dimension',
   'extraction-only',
@@ -78,6 +86,7 @@ const gapCategoryValues = [
   'map-absent',
   'provenance-gap',
   'tier-mismatch',
+  'tier-fabrication',
 ] as const;
 
 // ─── Sub-shapes ─────────────────────────────────────────────────────────
@@ -273,6 +282,8 @@ export interface ComposeDossierEnvelopeResult {
     autoAppendedGaps: number;
     /** BL-045 PR B audit MA-6: tier-1 claims (declared verbatim IRL bullet) whose excerpt was NOT found in the IRL. Structurally more damning than a generic unverified verdict — model declared verbatim but cited a paraphrase or fabrication. */
     tierMismatches: number;
+    /** BL-049 v11 Finding B: tier-2 claims (declared one-step derivation) whose citation neither substring-matches the IRL nor carries the `Section --` partner-supplied sentinel. Surfaces the demote-to-dodge gaming pattern where a model tries to downgrade tier-1 to tier-2 to convert a tier-mismatch into a soft provenance-gap. */
+    tierFabrications: number;
   };
   emitInstructions: string;
 }
@@ -326,6 +337,7 @@ const CATEGORY_DISPLAY: Record<(typeof gapCategoryValues)[number], string> = {
   'map-absent': '**map-absent:**',
   'provenance-gap': '**provenance-gap:**',
   'tier-mismatch': '**tier-mismatch:**',
+  'tier-fabrication': '**tier-fabrication:**',
 };
 
 export function renderGapList(gaps: ComposeDossierEnvelopeInput['gaps']): string {
@@ -408,6 +420,38 @@ export class IrlBodyHashMismatchError extends Error {
   }
 }
 
+/**
+ * BL-049 v11 Finding B (kept after v0.13.1 partial revert) — derive the
+ * effective tier from citation properties so the model cannot dodge
+ * `tier-mismatch:` by relabeling a literal IRL bullet as tier-2.
+ *
+ *   - `tier-1-literal`: citation excerpt is a verbatim normalized
+ *     substring of the IRL OR a fuzzy run ≥ FUZZY_MIN_RUN words.
+ *   - `partner-supplied`: citation uses the `Section --` +
+ *     `partner-supplied form input` sentinel.
+ *   - `fabrication`: neither. No legitimate tier can produce this
+ *     verdict — the citation isn't anchored anywhere.
+ *
+ * The auto-append loop compares derived tier vs declared tier:
+ *   - declared 1 + derived 'tier-1-literal' → no gap (normal verified path)
+ *   - declared 1 + derived anything else    → `tier-mismatch:` (existing v0.12.0)
+ *   - declared 2 + derived 'tier-1-literal' or 'partner-supplied' → no gap
+ *   - declared 2 + derived 'fabrication'    → `tier-fabrication:` (NEW)
+ *   - declared 3 + any                       → no gap (correlation/unknown tier
+ *                                              is explicitly soft)
+ */
+export type DerivedTier = 'tier-1-literal' | 'partner-supplied' | 'fabrication';
+
+export function deriveTier(verdict: ValidateIrlProvenanceVerdict): DerivedTier {
+  if (verdict.status === 'verified' || verdict.status === 'verified-fuzzy') {
+    return 'tier-1-literal';
+  }
+  if (verdict.status === 'partner-supplied') {
+    return 'partner-supplied';
+  }
+  return 'fabrication';
+}
+
 export function runComposeDossierEnvelope(
   input: ComposeDossierEnvelopeInput,
   serverContext: ComposeDossierEnvelopeServerContext
@@ -430,33 +474,69 @@ export function runComposeDossierEnvelope(
     })),
   });
 
-  // 2. Auto-append provenance-gap entries for unverified claims AND
-  //    tier-mismatch entries for tier-1 claims whose excerpt isn't
-  //    a substring of the IRL (MA-6).
+  // 2. Auto-append provenance-gap entries for unverified claims, plus
+  //    tier-mismatch (MA-6 — declared tier-1, excerpt not in IRL) and
+  //    tier-fabrication (BL-049 v11 Finding B — declared tier-2 to dodge
+  //    tier-mismatch, but excerpt is neither verifiable nor
+  //    partner-supplied). The verdict is DERIVED from the citation, so
+  //    the model cannot dodge tier-mismatch by relabeling.
   const autoAppended: ComposeDossierEnvelopeInput['gaps'][number][] = [];
   let tierMismatches = 0;
+  let tierFabrications = 0;
   for (let i = 0; i < input.claims.length; i++) {
     const claim = input.claims[i];
     const verdict = verification.verdicts[i];
-    if (verdict.status === 'unverified') {
-      // Tier-1 unverified is structurally more damning — declared
-      // verbatim IRL bullet but the excerpt isn't a substring.
-      if (claim.tier === '1') {
-        tierMismatches++;
-        autoAppended.push({
-          category: 'tier-mismatch',
-          entry: `${claim.claim} — declared tier=1 (literal IRL bullet) but the citation excerpt is not a substring of the IRL body. Re-cite the literal IRL bullet OR demote the claim to tier=2 (one-step derivation).`,
-          followUp:
-            "If the IRL row supports the claim, supply the verbatim bullet text as the citation excerpt. If the claim is a derivation rather than literal, change tier to '2'.",
-        });
-      } else {
-        autoAppended.push({
-          category: 'provenance-gap',
-          entry: `${claim.claim} — citation excerpt not found in IRL body (excerpt may be paraphrased; tier=${claim.tier} so demotion not applicable)`,
-          followUp:
-            'Verify the IRL bullet supports this claim. If the source is real, supply a more verbatim excerpt; if not, remove the claim or mark it open.',
-        });
-      }
+    const derived = deriveTier(verdict);
+    const declared = claim.tier;
+
+    // Declared tier-1: must derive as tier-1-literal (verified or fuzzy).
+    if (declared === '1' && derived !== 'tier-1-literal') {
+      tierMismatches++;
+      autoAppended.push({
+        category: 'tier-mismatch',
+        entry: `${claim.claim} — declared tier=1 (literal IRL bullet) but the citation excerpt is not a substring of the IRL body. Re-cite the literal IRL bullet OR demote the claim to tier=2 (one-step derivation).`,
+        followUp:
+          "If the IRL row supports the claim, supply the verbatim bullet text as the citation excerpt. If the claim is a derivation rather than literal, change tier to '2'.",
+      });
+      continue;
+    }
+
+    // Declared tier-2: must derive as tier-1-literal (substring matched —
+    // honest case where the model labeled a literal as a derivation) OR
+    // partner-supplied. A 'fabrication' derived tier under tier-2 IS the
+    // v11 Finding B gaming pattern.
+    if (declared === '2' && derived === 'fabrication') {
+      tierFabrications++;
+      autoAppended.push({
+        category: 'tier-fabrication',
+        entry: `${claim.claim} — declared tier=2 (one-step derivation) but the citation excerpt is neither a substring of the IRL body nor a partner-supplied sentinel. This pattern matches the BL-049 v11 Finding B demote-to-dodge: relabeling a tier-1 fabrication as tier-2 does NOT satisfy provenance — the verdict is derived from the citation, not the declared tier. Re-cite the IRL bullet that supports the derivation OR remove the claim.`,
+        followUp:
+          'Supply the verbatim IRL bullet text the derivation rests on. If no such bullet exists, the claim is fabricated and must be removed (or marked open with `Section -- — partner-supplied form input — <description>`).',
+      });
+      continue;
+    }
+
+    // Declared tier-3 (correlation/unknown) or any "verified" derivation:
+    // no auto-append. tier-2 + 'partner-supplied' is also fine — model
+    // legitimately attributed a derivation to partner input.
+    // Unverified status without a tier-mismatch / fabrication promotion
+    // still surfaces as a soft provenance-gap so the partner sees it.
+    if (verdict.status === 'unverified' && derived !== 'fabrication') {
+      // Defensive — shouldn't reach here under current logic, but
+      // preserves the soft-fallback if classification logic evolves.
+      autoAppended.push({
+        category: 'provenance-gap',
+        entry: `${claim.claim} — citation excerpt not found in IRL body (tier=${claim.tier})`,
+        followUp:
+          'Verify the IRL bullet supports this claim. If the source is real, supply a more verbatim excerpt; if not, remove the claim or mark it open.',
+      });
+    } else if (verdict.status === 'unverified' && declared === '3') {
+      autoAppended.push({
+        category: 'provenance-gap',
+        entry: `${claim.claim} — citation excerpt not found in IRL body (tier=3 correlation/unknown — soft gap; consider whether the claim is load-bearing)`,
+        followUp:
+          'Tier-3 claims should be treated as hypotheses, not facts. Either supply IRL backing OR mark the claim explicitly as a working hypothesis.',
+      });
     }
   }
 
@@ -474,6 +554,7 @@ export function runComposeDossierEnvelope(
       unverified: verification.unverified,
       autoAppendedGaps: autoAppended.length,
       tierMismatches,
+      tierFabrications,
     },
     emitInstructions: EMIT_INSTRUCTIONS,
   };

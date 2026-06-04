@@ -188,6 +188,10 @@ describe('protocol roundtrip', () => {
           'search_regulations',
           'validate_irl_provenance', // BL-045 PR B Phase 2B residual-fabrication guard
           'compose_dossier_envelope', // BL-045 PR B post-audit forcing-function tightening
+          // BL-049 `extract_irl_from_xlsx` partial-reverted at v0.13.1 —
+          // cross-host Claude Desktop topology (model in cloud-side Linux
+          // sandbox, MCP server on user host) has no reachable path to
+          // deliver attached xlsx bytes. Deferred to BL-054.
         ].sort()
       );
 
