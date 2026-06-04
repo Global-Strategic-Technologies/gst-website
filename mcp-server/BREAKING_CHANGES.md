@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-191a747580a606f69563ca368c0e9bf33ded1a5cdd1aa8f6c9cd036f11101a59
+c6a2a57b210a233bd167063e4acd78e327e00454b2646d79002934f243336fb4
 ```
 
 Computed over (sorted):
@@ -20,12 +20,33 @@ Computed over (sorted):
 - 120 Regulation URIs.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.6.1` (BL-052 BL-045-VERIFY block clarity: new `meaningfulRecallsHaveDifferentInputs` field distinguishes healthy iteration from transport thrash on `selfCorrectionCalls > 0`).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.6.2` (BL-051 post-PR bugfix: precheck directive corrected from `{filledIrl, claims}` to `{filledIrl, citations}` at both prompt-body sites; the historical wording would have failed Zod validation on the first precheck call and bypassed BL-051 in production).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.15.2 — 2026-06-04 — BL-051 post-PR bugfix — precheck directive `{filledIrl, claims}` → `{filledIrl, citations}` + schema-prompt consistency regression guard
+
+**Theme**: a code-review pass after the BL-051 + BL-053 + BL-052 PRs merged surfaced a blocker-severity bug: the BL-051 precheck directive instructed the model to call `validate_irl_provenance` with `{filledIrl, claims}` at both prompt-body sites (`ENVELOPE_PRECHECK_DIRECTIVE` line 397 used by `buildOneShotBody`; `INTERACTIVE_BODY` Step 3a line 866). The actual schema field is `citations`. On the first BL-051 precheck call in production the model would have issued `claims:`, received Zod schema rejection, and burned the precheck iteration budget on a schema-mismatch loop — bypassing the entire BL-051 architecture. The bug shipped in PR #220 and went unnoticed because the prompt-body hash-stability tests lock the literal string but no test cross-references the literal against the schema.
+
+**Surface impact** (patch — prompt-body string fix + regression-guard test addition):
+
+- `mcp-server/src/prompts/irl-ingestion.ts` — both sites corrected to `{filledIrl, citations}` with a brief shape-clarification phrase ("pass each claim as a `{path, citation}` entry in the `citations` array").
+- `mcp-server/tests/unit/prompts/irl-ingestion.test.ts` — new `describe('BL-051 schema-prompt consistency: precheck directive references real schema fields')` block with three tests:
+  1. One-shot body contains `{filledIrl, citations}` and NOT the historical `{filledIrl, claims}` bug.
+  2. Interactive body Step 3a contains `{filledIrl, citations}` and NOT the historical bug.
+  3. The field name in the rendered body's `{filledIrl, X}` pattern matches `Object.keys(ValidateIrlProvenanceInputSchema.shape)` — locks the prompt-body field-naming to the schema's source of truth, so any future schema rename (e.g., `citations` → `entries`) forces the prompt body to be updated in lockstep.
+- No tool schema change. No engine change.
+
+**Versioning**: `mcp-server` 0.15.1 → 0.15.2 (patch — bug fix + regression guard); `gst_irl_ingestion` prompt 0.6.1 → 0.6.2. Manifest hash + 3 body hashes re-baselined (INTERACTIVE, ONESHOT_MINIMAL, ONESHOT_FULL — the 3 envelope-bearing verbose body shapes that include the precheck directive); extract-only + compact paths unchanged.
+
+**Test surface**: 1260 mcp-server tests pass (+3 new regression-guard tests).
+
+**Filed under**: BL-051 post-PR bugfix (no separate BACKLOG entry — bug-class is documented inline in the BREAKING_CHANGES theme above).
 
 ---
 

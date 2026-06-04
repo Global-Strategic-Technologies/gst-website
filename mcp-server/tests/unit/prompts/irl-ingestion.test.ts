@@ -89,7 +89,7 @@ describe('gst_irl_ingestion', () => {
     // BL-045 reset: prompt version restarts at 0.1.0 to signal the substantive
     // rescope (rename, scenario-neutral framing, mode/verbosity/forceTools args,
     // inclusion gates, JSON fences, provenance footer, gap list).
-    expect(irlIngestionPrompt.version).toBe('0.6.1');
+    expect(irlIngestionPrompt.version).toBe('0.6.2');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -454,6 +454,60 @@ describe('gst_irl_ingestion', () => {
       expect(text).toMatch(/Annex I or II|Annex I\/II/);
       // The healthcare sector should be in the enumeration:
       expect(text).toMatch(/healthcare/);
+    });
+  });
+
+  // ─── BL-051 schema-prompt consistency regression guard (post-PR-A bug) ─
+  //
+  // The original BL-051 directive instructed the model to call
+  // `validate_irl_provenance` with `{filledIrl, claims}` — but the
+  // schema field is `citations`. The model would issue `claims:`, get
+  // schema rejection, and burn the precheck budget on a schema-mismatch
+  // loop, bypassing the entire BL-051 architecture in production.
+  //
+  // This guard locks the corrected field name across both prompt-body
+  // sites (the standalone ENVELOPE_PRECHECK_DIRECTIVE used by
+  // buildOneShotBody, and the inline Step 3a in INTERACTIVE_BODY) and
+  // verifies that the field name the prompt body references for
+  // `validate_irl_provenance`'s payload matches the actual Zod schema.
+  describe('BL-051 schema-prompt consistency: precheck directive references real schema fields', () => {
+    it('one-shot body (verbose default) instructs `{filledIrl, citations}` — NOT the historical `{filledIrl, claims}` bug', async () => {
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      expect(text).toMatch(/validate_irl_provenance/);
+      expect(text).toContain('{filledIrl, citations}');
+      expect(text).not.toContain('{filledIrl, claims}');
+    });
+
+    it('interactive body (no filledIrl) Step 3a instructs `{filledIrl, citations}` — NOT the historical `{filledIrl, claims}` bug', async () => {
+      const text = bodyText(irlIngestionPrompt, {});
+      expect(text).toMatch(/Step 3a\..*Envelope precheck/);
+      expect(text).toContain('{filledIrl, citations}');
+      expect(text).not.toContain('{filledIrl, claims}');
+    });
+
+    it('field name in `{filledIrl, X}` matches the validate_irl_provenance Zod schema shape', async () => {
+      const { ValidateIrlProvenanceInputSchema } =
+        await import('../../../src/schemas/validate-irl-provenance');
+      const schemaShape = Object.keys(ValidateIrlProvenanceInputSchema.shape);
+      // Schema must continue to have `filledIrl` + `citations` for the
+      // precheck directive to be correct. If the schema is refactored
+      // (e.g., `citations` renamed to `claims` or `entries`), this test
+      // FORCES the prompt body to be updated in lockstep.
+      expect(schemaShape).toContain('filledIrl');
+      expect(schemaShape).toContain('citations');
+
+      // And the body must reference whichever field names the schema
+      // actually publishes. Cross-check explicit for the precheck-
+      // payload shape both bodies advertise.
+      for (const args of [{}, { filledIrl: SAMPLE_FILLED_IRL }] as const) {
+        const text = bodyText(irlIngestionPrompt, args);
+        const match = text.match(/\{filledIrl,\s*(\w+)\}/);
+        expect(match, 'precheck payload shape not present in body').not.toBeNull();
+        if (match) {
+          const referencedField = match[1];
+          expect(schemaShape).toContain(referencedField);
+        }
+      }
     });
   });
 });
