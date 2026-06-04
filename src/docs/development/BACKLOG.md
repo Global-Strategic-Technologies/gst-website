@@ -3596,7 +3596,7 @@ The dossier still ships correctly under retry tax — the workflow is self-heali
 
 ---
 
-### BL-060: `gst_irl_ingestion` — Top-Level `toolErrors` Block in BL-045-VERIFY (Expand Beyond Precheck)
+### BL-060: `gst_irl_ingestion` — Top-Level `toolErrors` Block in BL-045-VERIFY (Expand Beyond Precheck) ✅ CLOSED 2026-06-04
 
 **Priority**: Medium. Direct follow-up to BL-058 and BL-059 — without it, BL-059's investigation cannot proceed efficiently.
 
@@ -3645,7 +3645,7 @@ The pattern is observable today via `toolCallCounts` deltas (`attempted - succee
 
 ---
 
-### BL-061: `gst_irl_ingestion` — `compactionEvents` Field in BL-045-VERIFY `response:` Block
+### BL-061: `gst_irl_ingestion` — `compactionEvents` Field in BL-045-VERIFY `response:` Block ✅ CLOSED 2026-06-04
 
 **Priority**: Medium. Captures a new failure-mode signal the 2026-06-04 retest surfaced via operator observation, not the artifact.
 
@@ -3693,7 +3693,7 @@ Compaction is a downstream symptom of the retry tax in BL-059; fixing BL-059 sho
 
 ---
 
-### BL-062: `gst_irl_ingestion` — Disambiguate `conditionalTriggers.considered` (Default-Fired Frameworks vs Conditional-Evaluated)
+### BL-062: `gst_irl_ingestion` — Disambiguate `conditionalTriggers.considered` (Default-Fired Frameworks vs Conditional-Evaluated) ✅ CLOSED 2026-06-04
 
 **Priority**: Low. Surfaced by BL-058's enriched block — and the new visibility immediately raised a semantic ambiguity worth resolving before operators draw wrong conclusions from the data.
 
@@ -3735,4 +3735,4 @@ Operator-facing semantics issue, not a workflow correctness issue confirmed by a
 
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority) | BL-051 + BL-052 + BL-053 filed: June 4, 2026 (post-BL-049 v12 live-exercise empirical follow-ups — citation iteration discipline, verify block schema clarity, multi-bullet citation array form) | BL-049 partial-reverted at v0.13.1 + BL-054 filed: June 4, 2026 then retired same day (xlsx-canonicalized hash-bind authority — blueprint preserved in [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); revisit via design doc if external infrastructure ships, not via backlog ping) | BL-056 filed + closed: June 4, 2026 (precheckIterations field added to BL-045-VERIFY block — BL-051 compliance now observable from the artifact alone) | BL-057 filed: June 4, 2026 (regulatory-map coverage gap sweep — AI-governance canon NIST AI RMF + Canada AIDA + Colorado AI Act + NYC AEDT + Illinois HB 3773 + CA + UK; Chile Ley 21.719 data-protection) | BL-058 filed + closed: June 4, 2026 (VERIFY block enriched with filledIrl + precheck + toolCallCounts + conditionalTriggers + response field families — engineering triage now one-paste, no follow-up Q&A) | BL-059 + BL-060 + BL-061 + BL-062 filed + revised: June 4, 2026 (post-BL-058 retest empirical follow-ups — tool-arg coaching to eliminate retry tax, top-level toolErrors block, compactionEvents field, conditionalTriggers default-vs-conditional disambiguation; revisions same-day after independent agent audits — BL-060 elevated to hard prerequisite of BL-059, compose_dossier_envelope hash-bind ergonomics moved in-scope, BL-061 epistemic claim corrected with null state, BL-062 Option A picked explicitly, BL-060+061+062 grouped for one rebaseline cycle)_
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority) | BL-051 + BL-052 + BL-053 filed: June 4, 2026 (post-BL-049 v12 live-exercise empirical follow-ups — citation iteration discipline, verify block schema clarity, multi-bullet citation array form) | BL-049 partial-reverted at v0.13.1 + BL-054 filed: June 4, 2026 then retired same day (xlsx-canonicalized hash-bind authority — blueprint preserved in [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); revisit via design doc if external infrastructure ships, not via backlog ping) | BL-056 filed + closed: June 4, 2026 (precheckIterations field added to BL-045-VERIFY block — BL-051 compliance now observable from the artifact alone) | BL-057 filed: June 4, 2026 (regulatory-map coverage gap sweep — AI-governance canon NIST AI RMF + Canada AIDA + Colorado AI Act + NYC AEDT + Illinois HB 3773 + CA + UK; Chile Ley 21.719 data-protection) | BL-058 filed + closed: June 4, 2026 (VERIFY block enriched with filledIrl + precheck + toolCallCounts + conditionalTriggers + response field families — engineering triage now one-paste, no follow-up Q&A) | BL-059 + BL-060 + BL-061 + BL-062 filed + revised: June 4, 2026 (post-BL-058 retest empirical follow-ups — tool-arg coaching to eliminate retry tax, top-level toolErrors block, compactionEvents field, conditionalTriggers default-vs-conditional disambiguation; revisions same-day after independent agent audits — BL-060 elevated to hard prerequisite of BL-059, compose_dossier_envelope hash-bind ergonomics moved in-scope, BL-061 epistemic claim corrected with null state, BL-062 Option A picked explicitly, BL-060+061+062 grouped for one rebaseline cycle) | BL-060 + BL-061 + BL-062 closed: June 4, 2026 (three VERIFY-block field additions shipped together at prompt 0.9.0 / mcp-server 0.18.0 — BL-059 unblocked, awaiting next live exercise for diagnostic data)_

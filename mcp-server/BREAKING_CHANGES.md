@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-068ee723309a60f7de55d6050e4ec22af7b8ad3ee79080790cd0961040c73796
+ee8e72fd9a0f03881dd0bc50906fd42a36887cb943f072062f2d6f3cbd371527
 ```
 
 Computed over (sorted):
@@ -20,12 +20,32 @@ Computed over (sorted):
 - 120 Regulation URIs.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.8.0` (BL-058: VERIFY block enriched with five new field families — `filledIrl`, `precheck`, `toolCallCounts`, `conditionalTriggers`, `response` — so operators can triage every observed pathology from one artifact without follow-up Q&A with engineering).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.9.0` (BL-060+061+062: three further VERIFY-block additions — `toolErrors` top-level block partitioned from `precheck.errorsEncountered` with arithmetic ground-truth check, `compactionEvents` int|null three-state field with epistemic-honesty correction, `defaultFiredFrameworks` additive list resolving the BL-058 `considered:` vocabulary collision; audit-corrected designs from independent code-reviewer agents).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.18.0 — 2026-06-04 — BL-060 + BL-061 + BL-062 — three VERIFY-block field additions per audit-corrected grouping
+
+**Theme**: the 2026-06-04 post-BL-058 retest produced a clean enriched VERIFY block — and immediately exposed three follow-up gaps the new observability surface let us see. BL-058 carried the diagnosis-cycle win; this release carries the corrections the live data revealed. All three changes are VERIFY-block schema edits sharing one rebaseline cycle. Each was reviewed by an independent code-reviewer agent before implementation and revised per audit findings.
+
+**Surface impact** (additive YAML in the verification artifact; no tool/schema/runtime change):
+
+- **`toolErrors` block (BL-060, new top-level list)**: per-attempt diagnostic detail for the failed-attempt counts in `toolCallCounts`. Shape: `[{tool, attemptNumber, errorClass, recoveryAction}]`. **Partitioned from `precheck.errorsEncountered`** (per audit revision — original draft allowed overlap as "convenience"; corrected to strict partition where precheck failures stay in the precheck-specific list and `toolErrors` excludes them). Defined `errorClass` vocabulary: `arg-shape-rejection`, `hash-bind-retry` (legitimate compose_dossier_envelope structural retry path, not a coaching gap), `transport-timeout`, `transport-disconnect`, `tool-internal-error`. **Arithmetic ground-truth check**: `count(toolErrors where tool == T) MUST equal toolCallCounts.T.attempted - toolCallCounts.T.succeeded` for every tool — operators verify this arithmetic to detect model self-report under-reporting. **Compaction fallback**: if `response.compactionEvents > 0`, the list MAY be partial with `<partial-due-to-compaction>` as the first entry's `errorClass`.
+
+- **`response.compactionEvents` (BL-061, new field in existing `response:` block)**: `<int | null>` three-state field for host-triggered auto-compaction observability. **Epistemic-honesty correction** (per audit revision — original draft asserted "model can detect the discontinuity"; audit corrected because post-compaction the host re-prompts with a synthesized summary as if it were prior context, no labeled seam). Three valid states with strict semantics: `<int > 0>` (positive reason to believe N events occurred), `0` (positive reason to believe none), `null` (genuinely cannot tell — preferable to `0` under uncertainty). The asymmetry is documented in the rule prose: false-negatives defeat the field's purpose; `null` is always preferable to `0` when uncertain.
+
+- **`conditionalTriggers.defaultFiredFrameworks` (BL-062, new field in existing block)**: `[<framework name>]` for Section-09-enumerated frameworks fired via the gate-5 evidence path (GDPR, UK GDPR, PIPEDA, POPIA, Australia Privacy Act, etc.). **Resolves the BL-058 vocabulary collision**: the directive defines exactly EU_AI_ACT and NIS2 as conditional triggers (named constants `EU_AI_ACT_CONDITIONAL_TRIGGER` and `NIS2_CONDITIONAL_TRIGGER`); Section-09 frameworks are a parallel evidence path, not triggers. BL-058's broad-sounding `considered:` field name suggested operators should expect all applicable frameworks there — they shouldn't. The two lists now partition cleanly. **Option A picked explicitly** (per audit revision — additive field, no breaking change to BL-058 consumers; Option B's `{name, kind}` tagged-entry approach was rejected as a breaking change to downstream YAML parsers).
+
+**Acceptance criterion**: the next live exercise's VERIFY block carries `toolErrors`, `compactionEvents`, and `defaultFiredFrameworks` populated correctly. Specifically: `toolErrors` arithmetic check passes against `toolCallCounts`; `compactionEvents` reports `null` honestly when uncertain rather than defaulting to `0`; `defaultFiredFrameworks` lists every framework named in IRL Section 09.
+
+**Versioning**: `mcp-server` 0.17.0 → 0.18.0 (additive observability surface); `gst_irl_ingestion` prompt 0.8.0 → 0.9.0. Manifest hash + all 7 body hashes re-baselined.
+
+**Filed under**: BL-060 + BL-061 + BL-062 — three independent BLs filed and audit-corrected same day, then implemented as one PR per audit-corrected grouping. BL-059 (tool-arg coaching) ships separately as the directive-behavior fix that uses BL-060's `errorClass` data as its diagnostic input.
 
 ---
 

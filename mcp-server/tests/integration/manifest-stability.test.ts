@@ -54,7 +54,11 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // five new field families — filledIrl, precheck, toolCallCounts,
 // conditionalTriggers, response — so operators can triage every
 // observed pathology from one artifact without follow-up Q&A).
-const EXPECTED_MANIFEST_HASH = '068ee723309a60f7de55d6050e4ec22af7b8ad3ee79080790cd0961040c73796';
+// BL-060+061+062 rebaseline: prompt v0.8.0 → v0.9.0 (three further
+// VERIFY-block additions per audit-corrected grouping — toolErrors
+// top-level block, compactionEvents int|null three-state field,
+// defaultFiredFrameworks additive list).
+const EXPECTED_MANIFEST_HASH = 'ee8e72fd9a0f03881dd0bc50906fd42a36887cb943f072062f2d6f3cbd371527';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

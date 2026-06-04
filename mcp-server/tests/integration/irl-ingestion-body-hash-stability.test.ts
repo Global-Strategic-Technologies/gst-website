@@ -133,16 +133,27 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // matching rule-discipline prose added/expanded. All seven body hashes
 // + the manifest hash drift because the verify-block schema appears in
 // every body path.
+// Rebaselined for BL-060+061+062 prompt v0.8.0 → v0.9.0: three
+// additional VERIFY-block fields landing in one PR per audit-corrected
+// grouping. toolErrors (BL-060) — top-level per-attempt failure log
+// partitioned from precheck.errorsEncountered with arithmetic ground-
+// truth check. compactionEvents (BL-061) — int|null three-state field
+// in response: block with epistemic-honesty correction (null preferable
+// to 0 under uncertainty). defaultFiredFrameworks (BL-062) — additive
+// list in conditionalTriggers: block resolving the considered:-vocabulary
+// collision between BL-058's broad name and the directive's narrow
+// conditional-trigger taxonomy (Option A chosen; Option B rejected as
+// breaking change to BL-058 consumers).
 const EXPECTED_HASH_INTERACTIVE =
-  'cca520024d3511e709c77999f9c4d328f57c9d15d36d84e7776a71fc6bc02436';
+  '4d11bcf9e79b2ba6395247e8d3e83f7d25c63a38497458be010e527598f52b95';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'd784fc7b657a9a721bc1c700fa4a0a153c31b51f10d58bd5332109d87c82b2d7';
+  '6d57788dc5d78ab5e1a2dd8b3a2c073ff0183f42af3c283ad39d3e7469f1d57a';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '5166dc57797c22cdb7b9f0a892ebf3939c47490bd08743b9c2306f0b272cbfc0';
+  '086fa5904057e8141ec76490e99a7c4f86d5c76f16138aaf9f53a6a18a141ad0';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  'd85da71b86fda4212b294357714fdd929f6d72bb661dce0d4b684f8b22f3be54';
+  '5089e787f9e6ce9f074877b311d21309061b8709356bbd5ae365fca7813b3a1f';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '3c31e5cb87adb89d51004c016d793d04f0e806d192f2927a38b6a91dacc9f40d';
+  'e83a29f8480302472a5cb2a94198459a33ed7bfdc347d4d823050ae9d39e66d4';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -152,9 +163,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '92038d4fc45cd1e56758c3a57ed762f33f393d9bef24183eaa7d2ffdce0abfaf';
+  '32edaf1013e13113ad237248892616d286170dc58a049b2142992ee12d8d28bd';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  '08e4bf13fc22bdb44c53be0c334d1aeff881adc94e9035f4a40ab224220144ea';
+  '308a958ac3b0935ebedca3ff97d099766827135022312358da124171a5dfe480';
 
 interface Scenario {
   name: string;
