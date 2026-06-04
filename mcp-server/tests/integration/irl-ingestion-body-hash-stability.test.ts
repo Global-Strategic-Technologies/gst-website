@@ -107,23 +107,23 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 //   - lastReviewedAt bumped 2026-06-01 → 2026-06-04 (no body hash impact
 //     unless body builders embed the date — they currently don't).
 // Rebaselined for v0.13.1 + BL-055 hash-bind discipline split
-// (prompt 0.5.3 → 0.6.0). BL-051: new ENVELOPE_PRECHECK_DIRECTIVE
-// instructing validate_irl_provenance citation-iteration BEFORE the
-// heavyweight compose_dossier_envelope call (~30KB input); converge to
-// ≥90% verification on the cheap verifier, then ship the dossier in 1
-// envelope call. Interactive body gains an inline Step 3a equivalent.
-// Extract-only bodies do NOT include the precheck (no envelope call in
-// extract-only mode), so EXTRACT_ONLY_* hashes are unchanged.
+// (prompt 0.6.0 → 0.6.1). BL-052: BL-045-VERIFY block gains
+// `meaningfulRecallsHaveDifferentInputs: <bool — true|false|null>` to
+// distinguish healthy iteration (progressively cleaner inputs) from
+// transport thrash (identical-input retries). Added to both the
+// standalone BL_045_VERIFY_DIRECTIVE (oneshot + extract-only paths) and
+// the inline Step 5 block (INTERACTIVE_BODY). All 7 body shapes drift
+// because the directive appears in every one.
 const EXPECTED_HASH_INTERACTIVE =
-  '0176eb773896ba401ccfa8779c89cb686337fb6fb5583fb4e3c6595a0f850576';
+  '7422b7c77a475478fa1e9b6b750a3423044c07a9acf072d1cdae08e8fbbc40b1';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '0f585b8b8bda3c75a89dea8ec12e5b0005153c9abefd6ee2cc13716fdd34a148';
+  '48ccfac4b0a769d1112152145797efa36bf1cbae7d94b1ddba9d973b5c5b0df2';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'b226615e6504208c109df4aeb2e56ecb125c78d54de314ca37777f0bdc108a08';
+  '43d47aaaf69004d4bd6a26d6ca0eb1c6e8bad36e0d1791b237a061cd70bbc1f3';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  'cfa4a76c66e9370f0510460a72751c6388145b76b48f7fd331546f580344a6df';
+  '5c651d2c0c208fb32784326f1c3cd688afcfcaa5b7c5f65cb448bccc10032d0c';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '5670006c73933d80923b72d58cd735bf370af7e1cd4bbe5d7eba9997c57d44d7';
+  'cdcfcf8334c8db340f827ae4921e441dfd0fb64ce991f8bd7700c1509bbe6e7d';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -133,9 +133,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '5928cc2270c8b555ab16325e788a1d18e84723afc4e3a1b3c1b4834defa804c1';
+  '10cb503185f3a704ef6c234eda0dc227d08cf31af92c542b539f2c00ca59a362';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  'ea510aafa20b41fd21a3b86eb8db5ce082f8c93e30b52bfd6c92680920cedc78';
+  '872a267f59e4e0f55c817f3231449822ff12a5684bd70672edc28b364674e3da';
 
 interface Scenario {
   name: string;
