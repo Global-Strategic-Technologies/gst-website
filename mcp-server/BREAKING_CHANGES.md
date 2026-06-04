@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-2b3250feee6b075dda89105e14dc65ba704af7c68cfc4397cd59be7068345c58
+068ee723309a60f7de55d6050e4ec22af7b8ad3ee79080790cd0961040c73796
 ```
 
 Computed over (sorted):
@@ -20,12 +20,37 @@ Computed over (sorted):
 - 120 Regulation URIs.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.7.1` (BL-056: `precheckIterations` field added to BL-045-VERIFY block — operator can distinguish "precheck converged after N iterations" from "precheck skipped entirely" from the artifact alone).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.8.0` (BL-058: VERIFY block enriched with five new field families — `filledIrl`, `precheck`, `toolCallCounts`, `conditionalTriggers`, `response` — so operators can triage every observed pathology from one artifact without follow-up Q&A with engineering).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.17.0 — 2026-06-04 — BL-058 — enriched BL-045-VERIFY block (five new field families) for self-sufficient diagnosis
+
+**Theme**: the 2026-06-04 retest exposed a diagnosis-cycle anti-pattern. A live exercise surfaced three distinct pathologies (model passed literal `"PLACEHOLDER"` as `filledIrl`; provenance check showed 37/37 verified against a model-reconstructed body; `conditionalTriggersFired: []` for an EU-AI-Act-applicable target) — but the operator-engineering exchange to triage required several follow-up paste cycles to get the body source, the precheck attempt outcome, the continuation context, and the trigger consideration set. The VERIFY block is supposed to be the single artifact that makes engineering Q&A unnecessary. It wasn't carrying enough signal. The operator named this directly: "isn't that the entire point of the verify section?" Correct. This release enriches the schema to carry every signal needed for self-sufficient triage.
+
+**Surface impact** (minor — additive YAML in the verification artifact; no tool/schema/runtime change):
+
+- **`filledIrl` block** (new): `bytes` + `source` (`partner-paste-verbatim` | `model-reconstruction-from-xlsx` | `model-reconstruction-trimmed` | `placeholder`) + `fingerprint.headChars` / `tailChars` (first/last 120 chars, newlines escaped as `⏎`). Operators cross-check the submitted body against the partner-sent source-of-truth. Catches reconstruction drift + placeholder bypasses without engineering Q&A.
+- **`precheck` block** (BL-058 expansion of BL-056): `iterations` (successful calls only) + `attemptsTotal` (including failures) + `outcome` (`converged` | `hit-cap` | `never-attempted` | `abandoned-after-error`) + `errorsEncountered: [{errorClass, recoveryAction}]`. Replaces flat `precheckIterations` line.
+- **`toolCallCounts` block** (new): per-tool `{attempted, succeeded, rejected}` ground-truth cross-check on self-reported counters. Catches model self-report unreliability — operators compare `validate_irl_provenance.succeeded` against `precheck.iterations`.
+- **`conditionalTriggers` block** (BL-058 expansion): `considered` + `fired` + `suppressedWithRationale: [{trigger, whyNot}]`. Replaces flat `conditionalTriggersFired` list. Empty `considered` for an AI-deploying target is itself a red flag.
+- **`gatesElided` block** (BL-058 expansion): structured `[{tool, rationale}]` form replacing the deprecated bare list-of-strings.
+- **`response` block** (new): `continuations` + `verifyBlockEmissionPoint` (`final-continuation` | `mid-stream`). Catches truncation pathologies that invalidate the audit artifact.
+- **`runScenario`**: new `xlsx-reconstruction` value joins the existing `partner-paste` | `interactive-paste-request`.
+- Rule-discipline prose for every block added/expanded in both schemas (one-shot directive + interactive Step 5).
+
+**Acceptance criterion**: the next live exercise's VERIFY block carries enough signal that the engineering triage cycle is one paste — no follow-up Q&A on body source, precheck attempt outcome, trigger consideration, or continuation context. Operators verify by attempting to triage a known-failed run from the VERIFY block alone.
+
+**Versioning**: `mcp-server` 0.16.1 → 0.17.0 (minor — additive observability surface; no behavior change for any tool, schema, or directive other than the verify-block schema itself); `gst_irl_ingestion` prompt 0.7.1 → 0.8.0. Manifest hash + all 7 body hashes re-baselined.
+
+**Test surface**: existing 1264 tests + new field-presence unit tests for each new field across both verify-block sites (~40 new assertions).
+
+**Filed under**: BL-058 — VERIFY-block forcing-function expansion driven by 2026-06-04 retest diagnosis cycle.
 
 ---
 

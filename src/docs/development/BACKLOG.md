@@ -3515,4 +3515,32 @@ The current map covers 120 frameworks. The gap is real and well-diagnosed, but t
 
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority) | BL-051 + BL-052 + BL-053 filed: June 4, 2026 (post-BL-049 v12 live-exercise empirical follow-ups — citation iteration discipline, verify block schema clarity, multi-bullet citation array form) | BL-049 partial-reverted at v0.13.1 + BL-054 filed: June 4, 2026 then retired same day (xlsx-canonicalized hash-bind authority — blueprint preserved in [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); revisit via design doc if external infrastructure ships, not via backlog ping) | BL-056 filed + closed: June 4, 2026 (precheckIterations field added to BL-045-VERIFY block — BL-051 compliance now observable from the artifact alone) | BL-057 filed: June 4, 2026 (regulatory-map coverage gap sweep — AI-governance canon NIST AI RMF + Canada AIDA + Colorado AI Act + NYC AEDT + Illinois HB 3773 + CA + UK; Chile Ley 21.719 data-protection)_
+### BL-058: `gst_irl_ingestion` — Enriched BL-045-VERIFY Block (Five New Field Families) ✅ CLOSED 2026-06-04
+
+**Filed + closed same day.** Forcing-function expansion driven by the 2026-06-04 retest diagnosis cycle.
+
+**Problem**: the retest surfaced three pathologies the operator and I had to spelunk to diagnose — none visible from the VERIFY block alone:
+
+1. Model passed literal `"PLACEHOLDER"` as `filledIrl` (Zod caught it with `min(200)`, but the block surfaced no signal that precheck attempted-and-failed).
+2. `provenanceVerification: 37/37 verified` against a model-reconstructed body (no signal whether the body was partner-paste-verbatim or reconstruction).
+3. `conditionalTriggersFired: []` for an EU-AI-Act-applicable target (no signal whether triggers were considered-and-suppressed vs never-considered).
+
+The operator named this directly: "isn't that the entire point of the verify section?" Correct. The VERIFY block is the forcing-function audit artifact; if engineering has to ask follow-up questions, it's failing the operator.
+
+**Fix**: expand the BL-045-VERIFY block schema with five new field families so every observed pathology surfaces from one paste:
+
+- `filledIrl: { bytes, source, fingerprint: { headChars, tailChars } }` — operators cross-check submitted body against partner-sent source-of-truth.
+- `precheck: { iterations, attemptsTotal, outcome, errorsEncountered }` — replaces BL-056's flat `precheckIterations`; distinguishes converged / hit-cap / never-attempted / abandoned-after-error.
+- `toolCallCounts: { <tool>: { attempted, succeeded, rejected } }` — ground-truth cross-check on self-reported counters.
+- `conditionalTriggers: { considered, fired, suppressedWithRationale }` — replaces flat `conditionalTriggersFired`; distinguishes considered-and-suppressed from never-considered.
+- `response: { continuations, verifyBlockEmissionPoint }` — catches truncation pathologies that invalidate the artifact.
+
+Plus `gatesElided` upgraded to `[{tool, rationale}]` structured form, and `runScenario` gains `xlsx-reconstruction` value.
+
+**Surface change**: prompt v0.7.1 → v0.8.0; mcp-server v0.16.1 → v0.17.0; all 7 body hashes + manifest hash re-baselined; rule-discipline prose added/expanded in both verify-block sites.
+
+**Acceptance**: the next live exercise's VERIFY block carries enough signal that engineering triage is one paste — zero follow-up Q&A. Operators verify by attempting to triage a known-failed run from the VERIFY block alone.
+
+---
+
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority) | BL-051 + BL-052 + BL-053 filed: June 4, 2026 (post-BL-049 v12 live-exercise empirical follow-ups — citation iteration discipline, verify block schema clarity, multi-bullet citation array form) | BL-049 partial-reverted at v0.13.1 + BL-054 filed: June 4, 2026 then retired same day (xlsx-canonicalized hash-bind authority — blueprint preserved in [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); revisit via design doc if external infrastructure ships, not via backlog ping) | BL-056 filed + closed: June 4, 2026 (precheckIterations field added to BL-045-VERIFY block — BL-051 compliance now observable from the artifact alone) | BL-057 filed: June 4, 2026 (regulatory-map coverage gap sweep — AI-governance canon NIST AI RMF + Canada AIDA + Colorado AI Act + NYC AEDT + Illinois HB 3773 + CA + UK; Chile Ley 21.719 data-protection) | BL-058 filed + closed: June 4, 2026 (VERIFY block enriched with filledIrl + precheck + toolCallCounts + conditionalTriggers + response field families — engineering triage now one-paste, no follow-up Q&A)_
