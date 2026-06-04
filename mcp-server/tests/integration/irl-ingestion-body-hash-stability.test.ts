@@ -121,16 +121,21 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 //     failures surface the element count.
 // 3 envelope-bearing verbose body shapes drift; extract-only + compact
 // paths don't include the precheck directive so their hashes are unchanged.
+// Rebaselined for BL-056 prompt v0.7.0 → v0.7.1: precheckIterations field
+// added to both BL-045-VERIFY block schemas (oneshot + interactive) plus
+// one rule bullet in each rules section. All seven hashes drift because
+// the verify-block schema and its rules section appear in every body
+// path (full/extract-only × verbose/compact × interactive).
 const EXPECTED_HASH_INTERACTIVE =
-  '49ba87626d3bdbfd6d707d1b1c94143efb87cc8f275c8a09b5c4fcccc6e09611';
+  'aae7b9c315e373bbea1aa5f36e620e5bcb1b87048b72a868e125d8000116c26a';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '9e044886f2e2c3bcb26d3884339f54f8c4be8233b1de91f44fa8204c1f42bd32';
+  '714f796e8d8f495adb8f1e0499c5975a32be87c81914e357ed577e95c29d4e9d';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'a902c03fe6ae6e96e033f726cedf69f48ab988a55e44fdaf398b3514884ce371';
+  '7d71989cbd4d6a8d9c87c1ec6385d21125a471b0cb5c0b1962761e400143d643';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '5c651d2c0c208fb32784326f1c3cd688afcfcaa5b7c5f65cb448bccc10032d0c';
+  '02e070fc51448fee021f686854653da923cbbffe92ec3c6ff1f52035fd8a810e';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  'cdcfcf8334c8db340f827ae4921e441dfd0fb64ce991f8bd7700c1509bbe6e7d';
+  '044eccc10412572f10460ee3ad34f55078f59a123dd4104dcbfd172a9525a6be';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -140,9 +145,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '10cb503185f3a704ef6c234eda0dc227d08cf31af92c542b539f2c00ca59a362';
+  'a8f483629915be466b2642119b954552fb510f5ea88befc1a9a2368837b77175';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  '872a267f59e4e0f55c817f3231449822ff12a5684bd70672edc28b364674e3da';
+  'f1e590dfd4d2d19a9c9d4ce5ab3e12b625bb3894b03384ca5186a78efe550758';
 
 interface Scenario {
   name: string;
