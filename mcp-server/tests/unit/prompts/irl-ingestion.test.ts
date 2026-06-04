@@ -89,7 +89,7 @@ describe('gst_irl_ingestion', () => {
     // BL-045 reset: prompt version restarts at 0.1.0 to signal the substantive
     // rescope (rename, scenario-neutral framing, mode/verbosity/forceTools args,
     // inclusion gates, JSON fences, provenance footer, gap list).
-    expect(irlIngestionPrompt.version).toBe('0.8.0');
+    expect(irlIngestionPrompt.version).toBe('0.9.0');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -580,6 +580,46 @@ describe('gst_irl_ingestion', () => {
       'response:',
       'continuations:',
       'verifyBlockEmissionPoint:',
+    ];
+
+    for (const field of expectedFields) {
+      it(`one-shot body verify-block schema contains: ${field}`, () => {
+        const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+        expect(text).toContain(field);
+      });
+
+      it(`interactive body verify-block schema contains: ${field}`, () => {
+        const text = bodyText(irlIngestionPrompt, {});
+        expect(text).toContain(field);
+      });
+    }
+  });
+
+  // ─── BL-060/061/062: three VERIFY-block field additions (one PR) ──────
+  //
+  // BL-060 — toolErrors top-level block (per-attempt diagnostic detail
+  //   partitioned from precheck.errorsEncountered).
+  // BL-061 — compactionEvents field in response: block (int|null
+  //   three-state with epistemic-honesty correction).
+  // BL-062 — defaultFiredFrameworks additive list in conditionalTriggers:
+  //   block (resolves BL-058 vocabulary collision; Option A picked).
+  //
+  // All three are audit-corrected designs from independent code-reviewer
+  // agents (see BACKLOG.md stanzas for the audit findings folded in).
+  // Guards lock the literal field names across both verify-block sites.
+  describe('BL-060/061/062 VERIFY block field additions present in both schemas', () => {
+    const expectedFields = [
+      // BL-060 toolErrors
+      'toolErrors:',
+      'attemptNumber:',
+      'arg-shape-rejection',
+      'hash-bind-retry',
+      '<partial-due-to-compaction>',
+      // BL-061 compactionEvents
+      'compactionEvents:',
+      'int | null',
+      // BL-062 defaultFiredFrameworks
+      'defaultFiredFrameworks:',
     ];
 
     for (const field of expectedFields) {
