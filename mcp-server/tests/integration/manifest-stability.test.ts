@@ -44,7 +44,7 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // BL-045-VERIFY directive tightened per BL-052). Kept from BL-049:
 // tier-fabrication enum + deriveTier (v11 Finding B closure — empirically
 // validated in v12 partner-paste live exercise 2026-06-04).
-const EXPECTED_MANIFEST_HASH = 'afce775a7c452c293802d89179359aae7341acf27ffef29ca9e4ff76d41a7539';
+const EXPECTED_MANIFEST_HASH = '191a747580a606f69563ca368c0e9bf33ded1a5cdd1aa8f6c9cd036f11101a59';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();
