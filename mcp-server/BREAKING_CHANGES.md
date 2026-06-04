@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-c8a5a4bf69dd226b0957856b6ad07ad8bc349216426fa30dd77d6958e80c31bc
+afce775a7c452c293802d89179359aae7341acf27ffef29ca9e4ff76d41a7539
 ```
 
 Computed over (sorted):
@@ -20,12 +20,34 @@ Computed over (sorted):
 - 120 Regulation URIs.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.5.3` (BL-055 hash-bind discipline split: `hashBindResult` enum now `pass-bound | pass-internal | IrlBodyHashMismatchError`; "GST diligence sweep" → "GST Discovery sweep" rename; BL-049 Step-0 xlsx directive reverted; tier-discipline + BL-045-VERIFY directive retained from v0.5.0).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.6.0` (BL-051 envelope-precheck directive: model converges citation correctness on `validate_irl_provenance` BEFORE the heavyweight `compose_dossier_envelope` call; verifies ≥90% then ships dossier in 1 envelope call).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.14.0 — 2026-06-04 — BL-051 — envelope precheck via `validate_irl_provenance` (citation iteration on the fast tool before the heavyweight one)
+
+**Theme**: the v12 StoreForce live exercise empirically established that the `compose_dossier_envelope` tool's input dictation cost (~30KB of claims + gaps + filledIrl + meta JSON) is the workflow throughput bottleneck. When the model iterates citation correctness directly on the envelope, each correction round re-dictates the entire input — minutes per cycle for a per-claim verdict refinement that is fundamentally small. BL-051 redirects the convergence loop to `validate_irl_provenance` (the purpose-built fast verifier — minimal input, per-claim verdict output), then calls the envelope ONCE on the clean set. Net effect: 1 envelope call instead of 2-5, verification rate lifts (each unverified claim got a real correction opportunity), workflow ships minutes faster.
+
+**Surface impact** (minor — additive prompt-body directive; no schema/code change):
+
+- **Prompt body**:
+  - NEW `ENVELOPE_PRECHECK_DIRECTIVE` constant in `prompts/irl-ingestion.ts` — instructs the model to call `validate_irl_provenance` BEFORE `compose_dossier_envelope`, iterate citation corrections on the cheap verifier until `(verified + verifiedFuzzy + partnerSupplied) / total ≥ 0.90` OR 4 precheck iterations (whichever comes first), then call the envelope ONCE on the clean set.
+  - Wired into `buildOneShotBody` (verbose mode) between `bodyBindingDirective` and `ENVELOPE_COMPOSITION_DIRECTIVE`.
+  - `INTERACTIVE_BODY` gains an inline Step 3a equivalent immediately before the existing Step 4 mandatory envelope call.
+  - Extract-only bodies are NOT touched (no envelope call there).
+- **No schema/code change**: `validate_irl_provenance` and `compose_dossier_envelope` schemas + tool handlers are unchanged. Both tools already exist and are registered. The change is purely a workflow-discipline directive.
+- **Acceptance criterion**: a v13+ live exercise on a derivation-heavy IRL should land `(verified + verifiedFuzzy + partnerSupplied) / total ≥ 0.88` on the FIRST `compose_dossier_envelope` call, with `selfCorrectionCalls: 0` and `totalEnvelopeCalls: 1` in the BL-045-VERIFY block.
+
+**Versioning**: `mcp-server` 0.13.1 → 0.14.0 (minor — additive prompt directive lifts a load-bearing workflow property: throughput + verification-rate band on the first envelope call); `gst_irl_ingestion` prompt 0.5.3 → 0.6.0. Manifest hash + 3 body hashes (interactive, oneshot-minimal, oneshot-full) re-baselined; extract-only + compact-oneshot hashes unchanged (precheck is gated on verbose envelope-bearing bodies only).
+
+**Test surface**: 1241 mcp-server tests pass. Existing `validate_irl_provenance` and `compose_dossier_envelope` tests continue to cover the tool behavior the directive instructs the model to invoke.
+
+**Filed under**: BL-051 (`src/docs/development/BACKLOG.md`).
 
 ---
 
