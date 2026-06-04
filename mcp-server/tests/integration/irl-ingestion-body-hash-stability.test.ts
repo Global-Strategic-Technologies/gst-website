@@ -107,21 +107,26 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 //   - lastReviewedAt bumped 2026-06-01 → 2026-06-04 (no body hash impact
 //     unless body builders embed the date — they currently don't).
 // Rebaselined for v0.13.1 + BL-055 hash-bind discipline split
-// (prompt 0.6.1 → 0.6.2). BL-051 post-PR bugfix: the ENVELOPE_PRECHECK_DIRECTIVE
-// (oneshot verbose) and INTERACTIVE_BODY Step 3a both instructed
-// `validate_irl_provenance` with `{filledIrl, claims}` — but the schema
-// field is `citations`, so the first precheck call would have failed
-// validation and bypassed BL-051 in production. Corrected to
-// `{filledIrl, citations}` with brief shape clarification at both sites.
-// Only the 3 envelope-bearing verbose body shapes drift; extract-only
-// + compact paths don't include the precheck directive so their hashes
-// are unchanged.
+// (prompt 0.6.2 → 0.7.0). BL-053 array-form coaching + tier-discipline
+// message improvements (post-merge code-review follow-ups):
+//   - ENVELOPE_PRECHECK_DIRECTIVE (oneshot verbose) gains a paragraph
+//     coaching the model on when to use the BL-053 array-form citation
+//     and warning against the demote-to-singles dodge that would
+//     undercut the strict any-unverified-wins aggregation rule.
+//   - INTERACTIVE_BODY Step 3a gains a single-sentence array-form
+//     mention for symmetry with the standalone directive.
+//   - tier-mismatch and tier-fabrication auto-append messages branch
+//     on derived tier so partner-supplied arrays receive an accurate
+//     diagnostic (not "not a substring of the IRL body") and array-form
+//     failures surface the element count.
+// 3 envelope-bearing verbose body shapes drift; extract-only + compact
+// paths don't include the precheck directive so their hashes are unchanged.
 const EXPECTED_HASH_INTERACTIVE =
-  'b1ef6d9ee23e156e810ed01e504efa81b5dc0d0a7efbb2e257aa09176e6b8b4a';
+  '49ba87626d3bdbfd6d707d1b1c94143efb87cc8f275c8a09b5c4fcccc6e09611';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'a97873caa748d13dba3f0bc99f99a037fd4acb8840e13afe257125c7517bd44b';
+  '9e044886f2e2c3bcb26d3884339f54f8c4be8233b1de91f44fa8204c1f42bd32';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '37cc6dcf2be76384941cc8e7caa16a9a2b7a8c7319ce6f040de89f73958ead75';
+  'a902c03fe6ae6e96e033f726cedf69f48ab988a55e44fdaf398b3514884ce371';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   '5c651d2c0c208fb32784326f1c3cd688afcfcaa5b7c5f65cb448bccc10032d0c';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =

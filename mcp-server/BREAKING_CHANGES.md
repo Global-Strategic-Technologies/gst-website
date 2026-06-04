@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-c6a2a57b210a233bd167063e4acd78e327e00454b2646d79002934f243336fb4
+dcad52779344c2c8111d0f0900e161b25eaf435ef2f9c6f4a075831c5ab8fc4f
 ```
 
 Computed over (sorted):
@@ -20,12 +20,40 @@ Computed over (sorted):
 - 120 Regulation URIs.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.6.2` (BL-051 post-PR bugfix: precheck directive corrected from `{filledIrl, claims}` to `{filledIrl, citations}` at both prompt-body sites; the historical wording would have failed Zod validation on the first precheck call and bypassed BL-051 in production).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.7.0` (BL-053 follow-up coaching: precheck directive teaches the array-form citation pattern; tier-discipline auto-append messages branch on derived tier so partner-supplied + array-form failures receive accurate diagnostics).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.16.0 — 2026-06-04 — BL-053 follow-up — array-form coaching in precheck directive + tier-discipline message branching + array-form integration test
+
+**Theme**: a code-review pass after the BL-051 + BL-053 + BL-052 PRs surfaced three follow-up improvements (all minor severity individually; collectively they finish making BL-053 a first-class citizen of the precheck workflow):
+
+1. **The precheck directive never told the model the array form exists.** A model optimizing for BL-051's 90% stopping threshold has a perverse incentive to demote a multi-bullet claim into N single-string entries — same number of unverified verdicts, but it lies about how many distinct claims the dossier rests on AND dodges BL-053's strict any-unverified-wins aggregation. The fix coaches the model: use array form for genuine multi-bullet derivations; do NOT split arrays into singles to dodge aggregation.
+2. **Tier-discipline auto-append messages were misleading for the partner-supplied + array cases.** A declared-tier-1 + all-partner-supplied array fires `tier-mismatch:` with the message _"the citation excerpt is not a substring of the IRL body"_ — false; the citation IS anchored, just to a partner-form input. Array-form failures said "the citation excerpt" singular giving the model no signal which element of N failed.
+3. **No integration test exercised the array form through the MCP transport.** All 16 BL-053 unit tests run against the engine directly. Zod `z.union([string, array(string)])` is a known MCP-client serialization edge case (some clients flatten union types to `any`).
+
+**Surface impact** (minor — additive prompt-body coaching + engine-message branching + integration test):
+
+- **`ENVELOPE_PRECHECK_DIRECTIVE`** gains a "Multi-bullet claims (BL-053 array form)" paragraph explaining the array form's aggregation rule, when to use it, when NOT to use it, and the demote-to-singles anti-pattern.
+- **`INTERACTIVE_BODY` Step 3a** gains a single-sentence array-form mention for symmetry with the standalone directive.
+- **`runComposeDossierEnvelope` auto-append messages** (`tier-mismatch` and `tier-fabrication`) branch on derived tier:
+  - `derived === 'partner-supplied'` → message states "the citation is partner-supplied (`Section --` sentinel), not a literal IRL bullet" and the follow-up surfaces tier-2-with-partner-supplied as an acceptable resolution.
+  - Array form → message appends element count ("citation is a 3-element array — at least one element did not anchor in the IRL").
+- **`tests/integration/protocol-roundtrip.test.ts`** gains a new test that calls `validate_irl_provenance` through the SDK + protocol layer with a mixed payload (single-string entry + 2-element verified array + 2-element one-fabricated array) and asserts the verdict echoes back the original citation shape unchanged (catches the flatten-to-any failure mode at the transport layer).
+- No tool schema change.
+
+**Acceptance criterion**: a v13+ live exercise on a derivation-heavy IRL sees the model adopt the array form for genuine multi-bullet claims (`(K)` provenance footer shows `[N citations]` entries) AND tier-mismatch failures surface accurate diagnostics that point the model to the correct corrective action.
+
+**Versioning**: `mcp-server` 0.15.2 → 0.16.0 (minor — additive directive paragraph + auto-append message refinements that lift the user-facing diagnostic quality; BL-053 is now first-class in the precheck workflow); `gst_irl_ingestion` prompt 0.6.2 → 0.7.0. Manifest hash + 3 body hashes re-baselined (INTERACTIVE, ONESHOT_MINIMAL, ONESHOT_FULL).
+
+**Test surface**: 1261 mcp-server tests pass (+1 new integration test; existing engine unit tests for tier-mismatch/tier-fabrication continue to pass — the message branching is additive within the same auto-append logic).
+
+**Filed under**: BL-053 follow-up code-review findings (no separate BACKLOG entry — improvements are documented inline in the BREAKING_CHANGES theme above).
 
 ---
 
