@@ -3469,4 +3469,50 @@ BL-049 v12 dossier achieved audit-grade transparency at 52% verification — the
 
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority) | BL-051 + BL-052 + BL-053 filed: June 4, 2026 (post-BL-049 v12 live-exercise empirical follow-ups — citation iteration discipline, verify block schema clarity, multi-bullet citation array form) | BL-049 partial-reverted at v0.13.1 + BL-054 filed: June 4, 2026 then retired same day (xlsx-canonicalized hash-bind authority — blueprint preserved in [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); revisit via design doc if external infrastructure ships, not via backlog ping) | BL-056 filed + closed: June 4, 2026 (precheckIterations field added to BL-045-VERIFY block — BL-051 compliance now observable from the artifact alone)_
+### BL-057: Regulatory Map — Coverage Gap Sweep (AI Governance + Chile Ley 21.719)
+
+**Priority**: Medium. Net-new content authoring; not blocking — partners working US/Canadian/Chilean targets today get transparent misses they can manually flag — but two distinct, well-diagnosed coverage clusters surfaced during the v13 partner-paste live exercise (2026-06-04) and an adjacent rigor pass.
+
+#### Problem
+
+The 120-framework regulatory map (`src/data/regulatory-map/`) has confirmed gaps in two clusters:
+
+**Cluster A — AI Governance (Western canon)**: EU AI Act is in the map and fired correctly in the v13 exercise. NIST AI RMF (US federal, voluntary framework) and Canada AIDA (Bill C-27) returned no match — confirmed via tool query (2026-06-04). Operators doing AI-governance diligence on North American targets currently see only EU coverage, leaving NA-jurisdiction obligations transparently missed. The companion frameworks an operator would expect alongside EU AI Act:
+
+- **NIST AI RMF 1.0** — US federal voluntary framework; the de-facto "what good looks like" reference for US AI deployers
+- **Canada AIDA** (Artificial Intelligence and Data Act, Bill C-27) — Canadian federal AI law (passage status: track current parliamentary state at filing time)
+- **Colorado AI Act** (SB 24-205, effective February 1, 2026) — first US state comprehensive AI law
+- **NYC AEDT Local Law 144** — automated employment decision tools (already in effect)
+- **Illinois HB 3773** — AI in employment (effective January 1, 2026)
+- **California**: whichever of SB 1047 / AB 2013 / SB 942 are statutory at filing time
+- **UK pro-innovation AI framework** — regulator-led (ICO, CMA, FCA, MHRA), non-statutory
+
+**Cluster B — Chile Ley 21.719**: Chile's new comprehensive data protection law, effective December 1, 2026. Replaces the legacy 1999 regime; introduces GDPR-aligned data subject rights, ANPD oversight, breach notification, cross-border transfer rules, and enforcement penalties. Absent from the current map. Material for any Latin-America-exposed target.
+
+#### Approach
+
+1. **Taxonomy decision first**: does "AI Governance" warrant a new top-level theme in the regulatory-map facet schema, or do AI-gov entries ride under existing themes (Data Protection / Sectoral / Employment)? Recommend: new top-level "AI Governance" theme — the consultative pattern partners expect is "what AI laws apply to this target," not "what data-protection laws also have AI clauses." Decision affects facet enumeration in [list_regulation_facets](mcp-server/src/schemas/list-regulation-facets.ts) + filter UI on `/hub/tools/regulatory-map`.
+2. **Authoring pass**: for each framework, produce a JSON entry matching the existing schema in `src/data/regulatory-map/*.json` — name, jurisdiction, scope summary, key obligations, effective date, citations, applicable industries, themes. Research must source from primary regulator publications, not summaries.
+3. **MCP manifest hash + Resource URI**: every new regulation is a `gst://regulations/{slug}` URI in the manifest. Hash re-baselines on each addition. Plan a single PR that batches all entries to land one manifest bump, not 7.
+4. **Test surface**: existing regulation-loader tests cover schema validity + URI uniqueness; add light-touch tests asserting each new slug is present + queryable via free-text search.
+
+#### Acceptance criteria
+
+- A partner running diligence on a US-headquartered AI-deploying target sees NIST AI RMF + at least one state-level AI law fire alongside EU AI Act (no transparent miss).
+- A partner running diligence on a Chile-exposed target sees Ley 21.719 fire (currently zero coverage).
+- `gst_regulatory_map`-style free-text queries for "NIST AI RMF", "AIDA", "Colorado AI Act", "Ley 21.719" all return the corresponding entries.
+- Taxonomy decision documented in the PR description (either: new "AI Governance" theme added with facet enumeration + UI filter update, OR explicit rationale for riding under existing themes).
+
+#### Out of scope
+
+- **Sectoral AI rules** (HIPAA AI guidance, FDA AI/ML SaMD, EBA AI guidelines, etc.) — sectoral-AI coverage is a separate sweep; this BL focuses on the cross-sectoral canon.
+- **Non-Western AI frameworks** (China Generative AI Measures, Singapore Model AI Governance Framework, Japan AI Bill, etc.) — file as a follow-up sweep if a live exercise surfaces an APAC-exposed target.
+- **Latin-American data-protection coverage broadly** (Brazil LGPD is presumably already in the map; Argentina Ley 25.326 reform pending; Mexico LFPDPPP under reform) — Cluster B is scoped to the Chile gap surfaced in the rigor pass; broader LATAM is a future sweep.
+
+#### Why "medium" not "high"
+
+The current map covers 120 frameworks. The gap is real and well-diagnosed, but the failure mode is transparent (partner sees "no AI laws found for US target alongside EU AI Act" and knows to manually supplement) rather than silent miscoverage. Land it when the next live exercise on a NA-AI-exposed target makes it concrete, OR opportunistically when an operator has time for the research pass.
+
+---
+
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority) | BL-051 + BL-052 + BL-053 filed: June 4, 2026 (post-BL-049 v12 live-exercise empirical follow-ups — citation iteration discipline, verify block schema clarity, multi-bullet citation array form) | BL-049 partial-reverted at v0.13.1 + BL-054 filed: June 4, 2026 then retired same day (xlsx-canonicalized hash-bind authority — blueprint preserved in [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); revisit via design doc if external infrastructure ships, not via backlog ping) | BL-056 filed + closed: June 4, 2026 (precheckIterations field added to BL-045-VERIFY block — BL-051 compliance now observable from the artifact alone) | BL-057 filed: June 4, 2026 (regulatory-map coverage gap sweep — AI-governance canon NIST AI RMF + Canada AIDA + Colorado AI Act + NYC AEDT + Illinois HB 3773 + CA + UK; Chile Ley 21.719 data-protection)_
