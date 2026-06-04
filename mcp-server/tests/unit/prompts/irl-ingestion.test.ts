@@ -89,7 +89,7 @@ describe('gst_irl_ingestion', () => {
     // BL-045 reset: prompt version restarts at 0.1.0 to signal the substantive
     // rescope (rename, scenario-neutral framing, mode/verbosity/forceTools args,
     // inclusion gates, JSON fences, provenance footer, gap list).
-    expect(irlIngestionPrompt.version).toBe('0.7.0');
+    expect(irlIngestionPrompt.version).toBe('0.7.1');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -508,6 +508,29 @@ describe('gst_irl_ingestion', () => {
           expect(schemaShape).toContain(referencedField);
         }
       }
+    });
+  });
+
+  // ─── BL-056: precheckIterations field in BL-045-VERIFY block ──────────
+  //
+  // The v13 partner-paste live exercise (2026-06-04) shipped a clean
+  // dossier but the VERIFY block could not distinguish "precheck
+  // converged after N iterations" from "precheck skipped entirely" — both
+  // produce identical artifacts. Surfacing `precheckIterations` makes
+  // BL-051 compliance observable from the artifact alone. This guard
+  // locks the literal field name across both BL-045-VERIFY schemas
+  // (one-shot body + interactive Step 5) so future prompt edits that
+  // delete the field fail loudly rather than silently degrading the
+  // observability surface.
+  describe('BL-056 precheckIterations field present in BL-045-VERIFY block schemas', () => {
+    it('one-shot body verify-block schema declares `precheckIterations`', () => {
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      expect(text).toContain('precheckIterations:');
+    });
+
+    it('interactive body verify-block schema declares `precheckIterations`', () => {
+      const text = bodyText(irlIngestionPrompt, {});
+      expect(text).toContain('precheckIterations:');
     });
   });
 });

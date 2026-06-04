@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-dcad52779344c2c8111d0f0900e161b25eaf435ef2f9c6f4a075831c5ab8fc4f
+2b3250feee6b075dda89105e14dc65ba704af7c68cfc4397cd59be7068345c58
 ```
 
 Computed over (sorted):
@@ -20,12 +20,33 @@ Computed over (sorted):
 - 120 Regulation URIs.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.7.0` (BL-053 follow-up coaching: precheck directive teaches the array-form citation pattern; tier-discipline auto-append messages branch on derived tier so partner-supplied + array-form failures receive accurate diagnostics).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.7.1` (BL-056: `precheckIterations` field added to BL-045-VERIFY block — operator can distinguish "precheck converged after N iterations" from "precheck skipped entirely" from the artifact alone).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.16.1 — 2026-06-04 — BL-056 — `precheckIterations` field added to BL-045-VERIFY block
+
+**Theme**: the v13 partner-paste live exercise (2026-06-04) shipped a clean dossier (21/21 verified citations, 0 unverified, 0 fabrications, `selfCorrectionCalls: 0`), but the VERIFY block is consistent with both "precheck converged after N iterations" AND "precheck not run at all." Operators reading the artifact alone cannot distinguish post-BL-051-healthy from pre-BL-051-anti-pattern. The missing diagnostic is the count of `validate_irl_provenance` calls before `compose_dossier_envelope`.
+
+**Surface impact** (minor — additive field on the verification artifact):
+
+- **Both BL-045-VERIFY schemas** (one-shot at the body-rewrite directive, interactive at Step 5) gain a `precheckIterations: <int>` line under `firstEnvelopeCall` / above `selfCorrectionCalls`.
+- **One rule bullet** appended to the one-shot rules list explaining: healthy band is 1–3 on a thorough partner-paste IRL; `0` means BL-051 elision; `4` (the cap) means precheck could not converge; high count + `selfCorrectionCalls: 0` is the healthy post-BL-051 pattern; low count + high `selfCorrectionCalls` is the pre-BL-051 anti-pattern resurfaced.
+- **One reporting-discipline paragraph** added to the interactive Step 5 directive mirroring the one-shot rule.
+- No tool schema change. No engine/runtime change. Field is model-self-reported (same epistemic class as `meaningfulRecallsHaveDifferentInputs`).
+
+**Acceptance criterion**: the next live exercise's VERIFY block includes a populated `precheckIterations` line. Pattern audit: if `0` shows up consistently, BL-051 directive needs reinforcement; if `4` shows up, the 0.90 stopping threshold is too aggressive for real IRL coverage and we re-tune.
+
+**Versioning**: `mcp-server` 0.16.0 → 0.16.1 (minor — additive observability field; no behavior change for any tool, schema, or directive other than the verify-block itself); `gst_irl_ingestion` prompt 0.7.0 → 0.7.1. Manifest hash + all 7 body hashes re-baselined (verify-block schema appears in every body path).
+
+**Test surface**: existing test count + 1 unit test asserting `precheckIterations:` literal presence in both verify-block schemas.
+
+**Filed under**: BL-056 — observability follow-up to BL-051/052/053.
 
 ---
 

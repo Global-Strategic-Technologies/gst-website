@@ -3453,4 +3453,20 @@ BL-049 v12 dossier achieved audit-grade transparency at 52% verification — the
 
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority) | BL-051 + BL-052 + BL-053 filed: June 4, 2026 (post-BL-049 v12 live-exercise empirical follow-ups — citation iteration discipline, verify block schema clarity, multi-bullet citation array form) | BL-049 partial-reverted at v0.13.1 + BL-054 filed: June 4, 2026 then retired same day (xlsx-canonicalized hash-bind authority — blueprint preserved in [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); revisit via design doc if external infrastructure ships, not via backlog ping)_
+### BL-056: `gst_irl_ingestion` — `precheckIterations` Field in BL-045-VERIFY Block ✅ CLOSED 2026-06-04
+
+**Filed + closed same day.** Observability follow-up to BL-051.
+
+**Problem**: The v13 partner-paste live exercise (2026-06-04) shipped a clean dossier (21/21 verified citations, `selfCorrectionCalls: 0`), but the VERIFY block is consistent with both "BL-051 precheck converged after N iterations" AND "BL-051 precheck skipped entirely." Operators cannot distinguish post-BL-051-healthy from pre-BL-051-anti-pattern from the artifact alone — the missing diagnostic is the count of `validate_irl_provenance` calls before the first `compose_dossier_envelope`.
+
+**Fix**: Add `precheckIterations: <int>` line to both BL-045-VERIFY block schemas (one-shot directive + interactive Step 5), with rule prose explaining the healthy band (1–3), `0` (BL-051 elision), `4` (the cap; precheck couldn't converge), and the cross-correlation with `selfCorrectionCalls`. Field is model-self-reported, same epistemic class as `meaningfulRecallsHaveDifferentInputs`.
+
+**Surface change**: prompt v0.7.0 → v0.7.1; mcp-server v0.16.0 → v0.16.1; all 7 body hashes + manifest hash re-baselined.
+
+**Test surface**: +1 unit test asserting `precheckIterations:` literal presence in both verify-block schemas.
+
+**Acceptance**: the next live exercise's VERIFY block includes a populated `precheckIterations` line.
+
+---
+
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority) | BL-051 + BL-052 + BL-053 filed: June 4, 2026 (post-BL-049 v12 live-exercise empirical follow-ups — citation iteration discipline, verify block schema clarity, multi-bullet citation array form) | BL-049 partial-reverted at v0.13.1 + BL-054 filed: June 4, 2026 then retired same day (xlsx-canonicalized hash-bind authority — blueprint preserved in [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); revisit via design doc if external infrastructure ships, not via backlog ping) | BL-056 filed + closed: June 4, 2026 (precheckIterations field added to BL-045-VERIFY block — BL-051 compliance now observable from the artifact alone)_

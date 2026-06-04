@@ -46,7 +46,11 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // BL-045-VERIFY directive tightened per BL-052). Kept from BL-049:
 // tier-fabrication enum + deriveTier (v11 Finding B closure — empirically
 // validated in v12 partner-paste live exercise 2026-06-04).
-const EXPECTED_MANIFEST_HASH = 'dcad52779344c2c8111d0f0900e161b25eaf435ef2f9c6f4a075831c5ab8fc4f';
+// BL-056 rebaseline: prompt v0.7.0 → v0.7.1 (precheckIterations field
+// added to BL-045-VERIFY block — operator can now distinguish "precheck
+// converged after N iterations" from "precheck skipped entirely" from
+// the artifact alone).
+const EXPECTED_MANIFEST_HASH = '2b3250feee6b075dda89105e14dc65ba704af7c68cfc4397cd59be7068345c58';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();
