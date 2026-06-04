@@ -29,6 +29,34 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.15.0 — 2026-06-04 — BL-053 — citation array form on `compose_dossier_envelope` + `validate_irl_provenance` (multi-bullet claim support)
+
+**Theme**: pre-BL-053 the verifier rejected multi-bullet claims as non-substring even when every supporting bullet existed in the IRL — the model's natural citation style joins multiple supporting bullets with semicolons but the substring check then fails the aggregate. The structural false-negative forced the model into bad workarounds: under-attribute (cite only the first bullet), misrepresent provenance (drop to `Section --` partner-supplied sentinel), or accept inflated `unverified` flags. BL-053 closes the gap at the schema layer.
+
+**Surface impact** (minor — additive schema change; backward-compatible):
+
+- **`compose_dossier_envelope.claims[].citation`**: now `string | string[]` (1-8 elements). String form unchanged; array form is verified per-element with strict aggregation.
+- **`validate_irl_provenance.citations[].citation`**: same union shape, same per-element + aggregation behavior. Lets the BL-051 envelope-precheck workflow exercise multi-bullet claims on the fast verifier consistently.
+- **Aggregation rule** (per-claim verdict from per-element verdicts):
+  - ANY element `unverified` → aggregate `unverified` (weakest verdict dominates failure).
+  - ALL elements `partner-supplied` → `partner-supplied`.
+  - ALL elements `verified` verbatim → `verified`.
+  - Mixed `verified` + `partner-supplied` (no fuzzy, no unverified) → `verified`.
+  - Any `verified-fuzzy` in the mix → `verified-fuzzy`.
+- **Tier-discipline preserved**: declared tier-1 + any element fails substring → `tier-mismatch:` auto-append (existing rule, now element-aware). Declared tier-2 + derived fabrication → `tier-fabrication:` (BL-049 v11 Finding B closure, now element-aware).
+- **`(K)` provenance footer rendering**: array-form citations render as `[N citations] elem1 ; elem2 ; …` so partners see at a glance which claims rest on multi-bullet derivations.
+- **`ValidateIrlProvenanceVerdict.citation`**: type widened to `string | string[]` (echoes back the original shape so callers can attribute verdicts to their emitted citation structure unchanged).
+
+**Acceptance criterion**: a v13+ live exercise on a derivation-heavy IRL (TechPar/ICG/Tech Debt verdicts that cite multiple supporting bullets) should see verification rate lift to ≥85% as the model adopts the array form for multi-bullet claims that previously rode the structural false-negative.
+
+**Versioning**: `mcp-server` 0.14.0 → 0.15.0 (minor — additive schema change; existing single-string call sites unchanged). Prompt body NOT bumped — no prompt-body change required to make the array form available, although future prompt-body work could direct the model to prefer the array form for multi-bullet claims. Manifest hash + all body hashes unchanged (no prompt name/version drift).
+
+**Test surface**: 1257 mcp-server tests pass (+16 new BL-053 tests covering aggregation rule cases, schema acceptance/rejection, tier-discipline interaction, mixed-shape calls, and footer rendering).
+
+**Filed under**: BL-053 (`src/docs/development/BACKLOG.md`).
+
+---
+
 ## 0.14.0 — 2026-06-04 — BL-051 — envelope precheck via `validate_irl_provenance` (citation iteration on the fast tool before the heavyweight one)
 
 **Theme**: the v12 StoreForce live exercise empirically established that the `compose_dossier_envelope` tool's input dictation cost (~30KB of claims + gaps + filledIrl + meta JSON) is the workflow throughput bottleneck. When the model iterates citation correctness directly on the envelope, each correction round re-dictates the entire input — minutes per cycle for a per-claim verdict refinement that is fundamentally small. BL-051 redirects the convergence loop to `validate_irl_provenance` (the purpose-built fast verifier — minimal input, per-claim verdict output), then calls the envelope ONCE on the clean set. Net effect: 1 envelope call instead of 2-5, verification rate lifts (each unverified claim got a real correction opportunity), workflow ships minutes faster.

@@ -261,3 +261,142 @@ describe('runIrlProvenanceCheck — aggregate counts', () => {
     expect(result.verdicts.map((v) => v.path)).toEqual(['a', 'b', 'c']);
   });
 });
+
+// ─── BL-053 — citation array form (multi-bullet claim support) ──────────
+//
+// Each test pairs an array-form citation with the expected aggregate
+// verdict per the BL-053 aggregation rule:
+//
+//   - ANY element unverified → aggregate unverified.
+//   - ALL partner-supplied → partner-supplied.
+//   - ALL verified verbatim → verified.
+//   - Mixed verified + partner-supplied (no fuzzy, no unverified) → verified.
+//   - Any verified-fuzzy in the mix → verified-fuzzy.
+//
+// Verdict echoes back the array shape unchanged so callers can attribute
+// the verdict to their emitted citation structure.
+
+describe('runIrlProvenanceCheck — BL-053 array-form citations', () => {
+  it('aggregates ALL-verified array as verified', () => {
+    const result = runIrlProvenanceCheck({
+      filledIrl: SAMPLE_IRL,
+      citations: [
+        {
+          path: 'techpar-paradigm',
+          citation: [
+            'Section 02 — Engineering FTE count: 58 total',
+            'Section 00 — Annual recurring revenue: $45.2M Q1-FY26 annualized',
+          ],
+        },
+      ],
+    });
+    expect(result.verdicts[0].status).toBe('verified');
+    expect(result.verified).toBe(1);
+    expect(Array.isArray(result.verdicts[0].citation)).toBe(true);
+    expect((result.verdicts[0].citation as string[]).length).toBe(2);
+  });
+
+  it('aggregates ANY-unverified array as unverified (weakest verdict dominates)', () => {
+    const result = runIrlProvenanceCheck({
+      filledIrl: SAMPLE_IRL,
+      citations: [
+        {
+          path: 'mixed',
+          citation: [
+            'Section 02 — Engineering FTE count: 58 total', // verified
+            'Section 00 — Fabricated $999M ARR that does not appear anywhere', // unverified
+          ],
+        },
+      ],
+    });
+    expect(result.verdicts[0].status).toBe('unverified');
+    expect(result.unverified).toBe(1);
+  });
+
+  it('aggregates ALL-partner-supplied array as partner-supplied', () => {
+    const result = runIrlProvenanceCheck({
+      filledIrl: SAMPLE_IRL,
+      citations: [
+        {
+          path: 'kickoff-form',
+          citation: [
+            'Section -- — partner-supplied form input — engagement code name',
+            'Section -- — partner-supplied form input — partner lead name',
+          ],
+        },
+      ],
+    });
+    expect(result.verdicts[0].status).toBe('partner-supplied');
+    expect(result.partnerSupplied).toBe(1);
+  });
+
+  it('treats verified + partner-supplied mix as verified (partner-supplied does not taint)', () => {
+    const result = runIrlProvenanceCheck({
+      filledIrl: SAMPLE_IRL,
+      citations: [
+        {
+          path: 'verdict-with-form-input',
+          citation: [
+            'Section 02 — Engineering FTE count: 58 total',
+            'Section -- — partner-supplied form input — TechPar exit multiple assumption',
+          ],
+        },
+      ],
+    });
+    expect(result.verdicts[0].status).toBe('verified');
+    expect(result.verified).toBe(1);
+  });
+
+  it('downgrades to verified-fuzzy when any element verifies fuzzily', () => {
+    const result = runIrlProvenanceCheck({
+      filledIrl: SAMPLE_IRL,
+      // First element is a verbatim substring; second is paraphrased with
+      // foreign trailing words so it's NOT a substring but has a contiguous
+      // ≥FUZZY_MIN_RUN-word run with the IRL — the (b) fuzzy verdict.
+      // Uses the same fuzzy pattern shape as the existing single-citation
+      // fuzzy test above (Eng squad breakdown line).
+      citations: [
+        {
+          path: 'verified-plus-fuzzy',
+          citation: [
+            'Section 02 — Engineering FTE count: 58 total',
+            'Section 02 — Eng squad breakdown listed as 38 product 8 SRE 3 security 7 data 2 platform across the company',
+          ],
+        },
+      ],
+    });
+    expect(result.verdicts[0].status).toBe('verified-fuzzy');
+    expect(result.verifiedFuzzy).toBe(1);
+  });
+
+  it('echoes the original array shape back in the verdict (string vs array)', () => {
+    const result = runIrlProvenanceCheck({
+      filledIrl: SAMPLE_IRL,
+      citations: [
+        { path: 'single', citation: 'Section 02 — Engineering FTE count: 58 total' },
+        {
+          path: 'multi',
+          citation: ['Section 02 — Engineering FTE count: 58 total'],
+        },
+      ],
+    });
+    expect(typeof result.verdicts[0].citation).toBe('string');
+    expect(Array.isArray(result.verdicts[1].citation)).toBe(true);
+  });
+
+  it('reports matchedSpan indicating multi-element aggregation', () => {
+    const result = runIrlProvenanceCheck({
+      filledIrl: SAMPLE_IRL,
+      citations: [
+        {
+          path: 'multi',
+          citation: [
+            'Section 02 — Engineering FTE count: 58 total',
+            'Section 00 — Annual recurring revenue: $45.2M Q1-FY26 annualized',
+          ],
+        },
+      ],
+    });
+    expect(result.verdicts[0].matchedSpan).toMatch(/2-element citation array/);
+  });
+});

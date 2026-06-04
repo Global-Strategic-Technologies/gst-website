@@ -40,6 +40,17 @@ import { z } from 'zod';
 
 // ─── Schema ─────────────────────────────────────────────────────────────
 
+// BL-053: citation accepts EITHER a single string (the historical shape) OR
+// an array of citation strings for multi-bullet claims. Array elements are
+// verified per-element; the verdict is aggregated. Cap at 8 elements — beyond
+// that the citation is doing the work of a section reference and should be
+// re-shaped.
+const citationFieldSchema = z
+  .union([z.string().min(1), z.array(z.string().min(1)).min(1).max(8)])
+  .describe(
+    'The citation backing the claim. EITHER a single citation string ("Section NN — <excerpt>" or "Section -- — partner-supplied form input — <description>") OR an array of citation strings (1-8 elements) when the claim genuinely derives from multiple supporting IRL bullets. When an array, the verifier checks each element independently and aggregates: any element unverified → aggregate unverified; all elements verified verbatim → verified; mixed verified + verified-fuzzy → verified-fuzzy; all partner-supplied → partner-supplied. Use the array form for multi-bullet syntheses (TechPar verdicts citing eng count + hosting + salary; comparables joining portfolio rows; derivations spanning Section 04 + 07).'
+  );
+
 const citationEntrySchema = z.object({
   path: z
     .string()
@@ -47,13 +58,10 @@ const citationEntrySchema = z.object({
     .describe(
       'Dot-path identifying the citation site in the dossier or _audit payload, e.g., "_audit.revenueRange.citation" or "section-C.headline". The tool echoes this back in the verdict so the model can attribute each verdict to the right claim.'
     ),
-  citation: z
-    .string()
-    .min(1)
-    .describe(
-      'The citation string the model emitted. Form: "Section NN — <excerpt>" or "Section -- — partner-supplied form input — <description>".'
-    ),
+  citation: citationFieldSchema,
 });
+
+export { citationFieldSchema };
 
 export const ValidateIrlProvenanceInputSchema = z.object({
   filledIrl: z
@@ -74,7 +82,8 @@ export type ValidateIrlProvenanceInput = z.infer<typeof ValidateIrlProvenanceInp
 
 export interface ValidateIrlProvenanceVerdict {
   path: string;
-  citation: string;
+  /** Echoes back the original citation shape — string for legacy single-bullet form, array for BL-053 multi-bullet form. */
+  citation: string | string[];
   status: 'verified' | 'verified-fuzzy' | 'partner-supplied' | 'unverified';
   matchedSpan?: string;
 }
@@ -202,9 +211,90 @@ function longestContiguousRun(needleWords: string[], haystackWords: string[]): n
 export const FUZZY_MIN_RUN = 8;
 
 /**
+ * Verify a single citation string against the normalized IRL.
+ * Extracted from `runIrlProvenanceCheck` so the BL-053 array-form
+ * aggregator can reuse the same logic per-element.
+ */
+type ElementStatus = 'verified' | 'verified-fuzzy' | 'partner-supplied' | 'unverified';
+
+function verifyCitationString(
+  citation: string,
+  haystackNorm: string,
+  haystackWords: string[]
+): { status: ElementStatus; matchedSpan?: string } {
+  if (isPartnerSupplied(citation)) {
+    return { status: 'partner-supplied' };
+  }
+  const excerpt = extractExcerpt(citation);
+  const excerptNorm = normalizeForMatching(excerpt);
+  if (excerptNorm.length === 0) {
+    return { status: 'unverified' };
+  }
+  if (haystackNorm.includes(excerptNorm)) {
+    return { status: 'verified', matchedSpan: excerptNorm };
+  }
+  const excerptWords = excerptNorm.split(' ').filter((w) => w.length > 0);
+  const runLen = longestContiguousRun(excerptWords, haystackWords);
+  if (runLen >= FUZZY_MIN_RUN) {
+    return {
+      status: 'verified-fuzzy',
+      matchedSpan: `<run of ${runLen} consecutive words matched>`,
+    };
+  }
+  return { status: 'unverified' };
+}
+
+/**
+ * BL-053 aggregation rule for array-form citations. Applied when an
+ * entry's `citation` is an array of strings (multi-bullet claim).
+ *
+ *   - ANY element unverified  → aggregate `unverified` (weakest verdict
+ *     dominates failure — the claim has unsupported provenance).
+ *   - ALL elements partner-supplied → `partner-supplied`.
+ *   - ALL elements verified verbatim → `verified`.
+ *   - Mixed verified + partner-supplied (no fuzzy, no unverified) → `verified`.
+ *   - Any verified-fuzzy in the mix → `verified-fuzzy` (fuzzy taints
+ *     the aggregate down to fuzzy verification).
+ *
+ * Rationale: a claim genuinely supported by multiple IRL bullets should
+ * verify only when EVERY supporting bullet is anchored. Allowing
+ * partner-supplied to mask unverified would invert the incentive.
+ */
+function aggregateArrayVerdict(
+  elementStatuses: ElementStatus[],
+  elementSpans: (string | undefined)[]
+): { status: ElementStatus; matchedSpan?: string } {
+  if (elementStatuses.some((s) => s === 'unverified')) {
+    return { status: 'unverified' };
+  }
+  const allPartner = elementStatuses.every((s) => s === 'partner-supplied');
+  if (allPartner) {
+    return { status: 'partner-supplied' };
+  }
+  const anyFuzzy = elementStatuses.some((s) => s === 'verified-fuzzy');
+  if (anyFuzzy) {
+    return {
+      status: 'verified-fuzzy',
+      matchedSpan: `<${elementStatuses.length}-element citation array, includes fuzzy>`,
+    };
+  }
+  const firstSpan = elementSpans.find((s) => s !== undefined);
+  return {
+    status: 'verified',
+    matchedSpan: `<${elementStatuses.length}-element citation array, all verified${firstSpan ? `, first: ${firstSpan}` : ''}>`,
+  };
+}
+
+/**
  * Run the provenance verification engine over an input payload.
  * Pure function — no I/O, no global state. Suitable for unit testing
  * the matching logic in isolation from the MCP transport.
+ *
+ * BL-053: when `entry.citation` is an array, each element is verified
+ * independently with `verifyCitationString` and aggregated with
+ * `aggregateArrayVerdict`. The per-entry verdict echoes back the
+ * original citation shape (string or array) so the model can attribute
+ * verdicts to its emitted citation structure unchanged.
  */
 export function runIrlProvenanceCheck(
   input: ValidateIrlProvenanceInput
@@ -219,42 +309,38 @@ export function runIrlProvenanceCheck(
   let unverified = 0;
 
   for (const entry of input.citations) {
-    if (isPartnerSupplied(entry.citation)) {
-      verdicts.push({ path: entry.path, citation: entry.citation, status: 'partner-supplied' });
-      partnerSupplied++;
-      continue;
+    let aggregate: { status: ElementStatus; matchedSpan?: string };
+    if (typeof entry.citation === 'string') {
+      aggregate = verifyCitationString(entry.citation, haystackNorm, haystackWords);
+    } else {
+      const elementResults = entry.citation.map((c) =>
+        verifyCitationString(c, haystackNorm, haystackWords)
+      );
+      aggregate = aggregateArrayVerdict(
+        elementResults.map((r) => r.status),
+        elementResults.map((r) => r.matchedSpan)
+      );
     }
-    const excerpt = extractExcerpt(entry.citation);
-    const excerptNorm = normalizeForMatching(excerpt);
-    if (excerptNorm.length === 0) {
-      verdicts.push({ path: entry.path, citation: entry.citation, status: 'unverified' });
-      unverified++;
-      continue;
+    verdicts.push({
+      path: entry.path,
+      citation: entry.citation,
+      status: aggregate.status,
+      ...(aggregate.matchedSpan ? { matchedSpan: aggregate.matchedSpan } : {}),
+    });
+    switch (aggregate.status) {
+      case 'verified':
+        verified++;
+        break;
+      case 'verified-fuzzy':
+        verifiedFuzzy++;
+        break;
+      case 'partner-supplied':
+        partnerSupplied++;
+        break;
+      case 'unverified':
+        unverified++;
+        break;
     }
-    if (haystackNorm.includes(excerptNorm)) {
-      verdicts.push({
-        path: entry.path,
-        citation: entry.citation,
-        status: 'verified',
-        matchedSpan: excerptNorm,
-      });
-      verified++;
-      continue;
-    }
-    const excerptWords = excerptNorm.split(' ').filter((w) => w.length > 0);
-    const runLen = longestContiguousRun(excerptWords, haystackWords);
-    if (runLen >= FUZZY_MIN_RUN) {
-      verdicts.push({
-        path: entry.path,
-        citation: entry.citation,
-        status: 'verified-fuzzy',
-        matchedSpan: `<run of ${runLen} consecutive words matched>`,
-      });
-      verifiedFuzzy++;
-      continue;
-    }
-    verdicts.push({ path: entry.path, citation: entry.citation, status: 'unverified' });
-    unverified++;
   }
 
   return {

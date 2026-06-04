@@ -441,3 +441,152 @@ describe('ComposeDossierEnvelopeInputSchema — promptVersion handling', () => {
     expect(result.metaFenceMarkdown).not.toContain('99.99.99');
   });
 });
+
+// ─── BL-053 — citation array form (multi-bullet claim support) ──────────
+
+describe('compose_dossier_envelope — BL-053 citation array form', () => {
+  it('accepts a claim with citation as array of strings', () => {
+    const input = baseInput();
+    input.claims = [
+      {
+        claim: 'TechPar paradigm: high R&D efficiency given FTE/ARR ratio',
+        citation: [
+          'Section 00 — Annual recurring revenue: $45.2M',
+          'Section 02 — Engineering FTE count: 58 total',
+        ],
+        tier: '2',
+      },
+    ];
+    const parsed = ComposeDossierEnvelopeInputSchema.safeParse(input);
+    expect(parsed.success).toBe(true);
+  });
+
+  it('rejects an empty citation array', () => {
+    const input = baseInput();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (input.claims[0] as any).citation = [];
+    const parsed = ComposeDossierEnvelopeInputSchema.safeParse(input);
+    expect(parsed.success).toBe(false);
+  });
+
+  it('rejects an over-length citation array (>8 elements)', () => {
+    const input = baseInput();
+    input.claims[0].citation = Array(9).fill('Section 00 — Annual recurring revenue: $45.2M');
+    const parsed = ComposeDossierEnvelopeInputSchema.safeParse(input);
+    expect(parsed.success).toBe(false);
+  });
+
+  it('verifies multi-bullet claim as verified when ALL elements are verbatim IRL substrings', () => {
+    const input = baseInput();
+    input.claims = [
+      {
+        claim: 'Multi-bullet derivation',
+        citation: [
+          'Section 00 — Annual recurring revenue: $45.2M',
+          'Section 02 — Engineering FTE count: 58 total',
+        ],
+        tier: '2',
+      },
+    ];
+    const result = runComposeDossierEnvelope(input, SERVER_CTX);
+    expect(result.provenanceVerification.verified).toBe(1);
+    expect(result.provenanceVerification.unverified).toBe(0);
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(0);
+  });
+
+  it('verifies multi-bullet claim as unverified when ANY element is unverified (weakest wins)', () => {
+    const input = baseInput();
+    input.claims = [
+      {
+        claim: 'Derivation with one fabricated element',
+        citation: [
+          'Section 00 — Annual recurring revenue: $45.2M',
+          'Section 99 — Fabricated $999M ARR never tracked',
+        ],
+        tier: '2',
+      },
+    ];
+    const result = runComposeDossierEnvelope(input, SERVER_CTX);
+    expect(result.provenanceVerification.unverified).toBe(1);
+    expect(result.provenanceVerification.verified).toBe(0);
+    // declared tier-2 + all elements derive as fabrication? No — one element
+    // verified, so the derived aggregate is unverified BUT not 'fabrication'
+    // (the deriveTier check looks at status, and unverified → fabrication).
+    // The auto-append rule for declared tier-2 + derived fabrication fires.
+    expect(result.provenanceVerification.tierFabrications).toBe(1);
+  });
+
+  it('renders array-form citation in (K) provenance footer with element count', () => {
+    const input = baseInput();
+    input.claims = [
+      {
+        claim: 'Multi-bullet derivation',
+        citation: [
+          'Section 00 — Annual recurring revenue: $45.2M',
+          'Section 02 — Engineering FTE count: 58 total',
+        ],
+        tier: '2',
+      },
+    ];
+    const result = runComposeDossierEnvelope(input, SERVER_CTX);
+    expect(result.provenanceFooterMarkdown).toMatch(/\[2 citations\]/);
+    expect(result.provenanceFooterMarkdown).toContain('Annual recurring revenue: $45.2M');
+    expect(result.provenanceFooterMarkdown).toContain('Engineering FTE count: 58 total');
+  });
+
+  it('mixes single-string and array-form claims in the same call', () => {
+    const input = baseInput();
+    input.claims = [
+      {
+        claim: 'Single-citation claim (legacy shape)',
+        citation: 'Section 00 — Annual recurring revenue: $45.2M',
+        tier: '1',
+      },
+      {
+        claim: 'Multi-bullet derivation (BL-053 shape)',
+        citation: [
+          'Section 00 — Annual recurring revenue: $45.2M',
+          'Section 02 — Engineering FTE count: 58 total',
+        ],
+        tier: '2',
+      },
+    ];
+    const result = runComposeDossierEnvelope(input, SERVER_CTX);
+    expect(result.provenanceVerification.verified).toBe(2);
+    expect(result.provenanceVerification.unverified).toBe(0);
+  });
+
+  it('verifies tier-1-declared array claim cleanly when all elements verify (no tier-mismatch)', () => {
+    const input = baseInput();
+    input.claims = [
+      {
+        claim: 'Tier-1 multi-bullet quote',
+        citation: [
+          'Section 00 — Annual recurring revenue: $45.2M',
+          'Section 02 — Engineering FTE count: 58 total',
+        ],
+        tier: '1',
+      },
+    ];
+    const result = runComposeDossierEnvelope(input, SERVER_CTX);
+    expect(result.provenanceVerification.tierMismatches).toBe(0);
+    expect(result.provenanceVerification.verified).toBe(1);
+  });
+
+  it('flags tier-1-declared array claim as tier-mismatch when any element fails', () => {
+    const input = baseInput();
+    input.claims = [
+      {
+        claim: 'Tier-1 multi-bullet with fabricated element',
+        citation: [
+          'Section 00 — Annual recurring revenue: $45.2M',
+          'Section 99 — Fabricated row never in the IRL',
+        ],
+        tier: '1',
+      },
+    ];
+    const result = runComposeDossierEnvelope(input, SERVER_CTX);
+    expect(result.provenanceVerification.tierMismatches).toBe(1);
+    expect(result.gapListMarkdown).toMatch(/tier-mismatch/);
+  });
+});

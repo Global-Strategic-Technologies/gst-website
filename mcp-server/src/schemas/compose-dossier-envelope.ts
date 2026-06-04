@@ -37,6 +37,7 @@ import { z } from 'zod';
 import { CONDITIONAL_TRIGGER_NAMES } from '../prompts/extraction-rules';
 import { ORCHESTRATED_TOOLS } from '../prompts/irl-ingestion';
 import {
+  citationFieldSchema,
   runIrlProvenanceCheck,
   type ValidateIrlProvenanceVerdict,
 } from './validate-irl-provenance';
@@ -132,12 +133,14 @@ const claimSchema = z.object({
     .describe(
       'Short prose label of the load-bearing claim (e.g., "NRR 106%", "TechPar 46.8% above zone", "Tech Debt carrying cost $2.85M CAD/yr").'
     ),
-  citation: z
-    .string()
-    .min(1)
-    .describe(
-      'IRL citation backing the claim, in the BL-045 audit shape: "Section NN row M — <excerpt>" or, for partner-supplied (non-IRL) inputs, "Section -- — partner-supplied form input — <description>".'
-    ),
+  // BL-053: citation accepts EITHER a string (legacy single-bullet form) OR
+  // an array of strings (1-8 elements) for multi-bullet claims. Array form is
+  // verified per-element with strict aggregation (any unverified element →
+  // aggregate unverified). Closes the structural false-negative for
+  // derivation-heavy syntheses where the model's natural citation style
+  // joins multiple supporting bullets — pre-BL-053 the verifier rejected
+  // these as non-substring even though every supporting bullet existed.
+  citation: citationFieldSchema,
   tier: z
     .enum(tierValues)
     .describe(
@@ -361,6 +364,15 @@ export function renderGapList(gaps: ComposeDossierEnvelopeInput['gaps']): string
   return lines.join('\n');
 }
 
+// BL-053: render a citation field that may be string OR string[] for the
+// (K) provenance footer. Array form is rendered as semicolon-joined elements
+// with an explicit element count prefix so partners reading the dossier can
+// see at a glance which claims rest on multi-bullet derivations.
+function renderCitationField(citation: string | string[]): string {
+  if (typeof citation === 'string') return citation;
+  return `[${citation.length} citations] ${citation.join(' ; ')}`;
+}
+
 export function renderProvenanceFooter(
   claims: ComposeDossierEnvelopeInput['claims'],
   verdicts: ValidateIrlProvenanceVerdict[]
@@ -377,7 +389,9 @@ export function renderProvenanceFooter(
           : v.status === 'partner-supplied'
             ? '◇ partner-supplied'
             : '✗ unverified';
-    lines.push(`- ${c.claim} ← ${c.citation} (tier ${c.tier}) [${verdictTag}]`);
+    lines.push(
+      `- ${c.claim} ← ${renderCitationField(c.citation)} (tier ${c.tier}) [${verdictTag}]`
+    );
   }
   return lines.join('\n');
 }
