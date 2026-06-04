@@ -363,6 +363,54 @@ const PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE = [
 // to (J), so the provenance-citation self-check fires as a side-effect
 // of calling the tool rather than relying on the model to remember.
 
+// ─── BL-051 — citation-iteration precheck directive ────────────────────
+//
+// Empirically established in the v12 StoreForce live exercise: the
+// heavyweight `compose_dossier_envelope` tool's tool-input dictation
+// cost (~30KB JSON: full claims array + gaps + filledIrl + meta) makes
+// per-iteration cycles minute-scale. When the model iterates citation
+// correctness DIRECTLY on the envelope, each correction round re-dictates
+// the entire input, repeating the same multi-minute serialization for
+// what is fundamentally a small per-claim verdict refinement.
+//
+// BL-051 directs the model to converge citation correctness on
+// `validate_irl_provenance` FIRST — a purpose-built fast verifier with
+// minimal input (filledIrl + citations only) and minimal output (per-
+// claim verdict). Once ≥90% of citations verify, call the envelope
+// ONCE on the clean set. Net effect: dossier ships in 1 envelope call
+// instead of 2-5, verification rate lifts (each unverified claim got
+// a real correction opportunity, not just one shot), throughput is
+// minutes faster.
+//
+// This precedes the ENVELOPE_COMPOSITION_DIRECTIVE in both verbose
+// body shapes (one-shot + interactive). Skipped in extract-only mode
+// (no envelope call there).
+
+const ENVELOPE_PRECHECK_DIRECTIVE = [
+  '## Envelope precheck — citation iteration via `validate_irl_provenance` (BLOCKING — full mode + verbose verbosity only)',
+  '',
+  'BEFORE calling `compose_dossier_envelope`, run the citation-iteration loop on `validate_irl_provenance`. The envelope tool is heavyweight (its input is ~30KB on a full sweep: claims + gaps + filledIrl + meta); the verifier is purpose-built for fast iteration (input is just `filledIrl` + `claims`). Converge citation correctness on the cheap tool, then call the expensive one ONCE on the clean set. This is the empirically-required workflow discipline: it lifts first-call verification rate into the 80-90% band and eliminates the multi-iteration heavyweight-tool churn the v12 trace surfaced.',
+  '',
+  'Loop:',
+  '',
+  '1. Assemble your draft `claims` array (every load-bearing claim with `{claim, citation, tier}`) exactly as you would pass to the envelope.',
+  '2. Call `validate_irl_provenance` with `{filledIrl, claims}`. The tool returns per-claim verdicts: `verified` / `verified-fuzzy` / `partner-supplied` / `unverified`.',
+  '3. For every `unverified` entry: re-cite using a verbatim substring of the IRL body. The IRL body is the ground truth — find the bullet that supports the claim and copy its exact wording (single bullet, single substring, in the canonical `Section NN — <verbatim excerpt>` shape). If a claim genuinely cannot be supported by any IRL substring, do NOT fabricate a citation — leave it `unverified` and accept the `provenance-gap:` flag the envelope will auto-append; the partner needs to see what was unsupported.',
+  '4. (Optional, stricter discipline) For `verified-fuzzy` entries where you can find a verbatim substring instead, upgrade. Fuzzy verification is acceptable but verbatim is the gold standard.',
+  '5. Re-call `validate_irl_provenance` to confirm corrections landed.',
+  '6. Repeat 3-5 until `(verified + verifiedFuzzy + partnerSupplied) / total ≥ 0.90` OR you have made 4 precheck iterations (whichever comes first — convergence beyond 4 rounds is not cheap, and remaining unverified entries are likely genuine gaps the partner should see).',
+  '',
+  'Then — and only then — call `compose_dossier_envelope` with the clean claims set. Target: 1 envelope call total (`totalEnvelopeCalls: 1` in the BL-045-VERIFY block, `selfCorrectionCalls: 0`).',
+  '',
+  'Why this discipline matters (read carefully):',
+  '',
+  '- The envelope tool internally runs the SAME `validate_irl_provenance` pass + auto-appends `provenance-gap` / `tier-mismatch` / `tier-fabrication` entries to (J). Iterating on the envelope works structurally but is slow per round.',
+  "- Iterating on the verifier first is functionally identical for citation correctness but ~6× faster per round (small input, small output) — the model's tool-input dictation cost is the bottleneck, not the server's computation.",
+  '- An envelope call on a pre-converged citation set produces a clean meta fence + (J) + (K) on the first try. The dossier ships faster AND the BL-045-VERIFY block reflects a tighter, more honest run.',
+  '',
+  '**Skip rules:** if your draft `claims` array is empty (no load-bearing claims in this run — extract-only-equivalent path), skip the precheck and proceed to the envelope. If `validate_irl_provenance` returns an error, treat it as a tool-error degradation per § Tool error degradation and proceed to the envelope; the envelope will run its own internal verification.',
+].join('\n');
+
 const ENVELOPE_COMPOSITION_DIRECTIVE = [
   '## Envelope composition (BLOCKING — full mode + verbose verbosity only)',
   '',
@@ -695,6 +743,8 @@ function buildOneShotBody(args: {
           '',
           bodyBindingDirective,
           '',
+          ENVELOPE_PRECHECK_DIRECTIVE,
+          '',
           ENVELOPE_COMPOSITION_DIRECTIVE,
         ]
       : []),
@@ -807,6 +857,8 @@ const INTERACTIVE_BODY = [
   '',
   `Step 3. Compose the unified dossier — nine sections (A–I): target snapshot · diligence agenda · architecture · ICG · tech debt · regulatory · comparables · market signal · synthesis. **Every section that pulls from a tool MUST close with that tool's \`deeplink\` URL as an "Open in Hub" link** — TechPar wizard for (C), ICG wizard for (D), Tech Debt Calculator for (E), Regulatory Map for (F, one per framework), portfolio view for (G), Radar feed for (H). The deeplinks open the corresponding Hub surface with state pre-populated; this is the bridge between the read-only dossier and the partner-refinable interactive tool. Reference the canonical VDR taxonomy (\`${VDR_RESOURCE_URI}\`) verbatim for follow-up document requests in the synthesis section.`,
   '',
+  `Step 3a. **Envelope precheck — citation iteration via \`validate_irl_provenance\` (BLOCKING).** BEFORE calling \`compose_dossier_envelope\`, converge citation correctness on \`validate_irl_provenance\` first. Assemble your draft \`claims\` array (every load-bearing claim with \`{claim, citation, tier}\`) and call \`validate_irl_provenance\` with \`{filledIrl, claims}\`. For every \`unverified\` entry, re-cite using a verbatim substring of the IRL body (\`Section NN — <exact wording>\`). Re-call to confirm. Repeat until \`(verified + verifiedFuzzy + partnerSupplied) / total ≥ 0.90\` OR you have made 4 precheck iterations. Then — and only then — call \`compose_dossier_envelope\` ONCE on the clean set. The verifier is purpose-built for fast iteration (small input, small output); the envelope is heavyweight (~30KB input per call). Iterating on the cheap tool first lifts first-call verification rate into the 80-90% band and ships the dossier in 1 envelope call instead of 2-5. If a claim genuinely cannot be supported by any IRL substring, accept the \`unverified\` flag — the partner needs to see what was unsupported.`,
+  '',
   `Step 4. **Mandatory closing step.** Before emitting the dossier prose, call \`compose_dossier_envelope\` with the structured inputs (promptName/promptVersion/modelVersion/mode/verbosity/transactionContext/fillRatio/gatesPassed/gatesElided/conditionalTriggersFired/forceToolsApplied/claims/gaps/filledIrl/irlBodyHash). It returns three markdown blocks the dossier MUST include verbatim: \`metaFenceMarkdown\` as the FIRST content (before A), \`gapListMarkdown\` as section (J), \`provenanceFooterMarkdown\` as section (K). The tool internally verifies every load-bearing claim against the IRL and auto-appends \`provenance-gap:\` / \`tier-mismatch:\` / \`tier-fabrication:\` entries.`,
   '',
   '## Step 5 — verification harness (mandatory final output)',
@@ -839,7 +891,7 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
-  version: '0.5.3',
+  version: '0.6.0',
   lastReviewedAt: '2026-06-04',
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_RESOURCE_URI, VDR_RESOURCE_URI] as const,
   argsSchema,

@@ -107,17 +107,19 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 //   - lastReviewedAt bumped 2026-06-01 → 2026-06-04 (no body hash impact
 //     unless body builders embed the date — they currently don't).
 // Rebaselined for v0.13.1 + BL-055 hash-bind discipline split
-// (prompt 0.5.2 → 0.5.3). hashBindResult enum gained pass-bound /
-// pass-internal / IrlBodyHashMismatchError; envelope-composition
-// directive annotated with one-shot vs interactive sourcing rules;
-// Step 5 verify block + standalone BL_045_VERIFY_DIRECTIVE got the
-// "report pass-bound only when directive existed" discipline.
+// (prompt 0.5.3 → 0.6.0). BL-051: new ENVELOPE_PRECHECK_DIRECTIVE
+// instructing validate_irl_provenance citation-iteration BEFORE the
+// heavyweight compose_dossier_envelope call (~30KB input); converge to
+// ≥90% verification on the cheap verifier, then ship the dossier in 1
+// envelope call. Interactive body gains an inline Step 3a equivalent.
+// Extract-only bodies do NOT include the precheck (no envelope call in
+// extract-only mode), so EXTRACT_ONLY_* hashes are unchanged.
 const EXPECTED_HASH_INTERACTIVE =
-  'ba29030dae98c14d9359cccdadce00ac74ac9a00bdcfb6e5db867ff8a99f54f8';
+  '0176eb773896ba401ccfa8779c89cb686337fb6fb5583fb4e3c6595a0f850576';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '223cca22babceae37cf55561898bb78021eeb6b1537710b0ddc3e1bf49866aff';
+  '0f585b8b8bda3c75a89dea8ec12e5b0005153c9abefd6ee2cc13716fdd34a148';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'b43133e74a9a3f7adabc31b446824b95ee5c0a45399db96adcf1c23be24511ba';
+  'b226615e6504208c109df4aeb2e56ecb125c78d54de314ca37777f0bdc108a08';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   'cfa4a76c66e9370f0510460a72751c6388145b76b48f7fd331546f580344a6df';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
