@@ -378,14 +378,58 @@ const ENVELOPE_COMPOSITION_DIRECTIVE = [
   '- `fillRatio` — the output of the wrong-IRL pre-flight (percent + substantiveCells + totalCells + status).',
   '- `gatesPassed`, `gatesElided`, `conditionalTriggersFired`, `forceToolsApplied` — your inclusion-gate evaluation results.',
   '- `claims` — EVERY load-bearing claim the dossier will make: every monetary figure (ARR, hosting, R&D, salary, carry cost), every headcount number, every regulatory framework cited, every TechPar verdict, every ICG maturity score, every comparable code name surfaced in (G), every TechPar/Tech Debt/ICG headline number from (C)/(D)/(E). Each carries `{claim, citation, tier}`. The tool renders (K) from this array AND runs an internal `validate_irl_provenance` pass.',
-  '- `gaps` — categorized entries you have already identified, using the enum: `defaulted-dimension` (any dimension defaulted to `unknown`), `extraction-only` (Tech Debt MTTR null, ICG defaults, etc.), `gate-elided` (each tool whose gate failed and was not forced), `conditional-trigger` (EU AI Act / NIS2 fired without explicit Section 09 backing), `currency-assumption` (TechPar run in non-USD basis), `map-absent` (regulatory frameworks named but not in the Map). Do NOT pre-populate `provenance-gap` — the tool auto-appends those.',
+  '- `gaps` — categorized entries you have already identified, using the enum: `defaulted-dimension` (any dimension defaulted to `unknown`), `extraction-only` (Tech Debt MTTR null, ICG defaults, etc.), `gate-elided` (each tool whose gate failed and was not forced), `conditional-trigger` (EU AI Act / NIS2 fired without explicit Section 09 backing), `currency-assumption` (TechPar run in non-USD basis), `map-absent` (regulatory frameworks named but not in the Map). Do NOT pre-populate `provenance-gap`, `tier-mismatch`, or `tier-fabrication` — the tool auto-appends those based on the citation verdicts.',
   '- `filledIrl` — the populated IRL body, used for the internal provenance verification of every claim.',
+  "- `irlBodyHash` — has two valid sources depending on prompt invocation mode. **One-shot mode** (this body): copy verbatim from the prompt body's `**Body-binding hash:**` directive — that is the partner-authoritative `pass-bound` form. **Interactive mode** (no `filledIrl` arg supplied at invocation): no directive will appear in your prompt body, so compute `sha256(filledIrl).slice(0,16)` of the body bytes you yourself intend to submit and pass THAT. The envelope tool verifies `sha256(filledIrl).slice(0,16) === irlBodyHash` either way and rejects on mismatch. In your BL-045-VERIFY block, report `pass-bound` ONLY when the directive existed; report `pass-internal` when you computed the hash yourself in interactive mode. See § Step 5 — verification harness for the discipline rules.",
   '',
   'The tool returns `provenanceVerification` summarizing how many of your claims verified. If `unverified > 0`, the tool has already appended `provenance-gap:` entries to the gap list — read them, and either correct the citation (re-call the tool) or accept the flag (the partner needs to see what was unverifiable).',
   '',
   'Re-calling: if you discover additional claims or gaps mid-composition, re-call the tool with the updated arrays rather than editing the markdown by hand. The tool is pure and cheap.',
   '',
   '**This step is non-optional in `mode: full` + `verbosity: verbose` (the default).** A dossier emitted without the envelope is non-conformant; treat the tool call as the final required step of the sweep.',
+].join('\n');
+
+// ─── BL-045 PR B / BL-049 — verification harness emission directive ─────
+//
+// Operator-facing structured artifact the model emits as the final
+// block of its response. Operators copy this single fenced block to
+// verify the run without scrolling through multi-KB tool outputs.
+// Schema documented in BL-049 § Verification protocol. Shipped on
+// EVERY body shape (interactive, one-shot, extract-only) so every live
+// run produces a load-bearing artifact regardless of code path.
+
+const BL_045_VERIFY_DIRECTIVE = [
+  '## Final emission — BL-045-VERIFY block (mandatory)',
+  '',
+  'After every other section of your response is complete (dossier, extract-only JSON, or the partner-paste request prose), emit a SINGLE fenced block at the VERY END of your response with the literal label `BL-045-VERIFY` and the schema below. This is the operator-facing verification artifact for run auditing — without it, operators have to spelunk through multi-KB tool outputs to verify whether the run worked.',
+  '',
+  '```text',
+  '```BL-045-VERIFY',
+  'serverVersion: <semver — match the promptVersion family>',
+  'runScenario: partner-paste | interactive-paste-request',
+  'firstEnvelopeCall:',
+  '  irlBodyHash: <16hex>',
+  '  hashBindResult: pass-bound | pass-internal | IrlBodyHashMismatchError',
+  '  provenanceVerification: { total: N, verified: N, verifiedFuzzy: N, partnerSupplied: N, unverified: N, tierMismatches: N, tierFabrications: N }',
+  'selfCorrectionCalls: <int — total envelope calls AFTER the first across the entire session, not just this response>',
+  'totalEnvelopeCalls: <int — cumulative across the session>',
+  'conditionalTriggersFired: [<enum — every trigger that fired at any point, even if later simplifications dropped it from the meta-fence>]',
+  'gatesElided: [<tool name>]',
+  '```',
+  '```',
+  '',
+  'Rules:',
+  '- The block MUST be the last content in your response. Nothing after it.',
+  '- Use YAML inside the fence (terse, no JSON). One field per line.',
+  '- If the run did not produce an envelope call (e.g., interactive-paste-request scenario), set `firstEnvelopeCall: null` and the counts to 0.',
+  '- `selfCorrectionCalls` + `totalEnvelopeCalls` are CUMULATIVE across the whole workflow session, not just the final response. If you made 3 envelope calls total to ship, those are 2 and 3.',
+  '- `conditionalTriggersFired` lists EVERY trigger you evaluated as firing at any point in the workflow, even if you later collapsed the meta-fence. The verify block is for AUDIT; meta-fence is for DOSSIER RENDERING.',
+  '- **`hashBindResult` semantics (load-bearing — read carefully)**:',
+  "  - `pass-bound` — the envelope tool accepted the call AND the `irlBodyHash` value you supplied came verbatim from the prompt body's `**Body-binding hash:**` directive. This is the strong form: the hash binds the call to bytes the prompt SERVER computed from a `filledIrl` prompt arg the partner supplied (one-shot mode). Audit grade: high.",
+  "  - `pass-internal` — the envelope tool accepted the call BUT no `**Body-binding hash:**` directive existed in the prompt body (interactive-mode invocation where no `filledIrl` arg was supplied). You computed `sha256(filledIrl).slice(0,16)` of the body bytes you yourself intend to submit. This is the weak form: the hash confirms internal consistency between the body and citations you submit (function 1 of hash-bind), but it does NOT bind to a partner-authoritative source (function 2 is absent). Audit grade: medium — the partner reading the dossier should know that the IRL bytes came from the model's reconstruction (e.g., from an attached xlsx), not from a partner-pasted markdown arg.",
+  '  - `IrlBodyHashMismatchError` — the envelope tool REJECTED the call. The `irlBodyHash` you supplied did not equal `sha256(filledIrl).slice(0,16)` of the body you supplied. Re-call with consistent bytes.',
+  '- **DO NOT** report `pass-bound` if the prompt body did not contain a `**Body-binding hash:**` directive you could copy from. Reporting `pass-bound` when the directive was absent is a fabricated audit claim. Report `pass-internal` instead — it is honest and the partner sees the provenance limit transparently.',
+  '- Do NOT add fields not in the schema. Do NOT decorate the block. The operator parses this verbatim.',
 ].join('\n');
 
 // ─── Shared helper: gap list (J) directive ─────────────────────────────
@@ -449,7 +493,7 @@ function buildOneShotBody(args: {
   return [
     authorialIntentLine(PROMPT_NAME),
     '',
-    `Run the GST diligence sweep against the populated Information Request List below. This is the bookend to \`gst_information_request_list\` — the request the partner sent (\`${IRL_RESOURCE_URI}\`, embedded as the next message for taxonomy reference) has come back filled. Your job is to translate the filled answers into a coordinated invocation of every relevant GST Hub tool and downstream artifact, then synthesize the outputs into a single dossier.`,
+    `Run the GST Discovery sweep against the populated Information Request List below. This is the bookend to \`gst_information_request_list\` — the request the partner sent (\`${IRL_RESOURCE_URI}\`, embedded as the next message for taxonomy reference) has come back filled. Your job is to translate the filled answers into a coordinated invocation of every relevant GST Hub tool and downstream artifact, then synthesize the outputs into a single dossier.`,
     '',
     'Engagement context:',
     `- ${targetClause}`,
@@ -655,6 +699,8 @@ function buildOneShotBody(args: {
         ]
       : []),
     '',
+    BL_045_VERIFY_DIRECTIVE,
+    '',
     '## Voice + format directives',
     '',
     '- Dossier-quality. The output should read as a single coherent partner-level document, not a stitched-together set of tool outputs. Every tool result is a means to a sentence.',
@@ -729,6 +775,8 @@ function buildExtractOnlyBody(args: {
       ? ['', PROVENANCE_FOOTER_DIRECTIVE, '', PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE]
       : []),
     '',
+    BL_045_VERIFY_DIRECTIVE,
+    '',
     '## Voice + format directives (extract-only)',
     '',
     '- NO synthesis prose. NO dossier sections (A) – (I). The only narrative content is the (J) gap list.',
@@ -742,7 +790,7 @@ function buildExtractOnlyBody(args: {
 const INTERACTIVE_BODY = [
   authorialIntentLine(PROMPT_NAME),
   '',
-  `Help the user run the GST diligence sweep — the bookend to \`gst_information_request_list\`. The IRL article (\`${IRL_RESOURCE_URI}\`) is embedded as the next message for taxonomy reference; \`${VDR_RESOURCE_URI}\` follows for VDR-folder labels in synthesis.`,
+  `Help the user run the GST Discovery sweep — the bookend to \`gst_information_request_list\`. The IRL article (\`${IRL_RESOURCE_URI}\`) is embedded as the next message for taxonomy reference; \`${VDR_RESOURCE_URI}\` follows for VDR-folder labels in synthesis.`,
   '',
   'Step 1. Ask the user:',
   '',
@@ -759,7 +807,30 @@ const INTERACTIVE_BODY = [
   '',
   `Step 3. Compose the unified dossier — nine sections (A–I): target snapshot · diligence agenda · architecture · ICG · tech debt · regulatory · comparables · market signal · synthesis. **Every section that pulls from a tool MUST close with that tool's \`deeplink\` URL as an "Open in Hub" link** — TechPar wizard for (C), ICG wizard for (D), Tech Debt Calculator for (E), Regulatory Map for (F, one per framework), portfolio view for (G), Radar feed for (H). The deeplinks open the corresponding Hub surface with state pre-populated; this is the bridge between the read-only dossier and the partner-refinable interactive tool. Reference the canonical VDR taxonomy (\`${VDR_RESOURCE_URI}\`) verbatim for follow-up document requests in the synthesis section.`,
   '',
-  `Step 4. **Mandatory closing step.** Before emitting the dossier prose, call \`compose_dossier_envelope\` with the structured inputs (promptName/promptVersion/modelVersion/mode/verbosity/transactionContext/fillRatio/gatesPassed/gatesElided/conditionalTriggersFired/forceToolsApplied/claims/gaps/filledIrl). It returns three markdown blocks the dossier MUST include verbatim: \`metaFenceMarkdown\` as the FIRST content (before A), \`gapListMarkdown\` as section (J), \`provenanceFooterMarkdown\` as section (K). The tool also internally verifies every load-bearing claim against the IRL and auto-appends \`provenance-gap:\` entries for unverifiable claims.`,
+  `Step 4. **Mandatory closing step.** Before emitting the dossier prose, call \`compose_dossier_envelope\` with the structured inputs (promptName/promptVersion/modelVersion/mode/verbosity/transactionContext/fillRatio/gatesPassed/gatesElided/conditionalTriggersFired/forceToolsApplied/claims/gaps/filledIrl/irlBodyHash). It returns three markdown blocks the dossier MUST include verbatim: \`metaFenceMarkdown\` as the FIRST content (before A), \`gapListMarkdown\` as section (J), \`provenanceFooterMarkdown\` as section (K). The tool internally verifies every load-bearing claim against the IRL and auto-appends \`provenance-gap:\` / \`tier-mismatch:\` / \`tier-fabrication:\` entries.`,
+  '',
+  '## Step 5 — verification harness (mandatory final output)',
+  '',
+  'AFTER you have transcribed the envelope into the dossier and rendered the final document, emit a SINGLE fenced block at the very end of your response with the label `BL-045-VERIFY` and the schema below. This block is the architect-facing verification artifact — operators copy this one block to verify the run. Do NOT omit it; do NOT decorate it; do NOT add fields not in the schema.',
+  '',
+  '```',
+  '```BL-045-VERIFY',
+  'serverVersion: <semver from the meta fence promptVersion family>',
+  'runScenario: partner-paste | interactive-paste-request',
+  'firstEnvelopeCall:',
+  '  irlBodyHash: <16hex>',
+  '  hashBindResult: pass-bound | pass-internal | IrlBodyHashMismatchError',
+  '  provenanceVerification: { total: N, verified: N, verifiedFuzzy: N, partnerSupplied: N, unverified: N, tierMismatches: N, tierFabrications: N }',
+  'selfCorrectionCalls: <int — CUMULATIVE total envelope calls AFTER the first across the entire session, not just this response>',
+  'totalEnvelopeCalls: <int — CUMULATIVE across the session>',
+  'conditionalTriggersFired: [<enum — every trigger that fired at any point, even if later simplifications dropped it from the meta-fence>]',
+  'gatesElided: [<tool name>]',
+  '```',
+  '```',
+  '',
+  "`hashBindResult` reporting discipline: use `pass-bound` ONLY when you copied the `irlBodyHash` value verbatim from the prompt body's `**Body-binding hash:**` directive (one-shot mode where `filledIrl` was a partner-supplied arg). Use `pass-internal` when the prompt body had no such directive (interactive-mode invocation) and you computed the hash yourself from the body bytes you submitted — that is honest internal consistency, not a fabricated authoritative bind. Use `IrlBodyHashMismatchError` when the envelope rejected the call. Reporting `pass-bound` without a real directive to copy from is a fabricated audit claim — do not.",
+  '',
+  '(Use the actual outer ```` fence around the literal ` ```BL-045-VERIFY ` block — the nested fences above are just so this directive renders cleanly.)',
   '',
   "Voice: dossier-quality. The output reads as a single coherent partner-level document. Surface concrete numbers from the IRL verbatim. Honor every tool's `deeplink` field as a clickable Hub link (do NOT invent URLs). Do NOT fabricate data the IRL did not supply.",
 ].join('\n');
@@ -768,8 +839,8 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
-  version: '0.4.0',
-  lastReviewedAt: '2026-06-01',
+  version: '0.5.3',
+  lastReviewedAt: '2026-06-04',
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_RESOURCE_URI, VDR_RESOURCE_URI] as const,
   argsSchema,
   build: (args) => {

@@ -96,25 +96,39 @@ export interface ValidateIrlProvenanceResult {
  * collapse whitespace. Punctuation that disambiguates words (commas,
  * colons, periods) is preserved as whitespace so word boundaries are
  * still meaningful for the fuzzy-run check.
+ *
+ * BL-049 defensive hardening: `/` and `+` are also flattened to space so
+ * `cad/mo` and `hosting + infrastructure` decompose into word boundaries
+ * the fuzzy-run logic can use. Before this, `cad/mo` survived intact as
+ * a single token, which made `cad/mo` in citation vs `cad / mo` in body
+ * fail substring AND fuzzy.
  */
 export function normalizeForMatching(s: string): string {
   return s
     .toLowerCase()
     .replace(/[*`_~]+/g, '')
     .replace(/[—–-]+/g, ' ')
-    .replace(/[,;:.?!()[\]{}'"]+/g, ' ')
+    .replace(/[,;:.?!()[\]{}'"/+]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
 /**
  * Extract the excerpt portion of a citation — everything after the
- * first em-dash. Citations in the BL-045 audit shape are
+ * LAST em-dash. Citations in the BL-045 audit shape are
  * "Section NN <header text> — <excerpt>". The excerpt is what the
  * verification operates over.
+ *
+ * BL-049 defensive hardening: anchors on `lastIndexOf('—')` rather than
+ * the first em-dash so multi-em-dash citations (e.g., a citation that
+ * echoes a canonical section header containing its own em-dash —
+ * `"Section 02 — Software Architecture — 2-05 — text"`) extract the
+ * trailing excerpt correctly rather than dragging the header in as
+ * noise. For single-em-dash citations (the canonical "Section NN row N-NN
+ * — excerpt" shape v11 actually emitted), behavior is unchanged.
  */
 export function extractExcerpt(citation: string): string {
-  const dashIdx = citation.indexOf('—');
+  const dashIdx = citation.lastIndexOf('—');
   if (dashIdx === -1) return citation;
   return citation.slice(dashIdx + 1).trim();
 }

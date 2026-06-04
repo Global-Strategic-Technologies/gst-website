@@ -97,25 +97,43 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // BL-045 PR B body-rewrite scenarios — design doc § Body rendering strategy
 // raises the scenario count from 3 to 5 so both mode branches (full +
 // extract-only) are independently hash-locked.
+// Re-baselined for BL-049 prompt v0.5.0:
+//   - Interactive body: Step-0 xlsx ingestion path + xlsx-canonicalized
+//     args + BL-045-VERIFY block schema.
+//   - One-shot bodies (full mode, verbose): ENVELOPE_COMPOSITION_DIRECTIVE
+//     gained irlBodyHash/irlSource/receipt input fields; new
+//     BL_045_VERIFY_DIRECTIVE appended after envelope.
+//   - Extract-only bodies (verbose): BL_045_VERIFY_DIRECTIVE appended.
+//   - lastReviewedAt bumped 2026-06-01 → 2026-06-04 (no body hash impact
+//     unless body builders embed the date — they currently don't).
+// Rebaselined for v0.13.1 + BL-055 hash-bind discipline split
+// (prompt 0.5.2 → 0.5.3). hashBindResult enum gained pass-bound /
+// pass-internal / IrlBodyHashMismatchError; envelope-composition
+// directive annotated with one-shot vs interactive sourcing rules;
+// Step 5 verify block + standalone BL_045_VERIFY_DIRECTIVE got the
+// "report pass-bound only when directive existed" discipline.
 const EXPECTED_HASH_INTERACTIVE =
-  '133f5db02eebb6bca05f214aceeadb38f64c632c207891f04dff7478b3f5956d';
+  'ba29030dae98c14d9359cccdadce00ac74ac9a00bdcfb6e5db867ff8a99f54f8';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'b3d752d2b810f6b3445dcb9a04964f9bc8bd35bf9cb1aaa9a1b4f84f01d6b135';
+  '223cca22babceae37cf55561898bb78021eeb6b1537710b0ddc3e1bf49866aff';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'ec724fdef7baf08f268da09eddd01e58adbc50c1fab96ee4feae08d04e1e5adc';
+  'b43133e74a9a3f7adabc31b446824b95ee5c0a45399db96adcf1c23be24511ba';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '6c04170cc39008ec7d15728d6e0b67cb1c252127eee5dc0d44c37f871f2ab366';
+  'cfa4a76c66e9370f0510460a72751c6388145b76b48f7fd331546f580344a6df';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '16ff440cd0c5c9e9108eccdf4252b80184b2b1dbb8524505476c9a3da9ca3d93';
+  '5670006c73933d80923b72d58cd735bf370af7e1cd4bbe5d7eba9997c57d44d7';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
 // PROVENANCE_FOOTER_DIRECTIVE, PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE).
 // These two scenarios hash-lock the compact-mode bodies.
+// Rebaselined for BL-055 hash-bind discipline split (prompt 0.5.2 → 0.5.3).
+// Compact bodies include the directive annotations + verify-block schema
+// expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '7e969c584b911fbd2548f77a79667c563a1dfd40d705f589733e3b43320b61e4';
+  '5928cc2270c8b555ab16325e788a1d18e84723afc4e3a1b3c1b4834defa804c1';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  '545b5ce0e9c601c233be1a42f4ef7ad72bc41f4e427d3b1c6810002c548121d7';
+  'ea510aafa20b41fd21a3b86eb8db5ce082f8c93e30b52bfd6c92680920cedc78';
 
 interface Scenario {
   name: string;

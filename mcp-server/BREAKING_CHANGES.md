@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-9d3819b3f6ed5d13b21f2c77b57ad09e429952bc8dc96e95d36c71e1a84fa5b2
+c8a5a4bf69dd226b0957856b6ad07ad8bc349216426fa30dd77d6958e80c31bc
 ```
 
 Computed over (sorted):
@@ -19,12 +19,90 @@ Computed over (sorted):
 - **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`).
 - 120 Regulation URIs.
 - 6 Radar URIs.
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.4.0` (BL-045 PR B audit-2 tightening: hash-bind forcing function on `filledIrl`, server-derived `promptVersion`, schema enum tightening on `gatesPassed`/`conditionalTriggersFired`/`forceToolsApplied`, tier-mismatch surface).
+- **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.5.3` (BL-055 hash-bind discipline split: `hashBindResult` enum now `pass-bound | pass-internal | IrlBodyHashMismatchError`; "GST diligence sweep" → "GST Discovery sweep" rename; BL-049 Step-0 xlsx directive reverted; tier-discipline + BL-045-VERIFY directive retained from v0.5.0).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.13.1 — 2026-06-04 — BL-049 partial revert — strand the unreachable xlsx/HMAC infrastructure; preserve the empirically-validated pieces
+
+**Theme**: the BL-049 v12 StoreForce live exercise (2026-06-04) revealed that the **HMAC-receipt + xlsx-canonicalized branch is structurally unreachable in the standard Claude Desktop + stdio topology**. The model executes in Anthropic's cloud-side Linux compute sandbox; the MCP server runs on the operator's host (Windows in this run). Attached files live in the model's sandbox at paths like `/mnt/user-data/uploads/...` that the host MCP server cannot read. Both delivery paths the BL-049 design assumed fail:
+
+- `xlsxBase64`: the model's tool-call construction truncates strings >~10KB; ~65KB workbooks fail with `Bad compressed size` ZIP errors.
+- `xlsxPath`: the cross-host filesystem boundary — the Windows server cannot resolve a Linux sandbox path.
+
+This is not a Windows-specific problem — it's the default Claude Desktop topology, period. Without an MCP spec primitive for binary resource delivery OR a Claude Desktop attachment-to-host bridge (neither exists; no public roadmap), the receipt-mediated xlsx-canonicalized path has no operator-reachable form. The empirically-shipped v12 dossier ran on the partner-pasted path; the HMAC infrastructure never fired.
+
+**Surface impact** (patch — additive removals; backward-compatible reduction to v0.12.0-shaped envelope with v11 Finding B closure retained):
+
+- **Reverted**:
+  - `extract_irl_from_xlsx` tool + schema + handler (file delete)
+  - `mcp-server/src/lib/receipt-hmac.ts` (file delete)
+  - `RECEIPT_HMAC_KEY` env binding in `worker.ts:Env`
+  - `irlSource` + `receipt` schema fields on `compose_dossier_envelope`
+  - `IrlReceiptInvalidError`, `IrlReceiptShapeError`, `assertReceiptSymmetry`, HMAC verify branch in the envelope engine
+  - Step 0 xlsx-ingestion directive in `prompts/irl-ingestion.ts` interactive body
+  - `irlSource` / `receipt` mentions in `ENVELOPE_COMPOSITION_DIRECTIVE`
+  - Server registers 15 tools again (down from 16); `RECEIPT_HMAC_KEY` no longer in `Env`
+- **Retained from BL-049** (empirically validated on the v12 partner-paste live exercise 2026-06-04):
+  - `tier-fabrication` gap category + `deriveTier(verdict)` helper + tier-fabrication auto-append in `compose_dossier_envelope`'s engine. The v12 trace showed the model reading the verifier's tier-fabrication diagnostic and choosing to re-cite rather than demote — empirical evidence the v11 Finding B closure works on real model behavior.
+  - `BL_045_VERIFY_DIRECTIVE` on every prompt body — the operator-grade audit artifact that made the v12 diagnostic workflow tractable.
+  - `extractExcerpt` anchors on `lastIndexOf('—')` (BL-049 defensive hardening).
+  - `normalizeForMatching` strips `/` and `+` to whitespace (BL-049 defensive hardening).
+  - BL-052 tightening on the BL-045-VERIFY directive: cumulative-across-session count semantics + conditional-trigger preservation rules made explicit.
+
+**Versioning**: `mcp-server` 0.13.0 → 0.13.1 (patch — additive removals; envelope schema reduces to v0.12.0 shape + tier-fabrication count field); `gst_irl_ingestion` prompt 0.5.0 → 0.5.1 (Step 0 directive removed, BL-045-VERIFY directive tightened). Manifest hash + all 7 body hashes re-baselined.
+
+**Test deltas**: 1278 → 1241 (-37). Removed: receipt-hmac unit tests (15), extract-irl-from-xlsx parser tests (9), cross-tool integration tests (13). Updated: existing tests rebaselined for the 15-tool count + 0.5.1 prompt version + new body hashes. **Tier-discipline tests preserved** — the v11 Finding B closure remains under test coverage.
+
+**Deferred work**: BL-054 captures the deferred xlsx-canonicalized hash-bind authority path. Revisit if/when an MCP spec primitive ships for binary resource delivery OR Claude Desktop ships an attachment-to-host bridge.
+
+**Also in 0.13.1** — **BL-055 — hash-bind discipline split** (live-exercise empirical fix, 2026-06-04):
+
+The v12 partner-paste live exercise surfaced a pre-existing structural gap in interactive-mode invocations: the prompt body has no `**Body-binding hash:**` directive (it can't — there's no `filledIrl` arg at prompt-build time), so the model has no authoritative external hash to copy. Pre-BL-055, the only legal `hashBindResult` values were `pass` (which falsely implied authoritative binding) and `IrlBodyHashMismatchError`. The model in v12 correctly refused to claim `pass` without a real directive, which manifested as a hard workflow blocker.
+
+The fix distinguishes the two functions hash-bind actually serves:
+
+- **`pass-bound`** — supplied `irlBodyHash` was copied verbatim from the prompt body's `**Body-binding hash:**` directive (one-shot mode where `filledIrl` was a partner-supplied arg). Hash binds to bytes the prompt SERVER computed from the partner's authoritative paste. Audit grade: high. Closes both v10's "model paraphrases body" failure mode AND function 2 ("bind to authoritative external source").
+- **`pass-internal`** — no directive existed in the prompt body (interactive-mode invocation), so the model computed `sha256(filledIrl).slice(0,16)` itself from the body it intends to submit. Hash confirms internal consistency between body and citations the model submits — function 1 of hash-bind ("catch paraphrase between body and citations") still applies and is still valuable. Audit grade: medium (partner sees that the IRL bytes came from model reconstruction, not partner-pasted markdown). Crucially, this is the HONEST report for interactive-mode runs — it's not a fabricated authoritative bind, and the partner reading the dossier sees the provenance limit transparently.
+- **`IrlBodyHashMismatchError`** — unchanged; the envelope rejected the call because `irlBodyHash` doesn't match `sha256(filledIrl)`. Re-cite or re-submit.
+
+Surface impact (additive prompt-body directive expansion, no schema/code change):
+
+- BL_045_VERIFY_DIRECTIVE: `hashBindResult` enum expanded; reporting-discipline rules added (don't claim `pass-bound` without a directive to copy from).
+- Inline Step 5 verify block in INTERACTIVE_BODY: same enum + discipline.
+- ENVELOPE_COMPOSITION_DIRECTIVE: annotated to explain one-shot vs interactive sourcing.
+
+Prompt: 0.5.2 → 0.5.3 (patch — additive directive clarity, no contract change). Server stays at 0.13.1. Body hashes + manifest hash rebaselined.
+
+**Theme**: closes the two real failure modes the v11 StoreForce live exercise empirically exposed (after re-grounding the original "30 false-positive tier-mismatch" thesis against the actual transcript — see [`src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md`](../src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md) § "Empirical trace — v11 actual outcome"):
+
+- **Finding A — operator-flow ambiguity.** When xlsx is attached but no `filledIrl` arg is supplied, the model improvises a body. v11's Call 1 passed the blank canonical IRL template; verifier correctly rejected 30 IRL-cited claims. Call 2 (self-correction with the populated body) was prepared but never fired. **Closed by `extract_irl_from_xlsx`** — gives the model an authoritative canonical body so Call 1 IS the successful call.
+- **Finding B — tier-discipline gaming.** Inspecting Call 2's prepared input revealed the model demoted **17 originally-tier-1 claims to tier-2** between calls — converting damning `tier-mismatch:` gaps into routine `provenance-gap:` ones. The tier field was model-declared with no server enforcement. **Closed by `tier-fabrication:` auto-append** — the verifier derives effective tier from citation properties (substring → tier-1-literal; `Section --` sentinel → partner-supplied; neither → fabrication); demoting to tier-2 with a non-substring excerpt now produces `tier-fabrication:` instead of being silently absorbed.
+
+**Surface impact** (minor — additive schema + new tool):
+
+- **New tool `extract_irl_from_xlsx`** — base64 xlsx in, deterministic canonical-form markdown + `irlBodyHash` + HMAC `receipt` + `fillRatio` out. Reuses `parseIrlArticle` cross-tree from `src/utils/irl/parse-article.ts` (BL-044's canonical AST) so the section/bullet shape is single-sourced.
+- **HMAC receipt** — new `mcp-server/src/lib/receipt-hmac.ts` (`computeReceipt`, `verifyReceipt`, `loadReceiptSecretOrThrow`). Reuses the existing constant-time `timingSafeEqual` polyfill from `admin/admin-auth.ts` for Workers-runtime portability. Truncated HMAC-SHA256 to 16 bytes (32 hex chars) — 128 bits of unforgeable receipt scoped to a single conversation. New Wrangler secret `RECEIPT_HMAC_KEY` (min 32 chars); fail-closed on tool invocation (not boot) so existing tests / callers without xlsx workflow keep working.
+- **`compose_dossier_envelope` schema** — additive optional `irlSource: 'partner-pasted' | 'xlsx-canonicalized'` (default `'partner-pasted'` preserves today's behavior) + optional `receipt: /^[a-f0-9]{32}$/`. Engine enforces symmetric receipt presence at call time (`assertReceiptSymmetry`); xlsx-canonicalized branch additionally verifies the HMAC under the server secret. New errors: `IrlReceiptInvalidError` (model fabricated body + computed sha256 but lacks HMAC) + `IrlReceiptShapeError` (asymmetric receipt + irlSource).
+- **`tier-fabrication` gap category (BL-049 v11 Finding B)** — added to `gapCategoryValues` enum. `deriveTier(verdict)` helper classifies effective tier from citation properties. Result includes `tierFabrications` count alongside `tierMismatches`.
+- **Verifier defensive hardening** — `extractExcerpt` anchors on `lastIndexOf('—')` (handles multi-em-dash citations cleanly); `normalizeForMatching` strips `/` and `+` to whitespace so `cad/mo` and `hosting + infrastructure` decompose into word boundaries the fuzzy-run logic can use.
+- **New env var `RECEIPT_HMAC_KEY`** in `worker.ts:Env` interface, threaded into `registerComposeDossierEnvelopeTool(server, metrics, secret)` and `registerExtractIrlFromXlsxTool(server, secret, metrics)`.
+
+**Body changes** (prompt `gst_irl_ingestion` 0.4.0 → 0.5.0):
+
+- Interactive body: new `## Step 0 — xlsx ingestion path` directing the model to call `extract_irl_from_xlsx` BEFORE the partner-paste request when an `.xlsx` is attached; threads its outputs through `compose_dossier_envelope` with `irlSource: 'xlsx-canonicalized'` + `receipt`.
+- One-shot body: `ENVELOPE_COMPOSITION_DIRECTIVE` documents the new `irlSource` + `receipt` input contract.
+- New `BL_045_VERIFY_DIRECTIVE` appended to all bodies (interactive, one-shot, extract-only — both verbose and compact). Instructs the model to emit a single fenced `BL-045-VERIFY` block as the final content of every response, with a fixed YAML schema. Operator-grade verification artifact: ≤ 500 bytes, never truncates, single-block copy-paste. Replaces transcript archaeology.
+
+**Versioning**: `mcp-server` 0.12.0 → 0.13.0 (minor — new tool + additive schema fields); `gst_irl_ingestion` prompt 0.4.0 → 0.5.0. Manifest hash + all 7 body hashes re-baselined.
+
+**Test deltas**: 1241 → 1278 (+37). New: 15 receipt-hmac unit cases, 9 extract-irl-from-xlsx parser cases, 13 cross-tool integration cases (happy path, bypass attack, schema-shape, backward compat, tier-discipline regression). Updated: 4 existing cases (extractExcerpt last-em-dash semantics, tier-2 fabrication now surfaces tier-fabrication, tools list grew to 16).
 
 ---
 

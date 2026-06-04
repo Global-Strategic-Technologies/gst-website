@@ -58,13 +58,18 @@ describe('normalizeForMatching', () => {
 });
 
 describe('extractExcerpt', () => {
-  it('returns the text after the first em-dash', () => {
+  it('returns the text after the em-dash (single em-dash, canonical citation shape)', () => {
     expect(extractExcerpt('Section 02 row 43 — Engineering FTE count: 58 total')).toBe(
       'Engineering FTE count: 58 total'
     );
   });
-  it('handles repeated em-dashes (returns text after the FIRST)', () => {
-    expect(extractExcerpt('Section 00 — Foo — Bar')).toBe('Foo — Bar');
+  it('anchors on the LAST em-dash (BL-049 defensive hardening)', () => {
+    // Citations that echo canonical section headers (which themselves
+    // contain em-dashes) would have dragged the header in as noise under
+    // the original `indexOf('—')` behavior; `lastIndexOf('—')` extracts
+    // the trailing excerpt cleanly.
+    expect(extractExcerpt('Section 02 — Software Architecture — 2-05 — text')).toBe('text');
+    expect(extractExcerpt('Section 00 — Foo — Bar')).toBe('Bar');
   });
   it('returns the original when no em-dash is present', () => {
     expect(extractExcerpt('Section 00 row 10 Recurring revenue')).toBe(

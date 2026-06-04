@@ -7,9 +7,20 @@
  * procedure. This tool externalizes the structure into a tool input so
  * the model can't compose the dossier without producing the envelope.
  *
+ * **v0.13.1 partial revert** — the BL-049 HMAC-receipt / xlsx-canonicalized
+ * branch was reverted because the cross-host Claude Desktop topology
+ * (model in cloud-side Linux sandbox, MCP server on user host) has no
+ * reachable path to deliver attached xlsx bytes to the server. The
+ * cryptographically-receipted path is deferred (see BL-054) pending
+ * either an MCP spec primitive for binary resource delivery OR a Claude
+ * Desktop attachment-to-host bridge. What stayed from BL-049: the
+ * `tier-fabrication` gap category and `deriveTier()` discipline (the v11
+ * Finding B closure that empirically fired on a partner-paste live run).
+ *
  * Pure tool — no engine state, no Hub deeplink. Internally calls
  * `runIrlProvenanceCheck` to verify every load-bearing claim against the
- * IRL and auto-appends `provenance-gap:` entries to (J) for fabrications.
+ * IRL and auto-appends `provenance-gap:` / `tier-mismatch:` /
+ * `tier-fabrication:` entries to (J) for fabrications.
  *
  * See: src/schemas/compose-dossier-envelope.ts for the input shape +
  * render functions + the pure engine.
@@ -36,10 +47,11 @@ const TOOL_DESCRIPTION = `Render the dossier's structural envelope (top-of-docum
 - \`fillRatio\` — output of the wrong-IRL pre-flight (percent + substantiveCells + totalCells + status enum).
 - \`gatesPassed\`, \`gatesElided\`, \`conditionalTriggersFired\`, \`forceToolsApplied\` — meta-fence body.
 - \`claims\` — EVERY load-bearing claim the dossier will make (NRR figures, ARR, TechPar verdicts, ICG scores, Tech Debt carry, regulatory frameworks, comparable engagement code names, etc.). Each carries the claim label + IRL citation + tier. The tool renders (K) from these.
-- \`gaps\` — categorized gap entries (\`defaulted-dimension\` / \`extraction-only\` / \`gate-elided\` / \`conditional-trigger\` / \`currency-assumption\` / \`map-absent\`). The tool auto-APPENDS \`provenance-gap:\` entries for unverified claims; do NOT pre-populate that category.
+- \`gaps\` — categorized gap entries you have already identified. The tool auto-APPENDS \`tier-mismatch:\`, \`tier-fabrication:\`, and \`provenance-gap:\` entries based on the citation verdicts; do NOT pre-populate those categories.
 - \`filledIrl\` — the populated IRL body. Used internally to verify every claim's citation against the IRL via the same engine \`validate_irl_provenance\` uses.
+- \`irlBodyHash\` — copy verbatim from the prompt body's \`**Body-binding hash:**\` directive. Tool verifies \`sha256(filledIrl).slice(0,16) === irlBodyHash\`.
 
-**Output**: three markdown blocks (\`metaFenceMarkdown\`, \`gapListMarkdown\`, \`provenanceFooterMarkdown\`) the model pastes verbatim into the dossier, plus a \`provenanceVerification\` summary (count of verified / verified-fuzzy / partner-supplied / unverified / auto-appended-gaps) and \`emitInstructions\` with the transcription discipline.
+**Output**: three markdown blocks (\`metaFenceMarkdown\`, \`gapListMarkdown\`, \`provenanceFooterMarkdown\`) the model pastes verbatim into the dossier, plus a \`provenanceVerification\` summary (count of verified / verified-fuzzy / partner-supplied / unverified / auto-appended-gaps / tierMismatches / tierFabrications) and \`emitInstructions\` with the transcription discipline.
 
 **Re-calling**: if you discover additional gaps or claims after a first call, re-call the tool with the updated arrays rather than editing the markdown by hand.`;
 

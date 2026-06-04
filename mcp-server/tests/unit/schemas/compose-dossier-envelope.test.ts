@@ -261,8 +261,12 @@ describe('runComposeDossierEnvelope — engine', () => {
     );
   });
 
-  // Tier-2 unverified stays as provenance-gap (less damning).
-  it('auto-appends a provenance-gap entry when tier=2/3 claim is unverified (not tier-mismatch)', () => {
+  // BL-049 v11 Finding B: tier-2 fabrications (declared derivation but
+  // citation is neither verbatim IRL substring nor partner-supplied
+  // sentinel) now surface as `tier-fabrication:` — the demote-to-dodge
+  // gaming pattern is closed. tier-3 unverified continues as soft
+  // `provenance-gap:` since tier-3 is explicitly correlation/unknown.
+  it('auto-appends tier-fabrication when tier=2 claim citation is fabricated (BL-049 v11 Finding B)', () => {
     const input = baseInput();
     input.claims.push({
       claim: 'derived MTTR estimate',
@@ -272,12 +276,31 @@ describe('runComposeDossierEnvelope — engine', () => {
     const result = runComposeDossierEnvelope(input, SERVER_CTX);
     expect(result.provenanceVerification.unverified).toBe(1);
     expect(result.provenanceVerification.tierMismatches).toBe(0);
+    expect(result.provenanceVerification.tierFabrications).toBe(1);
     expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
-    expect(result.gapListMarkdown).toContain('**provenance-gap:** derived MTTR estimate');
+    expect(result.gapListMarkdown).toContain('**tier-fabrication:** derived MTTR estimate');
     expect(result.gapListMarkdown).not.toContain('**tier-mismatch:**');
+    expect(result.gapListMarkdown).toContain('demote-to-dodge');
   });
 
-  it('preserves pre-existing gaps when auto-appending provenance-gap entries', () => {
+  it('auto-appends provenance-gap for tier=3 unverified (correlation/unknown is soft)', () => {
+    const input = baseInput();
+    input.claims.push({
+      claim: 'speculative competitive hypothesis',
+      citation: 'Section 01 — model-generated competitive read, not in IRL',
+      tier: '3',
+    });
+    const result = runComposeDossierEnvelope(input, SERVER_CTX);
+    expect(result.provenanceVerification.unverified).toBe(1);
+    expect(result.provenanceVerification.tierMismatches).toBe(0);
+    expect(result.provenanceVerification.tierFabrications).toBe(0);
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
+    expect(result.gapListMarkdown).toContain(
+      '**provenance-gap:** speculative competitive hypothesis'
+    );
+  });
+
+  it('preserves pre-existing gaps when auto-appending tier-fabrication entries (BL-049 v11 Finding B)', () => {
     const input = baseInput();
     input.gaps.push({
       category: 'currency-assumption',
@@ -286,12 +309,12 @@ describe('runComposeDossierEnvelope — engine', () => {
     input.claims.push({
       claim: 'Fabricated detail',
       citation: 'Section 99 — something not in the IRL anywhere at all',
-      tier: '2', // tier-2 so it goes to provenance-gap, not tier-mismatch
+      tier: '2', // BL-049: tier-2 fabricated citation now surfaces as tier-fabrication
     });
     const result = runComposeDossierEnvelope(input, SERVER_CTX);
     expect(result.gapListMarkdown).toContain('**gate-elided:** search_radar');
     expect(result.gapListMarkdown).toContain('**currency-assumption:** TechPar run in CAD');
-    expect(result.gapListMarkdown).toContain('**provenance-gap:** Fabricated detail');
+    expect(result.gapListMarkdown).toContain('**tier-fabrication:** Fabricated detail');
   });
 
   it('is pure — calling twice with the same input yields identical results', () => {

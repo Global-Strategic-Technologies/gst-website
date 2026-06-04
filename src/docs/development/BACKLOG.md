@@ -3307,6 +3307,8 @@ Per CLAUDE.md § 4a "no deferred tech debt": deferral is acceptable when there i
 
 ### BL-049: `gst_irl_ingestion` — Server-Side xlsx Canonicalization for Hash-Bind Authority
 
+> **Design doc**: [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md)
+
 **Source**: BL-045 PR B v11 StoreForce live exercise (2026-06-03) — the hash-bind forcing function in `compose_dossier_envelope` (shipped under v0.12.0 / prompt `gst_irl_ingestion@0.4.0`) empirically validated the architectural pattern: when the model passes the verbatim IRL bytes as `filledIrl`, the verifier authoritatively confirms each citation's substring presence. **But the v11 trace also exposed an upstream workflow gap**: when partners attach an `.xlsx` IRL file in Claude Desktop rather than pasting markdown into the `filledIrl` prompt arg, the model must reconstruct the IRL body from spreadsheet cells — and BOTH the body AND the citations become model-generated. Hash-bind then validates internal consistency (the model's bytes hash to the model's hash) but cannot bind to the original spreadsheet as an authoritative source. The v11 dossier produced 30 false-positive `tier-mismatch:` entries on this exact mechanism even after the model executed a substring-validation loop, because the model regenerated the body and citations as two separate text streams with subtle encoding drift between them. | **Effort**: 2-4 hours (Path A — new MCP tool) OR 4-6 hours (Path B — extended prompt arg). | **Status**: 🟦 **Open · Priority: medium** — closes the architecture's last empirical gap for the most operator-natural workflow (xlsx file attachment). Senior-consultant 9×4 review (BL-045 PR B closure) can proceed at v0.12.0 because the v11 trace demonstrates the model self-correction loop works; this ticket eliminates the remaining false-positive class. | **Depends on**: BL-045 PR B merged at v0.12.0.
 
 **As a** GST partner ingesting a populated IRL via Claude Desktop, **I want** to attach the `.xlsx` directly to the conversation instead of pre-converting to markdown **so that** the hash-bind forcing function in `compose_dossier_envelope` validates citations against an authoritative server-canonicalized IRL body — eliminating the v11-class false-positive `tier-mismatch` entries that occur when the model regenerates both the body and the citations independently.
@@ -3355,6 +3357,132 @@ The BL-045 PR B v11 trace empirically demonstrated that the **forcing-function a
 
 Senior-consultant 9×4 review against v0.12.0 + the v11 trace evidence proceeds without this ticket. BL-049 ships as a clean post-merge follow-up.
 
+### BL-051: `gst_irl_ingestion` — Citation Iteration via `validate_irl_provenance` Before Envelope
+
+**Source**: BL-049 v12 StoreForce live exercise (2026-06-04) — first end-to-end run on server v0.13.0 / prompt `gst_irl_ingestion@0.5.0` after BL-049 shipped. The forcing-function architecture worked (hash-bind passed, tier-discipline fired empirically — model self-corrected on tier-fabrication diagnostic instead of demote-to-dodge), but the **citation verification rate landed at 52% on the first envelope call** (8 verbatim + 5 fuzzy = 13 of 25 claims; 9 unverified split 7 tier-mismatches + 2 tier-fabrications). Acceptance criterion in the BL-049 design doc was ≥ 28/30 (93%). The gap is operator-workflow throughput-bound: the model's natural citation style summarizes multiple IRL bullets into one citation excerpt joined with semicolons, and the verifier (correctly) rejects those as non-substring. The model attempted to self-correct via repeated `compose_dossier_envelope` calls, but each iteration required re-dictating ~30KB of JSON input (`filledIrl` + 25-57 claims + 10+ gaps) which presents as minute-scale tool hangs at LLM throughput. The session ended with operator instructing "stop the loop and ship," producing a complete dossier but at 52% verification rate. | **Effort**: ~45 min (prompt body update + body-hash + manifest-hash rebaselines + one new test scenario) | **Status**: 🟦 **Open · Priority: medium-high** — directly addresses the empirically-observed throughput problem AND lifts verification rates without server-side changes. Strong candidate for the next BL-045 family iteration. | **Depends on**: BL-049 merged (v0.13.0).
+
+**As a** GST partner running an IRL ingestion sweep, **I want** the model to iterate citation correctness against a fast tool (`validate_irl_provenance`) BEFORE calling the heavyweight `compose_dossier_envelope` rendering tool **so that** verification rates land in the 80-90% range on a SINGLE envelope call — eliminating the multi-iteration heavyweight-tool throughput problem AND lifting the per-claim audit signal partners see in the dossier.
+
+#### What the prompt body should direct the model to do (the new discipline)
+
+After running the eight content tools and gathering claims + citations, BEFORE calling `compose_dossier_envelope`:
+
+1. Call `validate_irl_provenance` with `filledIrl` + the full citation array.
+2. For every claim returned as `unverified` (or `verified-fuzzy` if you want a stricter discipline): re-cite using a verbatim substring of the IRL body. Use the body's exact wording — single bullet, single substring.
+3. Re-call `validate_irl_provenance` to confirm.
+4. ONLY when ≥ 90% of citations verify (verbatim or fuzzy), call `compose_dossier_envelope` with the clean set.
+
+#### Why this works at the architecture level
+
+- `validate_irl_provenance` is purpose-built for fast iteration — small input (no need to re-pass `gates`, `fillRatio`, etc.), small output (just per-citation verdicts). The model's tool-input dictation cost per iteration drops from ~30KB → ~5KB.
+- The expensive rendering (meta fence + (J) + (K) markdown synthesis) happens ONCE on the clean citation set, instead of repeatedly on each iteration's dirty set.
+- Per-claim feedback arrives faster, so the model's natural self-correction loop converges in 3-5 fast iterations instead of 1-2 minute-scale ones.
+
+#### Acceptance criteria
+
+- Prompt body bumps 0.5.0 → 0.6.0 with a new directive (ENVELOPE_PRECHECK_DIRECTIVE or similar) explicitly instructing the validate-then-envelope discipline.
+- A v13+ StoreForce live exercise (or equivalent) lands `verified + verifiedFuzzy ≥ 22 of 25` (88%) on the FIRST `compose_dossier_envelope` call, with `selfCorrectionCalls: 0` in the BL-045-VERIFY block.
+- `totalEnvelopeCalls: 1` in the verify block (the precheck loop is on `validate_irl_provenance`, not on the envelope).
+
+#### Why not "high" priority
+
+BL-049's architecture is empirically validated as load-bearing — the v12 dossier IS audit-grade, just with 9 transparently-flagged gaps instead of 2. The 52% verification rate is a workflow-quality issue, not an audit-coverage failure. A partner receiving the v12 dossier has complete provenance accountability, just denser flagging. BL-051 sharpens the workflow but doesn't unblock anything.
+
+### BL-052: `gst_irl_ingestion` — BL-045-VERIFY Block Schema Clarity (Cumulative vs Final-Response Counts)
+
+**Source**: BL-049 v12 StoreForce live exercise (2026-06-04) — the rendered BL-045-VERIFY block reported `selfCorrectionCalls: 0` and `totalEnvelopeCalls: 1`, but the operator-observed reality was 3+ envelope-call attempts across the session (the model iterated, hit perceived throughput hangs, the operator restarted Claude Desktop twice, and the model finally shipped on the third successful call). The block's count fields are honest only for the SHIPPING-RESPONSE envelope call, not for the cumulative workflow. The verification-protocol intent in BL-049 § Verification Protocol is cumulative ("selfCorrectionCalls > 0 means the workflow needed self-correction"); the prompt-body directive doesn't disambiguate clearly enough so the model rendered final-response counts. Secondary observation from the same trace: `conditionalTriggersFired: []` was reported empty even though the IRL Section 09 explicitly named EU AI Act applicability (and earlier in-progress envelope calls reported `EU_AI_ACT` correctly). Both are reporting-discipline issues, not architectural failures, but they erode the verify block's value as an audit artifact. | **Effort**: ~20 min (prompt body directive tightening + body-hash rebaseline) | **Status**: 🟦 **Open · Priority: low** — cosmetic, no architectural impact. Worth fixing because the verify block is the primary operator-grade audit surface and ambiguous semantics undermine its load-bearing role. | **Depends on**: BL-049 merged (v0.13.0).
+
+**As a** GST operator auditing a workflow run via the BL-045-VERIFY block, **I want** the count fields and trigger arrays to reflect cumulative workflow state across the entire session **so that** the block is a complete record of what happened, not just what's in the final response — preserving its value as the load-bearing operator-grade audit surface BL-045-VERIFY was designed to be.
+
+#### Fixes
+
+1. **Directive disambiguation**: rewrite the BL_045_VERIFY_DIRECTIVE in `prompts/irl-ingestion.ts` to say explicitly: "`selfCorrectionCalls` = total `compose_dossier_envelope` calls during this entire workflow session AFTER the first one. If you made 3 envelope calls total to ship, this is 2. Track this from working memory across the session, not just the final response."
+
+2. **Conditional-trigger preservation**: add to the directive: "`conditionalTriggersFired` must list every conditional trigger evaluated as firing during the workflow, even if a later workflow simplification dropped it from the meta-fence. The verify block is for AUDIT; the meta-fence is for DOSSIER RENDERING."
+
+3. **Optional schema field**: consider adding `meaningfulRecallsHaveDifferentInputs: bool` to surface whether self-correction calls were progressive citation cleanups vs identical-input retries (the former is healthy workflow; the latter is operator/transport issue worth flagging).
+
+#### Acceptance criteria
+
+- Prompt body bumps 0.5.0 → 0.6.0 (composes cleanly with BL-051 if both ship together).
+- A subsequent live run with deliberate iteration produces a verify block where `selfCorrectionCalls` matches the operator's observed iteration count, AND `conditionalTriggersFired` includes every trigger evaluated as firing at any point.
+
+### BL-054: `gst_irl_ingestion` — Re-introduce xlsx-Canonicalized Hash-Bind Authority (Deferred from BL-049)
+
+**Source**: BL-049 v12 StoreForce live exercise (2026-06-04) — established that the xlsx-canonicalized hash-bind path designed under BL-049 is **structurally unreachable in the standard Claude Desktop + stdio MCP topology**. The model executes in Anthropic's cloud-side Linux compute sandbox; the MCP server runs on the operator's host (Windows / macOS / Linux). Attached files live in the model's sandbox at paths like `/mnt/user-data/uploads/...` that the host MCP server cannot read. Two delivery paths the BL-049 design assumed both fail: (a) `xlsxBase64` — the model's tool-call construction truncates strings >~10KB, so realistic ~65KB workbook payloads fail with `Bad compressed size` ZIP errors; (b) `xlsxPath` — the cross-host filesystem boundary blocks the server from reading any sandbox path. v0.13.1 partial-reverted the unreachable infrastructure (`extract_irl_from_xlsx`, receipt-hmac lib, `RECEIPT_HMAC_KEY` env binding, envelope `irlSource`/`receipt` schema fields, Step 0 prompt directive). The empirically-validated pieces from BL-049 (`tier-fabrication` discipline, BL-045-VERIFY directive, verifier defensive hardening) stayed. | **Effort**: ~5-8 hours when the blocking infrastructure exists | **Status**: 🟫 **Deferred · Priority: blocked** — re-introduce when EITHER: (a) MCP spec adds a binary resource/file primitive that handles >100KB payloads, OR (b) Claude Desktop ships an attachment-to-host bridge that exposes uploaded files at a path the local MCP server can read. Both are outside this codebase's control. | **Depends on**: external infrastructure not yet shipped.
+
+**As a** GST partner ingesting a populated IRL via Claude Desktop with an xlsx attachment, **I want** the server to canonicalize the spreadsheet and issue a cryptographic receipt the envelope tool verifies **so that** the partner-paste path is no longer the only route — eliminating the operator step of converting xlsx → markdown before invoking the workflow.
+
+#### Why this is blocked (not just deprioritized)
+
+The BL-049 implementation was technically correct and shipped passing all integration tests. It failed in production because **the architecture of MCP + Claude Desktop has no mechanism to transmit binary file bytes from the model's execution context to the local MCP server**. Diagnosis:
+
+- **`xlsxBase64` is bounded by tool-call argument size** — model-side truncation kicks in at ~10KB. Real IRL workbooks are 30-100KB. Not extensible without LLM throughput improvements outside our control.
+- **`xlsxPath` is bounded by the filesystem boundary** — model sandbox is Linux at `/mnt/user-data/uploads/`; MCP server runs on operator host (Windows or macOS or Linux). Cross-mount is not possible without a Claude Desktop infrastructure change.
+- **MCP Resources are bounded by per-request size** — designed for small text/JSON, not arbitrary binary payloads (per the operator's empirical observation; see BL-049 design doc § live-exercise findings).
+- **Chunked-upload tools** — possible but require stateful server (multi-call session management), an order-of-magnitude complexity increase for an attachment-to-host adapter the right architectural fix would obviate.
+- **Network-mediated transfer** (S3 / HTTP staging endpoint) — possible but requires infrastructure outside MCP spec; introduces auth, network failure modes, partner-friction.
+
+#### Trigger conditions for revisit
+
+Revisit and re-introduce the BL-049 architecture when ONE of:
+
+1. **MCP spec adds a binary-resource primitive** that supports files >100KB delivered to tool handlers as bytes (vs. inline text or JSON-RPC arg). Watch MCP spec discussions.
+2. **Claude Desktop ships an attachment-to-host bridge**: when a user attaches a file in Claude Desktop, the file is materialized at a known host filesystem path that locally-spawned MCP servers can read via `process.env.MCP_ATTACHMENT_DIR` or similar. Watch Anthropic's Claude Desktop releases.
+3. **Operator chooses to drop Claude Desktop topology** in favor of all-cloud or all-host topology (e.g., model + server both on the same Linux container). Operational pivot, not infrastructure work.
+
+#### What re-introduction would entail
+
+Largely the same scope as the BL-049 implementation that was partial-reverted. Reuse the design doc at [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md). Adjust the bytes-delivery surface to whatever the unblocking infrastructure exposes (the canonicalizer engine, HMAC receipt mechanics, schema deltas, and prompt body integration are all independent of the bytes-delivery layer).
+
+#### Why "deprioritized + blocked" honestly
+
+Per CLAUDE.md § 4a "no deferred tech debt": deferral is acceptable when there is a written trigger condition for revisit and the deferred work is NOT verification of code currently in scope. BL-054 meets both criteria — the trigger conditions are explicit (above) and the deferred work is net-new infrastructure dependent on external roadmaps, not unfinished verification of code that shipped. The partial-revert at v0.13.1 reflects the codebase's actually-shippable architecture, not the aspirational one.
+
+### BL-053: `compose_dossier_envelope` — Citation Array Form (Multi-Bullet Citation Support)
+
+**Source**: BL-049 v12 StoreForce live exercise (2026-06-04) — the model's natural citation style for derived claims (TechPar verdicts, comparable engagements, Tech Debt syntheses) is to cite MULTIPLE supporting IRL bullets joined into a single citation excerpt with semicolons or "and". The verifier substring-matches against the canonical body, so a multi-bullet-summary citation NEVER substring-matches (it's a synthetic concatenation, not text that appears anywhere in the body). The model's only structurally-valid options are: (a) re-cite using ONE verbatim bullet substring (losing the multi-source attribution), (b) demote to tier-2 with `Section --` partner-supplied sentinel (loses the IRL grounding signal), or (c) accept the unverified flag (transparent but inflates the auto-gap count). All three lose information vs. the model's genuine intent of "this claim is supported by bullets X, Y, AND Z." The schema-level fix is to let `citation` be `string | string[]`; the verifier check passes if all elements of the array verify individually as substrings of the body. | **Effort**: ~2 hours (schema delta on `compose-dossier-envelope.ts` claimSchema; deriveTier wrapper; verifier loop; test cases for the array form; tools list update) | **Status**: 🟦 **Open · Priority: medium** — closes a real model-pattern mismatch identified empirically. The current single-citation surface forces the model to choose between three lossy fallbacks. Not blocking BL-049's audit-coverage win but a clean architectural improvement. | **Depends on**: BL-049 merged (v0.13.0); composes with BL-051 (the precheck-iteration workflow benefits from this schema flexibility).
+
+**As a** Claude model emitting claims supported by multiple IRL bullets, **I want** to cite each supporting bullet individually in a citation array **so that** the verifier can verify each element separately AND the partner reading the dossier sees explicit per-bullet attribution — instead of being forced to (a) under-attribute (single bullet), (b) misrepresent provenance (partner-supplied sentinel), or (c) accept transparent-but-inflated unverified flags.
+
+#### Schema delta
+
+```ts
+// mcp-server/src/schemas/compose-dossier-envelope.ts
+const claimSchema = z.object({
+  claim: z.string().min(1)...,
+  citation: z.union([z.string().min(1), z.array(z.string().min(1)).min(1).max(8)])
+    .describe(
+      'EITHER a single citation string (the current shape — "Section NN — <verbatim excerpt>") ' +
+      'OR an array of citation strings (one per supporting IRL bullet). When an array, every ' +
+      'element must independently verify as a substring of the IRL body for the claim to count ' +
+      'as verified. Use the array form when a claim genuinely derives from multiple bullets ' +
+      '(TechPar verdicts citing eng count + hosting + salary; comparables citing portfolio search; ' +
+      'syntheses combining several Section 04 + Section 07 bullets).'
+    ),
+  tier: z.enum(tierValues)...,
+});
+```
+
+#### Verifier delta
+
+In `runIrlProvenanceCheck`, when an entry's citation is an array, run the per-string verification on each element and aggregate:
+
+- All elements `verified` (verbatim substring) → status `verified` (full strength).
+- All elements `verified` or `verified-fuzzy` → status `verified-fuzzy` (acceptable for derivation tier).
+- Any element `unverified` AND no partner-supplied sentinel → status `unverified` (the claim is genuinely under-supported).
+- The auto-append loop's tier-discipline check treats the aggregate verdict identically to the current per-string verdict.
+
+#### Acceptance criteria
+
+- Schema accepts both shapes; existing single-string call sites continue to work unchanged (additive change).
+- A v13+ live run on a derivation-heavy IRL (e.g., StoreForce's TechPar/ICG/Tech Debt verdicts) sees verification rate lift to ≥ 85% as the model adopts the array form for multi-bullet claims.
+- BREAKING_CHANGES entry documents the additive schema change (compose_dossier_envelope: citation now accepts string | string[]).
+
+#### Why not "high" priority
+
+BL-049 v12 dossier achieved audit-grade transparency at 52% verification — the partner sees every gap. BL-053 lifts the verification rate by closing the structural false-negative for multi-bullet citations, but the dossier was shippable without it. Ship BL-051 first (cheap workflow win); ship BL-053 if v13 live exercises continue showing multi-bullet patterns dominating the unverified bucket.
+
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority)_
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority) | BL-051 + BL-052 + BL-053 filed: June 4, 2026 (post-BL-049 v12 live-exercise empirical follow-ups — citation iteration discipline, verify block schema clarity, multi-bullet citation array form) | BL-049 partial-reverted at v0.13.1 + BL-054 filed: June 4, 2026 (xlsx-canonicalized hash-bind authority deferred — blocked on external MCP spec primitive or Claude Desktop attachment-to-host bridge)_

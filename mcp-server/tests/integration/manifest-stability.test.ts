@@ -37,7 +37,14 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
  * match the value in `mcp-server/BREAKING_CHANGES.md`. Update both in
  * lockstep when the registry shape changes.
  */
-const EXPECTED_MANIFEST_HASH = '9d3819b3f6ed5d13b21f2c77b57ad09e429952bc8dc96e95d36c71e1a84fa5b2';
+// v0.13.1 partial-revert rebaseline: extract_irl_from_xlsx tool removed
+// (cross-host Claude Desktop topology blocks bytes delivery — deferred
+// to BL-054 pending MCP spec primitive or Claude Desktop attachment-to-
+// host bridge); prompt v0.5.0 → v0.5.1 (Step-0 directive removed,
+// BL-045-VERIFY directive tightened per BL-052). Kept from BL-049:
+// tier-fabrication enum + deriveTier (v11 Finding B closure — empirically
+// validated in v12 partner-paste live exercise 2026-06-04).
+const EXPECTED_MANIFEST_HASH = 'c8a5a4bf69dd226b0957856b6ad07ad8bc349216426fa30dd77d6958e80c31bc';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();
