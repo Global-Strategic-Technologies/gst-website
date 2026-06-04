@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-afce775a7c452c293802d89179359aae7341acf27ffef29ca9e4ff76d41a7539
+191a747580a606f69563ca368c0e9bf33ded1a5cdd1aa8f6c9cd036f11101a59
 ```
 
 Computed over (sorted):
@@ -20,12 +20,38 @@ Computed over (sorted):
 - 120 Regulation URIs.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.6.0` (BL-051 envelope-precheck directive: model converges citation correctness on `validate_irl_provenance` BEFORE the heavyweight `compose_dossier_envelope` call; verifies ≥90% then ships dossier in 1 envelope call).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.6.1` (BL-052 BL-045-VERIFY block clarity: new `meaningfulRecallsHaveDifferentInputs` field distinguishes healthy iteration from transport thrash on `selfCorrectionCalls > 0`).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.15.1 — 2026-06-04 — BL-052 — BL-045-VERIFY block clarity (transport-vs-iteration discriminator)
+
+**Theme**: post-BL-051 the envelope-precheck workflow targets `selfCorrectionCalls: 0` as the healthy state (the model converges citation correctness on the cheap verifier; the envelope is called once on the clean set). When `selfCorrectionCalls > 0`, operators currently cannot distinguish two qualitatively different scenarios:
+
+1. **Healthy in-flight refinement** — the model called the envelope multiple times AND each call had progressively cleaner inputs (claims tightened, gaps revised, citations re-anchored). Legitimate iteration.
+2. **Transport thrash** — the model called the envelope multiple times with identical or near-identical inputs (timeout retried, response not received, tool-error retry loop). Operator/transport issue worth flagging — the model did the work twice, not better twice.
+
+The BL-045-VERIFY block lacked the signal to disambiguate. BL-052 adds it.
+
+**Surface impact** (patch — prompt-body directive only):
+
+- BL_045_VERIFY_DIRECTIVE (standalone, used by `buildOneShotBody` + `buildExtractOnlyBody`) gains a new field: `meaningfulRecallsHaveDifferentInputs: <bool — true | false | null>`. Semantics fully documented in the directive's Rules block, including post-BL-051 healthy-target framing.
+- INTERACTIVE_BODY's inline Step 5 BL-045-VERIFY block schema gains the same field with the same semantics.
+- All 7 prompt-body shapes re-baselined (directive appears in every body shape via the standalone constant + the inline Step 5 stanza).
+- No tool schema change. The verify block is operator-grade YAML inside the model's response text — adding a field to the schema documentation in the prompt body is a clarity tightening, not a load-bearing behavior change.
+
+**Acceptance criterion**: a subsequent live exercise with deliberate iteration produces a verify block where `selfCorrectionCalls` matches the operator's observed iteration count AND `meaningfulRecallsHaveDifferentInputs` correctly disambiguates healthy iteration (`true`) from transport thrash (`false`). When `selfCorrectionCalls: 0`, the field is `null`.
+
+**Versioning**: `mcp-server` 0.15.0 → 0.15.1 (patch — additive prompt-body directive field); `gst_irl_ingestion` prompt 0.6.0 → 0.6.1. Manifest hash + all 7 body hashes re-baselined.
+
+**Test surface**: 1257 mcp-server tests pass (no test additions — the change is prose-only directive expansion).
+
+**Filed under**: BL-052 (`src/docs/development/BACKLOG.md`).
 
 ---
 
