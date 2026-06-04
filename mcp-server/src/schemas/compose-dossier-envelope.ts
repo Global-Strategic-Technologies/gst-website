@@ -504,13 +504,29 @@ export function runComposeDossierEnvelope(
     const declared = claim.tier;
 
     // Declared tier-1: must derive as tier-1-literal (verified or fuzzy).
+    // BL-053 follow-up: branch the diagnostic on derived tier so the model
+    // receives an accurate description of what failed. Generic "not a
+    // substring of the IRL body" is misleading when the derived tier is
+    // `partner-supplied` (the citation IS anchored — to a partner-form
+    // input, not to the IRL) and when the citation is an array form
+    // where one element of N failed.
     if (declared === '1' && derived !== 'tier-1-literal') {
       tierMismatches++;
+      const isArrayForm = Array.isArray(claim.citation);
+      const elementsClause = isArrayForm
+        ? ` (citation is a ${(claim.citation as string[]).length}-element array — at least one element did not anchor in the IRL)`
+        : '';
+      const diagnostic =
+        derived === 'partner-supplied'
+          ? `the citation is partner-supplied (\`Section --\` sentinel), not a literal IRL bullet. Tier-1 requires a verbatim IRL substring.`
+          : `the citation excerpt is not a substring of the IRL body${elementsClause}.`;
       autoAppended.push({
         category: 'tier-mismatch',
-        entry: `${claim.claim} — declared tier=1 (literal IRL bullet) but the citation excerpt is not a substring of the IRL body. Re-cite the literal IRL bullet OR demote the claim to tier=2 (one-step derivation).`,
+        entry: `${claim.claim} — declared tier=1 (literal IRL bullet) but ${diagnostic} Re-cite the literal IRL bullet OR demote the claim to tier=2 (one-step derivation, in which case ${derived === 'partner-supplied' ? 'partner-supplied is an acceptable tier-2 source' : 'verbatim IRL anchoring is still required'}).`,
         followUp:
-          "If the IRL row supports the claim, supply the verbatim bullet text as the citation excerpt. If the claim is a derivation rather than literal, change tier to '2'.",
+          derived === 'partner-supplied'
+            ? "If the IRL row also supports the claim, supply the verbatim IRL bullet as the citation excerpt (overriding the partner-supplied sentinel). Otherwise change tier to '2'."
+            : "If the IRL row supports the claim, supply the verbatim bullet text as the citation excerpt. If the claim is a derivation rather than literal, change tier to '2'.",
       });
       continue;
     }
@@ -521,9 +537,13 @@ export function runComposeDossierEnvelope(
     // v11 Finding B gaming pattern.
     if (declared === '2' && derived === 'fabrication') {
       tierFabrications++;
+      const isArrayForm = Array.isArray(claim.citation);
+      const elementsClause = isArrayForm
+        ? ` (citation is a ${(claim.citation as string[]).length}-element array — at least one element did not anchor anywhere)`
+        : '';
       autoAppended.push({
         category: 'tier-fabrication',
-        entry: `${claim.claim} — declared tier=2 (one-step derivation) but the citation excerpt is neither a substring of the IRL body nor a partner-supplied sentinel. This pattern matches the BL-049 v11 Finding B demote-to-dodge: relabeling a tier-1 fabrication as tier-2 does NOT satisfy provenance — the verdict is derived from the citation, not the declared tier. Re-cite the IRL bullet that supports the derivation OR remove the claim.`,
+        entry: `${claim.claim} — declared tier=2 (one-step derivation) but the citation excerpt is neither a substring of the IRL body nor a partner-supplied sentinel${elementsClause}. This pattern matches the BL-049 v11 Finding B demote-to-dodge: relabeling a tier-1 fabrication as tier-2 does NOT satisfy provenance — the verdict is derived from the citation, not the declared tier. Re-cite the IRL bullet that supports the derivation OR remove the claim.`,
         followUp:
           'Supply the verbatim IRL bullet text the derivation rests on. If no such bullet exists, the claim is fabricated and must be removed (or marked open with `Section -- — partner-supplied form input — <description>`).',
       });

@@ -316,6 +316,90 @@ describe('protocol roundtrip', () => {
       expect(parsed.growthStages.length).toBeGreaterThan(0);
       expect(parsed.years.length).toBeGreaterThan(0);
     });
+
+    // BL-053 follow-up: integration coverage for the citation array form.
+    // The 16 BL-053 unit tests exercise the engine directly. Zod
+    // `z.union([string, array(string)])` is a known MCP-client
+    // serialization edge case — some clients flatten union types to
+    // `any` and lose the array shape in transit. This test confirms the
+    // array form round-trips through the SDK + protocol layer, not just
+    // the engine.
+    it('validate_irl_provenance accepts array-form citations through the MCP transport (BL-053 round-trip guard)', async () => {
+      const filledIrl = [
+        '# Information Request List — Acme (returned)',
+        '',
+        '## 00 — Basics',
+        '',
+        '- Annual recurring revenue: $45.2M Q1-FY26 annualized',
+        '',
+        '## 02 — Software Architecture',
+        '',
+        '- Engineering FTE count: 58 total',
+        '- Stack: TypeScript Node 22, Python 3.12, Aurora Postgres 15',
+      ].join('\n');
+
+      const res = await rpc('tools/call', {
+        name: 'validate_irl_provenance',
+        arguments: {
+          filledIrl,
+          citations: [
+            // Single-string form (legacy) — must continue to work.
+            {
+              path: 'single-string-claim',
+              citation: 'Section 02 — Engineering FTE count: 58 total',
+            },
+            // BL-053 array form: ALL elements verbatim → verified.
+            {
+              path: 'multi-bullet-all-verified',
+              citation: [
+                'Section 00 — Annual recurring revenue: $45.2M Q1-FY26 annualized',
+                'Section 02 — Engineering FTE count: 58 total',
+              ],
+            },
+            // BL-053 array form: ONE element fabricated → unverified (weakest wins).
+            {
+              path: 'multi-bullet-one-unverified',
+              citation: [
+                'Section 02 — Engineering FTE count: 58 total',
+                'Section 99 — Fabricated row that does not exist anywhere in the IRL',
+              ],
+            },
+          ],
+        },
+      });
+      expect(isErrorResponse(res)).toBe(false);
+      if (isErrorResponse(res)) return;
+
+      const result = res.result as unknown as CallToolResultPayload;
+      expect(result.isError).not.toBe(true);
+
+      const parsed = parseToolText<{
+        total: number;
+        verified: number;
+        unverified: number;
+        verdicts: Array<{
+          path: string;
+          citation: string | string[];
+          status: string;
+        }>;
+      }>(result);
+      expect(parsed.total).toBe(3);
+      expect(parsed.verified).toBe(2);
+      expect(parsed.unverified).toBe(1);
+
+      // Critical for the MCP-transport round-trip claim: the verdict
+      // echoes back the original citation shape. The single-string entry
+      // remains a string; the array entries remain arrays. If the SDK
+      // flattened the union to `any`, one of these would be a string
+      // (e.g., JSON-stringified) and the assertion would fail.
+      expect(typeof parsed.verdicts[0].citation).toBe('string');
+      expect(Array.isArray(parsed.verdicts[1].citation)).toBe(true);
+      expect(Array.isArray(parsed.verdicts[2].citation)).toBe(true);
+      expect((parsed.verdicts[1].citation as string[]).length).toBe(2);
+
+      // The aggregation rule kicked in: any-unverified-wins → unverified.
+      expect(parsed.verdicts[2].status).toBe('unverified');
+    });
   });
 
   describe('invalid input — the SDK rejects before the handler runs', () => {
