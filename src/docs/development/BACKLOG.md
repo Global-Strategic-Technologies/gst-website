@@ -3543,4 +3543,163 @@ Plus `gatesElided` upgraded to `[{tool, rationale}]` structured form, and `runSc
 
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority) | BL-051 + BL-052 + BL-053 filed: June 4, 2026 (post-BL-049 v12 live-exercise empirical follow-ups — citation iteration discipline, verify block schema clarity, multi-bullet citation array form) | BL-049 partial-reverted at v0.13.1 + BL-054 filed: June 4, 2026 then retired same day (xlsx-canonicalized hash-bind authority — blueprint preserved in [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); revisit via design doc if external infrastructure ships, not via backlog ping) | BL-056 filed + closed: June 4, 2026 (precheckIterations field added to BL-045-VERIFY block — BL-051 compliance now observable from the artifact alone) | BL-057 filed: June 4, 2026 (regulatory-map coverage gap sweep — AI-governance canon NIST AI RMF + Canada AIDA + Colorado AI Act + NYC AEDT + Illinois HB 3773 + CA + UK; Chile Ley 21.719 data-protection) | BL-058 filed + closed: June 4, 2026 (VERIFY block enriched with filledIrl + precheck + toolCallCounts + conditionalTriggers + response field families — engineering triage now one-paste, no follow-up Q&A)_
+### BL-059: `gst_irl_ingestion` — Tool-Arg Coaching to Eliminate Schema-Retry Tax
+
+**Priority**: High. The 2026-06-04 post-BL-058 retest surfaced this as the largest concrete inefficiency driver in the workflow — and likely the proximate cause of the auto-compaction event observed mid-run.
+
+#### Problem
+
+The retest's `toolCallCounts` block exposed a previously-invisible pattern: schema-strict tools needed 2–3 attempts each before succeeding. Five wasted tool calls per single dossier run, every wasted call burning roughly the same token budget as a success:
+
+| Tool                        | Attempted | Succeeded | Wasted |
+| --------------------------- | --------- | --------- | ------ |
+| `compose_dossier_envelope`  | 2         | 1         | 1      |
+| `generate_diligence_agenda` | 3         | 1         | 2      |
+| `compute_techpar`           | 3         | 1         | 2      |
+
+Idempotent search/list tools (`search_portfolio` 2/2, `search_regulations` 4/4, `list_*_facets` 1/1) succeed first try every time. The retry tax is concentrated on tools whose Zod schemas reject specific argument shapes (nested object structure, enum values, required-field omissions). The model is iterating to discover the correct shape after each rejection — a workflow-quality regression that BL-058's observability now makes visible.
+
+**Compaction risk**: Claude Desktop self-compacted during this run, the first time it has happened in the post-BL-049 cycle. The 5 wasted tool calls + their error responses + the model's recovery reasoning together consume substantial context. Eliminating the retry tax directly mitigates compaction risk.
+
+#### Approach
+
+1. **Pull the actual Zod error messages** from the retest run's tool-trace (or reproduce with a fresh retest) to identify the specific arg-shape mistakes per tool.
+2. **For each tool with retry tax**, add a directive paragraph in the prompt body coaching the model on the correct arg shape upfront — concrete example with the right structure, the most common mistake to avoid, the enum values that are valid. Same pattern as the BL-051 precheck directive's `{filledIrl, citations}` field-name coaching that prevented the `claims` typo.
+3. **Audit `compose_dossier_envelope` more closely**: 2 attempts for 1 success on the FINAL tool is particularly bad — if the model is mis-shaping inputs to the closing tool, that's an architectural arg-design issue, not a coaching gap. Check whether arg names or nesting conventions are non-obvious.
+
+#### Acceptance criteria
+
+- The next live exercise's `toolCallCounts` block shows `attempted == succeeded` for every tool, OR a documented justification for any remaining mismatch (e.g., genuine model-discovery loop, not arg-shape rejection).
+- Compaction does not occur mid-run for a workflow that previously triggered it (same IRL re-tested post-fix).
+
+#### Out of scope
+
+- Schema redesign on the tools themselves. The fix is directive coaching, not tool-API change. Tool schemas are a public contract per the BL-032 discipline; redesigning them would be a separate, larger BL.
+- Reducing the tool-call surface (e.g., merging `list_facets` + `search_*` into one call). Tool-pipeline simplification is a different sweep.
+
+#### Why "high" not "highest"
+
+The dossier still ships correctly under retry tax — the workflow is self-healing. The cost is operator-visible (compaction risk, token budget, wall-clock time) but not partner-visible. Land it in the next session that touches the prompt; it doesn't block on anything specific.
+
+---
+
+### BL-060: `gst_irl_ingestion` — Top-Level `toolErrors` Block in BL-045-VERIFY (Expand Beyond Precheck)
+
+**Priority**: Medium. Direct follow-up to BL-058 and BL-059 — without it, BL-059's investigation cannot proceed efficiently.
+
+#### Problem
+
+BL-058's `precheck.errorsEncountered` field captures `{errorClass, recoveryAction}` for failed `validate_irl_provenance` attempts. Excellent for precheck-only diagnosis. But the post-BL-058 retest exposed retry tax on FIVE other tools (`compose_dossier_envelope`, `generate_diligence_agenda`, `compute_techpar`, etc. — see BL-059), and the VERIFY block surfaces only the count (`attempted: 3, succeeded: 1`) without the failure class. We can see WHERE the retry tax is but not WHY — making BL-059's investigation a guessing game until someone reproduces with full tool-trace logging.
+
+#### Approach
+
+Add a top-level block to the BL-045-VERIFY schema:
+
+```yaml
+toolErrors:
+  - {
+      tool: <toolName>,
+      attemptNumber: N,
+      errorClass: <short label>,
+      recoveryAction: <what you did next>,
+    }
+  # One entry per failed tool attempt across the whole workflow session.
+  # Empty list [] is honest when no tool errors occurred.
+```
+
+Replaces nothing (additive). `precheck.errorsEncountered` stays as the precheck-specific shortcut for the most-watched failure surface; `toolErrors` is the catch-all. They MAY overlap (a precheck failure would appear in both) — that's acceptable; the precheck-specific field is a convenience for the BL-051 forcing function.
+
+#### Acceptance criteria
+
+- The next live exercise's VERIFY block contains a `toolErrors:` list with one entry per failed tool attempt.
+- For a run with the BL-059 retry-tax pattern (5 failed attempts across 3 tools), the `toolErrors` list has 5 entries with specific `errorClass` values that an engineer can map to the Zod schema rejection.
+
+#### Surface change
+
+- Prompt v0.8.0 → v0.8.1; mcp-server v0.17.0 → v0.17.1; all 7 body hashes + manifest hash re-baselined; rule-discipline prose added for the new block in both verify-block sites.
+
+#### Why "medium" not "high"
+
+The pattern is observable today via `toolCallCounts` deltas (`attempted - succeeded > 0`). `toolErrors` makes diagnosis faster and removes the reproduce-with-logging step, but the data is already obtainable. Pair with BL-059 in the same PR if practical.
+
+---
+
+### BL-061: `gst_irl_ingestion` — `compactionEvents` Field in BL-045-VERIFY `response:` Block
+
+**Priority**: Medium. Captures a new failure-mode signal the 2026-06-04 retest surfaced via operator observation, not the artifact.
+
+#### Problem
+
+The post-BL-058 retest triggered Claude Desktop auto-compaction mid-workflow — the first time in the post-BL-049 architecture cycle. Operator observed it directly; the VERIFY block carries no signal. `response.continuations: 0` is correct (the operator didn't issue a "continue" prompt) but masks the entirely separate phenomenon of self-compaction triggered by context pressure.
+
+Without observability, we cannot:
+
+- Track whether BL-059's directive coaching reduces compaction events (the headline acceptance signal for BL-059).
+- Distinguish a healthy run from one where compaction silently degraded the dossier quality (compaction summarizes recent reasoning; downstream tool calls may operate on a lossy view).
+- Audit whether specific IRL shapes (large attached xlsx, many tool outputs) trigger compaction more often than others.
+
+#### Approach
+
+Add to the `response:` block of the BL-045-VERIFY schema:
+
+```yaml
+response:
+  continuations: <int>
+  verifyBlockEmissionPoint: final-continuation | mid-stream
+  compactionEvents: <int — count of host-triggered auto-compaction events that occurred during this workflow session>
+```
+
+Model-self-reported (same epistemic class as `meaningfulRecallsHaveDifferentInputs`). When the host compacts and re-prompts the model, the model can detect the discontinuity from its conversation context and report it. Imperfect but useful — it's the only signal available without host instrumentation.
+
+Rule prose adds: "DO NOT omit. `0` is the healthy case; non-zero values should be cross-checked against `toolErrors` and the overall response wall-clock to identify what drove context pressure."
+
+#### Acceptance criteria
+
+- The next live exercise reproducing the retest pattern reports a non-zero `compactionEvents` value.
+- Post-BL-059 runs against the same IRL report `compactionEvents: 0`.
+
+#### Surface change
+
+- Prompt v0.8.0 → v0.8.x; mcp-server v0.17.x; hashes re-baselined. Ship in the same PR as BL-060 to amortize the rebaselining.
+
+#### Why "medium" not "high"
+
+Compaction is a downstream symptom of the retry tax in BL-059; fixing BL-059 should make compactionEvents stay at zero without needing the field. The field is observability-of-a-fixed-bug. But it's cheap to add (one line + one rule paragraph) and gives us the regression signal if compaction returns under a different cause.
+
+---
+
+### BL-062: `gst_irl_ingestion` — Disambiguate `conditionalTriggers.considered` (Default-Fired Frameworks vs Conditional-Evaluated)
+
+**Priority**: Low. Surfaced by BL-058's enriched block — and the new visibility immediately raised a semantic ambiguity worth resolving before operators draw wrong conclusions from the data.
+
+#### Problem
+
+The 2026-06-04 retest reported `conditionalTriggers.considered: [EU_AI_ACT, NIS2]` — only two triggers evaluated for an IRL whose Section 09 explicitly names GDPR, UK GDPR, PIPEDA, POPIA, Australia Privacy Act, EU AI Act, and DPA cross-border transfers. A literal reading of the VERIFY block suggests the model failed to consider 5+ frameworks. That's almost certainly NOT what happened — the model very likely treats GDPR/UK GDPR/PIPEDA/POPIA/Australia Privacy Act as "fired by default from Section 09" (not conditional triggers requiring evaluation), and only EU_AI_ACT + NIS2 as genuine conditional triggers needing fire/no-fire decisions.
+
+But the VERIFY block schema today doesn't distinguish these two semantic classes. An operator reading `considered: [EU_AI_ACT, NIS2]` for a multi-jurisdiction IRL would correctly suspect a coverage gap — and then waste cycles investigating a false positive.
+
+#### Approach
+
+One of two equally-good resolutions; the BL implementer picks based on which is cleaner in practice:
+
+**Option A — Separate field**: add `defaultFiredFrameworks: [<name>]` to the `conditionalTriggers:` block. Frameworks the model fires based on Section 09 enumeration (not conditional evaluation) go here; `considered` stays as "conditional triggers evaluated."
+
+**Option B — Single field with tagged entries**: `considered: [{name, kind: default | conditional}]`. Operators see one list with semantic tagging.
+
+Rule prose updated to explicitly cover the distinction in both schemas + the matching auto-append-rationale logic in the BL-058 directive.
+
+#### Acceptance criteria
+
+- The next live exercise on a multi-framework Section-09 IRL reports both the default-fired set AND the conditional-evaluated set, distinguishable by an operator reading the block.
+
+#### Surface change
+
+- Prompt v0.8.x; mcp-server v0.17.x; hashes re-baselined.
+
+#### Why "low" not "medium"
+
+Operator-facing semantics issue, not a workflow correctness issue. The dossier still cites the correct frameworks regardless of how the VERIFY block categorizes them. The risk is wasted operator triage cycles on false positives — real but bounded. Address in the next prompt-iteration session that has other reasons to bump prompt hash.
+
+---
+
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority) | BL-051 + BL-052 + BL-053 filed: June 4, 2026 (post-BL-049 v12 live-exercise empirical follow-ups — citation iteration discipline, verify block schema clarity, multi-bullet citation array form) | BL-049 partial-reverted at v0.13.1 + BL-054 filed: June 4, 2026 then retired same day (xlsx-canonicalized hash-bind authority — blueprint preserved in [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); revisit via design doc if external infrastructure ships, not via backlog ping) | BL-056 filed + closed: June 4, 2026 (precheckIterations field added to BL-045-VERIFY block — BL-051 compliance now observable from the artifact alone) | BL-057 filed: June 4, 2026 (regulatory-map coverage gap sweep — AI-governance canon NIST AI RMF + Canada AIDA + Colorado AI Act + NYC AEDT + Illinois HB 3773 + CA + UK; Chile Ley 21.719 data-protection) | BL-058 filed + closed: June 4, 2026 (VERIFY block enriched with filledIrl + precheck + toolCallCounts + conditionalTriggers + response field families — engineering triage now one-paste, no follow-up Q&A) | BL-059 + BL-060 + BL-061 + BL-062 filed: June 4, 2026 (post-BL-058 retest empirical follow-ups — tool-arg coaching to eliminate retry tax, top-level toolErrors block, compactionEvents field, conditionalTriggers default-vs-conditional disambiguation)_
