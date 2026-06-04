@@ -89,7 +89,7 @@ describe('gst_irl_ingestion', () => {
     // BL-045 reset: prompt version restarts at 0.1.0 to signal the substantive
     // rescope (rename, scenario-neutral framing, mode/verbosity/forceTools args,
     // inclusion gates, JSON fences, provenance footer, gap list).
-    expect(irlIngestionPrompt.version).toBe('0.7.1');
+    expect(irlIngestionPrompt.version).toBe('0.8.0');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -523,14 +523,75 @@ describe('gst_irl_ingestion', () => {
   // delete the field fail loudly rather than silently degrading the
   // observability surface.
   describe('BL-056 precheckIterations field present in BL-045-VERIFY block schemas', () => {
-    it('one-shot body verify-block schema declares `precheckIterations`', () => {
+    it('one-shot body verify-block schema declares `precheck.iterations` (BL-058 expansion of BL-056)', () => {
       const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
-      expect(text).toContain('precheckIterations:');
+      // BL-058 nested under `precheck:` block; BL-056 raw `precheckIterations:` superseded.
+      expect(text).toMatch(/precheck:\s*\n\s*iterations:/);
     });
 
-    it('interactive body verify-block schema declares `precheckIterations`', () => {
+    it('interactive body verify-block schema declares `precheck.iterations` (BL-058 expansion of BL-056)', () => {
       const text = bodyText(irlIngestionPrompt, {});
-      expect(text).toContain('precheckIterations:');
+      expect(text).toMatch(/precheck:\s*\n\s*iterations:/);
     });
+  });
+
+  // ─── BL-058: enriched BL-045-VERIFY block for self-sufficient diagnosis ──
+  //
+  // The 2026-06-04 retest exposed three diagnosis-cycle pathologies the
+  // existing VERIFY block could not surface from the artifact alone:
+  //   1. Model passed literal "PLACEHOLDER" as filledIrl (schema caught
+  //      it, but the block reported no signal that precheck attempted-
+  //      and-failed — only that it didn't iterate).
+  //   2. provenanceVerification showed 37/37 verified against a model-
+  //      reconstructed body, with no signal that the body was a
+  //      reconstruction rather than partner-paste-verbatim.
+  //   3. conditionalTriggersFired: [] for a target with EU + UK + Canada
+  //      regulatory disclosures — no signal whether triggers were
+  //      considered-and-suppressed vs never-considered.
+  //
+  // BL-058 expands the block schema to make each of these observable
+  // from one paste, eliminating the operator→engineering Q&A cycle.
+  // This guard locks the new field families across both verify-block
+  // sites (buildOneShotBody + INTERACTIVE_BODY Step 5).
+  describe('BL-058 enriched VERIFY block fields present in both schemas', () => {
+    const expectedFields = [
+      // filledIrl block
+      'filledIrl:',
+      'bytes:',
+      'source: partner-paste-verbatim',
+      'placeholder',
+      'fingerprint:',
+      'headChars:',
+      'tailChars:',
+      // precheck block
+      'precheck:',
+      'attemptsTotal:',
+      'outcome: converged',
+      'errorsEncountered:',
+      // toolCallCounts block
+      'toolCallCounts:',
+      'validate_irl_provenance: { attempted: N, succeeded: N, rejected: N }',
+      // conditionalTriggers block
+      'conditionalTriggers:',
+      'considered:',
+      'fired:',
+      'suppressedWithRationale:',
+      // response block
+      'response:',
+      'continuations:',
+      'verifyBlockEmissionPoint:',
+    ];
+
+    for (const field of expectedFields) {
+      it(`one-shot body verify-block schema contains: ${field}`, () => {
+        const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+        expect(text).toContain(field);
+      });
+
+      it(`interactive body verify-block schema contains: ${field}`, () => {
+        const text = bodyText(irlIngestionPrompt, {});
+        expect(text).toContain(field);
+      });
+    }
   });
 });

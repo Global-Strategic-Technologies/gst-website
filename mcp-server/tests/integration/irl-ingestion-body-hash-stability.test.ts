@@ -126,16 +126,23 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // one rule bullet in each rules section. All seven hashes drift because
 // the verify-block schema and its rules section appear in every body
 // path (full/extract-only × verbose/compact × interactive).
+// Rebaselined for BL-058 prompt v0.7.1 → v0.8.0: enriched VERIFY block.
+// Five new field families added to both verify-block schemas (filledIrl,
+// precheck, toolCallCounts, conditionalTriggers, response) replacing the
+// flat precheckIterations / conditionalTriggersFired / gatesElided forms;
+// matching rule-discipline prose added/expanded. All seven body hashes
+// + the manifest hash drift because the verify-block schema appears in
+// every body path.
 const EXPECTED_HASH_INTERACTIVE =
-  'aae7b9c315e373bbea1aa5f36e620e5bcb1b87048b72a868e125d8000116c26a';
+  'cca520024d3511e709c77999f9c4d328f57c9d15d36d84e7776a71fc6bc02436';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '714f796e8d8f495adb8f1e0499c5975a32be87c81914e357ed577e95c29d4e9d';
+  'd784fc7b657a9a721bc1c700fa4a0a153c31b51f10d58bd5332109d87c82b2d7';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '7d71989cbd4d6a8d9c87c1ec6385d21125a471b0cb5c0b1962761e400143d643';
+  '5166dc57797c22cdb7b9f0a892ebf3939c47490bd08743b9c2306f0b272cbfc0';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '02e070fc51448fee021f686854653da923cbbffe92ec3c6ff1f52035fd8a810e';
+  'd85da71b86fda4212b294357714fdd929f6d72bb661dce0d4b684f8b22f3be54';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '044eccc10412572f10460ee3ad34f55078f59a123dd4104dcbfd172a9525a6be';
+  '3c31e5cb87adb89d51004c016d793d04f0e806d192f2927a38b6a91dacc9f40d';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -145,9 +152,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  'a8f483629915be466b2642119b954552fb510f5ea88befc1a9a2368837b77175';
+  '92038d4fc45cd1e56758c3a57ed762f33f393d9bef24183eaa7d2ffdce0abfaf';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  'f1e590dfd4d2d19a9c9d4ce5ab3e12b625bb3894b03384ca5186a78efe550758';
+  '08e4bf13fc22bdb44c53be0c334d1aeff881adc94e9035f4a40ab224220144ea';
 
 interface Scenario {
   name: string;

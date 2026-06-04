@@ -50,7 +50,11 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // added to BL-045-VERIFY block — operator can now distinguish "precheck
 // converged after N iterations" from "precheck skipped entirely" from
 // the artifact alone).
-const EXPECTED_MANIFEST_HASH = '2b3250feee6b075dda89105e14dc65ba704af7c68cfc4397cd59be7068345c58';
+// BL-058 rebaseline: prompt v0.7.1 → v0.8.0 (VERIFY block enriched with
+// five new field families — filledIrl, precheck, toolCallCounts,
+// conditionalTriggers, response — so operators can triage every
+// observed pathology from one artifact without follow-up Q&A).
+const EXPECTED_MANIFEST_HASH = '068ee723309a60f7de55d6050e4ec22af7b8ad3ee79080790cd0961040c73796';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();
