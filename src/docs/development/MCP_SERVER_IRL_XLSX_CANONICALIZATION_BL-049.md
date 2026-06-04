@@ -1,6 +1,6 @@
 # MCP Server — IRL xlsx Canonicalization for Hash-Bind Authority (BL-049)
 
-> **Backlog initiative**: [BL-049: `gst_irl_ingestion` — Server-Side xlsx Canonicalization for Hash-Bind Authority](BACKLOG.md#bl-049-gst_irl_ingestion--server-side-xlsx-canonicalization-for-hash-bind-authority)
+> **Backlog initiative**: BL-049 filed June 3, 2026; BL-054 (revisit ticket) retired from BACKLOG June 4, 2026. This document is now the **canonical revisit blueprint** — there is no live BACKLOG entry. Re-engage by re-reading this doc when one of the trigger conditions below materializes; no backlog ping will arrive.
 >
 > **Companion docs**:
 >
@@ -16,7 +16,19 @@
 >
 > **Scope**: ship server-side xlsx → canonical-IRL-markdown conversion so the hash-bind forcing function in `compose_dossier_envelope` binds to an authoritative server-canonicalized body rather than a model-regenerated reconstruction. Architecture: a new MCP tool `extract_irl_from_xlsx` that emits the canonical body + an HMAC receipt; `compose_dossier_envelope` gains an `xlsx-canonicalized` mode that verifies the receipt. Single PR delivery. Stateless — no database, no session state. (An alternative — extending the prompt arg with base64 xlsx — was considered and rejected; rationale in § Considered alternative.)
 >
-> **Status**: 🟫 **PARTIAL-REVERTED at v0.13.1 (2026-06-04)** — deferred to [BL-054](BACKLOG.md#bl-054-gst_irl_ingestion--re-introduce-xlsx-canonicalized-hash-bind-authority-deferred-from-bl-049). Empirically established during the v12 StoreForce live exercise that the architecture's bytes-delivery layer is **structurally unreachable in the standard Claude Desktop + stdio MCP topology**: model executes in Anthropic's cloud-side Linux compute sandbox, MCP server runs on the operator host, attached xlsx files are reachable from neither over `xlsxBase64` (model tool-call truncation at >~10KB) nor `xlsxPath` (cross-filesystem boundary). Reverted: `extract_irl_from_xlsx` tool, receipt-hmac lib, `RECEIPT_HMAC_KEY` env binding, envelope `irlSource`/`receipt` schema fields, Step 0 prompt directive. **Retained as empirically validated on partner-paste path**: `tier-fabrication` discipline + `deriveTier`, `BL_045_VERIFY_DIRECTIVE`, verifier defensive hardening (`lastIndexOf('—')`, `/`+`+` normalization). The design below is preserved as the blueprint for BL-054 when the external infrastructure ships; the architectural reasoning still holds for the day the topology supports it.
+> **Status**: 🪦 **DEFERRED INDEFINITELY — partial-reverted at v0.13.1 (2026-06-04); BL-054 revisit ticket retired same day**. Empirically established during the v12 StoreForce live exercise that the architecture's bytes-delivery layer is **structurally unreachable in the standard Claude Desktop + stdio MCP topology**: model executes in Anthropic's cloud-side Linux compute sandbox, MCP server runs on the operator host, attached xlsx files are reachable from neither over `xlsxBase64` (model tool-call truncation at >~10KB) nor `xlsxPath` (cross-filesystem boundary). Reverted from the codebase at v0.13.1: `extract_irl_from_xlsx` tool, receipt-hmac lib, `RECEIPT_HMAC_KEY` env binding, envelope `irlSource`/`receipt` schema fields, Step 0 prompt directive. **Retained from BL-049 as empirically validated on the partner-paste path**: `tier-fabrication` discipline + `deriveTier`, `BL_045_VERIFY_DIRECTIVE`, verifier defensive hardening (`lastIndexOf('—')`, `/`+`+` normalization).
+>
+> **Why no BACKLOG ticket exists**: a backlog item gated on external infrastructure with no roadmap is a tombstone, not a queueable initiative. It would never pull through a sprint. This document supersedes the BL-054 stanza as the revisit blueprint.
+>
+> **Revisit triggers** — if any of these materialize, re-read this document and re-introduce the architecture; no other queue exists to surface the work:
+>
+> 1. **MCP spec adds a binary-resource primitive** that handles >100KB payloads delivered to tool handlers as bytes. (Watch MCP spec discussions.)
+> 2. **Claude Desktop ships an attachment-to-host bridge** that materializes uploaded files at a host filesystem path locally-spawned MCP servers can read (e.g., `process.env.MCP_ATTACHMENT_DIR`). (Watch Anthropic's Claude Desktop releases.)
+> 3. **Operator pivots away from the Claude Desktop + stdio topology** — e.g., model + server co-located in the same Linux container, or the operator standardizes on a remote streamable-HTTP server in a topology that materializes attachments on the server side.
+>
+> **What re-introduction would entail**: largely the same scope as the v0.13.0 implementation that was partial-reverted. The canonicalizer engine, HMAC receipt mechanics, schema deltas, and prompt-body integration are all designed below and independent of the bytes-delivery layer. Adjust only the bytes-delivery surface to whatever the unblocking infrastructure exposes. Reference commit `12f5069` for the v0.13.0 → v0.13.1 revert diff if reconstructing the codebase shape.
+>
+> The architectural reasoning below is preserved verbatim for the day the topology supports it.
 
 ---
 

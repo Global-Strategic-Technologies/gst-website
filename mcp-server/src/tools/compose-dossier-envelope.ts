@@ -11,9 +11,11 @@
  * branch was reverted because the cross-host Claude Desktop topology
  * (model in cloud-side Linux sandbox, MCP server on user host) has no
  * reachable path to deliver attached xlsx bytes to the server. The
- * cryptographically-receipted path is deferred (see BL-054) pending
- * either an MCP spec primitive for binary resource delivery OR a Claude
- * Desktop attachment-to-host bridge. What stayed from BL-049: the
+ * cryptographically-receipted path is deferred indefinitely (revisit
+ * blueprint at `src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md`;
+ * no BACKLOG ticket — gated on external infrastructure with no roadmap)
+ * pending either an MCP spec primitive for binary resource delivery OR
+ * a Claude Desktop attachment-to-host bridge. What stayed from BL-049: the
  * `tier-fabrication` gap category and `deriveTier()` discipline (the v11
  * Finding B closure that empirically fired on a partner-paste live run).
  *

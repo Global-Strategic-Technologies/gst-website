@@ -191,7 +191,8 @@ describe('protocol roundtrip', () => {
           // BL-049 `extract_irl_from_xlsx` partial-reverted at v0.13.1 —
           // cross-host Claude Desktop topology (model in cloud-side Linux
           // sandbox, MCP server on user host) has no reachable path to
-          // deliver attached xlsx bytes. Deferred to BL-054.
+          // deliver attached xlsx bytes. Deferred indefinitely; revisit
+          // blueprint at src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md.
         ].sort()
       );
 

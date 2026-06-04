@@ -39,8 +39,10 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
  */
 // v0.13.1 partial-revert rebaseline: extract_irl_from_xlsx tool removed
 // (cross-host Claude Desktop topology blocks bytes delivery — deferred
-// to BL-054 pending MCP spec primitive or Claude Desktop attachment-to-
-// host bridge); prompt v0.5.0 → v0.5.1 (Step-0 directive removed,
+// indefinitely; revisit blueprint at
+// src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md;
+// pending MCP spec primitive or Claude Desktop attachment-to-host
+// bridge); prompt v0.5.0 → v0.5.1 (Step-0 directive removed,
 // BL-045-VERIFY directive tightened per BL-052). Kept from BL-049:
 // tier-fabrication enum + deriveTier (v11 Finding B closure — empirically
 // validated in v12 partner-paste live exercise 2026-06-04).
