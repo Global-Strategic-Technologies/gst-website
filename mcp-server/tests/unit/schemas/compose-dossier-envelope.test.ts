@@ -348,6 +348,20 @@ describe('runComposeDossierEnvelope — hash-bind verification', () => {
     }
   });
 
+  // BL-068 — rejection text steers the model to the new preflight tool.
+  it('error message includes a Fix: line directing the model to prepare_irl_body (BL-068)', () => {
+    const input = baseInput();
+    input.irlBodyHash = '0000000000000000';
+    try {
+      runComposeDossierEnvelope(input, SERVER_CTX);
+      expect.fail('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(IrlBodyHashMismatchError);
+      expect((err as Error).message).toContain('Fix: call `prepare_irl_body`');
+      expect((err as Error).message).toContain('LLMs cannot reliably compute sha256');
+    }
+  });
+
   it('rejects paraphrased filledIrl even when hash matches the original (the v10 failure mode)', () => {
     const input = baseInput();
     // Model passes a paraphrase but copies the original hash from the body.

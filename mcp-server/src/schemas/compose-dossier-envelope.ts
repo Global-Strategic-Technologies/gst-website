@@ -507,6 +507,27 @@ function isHubBacked(modelName: string): boolean {
 }
 
 /**
+ * BL-068 — return the matched Hub framework name (formal long-form, as
+ * stored in the regulatory-map JSON) for a model-supplied name, or null
+ * if no Hub entry matches under the substring rules used by
+ * `isHubBacked`. Used to surface the matched Hub framework in the
+ * `BL-068 map-absent validation FAILED` rejection so the model knows
+ * which Hub entry covers its (false-positive) `map-absent:` claim.
+ */
+function findMatchedHubFramework(modelName: string): string | null {
+  const normalized = normalizeFrameworkName(modelName);
+  if (normalized.length < HUB_MATCH_MIN_LENGTH) return null;
+  for (const entry of REGULATION_ENTRIES) {
+    const hubNormalized = normalizeFrameworkName(entry.data.name);
+    if (hubNormalized.length < HUB_MATCH_MIN_LENGTH) continue;
+    if (hubNormalized.includes(normalized) || normalized.includes(hubNormalized)) {
+      return entry.data.name;
+    }
+  }
+  return null;
+}
+
+/**
  * Custom error thrown when `defaultFiredFrameworks` overlaps
  * `conditionalTriggersFired`. Each framework appears EXACTLY ONCE; when
  * a framework legitimately fires via BOTH paths, the conditional-
@@ -548,6 +569,57 @@ export class Bl063CertificationNotRegulationError extends Error {
     this.name = 'Bl063CertificationNotRegulationError';
     this.offending = offending;
   }
+}
+
+/**
+ * BL-068 — custom error thrown when one or more model-supplied
+ * `map-absent:` claims in `input.gaps` name a framework that IS present
+ * in the Hub regulatory map (false-positive). Surfaces the matching
+ * Hub framework name(s) so the model can correct the claim.
+ */
+export class Bl068MapAbsentFalsePositiveError extends Error {
+  readonly offenders: ReadonlyArray<{ entry: string; matchedHub: string }>;
+  constructor(offenders: ReadonlyArray<{ entry: string; matchedHub: string }>) {
+    const offenderLines = offenders
+      .map(
+        (o) =>
+          `  - "${o.entry}" — matches Hub framework "${o.matchedHub}" (normalized: ${normalizeFrameworkName(o.matchedHub)})`
+      )
+      .join('\n');
+    super(
+      `BL-068 map-absent validation FAILED: ${offenders.length} model-supplied \`map-absent:\` claim${offenders.length === 1 ? '' : 's'} name framework${offenders.length === 1 ? '' : 's'} that ARE present in the Hub regulatory map.\n\n` +
+        `Offending claims:\n${offenderLines}\n\n` +
+        `Fix: either (a) remove the false-positive \`map-absent:\` claim from \`gaps\`, OR (b) call \`search_regulations\` for that framework name and use the actual results to back your claim. The Hub registry is searchable by jurisdiction, category, and framework-name substring.\n\n` +
+        `Note: alias coverage is incomplete; if your \`map-absent:\` claim concerns a framework you believe is Hub-covered under a different name, call \`search_regulations\` to confirm before claiming absence.`
+    );
+    this.name = 'Bl068MapAbsentFalsePositiveError';
+    this.offenders = offenders;
+  }
+}
+
+/**
+ * BL-068 — scan model-supplied `gaps` for `map-absent:` claims that
+ * point at Hub-backed frameworks. Returns the list of offenders (empty
+ * if all claims are legitimate). Throws nothing; caller decides whether
+ * to throw `Bl068MapAbsentFalsePositiveError`.
+ *
+ * Extracts the framework name from the `entry` text by taking the prefix
+ * before " — " (matching the auto-append shape: `${framework} — named in
+ * Section 09 but absent...`) OR the full text when no em-dash is present.
+ */
+export function findFalsePositiveMapAbsentClaims(
+  gaps: ReadonlyArray<{ category: string; entry: string }>
+): ReadonlyArray<{ entry: string; matchedHub: string }> {
+  const offenders: Array<{ entry: string; matchedHub: string }> = [];
+  for (const gap of gaps) {
+    if (gap.category !== 'map-absent') continue;
+    const frameworkName = gap.entry.split(' — ')[0]?.trim() ?? gap.entry.trim();
+    const matchedHub = findMatchedHubFramework(frameworkName);
+    if (matchedHub) {
+      offenders.push({ entry: gap.entry, matchedHub });
+    }
+  }
+  return offenders;
 }
 
 /**
@@ -624,7 +696,10 @@ export class IrlBodyHashMismatchError extends Error {
         `most likely a condensed paraphrase / summary built from working memory. ` +
         `Per the prompt body's Body-binding hash directive, pass the EXACT IRL markdown bytes the prompt arg supplied; ` +
         `do not summarize, do not paraphrase, do not abridge. ` +
-        `Re-call this tool with the verbatim filledIrl AND the matching irlBodyHash from the Body-binding hash directive.`
+        `Re-call this tool with the verbatim filledIrl AND the matching irlBodyHash from the Body-binding hash directive.\n\n` +
+        `Fix: call \`prepare_irl_body\` with the same \`filledIrl\` body to get the canonical \`irlBodyHash\`, ` +
+        `then resubmit with that value. LLMs cannot reliably compute sha256 in-head — use \`prepare_irl_body\` to ` +
+        `avoid this retry entirely on the first call.`
     );
     this.name = 'IrlBodyHashMismatchError';
     this.expectedHash = actualHash;
@@ -799,6 +874,18 @@ export function runComposeDossierEnvelope(
       followUp:
         'If the framework genuinely applies, file a regulatory-map coverage request (see BL-057 for the current sweep tracking AI-governance + Chile gap). Until then, the partner should source obligations directly from the regulator.',
     });
+  }
+
+  // BL-068 — validate that model-supplied `map-absent:` claims don't
+  // point at frameworks the Hub registry already covers. The model has
+  // empirically claimed Hub-backed frameworks absent (NIST AI RMF + AU
+  // Privacy Act in the 2026-06-05 retest); this prevents that class of
+  // false positive from reaching the dossier. Known false-negative: UK
+  // GDPR doesn't match GB-DPA under bidirectional substring; covered by
+  // separate regulatory-map alias work.
+  const falsePositiveMapAbsent = findFalsePositiveMapAbsentClaims(input.gaps);
+  if (falsePositiveMapAbsent.length > 0) {
+    throw new Bl068MapAbsentFalsePositiveError(falsePositiveMapAbsent);
   }
 
   const allGaps = [...input.gaps, ...autoAppended];
