@@ -29,7 +29,27 @@ in lockstep when the registry shape changes.
 
 ---
 
-## 0.23.0 — 2026-06-06 — BL-065 — audit-rejection forcing-function hardening for `generate_diligence_agenda`
+## 0.24.0 — 2026-06-05 — BL-066 — restore JSON Schema introspection + Rule-0 consolidated batch summary
+
+**Theme**: BL-065 (v0.23.0) shipped server-side rejection-message enrichment for `generate_diligence_agenda` and traded `inputSchema` from `AuditedUserInputsSchema` to a permissive `z.object({}).passthrough()` so the handler could uniformly frame all rejections through `formatAuditIssues`. The 2026-06-05 post-deploy retest produced a **regression worse than the baseline it tried to fix**: `generate_diligence_agenda: 3/0` (zero successes) vs. the pre-BL-065 `5/1`. Root cause: the claude.ai MCP bridge type-coerces nested values (`_audit` object, `geographies` array) against the published per-field JSON Schema; with no per-field schema published, the bridge JSON-stringified them on the wire and the model could never recover the structural shape across three retries.
+
+This release reverts the schema decision and ships the BL-064 audit's Option 3 in its cheapest form — a consolidated Rule-0 batch summary that fires when ≥2 Rule-0 offenders trip simultaneously, consolidating N independent `Fix:` repetitions into one pattern instruction.
+
+**Surface impact** (server-internal — no manifest hash change, no prompt change, no body hash change):
+
+- **`registerDiligenceTool` `inputSchema`** — `z.object({}).passthrough()` → `AuditedUserInputsSchema.shape`. The published JSON Schema now exposes the full 13-dimension shape + nested `_audit.properties` per-dimension structure, matching the registration pattern `compose_dossier_envelope` and `compute_techpar` use successfully. The MCP bridge regains the type hints it needs to send `_audit` as an object and `geographies` as an array on the wire.
+- **`handleDiligenceTool` signature** — `(rawInput: unknown)` → `(payload: AuditedUserInputs)`. The handler's upfront `AuditedUserInputsSchema.safeParse` block is removed; structural validation happens at the SDK boundary before the handler runs. Only the BL-045 cross-field refinements remain in the handler body.
+- **Removed dead helpers**: `zodIssueToRuleId`, `enrichZodMessage`, `zodErrorToAuditIssues` (introduced under BL-065 solely for the safeParse path). The BL-065 PR's CI typecheck failure (`'invalid_enum_value' → 'invalid_value'`, `PropertyKey[] → string[]`) was exactly the maintenance cost of keeping dead exported code typechecking against a moving Zod minor. If a future MCP SDK exposes a parse-error hook, restore from git (`git show e2ee304`).
+- **NEW: Rule-0 consolidated batch summary** — `formatAuditIssues` now emits a `⚠️ Rule 0 batch (N dimensions): <names>` line when ≥2 issues carry `BL-045-TIER-3-REQUIRED-FOR-UNKNOWN`. The model sees one "fix N dims" instruction instead of N independent corrections, reducing the retry tax when Rule 0 fires broadly. The existing per-issue `Fix:` lines are unchanged.
+- **`generate_diligence_agenda` restored to the BL-045 M8 contract** — the integration test `auditBearingTools` includes it again; the BL-065 companion test (asserting permissive schema + handler rejection) is replaced by a **new published-schema regression guard** that asserts `properties._audit.type === 'object'`, `properties.geographies.type === 'array'`, and that `_audit.properties` is non-empty — the load-bearing regression guard for BL-066. Future refactors that re-permissive-ify the schema fail this test.
+
+**Manifest hash unchanged**: `5bee38cc935fa3a1b987999ed9d467f250b1dc4eeeb3b1b5555bb5a3205adbd9`. No URI or prompt `name@version` change.
+
+**Acceptance** (next live exercise on the same IRL): `generate_diligence_agenda: { attempted: ≤2, succeeded: 1 }`. 1/1: ideal (bridge type-coerced natively, Rule-0 batch summary stuck on first retry). 2/1: acceptable structural floor (currency→bracket cascade). 3+/1: escalate to a deeper Option-3 structural pre-check that runs before `runAuditRefinements`'s sequential rules.
+
+---
+
+## 0.23.0 — 2026-06-06 — BL-065 — audit-rejection forcing-function hardening for `generate_diligence_agenda` (regressed; reverted at 0.24.0)
 
 **Theme**: the 2026-06-06 post-deploy live exercise (the first run against `promptVersion: 0.12.0`, post-BL-064) produced `generate_diligence_agenda: 5/1` — 4 retries on a single dossier run. The recoveryActions included one direct Rule 0 violation (`corrected revenueRange tier to 3 (unknown sentinel requires tier 3)`) plus three other cross-field rejections (currency conversion missing, tier-1 literal mismatches, dataSensitivity missing piiCategoriesPresent). BL-059's Rule 0 prose in the prompt body did NOT prevent the violation — this is Scenario B from the BL-064 audit (Rule 0 as prose is WEAK). This release implements the audit-prescribed Option 1: server-side rejection-message enrichment that makes the rule self-documenting at the failure site.
 
