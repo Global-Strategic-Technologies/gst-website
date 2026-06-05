@@ -561,7 +561,7 @@ describe('BL-065 — forcing-function framing', () => {
       const p = baseline();
       // baseline().growthStage may be unknown; force a non-unknown value
       // with velocityEvidence='unknown' to trigger the rule.
-      p.growthStage = 'series-c';
+      p.growthStage = 'scaling';
       p._audit.growthStage = {
         ...p._audit.growthStage,
         tier: '1',

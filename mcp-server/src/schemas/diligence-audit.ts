@@ -535,7 +535,7 @@ export function zodIssueToRuleId(zi: z.ZodIssue): string {
   switch (zi.code) {
     case 'invalid_type':
       return 'BL-045-SCHEMA-INVALID-TYPE';
-    case 'invalid_enum_value':
+    case 'invalid_value':
       return 'BL-045-SCHEMA-INVALID-ENUM';
     case 'too_small':
       return 'BL-045-SCHEMA-MISSING-FIELD';
@@ -548,11 +548,11 @@ export function zodIssueToRuleId(zi: z.ZodIssue): string {
 
 export function enrichZodMessage(zi: z.ZodIssue): string {
   const base = zi.message;
-  const pathStr = zi.path.join('.');
+  const pathStr = zi.path.map(String).join('.');
   switch (zi.code) {
     case 'invalid_type':
       return `${base} Fix: supply ${pathStr} with the expected type at the same path in the payload.`;
-    case 'invalid_enum_value':
+    case 'invalid_value':
       return (
         `${base} Fix: replace the supplied value at ${pathStr} with one of the enum options listed above, ` +
         `OR set the field to "unknown" and the matching _audit.<dimension>.tier to "3" (Rule 0).`
@@ -569,7 +569,7 @@ export function enrichZodMessage(zi: z.ZodIssue): string {
 
 export function zodErrorToAuditIssues(zodError: z.ZodError): AuditRefinementIssue[] {
   return zodError.issues.map((zi) => ({
-    path: zi.path,
+    path: zi.path.map(String),
     ruleId: zodIssueToRuleId(zi),
     message: enrichZodMessage(zi),
   }));
