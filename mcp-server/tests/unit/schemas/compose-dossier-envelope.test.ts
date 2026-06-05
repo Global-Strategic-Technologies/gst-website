@@ -671,24 +671,28 @@ describe('compose_dossier_envelope — BL-063 defaultFiredFrameworks enforcement
   });
 
   describe('rule 3: Hub-backing auto-degrade (unbacked entries → map-absent gap)', () => {
-    it('auto-appends a map-absent: gap entry for each unbacked framework (NIST AI RMF case from 2026-06-04 retest)', () => {
+    it('auto-appends a map-absent: gap entry for each unbacked framework (Canada AIDA case — BL-057 dropped AIDA after Bill C-27 died)', () => {
       const input = baseInput();
-      // NIST AI Risk Management Framework is intentionally NOT in the
-      // current Hub map (per BL-057's coverage-gap sweep).
-      input.defaultFiredFrameworks = ['GDPR', 'NIST AI Risk Management Framework', 'Canada AIDA'];
+      // Canada AIDA remains unbacked: BL-057's coverage-gap sweep
+      // explicitly dropped it after WebSearch verification confirmed
+      // Bill C-27 died on the Order Paper Jan 2025. (NIST AI RMF was
+      // originally in this test — it became Hub-backed when BL-057
+      // shipped US-NIST-AI-RMF.json, so the test now uses AIDA as the
+      // canonical still-unbacked AI-gov framework.)
+      input.defaultFiredFrameworks = ['GDPR', 'Canada AIDA', 'Singapore Model AI Governance'];
       const result = runComposeDossierEnvelope(input, SERVER_CTX);
       expect(result.gapListMarkdown).toContain('map-absent');
-      expect(result.gapListMarkdown).toContain('NIST AI Risk Management Framework');
       expect(result.gapListMarkdown).toContain('Canada AIDA');
+      expect(result.gapListMarkdown).toContain('Singapore Model AI Governance');
     });
 
     it('strips unbacked entries from the rendered meta fence (so partners see only Hub-backed frameworks)', () => {
       const input = baseInput();
-      input.defaultFiredFrameworks = ['GDPR', 'NIST AI Risk Management Framework'];
+      input.defaultFiredFrameworks = ['GDPR', 'Canada AIDA'];
       const result = runComposeDossierEnvelope(input, SERVER_CTX);
-      // The meta fence should NOT carry NIST AI RMF since it's unbacked.
-      // GDPR is in the Hub map so it survives.
-      expect(result.metaFenceMarkdown).not.toContain('NIST AI Risk Management Framework');
+      // The meta fence should NOT carry Canada AIDA since it's unbacked
+      // (BL-057 dropped it). GDPR is in the Hub map so it survives.
+      expect(result.metaFenceMarkdown).not.toContain('Canada AIDA');
     });
 
     it('keeps Hub-backed entries in the meta fence (GDPR, UK GDPR, PIPEDA, POPIA are all backed)', () => {

@@ -79,7 +79,7 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // auto-degrade to map-absent gap entries; tool schema expansion;
 // BL-062 directive prose rewritten to document the structural
 // enforcement). Hash recomputed off post-BL-057 master.
-const EXPECTED_MANIFEST_HASH = 'PLACEHOLDER_RECOMPUTED_AFTER_REBASE_FROM_TEST_OUTPUT';
+const EXPECTED_MANIFEST_HASH = '202c9921d96e36800eaa6b2bdc6b43fe6b3b95015ec0cfe6eb80351cc351ab3e';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

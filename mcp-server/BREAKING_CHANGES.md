@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-PLACEHOLDER_RECOMPUTED_AFTER_REBASE
+202c9921d96e36800eaa6b2bdc6b43fe6b3b95015ec0cfe6eb80351cc351ab3e
 ```
 
 Computed over (sorted):
