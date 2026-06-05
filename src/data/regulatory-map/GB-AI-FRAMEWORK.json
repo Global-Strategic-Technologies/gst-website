@@ -1,0 +1,19 @@
+{
+  "id": "gb-ai-framework",
+  "name": "UK Pro-Innovation Approach to AI Regulation (AI Regulation White Paper)",
+  "regions": [
+    "GBR"
+  ],
+  "effectiveDate": "2024-02-06",
+  "summary": "The UK's regulator-led, non-statutory framework for AI governance, set out in the AI Regulation White Paper (March 2023) and the Government's published response (February 2024). Rather than enacting a horizontal AI law (the EU approach), the UK directs existing sector regulators (ICO, CMA, FCA, MHRA, Ofcom, HSE, EHRC) to apply five cross-sectoral principles within their existing remits. Each regulator publishes its own AI strategy; the Department for Science, Innovation and Technology (DSIT) maintains a central AI Safety Institute and a coordination function. Parliament has signaled openness to future statutory backing for the principles (notably for frontier models) but no horizontal AI statute is in force.",
+  "category": "ai-governance",
+  "scope": "Applies to any organization developing or deploying AI systems in the United Kingdom. Specific obligations flow from whichever sector regulator (ICO for data protection, CMA for competition, FCA for financial services, MHRA for medical devices, Ofcom for online safety, etc.) has jurisdiction over the deployment context.",
+  "keyRequirements": [
+    "Safety, Security, and Robustness: AI systems must operate securely and robustly across their lifecycle, with appropriate risk management proportional to context",
+    "Appropriate Transparency and Explainability: organizations must provide stakeholders with sufficient information about AI systems to enable accountable use",
+    "Fairness: AI systems must not undermine legal rights, discriminate unfairly, or produce unfair commercial outcomes",
+    "Accountability and Governance: clear lines of accountability across the AI lifecycle, with effective oversight by the deploying organization",
+    "Contestability and Redress: affected parties must be able to challenge AI-driven decisions and seek redress where harm occurs",
+    "Engage with the relevant sector regulator's published AI guidance (ICO AI and data protection guidance, FCA AI in financial services framework, MHRA Software and AI as a Medical Device, etc.) as the operational compliance baseline"
+  ]
+}

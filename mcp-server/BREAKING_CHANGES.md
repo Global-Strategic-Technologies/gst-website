@@ -11,13 +11,13 @@
 ## Current manifest hash
 
 ```
-17104a4177b18745c853607d9f3943e5532af42567f63b6faa768f7f19e82427
+37c7d1b3780076803ee41e73e0ba3889e17487cb3dd879ab7c7038d602714930
 ```
 
 Computed over (sorted):
 
 - **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`).
-- 120 Regulation URIs.
+- 123 Regulation URIs.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
 - **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.10.0` (BL-059: Rule 0 tier-discipline universal coaching paragraph added to `generate_diligence_agenda` Step 1b + Step 1a worked example bumps `operatingModel` from tier-2 to tier-3 with `value: "unknown"` per impartial-audit refinement; BL-063 directive changes initially in this PR were REVERTED — server-side enforcement in `compose_dossier_envelope` is the right lever per audit, refiled as open BL).
@@ -26,6 +26,34 @@ If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.20.0 — 2026-06-05 — BL-057 — regulatory-map coverage-gap sweep (AI governance + Chile data protection)
+
+**Theme**: BL-057 was filed 2026-06-04 against gaps surfaced by the v13 partner-paste live exercise: NA AI-governance diligence saw EU AI Act fire but no NA-jurisdiction analogue, and Chile-exposed targets saw only the legacy 1999 Law 19.628 (CL-LAW19628). Inventory pass against the existing 120-framework map reduced the BL stanza's named gap list of 8 to 4 (Colorado AI Act, NYC AEDT LL144, Illinois HB 3773, California SB 942 already covered). Authoring then dropped to 3 after WebSearch verification of Canada AIDA's status (see scope-reduction note below).
+
+**Surface impact** (additive — 3 new `gst://regulations/*` URIs; no tool/schema/runtime change):
+
+- `gst://regulations/us/nist-ai-rmf` — **NIST AI Risk Management Framework 1.0** (US federal voluntary framework; the de-facto compliance baseline for US AI deployers, increasingly cited by state laws like Colorado AI Act).
+- `gst://regulations/gb/ai-framework` — **UK Pro-Innovation Approach to AI Regulation** (regulator-led, non-statutory; effective date `2024-02-06` = government White Paper response publication).
+- `gst://regulations/cl/ley21719` — **Chile Law 21.719 on the Protection of Personal Data** (comprehensive GDPR-aligned replacement for the 1999 regime; effective `2026-12-01`; creates the Agencia de Protección de Datos Personales with administrative fining powers).
+
+**Scope reduction — Canada AIDA dropped**: BL-057 stanza named Canada AIDA (Bill C-27) as a missing AI-gov entry. WebSearch verification confirmed Bill C-27 died on the Order Paper when Parliament was prorogued in January 2025, and the April 2025 snap election did not re-table the bill — Canada has no federal AI framework in force or in active passage as of mid-2026. Authoring `CA-AIDA.json` would surface a phantom framework to operators. NA AI-gov coverage for Canadian targets continues via `CA-QC-LAW25` (Quebec Law 25, which has AI clauses) and the new `US-NIST-AI-RMF` for cross-border alignment. This matches the `verify-against-reality-not-docs` discipline: doc-vs-doc rigor would have authored the entry; live verification caught the staleness.
+
+**Taxonomy decision**: `"ai-governance"` is already an enum value in `RegulationCategorySchema` with 19 prior entries; no new top-level theme added. AI-gov entries ride under the existing theme. The BL stanza's open taxonomy question resolved to "ride under existing" because inventory confirmed the theme is established.
+
+**Acceptance**:
+
+- A partner running diligence on a US-headquartered AI-deploying target now sees `US-NIST-AI-RMF` fire alongside EU AI Act + state-level laws (`US-CO-AI-ACT`, `US-IL-AI-EMPLOYMENT`, `US-NY-LL144`) — no transparent miss on US AI-gov coverage. ✓
+- A partner running diligence on a Chile-exposed target sees `CL-LEY21719` fire — the new comprehensive data-protection law previously absent from the map. ✓
+- A partner running diligence on a UK-exposed target sees `GB-AI-FRAMEWORK` fire — closing the previously-unbacked UK AI surface. ✓
+- Free-text queries via `search_regulations`: `"NIST AI RMF"` → `us-nist-ai-rmf`; `"Ley 21.719"` → `cl-ley21719`; `"UK AI"` → `gb-ai-framework`. ✓
+- BL-063 Hub-backing: `defaultFiredFrameworks: ["NIST AI Risk Management Framework", "Chile Ley 21.719", "UK Pro-Innovation AI"]` now substring-match the new entries via `isHubBacked()` — previously gap-degraded as map-absent. ✓ (Once BL-063 lands; BL-063 PR not yet merged at the time of this BL-057 PR.)
+
+**Versioning**: `mcp-server` 0.19.0 → 0.20.0 (additive Resource URIs are a contract surface per BL-032.5 Phase 4 discipline). Prompt versions unchanged. Manifest hash re-baselined. Regulation count 120 → 123.
+
+**Filed under**: BL-057 (closed 2026-06-05).
 
 ---
 

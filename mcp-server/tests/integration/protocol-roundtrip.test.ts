@@ -493,7 +493,7 @@ describe('protocol roundtrip', () => {
       const payload = res.result as unknown as ListResourcesResultPayload;
       const uris = payload.resources.map((r) => r.uri);
 
-      // Library × 3 + Regulations × 120
+      // Library × 4 + Regulations × 123 (BL-057: +3 — NIST AI RMF, UK AI framework, Chile Ley 21.719)
       expect(uris).toContain('gst://library/business-architectures');
       expect(uris).toContain('gst://library/vdr-structure');
       expect(uris).toContain('gst://library/information-request-list');
@@ -505,7 +505,7 @@ describe('protocol roundtrip', () => {
         r.uri.startsWith('gst://regulations/')
       );
       expect(libraryEntries.length).toBe(4);
-      expect(regulationEntries.length).toBe(120);
+      expect(regulationEntries.length).toBe(123);
 
       for (const r of libraryEntries) {
         expect(r.mimeType).toBe('text/markdown');

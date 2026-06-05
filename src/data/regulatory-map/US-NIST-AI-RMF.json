@@ -1,0 +1,20 @@
+{
+  "id": "us-nist-ai-rmf",
+  "name": "NIST AI Risk Management Framework 1.0 (NIST AI 100-1)",
+  "regions": [
+    "USA"
+  ],
+  "effectiveDate": "2023-01-26",
+  "summary": "The de-facto US federal reference framework for trustworthy AI. Voluntary, non-regulatory guidance published by the National Institute of Standards and Technology under the National AI Initiative Act of 2020. Organized around four core functions (Govern, Map, Measure, Manage) applied iteratively across the AI lifecycle. Complemented by the Generative AI Profile (NIST AI 600-1, published July 2024) and a companion Playbook with actionable practices. Widely cited in US federal procurement, sector-specific guidance, and state AI laws (notably the Colorado AI Act) as the baseline for what constitutes reasonable AI risk management.",
+  "category": "ai-governance",
+  "scope": "Voluntary framework applicable to any organization designing, developing, deploying, or evaluating AI systems within the United States or for US users. Especially load-bearing for US federal agencies, contractors, and regulated industries (healthcare, finance, employment) where downstream rules increasingly reference NIST AI RMF as the baseline standard of care.",
+  "keyRequirements": [
+    "GOVERN: establish AI risk management policies, accountability structures, and a culture of risk-awareness across the AI lifecycle",
+    "MAP: contextualize each AI system — intended use, stakeholders, jurisdictional scope, third-party dependencies, and the risks specific to its deployment context",
+    "MEASURE: quantitatively and qualitatively assess identified risks using rigorous methods, with documented metrics for accuracy, robustness, fairness, transparency, security, and privacy",
+    "MANAGE: prioritize, treat, and monitor risks — including risk acceptance, mitigation, or system retirement decisions — with documented response plans for adverse events",
+    "Apply the Generative AI Profile (NIST AI 600-1) for foundation models and generative systems, addressing risks specific to confabulation, dangerous content, data privacy leakage, and information integrity",
+    "Maintain documentation traceable across the four functions to support internal audit and external accountability"
+  ],
+  "penalties": "Voluntary framework with no statutory penalties. However, adoption is increasingly load-bearing under other laws: failure to implement NIST AI RMF practices can be cited as evidence of negligence under tort law, can disqualify federal contractors under emerging procurement rules, and is referenced as the compliance baseline in the Colorado AI Act and similar state-level statutes."
+}

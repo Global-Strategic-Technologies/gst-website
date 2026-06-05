@@ -1,0 +1,21 @@
+{
+  "id": "cl-ley21719",
+  "name": "Chile Law 21.719 on the Protection of Personal Data (Ley 21.719)",
+  "regions": [
+    "CHL"
+  ],
+  "effectiveDate": "2026-12-01",
+  "summary": "Chile's comprehensive replacement for the 1999 Law 19.628 regime (see cl-law19628 for the legacy law). Enacted in December 2024 with a 24-month vacatio legis, taking full effect on December 1, 2026. Closely aligned with the GDPR template: introduces a full data-subject-rights catalogue, breach notification, accountability principle, DPIAs for high-risk processing, restrictions on international data transfers, and creates a dedicated Personal Data Protection Agency (Agencia de Proteccion de Datos Personales) with administrative fining powers. A material new compliance surface for any business processing Chilean residents' personal data, including foreign businesses targeting the Chilean market.",
+  "category": "data-privacy",
+  "scope": "Applies to the processing of personal data of natural persons in Chile, including extraterritorially to controllers and processors outside Chile that offer goods or services to Chilean residents or monitor their behaviour in Chile. Covers both public and private sector data processing.",
+  "keyRequirements": [
+    "Establish a lawful basis for processing (consent, contract, legal obligation, vital interests, legitimate interest balanced against data subject rights, public interest)",
+    "Honor data subject rights: access, rectification, deletion, portability, objection, and the right not to be subject to solely automated decisions with legal effects",
+    "Notify the new Agencia de Proteccion de Datos Personales of personal data breaches within statutory time limits",
+    "Conduct Data Protection Impact Assessments for high-risk processing (large-scale sensitive data, systematic monitoring, automated decision-making)",
+    "Appoint a Data Protection Officer where required (public bodies, large-scale sensitive data processing, systematic monitoring)",
+    "Restrict international data transfers to jurisdictions without an adequacy declaration unless safeguards (standard contractual clauses, binding corporate rules, explicit consent) are in place",
+    "Maintain processing records demonstrating accountability and respect specific rules for processing sensitive categories of data (health, biometric, genetic, political, religious, sexual life)"
+  ],
+  "penalties": "Administrative fines tiered by severity. Minor infringements: up to 5,000 UTM (approximately USD 350,000). Serious infringements: up to 10,000 UTM (approximately USD 700,000). Very serious infringements: up to 20,000 UTM (approximately USD 1.4 million) or 4% of annual global turnover, whichever is higher. The Agencia de Proteccion de Datos Personales has investigative and sanctioning powers, replacing the prior court-only enforcement model under Law 19.628."
+}
