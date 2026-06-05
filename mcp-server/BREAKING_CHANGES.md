@@ -11,21 +11,48 @@
 ## Current manifest hash
 
 ```
-37c7d1b3780076803ee41e73e0ba3889e17487cb3dd879ab7c7038d602714930
+202c9921d96e36800eaa6b2bdc6b43fe6b3b95015ec0cfe6eb80351cc351ab3e
 ```
 
 Computed over (sorted):
 
 - **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`).
-- 123 Regulation URIs.
+- 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719).
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.10.0` (BL-059: Rule 0 tier-discipline universal coaching paragraph added to `generate_diligence_agenda` Step 1b + Step 1a worked example bumps `operatingModel` from tier-2 to tier-3 with `value: "unknown"` per impartial-audit refinement; BL-063 directive changes initially in this PR were REVERTED — server-side enforcement in `compose_dossier_envelope` is the right lever per audit, refiled as open BL).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.11.0` (BL-063: server-side enforcement of `defaultFiredFrameworks` at `compose_dossier_envelope` shipped — partition + scope reject, Hub-backing auto-degrade to `map-absent:` gap entries; prompt body BL-062 directive prose at the verify-block site rewritten to document the now-structural enforcement so the model knows the tool will reject/auto-append non-compliant submissions).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.21.0 — 2026-06-05 — BL-063 — server-side enforcement of `defaultFiredFrameworks` at `compose_dossier_envelope`
+
+**Theme**: the 2026-06-04 post-BL-058/060/061/062 retest exposed three implicit-rule violations in the model's `defaultFiredFrameworks` reporting (EU_AI_ACT in both `fired` and `defaultFiredFrameworks`; SOC 2 listed as a "default-fired framework" despite being a certification; NIST AI RMF + Canada AIDA listed despite absence from the Hub regulatory map per BL-057). Initial directive-prose-only response (BL-063 v1) was assessed by an impartial code-reviewer audit as WEAK — prose rules added to an already-lengthy verify-block directive are unlikely to change behavior when the failure mode is silent. This release implements the audit-recommended approach: server-side enforcement at the tool seam, matching the BL-058 forcing-function pattern.
+
+**Surface impact** (minor — additive schema field + handler rejection + meta-fence carrier; no behavior change for pre-BL-063 callers omitting the new field):
+
+- **`ComposeDossierEnvelopeInputSchema`** gains `defaultFiredFrameworks: z.array(z.string()).optional().default([])` next to `conditionalTriggersFired`. Back-compat: omitting the field is accepted.
+- **Three server-side rules in `runComposeDossierEnvelope`**:
+  - **Partition rejection** — `Bl063PartitionViolationError` thrown when any framework appears in both `conditionalTriggersFired` and `defaultFiredFrameworks` (normalized matching so case + whitespace + punctuation differences don't dodge the check).
+  - **Scope rejection** — `Bl063CertificationNotRegulationError` thrown when any entry matches the certification blocklist (SOC 2 / SOC 1 / ISO 27001 / ISO 27002 / ISO 27017 / ISO 27018 / ISO 27701 / PCI-DSS / FedRAMP / HITRUST / CSA STAR / Cyber Essentials, all normalized).
+  - **Hub-backing auto-degrade** — entries without a matching Hub regulatory-map record (via the `gst://regulations/*` registry) are STRIPPED from the rendered meta fence AND auto-appended to (J) as `map-absent:` gap entries with a follow-up pointing to BL-057's coverage-gap sweep. Not a rejection — the dossier still ships, but the partner sees the coverage gap transparently.
+- **`renderMetaFence`** emits `defaultFiredFrameworks: [...]` carrying only Hub-backed entries.
+- **Tool handler** (`tools/compose-dossier-envelope.ts`) maps the two new error classes to `isError: true` MCP responses with the diagnostic message verbatim, matching how `IrlBodyHashMismatchError` is surfaced.
+- **Prompt body BL-062 directive prose** at the verify-block site is rewritten in both one-shot and interactive paths to document the now-structural enforcement (model knows the tool will reject/auto-append non-compliant submissions). Per the audit recommendation: "Keep the directive prose, but as model-facing documentation of a rule that is now structurally enforced."
+
+**BL-057 interaction (post-rebase)**: BL-057 shipped 3 new regulatory entries (NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719) immediately before this PR. The Hub-backing auto-degrade now matches those entries via `isHubBacked()`'s bidirectional substring matcher — the retest's NIST AI RMF + UK + Chile entries will partition as `backed` rather than auto-degrading. Canada AIDA remains map-absent (BL-057 dropped it after WebSearch confirmed Bill C-27 died on the Order Paper); any future `defaultFiredFrameworks: ["AIDA"]` entry will still auto-degrade.
+
+**Acceptance criterion**: the next live exercise's `compose_dossier_envelope` call either passes the three checks OR is rejected with one of `BL-063-PARTITION-VIOLATION` / `BL-063-CERTIFICATION-NOT-REGULATION`. The retest's exact failure pattern (EU_AI_ACT in both + SOC 2 in defaultFiredFrameworks + NIST AI RMF + Canada AIDA) reproduces as: 2 rejections (partition + scope) → model corrects → 1 entry (AIDA only, since NIST AI RMF is now Hub-backed) auto-degrades to `map-absent:` in (J).
+
+**Versioning**: `mcp-server` 0.20.0 → 0.21.0 (additive schema + handler; no behavior change for pre-BL-063 callers); `gst_irl_ingestion` prompt 0.10.0 → 0.11.0. Manifest hash + all 7 body hashes re-baselined (BL-062 directive prose lives in both verify-block sites, so every body path drifts).
+
+**Test surface**: existing tests + 12 new unit tests covering the three rules (partition: 3 normalization-edge cases + non-overlap happy path; scope: 7 certification cases + similar-name happy path; Hub-backing: NIST AI RMF case + meta-fence stripping + Hub-backed happy path; back-compat: empty list + omitted field).
+
+**Filed under**: BL-063 (closed via this PR). BL-059 acceptance over ≥3 live exercises remains operator-driven; BL-058's enriched VERIFY block carries the diagnostic data.
 
 ---
 

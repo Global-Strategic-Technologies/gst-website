@@ -73,7 +73,13 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // have surfaced a phantom framework to operators. NA AI-gov coverage
 // for Canadian targets continues via CA-QC-LAW25 which has AI
 // clauses.) Regulation count: 120 → 123.
-const EXPECTED_MANIFEST_HASH = '37c7d1b3780076803ee41e73e0ba3889e17487cb3dd879ab7c7038d602714930';
+// BL-063 rebaseline (stacked on BL-057): prompt v0.10.0 → v0.11.0
+// (server-side enforcement of defaultFiredFrameworks at
+// compose_dossier_envelope — partition + scope reject; Hub-backing
+// auto-degrade to map-absent gap entries; tool schema expansion;
+// BL-062 directive prose rewritten to document the structural
+// enforcement). Hash recomputed off post-BL-057 master.
+const EXPECTED_MANIFEST_HASH = '202c9921d96e36800eaa6b2bdc6b43fe6b3b95015ec0cfe6eb80351cc351ab3e';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

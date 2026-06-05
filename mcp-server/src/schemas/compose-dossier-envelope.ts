@@ -34,6 +34,7 @@
 
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import { REGULATION_ENTRIES } from '../content/regulation-loader';
 import { CONDITIONAL_TRIGGER_NAMES } from '../prompts/extraction-rules';
 import { ORCHESTRATED_TOOLS } from '../prompts/irl-ingestion';
 import {
@@ -237,6 +238,34 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
     .describe(
       'Named conditional triggers that fired DESPITE not being in Section 09 — currently `EU_AI_ACT` (EU geography + ML/AI use) and `NIS2` (EU geography + regulated sector). Empty array if none. Do NOT list frameworks that ARE in Section 09 — those go in the regulatory subsection prose, not here.'
     ),
+  // BL-063 server-side enforcement: defaultFiredFrameworks is the
+  // Section-09 enumerated regulatory frameworks the partner is subject
+  // to. The tool enforces three rules at the schema seam (matching the
+  // BL-058 forcing-function pattern, since the BL-062 prose-only design
+  // was empirically shown to be ignored by the model in the 2026-06-04
+  // retest — SOC 2 slipped in despite being a certification not a
+  // regulation; EU_AI_ACT appeared in BOTH this list and
+  // conditionalTriggersFired despite the partition rule):
+  //   1. Partition check (BL-063-PARTITION-VIOLATION): no overlap with
+  //      conditionalTriggersFired.
+  //   2. Scope check (BL-063-CERTIFICATION-NOT-REGULATION): no entries
+  //      matching the certification blocklist (SOC 2, ISO 27001,
+  //      PCI-DSS, SOC 1, FedRAMP, HITRUST — these are compliance
+  //      attestations, not regulatory frameworks).
+  //   3. Hub-backing auto-degrade (NOT a rejection): entries without
+  //      a matching Hub regulatory map record auto-append a
+  //      `map-absent:` entry to the (J) gap list. The unbacked entries
+  //      are REMOVED from this list before rendering the meta fence —
+  //      the meta fence carries only Hub-backed frameworks. This is
+  //      operator-auditable: "regulations substantiated by Hub map
+  //      matches" not "regulations the model thinks should apply."
+  defaultFiredFrameworks: z
+    .array(z.string().min(1))
+    .optional()
+    .default([])
+    .describe(
+      'Section-09 enumerated regulatory frameworks the partner is subject to (GDPR, UK GDPR, PIPEDA, POPIA, etc.). MUST be partitioned from conditionalTriggersFired (no overlap). MUST be regulatory frameworks only — certifications (SOC 2, ISO 27001, PCI-DSS) are REJECTED. Unbacked entries (absent from Hub regulatory map) auto-degrade to `map-absent:` gap entries.'
+    ),
   // BL-045 PR B audit MA-5: forceToolsApplied tightened to the same enum.
   forceToolsApplied: z
     .array(z.enum(ORCHESTRATED_TOOLS))
@@ -325,6 +354,7 @@ export function renderMetaFence(
     `  "gatesPassed": ${stringifyArr(input.gatesPassed)},`,
     `  "gatesElided": ${stringifyObjArr(input.gatesElided)},`,
     `  "conditionalTriggersFired": ${stringifyArr(input.conditionalTriggersFired)},`,
+    `  "defaultFiredFrameworks": ${stringifyArr(input.defaultFiredFrameworks ?? [])},`,
     `  "forceToolsApplied": ${stringifyArr(input.forceToolsApplied)}`,
     '}',
   ];
@@ -410,6 +440,174 @@ const EMIT_INSTRUCTIONS = [
 
 // ─── Engine (pure) ──────────────────────────────────────────────────────
 
+// ─── BL-063 server-side enforcement (partition + scope + Hub-backing) ──
+//
+// The 2026-06-04 retest produced an implicit-rule violation on all three
+// axes (EU_AI_ACT in both fired and defaultFiredFrameworks; SOC 2 in
+// defaultFiredFrameworks; NIST AI RMF + Canada AIDA in
+// defaultFiredFrameworks without Hub backing) despite prose-style
+// surrounding context. Per the impartial-audit recommendation, server-
+// side enforcement at the tool seam matches the BL-058 forcing-function
+// pattern; prose-only is the wrong lever for silent failure modes.
+
+/**
+ * Compliance certifications (NOT regulatory frameworks). Entries in
+ * `defaultFiredFrameworks` matching this blocklist are rejected with
+ * `BL-063-CERTIFICATION-NOT-REGULATION`. The list is intentionally
+ * narrow — the most common certifications a model conflates with
+ * regulations. Match is normalized (lowercased + non-alphanumeric
+ * stripped) so `SOC 2`, `SOC2`, `soc-2`, `Soc 2 Type II` all match.
+ */
+const CERTIFICATION_BLOCKLIST = [
+  'soc2',
+  'soc1',
+  'iso27001',
+  'iso27002',
+  'iso27017',
+  'iso27018',
+  'iso27701',
+  'pcidss',
+  'fedramp',
+  'hitrust',
+  'csa-star',
+  'cyberessentials',
+] as const;
+
+/** Normalize a framework name for blocklist + Hub-backing matching. */
+export function normalizeFrameworkName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Build the Hub-backed framework name set from the regulatory map.
+ * Indexed at module load. Each entry is the normalized Hub name.
+ *
+ * Note: Hub regulation names are formal long-form (e.g., "General Data
+ * Protection Regulation (GDPR)") while the model passes acronyms (e.g.,
+ * "GDPR"). Bidirectional substring matching with a 4-character floor
+ * handles this: a model name normalized to ≥4 chars is Hub-backed if
+ * (model ⊂ hub-name) OR (hub-name ⊂ model) for any Hub entry. The
+ * 4-char floor prevents pathological short matches like "law" or "act"
+ * matching everything.
+ */
+const HUB_FRAMEWORK_NORMALIZED: readonly string[] = REGULATION_ENTRIES.map((entry) =>
+  normalizeFrameworkName(entry.data.name)
+);
+
+const HUB_MATCH_MIN_LENGTH = 4;
+
+function isHubBacked(modelName: string): boolean {
+  const normalized = normalizeFrameworkName(modelName);
+  if (normalized.length < HUB_MATCH_MIN_LENGTH) return false;
+  return HUB_FRAMEWORK_NORMALIZED.some(
+    (hubName) =>
+      hubName.length >= HUB_MATCH_MIN_LENGTH &&
+      (hubName.includes(normalized) || normalized.includes(hubName))
+  );
+}
+
+/**
+ * Custom error thrown when `defaultFiredFrameworks` overlaps
+ * `conditionalTriggersFired`. Each framework appears EXACTLY ONCE; when
+ * a framework legitimately fires via BOTH paths, the conditional-
+ * trigger path wins (appears in `fired` only).
+ */
+export class Bl063PartitionViolationError extends Error {
+  readonly overlap: readonly string[];
+  constructor(overlap: readonly string[]) {
+    super(
+      `BL-063-PARTITION-VIOLATION: ${overlap.length} framework${overlap.length === 1 ? '' : 's'} ` +
+        `appear${overlap.length === 1 ? 's' : ''} in BOTH conditionalTriggersFired AND defaultFiredFrameworks: ` +
+        `[${overlap.join(', ')}]. ` +
+        `Each framework appears EXACTLY ONCE — when a framework BOTH (a) is a conditional trigger that fired ` +
+        `AND (b) is also named in Section 09, the conditional-trigger path wins. ` +
+        `Remove these from defaultFiredFrameworks; they stay in conditionalTriggersFired.`
+    );
+    this.name = 'Bl063PartitionViolationError';
+    this.overlap = overlap;
+  }
+}
+
+/**
+ * Custom error thrown when `defaultFiredFrameworks` contains a known
+ * compliance certification. Certifications are attestations of
+ * compliance state, NOT regulatory frameworks; they belong in the
+ * dossier (D) ICG section, not in the regulatory subsection.
+ */
+export class Bl063CertificationNotRegulationError extends Error {
+  readonly offending: readonly string[];
+  constructor(offending: readonly string[]) {
+    super(
+      `BL-063-CERTIFICATION-NOT-REGULATION: ${offending.length} entr${offending.length === 1 ? 'y' : 'ies'} ` +
+        `in defaultFiredFrameworks ${offending.length === 1 ? 'is' : 'are'} compliance certification${offending.length === 1 ? '' : 's'}, not regulatory framework${offending.length === 1 ? '' : 's'}: ` +
+        `[${offending.join(', ')}]. ` +
+        `Compliance certifications (SOC 2, ISO 27001, PCI-DSS, FedRAMP, HITRUST, etc.) are attestations of compliance state, ` +
+        `not regulatory frameworks the partner is subject to. ` +
+        `Remove them from defaultFiredFrameworks; they belong in the dossier's (D) ICG section as compliance posture context, not in the regulatory subsection.`
+    );
+    this.name = 'Bl063CertificationNotRegulationError';
+    this.offending = offending;
+  }
+}
+
+/**
+ * Partition check (BL-063 rule 1). Throws if any framework name appears
+ * in both lists. Matching is normalized so case + whitespace + hyphens
+ * differences don't dodge the check.
+ */
+export function checkBl063Partition(
+  conditionalTriggersFired: readonly string[],
+  defaultFiredFrameworks: readonly string[]
+): void {
+  if (defaultFiredFrameworks.length === 0 || conditionalTriggersFired.length === 0) return;
+  const conditionalNormalized = new Set(conditionalTriggersFired.map(normalizeFrameworkName));
+  const overlap: string[] = [];
+  for (const f of defaultFiredFrameworks) {
+    if (conditionalNormalized.has(normalizeFrameworkName(f))) {
+      overlap.push(f);
+    }
+  }
+  if (overlap.length > 0) {
+    throw new Bl063PartitionViolationError(overlap);
+  }
+}
+
+/**
+ * Scope check (BL-063 rule 2). Throws if any entry matches the
+ * certification blocklist (normalized).
+ */
+export function checkBl063Scope(defaultFiredFrameworks: readonly string[]): void {
+  if (defaultFiredFrameworks.length === 0) return;
+  const blocklist = new Set<string>(CERTIFICATION_BLOCKLIST);
+  const offending = defaultFiredFrameworks.filter((f) => blocklist.has(normalizeFrameworkName(f)));
+  if (offending.length > 0) {
+    throw new Bl063CertificationNotRegulationError(offending);
+  }
+}
+
+/**
+ * Hub-backing partition (BL-063 rule 3 — auto-degrade, NOT reject).
+ * Returns the subset of `defaultFiredFrameworks` that have a matching
+ * Hub regulatory-map record (Hub-backed) and the subset that does NOT
+ * (unbacked — to be auto-appended as `map-absent:` gap entries and
+ * removed from the meta fence).
+ */
+export function partitionByHubBacking(defaultFiredFrameworks: readonly string[]): {
+  backed: string[];
+  unbacked: string[];
+} {
+  const backed: string[] = [];
+  const unbacked: string[] = [];
+  for (const f of defaultFiredFrameworks) {
+    if (isHubBacked(f)) {
+      backed.push(f);
+    } else {
+      unbacked.push(f);
+    }
+  }
+  return { backed, unbacked };
+}
+
 /**
  * Custom error thrown on hash-bind mismatch so the tool handler can
  * surface the BL-045 forcing-function diagnostic verbatim rather than
@@ -478,6 +676,19 @@ export function runComposeDossierEnvelope(
   if (actualHash !== input.irlBodyHash) {
     throw new IrlBodyHashMismatchError(input.irlBodyHash, actualHash);
   }
+
+  // BL-063 server-side enforcement (in order — fail fast on rejections,
+  // then auto-degrade Hub-backing into gap entries):
+  //   1. Partition check: reject overlap with conditionalTriggersFired.
+  //   2. Scope check: reject compliance certifications.
+  //   3. Hub-backing partition: NOT a rejection — unbacked entries are
+  //      removed from the meta fence and auto-appended as `map-absent:`
+  //      gap entries so the partner sees the coverage gap transparently.
+  const defaultFiredFrameworks = input.defaultFiredFrameworks ?? [];
+  checkBl063Partition(input.conditionalTriggersFired, defaultFiredFrameworks);
+  checkBl063Scope(defaultFiredFrameworks);
+  const { backed: backedFrameworks, unbacked: unbackedFrameworks } =
+    partitionByHubBacking(defaultFiredFrameworks);
 
   // 1. Run provenance verification on every load-bearing claim.
   const verification = runIrlProvenanceCheck({
@@ -574,10 +785,29 @@ export function runComposeDossierEnvelope(
     }
   }
 
+  // BL-063 rule 3 — auto-append `map-absent:` entries for unbacked
+  // defaultFiredFrameworks. This converts an undetected fabrication
+  // (model listing frameworks it knows from training without Hub map
+  // backing) into a forcing-function audit artifact the partner sees
+  // in (J). The unbacked entries are also stripped from the meta fence
+  // output below (renderMetaFence receives `backedFrameworks`, not the
+  // raw input).
+  for (const unbacked of unbackedFrameworks) {
+    autoAppended.push({
+      category: 'map-absent',
+      entry: `${unbacked} — named in Section 09 but absent from the Hub regulatory map; the dossier cannot back this framework with article-level citations.`,
+      followUp:
+        'If the framework genuinely applies, file a regulatory-map coverage request (see BL-057 for the current sweep tracking AI-governance + Chile gap). Until then, the partner should source obligations directly from the regulator.',
+    });
+  }
+
   const allGaps = [...input.gaps, ...autoAppended];
 
   return {
-    metaFenceMarkdown: renderMetaFence(input, serverContext.promptVersion),
+    metaFenceMarkdown: renderMetaFence(
+      { ...input, defaultFiredFrameworks: backedFrameworks },
+      serverContext.promptVersion
+    ),
     gapListMarkdown: renderGapList(allGaps),
     provenanceFooterMarkdown: renderProvenanceFooter(input.claims, verification.verdicts),
     provenanceVerification: {

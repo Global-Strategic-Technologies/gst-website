@@ -56,6 +56,7 @@ function baseInput(): ComposeDossierEnvelopeInput {
     gatesPassed: ['generate_diligence_agenda', 'compute_techpar'],
     gatesElided: [{ tool: 'search_radar', reason: 'credentials not bound', irlSection: '01' }],
     conditionalTriggersFired: ['EU_AI_ACT'],
+    defaultFiredFrameworks: [],
     forceToolsApplied: [],
     claims: [
       {
@@ -588,5 +589,137 @@ describe('compose_dossier_envelope — BL-053 citation array form', () => {
     const result = runComposeDossierEnvelope(input, SERVER_CTX);
     expect(result.provenanceVerification.tierMismatches).toBe(1);
     expect(result.gapListMarkdown).toMatch(/tier-mismatch/);
+  });
+});
+
+// ─── BL-063 — server-side defaultFiredFrameworks enforcement ────────────
+//
+// Three rules at the tool seam, matching the BL-058 forcing-function
+// pattern (the impartial-audit verdict on BL-062 prose-only enforcement
+// was WEAK; this PR moves it to schema enforcement):
+//   1. Partition rejection (BL-063-PARTITION-VIOLATION).
+//   2. Scope rejection (BL-063-CERTIFICATION-NOT-REGULATION).
+//   3. Hub-backing auto-degrade: unbacked entries stripped from meta
+//      fence + auto-appended to (J) as map-absent: gap entries.
+
+describe('compose_dossier_envelope — BL-063 defaultFiredFrameworks enforcement', () => {
+  describe('rule 1: partition rejection (no overlap with conditionalTriggersFired)', () => {
+    it('throws Bl063PartitionViolationError when a framework appears in both lists (EU_AI_ACT case from 2026-06-04 retest)', async () => {
+      const { Bl063PartitionViolationError } =
+        await import('../../../src/schemas/compose-dossier-envelope');
+      const input = baseInput();
+      input.conditionalTriggersFired = ['EU_AI_ACT'];
+      input.defaultFiredFrameworks = ['GDPR', 'EU AI Act'];
+      expect(() => runComposeDossierEnvelope(input, SERVER_CTX)).toThrow(
+        Bl063PartitionViolationError
+      );
+    });
+
+    it('normalizes case + whitespace + punctuation so "EU AI Act" / "eu-ai-act" / "EUAIACT" all match', async () => {
+      const { Bl063PartitionViolationError } =
+        await import('../../../src/schemas/compose-dossier-envelope');
+      const cases = ['EU AI Act', 'eu-ai-act', 'EUAIACT', 'Eu_Ai_Act'];
+      for (const name of cases) {
+        const input = baseInput();
+        input.conditionalTriggersFired = ['EU_AI_ACT'];
+        input.defaultFiredFrameworks = [name];
+        expect(
+          () => runComposeDossierEnvelope(input, SERVER_CTX),
+          `should reject overlap for "${name}"`
+        ).toThrow(Bl063PartitionViolationError);
+      }
+    });
+
+    it('accepts non-overlapping submissions (GDPR not also in conditionalTriggersFired)', () => {
+      const input = baseInput();
+      input.conditionalTriggersFired = ['EU_AI_ACT'];
+      input.defaultFiredFrameworks = ['GDPR', 'UK GDPR'];
+      expect(() => runComposeDossierEnvelope(input, SERVER_CTX)).not.toThrow();
+    });
+  });
+
+  describe('rule 2: scope rejection (certifications blocked)', () => {
+    it('throws Bl063CertificationNotRegulationError on SOC 2 (case from 2026-06-04 retest)', async () => {
+      const { Bl063CertificationNotRegulationError } =
+        await import('../../../src/schemas/compose-dossier-envelope');
+      const input = baseInput();
+      input.defaultFiredFrameworks = ['GDPR', 'SOC 2'];
+      expect(() => runComposeDossierEnvelope(input, SERVER_CTX)).toThrow(
+        Bl063CertificationNotRegulationError
+      );
+    });
+
+    it('normalizes certification names so "SOC2" / "soc-2" / "Soc 2 Type II" all match', async () => {
+      const { Bl063CertificationNotRegulationError } =
+        await import('../../../src/schemas/compose-dossier-envelope');
+      const cases = ['SOC2', 'soc-2', 'ISO 27001', 'iso27001', 'PCI-DSS', 'pcidss', 'FedRAMP'];
+      for (const name of cases) {
+        const input = baseInput();
+        input.defaultFiredFrameworks = [name];
+        expect(
+          () => runComposeDossierEnvelope(input, SERVER_CTX),
+          `should reject certification "${name}"`
+        ).toThrow(Bl063CertificationNotRegulationError);
+      }
+    });
+
+    it('accepts regulatory frameworks even when they share name fragments with certifications', () => {
+      const input = baseInput();
+      input.defaultFiredFrameworks = ['GDPR', 'UK GDPR', 'PIPEDA'];
+      expect(() => runComposeDossierEnvelope(input, SERVER_CTX)).not.toThrow();
+    });
+  });
+
+  describe('rule 3: Hub-backing auto-degrade (unbacked entries → map-absent gap)', () => {
+    it('auto-appends a map-absent: gap entry for each unbacked framework (Canada AIDA case — BL-057 dropped AIDA after Bill C-27 died)', () => {
+      const input = baseInput();
+      // Canada AIDA remains unbacked: BL-057's coverage-gap sweep
+      // explicitly dropped it after WebSearch verification confirmed
+      // Bill C-27 died on the Order Paper Jan 2025. (NIST AI RMF was
+      // originally in this test — it became Hub-backed when BL-057
+      // shipped US-NIST-AI-RMF.json, so the test now uses AIDA as the
+      // canonical still-unbacked AI-gov framework.)
+      input.defaultFiredFrameworks = ['GDPR', 'Canada AIDA', 'Singapore Model AI Governance'];
+      const result = runComposeDossierEnvelope(input, SERVER_CTX);
+      expect(result.gapListMarkdown).toContain('map-absent');
+      expect(result.gapListMarkdown).toContain('Canada AIDA');
+      expect(result.gapListMarkdown).toContain('Singapore Model AI Governance');
+    });
+
+    it('strips unbacked entries from the rendered meta fence (so partners see only Hub-backed frameworks)', () => {
+      const input = baseInput();
+      input.defaultFiredFrameworks = ['GDPR', 'Canada AIDA'];
+      const result = runComposeDossierEnvelope(input, SERVER_CTX);
+      // The meta fence should NOT carry Canada AIDA since it's unbacked
+      // (BL-057 dropped it). GDPR is in the Hub map so it survives.
+      expect(result.metaFenceMarkdown).not.toContain('Canada AIDA');
+    });
+
+    it('keeps Hub-backed entries in the meta fence (GDPR, UK GDPR, PIPEDA, POPIA are all backed)', () => {
+      const input = baseInput();
+      input.defaultFiredFrameworks = ['GDPR', 'UK GDPR'];
+      const result = runComposeDossierEnvelope(input, SERVER_CTX);
+      expect(result.metaFenceMarkdown).toContain('defaultFiredFrameworks');
+      expect(result.metaFenceMarkdown).toContain('GDPR');
+    });
+  });
+
+  describe('happy path: empty + Hub-backed-only submissions', () => {
+    it('accepts an empty defaultFiredFrameworks list (Section 09 named no frameworks)', () => {
+      const input = baseInput();
+      input.defaultFiredFrameworks = [];
+      const result = runComposeDossierEnvelope(input, SERVER_CTX);
+      expect(result.metaFenceMarkdown).toContain('"defaultFiredFrameworks": []');
+    });
+
+    it('accepts inputs that omit defaultFiredFrameworks entirely (back-compat with pre-BL-063 callers)', () => {
+      const input = baseInput();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (input as any).defaultFiredFrameworks;
+      const parsed = ComposeDossierEnvelopeInputSchema.safeParse(input);
+      expect(parsed.success).toBe(true);
+      const result = runComposeDossierEnvelope(parsed.data!, SERVER_CTX);
+      expect(result.metaFenceMarkdown).toContain('"defaultFiredFrameworks": []');
+    });
   });
 });

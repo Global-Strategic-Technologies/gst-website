@@ -32,6 +32,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import { irlIngestionPrompt } from '../prompts/irl-ingestion';
 import {
+  Bl063CertificationNotRegulationError,
+  Bl063PartitionViolationError,
   ComposeDossierEnvelopeInputSchema,
   IrlBodyHashMismatchError,
   runComposeDossierEnvelope,
@@ -79,6 +81,17 @@ export async function handleComposeDossierEnvelopeTool(payload: ComposeDossierEn
     // BL-045 PR B audit BL-2 → ALT-1: surface hash-bind diagnostic
     // verbatim so the model can act on it and retry with verbatim IRL.
     if (error instanceof IrlBodyHashMismatchError) {
+      return {
+        content: [{ type: 'text' as const, text: error.message }],
+        isError: true,
+      };
+    }
+    // BL-063 server-side enforcement: surface partition + scope
+    // diagnostics verbatim so the model can act on them.
+    if (
+      error instanceof Bl063PartitionViolationError ||
+      error instanceof Bl063CertificationNotRegulationError
+    ) {
       return {
         content: [{ type: 'text' as const, text: error.message }],
         isError: true,
