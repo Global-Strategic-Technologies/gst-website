@@ -79,7 +79,11 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // auto-degrade to map-absent gap entries; tool schema expansion;
 // BL-062 directive prose rewritten to document the structural
 // enforcement). Hash recomputed off post-BL-057 master.
-const EXPECTED_MANIFEST_HASH = '202c9921d96e36800eaa6b2bdc6b43fe6b3b95015ec0cfe6eb80351cc351ab3e';
+// BL-064 rebaseline: prompt v0.11.0 → v0.12.0. Step 2 + Step 3 directive
+// rewrites instructing batched array calls for search_portfolio +
+// search_regulations; SearchPortfolioInputSchema extended with
+// StringOrStringArray union for theme + engagement.
+const EXPECTED_MANIFEST_HASH = '5bee38cc935fa3a1b987999ed9d467f250b1dc4eeeb3b1b5555bb5a3205adbd9';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

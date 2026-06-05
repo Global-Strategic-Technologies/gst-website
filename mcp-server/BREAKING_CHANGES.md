@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-202c9921d96e36800eaa6b2bdc6b43fe6b3b95015ec0cfe6eb80351cc351ab3e
+5bee38cc935fa3a1b987999ed9d467f250b1dc4eeeb3b1b5555bb5a3205adbd9
 ```
 
 Computed over (sorted):
@@ -20,12 +20,38 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719).
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.11.0` (BL-063: server-side enforcement of `defaultFiredFrameworks` at `compose_dossier_envelope` shipped — partition + scope reject, Hub-backing auto-degrade to `map-absent:` gap entries; prompt body BL-062 directive prose at the verify-block site rewritten to document the now-structural enforcement so the model knows the tool will reject/auto-append non-compliant submissions).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.12.0` (BL-064: batch-call discipline — Step 2 + Step 3 directives rewritten to instruct ONE call with array filters (`theme: [...]`, `engagement: [...]`, `jurisdiction: [...]`, `category: [...]`) instead of N sequential per-arg calls; `SearchPortfolioInputSchema` extended with `StringOrStringArray` union for `theme` + `engagement`).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.22.0 — 2026-06-05 — BL-064 — batch-call discipline for `search_regulations` + `search_portfolio`
+
+**Theme**: the 2026-06-05 live exercise's VERIFY block exposed redundant tool-call patterns. `search_regulations` 3/3, `search_portfolio` 3/3 — both sequential per-arg calls when batching would collapse to 1 call each. `search_regulations`'s schema ALREADY supported array batching (via the `StringOrStringArray` transform shipped with the regulatory-map schema); only the prompt was anti-batching by directing "ONCE PER FRAMEWORK." `search_portfolio` lacked the array support entirely. ICG 2/2 is the canonical empty-probe + seeded pattern per prompt line 750 — out of scope. `generate_diligence_agenda` 3/1 retries had `recoveryAction` shapes that match BL-059 Rule 0's target class; the VERIFY block was from a pre-BL-059-deploy run (user confirmed); no new coaching here.
+
+**Surface impact** (minor — additive schema field + prompt-directive rewrite; back-compat preserved):
+
+- **`SearchPortfolioInputSchema`** — `theme` and `engagement` widened from `z.string().default('all')` to a `StringOrStringArray` union (`z.string() | z.array(z.string())`) that transforms to `string[]` with default `['all']`. Mirrors the pattern at `src/schemas/regulatory-map.ts:60-68`. Back-compat: callers passing a scalar string (or omitting the field) get the same behavior they had before.
+- **`handleSearchPortfolioTool`** — narrows the new array semantics inside the MCP boundary. `filterProjects` in `src/utils/filterLogic.ts` is shared with the website's portfolio page + `src/utils/portfolio-url.ts`; widening it to arrays would break both. Instead, the handler loops over each (theme, engagement) cartesian pair, calls the shared scalar `filterProjects` per pair, unions the results, and deduplicates by project id. `['all']` short-circuits to the scalar `'all'` "no filter" sentinel. Zero website touches.
+- **`buildPortfolioDeeplink`** — emits the FIRST element of each array as the deeplink's `theme` and `engagement` URL params. The website's portfolio URL contract is single-value; multi-value batching is a server-side optimization, not a deeplink primitive. Documented limitation; widening the URL encoding is out of scope.
+- **`.describe()` prose** — both `theme` and `engagement` rewritten to document the union shape so MCP introspection guides agents correctly. The BL-031.95 buy-side/sell-side natural-language mapping prose is preserved; the "run TWO separate searches" anti-batching directive at the end of `engagement.describe()` was rewritten to "pass BOTH in a single call as `engagement: ['Buy-Side', 'Sell-Side']`."
+- **Prompt body** — both `buildFullBody` (Step 2 + Step 3) and the interactive body Step 2b + Step 2c are rewritten to instruct ONE batched call with array filters; both directives include a worked example. The extract-only build path does not embed Step 2b/2c bullets — verified by the body-hash test (only 4 of 7 scenarios drift: interactive + 3 one-shot variants; the 3 extract-only variants are unchanged).
+
+**Out of scope**:
+
+- **ICG empty-probe elimination** — by design per prompt line 750; baking the 20-question schema shape into prompt prose would create drift risk.
+- **`generate_diligence_agenda` retry coaching** — pre-BL-059-deploy stale data; BL-059's Rule 0 has shipped but is empirically unverified. Next post-deploy exercise is acceptance data point #1.
+- **Per-framework `query` batching** — `search_regulations`'s `query` field is structurally per-name (substring scoring); only `jurisdiction` + `category` are batchable. Documented in the directive.
+
+**Versioning**: `mcp-server` 0.21.0 → 0.22.0 (additive schema field, back-compat); `gst_irl_ingestion` prompt 0.11.0 → 0.12.0. Manifest hash + 4 of 7 body hashes re-baselined (the 3 extract-only scenarios stay stable because their build path doesn't embed Step 2b/2c).
+
+**Test surface**: 6 new BL-064 unit tests in `tests/integration/portfolio-handler.test.ts` covering: single-string→array normalization; multi-element array passthrough; default `['all']` back-compat; union semantics + dedup for multi-theme calls; `['all']` short-circuit equivalence; multi-side `engagement` ambiguity-friendly batching; deeplink first-element-only emission. Existing `SearchPortfolioInputSchema` defaults test updated for the new `['all']` shape.
+
+**Filed under**: BL-064 (closed via this PR).
 
 ---
 

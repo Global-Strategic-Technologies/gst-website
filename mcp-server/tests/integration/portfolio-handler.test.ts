@@ -158,6 +158,97 @@ describe('handleSearchPortfolioTool — BL-031.95 Phase 4.B integration', () => 
     expect(decoded.engagement).toBe('Buy-Side');
   });
 
+  describe('BL-064 — array batching for theme + engagement', () => {
+    it('accepts a single theme string and normalizes to a one-element array', () => {
+      const parsed = SearchPortfolioInputSchema.parse({ theme: 'Healthcare' });
+      expect(parsed.theme).toEqual(['Healthcare']);
+    });
+
+    it('accepts a multi-element theme array as-is', () => {
+      const parsed = SearchPortfolioInputSchema.parse({ theme: ['Healthcare', 'Logistics'] });
+      expect(parsed.theme).toEqual(['Healthcare', 'Logistics']);
+    });
+
+    it('default value is ["all"] when theme + engagement are omitted (back-compat)', () => {
+      const parsed = SearchPortfolioInputSchema.parse({});
+      expect(parsed.theme).toEqual(['all']);
+      expect(parsed.engagement).toEqual(['all']);
+    });
+
+    it('returns matches across multiple themes in one call (union semantics, deduped)', async () => {
+      // Pull two distinct themes deterministically from the facet list.
+      const facets = (await handleListPortfolioFacetsTool()).structuredContent as Record<
+        string,
+        unknown
+      >;
+      const themes = facets.themes as string[];
+      expect(themes.length).toBeGreaterThanOrEqual(2);
+      const [themeA, themeB] = themes;
+
+      const responseA = await handleSearchPortfolioTool(
+        SearchPortfolioInputSchema.parse({ theme: themeA })
+      );
+      const responseB = await handleSearchPortfolioTool(
+        SearchPortfolioInputSchema.parse({ theme: themeB })
+      );
+      const responseAB = await handleSearchPortfolioTool(
+        SearchPortfolioInputSchema.parse({ theme: [themeA, themeB] })
+      );
+
+      const idsA = new Set(
+        (responseA.structuredContent as { matches: Array<{ id: string }> }).matches.map((m) => m.id)
+      );
+      const idsB = new Set(
+        (responseB.structuredContent as { matches: Array<{ id: string }> }).matches.map((m) => m.id)
+      );
+      const idsAB = new Set(
+        (responseAB.structuredContent as { matches: Array<{ id: string }> }).matches.map(
+          (m) => m.id
+        )
+      );
+
+      // Batched call == union of the per-element calls (deduped).
+      const expectedUnion = new Set([...idsA, ...idsB]);
+      expect(idsAB).toEqual(expectedUnion);
+      // Sanity: batched count equals the union count, not the sum
+      // (would catch a forgotten dedup).
+      expect(idsAB.size).toBe(expectedUnion.size);
+    });
+
+    it('theme: ["all"] short-circuits to no-filter behavior matching the scalar default', async () => {
+      const responseDefault = await handleSearchPortfolioTool(SearchPortfolioInputSchema.parse({}));
+      const responseAllExplicit = await handleSearchPortfolioTool(
+        SearchPortfolioInputSchema.parse({ theme: ['all'] })
+      );
+      expect((responseAllExplicit.structuredContent as { totalMatched: number }).totalMatched).toBe(
+        (responseDefault.structuredContent as { totalMatched: number }).totalMatched
+      );
+    });
+
+    it('engagement: ["Buy-Side", "Sell-Side"] returns both sides in one call (ambiguity-friendly)', async () => {
+      const responseBoth = await handleSearchPortfolioTool(
+        SearchPortfolioInputSchema.parse({ engagement: ['Buy-Side', 'Sell-Side'] })
+      );
+      const matches = (
+        responseBoth.structuredContent as {
+          matches: Array<{ engagementCategory?: string }>;
+        }
+      ).matches;
+      const categories = new Set(matches.map((m) => m.engagementCategory));
+      expect(categories.has('Buy-Side')).toBe(true);
+      expect(categories.has('Sell-Side')).toBe(true);
+    });
+
+    it('deeplink emits first theme element only when multiple themes supplied (documented limitation)', async () => {
+      const responseMulti = await handleSearchPortfolioTool(
+        SearchPortfolioInputSchema.parse({ theme: ['Healthcare', 'Logistics'] })
+      );
+      const url = new URL((responseMulti.structuredContent as { deeplink: string }).deeplink);
+      // First element wins in the URL (no widening of portfolio-url encoding).
+      expect(url.searchParams.get('theme')).toBe('Healthcare');
+    });
+  });
+
   describe('capability-mirror invariant (Phase 4.A enforcement at the handler boundary)', () => {
     it('Zod strips a pre-Phase-4 `limit` field on parse; handler returns full result', async () => {
       // The schema's parse step drops unknown keys; the handler never

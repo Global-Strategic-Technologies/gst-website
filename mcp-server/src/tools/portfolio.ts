@@ -63,12 +63,20 @@ Returns the deduplicated themes, engagement categories, growth stages, and years
  * shared encoder in `src/utils/portfolio-url.ts`. The encoder is the
  * single source of truth for portfolio URL state — same code path the
  * website page (`PortfolioHeader.astro`) uses for hydration + sync.
+ *
+ * BL-064: `theme` and `engagement` are now arrays at the MCP boundary.
+ * The deeplink emits the FIRST element of each — the URL contract on the
+ * website is single-value, and multi-value batching is a server-side
+ * optimization for the agent, not a deeplink primitive. Widening the URL
+ * encoding to multi-value would require coordinated changes to
+ * `src/utils/portfolio-url.ts` parser + the website's hydration logic —
+ * out of scope for BL-064.
  */
 function buildPortfolioDeeplink(input: SearchPortfolioInput): string {
   const params = serializePortfolioUrl({
     search: input.search,
-    theme: input.theme,
-    engagement: input.engagement,
+    theme: input.theme[0],
+    engagement: input.engagement[0],
   });
   const queryString = params.toString();
   return queryString ? `${HUB_BASE}/ma-portfolio?${queryString}` : `${HUB_BASE}/ma-portfolio`;
@@ -80,13 +88,30 @@ function buildPortfolioDeeplink(input: SearchPortfolioInput): string {
  * Exported so integration tests can exercise the full wrapper pipeline
  * (input parsing + filter + deeplink emission) without going through the
  * MCP transport. The MCP registration below wraps this same handler.
+ *
+ * BL-064: array batching. The schema accepts `theme: string | string[]`
+ * and `engagement: string | string[]`; after Zod transform both are
+ * always `string[]`. The shared `filterProjects` utility (used by the
+ * website + portfolio-url) stays scalar — we narrow here by looping over
+ * each (theme, engagement) cartesian pair and unioning the results, dedup
+ * by project id. `['all']` short-circuits to the scalar `'all'` "no
+ * filter" sentinel matching the prior behavior bidirectionally.
  */
 export async function handleSearchPortfolioTool(input: SearchPortfolioInput) {
-  const matched = filterProjects(PROJECTS, {
-    search: input.search ?? '',
-    theme: input.theme,
-    engagement: input.engagement,
-  });
+  const themes = input.theme.includes('all') ? ['all'] : input.theme;
+  const engagements = input.engagement.includes('all') ? ['all'] : input.engagement;
+  const matchedById = new Map<string, Project>();
+  for (const t of themes) {
+    for (const e of engagements) {
+      const subset = filterProjects(PROJECTS, {
+        search: input.search ?? '',
+        theme: t,
+        engagement: e,
+      });
+      for (const project of subset) matchedById.set(project.id, project);
+    }
+  }
+  const matched = Array.from(matchedById.values());
   const deeplink = buildPortfolioDeeplink(input);
   const payload = {
     matches: matched,
