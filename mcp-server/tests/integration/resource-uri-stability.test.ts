@@ -50,11 +50,12 @@ const EXPECTED_RADAR_URIS: ReadonlyArray<string> = [
 ];
 
 /**
- * Regulation URIs are derived from the source data — there are 120 today;
+ * Regulation URIs are derived from the source data — there are 123 today
+ * (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719);
  * the test asserts both the count and that two specific high-profile URIs
  * are present (canaries that catch ID-format changes).
  */
-const EXPECTED_REGULATION_URI_COUNT = 120;
+const EXPECTED_REGULATION_URI_COUNT = 123;
 const REGULATION_URI_CANARIES: ReadonlyArray<string> = [
   'gst://regulations/eu/gdpr',
   'gst://regulations/us-ca/ccpa',

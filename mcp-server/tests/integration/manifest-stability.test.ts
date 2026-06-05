@@ -64,7 +64,16 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // impartial-audit refinement; BL-063 directive changes were
 // REVERTED — refiled as open BL-063 for compose_dossier_envelope
 // schema expansion since prose-only is the wrong enforcement lever).
-const EXPECTED_MANIFEST_HASH = '17104a4177b18745c853607d9f3943e5532af42567f63b6faa768f7f19e82427';
+// BL-057 rebaseline: 3 new regulation URIs added —
+// gst://regulations/us/nist-ai-rmf, gst://regulations/gb/ai-framework,
+// gst://regulations/cl/ley21719. (Canada AIDA dropped from the
+// authoring list after WebSearch verification confirmed Bill C-27
+// died on the Order Paper Jan 2025 and was not re-tabled after the
+// April 2025 snap election; authoring a non-existent law would
+// have surfaced a phantom framework to operators. NA AI-gov coverage
+// for Canadian targets continues via CA-QC-LAW25 which has AI
+// clauses.) Regulation count: 120 → 123.
+const EXPECTED_MANIFEST_HASH = '37c7d1b3780076803ee41e73e0ba3889e17487cb3dd879ab7c7038d602714930';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

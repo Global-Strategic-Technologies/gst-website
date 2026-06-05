@@ -426,6 +426,31 @@ export const REGULATIONS: ReadonlyArray<{ readonly file: string; readonly data: 
     },
   },
   {
+    file: 'CL-LEY21719.json',
+    data: {
+      id: 'cl-ley21719',
+      name: 'Chile Law 21.719 on the Protection of Personal Data (Ley 21.719)',
+      regions: ['CHL'],
+      effectiveDate: '2026-12-01',
+      summary:
+        "Chile's comprehensive replacement for the 1999 Law 19.628 regime (see cl-law19628 for the legacy law). Enacted in December 2024 with a 24-month vacatio legis, taking full effect on December 1, 2026. Closely aligned with the GDPR template: introduces a full data-subject-rights catalogue, breach notification, accountability principle, DPIAs for high-risk processing, restrictions on international data transfers, and creates a dedicated Personal Data Protection Agency (Agencia de Proteccion de Datos Personales) with administrative fining powers. A material new compliance surface for any business processing Chilean residents' personal data, including foreign businesses targeting the Chilean market.",
+      category: 'data-privacy',
+      scope:
+        'Applies to the processing of personal data of natural persons in Chile, including extraterritorially to controllers and processors outside Chile that offer goods or services to Chilean residents or monitor their behaviour in Chile. Covers both public and private sector data processing.',
+      keyRequirements: [
+        'Establish a lawful basis for processing (consent, contract, legal obligation, vital interests, legitimate interest balanced against data subject rights, public interest)',
+        'Honor data subject rights: access, rectification, deletion, portability, objection, and the right not to be subject to solely automated decisions with legal effects',
+        'Notify the new Agencia de Proteccion de Datos Personales of personal data breaches within statutory time limits',
+        'Conduct Data Protection Impact Assessments for high-risk processing (large-scale sensitive data, systematic monitoring, automated decision-making)',
+        'Appoint a Data Protection Officer where required (public bodies, large-scale sensitive data processing, systematic monitoring)',
+        'Restrict international data transfers to jurisdictions without an adequacy declaration unless safeguards (standard contractual clauses, binding corporate rules, explicit consent) are in place',
+        'Maintain processing records demonstrating accountability and respect specific rules for processing sensitive categories of data (health, biometric, genetic, political, religious, sexual life)',
+      ],
+      penalties:
+        'Administrative fines tiered by severity. Minor infringements: up to 5,000 UTM (approximately USD 350,000). Serious infringements: up to 10,000 UTM (approximately USD 700,000). Very serious infringements: up to 20,000 UTM (approximately USD 1.4 million) or 4% of annual global turnover, whichever is higher. The Agencia de Proteccion de Datos Personales has investigative and sanctioning powers, replacing the prior court-only enforcement model under Law 19.628.',
+    },
+  },
+  {
     file: 'CN-ALGO-REC.json',
     data: {
       id: 'cn-algo-rec',
@@ -909,6 +934,28 @@ export const REGULATIONS: ReadonlyArray<{ readonly file: string; readonly data: 
       ],
       penalties:
         'Up to EUR 10 million or 2% of total worldwide annual turnover for essential entities; up to EUR 7 million or 1.4% of turnover for important entities. Personal liability for senior management who fail to ensure compliance.',
+    },
+  },
+  {
+    file: 'GB-AI-FRAMEWORK.json',
+    data: {
+      id: 'gb-ai-framework',
+      name: 'UK Pro-Innovation Approach to AI Regulation (AI Regulation White Paper)',
+      regions: ['GBR'],
+      effectiveDate: '2024-02-06',
+      summary:
+        "The UK's regulator-led, non-statutory framework for AI governance, set out in the AI Regulation White Paper (March 2023) and the Government's published response (February 2024). Rather than enacting a horizontal AI law (the EU approach), the UK directs existing sector regulators (ICO, CMA, FCA, MHRA, Ofcom, HSE, EHRC) to apply five cross-sectoral principles within their existing remits. Each regulator publishes its own AI strategy; the Department for Science, Innovation and Technology (DSIT) maintains a central AI Safety Institute and a coordination function. Parliament has signaled openness to future statutory backing for the principles (notably for frontier models) but no horizontal AI statute is in force.",
+      category: 'ai-governance',
+      scope:
+        'Applies to any organization developing or deploying AI systems in the United Kingdom. Specific obligations flow from whichever sector regulator (ICO for data protection, CMA for competition, FCA for financial services, MHRA for medical devices, Ofcom for online safety, etc.) has jurisdiction over the deployment context.',
+      keyRequirements: [
+        'Safety, Security, and Robustness: AI systems must operate securely and robustly across their lifecycle, with appropriate risk management proportional to context',
+        'Appropriate Transparency and Explainability: organizations must provide stakeholders with sufficient information about AI systems to enable accountable use',
+        'Fairness: AI systems must not undermine legal rights, discriminate unfairly, or produce unfair commercial outcomes',
+        'Accountability and Governance: clear lines of accountability across the AI lifecycle, with effective oversight by the deploying organization',
+        'Contestability and Redress: affected parties must be able to challenge AI-driven decisions and seek redress where harm occurs',
+        "Engage with the relevant sector regulator's published AI guidance (ICO AI and data protection guidance, FCA AI in financial services framework, MHRA Software and AI as a Medical Device, etc.) as the operational compliance baseline",
+      ],
     },
   },
   {
@@ -2905,6 +2952,30 @@ export const REGULATIONS: ReadonlyArray<{ readonly file: string; readonly data: 
       ],
       penalties:
         'Enforced exclusively by the New Hampshire Attorney General under the state Consumer Protection Act. Civil penalties up to $10,000 per violation; no private right of action.',
+    },
+  },
+  {
+    file: 'US-NIST-AI-RMF.json',
+    data: {
+      id: 'us-nist-ai-rmf',
+      name: 'NIST AI Risk Management Framework 1.0 (NIST AI 100-1)',
+      regions: ['USA'],
+      effectiveDate: '2023-01-26',
+      summary:
+        'The de-facto US federal reference framework for trustworthy AI. Voluntary, non-regulatory guidance published by the National Institute of Standards and Technology under the National AI Initiative Act of 2020. Organized around four core functions (Govern, Map, Measure, Manage) applied iteratively across the AI lifecycle. Complemented by the Generative AI Profile (NIST AI 600-1, published July 2024) and a companion Playbook with actionable practices. Widely cited in US federal procurement, sector-specific guidance, and state AI laws (notably the Colorado AI Act) as the baseline for what constitutes reasonable AI risk management.',
+      category: 'ai-governance',
+      scope:
+        'Voluntary framework applicable to any organization designing, developing, deploying, or evaluating AI systems within the United States or for US users. Especially load-bearing for US federal agencies, contractors, and regulated industries (healthcare, finance, employment) where downstream rules increasingly reference NIST AI RMF as the baseline standard of care.',
+      keyRequirements: [
+        'GOVERN: establish AI risk management policies, accountability structures, and a culture of risk-awareness across the AI lifecycle',
+        'MAP: contextualize each AI system — intended use, stakeholders, jurisdictional scope, third-party dependencies, and the risks specific to its deployment context',
+        'MEASURE: quantitatively and qualitatively assess identified risks using rigorous methods, with documented metrics for accuracy, robustness, fairness, transparency, security, and privacy',
+        'MANAGE: prioritize, treat, and monitor risks — including risk acceptance, mitigation, or system retirement decisions — with documented response plans for adverse events',
+        'Apply the Generative AI Profile (NIST AI 600-1) for foundation models and generative systems, addressing risks specific to confabulation, dangerous content, data privacy leakage, and information integrity',
+        'Maintain documentation traceable across the four functions to support internal audit and external accountability',
+      ],
+      penalties:
+        'Voluntary framework with no statutory penalties. However, adoption is increasingly load-bearing under other laws: failure to implement NIST AI RMF practices can be cited as evidence of negligence under tort law, can disqualify federal contractors under emerging procurement rules, and is referenced as the compliance baseline in the Colorado AI Act and similar state-level statutes.',
     },
   },
   {
