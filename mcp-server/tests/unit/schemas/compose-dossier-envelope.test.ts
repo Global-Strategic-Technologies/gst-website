@@ -56,6 +56,7 @@ function baseInput(): ComposeDossierEnvelopeInput {
     gatesPassed: ['generate_diligence_agenda', 'compute_techpar'],
     gatesElided: [{ tool: 'search_radar', reason: 'credentials not bound', irlSection: '01' }],
     conditionalTriggersFired: ['EU_AI_ACT'],
+    defaultFiredFrameworks: [],
     forceToolsApplied: [],
     claims: [
       {
