@@ -144,12 +144,23 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // collision between BL-058's broad name and the directive's narrow
 // conditional-trigger taxonomy (Option A chosen; Option B rejected as
 // breaking change to BL-058 consumers).
+// Rebaselined for BL-059 prompt v0.9.0 → v0.10.0: Rule 0 tier-discipline
+// universal rule added to Step 1b (generate_diligence_agenda coaching) +
+// Step 1a worked example bumps operatingModel from tier-2 to tier-3 +
+// value to "unknown" per impartial-audit refinement (illustrates the
+// schema-enforced value=unknown ⇒ tier=3 coupling that drove ~2 retries
+// per call in the 2026-06-04 retest). BL-063 directive changes that
+// were initially in this branch were REVERTED — server-side enforcement
+// is the right lever per audit; refiled as open BL-063 for
+// compose_dossier_envelope schema expansion. As a result, only the 3
+// one-shot body hashes drift (Step 1a/1b live in buildFullBody);
+// interactive and extract-only body hashes are unchanged.
 const EXPECTED_HASH_INTERACTIVE =
   '4d11bcf9e79b2ba6395247e8d3e83f7d25c63a38497458be010e527598f52b95';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '6d57788dc5d78ab5e1a2dd8b3a2c073ff0183f42af3c283ad39d3e7469f1d57a';
+  'efef0b73f178f96d94044cda07dd69b0314939c00450a95315ab73534412e682';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '086fa5904057e8141ec76490e99a7c4f86d5c76f16138aaf9f53a6a18a141ad0';
+  '43d47255e049237e515725a38b08d5180786956cc826404915ca82b6ebea38c7';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   '5089e787f9e6ce9f074877b311d21309061b8709356bbd5ae365fca7813b3a1f';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
@@ -163,7 +174,7 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '32edaf1013e13113ad237248892616d286170dc58a049b2142992ee12d8d28bd';
+  '3fe75a8be8ab7a94d175f0f65d950241c9c28e13c613dd790d842765e48c7603';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
   '308a958ac3b0935ebedca3ff97d099766827135022312358da124171a5dfe480';
 

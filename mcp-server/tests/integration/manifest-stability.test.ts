@@ -58,7 +58,13 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // VERIFY-block additions per audit-corrected grouping — toolErrors
 // top-level block, compactionEvents int|null three-state field,
 // defaultFiredFrameworks additive list).
-const EXPECTED_MANIFEST_HASH = 'ee8e72fd9a0f03881dd0bc50906fd42a36887cb943f072062f2d6f3cbd371527';
+// BL-059 rebaseline: prompt v0.9.0 → v0.10.0 (Rule 0 tier-discipline
+// universal rule added to Step 1b + Step 1a worked example bumps
+// operatingModel from tier-2 to tier-3 with value=unknown per
+// impartial-audit refinement; BL-063 directive changes were
+// REVERTED — refiled as open BL-063 for compose_dossier_envelope
+// schema expansion since prose-only is the wrong enforcement lever).
+const EXPECTED_MANIFEST_HASH = '17104a4177b18745c853607d9f3943e5532af42567f63b6faa768f7f19e82427';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-ee8e72fd9a0f03881dd0bc50906fd42a36887cb943f072062f2d6f3cbd371527
+17104a4177b18745c853607d9f3943e5532af42567f63b6faa768f7f19e82427
 ```
 
 Computed over (sorted):
@@ -20,12 +20,34 @@ Computed over (sorted):
 - 120 Regulation URIs.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.9.0` (BL-060+061+062: three further VERIFY-block additions — `toolErrors` top-level block partitioned from `precheck.errorsEncountered` with arithmetic ground-truth check, `compactionEvents` int|null three-state field with epistemic-honesty correction, `defaultFiredFrameworks` additive list resolving the BL-058 `considered:` vocabulary collision; audit-corrected designs from independent code-reviewer agents).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.10.0` (BL-059: Rule 0 tier-discipline universal coaching paragraph added to `generate_diligence_agenda` Step 1b + Step 1a worked example bumps `operatingModel` from tier-2 to tier-3 with `value: "unknown"` per impartial-audit refinement; BL-063 directive changes initially in this PR were REVERTED — server-side enforcement in `compose_dossier_envelope` is the right lever per audit, refiled as open BL).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.19.0 — 2026-06-04 — BL-059 — Rule 0 tier-discipline coaching for `generate_diligence_agenda` (audit-corrected scope)
+
+**Theme**: the 2026-06-04 post-BL-058/060/061/062 retest produced the diagnostic data BL-059 was waiting on. `toolErrors` carried two `arg-shape-rejection` entries for `generate_diligence_agenda` (3 attempted / 1 succeeded), with concrete recovery actions naming the failure shape: `rebucketed-revenue-to-unknown-datasens-to-low-and-downgraded-tier1-derivations-to-tier2` and `set-revenueRange-tier-to-3-for-unknown-sentinel`. The dominant retry-tax cause is tier/value coupling — the model didn't know upfront that `value: "unknown"` REQUIRES `tier: "3"` (the schema at `diligence-audit.ts:410-417` enforces this and rejects clearly).
+
+**Surface impact** (minor — additive directive prose + one worked-example row change; no tool/schema/runtime change):
+
+- **Rule 0 (`generate_diligence_agenda` Step 1b)**: new universal rule documenting the tier/value coupling across all 13 dimensions. Pairs with the existing server-side Zod enforcement — the schema is the safety net, the coaching shortens the discovery loop. Audit verdict: EFFECTIVE.
+- **Step 1a worked example refinement**: `operatingModel` changed from `tier: "2"` + value `"centralized-eng"` to `tier: "3"` + value `"unknown"` per impartial-audit refinement (the existing example showed only tier-1/tier-2 rows; adding the tier-3 case demonstrates the coupling that drove ~2 retries per call).
+
+**Audit-corrected scope (per impartial code-reviewer agent, 2026-06-04)**:
+
+- **BL-063 directive changes (partition + scope + Hub-backing rules for `defaultFiredFrameworks`) initially in this PR were REVERTED**. Audit verdict: WEAK as prose-only. The 2026-06-04 retest produced implicit-rule violations on all three axes without any directive prose; explicit directive prose is unlikely to change behavior because the model already had similar implicit signals in the surrounding directive. The correct lever is server-side schema enforcement in `compose_dossier_envelope` (partition check via set intersection, scope check via certification allowlist, Hub-backing auto-degrade via `gapsToAppend` array). Refiled as open BL-063 for the schema-expansion implementation; this BL-058-style forcing function is the right architectural pattern, not prose.
+- **BL-059 forward-coverage paragraphs** (for `compute_techpar`, `assess_infrastructure_cost_governance`, `validate_irl_provenance`, `compose_dossier_envelope` hash-bind) **deferred** to future iterations once retest data surfaces concrete failure shapes for those tools. Audit verdict: prose coaching for unobserved retry patterns is speculative; ship coaching against evidence, not hypothesis.
+
+**Acceptance criterion** (audit revision — averages over ≥3 live exercises): median retry rate ≤ 0.2 per tool; zero `arg-shape-rejection` retries on `generate_diligence_agenda` driven by tier/value coupling violations; any `compose_dossier_envelope` retry must categorize as `hash-bind-retry` (legitimate structural retry path), not `arg-shape-rejection`.
+
+**Versioning**: `mcp-server` 0.18.0 → 0.19.0 (additive directive prose, no behavior change for any tool); `gst_irl_ingestion` prompt 0.9.0 → 0.10.0. Manifest hash + 3 of 7 body hashes re-baselined (interactive + 2 extract-only paths unchanged because Step 1a/1b lives only in `buildFullBody`).
+
+**Filed under**: BL-059 (initial scope shipped; full acceptance pending operator-driven ≥3-run measurement). BL-063 refiled as open with server-side enforcement scope.
 
 ---
 

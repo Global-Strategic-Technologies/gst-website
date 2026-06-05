@@ -3543,9 +3543,11 @@ Plus `gatesElided` upgraded to `[{tool, rationale}]` structured form, and `runSc
 
 ---
 
-### BL-059: `gst_irl_ingestion` — Tool-Arg Coaching to Eliminate Schema-Retry Tax
+### BL-059: `gst_irl_ingestion` — Tool-Arg Coaching to Eliminate Schema-Retry Tax ✅ CLOSED 2026-06-04 (initial scope; acceptance over ≥3 live exercises pending)
 
 **Priority**: High. The 2026-06-04 post-BL-058 retest surfaced this as the largest concrete inefficiency driver in the workflow — and likely the proximate cause of the auto-compaction event observed mid-run.
+
+**Initial implementation shipped 2026-06-04**: Rule 0 (tier-discipline universal rule — `value: "unknown"` REQUIRES `tier: "3"` bidirectionally) added to Step 1b coaching after audit confirmed BL-059's coaching pairs cleanly with existing Zod enforcement at `diligence-audit.ts:410-417` (server-side schema is the safety net; coaching shortens discovery loop). One tier-3 worked-example row added to Step 1a per audit refinement. Forward-coverage paragraphs for `compute_techpar`, `assess_infrastructure_cost_governance`, `validate_irl_provenance`, and `compose_dossier_envelope` hash-bind workflow deferred to future iterations once retest data surfaces concrete failure shapes for those tools (audit verdict: prose coaching for unobserved retry patterns is speculative).
 
 **Hard prerequisite — BL-060 (per audit revision 2026-06-04)**: BL-060 (top-level `toolErrors` block) MUST ship before BL-059 implementation begins. Without it, the investigation works from `attempted - succeeded > 0` count deltas with no failure-class labels — a guessing game that risks coaching the wrong thing. With BL-060, the engineer reads `errorClass` per failed attempt directly from the artifact. Originally drafted as "ship together if practical"; corrected after audit.
 
@@ -3735,4 +3737,73 @@ Operator-facing semantics issue, not a workflow correctness issue confirmed by a
 
 ---
 
-_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority) | BL-051 + BL-052 + BL-053 filed: June 4, 2026 (post-BL-049 v12 live-exercise empirical follow-ups — citation iteration discipline, verify block schema clarity, multi-bullet citation array form) | BL-049 partial-reverted at v0.13.1 + BL-054 filed: June 4, 2026 then retired same day (xlsx-canonicalized hash-bind authority — blueprint preserved in [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); revisit via design doc if external infrastructure ships, not via backlog ping) | BL-056 filed + closed: June 4, 2026 (precheckIterations field added to BL-045-VERIFY block — BL-051 compliance now observable from the artifact alone) | BL-057 filed: June 4, 2026 (regulatory-map coverage gap sweep — AI-governance canon NIST AI RMF + Canada AIDA + Colorado AI Act + NYC AEDT + Illinois HB 3773 + CA + UK; Chile Ley 21.719 data-protection) | BL-058 filed + closed: June 4, 2026 (VERIFY block enriched with filledIrl + precheck + toolCallCounts + conditionalTriggers + response field families — engineering triage now one-paste, no follow-up Q&A) | BL-059 + BL-060 + BL-061 + BL-062 filed + revised: June 4, 2026 (post-BL-058 retest empirical follow-ups — tool-arg coaching to eliminate retry tax, top-level toolErrors block, compactionEvents field, conditionalTriggers default-vs-conditional disambiguation; revisions same-day after independent agent audits — BL-060 elevated to hard prerequisite of BL-059, compose_dossier_envelope hash-bind ergonomics moved in-scope, BL-061 epistemic claim corrected with null state, BL-062 Option A picked explicitly, BL-060+061+062 grouped for one rebaseline cycle) | BL-060 + BL-061 + BL-062 closed: June 4, 2026 (three VERIFY-block field additions shipped together at prompt 0.9.0 / mcp-server 0.18.0 — BL-059 unblocked, awaiting next live exercise for diagnostic data)_
+### BL-063: `compose_dossier_envelope` — Server-Side Enforcement for `defaultFiredFrameworks` (Partition + Scope + Hub-Backing)
+
+**Priority**: Medium. Filed + audit-corrected 2026-06-04. Implementation needs server-side schema enforcement, not directive prose.
+
+#### Problem
+
+The 2026-06-04 post-BL-058/060/061/062 retest's VERIFY block reported:
+
+```yaml
+conditionalTriggers:
+  fired: [EU_AI_ACT]
+  defaultFiredFrameworks:
+    [
+      GDPR,
+      UK GDPR,
+      PIPEDA,
+      Australia Privacy Act,
+      POPIA,
+      SOC 2,
+      NIST AI Risk Management Framework,
+      EU AI Act,
+      Canada AIDA,
+    ]
+```
+
+Three concrete violations:
+
+1. **Partition violation**: EU AI Act appears in BOTH `fired:` AND `defaultFiredFrameworks`. BL-062's rule prose said "no framework appears in both" — the model violated the rule because BL-062 didn't specify what to do when a framework legitimately fires via BOTH paths.
+
+2. **Framework-scope violation**: SOC 2 appears in `defaultFiredFrameworks`. SOC 2 is a security certification (attestation of compliance state), not a regulatory framework. The field's scope was undefined in BL-062.
+
+3. **Unbacked entries (BL-057 surfacing operationally)**: NIST AI Risk Management Framework + Canada AIDA appear in `defaultFiredFrameworks` — but per BL-057, neither is in the Hub regulatory map. The model can't have backed these via `search_regulations` matches.
+
+#### Audit-corrected approach (impartial code-reviewer agent, 2026-06-04)
+
+Original draft proposed directive-prose-only fix (three rules added to BL-045-VERIFY block rule prose). Audit verdict: **WEAK**. Quote: "The 2026-06-04 retest produced an implicit-rule violation on all three axes despite the surrounding VERIFY block being lengthy and explicit. The base rate for 'model ignores prose rule N+1 in a 50-line directive' is high, and the failure cost is silent — operators read the YAML, the rules are not enforced, and the dossier ships with a fabricated framework list. This is structurally identical to the pre-BL-045 MTTR fabrication pattern the BL-058 design doc explicitly identified as needing schema enforcement, not prose."
+
+Corrected approach: **server-side schema enforcement in `compose_dossier_envelope`**, matching the BL-058 forcing-function pattern.
+
+1. **Add `defaultFiredFrameworks: z.array(z.string()).optional()`** to the input schema next to `conditionalTriggersFired`.
+
+2. **Partition check (zero-cost, fully decidable)**: reject if `intersection(conditionalTriggersFired, defaultFiredFrameworks).length > 0` with `ruleId: BL-063-PARTITION-VIOLATION`.
+
+3. **Scope check (string allowlist)**: reject submissions containing known certifications (SOC 2, ISO 27001, PCI-DSS, SOC 1, FedRAMP, HITRUST, etc.) with `ruleId: BL-063-CERTIFICATION-NOT-REGULATION`.
+
+4. **Hub-backing (auto-degrade, not reject)**: for each entry without a Hub `search_regulations` match, auto-append to a returned `gapsToAppend: ["regulatory-coverage-gap: <name>"]` array that the model must merge into (J). This converts an undetected fabrication into a forcing-function audit artifact — the BL-058 pattern.
+
+Keep the BL-062 directive prose as model-facing documentation of a rule that is now structurally enforced; do NOT ship directive-prose-only as the enforcement mechanism.
+
+#### Surface change
+
+- `compose_dossier_envelope` schema expansion: `defaultFiredFrameworks` added.
+- `compose_dossier_envelope` handler: partition + scope + Hub-backing checks; BL-058-pattern auto-append.
+- Prompt body: small revision to BL-062's rule prose to reference the now-structural enforcement (model knows the tool will reject/auto-append, not just operator).
+- Hub map lookup integration in the tool handler (the `gst://regulations/*` URI set).
+- Test surface: ~2 unit tests + 1 integration test covering the EU_AI_ACT-in-both case the 2026-06-04 retest produced.
+
+#### Acceptance
+
+- The next live exercise's submission of an overlapping framework set is REJECTED by `compose_dossier_envelope` with `BL-063-PARTITION-VIOLATION`.
+- The next live exercise's submission of SOC 2 in `defaultFiredFrameworks` is REJECTED with `BL-063-CERTIFICATION-NOT-REGULATION`.
+- Unbacked entries (NIST AI RMF, Canada AIDA — per BL-057) appear as `regulatory-coverage-gap:` in (J), NOT in `defaultFiredFrameworks` of the dossier's meta fence.
+
+#### Why "medium" not "high"
+
+The bug is operator-visible (block carries the fabricated list) but not partner-visible (the dossier's main body draws from `search_regulations` matches, so the partner sees only Hub-backed framework descriptions). Land in a session that has the bandwidth for tool-handler work and the Hub-map integration; not blocking BL-059 (which ships with the prose-only BL-062 rule unchanged).
+
+---
+
+_Created: April 18, 2026 | Last pruned: April 24, 2026 | BL-039 delivered: May 13, 2026 | BL-040 filed: May 13, 2026 | BL-041 filed: May 27, 2026 | BL-041 closed: May 30, 2026 | BL-047 filed: May 30, 2026 | BL-048 extracted from BL-037 Phase D: May 31, 2026 | BL-049 filed: June 3, 2026 (xlsx canonicalization for hash-bind authority) | BL-051 + BL-052 + BL-053 filed: June 4, 2026 (post-BL-049 v12 live-exercise empirical follow-ups — citation iteration discipline, verify block schema clarity, multi-bullet citation array form) | BL-049 partial-reverted at v0.13.1 + BL-054 filed: June 4, 2026 then retired same day (xlsx-canonicalized hash-bind authority — blueprint preserved in [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); revisit via design doc if external infrastructure ships, not via backlog ping) | BL-056 filed + closed: June 4, 2026 (precheckIterations field added to BL-045-VERIFY block — BL-051 compliance now observable from the artifact alone) | BL-057 filed: June 4, 2026 (regulatory-map coverage gap sweep — AI-governance canon NIST AI RMF + Canada AIDA + Colorado AI Act + NYC AEDT + Illinois HB 3773 + CA + UK; Chile Ley 21.719 data-protection) | BL-058 filed + closed: June 4, 2026 (VERIFY block enriched with filledIrl + precheck + toolCallCounts + conditionalTriggers + response field families — engineering triage now one-paste, no follow-up Q&A) | BL-059 + BL-060 + BL-061 + BL-062 filed + revised: June 4, 2026 (post-BL-058 retest empirical follow-ups — tool-arg coaching to eliminate retry tax, top-level toolErrors block, compactionEvents field, conditionalTriggers default-vs-conditional disambiguation; revisions same-day after independent agent audits — BL-060 elevated to hard prerequisite of BL-059, compose_dossier_envelope hash-bind ergonomics moved in-scope, BL-061 epistemic claim corrected with null state, BL-062 Option A picked explicitly, BL-060+061+062 grouped for one rebaseline cycle) | BL-060 + BL-061 + BL-062 closed: June 4, 2026 (three VERIFY-block field additions shipped together at prompt 0.9.0 / mcp-server 0.18.0 — BL-059 unblocked, awaiting next live exercise for diagnostic data) | BL-059 initial scope closed: June 4, 2026 (Rule 0 tier-discipline universal coaching + Step 1a tier-3 worked-example refinement shipped at prompt 0.10.0 / mcp-server 0.19.0; full acceptance pending operator-driven ≥3-run retry-rate measurement); BL-063 refiled as open: June 4, 2026 (post-impartial-audit — prose-only directive was WEAK; refiled scope is server-side enforcement in compose_dossier_envelope with partition + scope + Hub-backing checks, matching the BL-058 forcing-function pattern)_
