@@ -128,6 +128,17 @@ export type RadarCategoryValue = z.infer<typeof RadarCategoryEnum>;
  * under the capability-mirror invariant — see
  * `mcp-server/src/docs/portfolio/CONTRACT.md` for the rationale.
  */
+// BL-064: array-batching union for theme + engagement. Mirrors the
+// `StringOrStringArray` pattern in `src/schemas/regulatory-map.ts` so the
+// model can pass multiple values in one call instead of fanning out N
+// sequential calls. The handler narrows internally (per-element loop +
+// dedup) before calling the shared scalar `filterProjects` utility so the
+// website's portfolio page and `src/utils/portfolio-url.ts` are not
+// affected by the widened MCP boundary.
+const StringOrStringArray = z
+  .union([z.string().min(1), z.array(z.string().min(1)).min(1)])
+  .transform((v) => (Array.isArray(v) ? v : [v]));
+
 export const SearchPortfolioInputSchema = z.object({
   search: z
     .string()
@@ -135,18 +146,12 @@ export const SearchPortfolioInputSchema = z.object({
     .describe(
       'Free-text query, case-insensitive. Matches against codeName, industry, summary, and the technologies array. Mirrors the website search input on /ma-portfolio. Omit or pass empty string for no search filter.'
     ),
-  theme: z
-    .string()
-    .default('all')
-    .describe(
-      'Theme filter; pass "all" (the default) to skip. One of the values listed under `themes` in `list_portfolio_facets`. Mirrors the website Theme chip row.'
-    ),
-  engagement: z
-    .string()
-    .default('all')
-    .describe(
-      'Engagement-category filter; pass "all" (the default) to skip. One of the values listed under `engagementCategories` in `list_portfolio_facets` (typically "Buy-Side" or "Sell-Side"). Mirrors the website Engagement chip row. **Natural-language mapping**: "GST advised on selling X" / "X was sold to Y" / "X exited to Y" → `Sell-Side`; "GST did diligence on X for an acquirer" / "X was acquired by Y" / "we bought X" / "we are evaluating acquiring X" → `Buy-Side`. When the user\'s phrasing is genuinely ambiguous about which side GST was on (e.g. "GST worked on the X transaction"), run TWO separate searches with `Buy-Side` and `Sell-Side` and surface the split in synthesis — do NOT default to one side.'
-    ),
+  theme: StringOrStringArray.default(['all']).describe(
+    'Theme filter. Accepts a single string OR an array of strings (BL-064 batching). Pass "all" (the default) — or omit — to skip filtering. Each value must be one of the strings listed under `themes` in `list_portfolio_facets`. Mirrors the website Theme chip row. **Batched usage**: when IRL Section 01 + the target profile suggest multiple themes, pass them as an array — `theme: ["Healthcare", "Life Sciences"]` returns matches across both in a single call. Do NOT call `search_portfolio` once per theme.'
+  ),
+  engagement: StringOrStringArray.default(['all']).describe(
+    'Engagement-category filter. Accepts a single string OR an array of strings (BL-064 batching). Pass "all" (the default) — or omit — to skip filtering. Each value must be one of the strings listed under `engagementCategories` in `list_portfolio_facets` (typically "Buy-Side" or "Sell-Side"). Mirrors the website Engagement chip row. **Natural-language mapping**: "GST advised on selling X" / "X was sold to Y" / "X exited to Y" → `Sell-Side`; "GST did diligence on X for an acquirer" / "X was acquired by Y" / "we bought X" / "we are evaluating acquiring X" → `Buy-Side`. When the user\'s phrasing is genuinely ambiguous about which side GST was on (e.g. "GST worked on the X transaction"), pass BOTH in a single call as `engagement: ["Buy-Side", "Sell-Side"]` and surface the split in synthesis — do NOT default to one side and do NOT run two separate calls.'
+  ),
 });
 
 export type SearchPortfolioInput = z.infer<typeof SearchPortfolioInputSchema>;

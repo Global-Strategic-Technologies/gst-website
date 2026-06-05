@@ -54,16 +54,16 @@ describe('Portfolio dataset (bundle integrity)', () => {
 });
 
 describe('SearchPortfolioInputSchema', () => {
-  it('applies defaults when only `search` is provided', () => {
+  it('applies defaults when only `search` is provided (BL-064: defaults are arrays ["all"])', () => {
     const parsed = SearchPortfolioInputSchema.parse({ search: 'CRM' });
-    expect(parsed.theme).toBe('all');
-    expect(parsed.engagement).toBe('all');
+    expect(parsed.theme).toEqual(['all']);
+    expect(parsed.engagement).toEqual(['all']);
   });
 
-  it('accepts an empty input object via defaults', () => {
+  it('accepts an empty input object via defaults (BL-064: defaults are arrays ["all"])', () => {
     const parsed = SearchPortfolioInputSchema.parse({});
-    expect(parsed.theme).toBe('all');
-    expect(parsed.engagement).toBe('all');
+    expect(parsed.theme).toEqual(['all']);
+    expect(parsed.engagement).toEqual(['all']);
   });
 
   it('strips unknown keys (capability-mirror invariant — `limit` removed in Phase 4.A)', () => {

@@ -163,12 +163,21 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // the tool will reject/auto-append). The prose change lives in both
 // verify-block sites (one-shot directive + interactive Step 5) so
 // ALL 7 body hashes drift this rebaseline.
+// Rebaselined for BL-064 prompt v0.11.0 → v0.12.0: batch-call discipline
+// for search_regulations + search_portfolio. Step 2 + Step 3 directives
+// rewritten to instruct ONE call with array filters (`theme: [...]`,
+// `engagement: [...]`, `jurisdiction: [...]`, `category: [...]`) instead
+// of N sequential per-arg calls. Interactive body Step 2b + Step 2c
+// also rewritten. Extract-only body bullets at lines 926-927 changed
+// but extract-only build path doesn't embed those bullets (verified by
+// hash test — only the 4 full-body / interactive scenarios drift; the 3
+// extract-only scenarios stay stable).
 const EXPECTED_HASH_INTERACTIVE =
-  '8aca6e7008db25756afa1baf42059f38d9ff8032b7154b71365833f84c8c066d';
+  'bf7a70d38142bc60b1bdcb10eb0d5f689d8a56d1bf6d2858504e86def0ce863f';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '1c8649b17dbb00f4cf1252a19fe9abd1c3431ceee759060ddbecababa9373b07';
+  'c84440cd421ee6049b6d713d5c3778ab79bd0b0682fa2390a827fadf7c45908f';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '5844b0f5f918f44da49a836033217b64af47df46b2d0dd5af39dedf7b8773763';
+  '8f126e4dc193bbc0f1425a454f9e2897563cd9986ac997223989e98695feea89';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   'fdcbe2d2d4e42d9b7ccb8fde58ea9ff8f2d96c9bc8cd92812041a52e4a6241a9';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
@@ -182,7 +191,7 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '55dec8bce4e93b6e01e529e57c5cc76e875601d78e96a2e347520146f387a324';
+  '65d157e51c09cf3ac90cdb76a4e9dc749818e7c70193aa9a00192798a27a744c';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
   'c064e93e3a6545c96ed2ac4a3fb1f47253b3b98a445f54a184777f0273ba3354';
 
