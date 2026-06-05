@@ -29,6 +29,34 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.25.0 — 2026-06-05 — BL-068 — forcing-function redesign (prepare_irl_body preflight + map-absent server validation + schema description enrichment)
+
+**Theme**: the original BL-068 proposal (prompt-only coaching) was BLOCKED in audit as repeating the BL-059 anti-pattern (prompt-only Rule 0 directive already failed empirically). The redesign ships two clean forcing-function mechanisms — a `prepare_irl_body` preflight tool to eliminate the BL-049 hash-bind retry, and server-side validation rejecting model-supplied `map-absent:` claims that point at Hub-backed frameworks — plus defense-in-depth Zod `.describe()` enrichment on the audit tier/citation fields. Rule 0 + Tier-1 first-emission discipline is **explicitly not addressed** in this PR; rationale documented inline at `runAuditRefinements` (reordering checks is a no-op for retry budget because BL-066's existing single-batch rejection already consolidates everything).
+
+**Surface impact** (server-internal — no manifest hash change, no prompt change, no body hash change):
+
+- **NEW: `prepare_irl_body` tool** — single-purpose preflight. Input: `{ filledIrl: string }` (≥200 chars). Output: `{ irlBodyHash: string, byteLength: number }`. Reuses `computeIrlBodyHash` from `compose-dossier-envelope.ts:59` — single source of truth for sha256+slice(0,16). Tool description directs the model to call this FIRST before `compose_dossier_envelope`. **Framing**: this is retry-elimination ergonomics on top of the existing `IrlBodyHashMismatchError` forcing function, NOT a new forcing function. Compliant models drop the hash-bind retry; non-compliant clients still hit the existing rejection (now with a `Fix:` line steering them to the preflight).
+- **`IrlBodyHashMismatchError` rejection text enriched** — appended `Fix: call \`prepare_irl_body\`...` line so the rejection itself directs the model to the new tool.
+- **NEW: `Bl068MapAbsentFalsePositiveError`** in `compose_dossier_envelope` — rejects calls when any model-supplied `gaps[*].category === 'map-absent'` entry names a framework the Hub registry covers (per `isHubBacked` substring matching). Rejection text names the matched Hub framework so the model can correct. The 2026-06-05 retest produced 4 model-supplied `map-absent:` claims with 2 confirmed false positives (NIST AI RMF + Australia Privacy Act, both in the Hub registry). Documented known false-negative: UK GDPR ↔ UK Data Protection Act 2018 equivalence is NOT caught (substring rule doesn't reach through); covered by future regulatory-map alias work.
+- **Zod `.describe()` enriched** on `dimensionAuditBaseSchema.tier` and `.citation` (`mcp-server/src/schemas/diligence-audit.ts`). Field descriptions surface in `tools/list` per-field JSON Schema, adjacent to where the model binds the value — a third intervention surface distinct from prompt body (BL-059 anti-pattern) and tool description. Defense-in-depth coaching, NOT a forcing function.
+- **`runAuditRefinements` JSDoc** — added a BL-068 future-contributor guard explaining that reordering checks (e.g., to run Rule 0 + Tier-1 first as a "structural pre-check") is a no-op for retry budget because the existing single-batch rejection already consolidates via `formatAuditIssues` + the BL-066 Rule-0 batch summary. The only first-emission improvement available is a separate preflight validator tool (reserved as BL-069).
+
+**Manifest hash unchanged**: `5bee38cc935fa3a1b987999ed9d467f250b1dc4eeeb3b1b5555bb5a3205adbd9`. The plan initially projected a rebaseline (tool count 15 → 16), but the manifest hash is computed over **URIs + prompt name@version tuples only** (see `tests/integration/manifest-stability.test.ts:88-99`), NOT tool names. Adding a tool surface is a semver-as-contract change reflected in the version bump, but does not invalidate the manifest hash.
+
+**Acceptance** (next live exercise on the same IRL):
+
+- `compose_dossier_envelope: { attempted: 1, succeeded: 1 }` for compliant models (preflight eliminates hash-bind retry).
+- New tool surface: `prepare_irl_body: { attempted: 1, succeeded: 1 }` appears in `toolCallCounts`.
+- Gap list: zero false-positive `map-absent:` claims for NIST AI RMF and AU Privacy Act (UK GDPR remains the documented known gap).
+- `generate_diligence_agenda: 2/1` remains the structural floor.
+
+**Escalation triggers**:
+
+- `compose_dossier_envelope` 3+/1 across 2 consecutive post-BL-068 exercises → BL-070 (server-derived `irlBodyHash`).
+- `generate_diligence_agenda` 2/1 recurring across 3+ exercises with operator willingness to spend tool-call headroom → BL-069 (`validate_diligence_audit` preflight tool).
+
+---
+
 ## 0.24.0 — 2026-06-05 — BL-066 — restore JSON Schema introspection + Rule-0 consolidated batch summary
 
 **Theme**: BL-065 (v0.23.0) shipped server-side rejection-message enrichment for `generate_diligence_agenda` and traded `inputSchema` from `AuditedUserInputsSchema` to a permissive `z.object({}).passthrough()` so the handler could uniformly frame all rejections through `formatAuditIssues`. The 2026-06-05 post-deploy retest produced a **regression worse than the baseline it tried to fix**: `generate_diligence_agenda: 3/0` (zero successes) vs. the pre-BL-065 `5/1`. Root cause: the claude.ai MCP bridge type-coerces nested values (`_audit` object, `geographies` array) against the published per-field JSON Schema; with no per-field schema published, the bridge JSON-stringified them on the wire and the model could never recover the structural shape across three retries.

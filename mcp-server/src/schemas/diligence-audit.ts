@@ -141,10 +141,13 @@ const citationSchema = z
 
 const dimensionAuditBaseSchema = z.object({
   tier: tierEnum.describe(
-    'Tier 1 = IRL bullet states the enum value verbatim. Tier 2 = direct one-step derivation from a specific IRL bullet. Tier 3 = correlation/vibes; the value MUST be "unknown" when tier is 3.'
+    'Tier 1: the IRL bullet states the enum value VERBATIM — the citation excerpt (post-em-dash) MUST contain the enum value as a whole-token literal (case-insensitive, hyphens-allowed inside the token, whitespace/punctuation on both sides). Example: enum value "productized-platform" requires the excerpt to contain that exact hyphenated token. ' +
+      'Tier 2: one-step derivation from a specific IRL bullet (e.g., "B2B SaaS multi-year subscription" → "productized-platform"). Use Tier 2 when the citation supports the value but does not contain it as a literal token. ' +
+      'Tier 3: correlation / vibes / partner-supplied form input. ' +
+      'Rule 0 (tier/value coupling, BL-045 + BL-059): when the dimension value is "unknown", tier MUST be "3"; conversely, tier "3" is the only valid choice for "unknown". The rule applies bidirectionally across all 13 dimensions.'
   ),
   citation: citationSchema.describe(
-    'IRL provenance citation in the form "Section NN — <excerpt>".'
+    'IRL provenance citation in the form "Section NN — <substantial excerpt of at least 20 characters>". The post-em-dash excerpt is what Rule 10 (TIER-1-LITERAL-MISMATCH) checks against — for tier="1" claims, the excerpt MUST contain the enum value as a literal token (see `tier` description for the substring rule). For partner-supplied (non-IRL) callers, use "Section -- — partner-supplied form input — <description>".'
   ),
 });
 
@@ -274,6 +277,15 @@ export interface AuditRefinementIssue {
  * the SDK's `normalizeObjectSchema` only recognizes plain `ZodObject`s
  * for JSON Schema publication. A `.superRefine`-wrapped schema is
  * `ZodEffects` and publishes empty to clients. See module JSDoc above.
+ *
+ * **BL-068 future-contributor guard** — all rules run synchronously in
+ * this single pass and return one `issues[]` batch. Reordering checks
+ * (e.g., to run Rule 0 + Tier-1 first as a "structural pre-check")
+ * is a **no-op for retry budget** because the existing single-batch
+ * rejection already consolidates everything via `formatAuditIssues` +
+ * the BL-066 Rule-0 batch summary. The only first-emission improvement
+ * available is a separate preflight validator tool (reserved as BL-069);
+ * do NOT attempt to "fix" the cascade ordering as a substitute.
  */
 export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinementIssue[] {
   const issues: AuditRefinementIssue[] = [];

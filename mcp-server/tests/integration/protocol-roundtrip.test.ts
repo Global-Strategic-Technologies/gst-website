@@ -187,6 +187,7 @@ describe('protocol roundtrip', () => {
           'search_radar_offline', // BL-032 Phase 4b rename
           'search_regulations',
           'validate_irl_provenance', // BL-045 PR B Phase 2B residual-fabrication guard
+          'prepare_irl_body', // BL-068 hash-bind preflight ergonomics
           'compose_dossier_envelope', // BL-045 PR B post-audit forcing-function tightening
           // BL-049 `extract_irl_from_xlsx` partial-reverted at v0.13.1 —
           // cross-host Claude Desktop topology (model in cloud-side Linux
@@ -281,6 +282,25 @@ describe('protocol roundtrip', () => {
       // geographies must publish as a typed array (the wire-format
       // coercion failure point in the 2026-06-05 retest).
       expect(props.geographies?.type).toBe('array');
+    });
+
+    // BL-068 — assert the new `prepare_irl_body` preflight tool is
+    // registered and publishes a typed `filledIrl` string. If this is
+    // missing, the BL-068 hash-bind preflight ergonomics regressed and
+    // operators will see compose_dossier_envelope 2/1 hash-bind retries
+    // again (which is functionally fine — IrlBodyHashMismatchError still
+    // catches it — but means the new tool isn't reachable).
+    it('prepare_irl_body publishes with typed filledIrl (string) — BL-068 surface check', async () => {
+      const res = await rpc('tools/list', {});
+      expect(isErrorResponse(res)).toBe(false);
+      if (isErrorResponse(res)) return;
+      const payload = res.result as unknown as ListToolsResultPayload;
+      const tool = payload.tools.find((t) => t.name === 'prepare_irl_body');
+      expect(tool, 'prepare_irl_body must be registered').toBeDefined();
+      expect(tool!.inputSchema.type).toBe('object');
+      const props = tool!.inputSchema.properties as Record<string, Record<string, unknown>>;
+      expect(props.filledIrl?.type).toBe('string');
+      expect(tool!.inputSchema.required).toContain('filledIrl');
     });
   });
 

@@ -34,6 +34,7 @@ import { irlIngestionPrompt } from '../prompts/irl-ingestion';
 import {
   Bl063CertificationNotRegulationError,
   Bl063PartitionViolationError,
+  Bl068MapAbsentFalsePositiveError,
   ComposeDossierEnvelopeInputSchema,
   IrlBodyHashMismatchError,
   runComposeDossierEnvelope,
@@ -90,7 +91,8 @@ export async function handleComposeDossierEnvelopeTool(payload: ComposeDossierEn
     // diagnostics verbatim so the model can act on them.
     if (
       error instanceof Bl063PartitionViolationError ||
-      error instanceof Bl063CertificationNotRegulationError
+      error instanceof Bl063CertificationNotRegulationError ||
+      error instanceof Bl068MapAbsentFalsePositiveError
     ) {
       return {
         content: [{ type: 'text' as const, text: error.message }],
