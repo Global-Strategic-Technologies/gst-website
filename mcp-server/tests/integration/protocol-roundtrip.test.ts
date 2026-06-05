@@ -214,55 +214,23 @@ describe('protocol roundtrip', () => {
     // `ZodEffects`, the model would see no `_audit` field and the entire
     // audit architecture would silently degrade.
     //
-    // BL-065 exclusion (2026-06-06): `generate_diligence_agenda` was
-    // moved off the M8 contract intentionally. Its registered
-    // `inputSchema` is now `z.object({}).passthrough()` so the SDK does
-    // NOT reject malformed payloads before the handler runs. The handler
-    // performs full Zod validation via `AuditedUserInputsSchema.safeParse`
-    // and routes structural failures through the same `formatAuditIssues`
-    // forcing-function framing (preamble + Fix: lines + Rule 0 naming)
-    // as the BL-045 cross-field refinements. Trade-off: this tool loses
-    // client-side JSON Schema introspection. Justification: the
-    // 2026-06-06 post-deploy retest showed `generate_diligence_agenda`
-    // 5/1 — 4 retries with cascading structural rejections that BL-059's
-    // prompt-prose Rule 0 directive failed to prevent. Forcing-function
-    // rejection enrichment is the audit-prescribed Option 1 from the
-    // BL-064 plan audit. The prompt body + TOOL_DESCRIPTION carry the
-    // canonical agent-facing guidance; JSON Schema introspection on this
-    // tool was documentation-quality, not load-bearing.
-    it('the audit-bearing tools publish _audit in their input schema (BL-045 audit M8; BL-065 excludes generate_diligence_agenda)', async () => {
+    // BL-066 (2026-06-05) — `generate_diligence_agenda` is restored to
+    // this contract. BL-065's permissive `inputSchema` regressed live
+    // testing from 5/1 to 3/0 because the claude.ai MCP bridge type-coerces
+    // nested values (`_audit`, `geographies`) against the published JSON
+    // Schema; with no per-field schema published, it JSON-stringified
+    // them on the wire and the model could never recover.
+    it('the audit-bearing tools publish _audit in their input schema (BL-045 audit M8; BL-066 restores generate_diligence_agenda)', async () => {
       const res = await rpc('tools/list', {});
       expect(isErrorResponse(res)).toBe(false);
       if (isErrorResponse(res)) return;
       const payload = res.result as unknown as ListToolsResultPayload;
-      // BL-065: generate_diligence_agenda intentionally removed; see
-      // header comment above. Its input schema is now permissive
-      // (passthrough); validation happens in the handler with rule-coded
-      // rejection framing matching BL-045 cross-field refinements.
-      const auditBearingTools = ['compute_techpar', 'estimate_tech_debt_cost'];
+      const auditBearingTools = [
+        'generate_diligence_agenda',
+        'compute_techpar',
+        'estimate_tech_debt_cost',
+      ];
 
-      // Companion BL-065 contract: generate_diligence_agenda publishes a
-      // permissive object schema AND its handler returns a BL-045-coded
-      // rejection on malformed input (forcing-function framing applies
-      // uniformly to structural + cross-field failures).
-      const dilTool = payload.tools.find((t) => t.name === 'generate_diligence_agenda');
-      expect(dilTool, 'generate_diligence_agenda must be registered').toBeDefined();
-      expect(dilTool!.inputSchema.type).toBe('object');
-      // Permissive schema — properties may be empty {} (BL-065 trade-off).
-      // What matters is the handler rejection behavior, exercised below.
-      const malformedRes = await rpc('tools/call', {
-        name: 'generate_diligence_agenda',
-        arguments: { not_a_real_field: 'garbage' },
-      });
-      expect(isErrorResponse(malformedRes)).toBe(false);
-      if (isErrorResponse(malformedRes)) return;
-      const callResult = malformedRes.result as unknown as CallToolResultPayload;
-      // Handler returns isError: true with a BL-045-coded text body.
-      expect(callResult.isError).toBe(true);
-      const errorText = (callResult.content[0] as { text: string }).text;
-      expect(errorText).toContain('BL-045');
-      expect(errorText).toContain('RETRY DISCIPLINE');
-      expect(errorText).toContain('Fix:');
       for (const toolName of auditBearingTools) {
         const tool = payload.tools.find((t) => t.name === toolName);
         expect(tool, `tool ${toolName} must be registered`).toBeDefined();
@@ -284,6 +252,35 @@ describe('protocol roundtrip', () => {
           `tool ${toolName} must declare _audit as required (model would otherwise default to omitting it)`
         ).toContain('_audit');
       }
+    });
+
+    // BL-066 published-schema regression guard. The BL-065 regression was
+    // specifically that `_audit` and `geographies` lost their per-field
+    // type publication, causing the claude.ai bridge to stringify them
+    // on the wire. Assert their JSON Schema types and the nested
+    // `_audit.properties` structure are present and non-empty — without
+    // this, a future refactor that re-permissive-ifies the schema slips
+    // through the M8 contract (which only asserts `_audit` *exists*, not
+    // that it has structure).
+    it('generate_diligence_agenda publishes typed _audit (nested) and geographies (array) — BL-066 regression guard', async () => {
+      const res = await rpc('tools/list', {});
+      expect(isErrorResponse(res)).toBe(false);
+      if (isErrorResponse(res)) return;
+      const payload = res.result as unknown as ListToolsResultPayload;
+      const tool = payload.tools.find((t) => t.name === 'generate_diligence_agenda');
+      expect(tool).toBeDefined();
+      const props = tool!.inputSchema.properties as Record<string, Record<string, unknown>>;
+      // _audit must publish as a typed object with nested per-dimension
+      // structure (not an opaque {}).
+      expect(props._audit?.type).toBe('object');
+      const auditNested = props._audit?.properties as Record<string, unknown> | undefined;
+      expect(
+        auditNested && Object.keys(auditNested).length > 0,
+        '_audit.properties must publish nested dimension fields — empty indicates the schema collapsed (BL-065 regression shape)'
+      ).toBe(true);
+      // geographies must publish as a typed array (the wire-format
+      // coercion failure point in the 2026-06-05 retest).
+      expect(props.geographies?.type).toBe('array');
     });
   });
 

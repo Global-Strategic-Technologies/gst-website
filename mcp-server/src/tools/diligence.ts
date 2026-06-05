@@ -8,7 +8,6 @@
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
 import { generateScript } from '../../../src/utils/diligence-engine';
 import { serializeToParams as serializeDiligenceUrl } from '../../../src/utils/diligence-url';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
@@ -17,7 +16,7 @@ import {
   AuditedUserInputsSchema,
   formatAuditIssues,
   runAuditRefinements,
-  zodErrorToAuditIssues,
+  type AuditedUserInputs,
 } from '../schemas/diligence-audit';
 import { HUB_BASE } from '../config';
 
@@ -92,7 +91,7 @@ export function countUnknownDimensions(inputs: ValidatedUserInputs): number {
  * through the MCP transport. The MCP registration below wraps this
  * same handler.
  */
-export async function handleDiligenceTool(rawInput: unknown) {
+export async function handleDiligenceTool(payload: AuditedUserInputs) {
   // BL-032.25 § 3 instrumentation: when MCP_REPRO_TIMING=1, emit three
   // high-resolution checkpoints to stderr so the repro-k2b3.mjs script can
   // classify the timing distribution (engine / serialization / wire).
@@ -103,34 +102,12 @@ export async function handleDiligenceTool(rawInput: unknown) {
   };
   mark('handler:enter');
 
-  // BL-065 — structural Zod validation moved into the handler. The
-  // registered `inputSchema` is permissive (passthrough) so the SDK does
-  // not reject malformed payloads before the handler runs. Validation
-  // happens here and routes structural failures through the SAME
-  // `formatAuditIssues` framing as the BL-045 cross-field refinements,
-  // so the first retry — most often a structural failure — carries the
-  // forcing-function preamble + per-issue `Fix:` lines.
-  const parsed = AuditedUserInputsSchema.safeParse(rawInput);
-  mark('parse:complete');
-  if (!parsed.success) {
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: formatAuditIssues(zodErrorToAuditIssues(parsed.error)),
-        },
-      ],
-      isError: true,
-    };
-  }
-  const payload = parsed.data;
-
-  // BL-045 PR B — calibration cross-field refinements. Per the SDK shape
-  // constraint (see schemas/diligence-audit.ts module JSDoc), these checks
-  // cannot live in `.superRefine` on the registered schema without breaking
-  // the published JSON Schema. They run here in the handler body. On
-  // failure, return `{ isError: true }` with a structured diagnostic so the
-  // model retries with corrected values.
+  // BL-066 — structural validation is performed by the SDK against the
+  // published `AuditedUserInputsSchema.shape` (see `registerDiligenceTool`
+  // below). The handler runs only after structural parse succeeds, so
+  // `payload` here is already a fully-typed `AuditedUserInputs`. Only the
+  // BL-045 cross-field refinements remain in the handler body — those
+  // cannot live on `.superRefine` without breaking JSON Schema publication.
   const auditIssues = runAuditRefinements(payload);
   mark('audit:complete');
   if (auditIssues.length > 0) {
@@ -175,21 +152,22 @@ export function registerDiligenceTool(
   server: McpServer,
   metrics: MetricsContext = NOOP_METRICS_CONTEXT
 ): void {
-  // BL-065: registered `inputSchema` is intentionally permissive so the
-  // SDK does not reject structurally-malformed payloads before
-  // `handleDiligenceTool` runs. The handler performs full Zod validation
-  // via `AuditedUserInputsSchema.safeParse(rawInput)` and routes failures
-  // through the same `formatAuditIssues` framing as cross-field audit
-  // refinements (forcing-function preamble + per-issue `Fix:` lines + Rule
-  // 0 naming). Trade-off: loses client-side JSON Schema introspection.
-  // The prompt body (`gst_irl_ingestion`) and TOOL_DESCRIPTION (above) are
-  // the canonical guidance for the agent, not the inputSchema introspection.
+  // BL-066: registered `inputSchema` is the publishable structural shape
+  // of `AuditedUserInputsSchema` (a plain `ZodObject` extended with
+  // `_audit`). Publishing the full per-field JSON Schema is load-bearing
+  // for wire-format type coercion in MCP bridges (the claude.ai bridge
+  // type-coerces nested `_audit` and `geographies` against this schema —
+  // a permissive schema causes it to JSON-stringify them, breaking the
+  // tool, see BL-065 regression). Cross-field BL-045 refinements still
+  // run inside the handler via `runAuditRefinements`, and their rejection
+  // messages carry the BL-065 forcing-function framing (preamble + per-
+  // rule `Fix:` lines + Rule 0 naming + Rule-0 batch summary).
   server.registerTool(
     'generate_diligence_agenda',
     {
       title: 'Generate Diligence Agenda',
       description: TOOL_DESCRIPTION,
-      inputSchema: z.object({}).passthrough(),
+      inputSchema: AuditedUserInputsSchema.shape,
       annotations: {
         readOnlyHint: true,
         idempotentHint: true,

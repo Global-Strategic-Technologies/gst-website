@@ -598,6 +598,48 @@ describe('BL-065 — forcing-function framing', () => {
   });
 });
 
+describe('BL-066 — Rule-0 consolidated batch summary', () => {
+  it('emits "Rule 0 batch (N dimensions)" summary when ≥2 Rule-0 issues fire', () => {
+    const p = baseline();
+    p.productType = 'unknown';
+    p._audit.productType = { ...p._audit.productType, tier: '1' };
+    p.techArchetype = 'unknown';
+    p._audit.techArchetype = { ...p._audit.techArchetype, tier: '1' };
+    const text = formatAuditIssues(runAuditRefinements(p));
+    expect(text).toContain('Rule 0 batch (2 dimensions)');
+    expect(text).toContain('productType');
+    expect(text).toContain('techArchetype');
+    expect(text).toContain('value="unknown" ⇔ tier="3"');
+  });
+
+  it('does NOT emit the batch summary when only ONE Rule-0 issue fires', () => {
+    const p = baseline();
+    p.productType = 'unknown';
+    p._audit.productType = { ...p._audit.productType, tier: '1' };
+    const text = formatAuditIssues(runAuditRefinements(p));
+    expect(text).toContain('BL-045-TIER-3-REQUIRED-FOR-UNKNOWN');
+    expect(text).not.toContain('Rule 0 batch');
+  });
+
+  it('summary scales to 4 dimensions and lists all four paths', () => {
+    const p = baseline();
+    p.productType = 'unknown';
+    p._audit.productType = { ...p._audit.productType, tier: '1' };
+    p.techArchetype = 'unknown';
+    p._audit.techArchetype = { ...p._audit.techArchetype, tier: '1' };
+    p.businessModel = 'unknown';
+    p._audit.businessModel = { ...p._audit.businessModel, tier: '1' };
+    p.scaleIntensity = 'unknown';
+    p._audit.scaleIntensity = { ...p._audit.scaleIntensity, tier: '1' };
+    const text = formatAuditIssues(runAuditRefinements(p));
+    expect(text).toContain('Rule 0 batch (4 dimensions)');
+    expect(text).toContain('productType');
+    expect(text).toContain('techArchetype');
+    expect(text).toContain('businessModel');
+    expect(text).toContain('scaleIntensity');
+  });
+});
+
 describe('buildPartnerSuppliedAudit', () => {
   it('produces an audit that passes refinements for every dataSensitivity bucket', () => {
     for (const bucket of ['low', 'moderate', 'high', 'unknown'] as const) {

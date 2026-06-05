@@ -501,6 +501,21 @@ export function formatAuditIssues(issues: AuditRefinementIssue[]): string {
     '',
     `Issues to fix (count: ${issues.length}):`,
   ];
+  // BL-066 — Rule-0 consolidated batch summary. When ≥2 dimensions trip
+  // BL-045-TIER-3-REQUIRED-FOR-UNKNOWN simultaneously, the per-issue Fix
+  // lines repeat the same correction N times and bury the pattern. Lead
+  // with one summary line that names the failure as a Rule-0 batch and
+  // tells the model to fix ALL of them in this retry — cheaper than N
+  // independent corrections and frames it as one pattern, not N coincidences.
+  const rule0Offenders = issues.filter((i) => i.ruleId === 'BL-045-TIER-3-REQUIRED-FOR-UNKNOWN');
+  if (rule0Offenders.length >= 2) {
+    const names = rule0Offenders.map((i) => i.path.join('.')).join(', ');
+    lines.push(
+      '',
+      `⚠️ Rule 0 batch (${rule0Offenders.length} dimensions): ${names}`,
+      `   Each of these has value="unknown" but tier !== "3". Fix ALL of them in this retry by setting _audit.<dim>.tier = "3" for each. Rule 0 applies bidirectionally across all 13 dimensions: value="unknown" ⇔ tier="3".`
+    );
+  }
   for (const issue of issues) {
     lines.push('');
     lines.push(`  [${issue.ruleId}] ${issue.path.join('.')}`);
@@ -512,67 +527,6 @@ export function formatAuditIssues(issues: AuditRefinementIssue[]): string {
       'See the BL-045 design doc (extraction-rules.ts) for the full calibration rule prose.'
   );
   return lines.join('\n');
-}
-
-// ─── BL-065: Zod-error → AuditRefinementIssue conversion ─────────────
-//
-// `handleDiligenceTool` (in tools/diligence.ts) calls
-// `AuditedUserInputsSchema.safeParse(rawInput)` BEFORE running the audit
-// refinements, so that structural Zod failures (missing required fields,
-// invalid enum values, wrong types) are routed through the same
-// rule-coded `formatAuditIssues` framing as the cross-field refinements.
-// Without this layer, the first retry — most often a structural Zod
-// rejection — surfaces as a raw ZodError with no Fix: line and no Rule 0
-// awareness, exactly the highest-cost rejection point the 2026-06-06
-// retest exposed (5 retries on generate_diligence_agenda).
-//
-// Each Zod issue maps to a synthetic ruleId (BL-045-SCHEMA-*) and gets a
-// terminal `Fix:` sentence with the path interpolated. The model sees the
-// same forcing-function preamble + per-issue Fix lines whether the
-// rejection came from Zod or from `runAuditRefinements`.
-
-export function zodIssueToRuleId(zi: z.ZodIssue): string {
-  switch (zi.code) {
-    case 'invalid_type':
-      return 'BL-045-SCHEMA-INVALID-TYPE';
-    case 'invalid_value':
-      return 'BL-045-SCHEMA-INVALID-ENUM';
-    case 'too_small':
-      return 'BL-045-SCHEMA-MISSING-FIELD';
-    case 'unrecognized_keys':
-      return 'BL-045-SCHEMA-UNKNOWN-KEY';
-    default:
-      return 'BL-045-SCHEMA-OTHER';
-  }
-}
-
-export function enrichZodMessage(zi: z.ZodIssue): string {
-  const base = zi.message;
-  const pathStr = zi.path.map(String).join('.');
-  switch (zi.code) {
-    case 'invalid_type':
-      return `${base} Fix: supply ${pathStr} with the expected type at the same path in the payload.`;
-    case 'invalid_value':
-      return (
-        `${base} Fix: replace the supplied value at ${pathStr} with one of the enum options listed above, ` +
-        `OR set the field to "unknown" and the matching _audit.<dimension>.tier to "3" (Rule 0).`
-      );
-    case 'too_small':
-      return (
-        `${base} Fix: supply the required field at ${pathStr} ` +
-        `(empty array [] is acceptable for piiCategoriesPresent when no PII is present, but the field must exist on the payload).`
-      );
-    default:
-      return base;
-  }
-}
-
-export function zodErrorToAuditIssues(zodError: z.ZodError): AuditRefinementIssue[] {
-  return zodError.issues.map((zi) => ({
-    path: zi.path.map(String),
-    ruleId: zodIssueToRuleId(zi),
-    message: enrichZodMessage(zi),
-  }));
 }
 
 // `REVENUE_RANGE_IDS` is referenced as a type via
