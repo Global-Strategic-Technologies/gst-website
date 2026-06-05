@@ -8,6 +8,7 @@
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 import { generateScript } from '../../../src/utils/diligence-engine';
 import { serializeToParams as serializeDiligenceUrl } from '../../../src/utils/diligence-url';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
@@ -16,7 +17,7 @@ import {
   AuditedUserInputsSchema,
   formatAuditIssues,
   runAuditRefinements,
-  type AuditedUserInputs,
+  zodErrorToAuditIssues,
 } from '../schemas/diligence-audit';
 import { HUB_BASE } from '../config';
 
@@ -91,7 +92,7 @@ export function countUnknownDimensions(inputs: ValidatedUserInputs): number {
  * through the MCP transport. The MCP registration below wraps this
  * same handler.
  */
-export async function handleDiligenceTool(payload: AuditedUserInputs) {
+export async function handleDiligenceTool(rawInput: unknown) {
   // BL-032.25 § 3 instrumentation: when MCP_REPRO_TIMING=1, emit three
   // high-resolution checkpoints to stderr so the repro-k2b3.mjs script can
   // classify the timing distribution (engine / serialization / wire).
@@ -101,6 +102,28 @@ export async function handleDiligenceTool(payload: AuditedUserInputs) {
     if (trace) console.error(`[REPRO] ${label} t=${performance.now().toFixed(2)}ms`);
   };
   mark('handler:enter');
+
+  // BL-065 — structural Zod validation moved into the handler. The
+  // registered `inputSchema` is permissive (passthrough) so the SDK does
+  // not reject malformed payloads before the handler runs. Validation
+  // happens here and routes structural failures through the SAME
+  // `formatAuditIssues` framing as the BL-045 cross-field refinements,
+  // so the first retry — most often a structural failure — carries the
+  // forcing-function preamble + per-issue `Fix:` lines.
+  const parsed = AuditedUserInputsSchema.safeParse(rawInput);
+  mark('parse:complete');
+  if (!parsed.success) {
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: formatAuditIssues(zodErrorToAuditIssues(parsed.error)),
+        },
+      ],
+      isError: true,
+    };
+  }
+  const payload = parsed.data;
 
   // BL-045 PR B — calibration cross-field refinements. Per the SDK shape
   // constraint (see schemas/diligence-audit.ts module JSDoc), these checks
@@ -152,12 +175,21 @@ export function registerDiligenceTool(
   server: McpServer,
   metrics: MetricsContext = NOOP_METRICS_CONTEXT
 ): void {
+  // BL-065: registered `inputSchema` is intentionally permissive so the
+  // SDK does not reject structurally-malformed payloads before
+  // `handleDiligenceTool` runs. The handler performs full Zod validation
+  // via `AuditedUserInputsSchema.safeParse(rawInput)` and routes failures
+  // through the same `formatAuditIssues` framing as cross-field audit
+  // refinements (forcing-function preamble + per-issue `Fix:` lines + Rule
+  // 0 naming). Trade-off: loses client-side JSON Schema introspection.
+  // The prompt body (`gst_irl_ingestion`) and TOOL_DESCRIPTION (above) are
+  // the canonical guidance for the agent, not the inputSchema introspection.
   server.registerTool(
     'generate_diligence_agenda',
     {
       title: 'Generate Diligence Agenda',
       description: TOOL_DESCRIPTION,
-      inputSchema: AuditedUserInputsSchema,
+      inputSchema: z.object({}).passthrough(),
       annotations: {
         readOnlyHint: true,
         idempotentHint: true,

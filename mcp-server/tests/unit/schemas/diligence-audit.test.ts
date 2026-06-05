@@ -455,6 +455,149 @@ describe('formatAuditIssues', () => {
   });
 });
 
+describe('BL-065 — forcing-function framing', () => {
+  it('preamble contains RETRY DISCIPLINE block', () => {
+    const p = baseline();
+    p._audit.headcount = { ...p._audit.headcount, scope: 'total-company' };
+    const text = formatAuditIssues(runAuditRefinements(p));
+    expect(text).toContain('RETRY DISCIPLINE');
+    expect(text).toContain('You MUST fix EVERY issue');
+  });
+
+  it('preamble reports accurate issue count', () => {
+    const p = baseline();
+    // Trigger one issue (headcount scope).
+    p._audit.headcount = { ...p._audit.headcount, scope: 'total-company' };
+    const issues = runAuditRefinements(p);
+    const text = formatAuditIssues(issues);
+    expect(text).toContain(`Issues to fix (count: ${issues.length}):`);
+    expect(issues.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('preamble reports accurate count for multiple-issue payloads', () => {
+    const p = baseline();
+    // Trigger two issues: headcount scope + dataSensitivity high without regulated PII.
+    p._audit.headcount = { ...p._audit.headcount, scope: 'total-company' };
+    p.dataSensitivity = 'high';
+    p._audit.dataSensitivity = {
+      ...p._audit.dataSensitivity,
+      piiCategoriesPresent: ['employee-pii'],
+    };
+    const issues = runAuditRefinements(p);
+    const text = formatAuditIssues(issues);
+    expect(issues.length).toBeGreaterThanOrEqual(2);
+    expect(text).toContain(`Issues to fix (count: ${issues.length}):`);
+  });
+
+  it('footer preserves "retry the tool call" phrase for existing test compat', () => {
+    const p = baseline();
+    p._audit.headcount = { ...p._audit.headcount, scope: 'total-company' };
+    const text = formatAuditIssues(runAuditRefinements(p));
+    expect(text).toContain('retry the tool call');
+  });
+
+  describe('Fix: line presence on each rule', () => {
+    function textFor(p: ReturnType<typeof baseline>): string {
+      return formatAuditIssues(runAuditRefinements(p));
+    }
+
+    it('CURRENCY-CONVERSION-REQUIRED ends with a Fix: line', () => {
+      const p = baseline();
+      p._audit.revenueRange = {
+        ...p._audit.revenueRange,
+        nativeCurrency: 'CAD',
+        currencyConversion: undefined,
+      };
+      const text = textFor(p);
+      expect(text).toContain('BL-045-CURRENCY-CONVERSION-REQUIRED');
+      expect(text).toMatch(/Fix: supply _audit\.revenueRange\.currencyConversion/);
+    });
+
+    it('HEADCOUNT-SCOPE-REQUIRED ends with a Fix: line', () => {
+      const p = baseline();
+      p._audit.headcount = { ...p._audit.headcount, scope: 'total-company' };
+      const text = textFor(p);
+      expect(text).toContain('BL-045-HEADCOUNT-SCOPE-REQUIRED');
+      expect(text).toMatch(/Fix: set _audit\.headcount\.scope = "engineering-only"/);
+    });
+
+    it('DATASENSITIVITY-HIGH-REQUIRES-REGULATED ends with a Fix: line', () => {
+      const p = baseline();
+      p.dataSensitivity = 'high';
+      p._audit.dataSensitivity = {
+        ...p._audit.dataSensitivity,
+        piiCategoriesPresent: ['employee-pii'],
+      };
+      const text = textFor(p);
+      expect(text).toContain('BL-045-DATASENSITIVITY-HIGH-REQUIRES-REGULATED');
+      expect(text).toMatch(/Fix: add a regulated category/);
+    });
+
+    it('DATASENSITIVITY-MODERATE-REQUIRES-CUSTOMER-PII ends with a Fix: line', () => {
+      const p = baseline();
+      p.dataSensitivity = 'moderate';
+      p._audit.dataSensitivity = {
+        ...p._audit.dataSensitivity,
+        piiCategoriesPresent: ['employee-pii'],
+      };
+      const text = textFor(p);
+      expect(text).toContain('BL-045-DATASENSITIVITY-MODERATE-REQUIRES-CUSTOMER-PII');
+      expect(text).toMatch(/Fix: add a customer-PII category/);
+    });
+
+    it('DATASENSITIVITY-LOW-INCOMPATIBLE-WITH-REGULATED ends with a Fix: line', () => {
+      const p = baseline();
+      p.dataSensitivity = 'low';
+      p._audit.dataSensitivity = {
+        ...p._audit.dataSensitivity,
+        piiCategoriesPresent: ['phi'],
+      };
+      const text = textFor(p);
+      expect(text).toContain('BL-045-DATASENSITIVITY-LOW-INCOMPATIBLE-WITH-REGULATED');
+      expect(text).toMatch(/Fix: promote dataSensitivity to "high"/);
+    });
+
+    it('GROWTHSTAGE-VELOCITY-REQUIRED ends with a Fix: line', () => {
+      const p = baseline();
+      // baseline().growthStage may be unknown; force a non-unknown value
+      // with velocityEvidence='unknown' to trigger the rule.
+      p.growthStage = 'scaling';
+      p._audit.growthStage = {
+        ...p._audit.growthStage,
+        tier: '1',
+        velocityEvidence: 'unknown',
+      };
+      const text = textFor(p);
+      expect(text).toContain('BL-045-GROWTHSTAGE-VELOCITY-REQUIRED');
+      expect(text).toMatch(/Fix: set growthStage = "unknown"/);
+    });
+  });
+
+  describe('Rule 0 explicit naming in tier-3 messages', () => {
+    it('TIER-3-REQUIRED-FOR-UNKNOWN message names "Rule 0" and "bidirectionally"', () => {
+      const p = baseline();
+      // Force a dimension to unknown with tier != 3 to trigger Rule 0.
+      p.revenueRange = 'unknown';
+      p._audit.revenueRange = { ...p._audit.revenueRange, tier: '2' };
+      const text = formatAuditIssues(runAuditRefinements(p));
+      expect(text).toContain('BL-045-TIER-3-REQUIRED-FOR-UNKNOWN');
+      expect(text).toContain('[Rule 0 — tier/value coupling]');
+      expect(text).toContain('Rule 0 applies bidirectionally');
+      expect(text).toMatch(/Fix: set _audit\.revenueRange\.tier = "3"/);
+    });
+
+    it('TIER-3 message for geographies also names Rule 0', () => {
+      const p = baseline();
+      p.geographies = ['unknown'];
+      p._audit.geographies = { ...p._audit.geographies, tier: '2' };
+      const text = formatAuditIssues(runAuditRefinements(p));
+      expect(text).toContain('BL-045-TIER-3-REQUIRED-FOR-UNKNOWN');
+      expect(text).toContain('[Rule 0 — tier/value coupling]');
+      expect(text).toMatch(/Fix: set _audit\.geographies\.tier = "3"/);
+    });
+  });
+});
+
 describe('buildPartnerSuppliedAudit', () => {
   it('produces an audit that passes refinements for every dataSensitivity bucket', () => {
     for (const bucket of ['low', 'moderate', 'high', 'unknown'] as const) {

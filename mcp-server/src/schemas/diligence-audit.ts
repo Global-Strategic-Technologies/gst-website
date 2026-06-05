@@ -289,7 +289,8 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
         `_audit.revenueRange.nativeCurrency = "${rrAudit.nativeCurrency}" but currencyConversion was not supplied. ` +
         `Per BL-045 currency-normalization rule, non-USD ARR bullets MUST be converted to USD before bracket assignment. ` +
         `Supply currencyConversion: { nativeAmountMillions, usdRate, convertedUsdMillions }. ` +
-        `Worked example: "$31M CAD" → { nativeAmountMillions: 31, usdRate: 0.73, convertedUsdMillions: 22.6 } ⇒ revenueRange: "5-25m".`,
+        `Worked example: "$31M CAD" → { nativeAmountMillions: 31, usdRate: 0.73, convertedUsdMillions: 22.6 } ⇒ revenueRange: "5-25m". ` +
+        `Fix: supply _audit.revenueRange.currencyConversion = { nativeAmountMillions, usdRate, convertedUsdMillions }.`,
     });
   }
 
@@ -303,7 +304,8 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
           ruleId: 'BL-045-REVENUE-BRACKET-BOUNDARY',
           message:
             `revenueRange = "${rrValue}" but the supplied USD conversion ($${rrAudit.currencyConversion.convertedUsdMillions}M USD) falls within 10% of a bracket boundary. ` +
-            `Per BL-045 currency-normalization rule's "prefer 'unknown' to a fragile commitment" clause, set revenueRange = "unknown" and surface the currency / conversion question in (J) gap list.`,
+            `Per BL-045 currency-normalization rule's "prefer 'unknown' to a fragile commitment" clause, set revenueRange = "unknown" and surface the currency / conversion question in (J) gap list. ` +
+            `Fix: set revenueRange = "unknown" and _audit.revenueRange.tier = "3".`,
         });
       } else {
         issues.push({
@@ -311,7 +313,8 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
           ruleId: 'BL-045-REVENUE-BRACKET-MISMATCH',
           message:
             `revenueRange = "${rrValue}" but the supplied USD conversion ($${rrAudit.currencyConversion.convertedUsdMillions}M USD) lands in bracket "${expected}". ` +
-            `Re-bracket on the USD amount: ${rrAudit.currencyConversion.convertedUsdMillions}M USD ⇒ "${expected}".`,
+            `Re-bracket on the USD amount: ${rrAudit.currencyConversion.convertedUsdMillions}M USD ⇒ "${expected}". ` +
+            `Fix: change revenueRange to "${expected}".`,
         });
       }
     }
@@ -329,7 +332,8 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
         `The diligence-agenda headcount field is ENGINEERING headcount, not total company headcount or R&D+Product. ` +
         `Re-extract from the engineering-specific bullet (e.g. "Engineering ~N"). ` +
         `If the IRL distinguishes "Engineering ~N1" from "R&D + Product ~N2" or "Total HC ~N3", use N1. ` +
-        `If the IRL doesn't separate engineering from total, set headcount = "unknown" and scope = "${hcAudit.scope}".`,
+        `If the IRL doesn't separate engineering from total, set headcount = "unknown" and scope = "${hcAudit.scope}". ` +
+        `Fix: set _audit.headcount.scope = "engineering-only" with the engineering-specific headcount value, OR set headcount = "unknown" and _audit.headcount.tier = "3".`,
     });
   }
 
@@ -349,7 +353,8 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
       message:
         `dataSensitivity = "high" REQUIRES at least one of [phi, pci-card-data, government-classified, biometric-at-scale]. ` +
         `Got piiCategoriesPresent = [${cats.join(', ')}]. ` +
-        `Per BL-045 bucket boundaries: employee PII alone is "low"; customer PII at scale is "moderate"; "high" is reserved for regulated categories.`,
+        `Per BL-045 bucket boundaries: employee PII alone is "low"; customer PII at scale is "moderate"; "high" is reserved for regulated categories. ` +
+        `Fix: add a regulated category to piiCategoriesPresent (one of [phi, pci-card-data, government-classified, biometric-at-scale]) OR demote dataSensitivity to "moderate" or "low".`,
     });
   }
   if (dsValue === 'moderate' && !hasModerate && !hasHigh) {
@@ -359,7 +364,8 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
       message:
         `dataSensitivity = "moderate" REQUIRES at least one of [customer-pii-at-scale, financial-transaction-metadata]. ` +
         `Got piiCategoriesPresent = [${cats.join(', ')}]. ` +
-        `Per BL-045 bucket boundaries: employee PII alone is "low", not "moderate". Re-bucket to "low" or supply a customer-PII evidence category.`,
+        `Per BL-045 bucket boundaries: employee PII alone is "low", not "moderate". Re-bucket to "low" or supply a customer-PII evidence category. ` +
+        `Fix: add a customer-PII category (customer-pii-at-scale or financial-transaction-metadata) OR demote dataSensitivity to "low".`,
     });
   }
   if (dsValue === 'low' && hasHigh) {
@@ -368,7 +374,8 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
       ruleId: 'BL-045-DATASENSITIVITY-LOW-INCOMPATIBLE-WITH-REGULATED',
       message:
         `dataSensitivity = "low" is incompatible with piiCategoriesPresent = [${cats.join(', ')}]. ` +
-        `Categories phi, pci-card-data, government-classified, or biometric-at-scale require dataSensitivity = "high".`,
+        `Categories phi, pci-card-data, government-classified, or biometric-at-scale require dataSensitivity = "high". ` +
+        `Fix: promote dataSensitivity to "high" (regulated category present requires it).`,
     });
   }
 
@@ -382,7 +389,8 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
       message:
         `growthStage = "${gsValue}" requires velocityEvidence != "unknown". ` +
         `Per BL-045 growthStage Tier-discipline rule, growthStage derives from velocity (revenue/recurring-revenue/headcount/customer/funding growth %), NOT from transformation-program activity. ` +
-        `If the IRL doesn't supply explicit velocity signal, set growthStage = "unknown" (Tier 3) rather than inferring from transformation activity.`,
+        `If the IRL doesn't supply explicit velocity signal, set growthStage = "unknown" (Tier 3) rather than inferring from transformation activity. ` +
+        `Fix: set growthStage = "unknown" and _audit.growthStage.tier = "3" (no explicit velocity evidence in IRL).`,
     });
   }
 
@@ -412,8 +420,10 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
         path: ['_audit', dimName, 'tier'],
         ruleId: 'BL-045-TIER-3-REQUIRED-FOR-UNKNOWN',
         message:
-          `${dimName} = "unknown" requires _audit.${dimName}.tier = "3". ` +
-          `Got tier = "${dimAudit.tier}". The "unknown" sentinel is the Tier-3 (correlation/vibes) escape; mark it as such.`,
+          `[Rule 0 — tier/value coupling] ${dimName} = "unknown" requires _audit.${dimName}.tier = "3". ` +
+          `Got tier = "${dimAudit.tier}". Rule 0 applies bidirectionally across all 13 dimensions: value="unknown" ⇔ tier="3". ` +
+          `The "unknown" sentinel is the Tier-3 (correlation/vibes) escape; mark it as such. ` +
+          `Fix: set _audit.${dimName}.tier = "3" (Rule 0: the "unknown" sentinel REQUIRES tier "3" across every dimension).`,
       });
     }
     if (
@@ -426,7 +436,8 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
         ruleId: 'BL-045-TIER-1-LITERAL-MISMATCH',
         message:
           `${dimName} = "${dimValue}" with tier = "1" (literal) but the citation excerpt does not contain the literal enum value as a token. ` +
-          `Tier 1 means the IRL bullet states the enum value verbatim (post em-dash excerpt). If the value was derived from a different bullet (e.g. "B2B SaaS multi-year subscription" → "productized-platform"), set tier = "2" instead.`,
+          `Tier 1 means the IRL bullet states the enum value verbatim (post em-dash excerpt). If the value was derived from a different bullet (e.g. "B2B SaaS multi-year subscription" → "productized-platform"), set tier = "2" instead. ` +
+          `Fix: change _audit.${dimName}.tier from "1" to "2" (the citation excerpt does not contain the enum value as a literal token; tier "2" is one-step derivation, which is what you've done).`,
       });
     }
   }
@@ -438,7 +449,10 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
     issues.push({
       path: ['_audit', 'geographies', 'tier'],
       ruleId: 'BL-045-TIER-3-REQUIRED-FOR-UNKNOWN',
-      message: `geographies = ["unknown"] requires _audit.geographies.tier = "3". Got tier = "${geoAudit.tier}".`,
+      message:
+        `[Rule 0 — tier/value coupling] geographies = ["unknown"] requires _audit.geographies.tier = "3". ` +
+        `Got tier = "${geoAudit.tier}". Rule 0 applies bidirectionally across all 13 dimensions: value="unknown" ⇔ tier="3". ` +
+        `Fix: set _audit.geographies.tier = "3" (Rule 0: the "unknown" sentinel REQUIRES tier "3" across every dimension).`,
     });
   }
   // Tier-1 literal-match extension to the geographies array (BL-045 PR B
@@ -457,7 +471,8 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
         ruleId: 'BL-045-TIER-1-LITERAL-MISMATCH',
         message:
           `geographies = [${geoValue.join(', ')}] with tier = "1" but the citation excerpt does not contain the literal token(s): ${missing.join(', ')}. ` +
-          `Tier 1 requires every geography in the array to appear verbatim in the post-em-dash citation excerpt. If some geographies were derived rather than literal, set tier = "2".`,
+          `Tier 1 requires every geography in the array to appear verbatim in the post-em-dash citation excerpt. If some geographies were derived rather than literal, set tier = "2". ` +
+          `Fix: change _audit.geographies.tier from "1" to "2" (the citation excerpt does not contain the geography token(s) literally; tier "2" is one-step derivation).`,
       });
     }
   }
@@ -471,7 +486,20 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
  */
 export function formatAuditIssues(issues: AuditRefinementIssue[]): string {
   const lines = [
-    'BL-045 calibration audit FAILED. The tool call was rejected. Fix the following issues and retry:',
+    'BL-045 calibration audit FAILED. The tool call was rejected.',
+    '',
+    '⚠️ RETRY DISCIPLINE — READ BEFORE RESUBMITTING ⚠️',
+    '',
+    'You MUST fix EVERY issue listed below in a SINGLE retry. Submitting a fix',
+    'for only one issue will trigger the others on the next retry, wasting tool',
+    'calls. Each issue\'s message ends with a "Fix:" line giving the exact',
+    'correction to apply.',
+    '',
+    'If two issues share a field (e.g., `revenueRange` value vs. tier), apply',
+    'both fixes to that field in the same payload. The audit re-runs every',
+    'refinement on every retry; partial fixes will not converge.',
+    '',
+    `Issues to fix (count: ${issues.length}):`,
   ];
   for (const issue of issues) {
     lines.push('');
@@ -480,10 +508,71 @@ export function formatAuditIssues(issues: AuditRefinementIssue[]): string {
   }
   lines.push('');
   lines.push(
-    'After correcting each issue, retry the tool call with the conformant payload. ' +
+    'Apply EVERY "Fix:" line above to the same payload, then retry the tool call. ' +
       'See the BL-045 design doc (extraction-rules.ts) for the full calibration rule prose.'
   );
   return lines.join('\n');
+}
+
+// ─── BL-065: Zod-error → AuditRefinementIssue conversion ─────────────
+//
+// `handleDiligenceTool` (in tools/diligence.ts) calls
+// `AuditedUserInputsSchema.safeParse(rawInput)` BEFORE running the audit
+// refinements, so that structural Zod failures (missing required fields,
+// invalid enum values, wrong types) are routed through the same
+// rule-coded `formatAuditIssues` framing as the cross-field refinements.
+// Without this layer, the first retry — most often a structural Zod
+// rejection — surfaces as a raw ZodError with no Fix: line and no Rule 0
+// awareness, exactly the highest-cost rejection point the 2026-06-06
+// retest exposed (5 retries on generate_diligence_agenda).
+//
+// Each Zod issue maps to a synthetic ruleId (BL-045-SCHEMA-*) and gets a
+// terminal `Fix:` sentence with the path interpolated. The model sees the
+// same forcing-function preamble + per-issue Fix lines whether the
+// rejection came from Zod or from `runAuditRefinements`.
+
+export function zodIssueToRuleId(zi: z.ZodIssue): string {
+  switch (zi.code) {
+    case 'invalid_type':
+      return 'BL-045-SCHEMA-INVALID-TYPE';
+    case 'invalid_value':
+      return 'BL-045-SCHEMA-INVALID-ENUM';
+    case 'too_small':
+      return 'BL-045-SCHEMA-MISSING-FIELD';
+    case 'unrecognized_keys':
+      return 'BL-045-SCHEMA-UNKNOWN-KEY';
+    default:
+      return 'BL-045-SCHEMA-OTHER';
+  }
+}
+
+export function enrichZodMessage(zi: z.ZodIssue): string {
+  const base = zi.message;
+  const pathStr = zi.path.map(String).join('.');
+  switch (zi.code) {
+    case 'invalid_type':
+      return `${base} Fix: supply ${pathStr} with the expected type at the same path in the payload.`;
+    case 'invalid_value':
+      return (
+        `${base} Fix: replace the supplied value at ${pathStr} with one of the enum options listed above, ` +
+        `OR set the field to "unknown" and the matching _audit.<dimension>.tier to "3" (Rule 0).`
+      );
+    case 'too_small':
+      return (
+        `${base} Fix: supply the required field at ${pathStr} ` +
+        `(empty array [] is acceptable for piiCategoriesPresent when no PII is present, but the field must exist on the payload).`
+      );
+    default:
+      return base;
+  }
+}
+
+export function zodErrorToAuditIssues(zodError: z.ZodError): AuditRefinementIssue[] {
+  return zodError.issues.map((zi) => ({
+    path: zi.path.map(String),
+    ruleId: zodIssueToRuleId(zi),
+    message: enrichZodMessage(zi),
+  }));
 }
 
 // `REVENUE_RANGE_IDS` is referenced as a type via
