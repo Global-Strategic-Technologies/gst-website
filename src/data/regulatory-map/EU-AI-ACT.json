@@ -1,6 +1,7 @@
 {
   "id": "eu-ai-act",
   "name": "EU Artificial Intelligence Act (Regulation 2024/1689)",
+  "aliases": ["EU AI Act", "EU AI Regulation"],
   "regions": [
     "AUT",
     "BEL",

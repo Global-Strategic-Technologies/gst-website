@@ -127,23 +127,53 @@ describe('findFalsePositiveMapAbsentClaims', () => {
     expect(matchedHubs.some((h) => h.includes('gdpr'))).toBe(true);
   });
 
-  // Documented false-negatives: bidirectional substring match doesn't
-  // reach through name-equivalence pairs where neither side is a
-  // substring of the other (no shared canonical token). Empirically
-  // observed in the 06-05 retest. Covered by future regulatory-map
-  // alias work, not BL-068.
-  it('KNOWN GAP: does NOT catch "UK GDPR" (no substring overlap with "UK Data Protection Act 2018")', () => {
+  // BL-073 — three frameworks that previously failed substring matching
+  // are now caught via curated aliases (exact-equality on normalized form).
+  it('BL-073: catches "UK GDPR" via alias on GB-DPA', () => {
     const offenders = findFalsePositiveMapAbsentClaims([
       { category: 'map-absent', entry: 'UK GDPR — claimed absent' },
+    ]);
+    expect(offenders).toHaveLength(1);
+    expect(offenders[0].matchedHub).toMatch(/UK Data Protection Act 2018/i);
+  });
+
+  it('BL-073: catches "Australia Privacy Act" via alias on AU-PRIVACY-ACT', () => {
+    const offenders = findFalsePositiveMapAbsentClaims([
+      { category: 'map-absent', entry: 'Australia Privacy Act — claimed absent' },
+    ]);
+    expect(offenders).toHaveLength(1);
+    expect(offenders[0].matchedHub).toMatch(/Privacy Act 1988/i);
+  });
+
+  it('BL-073: catches "EU AI Act" via alias on EU-AI-ACT', () => {
+    const offenders = findFalsePositiveMapAbsentClaims([
+      { category: 'map-absent', entry: 'EU AI Act — claimed absent' },
+    ]);
+    expect(offenders).toHaveLength(1);
+    expect(offenders[0].matchedHub).toMatch(/EU Artificial Intelligence Act/i);
+  });
+
+  it('BL-073: alias matching is exact-equality on normalized form (not substring)', () => {
+    // "Australian Privacy" → normalized "australianprivacy" — a TRUE substring of
+    // the "Australian Privacy Act" alias on AU-PRIVACY-ACT.
+    // Under exact-equality alias matching this MUST NOT match. Under substring
+    // alias matching it WOULD match. This locks in the safer exact-equality semantics.
+    // (The canonical name "Privacy Act 1988 (as amended 2024)" normalized doesn't
+    // include "australianprivacy" either, so canonical path stays silent.)
+    const offenders = findFalsePositiveMapAbsentClaims([
+      { category: 'map-absent', entry: 'Australian Privacy — partial claim' },
     ]);
     expect(offenders).toHaveLength(0);
   });
 
-  it('KNOWN GAP: does NOT catch "Australia Privacy Act" (no substring overlap with "Privacy Act 1988 (as amended 2024)")', () => {
+  it('BL-073: canonical-name substring path unchanged (NIST AI RMF still matches)', () => {
+    // Regression guard — BL-073 is additive. Previously-matching names via the
+    // canonical-substring path must continue to match.
     const offenders = findFalsePositiveMapAbsentClaims([
-      { category: 'map-absent', entry: 'Australia Privacy Act — claimed absent' },
+      { category: 'map-absent', entry: 'NIST AI Risk Management Framework — absent' },
     ]);
-    expect(offenders).toHaveLength(0);
+    expect(offenders).toHaveLength(1);
+    expect(offenders[0].matchedHub).toMatch(/NIST/i);
   });
 });
 
@@ -265,5 +295,34 @@ describe('BL-072 — xlsx-reconstruction provenance-gap auto-append', () => {
     expect(issue, 'expected an irlSource Zod issue').toBeDefined();
     // Zod 4 surfaces a missing z.enum field as `invalid_value` (received: undefined).
     expect(['invalid_value', 'invalid_type']).toContain(issue!.code);
+  });
+});
+
+describe('BL-073 — end-to-end alias rejection through runComposeDossierEnvelope', () => {
+  it('rejects a payload with all three alias false-positives in a single call', () => {
+    // Closes the loop in-session per audit "things plan misses" #3:
+    // proves the alias work flows from JSON → codegen → schema → matcher →
+    // Bl068MapAbsentFalsePositiveError without depending on a live exercise.
+    const input = baseInput([
+      { category: 'map-absent', entry: 'UK GDPR — claimed absent' },
+      { category: 'map-absent', entry: 'Australia Privacy Act — claimed absent' },
+      { category: 'map-absent', entry: 'EU AI Act — claimed absent' },
+    ]);
+    try {
+      runComposeDossierEnvelope(input, SERVER_CTX);
+      throw new Error('expected throw');
+    } catch (error) {
+      expect(error).toBeInstanceOf(Bl068MapAbsentFalsePositiveError);
+      const offenders = (error as Bl068MapAbsentFalsePositiveError).offenders;
+      expect(offenders).toHaveLength(3);
+      const matchedHubs = offenders.map((o) => o.matchedHub);
+      expect(matchedHubs).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/UK Data Protection Act 2018/i),
+          expect.stringMatching(/Privacy Act 1988/i),
+          expect.stringMatching(/EU Artificial Intelligence Act/i),
+        ])
+      );
+    }
   });
 });

@@ -11,21 +11,55 @@
 ## Current manifest hash
 
 ```
-47f2ec348037b90b279fa9d181068e1f87154baeff2e873009a37307d34ee375
+ba0f55ece3a6fe6618af556f80bf6224292c2d7806cea40ef4537b0628b949cb
 ```
 
 Computed over (sorted):
 
 - **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`).
-- 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719).
+- 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.13.0` (BL-067 + BL-072: `irlSource` directive added to `ENVELOPE_COMPOSITION_DIRECTIVE` and interactive Step 4; required field added to `ComposeDossierEnvelopeInputSchema`).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.14.0` (BL-073-rename: VERIFY-block YAML field `serverVersion:` renamed to `promptVersion:` at both invocation sites for operator clarity — the field carries the prompt version, not the mcp-server package version).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.27.0 — 2026-06-06 — BL-073 + `serverVersion`→`promptVersion` rename
+
+**Theme**: two small unrelated cleanups bundled for operator-merge efficiency, both addressing empirical pain from the 2026-06-06 post-BL-067+BL-072 live exercise:
+
+- **BL-073** — three frameworks have empirically failed the `findMatchedHubFramework` bidirectional substring match across multiple recent exercises (no normalized substring overlap exists between the model idiom and the Hub's canonical name): `"UK GDPR"` ↔ `"UK Data Protection Act 2018"`, `"Australia Privacy Act"` ↔ `"Privacy Act 1988 (as amended 2024)"`, `"EU AI Act"` ↔ `"EU Artificial Intelligence Act (Regulation 2024/1689)"`. Added optional `aliases?: string[]` field to `RegulationSchema` at `src/schemas/regulatory-map.ts`, populated curated aliases on the three failing JSONs, extended the matcher with a new `HUB_FRAMEWORK_INDEX` + `matchesEntry` design. Alias matching is **exact-equality on normalized form** (not substring) to avoid spurious matches on short curated forms; canonical-name bidirectional substring path is preserved verbatim so no current match regresses. Codegen guard in `scripts/generate-regulations-index.mjs` fails the build if any normalized alias appears in two entries (closes the only structural safety concern about alias collisions).
+- **`serverVersion` → `promptVersion` rename** — the BL-045-VERIFY block template instructed the model to emit `serverVersion: <semver from the meta fence promptVersion family>` at both invocation sites. The field is mislabeled — it carries promptVersion, not the mcp-server package version. Operators were confused twice (sonnet-4-6 hallucinated `1.0.0`, opus correctly echoed `0.13.0` but the field name still implied mcp-server). Renamed the YAML key at both sites + expanded inline guidance ("NOT the mcp-server package version"). The JSON meta-fence already emits `promptVersion` separately so this creates one consistent value across both surfaces.
+
+**Surface impact**:
+
+- **NEW: `aliases?: string[]` on `RegulationSchema`** — optional field, additive. Populated on `GB-DPA.json` (`["UK GDPR", "UK General Data Protection Regulation"]`), `AU-PRIVACY-ACT.json` (`["Australia Privacy Act", "Australia Privacy Act 1988", "Australian Privacy Act"]`), `EU-AI-ACT.json` (`["EU AI Act", "EU AI Regulation"]` — bare `"AI Act"` explicitly NOT added; would be a foot-gun for any future entry whose normalized canonical name contains `"aiact"`).
+- **`HUB_FRAMEWORK_INDEX` matcher refactor** at `mcp-server/src/schemas/compose-dossier-envelope.ts` — preserves canonical-substring semantics for all 123 existing entries; adds alias exact-equality as an additive net. `findMatchedHubFramework` returns the canonical name regardless of which match path fired.
+- **Codegen duplicate-alias guard** at `mcp-server/scripts/generate-regulations-index.mjs` — fails the build if any two entries share a normalized alias.
+- **VERIFY-block YAML field rename** at `mcp-server/src/prompts/irl-ingestion.ts:459,946` — `serverVersion` → `promptVersion` with expanded inline guidance. promptVersion 0.13.0 → 0.14.0.
+- **2 existing "KNOWN GAP" tests flipped** to positive matches via aliases; 3 new BL-073 tests added (EU AI Act match, alias exact-equality lock-in, canonical-substring regression guard); 1 new integration test covers end-to-end alias rejection through `runComposeDossierEnvelope`.
+
+**Manifest hash rebaseline**: `47f2ec348037b90b279fa9d181068e1f87154baeff2e873009a37307d34ee375` → `ba0f55ece3a6fe6618af556f80bf6224292c2d7806cea40ef4537b0628b949cb` (prompt `name@version` tuple drift — aliases are NOT in the manifest hash inputs).
+
+**Body hash rebaseline**: ALL 7 hash-stability scenarios drift this PR (vs. only 3 in the BL-067+BL-072 rebaseline) — the VERIFY-block directive ships in every body shape, so the field rename affects interactive + 3 one-shot variants + 2 extract-only + 2 compact variants:
+
+- `EXPECTED_HASH_INTERACTIVE`: `557886…` → `681aac607179e8963ac590f042fb4619f4cb7bbd8300d5b282ec8355e8d8b5e5`
+- `EXPECTED_HASH_ONESHOT_MINIMAL`: `500f06…` → `a32ca2c2fd1e3811f37852116b0dbb39bf9cbeb75172640a5350bf051129b419`
+- `EXPECTED_HASH_ONESHOT_FULL`: `564e4b…` → `bd383c5274d72a6ea5aa4a230a0489416ad4b712b8e9a17379adc7e5cfb3e190`
+- `EXPECTED_HASH_EXTRACT_ONLY_MINIMAL`: `fdcbe2…` → `91c0ba7f2af9bba7785a495e72da2dd8f759f0a775e5262eed805a6c0f67151a`
+- `EXPECTED_HASH_EXTRACT_ONLY_FULL`: `295834…` → `8ae7233f48dc054db7e89b74d5d842df31f529ca79b1d654e605358d66ed0f9b`
+- `EXPECTED_HASH_ONESHOT_FULL_COMPACT`: `65d157…` → `ca28dad47ed8056bd6a3d02cef5241770f16e9394a66d8a1de89b2bee257e669`
+- `EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT`: `c064e9…` → `114d59487290d10f81e6bea895f1f266023264252978091523bbb5c04d874e81`
+
+**Acceptance** (in-session — does not depend on a live exercise):
+
+- New integration test `BL-073 — end-to-end alias rejection through runComposeDossierEnvelope` constructs a payload with all three alias false-positives in `gaps[]` and asserts `Bl068MapAbsentFalsePositiveError` lists all three offenders with the matched canonical Hub names. Proves the alias work flows from JSON → codegen → schema → matcher → rejection end-to-end without a live retest.
+- Body-hash + manifest-stability tests green with the new constants.
 
 ---
 

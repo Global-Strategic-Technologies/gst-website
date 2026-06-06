@@ -509,50 +509,85 @@ export function normalizeFrameworkName(name: string): string {
 }
 
 /**
- * Build the Hub-backed framework name set from the regulatory map.
- * Indexed at module load. Each entry is the normalized Hub name.
+ * Build the Hub-backed framework index from the regulatory map.
+ * Indexed at module load. Two match paths per entry:
  *
- * Note: Hub regulation names are formal long-form (e.g., "General Data
- * Protection Regulation (GDPR)") while the model passes acronyms (e.g.,
- * "GDPR"). Bidirectional substring matching with a 4-character floor
- * handles this: a model name normalized to ≥4 chars is Hub-backed if
- * (model ⊂ hub-name) OR (hub-name ⊂ model) for any Hub entry. The
- * 4-char floor prevents pathological short matches like "law" or "act"
- * matching everything.
+ * 1. **Canonical-name bidirectional substring** (existing semantics, preserved
+ *    verbatim so no current match regresses). Hub regulation names are formal
+ *    long-form (e.g., "General Data Protection Regulation (GDPR)") while the
+ *    model passes acronyms (e.g., "GDPR"). A model name normalized to ≥4 chars
+ *    is Hub-backed if (model ⊂ hub) OR (hub ⊂ model). The 4-char floor
+ *    prevents pathological matches like "law" or "act" matching everything.
+ *
+ * 2. **BL-073 alias exact-equality on normalized form.** Empirically, three
+ *    frameworks fail the substring rule because no overlap exists between the
+ *    model idiom and the canonical name: "UK GDPR" vs "UK Data Protection Act
+ *    2018", "Australia Privacy Act" vs "Privacy Act 1988 (as amended 2024)",
+ *    "EU AI Act" vs "EU Artificial Intelligence Act (Regulation 2024/1689)".
+ *    Curated aliases on those entries cover the gap. Exact-equality (not
+ *    substring) is the safer default — substring on aliases would risk
+ *    spurious matches on short curated forms ("AI Act" alias substring-matching
+ *    "Quebec AI Act" or future state-level frameworks). The canonical-substring
+ *    path still catches its own variants; aliases are an additive net.
+ *
+ * Duplicate-alias collisions are caught at codegen time by
+ * `scripts/generate-regulations-index.mjs` (which throws if any normalized
+ * alias appears in two entries) — so `findMatchedHubFramework` returning the
+ * first canonical-name match is safe by construction.
  */
-const HUB_FRAMEWORK_NORMALIZED: readonly string[] = REGULATION_ENTRIES.map((entry) =>
-  normalizeFrameworkName(entry.data.name)
-);
+interface HubFrameworkIndexEntry {
+  /** Canonical Hub name returned by `findMatchedHubFramework` */
+  readonly canonicalName: string;
+  /** Normalized canonical name — used by the existing substring path */
+  readonly normalizedCanonical: string;
+  /** Normalized aliases (BL-073) — model-idiom variants that match this entry */
+  readonly normalizedAliases: readonly string[];
+}
+
+const HUB_FRAMEWORK_INDEX: readonly HubFrameworkIndexEntry[] = REGULATION_ENTRIES.map((entry) => ({
+  canonicalName: entry.data.name,
+  normalizedCanonical: normalizeFrameworkName(entry.data.name),
+  normalizedAliases: (entry.data.aliases ?? []).map(normalizeFrameworkName),
+}));
 
 const HUB_MATCH_MIN_LENGTH = 4;
+
+function matchesEntry(entry: HubFrameworkIndexEntry, normalizedModelName: string): boolean {
+  // Canonical-name bidirectional substring — preserved verbatim from pre-BL-073.
+  if (
+    entry.normalizedCanonical.length >= HUB_MATCH_MIN_LENGTH &&
+    (entry.normalizedCanonical.includes(normalizedModelName) ||
+      normalizedModelName.includes(entry.normalizedCanonical))
+  ) {
+    return true;
+  }
+  // BL-073 alias exact-equality on normalized form (NOT substring).
+  return entry.normalizedAliases.some((alias) => alias === normalizedModelName);
+}
 
 function isHubBacked(modelName: string): boolean {
   const normalized = normalizeFrameworkName(modelName);
   if (normalized.length < HUB_MATCH_MIN_LENGTH) return false;
-  return HUB_FRAMEWORK_NORMALIZED.some(
-    (hubName) =>
-      hubName.length >= HUB_MATCH_MIN_LENGTH &&
-      (hubName.includes(normalized) || normalized.includes(hubName))
-  );
+  return HUB_FRAMEWORK_INDEX.some((entry) => matchesEntry(entry, normalized));
 }
 
 /**
  * BL-068 — return the matched Hub framework name (formal long-form, as
  * stored in the regulatory-map JSON) for a model-supplied name, or null
- * if no Hub entry matches under the substring rules used by
- * `isHubBacked`. Used to surface the matched Hub framework in the
- * `BL-068 map-absent validation FAILED` rejection so the model knows
- * which Hub entry covers its (false-positive) `map-absent:` claim.
+ * if no Hub entry matches under the substring or alias rules. Used to
+ * surface the matched Hub framework in the `BL-068 map-absent validation
+ * FAILED` rejection so the model knows which Hub entry covers its
+ * (false-positive) `map-absent:` claim.
+ *
+ * BL-073 extension: also matches via curated aliases (exact-equality on
+ * normalized form). Returns the canonical name regardless of whether
+ * the match came via canonical substring or alias path.
  */
 function findMatchedHubFramework(modelName: string): string | null {
   const normalized = normalizeFrameworkName(modelName);
   if (normalized.length < HUB_MATCH_MIN_LENGTH) return null;
-  for (const entry of REGULATION_ENTRIES) {
-    const hubNormalized = normalizeFrameworkName(entry.data.name);
-    if (hubNormalized.length < HUB_MATCH_MIN_LENGTH) continue;
-    if (hubNormalized.includes(normalized) || normalized.includes(hubNormalized)) {
-      return entry.data.name;
-    }
+  for (const entry of HUB_FRAMEWORK_INDEX) {
+    if (matchesEntry(entry, normalized)) return entry.canonicalName;
   }
   return null;
 }

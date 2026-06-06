@@ -86,7 +86,11 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // BL-067 + BL-072 rebaseline: prompt v0.12.0 → v0.13.0 (irlSource
 // directive added to ENVELOPE_COMPOSITION_DIRECTIVE + interactive Step 4;
 // body bytes change → manifest hash drifts via name@version tuple).
-const EXPECTED_MANIFEST_HASH = '47f2ec348037b90b279fa9d181068e1f87154baeff2e873009a37307d34ee375';
+// BL-073 + serverVersion→promptVersion rebaseline: prompt v0.13.0 → v0.14.0
+// (VERIFY-block field renamed at both invocation sites for operator
+// clarity — the field carries promptVersion, not the mcp-server package
+// version). Aliases are NOT in the manifest hash inputs.
+const EXPECTED_MANIFEST_HASH = 'ba0f55ece3a6fe6618af556f80bf6224292c2d7806cea40ef4537b0628b949cb';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

@@ -1,6 +1,7 @@
 {
   "id": "au-privacy-act",
   "name": "Privacy Act 1988 (as amended 2024)",
+  "aliases": ["Australia Privacy Act", "Australia Privacy Act 1988", "Australian Privacy Act"],
   "regions": [
     "AUS"
   ],
