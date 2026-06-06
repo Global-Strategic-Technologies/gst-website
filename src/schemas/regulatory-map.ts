@@ -22,6 +22,19 @@ export const RegulationCategorySchema = z.enum([
 export const RegulationSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
+  aliases: z
+    .array(z.string().min(1))
+    .optional()
+    .describe(
+      'BL-073 — alternative names the model may use that should match this framework. ' +
+        'Add when bidirectional substring matching (used by `findMatchedHubFramework` in ' +
+        '`mcp-server/src/schemas/compose-dossier-envelope.ts`) fails because no normalized ' +
+        'substring overlap exists between the canonical name and the model idiom. ' +
+        'Example: "UK GDPR" for the canonical "UK Data Protection Act 2018". Aliases match ' +
+        'via exact-equality on normalized form (lowercase, non-alphanumeric stripped). ' +
+        'A duplicate-alias detection guard in `scripts/generate-regulations-index.mjs` fails ' +
+        'the build if any normalized alias appears in two entries.'
+    ),
   regions: z
     .array(
       z

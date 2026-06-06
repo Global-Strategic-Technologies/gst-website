@@ -102,6 +102,7 @@ export const REGULATIONS: ReadonlyArray<{ readonly file: string; readonly data: 
     data: {
       id: 'au-privacy-act',
       name: 'Privacy Act 1988 (as amended 2024)',
+      aliases: ['Australia Privacy Act', 'Australia Privacy Act 1988', 'Australian Privacy Act'],
       regions: ['AUS'],
       effectiveDate: '1989-01-01',
       summary:
@@ -638,6 +639,7 @@ export const REGULATIONS: ReadonlyArray<{ readonly file: string; readonly data: 
     data: {
       id: 'eu-ai-act',
       name: 'EU Artificial Intelligence Act (Regulation 2024/1689)',
+      aliases: ['EU AI Act', 'EU AI Regulation'],
       regions: [
         'AUT',
         'BEL',
@@ -963,6 +965,7 @@ export const REGULATIONS: ReadonlyArray<{ readonly file: string; readonly data: 
     data: {
       id: 'gb-dpa',
       name: 'UK Data Protection Act 2018',
+      aliases: ['UK GDPR', 'UK General Data Protection Regulation'],
       regions: ['GBR'],
       effectiveDate: '2018-05-25',
       summary:

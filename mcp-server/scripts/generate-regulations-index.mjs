@@ -151,6 +151,26 @@ async function writeFormatted(filePath, content) {
     return { file, parsed: JSON.parse(raw) };
   });
 
+  // BL-073 — detect duplicate normalized aliases across entries.
+  // `findMatchedHubFramework` in compose-dossier-envelope.ts returns the
+  // FIRST canonical-name match, so a duplicate alias would silently mask
+  // the second entry. Fail loudly at codegen time before the runtime
+  // matcher can mis-attribute a match.
+  const aliasOwner = new Map(); // normalizedAlias → file that owns it
+  const normalize = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  for (const { file, parsed } of records) {
+    for (const a of parsed.aliases ?? []) {
+      const k = normalize(a);
+      if (aliasOwner.has(k)) {
+        throw new Error(
+          `BL-073 alias collision: normalized alias "${k}" appears in both ` +
+            `${aliasOwner.get(k)} and ${file}. Aliases must be unique across entries.`
+        );
+      }
+      aliasOwner.set(k, file);
+    }
+  }
+
   mkdirSync(dirname(outFile), { recursive: true });
 
   const banner = [
