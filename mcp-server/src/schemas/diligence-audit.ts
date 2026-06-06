@@ -134,7 +134,10 @@ const citationSchema = z
   .string()
   .regex(
     /^Section (\d{2}|--)[^—]*—.{20,}$/,
-    'Citation must match the form "Section NN — <substantial excerpt of at least 20 characters>". For partner-supplied (non-IRL) callers, use "Section -- — partner-supplied form input — <description>".'
+    'Citation must match the form "Section NN — <excerpt of ≥20 characters>". ' +
+      'Common rejection causes: (1) using a hyphen "-" (U+002D) where an em-dash "—" (U+2014) is required — the separator between the section header and the excerpt is an EM-DASH; (2) excerpt under 20 characters of substantive IRL content — one- or two-word excerpts will be rejected; (3) missing the "Section NN" prefix. ' +
+      'For partner-supplied (non-IRL) callers, use "Section -- — partner-supplied form input — <description>" (the literal "--" indicates no IRL section). ' +
+      'Fix: re-emit the citation with the EM-DASH (—) separator AND a post-em-dash excerpt of at least 20 characters quoted verbatim from the IRL body.'
   );
 
 // ─── Dimension audit shapes ─────────────────────────────────────────────

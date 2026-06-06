@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-5bee38cc935fa3a1b987999ed9d467f250b1dc4eeeb3b1b5555bb5a3205adbd9
+47f2ec348037b90b279fa9d181068e1f87154baeff2e873009a37307d34ee375
 ```
 
 Computed over (sorted):
@@ -20,12 +20,43 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719).
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.12.0` (BL-064: batch-call discipline — Step 2 + Step 3 directives rewritten to instruct ONE call with array filters (`theme: [...]`, `engagement: [...]`, `jurisdiction: [...]`, `category: [...]`) instead of N sequential per-arg calls; `SearchPortfolioInputSchema` extended with `StringOrStringArray` union for `theme` + `engagement`).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.13.0` (BL-067 + BL-072: `irlSource` directive added to `ENVELOPE_COMPOSITION_DIRECTIVE` and interactive Step 4; required field added to `ComposeDossierEnvelopeInputSchema`).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.26.0 — 2026-06-06 — BL-067 + BL-072 — citation regex enrichment + xlsx-reconstruction provenance-gap auto-append
+
+**Theme**: two empirically-justified, structurally-small server-side improvements bundled because both surface findings from the 2026-06-05 post-BL-068 live exercises:
+
+- **BL-067**: the citation regex `^Section (\d{2}|--)[^—]*—.{20,}$` at `mcp-server/src/schemas/diligence-audit.ts:133-138` produced retries on two distinct tools across two model tiers on the same day — `generate_diligence_agenda` 2/1 on sonnet-4-6 (wrong dash character) and `compute_techpar` 2/1 on opus-4-8 (insufficient excerpt length). Custom regex message rewritten with the BL-065-style forcing-function format (explicit em-dash vs hyphen guidance + length explanation + `Fix:` line) so the SDK-surfaced Zod error carries actionable correction instead of the generic "string does not match regex" default.
+- **BL-072**: the opus-4-8 run produced a model honesty disclosure — in xlsx-reconstruction mode, `hashBindResult: pass-internal` is tautological because the model controls both `filledIrl` and `irlBodyHash` (the 2,815-byte trimmed reconstruction passed the hash check trivially against a 76,847-byte source xlsx). New required `irlSource` enum field on `ComposeDossierEnvelopeInputSchema` + explicit-Set auto-append in `runComposeDossierEnvelope` surface this disclosure as a structural artifact every reconstruction run carries, converting one-off model honesty into a per-run gap-list entry.
+
+**Surface impact**:
+
+- **`citationSchema` custom message rewritten** at `mcp-server/src/schemas/diligence-audit.ts:133-138`. No schema shape change; only the regex error string. Zero existing tests assert on the old message text. 3 new BL-067 unit tests assert the new message on hyphen-instead-of-em-dash + under-20-char failures.
+- **NEW: `irlSource` required field** on `ComposeDossierEnvelopeInputSchema` with the same 4 enum values the prompt's VERIFY-block sketches already list at `src/prompts/irl-ingestion.ts:462,949` (single source of truth between prompt and schema): `partner-paste-verbatim | model-reconstruction-from-xlsx | model-reconstruction-trimmed | placeholder`.
+- **NEW: BL-072 auto-append** in `runComposeDossierEnvelope` — when `irlSource` matches an explicit reconstruction set (`new Set(['model-reconstruction-from-xlsx', 'model-reconstruction-trimmed'])`), append a `provenance-gap:` entry to (J) naming the BL-049 hash-bind tautology. Explicit Set (not a `startsWith` prefix check) so a future enum addition forces a conscious decision rather than silently inheriting the auto-append.
+- **Prompt body changes** — `ENVELOPE_COMPOSITION_DIRECTIVE` (line 416, shared constant covering all one-shot mode) and interactive mode's Step 4 (line 937) both get an `irlSource` directive instructing the model to populate the new field. promptVersion 0.12.0 → 0.13.0.
+- **`IrlBodyHashMismatchError` rejection text** — new test asserts the BL-068 `Fix:` line referencing `prepare_irl_body`. (Existing behavior; new test only.)
+
+**Manifest hash rebaseline**: `5bee38cc935fa3a1b987999ed9d467f250b1dc4eeeb3b1b5555bb5a3205adbd9` → `47f2ec348037b90b279fa9d181068e1f87154baeff2e873009a37307d34ee375` (prompt `name@version` tuple drift).
+
+**Body hash rebaseline**: 3 of 9 hash-stability scenarios drift (only the verbose-mode bodies that include `ENVELOPE_COMPOSITION_DIRECTIVE`). Compact and extract-only bodies skip the directive per its header (`BLOCKING — full mode + verbose verbosity only`) and remain unchanged:
+
+- `EXPECTED_HASH_INTERACTIVE`: `bf7a70d…` → `55788619032fa2979ba673f5ab5be1f090dafdef6d2b46cdfffa8708a57e2bfd`
+- `EXPECTED_HASH_ONESHOT_MINIMAL`: `c84440cd…` → `500f065e3f758e6751d86ca45190e0e6be13c6f4ae379224a16ae1d7af806e4b`
+- `EXPECTED_HASH_ONESHOT_FULL`: `8f126e4d…` → `564e4bbeeedba66f04922e6f2e38f6bd3a3746290b9cf1f4625e706ec6ee89ce`
+
+**Acceptance** (next live exercise on the same IRL):
+
+- `generate_diligence_agenda` and `compute_techpar` retries that previously cited "citation-format-invalid" or "lengthened-citation-excerpt" should drop. Target ≤1 retry per tool from this rule class.
+- Any xlsx-reconstruction run produces a `provenance-gap:` entry in (J) naming the BL-049 hash-bind tautology — visible in the dossier markdown without depending on the model to volunteer it.
+- Partner-paste runs continue to NOT show the BL-072 gap entry.
 
 ---
 

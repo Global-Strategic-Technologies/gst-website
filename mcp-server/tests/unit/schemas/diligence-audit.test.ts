@@ -22,6 +22,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   type AuditedUserInputs,
+  AuditedUserInputsSchema,
   buildPartnerSuppliedAudit,
   bracketForUsdMillions,
   formatAuditIssues,
@@ -655,5 +656,51 @@ describe('buildPartnerSuppliedAudit', () => {
     p.growthStage = 'unknown';
     p._audit = buildPartnerSuppliedAudit(p);
     expect(runAuditRefinements(p)).toEqual([]);
+  });
+});
+
+describe('BL-067 — citation regex custom message', () => {
+  // The citation regex error fires at SDK parse time (before
+  // runAuditRefinements). We exercise it via AuditedUserInputsSchema.safeParse
+  // by mutating one citation in the baseline to a malformed value.
+  function baselineWithCitation(badCitation: string): unknown {
+    const p = baseline();
+    p._audit.productType = { ...p._audit.productType, citation: badCitation };
+    return p;
+  }
+
+  function citationIssue(raw: unknown): { message: string; path: readonly PropertyKey[] } | null {
+    const parsed = AuditedUserInputsSchema.safeParse(raw);
+    if (parsed.success) return null;
+    const cit = parsed.error.issues.find((i) => i.path.includes('citation'));
+    return cit ? { message: cit.message, path: cit.path } : null;
+  }
+
+  it('hyphen-instead-of-em-dash rejection surfaces the EM-DASH guidance', () => {
+    // Hyphen with surrounding spaces, plus a substantive excerpt so the only
+    // failure cause is the dash character (not excerpt length).
+    const issue = citationIssue(
+      baselineWithCitation('Section 00 - hyphen separator with a substantive excerpt here')
+    );
+    expect(issue).not.toBeNull();
+    expect(issue!.message).toContain('EM-DASH');
+    expect(issue!.message).toContain('Fix:');
+    expect(issue!.message).toContain('U+2014');
+  });
+
+  it('under-20-char excerpt rejection surfaces the length guidance', () => {
+    const issue = citationIssue(baselineWithCitation('Section 00 — too short'));
+    expect(issue).not.toBeNull();
+    expect(issue!.message).toContain('≥20 characters');
+    expect(issue!.message).toContain('Fix:');
+  });
+
+  it('valid citation passes parse', () => {
+    const issue = citationIssue(
+      baselineWithCitation(
+        'Section 01 — b2b-saas product with substantive verbatim IRL excerpt content'
+      )
+    );
+    expect(issue).toBeNull();
   });
 });

@@ -83,7 +83,10 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // rewrites instructing batched array calls for search_portfolio +
 // search_regulations; SearchPortfolioInputSchema extended with
 // StringOrStringArray union for theme + engagement.
-const EXPECTED_MANIFEST_HASH = '5bee38cc935fa3a1b987999ed9d467f250b1dc4eeeb3b1b5555bb5a3205adbd9';
+// BL-067 + BL-072 rebaseline: prompt v0.12.0 → v0.13.0 (irlSource
+// directive added to ENVELOPE_COMPOSITION_DIRECTIVE + interactive Step 4;
+// body bytes change → manifest hash drifts via name@version tuple).
+const EXPECTED_MANIFEST_HASH = '47f2ec348037b90b279fa9d181068e1f87154baeff2e873009a37307d34ee375';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();
