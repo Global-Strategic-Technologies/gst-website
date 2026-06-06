@@ -94,7 +94,12 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // arg + envelope-composition directive added at both invocation sites).
 // The BL-073 NIST AI RMF acronym aliases added in the same PR do NOT
 // affect the manifest hash (aliases aren't in manifest inputs).
-const EXPECTED_MANIFEST_HASH = 'e0642ea3890647bd1a9f09782880aa99794384e884803e33e3706396380d27f2';
+// BL-071 rebaseline: prompt v0.15.0 → v0.16.0 (server-sourced
+// serverToolCallCounts directive + precheck-derivation rules added to the
+// envelope-composition directive; `toolCallCounts` schema line in the
+// BL-045-VERIFY directive gains the `errored: N` field at both invocation
+// sites; manifest hash drifts via name@version tuple).
+const EXPECTED_MANIFEST_HASH = '7344f75e11af95e9d1298e222cab9966aa9b6f04cae11ac0c92d32d938b9f8d5';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

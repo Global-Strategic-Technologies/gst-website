@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-e0642ea3890647bd1a9f09782880aa99794384e884803e33e3706396380d27f2
+7344f75e11af95e9d1298e222cab9966aa9b6f04cae11ac0c92d32d938b9f8d5
 ```
 
 Computed over (sorted):
@@ -20,12 +20,39 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.15.0` (BL-070: `requireVerbatimBody` prompt arg + envelope-composition directive added at both invocation sites).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.16.0` (BL-071: server-sourced `serverToolCallCounts` snapshot emitted from `compose_dossier_envelope`; prompt directive instructs model to copy verbatim into the BL-045-VERIFY block + derive `precheck.*` fields from the snapshot).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.29.0 — 2026-06-06 — BL-071 server-sourced `toolCallCounts` (closes BL-074 gate 2)
+
+**Theme**: closes the second production-readiness gate from BL-074 — converts the model self-narrated `toolCallCounts` block (which has empirically drifted: sonnet-4-6 fabricated a `prepare_irl_body: transport-timeout` row when the tool was never called; opus-4-8 omitted `prepare_irl_body` from its self-report; a third run reported the same retry event inconsistently across two YAML surfaces) into a server-arithmetic snapshot the model copies verbatim. Same architectural lever as BL-070: shift human-discipline into system-enforcement.
+
+**Surface impact**:
+
+- **NEW: `ToolCallCounters` interface + `InMemoryToolCallCounters` default** at [`mcp-server/src/metrics/with-metrics.ts`]. Tracks four states per tool — `attempted` (at wrap entry), `succeeded` / `rejected` / `errored` (at wrap exit) — keyed by tool name. Backward-compatible: when `MetricsContext.counters` is undefined (legacy tests, NOOP path), `withToolMetrics` behaves exactly as before.
+- **NEW: optional `counters?: ToolCallCounters` field** on `MetricsContext`. `withToolMetrics` records counter events on every wrap. `withResourceMetrics` and `withPromptMetrics` do NOT touch counters (tool-only scope today).
+- **NEW: per-process counter wiring in `createServer`** — stdio path constructs a fresh `{ sink: NoopSink, counters: InMemoryToolCallCounters }` per server instance (process-lifetime scope = one Claude Desktop session); Worker path adds `counters: new InMemoryToolCallCounters()` to the existing context literal (per-request scope, correct for short-lived Worker isolates). The frozen `NOOP_METRICS_CONTEXT` singleton stays untouched — used by default-param slots in 14+ `register*` sites + tests.
+- **NEW: `serverToolCallCounts` field on `ComposeDossierEnvelopeResult`** (and the structured/text tool output). Snapshot read at envelope-build time via `metrics.counters?.snapshot()` and embedded in the dossier output for the model to copy verbatim. The envelope tool itself appears in its own snapshot as `attempted: N, succeeded: N-1` (in-flight while computing — intentional, audit M1).
+- **NEW: prompt body directive (v0.15.0 → v0.16.0)** instructs the model to (a) copy `serverToolCallCounts` VERBATIM into the BL-045-VERIFY block `toolCallCounts` field and (b) derive `precheck.iterations` (== `validate_irl_provenance.succeeded`), `precheck.attemptsTotal` (== `attempted`), and the count of `precheck.errorsEncountered` (== `rejected`) from the snapshot. The arithmetic identity holds because `validate_irl_provenance` is registered exactly once and the internal verification engine bypasses the wrapper (no spurious counter ticks). `toolCallCounts` template line gains the `errored: N` field at both invocation sites.
+- **BL-070 self-degradation gap → server-detectable**: `Bl070VerbatimBodyRequiredError` rejections now appear in `serverToolCallCounts.compose_dossier_envelope.rejected`. A model that ignores the operator's `requireVerbatimBody: true` flag (passes false to the tool) cannot also fabricate the resulting rejection count in the server-arithmetic snapshot. The BL-075 reservation for server-side prompt-arg passthrough may now be redundant — re-evaluate after one live exercise.
+- **Manifest hash rebaseline**: `e0642ea3…` → `7344f75e…` (prompt `name@version` tuple drift: 0.15.0 → 0.16.0).
+- **Body hash rebaseline**: ALL 7 hash-stability scenarios drift — the `toolCallCounts` schema line lives in the BL-045-VERIFY directive which ships in every body shape (interactive + one-shot minimal + one-shot full + extract-only minimal + extract-only full + 2 compact variants).
+
+**Acceptance** (in-session — no live exercise required):
+
+- 5 new `InMemoryToolCallCounters` unit tests (aggregation, distinct-tool isolation, defensive-copy snapshot).
+- 7 new `withToolMetrics` counter-integration tests (attempted-before-inner, success / rejected / errored outcomes, mid-flight snapshot semantics, arithmetic identity `attempted === succeeded + rejected + errored`, backward-compat when counters undefined, tool-only scope verification).
+- 3 new BL-071 integration tests (`bl-071-precheck-derivation.test.ts`): counter increments survive end-to-end through `withToolMetrics` → handler; `compose_dossier_envelope` emits the snapshot in `serverToolCallCounts` with the in-flight `compose_dossier_envelope: { attempted: 1, succeeded: 0, ... }` shape; legacy call without `metrics` arg omits the field (backward-compat).
+- 6 new prompt-body substring assertions (one-shot + interactive each): `serverToolCallCounts`, `precheck.iterations`, `errored: N`.
+- BL-058 verify-block schema test updated for new `errored: N` field on `validate_irl_provenance` template line.
+
+**Risks**: low. The counter scope is process-lifetime in stdio and per-request in Worker — both correct for BL-045-VERIFY semantics ("this session"). Map mutations are safe because (a) stdio = single JS event loop, (b) Worker counters are per-request — no cross-request contention. The snapshot read inside the envelope handler is not racing the `attempted`-at-wrap-entry record (same event loop).
 
 ---
 

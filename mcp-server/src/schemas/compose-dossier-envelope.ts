@@ -341,6 +341,13 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
 
 export type ComposeDossierEnvelopeInput = z.infer<typeof ComposeDossierEnvelopeInputSchema>;
 
+export interface ServerToolCallCountEntry {
+  attempted: number;
+  succeeded: number;
+  rejected: number;
+  errored: number;
+}
+
 export interface ComposeDossierEnvelopeResult {
   metaFenceMarkdown: string;
   gapListMarkdown: string;
@@ -357,6 +364,27 @@ export interface ComposeDossierEnvelopeResult {
     /** BL-049 v11 Finding B: tier-2 claims (declared one-step derivation) whose citation neither substring-matches the IRL nor carries the `Section --` partner-supplied sentinel. Surfaces the demote-to-dodge gaming pattern where a model tries to downgrade tier-1 to tier-2 to convert a tier-mismatch into a soft provenance-gap. */
     tierFabrications: number;
   };
+  /**
+   * BL-071 — server-authoritative snapshot of every tool call in this session
+   * (attempted / succeeded / rejected / errored per tool). The model MUST copy
+   * this object VERBATIM into the BL-045-VERIFY block `toolCallCounts` field
+   * and derive `precheck.iterations` (== validate_irl_provenance.succeeded),
+   * `precheck.attemptsTotal` (== validate_irl_provenance.attempted), and the
+   * COUNT of `precheck.errorsEncountered` (== validate_irl_provenance.rejected)
+   * from these counts. The server counts are the source of truth; model
+   * self-narration of `toolCallCounts` has demonstrated drift (sonnet fabricated
+   * a tool call; opus omitted one; a third run reported the same event in two
+   * YAML surfaces inconsistently).
+   *
+   * `compose_dossier_envelope` itself appears here as `attempted: N, succeeded: N-1`
+   * — the envelope tool is in-flight while it computes the snapshot.
+   *
+   * Optional: present when the server-side `MetricsContext` carries a
+   * `ToolCallCounters` accumulator (i.e. always in the deployed transports;
+   * absent only in legacy/no-op tests that build a `MetricsContext` without
+   * counters).
+   */
+  serverToolCallCounts?: Record<string, ServerToolCallCountEntry>;
   emitInstructions: string;
 }
 

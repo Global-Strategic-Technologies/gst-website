@@ -64,16 +64,31 @@ const TOOL_DESCRIPTION = `Render the dossier's structural envelope (top-of-docum
 /**
  * Handler exported so integration tests can exercise the full pipeline
  * without going through the MCP transport.
+ *
+ * BL-071 — accepts the bound `MetricsContext` so the server-arithmetic
+ * `serverToolCallCounts` snapshot (`metrics.counters?.snapshot()`) can be
+ * read at envelope-build time and emitted in the result for the model to
+ * copy verbatim into the BL-045-VERIFY block. When `metrics` is undefined
+ * (legacy call sites / tests without counters), the field is omitted.
  */
-export async function handleComposeDossierEnvelopeTool(payload: ComposeDossierEnvelopeInput) {
+export async function handleComposeDossierEnvelopeTool(
+  payload: ComposeDossierEnvelopeInput,
+  metrics?: MetricsContext
+) {
   try {
     // BL-045 PR B audit ALT-2: derive `promptVersion` from the prompt
     // module (a leaf import — no circular-dep risk via the registry).
     // Overrides whatever the model passed; closes the v10 hallucination
     // failure mode where the model emitted `"0.0.2"` in the meta fence.
-    const result = runComposeDossierEnvelope(payload, {
+    const baseResult = runComposeDossierEnvelope(payload, {
       promptVersion: irlIngestionPrompt.version,
     });
+    // BL-071 — server-authoritative tool-call counts. The envelope tool
+    // itself shows `attempted: 1, succeeded: 0` because the wrap is still
+    // in-flight at snapshot time (audit M1 — desired semantic: "I'm reporting
+    // on the call I'm currently inside").
+    const serverToolCallCounts = metrics?.counters?.snapshot();
+    const result = serverToolCallCounts ? { ...baseResult, serverToolCallCounts } : baseResult;
     const text = JSON.stringify(result, null, 2);
     return {
       content: [{ type: 'text' as const, text }],
@@ -120,6 +135,12 @@ export function registerComposeDossierEnvelopeTool(
       description: TOOL_DESCRIPTION,
       inputSchema: ComposeDossierEnvelopeInputSchema.shape,
     },
-    withToolMetrics('compose_dossier_envelope', metrics, handleComposeDossierEnvelopeTool)
+    withToolMetrics(
+      'compose_dossier_envelope',
+      metrics,
+      // BL-071: capture `metrics` in the closure so the handler can read
+      // `metrics.counters?.snapshot()` at envelope-build time.
+      (payload: ComposeDossierEnvelopeInput) => handleComposeDossierEnvelopeTool(payload, metrics)
+    )
   );
 }

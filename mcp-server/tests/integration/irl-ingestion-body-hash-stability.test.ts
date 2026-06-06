@@ -192,16 +192,23 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // Verbose-mode bodies drift (interactive + one-shot minimal + one-shot
 // full); compact-mode + extract-only skip the envelope directive entirely
 // per its header (BLOCKING — full mode + verbose verbosity only).
+// BL-071 rebaseline (prompt 0.15.0 → 0.16.0): server-sourced
+// serverToolCallCounts directive added to the envelope-composition directive
+// (verbose paths) AND the `toolCallCounts` schema line in the
+// BL-045-VERIFY directive (every body shape) — now carries the BL-071
+// `errored: N` field + a "copy VERBATIM from compose_dossier_envelope
+// output `serverToolCallCounts`" comment + precheck-derivation rule. Because
+// the verify directive ships in EVERY body, ALL 7 hashes drift.
 const EXPECTED_HASH_INTERACTIVE =
-  '6c4bd6e58375c74b8a8bf8bf0ea955fd9449782991a9fc1b9556c2fd75573709';
+  'a3409d4815744f4487c713c9af5ac4a9f4dd519999fa679abd8bc5512f527267';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'f1c7a82b2be0f40bb189028ef858d2cf224ad4d60eafd0d99a62132f0acdf729';
+  '2272fd0580b667b3615adba44d9671d1c10acee9a7fe1b4c4ceaaf8a5de272e6';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'cb19d5c500a9441abdc82f09cc3302214a2019dee7f74d713b661c9b771fda5c';
+  '2111d4b7e476527e6ba6417a65b864f0f36ad102e8b5d2490cdad89c163a549d';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '91c0ba7f2af9bba7785a495e72da2dd8f759f0a775e5262eed805a6c0f67151a';
+  '6df0c2e328c7016e59ec6b20e7f7793e5815c9155e8502e08846c6bfd7d02b7f';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '8ae7233f48dc054db7e89b74d5d842df31f529ca79b1d654e605358d66ed0f9b';
+  '0cbbd3c7102f3ce8538ff6d1cefb47ec5c000bfb04d2314a5e6567bb558ca437';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -211,9 +218,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  'ca28dad47ed8056bd6a3d02cef5241770f16e9394a66d8a1de89b2bee257e669';
+  'ba58ba7af58e530111c83ad494088f5f0ae7c76567e179ce643e37de822e8647';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  '114d59487290d10f81e6bea895f1f266023264252978091523bbb5c04d874e81';
+  'c4e4be749dec548708340dd21b70954a8c55d2e3ef91a7a57e99b028a795fb9e';
 
 interface Scenario {
   name: string;

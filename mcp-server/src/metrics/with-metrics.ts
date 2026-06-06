@@ -40,6 +40,105 @@ import type { MetricSink } from './sinks/_interface';
 export interface MetricsContext {
   readonly sink: MetricSink;
   readonly keyOwner?: string;
+  /**
+   * BL-071 — optional server-arithmetic counter accumulator. When present,
+   * `withToolMetrics` records one `attempted` event at wrap entry (BEFORE
+   * inner runs) and one `success` | `rejected` | `errored` event at wrap
+   * exit. The `compose_dossier_envelope` handler reads the snapshot at
+   * envelope-build time and emits it as `serverToolCallCounts` so the model
+   * can copy it verbatim into the BL-045-VERIFY block (closing the empirical
+   * drift where the model self-narrated `toolCallCounts` and either fabricated
+   * a tool call or omitted one).
+   *
+   * Scope: process-lifetime in the stdio path (one counter map per Claude
+   * Desktop session); per-request in the Worker path (each fetch handler
+   * builds a fresh `InMemoryToolCallCounters`). Undefined in tests / default
+   * NOOP context — backward-compatible no-op.
+   */
+  readonly counters?: ToolCallCounters;
+}
+
+/**
+ * BL-071 — server-arithmetic tool-call counter taxonomy.
+ *
+ * Four states per tool, tracked separately so the BL-045-VERIFY-block
+ * arithmetic identity `precheck.iterations === validate_irl_provenance.succeeded`
+ * (and friends) is derivable from the snapshot the envelope tool emits.
+ *
+ * `attempted` is recorded at wrap entry — strictly BEFORE `inner` runs —
+ * so the envelope tool's OWN snapshot includes its own in-flight attempt
+ * (audit M1: prevents the confusing `attempted: 0, succeeded: 0` shape
+ * the envelope tool would otherwise show for itself).
+ *
+ * `succeeded` / `rejected` / `errored` are recorded at wrap exit:
+ *   - `succeeded`: inner returned without `isError`
+ *   - `rejected`: inner returned a result with `isError === true` (structured rejection)
+ *   - `errored`: inner threw (transport/internal failure)
+ */
+export type ToolCallCounterEvent = 'attempted' | 'success' | 'rejected' | 'errored';
+
+export interface ToolCallCounterEntry {
+  attempted: number;
+  succeeded: number;
+  rejected: number;
+  errored: number;
+}
+
+export interface ToolCallCounters {
+  record(toolName: string, event: ToolCallCounterEvent): void;
+  snapshot(): Record<string, ToolCallCounterEntry>;
+}
+
+/**
+ * Default in-process accumulator. Map mutations are safe because:
+ *   (a) stdio = single JS event loop — no true parallelism in tool handler
+ *       bodies; the MCP SDK serializes tool invocations per server instance.
+ *   (b) Worker counters are per-request — each request gets a fresh
+ *       `InMemoryToolCallCounters` so no cross-request contention.
+ * The `attempted`-at-wrap-entry record and the snapshot read inside the
+ * envelope tool body are therefore not racing.
+ */
+export class InMemoryToolCallCounters implements ToolCallCounters {
+  private readonly counters = new Map<string, ToolCallCounterEntry>();
+
+  record(toolName: string, event: ToolCallCounterEvent): void {
+    const cur = this.counters.get(toolName) ?? {
+      attempted: 0,
+      succeeded: 0,
+      rejected: 0,
+      errored: 0,
+    };
+    if (event === 'attempted') cur.attempted++;
+    else if (event === 'success') cur.succeeded++;
+    else if (event === 'rejected') cur.rejected++;
+    else cur.errored++;
+    this.counters.set(toolName, cur);
+  }
+
+  snapshot(): Record<string, ToolCallCounterEntry> {
+    const out: Record<string, ToolCallCounterEntry> = {};
+    for (const [name, entry] of this.counters) {
+      out[name] = { ...entry };
+    }
+    return out;
+  }
+}
+
+/**
+ * BL-071 — counter-taxonomy projection. Distinct from the existing
+ * 2-way `detectOutcome` (success/error) so the sink-event taxonomy
+ * stays unchanged (additive). Tools that throw → 'errored';
+ * tools that return `isError: true` → 'rejected'; everything else
+ * → 'success'.
+ */
+type CounterOutcome = 'success' | 'rejected' | 'errored';
+function detectCounterOutcome<TResult>(
+  result: TResult | undefined,
+  threw: boolean
+): CounterOutcome {
+  if (threw) return 'errored';
+  if (result && (result as { isError?: boolean }).isError === true) return 'rejected';
+  return 'success';
 }
 
 /**
@@ -60,8 +159,17 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
 ): (...args: TArgs) => Promise<TResult> {
   return async (...args: TArgs): Promise<TResult> => {
     const startedAt = Date.now();
+    // BL-071 — record `attempted` BEFORE inner runs so the envelope tool's
+    // own snapshot includes its own in-flight attempt. Only meaningful for
+    // tool_invocation; resource/prompt counters not in scope today.
+    if (eventType === 'tool_invocation') {
+      ctx.counters?.record(name, 'attempted');
+    }
     try {
       const result = await inner(...args);
+      if (eventType === 'tool_invocation') {
+        ctx.counters?.record(name, detectCounterOutcome(result, false));
+      }
       // B1 fix: detectOutcome MUST NOT take down the caller. A buggy projection
       // (e.g. accessing a field on an unexpected result shape) defaults to
       // 'success' so the handler's real return value still propagates. The
@@ -89,6 +197,9 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
       });
       return result;
     } catch (err) {
+      if (eventType === 'tool_invocation') {
+        ctx.counters?.record(name, detectCounterOutcome(undefined, true));
+      }
       emit(ctx.sink, {
         event_type: eventType,
         name,
