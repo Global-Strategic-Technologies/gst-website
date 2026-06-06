@@ -20,6 +20,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   Bl068MapAbsentFalsePositiveError,
+  ComposeDossierEnvelopeInputSchema,
   type ComposeDossierEnvelopeInput,
   computeIrlBodyHash,
   findFalsePositiveMapAbsentClaims,
@@ -40,7 +41,10 @@ const SAMPLE_IRL = `# IRL — TestCo
 - Engineering FTE count: 58 total
 `;
 
-function baseInput(gaps: ComposeDossierEnvelopeInput['gaps'] = []): ComposeDossierEnvelopeInput {
+function baseInput(
+  gaps: ComposeDossierEnvelopeInput['gaps'] = [],
+  irlSource: ComposeDossierEnvelopeInput['irlSource'] = 'partner-paste-verbatim'
+): ComposeDossierEnvelopeInput {
   return {
     promptName: 'gst_irl_ingestion',
     promptVersion: '0.4.0',
@@ -64,6 +68,7 @@ function baseInput(gaps: ComposeDossierEnvelopeInput['gaps'] = []): ComposeDossi
     gaps,
     filledIrl: SAMPLE_IRL,
     irlBodyHash: computeIrlBodyHash(SAMPLE_IRL),
+    irlSource,
   };
 }
 
@@ -202,5 +207,63 @@ describe('runComposeDossierEnvelope — BL-068 false-positive rejection', () => 
       const offenders = (error as Bl068MapAbsentFalsePositiveError).offenders;
       expect(offenders).toHaveLength(2);
     }
+  });
+});
+
+describe('BL-072 — xlsx-reconstruction provenance-gap auto-append', () => {
+  it('irlSource=model-reconstruction-from-xlsx → gapListMarkdown contains the BL-072 disclosure', () => {
+    const result = runComposeDossierEnvelope(
+      baseInput([], 'model-reconstruction-from-xlsx'),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('xlsx-reconstruction mode');
+    expect(result.gapListMarkdown).toContain('BL-049 verbatim-body authority does NOT hold');
+    expect(result.gapListMarkdown).toContain('model-reconstruction-from-xlsx');
+  });
+
+  it('irlSource=model-reconstruction-trimmed → gapListMarkdown contains the BL-072 disclosure', () => {
+    const result = runComposeDossierEnvelope(
+      baseInput([], 'model-reconstruction-trimmed'),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('xlsx-reconstruction mode');
+    expect(result.gapListMarkdown).toContain('model-reconstruction-trimmed');
+  });
+
+  it('irlSource=partner-paste-verbatim → no BL-072 auto-append', () => {
+    const result = runComposeDossierEnvelope(baseInput([], 'partner-paste-verbatim'), SERVER_CTX);
+    expect(result.gapListMarkdown).not.toContain('xlsx-reconstruction mode');
+    expect(result.gapListMarkdown).not.toContain('BL-049 verbatim-body authority does NOT hold');
+  });
+
+  it('irlSource=placeholder → no BL-072 auto-append (placeholder is not a reconstruction mode)', () => {
+    const result = runComposeDossierEnvelope(baseInput([], 'placeholder'), SERVER_CTX);
+    expect(result.gapListMarkdown).not.toContain('xlsx-reconstruction mode');
+  });
+
+  it('BL-072 auto-append composes with model-supplied gaps (both visible)', () => {
+    const result = runComposeDossierEnvelope(
+      baseInput(
+        [{ category: 'gate-elided', entry: 'search_radar elided', irlSection: '01' }],
+        'model-reconstruction-from-xlsx'
+      ),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('xlsx-reconstruction mode'); // BL-072
+    expect(result.gapListMarkdown).toContain('search_radar elided'); // model-supplied
+  });
+
+  it('omitting irlSource → Zod rejection with path containing irlSource', () => {
+    const raw = {
+      ...baseInput(),
+    } as Partial<ComposeDossierEnvelopeInput>;
+    delete raw.irlSource;
+    const parsed = ComposeDossierEnvelopeInputSchema.safeParse(raw);
+    expect(parsed.success).toBe(false);
+    if (parsed.success) return;
+    const issue = parsed.error.issues.find((i) => i.path.includes('irlSource'));
+    expect(issue, 'expected an irlSource Zod issue').toBeDefined();
+    // Zod 4 surfaces a missing z.enum field as `invalid_value` (received: undefined).
+    expect(['invalid_value', 'invalid_type']).toContain(issue!.code);
   });
 });

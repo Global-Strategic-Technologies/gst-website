@@ -68,6 +68,26 @@ const transactionContextValues = ['sell-side', 'buy-side', 'value-creation', 'un
 const fillRatioStatusValues = ['halt', 'partial', 'ok'] as const;
 const tierValues = ['1', '2', '3'] as const;
 
+// BL-072 — irlSource: how the bytes in `filledIrl` were assembled. Required.
+// Must match the four enum values the prompt's VERIFY-block sketches list at
+// `src/prompts/irl-ingestion.ts:462,949` — single source of truth between
+// the prompt and this schema.
+const irlSourceValues = [
+  'partner-paste-verbatim',
+  'model-reconstruction-from-xlsx',
+  'model-reconstruction-trimmed',
+  'placeholder',
+] as const;
+
+// BL-072 — the reconstruction modes that trigger the provenance-gap
+// auto-append. Explicit Set (not a `startsWith` prefix check) so a future
+// enum addition forces a conscious decision rather than silently inheriting
+// the auto-append.
+const RECONSTRUCTION_SOURCES = new Set<(typeof irlSourceValues)[number]>([
+  'model-reconstruction-from-xlsx',
+  'model-reconstruction-trimmed',
+]);
+
 // BL-045 PR B audit MA-6: tier-mismatch surfaced as its own category so the
 // partner can distinguish "this tier-1 claim's excerpt isn't in the IRL"
 // (structurally damning) from a generic "we couldn't verify this".
@@ -296,6 +316,16 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
     )
     .describe(
       "Copy verbatim from the prompt body's `**Body-binding hash:**` directive. The tool verifies `sha256(filledIrl).slice(0,16) === irlBodyHash` and rejects on mismatch — preventing the v10 failure mode where the model passed a condensed paraphrase of the IRL as filledIrl and the provenance verifier flagged 25/29 claims as false-positive unverified."
+    ),
+  irlSource: z
+    .enum(irlSourceValues)
+    .describe(
+      'How the bytes in `filledIrl` were assembled. ' +
+        '`partner-paste-verbatim`: operator pasted the IRL markdown into the prompt arg; BL-049 hash-bind authority holds (the prompt arg is the authoritative source). ' +
+        '`model-reconstruction-from-xlsx`: model parsed an xlsx attachment into markdown; BL-049 hash-bind is `pass-internal` only (the model controls both `filledIrl` and the hash). ' +
+        '`model-reconstruction-trimmed`: model authored markdown from working memory + tool outputs without a verbatim source; same `pass-internal` caveat. ' +
+        '`placeholder`: literal placeholder for error reporting. ' +
+        'When the value is a reconstruction mode, the server auto-appends a `provenance-gap:` entry to (J) noting the limitation (BL-072).'
     ),
 });
 
@@ -873,6 +903,24 @@ export function runComposeDossierEnvelope(
       entry: `${unbacked} — named in Section 09 but absent from the Hub regulatory map; the dossier cannot back this framework with article-level citations.`,
       followUp:
         'If the framework genuinely applies, file a regulatory-map coverage request (see BL-057 for the current sweep tracking AI-governance + Chile gap). Until then, the partner should source obligations directly from the regulator.',
+    });
+  }
+
+  // BL-072 — xlsx-reconstruction provenance disclosure. In any
+  // reconstruction mode the model controls both `filledIrl` and
+  // `irlBodyHash`; BL-049's "model proved it sent the verbatim body"
+  // authority does NOT hold. Provenance verification runs over the
+  // model's reconstruction, not the source xlsx. Surface this as a
+  // gap-list entry automatically so every reconstruction run carries
+  // the disclosure structurally — operators don't have to rely on
+  // model honesty (which is model-tier-dependent; sonnet-4-6 omitted
+  // this disclosure, opus-4-8 surfaced it voluntarily on 2026-06-05).
+  if (RECONSTRUCTION_SOURCES.has(input.irlSource)) {
+    autoAppended.push({
+      category: 'provenance-gap',
+      entry: `xlsx-reconstruction mode (irlSource="${input.irlSource}"): hashBindResult \`pass-internal\` is internal-consistency only; the model controls both \`filledIrl\` and \`irlBodyHash\`, and provenance verification is over the model-reconstructed body, not an authoritative source. BL-049 verbatim-body authority does NOT hold in this mode.`,
+      followUp:
+        'For authoritative provenance (regulatory, M&A close, post-mortem), re-run with the IRL pasted directly as markdown so it round-trips verbatim from the prompt arg (irlSource="partner-paste-verbatim"). The structural xlsx-canonicalization fix that would close this gap is deferred per the cross-host Claude Desktop topology blocker; see src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md.',
     });
   }
 

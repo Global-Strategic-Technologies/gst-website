@@ -172,12 +172,20 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // but extract-only build path doesn't embed those bullets (verified by
 // hash test — only the 4 full-body / interactive scenarios drift; the 3
 // extract-only scenarios stay stable).
+// BL-067 + BL-072 rebaseline (prompt 0.12.0 → 0.13.0): Step 4 of the
+// interactive body and the shared ENVELOPE_COMPOSITION_DIRECTIVE
+// gained an `irlSource` directive sentence + the irlSource arg in the
+// listed envelope inputs. Only the 3 verbose-mode bodies (interactive
+// + one-shot minimal + one-shot full) drift; compact-mode bodies skip
+// the envelope directive entirely (per directive header "BLOCKING —
+// full mode + verbose verbosity only"), so the COMPACT + EXTRACT_ONLY
+// hashes are unchanged.
 const EXPECTED_HASH_INTERACTIVE =
-  'bf7a70d38142bc60b1bdcb10eb0d5f689d8a56d1bf6d2858504e86def0ce863f';
+  '55788619032fa2979ba673f5ab5be1f090dafdef6d2b46cdfffa8708a57e2bfd';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'c84440cd421ee6049b6d713d5c3778ab79bd0b0682fa2390a827fadf7c45908f';
+  '500f065e3f758e6751d86ca45190e0e6be13c6f4ae379224a16ae1d7af806e4b';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '8f126e4dc193bbc0f1425a454f9e2897563cd9986ac997223989e98695feea89';
+  '564e4bbeeedba66f04922e6f2e38f6bd3a3746290b9cf1f4625e706ec6ee89ce';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   'fdcbe2d2d4e42d9b7ccb8fde58ea9ff8f2d96c9bc8cd92812041a52e4a6241a9';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
