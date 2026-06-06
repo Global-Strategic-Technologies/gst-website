@@ -80,6 +80,7 @@ function baseInput(): ComposeDossierEnvelopeInput {
     filledIrl: SAMPLE_IRL,
     irlBodyHash: computeIrlBodyHash(SAMPLE_IRL),
     irlSource: 'partner-paste-verbatim',
+    requireVerbatimBody: false,
   };
 }
 

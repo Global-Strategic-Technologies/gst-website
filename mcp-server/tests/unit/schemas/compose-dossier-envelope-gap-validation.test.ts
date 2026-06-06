@@ -20,6 +20,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   Bl068MapAbsentFalsePositiveError,
+  Bl070VerbatimBodyRequiredError,
   ComposeDossierEnvelopeInputSchema,
   type ComposeDossierEnvelopeInput,
   computeIrlBodyHash,
@@ -69,6 +70,7 @@ function baseInput(
     filledIrl: SAMPLE_IRL,
     irlBodyHash: computeIrlBodyHash(SAMPLE_IRL),
     irlSource,
+    requireVerbatimBody: false,
   };
 }
 
@@ -323,6 +325,80 @@ describe('BL-073 — end-to-end alias rejection through runComposeDossierEnvelop
           expect.stringMatching(/EU Artificial Intelligence Act/i),
         ])
       );
+    }
+  });
+
+  // BL-073 acronym add-on — 2026-06-06 fourth live exercise emitted
+  // "NIST AI RMF" (acronym) as a map-absent claim; the canonical-substring
+  // path missed it because "nistairmf" is not a substring of the canonical
+  // "NIST AI Risk Management Framework 1.0 (NIST AI 100-1)" normalized.
+  // Aliases on US-NIST-AI-RMF.json close this acronym case.
+  it('BL-073 acronym add-on: catches "NIST AI RMF" via alias on US-NIST-AI-RMF', () => {
+    const offenders = findFalsePositiveMapAbsentClaims([
+      { category: 'map-absent', entry: 'NIST AI RMF — claimed absent' },
+    ]);
+    expect(offenders).toHaveLength(1);
+    expect(offenders[0].matchedHub).toMatch(/NIST AI Risk Management Framework/i);
+  });
+});
+
+describe('BL-070 — requireVerbatimBody gate', () => {
+  it('throws Bl070VerbatimBodyRequiredError when flag true + model-reconstruction-from-xlsx', () => {
+    const input = baseInput([], 'model-reconstruction-from-xlsx');
+    input.requireVerbatimBody = true;
+    expect(() => runComposeDossierEnvelope(input, SERVER_CTX)).toThrow(
+      Bl070VerbatimBodyRequiredError
+    );
+  });
+
+  it('throws Bl070VerbatimBodyRequiredError for model-reconstruction-trimmed too', () => {
+    const input = baseInput([], 'model-reconstruction-trimmed');
+    input.requireVerbatimBody = true;
+    expect(() => runComposeDossierEnvelope(input, SERVER_CTX)).toThrow(
+      Bl070VerbatimBodyRequiredError
+    );
+  });
+
+  it('throws Bl070VerbatimBodyRequiredError for placeholder too (not partner-paste-verbatim)', () => {
+    const input = baseInput([], 'placeholder');
+    input.requireVerbatimBody = true;
+    expect(() => runComposeDossierEnvelope(input, SERVER_CTX)).toThrow(
+      Bl070VerbatimBodyRequiredError
+    );
+  });
+
+  it('passes through when requireVerbatimBody=true AND irlSource=partner-paste-verbatim', () => {
+    const input = baseInput([], 'partner-paste-verbatim');
+    input.requireVerbatimBody = true;
+    expect(() => runComposeDossierEnvelope(input, SERVER_CTX)).not.toThrow();
+  });
+
+  it('passes through when requireVerbatimBody is omitted (default false) regardless of irlSource', () => {
+    const input = baseInput([], 'model-reconstruction-from-xlsx');
+    // requireVerbatimBody not set; default false from Zod
+    expect(() => runComposeDossierEnvelope(input, SERVER_CTX)).not.toThrow();
+  });
+
+  it('passes through when requireVerbatimBody is EXPLICITLY false + reconstruction-mode (audit MAJ-2)', () => {
+    // Separate code path from omitted-default-false. Locking the explicit
+    // case prevents a future Zod-shape refactor from breaking it silently.
+    const input = baseInput([], 'model-reconstruction-from-xlsx');
+    input.requireVerbatimBody = false;
+    expect(() => runComposeDossierEnvelope(input, SERVER_CTX)).not.toThrow();
+  });
+
+  it('rejection text names the offending irlSource and directs to re-run partner-paste', () => {
+    const input = baseInput([], 'model-reconstruction-from-xlsx');
+    input.requireVerbatimBody = true;
+    try {
+      runComposeDossierEnvelope(input, SERVER_CTX);
+      throw new Error('expected throw');
+    } catch (e) {
+      expect(e).toBeInstanceOf(Bl070VerbatimBodyRequiredError);
+      const msg = (e as Error).message;
+      expect(msg).toContain('model-reconstruction-from-xlsx');
+      expect(msg).toContain('partner-paste-verbatim');
+      expect(msg).toContain('BL-070');
     }
   });
 });

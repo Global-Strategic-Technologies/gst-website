@@ -11,21 +11,44 @@
 ## Current manifest hash
 
 ```
-ba0f55ece3a6fe6618af556f80bf6224292c2d7806cea40ef4537b0628b949cb
+e0642ea3890647bd1a9f09782880aa99794384e884803e33e3706396380d27f2
 ```
 
 Computed over (sorted):
 
 - **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`).
-- 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
+- 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.14.0` (BL-073-rename: VERIFY-block YAML field `serverVersion:` renamed to `promptVersion:` at both invocation sites for operator clarity — the field carries the prompt version, not the mcp-server package version).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.15.0` (BL-070: `requireVerbatimBody` prompt arg + envelope-composition directive added at both invocation sites).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.28.0 — 2026-06-06 — BL-070 `requireVerbatimBody` forcing function + BL-073 NIST AI RMF acronym add-on
+
+**Theme**: closes the first production-readiness gate from BL-074 — converts the "operator must remember to use partner-paste mode for accuracy-critical engagements" discipline into a system-enforced refusal. Bundles a small BL-073 add-on that surfaced empirically the same day (the 2026-06-06 fourth live exercise emitted `"NIST AI RMF"` as an acronym which the canonical-substring path missed; same false-negative class as UK GDPR / Australia Privacy Act that BL-073 already aliased).
+
+**Surface impact**:
+
+- **NEW: optional `requireVerbatimBody?: boolean` field** on `ComposeDossierEnvelopeInputSchema`. Defaults to `false`. When `true`, `runComposeDossierEnvelope` rejects any `irlSource !== 'partner-paste-verbatim'` with `Bl070VerbatimBodyRequiredError` (new exported class), surfacing a structured message directing operators to re-invoke with the IRL pasted as markdown into the `filledIrl` prompt arg.
+- **NEW: `requireVerbatimBody?: boolean` prompt arg** on `gst_irl_ingestion`. Operators set it once per engagement; the model is instructed to forward it verbatim to `compose_dossier_envelope`. Self-degradation (model lying about the flag value) becomes operator-detectable from the VERIFY block — and will become server-detectable once BL-071 ships server-sourced `toolCallCounts.compose_dossier_envelope.rejected`.
+- **NEW: prompt body directive** at both invocation sites (`ENVELOPE_COMPOSITION_DIRECTIVE` line 416 + interactive Step 4 line 939) explaining when to set the flag and how the model must forward it.
+- **BL-073 acronym add-on**: `"aliases": ["NIST AI RMF", "NIST RMF"]` added to `src/data/regulatory-map/US-NIST-AI-RMF.json` — closes the fourth observed false-negative class. Codegen + duplicate-alias guard (already on master from BL-073) automatically validate. **Aliases are NOT in the manifest hash inputs**; no rebaseline driven by the alias change.
+- **Manifest hash rebaseline**: `ba0f55ec…` → `e0642ea3…` (prompt `name@version` tuple drift: 0.14.0 → 0.15.0).
+- **Body hash rebaseline**: 3 of 9 hash-stability scenarios drift (verbose-mode bodies that include `ENVELOPE_COMPOSITION_DIRECTIVE`). Compact + extract-only scenarios skip the directive per its header (`BLOCKING — full mode + verbose verbosity only`) and remain unchanged.
+
+**Acceptance** (in-session — no live exercise required):
+
+- 7 new BL-070 unit tests cover the gate: rejection on all three reconstruction-mode variants (xlsx + trimmed + placeholder), pass-through on partner-paste-verbatim, pass-through on omitted-default-false AND explicit-false, rejection text contains the offending `irlSource` + `BL-070` + `partner-paste-verbatim` directive.
+- 1 new BL-073 acronym add-on test asserts `findFalsePositiveMapAbsentClaims` catches `"NIST AI RMF"` via the new alias on US-NIST-AI-RMF.
+- 4 new prompt-body substring assertions verify `requireVerbatimBody` lands in both one-shot and interactive bodies, AND the prompt argsSchema accepts both `true` and `false`.
+
+**Known limitation** (accepted-with-disclosure): model could self-degrade and pass `requireVerbatimBody: false` to the tool even when the operator set it to true at invocation. Mitigations: (1) prompt directive treats this as a violation, (2) operator detects from VERIFY block, (3) **once BL-071 ships** (next PR), server-sourced rejection counts make the self-degradation server-detectable arithmetic-wise. BL-075 reserved for server-side prompt-arg passthrough if empirical drift recurs.
 
 ---
 

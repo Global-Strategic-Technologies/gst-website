@@ -2962,6 +2962,7 @@ export const REGULATIONS: ReadonlyArray<{ readonly file: string; readonly data: 
     data: {
       id: 'us-nist-ai-rmf',
       name: 'NIST AI Risk Management Framework 1.0 (NIST AI 100-1)',
+      aliases: ['NIST AI RMF', 'NIST RMF'],
       regions: ['USA'],
       effectiveDate: '2023-01-26',
       summary:
