@@ -35,6 +35,7 @@ import {
   Bl063CertificationNotRegulationError,
   Bl063PartitionViolationError,
   Bl068MapAbsentFalsePositiveError,
+  Bl070VerbatimBodyRequiredError,
   ComposeDossierEnvelopeInputSchema,
   IrlBodyHashMismatchError,
   runComposeDossierEnvelope,
@@ -92,7 +93,8 @@ export async function handleComposeDossierEnvelopeTool(payload: ComposeDossierEn
     if (
       error instanceof Bl063PartitionViolationError ||
       error instanceof Bl063CertificationNotRegulationError ||
-      error instanceof Bl068MapAbsentFalsePositiveError
+      error instanceof Bl068MapAbsentFalsePositiveError ||
+      error instanceof Bl070VerbatimBodyRequiredError
     ) {
       return {
         content: [{ type: 'text' as const, text: error.message }],

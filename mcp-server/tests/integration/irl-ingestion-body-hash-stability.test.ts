@@ -187,12 +187,17 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // The verify directive ships in EVERY body shape, so all 7 hashes drift
 // in this rebaseline (not just the 3 verbose-mode ones that BL-067+BL-072
 // touched).
+// BL-070 rebaseline (prompt 0.14.0 → 0.15.0): added requireVerbatimBody
+// arg + envelope-composition directive at both invocation sites.
+// Verbose-mode bodies drift (interactive + one-shot minimal + one-shot
+// full); compact-mode + extract-only skip the envelope directive entirely
+// per its header (BLOCKING — full mode + verbose verbosity only).
 const EXPECTED_HASH_INTERACTIVE =
-  '681aac607179e8963ac590f042fb4619f4cb7bbd8300d5b282ec8355e8d8b5e5';
+  '6c4bd6e58375c74b8a8bf8bf0ea955fd9449782991a9fc1b9556c2fd75573709';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'a32ca2c2fd1e3811f37852116b0dbb39bf9cbeb75172640a5350bf051129b419';
+  'f1c7a82b2be0f40bb189028ef858d2cf224ad4d60eafd0d99a62132f0acdf729';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'bd383c5274d72a6ea5aa4a230a0489416ad4b712b8e9a17379adc7e5cfb3e190';
+  'cb19d5c500a9441abdc82f09cc3302214a2019dee7f74d713b661c9b771fda5c';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   '91c0ba7f2af9bba7785a495e72da2dd8f759f0a775e5262eed805a6c0f67151a';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =

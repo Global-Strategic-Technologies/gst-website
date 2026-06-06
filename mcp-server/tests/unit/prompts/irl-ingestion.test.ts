@@ -89,7 +89,7 @@ describe('gst_irl_ingestion', () => {
     // BL-045 reset: prompt version restarts at 0.1.0 to signal the substantive
     // rescope (rename, scenario-neutral framing, mode/verbosity/forceTools args,
     // inclusion gates, JSON fences, provenance footer, gap list).
-    expect(irlIngestionPrompt.version).toBe('0.14.0');
+    expect(irlIngestionPrompt.version).toBe('0.15.0');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -633,5 +633,29 @@ describe('gst_irl_ingestion', () => {
         expect(text).toContain(field);
       });
     }
+  });
+
+  describe('BL-070 — requireVerbatimBody prompt-arg directive (audit min-6)', () => {
+    it('one-shot body mentions requireVerbatimBody in the envelope-composition directive', () => {
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      expect(text).toContain('requireVerbatimBody');
+    });
+
+    it('interactive body mentions requireVerbatimBody in the Step 4 directive', () => {
+      const text = bodyText(irlIngestionPrompt, {});
+      expect(text).toContain('requireVerbatimBody');
+    });
+
+    it('argsSchema accepts requireVerbatimBody: true', () => {
+      expect(irlIngestionPrompt.argsSchema.safeParse({ requireVerbatimBody: true }).success).toBe(
+        true
+      );
+    });
+
+    it('argsSchema accepts requireVerbatimBody: false', () => {
+      expect(irlIngestionPrompt.argsSchema.safeParse({ requireVerbatimBody: false }).success).toBe(
+        true
+      );
+    });
   });
 });

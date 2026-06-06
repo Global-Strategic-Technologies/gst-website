@@ -90,7 +90,11 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // (VERIFY-block field renamed at both invocation sites for operator
 // clarity — the field carries promptVersion, not the mcp-server package
 // version). Aliases are NOT in the manifest hash inputs.
-const EXPECTED_MANIFEST_HASH = 'ba0f55ece3a6fe6618af556f80bf6224292c2d7806cea40ef4537b0628b949cb';
+// BL-070 rebaseline: prompt v0.14.0 → v0.15.0 (requireVerbatimBody prompt
+// arg + envelope-composition directive added at both invocation sites).
+// The BL-073 NIST AI RMF acronym aliases added in the same PR do NOT
+// affect the manifest hash (aliases aren't in manifest inputs).
+const EXPECTED_MANIFEST_HASH = 'e0642ea3890647bd1a9f09782880aa99794384e884803e33e3706396380d27f2';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

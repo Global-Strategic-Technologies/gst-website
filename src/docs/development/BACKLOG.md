@@ -3834,6 +3834,52 @@ The bug is operator-visible (block carries the fabricated list) but not partner-
 
 ---
 
+### BL-074: Production-readiness gates for client-facing dossiers ⏳ OPEN 2026-06-06
+
+**Context**: BL-066 through BL-073 took `gst_irl_ingestion` from "promising but flaky" to "predictable and honest about its limits" for the GST partner team running dossiers internally. For dossiers leaving the partner's hands and going to a client unmediated (M&A target, PE client, regulator), three structural gaps remain that the recent PRs intentionally did NOT close:
+
+1. **xlsx-reconstruction is documented but not prevented.** BL-072's `provenance-gap:` auto-append makes the `pass-internal` hash-bind tautology visible per-run, but the model still controls both sides of the hash bind in reconstruction mode. The 32/32 provenance verification in the 2026-06-06 opus-4-8 run means "every claim is anchored in the body the model sent the server" — NOT "every claim is anchored in the partner's authoritative source xlsx". For client-facing or regulatory deliverables, runs MUST be partner-paste mode.
+2. **VERIFY-block self-report can drift.** Two confirmed instances of model self-narration disagreeing with server reality (sonnet-4-6 fabricated `prepare_irl_body: transport-timeout`; opus-4-8 omitted `prepare_irl_body` from `toolCallCounts` entirely). Operators triaging acceptance from the artifact alone are triaging on a partially-trusted source.
+3. **Empirical coverage is narrow.** Every live exercise to date has been against the StoreForce IRL. Other industries (healthcare, fintech, manufacturing, deep-tech IP), other transaction types (sell-side, carve-out, venture-series), and other geographies (Asian buyers, EU regulated entities) haven't been exercised. Each is plausible to surface new calibration gaps.
+
+**Scope** (checklist, not a code change — this is a coverage + workflow ticket):
+
+- [x] **BL-070 SHIPPED 2026-06-06** at mcp-server 0.28.0 (PR1). `requireVerbatimBody` prompt-arg flag + `Bl070VerbatimBodyRequiredError` + early guard in `runComposeDossierEnvelope`. When set to `true`, the tool rejects any `irlSource !== 'partner-paste-verbatim'` with a structured error directing operators to paste IRL markdown directly. Makes the partner-paste discipline system-enforced rather than operator-remembered. **Bundled BL-073 acronym add-on** (NIST AI RMF + NIST RMF aliases on US-NIST-AI-RMF.json) closes the fourth observed false-negative class.
+- [ ] **Promote BL-071 RESERVED → SCHEDULED** if VERIFY-block triage is a routine operator task. Ship server-sourced `toolCallCounts` injected into the envelope output from `withToolMetrics`. Operator triage on the artifact becomes authoritative.
+- [ ] **Document the operator runbook** at `src/docs/development/OPERATOR_RUNBOOK.md` (new):
+  - When does the operator override the VERIFY block? When do they re-run?
+  - Who signs the dossier off before it leaves the partner's possession?
+  - Gating criteria: what makes a run "operator-internal draft" vs "client-ready"?
+  - Failure modes + recovery flowchart (citation-format-invalid → fix em-dash; map-absent false positive → file BL-073-style alias request; partition violation → confirm conditional-trigger semantics; etc.)
+  - When to enable `requireVerbatimBody` (BL-070 ship gate).
+- [ ] **3-5 representative IRL exercises** across distinct shapes:
+  - Healthcare (PHI-sensitive; HIPAA + state privacy laws)
+  - Fintech (financial data; SOC 2 + PCI-DSS + sector regulators)
+  - Manufacturing (operational/supply-chain; sector-specific NIST + safety regs)
+  - Deep-tech / IP-heavy (patent + IP-due-diligence; export controls)
+  - Cross-border M&A (EU + US dual regs; CFIUS / FDI screening)
+  - At least one in `partner-paste-verbatim` mode to validate the authoritative provenance path
+- [ ] **Define and document the "client-ready" gating criteria** in BREAKING_CHANGES.md or a new `CLIENT_READINESS.md`. Suggested gates:
+  - `irlSource: partner-paste-verbatim` (NOT reconstruction)
+  - `hashBindResult: pass-bound` (NOT pass-internal)
+  - `provenanceVerification: total === verified` (no unverified claims)
+  - `precheck.outcome: converged`
+  - All `compose_dossier_envelope` and `generate_diligence_agenda` retry budgets at design floor (≤2/1)
+  - Zero unresolved auto-appended `tier-fabrication:` entries
+  - Operator signoff (named human reviewer recorded)
+
+**Acceptance**: BL-074 closes when the runbook + 3-5 exercises + BL-070 ship + client-readiness gates document are all merged. This is a multi-PR ticket — track sub-PRs as they ship; close BL-074 stanza when the checklist is complete.
+
+**Out of scope**:
+
+- A separate client-facing UI surface (Claude Desktop is the operator-facing surface; client deliverables are the rendered dossier markdown the operator delivers, e.g., as PDF or shared document).
+- Multi-tenancy / per-client isolation (a single operator runs one engagement at a time today).
+- Concurrent-user load testing (not a multi-user system today).
+
+**Related**: BL-070 (requireVerbatimBody — directly unblocks gate 1), BL-071 (server-sourced toolCallCounts — directly unblocks gate 2), BL-049 (hash-bind authority — the underpinning), BL-072 (reconstruction-mode disclosure — current best-effort).
+
+---
+
 ### BL-068: Forcing-function redesign — `prepare_irl_body` preflight + server-side `map-absent:` validation + schema description enrichment ✅ CLOSED 2026-06-05
 
 **Original proposal**: three prompt-only coaching changes (hash preflight directive, Rule 0 + tier-1 worked examples, gap-list search-backing rule). **BLOCKED in audit** as repeating the BL-058 forcing-function anti-pattern: BL-059's prompt-only Rule 0 prose already failed empirically (5/1 on 06-06; 4 calibration violations still emitted on 06-05 even with the model demonstrably knowing the rule). "More prose ≠ different outcome" for a directive that already failed in prose form.
@@ -3900,7 +3946,7 @@ Both retries trace to the same regex: `^Section (\d{2}|--)[^—]*—.{20,}$` at 
 
 ---
 
-### BL-070: ~~Server-derived `irlBodyHash`~~ → RESCOPED to "force partner-paste mode for accuracy-bar runs" ⚠️ RESCOPED 2026-06-05
+### BL-070: ~~Server-derived `irlBodyHash`~~ → RESCOPED → `requireVerbatimBody` forcing function ✅ CLOSED 2026-06-06 (shipped at mcp-server 0.28.0)
 
 **Original scope (BL-068 acceptance trigger)**: make `compose_dossier_envelope.irlBodyHash` optional; compute server-side when omitted; return canonical hash in the envelope for auditability. Designed as the escalation if mid-tier models systematically ignored the `prepare_irl_body` preflight directive.
 
@@ -3914,7 +3960,7 @@ Both retries trace to the same regex: `^Section (\d{2}|--)[^—]*—.{20,}$` at 
 - (b) Add a prompt-arg or flag `requireVerbatimBody: boolean` that, when true, REFUSES `xlsx-reconstruction` and instructs the model to operate in `partner-paste` mode only. For runs where authoritative provenance matters (regulatory, M&A close, post-mortem), operators set the flag.
 - (c) The underlying authoritative-xlsx fix is the deferred xlsx-canonicalization design at `src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md`, blocked on cross-host Claude Desktop bytes-delivery topology. Not in BL-070 scope.
 
-**Status**: low priority. The honesty disclosure surfaced the gap; BL-072 documents it per-run. Ship (b) only if operators report acting on `pass-internal` envelopes as authoritative.
+**Status**: ✅ **CLOSED 2026-06-06 — shipped scope (b)** at mcp-server 0.28.0 (PR1 of BL-074 production-readiness gates). Added optional `requireVerbatimBody?: boolean` to `ComposeDossierEnvelopeInputSchema` + new `Bl070VerbatimBodyRequiredError` + early guard in `runComposeDossierEnvelope` + corresponding prompt arg + envelope-composition directive at both invocation sites. Promotion was triggered by BL-074 (production-readiness gates) rather than empirical pain; ships as preventive infrastructure for accuracy-critical engagements. **Known limitation accepted-with-disclosure**: model can self-degrade the flag value at the tool-call seam; operator detection covers it today; BL-071 (next PR) makes the self-degradation server-detectable via arithmetic on rejection counts. Bundled with the BL-073 acronym add-on (NIST AI RMF + NIST RMF aliases on US-NIST-AI-RMF.json) — the 2026-06-06 fourth live exercise emitted the acronym which the canonical-substring path missed; same false-negative class as BL-073's earlier scope. 7 new BL-070 unit tests + 4 prompt-body assertions + 1 BL-073 acronym test all green; 3 body hashes + manifest hash rebaselined.
 
 ---
 
@@ -3934,7 +3980,7 @@ If operator acceptance triage continues to depend on the artifact, model self-na
 
 ---
 
-### BL-073: Regulatory-map alias support for framework-equivalence matching ✅ CLOSED 2026-06-06
+### BL-073: Regulatory-map alias support for framework-equivalence matching ✅ CLOSED 2026-06-06 (+ acronym add-on 2026-06-06 in BL-070 PR)
 
 **Problem**: three frameworks have empirically failed `findMatchedHubFramework` bidirectional substring matching across multiple recent exercises because no normalized substring overlap exists between the model's idiom and the Hub's canonical name:
 

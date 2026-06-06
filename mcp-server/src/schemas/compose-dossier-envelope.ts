@@ -327,6 +327,16 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
         '`placeholder`: literal placeholder for error reporting. ' +
         'When the value is a reconstruction mode, the server auto-appends a `provenance-gap:` entry to (J) noting the limitation (BL-072).'
     ),
+  requireVerbatimBody: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      'BL-070 — accuracy-critical run gate. When TRUE, this tool REJECTS any irlSource other than `partner-paste-verbatim`. ' +
+        'Operators set this flag on the prompt arg for high-stakes engagements (regulatory deliverable, M&A close, post-mortem) where ' +
+        'the BL-049 hash-bind authority guarantee must hold over the partner-supplied source — not just the model-reconstructed body. ' +
+        'For drafting / exploration runs, leave unset (default false) and the existing BL-072 (J) disclosure is sufficient.'
+    ),
 });
 
 export type ComposeDossierEnvelopeInput = z.infer<typeof ComposeDossierEnvelopeInputSchema>;
@@ -663,6 +673,30 @@ export class Bl068MapAbsentFalsePositiveError extends Error {
 }
 
 /**
+ * BL-070 — thrown when `requireVerbatimBody: true` was passed AND `irlSource`
+ * is NOT `partner-paste-verbatim`. Surfaces a structured rejection directing
+ * the operator to re-run with the IRL pasted as markdown so BL-049 hash-bind
+ * authority holds over the partner-supplied source (not the model's
+ * reconstruction).
+ */
+export class Bl070VerbatimBodyRequiredError extends Error {
+  readonly irlSource: string;
+  constructor(irlSource: string) {
+    super(
+      `BL-070 verbatim-body required: requireVerbatimBody=true but irlSource="${irlSource}". ` +
+        `For accuracy-critical runs (regulatory deliverable, M&A close, post-mortem), the BL-049 hash-bind ` +
+        `authority guarantee MUST hold over the partner-supplied source. In xlsx-reconstruction modes the model ` +
+        `controls both filledIrl and irlBodyHash so the hash-bind is internal-consistency only (BL-072). ` +
+        `Re-run with the IRL pasted directly as markdown into the prompt arg so the bytes round-trip verbatim ` +
+        `(irlSource="partner-paste-verbatim"). If this run is for drafting / exploration and the verbatim guarantee ` +
+        `is not needed, omit requireVerbatimBody (defaults to false) and the existing (J) gap-list disclosure is sufficient.`
+    );
+    this.name = 'Bl070VerbatimBodyRequiredError';
+    this.irlSource = irlSource;
+  }
+}
+
+/**
  * BL-068 — scan model-supplied `gaps` for `map-absent:` claims that
  * point at Hub-backed frameworks. Returns the list of offenders (empty
  * if all claims are legitimate). Throws nothing; caller decides whether
@@ -815,6 +849,15 @@ export function runComposeDossierEnvelope(
   const actualHash = computeIrlBodyHash(input.filledIrl);
   if (actualHash !== input.irlBodyHash) {
     throw new IrlBodyHashMismatchError(input.irlBodyHash, actualHash);
+  }
+
+  // BL-070 — verbatim-body gate. When operator has set requireVerbatimBody=true,
+  // refuse any reconstruction-mode run before doing the expensive provenance
+  // verification + envelope rendering work. The BL-072 (J) disclosure documents
+  // the limitation; this flag converts it from operator-discipline into a
+  // system-enforced refusal for accuracy-critical engagements.
+  if (input.requireVerbatimBody && input.irlSource !== 'partner-paste-verbatim') {
+    throw new Bl070VerbatimBodyRequiredError(input.irlSource);
   }
 
   // BL-063 server-side enforcement (in order — fail fast on rejections,
