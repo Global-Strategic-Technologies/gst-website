@@ -9,6 +9,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { InMemorySink } from '../../../src/metrics/sinks/in-memory';
 import {
+  InMemoryToolCallCounters,
   withMetricsCore,
   withPromptMetrics,
   withResourceMetrics,
@@ -19,6 +20,16 @@ import {
 function makeCtx(keyOwner?: string): { sink: InMemorySink; ctx: MetricsContext } {
   const sink = new InMemorySink();
   return { sink, ctx: { sink, keyOwner } };
+}
+
+function makeCtxWithCounters(): {
+  sink: InMemorySink;
+  counters: InMemoryToolCallCounters;
+  ctx: MetricsContext;
+} {
+  const sink = new InMemorySink();
+  const counters = new InMemoryToolCallCounters();
+  return { sink, counters, ctx: { sink, counters } };
 }
 
 describe('withToolMetrics', () => {
@@ -224,5 +235,121 @@ describe('W5: concurrency', () => {
     expect(durations[0]).toBeGreaterThanOrEqual(3);
     expect(durations[1]).toBeGreaterThanOrEqual(15);
     expect(durations[2]).toBeGreaterThanOrEqual(35);
+  });
+});
+
+// ─── BL-071 — server-arithmetic tool-call counters ───────────────────────
+
+describe('InMemoryToolCallCounters', () => {
+  it('records attempted/succeeded independently and aggregates', () => {
+    const c = new InMemoryToolCallCounters();
+    c.record('foo', 'attempted');
+    c.record('foo', 'success');
+    c.record('foo', 'attempted');
+    c.record('foo', 'rejected');
+    expect(c.snapshot()).toEqual({
+      foo: { attempted: 2, succeeded: 1, rejected: 1, errored: 0 },
+    });
+  });
+
+  it('tracks distinct tools independently', () => {
+    const c = new InMemoryToolCallCounters();
+    c.record('foo', 'attempted');
+    c.record('foo', 'success');
+    c.record('bar', 'attempted');
+    c.record('bar', 'errored');
+    expect(c.snapshot()).toEqual({
+      foo: { attempted: 1, succeeded: 1, rejected: 0, errored: 0 },
+      bar: { attempted: 1, succeeded: 0, rejected: 0, errored: 1 },
+    });
+  });
+
+  it('snapshot returns a defensive copy (mutating it does not affect future records)', () => {
+    const c = new InMemoryToolCallCounters();
+    c.record('foo', 'attempted');
+    const snap = c.snapshot();
+    snap.foo.attempted = 999;
+    c.record('foo', 'attempted');
+    expect(c.snapshot().foo.attempted).toBe(2);
+  });
+});
+
+describe('withToolMetrics — BL-071 counter integration', () => {
+  it('records attempted at wrap entry + success on clean return', async () => {
+    const { counters, ctx } = makeCtxWithCounters();
+    const wrapped = withToolMetrics('search_radar', ctx, async () => ({ isError: false }));
+    await wrapped();
+    expect(counters.snapshot()).toEqual({
+      search_radar: { attempted: 1, succeeded: 1, rejected: 0, errored: 0 },
+    });
+  });
+
+  it('records attempted at wrap entry + rejected when isError:true', async () => {
+    const { counters, ctx } = makeCtxWithCounters();
+    const wrapped = withToolMetrics('search_radar', ctx, async () => ({ isError: true }));
+    await wrapped();
+    expect(counters.snapshot()).toEqual({
+      search_radar: { attempted: 1, succeeded: 0, rejected: 1, errored: 0 },
+    });
+  });
+
+  it('records attempted at wrap entry + errored when inner throws', async () => {
+    const { counters, ctx } = makeCtxWithCounters();
+    const wrapped = withToolMetrics('search_radar', ctx, async () => {
+      throw new Error('boom');
+    });
+    await expect(wrapped()).rejects.toThrow('boom');
+    expect(counters.snapshot()).toEqual({
+      search_radar: { attempted: 1, succeeded: 0, rejected: 0, errored: 1 },
+    });
+  });
+
+  it('counts attempted BEFORE inner runs — snapshot inside inner shows attempted=1, succeeded=0', async () => {
+    // BL-071 audit M1: the envelope tool reads counters mid-flight; the
+    // semantic guarantee is "I'm reporting on the call I'm currently inside."
+    const { counters, ctx } = makeCtxWithCounters();
+    let midFlight: ReturnType<typeof counters.snapshot> | undefined;
+    const wrapped = withToolMetrics('compose_dossier_envelope', ctx, async () => {
+      midFlight = counters.snapshot();
+      return { isError: false };
+    });
+    await wrapped();
+    expect(midFlight).toEqual({
+      compose_dossier_envelope: { attempted: 1, succeeded: 0, rejected: 0, errored: 0 },
+    });
+  });
+
+  it('arithmetic identity: attempted === succeeded + rejected + errored after N calls', async () => {
+    const { counters, ctx } = makeCtxWithCounters();
+    const ok = withToolMetrics('t', ctx, async () => ({ isError: false }));
+    const bad = withToolMetrics('t', ctx, async () => ({ isError: true }));
+    const broken = withToolMetrics('t', ctx, async () => {
+      throw new Error('x');
+    });
+    await ok();
+    await ok();
+    await bad();
+    await expect(broken()).rejects.toThrow('x');
+    const snap = counters.snapshot().t;
+    expect(snap).toEqual({ attempted: 4, succeeded: 2, rejected: 1, errored: 1 });
+    expect(snap.attempted).toBe(snap.succeeded + snap.rejected + snap.errored);
+  });
+
+  it('counter undefined → behavior unchanged (backward-compat)', async () => {
+    // Default ctx (no counters) — wrap behaves exactly as before.
+    const { sink, ctx } = makeCtx();
+    const wrapped = withToolMetrics('t', ctx, async () => ({ isError: false }));
+    await wrapped();
+    expect(sink.events).toHaveLength(1);
+    expect(sink.events[0].outcome).toBe('success');
+  });
+
+  it('resource/prompt wraps do NOT touch the counter (tool-only scope)', async () => {
+    const { counters, ctx } = makeCtxWithCounters();
+    const wrappedRes = withResourceMetrics('gst://x', ctx, async () => ({}));
+    const wrappedPrompt = withPromptMetrics('p', ctx, async () => ({}));
+    await wrappedRes();
+    await wrappedPrompt();
+    expect(counters.snapshot()).toEqual({});
   });
 });

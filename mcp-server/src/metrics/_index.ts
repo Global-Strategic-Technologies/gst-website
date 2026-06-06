@@ -25,11 +25,15 @@ export { guardEvent } from './guard';
 export { emitPromptSpan } from './prompt-span';
 export {
   emit,
+  InMemoryToolCallCounters,
   withMetricsCore,
   withPromptMetrics,
   withResourceMetrics,
   withToolMetrics,
   type MetricsContext,
+  type ToolCallCounterEntry,
+  type ToolCallCounterEvent,
+  type ToolCallCounters,
 } from './with-metrics';
 export { NoopSink, type MetricSink } from './sinks/_interface';
 export { InMemorySink } from './sinks/in-memory';

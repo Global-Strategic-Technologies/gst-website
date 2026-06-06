@@ -30,7 +30,7 @@ import { registerRadarResources } from './resources/radar';
 import { createWorkerSnapshotReader } from './content/radar-snapshot-reader-worker';
 import { registerPrompts } from './prompts/_registry';
 import { DEFAULT_SCOPES } from './auth/scopes';
-import { NOOP_METRICS_CONTEXT, type MetricsContext } from './metrics/_index';
+import { InMemoryToolCallCounters, NoopSink, type MetricsContext } from './metrics/_index';
 import type { Env } from './worker';
 
 /**
@@ -100,14 +100,28 @@ export function createServer(env: Env = {}, ctx: ServerContext = {}): McpServer 
   const scopes = ctx.scopes ?? DEFAULT_SCOPES;
 
   // BL-032.75 Phase 1: build the per-request MetricsContext once and thread
-  // it to every register*. Stdio path (no metricsSink) gets the frozen
-  // NOOP_METRICS_CONTEXT singleton — emission becomes a no-op without
-  // changing any callsite shape. Worker passes
+  // it to every register*. Stdio path (no metricsSink) gets a per-process
+  // context — emission is still no-op (NoopSink) but the BL-071 counter
+  // accumulator captures tool-call arithmetic for the
+  // `compose_dossier_envelope` `serverToolCallCounts` snapshot. The frozen
+  // NOOP_METRICS_CONTEXT singleton stays untouched (used by default-param
+  // slots in 14+ register* sites + tests). Worker passes
   // `{ metricsSink: AnalyticsEngineSink(env.METRICS), keyOwner: auth.keyOwner }`.
+  //
+  // BL-071 scope: process-lifetime in stdio (== one Claude Desktop session);
+  // per-request in Worker (each fetch handler builds a fresh
+  // `InMemoryToolCallCounters` so requests don't share counter state).
   const metrics: MetricsContext =
     ctx.metricsSink === undefined
-      ? NOOP_METRICS_CONTEXT
-      : { sink: ctx.metricsSink, keyOwner: ctx.keyOwner };
+      ? {
+          sink: new NoopSink(),
+          counters: new InMemoryToolCallCounters(),
+        }
+      : {
+          sink: ctx.metricsSink,
+          keyOwner: ctx.keyOwner,
+          counters: new InMemoryToolCallCounters(),
+        };
 
   // Tools (transport-portable)
   registerDiligenceTool(server, metrics);

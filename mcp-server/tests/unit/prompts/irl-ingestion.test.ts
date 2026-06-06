@@ -89,7 +89,7 @@ describe('gst_irl_ingestion', () => {
     // BL-045 reset: prompt version restarts at 0.1.0 to signal the substantive
     // rescope (rename, scenario-neutral framing, mode/verbosity/forceTools args,
     // inclusion gates, JSON fences, provenance footer, gap list).
-    expect(irlIngestionPrompt.version).toBe('0.15.0');
+    expect(irlIngestionPrompt.version).toBe('0.16.0');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -570,7 +570,7 @@ describe('gst_irl_ingestion', () => {
       'errorsEncountered:',
       // toolCallCounts block
       'toolCallCounts:',
-      'validate_irl_provenance: { attempted: N, succeeded: N, rejected: N }',
+      'validate_irl_provenance: { attempted: N, succeeded: N, rejected: N, errored: N }',
       // conditionalTriggers block
       'conditionalTriggers:',
       'considered:',
@@ -656,6 +656,38 @@ describe('gst_irl_ingestion', () => {
       expect(irlIngestionPrompt.argsSchema.safeParse({ requireVerbatimBody: false }).success).toBe(
         true
       );
+    });
+  });
+
+  describe('BL-071 — serverToolCallCounts + precheck-derivation directive', () => {
+    it('one-shot body mentions serverToolCallCounts (envelope-composition directive)', () => {
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      expect(text).toContain('serverToolCallCounts');
+    });
+
+    it('interactive body mentions serverToolCallCounts (envelope-composition directive)', () => {
+      const text = bodyText(irlIngestionPrompt, {});
+      expect(text).toContain('serverToolCallCounts');
+    });
+
+    it('one-shot body mentions precheck.iterations derivation rule', () => {
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      expect(text).toContain('precheck.iterations');
+    });
+
+    it('interactive body mentions precheck.iterations derivation rule', () => {
+      const text = bodyText(irlIngestionPrompt, {});
+      expect(text).toContain('precheck.iterations');
+    });
+
+    it('one-shot body verify-block carries the errored field on toolCallCounts entries', () => {
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      expect(text).toContain('errored: N');
+    });
+
+    it('interactive body verify-block carries the errored field on toolCallCounts entries', () => {
+      const text = bodyText(irlIngestionPrompt, {});
+      expect(text).toContain('errored: N');
     });
   });
 });

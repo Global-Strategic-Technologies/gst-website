@@ -3845,7 +3845,7 @@ The bug is operator-visible (block carries the fabricated list) but not partner-
 **Scope** (checklist, not a code change — this is a coverage + workflow ticket):
 
 - [x] **BL-070 SHIPPED 2026-06-06** at mcp-server 0.28.0 (PR1). `requireVerbatimBody` prompt-arg flag + `Bl070VerbatimBodyRequiredError` + early guard in `runComposeDossierEnvelope`. When set to `true`, the tool rejects any `irlSource !== 'partner-paste-verbatim'` with a structured error directing operators to paste IRL markdown directly. Makes the partner-paste discipline system-enforced rather than operator-remembered. **Bundled BL-073 acronym add-on** (NIST AI RMF + NIST RMF aliases on US-NIST-AI-RMF.json) closes the fourth observed false-negative class.
-- [ ] **Promote BL-071 RESERVED → SCHEDULED** if VERIFY-block triage is a routine operator task. Ship server-sourced `toolCallCounts` injected into the envelope output from `withToolMetrics`. Operator triage on the artifact becomes authoritative.
+- [x] **BL-071 SHIPPED 2026-06-06** at mcp-server 0.29.0 (PR2). Server-sourced `serverToolCallCounts` emitted from `compose_dossier_envelope` via the new `ToolCallCounters` accumulator on `MetricsContext`. Prompt directive (v0.16.0) instructs the model to copy verbatim into the BL-045-VERIFY block + derive `precheck.iterations` / `attemptsTotal` / `errorsEncountered` count from the snapshot. Closes the BL-070 self-degradation gap arithmetically (rejection counts are now server-authoritative — a model that lies about forwarding `requireVerbatimBody: true` cannot fake the resulting rejection count).
 - [ ] **Document the operator runbook** at `src/docs/development/OPERATOR_RUNBOOK.md` (new):
   - When does the operator override the VERIFY block? When do they re-run?
   - Who signs the dossier off before it leaves the partner's possession?
@@ -3964,7 +3964,7 @@ Both retries trace to the same regex: `^Section (\d{2}|--)[^—]*—.{20,}$` at 
 
 ---
 
-### BL-071: Server-sourced `toolCallCounts` in VERIFY block ⚠️ RESERVED 2026-06-05
+### BL-071: Server-sourced `toolCallCounts` in VERIFY block ✅ CLOSED 2026-06-06 (shipped at mcp-server 0.29.0)
 
 **Problem**: model-reported `toolCallCounts` in the BL-045 VERIFY block has demonstrated drift across both model tiers:
 
@@ -3976,7 +3976,26 @@ If operator acceptance triage continues to depend on the artifact, model self-na
 
 **Scope**: extend `withToolMetrics` (`mcp-server/src/metrics/_index.ts`) to emit per-tool invocation counters that `compose_dossier_envelope` reads from `MetricsContext` and injects into its returned envelope. Model still writes the dossier, but `(K)` provenance footer (or a sibling field) carries the canonical `toolCallCounts` from the server's vantage point. The model's VERIFY block self-report becomes secondary; operator triage uses server-derived counts.
 
-**Status**: RESERVED. Ship only when (a) operator workflow depends on VERIFY-block accuracy beyond what the dossier markdown carries, OR (b) acceptance triage on a future BL is blocked by ≥2 cases of self-report drift. One drift case on each model tier is observed but isn't yet structurally blocking.
+**Status**: ✅ **CLOSED 2026-06-06 — shipped** at mcp-server 0.29.0 (PR2 of BL-074 production-readiness gates, on top of BL-070 PR1 0.28.0). Promoted from RESERVED before the empirical bar fully tripped because (a) BL-074 made it a named gate, and (b) shipping it on top of BL-070 closes the BL-070 self-degradation gap arithmetically (server-arithmetic rejection counts make self-degradation server-detectable).
+
+**Shipped scope**:
+
+- **NEW: `ToolCallCounters` interface + `InMemoryToolCallCounters`** at [`mcp-server/src/metrics/with-metrics.ts`]. Four states per tool (`attempted` / `succeeded` / `rejected` / `errored`). Split `attempted`-at-wrap-entry from outcome-at-wrap-exit (audit M1) so the envelope tool's own snapshot includes its own in-flight attempt — semantic guarantee: "I'm reporting on the call I'm currently inside."
+- **NEW: optional `counters?: ToolCallCounters` field** on `MetricsContext`. `withToolMetrics` records counter events; `withResourceMetrics` and `withPromptMetrics` do NOT (tool-only scope today).
+- **NEW: per-process counter wiring in `createServer`** — stdio constructs a fresh `{ sink: NoopSink, counters: InMemoryToolCallCounters }` (process-lifetime = one Claude Desktop session); Worker adds counters to the existing context literal (per-request scope). The frozen `NOOP_METRICS_CONTEXT` stays untouched per audit B1 — used by 14+ default-param sites + tests.
+- **NEW: `serverToolCallCounts` field on `ComposeDossierEnvelopeResult`** + emitted from the handler via the closure-captured `MetricsContext`. Optional (omitted when metrics is undefined — backward-compat for tests).
+- **NEW: prompt body directive (v0.15.0 → v0.16.0)** instructing the model to (a) copy `serverToolCallCounts` VERBATIM into the BL-045-VERIFY block `toolCallCounts` field and (b) derive `precheck.iterations === validate_irl_provenance.succeeded`, `precheck.attemptsTotal === attempted`, `precheck.errorsEncountered.length === rejected` from the snapshot. The identity holds because `validate_irl_provenance` is registered exactly once and the internal verification engine bypasses the wrapper.
+- **`toolCallCounts` template line** gains `errored: N` at both invocation sites (one-shot + interactive).
+
+**Tests** (in-session integration assertions per BL-074 discipline):
+
+- 5 new `InMemoryToolCallCounters` unit tests + 7 new `withToolMetrics` counter-integration tests at `tests/unit/metrics/with-metrics.test.ts`.
+- 3 new BL-071 integration tests at `tests/integration/bl-071-precheck-derivation.test.ts` proving the SERVER side of the arithmetic identity end-to-end + verifying the in-flight `compose_dossier_envelope: { attempted: 1, succeeded: 0 }` semantic + backward-compat (omits serverToolCallCounts when metrics undefined).
+- 6 new prompt-body substring assertions + 1 updated BL-058 verify-block field for `errored: N`.
+
+**Surface impact**: `mcp-server` 0.28.0 → 0.29.0. Manifest hash rebaselines. ALL 7 body hashes rebaseline (verify directive ships in every body shape). 1421 mcp-server tests + 1111 root tests + tsc + astro + lint clean.
+
+**BL-075 reservation status**: per the original audit min-5 note, BL-071 makes BL-070's `requireVerbatimBody` self-degradation server-detectable (any model that ignores the operator flag and submits `requireVerbatimBody: false` to the tool now shows up as `serverToolCallCounts.compose_dossier_envelope.rejected` arithmetic that operators can hard-check). The BL-075 reservation for server-side prompt-arg passthrough may now be redundant — re-evaluate after one live exercise with BL-071 deployed.
 
 ---
 
