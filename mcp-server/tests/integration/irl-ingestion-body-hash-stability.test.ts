@@ -180,16 +180,23 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // the envelope directive entirely (per directive header "BLOCKING —
 // full mode + verbose verbosity only"), so the COMPACT + EXTRACT_ONLY
 // hashes are unchanged.
+// BL-073 + rename rebaseline (prompt 0.13.0 → 0.14.0): the BL-045-VERIFY
+// directive's YAML field `serverVersion:` was renamed to `promptVersion:`
+// at BOTH invocation sites (one-shot line 459 + interactive line 946)
+// with expanded inline guidance ("NOT the mcp-server package version").
+// The verify directive ships in EVERY body shape, so all 7 hashes drift
+// in this rebaseline (not just the 3 verbose-mode ones that BL-067+BL-072
+// touched).
 const EXPECTED_HASH_INTERACTIVE =
-  '55788619032fa2979ba673f5ab5be1f090dafdef6d2b46cdfffa8708a57e2bfd';
+  '681aac607179e8963ac590f042fb4619f4cb7bbd8300d5b282ec8355e8d8b5e5';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '500f065e3f758e6751d86ca45190e0e6be13c6f4ae379224a16ae1d7af806e4b';
+  'a32ca2c2fd1e3811f37852116b0dbb39bf9cbeb75172640a5350bf051129b419';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '564e4bbeeedba66f04922e6f2e38f6bd3a3746290b9cf1f4625e706ec6ee89ce';
+  'bd383c5274d72a6ea5aa4a230a0489416ad4b712b8e9a17379adc7e5cfb3e190';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  'fdcbe2d2d4e42d9b7ccb8fde58ea9ff8f2d96c9bc8cd92812041a52e4a6241a9';
+  '91c0ba7f2af9bba7785a495e72da2dd8f759f0a775e5262eed805a6c0f67151a';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '29583475b2d486e2e9cb5116e0e260ea5c36806f55cf4e2038076b675d6194ef';
+  '8ae7233f48dc054db7e89b74d5d842df31f529ca79b1d654e605358d66ed0f9b';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -199,9 +206,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '65d157e51c09cf3ac90cdb76a4e9dc749818e7c70193aa9a00192798a27a744c';
+  'ca28dad47ed8056bd6a3d02cef5241770f16e9394a66d8a1de89b2bee257e669';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  'c064e93e3a6545c96ed2ac4a3fb1f47253b3b98a445f54a184777f0273ba3354';
+  '114d59487290d10f81e6bea895f1f266023264252978091523bbb5c04d874e81';
 
 interface Scenario {
   name: string;
