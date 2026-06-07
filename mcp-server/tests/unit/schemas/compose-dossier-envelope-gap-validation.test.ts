@@ -374,6 +374,15 @@ describe('BL-070 — requireVerbatimBody gate', () => {
     expect(() => runComposeDossierEnvelope(input, SERVER_CTX)).not.toThrow();
   });
 
+  it('BL-079 Part B — passes through when requireVerbatimBody=true AND irlSource=partner-paste-verbatim-prepop', () => {
+    // BL-079 Part B dual-accept: the prepop variant is operator-supplied
+    // bytes (stronger provenance than partner-paste-verbatim since the body
+    // never round-tripped through model emission). The gate accepts both.
+    const input = baseInput([], 'partner-paste-verbatim-prepop');
+    input.requireVerbatimBody = true;
+    expect(() => runComposeDossierEnvelope(input, SERVER_CTX)).not.toThrow();
+  });
+
   it('passes through when requireVerbatimBody is omitted (default false) regardless of irlSource', () => {
     const input = baseInput([], 'model-reconstruction-from-xlsx');
     // requireVerbatimBody not set; default false from Zod

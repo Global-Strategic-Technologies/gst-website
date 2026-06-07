@@ -17,6 +17,10 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NOOP_METRICS_CONTEXT, withPromptMetrics, type MetricsContext } from '../metrics/_index';
 import { emitForceToolsUsed } from '../metrics/irl-ingestion-events';
+import { handlePrepareIrlBodyTool } from '../tools/prepare-irl-body';
+import { safeLog } from '../auth/safe-logger';
+import { computeIrlBodyHash } from '../schemas/compose-dossier-envelope';
+import { UPSTASH_KEY_PREFIX } from '../cache/irl-body-cache';
 import type { GstPrompt } from './types';
 import { diligenceKickoffPrompt } from './diligence-kickoff';
 import { targetQuickLookPrompt } from './target-quick-look';
@@ -107,8 +111,50 @@ export function registerPrompts(
     const wrappedBuild =
       prompt.name === 'gst_irl_ingestion'
         ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (args: any) => {
+          async (args: any) => {
             emitForceToolsUsed(metrics, args?.forceTools);
+            // BL-079 Part B — prompt-render-time cache pre-population.
+            //
+            // When the operator supplied `filledIrl` as a prompt arg, write
+            // the body to the shared IrlBodyCache BEFORE returning the
+            // rendered prompt body to the model. This is the structural fix
+            // for the model output stream emission ceiling: subsequent
+            // `compose_dossier_envelope` and `validate_irl_provenance` calls
+            // can read the EXACT operator-pasted bytes from cache via
+            // `irlBodyHash` without the model ever emitting the body.
+            //
+            // ALT-D PATTERN: reuse `handlePrepareIrlBodyTool` so the size
+            // cap, the BL-077a read-after-write probe, the `bl077.cache.set`
+            // safeLog instrumentation, and the `IrlBodyCacheWriteFailedError`
+            // surfacing logic are inherited for free.
+            //
+            // SYNC AWAIT (audit revision — NOT fire-and-forget): Cloudflare
+            // Workers terminate pending I/O at request completion unless
+            // `ctx.waitUntil` extends them. The ~50–100ms Upstash PUT cost
+            // is unmeasurable next to model TTFT on a 50KB prompt body.
+            //
+            // Failure is non-fatal — prompt render still completes; model
+            // falls through to legacy `prepare_irl_body` path on the first
+            // cache-miss. The `bl079.cache.preload.failed` safeLog event
+            // surfaces the failure for `wrangler tail` correlation.
+            if (args?.filledIrl && metrics.irlBodyCache) {
+              try {
+                await handlePrepareIrlBodyTool({ filledIrl: args.filledIrl }, metrics);
+              } catch (err) {
+                const hash = computeIrlBodyHash(args.filledIrl);
+                safeLog({
+                  event: 'bl079.cache.preload.failed',
+                  key: `${UPSTASH_KEY_PREFIX}${hash}`,
+                  storeId:
+                    'storeId' in metrics.irlBodyCache
+                      ? (metrics.irlBodyCache as { storeId?: number }).storeId
+                      : undefined,
+                  reason: err instanceof Error ? err.message.slice(0, 300) : String(err),
+                  success: false,
+                  errorCode: 'bl079-preload-failed',
+                });
+              }
+            }
             return prompt.build(args);
           }
         : prompt.build;
