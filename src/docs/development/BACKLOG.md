@@ -3880,6 +3880,65 @@ The bug is operator-visible (block carries the fabricated list) but not partner-
 
 ---
 
+### BL-079: Server-side body delivery via prompt-arg + body-by-hash on `validate_irl_provenance` ⏳ OPEN 2026-06-07
+
+**Problem**: post-BL-076 / BL-077c, the body-by-hash mechanism works end-to-end on small (5-10KB) bodies but fails on production-realistic ones. The 2026-06-07 staging exercise on a 77,743-byte body showed the model's tool-call args emission truncated at ~1,753 bytes (2.3%). `prepare_irl_body` cached a partial body; the model self-detected the hash mismatch and halted the run. Same emission ceiling affects `validate_irl_provenance` — its `filledIrl` arg requires the model to emit the full body for citation substring-matching.
+
+`extract-irl-markdown.mjs` (PR #248) makes the partner-paste path **operationally** available — operator pastes the canonical markdown into the prompt arg instead of letting the model reconstruct from xlsx. But the BODY still has to flow through the model's output stream to reach `prepare_irl_body` and `validate_irl_provenance`. **Same emission ceiling, same truncation risk**.
+
+The structural fix moves body delivery off the model's output path entirely on the partner-paste route:
+
+1. **Server-side cache pre-population at prompt-render time** — when the operator supplies `filledIrl` as a prompt arg, the prompt-build function writes the body to the IRL body cache directly (using the canonical hash it already computes for the `**Body-binding hash:**` directive). Model never has to emit the body to `prepare_irl_body`.
+2. **`validate_irl_provenance` accepts body-by-hash** — extend the schema with optional `irlBodyHashOnly: true` mode where `filledIrl` becomes optional and the server re-hydrates from cache for citation matching. Model passes only the hash for the precheck loop.
+
+Combined effect on the partner-paste path: zero body emission across the entire workflow. The 100KB+ prompt-arg ceiling applies (much higher than the model's per-tool-call emission ceiling, which we've measured at <77KB).
+
+**Scope** (per impartial audit 2026-06-07 — APPROVED WITH REVISIONS):
+
+- **Prompt-render cache write**: in `mcp-server/src/prompts/_registry.ts` wrapper closure for `gst_irl_ingestion`, fire-and-forget `metrics.irlBodyCache.set(hash, args.filledIrl)` when `filledIrl` is supplied. **Keep `GstPrompt.build` synchronous** (audit M-1) — don't change the SDK contract; the cache write completes well before the model emits its first tool call. Failure path: `.catch(safeLog)` with a typed `bl079.cache.preload.failed` metric event so prod regression is observable (audit R-1).
+- **Prompt directive surgery** (audit M-2): in `irl-ingestion.ts`, update the envelope-composition directive + interactive Step 4 to instruct: "**In one-shot mode** (you see a `**Body-binding hash:**` directive above), SKIP `prepare_irl_body` — the body is pre-cached server-side. Pass the directive's hash directly to `compose_dossier_envelope` and `validate_irl_provenance`. **In interactive / xlsx-reconstruction mode** (no directive), call `prepare_irl_body` as before." Adds the BL-079 model contract.
+- **`validate_irl_provenance` schema expansion**: add optional `irlBodyHash?: string` field. When supplied without `filledIrl`, server fetches body from `metrics.irlBodyCache`. Schema preserves the existing path for stdio / non-cached callers.
+- **VERIFY block taxonomy update** (audit M-3): add `runScenario: partner-paste-verbatim-prepop` to distinguish BL-079 path from legacy prepare-then-compose. Operators see which path was taken.
+- **BL-071 narrative update**: under BL-079 partner-paste, `serverToolCallCounts.prepare_irl_body.attempted: 0` is now CORRECT (not a model violation). Update the prompt directive prose so operators don't mis-read it.
+- **`Bl076BodyCacheMissError` text augmentation** (audit R-1): mention "if this prompt was invoked with `filledIrl` arg, the BL-079 pre-populate path may have failed — check `bl079.cache.preload.*` metrics."
+
+**Surface impact** (estimated, pre-implementation):
+
+- `mcp-server` 0.30.3 → 0.31.0 (minor — additive schema field on `validate_irl_provenance`; new prompt directive; new typed metric event).
+- `gst_irl_ingestion` promptVersion 0.17.0 → 0.18.0 (directive change; conditional render based on `filledIrl` presence).
+- Manifest hash rebaseline (prompt name@version tuple drift).
+- ~3 of 7 body hashes rebaseline (verbose-mode bodies carrying the envelope-composition directive).
+- BL-049 authority preserved at the same level (`pass-bound` for partner-paste, `pass-internal` for reconstruction).
+- BL-070, BL-072, BL-076 mechanisms unchanged — BL-079 is an additive pre-population channel on top of BL-076's cache.
+
+**Acceptance** (in-session):
+
+- New unit tests at `tests/unit/prompts/irl-ingestion-bl079.test.ts`: cache write happens when `filledIrl` arg is supplied; doesn't happen otherwise; failure path emits typed metric without blocking prompt render.
+- `validate_irl_provenance` schema tests: accepts `irlBodyHash` alone; rejects when both missing; rejects when both supplied with mismatched hash.
+- New integration test at `tests/integration/bl-079-partner-paste-skip-prepare.test.ts`: prompt invocation with `filledIrl` → cache populated → model can call compose_dossier_envelope directly without prepare → workflow succeeds end-to-end.
+- BL-070 `requireVerbatimBody` gate regression test: still fires correctly when `irlSource !== 'partner-paste-verbatim'` on the BL-079 path (audit verified gate is irlSource-only, unaffected by skip-prepare).
+- Prompt-body substring assertions: both one-shot and interactive bodies contain `BL-079` directive text + skip-prepare guidance.
+- Manifest + 3 body hashes rebaselined.
+
+**Empirical confirmation gate** (audit R-1 follow-up): the next live exercise after PR #248 (extract-irl-markdown) ships will tell us which BL-079 priority bucket we're in:
+
+- **Bucket A** — partner-paste alone clears the emission ceiling (`prepare_irl_body` + `validate_irl_provenance` succeed at 77KB+ when body comes from prompt arg, not model reconstruction). BL-079 becomes a **latency optimization** (still nice; ~30s × 2 tool emissions saved per run).
+- **Bucket B** — `prepare_irl_body` and/or `validate_irl_provenance` still truncate even with prompt-arg supply. BL-079 becomes a **production blocker** for partner-paste workflows on real-size IRLs.
+
+Hypothesis (medium confidence): Bucket B. The model has to emit the body regardless of where it sourced from; emission ceiling is per-tool-call output stream, not per-source. But PR #248's empirical evidence will settle it.
+
+**Out of scope**:
+
+- **`xlsx-reconstruction` path** — BL-079 doesn't help there (no prompt-arg `filledIrl` = no server-side bytes to pre-populate). Same model-emission truncation risk persists. Reserved as **BL-080: chunked body submission** (`prepare_irl_body_chunk` + `prepare_irl_body_finalize`) for that path. Independent of BL-079.
+- **Removing BL-077a/b read-after-write probe** — separate ticket (reserved as **BL-081** post-stable trace window).
+- **Removing `prepare_irl_body` as a registered tool** — keep it. Still needed for the xlsx-reconstruction path AND as a fallback path if the prompt-arg cache write fails silently for some reason.
+
+**Effort estimate** (audit-revised): **2-3 days** end-to-end (1-day was optimistic). Breakdown: `_registry.ts` wrapper + tests 0.25d; prompt directive surgery + VERIFY taxonomy 0.5d; `validate_irl_provenance` schema expansion + tests 0.5d; ~3 hash rebaselines 0.25d; new integration tests + BL-070 regression coverage 0.75d; BREAKING_CHANGES + BL-079 design doc + BACKLOG 0.5d; staging E2E verification on the actual 77KB case 0.25d; Worker-specific bug buffer (à la BL-077a) 0.25-0.5d.
+
+**Related**: BL-076 (the body-by-hash mechanism this extends), BL-077a/b/c (the diagnostic + namespace fix that proved the cache substrate works), PR #248 (extract-irl-markdown — makes partner-paste mechanically available; BL-079 makes it actually work for large bodies), BL-080 (reserved — chunked body for xlsx-reconstruction path), BL-081 (reserved — remove BL-077a/b read-after-write probe after stable trace window).
+
+---
+
 ### BL-077c: Realign IRL body cache key to `mcp:` namespace ✅ CLOSED 2026-06-07 (shipped at mcp-server 0.30.3)
 
 **Problem**: BL-077b's `upstash.set.failed` event on staging surfaced the actual Upstash error blocking BL-076:
