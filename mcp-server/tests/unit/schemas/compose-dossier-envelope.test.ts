@@ -18,7 +18,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  type ComposeDossierEnvelopeInput,
+  type ComposeDossierEnvelopeEngineInput,
   ComposeDossierEnvelopeInputSchema,
   IrlBodyHashMismatchError,
   computeIrlBodyHash,
@@ -44,7 +44,7 @@ const SAMPLE_IRL = `# IRL — TestCo
 - Stack: TypeScript Node 22, Python 3.12, Aurora Postgres 15
 `;
 
-function baseInput(): ComposeDossierEnvelopeInput {
+function baseInput(): ComposeDossierEnvelopeEngineInput {
   return {
     promptName: 'gst_irl_ingestion',
     promptVersion: '0.4.0',
@@ -453,7 +453,12 @@ describe('ComposeDossierEnvelopeInputSchema — promptVersion handling', () => {
     input.promptVersion = '99.99.99';
     const parsed = ComposeDossierEnvelopeInputSchema.safeParse(input);
     expect(parsed.success).toBe(true);
-    const result = runComposeDossierEnvelope(parsed.data!, SERVER_CTX);
+    // BL-076: parsed schema is the PUBLIC input (no filledIrl). Re-inject
+    // the body the engine still requires.
+    const result = runComposeDossierEnvelope(
+      { ...parsed.data!, filledIrl: input.filledIrl },
+      SERVER_CTX
+    );
     expect(result.metaFenceMarkdown).toContain('"promptVersion": "0.4.0"');
     expect(result.metaFenceMarkdown).not.toContain('99.99.99');
   });
@@ -734,7 +739,11 @@ describe('compose_dossier_envelope — BL-063 defaultFiredFrameworks enforcement
       delete (input as any).defaultFiredFrameworks;
       const parsed = ComposeDossierEnvelopeInputSchema.safeParse(input);
       expect(parsed.success).toBe(true);
-      const result = runComposeDossierEnvelope(parsed.data!, SERVER_CTX);
+      // BL-076: re-inject filledIrl post-parse (public schema dropped it).
+      const result = runComposeDossierEnvelope(
+        { ...parsed.data!, filledIrl: input.filledIrl },
+        SERVER_CTX
+      );
       expect(result.metaFenceMarkdown).toContain('"defaultFiredFrameworks": []');
     });
   });

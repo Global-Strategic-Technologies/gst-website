@@ -26,6 +26,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { InMemorySink } from '../../src/metrics/sinks/in-memory';
+import { InMemoryIrlBodyCache } from '../../src/cache/irl-body-cache';
 import { createServer } from '../../src/server';
 import type { Env } from '../../src/worker';
 
@@ -46,6 +47,11 @@ async function buildHarness(): Promise<Harness> {
     radarSource: 'worker',
     metricsSink: sink,
     keyOwner: KEY_OWNER,
+    // BL-076: Worker-mode createServer requires Upstash bindings for the
+    // IRL body cache. Test env has no bindings, so override with the
+    // in-memory cache — the test only asserts on metric emission, not on
+    // the cache substrate.
+    irlBodyCache: new InMemoryIrlBodyCache(),
   });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);

@@ -36,6 +36,16 @@ export {
   type ToolCallCounters,
 } from './with-metrics';
 export { NoopSink, type MetricSink } from './sinks/_interface';
+export {
+  InMemoryIrlBodyCache,
+  IrlBodyCacheSizeExceededError,
+  IRL_BODY_CACHE_MAX_BYTES,
+  IRL_BODY_CACHE_TTL_SECONDS,
+  IN_MEMORY_LRU_CAPACITY,
+  UpstashIrlBodyCache,
+  UPSTASH_KEY_PREFIX,
+  type IrlBodyCache,
+} from '../cache/irl-body-cache';
 export { InMemorySink } from './sinks/in-memory';
 export { AnalyticsEngineSink } from './sinks/analytics-engine';
 

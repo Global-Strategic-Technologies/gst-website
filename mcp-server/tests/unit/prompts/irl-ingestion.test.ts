@@ -89,7 +89,7 @@ describe('gst_irl_ingestion', () => {
     // BL-045 reset: prompt version restarts at 0.1.0 to signal the substantive
     // rescope (rename, scenario-neutral framing, mode/verbosity/forceTools args,
     // inclusion gates, JSON fences, provenance footer, gap list).
-    expect(irlIngestionPrompt.version).toBe('0.16.0');
+    expect(irlIngestionPrompt.version).toBe('0.17.0');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -688,6 +688,30 @@ describe('gst_irl_ingestion', () => {
     it('interactive body verify-block carries the errored field on toolCallCounts entries', () => {
       const text = bodyText(irlIngestionPrompt, {});
       expect(text).toContain('errored: N');
+    });
+  });
+
+  describe('BL-076 — body-by-hash directive (compose_dossier_envelope no longer takes filledIrl)', () => {
+    it('one-shot body instructs the model to call prepare_irl_body FIRST', () => {
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      expect(text).toContain('prepare_irl_body');
+      expect(text).toContain('BL-076');
+    });
+
+    it('interactive body instructs the model to call prepare_irl_body FIRST', () => {
+      const text = bodyText(irlIngestionPrompt, {});
+      expect(text).toContain('prepare_irl_body');
+      expect(text).toContain('BL-076');
+    });
+
+    it('one-shot body documents Bl076BodyCacheMissError as the cache-miss diagnostic', () => {
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      expect(text).toContain('Bl076BodyCacheMissError');
+    });
+
+    it('interactive body documents Bl076BodyCacheMissError as the cache-miss diagnostic', () => {
+      const text = bodyText(irlIngestionPrompt, {});
+      expect(text).toContain('Bl076BodyCacheMissError');
     });
   });
 });

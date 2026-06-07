@@ -21,9 +21,11 @@ import {
   withToolMetrics,
   type MetricsContext,
 } from '../../src/metrics/with-metrics';
+import { InMemoryIrlBodyCache } from '../../src/cache/irl-body-cache';
 import { handleValidateIrlProvenanceTool } from '../../src/tools/validate-irl-provenance';
 import { handleComposeDossierEnvelopeTool } from '../../src/tools/compose-dossier-envelope';
 import {
+  Bl076BodyCacheMissError,
   computeIrlBodyHash,
   type ComposeDossierEnvelopeInput,
 } from '../../src/schemas/compose-dossier-envelope';
@@ -64,7 +66,9 @@ function baseEnvelopeInput(): ComposeDossierEnvelopeInput {
       },
     ],
     gaps: [],
-    filledIrl: SAMPLE_IRL,
+    // BL-076: filledIrl is no longer on the public input schema. The body
+    // is fetched from `metrics.irlBodyCache` at handler entry; each test
+    // seeds the cache via `prepare_irl_body` before calling compose.
     irlBodyHash: computeIrlBodyHash(SAMPLE_IRL),
     irlSource: 'partner-paste-verbatim',
     requireVerbatimBody: false,
@@ -133,9 +137,16 @@ describe('BL-071 — precheck derivation identity', () => {
 
   it('compose handler emits serverToolCallCounts with the snapshot at envelope-build time', async () => {
     const counters = new InMemoryToolCallCounters();
+    const irlBodyCache = new InMemoryIrlBodyCache();
+    // BL-076 — seed the cache as `prepare_irl_body` would have. Without
+    // this, the handler throws Bl076BodyCacheMissError before reaching the
+    // envelope-build path. (Per BL-076 design, model MUST call
+    // prepare_irl_body first; tests simulate that side-effect directly.)
+    await irlBodyCache.set(computeIrlBodyHash(SAMPLE_IRL), SAMPLE_IRL);
     const metrics: MetricsContext = {
       sink: { write: () => undefined },
       counters,
+      irlBodyCache,
     };
 
     const wrappedValidate = withToolMetrics(
@@ -191,10 +202,40 @@ describe('BL-071 — precheck derivation identity', () => {
     });
   });
 
-  it('handleComposeDossierEnvelopeTool omits serverToolCallCounts when metrics is undefined (legacy backward-compat)', async () => {
+  it('BL-076 — handleComposeDossierEnvelopeTool returns Bl076BodyCacheMissError when no cache is bound', async () => {
+    // Backward-compat semantics changed in BL-076: with no `metrics` (and
+    // hence no `irlBodyCache`), there is no body to re-hydrate, so the
+    // handler surfaces a structured cache-miss diagnostic rather than
+    // composing an envelope. This is the documented contract; bare-handler
+    // call sites in production are not expected, but the cache-miss path
+    // is tested here so a regression in the lookup path surfaces.
     const result = await handleComposeDossierEnvelopeTool(baseEnvelopeInput());
-    expect(result.isError).toBeUndefined();
-    const structured = result.structuredContent as Record<string, unknown>;
-    expect(structured.serverToolCallCounts).toBeUndefined();
+    expect(result.isError).toBe(true);
+    const textContent = result.content[0];
+    expect(textContent.type).toBe('text');
+    if (textContent.type === 'text') {
+      expect(textContent.text).toContain('BL-076');
+      expect(textContent.text).toContain('prepare_irl_body');
+    }
+  });
+
+  it('BL-076 — handler returns Bl076BodyCacheMissError when cache is bound but empty (no prepare_irl_body call)', async () => {
+    const irlBodyCache = new InMemoryIrlBodyCache();
+    const metrics: MetricsContext = {
+      sink: { write: () => undefined },
+      counters: new InMemoryToolCallCounters(),
+      irlBodyCache, // bound but empty — simulates skipping prepare_irl_body
+    };
+    const result = await handleComposeDossierEnvelopeTool(baseEnvelopeInput(), metrics);
+    expect(result.isError).toBe(true);
+    const textContent = result.content[0];
+    if (textContent.type === 'text') {
+      expect(textContent.text).toContain('BL-076');
+      expect(textContent.text).toContain('body-cache miss');
+    }
+    // The handler ALSO rejects in the BL-071 counter, since withToolMetrics
+    // would have classified it as rejected. (We don't wrap with metrics here
+    // so we just assert the structured rejection text directly.)
+    void Bl076BodyCacheMissError; // referenced to keep the import live
   });
 });

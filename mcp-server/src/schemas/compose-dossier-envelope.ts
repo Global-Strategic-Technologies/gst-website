@@ -301,13 +301,13 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
     .describe(
       'Categorized gap entries for the (J) gap list. `provenance-gap` and `tier-mismatch` entries auto-discovered by the internal verification pass are APPENDED to this array — do NOT pre-populate those categories.'
     ),
-  filledIrl: z
-    .string()
-    .min(200)
-    .describe(
-      'The VERBATIM IRL body — exactly the bytes the prompt was invoked with. Hash-bound: the tool computes sha256(filledIrl).slice(0,16) and rejects if the result does not match `irlBodyHash`. This catches paraphrased / summarized IRL bodies that would otherwise pass through and produce false-positive provenance gaps.'
-    ),
-  // BL-045 PR B audit BL-2 → ALT-1: hash-bind forcing function.
+  // BL-076: `filledIrl` is no longer a public input field. The IRL body is
+  // submitted server-side via `prepare_irl_body` (which caches it keyed by
+  // its 16-hex `irlBodyHash`); `compose_dossier_envelope` re-hydrates the
+  // body from cache at handler entry. Removing the body from the model-
+  // emitted tool args cuts 9–80KB of output token cost per call
+  // (40–80% latency reduction depending on body size). See
+  // src/docs/development/MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md.
   irlBodyHash: z
     .string()
     .regex(
@@ -315,14 +315,14 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
       'irlBodyHash must be exactly 16 lowercase hex characters (sha256.slice(0,16) of the verbatim IRL body).'
     )
     .describe(
-      "Copy verbatim from the prompt body's `**Body-binding hash:**` directive. The tool verifies `sha256(filledIrl).slice(0,16) === irlBodyHash` and rejects on mismatch — preventing the v10 failure mode where the model passed a condensed paraphrase of the IRL as filledIrl and the provenance verifier flagged 25/29 claims as false-positive unverified."
+      'BL-076: now the SOLE body reference on this tool. Call `prepare_irl_body({ filledIrl })` first — it caches the body server-side keyed by this hash and returns it. Pass the returned `irlBodyHash` here. If you skip `prepare_irl_body` and call `compose_dossier_envelope` first, the server returns `Bl076BodyCacheMissError` directing you to `prepare_irl_body`. Hash sourcing rules (`pass-bound` vs `pass-internal` for BL-045-VERIFY block) are unchanged — see the prompt directive.'
     ),
   irlSource: z
     .enum(irlSourceValues)
     .describe(
-      'How the bytes in `filledIrl` were assembled. ' +
+      'How the IRL body bytes were assembled. ' +
         '`partner-paste-verbatim`: operator pasted the IRL markdown into the prompt arg; BL-049 hash-bind authority holds (the prompt arg is the authoritative source). ' +
-        '`model-reconstruction-from-xlsx`: model parsed an xlsx attachment into markdown; BL-049 hash-bind is `pass-internal` only (the model controls both `filledIrl` and the hash). ' +
+        '`model-reconstruction-from-xlsx`: model parsed an xlsx attachment into markdown; BL-049 hash-bind is `pass-internal` only (the model controls both the body and the hash). ' +
         '`model-reconstruction-trimmed`: model authored markdown from working memory + tool outputs without a verbatim source; same `pass-internal` caveat. ' +
         '`placeholder`: literal placeholder for error reporting. ' +
         'When the value is a reconstruction mode, the server auto-appends a `provenance-gap:` entry to (J) noting the limitation (BL-072).'
@@ -339,7 +339,23 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
     ),
 });
 
+/**
+ * Public input — what the tool publishes and what `handleComposeDossierEnvelopeTool`
+ * receives from the MCP transport. Does NOT carry the IRL body since BL-076:
+ * the body is fetched server-side from `IrlBodyCache` keyed by `irlBodyHash`.
+ */
 export type ComposeDossierEnvelopeInput = z.infer<typeof ComposeDossierEnvelopeInputSchema>;
+
+/**
+ * Engine-internal input — what `runComposeDossierEnvelope` consumes. Adds
+ * `filledIrl` back to the public input shape; the handler re-injects it
+ * after fetching from cache. Engine tests construct this type directly and
+ * bypass the cache layer entirely (audit M-1 — keeps existing engine tests
+ * unchanged and the cache concern confined to the handler).
+ */
+export type ComposeDossierEnvelopeEngineInput = ComposeDossierEnvelopeInput & {
+  filledIrl: string;
+};
 
 export interface ServerToolCallCountEntry {
   attempted: number;
@@ -725,6 +741,37 @@ export class Bl070VerbatimBodyRequiredError extends Error {
 }
 
 /**
+ * BL-076 — thrown when `compose_dossier_envelope` was called with an
+ * `irlBodyHash` that is NOT present in the server-side IRL body cache.
+ * Surfaces a structured rejection directing the model to call
+ * `prepare_irl_body` first.
+ *
+ * Caused by one of:
+ *   - Model skipped `prepare_irl_body` and called `compose_dossier_envelope`
+ *     directly. Recovery: call `prepare_irl_body` then retry.
+ *   - Cache entry was evicted (stdio LRU at capacity) or expired (Worker
+ *     Upstash TTL). Recovery: call `prepare_irl_body` again to re-seed.
+ *   - Hash typo / drift. Recovery: re-run `prepare_irl_body` with the
+ *     intended body to obtain a fresh canonical hash.
+ */
+export class Bl076BodyCacheMissError extends Error {
+  readonly irlBodyHash: string;
+  constructor(irlBodyHash: string) {
+    super(
+      `BL-076 body-cache miss for irlBodyHash="${irlBodyHash}": call ` +
+        `prepare_irl_body({ filledIrl }) first to seed the cache. The body-by-hash ` +
+        `pattern (v0.30.0+) requires the IRL body to be submitted via prepare_irl_body ` +
+        `before compose_dossier_envelope can re-hydrate it for internal provenance ` +
+        `verification. If you already called prepare_irl_body, the cache entry may have ` +
+        `been evicted (stdio LRU capacity exceeded) or expired (Worker TTL); re-call ` +
+        `prepare_irl_body with the same body to re-seed and retry.`
+    );
+    this.name = 'Bl076BodyCacheMissError';
+    this.irlBodyHash = irlBodyHash;
+  }
+}
+
+/**
  * BL-068 — scan model-supplied `gaps` for `map-absent:` claims that
  * point at Hub-backed frameworks. Returns the list of offenders (empty
  * if all claims are legitimate). Throws nothing; caller decides whether
@@ -867,7 +914,7 @@ export function deriveTier(verdict: ValidateIrlProvenanceVerdict): DerivedTier {
 }
 
 export function runComposeDossierEnvelope(
-  input: ComposeDossierEnvelopeInput,
+  input: ComposeDossierEnvelopeEngineInput,
   serverContext: ComposeDossierEnvelopeServerContext
 ): ComposeDossierEnvelopeResult {
   // BL-045 PR B audit BL-2 → ALT-1: hash-bind verification. The model

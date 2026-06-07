@@ -30,7 +30,15 @@ import { registerRadarResources } from './resources/radar';
 import { createWorkerSnapshotReader } from './content/radar-snapshot-reader-worker';
 import { registerPrompts } from './prompts/_registry';
 import { DEFAULT_SCOPES } from './auth/scopes';
-import { InMemoryToolCallCounters, NoopSink, type MetricsContext } from './metrics/_index';
+import {
+  InMemoryIrlBodyCache,
+  InMemoryToolCallCounters,
+  NoopSink,
+  UpstashIrlBodyCache,
+  type IrlBodyCache,
+  type MetricsContext,
+} from './metrics/_index';
+import { createCacheStore } from './lib/upstash-cache-store';
 import type { Env } from './worker';
 
 /**
@@ -78,6 +86,18 @@ export interface ServerContext {
    * `KEYOWNER_PLACEHOLDER` in AE's `index1` column).
    */
   keyOwner?: string;
+
+  /**
+   * BL-076 — optional `IrlBodyCache` override for tests. When provided,
+   * `createServer` uses this instance verbatim instead of constructing
+   * a stdio/Worker cache from `env`. Production code (stdio entrypoint,
+   * Worker entrypoint) must NOT set this; the auto-construction logic
+   * enforces the in-memory vs Upstash discriminator. Tests that drive
+   * `createServer` with a Worker-mode `metricsSink` but no Upstash bindings
+   * (e.g., `tests/integration/metrics-emission.test.ts`) pass an explicit
+   * `InMemoryIrlBodyCache()` here.
+   */
+  irlBodyCache?: import('./metrics/_index').IrlBodyCache;
 }
 
 /**
@@ -111,16 +131,47 @@ export function createServer(env: Env = {}, ctx: ServerContext = {}): McpServer 
   // BL-071 scope: process-lifetime in stdio (== one Claude Desktop session);
   // per-request in Worker (each fetch handler builds a fresh
   // `InMemoryToolCallCounters` so requests don't share counter state).
+  // BL-076 — IRL body cache. Stdio: in-memory LRU, process-lifetime
+  // (matches Claude Desktop session lifecycle). Worker: Upstash KV. The
+  // Worker path MUST NOT fall back to in-memory: Cloudflare isolates rotate
+  // between requests, so an in-memory cache populated by `prepare_irl_body`
+  // would silently miss the subsequent `compose_dossier_envelope` call from
+  // a different isolate. Fail fast at startup time when Upstash bindings
+  // are absent in Worker mode (audit R-3).
+  const irlBodyCache: IrlBodyCache = (() => {
+    // Test override path: short-circuit the stdio/Worker discriminator.
+    if (ctx.irlBodyCache) {
+      return ctx.irlBodyCache;
+    }
+    if (ctx.metricsSink === undefined) {
+      // Stdio.
+      return new InMemoryIrlBodyCache();
+    }
+    // Worker — require Upstash.
+    const store = createCacheStore(env);
+    if (!store) {
+      throw new Error(
+        'BL-076 requires Upstash bindings in Worker mode: createCacheStore returned null. ' +
+          'compose_dossier_envelope fetches the IRL body from a shared cache; an in-memory ' +
+          'fallback would silently miss across isolate rotations. Bind UPSTASH_* env vars or ' +
+          'switch to stdio.'
+      );
+    }
+    return new UpstashIrlBodyCache(store);
+  })();
+
   const metrics: MetricsContext =
     ctx.metricsSink === undefined
       ? {
           sink: new NoopSink(),
           counters: new InMemoryToolCallCounters(),
+          irlBodyCache,
         }
       : {
           sink: ctx.metricsSink,
           keyOwner: ctx.keyOwner,
           counters: new InMemoryToolCallCounters(),
+          irlBodyCache,
         };
 
   // Tools (transport-portable)

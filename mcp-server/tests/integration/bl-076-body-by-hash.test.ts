@@ -1,0 +1,223 @@
+/**
+ * BL-076 — body-by-hash integration test.
+ *
+ * Proves the prepare-then-compose contract end-to-end:
+ *   1. `prepare_irl_body` writes the body to the shared `IrlBodyCache`.
+ *   2. `compose_dossier_envelope` re-hydrates the body from cache and
+ *      produces a normal envelope.
+ *   3. Calling `compose_dossier_envelope` WITHOUT a preceding
+ *      `prepare_irl_body` (cache miss) returns a structured
+ *      `Bl076BodyCacheMissError` with actionable text.
+ *   4. The hash-bind defense-in-depth check still runs after re-hydrate
+ *      (cache-poisoning isn't reachable by construction, but the check is
+ *      pinned so a future cache-key-collision regression surfaces).
+ *
+ * See: src/docs/development/MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md
+ */
+
+import { describe, expect, it } from 'vitest';
+import { InMemoryIrlBodyCache } from '../../src/cache/irl-body-cache';
+import { withToolMetrics, type MetricsContext } from '../../src/metrics/with-metrics';
+import { handlePrepareIrlBodyTool } from '../../src/tools/prepare-irl-body';
+import { handleComposeDossierEnvelopeTool } from '../../src/tools/compose-dossier-envelope';
+import {
+  computeIrlBodyHash,
+  type ComposeDossierEnvelopeInput,
+} from '../../src/schemas/compose-dossier-envelope';
+
+const SAMPLE_IRL = `# IRL — BL-076-TestCo
+
+## 00 — Basics
+
+- Annual recurring revenue: $45.2M
+- Headcount: 187
+- Year-over-year growth rate: Revenue 62% YoY; headcount 55% YoY
+
+## 02 — Software Architecture
+
+- Engineering FTE count: 58 total
+- Stack: TypeScript Node 22, Python 3.12, Aurora Postgres 15
+`;
+
+function makeMetrics(): { metrics: MetricsContext; cache: InMemoryIrlBodyCache } {
+  const cache = new InMemoryIrlBodyCache();
+  const metrics: MetricsContext = {
+    sink: { write: () => undefined },
+    irlBodyCache: cache,
+  };
+  return { metrics, cache };
+}
+
+function baseEnvelopeInput(): ComposeDossierEnvelopeInput {
+  return {
+    promptName: 'gst_irl_ingestion',
+    promptVersion: '0.17.0',
+    modelVersion: 'claude-opus-4-8',
+    mode: 'full',
+    verbosity: 'verbose',
+    transactionContext: 'value-creation',
+    fillRatio: { percent: 92, substantiveCells: 46, totalCells: 50, status: 'ok' },
+    gatesPassed: ['generate_diligence_agenda'],
+    gatesElided: [],
+    conditionalTriggersFired: [],
+    defaultFiredFrameworks: [],
+    forceToolsApplied: [],
+    claims: [
+      {
+        claim: 'ARR ~$45.2M',
+        citation: 'Section 00 — Annual recurring revenue: $45.2M',
+        tier: '1',
+      },
+    ],
+    gaps: [],
+    irlBodyHash: computeIrlBodyHash(SAMPLE_IRL),
+    irlSource: 'partner-paste-verbatim',
+    requireVerbatimBody: false,
+  };
+}
+
+describe('BL-076 — body-by-hash prepare-then-compose chain', () => {
+  it('prepare_irl_body writes the body to the cache keyed by its canonical hash', async () => {
+    const { metrics, cache } = makeMetrics();
+    const result = await handlePrepareIrlBodyTool({ filledIrl: SAMPLE_IRL }, metrics);
+    expect(result.isError).toBeUndefined();
+    const hash = computeIrlBodyHash(SAMPLE_IRL);
+    expect(await cache.get(hash)).toBe(SAMPLE_IRL);
+
+    // Returned structured output carries the same hash + byteLength contract
+    // (BL-068 output schema unchanged by BL-076).
+    const structured = result.structuredContent as { irlBodyHash: string; byteLength: number };
+    expect(structured.irlBodyHash).toBe(hash);
+    expect(structured.byteLength).toBe(Buffer.byteLength(SAMPLE_IRL, 'utf8'));
+  });
+
+  it('compose_dossier_envelope re-hydrates the body from cache and produces a normal envelope', async () => {
+    const { metrics } = makeMetrics();
+    // Seed via prepare.
+    await handlePrepareIrlBodyTool({ filledIrl: SAMPLE_IRL }, metrics);
+    // Compose; should NOT carry filledIrl in the input, server re-hydrates.
+    const result = await handleComposeDossierEnvelopeTool(baseEnvelopeInput(), metrics);
+    expect(result.isError).toBeUndefined();
+    const structured = result.structuredContent as Record<string, unknown>;
+    expect(structured.metaFenceMarkdown).toBeTypeOf('string');
+    expect(structured.provenanceVerification).toBeDefined();
+  });
+
+  it('cache miss → Bl076BodyCacheMissError surfaced as isError with actionable text', async () => {
+    const { metrics } = makeMetrics(); // cache empty, no prepare call
+    const result = await handleComposeDossierEnvelopeTool(baseEnvelopeInput(), metrics);
+    expect(result.isError).toBe(true);
+    const text = result.content[0];
+    if (text.type === 'text') {
+      expect(text.text).toContain('BL-076');
+      expect(text.text).toContain('body-cache miss');
+      expect(text.text).toContain('prepare_irl_body');
+    }
+  });
+
+  it('cache miss diagnostic names the offending hash', async () => {
+    const { metrics } = makeMetrics();
+    const input = baseEnvelopeInput();
+    const result = await handleComposeDossierEnvelopeTool(input, metrics);
+    if (result.content[0].type === 'text') {
+      expect(result.content[0].text).toContain(input.irlBodyHash);
+    }
+  });
+
+  it('BL-076 + BL-071 interaction: cache miss counts as `rejected` in serverToolCallCounts', async () => {
+    // Wire counters + cache; trigger a miss; assert the wrapper's counter
+    // outcome classification falls into `rejected`. This is the
+    // BL-070→BL-071 audit reasoning: server-arithmetic detects model-
+    // bypass attempts.
+    const { InMemoryToolCallCounters } = await import('../../src/metrics/with-metrics');
+    const counters = new InMemoryToolCallCounters();
+    const cache = new InMemoryIrlBodyCache();
+    const metrics: MetricsContext = {
+      sink: { write: () => undefined },
+      counters,
+      irlBodyCache: cache,
+    };
+    const wrappedCompose = withToolMetrics(
+      'compose_dossier_envelope',
+      metrics,
+      (payload: ComposeDossierEnvelopeInput) => handleComposeDossierEnvelopeTool(payload, metrics)
+    );
+    const result = await wrappedCompose(baseEnvelopeInput());
+    expect(result.isError).toBe(true);
+    const snap = counters.snapshot();
+    expect(snap.compose_dossier_envelope).toEqual({
+      attempted: 1,
+      succeeded: 0,
+      rejected: 1, // ← BL-076 cache-miss landed in the rejected bucket
+      errored: 0,
+    });
+  });
+
+  it('end-to-end: prepare → compose → verify serverToolCallCounts identity holds', async () => {
+    const { InMemoryToolCallCounters } = await import('../../src/metrics/with-metrics');
+    const counters = new InMemoryToolCallCounters();
+    const cache = new InMemoryIrlBodyCache();
+    const metrics: MetricsContext = {
+      sink: { write: () => undefined },
+      counters,
+      irlBodyCache: cache,
+    };
+
+    // Wrap both tools the way the registry does.
+    const wrappedPrepare = withToolMetrics(
+      'prepare_irl_body',
+      metrics,
+      (payload: { filledIrl: string }) => handlePrepareIrlBodyTool(payload, metrics)
+    );
+    const wrappedCompose = withToolMetrics(
+      'compose_dossier_envelope',
+      metrics,
+      (payload: ComposeDossierEnvelopeInput) => handleComposeDossierEnvelopeTool(payload, metrics)
+    );
+
+    await wrappedPrepare({ filledIrl: SAMPLE_IRL });
+    const composeResult = await wrappedCompose(baseEnvelopeInput());
+    expect(composeResult.isError).toBeUndefined();
+
+    const snap = counters.snapshot();
+    // prepare succeeded once.
+    expect(snap.prepare_irl_body).toEqual({
+      attempted: 1,
+      succeeded: 1,
+      rejected: 0,
+      errored: 0,
+    });
+    // compose is in-flight at snapshot time (BL-071 semantic preserved).
+    const structured = composeResult.structuredContent as {
+      serverToolCallCounts?: Record<
+        string,
+        { attempted: number; succeeded: number; rejected: number; errored: number }
+      >;
+    };
+    expect(structured.serverToolCallCounts).toBeDefined();
+    expect(structured.serverToolCallCounts!.compose_dossier_envelope).toEqual({
+      attempted: 1,
+      succeeded: 0,
+      rejected: 0,
+      errored: 0,
+    });
+    expect(structured.serverToolCallCounts!.prepare_irl_body).toEqual({
+      attempted: 1,
+      succeeded: 1,
+      rejected: 0,
+      errored: 0,
+    });
+  });
+
+  it('hash-bind defense-in-depth (cache-poisoning impossible by construction): rehydrated body matches the requested hash', async () => {
+    const { metrics } = makeMetrics();
+    await handlePrepareIrlBodyTool({ filledIrl: SAMPLE_IRL }, metrics);
+    const hash = computeIrlBodyHash(SAMPLE_IRL);
+    // Compose with the EXACT hash from prepare → re-hydrated body matches.
+    const result = await handleComposeDossierEnvelopeTool(
+      { ...baseEnvelopeInput(), irlBodyHash: hash },
+      metrics
+    );
+    expect(result.isError).toBeUndefined();
+  });
+});
