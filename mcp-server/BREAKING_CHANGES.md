@@ -29,6 +29,35 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.30.2 — 2026-06-07 — BL-077b surface Upstash error in `CacheStore.set`
+
+**Theme**: continuation of BL-077a diagnostic chain. BL-077a's `bl077.cache.set` event on staging confirmed `outcome: write-returned-false` at a 64KB body — the underlying Upstash write was failing — but the actual Upstash error was being swallowed inside `CacheStore.set`'s `catch {}` block. Pre-BL-077b, we could see WHICH layer was failing but not WHY. This patch adds one `safeLog` line inside the catch so `wrangler tail` captures the actual Upstash error message in the next exercise.
+
+**Surface impact**:
+
+- **NEW** `upstash.set.failed` `safeLog` event emitted at [`mcp-server/src/lib/upstash-cache-store.ts`] whenever `redis.set` throws. Carries: `key` (the Upstash key being written), `byteLength` (size of the JSON-stringified `{storedAt, data}` envelope — the actual byte count Upstash received), `ttlSeconds`, `reason` (truncated to 300 chars), `errorCode: 'upstash-set-threw'`.
+- **No public contract change.** No prompt-body change, no schema change, no manifest hash drift, no body hash rebaseline.
+- **Affects ALL callers of `createCacheStore`**, not just BL-076's `UpstashIrlBodyCache`. Other consumers (`resource-cache.ts`, etc.) also gain the visibility — backward-compatible at the contract level since the behavior on failure is still "return false."
+
+**Acceptance** (in-session):
+
+- 5 new unit tests at [`tests/unit/lib/upstash-cache-store-error-logging.test.ts`]: success path does NOT emit the failure event; throw path returns false AND emits with the actual error message; reason is truncated to 300 chars; non-Error throw values are handled; byte-length field is the JSON-wrapped envelope size (not just the raw value).
+- 1460 mcp-server tests green; tsc clean.
+
+**Operator follow-up**:
+
+1. Deploy 0.30.2 to staging.
+2. Operator re-runs the same `gst_irl_ingestion` exercise that produced the BL-077a `outcome: write-returned-false` event with `wrangler tail` active.
+3. The new `upstash.set.failed` event appears with the actual Upstash error in `reason`. Three most-likely:
+   - `REQUEST_TOO_LARGE` / `PAYLOAD_TOO_LARGE` → 64KB body wrapped in `{storedAt, data: <JSON-escaped body>}` exceeds Upstash REST request size limit. BL-077c fix: bypass the envelope for IRL body cache, OR compress the body before storing.
+   - `MAX_DAILY_REQUEST_SIZE_LIMIT_EXCEEDED` / quota error → staging Upstash plan quota hit. BL-077c fix: bump plan or rotate to a separate DB.
+   - `WRONGTYPE` / `NOAUTH` / network error → auth / config issue. BL-077c fix: rotate token or check binding.
+4. Paste the `upstash.set.failed` event back; file BL-077c with the targeted root-cause fix.
+
+**Risks**: low. One extra `safeLog` call per failed Upstash write; no behavior change on the success path. Existing log volume on staging is bounded since failed writes are the exception, not the rule.
+
+---
+
 ## 0.30.1 — 2026-06-07 — BL-077a `UpstashIrlBodyCache` fail-loud + diagnostic instrumentation
 
 **Theme**: post-BL-076 staging incident — three back-to-back `prepare_irl_body` → `compose_dossier_envelope` pairs all surfaced `Bl076BodyCacheMissError` on compose despite prepare returning the correct deterministic hash each time. Underlying `CacheStore.set` swallows Upstash write failures and returns `false`; pre-BL-077a, `UpstashIrlBodyCache.set` ignored the return value, so failed writes silently surfaced as confusing downstream cache misses. **No public contract change** — this is a patch release that converts the silent failure into an actionable structured error AT the moment of failure + emits diagnostic `safeLog` events that `wrangler tail` captures for root-cause analysis (see BL-077b follow-up for the actual fix once diagnosis lands).

@@ -3880,6 +3880,29 @@ The bug is operator-visible (block carries the fabricated list) but not partner-
 
 ---
 
+### BL-077b: Surface Upstash error in `CacheStore.set` ✅ CLOSED 2026-06-07 (shipped at mcp-server 0.30.2)
+
+**Problem**: BL-077a's `bl077.cache.set` event on staging (1 hour after 0.30.1 deploy) confirmed `outcome: write-returned-false` at a 64054-byte body — Upstash KV write was failing — but the actual Upstash error message was being swallowed inside `CacheStore.set`'s `catch {}` block. We knew WHICH layer was failing but not WHY.
+
+**Scope**: one-line patch to [`mcp-server/src/lib/upstash-cache-store.ts`] — add `safeLog({ event: 'upstash.set.failed', ... })` inside the existing `catch` block before returning `false`. Carries: key, JSON-stringified envelope byte length, TTL, truncated error reason, errorCode. Affects ALL callers of `createCacheStore` (resource cache, BL-076 body cache, etc.) — backward-compatible at the contract level since the behavior on failure is still "return false."
+
+**Surface impact**: `mcp-server` 0.30.1 → 0.30.2 (patch). No public contract change. No prompt-body change, no schema change, no manifest hash drift.
+
+**Acceptance** (in-session):
+
+- 5 new unit tests covering success-path-no-log, throw-path-emits-with-reason, 300-char-truncation, non-Error-throw-values, byte-length-reflects-envelope-size.
+- 1460 mcp-server tests green; tsc clean.
+
+**Operator follow-up**: deploy 0.30.2 to staging; re-run the same `gst_irl_ingestion` exercise with `wrangler tail` active. The new `upstash.set.failed` event will appear with the actual Upstash error in `reason`. Likely candidates:
+
+- `REQUEST_TOO_LARGE` / `PAYLOAD_TOO_LARGE` → 64KB body wrapped in `{storedAt, data: <JSON-escaped body>}` exceeds Upstash REST size limit. BL-077c: bypass envelope for IRL body cache OR compress before store.
+- Quota / rate limit → bump plan or rotate to separate DB.
+- Auth / network → config issue, rotate token or check binding.
+
+**Related**: BL-077a (the cache-layer fail-loud + symptom logging this patch extends to the substrate layer), BL-076 (the body-by-hash mechanism this instruments), BL-077c (reserved — the targeted root-cause fix, scoped after this exercise's tail output).
+
+---
+
 ### BL-077a: `UpstashIrlBodyCache` fail-loud + diagnostic instrumentation ✅ CLOSED 2026-06-07 (shipped at mcp-server 0.30.1)
 
 **Problem**: post-BL-076 deploy on Cloudflare Worker staging — three back-to-back `prepare_irl_body` → `compose_dossier_envelope` pairs in a live opus-4-8 exercise all surfaced `Bl076BodyCacheMissError` on compose despite prepare returning the correct deterministic hash (`2255981b665d27d1`, 3046 bytes) every time. Stdio path unaffected. Root cause unknown — three plausible explanations from impartial audit:
