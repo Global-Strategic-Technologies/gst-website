@@ -3969,39 +3969,45 @@ Hypothesis (medium confidence): Bucket B. The model has to emit the body regardl
 
 ---
 
-### BL-086: `gst_irl_ingestion` workflow simplification — strip prose conditionals + server-render the VERIFY block ⏳ OPEN — design audit-passed 2026-06-07
+### BL-086: `gst_irl_ingestion` workflow simplification — delete VERIFY block + unregister validate + cut worked-example megapayloads ⏳ OPEN — Path A approved 2026-06-07
 
-**Design doc**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) — full architecture, schema additions, capability-preservation matrix vs every predecessor (BL-045 → BL-079), single-PR ship cadence.
+**Design doc**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) — full architecture, audit findings folded in, capability-preservation matrix vs every predecessor (BL-045 → BL-082), single-PR ship cadence.
 
 **Empirical motivation**: the 2026-06-07 evening exercise sequence produced a dual signal:
 
 - **Interactive/xlsx-reconstruction mode**: clean healthy run (33/33 verified, `precheck.outcome: converged` in 1 iteration, `selfCorrectionCalls: 0`, all `serverToolCallCounts` arithmetic balanced). The workflow runs.
-- **Partner-paste-prompt-arg mode**: Claude Desktop v4.7+ **refused** to execute the workflow, citing pattern-similarity to a jailbreak template ("long elaborate script, anticipates resistance, scripts compliance"). On the operator's direct narrow ask, the model called `prepare_irl_body` once, verified the substrate, then wrote a clean diligence synthesis **without the audit machinery firing at all** — and the dossier was structurally better than audited runs (honest MTTR gap, named JQL query to unblock).
+- **Partner-paste-prompt-arg mode**: Claude Desktop v4.7+ **refused** to execute the workflow, citing pattern-similarity to a jailbreak template. On the operator's direct narrow ask, the model called `prepare_irl_body` once, verified the substrate, then wrote a clean diligence synthesis **without the audit machinery firing at all** — and the dossier was structurally better than audited runs (honest MTTR gap, named JQL query to unblock).
 
-The two observations together: the workflow produces real value, AND the accreted prose discipline (BL-045 → BL-079 = ~20 PRs) is now actively in the way. Every PR added the right prose for a real concern at the time; the cumulative ~30KB prompt body now triggers safety patterns and obscures the deliverable. Locally-justified decisions producing globally-broken outcomes — the classic refactor-trigger pattern.
+The two observations together: the workflow produces real value, AND the accreted prose discipline (BL-045 → BL-079 = ~20 PRs) is now actively in the way. Every PR added the right prose for a real concern at the time; the cumulative ~30KB prompt body now triggers safety patterns and obscures the deliverable.
 
-**Three principles** (the doc spells them out concretely):
+**Initial draft proposed moderate simplification** (server-render VERIFY, keep validate as debug tool, leave worked examples intact). **Impartial Plan-agent audit pushed for Path A (aggressive)** — operator approved 2026-06-07:
 
-1. **Mode selection happens in the builder, not in the prompt body**. Today's `buildOneShotBody` carries prose like "if `**Body-binding hash:**` directive appears above... otherwise legacy BL-076 path..." — but the builder ALREADY decided to render the directive. Eliminate the conditional; each builder emits one coherent path.
-2. **VERIFY block is server-rendered**. Class A fields (`toolCallCounts`, `hashBindResult`, `provenanceVerification`, `serverCachedBodyBytes`, `runScenario`, arithmetic identities) the server already has. Class B (`precheck.outcome`, `errorClass`/`recoveryAction` strings, `conditionalTriggers.*` rationale, `gatesElided` rationale, `response.*` host observations) is genuinely interpretive — model passes those in as `verifyBlockInputs`. Server merges + emits `verifyBlockYaml` as a single string. Model transcribes one fence verbatim.
-3. **`validate_irl_provenance` becomes a debug tool, not a workflow forcing function**. Tonight's clean run did 1 precheck iteration before converging — empirically the forcing function adds no value when compose's internal verification runs the same engine. Tool stays registered (Part A body-by-hash schema kept) for operators that want to manually orchestrate; the prompt body stops mandating it.
+1. **Delete the `BL-045-VERIFY` block entirely**. Audit grep confirmed no parser outside `mcp-server` consumes the YAML fence. Structured tool output (`provenanceVerification`, `serverToolCallCounts`, `serverCachedBodyBytes`) already carries every Class A fact via the MCP protocol. (J) gap list + (K) provenance footer cover human-readable audit. The block's only real reader is the doc operator. Cut ~95 lines.
+
+2. **Unregister `validate_irl_provenance` from the workflow**. Engine + internal compose call kept (compose's `runIrlProvenanceCheck` reuse stays). Tool registration removed in `server.ts`. The "keep registered as debug tool" framing was the same sentimentality that produced the prose accretion — no operator runbook actually calls it manually; BL-079 Part A's schema becomes dead public API but the engine path lives.
+
+3. **Cut the worked-example megapayloads** (Step 1 dimension audit ~80 lines + Step 4a TechPar audit ~80 lines + Step 6a MTTR-source audit ~50 lines = ~210 lines). Replaced with one-paragraph workflow descriptions. Discipline moves to tool error messages (which already exist: `Bl063PartitionViolationError`, `IrlBodyHashMismatchError`, `Bl070VerbatimBodyRequiredError`, `Bl076BodyCacheMissError`, per-tool calibration rejections). Model self-corrects on first call; cost is one retry not the avoidance of it.
+
+4. **Delete `hashBindResult` field** as redundant with `irlSource` (partner-paste-verbatim\* → bound; reconstruction modes → internal; mismatch → thrown error). Operators read provenance grade off `irlSource` directly.
+
+5. **Builder-level mode selection** (no prose conditionals): each rendered body describes ONE path. `buildOneShotBody` emits unconditional prepop workflow ("the cache is populated; pass the body-binding hash"). `INTERACTIVE_BODY` emits unconditional legacy workflow ("ask user to paste; call prepare; pass returned hash"). No "if you see... otherwise..." prose anywhere.
 
 **Net effect**:
 
-- Prompt body shrinks ~40% (target). Zero `BL-*` citations in runtime prose. Zero `if X then Y` conditional prose.
-- Model job shrinks: read IRL, run tools, assemble interpretive `verifyBlockInputs`, call compose, transcribe markdown blocks + one YAML fence. No precheck-derivation arithmetic, no fingerprint discipline, no hash-bind-result attestation discipline.
-- Server job grows by exactly the deterministic YAML render (~50 lines, pure function).
-- Substrate stays: body-by-hash (BL-076), cache substrate (BL-077a/b/c), prompt-render pre-pop (BL-079 Part B), server-arithmetic counters (BL-071), partition + scope + Hub-backing enforcement (BL-063), `requireVerbatimBody` gate (BL-070), reconstruction auto-append (BL-072), wire-shape adapters (BL-082) — all preserved verbatim.
+- `irl-ingestion.ts` shrinks from ~1,080 lines to ~500-550 (target). ~50% reduction.
+- Zero `BL-*` citations in runtime prose. Zero `if X then Y` conditional prose. Zero worked-example megapayloads.
+- Tool surface drops from 12 to 11 (validate_irl_provenance unregistered).
+- Operator-readable audit surface: structured tool output + (J) gap list + (K) provenance footer. No model-authored YAML fence.
 
-**Capability preservation**: see the matrix in the design doc. Every BL-\* surface BL-045 through BL-082 is either **preserved verbatim** (substrate, server enforcement, slash-command interop) or **strengthened** (hash-bind authority via "did the server render a directive?" check eliminates the model fabricated-`pass-bound` failure mode; server-arithmetic VERIFY render eliminates self-narration drift).
+**Capability preservation** (full matrix in doc): every server substrate and every server-enforced gate stays. BL-076 / BL-077a/b/c / BL-079 Part B substrate untouched. BL-063 partition + scope + Hub-backing enforcement untouched. BL-070 requireVerbatimBody gate untouched. BL-071 server-arithmetic counters untouched (now THE audit surface). BL-072 reconstruction auto-append untouched. BL-082 wire-shape adapters untouched. Cuts: BL-058 VERIFY schema expansion (block deleted). BL-061 compaction asymmetry (was a VERIFY reporting discipline). BL-079 Part A tool surface (engine reused; tool unregistered).
 
-**Single PR** (per the doc's own principle): the cuts and the new field are coupled; half-state would leave the workflow broken. Ships as mcp-server `0.31.0` → `0.32.0` + promptVersion `0.18.0` → `0.19.0` + manifest hash drift + all 7 body hashes rebaseline.
+**Single PR** (audit-revised cadence): mcp-server `0.31.0` → `0.32.0`. promptVersion `0.18.0` → `0.19.0`. Manifest hash drift (one fewer tool tuple). ALL 7 body hashes rebaseline.
 
-**Effort estimate**: 1–1.5 days. Mostly prose-deletion + a deterministic YAML render function + rebaselines. No new substrate, no new tool, no new wrapper.
+**Effort estimate**: **2–3 days** (audit-revised from the initial 1–1.5 day moderate-path estimate). Larger blast radius — tool registration removal touches schemas + tests + types; worked-example removal needs verification that tool error messages are sufficient discipline (R-1).
 
-**Status**: ⏳ design doc drafted 2026-06-07 after BL-079 Part B operator verification surfaced the model-refusal failure mode. Ready for operator approval to start implementation. Supersedes BL-079 Part B's directive surgery; the substrate Part B shipped (registry wrapper, cache prepop, BL-070 dual-accept, `serverCachedBodyBytes` field) all stay.
+**Status**: ⏳ design doc audit-passed and Path A approved 2026-06-07. Ready for implementation as single PR. Supersedes BL-079 Part B's prose directive surgery (substrate kept; prose cut).
 
-**Related**: BL-045 (the original audit discipline this simplifies), BL-058/BL-061/BL-062/BL-063/BL-071 (the VERIFY schema expansions whose model-narration burden is now server-rendered), BL-076 + BL-077 + BL-079 (the substrate stack that BL-086 keeps wholesale). **BL-087** (reserved): once VERIFY block is server-rendered for ≥2 weeks with no drift signal, deprecate any remaining model-narrated fields whose values the server can derive deterministically.
+**Related**: BL-045 (the original audit discipline this simplifies), BL-058/BL-061/BL-062/BL-063/BL-071 (the VERIFY schema expansions whose model-narration burden is removed entirely), BL-076 + BL-077 + BL-079 (the substrate stack that BL-086 keeps wholesale). **BL-087** (reserved): post-merge follow-on if operator finds any cut surface actually needed. Not pre-scoped.
 
 ---
 
