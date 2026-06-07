@@ -137,6 +137,17 @@ describe('UpstashIrlBodyCache', () => {
     };
   }
 
+  it('UPSTASH_KEY_PREFIX starts with "mcp:" — BL-077c namespace discipline regression guard', () => {
+    // The shared Upstash token has ACL scoped to `+@all ~mcp:*` (single DB
+    // shared between staging and production per BL-077c verification on
+    // 2026-06-07). The BL-076 original prefix `gst-mcp:irl-body:` produced
+    // a NOPERM error on every prepare_irl_body call. Pin the prefix to the
+    // `mcp:` namespace so a future refactor can't silently reintroduce the
+    // ACL-rejection failure mode.
+    expect(UPSTASH_KEY_PREFIX.startsWith('mcp:')).toBe(true);
+    expect(UPSTASH_KEY_PREFIX).toBe('mcp:irl-body:');
+  });
+
   it('round-trips a body via the Upstash store with the BL-076 key prefix', async () => {
     const { store, writes } = makeFakeStore();
     const cache = new UpstashIrlBodyCache(store);

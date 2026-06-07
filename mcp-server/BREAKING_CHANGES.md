@@ -29,6 +29,46 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.30.3 — 2026-06-07 — BL-077c realign IRL body cache key to `mcp:` namespace
+
+**Theme**: closes the BL-076 staging incident. BL-077b's `upstash.set.failed` event captured the actual Upstash error on the next staging exercise:
+
+```
+NOPERM this user has no permissions to access one of the keys used as arguments
+```
+
+The shared Upstash token has ACL scoped to `+@all ~mcp:*` (single DB shared between staging and production, confirmed 2026-06-07). BL-076 originally shipped with the prefix `gst-mcp:irl-body:` — outside that scope — so every `prepare_irl_body` call's cache write was rejected with `NOPERM`. The 64KB body size that looked like a smoking gun was a coincidence; the same body shape hit the same error regardless of size.
+
+**Surface impact**:
+
+- **CHANGED** `UPSTASH_KEY_PREFIX` in [`mcp-server/src/cache/irl-body-cache.ts`] from `'gst-mcp:irl-body:'` to `'mcp:irl-body:'`. Aligns with the namespace discipline documented at [`upstash-cache-store.ts:12-16`] ("All keys written here use the `mcp:` prefix").
+- **NEW** regression-guard unit test asserting `UPSTASH_KEY_PREFIX.startsWith('mcp:')` so a future refactor can't silently reintroduce the ACL failure.
+- **No public contract change.** No prompt-body change, no schema change, no manifest hash drift.
+- **No data migration**: pre-existing `gst-mcp:irl-body:*` keys never made it to Upstash (writes were rejected). No stale entries to clean up.
+
+**Acceptance** (in-session):
+
+- 1 new regression-guard unit test + existing 13 cache tests + 7 BL-076 integration tests still green with the new prefix value.
+- 1461 mcp-server tests green; tsc clean.
+
+**Operator follow-up** (the diagnostic chain closes here):
+
+1. Deploy 0.30.3 to staging.
+2. Operator re-runs the same `gst_irl_ingestion` exercise that produced the `NOPERM` event.
+3. `prepare_irl_body` writes succeed → `compose_dossier_envelope` re-hydrates successfully → dossier completes end-to-end with the BL-076 latency win.
+4. BL-077a/b diagnostic instrumentation (read-after-write probe, `bl077.cache.*` events, `upstash.set.failed` event) stays in place for now — light cost; revisit removal after one week of stable production traces. The read-after-write probe in particular adds ~50–100ms to every `prepare_irl_body` call and should come out once the substrate is proven stable.
+
+**Risks**: minimal. The prefix change is a one-line constant. No callers outside this module reference the prefix. The Upstash ACL accepts `mcp:irl-body:*` writes — confirmed by inference from existing `mcp:resource:*`, `mcp:ratelimit:*`, `mcp:circuit:*` traffic which succeeds today.
+
+**Diagnostic chain summary** (for the operator runbook):
+
+- BL-076 (v0.30.0) — body-by-hash mechanism shipped; latency-win design correct, but cache write silently failed in Worker mode due to ACL scope drift.
+- BL-077a (v0.30.1) — fail-loud + read-after-write probe + `bl077.cache.*` logging surfaced "write returns false."
+- BL-077b (v0.30.2) — `upstash.set.failed` logging surfaced the actual NOPERM error.
+- BL-077c (v0.30.3 — this release) — namespace alignment closes the loop.
+
+---
+
 ## 0.30.2 — 2026-06-07 — BL-077b surface Upstash error in `CacheStore.set`
 
 **Theme**: continuation of BL-077a diagnostic chain. BL-077a's `bl077.cache.set` event on staging confirmed `outcome: write-returned-false` at a 64KB body — the underlying Upstash write was failing — but the actual Upstash error was being swallowed inside `CacheStore.set`'s `catch {}` block. Pre-BL-077b, we could see WHICH layer was failing but not WHY. This patch adds one `safeLog` line inside the catch so `wrangler tail` captures the actual Upstash error message in the next exercise.
