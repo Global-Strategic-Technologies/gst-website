@@ -16,6 +16,7 @@
  * `inoreader-token-store.ts` against the Inoreader DB's Read-Only client.
  */
 
+import { safeLog } from '../auth/safe-logger';
 import { createMcpClient } from './upstash-clients';
 import type { Env } from '../worker';
 
@@ -62,11 +63,32 @@ export function createCacheStore(env: Env): CacheStore | null {
     },
 
     async set<T>(key: string, value: T, ttlSeconds: number): Promise<boolean> {
+      let serializedByteLength: number | undefined;
       try {
         const entry: Entry<T> = { storedAt: Date.now(), data: value };
-        await redis.set(key, JSON.stringify(entry), { ex: ttlSeconds });
+        const serialized = JSON.stringify(entry);
+        serializedByteLength = Buffer.byteLength(serialized, 'utf8');
+        await redis.set(key, serialized, { ex: ttlSeconds });
         return true;
-      } catch {
+      } catch (err) {
+        // BL-077b — surface the Upstash error before swallowing.
+        // Pre-BL-077b, this catch silently returned `false`, hiding the
+        // actual failure mode (size limit, quota, auth, network).
+        // BL-077a's read-after-write probe (on `UpstashIrlBodyCache`)
+        // catches the symptom; this logs the cause exactly once at the
+        // substrate level so `wrangler tail` operators can see which
+        // Upstash failure is firing. The `reason` field is truncated to
+        // 300 chars to keep log lines bounded — sufficient for the typical
+        // Upstash error envelope (`{"error":"..."}` or HTTP status text).
+        safeLog({
+          event: 'upstash.set.failed',
+          key,
+          byteLength: serializedByteLength,
+          ttlSeconds,
+          reason: err instanceof Error ? err.message.slice(0, 300) : String(err).slice(0, 300),
+          success: false,
+          errorCode: 'upstash-set-threw',
+        });
         return false;
       }
     },
