@@ -52,8 +52,22 @@ export const IRL_BODY_CACHE_TTL_SECONDS = 4 * 60 * 60;
 /** Stdio LRU cap. 16 entries covers a deep iteration session for one operator. */
 export const IN_MEMORY_LRU_CAPACITY = 16;
 
-/** Upstash key prefix for IRL body cache entries. */
-export const UPSTASH_KEY_PREFIX = 'gst-mcp:irl-body:';
+/**
+ * Upstash key prefix for IRL body cache entries.
+ *
+ * **MUST start with `mcp:`** to conform to the namespace discipline documented
+ * at [`mcp-server/src/lib/upstash-cache-store.ts:12-16`]:
+ *
+ *   > Namespace discipline (Q13 / Path 2): this store talks ONLY to the MCP
+ *   > DB via createMcpClient(env). All keys written here use the `mcp:` prefix
+ *
+ * The shared Upstash token has ACL scoped to `+@all ~mcp:*`. BL-076 originally
+ * shipped with the prefix `gst-mcp:irl-body:` (single staging exercise on
+ * 2026-06-07 surfaced `NOPERM this user has no permissions to access one of
+ * the keys used as arguments` via the BL-077a/b diagnostic chain). BL-077c
+ * realigns the prefix with the documented discipline.
+ */
+export const UPSTASH_KEY_PREFIX = 'mcp:irl-body:';
 
 /**
  * Thrown by `IrlBodyCache.set` when the body byte-length exceeds
