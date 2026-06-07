@@ -692,6 +692,31 @@ describe('gst_irl_ingestion', () => {
       const r = irlIngestionPrompt.argsSchema.safeParse({ requireVerbatimBody: 'definitely' });
       expect(r.success).toBe(false);
     });
+
+    // BL-082 follow-up: the schema must mark requireVerbatimBody + forceTools
+    // as OPTIONAL at the ZodObject seam so Claude Desktop's slash-command form
+    // doesn't render them as required fields. ZodObject inspects whether each
+    // field's schema is ZodOptional at the TOP level — `booleanFromWire(...)`
+    // returns ZodEffects, not ZodOptional, so the outer `.optional()` chain
+    // is load-bearing for the UI introspection. Without it, the form blocks
+    // the operator from submitting before they fill the field.
+    it('BL-082 follow-up: argsSchema marks requireVerbatimBody as optional at the ZodObject layer (UI introspection)', () => {
+      const shape = irlIngestionPrompt.argsSchema.shape;
+      expect(shape.requireVerbatimBody.isOptional()).toBe(true);
+    });
+
+    it('BL-082 follow-up: argsSchema marks forceTools as optional at the ZodObject layer (UI introspection)', () => {
+      const shape = irlIngestionPrompt.argsSchema.shape;
+      expect(shape.forceTools.isOptional()).toBe(true);
+    });
+
+    it('BL-082 follow-up: argsSchema accepts an entirely empty object (no requireVerbatimBody, no forceTools)', () => {
+      // Regression guard: the original schema (z.boolean().optional() and
+      // z.array(...).optional()) accepted {} cleanly. After the BL-082 wire-
+      // shape wrapping, the {} case MUST remain accepted — otherwise the
+      // slash-command form blocks submission before any fields are filled.
+      expect(irlIngestionPrompt.argsSchema.safeParse({}).success).toBe(true);
+    });
   });
 
   describe('BL-071 — serverToolCallCounts + precheck-derivation directive', () => {

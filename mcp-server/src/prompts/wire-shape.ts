@@ -146,10 +146,20 @@ function unwrapToEnumOptions(schema: z.ZodTypeAny): readonly string[] {
  * native diagnostic ("Invalid input: expected boolean") still surfaces with
  * an actionable error message.
  *
- * `.optional()` / `.default(...)` MUST be applied to the inner schema —
- * `booleanFromWire(z.boolean().optional())`, NOT
- * `booleanFromWire(z.boolean()).optional()` — for the empty-string path to
- * take effect (the latter sees `""` before the preprocess and mis-rejects).
+ * **Optional fields require `.optional()` chained on BOTH sides** — the
+ * inner schema (so the wrapper's empty-string→undefined path is accepted by
+ * the inner type) AND the outer `ZodEffects` wrapper (so `ZodObject`'s
+ * field-optionality introspection sees a top-level `ZodOptional`, which is
+ * how Claude Desktop's slash-command form decides whether to mark the
+ * field "required" in the UI). The pattern is:
+ *
+ *   field: booleanFromWire(z.boolean().optional()).optional()
+ *
+ * NOT either form alone. Inner-only: object-level "field required" UI
+ * marker stays on (BL-082 follow-up empirically observed 2026-06-07).
+ * Outer-only: the wrapper's `""` → undefined path is rejected by the inner
+ * non-optional schema. Same convention applies to `arrayFromWire` /
+ * `numberFromWire` / `enumFromWire`.
  */
 const TRUE_FORMS = new Set(['true', '1', 'yes', 'y', 'on']);
 const FALSE_FORMS = new Set(['false', '0', 'no', 'n', 'off']);

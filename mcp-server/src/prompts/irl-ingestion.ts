@@ -127,12 +127,22 @@ const argsSchema = z.object({
     .describe(
       "Output verbosity. Defaults to 'verbose' (emits per-field provenance footers + schema-validated JSON-fence self-check directives). 'compact' elides both — useful when piping the dossier JSON downstream to automation that does not need the audit prose."
     ),
-  forceTools: arrayFromWire(z.array(z.enum(ORCHESTRATED_TOOLS)).optional()).describe(
-    "Escape hatch — explicit override that bypasses inclusion gates for the listed tool names. Defaults to `[]` (gates fully apply). Use when (a) the partner wants a tool output despite sparse IRL signal, or (b) the partner is refining a single section. Strict enum — accepted values are derived from the prompt's orchestrates array at build time, so an unknown tool name is rejected at parse time."
-  ),
-  requireVerbatimBody: booleanFromWire(z.boolean().optional()).describe(
-    'BL-070 — accuracy-critical run gate. Set TRUE for high-stakes engagements (regulatory deliverable, M&A close, post-mortem) where BL-049 hash-bind authority MUST hold over the partner-supplied source — not the model-reconstructed body. When set, the `compose_dossier_envelope` tool REFUSES any `irlSource !== "partner-paste-verbatim"` with a structured error directing the operator to re-invoke with the IRL pasted as markdown into the `filledIrl` arg. Default unset (false) — drafting / exploration mode where the BL-072 (J) gap-list disclosure is sufficient.'
-  ),
+  // BL-082 follow-up: `.optional()` chained on BOTH the inner schema (so the
+  // wrapper's empty-string-as-undefined path is accepted) AND the outer
+  // ZodEffects wrapper (so Claude Desktop's form-introspection sees a
+  // top-level `ZodOptional` and marks the field as optional in the slash-
+  // command UI — without the outer `.optional()` the form shows it as
+  // required even though Zod's runtime accepts it missing).
+  forceTools: arrayFromWire(z.array(z.enum(ORCHESTRATED_TOOLS)).optional())
+    .optional()
+    .describe(
+      "Escape hatch — explicit override that bypasses inclusion gates for the listed tool names. Defaults to `[]` (gates fully apply). Use when (a) the partner wants a tool output despite sparse IRL signal, or (b) the partner is refining a single section. Strict enum — accepted values are derived from the prompt's orchestrates array at build time, so an unknown tool name is rejected at parse time."
+    ),
+  requireVerbatimBody: booleanFromWire(z.boolean().optional())
+    .optional()
+    .describe(
+      'BL-070 — accuracy-critical run gate. Set TRUE for high-stakes engagements (regulatory deliverable, M&A close, post-mortem) where BL-049 hash-bind authority MUST hold over the partner-supplied source — not the model-reconstructed body. When set, the `compose_dossier_envelope` tool REFUSES any `irlSource !== "partner-paste-verbatim"` with a structured error directing the operator to re-invoke with the IRL pasted as markdown into the `filledIrl` arg. Default unset (false) — drafting / exploration mode where the BL-072 (J) gap-list disclosure is sufficient.'
+    ),
 });
 
 const PROMPT_NAME = 'gst_irl_ingestion';
