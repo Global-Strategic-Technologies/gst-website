@@ -302,12 +302,13 @@ Implementation order:
 6. Rewrite `buildExtractOnlyBody` to remove VERIFY-block reference (otherwise stays as-is — extract-only is a different beast).
 7. Remove `validate_irl_provenance` from `server.ts` registration. Add comment explaining intentional unregistration per BL-086.
 8. Remove `hashBindResult` from compose result type if present (verify).
-9. Update `irl-ingestion.ts` `version` 0.18.0 → 0.19.0.
-10. Update tests: delete VERIFY-block assertions; add negative assertions per acceptance criteria #4; update version assertion to 0.19.0; rebaseline manifest + 7 body hashes.
-11. `BREAKING_CHANGES.md` 0.32.0 stanza with operator-facing flags per acceptance criteria #8.
-12. `BACKLOG.md` BL-086 status update (OPEN → IN PROGRESS during impl; CLOSED on merge).
+9. **Runtime-vocabulary cleanup pass** (operator-confirmed in scope). Grep every `.describe()` call, every `super(...)` error message, every `TOOL_DESCRIPTION` constant in `mcp-server/src/schemas/*` + `mcp-server/src/tools/*` + `mcp-server/src/cache/*`. Strip `BL-*` references, version pins, PR-history mentions. Replace with descriptive language explaining the rule. Internal `instanceof` class names + typed metric event names stay.
+10. Update `irl-ingestion.ts` `version` 0.18.0 → 0.19.0.
+11. Update tests: delete VERIFY-block assertions; add negative assertions per acceptance criteria #4; update version assertion to 0.19.0; rebaseline manifest + 7 body hashes.
+12. `BREAKING_CHANGES.md` 0.32.0 stanza with operator-facing flags per acceptance criteria #8.
+13. `BACKLOG.md` BL-086 status update (OPEN → IN PROGRESS during impl; CLOSED on merge).
 
-**Estimated effort**: **2–3 days**. Mostly prose deletion + rewrite + rebaselines. The "remove validate_irl_provenance registration" is a 5-line change. The worked-example replacement is the largest delete-and-replace surface; the rewrite is short (one paragraph per tool).
+**Estimated effort**: **2.5–3.5 days** (audit-revised + cleanup-bundled). Prose deletion + rewrite + rebaselines = ~2 days. `validate_irl_provenance` registration removal = ~0.25 day. Runtime-vocabulary cleanup pass across schemas/tools/cache = ~0.5 day (scan ~20-30 sites; each is a 1-3 line rewrite). Buffer for test surface updates after vocabulary changes (some tests assert on substring text) = ~0.25 day.
 
 ---
 
@@ -322,11 +323,29 @@ Implementation order:
 
 ---
 
+## Runtime-vocabulary cleanup (in scope, operator-confirmed 2026-06-07)
+
+Every tool description, tool error message, and tool input field `.describe()` shipped today contains `BL-*` runtime vocabulary the model has to interpret at runtime (e.g., `Bl076BodyCacheMissError` text mentions "BL-079 Part B (v0.31.0+)..."; `prepare_irl_body` description mentions "BL-076 body-by-hash latency reduction"; `compose_dossier_envelope.irlBodyHash.describe` mentions "BL-076: now the SOLE body reference"). These are the same prose-bloat pattern at a different layer — leaking version-control identifiers into model-runtime artifacts.
+
+**In-scope cleanup pass**: grep every `.describe()` call, every `super(...)` error-message string in `mcp-server/src/schemas/*` + `mcp-server/src/tools/*` + `mcp-server/src/cache/*`, and every `TOOL_DESCRIPTION` constant. Strip `BL-*` references, version pins (`v0.30.0+`, `v0.31.0+`), and PR-history mentions. Replace with descriptive language that explains the rule, not the ticket that introduced it.
+
+**Example transformations**:
+
+| Before                                                                                                                                      | After                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `'BL-076: now the SOLE body reference on this tool. Call prepare_irl_body... first — it caches the body server-side keyed by this hash...'` | `'The canonical 16-hex hash of the IRL body. Call prepare_irl_body({filledIrl}) first; it caches the body server-side and returns this hash.'`                                                                                                   |
+| `'BL-079 Part B (v0.31.0+): if this prompt was invoked with filledIrl as a prompt arg, the server pre-populates the cache...'`              | `'If the prompt was invoked with filledIrl as an argument, the server pre-populates the cache automatically. If you see this error in that case, the pre-populate write may have failed — check wrangler tail for cache.preload.failed events.'` |
+| `Bl077a IRL body cache write FAILED...` (error class names)                                                                                 | **Unchanged** — class names are internal code identifiers, not runtime-model-facing vocabulary. They appear in `instanceof` checks at the handler seam, never in user-facing text.                                                               |
+
+**Out of scope** (deliberately): the typed metric event names (`bl077.cache.set`, `bl079.cache.preload.failed`) stay. Those are operator-facing in `wrangler tail`, not model-facing. They form an operator-debug vocabulary that's appropriate to scope by ticket.
+
+**Out of scope** (deliberately): `BREAKING_CHANGES.md` stanzas keep BL-\* references. The changelog IS a version-control artifact; BL-\* citations are appropriate there.
+
+---
+
 ## Open questions
 
-- **OQ-1**: should `Bl076BodyCacheMissError` text be updated to remove the BL-079 reference (currently mentions "BL-079 Part B (v0.31.0+)..." in the error message)? **Lean: yes** — BL-\* runtime vocabulary should disappear from error messages too. Trivial change; bundle in.
-- **OQ-2**: should `prepare_irl_body` description be updated to remove BL-076 references? **Lean: yes** — same reason.
-- **OQ-3**: should the BREAKING*CHANGES stanza for 0.32.0 itself avoid BL-* runtime vocabulary? **Lean: no** — the changelog IS a version-control artifact; BL-\_ references are appropriate there.
+None remaining — runtime-vocabulary cleanup elevated to in-scope per operator 2026-06-07.
 
 ---
 

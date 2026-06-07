@@ -3992,6 +3992,8 @@ The two observations together: the workflow produces real value, AND the accrete
 
 5. **Builder-level mode selection** (no prose conditionals): each rendered body describes ONE path. `buildOneShotBody` emits unconditional prepop workflow ("the cache is populated; pass the body-binding hash"). `INTERACTIVE_BODY` emits unconditional legacy workflow ("ask user to paste; call prepare; pass returned hash"). No "if you see... otherwise..." prose anywhere.
 
+6. **Runtime-vocabulary cleanup pass** (operator-confirmed in scope 2026-06-07). Strip `BL-*` references, version pins, and PR-history mentions from every `.describe()` call, `super(...)` error message, and `TOOL_DESCRIPTION` constant in `mcp-server/src/schemas/*` + `tools/*` + `cache/*`. Replace with language explaining the rule, not the ticket that introduced it. Internal `instanceof` class names + typed `wrangler tail` metric event names stay (operator-debug vocabulary, not model-facing).
+
 **Net effect**:
 
 - `irl-ingestion.ts` shrinks from ~1,080 lines to ~500-550 (target). ~50% reduction.
@@ -4003,7 +4005,7 @@ The two observations together: the workflow produces real value, AND the accrete
 
 **Single PR** (audit-revised cadence): mcp-server `0.31.0` → `0.32.0`. promptVersion `0.18.0` → `0.19.0`. Manifest hash drift (one fewer tool tuple). ALL 7 body hashes rebaseline.
 
-**Effort estimate**: **2–3 days** (audit-revised from the initial 1–1.5 day moderate-path estimate). Larger blast radius — tool registration removal touches schemas + tests + types; worked-example removal needs verification that tool error messages are sufficient discipline (R-1).
+**Effort estimate**: **2.5–3.5 days** (audit-revised + cleanup-bundled). Prose deletion + rewrite + rebaselines = ~2d. `validate_irl_provenance` registration removal = ~0.25d. Runtime-vocabulary cleanup pass (~20-30 sites; each a 1-3 line rewrite) = ~0.5d. Buffer for test-surface updates after vocabulary changes (some tests assert on substring text) = ~0.25d.
 
 **Status**: ⏳ design doc audit-passed and Path A approved 2026-06-07. Ready for implementation as single PR. Supersedes BL-079 Part B's prose directive surgery (substrate kept; prose cut).
 
