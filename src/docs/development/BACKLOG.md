@@ -3880,6 +3880,27 @@ The bug is operator-visible (block carries the fabricated list) but not partner-
 
 ---
 
+### BL-082: `booleanFromWire` for slash-command form interop ✅ CLOSED 2026-06-07 (shipped at mcp-server 0.30.4)
+
+**Problem**: per the MCP wire protocol, prompt `arguments` are typed as `Record<string, string>` — every value the client sends is a string regardless of the conceptual type. Claude Desktop's slash-command form renders boolean fields as plain text inputs and ships `"true"` / `"TRUE"` / `"false"` rather than the JSON boolean. The `gst_irl_ingestion` prompt's `requireVerbatimBody: z.boolean().optional()` field rejected every string form with `expected boolean, received string`, blocking the operator's first BL-076 + extract-irl-markdown partner-paste exercise on 2026-06-07.
+
+**Scope**: add a `booleanFromWire` Zod preprocess to [`mcp-server/src/prompts/wire-shape.ts`] following the design of the existing `arrayFromWire` / `numberFromWire` / `enumFromWire` adapters. Apply to `requireVerbatimBody` in `gst_irl_ingestion` argsSchema. Bundle the `forceTools` array field through `arrayFromWire` while there — same root-cause bug class, just hadn't been exercised empirically.
+
+**Surface impact**: `mcp-server` 0.30.3 → 0.30.4 (patch). No public contract change (additive — typed booleans still parse identically). No prompt-body change, no schema change, no manifest hash drift.
+
+**Acceptance** (in-session):
+
+- 8 new `booleanFromWire` unit tests + 5 new BL-082 regression tests at the irl-ingestion argsSchema level covering the exact failing operator payload (`requireVerbatimBody: 'TRUE'`).
+- 1489 mcp-server tests green; tsc clean.
+
+**Operator unblock**: deploy 0.30.4 to staging; retry `/gst_irl_ingestion` with `requireVerbatimBody: TRUE`. The schema now accepts the string form the slash-command UI ships.
+
+**Related**: BL-076 + BL-077c (the body-by-hash + namespace fix that made partner-paste reachable), PR #248 (extract-irl-markdown script + runbook that made partner-paste actionable), BL-079 (reserved — server-side body delivery via prompt-arg, the structural follow-on).
+
+**Lesson for future prompt-arg additions**: the BL-031.75 / BL-045 prompt registration discipline did not mandate wire-shape coverage for non-string types. Any future `z.boolean()` / `z.number()` / `z.array(...)` / `z.enum(...)` arg added to a registered prompt without going through the matching `*FromWire` adapter is a latent slash-command-UI failure waiting to surface. Worth a lint rule or pre-commit hook in a future ticket (reserve as **BL-083**: add ESLint rule rejecting `z.boolean()` / `z.array(...)` / etc. directly inside a `GstPrompt.argsSchema` literal without a wire-shape adapter wrapper).
+
+---
+
 ### BL-079: Server-side body delivery via prompt-arg + body-by-hash on `validate_irl_provenance` ⏳ OPEN 2026-06-07
 
 **Problem**: post-BL-076 / BL-077c, the body-by-hash mechanism works end-to-end on small (5-10KB) bodies but fails on production-realistic ones. The 2026-06-07 staging exercise on a 77,743-byte body showed the model's tool-call args emission truncated at ~1,753 bytes (2.3%). `prepare_irl_body` cached a partial body; the model self-detected the hash mismatch and halted the run. Same emission ceiling affects `validate_irl_provenance` — its `filledIrl` arg requires the model to emit the full body for citation substring-matching.

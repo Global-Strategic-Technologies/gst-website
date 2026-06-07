@@ -126,6 +126,46 @@ function unwrapToEnumOptions(schema: z.ZodTypeAny): readonly string[] {
   );
 }
 
+/**
+ * Adapt a `z.boolean()` schema so it accepts either an actual boolean
+ * (forward-compat) or a string form (current Desktop wire shape). MCP
+ * prompt arguments arrive as `Record<string, string>` — Claude Desktop's
+ * slash-command form renders boolean fields as plain text inputs and ships
+ * `"true"` / `"TRUE"` / `"false"` / `"FALSE"` / `"1"` / `"0"` rather than
+ * the JSON boolean. Operators learned about this the hard way on 2026-06-07
+ * when `requireVerbatimBody: "true"` got rejected with `expected boolean,
+ * received string`.
+ *
+ * Accepted string forms (case-insensitive, whitespace-trimmed):
+ *   - `'true'`, `'1'`, `'yes'`, `'y'`, `'on'`  → `true`
+ *   - `'false'`, `'0'`, `'no'`, `'n'`, `'off'` → `false`
+ *
+ * Empty / whitespace-only strings normalize to `undefined`, so an unfilled
+ * form field is treated as "not supplied" (same convention as the array /
+ * number / enum adapters above). Unrecognized strings pass through so Zod's
+ * native diagnostic ("Invalid input: expected boolean") still surfaces with
+ * an actionable error message.
+ *
+ * `.optional()` / `.default(...)` MUST be applied to the inner schema —
+ * `booleanFromWire(z.boolean().optional())`, NOT
+ * `booleanFromWire(z.boolean()).optional()` — for the empty-string path to
+ * take effect (the latter sees `""` before the preprocess and mis-rejects).
+ */
+const TRUE_FORMS = new Set(['true', '1', 'yes', 'y', 'on']);
+const FALSE_FORMS = new Set(['false', '0', 'no', 'n', 'off']);
+export function booleanFromWire<S extends z.ZodTypeAny>(inner: S) {
+  return z.preprocess((v) => {
+    if (typeof v === 'boolean') return v; // forward-compat: typed boolean
+    if (typeof v === 'string') {
+      const lower = v.trim().toLowerCase();
+      if (lower === '') return undefined; // empty form field → not supplied
+      if (TRUE_FORMS.has(lower)) return true;
+      if (FALSE_FORMS.has(lower)) return false;
+    }
+    return v; // fall through — inner schema rejects with structured diagnostic
+  }, inner);
+}
+
 export function enumFromWire<T extends z.ZodTypeAny>(inner: T) {
   const options = unwrapToEnumOptions(inner);
   const canonicalByLower = new Map<string, string>(options.map((v) => [v.toLowerCase(), v]));

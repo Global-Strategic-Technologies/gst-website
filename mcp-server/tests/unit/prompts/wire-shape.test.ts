@@ -13,7 +13,12 @@
 
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { arrayFromWire, enumFromWire, numberFromWire } from '../../../src/prompts/wire-shape';
+import {
+  arrayFromWire,
+  booleanFromWire,
+  enumFromWire,
+  numberFromWire,
+} from '../../../src/prompts/wire-shape';
 
 describe('arrayFromWire', () => {
   const inner = z.array(z.string()).min(1);
@@ -175,5 +180,87 @@ describe('enumFromWire', () => {
     expect(innerOptional.safeParse('').success).toBe(true);
     expect(innerOptional.safeParse('   ').success).toBe(true);
     expect(innerOptional.safeParse('A').success).toBe(true);
+  });
+});
+
+// ─── BL-082 — booleanFromWire (slash-command form ships strings) ─────────
+
+describe('booleanFromWire', () => {
+  const wrapped = booleanFromWire(z.boolean());
+
+  it('passes through an already-typed boolean unchanged (forward-compat)', () => {
+    const r = wrapped.safeParse(true);
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data).toBe(true);
+    const f = wrapped.safeParse(false);
+    expect(f.success).toBe(true);
+    if (f.success) expect(f.data).toBe(false);
+  });
+
+  it("parses the canonical strings 'true' and 'false'", () => {
+    expect(wrapped.parse('true')).toBe(true);
+    expect(wrapped.parse('false')).toBe(false);
+  });
+
+  it('is case-insensitive — TRUE / False / TrUe all parse', () => {
+    expect(wrapped.parse('TRUE')).toBe(true);
+    expect(wrapped.parse('False')).toBe(false);
+    expect(wrapped.parse('TrUe')).toBe(true);
+  });
+
+  it("trims surrounding whitespace — '  true ' parses", () => {
+    expect(wrapped.parse('  true ')).toBe(true);
+    expect(wrapped.parse('\tfalse\n')).toBe(false);
+  });
+
+  it("accepts ergonomic alternates — 'yes' / 'no' / '1' / '0' / 'on' / 'off' / 'y' / 'n'", () => {
+    expect(wrapped.parse('yes')).toBe(true);
+    expect(wrapped.parse('YES')).toBe(true);
+    expect(wrapped.parse('y')).toBe(true);
+    expect(wrapped.parse('1')).toBe(true);
+    expect(wrapped.parse('on')).toBe(true);
+    expect(wrapped.parse('no')).toBe(false);
+    expect(wrapped.parse('n')).toBe(false);
+    expect(wrapped.parse('0')).toBe(false);
+    expect(wrapped.parse('off')).toBe(false);
+  });
+
+  it('rejects garbage strings via the inner schema (no silent coercion to truthy)', () => {
+    const r = wrapped.safeParse('definitely');
+    expect(r.success).toBe(false);
+    const r2 = wrapped.safeParse('truthy');
+    expect(r2.success).toBe(false);
+  });
+
+  it('rejects non-boolean non-string values (numbers, objects, arrays)', () => {
+    expect(wrapped.safeParse(0).success).toBe(false);
+    expect(wrapped.safeParse(1).success).toBe(false);
+    expect(wrapped.safeParse({}).success).toBe(false);
+    expect(wrapped.safeParse([]).success).toBe(false);
+  });
+
+  it('treats empty / whitespace-only strings as not supplied (optional pattern)', () => {
+    // When `.optional()` is applied to the inner schema, the empty form-field
+    // value `""` shipped by Claude Desktop should not surface as a Zod
+    // validation error — it should be treated as "field not filled."
+    const innerOptional = booleanFromWire(z.boolean().optional());
+    expect(innerOptional.safeParse('').success).toBe(true);
+    expect(innerOptional.safeParse('   ').success).toBe(true);
+    expect(innerOptional.safeParse('true').success).toBe(true);
+    expect(innerOptional.safeParse(true).success).toBe(true);
+    // Confirm the resolved value for the empty case is undefined (not false).
+    const r = innerOptional.safeParse('');
+    if (r.success) expect(r.data).toBeUndefined();
+  });
+
+  it("BL-082 regression: requireVerbatimBody='TRUE' from slash-command form parses to boolean true", () => {
+    // The specific failure case from the 2026-06-07 operator incident:
+    // Claude Desktop shipped {"requireVerbatimBody": "TRUE"} and the server
+    // rejected with "expected boolean, received string". This pins the fix.
+    const schema = booleanFromWire(z.boolean().optional());
+    expect(schema.parse('true')).toBe(true);
+    expect(schema.parse('TRUE')).toBe(true);
+    expect(schema.parse('false')).toBe(false);
+    expect(schema.parse('FALSE')).toBe(false);
   });
 });

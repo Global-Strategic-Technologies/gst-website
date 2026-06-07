@@ -657,6 +657,41 @@ describe('gst_irl_ingestion', () => {
         true
       );
     });
+
+    // BL-082 — slash-command form ships all values as strings per the MCP
+    // wire protocol (`arguments: Record<string, string>`). Operators learned
+    // about this the hard way on 2026-06-07 when `requireVerbatimBody: "TRUE"`
+    // got rejected with `expected boolean, received string`. These tests pin
+    // the booleanFromWire coercion at the argsSchema level — not just on the
+    // wire-shape helper in isolation.
+    it("BL-082: argsSchema accepts requireVerbatimBody: 'true' (string, from slash-command form)", () => {
+      const r = irlIngestionPrompt.argsSchema.safeParse({ requireVerbatimBody: 'true' });
+      expect(r.success).toBe(true);
+      if (r.success) expect(r.data.requireVerbatimBody).toBe(true);
+    });
+
+    it("BL-082: argsSchema accepts requireVerbatimBody: 'TRUE' (uppercase, the exact failing 2026-06-07 case)", () => {
+      const r = irlIngestionPrompt.argsSchema.safeParse({ requireVerbatimBody: 'TRUE' });
+      expect(r.success).toBe(true);
+      if (r.success) expect(r.data.requireVerbatimBody).toBe(true);
+    });
+
+    it("BL-082: argsSchema accepts requireVerbatimBody: 'false' (string)", () => {
+      const r = irlIngestionPrompt.argsSchema.safeParse({ requireVerbatimBody: 'false' });
+      expect(r.success).toBe(true);
+      if (r.success) expect(r.data.requireVerbatimBody).toBe(false);
+    });
+
+    it("BL-082: argsSchema treats requireVerbatimBody: '' (empty form field) as not supplied", () => {
+      const r = irlIngestionPrompt.argsSchema.safeParse({ requireVerbatimBody: '' });
+      expect(r.success).toBe(true);
+      if (r.success) expect(r.data.requireVerbatimBody).toBeUndefined();
+    });
+
+    it("BL-082: argsSchema rejects garbage strings ('definitely') with structured Zod error", () => {
+      const r = irlIngestionPrompt.argsSchema.safeParse({ requireVerbatimBody: 'definitely' });
+      expect(r.success).toBe(false);
+    });
   });
 
   describe('BL-071 — serverToolCallCounts + precheck-derivation directive', () => {

@@ -29,6 +29,7 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { GstPrompt } from './types';
 import { authorialIntentLine, embedLibraryArticle } from './embed';
+import { arrayFromWire, booleanFromWire } from './wire-shape';
 import {
   UNKNOWN_PROPAGATION_RULE,
   EU_AI_ACT_CONDITIONAL_TRIGGER,
@@ -126,18 +127,12 @@ const argsSchema = z.object({
     .describe(
       "Output verbosity. Defaults to 'verbose' (emits per-field provenance footers + schema-validated JSON-fence self-check directives). 'compact' elides both — useful when piping the dossier JSON downstream to automation that does not need the audit prose."
     ),
-  forceTools: z
-    .array(z.enum(ORCHESTRATED_TOOLS))
-    .optional()
-    .describe(
-      "Escape hatch — explicit override that bypasses inclusion gates for the listed tool names. Defaults to `[]` (gates fully apply). Use when (a) the partner wants a tool output despite sparse IRL signal, or (b) the partner is refining a single section. Strict enum — accepted values are derived from the prompt's orchestrates array at build time, so an unknown tool name is rejected at parse time."
-    ),
-  requireVerbatimBody: z
-    .boolean()
-    .optional()
-    .describe(
-      'BL-070 — accuracy-critical run gate. Set TRUE for high-stakes engagements (regulatory deliverable, M&A close, post-mortem) where BL-049 hash-bind authority MUST hold over the partner-supplied source — not the model-reconstructed body. When set, the `compose_dossier_envelope` tool REFUSES any `irlSource !== "partner-paste-verbatim"` with a structured error directing the operator to re-invoke with the IRL pasted as markdown into the `filledIrl` arg. Default unset (false) — drafting / exploration mode where the BL-072 (J) gap-list disclosure is sufficient.'
-    ),
+  forceTools: arrayFromWire(z.array(z.enum(ORCHESTRATED_TOOLS)).optional()).describe(
+    "Escape hatch — explicit override that bypasses inclusion gates for the listed tool names. Defaults to `[]` (gates fully apply). Use when (a) the partner wants a tool output despite sparse IRL signal, or (b) the partner is refining a single section. Strict enum — accepted values are derived from the prompt's orchestrates array at build time, so an unknown tool name is rejected at parse time."
+  ),
+  requireVerbatimBody: booleanFromWire(z.boolean().optional()).describe(
+    'BL-070 — accuracy-critical run gate. Set TRUE for high-stakes engagements (regulatory deliverable, M&A close, post-mortem) where BL-049 hash-bind authority MUST hold over the partner-supplied source — not the model-reconstructed body. When set, the `compose_dossier_envelope` tool REFUSES any `irlSource !== "partner-paste-verbatim"` with a structured error directing the operator to re-invoke with the IRL pasted as markdown into the `filledIrl` arg. Default unset (false) — drafting / exploration mode where the BL-072 (J) gap-list disclosure is sufficient.'
+  ),
 });
 
 const PROMPT_NAME = 'gst_irl_ingestion';

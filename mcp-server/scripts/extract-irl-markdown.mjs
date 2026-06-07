@@ -1,6 +1,15 @@
-#!/usr/bin/env node
 /**
  * Extract canonical IRL markdown from a populated GST IRL `.xlsx`.
+ *
+ * **No shebang**: this script is invoked via `node scripts/...` or
+ * `npm run irl:extract`, NOT as a self-executable. Vite's parser (which
+ * powers vitest's import path for this `.mjs` file in the round-trip
+ * tests) does not accept a `#!` shebang line and bails with
+ * `SyntaxError: Invalid or unexpected token` — even though raw Node 22
+ * special-cases shebangs in `.mjs` files. Default-importing the script
+ * via `import { extractIrlMarkdownFromRows } from '...mjs'` MUST work
+ * under both raw Node (CLI) and vitest (round-trip tests) — keeping
+ * the file shebang-free is the simplest portable answer.
  *
  * **What this is**: the structural inverse of
  * `mcp-server/src/tools/generate-information-request-list-xlsx.ts`. The
@@ -68,7 +77,16 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import * as XLSX from 'xlsx-js-style';
+import XLSX from 'xlsx-js-style';
+
+// `xlsx-js-style` is a CommonJS package. Raw Node 22's ESM resolver exposes
+// its `module.exports` shape under the `default` import — so the simple
+// default-import form gives us `XLSX.read(...)` + `XLSX.utils.sheet_to_json`
+// in both raw Node and vitest. Pre-fix the script used
+// `import * as XLSX from 'xlsx-js-style'`, which worked under vitest's Vite
+// resolver (which collapses the CJS default into the namespace) but blew
+// up in raw Node production with `XLSX.read is not a function`. Default
+// import is the portable form.
 
 const PRIMARY_SHEET_NAME = 'Information Request List';
 

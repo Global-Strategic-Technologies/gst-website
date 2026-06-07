@@ -29,6 +29,42 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.30.4 — 2026-06-07 — BL-082 `booleanFromWire` for slash-command form interop
+
+**Theme**: closes a structural bug in prompt-argument validation. Per the MCP wire protocol, prompt `arguments` are typed as `Record<string, string>` — every value the client sends is a string regardless of the conceptual type. Claude Desktop's slash-command form renders boolean fields as plain text inputs and ships `"true"` / `"TRUE"` / `"false"` rather than the JSON boolean. Pre-0.30.4, the `gst_irl_ingestion` prompt's `requireVerbatimBody: z.boolean().optional()` field rejected every string form with `expected boolean, received string`. The `arrayFromWire` / `numberFromWire` / `enumFromWire` adapters already existed at [`mcp-server/src/prompts/wire-shape.ts`] for the array / number / enum cases; the boolean case was missing.
+
+Operator hit this on 2026-06-07 when invoking `/gst_irl_ingestion` from Claude Desktop with the StoreForce partner-paste body:
+
+```
+Message from server: { error: { code: -32602,
+  message: "MCP error -32602: Invalid arguments for prompt gst_irl_ingestion: [
+    { expected: 'boolean', code: 'invalid_type',
+      path: ['requireVerbatimBody'],
+      message: 'Invalid input: expected boolean, received string' } ]"
+}}
+```
+
+**Surface impact**:
+
+- **NEW** `booleanFromWire` exported from `mcp-server/src/prompts/wire-shape.ts`. Mirrors the design of the existing `arrayFromWire` / `numberFromWire` / `enumFromWire` adapters. Accepts: typed booleans (forward-compat), case-insensitive `'true' / 'false'`, and ergonomic alternates `'yes' / 'no' / 'y' / 'n' / '1' / '0' / 'on' / 'off'`. Empty / whitespace-only strings normalize to `undefined` (unfilled-form-field convention shared with the other adapters). Garbage strings fall through to Zod for structured rejection.
+- **UPDATED** `gst_irl_ingestion` prompt argsSchema at [`mcp-server/src/prompts/irl-ingestion.ts`]:
+  - `requireVerbatimBody`: `z.boolean().optional()` → `booleanFromWire(z.boolean().optional())`
+  - `forceTools`: `z.array(z.enum(ORCHESTRATED_TOOLS)).optional()` → `arrayFromWire(z.array(z.enum(ORCHESTRATED_TOOLS)).optional())` (same root-cause bug class — array fields ship as strings from the slash-command form; the bug just hadn't been exercised empirically because no operator had used `forceTools` from the UI before)
+- **No public contract change**. The accepted JSON-boolean / JSON-array values still parse identically; the change is additive — the schema now also accepts the string forms the wire protocol actually delivers.
+- **No prompt-body change**, no schema change, no manifest hash drift, no body hash rebaseline.
+
+**Acceptance** (in-session):
+
+- 8 new `booleanFromWire` unit tests at [`tests/unit/prompts/wire-shape.test.ts`]: forward-compat boolean pass-through; canonical `'true'`/`'false'` parsing; case-insensitive (`'TRUE'` / `'False'` / `'TrUe'`); whitespace trimming; ergonomic alternates (yes/no/y/n/1/0/on/off); garbage rejection; non-boolean non-string rejection; empty/whitespace as not-supplied.
+- 5 new BL-082 regression tests at [`tests/unit/prompts/irl-ingestion.test.ts`]: full argsSchema accepts `requireVerbatimBody: 'true'` / `'TRUE'` / `'false'`; treats `''` as not-supplied; rejects `'definitely'`.
+- 1489 mcp-server tests green; tsc clean.
+
+**Operator unblock**: deploy 0.30.4 to staging; retry `/gst_irl_ingestion` with `requireVerbatimBody: TRUE`. The schema now accepts the string form the slash-command UI ships.
+
+**Risks**: minimal. The wire-shape adapter pattern is established and tested; this just fills the boolean gap. The change is additive (typed booleans still work), so any future MCP client that sends typed values experiences zero behavior difference.
+
+---
+
 ## 0.30.3 — 2026-06-07 — BL-077c realign IRL body cache key to `mcp:` namespace
 
 **Theme**: closes the BL-076 staging incident. BL-077b's `upstash.set.failed` event captured the actual Upstash error on the next staging exercise:
