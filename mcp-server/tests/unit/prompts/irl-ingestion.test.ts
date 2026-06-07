@@ -89,7 +89,7 @@ describe('gst_irl_ingestion', () => {
     // BL-045 reset: prompt version restarts at 0.1.0 to signal the substantive
     // rescope (rename, scenario-neutral framing, mode/verbosity/forceTools args,
     // inclusion gates, JSON fences, provenance footer, gap list).
-    expect(irlIngestionPrompt.version).toBe('0.17.0');
+    expect(irlIngestionPrompt.version).toBe('0.17.1');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -198,9 +198,21 @@ describe('gst_irl_ingestion', () => {
       const text = bodyText(irlIngestionPrompt, {});
       expect(text).toMatch(/A.{0,4}I/);
     });
+
+    it('BL-079 Part A.1 — interactive mode carries the body-by-hash nudge on validate', () => {
+      const text = bodyText(irlIngestionPrompt, {});
+      expect(text).toContain('BL-079 Part A');
+      expect(text).toContain('irlBodyHash, citations');
+    });
   });
 
   describe('build() — one-shot mode (filledIrl supplied)', () => {
+    it('BL-079 Part A.1 — one-shot mode carries the body-by-hash nudge on validate', () => {
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      expect(text).toContain('BL-079 Part A');
+      expect(text).toContain('irlBodyHash, citations');
+    });
+
     it('embeds the supplied filledIrl verbatim in the body', () => {
       const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       expect(text).toContain('MedSig Health, Inc.');

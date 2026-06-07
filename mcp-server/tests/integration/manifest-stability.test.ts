@@ -105,7 +105,7 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // `compose_dossier_envelope`. The `filledIrl` field is REMOVED from
 // `ComposeDossierEnvelopeInputSchema` — tool names + URIs are unchanged so
 // the manifest hash drift is solely the prompt name@version tuple).
-const EXPECTED_MANIFEST_HASH = '0e6c4e22561b8116413d48f826d6342d85c3ebbf83038f5e7ab578515c739445';
+const EXPECTED_MANIFEST_HASH = 'c070744477078664f1b319c12c3e69fce6fa87b8c6ead7888dbf41bbf0f04afc';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

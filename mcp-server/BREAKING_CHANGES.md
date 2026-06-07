@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-0e6c4e22561b8116413d48f826d6342d85c3ebbf83038f5e7ab578515c739445
+c070744477078664f1b319c12c3e69fce6fa87b8c6ead7888dbf41bbf0f04afc
 ```
 
 Computed over (sorted):
@@ -20,12 +20,44 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1; BL-076 keeps the tool roster intact — `compose_dossier_envelope` schema changes do NOT affect the manifest tool list).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.17.0` (BL-076: body-by-hash directive instructs the model to call `prepare_irl_body` first and drop `filledIrl` from `compose_dossier_envelope` args — eliminates 9–80KB of model output tokens per envelope call; `filledIrl` removed from the public `ComposeDossierEnvelopeInputSchema`).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.17.1` (BL-079 Part A.1: prompt directive nudge instructing the model to use `irlBodyHash` on `validate_irl_provenance` after `prepare_irl_body` returns it — activates the schema capability shipped in 0.30.5).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.30.6 — 2026-06-07 — BL-079 Part A.1: prompt-directive nudge activates body-by-hash on validate
+
+**Theme**: closes the gap surfaced by the post-0.30.5 staging exercise. PR #252 added `irlBodyHash` to `validate_irl_provenance`'s input schema but did NOT update the prompt body — the model continued to default to the legacy `filledIrl` path, hit the emission ceiling on a 51KB body (`validate_irl_provenance: { attempted: 2, succeeded: 1, errored: 1 }` with `errorClass: transport-timeout`), and abandoned the precheck loop entirely. The dossier survived only because `compose_dossier_envelope`'s internal verification ran against the cache-hydrated body and produced `34/34 verified` despite the operator-side precheck being abandoned.
+
+This patch adds two directive paragraphs (one-shot `ENVELOPE_PRECHECK_DIRECTIVE` + interactive `Step 3a`) instructing the model to:
+
+1. Hoist the `prepare_irl_body({ filledIrl })` call to BEFORE the precheck loop (it would call it before `compose_dossier_envelope` anyway).
+2. Pass `{ irlBodyHash, citations }` (not `{ filledIrl, citations }`) to every `validate_irl_provenance` iteration on bodies >10KB.
+
+The schema accepts either field; precedence + cache-miss semantics unchanged.
+
+**Surface impact**:
+
+- **UPDATED** `gst_irl_ingestion` prompt body — two directive paragraphs added at `irl-ingestion.ts` (precheck directive Step 2 augmentation + interactive Step 3a augmentation). promptVersion `0.17.0` → `0.17.1` (patch — additive prose, no schema change, no API removal).
+- **MANIFEST HASH DRIFT** — manifest hash changes due to the prompt `name@version` tuple update. New value: `c070744477078664f1b319c12c3e69fce6fa87b8c6ead7888dbf41bbf0f04afc`.
+- **BODY HASH REBASELINE** — 3 of 7 body shapes drift (verbose-mode bodies that carry the envelope-composition directive: `interactive`, `one-shot minimal`, `one-shot full`). The 4 compact / extract-only bodies are unaffected (they skip the precheck directive entirely per its `BLOCKING — full mode + verbose verbosity only` gate).
+- **No code change**, no schema change, no test-surface change beyond the rebaselines.
+
+**Acceptance** (in-session):
+
+- 1511 mcp-server tests green; manifest + body hash rebaselines committed in lockstep.
+- Substring assertion: rendered prompt body in both one-shot AND interactive paths contains `'BL-079 Part A'` and `'irlBodyHash, citations'`.
+
+**Next post-merge operator exercise** — expected diff vs. 2026-06-07 night:
+
+- `precheck.iterations` ≥ 1 (currently `abandoned-after-error` on 51KB bodies)
+- `validate_irl_provenance.errored: 0` (currently 1 with `transport-timeout`)
+- `precheck.outcome: converged` instead of `abandoned-after-error`
+- `prepare_irl_body.attempted: 1` (single call, hoisted before precheck)
 
 ---
 

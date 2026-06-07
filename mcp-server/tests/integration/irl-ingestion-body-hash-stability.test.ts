@@ -207,11 +207,11 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // only paths skip the envelope-composition directive per its header
 // (`BLOCKING — full mode + verbose verbosity only`).
 const EXPECTED_HASH_INTERACTIVE =
-  '391d4d9eb3144147d7f0405a85e7b122afdd405200ec68a3a6a5fbb9202ae7e4';
+  '6a8326b73da04938e6a327b919d38cc46bebd60bf08e1da695a9a9d6e9ec821a';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'f9ca796745b93b77239d4bed640a72c87d6c6af8fd43e1ea2410ee94107af0a6';
+  '04ad289fb5098ba8ada3f7e970020418480abf9b25c5217d4534ce0ea881d8a7';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'c903aba3196bf070c5e6de44a3f60114e2a0980930a25fbb4e9774646fb15e48';
+  '20e9db12f2f1507a62d28979e0275afd7b8140c08776ef6e36b29e22f39ae6f9';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   '6df0c2e328c7016e59ec6b20e7f7793e5815c9155e8502e08846c6bfd7d02b7f';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
