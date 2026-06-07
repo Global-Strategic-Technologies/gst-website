@@ -74,6 +74,15 @@ const tierValues = ['1', '2', '3'] as const;
 // the prompt and this schema.
 const irlSourceValues = [
   'partner-paste-verbatim',
+  // BL-079 Part B — operator pasted the IRL markdown into the prompt arg AND
+  // the server pre-populated the IRL body cache at prompt-render time. The
+  // model never emitted the body to `prepare_irl_body` — it skipped that tool
+  // entirely and passed `irlBodyHash` straight to `compose_dossier_envelope`
+  // and `validate_irl_provenance`. Strongest provenance form: the cache
+  // contents are byte-equal to the prompt arg (no model emission roundtrip).
+  // Distinguished from `partner-paste-verbatim` so operators see in the
+  // VERIFY block which path actually ran.
+  'partner-paste-verbatim-prepop',
   'model-reconstruction-from-xlsx',
   'model-reconstruction-trimmed',
   'placeholder',
@@ -401,6 +410,18 @@ export interface ComposeDossierEnvelopeResult {
    * counters).
    */
   serverToolCallCounts?: Record<string, ServerToolCallCountEntry>;
+  /**
+   * BL-079 Part B — server-authoritative byte length of the cache-hydrated
+   * IRL body. Under `partner-paste-verbatim-prepop` (where the body never
+   * passes through model emission), the model has no reliable way to report
+   * `filledIrl.bytes` in the VERIFY block — there is no emission to
+   * self-measure. The server measures the cache entry it re-hydrated and
+   * surfaces the count here; the model copies it verbatim into
+   * `filledIrl.bytes`. Reported in UTF-8 byte length to match
+   * `Buffer.byteLength(body, 'utf8')`. Present whenever the body was
+   * resolved (cache or input) — model copies in any mode for consistency.
+   */
+  serverCachedBodyBytes?: number;
   emitInstructions: string;
 }
 
@@ -764,7 +785,12 @@ export class Bl076BodyCacheMissError extends Error {
         `before compose_dossier_envelope can re-hydrate it for internal provenance ` +
         `verification. If you already called prepare_irl_body, the cache entry may have ` +
         `been evicted (stdio LRU capacity exceeded) or expired (Worker TTL); re-call ` +
-        `prepare_irl_body with the same body to re-seed and retry.`
+        `prepare_irl_body with the same body to re-seed and retry. ` +
+        'BL-079 Part B (v0.31.0+): if this prompt was invoked with `filledIrl` ' +
+        'as a prompt arg, the server pre-populates the cache at prompt-render time — ' +
+        'if you see this error in that mode, the prepop write likely failed. Check ' +
+        '`wrangler tail` for a `bl079.cache.preload.failed` event with the same key. ' +
+        'Fall back to calling `prepare_irl_body({ filledIrl })` explicitly to re-seed.'
     );
     this.name = 'Bl076BodyCacheMissError';
     this.irlBodyHash = irlBodyHash;
@@ -931,7 +957,19 @@ export function runComposeDossierEnvelope(
   // verification + envelope rendering work. The BL-072 (J) disclosure documents
   // the limitation; this flag converts it from operator-discipline into a
   // system-enforced refusal for accuracy-critical engagements.
-  if (input.requireVerbatimBody && input.irlSource !== 'partner-paste-verbatim') {
+  // BL-079 Part B — dual-accept: both `partner-paste-verbatim` (legacy:
+  // model relayed the bytes through prepare_irl_body emission) AND
+  // `partner-paste-verbatim-prepop` (BL-079: server pre-populated cache at
+  // prompt-render time; model never emitted the body) represent operator-
+  // supplied bytes and pass the BL-070 verbatim-body discipline. The prepop
+  // variant is structurally stronger (no emission roundtrip) but BL-070's
+  // gate is concerned with "operator-supplied, not model-reconstructed" —
+  // both variants satisfy that.
+  if (
+    input.requireVerbatimBody &&
+    input.irlSource !== 'partner-paste-verbatim' &&
+    input.irlSource !== 'partner-paste-verbatim-prepop'
+  ) {
     throw new Bl070VerbatimBodyRequiredError(input.irlSource);
   }
 
@@ -1108,6 +1146,7 @@ export function runComposeDossierEnvelope(
       tierMismatches,
       tierFabrications,
     },
+    serverCachedBodyBytes: Buffer.byteLength(input.filledIrl, 'utf8'),
     emitInstructions: EMIT_INSTRUCTIONS,
   };
 }

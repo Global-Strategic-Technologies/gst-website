@@ -207,15 +207,15 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // only paths skip the envelope-composition directive per its header
 // (`BLOCKING — full mode + verbose verbosity only`).
 const EXPECTED_HASH_INTERACTIVE =
-  '391d4d9eb3144147d7f0405a85e7b122afdd405200ec68a3a6a5fbb9202ae7e4';
+  '034fc072427ecd19fd9048e2099ed7f301c1e509c17756d427dbbc331cc7a634';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'f9ca796745b93b77239d4bed640a72c87d6c6af8fd43e1ea2410ee94107af0a6';
+  'e08664b3858aae1a2bee58f72301c30342748cd4f320ca3fd355ccdee24f7c08';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'c903aba3196bf070c5e6de44a3f60114e2a0980930a25fbb4e9774646fb15e48';
+  '308b88c2311f00ad92faf15eb08df58e63a079774672063d513e8b4cf1f90e60';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '6df0c2e328c7016e59ec6b20e7f7793e5815c9155e8502e08846c6bfd7d02b7f';
+  'e2142f96edde5fb2b6d2e2e33797ab49f87b76675a184dcd213cb2e0d177352f';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '0cbbd3c7102f3ce8538ff6d1cefb47ec5c000bfb04d2314a5e6567bb558ca437';
+  '26e3876c2a3a16089fd6fe7a816731a8068331949f433e33d0449a92cd8a390f';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -225,9 +225,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  'ba58ba7af58e530111c83ad494088f5f0ae7c76567e179ce643e37de822e8647';
+  '69e34d3ecb3cb658ce0efe98ed7cbfc03fb706edd05e11ab4468fccba8cc4eba';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  'c4e4be749dec548708340dd21b70954a8c55d2e3ef91a7a57e99b028a795fb9e';
+  '57db5b3add0796b40c7eff16a5e3b35801a59bb58d6615eb52d6af61357ee80a';
 
 interface Scenario {
   name: string;

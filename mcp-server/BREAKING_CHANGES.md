@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-0e6c4e22561b8116413d48f826d6342d85c3ebbf83038f5e7ab578515c739445
+f341908c909a54cb9946ddc07b187b578d0a1fc1a3e279beb43d29be8a29fa24
 ```
 
 Computed over (sorted):
@@ -20,12 +20,58 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1; BL-076 keeps the tool roster intact — `compose_dossier_envelope` schema changes do NOT affect the manifest tool list).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.17.0` (BL-076: body-by-hash directive instructs the model to call `prepare_irl_body` first and drop `filledIrl` from `compose_dossier_envelope` args — eliminates 9–80KB of model output tokens per envelope call; `filledIrl` removed from the public `ComposeDossierEnvelopeInputSchema`).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.18.0` (BL-079 Part B: prompt-render-time cache pre-population + skip-prepare directive + `partner-paste-verbatim-prepop` runScenario — model emits the IRL body ZERO times across the partner-paste workflow).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.31.0 — 2026-06-07 — BL-079 Part B: prompt-render cache pre-pop + skip-prepare directive
+
+**Theme**: closes the model output stream emission ceiling on the partner-paste path entirely. Pre-0.31.0, the model emitted the IRL body twice (once to `prepare_irl_body`, once per `validate_irl_provenance` iteration). Part A (0.30.5) eliminated the validate-iteration emissions via body-by-hash. Part B (this patch) eliminates the `prepare_irl_body` emission too by pre-populating the cache at prompt-render time from the operator's `filledIrl` prompt arg. Combined effect: the model emits ZERO body bytes across the entire partner-paste workflow.
+
+**Empirical motivation**: tonight's 51KB partner-paste exercise (post-0.30.5 deploy) confirmed the legacy `prepare_irl_body` emission still surfaces stream-ceiling variance — this run happened to round-trip cleanly (`hashBindResult: pass-bound`, `34/34 verified`) but the 2026-06-07 day exercise at 77KB truncated to 1,753 bytes, and the night exercise at 50KB shed 12% of bytes. The prepop path takes the body off the emission stream entirely so outcome variance collapses.
+
+**Surface impact**:
+
+- **NEW** prompt-build wrapper at `mcp-server/src/prompts/_registry.ts` — when `gst_irl_ingestion` is built with `args.filledIrl`, the wrapper sync-awaits `handlePrepareIrlBodyTool` (Alt-D pattern: reuses BL-077a/b/c diagnostics) BEFORE returning the rendered prompt body. Failure emits `bl079.cache.preload.failed` safeLog event with `storeId` for `wrangler tail` correlation; failure is non-fatal — model falls through to legacy `prepare_irl_body` path on cache miss.
+- **UPDATED** `compose_dossier_envelope` schema at `mcp-server/src/schemas/compose-dossier-envelope.ts`:
+  - **NEW** `irlSource` enum value: `partner-paste-verbatim-prepop` — operator-supplied bytes that never round-tripped through model emission (strongest provenance form).
+  - **UPDATED** BL-070 gate dual-accept: both `partner-paste-verbatim` AND `partner-paste-verbatim-prepop` pass the `requireVerbatimBody: true` check.
+  - **NEW** `serverCachedBodyBytes` field on `ComposeDossierEnvelopeResult` — server-authoritative UTF-8 byte length of the cache-hydrated body. Under prepop the model has no emission to self-measure; this is the source of truth for VERIFY-block `filledIrl.bytes`.
+  - **UPDATED** `Bl076BodyCacheMissError` message — mentions BL-079 prepop path + suggests checking `wrangler tail` for `bl079.cache.preload.failed` event.
+- **UPDATED** `gst_irl_ingestion` prompt body at `mcp-server/src/prompts/irl-ingestion.ts`:
+  - Promptversion `0.17.0` → `0.18.0`.
+  - Precheck directive (one-shot path) gains "if `**Body-binding hash:**` directive present → SKIP `prepare_irl_body`, pass `irlBodyHash` to validate + compose, report `irlSource: partner-paste-verbatim-prepop`" guidance.
+  - Envelope-composition directive (one-shot path) gains the same skip-prepare guidance + `serverCachedBodyBytes` → `filledIrl.bytes` mapping.
+  - Interactive Step 4 gains the prepop conditional.
+  - VERIFY-block `filledIrl.source` enum list updated (4 → 5 values) in both verbose + compact + extract-only paths.
+- **MANIFEST HASH DRIFT** — manifest hash changes due to prompt `name@version` tuple. New value: `f341908c909a54cb9946ddc07b187b578d0a1fc1a3e279beb43d29be8a29fa24`.
+- **BODY HASH REBASELINE** — ALL 7 body shapes drift (the new `partner-paste-verbatim-prepop` enum value appears in the VERIFY-block enum list emitted by every mode).
+- **NEW** typed metric event `bl079.cache.preload.failed` for `wrangler tail` correlation across BL-077 / BL-079 events.
+
+**Acceptance** (in-session):
+
+- 4 wrapper unit tests at `tests/unit/prompts/bl-079-prompt-render-cache-prepop.test.ts`: cache populated when filledIrl supplied; cache untouched in interactive mode; build succeeds without cache wiring; cache key matches the prompt body's `**Body-binding hash:**` directive.
+- 2 prompt-body substring assertions (one-shot + interactive both contain `BL-079 Part B`, `partner-paste-verbatim-prepop`, `SKIP \`prepare_irl_body\``).
+- 1 BL-070 dual-accept regression — `requireVerbatimBody: true` + `irlSource: partner-paste-verbatim-prepop` passes the gate.
+- Manifest + body hash rebaselines committed in lockstep.
+- 1518 mcp-server tests green; `tsc --noEmit` clean.
+
+**Expected post-merge operator-exercise diff vs. 0.30.5 tonight (51KB partner-paste)**:
+
+| Field                             | 0.30.5 tonight         | 0.31.0 expected                                |
+| --------------------------------- | ---------------------- | ---------------------------------------------- |
+| `prepare_irl_body.attempted`      | 1                      | 0 (model SKIPS)                                |
+| `validate_irl_provenance.errored` | 1 (transport-timeout)  | 0                                              |
+| `precheck.outcome`                | abandoned-after-error  | converged                                      |
+| `runScenario`                     | partner-paste          | partner-paste-verbatim-prepop                  |
+| `irlSource`                       | partner-paste-verbatim | partner-paste-verbatim-prepop                  |
+| `filledIrl.bytes` source          | model self-narrated    | `serverCachedBodyBytes` (server-authoritative) |
+| `hashBindResult`                  | pass-bound (variance)  | pass-bound (deterministic)                     |
 
 ---
 
