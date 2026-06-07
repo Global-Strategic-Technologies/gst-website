@@ -22,6 +22,7 @@ import {
   Bl068MapAbsentFalsePositiveError,
   Bl070VerbatimBodyRequiredError,
   ComposeDossierEnvelopeInputSchema,
+  type ComposeDossierEnvelopeEngineInput,
   type ComposeDossierEnvelopeInput,
   computeIrlBodyHash,
   findFalsePositiveMapAbsentClaims,
@@ -45,7 +46,7 @@ const SAMPLE_IRL = `# IRL — TestCo
 function baseInput(
   gaps: ComposeDossierEnvelopeInput['gaps'] = [],
   irlSource: ComposeDossierEnvelopeInput['irlSource'] = 'partner-paste-verbatim'
-): ComposeDossierEnvelopeInput {
+): ComposeDossierEnvelopeEngineInput {
   return {
     promptName: 'gst_irl_ingestion',
     promptVersion: '0.4.0',

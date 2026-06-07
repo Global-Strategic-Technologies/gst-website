@@ -36,6 +36,7 @@ import { safeLog } from '../auth/safe-logger';
 import { guardEvent } from './guard';
 import type { EventType, MetricEvent } from './_schema';
 import type { MetricSink } from './sinks/_interface';
+import type { IrlBodyCache } from '../cache/irl-body-cache';
 
 export interface MetricsContext {
   readonly sink: MetricSink;
@@ -56,6 +57,24 @@ export interface MetricsContext {
    * NOOP context — backward-compatible no-op.
    */
   readonly counters?: ToolCallCounters;
+  /**
+   * BL-076 — optional IRL-body cache. When present, `prepare_irl_body` writes
+   * the body keyed by its canonical 16-hex hash on every call;
+   * `compose_dossier_envelope` reads from the same cache to re-hydrate the
+   * body for internal provenance verification (the body is no longer in the
+   * compose tool's input schema). Cache miss throws `Bl076BodyCacheMissError`
+   * with an actionable diagnostic. Undefined in tests / default NOOP context
+   * — backward-compatible no-op (engine tests pass `filledIrl` directly and
+   * bypass the cache entirely). See
+   * `src/docs/development/MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md`.
+   *
+   * Scoping (matches BL-071 `counters` pattern):
+   *   - stdio: process-lifetime in-memory LRU (one per Claude Desktop session)
+   *   - Worker: per-request `UpstashIrlBodyCache` (cross-isolate persistence
+   *     in shared KV; MUST be Upstash-backed — in-memory in Worker mode would
+   *     silently miss across isolate rotations).
+   */
+  readonly irlBodyCache?: IrlBodyCache;
 }
 
 /**

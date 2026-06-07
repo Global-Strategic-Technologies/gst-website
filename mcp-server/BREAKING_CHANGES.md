@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-7344f75e11af95e9d1298e222cab9966aa9b6f04cae11ac0c92d32d938b9f8d5
+0e6c4e22561b8116413d48f826d6342d85c3ebbf83038f5e7ab578515c739445
 ```
 
 Computed over (sorted):
@@ -19,13 +19,49 @@ Computed over (sorted):
 - **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`).
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
-- **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.16.0` (BL-071: server-sourced `serverToolCallCounts` snapshot emitted from `compose_dossier_envelope`; prompt directive instructs model to copy verbatim into the BL-045-VERIFY block + derive `precheck.*` fields from the snapshot).
+- **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1; BL-076 keeps the tool roster intact — `compose_dossier_envelope` schema changes do NOT affect the manifest tool list).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.17.0` (BL-076: body-by-hash directive instructs the model to call `prepare_irl_body` first and drop `filledIrl` from `compose_dossier_envelope` args — eliminates 9–80KB of model output tokens per envelope call; `filledIrl` removed from the public `ComposeDossierEnvelopeInputSchema`).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.30.0 — 2026-06-07 — BL-076 `compose_dossier_envelope` body-by-hash latency reduction
+
+**Theme**: cut model-emit latency on `compose_dossier_envelope` calls from 5–15 minutes to an estimated 1–3 minutes by removing the IRL body from the public tool input. The body now flows in through `prepare_irl_body` (which caches it server-side keyed by its canonical hash) and `compose_dossier_envelope` re-hydrates from the cache. Architecturally identical lever as BL-070 / BL-071: shift human-discipline / token-emit cost into system enforcement. **BREAKING** under [BL-032 § Q12 contract](../src/docs/development/MCP_SERVER_REMOTE_BL-032.md) but **operator-confirmed no external clients of `compose_dossier_envelope` exist** (2026-06-07); migration is internal-only (prompt body + tests).
+
+**Surface impact**:
+
+- **REMOVED**: `filledIrl` field from `ComposeDossierEnvelopeInputSchema` (public input). The engine-internal type `ComposeDossierEnvelopeEngineInput` still carries `filledIrl` for the engine's `runIrlProvenanceCheck` call — the handler re-injects the body after fetching from cache (audit M-1 — keeps the engine pure + ~30 existing engine tests unchanged).
+- **NEW: `IrlBodyCache` interface + `InMemoryIrlBodyCache` + `UpstashIrlBodyCache`** at [`mcp-server/src/cache/irl-body-cache.ts`]. Stdio gets in-memory LRU (16 entries cap, process-lifetime); Worker gets Upstash KV (`gst-mcp:irl-body:<16hex>` prefix, 4h TTL). Per-entry size cap `IRL_BODY_CACHE_MAX_BYTES = 200000` enforced on `.set()` via `IrlBodyCacheSizeExceededError`. Worker path **FAILS FAST at server-construction time** when Upstash bindings are absent (audit R-3 — no silent in-memory fallback; isolate rotation would otherwise cause silent cache misses).
+- **NEW: optional `irlBodyCache?: IrlBodyCache` field** on `MetricsContext` (symmetric with BL-071 `counters?`). Tests can inject directly via `ctx.irlBodyCache` on `createServer` ctx; production code uses the auto-construction logic.
+- **NEW: `Bl076BodyCacheMissError`** exported class + wired into `compose_dossier_envelope` handler `instanceof` chain. Surfaces actionable diagnostic ("call `prepare_irl_body({ filledIrl })` first") when the model bypasses prepare. Counts as `rejected` in `serverToolCallCounts` (BL-071 identity preserved).
+- **UPDATED**: `prepare_irl_body` handler signature gains optional `metrics?: MetricsContext` (matches the BL-071 compose handler signature pattern); writes body to `metrics.irlBodyCache?` after computing hash. Output schema (`{ irlBodyHash, byteLength }`) **unchanged** — BL-068 model-facing contract preserved.
+- **UPDATED**: `prepare_irl_body` MCP annotations flipped `readOnlyHint: true → false` (audit R-2 — cache write is a side effect). `idempotentHint: true` stays (same body in → same cache state by construction).
+- **UPDATED prompt body (v0.16.0 → v0.17.0)**: envelope-composition directive + interactive Step 4 rewritten to instruct prepare-then-compose ordering. Both bodies now reference `BL-076`, `prepare_irl_body` as a precursor call, and document `Bl076BodyCacheMissError` as the cache-miss diagnostic.
+- **Manifest hash rebaseline**: `7344f75e…` → `0e6c4e22…` (prompt `name@version` tuple drift; tool roster unchanged).
+- **Body hash rebaseline**: 3 of 7 hash-stability scenarios drift (verbose-mode bodies that ship the envelope-composition directive: interactive, one-shot minimal, one-shot full). Compact + extract-only scenarios skip the directive per its header (`BLOCKING — full mode + verbose verbosity only`) and remain unchanged.
+
+**External-client impact**: **NONE — operator confirmed 2026-06-07** no external callers of `compose_dossier_envelope` exist; surface is prompt-orchestrated. The `filledIrl` removal does not need a backward-compat shim.
+
+**Acceptance** (in-session — no live exercise required):
+
+- 13 new `InMemoryIrlBodyCache` + `UpstashIrlBodyCache` unit tests (round-trip, LRU eviction, recency reordering, per-entry size cap, custom TTL forwarding, fake-store Upstash impl).
+- 7 new BL-076 integration tests at [`tests/integration/bl-076-body-by-hash.test.ts`]: prepare-then-compose chain works end-to-end; cache miss surfaces `Bl076BodyCacheMissError` with actionable text; cache miss counts as `rejected` in BL-071 server-arithmetic counters; hash-bind defense-in-depth post-rehydrate.
+- 4 new prompt-body substring assertions (one-shot + interactive each) — `prepare_irl_body`, `BL-076`, `Bl076BodyCacheMissError`.
+- 2 new protocol-roundtrip surface assertions (audit M-3): `compose_dossier_envelope.inputSchema` no longer publishes `filledIrl`; `prepare_irl_body.annotations` shows `readOnlyHint:false + idempotentHint:true`.
+- BL-071 `bl-071-precheck-derivation.test.ts` adapted: backward-compat test repurposed to assert the new cache-miss behavior (BL-076 changes the legacy semantic — no cache → structured rejection, not silent envelope).
+
+**Latency win**: independent token-count analysis estimates 40–80% reduction depending on body size — ~33–70% for typical 10–20KB bodies, ~75–85% for the 80KB bodies driving BL-074's representative-IRL exercises. Net per-call wall-clock: 5–15 min today → est. 1–3 min for typical runs, sub-90-sec for small ones.
+
+**Risks accepted**:
+
+- Worker 4h TTL — operator pauses > 4h surface confusing cache-miss errors; recovery is cheap (re-call prepare_irl_body). Tunable via env-binding.
+- Stdio LRU=16 — operator iterating > 16 distinct IRL bodies in a session evicts oldest; recovery is cheap.
+- Hash-bind post-rehydrate is structurally tautological (cache keyed by hash); defense-in-depth check remains as a future-cache-collision regression guard. BL-049 authority is preserved at the same level it held pre-BL-076 (`pass-bound` for `partner-paste-verbatim`, `pass-internal` for reconstruction modes).
 
 ---
 

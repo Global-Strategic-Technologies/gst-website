@@ -3880,6 +3880,80 @@ The bug is operator-visible (block carries the fabricated list) but not partner-
 
 ---
 
+### BL-076: `compose_dossier_envelope` body-by-hash latency reduction ✅ CLOSED 2026-06-07 (shipped at mcp-server 0.30.0)
+
+**Design doc**: [MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md](MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md) — full architecture, schema diffs, prompt-body changes, acceptance criteria, risks, open questions. Impartial-audit revisions folded in before implementation.
+
+**Shipped scope**:
+
+- NEW `IrlBodyCache` interface + `InMemoryIrlBodyCache` (stdio, 16-entry LRU) + `UpstashIrlBodyCache` (Worker, 4h TTL); `IRL_BODY_CACHE_MAX_BYTES = 200_000` per-entry cap; `IrlBodyCacheSizeExceededError` exported.
+- NEW optional `irlBodyCache?: IrlBodyCache` field on `MetricsContext` (symmetric with BL-071 `counters?`); `createServer` constructs per-process for stdio + per-request Upstash for Worker. Worker fails fast when Upstash bindings absent (audit R-3, no silent in-memory fallback).
+- REMOVED `filledIrl` from `ComposeDossierEnvelopeInputSchema` (public input). Engine type `ComposeDossierEnvelopeEngineInput` still carries it; the handler re-injects after cache fetch (audit M-1 keeps engine + ~30 existing engine tests unchanged).
+- NEW `Bl076BodyCacheMissError` exported class + wired into handler `instanceof` chain. Surfaces actionable diagnostic; counts as `rejected` in BL-071 `serverToolCallCounts`.
+- UPDATED `prepare_irl_body` handler signature gains optional `metrics?` arg; writes body to `metrics.irlBodyCache?` after computing hash. Output schema unchanged (BL-068 contract preserved). Annotations flipped `readOnlyHint: true → false` (audit R-2); `idempotentHint: true` retained.
+- UPDATED prompt body v0.16.0 → v0.17.0 at both invocation sites (envelope-composition directive + interactive Step 4) instructing prepare-then-compose ordering, documenting `Bl076BodyCacheMissError`.
+- Manifest hash + 3 of 7 body hashes rebaselined (the 3 verbose-mode shapes that carry the envelope-composition directive).
+- 13 cache unit tests + 7 BL-076 integration tests + 4 prompt-body substring tests + 2 protocol-roundtrip surface tests (M-3) — all green. 1448 mcp-server tests total. tsc clean.
+
+**Latency win**: independent token-count analysis estimates 40–80% reduction depending on body size; per-call wall-clock 5–15 min → est. 1–3 min for typical runs, sub-90-sec for small ones.
+
+**External-client impact**: NONE — operator confirmed 2026-06-07 + independently verified by repo-wide grep (no callers of `handleComposeDossierEnvelopeTool` / `runComposeDossierEnvelope` outside schema + tool wrapper + 4 tests).
+
+**Capability-preservation**: BL-049 (hash-bind defense-in-depth check still runs post-rehydrate; structurally tautological but pinned as a regression guard; authority preserved at the same level it held pre-BL-076), BL-058 (VERIFY block schema unchanged), BL-063 (partition + scope checks unchanged — no `filledIrl` dependency), BL-068 (prepare_irl_body output contract unchanged), BL-070 (`requireVerbatimBody` gate branches on `irlSource` only — preserved verbatim), BL-071 (server-arithmetic identities — `Bl076BodyCacheMissError` projects to `rejected` correctly), BL-072 (reconstruction-mode source auto-append — preserved verbatim).
+
+**Original problem statement**: every live `compose_dossier_envelope` call on opus-4-8 takes 5–15 minutes BEFORE the server receives the call. Diagnosis: the forcing-function pattern requires the model to emit the entire tool-call payload (meta-fence + 20–30 claims with multi-element citations + 5–10 detailed gap entries with prose `entry` + `followUp` + the full `filledIrl` body — typically 9KB+ of text + 10-entry `defaultFiredFrameworks`) as output tokens. At opus's generation rate, that's many thousands of tokens of structured emit, which dominates wall-clock latency. Observed twice on 2026-06-07 — operator interprets the long wait as a server hang; it isn't. The model is working as designed, just slowly. This is fundamentally a property of externalizing dossier structure into a tool input.
+
+Empirical evidence (2026-06-07): a partial captured payload showed ~5KB of tool-call JSON before truncation, NOT including `filledIrl` or the gap-list footers. Full payloads for typical runs are estimated at 15–25KB of model-emitted text per `compose_dossier_envelope` invocation.
+
+**Why this matters**: the latency budget is what makes `gst_irl_ingestion` painful to operate. Each retry, re-run, or QA exercise costs 5–15 minutes per envelope call, on top of the seven analytical tools that precede it. For BL-074's "3–5 representative IRL exercises" coverage goal, the latency cost is compounding and disincentivizes the verification work that proves the workflow is production-ready.
+
+**Fix — body-by-hash pattern**:
+
+The largest single component of the model-emit cost is the `filledIrl` body (9–80KB depending on IRL size). `prepare_irl_body` already submits the body once to compute the canonical `irlBodyHash`. Make it cache the body server-side keyed by the hash, then drop `filledIrl` from `compose_dossier_envelope`'s input schema entirely:
+
+1. **`prepare_irl_body` handler**: after `computeIrlBodyHash`, write the body bytes to a server-side cache keyed by the 16-hex hash. Stdio: in-process `Map<hash, body>` with LRU bounded size (16 entries, ~1.5MB worst-case). Worker: Upstash KV (same backing as radar-cache; per-engagement TTL e.g., 1h).
+2. **`compose_dossier_envelope` schema**: remove `filledIrl` from `ComposeDossierEnvelopeInputSchema`. Keep `irlBodyHash` as the only body reference. New structured error `Bl076BodyCacheMissError` thrown when the hash is not present in cache (actionable text: "call `prepare_irl_body` first").
+3. **`runIrlProvenanceCheck` invocation inside compose**: re-hydrate the body from cache before passing into the existing verification engine. The engine itself is unchanged — purely a different source for the body bytes.
+4. **`runComposeDossierEnvelope` hash-bind check**: still verifies `sha256(rehydrated_body).slice(0,16) === irlBodyHash` for defense-in-depth (catches cache corruption / collision).
+5. **`gst_irl_ingestion` prompt directive**: rewrite the envelope-composition directive at both invocation sites to instruct: "Call `prepare_irl_body` first; pass the returned `irlBodyHash` to `compose_dossier_envelope`. Do NOT pass `filledIrl` (removed in v0.17.0 — server fetches it from cache)." promptVersion 0.16.0 → 0.17.0. Manifest hash + all 7 body hashes rebaseline.
+6. **VERIFY-block `filledIrl.bytes` field**: model still emits the byte count (model knows the body it sent to `prepare_irl_body`); no change to the audit artifact.
+
+**Surface impact** — BREAKING for any external client that calls `compose_dossier_envelope` directly (none known internally; surface is documented as orchestrated by the prompt). Confirm no active external clients before scoping.
+
+- `mcp-server` 0.29.0 → 0.30.0.
+- `gst_irl_ingestion` promptVersion 0.16.0 → 0.17.0.
+- New `Bl076BodyCacheMissError` exported from compose-dossier-envelope.ts + wired into handler catch chain.
+- New `IRL_BODY_CACHE` interface in `mcp-server/src/cache/` — stdio + Worker implementations.
+- BL-070 + BL-072 source-reconstruction auto-append logic unchanged — `irlSource` field stays on the input.
+- Schema-side: `filledIrl` removed; existing `.min(200)` validation moves to `prepare_irl_body` (already enforces `.min(200)` per the BL-068 ergonomics layer).
+
+**Acceptance** (in-session, no live exercise required):
+
+- New unit tests: cache-hit path returns body; cache-miss throws `Bl076BodyCacheMissError`; `runComposeDossierEnvelope` works against the cached body identically to current passing-body-inline tests.
+- Existing 7 BL-070 + BL-058/BL-068/BL-072 unit tests adapted: `baseInput()` factory omits `filledIrl`; setup calls `prepare_irl_body` first to seed the cache.
+- Hash + body + manifest rebaselines per the prompt directive change.
+- Stdio Map TTL: process-lifetime is fine (= one Claude Desktop session). Worker: Upstash KV with 1h TTL.
+
+**Latency win estimate**: removing `filledIrl` from the model-emit cuts the largest payload component. For typical 10–80KB bodies, that's 60–80% of the compose-call emit cost. Net wall-clock per compose call: from 5–15 min today to estimated 1–3 min. Compounds across QA + multi-engagement work.
+
+**Risks**:
+
+- **Worker cache TTL tuning**: too short → cache miss on retry; too long → memory pressure on shared Upstash. 1h is conservative; revisit after empirical data.
+- **Stdio cache eviction**: LRU 16 entries covers a deep iteration session for one operator; if exceeded, retry forces re-`prepare_irl_body` (cheap — `prepare_irl_body` is sha256 + cache write).
+- **External-client breakage**: confirmed surface is internal-only; if any external client exists, ship a backward-compat shim that accepts `filledIrl` for one minor and warns.
+- **Cache-poisoning impossibility argument**: hash-bind already prevents this — a poisoned body would fail `sha256(body).slice(0,16) === hash` defense-in-depth check.
+
+**Out of scope**:
+
+- Splitting `compose_dossier_envelope` into multiple smaller composable calls (the "Big" Option 3 from triage). The body-by-hash fix delivers most of the latency win at a fraction of the architectural cost.
+- Schema audit for token bloat in claims/gaps field descriptions (the "Cheap" Option 1 — can land separately if compose latency still problematic after BL-076).
+- Multi-tenant cache isolation (single-operator workflow today).
+- The earlier 2026-06-06 `prepare_irl_body` 4-minute transport hang — different symptom (tiny output, cannot be token-emit), unexplained, one occurrence. If recurs, file separately.
+
+**Related**: BL-068 (`prepare_irl_body` preflight ergonomics — BL-076 extends it from hash-compute to hash-compute-AND-cache), BL-049 (hash-bind authority — preserved as the structural integrity check), BL-074 (production-readiness gates — BL-076 is the latency unblock for the 3–5 representative IRL exercises).
+
+---
+
 ### BL-068: Forcing-function redesign — `prepare_irl_body` preflight + server-side `map-absent:` validation + schema description enrichment ✅ CLOSED 2026-06-05
 
 **Original proposal**: three prompt-only coaching changes (hash preflight directive, Rule 0 + tier-1 worked examples, gap-list search-backing rule). **BLOCKED in audit** as repeating the BL-058 forcing-function anti-pattern: BL-059's prompt-only Rule 0 prose already failed empirically (5/1 on 06-06; 4 calibration violations still emitted on 06-05 even with the model demonstrably knowing the rule). "More prose ≠ different outcome" for a directive that already failed in prose form.

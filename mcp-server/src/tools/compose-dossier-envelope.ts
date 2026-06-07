@@ -36,9 +36,11 @@ import {
   Bl063PartitionViolationError,
   Bl068MapAbsentFalsePositiveError,
   Bl070VerbatimBodyRequiredError,
+  Bl076BodyCacheMissError,
   ComposeDossierEnvelopeInputSchema,
   IrlBodyHashMismatchError,
   runComposeDossierEnvelope,
+  type ComposeDossierEnvelopeEngineInput,
   type ComposeDossierEnvelopeInput,
 } from '../schemas/compose-dossier-envelope';
 
@@ -76,11 +78,24 @@ export async function handleComposeDossierEnvelopeTool(
   metrics?: MetricsContext
 ) {
   try {
+    // BL-076 — fetch the IRL body from the server-side cache. The model
+    // no longer emits `filledIrl` to this tool's input (saving 9–80KB of
+    // output tokens per call); instead `prepare_irl_body` cached the body
+    // keyed by its canonical hash, and we re-hydrate it here. Cache miss
+    // surfaces a structured rejection directing the model to call
+    // `prepare_irl_body` first. The engine signature is unchanged — we
+    // re-inject `filledIrl` into the engine input post-fetch (audit M-1).
+    const filledIrl = await metrics?.irlBodyCache?.get(payload.irlBodyHash);
+    if (filledIrl === null || filledIrl === undefined) {
+      throw new Bl076BodyCacheMissError(payload.irlBodyHash);
+    }
+    const engineInput: ComposeDossierEnvelopeEngineInput = { ...payload, filledIrl };
+
     // BL-045 PR B audit ALT-2: derive `promptVersion` from the prompt
     // module (a leaf import — no circular-dep risk via the registry).
     // Overrides whatever the model passed; closes the v10 hallucination
     // failure mode where the model emitted `"0.0.2"` in the meta fence.
-    const baseResult = runComposeDossierEnvelope(payload, {
+    const baseResult = runComposeDossierEnvelope(engineInput, {
       promptVersion: irlIngestionPrompt.version,
     });
     // BL-071 — server-authoritative tool-call counts. The envelope tool
@@ -109,7 +124,8 @@ export async function handleComposeDossierEnvelopeTool(
       error instanceof Bl063PartitionViolationError ||
       error instanceof Bl063CertificationNotRegulationError ||
       error instanceof Bl068MapAbsentFalsePositiveError ||
-      error instanceof Bl070VerbatimBodyRequiredError
+      error instanceof Bl070VerbatimBodyRequiredError ||
+      error instanceof Bl076BodyCacheMissError
     ) {
       return {
         content: [{ type: 'text' as const, text: error.message }],

@@ -302,6 +302,49 @@ describe('protocol roundtrip', () => {
       expect(props.filledIrl?.type).toBe('string');
       expect(tool!.inputSchema.required).toContain('filledIrl');
     });
+
+    // BL-076 surface assertions (audit M-3). compose_dossier_envelope no
+    // longer takes `filledIrl` as a public input — the body flows in via
+    // prepare_irl_body → server-side IrlBodyCache → compose re-hydrate. A
+    // future regression that re-introduced `filledIrl` on the public schema
+    // would silently bring the 5–15 min token-emit cost back; this test
+    // pins the absence.
+    it('compose_dossier_envelope does NOT publish filledIrl on its input schema — BL-076 surface check', async () => {
+      const res = await rpc('tools/list', {});
+      expect(isErrorResponse(res)).toBe(false);
+      if (isErrorResponse(res)) return;
+      const payload = res.result as unknown as ListToolsResultPayload;
+      const tool = payload.tools.find((t) => t.name === 'compose_dossier_envelope');
+      expect(tool, 'compose_dossier_envelope must be registered').toBeDefined();
+      const props = tool!.inputSchema.properties as Record<string, Record<string, unknown>>;
+      expect(
+        props.filledIrl,
+        'BL-076: filledIrl must NOT appear in compose_dossier_envelope.inputSchema.properties — body is fetched server-side from IrlBodyCache'
+      ).toBeUndefined();
+      expect(
+        tool!.inputSchema.required,
+        'BL-076: filledIrl must NOT be in compose_dossier_envelope.inputSchema.required'
+      ).not.toContain('filledIrl');
+      // irlBodyHash IS required and string-typed — that's the sole body reference now.
+      expect(props.irlBodyHash?.type).toBe('string');
+      expect(tool!.inputSchema.required).toContain('irlBodyHash');
+    });
+
+    // BL-076 audit R-2 — `prepare_irl_body` annotation accuracy. Cache-write
+    // is a side effect; readOnlyHint must be false (was true pre-BL-076).
+    // idempotentHint stays true (same body → same cache state by construction).
+    it('prepare_irl_body publishes readOnlyHint:false + idempotentHint:true — BL-076 R-2', async () => {
+      const res = await rpc('tools/list', {});
+      expect(isErrorResponse(res)).toBe(false);
+      if (isErrorResponse(res)) return;
+      const payload = res.result as unknown as ListToolsResultPayload;
+      const tool = payload.tools.find((t) => t.name === 'prepare_irl_body') as
+        | { annotations?: { readOnlyHint?: boolean; idempotentHint?: boolean } }
+        | undefined;
+      expect(tool, 'prepare_irl_body must be registered').toBeDefined();
+      expect(tool!.annotations?.readOnlyHint).toBe(false);
+      expect(tool!.annotations?.idempotentHint).toBe(true);
+    });
   });
 
   describe('happy path — each tool returns valid content', () => {

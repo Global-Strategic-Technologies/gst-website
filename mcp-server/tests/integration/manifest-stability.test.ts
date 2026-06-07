@@ -99,7 +99,13 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // envelope-composition directive; `toolCallCounts` schema line in the
 // BL-045-VERIFY directive gains the `errored: N` field at both invocation
 // sites; manifest hash drifts via name@version tuple).
-const EXPECTED_MANIFEST_HASH = '7344f75e11af95e9d1298e222cab9966aa9b6f04cae11ac0c92d32d938b9f8d5';
+// BL-076 rebaseline: prompt v0.16.0 → v0.17.0 (body-by-hash directive added
+// to the envelope-composition directive + interactive Step 4 — model calls
+// `prepare_irl_body` first and passes only `irlBodyHash` to
+// `compose_dossier_envelope`. The `filledIrl` field is REMOVED from
+// `ComposeDossierEnvelopeInputSchema` — tool names + URIs are unchanged so
+// the manifest hash drift is solely the prompt name@version tuple).
+const EXPECTED_MANIFEST_HASH = '0e6c4e22561b8116413d48f826d6342d85c3ebbf83038f5e7ab578515c739445';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

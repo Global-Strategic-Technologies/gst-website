@@ -15,6 +15,7 @@
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
+import { IrlBodyCacheSizeExceededError } from '../cache/irl-body-cache';
 import { computeIrlBodyHash } from '../schemas/compose-dossier-envelope';
 import {
   PrepareIrlBodyInputSchema,
@@ -35,9 +36,33 @@ const TOOL_DESCRIPTION = `Compute the canonical \`irlBodyHash\` for a \`filledIr
 
 The hash is deterministic: same body in, same hash out. No normalization is applied — byte-for-byte sha256.`;
 
-export async function handlePrepareIrlBodyTool(payload: PrepareIrlBodyInput) {
+export async function handlePrepareIrlBodyTool(
+  payload: PrepareIrlBodyInput,
+  metrics?: MetricsContext
+) {
   const irlBodyHash = computeIrlBodyHash(payload.filledIrl);
   const byteLength = Buffer.byteLength(payload.filledIrl, 'utf8');
+
+  // BL-076 — write the body to the IRL body cache keyed by the canonical
+  // hash so `compose_dossier_envelope` can re-hydrate it without the model
+  // re-emitting it as tool args. Best-effort: if the cache rejects the body
+  // (over the per-entry size cap), surface a structured error so the model
+  // knows to trim the body before retrying. Other cache write failures
+  // (e.g., Upstash transient blip) propagate as a thrown error which the
+  // handler catches below — the next compose call will surface
+  // `Bl076BodyCacheMissError` directing a retry.
+  try {
+    await metrics?.irlBodyCache?.set(irlBodyHash, payload.filledIrl);
+  } catch (error) {
+    if (error instanceof IrlBodyCacheSizeExceededError) {
+      return {
+        content: [{ type: 'text' as const, text: error.message }],
+        isError: true,
+      };
+    }
+    throw error;
+  }
+
   const result: PrepareIrlBodyOutput = { irlBodyHash, byteLength };
   return {
     content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
@@ -56,10 +81,18 @@ export function registerPrepareIrlBodyTool(
       description: TOOL_DESCRIPTION,
       inputSchema: PrepareIrlBodyInputSchema.shape,
       annotations: {
-        readOnlyHint: true,
+        // BL-076 audit R-2: cache write is a side effect. Idempotent stays
+        // true (same body in → same cache state by construction).
+        readOnlyHint: false,
         idempotentHint: true,
       },
     },
-    withToolMetrics('prepare_irl_body', metrics, handlePrepareIrlBodyTool)
+    withToolMetrics(
+      'prepare_irl_body',
+      metrics,
+      // BL-076: capture `metrics` in the closure so the handler can write
+      // to `metrics.irlBodyCache` at call time.
+      (payload: PrepareIrlBodyInput) => handlePrepareIrlBodyTool(payload, metrics)
+    )
   );
 }

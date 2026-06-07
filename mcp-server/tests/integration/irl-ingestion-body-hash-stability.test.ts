@@ -199,12 +199,19 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // `errored: N` field + a "copy VERBATIM from compose_dossier_envelope
 // output `serverToolCallCounts`" comment + precheck-derivation rule. Because
 // the verify directive ships in EVERY body, ALL 7 hashes drift.
+// BL-076 rebaseline (prompt 0.16.0 → 0.17.0): body-by-hash directive added
+// to the envelope-composition directive AND interactive Step 4. Instructs
+// the model to call `prepare_irl_body` first + drop `filledIrl` from the
+// `compose_dossier_envelope` arg list. The 3 verbose-mode body shapes
+// (interactive + one-shot minimal + one-shot full) drift; compact + extract-
+// only paths skip the envelope-composition directive per its header
+// (`BLOCKING — full mode + verbose verbosity only`).
 const EXPECTED_HASH_INTERACTIVE =
-  'a3409d4815744f4487c713c9af5ac4a9f4dd519999fa679abd8bc5512f527267';
+  '391d4d9eb3144147d7f0405a85e7b122afdd405200ec68a3a6a5fbb9202ae7e4';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '2272fd0580b667b3615adba44d9671d1c10acee9a7fe1b4c4ceaaf8a5de272e6';
+  'f9ca796745b93b77239d4bed640a72c87d6c6af8fd43e1ea2410ee94107af0a6';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '2111d4b7e476527e6ba6417a65b864f0f36ad102e8b5d2490cdad89c163a549d';
+  'c903aba3196bf070c5e6de44a3f60114e2a0980930a25fbb4e9774646fb15e48';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   '6df0c2e328c7016e59ec6b20e7f7793e5815c9155e8502e08846c6bfd7d02b7f';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
