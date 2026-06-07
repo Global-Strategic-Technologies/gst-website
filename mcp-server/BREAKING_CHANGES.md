@@ -29,6 +29,35 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.30.5 — 2026-06-07 — BL-079 Part A: `validate_irl_provenance` body-by-hash
+
+**Theme**: closes the precheck-loop emission damage observed on the 2026-06-07 night staging exercise. Operator paste of a ~50KB IRL body produced `provenanceVerification: { total: 19, verified: 14, unverified: 5, tierMismatches: 1, tierFabrications: 3 }` because `validate_irl_provenance` required the model to re-emit the full body alongside the citations on every precheck iteration — the model's output stream silently dropped ~12% of bytes, and the citation substring matcher then ran against the lossy reconstruction. Part A lets the model pass the canonical 16-hex `irlBodyHash` instead; the server re-hydrates the operator-supplied bytes from the shared `IrlBodyCache` (BL-076 substrate, BL-077c namespace) for matching. The model emits the body to `prepare_irl_body` ONCE per session instead of once per precheck iteration.
+
+Independently fixes the precheck-iteration emission damage — Part B (prompt-render cache pre-pop) is the larger sequel that takes the body off the emission path entirely. See `src/docs/development/MCP_SERVER_PROMPT_ARG_CACHE_PREPOP_BL-079.md` for the full design.
+
+**Surface impact**:
+
+- **UPDATED** `validate_irl_provenance` input schema at [`mcp-server/src/schemas/validate-irl-provenance.ts`]:
+  - `filledIrl`: now **optional** (`z.string().min(200).optional()`). Legacy callers that pass it directly continue to work unchanged.
+  - **NEW** `irlBodyHash`: optional 16-hex hash field (same format as `compose_dossier_envelope.irlBodyHash`). When supplied, the server re-hydrates from `metrics.irlBodyCache` for citation matching.
+  - **NEW** cross-field `.refine` rule: at least one of `filledIrl` / `irlBodyHash` MUST be supplied. The MCP SDK validates only the per-field shape, so the handler enforces this invariant explicitly via a structured `isError: true` response.
+- **UPDATED** handler signature: `handleValidateIrlProvenanceTool(payload, metrics?)`. `metrics` defaults to `NOOP_METRICS_CONTEXT` — existing call sites that pass only the payload continue to work unchanged.
+- **UPDATED** `registerValidateIrlProvenanceTool` now threads its `metrics` argument into the handler so the registered tool can resolve `irlBodyHash` against the shared `IrlBodyCache`. The `MetricsContext.irlBodyCache` plumbing (added in 0.30.0 / BL-076) is the same surface — no new wiring.
+- **NEW** export `RunIrlProvenanceCheckInput` — the engine-internal input type with `filledIrl: string` (required). Distinct from the public `ValidateIrlProvenanceInput` (where `filledIrl` is optional). The handler is the single resolution point: schema parses, handler resolves the body from either source, engine consumes the resolved string.
+- **NEW** export `ValidateIrlProvenanceInputObject` — the underlying ZodObject (no `.refine`) used by `registerTool` for `.shape` exposure. The full schema with `.refine` is still exported as `ValidateIrlProvenanceInputSchema` for explicit parsing in tests.
+- **No prompt-body change**, no manifest hash drift, no body hash rebaseline. Part A is a tool-schema additive expansion only; the prompt directive update lands in Part B (0.31.0).
+- **No public contract removal**. Every legacy `{ filledIrl, citations }` call shape continues to parse + execute identically.
+
+**Acceptance** (in-session):
+
+- 13 new BL-079 schema unit tests at [`tests/unit/schemas/validate-irl-provenance-bl079.test.ts`]: refine rule (all 5 cases per design doc), regex shape (3 cases), per-field optionality on `.shape`, handler cache-hit / cache-miss / both-fields precedence / neither-field defense-in-depth, `Bl076BodyCacheMissError` instanceof contract.
+- 6 new integration tests at [`tests/integration/bl-079-validate-body-by-hash.test.ts`] exercising the `prepare_irl_body → validate_irl_provenance` chain end-to-end: cache write-then-resolve, precheck iteration re-use of the same cached body, cache-miss surfacing `Bl076BodyCacheMissError`, legacy path backward-compat, R-8 compose internal-call seam regression, hash format invariant.
+- 1511 mcp-server tests green; `npx tsc --noEmit` clean.
+
+**What Part B will add** (separate PR, 0.31.0): prompt-render-time cache pre-population (wrapper calls `handlePrepareIrlBodyTool` synchronously from `_registry.ts` when the operator supplied `filledIrl` as a prompt arg), `partner-paste-verbatim-prepop` runScenario taxonomy, BL-070 gate dual-accept, prompt directive surgery instructing the model to skip `prepare_irl_body` entirely when it sees the `**Body-binding hash:**` directive. The model will emit the body ZERO times across the entire partner-paste workflow once Part B ships.
+
+---
+
 ## 0.30.4 — 2026-06-07 — BL-082 `booleanFromWire` for slash-command form interop
 
 **Theme**: closes a structural bug in prompt-argument validation. Per the MCP wire protocol, prompt `arguments` are typed as `Record<string, string>` — every value the client sends is a string regardless of the conceptual type. Claude Desktop's slash-command form renders boolean fields as plain text inputs and ships `"true"` / `"TRUE"` / `"false"` rather than the JSON boolean. Pre-0.30.4, the `gst_irl_ingestion` prompt's `requireVerbatimBody: z.boolean().optional()` field rejected every string form with `expected boolean, received string`. The `arrayFromWire` / `numberFromWire` / `enumFromWire` adapters already existed at [`mcp-server/src/prompts/wire-shape.ts`] for the array / number / enum cases; the boolean case was missing.
