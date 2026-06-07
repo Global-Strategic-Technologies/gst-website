@@ -3901,7 +3901,7 @@ The bug is operator-visible (block carries the fabricated list) but not partner-
 
 ---
 
-### BL-079: Server-side body delivery via prompt-arg + body-by-hash on `validate_irl_provenance` ⏳ OPEN — design audit-passed 2026-06-07
+### BL-079: Server-side body delivery via prompt-arg + body-by-hash on `validate_irl_provenance` 🔧 IN PROGRESS — Part A shipping 2026-06-07 (0.30.5); Part B pending operator verification
 
 **Design doc**: [MCP_SERVER_PROMPT_ARG_CACHE_PREPOP_BL-079.md](MCP_SERVER_PROMPT_ARG_CACHE_PREPOP_BL-079.md) — full architecture, schema diffs, capability-preservation matrix, audit-folded revisions, split-PR plan. Ready for operator approval to start Part A implementation.
 
@@ -3909,7 +3909,7 @@ The bug is operator-visible (block carries the fabricated list) but not partner-
 
 **Ship cadence** (per audit): split into two PRs with operator-verification checkpoint between them.
 
-- **Part A** (next, ~1 day): `validate_irl_provenance` schema expansion + handler re-hydration. Independently fixes the precheck-loop emission damage (the 5 unverified + 1 tier-mismatch + 3 tier-fabrications observed tonight stop being possible). Operator can manually orchestrate prepare → validate-by-hash. Ships as patch 0.30.5.
+- **Part A** ✅ shipped 0.30.5 (2026-06-07): `validate_irl_provenance` schema expansion (`filledIrl` now optional, `irlBodyHash` added as 16-hex optional field, cross-field `.refine` rule) + handler re-hydration via `metrics.irlBodyCache.get(irlBodyHash)`. Engine signature split: public `ValidateIrlProvenanceInput` allows omitted `filledIrl`; new internal `RunIrlProvenanceCheckInput` keeps the engine pure. Backward-compat preserved — every legacy `{filledIrl, citations}` caller continues to work unchanged. 13 schema unit tests + 6 integration tests (prepare → validate body-by-hash chain, precheck-iteration cache reuse, cache-miss surfaces `Bl076BodyCacheMissError`, R-8 compose internal-call seam regression). Independently fixes the precheck-loop emission damage — under Part A alone, the operator manually orchestrates `prepare_irl_body` then `validate_irl_provenance({irlBodyHash, citations})` and the 5 unverified + 1 tier-mismatch + 3 tier-fabrications observed tonight stop being possible.
 - **Part B** (after A merges + operator validates, ~1.5–2 days): prompt-render-time cache pre-pop via sync await + `handlePrepareIrlBodyTool` reuse (Alt-D pattern — free BL-077a/b/c diagnostics) + prompt directive surgery + `runScenario: partner-paste-verbatim-prepop` + BL-070 gate dual-accept + `serverCachedBodyBytes` field for VERIFY `filledIrl.bytes` semantic correctness. Ships as minor 0.31.0 with manifest + 3 body hash rebaselines.
 
 **Problem**: post-BL-076 / BL-077c, the body-by-hash mechanism works end-to-end on small (5-10KB) bodies but fails on production-realistic ones. The 2026-06-07 staging exercise on a 77,743-byte body showed the model's tool-call args emission truncated at ~1,753 bytes (2.3%). `prepare_irl_body` cached a partial body; the model self-detected the hash mismatch and halted the run. Same emission ceiling affects `validate_irl_provenance` — its `filledIrl` arg requires the model to emit the full body for citation substring-matching.

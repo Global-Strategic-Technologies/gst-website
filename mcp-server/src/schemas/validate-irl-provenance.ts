@@ -63,12 +63,41 @@ const citationEntrySchema = z.object({
 
 export { citationFieldSchema };
 
-export const ValidateIrlProvenanceInputSchema = z.object({
+/**
+ * BL-079 — body reference may arrive as the verbatim body OR as the 16-hex
+ * canonical hash that re-hydrates from the shared `IrlBodyCache`. Exactly the
+ * same shape as `compose_dossier_envelope.irlBodyHash` (see
+ * `src/schemas/compose-dossier-envelope.ts:57`); duplicated locally to avoid
+ * a circular import between the two schemas.
+ */
+const IRL_BODY_HASH_REGEX = /^[a-f0-9]{16}$/;
+
+/**
+ * Underlying ZodObject (no `.refine`) — exposed so `registerTool` can read
+ * `.shape` for the MCP inputSchema. The `.refine` cross-field rule lives on
+ * `ValidateIrlProvenanceInputSchema` below; the handler explicitly enforces
+ * "at least one of filledIrl / irlBodyHash" since `registerTool` only sees
+ * the per-field shape.
+ */
+export const ValidateIrlProvenanceInputObject = z.object({
   filledIrl: z
     .string()
     .min(200)
+    .optional()
     .describe(
-      'The populated IRL body (markdown), same shape as the gst_irl_ingestion prompt arg. Used as the haystack for excerpt verification.'
+      'The verbatim IRL body (markdown), same shape as the gst_irl_ingestion prompt arg. Used as the haystack for excerpt verification. ' +
+        'BL-079 — now optional. If `irlBodyHash` is supplied AND populated in the server-side IRL body cache (via a prior `prepare_irl_body` call, or BL-079 Part B prompt-render pre-pop), the server re-hydrates the body from cache and `filledIrl` may be omitted. ' +
+        'For interactive / xlsx-reconstruction mode where the cache is not pre-populated, this remains the canonical path. ' +
+        '`filledIrl` takes precedence when both fields are supplied (legacy compatibility for callers that emit both).'
+    ),
+  irlBodyHash: z
+    .string()
+    .regex(IRL_BODY_HASH_REGEX, 'irlBodyHash must be exactly 16 lowercase hex characters')
+    .optional()
+    .describe(
+      'BL-079 — body-by-hash mode. When the operator supplies `filledIrl` as a `gst_irl_ingestion` prompt arg (Part B), the prompt-build wrapper pre-populates the IRL body cache. The model copies the `**Body-binding hash:**` directive verbatim into this field and omits `filledIrl`. ' +
+        'Under Part A (this PR) the model can also pass the hash returned by `prepare_irl_body` to skip emitting the full body twice in the precheck loop. ' +
+        'Server re-hydrates from cache for citation matching. Falls back to `Bl076BodyCacheMissError` if the cache write did not land (operator should retry, or call `prepare_irl_body` to re-seed). For interactive / xlsx-reconstruction mode where the cache is not pre-populated, omit this field and supply `filledIrl` instead.'
     ),
   citations: z
     .array(citationEntrySchema)
@@ -78,7 +107,37 @@ export const ValidateIrlProvenanceInputSchema = z.object({
     ),
 });
 
-export type ValidateIrlProvenanceInput = z.infer<typeof ValidateIrlProvenanceInputSchema>;
+/**
+ * Full input schema with the BL-079 cross-field rule. Use this for explicit
+ * parsing in tests and at any handler boundary that needs the refine
+ * enforced. The MCP SDK consumes `ValidateIrlProvenanceInputObject.shape` at
+ * `registerTool` time, which does NOT carry refine — the handler enforces
+ * the "at least one of filledIrl / irlBodyHash" invariant explicitly.
+ */
+export const ValidateIrlProvenanceInputSchema = ValidateIrlProvenanceInputObject.refine(
+  (input) => Boolean(input.filledIrl) || Boolean(input.irlBodyHash),
+  {
+    message:
+      'BL-079 — at least one of `filledIrl` / `irlBodyHash` MUST be supplied. ' +
+      'Body-by-hash path: pass `irlBodyHash` alone (server re-hydrates from the IrlBodyCache populated by `prepare_irl_body` or the BL-079 prompt-render pre-pop). ' +
+      'Legacy interactive / xlsx-reconstruction path: pass `filledIrl` alone. ' +
+      'Both allowed — `filledIrl` takes precedence when present (legacy callers).',
+  }
+);
+
+export type ValidateIrlProvenanceInput = z.infer<typeof ValidateIrlProvenanceInputObject>;
+
+/**
+ * BL-079 — engine-internal input shape. The public schema makes `filledIrl`
+ * optional (the handler may resolve it from the IRL body cache via
+ * `irlBodyHash`); the pure-function engine still requires the body as a
+ * non-empty string. The handler is the single resolution point between the
+ * two — schema parses, handler resolves, engine matches.
+ */
+export interface RunIrlProvenanceCheckInput {
+  filledIrl: string;
+  citations: ValidateIrlProvenanceInput['citations'];
+}
 
 export interface ValidateIrlProvenanceVerdict {
   path: string;
@@ -297,7 +356,7 @@ function aggregateArrayVerdict(
  * verdicts to its emitted citation structure unchanged.
  */
 export function runIrlProvenanceCheck(
-  input: ValidateIrlProvenanceInput
+  input: RunIrlProvenanceCheckInput
 ): ValidateIrlProvenanceResult {
   const haystackNorm = normalizeForMatching(input.filledIrl);
   const haystackWords = haystackNorm.split(' ').filter((w) => w.length > 0);
