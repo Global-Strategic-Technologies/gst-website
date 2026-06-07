@@ -1549,8 +1549,8 @@ import '../../../../styles/components/progress.css';
     });
 
     // Reset all selects
-    document.querySelectorAll<HTMLSelectElement>('.field-select').forEach((el) => {
-      el.value = '';
+    document.querySelectorAll('.field-select').forEach((el) => {
+      (el as unknown as HTMLSelectElement).value = '';
     });
 
     // Reset output
