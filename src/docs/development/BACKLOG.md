@@ -3965,7 +3965,43 @@ Hypothesis (medium confidence): Bucket B. The model has to emit the body regardl
 
 **Effort estimate** (audit-revised): **2-3 days** end-to-end (1-day was optimistic). Breakdown: `_registry.ts` wrapper + tests 0.25d; prompt directive surgery + VERIFY taxonomy 0.5d; `validate_irl_provenance` schema expansion + tests 0.5d; ~3 hash rebaselines 0.25d; new integration tests + BL-070 regression coverage 0.75d; BREAKING_CHANGES + BL-079 design doc + BACKLOG 0.5d; staging E2E verification on the actual 77KB case 0.25d; Worker-specific bug buffer (à la BL-077a) 0.25-0.5d.
 
-**Related**: BL-076 (the body-by-hash mechanism this extends), BL-077a/b/c (the diagnostic + namespace fix that proved the cache substrate works), PR #248 (extract-irl-markdown — makes partner-paste mechanically available; BL-079 makes it actually work for large bodies), BL-080 (reserved — chunked body for xlsx-reconstruction path), BL-081 (reserved — remove BL-077a/b read-after-write probe after stable trace window).
+**Related**: BL-076 (the body-by-hash mechanism this extends), BL-077a/b/c (the diagnostic + namespace fix that proved the cache substrate works), PR #248 (extract-irl-markdown — makes partner-paste mechanically available; BL-079 makes it actually work for large bodies), BL-080 (reserved — chunked body for xlsx-reconstruction path), BL-081 (reserved — remove BL-077a/b read-after-write probe after stable trace window), **BL-086** (the simplification follow-on — keeps every substrate BL-076/BL-077/BL-079 shipped; strips the prose discipline that accumulated around them).
+
+---
+
+### BL-086: `gst_irl_ingestion` workflow simplification — strip prose conditionals + server-render the VERIFY block ⏳ OPEN — design audit-passed 2026-06-07
+
+**Design doc**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) — full architecture, schema additions, capability-preservation matrix vs every predecessor (BL-045 → BL-079), single-PR ship cadence.
+
+**Empirical motivation**: the 2026-06-07 evening exercise sequence produced a dual signal:
+
+- **Interactive/xlsx-reconstruction mode**: clean healthy run (33/33 verified, `precheck.outcome: converged` in 1 iteration, `selfCorrectionCalls: 0`, all `serverToolCallCounts` arithmetic balanced). The workflow runs.
+- **Partner-paste-prompt-arg mode**: Claude Desktop v4.7+ **refused** to execute the workflow, citing pattern-similarity to a jailbreak template ("long elaborate script, anticipates resistance, scripts compliance"). On the operator's direct narrow ask, the model called `prepare_irl_body` once, verified the substrate, then wrote a clean diligence synthesis **without the audit machinery firing at all** — and the dossier was structurally better than audited runs (honest MTTR gap, named JQL query to unblock).
+
+The two observations together: the workflow produces real value, AND the accreted prose discipline (BL-045 → BL-079 = ~20 PRs) is now actively in the way. Every PR added the right prose for a real concern at the time; the cumulative ~30KB prompt body now triggers safety patterns and obscures the deliverable. Locally-justified decisions producing globally-broken outcomes — the classic refactor-trigger pattern.
+
+**Three principles** (the doc spells them out concretely):
+
+1. **Mode selection happens in the builder, not in the prompt body**. Today's `buildOneShotBody` carries prose like "if `**Body-binding hash:**` directive appears above... otherwise legacy BL-076 path..." — but the builder ALREADY decided to render the directive. Eliminate the conditional; each builder emits one coherent path.
+2. **VERIFY block is server-rendered**. Class A fields (`toolCallCounts`, `hashBindResult`, `provenanceVerification`, `serverCachedBodyBytes`, `runScenario`, arithmetic identities) the server already has. Class B (`precheck.outcome`, `errorClass`/`recoveryAction` strings, `conditionalTriggers.*` rationale, `gatesElided` rationale, `response.*` host observations) is genuinely interpretive — model passes those in as `verifyBlockInputs`. Server merges + emits `verifyBlockYaml` as a single string. Model transcribes one fence verbatim.
+3. **`validate_irl_provenance` becomes a debug tool, not a workflow forcing function**. Tonight's clean run did 1 precheck iteration before converging — empirically the forcing function adds no value when compose's internal verification runs the same engine. Tool stays registered (Part A body-by-hash schema kept) for operators that want to manually orchestrate; the prompt body stops mandating it.
+
+**Net effect**:
+
+- Prompt body shrinks ~40% (target). Zero `BL-*` citations in runtime prose. Zero `if X then Y` conditional prose.
+- Model job shrinks: read IRL, run tools, assemble interpretive `verifyBlockInputs`, call compose, transcribe markdown blocks + one YAML fence. No precheck-derivation arithmetic, no fingerprint discipline, no hash-bind-result attestation discipline.
+- Server job grows by exactly the deterministic YAML render (~50 lines, pure function).
+- Substrate stays: body-by-hash (BL-076), cache substrate (BL-077a/b/c), prompt-render pre-pop (BL-079 Part B), server-arithmetic counters (BL-071), partition + scope + Hub-backing enforcement (BL-063), `requireVerbatimBody` gate (BL-070), reconstruction auto-append (BL-072), wire-shape adapters (BL-082) — all preserved verbatim.
+
+**Capability preservation**: see the matrix in the design doc. Every BL-\* surface BL-045 through BL-082 is either **preserved verbatim** (substrate, server enforcement, slash-command interop) or **strengthened** (hash-bind authority via "did the server render a directive?" check eliminates the model fabricated-`pass-bound` failure mode; server-arithmetic VERIFY render eliminates self-narration drift).
+
+**Single PR** (per the doc's own principle): the cuts and the new field are coupled; half-state would leave the workflow broken. Ships as mcp-server `0.31.0` → `0.32.0` + promptVersion `0.18.0` → `0.19.0` + manifest hash drift + all 7 body hashes rebaseline.
+
+**Effort estimate**: 1–1.5 days. Mostly prose-deletion + a deterministic YAML render function + rebaselines. No new substrate, no new tool, no new wrapper.
+
+**Status**: ⏳ design doc drafted 2026-06-07 after BL-079 Part B operator verification surfaced the model-refusal failure mode. Ready for operator approval to start implementation. Supersedes BL-079 Part B's directive surgery; the substrate Part B shipped (registry wrapper, cache prepop, BL-070 dual-accept, `serverCachedBodyBytes` field) all stay.
+
+**Related**: BL-045 (the original audit discipline this simplifies), BL-058/BL-061/BL-062/BL-063/BL-071 (the VERIFY schema expansions whose model-narration burden is now server-rendered), BL-076 + BL-077 + BL-079 (the substrate stack that BL-086 keeps wholesale). **BL-087** (reserved): once VERIFY block is server-rendered for ≥2 weeks with no drift signal, deprecate any remaining model-narrated fields whose values the server can derive deterministically.
 
 ---
 
