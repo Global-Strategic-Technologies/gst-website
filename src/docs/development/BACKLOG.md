@@ -3969,39 +3969,38 @@ Hypothesis (medium confidence): Bucket B. The model has to emit the body regardl
 
 ---
 
-### BL-086: `gst_irl_ingestion` workflow simplification — strip prose conditionals + server-render the VERIFY block ⏳ OPEN — design audit-passed 2026-06-07
+### BL-086: `gst_irl_ingestion` workflow simplification — staged leveled pruning (L0–L5) with opt-in restore args ⏳ OPEN — leveled design 2026-06-07
 
-**Design doc**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) — full architecture, schema additions, capability-preservation matrix vs every predecessor (BL-045 → BL-079), single-PR ship cadence.
+**Design doc**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) — full leveled architecture, per-level capability preservation matrix, three ship-cadence options, opt-in restore args specification.
 
-**Empirical motivation**: the 2026-06-07 evening exercise sequence produced a dual signal:
+**Empirical motivation**: the 2026-06-07 evening exercise sequence produced a dual signal — interactive mode runs clean (33/33 verified, single envelope call, all counters balanced) AND partner-paste mode on v4.7+ refused execution citing jailbreak-pattern similarity. The workflow produces value when followed; the ~30KB prompt body accreted across BL-045 → BL-079 (≈20 PRs) now triggers safety patterns. Locally-justified PR-by-PR; globally producing model refusals.
 
-- **Interactive/xlsx-reconstruction mode**: clean healthy run (33/33 verified, `precheck.outcome: converged` in 1 iteration, `selfCorrectionCalls: 0`, all `serverToolCallCounts` arithmetic balanced). The workflow runs.
-- **Partner-paste-prompt-arg mode**: Claude Desktop v4.7+ **refused** to execute the workflow, citing pattern-similarity to a jailbreak template ("long elaborate script, anticipates resistance, scripts compliance"). On the operator's direct narrow ask, the model called `prepare_irl_body` once, verified the substrate, then wrote a clean diligence synthesis **without the audit machinery firing at all** — and the dossier was structurally better than audited runs (honest MTTR gap, named JQL query to unblock).
+**Design evolution**: initial moderate draft → impartial audit pushed for Path A (aggressive single PR) → operator feedback: stage the cuts as independently-shippable levels with opt-in restore args for de-risked verification. **Current design**: five pruning levels (L0–L5) ordered from least to most aggressive.
 
-The two observations together: the workflow produces real value, AND the accreted prose discipline (BL-045 → BL-079 = ~20 PRs) is now actively in the way. Every PR added the right prose for a real concern at the time; the cumulative ~30KB prompt body now triggers safety patterns and obscures the deliverable. Locally-justified decisions producing globally-broken outcomes — the classic refactor-trigger pattern.
+**Pruning levels**:
 
-**Three principles** (the doc spells them out concretely):
+- **L0** — Runtime-vocabulary cleanup. Strip `BL-*` references / version pins / PR-history mentions from every `.describe()` call, error message, `TOOL_DESCRIPTION`. Zero behavioral change. Patch bump.
+- **L1** — Mode-conditional prose removal. Each builder emits ONE coherent path; no "if you see X... otherwise..." prose. Clearer model instructions. Patch bump.
+- **L2** — Worked-example deletion (Step 1 / Step 4a / Step 6a ~210 lines). Discipline shifts to tool error messages. **Opt-in restore**: `embedToolWorkedExamples: true` arg. Minor bump.
+- **L3** — Precheck-loop demotion. Delete `ENVELOPE_PRECHECK_DIRECTIVE`; compose internal verification still catches citations. **Opt-in restore**: `precheckCitations: true` arg. Minor bump.
+- **L4** — VERIFY block emission removal (delete `BL_045_VERIFY_DIRECTIVE` + schema-discipline prose; delete `hashBindResult` field as redundant with `irlSource`). **Opt-in restore**: `emitVerifyBlock: true` arg. Minor bump.
+- **L5** — `validate_irl_provenance` tool unregistration (engine + handler stay for compose internal use). Code-change to reverse (not arg-restorable). Minor bump.
 
-1. **Mode selection happens in the builder, not in the prompt body**. Today's `buildOneShotBody` carries prose like "if `**Body-binding hash:**` directive appears above... otherwise legacy BL-076 path..." — but the builder ALREADY decided to render the directive. Eliminate the conditional; each builder emits one coherent path.
-2. **VERIFY block is server-rendered**. Class A fields (`toolCallCounts`, `hashBindResult`, `provenanceVerification`, `serverCachedBodyBytes`, `runScenario`, arithmetic identities) the server already has. Class B (`precheck.outcome`, `errorClass`/`recoveryAction` strings, `conditionalTriggers.*` rationale, `gatesElided` rationale, `response.*` host observations) is genuinely interpretive — model passes those in as `verifyBlockInputs`. Server merges + emits `verifyBlockYaml` as a single string. Model transcribes one fence verbatim.
-3. **`validate_irl_provenance` becomes a debug tool, not a workflow forcing function**. Tonight's clean run did 1 precheck iteration before converging — empirically the forcing function adds no value when compose's internal verification runs the same engine. Tool stays registered (Part A body-by-hash schema kept) for operators that want to manually orchestrate; the prompt body stops mandating it.
+**Cumulative effect** (after all levels): `irl-ingestion.ts` shrinks ~1,080 → ~600 lines (~44% reduction). Tool surface 12 → 11. Operator audit surface: structured tool output + (J) + (K). All BL-\* substrate (BL-076 / BL-077a/b/c / BL-079 Part B / BL-071 / BL-063 / BL-070 / BL-072 / BL-082) preserved verbatim at every level.
 
-**Net effect**:
+**Opt-in restore args** (the de-risking mechanism): operators can A/B-test each L2/L3/L4 cut against the restored capability without code change. `embedToolWorkedExamples: true` re-includes worked examples. `precheckCitations: true` re-emits the precheck-loop directive. `emitVerifyBlock: true` re-emits the BL-045-VERIFY directive. All three booleans default false; use `booleanFromWire(z.boolean().optional()).optional()` per BL-082 wire-shape pattern.
 
-- Prompt body shrinks ~40% (target). Zero `BL-*` citations in runtime prose. Zero `if X then Y` conditional prose.
-- Model job shrinks: read IRL, run tools, assemble interpretive `verifyBlockInputs`, call compose, transcribe markdown blocks + one YAML fence. No precheck-derivation arithmetic, no fingerprint discipline, no hash-bind-result attestation discipline.
-- Server job grows by exactly the deterministic YAML render (~50 lines, pure function).
-- Substrate stays: body-by-hash (BL-076), cache substrate (BL-077a/b/c), prompt-render pre-pop (BL-079 Part B), server-arithmetic counters (BL-071), partition + scope + Hub-backing enforcement (BL-063), `requireVerbatimBody` gate (BL-070), reconstruction auto-append (BL-072), wire-shape adapters (BL-082) — all preserved verbatim.
+**Ship cadence options**:
 
-**Capability preservation**: see the matrix in the design doc. Every BL-\* surface BL-045 through BL-082 is either **preserved verbatim** (substrate, server enforcement, slash-command interop) or **strengthened** (hash-bind authority via "did the server render a directive?" check eliminates the model fabricated-`pass-bound` failure mode; server-arithmetic VERIFY render eliminates self-narration drift).
+- **Option A — Maximum staging (5 PRs)**: L0 → L1 → L2 → L3 → L4 → L5 each separate. ~2.5–3.5d total; 1–2 weeks elapsed (operator verification gates between PRs). Smallest blast radius per PR.
+- **Option B — Pair cosmetic+structural (3 PRs)**: L0+L1, L2+L3, L4+L5 bundled. ~1d per PR. Verification gates between behavioral classes. **Recommended default**.
+- **Option C — Single PR (the prior Path A draft)**: All levels in one PR. ~2.5–3.5d. Highest blast radius, fastest total ship.
 
-**Single PR** (per the doc's own principle): the cuts and the new field are coupled; half-state would leave the workflow broken. Ships as mcp-server `0.31.0` → `0.32.0` + promptVersion `0.18.0` → `0.19.0` + manifest hash drift + all 7 body hashes rebaseline.
+**Capability preservation matrix** (full version in doc): every server substrate and every server-enforced gate (BL-049 hash-bind, BL-063 partition + scope + Hub-backing, BL-070 verbatim-body, BL-071 counters, BL-072 reconstruction auto-append, BL-073 aliases, BL-076 body-by-hash, BL-077a/b/c diagnostics, BL-079 Part B prepop, BL-082 wire-shape adapters) stays at every level. Cuts (BL-058 VERIFY schema, BL-061 compaction asymmetry, BL-051 precheck forcing function, BL-079 Part A tool surface) all restorable via prompt-arg opt-in or known-acceptable as cosmetic.
 
-**Effort estimate**: 1–1.5 days. Mostly prose-deletion + a deterministic YAML render function + rebaselines. No new substrate, no new tool, no new wrapper.
+**Status**: ⏳ leveled design 2026-06-07 evening. Operator needs to pick (1) ship cadence (A / B / C), (2) confirm three-boolean opt-in args (vs composite `auditLevel` enum), (3) L5 inclusion or defer to BL-087. Implementation can start at L0 once approved.
 
-**Status**: ⏳ design doc drafted 2026-06-07 after BL-079 Part B operator verification surfaced the model-refusal failure mode. Ready for operator approval to start implementation. Supersedes BL-079 Part B's directive surgery; the substrate Part B shipped (registry wrapper, cache prepop, BL-070 dual-accept, `serverCachedBodyBytes` field) all stay.
-
-**Related**: BL-045 (the original audit discipline this simplifies), BL-058/BL-061/BL-062/BL-063/BL-071 (the VERIFY schema expansions whose model-narration burden is now server-rendered), BL-076 + BL-077 + BL-079 (the substrate stack that BL-086 keeps wholesale). **BL-087** (reserved): once VERIFY block is server-rendered for ≥2 weeks with no drift signal, deprecate any remaining model-narrated fields whose values the server can derive deterministically.
+**Related**: BL-045 (the original audit discipline this simplifies), BL-058/BL-061/BL-062/BL-063/BL-071 (VERIFY schema expansions now restorable via opt-in arg, not removed entirely), BL-076 + BL-077 + BL-079 (substrate stack BL-086 keeps wholesale at every level), BL-082 (wire-shape adapters required for the opt-in args to function). **BL-087** (reserved): composite `auditLevel: 'standard' | 'enhanced' | 'debug'` sugar enum if operators ask for one-arg shorthand instead of three booleans.
 
 ---
 
