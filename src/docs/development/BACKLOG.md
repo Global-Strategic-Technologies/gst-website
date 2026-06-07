@@ -3901,7 +3901,16 @@ The bug is operator-visible (block carries the fabricated list) but not partner-
 
 ---
 
-### BL-079: Server-side body delivery via prompt-arg + body-by-hash on `validate_irl_provenance` ⏳ OPEN 2026-06-07
+### BL-079: Server-side body delivery via prompt-arg + body-by-hash on `validate_irl_provenance` ⏳ OPEN — design audit-passed 2026-06-07
+
+**Design doc**: [MCP_SERVER_PROMPT_ARG_CACHE_PREPOP_BL-079.md](MCP_SERVER_PROMPT_ARG_CACHE_PREPOP_BL-079.md) — full architecture, schema diffs, capability-preservation matrix, audit-folded revisions, split-PR plan. Ready for operator approval to start Part A implementation.
+
+**Empirical confirmation**: the 2026-06-07 night exercise on `gst-mcp-staging` (post-#249/#250 deploy with `requireVerbatimBody: true` partner-paste path enabled end-to-end) produced `filledIrl.bytes: 45220` from a ~50KB paste — **12% emission loss**. `hashBindResult: pass-internal` (degraded from target `pass-bound`). `provenanceVerification: { unverified: 5, tierMismatches: 1, tierFabrications: 3 }`. Hash comparison dispositive: prompt directive `cdecc612b6101f82` vs. `prepare_irl_body`-returned `dc115172758827f7` — identical model context, byte-divergent emission. The "partner-paste-via-prompt-arg sidesteps the emission ceiling" hypothesis is falsified. BL-079 is now production-readiness blocker for any IRL > ~10KB, not a latency optimization.
+
+**Ship cadence** (per audit): split into two PRs with operator-verification checkpoint between them.
+
+- **Part A** (next, ~1 day): `validate_irl_provenance` schema expansion + handler re-hydration. Independently fixes the precheck-loop emission damage (the 5 unverified + 1 tier-mismatch + 3 tier-fabrications observed tonight stop being possible). Operator can manually orchestrate prepare → validate-by-hash. Ships as patch 0.30.5.
+- **Part B** (after A merges + operator validates, ~1.5–2 days): prompt-render-time cache pre-pop via sync await + `handlePrepareIrlBodyTool` reuse (Alt-D pattern — free BL-077a/b/c diagnostics) + prompt directive surgery + `runScenario: partner-paste-verbatim-prepop` + BL-070 gate dual-accept + `serverCachedBodyBytes` field for VERIFY `filledIrl.bytes` semantic correctness. Ships as minor 0.31.0 with manifest + 3 body hash rebaselines.
 
 **Problem**: post-BL-076 / BL-077c, the body-by-hash mechanism works end-to-end on small (5-10KB) bodies but fails on production-realistic ones. The 2026-06-07 staging exercise on a 77,743-byte body showed the model's tool-call args emission truncated at ~1,753 bytes (2.3%). `prepare_irl_body` cached a partial body; the model self-detected the hash mismatch and halted the run. Same emission ceiling affects `validate_irl_provenance` — its `filledIrl` arg requires the model to emit the full body for citation substring-matching.
 
