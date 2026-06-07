@@ -220,4 +220,38 @@ describe('BL-076 — body-by-hash prepare-then-compose chain', () => {
     );
     expect(result.isError).toBeUndefined();
   });
+
+  // ─── BL-077a — fail-loud surfacing through prepare_irl_body handler ────
+
+  it('BL-077a — prepare_irl_body returns isError + BL-077a diagnostic text when the underlying cache write fails silently', async () => {
+    // Simulate the 2026-06-07 staging failure: cache.set silently fails
+    // (returns nothing visible to the caller pre-BL-077a). Under BL-077a,
+    // the UpstashIrlBodyCache layer throws IrlBodyCacheWriteFailedError,
+    // and prepare_irl_body's handler catches it and surfaces an isError
+    // tool result with the actionable diagnostic.
+    const failingCache = {
+      async get(): Promise<string | null> {
+        return null;
+      },
+      async set(): Promise<void> {
+        const { IrlBodyCacheWriteFailedError } = await import('../../src/cache/irl-body-cache');
+        throw new IrlBodyCacheWriteFailedError(
+          computeIrlBodyHash(SAMPLE_IRL),
+          'write-returned-false'
+        );
+      },
+    };
+    const metrics: MetricsContext = {
+      sink: { write: () => undefined },
+      irlBodyCache: failingCache,
+    };
+    const result = await handlePrepareIrlBodyTool({ filledIrl: SAMPLE_IRL }, metrics);
+    expect(result.isError).toBe(true);
+    const text = result.content[0];
+    if (text.type === 'text') {
+      expect(text.text).toContain('BL-077a');
+      expect(text.text).toContain('write FAILED');
+      expect(text.text).toContain('wrangler tail');
+    }
+  });
 });
