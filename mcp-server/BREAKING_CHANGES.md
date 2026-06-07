@@ -29,6 +29,40 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.30.1 — 2026-06-07 — BL-077a `UpstashIrlBodyCache` fail-loud + diagnostic instrumentation
+
+**Theme**: post-BL-076 staging incident — three back-to-back `prepare_irl_body` → `compose_dossier_envelope` pairs all surfaced `Bl076BodyCacheMissError` on compose despite prepare returning the correct deterministic hash each time. Underlying `CacheStore.set` swallows Upstash write failures and returns `false`; pre-BL-077a, `UpstashIrlBodyCache.set` ignored the return value, so failed writes silently surfaced as confusing downstream cache misses. **No public contract change** — this is a patch release that converts the silent failure into an actionable structured error AT the moment of failure + emits diagnostic `safeLog` events that `wrangler tail` captures for root-cause analysis (see BL-077b follow-up for the actual fix once diagnosis lands).
+
+**Surface impact**:
+
+- **NEW: `IrlBodyCacheWriteFailedError`** exported class with `cause: 'write-returned-false' | 'readback-null' | 'readback-mismatch'`. Thrown by `UpstashIrlBodyCache.set` when either (a) the underlying `CacheStore.set` returns `false`, OR (b) the new read-after-write probe finds the just-written value isn't readable, OR (c) the read-back value doesn't match what was written. Surfaced through `prepare_irl_body`'s handler as `{ isError: true, content: [<BL-077a diagnostic>] }`.
+- **NEW: read-after-write probe** in `UpstashIrlBodyCache.set` — one extra `CacheStore.get` immediately after the write to confirm the value is readable. Diagnostic-only; remove after BL-077b ships the root-cause fix. Cost: ~50–100ms extra per `prepare_irl_body` call.
+- **NEW: `bl077.cache.set` + `bl077.cache.get` `safeLog` events** at every `UpstashIrlBodyCache` operation. Carries `storeId` (per-instance counter so cross-isolate correlation works — audit alt root cause #1), resolved Upstash key, outcome (`success` | `write-returned-false` | `readback-null` | `readback-mismatch` | `miss` | `hit`), body byte length, and TTL. All non-PII (key is `gst-mcp:irl-body:<16-hex-hash>`; bytes are structural).
+- **NEW: `LogEvent` fields** `outcome` / `storeId` / `key` / `byteLength` / `readbackByteLength` / `ttlSeconds` (optional, additive — no other call sites affected).
+- **`stdio` path unaffected**: `InMemoryIrlBodyCache` doesn't go through `CacheStore`, so neither the new throws nor the probe fire there.
+- **No prompt-body, schema, or manifest hash changes.** Patch-level fix, no rebaseline.
+
+**Acceptance** (in-session — no live exercise required):
+
+- 1 new realistic-body round-trip test (3046-byte body matching the 2026-06-07 staging failure payload — catches envelope-shape regressions at unit-test time).
+- 5 new BL-077a unit tests: `set` throws `IrlBodyCacheWriteFailedError(cause='write-returned-false' | 'readback-null' | 'readback-mismatch')`; `storeId` is unique per instance; happy-path round-trip still works through the new probe path.
+- 1 new BL-076 integration test: `prepare_irl_body` surfaces the new error as `{ isError: true }` with `BL-077a` + `wrangler tail` substrings in the diagnostic.
+- 1455 mcp-server tests green; tsc clean.
+
+**Operator follow-up** (this is the whole point):
+
+1. Deploy 0.30.1 to staging.
+2. Operator runs `wrangler tail` against the staging Worker and triggers one `gst_irl_ingestion` exercise.
+3. The `bl077.cache.set` / `bl077.cache.get` events expose the actual failure mode. One of three outcomes:
+   - `outcome=write-returned-false` → Upstash auth/rate-limit/quota issue. Fix the Upstash binding or quota.
+   - `outcome=readback-null` → envelope-shape mismatch in `CacheStore` wrap/unwrap, OR cross-region consistency gap. Fix the substrate.
+   - `outcome=readback-mismatch` → serialization corruption. Inspect the byte-level diff.
+4. File BL-077b with the tail output; ship the real fix.
+
+**Risks**: low. Read-after-write probe adds one Upstash round-trip per `prepare_irl_body` call (~50-100ms). Acceptable diagnostic cost; intentionally removed in BL-077b. No schema or prompt changes; no manifest drift.
+
+---
+
 ## 0.30.0 — 2026-06-07 — BL-076 `compose_dossier_envelope` body-by-hash latency reduction
 
 **Theme**: cut model-emit latency on `compose_dossier_envelope` calls from 5–15 minutes to an estimated 1–3 minutes by removing the IRL body from the public tool input. The body now flows in through `prepare_irl_body` (which caches it server-side keyed by its canonical hash) and `compose_dossier_envelope` re-hydrates from the cache. Architecturally identical lever as BL-070 / BL-071: shift human-discipline / token-emit cost into system enforcement. **BREAKING** under [BL-032 § Q12 contract](../src/docs/development/MCP_SERVER_REMOTE_BL-032.md) but **operator-confirmed no external clients of `compose_dossier_envelope` exist** (2026-06-07); migration is internal-only (prompt body + tests).

@@ -30,6 +30,7 @@
  * impls.
  */
 
+import { safeLog } from '../auth/safe-logger';
 import type { CacheStore } from '../lib/upstash-cache-store';
 
 /**
@@ -71,6 +72,54 @@ export class IrlBodyCacheSizeExceededError extends Error {
     this.name = 'IrlBodyCacheSizeExceededError';
     this.byteLength = byteLength;
     this.limit = IRL_BODY_CACHE_MAX_BYTES;
+  }
+}
+
+/**
+ * BL-077a — thrown by `UpstashIrlBodyCache.set` when the underlying Upstash
+ * KV write fails OR a read-after-write probe shows the entry isn't readable.
+ *
+ * Pre-BL-077a, `CacheStore.set` swallowed Upstash errors and returned `false`,
+ * and `UpstashIrlBodyCache.set` ignored the return value — silently failed
+ * writes produced confusing downstream `Bl076BodyCacheMissError` on the next
+ * `compose_dossier_envelope` call. This class converts the silent failure
+ * into a structured rejection at `prepare_irl_body` time so the operator
+ * sees the actual problem.
+ *
+ * The `cause` field carries one of:
+ *   - `'write-returned-false'`: `CacheStore.set` swallowed an Upstash error
+ *     and returned `false`. Most likely root causes: auth/rate-limit/quota.
+ *   - `'readback-null'`: `CacheStore.set` returned `true` but a subsequent
+ *     `CacheStore.get` on the same key returned `null`. Catches envelope-
+ *     shape bugs (JSON wrap/unwrap mismatch) and cross-region consistency
+ *     gaps in the substrate.
+ *   - `'readback-mismatch'`: read-back returned a value, but it isn't equal
+ *     to the body that was written. Catches serialization corruption.
+ */
+export class IrlBodyCacheWriteFailedError extends Error {
+  readonly irlBodyHash: string;
+  readonly cause: 'write-returned-false' | 'readback-null' | 'readback-mismatch';
+  constructor(
+    irlBodyHash: string,
+    cause: 'write-returned-false' | 'readback-null' | 'readback-mismatch'
+  ) {
+    const reasonText: Record<typeof cause, string> = {
+      'write-returned-false':
+        'underlying CacheStore.set returned false (Upstash auth/rate-limit/quota or transient KV failure)',
+      'readback-null':
+        'write returned true but read-after-write probe returned null (envelope-shape mismatch or cross-region consistency gap)',
+      'readback-mismatch':
+        'read-after-write probe returned a value that does not match the body that was written (serialization corruption)',
+    };
+    super(
+      `BL-077a IRL body cache write FAILED for irlBodyHash="${irlBodyHash}": ${reasonText[cause]}. ` +
+        `Run \`wrangler tail\` against the staging Worker during the next prepare_irl_body call to see the ` +
+        `\`bl077.cache.set\` safeLog event with the resolved Upstash key + outcome. Retry prepare_irl_body ` +
+        `to re-attempt; if the error persists, file BL-077b with the wrangler-tail output.`
+    );
+    this.name = 'IrlBodyCacheWriteFailedError';
+    this.irlBodyHash = irlBodyHash;
+    this.cause = cause;
   }
 }
 
@@ -161,13 +210,26 @@ export class InMemoryIrlBodyCache implements IrlBodyCache {
  * Bubbling Upstash exceptions would convert a transient KV blip into a
  * hard tool failure, which is worse than the cache miss the retry handles.
  */
+/**
+ * Monotonically-incrementing identifier assigned to each `UpstashIrlBodyCache`
+ * instance at construction. Surfaces in `safeLog` events so a `wrangler tail`
+ * session can correlate `set` and `get` events across Worker isolates and
+ * confirm both prepare and compose are talking to the same logical store.
+ * Audit alt root cause #1 (different store instances) is diagnosed by
+ * comparing `storeId` across the prepare and compose log lines.
+ */
+let upstashIrlBodyCacheInstanceCounter = 0;
+
 export class UpstashIrlBodyCache implements IrlBodyCache {
   private readonly store: CacheStore;
   private readonly ttlSeconds: number;
+  /** Stable id for this instance — only meaningful within one isolate's lifetime; surfaces in logs. */
+  readonly storeId: number;
 
   constructor(store: CacheStore, ttlSeconds: number = IRL_BODY_CACHE_TTL_SECONDS) {
     this.store = store;
     this.ttlSeconds = ttlSeconds;
+    this.storeId = ++upstashIrlBodyCacheInstanceCounter;
   }
 
   async set(irlBodyHash: string, body: string): Promise<void> {
@@ -175,11 +237,92 @@ export class UpstashIrlBodyCache implements IrlBodyCache {
     if (byteLength > IRL_BODY_CACHE_MAX_BYTES) {
       throw new IrlBodyCacheSizeExceededError(byteLength);
     }
-    await this.store.set(`${UPSTASH_KEY_PREFIX}${irlBodyHash}`, body, this.ttlSeconds);
+    const key = `${UPSTASH_KEY_PREFIX}${irlBodyHash}`;
+    // BL-077a — check the boolean return value (pre-BL-077a we ignored it
+    // and writes failed silently). CacheStore.set wraps Upstash errors in
+    // try/catch and returns false on failure.
+    const writeOk = await this.store.set(key, body, this.ttlSeconds);
+    if (!writeOk) {
+      safeLog({
+        event: 'bl077.cache.set',
+        outcome: 'write-returned-false',
+        storeId: this.storeId,
+        key,
+        byteLength,
+        ttlSeconds: this.ttlSeconds,
+        success: false,
+        errorCode: 'cache-write-returned-false',
+      });
+      throw new IrlBodyCacheWriteFailedError(irlBodyHash, 'write-returned-false');
+    }
+    // BL-077a — read-after-write probe. One extra GET on the same key to
+    // confirm the value is readable. Catches envelope-shape mismatches
+    // (CacheStore wraps in `{storedAt, data}` and JSON.stringify's; if get
+    // can't unwrap, returns null) and any cross-region consistency gap
+    // present at the substrate. Cost: one extra Upstash round-trip per
+    // prepare_irl_body call (~50-100ms). Acceptable as a one-off diagnostic;
+    // remove after root cause is fixed.
+    const readback = await this.store.get<string>(key);
+    if (readback === null || readback === undefined) {
+      safeLog({
+        event: 'bl077.cache.set',
+        outcome: 'readback-null',
+        storeId: this.storeId,
+        key,
+        byteLength,
+        ttlSeconds: this.ttlSeconds,
+        success: false,
+        errorCode: 'cache-readback-null',
+      });
+      throw new IrlBodyCacheWriteFailedError(irlBodyHash, 'readback-null');
+    }
+    if (readback !== body) {
+      safeLog({
+        event: 'bl077.cache.set',
+        outcome: 'readback-mismatch',
+        storeId: this.storeId,
+        key,
+        byteLength,
+        readbackByteLength: Buffer.byteLength(readback, 'utf8'),
+        ttlSeconds: this.ttlSeconds,
+        success: false,
+        errorCode: 'cache-readback-mismatch',
+      });
+      throw new IrlBodyCacheWriteFailedError(irlBodyHash, 'readback-mismatch');
+    }
+    safeLog({
+      event: 'bl077.cache.set',
+      outcome: 'success',
+      storeId: this.storeId,
+      key,
+      byteLength,
+      ttlSeconds: this.ttlSeconds,
+      success: true,
+    });
   }
 
   async get(irlBodyHash: string): Promise<string | null> {
-    const value = await this.store.get<string>(`${UPSTASH_KEY_PREFIX}${irlBodyHash}`);
-    return value ?? null;
+    const key = `${UPSTASH_KEY_PREFIX}${irlBodyHash}`;
+    const value = await this.store.get<string>(key);
+    if (value === null || value === undefined) {
+      safeLog({
+        event: 'bl077.cache.get',
+        outcome: 'miss',
+        storeId: this.storeId,
+        key,
+        success: false,
+        errorCode: 'cache-miss',
+      });
+      return null;
+    }
+    safeLog({
+      event: 'bl077.cache.get',
+      outcome: 'hit',
+      storeId: this.storeId,
+      key,
+      byteLength: Buffer.byteLength(value, 'utf8'),
+      success: true,
+    });
+    return value;
   }
 }

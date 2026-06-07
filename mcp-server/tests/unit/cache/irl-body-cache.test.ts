@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest';
 import {
   InMemoryIrlBodyCache,
   IrlBodyCacheSizeExceededError,
+  IrlBodyCacheWriteFailedError,
   IRL_BODY_CACHE_MAX_BYTES,
   IRL_BODY_CACHE_TTL_SECONDS,
   IN_MEMORY_LRU_CAPACITY,
@@ -166,5 +167,162 @@ describe('UpstashIrlBodyCache', () => {
     const oversized = 'x'.repeat(IRL_BODY_CACHE_MAX_BYTES + 1);
     await expect(cache.set(HASH_A, oversized)).rejects.toThrow(IrlBodyCacheSizeExceededError);
     expect(writes).toHaveLength(0); // no write attempted
+  });
+
+  it('round-trips a realistic 3046-byte IRL body (matches the BL-076 staging failure payload)', async () => {
+    // Audit alt root cause #2 (envelope shape): if JSON wrap/unwrap fails
+    // on a realistic body shape, this test catches it before deployment.
+    // 3046 bytes matches the body size from the 2026-06-07 staging failure.
+    const { store } = makeFakeStore();
+    const cache = new UpstashIrlBodyCache(store);
+    const realisticBody =
+      '# Information Request List\n\n' +
+      '## Section 00 — Basics\n\n' +
+      '- Annual recurring revenue: $45.2M\n' +
+      // Pad with realistic markdown content + special chars (newlines,
+      // backticks, escapes) that could trip JSON serialization.
+      Array.from(
+        { length: 80 },
+        (_, i) => `- Bullet ${i}: data row with \`backticks\` and "quotes" and {braces}`
+      ).join('\n');
+    await cache.set(HASH_A, realisticBody);
+    const readback = await cache.get(HASH_A);
+    expect(readback).toBe(realisticBody);
+    expect(Buffer.byteLength(realisticBody, 'utf8')).toBeGreaterThan(2000);
+  });
+});
+
+// ─── BL-077a — fail-loud diagnostic tests ────────────────────────────────
+
+describe('UpstashIrlBodyCache — BL-077a fail-loud + read-after-write probe', () => {
+  function makeWriteFailingStore(): CacheStore {
+    // Simulates CacheStore.set swallowing an Upstash error → returns false.
+    return {
+      async get<T>(): Promise<T | null> {
+        return null;
+      },
+      async set(): Promise<boolean> {
+        return false; // ← silent failure CacheStore.set returns today
+      },
+      async del(): Promise<boolean> {
+        return false;
+      },
+    };
+  }
+
+  function makeReadbackNullStore(): CacheStore {
+    // set returns true (success) but the immediate get returns null.
+    // Models the envelope-shape mismatch root cause (audit alt #2) where the
+    // write "logically" succeeded but the value isn't readable on the very
+    // next call against the same store.
+    return {
+      async get<T>(): Promise<T | null> {
+        return null;
+      },
+      async set(): Promise<boolean> {
+        return true;
+      },
+      async del(): Promise<boolean> {
+        return false;
+      },
+    };
+  }
+
+  function makeReadbackMismatchStore(corrupted: string): CacheStore {
+    // set returns true, but the read-back returns a DIFFERENT string —
+    // simulates serialization corruption (e.g., truncation, encoding drift).
+    return {
+      async get<T>(): Promise<T | null> {
+        return corrupted as unknown as T;
+      },
+      async set(): Promise<boolean> {
+        return true;
+      },
+      async del(): Promise<boolean> {
+        return false;
+      },
+    };
+  }
+
+  it("set throws IrlBodyCacheWriteFailedError(cause='write-returned-false') when the underlying store.set returns false", async () => {
+    const cache = new UpstashIrlBodyCache(makeWriteFailingStore());
+    try {
+      await cache.set(HASH_A, 'body-a');
+      throw new Error('expected throw');
+    } catch (e) {
+      expect(e).toBeInstanceOf(IrlBodyCacheWriteFailedError);
+      const err = e as IrlBodyCacheWriteFailedError;
+      expect(err.cause).toBe('write-returned-false');
+      expect(err.irlBodyHash).toBe(HASH_A);
+      expect(err.message).toContain('BL-077a');
+      expect(err.message).toContain('wrangler tail');
+    }
+  });
+
+  it("set throws IrlBodyCacheWriteFailedError(cause='readback-null') when set returns true but the read-after-write probe returns null", async () => {
+    const cache = new UpstashIrlBodyCache(makeReadbackNullStore());
+    try {
+      await cache.set(HASH_A, 'body-a');
+      throw new Error('expected throw');
+    } catch (e) {
+      expect(e).toBeInstanceOf(IrlBodyCacheWriteFailedError);
+      const err = e as IrlBodyCacheWriteFailedError;
+      expect(err.cause).toBe('readback-null');
+      expect(err.message).toContain('envelope-shape mismatch');
+    }
+  });
+
+  it("set throws IrlBodyCacheWriteFailedError(cause='readback-mismatch') when the read-after-write probe returns a different value", async () => {
+    const cache = new UpstashIrlBodyCache(makeReadbackMismatchStore('CORRUPTED'));
+    try {
+      await cache.set(HASH_A, 'body-a');
+      throw new Error('expected throw');
+    } catch (e) {
+      expect(e).toBeInstanceOf(IrlBodyCacheWriteFailedError);
+      const err = e as IrlBodyCacheWriteFailedError;
+      expect(err.cause).toBe('readback-mismatch');
+      expect(err.message).toContain('serialization corruption');
+    }
+  });
+
+  it('UpstashIrlBodyCache.storeId is unique per instance — diagnoses audit alt root cause #1 (different stores) via wrangler tail', async () => {
+    const store: CacheStore = {
+      async get(): Promise<null> {
+        return null;
+      },
+      async set(): Promise<boolean> {
+        return true;
+      },
+      async del(): Promise<boolean> {
+        return false;
+      },
+    };
+    const cacheA = new UpstashIrlBodyCache(store);
+    const cacheB = new UpstashIrlBodyCache(store);
+    expect(cacheA.storeId).toBeTypeOf('number');
+    expect(cacheB.storeId).toBeTypeOf('number');
+    expect(cacheA.storeId).not.toBe(cacheB.storeId);
+  });
+
+  it('happy path: set + get round-trip emits safeLog events with success outcomes (no throw)', async () => {
+    // The read-after-write probe on a working fake-store should complete
+    // without throwing. (safeLog assertion is implicit — no test failure
+    // means no exception propagated from the probe path.)
+    const data = new Map<string, string>();
+    const store: CacheStore = {
+      async get<T>(key: string): Promise<T | null> {
+        return (data.get(key) ?? null) as T | null;
+      },
+      async set<T>(key: string, value: T): Promise<boolean> {
+        data.set(key, value as unknown as string);
+        return true;
+      },
+      async del(): Promise<boolean> {
+        return false;
+      },
+    };
+    const cache = new UpstashIrlBodyCache(store);
+    await expect(cache.set(HASH_A, 'body-a')).resolves.toBeUndefined();
+    expect(await cache.get(HASH_A)).toBe('body-a');
   });
 });

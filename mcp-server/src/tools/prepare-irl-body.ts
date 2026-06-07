@@ -15,7 +15,10 @@
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
-import { IrlBodyCacheSizeExceededError } from '../cache/irl-body-cache';
+import {
+  IrlBodyCacheSizeExceededError,
+  IrlBodyCacheWriteFailedError,
+} from '../cache/irl-body-cache';
 import { computeIrlBodyHash } from '../schemas/compose-dossier-envelope';
 import {
   PrepareIrlBodyInputSchema,
@@ -54,7 +57,10 @@ export async function handlePrepareIrlBodyTool(
   try {
     await metrics?.irlBodyCache?.set(irlBodyHash, payload.filledIrl);
   } catch (error) {
-    if (error instanceof IrlBodyCacheSizeExceededError) {
+    if (
+      error instanceof IrlBodyCacheSizeExceededError ||
+      error instanceof IrlBodyCacheWriteFailedError
+    ) {
       return {
         content: [{ type: 'text' as const, text: error.message }],
         isError: true,

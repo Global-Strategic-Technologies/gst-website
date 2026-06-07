@@ -39,6 +39,7 @@ export { NoopSink, type MetricSink } from './sinks/_interface';
 export {
   InMemoryIrlBodyCache,
   IrlBodyCacheSizeExceededError,
+  IrlBodyCacheWriteFailedError,
   IRL_BODY_CACHE_MAX_BYTES,
   IRL_BODY_CACHE_TTL_SECONDS,
   IN_MEMORY_LRU_CAPACITY,

@@ -108,6 +108,22 @@ export interface LogEvent {
    * dropped invocation with the winner's logs by matching scheduledTime.
    */
   scheduledTime?: number;
+  /**
+   * BL-077a diagnostic fields for `bl077.cache.set` / `bl077.cache.get`
+   * events from `UpstashIrlBodyCache`. Surfaced via `wrangler tail` during
+   * the BL-076 cache-miss investigation so the operator can see the resolved
+   * Upstash key, the store instance id (audit alt root cause #1), the
+   * outcome (success | write-returned-false | readback-null | readback-mismatch
+   * | miss | hit), the body byte length, and the TTL. None are PII —
+   * `key` is the canonical 16-hex hash + prefix; `byteLength` is structural;
+   * `storeId` is an in-process counter. Remove after BL-077b ships the fix.
+   */
+  outcome?: string;
+  storeId?: number;
+  key?: string;
+  byteLength?: number;
+  readbackByteLength?: number;
+  ttlSeconds?: number;
 }
 
 /**

@@ -3880,6 +3880,38 @@ The bug is operator-visible (block carries the fabricated list) but not partner-
 
 ---
 
+### BL-077a: `UpstashIrlBodyCache` fail-loud + diagnostic instrumentation ✅ CLOSED 2026-06-07 (shipped at mcp-server 0.30.1)
+
+**Problem**: post-BL-076 deploy on Cloudflare Worker staging — three back-to-back `prepare_irl_body` → `compose_dossier_envelope` pairs in a live opus-4-8 exercise all surfaced `Bl076BodyCacheMissError` on compose despite prepare returning the correct deterministic hash (`2255981b665d27d1`, 3046 bytes) every time. Stdio path unaffected. Root cause unknown — three plausible explanations from impartial audit:
+
+1. `CacheStore.set` swallowing Upstash errors and returning `false` (caught and ignored by `UpstashIrlBodyCache.set` pre-BL-077a)
+2. JSON envelope-shape mismatch in `CacheStore`'s `{storedAt, data}` wrap/unwrap producing deterministic read-side miss
+3. Per-request `createServer` creating separate `UpstashIrlBodyCache` instances that for some reason aren't sharing KV state
+
+**Scope** (diagnose-first; deferred Part B per audit recommendation):
+
+- Make `UpstashIrlBodyCache.set` check the `CacheStore.set` boolean return; throw new `IrlBodyCacheWriteFailedError` on `false`.
+- Add a read-after-write probe inside `.set` (one extra `CacheStore.get` on the same key); throw if probe returns `null` or a value that doesn't match the body just written. Catches envelope-shape AND cross-region consistency gaps.
+- Emit `bl077.cache.set` + `bl077.cache.get` `safeLog` events with resolved Upstash key, per-instance `storeId` (correlates prepare and compose calls in `wrangler tail`), outcome (`success` | `write-returned-false` | `readback-null` | `readback-mismatch` | `miss` | `hit`), byte length, TTL.
+- Surface `IrlBodyCacheWriteFailedError` through `prepare_irl_body` handler as a structured `isError: true` tool result with actionable text directing the operator to `wrangler tail` and file BL-077b.
+
+**Surface impact**: `mcp-server` 0.30.0 → 0.30.1 (patch). No public contract change. No prompt-body change, no schema change, no manifest hash drift, no body hash rebaseline. `LogEvent` interface gains six optional diagnostic fields.
+
+**Acceptance** (in-session):
+
+- 1 new realistic 3046-byte body round-trip unit test (catches envelope-shape regression at the unit-test layer).
+- 5 new BL-077a fail-loud tests covering all three `cause` values + `storeId` uniqueness + happy-path round-trip preservation.
+- 1 new integration test asserting `prepare_irl_body` surfaces the new error as `isError: true` with `BL-077a` + `wrangler tail` substrings.
+- 1455 mcp-server tests green; tsc clean.
+
+**Operator follow-up**: deploy 0.30.1 to staging; run one `gst_irl_ingestion` live exercise with `wrangler tail` active. The diagnostic events will identify which of the three root causes is actually firing. File BL-077b with the tail output + the real fix.
+
+**Design rationale**: impartial audit (2026-06-07, pre-implementation) rejected the original two-part proposal that bundled this diagnostic with a `filledIrl` fallback escape hatch in `compose_dossier_envelope`. Verdict: the escape hatch would re-introduce the prose-directive-enforcement anti-pattern BL-076 was designed to eliminate (model would learn to always pass `filledIrl` after one cache miss → latency win evaporates silently). Shipping the diagnostic alone preserves operator pressure to fix the real bug and maintains BL-076's contract. If post-diagnosis the real bug proves unfixable AND operator-blocking recurs, the audit recommended a server-side auto-retry path (option (a)) over the optional-field escape hatch — to be revisited only if needed.
+
+**Related**: BL-076 (the body-by-hash mechanism this instruments), BL-077b (reserved — the actual fix, to be scoped after wrangler-tail evidence).
+
+---
+
 ### BL-076: `compose_dossier_envelope` body-by-hash latency reduction ✅ CLOSED 2026-06-07 (shipped at mcp-server 0.30.0)
 
 **Design doc**: [MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md](MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md) — full architecture, schema diffs, prompt-body changes, acceptance criteria, risks, open questions. Impartial-audit revisions folded in before implementation.
