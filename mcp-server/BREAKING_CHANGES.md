@@ -29,6 +29,66 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.31.2 — 2026-06-08 — BL-086 L1: mode-conditional prose removal
+
+**Theme**: each rendered `gst_irl_ingestion` body now describes ONE coherent path — no more "if `**Body-binding hash:**` directive appears... otherwise..." conditional prose in the model-runtime artifacts. `buildOneShotBody` (verbose) emits unconditional prepop-workflow prose (the directive is always present, the model is told to SKIP `prepare_irl_body`); `INTERACTIVE_BODY` emits unconditional legacy-workflow prose (call `prepare_irl_body` to seed the cache, no SKIP directive). The shared `ENVELOPE_PRECHECK_DIRECTIVE` + `ENVELOPE_COMPOSITION_DIRECTIVE` are now scoped to the verbose one-shot path (the only site that includes them), so the "interactive / xlsx-reconstruction mode" branches in those directives are deleted as dead prose.
+
+**Empirical motivation**: tonight's audit found the conditional "if directive appears above... otherwise..." prose was the structural source of model confusion in the v4.7+ refusal-pattern observation. Builder-level mode selection already routes the body — duplicating that routing inside the directive prose is redundant and weakens the instruction.
+
+**Surface impact**:
+
+- **UPDATED** `gst_irl_ingestion` prompt body at `mcp-server/src/prompts/irl-ingestion.ts`:
+  - `ENVELOPE_PRECHECK_DIRECTIVE` — dropped the "interactive / xlsx-reconstruction mode" branch (only verbose one-shot uses this directive, where the directive is always present).
+  - `ENVELOPE_COMPOSITION_DIRECTIVE` — collapsed the prepop / xlsx-reconstruction conditional into one prepop-only path. Body-submission / `irlBodyHash` / `irlSource` / `requireVerbatimBody` bullets now describe the prepop workflow unconditionally.
+  - Interactive Step 4 — dropped the "if directive appears" conditional; the model is told unconditionally to call `prepare_irl_body` first and pass `irlBodyHash` to compose.
+  - `promptVersion` unchanged at `0.18.0` (per BL-086 doc: L0/L1 do not bump promptVersion; L2 will be the first to bump it).
+- **NO** schema change, no argsSchema change, no tool registration change, no behavioral change at the tool-call layer.
+- **NO** manifest hash drift (the prompt `name@version` tuple is unchanged because promptVersion stays at 0.18.0).
+- **BODY HASH REBASELINE** — 3 of 7 body shapes drift (the verbose-mode bodies: interactive + one-shot minimal + one-shot full). The 4 compact + extract-only paths skip the envelope-composition directive entirely per its `BLOCKING — full mode + verbosity verbose only` header, so their hashes are unchanged.
+
+**Acceptance** (in-session):
+
+- All 1517 mcp-server tests pass.
+- Test substring assertions updated: BL-076 / BL-079 Part B prompt-body assertions rewritten as negative assertions for the conditional prose AND positive assertions for the new unconditional prose.
+- Verified the directive no longer contains `if you see`, `Interactive / xlsx-reconstruction mode`, `if a \`**Body-binding hash:**\`` strings.
+
+---
+
+## 0.31.1 — 2026-06-08 — BL-086 L0: runtime-vocabulary cleanup
+
+**Theme**: strip `BL-*` references, version pins (`v0.30.0+`, `(v0.17.0+):`), and PR-history mentions from every model-runtime artifact — `.describe()` calls in IRL-surface schemas, `super(...)` error-message prose, `TOOL_DESCRIPTION` constants. Pure cosmetic cleanup; zero behavioral change. The model-visible runtime no longer carries internal substrate vocabulary; operators / downstream parsers reading the rule prose see what each rule does, not which ticket introduced it.
+
+**What stayed**:
+
+- `instanceof` class names (`Bl063PartitionViolationError`, `Bl070VerbatimBodyRequiredError`, `Bl076BodyCacheMissError`, etc.) — those are code symbols.
+- `ruleId:` short-code identifiers in audit issues (`BL-045-CURRENCY-CONVERSION-REQUIRED`, `BL-045-TIER-3-REQUIRED-FOR-UNKNOWN`, etc.) — those are stable machine-readable error identifiers downstream tooling matches on.
+- Error-code identifier strings in error message preambles (`BL-063-PARTITION-VIOLATION`, `BL-063-CERTIFICATION-NOT-REGULATION`) — same rationale; stable error IDs.
+- Typed metric event names (`bl077.cache.set`, `bl079.cache.preload.failed`) consumed by `wrangler tail`.
+- `BL-*` references in `mcp-server/src/docs/**`, `src/docs/**`, this file (operator-facing docs and the historical change log).
+- Code comments (`//` and JSDoc) referencing BL-\* tickets — those are author-facing.
+
+**Surface impact**:
+
+- **UPDATED** describe-call prose + super-message prose in:
+  - `mcp-server/src/schemas/compose-dossier-envelope.ts` (irlBodyHash / irlSource / requireVerbatimBody / promptVersion describes; `Bl070VerbatimBodyRequiredError` / `Bl076BodyCacheMissError` / `Bl068MapAbsentFalsePositiveError` / `IrlBodyHashMismatchError` messages; auto-appended `tier-fabrication` and `xlsx-reconstruction` gap-list entry text).
+  - `mcp-server/src/schemas/validate-irl-provenance.ts` (filledIrl / irlBodyHash / cross-field refine messages).
+  - `mcp-server/src/schemas/diligence-audit.ts` (tier coupling describe, dimension audit describes, `Per BL-045 ...` message preambles, batch summary footer).
+  - `mcp-server/src/schemas/techpar-audit.ts` (annualizationSource describe, monetaryBasis describe, format-issues header, `Per BL-045 ...` message preambles).
+  - `mcp-server/src/schemas/tech-debt-audit.ts` (audit metadata describe, mttrHours / incidents describes, format-issues header).
+  - `mcp-server/src/cache/irl-body-cache.ts` (`IrlBodyCacheSizeExceededError`, `IrlBodyCacheWriteFailedError` messages).
+- **UPDATED** `TOOL_DESCRIPTION` constants in:
+  - `mcp-server/src/tools/compose-dossier-envelope.ts` (the `irlBodyHash` bullet — `sha256(filledIrl)` → `sha256(cachedBody)`).
+  - `mcp-server/src/tools/validate-irl-provenance.ts` (Why call + Inputs prose).
+- **NO** manifest hash drift, **NO** body hash drift on its own (the prompt body L0 edits are bundled into L1 above).
+- **NO** schema change, no tool registration change, no behavioral change.
+
+**Acceptance** (in-session):
+
+- TypeScript clean (`npx tsc --noEmit`).
+- Test substring assertions updated for each renamed prose: ~12 assertions across `tests/unit/schemas/{compose-dossier-envelope-gap-validation,diligence-audit,tech-debt-audit,techpar-audit,validate-irl-provenance-bl079}.test.ts`, `tests/unit/tools/diligence-handler.test.ts`, `tests/unit/cache/irl-body-cache.test.ts`, `tests/integration/{bl-071-precheck-derivation,bl-076-body-by-hash,bl-079-validate-body-by-hash}.test.ts`.
+
+---
+
 ## 0.31.0 — 2026-06-07 — BL-079 Part B: prompt-render cache pre-pop + skip-prepare directive
 
 **Theme**: closes the model output stream emission ceiling on the partner-paste path entirely. Pre-0.31.0, the model emitted the IRL body twice (once to `prepare_irl_body`, once per `validate_irl_provenance` iteration). Part A (0.30.5) eliminated the validate-iteration emissions via body-by-hash. Part B (this patch) eliminates the `prepare_irl_body` emission too by pre-populating the cache at prompt-render time from the operator's `filledIrl` prompt arg. Combined effect: the model emits ZERO body bytes across the entire partner-paste workflow.

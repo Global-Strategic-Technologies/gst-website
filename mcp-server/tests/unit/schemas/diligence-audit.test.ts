@@ -449,7 +449,7 @@ describe('formatAuditIssues', () => {
     p._audit.headcount = { ...p._audit.headcount, scope: 'total-company' };
     const issues = runAuditRefinements(p);
     const text = formatAuditIssues(issues);
-    expect(text).toContain('BL-045 calibration audit FAILED');
+    expect(text).toContain('Calibration audit FAILED');
     expect(text).toContain('BL-045-HEADCOUNT-SCOPE-REQUIRED');
     expect(text).toContain('_audit.headcount.scope');
     expect(text).toContain('retry the tool call');

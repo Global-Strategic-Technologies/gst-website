@@ -225,7 +225,7 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
     .regex(/^\d+\.\d+\.\d+$/)
     .optional()
     .describe(
-      'OPTIONAL — the tool overrides whatever the model passes with the server-derived value from the prompt registry. Documented here for client transparency; supplying it is harmless but the field is not load-bearing. (BL-045 PR B audit fix for v10 promptVersion hallucination.)'
+      'OPTIONAL — the tool overrides whatever the model passes with the server-derived value from the prompt registry. Documented here for client transparency; supplying it is harmless but the field is not load-bearing.'
     ),
   modelVersion: z
     .string()
@@ -324,27 +324,27 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
       'irlBodyHash must be exactly 16 lowercase hex characters (sha256.slice(0,16) of the verbatim IRL body).'
     )
     .describe(
-      'BL-076: now the SOLE body reference on this tool. Call `prepare_irl_body({ filledIrl })` first — it caches the body server-side keyed by this hash and returns it. Pass the returned `irlBodyHash` here. If you skip `prepare_irl_body` and call `compose_dossier_envelope` first, the server returns `Bl076BodyCacheMissError` directing you to `prepare_irl_body`. Hash sourcing rules (`pass-bound` vs `pass-internal` for BL-045-VERIFY block) are unchanged — see the prompt directive.'
+      'The canonical 16-hex `sha256(filledIrl).slice(0,16)` hash and now the SOLE body reference on this tool. Call `prepare_irl_body({ filledIrl })` first — it caches the body server-side keyed by this hash and returns it. Pass the returned `irlBodyHash` here. If you skip `prepare_irl_body` and call `compose_dossier_envelope` first, the server returns `Bl076BodyCacheMissError` directing you to `prepare_irl_body`. Hash sourcing rules (`pass-bound` vs `pass-internal` for the verification block) are unchanged — see the prompt directive.'
     ),
   irlSource: z
     .enum(irlSourceValues)
     .describe(
       'How the IRL body bytes were assembled. ' +
-        '`partner-paste-verbatim`: operator pasted the IRL markdown into the prompt arg; BL-049 hash-bind authority holds (the prompt arg is the authoritative source). ' +
-        '`model-reconstruction-from-xlsx`: model parsed an xlsx attachment into markdown; BL-049 hash-bind is `pass-internal` only (the model controls both the body and the hash). ' +
+        '`partner-paste-verbatim`: operator pasted the IRL markdown into the prompt arg; hash-bind authority holds (the prompt arg is the authoritative source). ' +
+        '`model-reconstruction-from-xlsx`: model parsed an xlsx attachment into markdown; hash-bind is `pass-internal` only (the model controls both the body and the hash). ' +
         '`model-reconstruction-trimmed`: model authored markdown from working memory + tool outputs without a verbatim source; same `pass-internal` caveat. ' +
         '`placeholder`: literal placeholder for error reporting. ' +
-        'When the value is a reconstruction mode, the server auto-appends a `provenance-gap:` entry to (J) noting the limitation (BL-072).'
+        'When the value is a reconstruction mode, the server auto-appends a `provenance-gap:` entry to (J) noting the limitation.'
     ),
   requireVerbatimBody: z
     .boolean()
     .optional()
     .default(false)
     .describe(
-      'BL-070 — accuracy-critical run gate. When TRUE, this tool REJECTS any irlSource other than `partner-paste-verbatim`. ' +
+      'Accuracy-critical run gate. When TRUE, this tool REJECTS any irlSource other than `partner-paste-verbatim`. ' +
         'Operators set this flag on the prompt arg for high-stakes engagements (regulatory deliverable, M&A close, post-mortem) where ' +
-        'the BL-049 hash-bind authority guarantee must hold over the partner-supplied source — not just the model-reconstructed body. ' +
-        'For drafting / exploration runs, leave unset (default false) and the existing BL-072 (J) disclosure is sufficient.'
+        'the hash-bind authority guarantee must hold over the partner-supplied source — not just the model-reconstructed body. ' +
+        'For drafting / exploration runs, leave unset (default false) and the existing (J) provenance-gap disclosure is sufficient.'
     ),
 });
 
@@ -727,7 +727,7 @@ export class Bl068MapAbsentFalsePositiveError extends Error {
       )
       .join('\n');
     super(
-      `BL-068 map-absent validation FAILED: ${offenders.length} model-supplied \`map-absent:\` claim${offenders.length === 1 ? '' : 's'} name framework${offenders.length === 1 ? '' : 's'} that ARE present in the Hub regulatory map.\n\n` +
+      `map-absent validation FAILED: ${offenders.length} model-supplied \`map-absent:\` claim${offenders.length === 1 ? '' : 's'} name framework${offenders.length === 1 ? '' : 's'} that ARE present in the Hub regulatory map.\n\n` +
         `Offending claims:\n${offenderLines}\n\n` +
         `Fix: either (a) remove the false-positive \`map-absent:\` claim from \`gaps\`, OR (b) call \`search_regulations\` for that framework name and use the actual results to back your claim. The Hub registry is searchable by jurisdiction, category, and framework-name substring.\n\n` +
         `Note: alias coverage is incomplete; if your \`map-absent:\` claim concerns a framework you believe is Hub-covered under a different name, call \`search_regulations\` to confirm before claiming absence.`
@@ -748,10 +748,10 @@ export class Bl070VerbatimBodyRequiredError extends Error {
   readonly irlSource: string;
   constructor(irlSource: string) {
     super(
-      `BL-070 verbatim-body required: requireVerbatimBody=true but irlSource="${irlSource}". ` +
-        `For accuracy-critical runs (regulatory deliverable, M&A close, post-mortem), the BL-049 hash-bind ` +
+      `verbatim-body required: requireVerbatimBody=true but irlSource="${irlSource}". ` +
+        `For accuracy-critical runs (regulatory deliverable, M&A close, post-mortem), the hash-bind ` +
         `authority guarantee MUST hold over the partner-supplied source. In xlsx-reconstruction modes the model ` +
-        `controls both filledIrl and irlBodyHash so the hash-bind is internal-consistency only (BL-072). ` +
+        `controls both filledIrl and irlBodyHash so the hash-bind is internal-consistency only. ` +
         `Re-run with the IRL pasted directly as markdown into the prompt arg so the bytes round-trip verbatim ` +
         `(irlSource="partner-paste-verbatim"). If this run is for drafting / exploration and the verbatim guarantee ` +
         `is not needed, omit requireVerbatimBody (defaults to false) and the existing (J) gap-list disclosure is sufficient.`
@@ -779,14 +779,14 @@ export class Bl076BodyCacheMissError extends Error {
   readonly irlBodyHash: string;
   constructor(irlBodyHash: string) {
     super(
-      `BL-076 body-cache miss for irlBodyHash="${irlBodyHash}": call ` +
+      `body-cache miss for irlBodyHash="${irlBodyHash}": call ` +
         `prepare_irl_body({ filledIrl }) first to seed the cache. The body-by-hash ` +
-        `pattern (v0.30.0+) requires the IRL body to be submitted via prepare_irl_body ` +
+        `pattern requires the IRL body to be submitted via prepare_irl_body ` +
         `before compose_dossier_envelope can re-hydrate it for internal provenance ` +
         `verification. If you already called prepare_irl_body, the cache entry may have ` +
         `been evicted (stdio LRU capacity exceeded) or expired (Worker TTL); re-call ` +
         `prepare_irl_body with the same body to re-seed and retry. ` +
-        'BL-079 Part B (v0.31.0+): if this prompt was invoked with `filledIrl` ' +
+        'If this prompt was invoked with `filledIrl` ' +
         'as a prompt arg, the server pre-populates the cache at prompt-render time — ' +
         'if you see this error in that mode, the prepop write likely failed. Check ' +
         '`wrangler tail` for a `bl079.cache.preload.failed` event with the same key. ' +
@@ -890,7 +890,7 @@ export class IrlBodyHashMismatchError extends Error {
   readonly suppliedHash: string;
   constructor(suppliedHash: string, actualHash: string) {
     super(
-      `BL-045 PR B hash-bind FAILED: irlBodyHash mismatch. ` +
+      `hash-bind FAILED: irlBodyHash mismatch. ` +
         `Model supplied irlBodyHash="${suppliedHash}" but sha256(filledIrl).slice(0,16)="${actualHash}". ` +
         `This means the filledIrl you passed is NOT a verbatim copy of the IRL body the prompt was invoked with — ` +
         `most likely a condensed paraphrase / summary built from working memory. ` +
@@ -1050,7 +1050,7 @@ export function runComposeDossierEnvelope(
         : '';
       autoAppended.push({
         category: 'tier-fabrication',
-        entry: `${claim.claim} — declared tier=2 (one-step derivation) but the citation excerpt is neither a substring of the IRL body nor a partner-supplied sentinel${elementsClause}. This pattern matches the BL-049 v11 Finding B demote-to-dodge: relabeling a tier-1 fabrication as tier-2 does NOT satisfy provenance — the verdict is derived from the citation, not the declared tier. Re-cite the IRL bullet that supports the derivation OR remove the claim.`,
+        entry: `${claim.claim} — declared tier=2 (one-step derivation) but the citation excerpt is neither a substring of the IRL body nor a partner-supplied sentinel${elementsClause}. This is the demote-to-dodge pattern: relabeling a tier-1 fabrication as tier-2 does NOT satisfy provenance — the verdict is derived from the citation, not the declared tier. Re-cite the IRL bullet that supports the derivation OR remove the claim.`,
         followUp:
           'Supply the verbatim IRL bullet text the derivation rests on. If no such bullet exists, the claim is fabricated and must be removed (or marked open with `Section -- — partner-supplied form input — <description>`).',
       });
@@ -1093,7 +1093,7 @@ export function runComposeDossierEnvelope(
       category: 'map-absent',
       entry: `${unbacked} — named in Section 09 but absent from the Hub regulatory map; the dossier cannot back this framework with article-level citations.`,
       followUp:
-        'If the framework genuinely applies, file a regulatory-map coverage request (see BL-057 for the current sweep tracking AI-governance + Chile gap). Until then, the partner should source obligations directly from the regulator.',
+        'If the framework genuinely applies, file a regulatory-map coverage request. Until then, the partner should source obligations directly from the regulator.',
     });
   }
 
@@ -1109,9 +1109,9 @@ export function runComposeDossierEnvelope(
   if (RECONSTRUCTION_SOURCES.has(input.irlSource)) {
     autoAppended.push({
       category: 'provenance-gap',
-      entry: `xlsx-reconstruction mode (irlSource="${input.irlSource}"): hashBindResult \`pass-internal\` is internal-consistency only; the model controls both \`filledIrl\` and \`irlBodyHash\`, and provenance verification is over the model-reconstructed body, not an authoritative source. BL-049 verbatim-body authority does NOT hold in this mode.`,
+      entry: `xlsx-reconstruction mode (irlSource="${input.irlSource}"): hashBindResult \`pass-internal\` is internal-consistency only; the model controls both \`filledIrl\` and \`irlBodyHash\`, and provenance verification is over the model-reconstructed body, not an authoritative source. Verbatim-body authority does NOT hold in this mode.`,
       followUp:
-        'For authoritative provenance (regulatory, M&A close, post-mortem), re-run with the IRL pasted directly as markdown so it round-trips verbatim from the prompt arg (irlSource="partner-paste-verbatim"). The structural xlsx-canonicalization fix that would close this gap is deferred per the cross-host Claude Desktop topology blocker; see src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md.',
+        'For authoritative provenance (regulatory, M&A close, post-mortem), re-run with the IRL pasted directly as markdown so it round-trips verbatim from the prompt arg (irlSource="partner-paste-verbatim"). The structural xlsx-canonicalization fix that would close this gap is deferred per the cross-host Claude Desktop topology blocker.',
     });
   }
 

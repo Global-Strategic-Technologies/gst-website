@@ -65,7 +65,7 @@ describe('handleDiligenceTool — BL-066 cross-field rejection framing', () => {
     };
     const result = (await handleDiligenceTool(p)) as ErrorResult;
     const text = getErrorText(result);
-    expect(text).toContain('BL-045 calibration audit FAILED');
+    expect(text).toContain('Calibration audit FAILED');
     expect(text).toContain('RETRY DISCIPLINE');
     expect(text).toContain('BL-045-CURRENCY-CONVERSION-REQUIRED');
     expect(text).toContain('Fix:');

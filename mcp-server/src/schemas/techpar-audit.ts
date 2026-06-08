@@ -135,7 +135,7 @@ export type YtdMathCheck = z.infer<typeof ytdMathCheckSchema>;
 
 const monetaryFieldAuditSchema = z.object({
   annualizationSource: annualizationSourceEnum.describe(
-    'How was this annual figure derived? Per BL-045 fabrication guard, ad-hoc annualization is not allowed; the source must be one of the named patterns.'
+    'How was this annual figure derived? Per the fabrication guard, ad-hoc annualization is not allowed; the source must be one of the named patterns.'
   ),
   ytdMonths: z
     .number()
@@ -195,7 +195,7 @@ export const TechParAuditMetadataSchema = z
       .describe('Required when mode = "deepdive". Omit for "quick" mode.'),
   })
   .describe(
-    'BL-045 calibration audit metadata for compute_techpar. Enforces currency-basis declaration + per-monetary-field annualization provenance.'
+    'Calibration audit metadata for compute_techpar. Enforces currency-basis declaration + per-monetary-field annualization provenance.'
   );
 
 /**
@@ -229,7 +229,7 @@ export function runTechParAuditRefinements(payload: AuditedTechParInputs): TechP
       ruleId: 'BL-045-TECHPAR-CURRENCY-CONVERSION-REQUIRED',
       message:
         `_audit.monetaryBasis.currency = "${audit.monetaryBasis.currency}" but conversionRate was not supplied. ` +
-        `Per BL-045 currency-normalization rule (extended to TechPar in Phase 2), non-USD inputs MUST carry a conversionRate so the partner can interpret the engine's dollar outputs. ` +
+        `Per the currency-normalization rule (extended to TechPar in Phase 2), non-USD inputs MUST carry a conversionRate so the partner can interpret the engine's dollar outputs. ` +
         `Supply conversionRate (e.g., 0.73 for CAD → USD).`,
     });
   }
@@ -253,7 +253,7 @@ export function runTechParAuditRefinements(payload: AuditedTechParInputs): TechP
         ruleId: 'BL-045-TECHPAR-YTD-MONTHS-REQUIRED',
         message:
           `_audit.${fieldName}.annualizationSource = "ytd-annualized-with-period" but ytdMonths was not supplied. ` +
-          `Per BL-045 anti-fabrication guard, ad-hoc YTD annualization (where the period is implicit in the model's judgment) is the root cause of the cross-run swings observed for compute_techpar inputs. ` +
+          `Per the anti-fabrication guard, ad-hoc YTD annualization (where the period is implicit in the model's judgment) is the root cause of the cross-run swings observed for compute_techpar inputs. ` +
           `Supply ytdMonths (1-11) so the annualization is auditable.`,
       });
     }
@@ -265,7 +265,7 @@ export function runTechParAuditRefinements(payload: AuditedTechParInputs): TechP
           ruleId: 'BL-045-TECHPAR-YTD-MATH-CHECK-REQUIRED',
           message:
             `_audit.${fieldName}.annualizationSource = "ytd-annualized-with-period" but ytdMathCheck was not supplied. ` +
-            `Per BL-045 Phase 2A, the ytdMonths declaration MUST be cross-validated against an IRL anchor. Supply ytdMathCheck: { monthlyAnchorAmount, monthlyAnchorCitation, ytdActualReportedAmount, ytdActualReportedCitation }. ` +
+            `Per Phase 2A, the ytdMonths declaration MUST be cross-validated against an IRL anchor. Supply ytdMathCheck: { monthlyAnchorAmount, monthlyAnchorCitation, ytdActualReportedAmount, ytdActualReportedCitation }. ` +
             `Example for StoreForce ARR: { monthlyAnchorAmount: 2640000, monthlyAnchorCitation: "Section 00 row 10 — Recurring $2.64M CAD/mo Apr-2026", ytdActualReportedAmount: 7860000, ytdActualReportedCitation: "Section 00 row 10 — $7.86M YTD FY27 recurring" } — the handler then verifies monthlyAnchor × ytdMonths matches reportedYTD within 10%.`,
         });
       } else if (fieldAudit.ytdMonths !== undefined) {
@@ -285,7 +285,7 @@ export function runTechParAuditRefinements(payload: AuditedTechParInputs): TechP
               `_audit.${fieldName}.ytdMonths = ${fieldAudit.ytdMonths} is INCONSISTENT with the supplied ytdMathCheck anchors. ` +
               `Math: monthlyAnchorAmount (${fieldAudit.ytdMathCheck.monthlyAnchorAmount.toLocaleString('en-US')}) × ytdMonths (${fieldAudit.ytdMonths}) = ${expectedDisplay}. ` +
               `But ytdActualReportedAmount = ${reportedDisplay} (${pctDisplay}% off). ` +
-              `Per BL-045 Phase 2A arithmetic-consistency rule, the discrepancy must be ≤ 10%. ` +
+              `Per the Phase 2A arithmetic-consistency rule, the discrepancy must be ≤ 10%. ` +
               `Hint: ytdMonths = ${hintMonths} would balance the math (the IRL's monthly × ${hintMonths} ≈ the reported YTD). ` +
               `Re-check the YTD period — common errors: assuming calendar fiscal year when the company uses a non-calendar fiscal year (e.g., FY27 starting Feb), or confusing "YTD through month N" with "N months elapsed in fiscal year."`,
           });
@@ -381,7 +381,7 @@ export function runTechParAuditRefinements(payload: AuditedTechParInputs): TechP
 
 export function formatTechParAuditIssues(issues: TechParAuditIssue[]): string {
   const lines = [
-    'BL-045 TechPar calibration audit FAILED. The tool call was rejected. Fix the following and retry:',
+    'TechPar calibration audit FAILED. The tool call was rejected. Fix the following and retry:',
   ];
   for (const issue of issues) {
     lines.push('');

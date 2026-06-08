@@ -231,7 +231,7 @@ describe('formatTechParAuditIssues', () => {
     };
     const issues = runTechParAuditRefinements(p);
     const text = formatTechParAuditIssues(issues);
-    expect(text).toContain('BL-045 TechPar calibration audit FAILED');
+    expect(text).toContain('TechPar calibration audit FAILED');
     expect(text).toContain('BL-045-TECHPAR-YTD-ARITHMETIC-INCONSISTENT');
     expect(text).toMatch(/Hint: ytdMonths = 3/);
   });

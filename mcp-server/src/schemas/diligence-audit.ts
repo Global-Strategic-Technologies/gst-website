@@ -147,7 +147,7 @@ const dimensionAuditBaseSchema = z.object({
     'Tier 1: the IRL bullet states the enum value VERBATIM — the citation excerpt (post-em-dash) MUST contain the enum value as a whole-token literal (case-insensitive, hyphens-allowed inside the token, whitespace/punctuation on both sides). Example: enum value "productized-platform" requires the excerpt to contain that exact hyphenated token. ' +
       'Tier 2: one-step derivation from a specific IRL bullet (e.g., "B2B SaaS multi-year subscription" → "productized-platform"). Use Tier 2 when the citation supports the value but does not contain it as a literal token. ' +
       'Tier 3: correlation / vibes / partner-supplied form input. ' +
-      'Rule 0 (tier/value coupling, BL-045 + BL-059): when the dimension value is "unknown", tier MUST be "3"; conversely, tier "3" is the only valid choice for "unknown". The rule applies bidirectionally across all 13 dimensions.'
+      'Rule 0 (tier/value coupling): when the dimension value is "unknown", tier MUST be "3"; conversely, tier "3" is the only valid choice for "unknown". The rule applies bidirectionally across all 13 dimensions.'
   ),
   citation: citationSchema.describe(
     'IRL provenance citation in the form "Section NN — <substantial excerpt of at least 20 characters>". The post-em-dash excerpt is what Rule 10 (TIER-1-LITERAL-MISMATCH) checks against — for tier="1" claims, the excerpt MUST contain the enum value as a literal token (see `tier` description for the substring rule). For partner-supplied (non-IRL) callers, use "Section -- — partner-supplied form input — <description>".'
@@ -177,13 +177,13 @@ const revenueRangeAuditSchema = dimensionAuditBaseSchema.extend({
     })
     .optional()
     .describe(
-      'Required when nativeCurrency != USD. Per BL-045 currency-normalization rule, non-USD ARR bullets MUST be converted to USD before bracket assignment.'
+      'Required when nativeCurrency != USD. Per the currency-normalization rule, non-USD ARR bullets MUST be converted to USD before bracket assignment.'
     ),
 });
 
 const headcountAuditSchema = dimensionAuditBaseSchema.extend({
   scope: headcountScopeEnum.describe(
-    'Which subset of headcount the value reflects. Per BL-045, the diligence-agenda headcount field requires engineering-only scope.'
+    'Which subset of headcount the value reflects. The diligence-agenda headcount field requires engineering-only scope.'
   ),
 });
 
@@ -198,7 +198,7 @@ const dataSensitivityAuditSchema = dimensionAuditBaseSchema.extend({
 
 const growthStageAuditSchema = dimensionAuditBaseSchema.extend({
   velocityEvidence: velocityEvidenceEnum.describe(
-    'What explicit velocity signal supports the growthStage value. Per BL-045 Tier discipline, growthStage derives from velocity (revenue/recurring/headcount/customer/funding growth), NOT from transformation-program activity.'
+    'What explicit velocity signal supports the growthStage value. Per Tier discipline, growthStage derives from velocity (revenue/recurring/headcount/customer/funding growth), NOT from transformation-program activity.'
   ),
 });
 
@@ -224,7 +224,7 @@ export const AuditMetadataSchema = z
     operatingModel: dimensionAuditBaseSchema,
   })
   .describe(
-    'Per-dimension provenance + calibration metadata. REQUIRED. Drives the tool-handler refinement checks that enforce BL-045 calibration clauses. See spec: MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md'
+    'Per-dimension provenance + calibration metadata. REQUIRED. Drives the tool-handler refinement checks that enforce the calibration clauses.'
   );
 
 /**
@@ -302,7 +302,7 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
       ruleId: 'BL-045-CURRENCY-CONVERSION-REQUIRED',
       message:
         `_audit.revenueRange.nativeCurrency = "${rrAudit.nativeCurrency}" but currencyConversion was not supplied. ` +
-        `Per BL-045 currency-normalization rule, non-USD ARR bullets MUST be converted to USD before bracket assignment. ` +
+        `Per currency-normalization rule, non-USD ARR bullets MUST be converted to USD before bracket assignment. ` +
         `Supply currencyConversion: { nativeAmountMillions, usdRate, convertedUsdMillions }. ` +
         `Worked example: "$31M CAD" → { nativeAmountMillions: 31, usdRate: 0.73, convertedUsdMillions: 22.6 } ⇒ revenueRange: "5-25m". ` +
         `Fix: supply _audit.revenueRange.currencyConversion = { nativeAmountMillions, usdRate, convertedUsdMillions }.`,
@@ -319,7 +319,7 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
           ruleId: 'BL-045-REVENUE-BRACKET-BOUNDARY',
           message:
             `revenueRange = "${rrValue}" but the supplied USD conversion ($${rrAudit.currencyConversion.convertedUsdMillions}M USD) falls within 10% of a bracket boundary. ` +
-            `Per BL-045 currency-normalization rule's "prefer 'unknown' to a fragile commitment" clause, set revenueRange = "unknown" and surface the currency / conversion question in (J) gap list. ` +
+            `Per currency-normalization rule's "prefer 'unknown' to a fragile commitment" clause, set revenueRange = "unknown" and surface the currency / conversion question in (J) gap list. ` +
             `Fix: set revenueRange = "unknown" and _audit.revenueRange.tier = "3".`,
         });
       } else {
@@ -343,7 +343,7 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
       path: ['_audit', 'headcount', 'scope'],
       ruleId: 'BL-045-HEADCOUNT-SCOPE-REQUIRED',
       message:
-        `_audit.headcount.scope = "${hcAudit.scope}" but BL-045 requires "engineering-only". ` +
+        `_audit.headcount.scope = "${hcAudit.scope}" but the diligence-agenda headcount field requires "engineering-only". ` +
         `The diligence-agenda headcount field is ENGINEERING headcount, not total company headcount or R&D+Product. ` +
         `Re-extract from the engineering-specific bullet (e.g. "Engineering ~N"). ` +
         `If the IRL distinguishes "Engineering ~N1" from "R&D + Product ~N2" or "Total HC ~N3", use N1. ` +
@@ -368,7 +368,7 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
       message:
         `dataSensitivity = "high" REQUIRES at least one of [phi, pci-card-data, government-classified, biometric-at-scale]. ` +
         `Got piiCategoriesPresent = [${cats.join(', ')}]. ` +
-        `Per BL-045 bucket boundaries: employee PII alone is "low"; customer PII at scale is "moderate"; "high" is reserved for regulated categories. ` +
+        `Per bucket boundaries: employee PII alone is "low"; customer PII at scale is "moderate"; "high" is reserved for regulated categories. ` +
         `Fix: add a regulated category to piiCategoriesPresent (one of [phi, pci-card-data, government-classified, biometric-at-scale]) OR demote dataSensitivity to "moderate" or "low".`,
     });
   }
@@ -379,7 +379,7 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
       message:
         `dataSensitivity = "moderate" REQUIRES at least one of [customer-pii-at-scale, financial-transaction-metadata]. ` +
         `Got piiCategoriesPresent = [${cats.join(', ')}]. ` +
-        `Per BL-045 bucket boundaries: employee PII alone is "low", not "moderate". Re-bucket to "low" or supply a customer-PII evidence category. ` +
+        `Per bucket boundaries: employee PII alone is "low", not "moderate". Re-bucket to "low" or supply a customer-PII evidence category. ` +
         `Fix: add a customer-PII category (customer-pii-at-scale or financial-transaction-metadata) OR demote dataSensitivity to "low".`,
     });
   }
@@ -403,7 +403,7 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
       ruleId: 'BL-045-GROWTHSTAGE-VELOCITY-REQUIRED',
       message:
         `growthStage = "${gsValue}" requires velocityEvidence != "unknown". ` +
-        `Per BL-045 growthStage Tier-discipline rule, growthStage derives from velocity (revenue/recurring-revenue/headcount/customer/funding growth %), NOT from transformation-program activity. ` +
+        `Per growthStage Tier-discipline rule, growthStage derives from velocity (revenue/recurring-revenue/headcount/customer/funding growth %), NOT from transformation-program activity. ` +
         `If the IRL doesn't supply explicit velocity signal, set growthStage = "unknown" (Tier 3) rather than inferring from transformation activity. ` +
         `Fix: set growthStage = "unknown" and _audit.growthStage.tier = "3" (no explicit velocity evidence in IRL).`,
     });
@@ -501,7 +501,7 @@ export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinement
  */
 export function formatAuditIssues(issues: AuditRefinementIssue[]): string {
   const lines = [
-    'BL-045 calibration audit FAILED. The tool call was rejected.',
+    'Calibration audit FAILED. The tool call was rejected.',
     '',
     '⚠️ RETRY DISCIPLINE — READ BEFORE RESUBMITTING ⚠️',
     '',
@@ -539,7 +539,7 @@ export function formatAuditIssues(issues: AuditRefinementIssue[]): string {
   lines.push('');
   lines.push(
     'Apply EVERY "Fix:" line above to the same payload, then retry the tool call. ' +
-      'See the BL-045 design doc (extraction-rules.ts) for the full calibration rule prose.'
+      'See `extraction-rules.ts` for the full calibration rule prose.'
   );
   return lines.join('\n');
 }

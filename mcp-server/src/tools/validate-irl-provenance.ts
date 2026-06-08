@@ -32,12 +32,12 @@ import { Bl076BodyCacheMissError } from '../schemas/compose-dossier-envelope';
 
 const TOOL_DESCRIPTION = `Verify that citations the model emitted (in \`_audit\` blocks, the (K) provenance footer, etc.) actually appear in the supplied filled IRL.
 
-**Why call this**: the BL-045 calibration audit refines structural shape but cannot verify excerpt truthfulness — a model that obeys every audit rule can still fabricate the excerpt itself. This tool closes that gap by substring-matching every cited excerpt against the IRL body.
+**Why call this**: the upstream calibration audit refines structural shape but cannot verify excerpt truthfulness — a model that obeys every audit rule can still fabricate the excerpt itself. This tool closes that gap by substring-matching every cited excerpt against the IRL body.
 
-**Inputs** (BL-079 — \`filledIrl\` is now optional; supply EITHER):
+**Inputs** (\`filledIrl\` is optional; supply EITHER):
 
 - \`filledIrl\` — the populated IRL body, same shape as the \`gst_irl_ingestion\` prompt arg. Legacy path; still works.
-- \`irlBodyHash\` — the 16-hex \`sha256(body).slice(0,16)\` value (same shape as \`compose_dossier_envelope.irlBodyHash\`). When supplied alone, the server re-hydrates the body from the shared IRL body cache (populated by \`prepare_irl_body\` or BL-079 Part B prompt-render pre-pop). Use this path to avoid emitting the full body twice in the precheck loop — material wall-clock savings on bodies > ~10KB.
+- \`irlBodyHash\` — the 16-hex \`sha256(body).slice(0,16)\` value (same shape as \`compose_dossier_envelope.irlBodyHash\`). When supplied alone, the server re-hydrates the body from the shared IRL body cache (populated by \`prepare_irl_body\` or the prompt-render pre-pop path). Use this path to avoid emitting the full body twice in the precheck loop — material wall-clock savings on bodies > ~10KB.
 - \`citations\` — array of \`{ path, citation }\` pairs. \`path\` identifies the claim site in your dossier (e.g., \`_audit.revenueRange.citation\`, \`section-C.headline\`); \`citation\` is the string you emitted (e.g., \`"Section 00 row 10 — Recurring revenue $2.64M CAD/mo Apr-2026"\`).
 
 At least one of \`filledIrl\` / \`irlBodyHash\` MUST be supplied. \`filledIrl\` takes precedence when both are present (legacy compatibility).
@@ -91,7 +91,7 @@ export async function handleValidateIrlProvenanceTool(
             type: 'text' as const,
             text:
               'validate_irl_provenance: at least one of `filledIrl` / `irlBodyHash` MUST be supplied. ' +
-              'Body-by-hash path (BL-079): pass `irlBodyHash` alone after `prepare_irl_body` has seeded the cache. ' +
+              'Body-by-hash path: pass `irlBodyHash` alone after `prepare_irl_body` has seeded the cache. ' +
               'Legacy path: pass `filledIrl` directly.',
           },
         ],

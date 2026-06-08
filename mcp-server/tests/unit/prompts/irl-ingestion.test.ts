@@ -751,22 +751,25 @@ describe('gst_irl_ingestion', () => {
     });
   });
 
-  describe('BL-076 — body-by-hash directive (compose_dossier_envelope no longer takes filledIrl)', () => {
-    it('one-shot body instructs the model to call prepare_irl_body FIRST', () => {
+  describe('body-by-hash directive (compose_dossier_envelope no longer takes filledIrl)', () => {
+    it('one-shot body describes the prepop skip-prepare path (no prepare_irl_body call)', () => {
       const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      // Under L1, one-shot is unconditionally prepop. The model is told to
+      // SKIP prepare_irl_body, not call it. The directive prose still
+      // references the tool name (as the thing-to-skip).
       expect(text).toContain('prepare_irl_body');
-      expect(text).toContain('BL-076');
+      expect(text).toContain('SKIP `prepare_irl_body`');
+      expect(text).toContain('partner-paste-verbatim-prepop');
     });
 
     it('interactive body instructs the model to call prepare_irl_body FIRST', () => {
       const text = bodyText(irlIngestionPrompt, {});
       expect(text).toContain('prepare_irl_body');
-      expect(text).toContain('BL-076');
-    });
-
-    it('one-shot body documents Bl076BodyCacheMissError as the cache-miss diagnostic', () => {
-      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
-      expect(text).toContain('Bl076BodyCacheMissError');
+      // Interactive path: legacy unconditional. No prepop SKIP-prepare directive.
+      // (The VERIFY-block enum still LISTS partner-paste-verbatim-prepop as a
+      // valid filledIrl.source value — that's a schema surface, not a workflow
+      // directive — so we assert on the prose directive instead.)
+      expect(text).not.toContain('SKIP `prepare_irl_body`');
     });
 
     it('interactive body documents Bl076BodyCacheMissError as the cache-miss diagnostic', () => {

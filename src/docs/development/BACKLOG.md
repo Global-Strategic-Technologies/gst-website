@@ -3969,7 +3969,7 @@ Hypothesis (medium confidence): Bucket B. The model has to emit the body regardl
 
 ---
 
-### BL-086: `gst_irl_ingestion` workflow simplification — staged leveled pruning (L0–L5) with opt-in restore args ⏳ OPEN — leveled design 2026-06-07
+### BL-086: `gst_irl_ingestion` workflow simplification — staged leveled pruning (L0–L5) with opt-in restore args ⏳ OPEN — L0+L1 shipped 2026-06-08 (PR 1 / Option B); L2+L3 next (PR 2)
 
 **Design doc**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) — full leveled architecture, per-level capability preservation matrix, three ship-cadence options, opt-in restore args specification.
 
@@ -3979,8 +3979,8 @@ Hypothesis (medium confidence): Bucket B. The model has to emit the body regardl
 
 **Pruning levels**:
 
-- **L0** — Runtime-vocabulary cleanup. Strip `BL-*` references / version pins / PR-history mentions from every `.describe()` call, error message, `TOOL_DESCRIPTION`. Zero behavioral change. Patch bump.
-- **L1** — Mode-conditional prose removal. Each builder emits ONE coherent path; no "if you see X... otherwise..." prose. Clearer model instructions. Patch bump.
+- ✅ **L0** — Runtime-vocabulary cleanup (shipped 2026-06-08 in PR 1, v0.31.1). Strip `BL-*` references / version pins / PR-history mentions from every `.describe()` call, error message, `TOOL_DESCRIPTION`. Zero behavioral change. Patch bump.
+- ✅ **L1** — Mode-conditional prose removal (shipped 2026-06-08 in PR 1, v0.31.2). Each builder emits ONE coherent path; no "if you see X... otherwise..." prose. Clearer model instructions. Patch bump.
 - **L2** — Worked-example deletion (Step 1 / Step 4a / Step 6a ~210 lines). Discipline shifts to tool error messages. **Opt-in restore**: `embedToolWorkedExamples: true` arg. Minor bump.
 - **L3** — Precheck-loop demotion. Delete `ENVELOPE_PRECHECK_DIRECTIVE`; compose internal verification still catches citations. **Opt-in restore**: `precheckCitations: true` arg. Minor bump.
 - **L4** — VERIFY block emission removal (delete `BL_045_VERIFY_DIRECTIVE` + schema-discipline prose; delete `hashBindResult` field as redundant with `irlSource`). **Opt-in restore**: `emitVerifyBlock: true` arg. Minor bump.

@@ -79,7 +79,7 @@ export class IrlBodyCacheSizeExceededError extends Error {
   readonly limit: number;
   constructor(byteLength: number) {
     super(
-      `BL-076 IRL body cache rejected entry: body byteLength=${byteLength} exceeds ` +
+      `IRL body cache rejected entry: body byteLength=${byteLength} exceeds ` +
         `per-entry cap IRL_BODY_CACHE_MAX_BYTES=${IRL_BODY_CACHE_MAX_BYTES}. ` +
         `If the IRL is legitimately this large, raise the cap; otherwise trim the body.`
     );
@@ -126,10 +126,10 @@ export class IrlBodyCacheWriteFailedError extends Error {
         'read-after-write probe returned a value that does not match the body that was written (serialization corruption)',
     };
     super(
-      `BL-077a IRL body cache write FAILED for irlBodyHash="${irlBodyHash}": ${reasonText[cause]}. ` +
+      `IRL body cache write FAILED for irlBodyHash="${irlBodyHash}": ${reasonText[cause]}. ` +
         `Run \`wrangler tail\` against the staging Worker during the next prepare_irl_body call to see the ` +
         `\`bl077.cache.set\` safeLog event with the resolved Upstash key + outcome. Retry prepare_irl_body ` +
-        `to re-attempt; if the error persists, file BL-077b with the wrangler-tail output.`
+        `to re-attempt; if the error persists, file a follow-up with the wrangler-tail output.`
     );
     this.name = 'IrlBodyCacheWriteFailedError';
     this.irlBodyHash = irlBodyHash;

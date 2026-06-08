@@ -109,7 +109,6 @@ describe('BL-076 — body-by-hash prepare-then-compose chain', () => {
     expect(result.isError).toBe(true);
     const text = result.content[0];
     if (text.type === 'text') {
-      expect(text.text).toContain('BL-076');
       expect(text.text).toContain('body-cache miss');
       expect(text.text).toContain('prepare_irl_body');
     }
@@ -249,8 +248,7 @@ describe('BL-076 — body-by-hash prepare-then-compose chain', () => {
     expect(result.isError).toBe(true);
     const text = result.content[0];
     if (text.type === 'text') {
-      expect(text.text).toContain('BL-077a');
-      expect(text.text).toContain('write FAILED');
+      expect(text.text).toContain('IRL body cache write FAILED');
       expect(text.text).toContain('wrangler tail');
     }
   });

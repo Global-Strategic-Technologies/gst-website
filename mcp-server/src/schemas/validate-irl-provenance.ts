@@ -86,7 +86,7 @@ export const ValidateIrlProvenanceInputObject = z.object({
     .optional()
     .describe(
       'The verbatim IRL body (markdown), same shape as the gst_irl_ingestion prompt arg. Used as the haystack for excerpt verification. ' +
-        'BL-079 — now optional. If `irlBodyHash` is supplied AND populated in the server-side IRL body cache (via a prior `prepare_irl_body` call, or BL-079 Part B prompt-render pre-pop), the server re-hydrates the body from cache and `filledIrl` may be omitted. ' +
+        'Optional. If `irlBodyHash` is supplied AND populated in the server-side IRL body cache (via a prior `prepare_irl_body` call, or the prompt-render cache pre-pop path), the server re-hydrates the body from cache and `filledIrl` may be omitted. ' +
         'For interactive / xlsx-reconstruction mode where the cache is not pre-populated, this remains the canonical path. ' +
         '`filledIrl` takes precedence when both fields are supplied (legacy compatibility for callers that emit both).'
     ),
@@ -95,8 +95,8 @@ export const ValidateIrlProvenanceInputObject = z.object({
     .regex(IRL_BODY_HASH_REGEX, 'irlBodyHash must be exactly 16 lowercase hex characters')
     .optional()
     .describe(
-      'BL-079 — body-by-hash mode. When the operator supplies `filledIrl` as a `gst_irl_ingestion` prompt arg (Part B), the prompt-build wrapper pre-populates the IRL body cache. The model copies the `**Body-binding hash:**` directive verbatim into this field and omits `filledIrl`. ' +
-        'Under Part A (this PR) the model can also pass the hash returned by `prepare_irl_body` to skip emitting the full body twice in the precheck loop. ' +
+      'Body-by-hash mode. When the operator supplies `filledIrl` as a `gst_irl_ingestion` prompt arg, the prompt-build wrapper pre-populates the IRL body cache. The model copies the `**Body-binding hash:**` directive verbatim into this field and omits `filledIrl`. ' +
+        'The model can also pass the hash returned by `prepare_irl_body` to skip emitting the full body twice in the precheck loop. ' +
         'Server re-hydrates from cache for citation matching. Falls back to `Bl076BodyCacheMissError` if the cache write did not land (operator should retry, or call `prepare_irl_body` to re-seed). For interactive / xlsx-reconstruction mode where the cache is not pre-populated, omit this field and supply `filledIrl` instead.'
     ),
   citations: z
@@ -118,8 +118,8 @@ export const ValidateIrlProvenanceInputSchema = ValidateIrlProvenanceInputObject
   (input) => Boolean(input.filledIrl) || Boolean(input.irlBodyHash),
   {
     message:
-      'BL-079 — at least one of `filledIrl` / `irlBodyHash` MUST be supplied. ' +
-      'Body-by-hash path: pass `irlBodyHash` alone (server re-hydrates from the IrlBodyCache populated by `prepare_irl_body` or the BL-079 prompt-render pre-pop). ' +
+      'At least one of `filledIrl` / `irlBodyHash` MUST be supplied. ' +
+      'Body-by-hash path: pass `irlBodyHash` alone (server re-hydrates from the IrlBodyCache populated by `prepare_irl_body` or the prompt-render pre-pop path). ' +
       'Legacy interactive / xlsx-reconstruction path: pass `filledIrl` alone. ' +
       'Both allowed — `filledIrl` takes precedence when present (legacy callers).',
   }
