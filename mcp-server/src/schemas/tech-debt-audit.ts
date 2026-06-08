@@ -40,7 +40,7 @@ export const TechDebtAuditMetadataSchema = z
     ),
   })
   .describe(
-    'Per BL-045 MTTR + incident-count fabrication guard, the model MUST declare the source of mttrHours and incidents. Placeholder substitution (24h, 8h, 2/mo, etc.) for IRL-OPEN fields is rejected at the schema layer.'
+    'Per the MTTR + incident-count fabrication guard, the model MUST declare the source of mttrHours and incidents. Placeholder substitution (24h, 8h, 2/mo, etc.) for IRL-OPEN fields is rejected at the schema layer.'
   );
 
 /**
@@ -59,7 +59,7 @@ export const AuditedTechDebtInputsSchema = TechDebtInputsSchema.extend({
     .min(0)
     .nullable()
     .describe(
-      'Mean time to resolution, hours. NULL when the IRL marks MTTR as OPEN / unfilled / sprint-scoped-only. Per BL-045 fabrication guard, placeholder substitution is forbidden; pass null and let the tool elide the field.'
+      'Mean time to resolution, hours. NULL when the IRL marks MTTR as OPEN / unfilled / sprint-scoped-only. Per the fabrication guard, placeholder substitution is forbidden; pass null and let the tool elide the field.'
     ),
   incidents: z
     .number()
@@ -67,7 +67,7 @@ export const AuditedTechDebtInputsSchema = TechDebtInputsSchema.extend({
     .min(0)
     .nullable()
     .describe(
-      'Production incidents per month (count). NULL when the IRL gives only a sprint-scoped dashboard count or marks the field OPEN. Per BL-045 fabrication guard, do NOT extrapolate from a non-monthly count.'
+      'Production incidents per month (count). NULL when the IRL gives only a sprint-scoped dashboard count or marks the field OPEN. Per the fabrication guard, do NOT extrapolate from a non-monthly count.'
     ),
   _audit: TechDebtAuditMetadataSchema,
 });
@@ -100,7 +100,7 @@ export function runTechDebtAuditRefinements(payload: AuditedTechDebtInputs): Tec
       ruleId: 'BL-045-MTTR-NULL-REQUIRED-FOR-OPEN-SOURCE',
       message:
         `_audit.mttrSource = "${payload._audit.mttrSource}" requires mttrHours = null. ` +
-        `Got mttrHours = ${payload.mttrHours}. Per BL-045 MTTR-OPEN guard, ` +
+        `Got mttrHours = ${payload.mttrHours}. Per the MTTR-OPEN guard, ` +
         `placeholder substitution (24h, 8h, etc.) is forbidden — pass null, mark the section ` +
         `extraction-only, surface in (J) gap list. A fabricated MTTR passes through the engine's ` +
         `linear multiplier and produces an unrecoverable false carrying-cost number.`,
@@ -128,7 +128,7 @@ export function runTechDebtAuditRefinements(payload: AuditedTechDebtInputs): Tec
       ruleId: 'BL-045-INCIDENTS-NULL-REQUIRED-FOR-OPEN-SOURCE',
       message:
         `_audit.incidentsSource = "${payload._audit.incidentsSource}" requires incidents = null. ` +
-        `Got incidents = ${payload.incidents}. Per BL-045 fabrication guard, do NOT extrapolate ` +
+        `Got incidents = ${payload.incidents}. Per the fabrication guard, do NOT extrapolate ` +
         `from a sprint-scoped dashboard or substitute a placeholder; pass null, mark the section ` +
         `extraction-only, surface in (J) with the concrete JQL/data-pull needed.`,
     });
@@ -139,7 +139,7 @@ export function runTechDebtAuditRefinements(payload: AuditedTechDebtInputs): Tec
 
 export function formatTechDebtAuditIssues(issues: TechDebtAuditIssue[]): string {
   const lines = [
-    'BL-045 Tech Debt calibration audit FAILED. The tool call was rejected. Fix the following and retry:',
+    'Tech Debt calibration audit FAILED. The tool call was rejected. Fix the following and retry:',
   ];
   for (const issue of issues) {
     lines.push('');

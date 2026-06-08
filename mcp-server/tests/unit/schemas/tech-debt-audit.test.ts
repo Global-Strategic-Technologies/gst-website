@@ -146,7 +146,7 @@ describe('formatTechDebtAuditIssues', () => {
     });
     const issues = runTechDebtAuditRefinements(p);
     const text = formatTechDebtAuditIssues(issues);
-    expect(text).toContain('BL-045 Tech Debt calibration audit FAILED');
+    expect(text).toContain('Tech Debt calibration audit FAILED');
     expect(text).toContain('BL-045-MTTR-NULL-REQUIRED-FOR-OPEN-SOURCE');
     expect(text).toContain('extraction-only');
   });

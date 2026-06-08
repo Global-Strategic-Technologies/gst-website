@@ -214,7 +214,7 @@ describe('BL-071 — precheck derivation identity', () => {
     const textContent = result.content[0];
     expect(textContent.type).toBe('text');
     if (textContent.type === 'text') {
-      expect(textContent.text).toContain('BL-076');
+      expect(textContent.text).toContain('body-cache miss');
       expect(textContent.text).toContain('prepare_irl_body');
     }
   });
@@ -230,8 +230,8 @@ describe('BL-071 — precheck derivation identity', () => {
     expect(result.isError).toBe(true);
     const textContent = result.content[0];
     if (textContent.type === 'text') {
-      expect(textContent.text).toContain('BL-076');
       expect(textContent.text).toContain('body-cache miss');
+      expect(textContent.text).toContain('prepare_irl_body');
     }
     // The handler ALSO rejects in the BL-071 counter, since withToolMetrics
     // would have classified it as rejected. (We don't wrap with metrics here

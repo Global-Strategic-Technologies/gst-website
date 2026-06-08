@@ -206,12 +206,20 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // (interactive + one-shot minimal + one-shot full) drift; compact + extract-
 // only paths skip the envelope-composition directive per its header
 // (`BLOCKING — full mode + verbose verbosity only`).
+// BL-086 L0+L1 rebaseline (prompt v0.18.0, unchanged version): L0 cosmetic
+// vocabulary cleanup + L1 mode-conditional prose removal. Both halves touch
+// verbose-mode shared directives (ENVELOPE_PRECHECK_DIRECTIVE +
+// ENVELOPE_COMPOSITION_DIRECTIVE) and the interactive Step 4. Only the 3
+// verbose-mode bodies drift (interactive + one-shot minimal + one-shot full);
+// compact + extract-only paths skip the envelope-composition directive per its
+// header (`BLOCKING — full mode + verbosity verbose only`). promptVersion stays
+// at 0.18.0 — L0/L1 are not promptVersion-bumpable per the BL-086 doc.
 const EXPECTED_HASH_INTERACTIVE =
-  '034fc072427ecd19fd9048e2099ed7f301c1e509c17756d427dbbc331cc7a634';
+  'fbdd7fe8934ddaa4937abe7844cf47e00ed1519f0c79a414d238b7671e2f1fe9';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'e08664b3858aae1a2bee58f72301c30342748cd4f320ca3fd355ccdee24f7c08';
+  'a0c5c166e33ddced524bdfa5939e2f1d1cd069674b08dc3f2e906ce3e9b0ee03';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '308b88c2311f00ad92faf15eb08df58e63a079774672063d513e8b4cf1f90e60';
+  '3f219040bb52f5c6e9f9c9e0593fe6422cdd78447aaa62f1b12193fffaad31d8';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   'e2142f96edde5fb2b6d2e2e33797ab49f87b76675a184dcd213cb2e0d177352f';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
