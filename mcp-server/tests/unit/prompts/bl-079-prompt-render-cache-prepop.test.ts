@@ -120,7 +120,7 @@ describe('BL-079 Part B — prompt-render-time cache pre-population', () => {
 });
 
 describe('BL-079 Part B — prompt body substring assertions', () => {
-  it('one-shot mode body carries the skip-prepare BL-079 Part B directive', async () => {
+  it('one-shot mode body carries the prepop skip-prepare directive (unconditional, partner-paste path)', async () => {
     const { server, registeredPrompts } = makeMockServer();
     registerPrompts(server);
     const irlIngestion = registeredPrompts.find((p) => p.name === 'gst_irl_ingestion');
@@ -128,12 +128,14 @@ describe('BL-079 Part B — prompt body substring assertions', () => {
     const text = (result as { messages: Array<{ content: { text: string } }> }).messages
       .map((m) => m.content.text)
       .join('\n');
-    expect(text).toContain('BL-079 Part B');
     expect(text).toContain('partner-paste-verbatim-prepop');
     expect(text).toContain('SKIP `prepare_irl_body`');
+    // L1: no mode-conditional prose — the body describes ONE coherent path.
+    expect(text).not.toContain('if you see');
+    expect(text).not.toContain('Interactive / xlsx-reconstruction mode');
   });
 
-  it('interactive mode body carries the skip-prepare BL-079 Part B directive', async () => {
+  it('interactive mode body describes the legacy prepare_irl_body path unconditionally (no prepop directive)', async () => {
     const { server, registeredPrompts } = makeMockServer();
     registerPrompts(server);
     const irlIngestion = registeredPrompts.find((p) => p.name === 'gst_irl_ingestion');
@@ -141,8 +143,14 @@ describe('BL-079 Part B — prompt body substring assertions', () => {
     const text = (result as { messages: Array<{ content: { text: string } }> }).messages
       .map((m) => m.content.text)
       .join('\n');
-    expect(text).toContain('BL-079 Part B');
-    expect(text).toContain('partner-paste-verbatim-prepop');
-    expect(text).toContain('SKIP `prepare_irl_body`');
+    // Interactive path: directive is NEVER present; model is told to call
+    // prepare_irl_body to seed the cache. No prepop SKIP-prepare directive.
+    // (The VERIFY-block enum still LISTS partner-paste-verbatim-prepop as a
+    // valid filledIrl.source value — that's a schema surface, not a workflow
+    // directive — so we assert on the prose directive instead.)
+    expect(text).toContain('prepare_irl_body');
+    expect(text).not.toContain('SKIP `prepare_irl_body`');
+    // L1: no mode-conditional prose either.
+    expect(text).not.toContain('if a `**Body-binding hash:**`');
   });
 });

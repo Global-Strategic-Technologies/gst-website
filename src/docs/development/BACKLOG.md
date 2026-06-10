@@ -3969,7 +3969,7 @@ Hypothesis (medium confidence): Bucket B. The model has to emit the body regardl
 
 ---
 
-### BL-086: `gst_irl_ingestion` workflow simplification — Option D (L0+L1 → verify → L2 → STOP) ⏳ OPEN — implementation guide locked 2026-06-07
+### BL-086: `gst_irl_ingestion` workflow simplification — Option D (L0+L1 → verify → L2 → STOP) ⏳ OPEN — L0+L1 shipped 2026-06-08 (PR 1, v0.31.2); L2 next (PR 2)
 
 **Design doc**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) — full leveled architecture (L0–L5), Option D implementation guide, capability-preservation matrix, opt-in restore args specification.
 
@@ -3983,8 +3983,8 @@ This asymmetry means L0+L1 are free (cosmetic + cleaner instructions, zero behav
 
 **Pruning levels** (L0–L5, ordered least-to-most aggressive):
 
-- **L0** — Runtime-vocabulary cleanup. Strip `BL-*` references / version pins from `.describe()`, error messages, `TOOL_DESCRIPTION`. Zero behavioral change. Patch bump.
-- **L1** — Mode-conditional prose removal. Each builder emits ONE coherent path; no "if you see X... otherwise..." prose. Patch bump.
+- ✅ **L0** — Runtime-vocabulary cleanup (shipped 2026-06-08 in PR 1, v0.31.1). Strip `BL-*` references / version pins / PR-history mentions from every `.describe()` call, error message, `TOOL_DESCRIPTION`. Zero behavioral change. Patch bump.
+- ✅ **L1** — Mode-conditional prose removal (shipped 2026-06-08 in PR 1, v0.31.2). Each builder emits ONE coherent path; no "if you see X... otherwise..." prose. Clearer model instructions. Patch bump.
 - **L2** — Worked-example deletion (Step 1 / Step 4a / Step 6a ~210 lines). Discipline shifts to tool error messages. **Opt-in restore**: `embedToolWorkedExamples: true` arg. Minor bump.
 - **L3** — Precheck-loop demotion. **DEFERRED to BL-087.** Opt-in restore arg `precheckCitations: true` is spec'd in the doc for whenever L3 ships.
 - **L4** — VERIFY block emission removal + `hashBindResult` field deletion. **DEFERRED to BL-087.** Opt-in restore arg `emitVerifyBlock: true` is spec'd in the doc for whenever L4 ships.

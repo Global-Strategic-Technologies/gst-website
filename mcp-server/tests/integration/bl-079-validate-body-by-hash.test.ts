@@ -121,7 +121,7 @@ describe('BL-079 Part A — prepare → validate body-by-hash chain', () => {
     );
     expect(result.isError).toBe(true);
     const text = result.content?.[0]?.type === 'text' ? result.content[0].text : '';
-    expect(text).toMatch(/BL-076 body-cache miss/);
+    expect(text).toMatch(/body-cache miss/);
     expect(text).toMatch(/prepare_irl_body/);
   });
 

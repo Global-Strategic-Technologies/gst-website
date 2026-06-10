@@ -203,7 +203,7 @@ describe('runComposeDossierEnvelope — BL-068 false-positive rejection', () => 
     } catch (error) {
       expect(error).toBeInstanceOf(Bl068MapAbsentFalsePositiveError);
       const msg = (error as Error).message;
-      expect(msg).toContain('BL-068 map-absent validation FAILED');
+      expect(msg).toContain('map-absent validation FAILED');
       expect(msg).toMatch(/NIST/i);
       expect(msg).toContain('search_regulations');
       expect(msg).toContain('alias coverage is incomplete');
@@ -250,7 +250,7 @@ describe('BL-072 — xlsx-reconstruction provenance-gap auto-append', () => {
       SERVER_CTX
     );
     expect(result.gapListMarkdown).toContain('xlsx-reconstruction mode');
-    expect(result.gapListMarkdown).toContain('BL-049 verbatim-body authority does NOT hold');
+    expect(result.gapListMarkdown).toContain('Verbatim-body authority does NOT hold');
     expect(result.gapListMarkdown).toContain('model-reconstruction-from-xlsx');
   });
 
@@ -266,7 +266,7 @@ describe('BL-072 — xlsx-reconstruction provenance-gap auto-append', () => {
   it('irlSource=partner-paste-verbatim → no BL-072 auto-append', () => {
     const result = runComposeDossierEnvelope(baseInput([], 'partner-paste-verbatim'), SERVER_CTX);
     expect(result.gapListMarkdown).not.toContain('xlsx-reconstruction mode');
-    expect(result.gapListMarkdown).not.toContain('BL-049 verbatim-body authority does NOT hold');
+    expect(result.gapListMarkdown).not.toContain('Verbatim-body authority does NOT hold');
   });
 
   it('irlSource=placeholder → no BL-072 auto-append (placeholder is not a reconstruction mode)', () => {
@@ -408,7 +408,7 @@ describe('BL-070 — requireVerbatimBody gate', () => {
       const msg = (e as Error).message;
       expect(msg).toContain('model-reconstruction-from-xlsx');
       expect(msg).toContain('partner-paste-verbatim');
-      expect(msg).toContain('BL-070');
+      expect(msg).toContain('verbatim-body required');
     }
   });
 });

@@ -57,7 +57,7 @@ const TOOL_DESCRIPTION = `Render the dossier's structural envelope (top-of-docum
 - \`claims\` — EVERY load-bearing claim the dossier will make (NRR figures, ARR, TechPar verdicts, ICG scores, Tech Debt carry, regulatory frameworks, comparable engagement code names, etc.). Each carries the claim label + IRL citation + tier. The tool renders (K) from these.
 - \`gaps\` — categorized gap entries you have already identified. The tool auto-APPENDS \`tier-mismatch:\`, \`tier-fabrication:\`, and \`provenance-gap:\` entries based on the citation verdicts; do NOT pre-populate those categories.
 - \`filledIrl\` — the populated IRL body. Used internally to verify every claim's citation against the IRL via the same engine \`validate_irl_provenance\` uses.
-- \`irlBodyHash\` — copy verbatim from the prompt body's \`**Body-binding hash:**\` directive. Tool verifies \`sha256(filledIrl).slice(0,16) === irlBodyHash\`.
+- \`irlBodyHash\` — copy verbatim from the prompt body's \`**Body-binding hash:**\` directive. Tool verifies \`sha256(cachedBody).slice(0,16) === irlBodyHash\`.
 
 **Output**: three markdown blocks (\`metaFenceMarkdown\`, \`gapListMarkdown\`, \`provenanceFooterMarkdown\`) the model pastes verbatim into the dossier, plus a \`provenanceVerification\` summary (count of verified / verified-fuzzy / partner-supplied / unverified / auto-appended-gaps / tierMismatches / tierFabrications) and \`emitInstructions\` with the transcription discipline.
 

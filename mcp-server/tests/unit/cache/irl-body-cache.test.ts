@@ -103,7 +103,7 @@ describe('InMemoryIrlBodyCache', () => {
       expect(err.byteLength).toBe(IRL_BODY_CACHE_MAX_BYTES + 100);
       expect(err.limit).toBe(IRL_BODY_CACHE_MAX_BYTES);
       expect(err.message).toContain('IRL_BODY_CACHE_MAX_BYTES');
-      expect(err.message).toContain('BL-076');
+      expect(err.message).toContain('IRL body cache rejected entry');
     }
   });
 });
@@ -265,7 +265,7 @@ describe('UpstashIrlBodyCache — BL-077a fail-loud + read-after-write probe', (
       const err = e as IrlBodyCacheWriteFailedError;
       expect(err.cause).toBe('write-returned-false');
       expect(err.irlBodyHash).toBe(HASH_A);
-      expect(err.message).toContain('BL-077a');
+      expect(err.message).toContain('IRL body cache write FAILED');
       expect(err.message).toContain('wrangler tail');
     }
   });

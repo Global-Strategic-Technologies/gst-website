@@ -149,7 +149,7 @@ describe('BL-079 — handleValidateIrlProvenanceTool cache-resolution path', () 
     );
     expect(result.isError).toBe(true);
     const text = result.content?.[0]?.type === 'text' ? result.content[0].text : '';
-    expect(text).toMatch(/BL-076 body-cache miss/);
+    expect(text).toMatch(/body-cache miss/);
     expect(text).toMatch(SAMPLE_HASH);
   });
 
