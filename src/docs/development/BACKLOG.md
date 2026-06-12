@@ -3969,38 +3969,46 @@ Hypothesis (medium confidence): Bucket B. The model has to emit the body regardl
 
 ---
 
-### BL-086: `gst_irl_ingestion` workflow simplification — staged leveled pruning (L0–L5) with opt-in restore args ⏳ OPEN — L0+L1 shipped 2026-06-08 (PR 1 / Option B); L2+L3 next (PR 2)
+### BL-086: `gst_irl_ingestion` workflow simplification — Option D (L0+L1 → verify → L2 → STOP) ⏳ OPEN — L0+L1 shipped 2026-06-08 (PR 1, v0.31.2); L2 next (PR 2)
 
-**Design doc**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) — full leveled architecture, per-level capability preservation matrix, three ship-cadence options, opt-in restore args specification.
+**Design doc**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) — full leveled architecture (L0–L5), Option D implementation guide, capability-preservation matrix, opt-in restore args specification.
 
 **Empirical motivation**: the 2026-06-07 evening exercise sequence produced a dual signal — interactive mode runs clean (33/33 verified, single envelope call, all counters balanced) AND partner-paste mode on v4.7+ refused execution citing jailbreak-pattern similarity. The workflow produces value when followed; the ~30KB prompt body accreted across BL-045 → BL-079 (≈20 PRs) now triggers safety patterns. Locally-justified PR-by-PR; globally producing model refusals.
 
-**Design evolution**: initial moderate draft → impartial audit pushed for Path A (aggressive single PR) → operator feedback: stage the cuts as independently-shippable levels with opt-in restore args for de-risked verification. **Current design**: five pruning levels (L0–L5) ordered from least to most aggressive.
+**Design evolution**: initial moderate draft → impartial audit pushed for Path A (aggressive single PR) → operator feedback: stage the cuts as independently-shippable levels (L0–L5) with opt-in restore args → final operator-pragmatic-analysis pass: stop at L2 with hard verification gates, defer L3-L5 to BL-087.
 
-**Pruning levels**:
+**The key insight that drives Option D**: the substrate is the discipline; the prose was the explanation. Every prior error this prompt body accreted around (BL-045/049/051/058/063/070/071/072/076/079/082) was actually fixed at the server-side substrate (server-enforced gates, server-computed values, server auto-appends). The **prose** documented the rules so the model would internalize them; it never was the enforcement mechanism. **Cutting prompt prose cannot regress to previously-fixed errors** — the substrate still catches them. The prose's actual value was first-call hit rates (worked examples reduced arg-shape-rejections; precheck loop pre-cleaned citations before compose). Both are latency optimizations, not correctness mechanisms.
+
+This asymmetry means L0+L1 are free (cosmetic + cleaner instructions, zero behavioral change), L2 is the only level with real bounded risk (1-2 extra retries per session, restorable via prompt-arg), and L3-L5 are operator-ergonomic choices that don't need pre-commitment.
+
+**Pruning levels** (L0–L5, ordered least-to-most aggressive):
 
 - ✅ **L0** — Runtime-vocabulary cleanup (shipped 2026-06-08 in PR 1, v0.31.1). Strip `BL-*` references / version pins / PR-history mentions from every `.describe()` call, error message, `TOOL_DESCRIPTION`. Zero behavioral change. Patch bump.
 - ✅ **L1** — Mode-conditional prose removal (shipped 2026-06-08 in PR 1, v0.31.2). Each builder emits ONE coherent path; no "if you see X... otherwise..." prose. Clearer model instructions. Patch bump.
 - **L2** — Worked-example deletion (Step 1 / Step 4a / Step 6a ~210 lines). Discipline shifts to tool error messages. **Opt-in restore**: `embedToolWorkedExamples: true` arg. Minor bump.
-- **L3** — Precheck-loop demotion. Delete `ENVELOPE_PRECHECK_DIRECTIVE`; compose internal verification still catches citations. **Opt-in restore**: `precheckCitations: true` arg. Minor bump.
-- **L4** — VERIFY block emission removal (delete `BL_045_VERIFY_DIRECTIVE` + schema-discipline prose; delete `hashBindResult` field as redundant with `irlSource`). **Opt-in restore**: `emitVerifyBlock: true` arg. Minor bump.
-- **L5** — `validate_irl_provenance` tool unregistration (engine + handler stay for compose internal use). Code-change to reverse (not arg-restorable). Minor bump.
+- **L3** — Precheck-loop demotion. **DEFERRED to BL-087.** Opt-in restore arg `precheckCitations: true` is spec'd in the doc for whenever L3 ships.
+- **L4** — VERIFY block emission removal + `hashBindResult` field deletion. **DEFERRED to BL-087.** Opt-in restore arg `emitVerifyBlock: true` is spec'd in the doc for whenever L4 ships.
+- **L5** — `validate_irl_provenance` tool unregistration. **DEFERRED to BL-087.** Engine + handler stay; only the MCP tool registration goes.
 
-**Cumulative effect** (after all levels): `irl-ingestion.ts` shrinks ~1,080 → ~600 lines (~44% reduction). Tool surface 12 → 11. Operator audit surface: structured tool output + (J) + (K). All BL-\* substrate (BL-076 / BL-077a/b/c / BL-079 Part B / BL-071 / BL-063 / BL-070 / BL-072 / BL-082) preserved verbatim at every level.
+**Option D — the recommended implementation guide**:
 
-**Opt-in restore args** (the de-risking mechanism): operators can A/B-test each L2/L3/L4 cut against the restored capability without code change. `embedToolWorkedExamples: true` re-includes worked examples. `precheckCitations: true` re-emits the precheck-loop directive. `emitVerifyBlock: true` re-emits the BL-045-VERIFY directive. All three booleans default false; use `booleanFromWire(z.boolean().optional()).optional()` per BL-082 wire-shape pattern.
+1. **PR 1 — L0 + L1 bundle** (~1 day, ~zero risk). Pure cleanup. Same tool calls, same outputs, same dossier shape. Hash rebaselines + a couple of test substring updates is the entire blast radius. Likely materially reduces v4.7+ refusal rate (conditional-mode prose is the clearest jailbreak-pattern surface).
+2. **Verification gate**: 1-2 staging exercises post-merge. Confirm dossier unchanged + v4.7+ no longer refuses.
+3. **PR 2 — L2 alone, `embedToolWorkedExamples` restore arg shipped in the same PR** (~0.5 day, bounded risk). Cut Step 1 / 4a / 6a worked-example megapayloads (~210 lines). Replace with one-paragraph workflow descriptions. Reversal is a prompt-form checkbox.
+4. **Verification gate**: 2-3 staging exercises. Track retry rates. If retry rate stays under ~2 per session, commit. If spike, flip the restore arg and revisit.
+5. **STOP**. Defer L3-L5 to BL-087 pending real empirical evidence on: is (J) growth acceptable? Does anyone consume the VERIFY block externally? Does anyone manually call `validate_irl_provenance`?
 
-**Ship cadence options**:
+**Why stop at L2**: L3 changes (J) gap-list semantics (more honest, but operator-readability shifts); L4 removes an audit surface whose external consumers can't be proven absent (asymmetric risk); L5 is the only non-arg-reversible cut. All three benefit from empirical evidence rather than pre-commitment.
 
-- **Option A — Maximum staging (5 PRs)**: L0 → L1 → L2 → L3 → L4 → L5 each separate. ~2.5–3.5d total; 1–2 weeks elapsed (operator verification gates between PRs). Smallest blast radius per PR.
-- **Option B — Pair cosmetic+structural (3 PRs)**: L0+L1, L2+L3, L4+L5 bundled. ~1d per PR. Verification gates between behavioral classes. **Recommended default**.
-- **Option C — Single PR (the prior Path A draft)**: All levels in one PR. ~2.5–3.5d. Highest blast radius, fastest total ship.
+**Cumulative effect of BL-086 Option D**: `irl-ingestion.ts` shrinks ~1,080 → ~790 lines (~27% reduction). Total ~1.5d active engineering. ~50% body shrinkage target deferred — partially shipped (PR 1+2), remainder reserved to BL-087.
 
-**Capability preservation matrix** (full version in doc): every server substrate and every server-enforced gate (BL-049 hash-bind, BL-063 partition + scope + Hub-backing, BL-070 verbatim-body, BL-071 counters, BL-072 reconstruction auto-append, BL-073 aliases, BL-076 body-by-hash, BL-077a/b/c diagnostics, BL-079 Part B prepop, BL-082 wire-shape adapters) stays at every level. Cuts (BL-058 VERIFY schema, BL-061 compaction asymmetry, BL-051 precheck forcing function, BL-079 Part A tool surface) all restorable via prompt-arg opt-in or known-acceptable as cosmetic.
+**Capability preservation matrix** (full version in doc): every server substrate and every server-enforced gate (BL-049 hash-bind, BL-063 partition + scope + Hub-backing, BL-070 verbatim-body, BL-071 counters, BL-072 reconstruction auto-append, BL-073 aliases, BL-076 body-by-hash, BL-077a/b/c diagnostics, BL-079 Part A engine + Part B prepop, BL-082 wire-shape adapters) stays. L0+L1 has zero behavioral change. L2's worked-example cut is restorable via prompt-arg.
 
-**Status**: ⏳ leveled design 2026-06-07 evening. Operator needs to pick (1) ship cadence (A / B / C), (2) confirm three-boolean opt-in args (vs composite `auditLevel` enum), (3) L5 inclusion or defer to BL-087. Implementation can start at L0 once approved.
+**Status**: ⏳ Option D implementation guide locked 2026-06-07. Ready to start at PR 1 (L0+L1) when implementation begins. No more design decisions required — only the verification gates between PRs.
 
-**Related**: BL-045 (the original audit discipline this simplifies), BL-058/BL-061/BL-062/BL-063/BL-071 (VERIFY schema expansions now restorable via opt-in arg, not removed entirely), BL-076 + BL-077 + BL-079 (substrate stack BL-086 keeps wholesale at every level), BL-082 (wire-shape adapters required for the opt-in args to function). **BL-087** (reserved): composite `auditLevel: 'standard' | 'enhanced' | 'debug'` sugar enum if operators ask for one-arg shorthand instead of three booleans.
+**Related**: BL-045 (original audit discipline), BL-058/BL-061/BL-062/BL-063/BL-071 (VERIFY schema expansions — preserved in BL-086 scope; only deferred-to-BL-087 if L4 ever ships), BL-076 + BL-077 + BL-079 (substrate stack preserved wholesale), BL-082 (wire-shape adapters required for `embedToolWorkedExamples` to function).
+
+**BL-087** (reserved): post-BL-086 implementation, after operator verification of PR 1+2 produces empirical evidence on the L3/L4/L5 deferred questions. Scope at re-evaluation time — may include any subset of L3 (precheck demotion + `precheckCitations` restore arg), L4 (VERIFY removal + `emitVerifyBlock` restore arg), L5 (tool unregistration), and the composite `auditLevel: 'standard' | 'enhanced' | 'debug'` sugar enum.
 
 ---
 
