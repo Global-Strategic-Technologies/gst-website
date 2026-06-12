@@ -95,12 +95,13 @@
   "overrides": {
     "path-to-regexp": "6.3.0",
     "fast-uri": "3.1.2",
+    "esbuild": "0.28.1",
     "@modelcontextprotocol/sdk": {
-      "hono": "4.12.18",
+      "hono": "4.12.25",
       "express-rate-limit": "8.5.1"
     },
     "@hono/node-server": {
-      "hono": "4.12.18"
+      "hono": "4.12.25"
     },
     "express-rate-limit": {
       "ip-address": "10.2.0"
