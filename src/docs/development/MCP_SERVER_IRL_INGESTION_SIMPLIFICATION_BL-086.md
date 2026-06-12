@@ -124,31 +124,109 @@ Substrate stays at every level. The matrix shows what each level cuts from defau
 
 ---
 
-## Recommended ship cadence
+## Recommended ship cadence — Option D (the pragmatic path)
 
-Three honest options:
+> **This is the implementation guide when it comes time to ship BL-086.** Earlier drafts framed this as a binary choice between three monolithic options (5 PRs / 3 PRs / 1 PR). The honest pragmatic answer is none of those — it is a two-PR sequence with a hard stop and deferred deeper cuts pending real empirical evidence.
 
-### Option A — Maximum staging (5 PRs)
+### Why the binary framing was wrong
 
-L0 → L1 → L2 → L3 → L4 → L5 each as a separate PR. Each merged + verified before the next opens. Total elapsed time: 1–2 weeks (depends on operator-verification windows between PRs). Total effort: ~2.5–3.5d. Smallest blast radius per PR.
+The doc's Options A/B/C all share an assumption: **commit to L0 → L5 as a planned sequence**. That assumption rests on an implicit equivalence between the cuts. The cuts are not equivalent. Specifically:
 
-**Use when**: any individual level scares you, or you want clean isolated empirical evidence per level.
+**The substrate is the discipline; the prose was the explanation.** Every prior error this prompt body accreted around (BL-045/049/051/058/063/070/071/072/076/079/082) was actually fixed at the server-side substrate: server-enforced gates (`Bl063PartitionViolationError`, `Bl070VerbatimBodyRequiredError`), server-computed values (`serverToolCallCounts`, `irlBodyHash`, `provenanceVerification`), server auto-appends (BL-072 reconstruction-mode → `provenance-gap:` entries in (J)). The **prose** documented the rules so the model would internalize them; it never was the enforcement mechanism.
 
-### Option B — Pair cosmetic + structural (3 PRs)
+This means cutting prompt prose **cannot regress to any of the previously-fixed errors**. The substrate still catches them. What the prose did provide was **first-call hit rates** — worked examples reduced arg-shape-rejection rates; the precheck loop pre-cleaned citations before compose. **Both are latency optimizations, not correctness mechanisms.** Output quality is unchanged either way; the server engines catch the same things either way.
 
-- **PR 1** — L0 + L1 bundle. Cosmetic cleanup + mode prose. Zero behavioral change. Ship effort ~1d.
-- **PR 2** — L2 + L3 bundle. Worked examples gone + precheck demoted, with both restore args (`embedToolWorkedExamples`, `precheckCitations`). Ship effort ~1d.
-- **PR 3** — L4 + L5 bundle. VERIFY block gone + validate tool unregistered, with restore arg (`emitVerifyBlock`). Ship effort ~1d.
+That asymmetry is the key insight: **L0 + L1 are free** (cosmetic + cleaner instructions, zero behavioral change). **L2 is the only level with real bounded risk** (1-2 extra arg-shape-rejection retries per session — and tonight's exercise had 1 retry WITH the worked examples in place, so the examples aren't the perfect prophylactic the prior draft treated them as). **L3-L5 are operator-ergonomic choices** that don't need to be pre-committed.
 
-**Use when**: you want fewer PRs but still want an operator-verification gate between behavioral classes (no-change → discipline-shift → audit-surface-shift).
+### The Option D sequence
 
-### Option C — Single PR (the prior Path A draft)
+**Ship two PRs, stop, reassess. Do not pre-commit to L3-L5.**
 
-All levels in one PR. Effort ~2.5–3.5d. Highest blast radius, fastest total ship.
+#### PR 1 — L0 + L1 bundle (~1 day, ~zero risk)
 
-**Use when**: you trust the doc + tests + your own verification, and you'd rather do one rebaseline cascade instead of three.
+Pure cleanup. Strip `BL-*` citations from prose + tool descriptions + error messages. Each builder emits one coherent path with no "if X otherwise Y" conditionals.
 
-**Recommended default: Option B.** Three PRs, each ~1 day, clean operator-verification windows between behavioral classes. The L0+L1 bundle is risk-free (cosmetic) and a good warm-up. The L2+L3 bundle exposes the discipline-shift cost (retries, (J) growth) with restore args available. The L4+L5 bundle is the cleanup tail.
+- **Behavioral change**: none. Same tool calls, same outputs, same dossier shape.
+- **Failure mode**: hash rebaselines + a couple of test substring-assertion updates. That is the entire blast radius.
+- **What it buys**: ~7% body shrinkage + clearer model instructions + the v4.7+ refusal rate likely drops materially (the conditional-mode prose is the clearest jailbreak-pattern surface — the model sees "if you see X, otherwise Y" and pattern-matches to scripted-compliance).
+- **Verification**: 1-2 staging exercises post-merge. Confirm dossier output unchanged. Confirm v4.7+ no longer refuses.
+
+Ship immediately.
+
+#### PR 2 — L2 alone, with the `embedToolWorkedExamples` restore arg shipped in the same PR (~0.5 day, bounded risk)
+
+Cut the Step 1 / Step 4a / Step 6a worked-example megapayloads. Replace with one-paragraph workflow descriptions per L2 spec. Ship the `embedToolWorkedExamples: true` arg in the same commit so the restore is one prompt-arg flip away.
+
+- **Behavioral change**: 1-2 extra arg-shape-rejection retries per session expected. Final output unchanged after retry. Tonight's run already had 1 retry with examples in place — so the floor is not zero; the delta is bounded.
+- **Failure mode**: if retry rate spikes above what you consider acceptable, set `embedToolWorkedExamples: true` on the next prompt invocation. Reversal is **literally one wizard-form checkbox**, no code change, no rebaseline.
+- **What it buys**: ~20% additional body shrinkage. Model gets discipline from tool error messages (already actionable: `Bl063PartitionViolationError` cites the rule; per-tool calibration rejections cite which calibration failed).
+- **Verification**: ship **after PR 1 has 2-3 staging exercises clean**. Then 2-3 more exercises against PR 2. Track retry counts. If retry count per session stays under ~2 across exercises, commit. If it spikes, flip the restore arg and revisit whether the worked examples are actually the right shape or whether the tool errors need sharpening.
+
+Ship after PR 1 verification window.
+
+#### STOP HERE. Do not ship L3 / L4 / L5 in this initiative.
+
+The reason is asymmetric cost/benefit on each:
+
+- **L3 (precheck-loop demotion)** — changes (J) gap list semantics. Today the precheck pre-cleans citations; tomorrow every tier-mismatch flows directly to compose's auto-append in (J). That is **more honest reporting**, not a regression — but it changes how operators read the dossier (more (J) entries on first compose call). The right way to commit is with 1-2 real exercises showing how the new (J) shape reads. Easy to ship as a one-line PR + restore arg whenever you want.
+
+- **L4 (VERIFY block removal)** — the audit grep showed no parser inside `mcp-server`. That is "no parser I could find," not "no parser exists." Cost of waiting: ~15% additional body shrinkage you don't get. Cost of premature cutting: an unknown external integration (operator runbook, downstream batch tool, audit pipeline) breaks. Asymmetric — the latter is recoverable but bad; the former is just unrealized improvement. Wait for an actual demand or an actual confirmed-no-consumer signal.
+
+- **L5 (`validate_irl_provenance` unregistration)** — the only non-arg-reversible cut. Saves ~10 lines of registration code. Operator-visible (tool disappears from tool-search). Wait until there is direct evidence no operator invokes it manually for debug. Cost of reversal is one PR cycle to re-register — bearable, but not worth pre-committing.
+
+**Defer L3-L5 to BL-087 reservation, pending L2 verification.** Re-evaluate after 2-3 staging exercises post-PR-2 merge.
+
+### What you give up vs what you keep with Option D
+
+**Give up**: ~50% body shrinkage as a one-shot target. You hit ~25-30% in PR 1+2 and defer the rest. Total ship time ~1.5d active engineering instead of ~3d.
+
+**Keep**:
+
+- **Reversibility on every consequential cut** (L2 via prompt-arg; L3/L4/L5 simply not yet shipped).
+- **Real empirical evidence before committing to operator-visible behavior changes**. The L3 / L4 / L5 questions ("is (J) growth acceptable?", "does anyone actually consume the VERIFY block?", "does anyone manually call validate?") all have _answers_ once L0-L2 ship and 2-3 staging exercises produce evidence.
+- **Freedom to say "the VERIFY block stays" or "validate stays registered"** after a bad week of dossier review. Or to confirm those cuts are safe. Either decision is empirical, not theoretical.
+- **A discipline that matches the stated goal** — "reduce bloat, maintain performance without regressing to previous errors" — not "maximize line-count delete velocity." Bloat is real; the previously-fixed errors are server-enforced and cannot regress; performance (output quality) is preserved at every L0-L2 step.
+
+### The shape of the bet
+
+You are betting that:
+
+1. **Server-side enforcement is the real discipline** — provably true; cited above.
+2. **First-call retries are acceptable latency** (≤30s extra per session in the worst case observed) — provably true from tonight's exercise showing 1 retry with examples in place.
+3. **Operator audit can continue via structured tool output for L2-shipped state** — the VERIFY block stays present until L4, so this bet does not need to be made until L4 is reconsidered.
+
+All three bets are either provably true or not yet required. The L3-L5 deferrals exist precisely so the not-yet-required bets stay deferred until real evidence makes them safe.
+
+### How to read this section when implementation time arrives
+
+When you pick BL-086 up to implement:
+
+1. Re-read the **"Why the binary framing was wrong"** subsection and confirm you still buy the substrate-vs-prose asymmetry.
+2. Start at PR 1 (L0 + L1). Aim for ~1 day. Verify on staging.
+3. Pause. Run 1-2 real exercises. Confirm dossier output is unchanged. Confirm v4.7+ no longer refuses.
+4. Ship PR 2 (L2 + `embedToolWorkedExamples` arg). Aim for ~0.5 day. Verify on staging.
+5. Run 2-3 real exercises. Track retry rate. If retry rate is acceptable, you are done with BL-086. If not, flip the restore arg and stop.
+6. **Defer L3-L5 to BL-087.** Schedule a re-evaluation conversation after you have a week or two of production evidence.
+
+This is the implementation guide. The pre-existing Options A/B/C are kept below for reference only.
+
+---
+
+### Reference: prior monolithic options (deprecated by Option D)
+
+The earlier draft considered three options. Documented here for traceability; Option D is recommended.
+
+#### Option A — Maximum staging (5 PRs)
+
+L0 → L1 → L2 → L3 → L4 → L5 each as a separate PR. Total ~2.5–3.5d effort, 1–2 weeks elapsed. Smallest blast radius per PR. **Use when**: any individual level scares you (Option D's PR 2 stop-and-reassess subsumes this concern more cleanly).
+
+#### Option B — Pair cosmetic + structural (3 PRs)
+
+L0+L1, L2+L3, L4+L5 bundled. ~1d per PR. **Use when**: you want fewer PRs (Option D subsumes the L0+L1 pairing and isolates L2 with a restore-arg safety net, which Option B doesn't).
+
+#### Option C — Single PR (the prior Path A draft)
+
+All levels in one PR. ~2.5–3.5d. **Use when**: never recommended unless you've already shipped L0-L4 in another branch and want to consolidate.
 
 ---
 
@@ -244,10 +322,16 @@ Each level's PR must satisfy:
 
 ## Status sentinel
 
-**Draft 2026-06-07 evening.** Supersedes the earlier monolithic-Path-A draft. Awaiting operator approval of:
+**Design locked, Option D recommended, awaiting implementation pickup.** Supersedes both the earlier monolithic-Path-A draft and the leveled-design draft's monolithic Option A/B/C choice. The pragmatic implementation path is:
 
-1. **Ship cadence**: Option A (5 PRs), Option B (3 PRs, recommended), or Option C (1 PR / prior Path A).
-2. **Opt-in restore args**: confirm the three booleans (`embedToolWorkedExamples`, `precheckCitations`, `emitVerifyBlock`) are the right shape. Optional `auditLevel` composite enum can be added later.
-3. **L5 inclusion** in the BL-086 scope, or defer L5 to a follow-on BL-087 ticket. L5 is the most reversibility-unfriendly cut.
+1. **PR 1 — L0 + L1 bundle.** Zero behavioral change. ~1d. Ship immediately when implementation begins.
+2. **Verification gate.** 1-2 staging exercises post-merge. Confirm dossier unchanged + v4.7+ no longer refuses.
+3. **PR 2 — L2 alone + `embedToolWorkedExamples` restore arg.** Bounded risk via the restore arg. ~0.5d.
+4. **Verification gate.** 2-3 staging exercises. Track retry rates.
+5. **Stop. Defer L3-L5 to BL-087 reservation** pending real evidence on the questions only operator exercises can answer: is (J) growth acceptable? Does anyone consume the VERIFY block externally? Does anyone manually call validate?
 
-Once approved, implementation can start at the chosen first level (typically L0 + L1 as a warm-up).
+**Why this works**: server-side enforcement is the real discipline; the prose is the explanation. Cutting the prose cannot regress to previously-fixed errors. L0+L1 are free. L2 is the only level with real bounded risk, and its restore arg is a one-form-checkbox reversal. L3-L5 are operator-ergonomic choices that benefit from empirical evidence rather than pre-commitment.
+
+The `precheckCitations` and `emitVerifyBlock` restore args specified in the doc remain valid for whenever L3 / L4 ship — but they ship in BL-087, not BL-086.
+
+**Total BL-086 effort**: ~1.5d active engineering (PR 1 ~1d + PR 2 ~0.5d) + 1-2 weeks elapsed for verification gates. ~25-30% body shrinkage shipped; remaining ~20% deferred to BL-087 pending evidence.
