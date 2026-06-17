@@ -26,7 +26,7 @@ const argsSchema = z.object({
     .min(10)
     .describe('Free-text description of the target — industry, theme, deal-shape signal.'),
   theme: z.string().optional(),
-  engagementCategory: enumFromWire(EngagementCategorySchema).optional(),
+  engagementCategory: enumFromWire(EngagementCategorySchema.optional()).optional(),
 });
 
 const PROMPT_NAME = 'gst_comparable_engagements_memo';

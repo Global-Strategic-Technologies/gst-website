@@ -21,6 +21,21 @@ describe('gst_comparable_engagements_memo', () => {
     ).toBe(false);
   });
 
+  it('argsSchema accepts empty-string optional fields (Claude Desktop wire shape — unfilled fields ship as "")', () => {
+    // Desktop ships every declared arg key, sending "" for unfilled optional
+    // fields rather than dropping the key. The enumFromWire `""` → undefined
+    // path must be accepted by the inner schema, so `.optional()` has to be
+    // applied INSIDE the wrapper, not just outside it. Regression for the
+    // "Failed to attach prompt" failure on gst_comparable_engagements_memo.
+    const r = comparableEngagementsMemoPrompt.argsSchema.safeParse({
+      ...VALID_ARGS,
+      theme: '',
+      engagementCategory: '',
+    });
+    expect(r.success, r.success ? '' : JSON.stringify(r.error.issues)).toBe(true);
+    if (r.success) expect(r.data.engagementCategory).toBeUndefined();
+  });
+
   it('argsSchema accepts optional theme + engagementCategory', () => {
     expect(
       comparableEngagementsMemoPrompt.argsSchema.safeParse({
