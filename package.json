@@ -96,6 +96,9 @@
     "path-to-regexp": "6.3.0",
     "fast-uri": "3.1.2",
     "esbuild": "0.28.1",
+    "vite": "7.3.5",
+    "@opentelemetry/core": "2.8.0",
+    "@opentelemetry/instrumentation-http": "0.219.0",
     "@modelcontextprotocol/sdk": {
       "hono": "4.12.25",
       "express-rate-limit": "8.5.1"
