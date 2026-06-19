@@ -1480,9 +1480,19 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
   }
 
   /* TechPar inputs inherit brutal-field__input base styles via scoped selector.
-     Default padding-left accommodates the $ prefix on most fields. */
-  .brutal-tool-shell--fluid input[type='number'],
-  .brutal-tool-shell--fluid input[data-arr-display] {
+     Default padding-left accommodates the $ prefix on most fields.
+
+     The input matchers are :global() for the same reason as the .tp-arr-chip
+     block below: the Costs-tab inputs are rendered by <PresetInput>
+     (src/components/techpar/PresetInput.astro), which carries its own Astro
+     scope hash. Without :global() on the input, Astro appends index.astro's
+     hash and the component-rendered inputs fall back to unstyled native number
+     fields (black border + spin buttons) — visible regression on the Costs tab.
+     The container (.brutal-tool-shell--fluid, in-file at the top of this page)
+     stays scoped, so the rule is still confined to this tool's shell. The
+     in-file ARR input (input[data-arr-display]) matches either way. */
+  .brutal-tool-shell--fluid :global(input[type='number']),
+  .brutal-tool-shell--fluid :global(input[data-arr-display]) {
     width: 100%;
     background: transparent;
     border: 2px dashed light-dark(var(--border-light), var(--border-dark-default));
@@ -1498,12 +1508,12 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
     border-radius: 0;
   }
 
-  .brutal-tool-shell--fluid input[type='number']::-webkit-inner-spin-button {
+  .brutal-tool-shell--fluid :global(input[type='number']::-webkit-inner-spin-button) {
     appearance: none;
   }
 
-  .brutal-tool-shell--fluid input[type='number']:focus,
-  .brutal-tool-shell--fluid input[data-arr-display]:focus {
+  .brutal-tool-shell--fluid :global(input[type='number']:focus),
+  .brutal-tool-shell--fluid :global(input[data-arr-display]:focus) {
     border-color: var(--color-primary);
     border-style: solid;
   }
