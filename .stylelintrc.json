@@ -78,6 +78,7 @@
         "at-rule-no-unknown": [true, { "ignoreAtRules": ["import", "layer"] }],
         "no-descending-specificity": [true, { "severity": "warning" }],
         "selector-max-specificity": ["0,4,1", { "severity": "warning" }],
+        "no-invalid-position-declaration": null,
         "max-nesting-depth": [3, { "ignoreAtRules": ["media", "supports", "container"] }],
         "selector-max-compound-selectors": 4,
         "declaration-block-no-shorthand-property-overrides": true,

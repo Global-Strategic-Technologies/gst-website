@@ -328,6 +328,10 @@ The override block in `.stylelintrc.json`:
 
 The base rules are duplicated inside the `.astro` override because stylelint's `extends` + `overrides` interaction does not inherit rules from the parent config. Keep the two rule sets in sync when editing.
 
+#### `no-invalid-position-declaration` disabled in the `.astro` override only
+
+The `.astro` override sets `"no-invalid-position-declaration": null`, while the base config (plain `.css`) leaves it enabled. As of stylelint 17.13.0 this rule fires false positives on HTML **inline `style="…"` attributes** in `.astro` markup (an inline style is declaration-only, so "declaration after a nested rule" is nonsensical there) — it flagged 983 such attributes across 17 components with zero real `.css` violations, and `--fix` cannot resolve them. This surfaced as a hard `lint:css` failure on every Dependabot dev-dependency bump that pulled stylelint ≥17.13 (e.g. PRs #263, #267). Suppressing it for `.astro` unblocks those bumps while keeping the rule active for real stylesheets. Re-enable once the upstream inline-style false positive is fixed.
+
 ### Running stylelint
 
 ```bash
