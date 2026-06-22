@@ -41,7 +41,7 @@
     "not IE 11"
   ],
   "dependencies": {
-    "@astrojs/sitemap": "^3.7.2",
+    "@astrojs/sitemap": "^3.7.3",
     "@astrojs/vercel": "^10.0.7",
     "@sentry/astro": "^10.52.0",
     "@vercel/speed-insights": "^2.0.0",
