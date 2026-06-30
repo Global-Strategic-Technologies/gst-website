@@ -5,7 +5,16 @@ permissions:
 
 on:
   push:
-    branches: [master, dev, 'feat/**', 'fix/**', 'feature/**']
+    # 'dependabot/**' is included here (unlike the deploy workflows) so that
+    # Dependabot rebases/recreates — which force-push to the dependabot branch
+    # and arrive as `synchronize`, NOT `opened`/`reopened` — still trigger the
+    # required Test Suite on the new head commit. Without it, a rebased
+    # Dependabot PR keeps its stale (or absent) required checks and is
+    # permanently BLOCKED. `synchronize` is still intentionally omitted from
+    # pull_request below to avoid double-firing on feat/fix/feature PRs (push
+    # already covers those); the push trigger is the single source of per-commit
+    # validation for all branch families.
+    branches: [master, dev, 'feat/**', 'fix/**', 'feature/**', 'dependabot/**']
   pull_request:
     branches: [master]
     # Deliberately NOT listening to `synchronize` — push covers every commit

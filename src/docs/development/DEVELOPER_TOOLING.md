@@ -88,7 +88,9 @@ git commit -m "..."
 
 **Important**: the hook runs **before** the commit is recorded. A file you staged with double-quotes and 4-space indent may end up in the commit with single-quotes and 2-space indent — that's Prettier doing its job between the stash and the record. If you see your commit look different than your working tree expected, that's why.
 
-### On every push to `master`, `dev`, `feat/**`, `fix/**`, `feature/**` and PRs to `master`
+### On every push to `master`, `dev`, `feat/**`, `fix/**`, `feature/**`, `dependabot/**` and PRs to `master`
+
+> **Why `dependabot/**` is in the push list.** The required CI workflows (`test.yml`, `npm-audit.yml`, `test-mcp-server.yml`) use `pull_request: types: [opened, reopened]` — deliberately **not** `synchronize` — and rely on the `push` trigger to validate each new commit on a PR branch. Dependabot **rebases/recreates** force-push to a `dependabot/**` branch, which arrives as a `synchronize` event (ignored) on a branch that was historically absent from the push list. The result: a rebased Dependabot PR kept its stale/absent required checks and was **permanently BLOCKED** — and `@dependabot rebase` could never fix it (the rebase is the very event that doesn't trigger CI). Adding `dependabot/**` to the **push** branch list of those three CI workflows gives Dependabot branches the same per-commit validation as `feat/**`/`fix/**`, without re-introducing the duplicate-run problem `synchronize` would cause. The **deploy** workflows (`deploy-mcp-staging.yml`, `deploy-mcp-production.yml`) intentionally **omit** `dependabot/**` so dependency bumps are validated but never auto-deployed. If a Dependabot PR is stuck BLOCKED on a commit that predates this fix, close+reopen it (fires `reopened`) to re-run the required suite.
 
 The GitHub Actions workflow [.github/workflows/test.yml](../../../.github/workflows/test.yml) runs a 3-job parallel-then-gate pipeline:
 
