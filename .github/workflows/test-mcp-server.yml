@@ -15,7 +15,12 @@ permissions:
 
 on:
   push:
-    branches: [master, dev, 'feat/**', 'fix/**', 'feature/**']
+    # Includes 'dependabot/**' (like test.yml / npm-audit.yml, unlike the deploy
+    # workflows) so Dependabot rebases — which arrive as `synchronize`, not
+    # opened/reopened — still validate the MCP surface on the new head commit.
+    # deploy-mcp-staging.yml / deploy-mcp-production.yml gate on their own branch
+    # list (no 'dependabot/**'), so dependency bumps are tested but never auto-deployed.
+    branches: [master, dev, 'feat/**', 'fix/**', 'feature/**', 'dependabot/**']
     paths:
       - 'mcp-server/**'
       - '!mcp-server/**/*.md'
