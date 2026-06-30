@@ -81,7 +81,7 @@ jobs:
           cache: 'npm'
 
       - name: Cache node_modules
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: nm-cache
         with:
           # `setup-node`'s `cache: 'npm'` only caches the ~/.npm tarball
