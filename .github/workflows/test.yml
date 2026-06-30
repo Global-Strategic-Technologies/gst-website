@@ -65,7 +65,7 @@ jobs:
       duplicate: ${{ steps.skip_dup.outputs.should_skip }}
       should_run: ${{ steps.decide.outputs.should_run }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - id: skip_dup
         # Check if a prior workflow run already passed with the same tree
         # hash. Replaces fkirc/skip-duplicate-actions (Node 20 deprecated).
@@ -143,7 +143,7 @@ jobs:
     steps:
       - name: Checkout code
         if: needs.changes.outputs.should_run == 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # The Prettier-diff step below needs `git merge-base origin/master HEAD`
           # to succeed on the merge-base fallback path (push event to a fresh
@@ -253,7 +253,7 @@ jobs:
     steps:
       - name: Checkout code
         if: needs.changes.outputs.should_run == 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         if: needs.changes.outputs.should_run == 'true'
@@ -332,7 +332,7 @@ jobs:
     steps:
       - name: Checkout code
         if: needs.changes.outputs.should_run == 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         if: needs.changes.outputs.should_run == 'true'
