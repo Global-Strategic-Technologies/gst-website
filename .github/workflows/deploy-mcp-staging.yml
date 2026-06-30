@@ -55,7 +55,7 @@ jobs:
           cache: npm
 
       - name: Cache node_modules
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: nm-cache
         with:
           # Reuses the cache key shape from test.yml + test-mcp-server.yml so
