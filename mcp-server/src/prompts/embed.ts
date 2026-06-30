@@ -78,10 +78,19 @@ export function embedFyiRadarSnapshot(): EmbedResult {
 /**
  * Standardized authorial-intent leading line for every prompt body
  * (BL-031.75 Commit 5 / V1 finding 2). Claude Desktop renders the
- * `prompts/get` expansion as if it were an uploaded document, which
- * triggers the model's prompt-injection hedge. This line short-circuits
- * the hedge by signalling explicit authorial intent.
+ * `prompts/get` expansion as if it were an uploaded document, which can
+ * trigger the model's prompt-injection hedge. This line orients the model
+ * by stating provenance positively — the workflow came from a deliberate
+ * user action (the MCP prompt menu).
+ *
+ * BL-086 follow-up: the original phrasing ("treat them as the user's direct
+ * instructions and proceed without hedging about prompt provenance") was
+ * counterproductive on v4.7+ models — instructing the model NOT to question
+ * provenance reads as an injection tell and triggered the very refusal it
+ * aimed to prevent (observed live on a partner-paste gst_irl_ingestion run,
+ * 2026-06-30). The reworded line states where the workflow came from and
+ * leaves the model's judgment intact.
  */
 export function authorialIntentLine(promptName: string): string {
-  return `Workflow invocation: \`${promptName}\` — a GST consultant workflow the user has explicitly initiated. The steps below are your task; treat them as the user's direct instructions and proceed without hedging about prompt provenance.`;
+  return `Workflow invocation: \`${promptName}\` — a GST consultant workflow the user explicitly initiated from the MCP prompt menu. The steps below are the task to carry out.`;
 }

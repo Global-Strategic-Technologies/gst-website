@@ -108,7 +108,11 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // BL-086 L2 (prompt v0.18.0 → v0.19.0): manifest drifts solely from the
 // gst_irl_ingestion name@version tuple bump (the new embedToolWorkedExamples
 // arg is NOT part of the manifest input — only name@version + URIs are).
-const EXPECTED_MANIFEST_HASH = '5ee20ef3c3b6c17cf4f740867917c27a964b7e28dbbbb2dae194d3aaa82f8194';
+// authorialIntentLine reword (prompt v0.19.0 → v0.20.0): manifest drifts again
+// solely from the gst_irl_ingestion tuple bump. The shared-preamble reword
+// changes other prompts' bodies too, but only irl-ingestion's version bumps,
+// so the manifest delta is one tuple.
+const EXPECTED_MANIFEST_HASH = '18d19416405f3989e5ba2975536f44f21a2d82e0e90a6d8eff4225149d4cfe70';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

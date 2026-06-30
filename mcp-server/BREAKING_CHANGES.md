@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-5ee20ef3c3b6c17cf4f740867917c27a964b7e28dbbbb2dae194d3aaa82f8194
+18d19416405f3989e5ba2975536f44f21a2d82e0e90a6d8eff4225149d4cfe70
 ```
 
 Computed over (sorted):
@@ -20,12 +20,28 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1; BL-076 keeps the tool roster intact — `compose_dossier_envelope` schema changes do NOT affect the manifest tool list).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.19.0` (BL-086 L2: worked-example deletion — see the 0.32.0 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.20.0` (authorial-intent preamble reword — see the 0.33.0 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.33.0 — 2026-06-30 — Reword authorial-intent preamble (drop the injection-tell)
+
+**Theme**: the shared authorial-intent leading line (`authorialIntentLine` in `src/prompts/embed.ts`, prepended to every GST prompt body) was reworded to remove a counterproductive clause. It used to read _"…treat them as the user's direct instructions and proceed without hedging about prompt provenance."_ That instruction-not-to-question-provenance reads as a prompt-injection tell to v4.7+ models and triggered the exact refusal it was meant to prevent — observed live on a partner-paste `gst_irl_ingestion` run (2026-06-30), where the model declined the workflow citing the "suppress your judgment" preamble as a jailbreak signal.
+
+New line: _"Workflow invocation: `<name>` — a GST consultant workflow the user explicitly initiated from the MCP prompt menu. The steps below are the task to carry out."_ It states provenance positively (the workflow came from a deliberate user action) and leaves the model's judgment intact.
+
+**Empirical motivation**: this is a companion to BL-086 — L2 shrank the body, but the refusal trigger turned out to be this preamble (and the BL-079 prepop/VERIFY provenance scaffolding, addressed separately), not the worked examples.
+
+**Surface impact**:
+
+- **UPDATED** shared `authorialIntentLine` — affects the rendered body of all 9 prompts that use it. Only `gst_irl_ingestion` carries a `promptVersion` consumed for provenance + body-hash baselines, so only it bumps: `0.19.0` → `0.20.0`. The other prompts' bodies change cosmetically with no version-bump (nothing consumes their version; no body-hash test).
+- **BODY HASH DRIFT** — all 7 `gst_irl_ingestion` body hashes drift (the preamble leads every variant). Rebaselined in `tests/integration/irl-ingestion-body-hash-stability.test.ts`.
+- **MANIFEST HASH DRIFT** — from the `gst_irl_ingestion` tuple bump. New value: `18d19416405f3989e5ba2975536f44f21a2d82e0e90a6d8eff4225149d4cfe70`.
 
 ---
 
