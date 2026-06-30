@@ -3969,9 +3969,18 @@ Hypothesis (medium confidence): Bucket B. The model has to emit the body regardl
 
 ---
 
-### BL-086: `gst_irl_ingestion` workflow simplification — Option D (L0+L1 → verify → L2 → STOP) ⏳ OPEN — L0+L1 shipped 2026-06-08 (PR 1, v0.31.2); L2 shipped 2026-06-30 (PR 2, prompt v0.19.0 / mcp-server 0.32.0). Post-merge staging-exercise verification (retry-count tracking) pending.
+### BL-086: `gst_irl_ingestion` workflow simplification — Option D (L0+L1 → verify → L2 → STOP) ✅ L2 VERIFIED 2026-06-30 — L0+L1 shipped 2026-06-08 (PR 1, v0.31.2); L2 shipped 2026-06-30 (PR 2, prompt v0.19.0 / mcp-server 0.32.0). Post-merge staging exercise passed; L3–L5 remain deferred to BL-087.
 
 **Design doc**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) — full leveled architecture (L0–L5), Option D implementation guide, capability-preservation matrix, opt-in restore args specification.
+
+**L2 verification (2026-06-30, partner-paste staging exercise on prompt v0.20.0 / mcp-server 0.33.0)** — single clean end-to-end run:
+
+- **Retry budget met**: `selfCorrectionCalls: 0`, exactly **1** arg-shape retry (`generate_diligence_agenda` attempt 1 → the tool's structured `Fix:` error coached `revenueRange=unknown` + `geographies` tier-2 → succeeded attempt 2). Within the doc's ≤~2/session gate. Confirms the L2 hypothesis: tool error messages carry first-call discipline once the worked examples are gone, at a bounded retry cost.
+- **Provenance pristine**: `irlSource: partner-paste-verbatim-prepop`, `hashBindResult: pass-bound`, full 51,383-byte body via prepop (no truncation), `provenanceVerification: 29 total / 24 verified / 5 fuzzy / 0 unverified / 0 tierMismatches / 0 tierFabrications`.
+
+**Key finding — the refusal trigger was NOT the worked examples.** A partner-paste run was _refused_ by v4.7+ on the L2 build (worked examples already gone). Root cause: the shared `authorialIntentLine` preamble ("…proceed without hedging about prompt provenance") read as a prompt-injection tell. Fixed by rewording it (PR #276, mcp-server 0.33.0 / prompt v0.20.0) — the re-run above then completed cleanly. The BL-079 prepop + VERIFY-block scaffolding did **not** trigger any refusal once the preamble was fixed, so the previously-considered "pull L4 forward + rework prepop provenance surfacing" work is **not needed for the refusal** and stays deferred to **BL-087**. Vindicates the doc's "stop at L2" call.
+
+> **Note (telemetry)**: in the VERIFY block, `compose_dossier_envelope` self-reports `{ attempted: 1, succeeded: 0 }`. This is intended BL-071 "in-flight self-report" semantics (the counter snapshots while the envelope call is still executing), documented at `compose-dossier-envelope.ts` and pinned by `tests/integration/bl-071-precheck-derivation.test.ts` + `bl-076-body-by-hash.test.ts`. Not a defect.
 
 **Empirical motivation**: the 2026-06-07 evening exercise sequence produced a dual signal — interactive mode runs clean (33/33 verified, single envelope call, all counters balanced) AND partner-paste mode on v4.7+ refused execution citing jailbreak-pattern similarity. The workflow produces value when followed; the ~30KB prompt body accreted across BL-045 → BL-079 (≈20 PRs) now triggers safety patterns. Locally-justified PR-by-PR; globally producing model refusals.
 
