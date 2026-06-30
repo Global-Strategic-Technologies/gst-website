@@ -214,12 +214,19 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // compact + extract-only paths skip the envelope-composition directive per its
 // header (`BLOCKING — full mode + verbosity verbose only`). promptVersion stays
 // at 0.18.0 — L0/L1 are not promptVersion-bumpable per the BL-086 doc.
+// BL-086 L2 rebaseline (prompt v0.18.0 → v0.19.0): the Step 1a / 4a / 6a
+// worked-example JSON megapayloads are now elided by default and gated behind
+// the new `embedToolWorkedExamples` arg. The examples live ONLY in
+// buildOneShotBody and are NOT verbosity-gated, so all three one-shot bodies
+// drift (minimal + full + full-compact); interactive and the 3 extract-only
+// bodies are unchanged. (The BL-086 design doc's "all 7 drift" prediction was
+// inaccurate — extract-only does not embed these blocks.)
 const EXPECTED_HASH_INTERACTIVE =
   'fbdd7fe8934ddaa4937abe7844cf47e00ed1519f0c79a414d238b7671e2f1fe9';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'a0c5c166e33ddced524bdfa5939e2f1d1cd069674b08dc3f2e906ce3e9b0ee03';
+  '58f64525ade6d9ab6327f4d6a0fe5d2366b3937267c413fdec039a0c085027e6';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '3f219040bb52f5c6e9f9c9e0593fe6422cdd78447aaa62f1b12193fffaad31d8';
+  'ac38b4556c48e8af9228a8cfa12c2cb5bbeca4e00dadb633ba650ead301bb5f4';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   'e2142f96edde5fb2b6d2e2e33797ab49f87b76675a184dcd213cb2e0d177352f';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
@@ -233,7 +240,7 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '69e34d3ecb3cb658ce0efe98ed7cbfc03fb706edd05e11ab4468fccba8cc4eba';
+  'fcd631bbb386bc16ef9646028b05b8a40886f58e8eb79ef42660a30d86cceec3';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
   '57db5b3add0796b40c7eff16a5e3b35801a59bb58d6615eb52d6af61357ee80a';
 
