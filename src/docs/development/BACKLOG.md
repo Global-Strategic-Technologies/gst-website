@@ -2376,7 +2376,7 @@ The BL-032.75 Phase 1 closeout audit (PR #179) explicitly claimed "NO manual pro
 - **Diligence engine as licensable IP** — converts a website utility into a productized capability with a clear commercial story, increasing the implied valuation of the firm's intellectual property
 - **Direct sales channel via MCP directories** — bypasses the traditional advisory-firm sales motion (introductions, conference networking) for technically-sophisticated buyers who self-discover and self-onboard
 - **Compliance posture as moat-builder** — clients who require SEC 17a-4-grade audit logs and SOC 2 / pen-test evidence cannot easily switch to a competitor without re-doing that compliance work; the audit infrastructure built here is itself a defensible asset
-- **Costs**: ~2 weeks engineering for the runtime + ongoing hosting (~$50–200/month for R2 storage, Workers paid tier, Upstash, Cloudflare Access per-user) + indeterminate legal review (NDA / DPA / SLA template — front-loaded, amortized across pilots)
+- **Costs**: ~~2 weeks engineering for the runtime + ongoing hosting (~~$50–200/month for R2 storage, Workers paid tier, Upstash, Cloudflare Access per-user) + indeterminate legal review (NDA / DPA / SLA template — front-loaded, amortized across pilots)
 - **Risk-adjusted upside**: even one Series A-tier PE client paying $2k/month covers all hosting + amortizes the engineering spend within 2 quarters; two pilot conversions clear the legal cost as well
 
 #### Acceptance Criteria
@@ -3969,7 +3969,7 @@ Hypothesis (medium confidence): Bucket B. The model has to emit the body regardl
 
 ---
 
-### BL-086: `gst_irl_ingestion` workflow simplification — Option D (L0+L1 → verify → L2 → STOP) ⏳ OPEN — L0+L1 shipped 2026-06-08 (PR 1, v0.31.2); L2 next (PR 2)
+### BL-086: `gst_irl_ingestion` workflow simplification — Option D (L0+L1 → verify → L2 → STOP) ⏳ OPEN — L0+L1 shipped 2026-06-08 (PR 1, v0.31.2); L2 shipped 2026-06-30 (PR 2, prompt v0.19.0 / mcp-server 0.32.0). Post-merge staging-exercise verification (retry-count tracking) pending.
 
 **Design doc**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) — full leveled architecture (L0–L5), Option D implementation guide, capability-preservation matrix, opt-in restore args specification.
 
@@ -3985,7 +3985,7 @@ This asymmetry means L0+L1 are free (cosmetic + cleaner instructions, zero behav
 
 - ✅ **L0** — Runtime-vocabulary cleanup (shipped 2026-06-08 in PR 1, v0.31.1). Strip `BL-*` references / version pins / PR-history mentions from every `.describe()` call, error message, `TOOL_DESCRIPTION`. Zero behavioral change. Patch bump.
 - ✅ **L1** — Mode-conditional prose removal (shipped 2026-06-08 in PR 1, v0.31.2). Each builder emits ONE coherent path; no "if you see X... otherwise..." prose. Clearer model instructions. Patch bump.
-- **L2** — Worked-example deletion (Step 1 / Step 4a / Step 6a ~210 lines). Discipline shifts to tool error messages. **Opt-in restore**: `embedToolWorkedExamples: true` arg. Minor bump.
+- ✅ **L2** — Worked-example deletion (Step 1a / Step 4a / Step 6a JSON megapayloads, shipped 2026-06-30 in PR 2, prompt v0.19.0 / mcp-server 0.32.0). Discipline shifts to the calibration prose (kept) + each tool's structured rejection diagnostic (verified actionable: `ruleId` + `Fix:`). **Opt-in restore**: `embedToolWorkedExamples: true` arg. Minor bump. Behavioral delta: ~1–2 extra arg-shape retries/session; output unchanged.
 - **L3** — Precheck-loop demotion. **DEFERRED to BL-087.** Opt-in restore arg `precheckCitations: true` is spec'd in the doc for whenever L3 ships.
 - **L4** — VERIFY block emission removal + `hashBindResult` field deletion. **DEFERRED to BL-087.** Opt-in restore arg `emitVerifyBlock: true` is spec'd in the doc for whenever L4 ships.
 - **L5** — `validate_irl_provenance` tool unregistration. **DEFERRED to BL-087.** Engine + handler stay; only the MCP tool registration goes.

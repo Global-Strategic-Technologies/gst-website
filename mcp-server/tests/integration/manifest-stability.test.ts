@@ -105,7 +105,10 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // `compose_dossier_envelope`. The `filledIrl` field is REMOVED from
 // `ComposeDossierEnvelopeInputSchema` — tool names + URIs are unchanged so
 // the manifest hash drift is solely the prompt name@version tuple).
-const EXPECTED_MANIFEST_HASH = 'f341908c909a54cb9946ddc07b187b578d0a1fc1a3e279beb43d29be8a29fa24';
+// BL-086 L2 (prompt v0.18.0 → v0.19.0): manifest drifts solely from the
+// gst_irl_ingestion name@version tuple bump (the new embedToolWorkedExamples
+// arg is NOT part of the manifest input — only name@version + URIs are).
+const EXPECTED_MANIFEST_HASH = '5ee20ef3c3b6c17cf4f740867917c27a964b7e28dbbbb2dae194d3aaa82f8194';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

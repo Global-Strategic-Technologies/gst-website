@@ -89,7 +89,7 @@ describe('gst_irl_ingestion', () => {
     // BL-045 reset: prompt version restarts at 0.1.0 to signal the substantive
     // rescope (rename, scenario-neutral framing, mode/verbosity/forceTools args,
     // inclusion gates, JSON fences, provenance footer, gap list).
-    expect(irlIngestionPrompt.version).toBe('0.18.0');
+    expect(irlIngestionPrompt.version).toBe('0.19.0');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -115,6 +115,21 @@ describe('gst_irl_ingestion', () => {
           projectCodeName: 'Cygnet',
         }).success
       ).toBe(true);
+    });
+
+    it('accepts embedToolWorkedExamples as a boolean and via wire-shape string forms', () => {
+      // BL-086 L2 restore arg. Mirrors requireVerbatimBody's booleanFromWire
+      // handling: real boolean, string "true"/"false" (Claude Desktop ships
+      // form fields as strings), and "" (unfilled field) → undefined.
+      for (const v of [true, false, 'true', 'false', '']) {
+        const r = irlIngestionPrompt.argsSchema.safeParse({
+          filledIrl: SAMPLE_FILLED_IRL,
+          embedToolWorkedExamples: v,
+        });
+        expect(r.success, `embedToolWorkedExamples=${JSON.stringify(v)} should parse`).toBe(true);
+      }
+      const empty = irlIngestionPrompt.argsSchema.safeParse({ embedToolWorkedExamples: '' });
+      expect(empty.success && empty.data.embedToolWorkedExamples).toBeUndefined();
     });
 
     it('rejects an invalid transactionContext enum value', () => {
@@ -214,6 +229,42 @@ describe('gst_irl_ingestion', () => {
         targetName: 'MedSig-Marker-XYZ',
       });
       expect(text).toContain('MedSig-Marker-XYZ');
+    });
+
+    // ─── BL-086 L2 — worked-example deletion + embedToolWorkedExamples ──────
+    // Distinctive markers that appear ONLY inside the Step 1a / 4a / 6a worked
+    // example JSON payloads (not in the kept calibration/anti-fab/enum prose).
+    const WORKED_EXAMPLE_MARKERS = [
+      'AKKR Emerging Buyout Partners', // Step 1a generate_diligence_agenda _audit citation
+      'monthlyAnchorCitation', // Step 4a compute_techpar annualization audit field (JSON-only)
+      'Fixture-clean shape', // Step 6a estimate_tech_debt_cost example comment
+    ];
+
+    it('elides the Step 1a/4a/6a worked-example payloads from the default one-shot body', () => {
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      for (const marker of WORKED_EXAMPLE_MARKERS) {
+        expect(
+          text,
+          `default body should NOT contain worked-example marker: ${marker}`
+        ).not.toContain(marker);
+      }
+      // The calibration / anti-fabrication / enum coaching prose STAYS — only
+      // the JSON megapayloads are cut.
+      expect(text).toContain('Step 1b — Calibration-clause guidance');
+      expect(text).toContain('**Critical anti-fabrication rules**');
+      expect(text).toContain('null discipline applies to `incidentsSource`');
+    });
+
+    it('restores the worked-example payloads when embedToolWorkedExamples: true', () => {
+      const text = bodyText(irlIngestionPrompt, {
+        filledIrl: SAMPLE_FILLED_IRL,
+        embedToolWorkedExamples: true,
+      });
+      for (const marker of WORKED_EXAMPLE_MARKERS) {
+        expect(text, `restored body should contain worked-example marker: ${marker}`).toContain(
+          marker
+        );
+      }
     });
 
     it('embeds the partner lead in the synthesis attribution when provided', () => {

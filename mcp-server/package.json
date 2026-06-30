@@ -1,6 +1,6 @@
 {
   "name": "@gst/mcp-server",
-  "version": "0.31.2",
+  "version": "0.32.0",
   "description": "Local stdio MCP server exposing the GST Hub surface (diligence, portfolio, ICG, TechPar, Tech Debt, Regulations, Radar) and Library + Regulation + Radar Resources.",
   "type": "module",
   "private": true,

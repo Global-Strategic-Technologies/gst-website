@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-f341908c909a54cb9946ddc07b187b578d0a1fc1a3e279beb43d29be8a29fa24
+5ee20ef3c3b6c17cf4f740867917c27a964b7e28dbbbb2dae194d3aaa82f8194
 ```
 
 Computed over (sorted):
@@ -20,12 +20,31 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1; BL-076 keeps the tool roster intact — `compose_dossier_envelope` schema changes do NOT affect the manifest tool list).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.18.0` (BL-079 Part B: prompt-render-time cache pre-population + skip-prepare directive + `partner-paste-verbatim-prepop` runScenario — model emits the IRL body ZERO times across the partner-paste workflow).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.19.0` (BL-086 L2: worked-example deletion — see the 0.32.0 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.32.0 — 2026-06-30 — BL-086 L2: worked-example deletion + `embedToolWorkedExamples` restore arg
+
+**Theme**: the three inline worked-example JSON megapayloads in the `gst_irl_ingestion` one-shot body — Step 1a (`generate_diligence_agenda._audit`), Step 4a (`compute_techpar._audit`), Step 6a (`estimate_tech_debt_cost._audit`) — are now **elided by default**. First-call shape discipline is carried by (a) the calibration / anti-fabrication / enum coaching prose, which stays, and (b) each tool's own structured rejection diagnostic, which already names the rule violated and the fix (verified actionable in `diligence-audit.ts` / `techpar-audit.ts` / `tech-debt-audit.ts` — every issue carries a `ruleId` + explicit `Fix:` clause). This removes ~one-fifth of the prompt body, continuing the BL-086 effort to shrink the body below the v4.7+ jailbreak-similarity refusal threshold.
+
+**Empirical motivation**: per the BL-086 design doc, the worked examples were a first-call-hit-rate latency optimization, never a correctness mechanism — the server substrate catches the same errors with or without them. The 2026-06-07 exercise showed 1 arg-shape retry _with_ the examples in place, so they were not the perfect prophylactic. Expected behavioral delta: ~1–2 self-correction retries per session on first tool calls (was 0–1); final dossier output unchanged.
+
+**Restore arg**: set `embedToolWorkedExamples: true` to inline the full worked-example payloads again — recommended for unfamiliar models with high arg-shape-rejection rates. Boolean, defaults to false (examples elided). Same `booleanFromWire` wire-shape handling as `requireVerbatimBody` (accepts `true`/`false` and string forms from Claude Desktop's slash-command form).
+
+**Surface impact**:
+
+- **UPDATED** `gst_irl_ingestion` prompt body — Steps 1a/4a/6a JSON examples now gated behind `embedToolWorkedExamples`; promptVersion `0.18.0` → `0.19.0`.
+- **NEW** `embedToolWorkedExamples` prompt arg (optional boolean).
+- **BODY HASH DRIFT** — the 3 one-shot body hashes (minimal, full, full-compact) drift; interactive + extract-only unchanged. Rebaselined in `tests/integration/irl-ingestion-body-hash-stability.test.ts`.
+- **MANIFEST HASH DRIFT** — from the `gst_irl_ingestion` name@version tuple bump. New value: `5ee20ef3c3b6c17cf4f740867917c27a964b7e28dbbbb2dae194d3aaa82f8194`.
+
+**Post-merge verification** (per design doc): run 2–3 staging partner-paste exercises tracking retry counts. If per-session retries stay under ~2 → commit. If they spike → flip `embedToolWorkedExamples: true` and revisit whether the tool errors need sharpening.
 
 ---
 
