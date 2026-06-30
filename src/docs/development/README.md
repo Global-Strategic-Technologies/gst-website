@@ -4,17 +4,20 @@ Strategic documentation for GST website development initiatives, tooling, and op
 
 ## Active Documents
 
-| Doc                                                            | Purpose                                                                                                               |
-| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| [BACKLOG.md](./BACKLOG.md)                                     | Consolidated backlog of all open development initiatives (35 user stories)                                            |
-| [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md)                 | Authoritative reference for lint, format, hooks, CI, browser targets                                                  |
-| [PERFORMANCE_OBSERVABILITY.md](./PERFORMANCE_OBSERVABILITY.md) | Lighthouse CI on PRs, weekly dashboard at <https://performance.globalstrategic.tech>, and the workflows that run them |
-| [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md)             | Sentry alert rules, source map upload, and consent gating setup reference                                             |
+| Doc                                                            | Purpose                                                                                                                   |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| [BACKLOG.md](./BACKLOG.md)                                     | Consolidated backlog of all open development initiatives (35 user stories)                                                |
+| [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md)                 | Authoritative reference for lint, format, hooks, CI, browser targets                                                      |
+| [OPERATOR_RUNBOOK.md](./OPERATOR_RUNBOOK.md)                   | Running `gst_irl_ingestion` dossiers: run tiers, reading the VERIFY block, client-ready gating, signoff, failure recovery |
+| [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md) | Converting a partner's filled `.xlsx` IRL to canonical markdown via `npm run irl:extract` for the partner-paste path      |
+| [PERFORMANCE_OBSERVABILITY.md](./PERFORMANCE_OBSERVABILITY.md) | Lighthouse CI on PRs, weekly dashboard at <https://performance.globalstrategic.tech>, and the workflows that run them     |
+| [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md)             | Sentry alert rules, source map upload, and consent gating setup reference                                                 |
 
 ## How to Use
 
 - **Looking for work to do?** Read [BACKLOG.md](./BACKLOG.md) — grouped by theme, each item is a self-contained user story
 - **Configuring tooling?** Read [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md) first
+- **Running a client-facing dossier?** Read [OPERATOR_RUNBOOK.md](./OPERATOR_RUNBOOK.md); to prepare the partner-paste input, [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md)
 - **Investigating a performance regression or adding a perf-budgeted page?** Read [PERFORMANCE_OBSERVABILITY.md](./PERFORMANCE_OBSERVABILITY.md)
 - **Setting up Sentry?** Read [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md)
 - **Writing CSS?** Start at [../styles/README.md](../styles/README.md)
