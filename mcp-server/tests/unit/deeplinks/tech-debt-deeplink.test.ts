@@ -39,18 +39,20 @@ describe('Tech Debt deep-link', () => {
     const decoded = decodeState(encoded!);
     const expected = rawToState(SAMPLE_INPUT);
 
-    // decodeState returns Partial<CalcState>; every field we populated should round-trip
+    // decodeState returns { state, adjusted }; in-range inputs round-trip
+    // verbatim with no clamping recorded.
     expect(decoded).not.toBeNull();
-    expect(decoded!.teamSize).toBe(expected.teamSize);
-    expect(decoded!.salary).toBe(expected.salary);
-    expect(decoded!.maintPct).toBe(expected.maintPct);
-    expect(decoded!.deployIdx).toBe(expected.deployIdx);
-    expect(decoded!.incidents).toBe(expected.incidents);
-    expect(decoded!.mttr).toBe(expected.mttr);
-    expect(decoded!.remediationBudget).toBe(expected.remediationBudget);
-    expect(decoded!.arr).toBe(expected.arr);
-    expect(decoded!.remediationPct).toBe(expected.remediationPct);
-    expect(decoded!.contextSwitchOn).toBe(expected.contextSwitchOn);
+    expect(decoded!.adjusted).toEqual([]);
+    expect(decoded!.state.teamSize).toBe(expected.teamSize);
+    expect(decoded!.state.salary).toBe(expected.salary);
+    expect(decoded!.state.maintPct).toBe(expected.maintPct);
+    expect(decoded!.state.deployIdx).toBe(expected.deployIdx);
+    expect(decoded!.state.incidents).toBe(expected.incidents);
+    expect(decoded!.state.mttr).toBe(expected.mttr);
+    expect(decoded!.state.remediationBudget).toBe(expected.remediationBudget);
+    expect(decoded!.state.arr).toBe(expected.arr);
+    expect(decoded!.state.remediationPct).toBe(expected.remediationPct);
+    expect(decoded!.state.contextSwitchOn).toBe(expected.contextSwitchOn);
   });
 
   it('preserves granular ARR precision in the deeplink (no slider-quantization loss)', () => {
@@ -66,9 +68,9 @@ describe('Tech Debt deep-link', () => {
     const url = buildTechDebtDeeplink(granular);
     const encoded = new URL(url).searchParams.get('s')!;
     const decoded = decodeState(encoded)!;
-    expect(decoded.arr).toBe(237_500_000);
-    expect(decoded.remediationBudget).toBe(1_750_000);
-    expect(decoded.salary).toBe(187_500);
+    expect(decoded.state.arr).toBe(237_500_000);
+    expect(decoded.state.remediationBudget).toBe(1_750_000);
+    expect(decoded.state.salary).toBe(187_500);
   });
 
   it('throws on unknown deployFrequency rather than emitting a malformed URL', () => {
