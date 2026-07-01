@@ -1,5 +1,36 @@
 [
   {
+    "id": "endurance",
+    "codeName": "Endurance",
+    "industry": "E-Commerce & Dropship Marketplace",
+    "theme": "Retail",
+    "summary": "Highly customized membership-based dropship commerce platform serving a walled-garden pro-deal marketplace across multiple storefronts and vendor portals, built on legacy .NET Framework with stored-procedure business logic, SSIS integration pipelines, Dapper ORM, and Cloudflare caching.",
+    "arr": "$6.7M",
+    "arrNumeric": 6700000,
+    "currency": "USD",
+    "growthStage": "Mature Enterprise",
+    "year": 2026,
+    "technologies": [
+      "ASP.NET MVC",
+      "C#",
+      ".NET Framework 4.8",
+      "Dapper ORM",
+      "SQL Server",
+      "SSIS",
+      "AspDotNetStorefront",
+      "Azure DevOps",
+      "Cloudflare",
+      "New Relic",
+      "Braintree",
+      "SPS Commerce EDI",
+      "Power BI"
+    ],
+    "engagementType": "Technical Diligence",
+    "challenge": "Assessing whether the target's architecture, infrastructure, organization, and processes can absorb ~20% annual transaction growth without disproportionate investment, and whether its security and privacy posture represents material operational risk.",
+    "solution": "Confirmed a stable, purpose-built commerce platform (zero major outages in 24 months, sub-500ms product grids) that sustains near-term growth, but flagged material security and privacy gaps (1,893 leaked records, active network malware, no SAST/DAST, no incident response plan, unpublished privacy policy), severe CTO key-person concentration, a single-region SQL Server single point of failure, legacy .NET 4.8 technical debt, and QuickBooks scaling limits requiring a mid-market ERP within 12-36 months.",
+    "engagementCategory": "Buy-Side"
+  },
+  {
     "id": "commodore",
     "codeName": "Commodore",
     "industry": "Workforce Management SaaS",
