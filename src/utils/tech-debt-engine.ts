@@ -197,6 +197,16 @@ export const fmtPayback = (months: number): string => {
 // (previous slider-position format quantized to 100 buckets and was lossy
 // at high ARR values). 'in' is a JS reserved word in some contexts — always
 // access as raw['in'].
+//
+// Producer/consumer domain note: the MCP `estimate_tech_debt_cost` tool
+// accepts a WIDER numeric domain than this calculator's sliders (e.g.
+// remediationBudget/arr `>= 0`, mttrHours `>= 0` including 0 as an "elided /
+// unknown" sentinel). A deeplink built from those inputs can therefore carry
+// values outside a slider's [min,max]. Rather than silently dropping such a
+// field back to an unrelated default — which makes a shared link misreport the
+// analysis it was built to convey — `decodeState` clamps each out-of-range
+// value to the nearest supported bound and records the field in `adjusted[]`
+// so the page can surface a visible "values were adjusted" notice.
 
 export function encodeState(state: CalcState): string {
   const compact = {
@@ -215,28 +225,64 @@ export function encodeState(state: CalcState): string {
   return btoa(JSON.stringify(compact));
 }
 
-export function decodeState(encoded: string): Partial<CalcState> | null {
+export interface DecodedState {
+  /** Fields present in the payload and usable — either verbatim (in range) or clamped to a bound. */
+  state: Partial<CalcState>;
+  /**
+   * Human-readable labels for fields that were present but had to be coerced:
+   * clamped to the nearest bound (out of range) or dropped (non-numeric). Empty
+   * when every shared value was honored exactly. The page renders these in a
+   * notice so a link built from the wider MCP input domain never silently
+   * decodes to an unrelated default without telling the reader.
+   */
+  adjusted: string[];
+}
+
+export function decodeState(encoded: string): DecodedState | null {
   try {
     const raw = JSON.parse(atob(encoded));
     if (typeof raw !== 'object' || raw === null) return null;
 
-    const out: Partial<CalcState> = {};
-    const isNum = (v: unknown, min: number, max: number): v is number =>
-      typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
+    const state: Partial<CalcState> = {};
+    const adjusted: string[] = [];
 
-    if (raw.a === 0 || raw.a === 1) out.advancedOpen = raw.a === 1;
-    if (isNum(raw.ts, 1, 500)) out.teamSize = raw.ts;
-    if (isNum(raw.sa, 60000, 1000000)) out.salary = raw.sa;
-    if (Number.isInteger(raw.mp) && raw.mp >= 0 && raw.mp <= 100) out.maintPct = raw.mp;
-    if (Number.isInteger(raw.di) && raw.di >= 0 && raw.di <= 8) out.deployIdx = raw.di;
-    if (Number.isInteger(raw['in']) && raw['in'] >= 0 && raw['in'] <= 20) out.incidents = raw['in'];
-    if (Number.isInteger(raw.mttr) && raw.mttr >= 1 && raw.mttr <= 48) out.mttr = raw.mttr;
-    if (isNum(raw.bg, 10000, 50000000)) out.remediationBudget = raw.bg;
-    if (isNum(raw.ar, 100000, 1000000000)) out.arr = raw.ar;
-    if (Number.isInteger(raw.re) && raw.re >= 0 && raw.re <= 100) out.remediationPct = raw.re;
-    if (raw.cs === 0 || raw.cs === 1) out.contextSwitchOn = raw.cs === 1;
+    // Clamp a present numeric field into [min,max] and assign it via `set`. An
+    // out-of-range value is coerced to the nearest bound; a non-numeric present
+    // value is dropped. Either coercion records `label` in `adjusted`. Absent
+    // fields are skipped silently (partial links are normal). Integer fields are
+    // rounded so the stored value stays representable on the slider control.
+    const clampNum = (
+      value: unknown,
+      min: number,
+      max: number,
+      label: string,
+      set: (v: number) => void,
+      isInt = false
+    ): void => {
+      if (value === undefined) return;
+      if (typeof value !== 'number' || !Number.isFinite(value)) {
+        adjusted.push(label);
+        return;
+      }
+      const rounded = isInt ? Math.round(value) : value;
+      const clamped = Math.min(max, Math.max(min, rounded));
+      if (clamped !== value) adjusted.push(label);
+      set(clamped);
+    };
 
-    return out;
+    if (raw.a === 0 || raw.a === 1) state.advancedOpen = raw.a === 1;
+    clampNum(raw.ts, 1, 500, 'Team Size', (v) => (state.teamSize = v), true);
+    clampNum(raw.sa, 60000, 1000000, 'Avg. Salary', (v) => (state.salary = v));
+    clampNum(raw.mp, 0, 100, 'Maintenance Burden', (v) => (state.maintPct = v), true);
+    clampNum(raw.di, 0, 8, 'Deployment Frequency', (v) => (state.deployIdx = v), true);
+    clampNum(raw['in'], 0, 20, 'Incidents / Mo', (v) => (state.incidents = v), true);
+    clampNum(raw.mttr, 1, 48, 'Avg. Time to Resolve', (v) => (state.mttr = v), true);
+    clampNum(raw.bg, 10000, 50000000, 'Remediation Budget', (v) => (state.remediationBudget = v));
+    clampNum(raw.ar, 100000, 1000000000, 'Annual Recurring Revenue', (v) => (state.arr = v));
+    clampNum(raw.re, 0, 100, 'Remediation Efficiency', (v) => (state.remediationPct = v), true);
+    if (raw.cs === 0 || raw.cs === 1) state.contextSwitchOn = raw.cs === 1;
+
+    return { state, adjusted };
   } catch {
     return null;
   }
