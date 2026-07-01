@@ -33,7 +33,7 @@ import {
   recordInoreaderStatus,
   type InoreaderObservedSource,
 } from '../observability/inoreader-status';
-import { toSnapshotItem, type SnapshotItem } from './radar-transform';
+import { filterFreshFyi, toSnapshotItem, type SnapshotItem } from './radar-transform';
 import type { Env } from '../worker';
 
 const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6h, matches website ISR window
@@ -181,6 +181,16 @@ export async function readWireLive(
  * On cache miss, calls Inoreader's annotated-stream endpoint via
  * `fetchAnnotatedItems`. Items are tagged `tier: 'fyi'`.
  *
+ * **Curated-item freshness**: returned items pass through `filterFreshFyi`
+ * (age cap `FYI_MAX_AGE_DAYS` + count cap `FYI_MAX_COUNT`). The filter runs
+ * at READ time on both the cache-hit and fresh-fetch paths — the Upstash
+ * cache stores the RAW items (unfiltered), so age is re-evaluated against
+ * the current clock on every read. An item therefore ages out the moment it
+ * crosses the cutoff, without waiting for the 6h TTL. Every live Worker
+ * consumer (website `/radar/snapshot`, `search_radar`, `get_latest_insights`,
+ * the `gst://radar/fyi` Resource, the hourly cron) routes through here, so
+ * this is the single enforcement point.
+ *
  * `opts.forceRefresh`: skip the cache lookup and always fetch from Inoreader.
  * Used by the BL-032.5 Phase 4 Worker Cron.
  *
@@ -196,9 +206,12 @@ export async function readFyiLive(
   if (cache && !opts.forceRefresh) {
     const cached = await cache.get<CachedTier>(CACHE_KEY_FYI);
     if (cached) {
-      // Limit cached items to the requested count (cache stores up to 30,
-      // callers may request fewer; just slice rather than re-fetching).
-      const items = cached.items.slice(0, count);
+      // Apply the freshness gate against the current clock (cache holds RAW
+      // items), then honor the caller's `count` upper bound. The trailing
+      // slice is a no-op in production — every caller passes count >= 30 and
+      // FYI_MAX_COUNT already caps lower — but preserves the "caller may
+      // request fewer" contract.
+      const items = filterFreshFyi(cached.items).slice(0, count);
       return { ok: true, tier: 'fyi', items, fetchedAt: cached.fetchedAt, cacheHit: true };
     }
   }
@@ -218,13 +231,21 @@ export async function readFyiLive(
   const fetchedAt = new Date().toISOString();
 
   if (cache) {
+    // Cache the RAW items (unfiltered) so the read-time freshness gate is
+    // always evaluated against the current clock — see docstring.
     await cache.set<CachedTier>(
       CACHE_KEY_FYI,
       { tier: 'fyi', items, fetchedAt },
       CACHE_TTL_SECONDS
     );
   }
-  return { ok: true, tier: 'fyi', items, fetchedAt, cacheHit: false };
+  return {
+    ok: true,
+    tier: 'fyi',
+    items: filterFreshFyi(items).slice(0, count),
+    fetchedAt,
+    cacheHit: false,
+  };
 }
 
 /** Map an InoreaderResult failure to the LiveTierResult failure shape. */

@@ -100,12 +100,17 @@ Create folders in Inoreader prefixed with `GST-`:
 
 ### FYI Content Retention
 
-FYI items have no time-based expiry on the GST side. Visibility is determined by a **most-recent-N window**:
+FYI (curated) items age out under a **dual cap** enforced Worker-side, so a curated take no longer pins indefinitely:
 
-- The Radar fetches the **30 most recent** annotated items from Inoreader each ISR cycle
-- An item remains visible until it falls outside that top-30 window (i.e., 30+ newer annotations push it off)
-- Removing annotations (highlights/notes) in Inoreader also removes the item
-- There is up to a **6-hour stale window** between an item leaving the API and disappearing from the page (due to ISR cache)
+- **Age cap** — `FYI_MAX_AGE_DAYS = 30`: an item is dropped once its **annotation** (`annotatedAt`) is more than 30 days old. Age is measured from the annotation date, not the article's publish date.
+- **Count cap** — `FYI_MAX_COUNT = 15`: at most the **newest 15** surviving items (by annotation date) render.
+- Both caps are applied by `filterFreshFyi` (`mcp-server/src/content/radar-transform.ts`) inside `readFyiLive` (`radar-live-store.ts`) — the single choke point every live consumer routes through (website `/radar/snapshot`, `search_radar`, `get_latest_insights`, the `gst://radar/fyi` Resource, the hourly cron).
+- The filter runs at **read time** against the current clock; the Upstash cache stores the **raw** annotated items, so an item ages out the moment it crosses 30 days — the 6h cache no longer delays expiry.
+- **The FYI tier may render empty** if every annotation is older than 30 days. That is the intended consequence of the age cap — there is no "keep newest N even if stale" fallback.
+- Removing annotations (highlights/notes) in Inoreader still removes the item on the next refresh.
+- Constants live in `radar-transform.ts` — tune both in one place.
+
+> **Offline tier is exempt (by design).** The seeded offline snapshot (`npm run radar:seed`, the `search_radar_offline` tool, the `gst_radar_brief_today` prompt embed) uses static fixture timestamps for deterministic, budget-free CI/dev. `filterFreshFyi` is **not** applied there — see the header note in `mcp-server/src/content/radar-snapshot.ts`.
 
 ## Page UX Features
 

@@ -15,6 +15,15 @@
  * We replicate the minimal cache-key + JSON-read logic locally rather
  * than reusing the website's `cache.ts` to keep the dependency surface
  * small (no Sentry import) and the budget-protection invariant explicit.
+ *
+ * FYI freshness gate is INTENTIONALLY NOT applied here. The live path
+ * (`radar-live-store.ts` `readFyiLive`) runs `filterFreshFyi` to age curated
+ * items out after 30 days. This offline reader deliberately does NOT — the
+ * seeded snapshot uses static fixture timestamps for deterministic, budget-
+ * free CI/dev, and age-filtering would make `search_radar_offline` and the
+ * embedded brief spontaneously empty once a committed fixture ages past the
+ * cutoff. The offline tier is a stand-in, not the source of truth; retention
+ * is enforced Worker-side only. See RADAR.md § FYI Content Retention.
  */
 
 import { createHash } from 'node:crypto';
