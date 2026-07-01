@@ -37,6 +37,15 @@ beforeAll(async () => {
       MCP_KEY_RP: TEST_KEY,
     },
   });
+
+  // Warm the worker before any test runs. `unstable_dev` resolves once the
+  // workerd process is spawned, but the FIRST `worker.fetch()` still pays a
+  // ~3s cold start (JIT-compiling + instantiating the module graph). Left
+  // unwarmed, that cost is billed to the first `it()` under vitest's 5000ms
+  // default test timeout — which intermittently times out under full-suite
+  // CPU contention. Paying it here, inside the 60s beforeAll budget, keeps
+  // every test's fetch on the warm (~10-90ms) path.
+  await worker.fetch('/health');
 }, 60_000);
 
 afterAll(async () => {
