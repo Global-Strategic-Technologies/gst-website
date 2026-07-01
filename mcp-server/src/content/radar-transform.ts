@@ -118,6 +118,58 @@ export function oldestItemDaysAgo(
 }
 
 /**
+ * Curated-item freshness caps (BL — Radar FYI time-limited pinning).
+ *
+ * FYI ("curated") items are Inoreader-annotated articles. Historically they
+ * had NO time-based expiry: an item stayed visible until 30 *newer*
+ * annotations pushed it out of the fetch window, so a curated take could
+ * float in the feed for months. These constants bound that: a curated item
+ * ages out `FYI_MAX_AGE_DAYS` after its annotation, and at most
+ * `FYI_MAX_COUNT` FYI items ever render. Applied via `filterFreshFyi` in
+ * `readFyiLive` (every live Worker consumer routes through it). The offline
+ * snapshot tier is intentionally exempt — see `radar-snapshot.ts`.
+ */
+export const FYI_MAX_AGE_DAYS = 30;
+export const FYI_MAX_COUNT = 15;
+
+/**
+ * Curated (FYI) freshness gate. Age is measured from `annotatedAt` (fallback
+ * `publishedAt`) — the product rule is "expire 30 days after *annotation*",
+ * not publication. Drops items older than `maxAgeDays` OR carrying an
+ * unparseable date (a retention filter must not leak items it cannot prove
+ * are fresh — the opposite defensiveness from `oldestItemDaysAgo`, which
+ * skips malformed dates when *measuring* age), then keeps the newest
+ * `maxCount` by annotation date.
+ *
+ * Boundary compares milliseconds directly (`now - ts <= maxAgeMs`): an item
+ * annotated exactly `maxAgeDays` ago is kept; `maxAgeDays` + 1ms is dropped.
+ * Future-dated annotations pass (negative age) and sort first, matching the
+ * future-clamp philosophy in `oldestItemDaysAgo`.
+ *
+ * Pure: pass `now` to make tests deterministic.
+ */
+export function filterFreshFyi(
+  items: readonly SnapshotItem[],
+  opts: { maxAgeDays: number; maxCount: number } = {
+    maxAgeDays: FYI_MAX_AGE_DAYS,
+    maxCount: FYI_MAX_COUNT,
+  },
+  now: number = Date.now()
+): SnapshotItem[] {
+  const maxAgeMs = opts.maxAgeDays * 86_400_000;
+  const keyMs = (it: SnapshotItem): number => Date.parse(it.annotatedAt ?? it.publishedAt);
+  return items
+    .filter((it) => {
+      const ts = keyMs(it);
+      if (!Number.isFinite(ts)) return false; // drop undate-able curated items
+      return now - ts <= maxAgeMs;
+    })
+    .slice()
+    .sort((a, b) => keyMs(b) - keyMs(a)) // newest-first BY annotation date
+    .slice(0, opts.maxCount);
+}
+
+/**
  * Transform an Inoreader API item into the SnapshotItem shape both the
  * offline tool and the live tools return. The `tier` parameter is the
  * caller's signal of which feed produced this item — FYI items carry

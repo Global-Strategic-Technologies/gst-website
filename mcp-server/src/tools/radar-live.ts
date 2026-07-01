@@ -248,7 +248,10 @@ export async function handleGetLatestInsights(
   if (breakerCheck) return breakerCheck;
 
   const limit = input.limit ?? 10;
-  const fyiResult = await readFyiLive(env, Math.max(limit, 30), { keyOwner }); // fetch 30 always so cache shared with search_radar
+  // Fetch 30 always so the Upstash cache is shared with search_radar. Note:
+  // readFyiLive caps FYI output at FYI_MAX_COUNT (15) via the freshness gate,
+  // so `limit` (schema max 30) can never actually yield more than 15 items.
+  const fyiResult = await readFyiLive(env, Math.max(limit, 30), { keyOwner });
   if (!fyiResult.ok) return failureResponse(env, fyiResult, 'live-get-latest-insights');
 
   const filtered = fyiResult.items

@@ -105,21 +105,31 @@ function jsonResponse(body: unknown, init?: ResponseInit): Response {
   });
 }
 
+// Anchor fixture timestamps to a recent, always-fresh base so the FYI
+// freshness gate (filterFreshFyi: drops annotations > 30 days old) never
+// removes them. The `published` argument is a small relative-recency rank
+// (higher = newer); we offset it from a base ~1 day ago, preserving the
+// ordering the sort-assertions rely on while keeping every item well inside
+// the 30-day window. Mirrors the `Date.now()`-anchoring in
+// tests/fixtures/radar-mock-data.ts.
+const RECENT_BASE_S = Math.floor(Date.now() / 1000) - 100_000;
+
 function makeInoreaderItem(
   id: string,
   published: number,
   category: 'GST-PE-MA' | 'GST-Enterprise-Tech' | 'GST-AI-Automation' | 'GST-Security',
   hasAnnotation = false
 ) {
+  const publishedTs = RECENT_BASE_S + published;
   return {
     id,
     title: `Title ${id}`,
-    published,
+    published: publishedTs,
     origin: { streamId: 's', title: 'Source', htmlUrl: 'https://example.com' },
     canonical: [{ href: `https://example.com/${id}` }],
     categories: [`user/-/label/${category}`],
     annotations: hasAnnotation
-      ? [{ id: 1, start: 0, end: 10, added_on: published, text: 'highlight', note: 'GST take' }]
+      ? [{ id: 1, start: 0, end: 10, added_on: publishedTs, text: 'highlight', note: 'GST take' }]
       : undefined,
   };
 }
@@ -232,6 +242,9 @@ describe('search_radar — happy path', () => {
 
 describe('search_radar — cache hit path', () => {
   it('returns cached items without invoking Inoreader fetch', async () => {
+    // Fresh annotatedAt so the read-time freshness gate keeps the cached
+    // item (cache holds raw items; filterFreshFyi runs on read).
+    const recentIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const cachedFyi = {
       tier: 'fyi',
       items: [
@@ -241,13 +254,14 @@ describe('search_radar — cache hit path', () => {
           url: 'https://example.com/cached',
           source: 'CachedSrc',
           category: 'pe-ma',
-          publishedAt: '2026-05-01T00:00:00.000Z',
+          publishedAt: recentIso,
+          annotatedAt: recentIso,
           annotation: { highlightedText: 'h', gstTake: 't' },
         },
       ],
-      fetchedAt: '2026-05-01T00:00:00.000Z',
+      fetchedAt: recentIso,
     };
-    const cachedWire = { tier: 'wire', items: [], fetchedAt: '2026-05-01T00:00:00.000Z' };
+    const cachedWire = { tier: 'wire', items: [], fetchedAt: recentIso };
 
     redisGet.mockImplementation(async (key: string) => {
       if (key === 'mcp:radar:cache:wire') return { storedAt: Date.now(), data: cachedWire };
