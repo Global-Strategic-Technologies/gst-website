@@ -587,17 +587,19 @@ describe('decodeState', () => {
   it('round-trips DEFAULT_STATE through encode → decode with full field equality', () => {
     const decoded = decodeState(encodeState(DEFAULT_STATE));
     expect(decoded).not.toBeNull();
-    expect(decoded!.advancedOpen).toBe(DEFAULT_STATE.advancedOpen);
-    expect(decoded!.teamSize).toBe(DEFAULT_STATE.teamSize);
-    expect(decoded!.salary).toBe(DEFAULT_STATE.salary);
-    expect(decoded!.maintPct).toBe(DEFAULT_STATE.maintPct);
-    expect(decoded!.deployIdx).toBe(DEFAULT_STATE.deployIdx);
-    expect(decoded!.incidents).toBe(DEFAULT_STATE.incidents);
-    expect(decoded!.mttr).toBe(DEFAULT_STATE.mttr);
-    expect(decoded!.remediationBudget).toBe(DEFAULT_STATE.remediationBudget);
-    expect(decoded!.arr).toBe(DEFAULT_STATE.arr);
-    expect(decoded!.remediationPct).toBe(DEFAULT_STATE.remediationPct);
-    expect(decoded!.contextSwitchOn).toBe(DEFAULT_STATE.contextSwitchOn);
+    expect(decoded!.adjusted).toEqual([]);
+    const s = decoded!.state;
+    expect(s.advancedOpen).toBe(DEFAULT_STATE.advancedOpen);
+    expect(s.teamSize).toBe(DEFAULT_STATE.teamSize);
+    expect(s.salary).toBe(DEFAULT_STATE.salary);
+    expect(s.maintPct).toBe(DEFAULT_STATE.maintPct);
+    expect(s.deployIdx).toBe(DEFAULT_STATE.deployIdx);
+    expect(s.incidents).toBe(DEFAULT_STATE.incidents);
+    expect(s.mttr).toBe(DEFAULT_STATE.mttr);
+    expect(s.remediationBudget).toBe(DEFAULT_STATE.remediationBudget);
+    expect(s.arr).toBe(DEFAULT_STATE.arr);
+    expect(s.remediationPct).toBe(DEFAULT_STATE.remediationPct);
+    expect(s.contextSwitchOn).toBe(DEFAULT_STATE.contextSwitchOn);
   });
 
   it('returns null for an empty string', () => {
@@ -613,43 +615,69 @@ describe('decodeState', () => {
   });
 
   it('returns an empty partial (not null) for valid JSON with no known keys', () => {
-    const encoded = btoa(JSON.stringify({ unknown: 99 }));
-    const result = decodeState(encoded);
+    const result = decodeState(btoa(JSON.stringify({ unknown: 99 })));
     expect(result).not.toBeNull();
-    expect(Object.keys(result!)).toHaveLength(0);
+    expect(Object.keys(result!.state)).toHaveLength(0);
+    expect(result!.adjusted).toEqual([]);
   });
 
   it('returns partial result when only some fields are present — valid fields included', () => {
-    const encoded = btoa(JSON.stringify({ mp: 60 }));
-    const result = decodeState(encoded);
+    const result = decodeState(btoa(JSON.stringify({ mp: 60 })));
     expect(result).not.toBeNull();
-    expect(result!.maintPct).toBe(60);
-    expect(result!.teamSize).toBeUndefined();
+    expect(result!.state.maintPct).toBe(60);
+    expect(result!.state.teamSize).toBeUndefined();
+    expect(result!.adjusted).toEqual([]);
   });
 
-  it('rejects teamSize > 500', () => {
-    expect(decodeState(btoa(JSON.stringify({ ts: 501 })))!.teamSize).toBeUndefined();
+  // ── Out-of-range values clamp to the nearest supported bound and are
+  //    reported in `adjusted`, rather than being silently dropped to an
+  //    unrelated default. The MCP `estimate_tech_debt_cost` tool accepts a
+  //    wider numeric domain than these sliders, so a valid deeplink can carry
+  //    values outside a slider's [min,max]; clamp-and-report keeps the shared
+  //    link honest instead of misreporting the analysis. ──
+
+  it('clamps teamSize > 500 down to 500 and records the adjustment', () => {
+    const r = decodeState(btoa(JSON.stringify({ ts: 501 })))!;
+    expect(r.state.teamSize).toBe(500);
+    expect(r.adjusted).toContain('Team Size');
   });
 
-  it('rejects teamSize < 1', () => {
-    expect(decodeState(btoa(JSON.stringify({ ts: 0 })))!.teamSize).toBeUndefined();
+  it('clamps teamSize < 1 up to 1 and records the adjustment', () => {
+    const r = decodeState(btoa(JSON.stringify({ ts: 0 })))!;
+    expect(r.state.teamSize).toBe(1);
+    expect(r.adjusted).toContain('Team Size');
   });
 
-  it('rejects out-of-range salary (< 60K or > 1M)', () => {
-    expect(decodeState(btoa(JSON.stringify({ sa: 50000 })))!.salary).toBeUndefined();
-    expect(decodeState(btoa(JSON.stringify({ sa: 1_500_000 })))!.salary).toBeUndefined();
+  it('clamps out-of-range salary to the 60K–1M bounds', () => {
+    expect(decodeState(btoa(JSON.stringify({ sa: 50000 })))!.state.salary).toBe(60000);
+    expect(decodeState(btoa(JSON.stringify({ sa: 1_500_000 })))!.state.salary).toBe(1_000_000);
   });
 
-  it('rejects out-of-range arr (< 100K or > 1B)', () => {
-    expect(decodeState(btoa(JSON.stringify({ ar: 50000 })))!.arr).toBeUndefined();
-    expect(decodeState(btoa(JSON.stringify({ ar: 2_000_000_000 })))!.arr).toBeUndefined();
+  it('clamps out-of-range arr to the 100K–1B bounds', () => {
+    expect(decodeState(btoa(JSON.stringify({ ar: 50000 })))!.state.arr).toBe(100000);
+    expect(decodeState(btoa(JSON.stringify({ ar: 2_000_000_000 })))!.state.arr).toBe(1_000_000_000);
   });
 
-  it('rejects out-of-range remediationBudget (< 10K or > 50M)', () => {
-    expect(decodeState(btoa(JSON.stringify({ bg: 5000 })))!.remediationBudget).toBeUndefined();
-    expect(
-      decodeState(btoa(JSON.stringify({ bg: 100_000_000 })))!.remediationBudget
-    ).toBeUndefined();
+  it('clamps out-of-range remediationBudget to the 10K–50M bounds', () => {
+    expect(decodeState(btoa(JSON.stringify({ bg: 5000 })))!.state.remediationBudget).toBe(10000);
+    expect(decodeState(btoa(JSON.stringify({ bg: 100_000_000 })))!.state.remediationBudget).toBe(
+      50_000_000
+    );
+  });
+
+  it('clamps remediationBudget = 0 (MCP "unknown" sentinel) up to the 10K floor and flags it', () => {
+    // Direct repro for the reported bug: MCP deeplinks encode bg:0 for an
+    // unknown budget. The old decoder dropped it → the page silently showed
+    // the $500K default and a wrong payback period.
+    const r = decodeState(btoa(JSON.stringify({ bg: 0 })))!;
+    expect(r.state.remediationBudget).toBe(10000);
+    expect(r.adjusted).toContain('Remediation Budget');
+  });
+
+  it('clamps mttr = 0 (MCP "elided" sentinel) up to the 1h floor and flags it', () => {
+    const r = decodeState(btoa(JSON.stringify({ mttr: 0 })))!;
+    expect(r.state.mttr).toBe(1);
+    expect(r.adjusted).toContain('Avg. Time to Resolve');
   });
 
   it('preserves typed-input precision through URL round-trip (no quantization)', () => {
@@ -658,122 +686,126 @@ describe('decodeState', () => {
     // raw dollars and must round-trip exactly.
     const granular = makeState({ arr: 237_500, salary: 187_500, remediationBudget: 423_000 });
     const decoded = decodeState(encodeState(granular))!;
-    expect(decoded.arr).toBe(237_500);
-    expect(decoded.salary).toBe(187_500);
-    expect(decoded.remediationBudget).toBe(423_000);
+    expect(decoded.state.arr).toBe(237_500);
+    expect(decoded.state.salary).toBe(187_500);
+    expect(decoded.state.remediationBudget).toBe(423_000);
+    expect(decoded.adjusted).toEqual([]);
   });
 
-  it('rejects deployIdx > 8', () => {
-    expect(decodeState(btoa(JSON.stringify({ di: 9 })))!.deployIdx).toBeUndefined();
+  it('clamps deployIdx > 8 to 8', () => {
+    expect(decodeState(btoa(JSON.stringify({ di: 9 })))!.state.deployIdx).toBe(8);
   });
 
-  it('rejects deployIdx < 0', () => {
-    expect(decodeState(btoa(JSON.stringify({ di: -1 })))!.deployIdx).toBeUndefined();
+  it('clamps deployIdx < 0 to 0', () => {
+    expect(decodeState(btoa(JSON.stringify({ di: -1 })))!.state.deployIdx).toBe(0);
   });
 
-  it('rejects maintPct < 0', () => {
-    expect(decodeState(btoa(JSON.stringify({ mp: -1 })))!.maintPct).toBeUndefined();
+  it('clamps maintPct < 0 to 0', () => {
+    const r = decodeState(btoa(JSON.stringify({ mp: -1 })))!;
+    expect(r.state.maintPct).toBe(0);
+    expect(r.adjusted).toContain('Maintenance Burden');
   });
 
-  it('accepts maintPct of 0', () => {
-    expect(decodeState(btoa(JSON.stringify({ mp: 0 })))!.maintPct).toBe(0);
+  it('accepts maintPct of 0 without flagging', () => {
+    const r = decodeState(btoa(JSON.stringify({ mp: 0 })))!;
+    expect(r.state.maintPct).toBe(0);
+    expect(r.adjusted).toEqual([]);
   });
 
-  it('rejects maintPct > 100', () => {
-    expect(decodeState(btoa(JSON.stringify({ mp: 101 })))!.maintPct).toBeUndefined();
+  it('clamps maintPct > 100 to 100', () => {
+    expect(decodeState(btoa(JSON.stringify({ mp: 101 })))!.state.maintPct).toBe(100);
   });
 
-  it('rejects mttr < 1', () => {
-    expect(decodeState(btoa(JSON.stringify({ mttr: 0 })))!.mttr).toBeUndefined();
+  it('clamps mttr > 48 to 48', () => {
+    expect(decodeState(btoa(JSON.stringify({ mttr: 49 })))!.state.mttr).toBe(48);
   });
 
-  it('rejects mttr > 48', () => {
-    expect(decodeState(btoa(JSON.stringify({ mttr: 49 })))!.mttr).toBeUndefined();
+  it('clamps incidents < 0 to 0', () => {
+    expect(decodeState(btoa(JSON.stringify({ in: -1 })))!.state.incidents).toBe(0);
   });
 
-  it('rejects incidents < 0', () => {
-    expect(decodeState(btoa(JSON.stringify({ in: -1 })))!.incidents).toBeUndefined();
+  it('clamps incidents > 20 to 20', () => {
+    expect(decodeState(btoa(JSON.stringify({ in: 21 })))!.state.incidents).toBe(20);
   });
 
-  it('rejects incidents > 20', () => {
-    expect(decodeState(btoa(JSON.stringify({ in: 21 })))!.incidents).toBeUndefined();
-  });
-
-  it('rejects float values for integer fields (e.g. deployIdx: 3.5)', () => {
-    expect(decodeState(btoa(JSON.stringify({ di: 3.5 })))!.deployIdx).toBeUndefined();
+  it('rounds float values for integer fields and flags the coercion (e.g. deployIdx: 3.5)', () => {
+    const r = decodeState(btoa(JSON.stringify({ di: 3.5 })))!;
+    expect(r.state.deployIdx).toBe(4);
+    expect(r.adjusted).toContain('Deployment Frequency');
   });
 
   it('rejects advancedOpen values that are not 0 or 1 (e.g. 2)', () => {
-    expect(decodeState(btoa(JSON.stringify({ a: 2 })))!.advancedOpen).toBeUndefined();
+    expect(decodeState(btoa(JSON.stringify({ a: 2 })))!.state.advancedOpen).toBeUndefined();
   });
 
   it('accepts advancedOpen: 1 and maps it to boolean true', () => {
-    expect(decodeState(btoa(JSON.stringify({ a: 1 })))!.advancedOpen).toBe(true);
+    expect(decodeState(btoa(JSON.stringify({ a: 1 })))!.state.advancedOpen).toBe(true);
   });
 
   it('accepts advancedOpen: 0 and maps it to boolean false', () => {
-    expect(decodeState(btoa(JSON.stringify({ a: 0 })))!.advancedOpen).toBe(false);
+    expect(decodeState(btoa(JSON.stringify({ a: 0 })))!.state.advancedOpen).toBe(false);
   });
 
   it('ignores unknown keys — returns only known fields', () => {
-    const encoded = btoa(JSON.stringify({ mp: 50, future_field: 'x', another: 99 }));
-    const result = decodeState(encoded)!;
-    expect(result.maintPct).toBe(50);
-    expect((result as any).future_field).toBeUndefined();
-    expect((result as any).another).toBeUndefined();
+    const result = decodeState(btoa(JSON.stringify({ mp: 50, future_field: 'x', another: 99 })))!;
+    expect(result.state.maintPct).toBe(50);
+    expect((result.state as any).future_field).toBeUndefined();
+    expect((result.state as any).another).toBeUndefined();
   });
 
   // ── remediationPct (re) ──
 
   it('round-trips remediationPct through encode/decode', () => {
-    const state = makeState({ remediationPct: 42 });
-    const decoded = decodeState(encodeState(state))!;
-    expect(decoded.remediationPct).toBe(42);
+    const decoded = decodeState(encodeState(makeState({ remediationPct: 42 })))!;
+    expect(decoded.state.remediationPct).toBe(42);
   });
 
-  it('rejects out-of-range remediationPct (> 100)', () => {
-    expect(decodeState(btoa(JSON.stringify({ re: 101 })))!.remediationPct).toBeUndefined();
+  it('clamps out-of-range remediationPct (> 100) to 100', () => {
+    expect(decodeState(btoa(JSON.stringify({ re: 101 })))!.state.remediationPct).toBe(100);
   });
 
-  it('rejects negative remediationPct', () => {
-    expect(decodeState(btoa(JSON.stringify({ re: -1 })))!.remediationPct).toBeUndefined();
+  it('clamps negative remediationPct to 0', () => {
+    expect(decodeState(btoa(JSON.stringify({ re: -1 })))!.state.remediationPct).toBe(0);
   });
 
-  it('rejects float remediationPct', () => {
-    expect(decodeState(btoa(JSON.stringify({ re: 50.5 })))!.remediationPct).toBeUndefined();
+  it('rounds float remediationPct and flags the coercion', () => {
+    const r = decodeState(btoa(JSON.stringify({ re: 50.5 })))!;
+    expect(r.state.remediationPct).toBe(51);
+    expect(r.adjusted).toContain('Remediation Efficiency');
   });
 
   // ── contextSwitchOn (cs) ──
 
   it('round-trips contextSwitchOn through encode/decode', () => {
-    const stateOn = makeState({ contextSwitchOn: true });
-    expect(decodeState(encodeState(stateOn))!.contextSwitchOn).toBe(true);
-    const stateOff = makeState({ contextSwitchOn: false });
-    expect(decodeState(encodeState(stateOff))!.contextSwitchOn).toBe(false);
+    expect(
+      decodeState(encodeState(makeState({ contextSwitchOn: true })))!.state.contextSwitchOn
+    ).toBe(true);
+    expect(
+      decodeState(encodeState(makeState({ contextSwitchOn: false })))!.state.contextSwitchOn
+    ).toBe(false);
   });
 
   it('rejects contextSwitchOn values that are not 0 or 1', () => {
-    expect(decodeState(btoa(JSON.stringify({ cs: 2 })))!.contextSwitchOn).toBeUndefined();
+    expect(decodeState(btoa(JSON.stringify({ cs: 2 })))!.state.contextSwitchOn).toBeUndefined();
   });
 
   it('backward compatibility: URLs missing re/cs still decode the rest', () => {
-    const partialEncoded = btoa(JSON.stringify({ mp: 25, ts: 50 }));
-    const result = decodeState(partialEncoded)!;
-    expect(result.maintPct).toBe(25);
-    expect(result.teamSize).toBe(50);
-    expect(result.remediationPct).toBeUndefined();
-    expect(result.contextSwitchOn).toBeUndefined();
+    const result = decodeState(btoa(JSON.stringify({ mp: 25, ts: 50 })))!;
+    expect(result.state.maintPct).toBe(25);
+    expect(result.state.teamSize).toBe(50);
+    expect(result.state.remediationPct).toBeUndefined();
+    expect(result.state.contextSwitchOn).toBeUndefined();
   });
 
   // Pre-2026-05 URLs encoded slider-position integers under the old keys
   // (sp, bp, ap). The new decoder ignores them — accepted breakage per
   // the BL-032.8-adjacent precision-thrash fix (2026-05-21).
   it('ignores legacy slider-position keys (sp, bp, ap)', () => {
-    const legacyEncoded = btoa(JSON.stringify({ sp: 50, bp: 50, ap: 50 }));
-    const result = decodeState(legacyEncoded)!;
-    expect(result.salary).toBeUndefined();
-    expect(result.remediationBudget).toBeUndefined();
-    expect(result.arr).toBeUndefined();
+    const result = decodeState(btoa(JSON.stringify({ sp: 50, bp: 50, ap: 50 })))!;
+    expect(result.state.salary).toBeUndefined();
+    expect(result.state.remediationBudget).toBeUndefined();
+    expect(result.state.arr).toBeUndefined();
+    expect(result.adjusted).toEqual([]);
   });
 });
 

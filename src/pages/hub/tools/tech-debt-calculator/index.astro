@@ -67,6 +67,9 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
           Methodology built from 100+ PE technology diligence engagements
         </p>
 
+        <!-- Shared-link range-adjustment notice (populated by decodeState on load) -->
+        <p class="tdc-shared-notice" data-shared-notice role="status" aria-live="polite" hidden></p>
+
         <!-- ── Core inputs ─────────────────────────────────────────── -->
         <div class="inputs-section">
           <div class="brutal-tool-shell__section-label section-label">Team & Cost</div>
@@ -632,6 +635,22 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
   /* ── Authority line ────────────────────────────────────────────────────── */
   .tdc-authority {
     padding: var(--spacing-sm) var(--spacing-2xl);
+  }
+
+  /* ── Shared-link range-adjustment notice ───────────────────────────────── */
+  .tdc-shared-notice {
+    margin: 0 var(--spacing-2xl) var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-left: 3px solid var(--color-secondary);
+    background: color-mix(in srgb, var(--color-secondary) 8%, transparent);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--text-primary);
+  }
+
+  .tdc-shared-notice[hidden] {
+    display: none;
   }
 
   /* ── Shared section padding ───────────────────────────────────────────── */
@@ -1400,9 +1419,23 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     history.replaceState(null, '', '?' + params.toString());
   }
 
-  function readUrlState(): Partial<CalcState> | null {
+  function readUrlState(): ReturnType<typeof decodeState> {
     const s = new URLSearchParams(window.location.search).get('s');
     return s ? decodeState(s) : null;
+  }
+
+  // Surface a visible notice when a shared link carried values outside the
+  // calculator's supported range (see decodeState's producer/consumer note).
+  // Without this, a clamped value looks indistinguishable from one the reader
+  // chose — the same silent-misreport failure mode this guard set out to fix.
+  function showSharedStateNotice(adjustedLabels: string[]): void {
+    const noticeEl = document.querySelector('[data-shared-notice]') as HTMLElement | null;
+    if (!noticeEl || adjustedLabels.length === 0) return;
+    noticeEl.textContent =
+      `Some values in this shared link were outside the calculator's supported range and have ` +
+      `been adjusted to the nearest limit: ${adjustedLabels.join(', ')}. Results reflect the ` +
+      `adjusted values.`;
+    noticeEl.hidden = false;
   }
 
   // ─── Currency ─────────────────────────────────────────────────────────────────
@@ -1684,8 +1717,9 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     // Apply URL-encoded state before initialising sliders so DOM positions match
     const urlState = readUrlState();
     if (urlState) {
-      Object.assign(state, urlState);
+      Object.assign(state, urlState.state);
       if (hasNonDefaultAdvanced(state)) state.advancedOpen = true;
+      showSharedStateNotice(urlState.adjusted);
     }
 
     initSliders();

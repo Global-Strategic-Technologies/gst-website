@@ -361,6 +361,32 @@ test.describe('Tech Debt Calculator', () => {
       expect(await getMetric(page, 'context-switch')).not.toBe('—');
     });
 
+    test('the reported repro link surfaces a range-adjustment notice for out-of-range values', async ({
+      page,
+    }) => {
+      // The exact ?s= payload from the bug report. It encodes bg:0 and mttr:0
+      // (MCP "unknown / elided" sentinels) which sit below the calculator's
+      // supported floors. The decoder must clamp them and the page must tell
+      // the reader — not silently swap in the $500K / 4h defaults.
+      const REPRO_STATE =
+        'eyJhIjowLCJ0cyI6NDIsInNhIjoxMDgwMDAsIm1wIjozMCwiZGkiOjYsImluIjowLCJtdHRyIjowLCJiZyI6MCwiYXIiOjMxNjgwMDAwLCJyZSI6MzAsImNzIjoxfQ==';
+
+      await gotoCalcWithParams(page, REPRO_STATE);
+
+      const notice = page.locator('[data-shared-notice]');
+      await expect(notice).toBeVisible();
+      await expect(notice).toContainText('Remediation Budget');
+      await expect(notice).toContainText('Avg. Time to Resolve');
+    });
+
+    test('an all-in-range deeplink shows no range-adjustment notice', async ({ page }) => {
+      const inRange = btoa(
+        JSON.stringify({ a: 0, ts: 40, sa: 200_000, mp: 45, di: 3, in: 3, mttr: 4, bg: 1_000_000 })
+      );
+      await gotoCalcWithParams(page, inRange);
+      await expect(page.locator('[data-shared-notice]')).toBeHidden();
+    });
+
     test('deeplink with only core (non-advanced) fields keeps the panel collapsed', async ({
       page,
     }) => {
