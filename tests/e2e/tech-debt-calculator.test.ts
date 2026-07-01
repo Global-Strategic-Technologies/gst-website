@@ -317,6 +317,68 @@ test.describe('Tech Debt Calculator', () => {
       expect(paramCost).not.toBe(defaultCost);
     });
 
+    // Regression: MCP-generated deeplinks encode `a:0` even when they populate
+    // advanced fields (deploy frequency, context-switch, custom ARR, etc.).
+    // Honoring a:0 blindly left the advanced panel collapsed and its results
+    // breakdown unrendered until the user manually toggled it open. The page
+    // must auto-expand when the incoming state carries non-default advanced values.
+    test('deeplink with non-default advanced fields auto-expands the advanced panel', async ({
+      page,
+    }) => {
+      // a:0 (panel flagged closed) but di:6 (Quarterly+), cs:1 (context-switch on),
+      // ar:$50M — all diverge from defaults. Mirrors an MCP-generated share link.
+      const advancedState = btoa(
+        JSON.stringify({
+          a: 0,
+          ts: 42,
+          sa: 108_000,
+          mp: 30,
+          di: 6,
+          in: 5,
+          mttr: 8,
+          bg: 1_000_000,
+          ar: 50_000_000,
+          re: 30,
+          cs: 1,
+        })
+      );
+
+      await gotoCalcWithParams(page, advancedState);
+
+      // Panel and results breakdown are open on arrival — no manual toggle needed
+      await expect(page.locator('[data-advanced-panel]')).not.toHaveClass(/is-hidden/);
+      await expect(page.locator('[data-adv-results]')).not.toHaveClass(/is-hidden/);
+      await expect(page.locator('[data-advanced-toggle]')).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.locator('[data-toggle-label]')).toHaveText('Hide Advanced Inputs');
+
+      // Advanced results reflect the deeplinked inputs (not em-dash placeholders)
+      expect(await getMetric(page, 'direct-labor')).not.toBe('—');
+      expect(await getMetric(page, 'velocity')).not.toBe('—');
+      expect(await getMetric(page, 'debt-pct-arr')).not.toBe('—');
+
+      // Context-switch was on in the link → its line item is visible with a value
+      await expect(page.locator('#ctx-switch-stat')).toBeVisible();
+      expect(await getMetric(page, 'context-switch')).not.toBe('—');
+    });
+
+    test('deeplink with only core (non-advanced) fields keeps the panel collapsed', async ({
+      page,
+    }) => {
+      // Only team-size/salary/maint differ; every advanced field is at default →
+      // nothing advanced to surface, so the panel should stay collapsed.
+      const coreOnlyState = btoa(
+        JSON.stringify({ a: 0, ts: 40, sa: 200_000, mp: 45, di: 3, in: 3, mttr: 4 })
+      );
+
+      await gotoCalcWithParams(page, coreOnlyState);
+
+      await expect(page.locator('[data-advanced-panel]')).toHaveClass(/is-hidden/);
+      await expect(page.locator('[data-advanced-toggle]')).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
+    });
+
     test('slider changes update the URL ?s= param', async ({ page }) => {
       await gotoCalc(page);
 

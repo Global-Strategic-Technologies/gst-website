@@ -1659,10 +1659,34 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
 
   // ─── Event wiring ─────────────────────────────────────────────────────────────
 
+  // Advanced-tier inputs live behind the collapsible panel. A shared link may
+  // carry non-default values for any of them (MCP-generated deeplinks always
+  // encode `a:0` regardless of the advanced fields they populate). If we honor
+  // `advancedOpen:false` blindly, the recipient lands on a collapsed panel whose
+  // advanced results breakdown is never rendered — the inputs are silently
+  // applied to the primary figure but invisible. Auto-expand when any advanced
+  // field diverges from its default so the full analysis is surfaced on arrival.
+  const ADVANCED_KEYS = [
+    'deployIdx',
+    'incidents',
+    'mttr',
+    'remediationBudget',
+    'arr',
+    'remediationPct',
+    'contextSwitchOn',
+  ] as const;
+
+  function hasNonDefaultAdvanced(s: CalcState): boolean {
+    return ADVANCED_KEYS.some((k) => s[k] !== DEFAULT_STATE[k]);
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     // Apply URL-encoded state before initialising sliders so DOM positions match
     const urlState = readUrlState();
-    if (urlState) Object.assign(state, urlState);
+    if (urlState) {
+      Object.assign(state, urlState);
+      if (hasNonDefaultAdvanced(state)) state.advancedOpen = true;
+    }
 
     initSliders();
     render();
