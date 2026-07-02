@@ -54,16 +54,35 @@ permissions:
   issues: write
 
 concurrency:
-  # Single global queue: production only deploys from master (enforced
-  # via the `if: github.ref == 'refs/heads/master'` job guard), so a
-  # branch-keyed group would never collide. Keeping the group key static
-  # makes the serialization semantic explicit: rapid successive merges
-  # queue strictly in arrival order. cancel-in-progress: false because
-  # mid-flight cancellation of `wrangler deploy` could leave the Worker
-  # partially uploaded — for a deploy workflow, queue-and-wait is the
-  # correct safety property.
+  # Single global group: production only deploys from master (enforced via
+  # the `if: github.ref == 'refs/heads/master'` job guard), so a
+  # branch-keyed group would never collide. The static key makes the
+  # serialization semantic explicit.
+  #
+  # cancel-in-progress: true — LATEST-WINS. `wrangler deploy` publishes the
+  # WHOLE Worker at a commit (not incremental), so deploying the newest SHA
+  # inherently includes every prior merge; there is never a reason to deploy
+  # a stale SHA once a newer one exists. When a new push arrives, it cancels
+  # the older un-deployed run and carries the approval flag itself — so an
+  # operator only ever has to approve the LATEST run, and approving it ships
+  # everything.
+  #
+  # Why NOT `false` (the original setting): a run parked in the environment
+  # approval `waiting` state STILL occupies the group. With `false`, one
+  # un-approved run head-of-line-blocks every later run indefinitely — the
+  # exact failure that left production a month behind (a June-03 run sat
+  # `waiting` and queued all subsequent deploys, including a radar hotfix,
+  # behind it). `true` makes the newest deploy independent of older ones.
+  #
+  # The one tradeoff `true` accepts: if two deploys land within the ~1-2 min
+  # deploy window, the newer may cancel an in-flight `wrangler deploy`. This
+  # is safe because (a) Cloudflare version publishes are atomic — an
+  # interrupted upload doesn't half-publish, it just doesn't flip the route;
+  # (b) the cancelling run immediately redeploys the newer SHA; and (c) the
+  # smoke probe below verifies /health.gitSha matches before the run is
+  # green. Net: a brief indeterminate window the superseding deploy resolves.
   group: deploy-mcp-production
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy-production:
