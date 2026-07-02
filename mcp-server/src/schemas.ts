@@ -126,7 +126,7 @@ export type RadarCategoryValue = z.infer<typeof RadarCategoryEnum>;
  * `limit` field that had no website counterpart (the page renders all 61
  * projects always; CSS hides filtered-out cards). `limit` was removed
  * under the capability-mirror invariant — see
- * `mcp-server/src/docs/portfolio/CONTRACT.md` for the rationale.
+ * `mcp-server/src/docs/tools/portfolio/CONTRACT.md` for the rationale.
  */
 // BL-064: array-batching union for theme + engagement. Mirrors the
 // `StringOrStringArray` pattern in `src/schemas/regulatory-map.ts` so the
@@ -169,7 +169,7 @@ export type ListPortfolioFacetsInput = z.infer<typeof ListPortfolioFacetsInputSc
 // `resolveTechparStageInput`) before invoking the engine.
 
 const ICG_STAGE_DESCRIPTION =
-  'Funding-stage cohort. Prefer canonical values (seed | series-a | series-b | series-c | pe | enterprise); ICG-native values (pre-series-b | series-bc | pe-backed | enterprise) are accepted for backward compatibility. ICG collapses canonical seed + series-a into pre-series-b and canonical series-b + series-c into series-bc — see contracts glossary in mcp-server/src/docs/contracts/README.md.';
+  'Funding-stage cohort. Prefer canonical values (seed | series-a | series-b | series-c | pe | enterprise); ICG-native values (pre-series-b | series-bc | pe-backed | enterprise) are accepted for backward compatibility. ICG collapses canonical seed + series-a into pre-series-b and canonical series-b + series-c into series-bc — see contracts glossary in mcp-server/src/docs/tools/README.md.';
 
 const TECHPAR_STAGE_DESCRIPTION =
   'Funding-stage cohort. Prefer canonical values (seed | series-a | series-b | series-c | pe | enterprise); TechPar-native values (seed | series_a | series_bc | pe | enterprise) are accepted for backward compatibility. TechPar collapses canonical series-b + series-c into series_bc.';

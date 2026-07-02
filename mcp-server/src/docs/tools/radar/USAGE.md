@@ -1,12 +1,12 @@
 # Usage — `search_radar_offline`: A Radar Brief Walkthrough
 
-A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../README.md) `search_radar_offline` tool (renamed from `search_radar_cache` in [BL-032 Phase 4b](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited); the deprecated `search_radar_cache` alias still works for one release) for a real-shaped task: pulling the most recent items from the GST Radar to draft a one-page pre-meeting brief on a specific category.
+A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../../README.md) `search_radar_offline` tool (renamed from `search_radar_cache` in [BL-032 Phase 4b](../../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited); the deprecated `search_radar_cache` alias still works for one release) for a real-shaped task: pulling the most recent items from the GST Radar to draft a one-page pre-meeting brief on a specific category.
 
-> **Sister tool**: [`search_radar`](../../../README.md) (live, Inoreader-touching, remote-MCP-only — ships under [BL-032 Phase 4c](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md)) — same shape, different source. Use `search_radar` when you want today's items; use `search_radar_offline` (this tool) when you want a deterministic snapshot for dev/CI/budget-exhausted contexts.
+> **Sister tool**: [`search_radar`](../../../../README.md) (live, Inoreader-touching, remote-MCP-only — ships under [BL-032 Phase 4c](../../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md)) — same shape, different source. Use `search_radar` when you want today's items; use `search_radar_offline` (this tool) when you want a deterministic snapshot for dev/CI/budget-exhausted contexts.
 
 This document is a **stakeholder orientation aid** — it answers "what does it actually look like to use this" without requiring the reader to install the server first. Every input and output below is reproducible by anyone with the MCP server registered in their Claude client and the local cache seeded via `npm run radar:seed`.
 
-> Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input reference) | [`../contracts/README.md`](../contracts/README.md) (registry of all per-tool contracts).
+> Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input reference) | [`../contracts/README.md`](../README.md) (registry of all per-tool contracts).
 
 > **The brief in this document is illustrative.** Item titles, sources, and GST Take excerpts are real-shaped (they come from the seeded mock fixture used for tests) but no specific deal or counterparty is being briefed.
 
@@ -30,7 +30,7 @@ In the MCP workflow, the partner asks Claude in the same chat thread that's alre
 
 ## What you actually type
 
-Inside any Claude client where the GST MCP server is registered (Claude Desktop, Claude Code, Cursor — see the [MCP server README](../../../README.md) for setup), describe the request in prose:
+Inside any Claude client where the GST MCP server is registered (Claude Desktop, Claude Code, Cursor — see the [MCP server README](../../../../README.md) for setup), describe the request in prose:
 
 > _"Pull the latest annotated radar items in enterprise-tech and ai-automation. I want a 90-second brief on what's happening in those two spaces — give me the GST Take voice, group by category, and end with a one-paragraph through-line across both."_
 
@@ -128,23 +128,23 @@ The cache itself is not new. The category filter is not new. **What is new is pu
 
 To run the exact scenario in this document:
 
-1. Set up the MCP server per [`mcp-server/README.md`](../../../README.md) → "Install & build" and "Configure clients" sections.
+1. Set up the MCP server per [`mcp-server/README.md`](../../../../README.md) → "Install & build" and "Configure clients" sections.
 2. Seed the local Radar cache: `npm run radar:seed` from the gst-website repo root.
 3. In a fresh Claude conversation with the `gst` server enabled, paste the prose prompt under [What you actually type](#what-you-actually-type).
 4. Compare the brief structure against the model output above.
 
-The cache TTL is 24 hours ([`src/lib/inoreader/cache.ts:18`](../../../../src/lib/inoreader/cache.ts#L18)) — re-run `npm run radar:seed` if the snapshot has aged out. The seed fixtures are deterministic; outputs are stable across runs against the same cache.
+The cache TTL is 24 hours ([`src/lib/inoreader/cache.ts:18`](../../../../../src/lib/inoreader/cache.ts#L18)) — re-run `npm run radar:seed` if the snapshot has aged out. The seed fixtures are deterministic; outputs are stable across runs against the same cache.
 
-For other use cases (live agenda drafting, comparable-deal recall), see [`mcp-server/README.md` → Why this exists (use cases)](../../../README.md#why-this-exists-use-cases).
+For other use cases (live agenda drafting, comparable-deal recall), see [`mcp-server/README.md` → Why this exists (use cases)](../../../../README.md#why-this-exists-use-cases).
 
 ---
 
 ## Related documentation
 
-- [`mcp-server/README.md`](../../../README.md) — install, configure, tool inventory, troubleshooting
+- [`mcp-server/README.md`](../../../../README.md) — install, configure, tool inventory, troubleshooting
 - [`CONTRACT.md`](./CONTRACT.md) — per-field input reference + capability-mirror invariant rationale
-- [`../contracts/README.md`](../contracts/README.md) — registry of all per-tool contracts
-- [`src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md`](../../../../src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md) § Phase 3 — closure stanza for the URL state restoration + capability-mirror refactor
+- [`../contracts/README.md`](../README.md) — registry of all per-tool contracts
+- [`src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md`](../../../../../src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md) § Phase 3 — closure stanza for the URL state restoration + capability-mirror refactor
 
 ---
 

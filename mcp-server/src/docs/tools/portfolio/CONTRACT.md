@@ -3,6 +3,9 @@ tool: search_portfolio
 version: v1
 lastAuthored: 2026-05-03
 schema: mcp-server/src/schemas.ts
+enumParity:
+  - tableHeading: '`engagement`'
+    schemaExport: src/schemas/portfolio.ts#ENGAGEMENT_CATEGORY_VALUES
 ---
 
 # Input Contract: `search_portfolio` + `list_portfolio_facets`
@@ -11,17 +14,17 @@ schema: mcp-server/src/schemas.ts
 >
 > **Sources of truth** (the contract cites these; it does not duplicate them):
 >
-> - **Validation**: [`mcp-server/src/schemas.ts`](../../schemas.ts) — `SearchPortfolioInputSchema`, `ListPortfolioFacetsInputSchema`
-> - **Project shape**: [`src/schemas/portfolio.ts`](../../../../src/schemas/portfolio.ts) — `ProjectSchema`, `EngagementCategorySchema`, `GrowthStageSchema`
-> - **Filter engine**: [`src/utils/filterLogic.ts`](../../../../src/utils/filterLogic.ts) — `filterProjects`, `getUnique*` helpers; the same code path the website uses (`PortfolioHeader.astro` script block)
-> - **URL encoder**: [`src/utils/portfolio-url.ts`](../../../../src/utils/portfolio-url.ts) — `serializeToParams` / `deserializeFromParams`. Imported by both the website page (hydrates filters from URL on init; writes URL on each change) and the MCP wrapper (`buildPortfolioDeeplink`); single source of truth for portfolio URL state.
-> - **Bundled dataset**: [`src/data/ma-portfolio/projects.json`](../../../../src/data/ma-portfolio/projects.json) — 61 anonymized engagements, validated against `ProjectsArraySchema` at MCP-server module init.
+> - **Validation**: [`mcp-server/src/schemas.ts`](../../../schemas.ts) — `SearchPortfolioInputSchema`, `ListPortfolioFacetsInputSchema`
+> - **Project shape**: [`src/schemas/portfolio.ts`](../../../../../src/schemas/portfolio.ts) — `ProjectSchema`, `EngagementCategorySchema`, `GrowthStageSchema`
+> - **Filter engine**: [`src/utils/filterLogic.ts`](../../../../../src/utils/filterLogic.ts) — `filterProjects`, `getUnique*` helpers; the same code path the website uses (`PortfolioHeader.astro` script block)
+> - **URL encoder**: [`src/utils/portfolio-url.ts`](../../../../../src/utils/portfolio-url.ts) — `serializeToParams` / `deserializeFromParams`. Imported by both the website page (hydrates filters from URL on init; writes URL on each change) and the MCP wrapper (`buildPortfolioDeeplink`); single source of truth for portfolio URL state.
+> - **Bundled dataset**: [`src/data/ma-portfolio/projects.json`](../../../../../src/data/ma-portfolio/projects.json) — 61 anonymized engagements, validated against `ProjectsArraySchema` at MCP-server module init.
 >
-> **Used by prompts** (BL-031.75): [`gst_comparable_engagements_memo`](../../prompts/) — composes a 1-page memo of comparable past engagements anchored on a free-text theme; calls `search_portfolio` once per theme and synthesises the memo from the matched `summary` / `challenge` / `solution` fields.
+> **Used by prompts** (BL-031.75): [`gst_comparable_engagements_memo`](../../../prompts/) — composes a 1-page memo of comparable past engagements anchored on a free-text theme; calls `search_portfolio` once per theme and synthesises the memo from the matched `summary` / `challenge` / `solution` fields.
 >
 > **Version**: `v1` | **Last authored**: 2026-05-03
 >
-> **Registry**: see [`../contracts/README.md`](../contracts/README.md) for the "what is an input contract" narrative, the cross-tool registry, and the per-tool spec template.
+> **Registry**: see [`../contracts/README.md`](../README.md) for the "what is an input contract" narrative, the cross-tool registry, and the per-tool spec template.
 
 ---
 
@@ -60,8 +63,13 @@ The empty input `{}` returns every project in the dataset. Supplying any combina
 
 - **Display label**: Engagement
 - **What it asks**: Which engagement-category chip is active.
-- **Valid values**: typically `"Buy-Side"` or `"Sell-Side"` (the values in `ENGAGEMENT_CATEGORY_VALUES`), or `"all"` to skip. The exact set is also data-driven via `list_portfolio_facets`.`engagementCategories`.
+- **Valid values**: one of the values below (from `ENGAGEMENT_CATEGORY_VALUES`), or `"all"` to skip. The live set is also surfaced data-driven via `list_portfolio_facets`.`engagementCategories`.
 - **Mirrors**: the Engagement chip row in the `/ma-portfolio` filter drawer.
+
+| ID          | Meaning                                  |
+| ----------- | ---------------------------------------- |
+| `Buy-Side`  | Advisory on the acquiring side of a deal |
+| `Sell-Side` | Advisory on the divesting side of a deal |
 
 **Downstream effect**: when not `"all"`, `filterProjects` excludes projects whose `engagementCategory !== input.engagement` (strict equality).
 
@@ -95,7 +103,7 @@ Zero arguments. The MCP tool returns the four facet dimensions present in the bu
 }
 ```
 
-**`deeplink`**: a URL that opens `/ma-portfolio` with the same three filters pre-applied. The website page (`PortfolioHeader.astro`) imports the same encoder via `src/utils/portfolio-url.ts` and hydrates from the URL on init; round-trip parity is verified by the integration test ([`mcp-server/tests/integration/portfolio-handler.test.ts`](../../../tests/integration/portfolio-handler.test.ts)).
+**`deeplink`**: a URL that opens `/ma-portfolio` with the same three filters pre-applied. The website page (`PortfolioHeader.astro`) imports the same encoder via `src/utils/portfolio-url.ts` and hydrates from the URL on init; round-trip parity is verified by the integration test ([`mcp-server/tests/integration/portfolio-handler.test.ts`](../../../../tests/integration/portfolio-handler.test.ts)).
 
 **Empty-result path**: `matches: []`, `totalMatched: 0`, `returned: 0` — same shape as a populated result. The deeplink is still emitted (a copied URL with no matches still lands on the correct filtered view; the website renders a "no projects match your filters" message in the same DOM state).
 
@@ -105,7 +113,7 @@ Zero arguments. The MCP tool returns the four facet dimensions present in the bu
 
 **The MCP tool's input schema mirrors the website's filter UI exactly.**
 
-The `/ma-portfolio` page surfaces three filter controls (the search input + Theme chip row + Engagement chip row in [`src/components/portfolio/PortfolioHeader.astro`](../../../../src/components/portfolio/PortfolioHeader.astro) + [`src/components/portfolio/FilterDrawer.astro`](../../../../src/components/portfolio/FilterDrawer.astro)). Pre-BL-031.95-Phase-4.A, the MCP tool also accepted a `limit` field (default 20, max 61); the website renders all 61 projects always (CSS `display: none` hides filtered-out cards), so a tool-level `limit` had no website counterpart and was removed under the capability-mirror invariant.
+The `/ma-portfolio` page surfaces three filter controls (the search input + Theme chip row + Engagement chip row in [`src/components/portfolio/PortfolioHeader.astro`](../../../../../src/components/portfolio/PortfolioHeader.astro) + [`src/components/portfolio/FilterDrawer.astro`](../../../../../src/components/portfolio/FilterDrawer.astro)). Pre-BL-031.95-Phase-4.A, the MCP tool also accepted a `limit` field (default 20, max 61); the website renders all 61 projects always (CSS `display: none` hides filtered-out cards), so a tool-level `limit` had no website counterpart and was removed under the capability-mirror invariant.
 
 The website page does not (today) surface filters for `growthStage`, `year`, `industry`, `engagementType`, or any free-text against `challenge` / `solution`. Those fields are visible on individual cards / modals but not used as filter axes; the MCP tool follows suit. If a future website filter ships for any of those dimensions, the encoder + decoder + tool input schema grow in lockstep with the website surface.
 
@@ -121,10 +129,10 @@ The website page does not (today) surface filters for `growthStage`, `year`, `in
 
 ## Related
 
-- Tool wrapper: [`mcp-server/src/tools/portfolio.ts`](../../tools/portfolio.ts)
-- Filter engine: [`src/utils/filterLogic.ts`](../../../../src/utils/filterLogic.ts)
-- URL encoder: [`src/utils/portfolio-url.ts`](../../../../src/utils/portfolio-url.ts)
+- Tool wrapper: [`mcp-server/src/tools/portfolio.ts`](../../../tools/portfolio.ts)
+- Filter engine: [`src/utils/filterLogic.ts`](../../../../../src/utils/filterLogic.ts)
+- URL encoder: [`src/utils/portfolio-url.ts`](../../../../../src/utils/portfolio-url.ts)
 - Walkthrough: [`USAGE.md`](./USAGE.md)
 - Live website: <https://globalstrategic.tech/ma-portfolio>
-- Architecture: [BL-031.95 Hub Tools URL State Restoration & MCP Deep-Link Surface](../../../../src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md) — Phase 4 (Portfolio URL state) closure
-- Integration test: [`mcp-server/tests/integration/portfolio-handler.test.ts`](../../../tests/integration/portfolio-handler.test.ts)
+- Architecture: [BL-031.95 Hub Tools URL State Restoration & MCP Deep-Link Surface](../../../../../src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md) — Phase 4 (Portfolio URL state) closure
+- Integration test: [`mcp-server/tests/integration/portfolio-handler.test.ts`](../../../../tests/integration/portfolio-handler.test.ts)

@@ -10,14 +10,16 @@ import { z } from 'zod';
  * The human-readable reference for the `search_regulations` /
  * `list_regulation_facets` MCP tools (jurisdiction code conventions,
  * URI taxonomy, sub-region detection rules) lives at:
- *   `mcp-server/src/docs/regulatory-map/CONTRACT.md`
+ *   `mcp-server/src/docs/tools/regulatory-map/CONTRACT.md`
  */
-export const RegulationCategorySchema = z.enum([
+export const REGULATION_CATEGORY_VALUES = [
   'data-privacy',
   'ai-governance',
   'industry-compliance',
   'cybersecurity',
-]);
+] as const;
+
+export const RegulationCategorySchema = z.enum(REGULATION_CATEGORY_VALUES);
 
 export const RegulationSchema = z.object({
   id: z.string().min(1),

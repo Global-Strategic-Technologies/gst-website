@@ -1,10 +1,10 @@
 # Usage — `generate_diligence_agenda`: A TDD Walkthrough
 
-A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../README.md) `generate_diligence_agenda` tool for a real-shaped task: drafting a Technical Due Diligence agenda for a client evaluating a private-equity investment.
+A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../../README.md) `generate_diligence_agenda` tool for a real-shaped task: drafting a Technical Due Diligence agenda for a client evaluating a private-equity investment.
 
 This document is a **stakeholder orientation aid** — it answers "what does it actually look like to use this" without requiring the reader to install the server first. Every input and output below is reproducible by anyone with the MCP server registered in their Claude client.
 
-> Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input reference) | [`../contracts/README.md`](../contracts/README.md) (registry of all per-tool contracts).
+> Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input reference) | [`../contracts/README.md`](../README.md) (registry of all per-tool contracts).
 
 > **The deal in this document is hypothetical.** No real client, target, or codename. The portfolio engagements pulled in for analogical reference (Fusion, Ultra2, Fender) are real anonymized engagements from the bundled portfolio dataset, but their use here as comparables is illustrative — actual engagement matching in a real deal would involve human judgment, not a string match.
 
@@ -50,7 +50,7 @@ This is a realistic mid-market PE shape: the target is mature enough that the au
 
 ## What you actually type
 
-Inside any Claude client where the GST MCP server is registered (Claude Desktop, Claude Code, Cursor — see the [MCP server README](../../../README.md) for setup), you would type the deal description in prose. No structured input, no schema knowledge required:
+Inside any Claude client where the GST MCP server is registered (Claude Desktop, Claude Code, Cursor — see the [MCP server README](../../../../README.md) for setup), you would type the deal description in prose. No structured input, no schema knowledge required:
 
 > _"I'm doing TDD for a client evaluating a majority-stake in a 12-year-old B2B SaaS targeting mid-market financial services. ~$50M ARR, ~250 employees, scaling stage. Modern cloud-native AWS/EKS, multi-tenant productized platform, moderate scale intensity. They have customers in US, Canada, and EU (German entity handles EU). Currently replatforming a legacy reporting module. They handle high-sensitivity data (PII + financial records). Squad-based product-aligned engineering org. Generate the diligence agenda."_
 
@@ -211,22 +211,22 @@ The engine is not new. The 61-engagement dataset is not new. **What is new is pu
 
 To run the exact scenario in this document:
 
-1. Set up the MCP server per [`mcp-server/README.md`](../../../README.md) → "Install & build" and "Configure clients" sections.
+1. Set up the MCP server per [`mcp-server/README.md`](../../../../README.md) → "Install & build" and "Configure clients" sections.
 2. In a fresh Claude conversation with the `gst` server enabled, paste the prose prompt under [What you actually type](#what-you-actually-type).
 3. Compare the agenda against the structure under [What the agenda the engine returns](#the-agenda-the-engine-returns).
 
 Outputs will be byte-identical to those documented here. The engine is deterministic; the trigger map and attention areas are direct functions of the 13 inputs.
 
-For other use cases (comparable-deal recall, pitch / scope mapping), see [`mcp-server/README.md` → Why this exists (use cases)](../../../README.md#why-this-exists-use-cases).
+For other use cases (comparable-deal recall, pitch / scope mapping), see [`mcp-server/README.md` → Why this exists (use cases)](../../../../README.md#why-this-exists-use-cases).
 
 ---
 
 ## Related documentation
 
-- [`mcp-server/README.md`](../../../README.md) — install, configure, tool inventory, troubleshooting
-- [`src/docs/development/MCP_SERVER_ARCHITECTURE_BL-031.md`](../../../../src/docs/development/MCP_SERVER_ARCHITECTURE_BL-031.md) — architecture and design rationale
-- [`src/docs/development/BACKLOG.md` § BL-031](../../../../src/docs/development/BACKLOG.md) — initiative scope, acceptance criteria, sibling phases
-- [`mcp-server/src/docs/testing/README.md`](../testing/README.md) — workspace testing conventions
+- [`mcp-server/README.md`](../../../../README.md) — install, configure, tool inventory, troubleshooting
+- [`src/docs/development/MCP_SERVER_ARCHITECTURE_BL-031.md`](../../../../../src/docs/development/MCP_SERVER_ARCHITECTURE_BL-031.md) — architecture and design rationale
+- [`src/docs/development/BACKLOG.md` § BL-031](../../../../../src/docs/development/BACKLOG.md) — initiative scope, acceptance criteria, sibling phases
+- [`mcp-server/src/docs/testing/README.md`](../../testing/README.md) — workspace testing conventions
 
 ---
 

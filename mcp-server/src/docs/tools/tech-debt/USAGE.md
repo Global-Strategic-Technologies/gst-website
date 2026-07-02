@@ -1,10 +1,10 @@
 # Usage — `estimate_tech_debt_cost`: A Debt-as-Deal-Model-Input Walkthrough
 
-A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../README.md) `estimate_tech_debt_cost` tool for a real-shaped task: estimating the carrying cost of a target's accumulated technical debt and the payback economics of a remediation effort, as a defensible figure to anchor in a CTO interview and as an input to the deal model.
+A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../../README.md) `estimate_tech_debt_cost` tool for a real-shaped task: estimating the carrying cost of a target's accumulated technical debt and the payback economics of a remediation effort, as a defensible figure to anchor in a CTO interview and as an input to the deal model.
 
 This document is a **stakeholder orientation aid** — it answers "what does it actually look like to use this" without requiring the reader to install the server first. Every input and output below is reproducible by anyone with the MCP server registered in their Claude client.
 
-> Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input reference) | [`../contracts/README.md`](../contracts/README.md) (registry of all per-tool contracts).
+> Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input reference) | [`../contracts/README.md`](../README.md) (registry of all per-tool contracts).
 
 > **The deal in this document is hypothetical.** No real client, target, or codename. Deployment-frequency labels and DORA tiers are real — they come from `src/utils/tech-debt-engine.ts` `DEPLOY_OPTIONS` — but the example numbers are illustrative.
 
@@ -27,7 +27,7 @@ In the MCP workflow, the figure is computed in the same conversation that's draf
 
 ## What you actually type
 
-Inside any Claude client where the GST MCP server is registered (Claude Desktop, Claude Code, Cursor — see the [MCP server README](../../../README.md) for setup), describe the inputs in prose:
+Inside any Claude client where the GST MCP server is registered (Claude Desktop, Claude Code, Cursor — see the [MCP server README](../../../../README.md) for setup), describe the inputs in prose:
 
 > _"Estimate the carrying cost of this target's tech debt. 8 engineers, $150K average fully-loaded salary, 25% maintenance burden. They deploy bi-weekly. About 3 production incidents per month with 4-hour MTTR. They have a $500K remediation budget reserved and expect 70% efficiency on that. ARR is $10M. Skip the context-switch overhead modeling for this run."_
 
@@ -164,7 +164,7 @@ The engine is not new. The DORA-aligned velocity multipliers are not new. **What
 
 To run the exact scenario in this document:
 
-1. Set up the MCP server per [`mcp-server/README.md`](../../../README.md) → "Install & build" and "Configure clients" sections.
+1. Set up the MCP server per [`mcp-server/README.md`](../../../../README.md) → "Install & build" and "Configure clients" sections.
 2. In a fresh Claude conversation with the `gst` server enabled, paste the prose prompt under [What you actually type](#what-you-actually-type).
 3. Compare the estimate against the structure under [The estimate the engine returns](#the-estimate-the-engine-returns). Outputs will be byte-identical for the same input vector.
 
@@ -174,10 +174,10 @@ The engine is deterministic; cost decomposition, debt-as-%-of-ARR, and payback m
 
 ## Related documentation
 
-- [`mcp-server/README.md`](../../../README.md) — install, configure, tool inventory, troubleshooting
+- [`mcp-server/README.md`](../../../../README.md) — install, configure, tool inventory, troubleshooting
 - [`CONTRACT.md`](./CONTRACT.md) — the canonical input contract (per-field reference, DORA tier table, slider-bypass rationale, payback semantics)
-- [`../contracts/README.md`](../contracts/README.md) — registry of all per-tool input contracts; what a contract is; the IRL forward-look
-- [`src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md`](../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md) — architecture and design rationale for BL-031.5
+- [`../contracts/README.md`](../README.md) — registry of all per-tool input contracts; what a contract is; the IRL forward-look
+- [`src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md`](../../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md) — architecture and design rationale for BL-031.5
 
 ---
 

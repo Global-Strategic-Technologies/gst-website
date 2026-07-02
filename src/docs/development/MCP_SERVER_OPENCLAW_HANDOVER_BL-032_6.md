@@ -13,9 +13,9 @@
 > - [`mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md`](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) — generic remote-client setup (Claude Desktop, Cursor, ChatGPT). OpenClaw config is analogous; differences flagged in § 1 below
 > - [`mcp-server/src/docs/operations/AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md) — bearer-key model, scope catalog (BL-032.5)
 > - [`mcp-server/src/docs/operations/RATE_LIMITS.md`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md) — per-key budgets, RFC 9331 response headers, circuit-breaker semantics
-> - [`mcp-server/src/docs/radar/USAGE_REMOTE.md`](../../../mcp-server/src/docs/radar/USAGE_REMOTE.md) — radar tool walkthrough with cache-hit semantics
+> - [`mcp-server/src/docs/tools/radar/USAGE_REMOTE.md`](../../../mcp-server/src/docs/tools/radar/USAGE_REMOTE.md) — radar tool walkthrough with cache-hit semantics
 > - [`mcp-server/src/docs/prompts/README.md`](../../../mcp-server/src/docs/prompts/README.md) — registered-prompt architecture (how `gst_*` prompts work mechanically)
-> - [`mcp-server/src/docs/radar/CONTRACT.md`](../../../mcp-server/src/docs/radar/CONTRACT.md) — radar Tools input/output schema
+> - [`mcp-server/src/docs/tools/radar/CONTRACT.md`](../../../mcp-server/src/docs/tools/radar/CONTRACT.md) — radar Tools input/output schema
 > - [`MCP_SERVER_OPENCLAW_DEMO_BL-032_6.md`](./MCP_SERVER_OPENCLAW_DEMO_BL-032_6.md) — the demo design this implementation supports
 
 ---
@@ -154,7 +154,7 @@ Tools are stateless, typed function calls. Each Tool has a Zod-defined input sch
 | `generate_diligence_agenda`             | [`mcp-server/src/tools/diligence.ts`](../../../mcp-server/src/tools/diligence.ts)         | Generate a topic-grouped due-diligence agenda from 13 typed dimensions                                 |
 | `search_radar_offline`                  | [`mcp-server/src/tools/radar-offline.ts`](../../../mcp-server/src/tools/radar-offline.ts) | **stdio-only** — local snapshot fallback when remote/Inoreader unavailable. Not exposed on the Worker. |
 
-Each Tool's input/output contract is documented in `mcp-server/src/docs/<tool-family>/CONTRACT.md` (e.g., [`portfolio/CONTRACT.md`](../../../mcp-server/src/docs/portfolio/CONTRACT.md), [`radar/CONTRACT.md`](../../../mcp-server/src/docs/radar/CONTRACT.md)).
+Each Tool's input/output contract is documented in `mcp-server/src/docs/<tool-family>/CONTRACT.md` (e.g., [`portfolio/CONTRACT.md`](../../../mcp-server/src/docs/tools/portfolio/CONTRACT.md), [`radar/CONTRACT.md`](../../../mcp-server/src/docs/tools/radar/CONTRACT.md)).
 
 ### 2.2 Prompts (8) — versioned consultant workflows
 
@@ -497,10 +497,10 @@ Quick-reference list of canonical docs by topic. Read these in order if onboardi
 | [`mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md`](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) | Per-client setup with the system-prompt addendum (load-bearing for agent quality) |
 | [`mcp-server/src/docs/operations/AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md)                               | Bearer key model, scope catalog, rotation cadence                                 |
 | [`mcp-server/src/docs/operations/RATE_LIMITS.md`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md)                 | Rate-limit budgets, RFC 9331 headers, circuit-breaker semantics                   |
-| [`mcp-server/src/docs/radar/CONTRACT.md`](../../../mcp-server/src/docs/radar/CONTRACT.md)                                 | Radar Tool input/output schemas                                                   |
-| [`mcp-server/src/docs/radar/USAGE_REMOTE.md`](../../../mcp-server/src/docs/radar/USAGE_REMOTE.md)                         | Radar Tool walkthrough with cache semantics                                       |
+| [`mcp-server/src/docs/tools/radar/CONTRACT.md`](../../../mcp-server/src/docs/tools/radar/CONTRACT.md)                     | Radar Tool input/output schemas                                                   |
+| [`mcp-server/src/docs/tools/radar/USAGE_REMOTE.md`](../../../mcp-server/src/docs/tools/radar/USAGE_REMOTE.md)             | Radar Tool walkthrough with cache semantics                                       |
 | [`mcp-server/src/docs/prompts/README.md`](../../../mcp-server/src/docs/prompts/README.md)                                 | Registered-prompt architecture                                                    |
-| [`mcp-server/src/docs/diligence/CONTRACT.md`](../../../mcp-server/src/docs/diligence/CONTRACT.md)                         | Diligence agenda Tool schema (13 dimensions)                                      |
+| [`mcp-server/src/docs/tools/diligence/CONTRACT.md`](../../../mcp-server/src/docs/tools/diligence/CONTRACT.md)             | Diligence agenda Tool schema (13 dimensions)                                      |
 | [`MCP_SERVER_REMOTE_BL-032.md`](./MCP_SERVER_REMOTE_BL-032.md)                                                            | Full BL-032 substrate architecture                                                |
 | [`BL-032_5_TESTING_FINDINGS.md`](./BL-032_5_TESTING_FINDINGS.md)                                                          | Soak evidence — what we verified works in production                              |
 | [`MCP_SERVER_OPENCLAW_DEMO_BL-032_6.md`](./MCP_SERVER_OPENCLAW_DEMO_BL-032_6.md)                                          | The demo design this handover supports                                            |

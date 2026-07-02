@@ -1,10 +1,10 @@
 # Usage — `assess_infrastructure_cost_governance`: An ICG Maturity Walkthrough
 
-A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../README.md) `assess_infrastructure_cost_governance` tool for a real-shaped task: scoring a target company's Infrastructure Cost Governance maturity as part of a buy-side technology diligence and producing a prioritized remediation list.
+A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../../README.md) `assess_infrastructure_cost_governance` tool for a real-shaped task: scoring a target company's Infrastructure Cost Governance maturity as part of a buy-side technology diligence and producing a prioritized remediation list.
 
 This document is a **stakeholder orientation aid** — it answers "what does it actually look like to use this" without requiring the reader to install the server first. Every input and output below is reproducible by anyone with the MCP server registered in their Claude client.
 
-> Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input reference) | [`../contracts/README.md`](../contracts/README.md) (registry of all per-tool contracts).
+> Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input reference) | [`../contracts/README.md`](../README.md) (registry of all per-tool contracts).
 
 > **The deal in this document is hypothetical.** No real client, target, or codename. Question IDs (`q1_1`, `q2_2`, etc.) and recommendation IDs (`r03`, `r07`, etc.) are real — pulled from `src/data/infrastructure-cost-governance/domains.ts` and `recommendations.ts` — but the assessment itself is illustrative.
 
@@ -28,7 +28,7 @@ In the MCP workflow, the assessment happens inside the Claude conversation that'
 
 ## What you actually type
 
-Inside any Claude client where the GST MCP server is registered (Claude Desktop, Claude Code, Cursor — see the [MCP server README](../../../README.md) for setup), describe the target's posture in prose:
+Inside any Claude client where the GST MCP server is registered (Claude Desktop, Claude Code, Cursor — see the [MCP server README](../../../../README.md) for setup), describe the target's posture in prose:
 
 > _"Score this target's ICG maturity. Series B–C SaaS, AWS-native. Tagging is enforced via SCP but the standard is half-finished — only ~60% of resources are properly tagged. They have monthly Cost Explorer dashboards but no per-team showback or chargeback. RIs / Savings Plans cover ~30% of compute. They've never run a cost-anomaly drill, but Slack alerts fire on >20% week-over-week spend deltas. They haven't formalized a FinOps team yet — one platform engineer owns it part-time. They use multi-AZ but no multi-region; backups are tested ad hoc. Container right-sizing is unmeasured. Pre-prod environments stay up 24/7. No spot or graviton adoption."_
 
@@ -164,7 +164,7 @@ The engine is not new. The 6-domain assessment framework is not new. **What is n
 
 To run the exact scenario in this document:
 
-1. Set up the MCP server per [`mcp-server/README.md`](../../../README.md) → "Install & build" and "Configure clients" sections.
+1. Set up the MCP server per [`mcp-server/README.md`](../../../../README.md) → "Install & build" and "Configure clients" sections.
 2. In a fresh Claude conversation with the `gst` server enabled, paste the prose prompt under [What you actually type](#what-you-actually-type).
 3. Compare the assessment against the structure under [The assessment the engine returns](#the-assessment-the-engine-returns). Outputs will be byte-identical for the same question-score map.
 
@@ -174,10 +174,10 @@ The engine is deterministic; per-domain scores and the recommendation list are d
 
 ## Related documentation
 
-- [`mcp-server/README.md`](../../../README.md) — install, configure, tool inventory, troubleshooting
+- [`mcp-server/README.md`](../../../../README.md) — install, configure, tool inventory, troubleshooting
 - [`CONTRACT.md`](./CONTRACT.md) — the canonical input contract (per-field reference, valid values, hidden semantics)
-- [`../contracts/README.md`](../contracts/README.md) — registry of all per-tool input contracts; what a contract is; the IRL forward-look
-- [`src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md`](../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md) — architecture and design rationale for BL-031.5
+- [`../contracts/README.md`](../README.md) — registry of all per-tool input contracts; what a contract is; the IRL forward-look
+- [`src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md`](../../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md) — architecture and design rationale for BL-031.5
 
 ---
 

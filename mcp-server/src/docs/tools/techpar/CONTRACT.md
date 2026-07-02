@@ -3,6 +3,11 @@ tool: compute_techpar
 version: v1
 lastAuthored: 2026-04-28
 schema: src/schemas/techpar.ts
+enumParity:
+  - tableHeading: '`mode`'
+    schemaExport: src/schemas/techpar.ts#MODE_VALUES
+  - tableHeading: '`capexView`'
+    schemaExport: src/schemas/techpar.ts#CAPEX_VIEW_VALUES
 ---
 
 # Input Contract: `compute_techpar`
@@ -11,15 +16,15 @@ schema: src/schemas/techpar.ts
 >
 > **Sources of truth** (the contract cites these; it does not duplicate them):
 >
-> - **Validation**: [`src/schemas/techpar.ts`](../../../../src/schemas/techpar.ts) — `TechParInputsSchema`, `StageSchema`, `ModeSchema`, `CapExViewSchema`
-> - **Stage configurations & benchmarks**: [`src/data/techpar/stages.ts`](../../../../src/data/techpar/stages.ts) — `STAGES` map (per-stage zones, benchmarks, frame, note)
-> - **Engine logic**: [`src/utils/techpar-engine.ts`](../../../../src/utils/techpar-engine.ts) — `compute` (lines ~210–365), `getZone` (lines 100–110), `computeGap` / `computeUnderGap` (lines 167–192)
+> - **Validation**: [`src/schemas/techpar.ts`](../../../../../src/schemas/techpar.ts) — `TechParInputsSchema`, `StageSchema`, `ModeSchema`, `CapExViewSchema`
+> - **Stage configurations & benchmarks**: [`src/data/techpar/stages.ts`](../../../../../src/data/techpar/stages.ts) — `STAGES` map (per-stage zones, benchmarks, frame, note)
+> - **Engine logic**: [`src/utils/techpar-engine.ts`](../../../../../src/utils/techpar-engine.ts) — `compute` (lines ~210–365), `getZone` (lines 100–110), `computeGap` / `computeUnderGap` (lines 167–192)
 >
-> **Used by prompts** (BL-031.75): [`gst_target_quick_look`](../../prompts/target-quick-look.ts) (first-look brief — combines TechPar with ICG + Tech Debt + regulatory exposure). The `infraHosting` monthly-vs-annual unit mismatch flagged during V2 verification was resolved under BL-031.95 (renamed to `infraHostingAnnual`; engine no longer multiplies by 12; all six money fields share annual units).
+> **Used by prompts** (BL-031.75): [`gst_target_quick_look`](../../../prompts/target-quick-look.ts) (first-look brief — combines TechPar with ICG + Tech Debt + regulatory exposure). The `infraHosting` monthly-vs-annual unit mismatch flagged during V2 verification was resolved under BL-031.95 (renamed to `infraHostingAnnual`; engine no longer multiplies by 12; all six money fields share annual units).
 >
 > **Version**: `v1` | **Last authored**: 2026-04-28
 >
-> **Registry**: see [`../contracts/README.md`](../contracts/README.md).
+> **Registry**: see [`../contracts/README.md`](../README.md).
 
 ---
 
@@ -53,15 +58,28 @@ schema: src/schemas/techpar.ts
 - **`arr`** — required > 0 for the engine to return a non-null result. Drives every percentage-of-revenue calculation.
 - **`stage`** — `seed` | `series_a` | `series_bc` | `pe` | `enterprise`. Selects the per-stage benchmark band from `STAGES`. Each stage publishes its own zones (`underinvest` / `lo` / `hi` / `above` / `critical` thresholds) and per-category benchmark ranges.
 
-  **Canonical stage adapter (BL-031.87)**: the MCP wrapper accepts `stage` as either a canonical funding-stage value (preferred — `seed` | `series-a` | `series-b` | `series-c` | `pe` | `enterprise` from [`src/data/common/funding-stages.ts`](../../../../src/data/common/funding-stages.ts)) or one of the five TechPar-native values listed above (backward-compat). Translation happens via [`TECHPAR_STAGE_ADAPTER`](../../../../src/data/common/stage-adapters.ts) before the engine is invoked. TechPar's native enum collapses canonical series-b + series-c into `series_bc` — reflecting the benchmark dataset's granularity. The MCP response includes a `stageContext: { native, canonical }` field where `canonical` is array-valued, exposing the lossy collapse honestly (`series_bc` → `['series-b', 'series-c']`). Engine and benchmark dataset untouched. See [`mcp-server/src/docs/contracts/README.md` § Cross-tool concept glossary](../contracts/README.md#funding-stage--canonical-layer--adapter-bl-03187-shipped) for the full canonical mapping table; see [BL-031.87 architecture doc](../../../../src/docs/development/MCP_SERVER_STAGE_ADAPTER_BL-031_87.md) for pattern-choice rationale.
+  **Canonical stage adapter (BL-031.87)**: the MCP wrapper accepts `stage` as either a canonical funding-stage value (preferred — `seed` | `series-a` | `series-b` | `series-c` | `pe` | `enterprise` from [`src/data/common/funding-stages.ts`](../../../../../src/data/common/funding-stages.ts)) or one of the five TechPar-native values listed above (backward-compat). Translation happens via [`TECHPAR_STAGE_ADAPTER`](../../../../../src/data/common/stage-adapters.ts) before the engine is invoked. TechPar's native enum collapses canonical series-b + series-c into `series_bc` — reflecting the benchmark dataset's granularity. The MCP response includes a `stageContext: { native, canonical }` field where `canonical` is array-valued, exposing the lossy collapse honestly (`series_bc` → `['series-b', 'series-c']`). Engine and benchmark dataset untouched. See [`mcp-server/src/docs/tools/README.md` § Cross-tool concept glossary](../README.md#funding-stage--canonical-layer--adapter-bl-03187-shipped) for the full canonical mapping table; see [BL-031.87 architecture doc](../../../../../src/docs/development/MCP_SERVER_STAGE_ADAPTER_BL-031_87.md) for pattern-choice rationale.
 
 - **`growthRate`** — annual percentage. Used in the 36-month projection (`computeGap` / `computeUnderGap`) to model revenue compounding monthly. Affects `gap.cumulative36` and `gap.underinvestGap`.
 - **`exitMultiple`** — multiplier applied to `gap.cumulative36` to compute `gap.exitValue`. Convention: 12× as the SaaS default.
 
-### `mode` and `capexView`
+### `mode`
 
-- **`mode`** — `quick` uses the `rdOpEx` field directly. `deepdive` synthesizes R&D OpEx as `engCost + prodCost + toolingCost`, ignoring the raw `rdOpEx` value.
-- **`capexView`** — `cash` includes `rdCapEx` in `total`. `gaap` excludes it (matches GAAP-style accounting view). Affects `total`, `totalTechPct`, and the `zone` classification but not the per-category KPIs.
+`quick` uses the `rdOpEx` field directly. `deepdive` synthesizes R&D OpEx as `engCost + prodCost + toolingCost`, ignoring the raw `rdOpEx` value.
+
+| ID         | Behavior                                                   |
+| ---------- | ---------------------------------------------------------- |
+| `quick`    | Uses the `rdOpEx` field directly                           |
+| `deepdive` | Synthesizes R&D OpEx as `engCost + prodCost + toolingCost` |
+
+### `capexView`
+
+`cash` includes `rdCapEx` in `total`. `gaap` excludes it (matches GAAP-style accounting view). Affects `total`, `totalTechPct`, and the `zone` classification but not the per-category KPIs.
+
+| ID     | Behavior                                        |
+| ------ | ----------------------------------------------- |
+| `cash` | Includes `rdCapEx` in `total`                   |
+| `gaap` | Excludes `rdCapEx` (GAAP-style accounting view) |
 
 ### Cost fields
 
@@ -113,6 +131,6 @@ Per-category zones use the same logic against the per-category benchmarks in `st
 
 ## Related
 
-- Tool wrapper: [`mcp-server/src/tools/techpar.ts`](../../tools/techpar.ts)
+- Tool wrapper: [`mcp-server/src/tools/techpar.ts`](../../../tools/techpar.ts)
 - Live website: <https://globalstrategic.tech/hub/tools/techpar>
-- Architecture: [BL-031.5 Hub Surface Extension](../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md)
+- Architecture: [BL-031.5 Hub Surface Extension](../../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md)

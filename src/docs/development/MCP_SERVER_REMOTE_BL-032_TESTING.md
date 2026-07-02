@@ -101,7 +101,7 @@ The Worker's auth surface is small (static bearer tokens per Q11) but corner-cas
 
 ## Section B — Tool execution (the 10-tool surface)
 
-Each transport-portable tool has a contract documented in [`mcp-server/src/docs/contracts/`](../../../mcp-server/src/docs/contracts/) (BL-031.85). The tests below cover happy path + edge cases per tool. Use Claude Desktop, Claude Code (project-level via `.mcp.json`), or direct curl — note the client used in each finding.
+Each transport-portable tool has a contract documented in [`mcp-server/src/docs/tools/`](../../../mcp-server/src/docs/tools/) (BL-031.85). The tests below cover happy path + edge cases per tool. Use Claude Desktop, Claude Code (project-level via `.mcp.json`), or direct curl — note the client used in each finding.
 
 ### T.B.1 — `list_portfolio_facets`
 

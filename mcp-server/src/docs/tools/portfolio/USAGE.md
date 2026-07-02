@@ -1,10 +1,10 @@
 # Usage — `search_portfolio`: A Comparable-Engagement Memo Walkthrough
 
-A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../README.md) `search_portfolio` tool for a real-shaped task: pulling matched past engagements and synthesising them into a one-page comparable-engagements memo for an analyst preparing for a partner meeting.
+A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../../README.md) `search_portfolio` tool for a real-shaped task: pulling matched past engagements and synthesising them into a one-page comparable-engagements memo for an analyst preparing for a partner meeting.
 
 This document is a **stakeholder orientation aid** — it answers "what does it actually look like to use this" without requiring the reader to install the server first. Every input and output below is reproducible by anyone with the MCP server registered in their Claude client; the dataset is bundled into the server binary at build time and contains 61 anonymized engagements.
 
-> Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input reference) | [`../contracts/README.md`](../contracts/README.md) (registry of all per-tool contracts).
+> Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input reference) | [`../contracts/README.md`](../README.md) (registry of all per-tool contracts).
 
 > **The memo in this document is illustrative.** Codenames and ARRs are real-shaped (they come from `src/data/ma-portfolio/projects.json`) but no specific deal is being briefed.
 
@@ -31,7 +31,7 @@ In the MCP workflow, the analyst asks Claude in the same chat thread that's alre
 
 ## What you actually type
 
-Inside any Claude client where the GST MCP server is registered (Claude Desktop, Claude Code, Cursor — see the [MCP server README](../../../README.md) for setup), describe the request in prose:
+Inside any Claude client where the GST MCP server is registered (Claude Desktop, Claude Code, Cursor — see the [MCP server README](../../../../README.md) for setup), describe the request in prose:
 
 > _"Pull our past healthcare-tech buy-side engagements. List them as codename + ARR. Then synthesise a one-paragraph 'pattern across deals' read in the GST Take voice — what value-creation levers came up most, what tech themes recurred, what to watch for."_
 
@@ -133,22 +133,22 @@ The dataset is not new. The filter chips are not new. **What is new is putting b
 
 To run the exact scenario in this document:
 
-1. Set up the MCP server per [`mcp-server/README.md`](../../../README.md) → "Install & build" and "Configure clients" sections.
+1. Set up the MCP server per [`mcp-server/README.md`](../../../../README.md) → "Install & build" and "Configure clients" sections.
 2. In a fresh Claude conversation with the `gst` server enabled, paste the prose prompt under [What you actually type](#what-you-actually-type).
 3. Compare the memo structure against the model output above.
 
-The dataset is bundled into the server binary; updates to `src/data/ma-portfolio/projects.json` require `npm run build` from `mcp-server/` to take effect. Engineering correctness of the wrapper pipeline (input parsing → filter → deeplink emission) is verified by [`mcp-server/tests/integration/portfolio-handler.test.ts`](../../../tests/integration/portfolio-handler.test.ts).
+The dataset is bundled into the server binary; updates to `src/data/ma-portfolio/projects.json` require `npm run build` from `mcp-server/` to take effect. Engineering correctness of the wrapper pipeline (input parsing → filter → deeplink emission) is verified by [`mcp-server/tests/integration/portfolio-handler.test.ts`](../../../../tests/integration/portfolio-handler.test.ts).
 
-For other use cases (live agenda drafting, capex pattern review, regulatory exposure check), see [`mcp-server/README.md` → Why this exists (use cases)](../../../README.md#why-this-exists-use-cases).
+For other use cases (live agenda drafting, capex pattern review, regulatory exposure check), see [`mcp-server/README.md` → Why this exists (use cases)](../../../../README.md#why-this-exists-use-cases).
 
 ---
 
 ## Related documentation
 
-- [`mcp-server/README.md`](../../../README.md) — install, configure, tool inventory, troubleshooting
+- [`mcp-server/README.md`](../../../../README.md) — install, configure, tool inventory, troubleshooting
 - [`CONTRACT.md`](./CONTRACT.md) — per-field input reference + capability-mirror invariant rationale
-- [`../contracts/README.md`](../contracts/README.md) — registry of all per-tool contracts
-- [`src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md`](../../../../src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md) § Phase 4 — closure stanza for the Portfolio URL state work
+- [`../contracts/README.md`](../README.md) — registry of all per-tool contracts
+- [`src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md`](../../../../../src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md) § Phase 4 — closure stanza for the Portfolio URL state work
 
 ---
 
