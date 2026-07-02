@@ -11,6 +11,15 @@
       ]
     },
     {
+      "source": "/branding/logo-bimi.svg",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "image/svg+xml"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {
