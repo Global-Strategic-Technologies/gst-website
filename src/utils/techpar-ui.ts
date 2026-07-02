@@ -203,6 +203,17 @@ $$('.brutal-option-card[data-stage]').forEach((card) => {
     card.classList.add('brutal-option-card--selected');
     card.setAttribute('aria-checked', 'true');
     tp.stageKey = (card as HTMLElement).dataset.stage || 'series_bc';
+    // Dropping below PE/Enterprise hides the exit-multiple field. Reset the
+    // input to its default so a value entered on PE/Enterprise doesn't linger
+    // (in the DOM, results, or URL) — or reappear — on a stage that doesn't
+    // expose it. buildInputs() also guards this, but resetting the input keeps
+    // the visible field honest when the user returns to PE/Enterprise.
+    if (tp.stageKey !== 'pe' && tp.stageKey !== 'enterprise') {
+      const exitInput = document.querySelector(
+        '[data-input="exitMult"]'
+      ) as HTMLInputElement | null;
+      if (exitInput) exitInput.value = '12';
+    }
     trackEvent({ event: 'tp_stage_select', category: 'tool', stage: tp.stageKey, page: 'techpar' });
     if (!tpStartFired) {
       trackEvent({ event: 'tp_start', category: 'tool', page: 'techpar' });
@@ -280,8 +291,7 @@ $$('[data-currency]').forEach((btn) => {
 $$('[data-infra-period]').forEach((btn) => {
   btn.addEventListener('click', () => {
     tp.infraPeriod = ((btn as HTMLElement).dataset.infraPeriod || 'monthly') as
-      | 'monthly'
-      | 'annual';
+      'monthly' | 'annual';
     syncInfraPeriodUI();
     updateAll();
   });
