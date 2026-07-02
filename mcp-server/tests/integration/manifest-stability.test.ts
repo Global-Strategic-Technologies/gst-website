@@ -112,7 +112,7 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // solely from the gst_irl_ingestion tuple bump. The shared-preamble reword
 // changes other prompts' bodies too, but only irl-ingestion's version bumps,
 // so the manifest delta is one tuple.
-const EXPECTED_MANIFEST_HASH = '18d19416405f3989e5ba2975536f44f21a2d82e0e90a6d8eff4225149d4cfe70';
+const EXPECTED_MANIFEST_HASH = '01dee8966d506aa29c274204148750c3d22d6bc1cdf6cf1fc4f2b7ccf9df03c3';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

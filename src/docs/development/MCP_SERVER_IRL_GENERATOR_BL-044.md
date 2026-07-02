@@ -74,9 +74,15 @@ The generator gained four **manual** configuration axes, added once in the share
 
 **Shared seam**: [`src/utils/irl/customize-article.ts`](../../../src/utils/irl/customize-article.ts) exposes one composed entry point `customizeIrlArticle(article, { includeSections, customRequests })` (filter → then append; the order lives in exactly one place). Both surfaces call it, then hand the result to the unchanged `generateIrlXlsxBuffer`. The MCP tool encodes every axis into its Hub-page deeplink (`company`, `project`, `sections`, `canonical`, `custom`=JSON) so a one-click landing reproduces the exact file.
 
+**Three surfaces, one configuration** (2026-07): the config axes are reachable identically from all three IRL surfaces —
+
+- **Hub page** — form fields (checkboxes + inputs).
+- **MCP tool** `generate_information_request_list_xlsx` — structured Zod args.
+- **MCP prompt** `gst_information_request_list@0.0.5` — wire-string args (comma-list sections, `NN: text` custom lines, `true`/`false` canonical) coerced via `arrayFromWire` / `booleanFromWire`. The one-shot body computes the **exact** tool payload and instructs the model to pass it verbatim, so the in-chat artifact and the downloadable file honor the same configuration.
+
 **Distinct from BL-044.5** (directive-based subtractive filter, `<!-- skip-if -->` tags authored _in the article_): this is a manual, user-driven pick-list. BL-044.5 remains future work.
 
-**Byte-identical caveat**: the "byte-identical to the printed article" property holds only on the **un-configured** path. The `gst_information_request_list` prompt passes only `targetName`/`transactionContext`, so its emitted preview stays consistent with the file it triggers; a direct tool call with configuration args intentionally diverges. (Note: the [BL-049 extractor](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md) derives its reconstructed H1 from cell A1 — when company/project are set, that H1 embeds them; benign for provenance since the title is non-citation.)
+**Byte-identical caveat**: the "byte-identical to the printed article" property holds only on the **un-configured** path (no args). Once any configuration is supplied — via the Hub page, the tool, or the prompt — the prompt's in-chat preview and the generated file diverge from the universal article by design, but stay consistent **with each other** (the prompt reproduces the same filtered/augmented shape it hands the tool). (Note: the [BL-049 extractor](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md) derives its reconstructed H1 from cell A1 — when company/project are set, that H1 embeds them; benign for provenance since the title is non-citation.)
 
 ---
 
