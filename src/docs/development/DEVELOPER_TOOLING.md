@@ -192,6 +192,31 @@ The `actions: write` permission on the gate job is required by skip-duplicate-ac
 
 ---
 
+## Production deploy is latest-wins
+
+[deploy-mcp-production.yml](../../../.github/workflows/deploy-mcp-production.yml) deploys the MCP Worker to production on every master merge that touches the Worker source, gated by the `mcp-production` GitHub Environment's required-reviewer approval (BL-037 Phase B).
+
+Its concurrency is configured **latest-wins**:
+
+```yaml
+concurrency:
+  group: deploy-mcp-production
+  cancel-in-progress: true
+```
+
+**Why `true` and not `false`.** `wrangler deploy` publishes the **entire** Worker at a commit — it is not incremental — so deploying the newest SHA inherently includes every prior merge. There is never a reason to deploy a stale SHA once a newer one exists. `cancel-in-progress: true` means a new push **cancels the older un-deployed run** and carries the approval flag itself, so:
+
+- An operator only ever has to approve the **latest** run, and approving it ships everything up to that SHA.
+- The newest deploy is **independent of older ones** — a forgotten approval on an older run cannot block it.
+
+**The failure this prevents (2026-07-01).** With the original `cancel-in-progress: false`, runs queued in strict arrival order — and a run parked in the environment approval `waiting` state **still occupies the group**. A June-03 production run sat un-approved in `waiting` and head-of-line-blocked **every** subsequent deploy for a month, including a radar FYI hotfix. Production silently drifted ~30 merges behind master. The fix flipped this flag; the durable lesson is that an approval gate must never be able to block newer runs behind it.
+
+**The tradeoff `true` accepts.** If two deploys land within the ~1–2 min deploy window, the newer may cancel an in-flight `wrangler deploy`. This is safe: (a) Cloudflare version publishes are atomic — an interrupted upload doesn't half-publish, it just doesn't flip the route; (b) the cancelling run immediately redeploys the newer SHA; (c) the workflow's smoke probe verifies `/health.gitSha` matches the deployed commit before the run is green.
+
+**Operator note.** If a production deploy is ever stuck `waiting` (approval) or `pending` (queued), do **not** approve a stale older run to "unstick" the queue — cancel it (`gh run cancel <id>`), which releases the group and lets the newest run reach its own approval gate. Verify the live Worker afterward with `curl -s https://mcp.globalstrategic.tech/health` and confirm `gitSha` matches the intended commit.
+
+---
+
 ## Tools installed
 
 | Tool                                                                               | Role                                                                                                                                             | Config file                                                                                |
@@ -227,7 +252,7 @@ The `actions: write` permission on the gate job is required by skip-duplicate-ac
 | [.github/workflows/test.yml](../../../.github/workflows/test.yml)                 | Website CI pipeline (3 jobs + changes gate)                                                     |
 | [.github/workflows/test-mcp-server.yml](../../../.github/workflows/test-mcp-server.yml) | MCP server CI (runs in parallel to the website Test Suite)                                |
 | [.github/workflows/deploy-mcp-staging.yml](../../../.github/workflows/deploy-mcp-staging.yml) | Auto-deploys the MCP Worker to staging on a green MCP test run (BL-037 Phase A)         |
-| [.github/workflows/deploy-mcp-production.yml](../../../.github/workflows/deploy-mcp-production.yml) | Auto-deploys the MCP Worker to production on master merge, gated by the `mcp-production` GitHub Environment's required-reviewer approval (BL-037 Phase B) |
+| [.github/workflows/deploy-mcp-production.yml](../../../.github/workflows/deploy-mcp-production.yml) | Auto-deploys the MCP Worker to production on master merge, gated by the `mcp-production` GitHub Environment's required-reviewer approval (BL-037 Phase B). Concurrency is **latest-wins** (`cancel-in-progress: true`): a new push cancels any older un-deployed run, so an operator only ever approves the newest run and approving it ships all prior merges (`wrangler deploy` publishes the whole Worker at that SHA). See § Production deploy is latest-wins |
 | [.github/workflows/rollback-mcp.yml](../../../.github/workflows/rollback-mcp.yml) | Manual `workflow_dispatch` rollback of the MCP Worker to a prior deployment ID; production rollbacks gated by the `mcp-production-rollback` environment (BL-037 Phase C) |
 | [.github/workflows/npm-audit.yml](../../../.github/workflows/npm-audit.yml)       | Production-dep vuln scan — weekly cron + lockfile-change trigger                                 |
 | [.github/workflows/prettier-drift-check.yml](../../../.github/workflows/prettier-drift-check.yml) | Weekly cron + manual `workflow_dispatch` — runs `prettier --check .` repo-wide; opens a `tech-debt` Issue if drift accumulates (counter-pressure for the diff-scoped PR check; see § Prettier idempotency + drift) |
