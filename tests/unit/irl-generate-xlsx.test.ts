@@ -163,6 +163,34 @@ describe('generateIrlXlsxBuffer — header + cell content', () => {
     expect(sheet.A1?.v).toBe('Information Request List');
   });
 
+  it('composes the A1 title from company + project + article title when both are set', () => {
+    const sheet = loadPrimarySheet({
+      ...FIXTURE_METADATA,
+      companyName: 'Praxis Capital',
+      projectName: 'Project Titan',
+    });
+    expect(sheet.A1?.v).toBe('Praxis Capital Project Titan Information Request List');
+  });
+
+  it('composes the A1 title with company only', () => {
+    const sheet = loadPrimarySheet({ ...FIXTURE_METADATA, companyName: 'Praxis Capital' });
+    expect(sheet.A1?.v).toBe('Praxis Capital Information Request List');
+  });
+
+  it('composes the A1 title with project only', () => {
+    const sheet = loadPrimarySheet({ ...FIXTURE_METADATA, projectName: 'Project Titan' });
+    expect(sheet.A1?.v).toBe('Project Titan Information Request List');
+  });
+
+  it('trims company/project so untrimmed input does not double-space the title', () => {
+    const sheet = loadPrimarySheet({
+      ...FIXTURE_METADATA,
+      companyName: '  Praxis Capital  ',
+      projectName: ' Project Titan ',
+    });
+    expect(sheet.A1?.v).toBe('Praxis Capital Project Titan Information Request List');
+  });
+
   it('emits the target name in the metadata header when provided', () => {
     const sheet = loadPrimarySheet();
     // Search for any cell whose value equals 'Acme Corp' — the metadata
@@ -210,13 +238,29 @@ describe('generateIrlXlsxBuffer — header + cell content', () => {
     expect(hasDate).toBe(true);
   });
 
-  it('emits the canonical URL in the header', () => {
-    const sheet = loadPrimarySheet();
+  it('emits the canonical URL row only when showCanonicalReference is true', () => {
+    const sheet = loadPrimarySheet({ ...FIXTURE_METADATA, showCanonicalReference: true });
     const cells = Object.entries(sheet).filter(([k]) => /^[A-Z]+\d+$/.test(k));
     const hasUrl = cells.some(
       ([, cell]) => (cell as XLSX.CellObject).v === FIXTURE_METADATA.canonicalUrl
     );
     expect(hasUrl).toBe(true);
+  });
+
+  it('hides the canonical reference row by default (showCanonicalReference unset)', () => {
+    // Default flip (per the configurable-generator work): the canonical row
+    // is opt-in. FIXTURE_METADATA does not set the flag, so neither the label
+    // nor the URL should appear.
+    const sheet = loadPrimarySheet();
+    const cells = Object.entries(sheet).filter(([k]) => /^[A-Z]+\d+$/.test(k));
+    const hasLabel = cells.some(
+      ([, cell]) => (cell as XLSX.CellObject).v === 'Canonical reference'
+    );
+    const hasUrl = cells.some(
+      ([, cell]) => (cell as XLSX.CellObject).v === FIXTURE_METADATA.canonicalUrl
+    );
+    expect(hasLabel).toBe(false);
+    expect(hasUrl).toBe(false);
   });
 
   it('emits the article intro in the body', () => {

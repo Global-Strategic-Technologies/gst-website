@@ -45,10 +45,23 @@ export type IRLTransactionContext = 'sell-side' | 'buy-side' | 'value-creation' 
 export interface IRLXlsxMetadata {
   readonly targetName?: string;
   readonly transactionContext?: IRLTransactionContext;
+  /**
+   * Requesting company name. When set (with or without {@link projectName}),
+   * it is prepended to the workbook title cell:
+   * `"{companyName} {projectName} {article.title}"`. Title-only — no metadata row.
+   */
+  readonly companyName?: string;
+  /** Engagement / project name. Composed into the title cell alongside {@link companyName}. */
+  readonly projectName?: string;
   /** Wall-clock timestamp used for both the header cell and the filename date slug. */
   readonly generatedAt: Date;
-  /** Canonical URL of the live IRL article (printed in the header so the recipient can navigate back). */
+  /** Canonical URL of the live IRL article (used by the optional Canonical reference row + MCP structuredContent). */
   readonly canonicalUrl: string;
+  /**
+   * Show the "Canonical reference" metadata row in the workbook header.
+   * Defaults to **false** (hidden) — the row is opt-in per engagement.
+   */
+  readonly showCanonicalReference?: boolean;
 }
 
 export const IRL_XLSX_MIME_TYPE =
@@ -100,7 +113,7 @@ function slugifyTargetName(name: string): string {
 /** Render the IRL article + metadata as an `.xlsx` workbook buffer. */
 export function generateIrlXlsxBuffer(article: IRLArticle, metadata: IRLXlsxMetadata): Uint8Array {
   const { sheet: primarySheet, statusCellRefs } = buildPrimarySheet(article, metadata);
-  const instructionsSheet = buildInstructionsSheet(metadata);
+  const instructionsSheet = buildInstructionsSheet(metadata, article.sections.length);
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, primarySheet, PRIMARY_SHEET_NAME);
@@ -180,8 +193,16 @@ function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): PrimaryS
   const NUM_COLS = 7;
   const LAST_COL = NUM_COLS - 1;
 
-  // Row 0: article title — merge A:E. Bold + large font applied below.
-  rows.push([article.title]);
+  // Row 0: title cell, merged full-width (A1:G1). When a requesting company
+  // and/or project name is supplied it is prepended to the canonical article
+  // title → "{Company} {Project} Information Request List". Each part is
+  // trimmed so an untrimmed input (the MCP schema's `min(1)` does not trim)
+  // can't leave a double space. Neither supplied → the bare article title.
+  const displayTitle = [meta.companyName, meta.projectName, article.title]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(' ');
+  rows.push([displayTitle]);
   merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: LAST_COL } });
 
   let rowIdx = 1;
@@ -201,7 +222,11 @@ function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): PrimaryS
     pushMetadataRow('Engagement context', TRANSACTION_CONTEXT_LABEL[meta.transactionContext]);
   }
   pushMetadataRow('Generated', isoDate(meta.generatedAt));
-  pushMetadataRow('Canonical reference', meta.canonicalUrl);
+  // Canonical reference is opt-in (default hidden). The URL still travels in
+  // metadata for the MCP tool's structuredContent regardless of this flag.
+  if (meta.showCanonicalReference) {
+    pushMetadataRow('Canonical reference', meta.canonicalUrl);
+  }
 
   rows.push([]);
   rowIdx += 1;
@@ -468,7 +493,7 @@ function patchStatusValidationAndColoring(
   return zipSync(unzipped, { level: 6 });
 }
 
-function buildInstructionsSheet(meta: IRLXlsxMetadata): XLSX.WorkSheet {
+function buildInstructionsSheet(meta: IRLXlsxMetadata, sectionCount: number): XLSX.WorkSheet {
   const recipientHandback = meta.targetName
     ? 'Return the filled file to your Global Strategic Technologies engagement lead.'
     : 'Return the filled file to your Global Strategic Technologies point of contact.';
@@ -513,9 +538,9 @@ function buildInstructionsSheet(meta: IRLXlsxMetadata): XLSX.WorkSheet {
     ['5. Type "n/a" or "not yet tracked" rather than leaving a Response'],
     ['   cell blank. The presence of an answer is signal, including'],
     ['   "we do not track this."'],
-    ['6. Section header rows (e.g., "00 — BASICS") delimit the ten request'],
-    ['   areas. Per-section context lives in the canonical article (link in'],
-    ['   the header of the main sheet).'],
+    [`6. Section header rows (e.g., "00 — BASICS") delimit the ${sectionCount} request`],
+    ['   areas. Per-section context lives in the canonical GST Information'],
+    ['   Request List article.'],
     [''],
     [recipientHandback],
   ];

@@ -24,6 +24,7 @@ import * as XLSX from 'xlsx-js-style';
 
 import { parseIrlArticle } from '../../src/utils/irl/parse-article';
 import { generateIrlXlsxBuffer } from '../../src/utils/irl/generate-xlsx';
+import { customizeIrlArticle } from '../../src/utils/irl/customize-article';
 
 const ARTICLE_PATH = resolve(
   __dirname,
@@ -101,6 +102,39 @@ describe('IRL pipeline — canonical article.md → AST → .xlsx', () => {
     );
     const totalBullets = article.sections.reduce((sum, s) => sum + s.bullets.length, 0);
     expect(openStatusCells).toHaveLength(totalBullets);
+  });
+
+  it('customized pipeline: filter + custom request renders only selected sections with the custom row', () => {
+    const article = parseIrlArticle(ARTICLE_BODY);
+    const first = article.sections[0];
+    const second = article.sections[1];
+    const built = customizeIrlArticle(article, {
+      includeSections: [first.number, second.number],
+      customRequests: [{ section: first.number, text: 'Bespoke engagement-specific ask.' }],
+    });
+
+    const buf = generateIrlXlsxBuffer(built, METADATA);
+    const wb = XLSX.read(buf, { type: 'array' });
+    const sheet = wb.Sheets['Information Request List'];
+    const cellValues = Object.entries(sheet)
+      .filter(([k]) => /^[A-Z]+\d+$/.test(k))
+      .map(([, cell]) => (cell as XLSX.CellObject).v);
+
+    // Only the two selected section headers are present; a third is not.
+    expect(cellValues).toContain(`${first.number} — ${first.title.toUpperCase()}`);
+    expect(cellValues).toContain(`${second.number} — ${second.title.toUpperCase()}`);
+    const third = article.sections[2];
+    expect(cellValues).not.toContain(`${third.number} — ${third.title.toUpperCase()}`);
+
+    // The custom request appears as a bullet in the sheet.
+    expect(cellValues).toContain('Bespoke engagement-specific ask.');
+
+    // Status cells == (selected sections' original bullets) + 1 custom.
+    const selectedBullets = first.bullets.length + second.bullets.length + 1;
+    const openStatusCells = Object.entries(sheet).filter(
+      ([k, cell]) => /^C\d+$/.test(k) && (cell as XLSX.CellObject).v === 'OPEN'
+    );
+    expect(openStatusCells).toHaveLength(selectedBullets);
   });
 
   it('canonical article has the expected 10 sections (regression guard against unexpected restructuring)', () => {

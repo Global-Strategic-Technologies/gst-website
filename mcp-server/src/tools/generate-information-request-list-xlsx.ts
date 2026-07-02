@@ -42,6 +42,7 @@ import {
   IRL_XLSX_MIME_TYPE,
   type IRLTransactionContext,
 } from '../../../src/utils/irl/generate-xlsx';
+import { customizeIrlArticle } from '../../../src/utils/irl/customize-article';
 import { HUB_BASE } from '../config';
 
 const IRL_RESOURCE_URI = 'gst://library/information-request-list';
@@ -71,22 +72,68 @@ export const GenerateIrlXlsxInputSchema = z.object({
     .describe(
       'One-paragraph product description if known. Currently informational — accepted for shape parity with `gst_information_request_list` prompt args and to seed the future BL-044.5 subtractive-filter directives. Has no effect on the generated XLSX in v1.'
     ),
+  companyName: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Requesting company name. Composed into the workbook title cell as `{companyName} {projectName} Information Request List` (title only — distinct from `targetName`, which is the company being diligenced). E.g. companyName 'Praxis Capital' → title starts 'Praxis Capital …'."
+    ),
+  projectName: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      'Engagement / project name. Composed into the title cell alongside `companyName`. Either, both, or neither may be supplied.'
+    ),
+  includeSections: z
+    .array(z.string().regex(/^\d{2}$/))
+    .min(1)
+    .optional()
+    .describe(
+      "Two-digit section numbers to INCLUDE (e.g. ['00','03','09']). Omit for all sections. Numbers mirror the canonical article's section headers (00 Basics … 09 Governance); unknown numbers are ignored. Reference IDs of the kept sections are unchanged."
+    ),
+  customRequests: z
+    .array(
+      z.object({
+        section: z
+          .string()
+          .regex(/^\d{2}$/)
+          .describe('Two-digit section number to append this request to.'),
+        text: z.string().min(1).max(500).describe('The custom request text.'),
+      })
+    )
+    .max(50)
+    .optional()
+    .describe(
+      'Ad-hoc engagement-specific requests appended to individual sections. Each becomes a new row under its section with the next Reference ID. Requests for a section not included/present are dropped.'
+    ),
+  showCanonicalReference: z
+    .boolean()
+    .optional()
+    .describe(
+      'Show the "Canonical reference" URL row in the workbook header. Defaults to false (hidden).'
+    ),
 });
 
 export type GenerateIrlXlsxInput = z.infer<typeof GenerateIrlXlsxInputSchema>;
 
 const TOOL_DESCRIPTION = `Generate the GST **Information Request List** as a downloadable, fillable \`.xlsx\` workbook.
 
-Returns \`{ filename, base64, mimeType }\` — Claude Desktop and other MCP clients can write the file or attach it to a message. The workbook mirrors the canonical IRL article (10 sections, one per VDR folder) with each request in column A and an empty answer cell in column B for the recipient to fill in.
+Returns \`{ filename, base64, mimeType }\` — Claude Desktop and other MCP clients can write the file or attach it to a message. The workbook mirrors the canonical IRL article (by default all sections, one per VDR folder) with each request in column A and an empty answer cell in column B for the recipient to fill in.
 
 **When to call this tool**: any time a partner needs to send the IRL to a target/client/portco for intake. Pair with the \`gst_information_request_list\` prompt — the prompt emits the in-chat preview + recipient framing; this tool emits the attachable file. (Prompt v0.0.2+ orchestrates this tool automatically when invoked with args.)
 
 **Optional inputs** all degrade gracefully:
-  - \`targetName\` → personalizes the workbook header cell + filename slug.
+  - \`targetName\` → the company being diligenced; personalizes the "Target" header row + filename slug.
+  - \`companyName\` / \`projectName\` → composed into the title cell as \`{companyName} {projectName} Information Request List\` (title only; distinct from \`targetName\`).
   - \`transactionContext\` → labels the engagement (sell-side / buy-side / value-creation) in the header.
-  - \`productSummary\` → informational only at v1; reserved for the future subtractive-filter directives (BL-044.5).
+  - \`includeSections\` → two-digit section numbers to keep (e.g. \`["00","03","09"]\`); omit for all.
+  - \`customRequests\` → ad-hoc \`{ section, text }\` rows appended to individual sections.
+  - \`showCanonicalReference\` → show the canonical-URL header row (default hidden).
+  - \`productSummary\` → informational only; reserved for the future subtractive-filter directives (BL-044.5).
 
-The artifact is read from the same canonical source as the MCP Resource \`${IRL_RESOURCE_URI}\` — byte-identical to what a partner would print from \`/hub/library/information-request-list/\`. Single source of truth.`;
+The request content is read from the same canonical source as the MCP Resource \`${IRL_RESOURCE_URI}\`. With no configuration args the workbook is byte-identical to what a partner would print from \`/hub/library/information-request-list/\`; configuration args (section filter, custom requests, title/canonical options) scope that universal artifact per engagement. Single source of truth.`;
 
 function uint8ToBase64(buf: Uint8Array): string {
   // Chunked conversion: avoids the "too many arguments to apply" failure
@@ -111,17 +158,38 @@ export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
   }
 
   const article = parseIrlArticle(entry.body);
+
+  // Apply per-engagement customization (section filter + custom requests)
+  // through the single shared entry point — same code path the Hub page
+  // uses, so both surfaces produce identical output for identical inputs.
+  const built = customizeIrlArticle(article, {
+    includeSections: input.includeSections,
+    customRequests: input.customRequests,
+  });
+
+  // Guard: an includeSections set that matches no real section would yield a
+  // zero-section (empty) workbook. Fail loudly with the valid numbers instead.
+  if (input.includeSections && built.sections.length === 0) {
+    const valid = article.sections.map((s) => s.number).join(', ');
+    throw new Error(
+      `No sections matched includeSections=[${input.includeSections.join(', ')}]. Valid section numbers: ${valid}.`
+    );
+  }
+
   const generatedAt = new Date();
-  const buffer = generateIrlXlsxBuffer(article, {
+  const buffer = generateIrlXlsxBuffer(built, {
     targetName: input.targetName,
     transactionContext: input.transactionContext as IRLTransactionContext | undefined,
+    companyName: input.companyName,
+    projectName: input.projectName,
+    showCanonicalReference: input.showCanonicalReference ?? false,
     generatedAt,
     canonicalUrl: IRL_CANONICAL_URL,
   });
 
   const filename = buildIrlFilename(input.targetName, generatedAt);
   const base64 = uint8ToBase64(buffer);
-  const totalBullets = article.sections.reduce((sum, s) => sum + s.bullets.length, 0);
+  const totalBullets = built.sections.reduce((sum, s) => sum + s.bullets.length, 0);
 
   // Build a deeplink to the Hub generator page with the args encoded as
   // query params. The Hub page's submit handler hydrates the form from
@@ -137,18 +205,29 @@ export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
   );
   if (input.targetName) hubUrl.searchParams.set('target', input.targetName);
   if (input.transactionContext) hubUrl.searchParams.set('context', input.transactionContext);
+  // Configuration args ride along so the Hub landing reproduces the exact same
+  // file. `URLSearchParams` percent-encodes values (comma → %2C, the JSON
+  // custom-requests blob → escaped); the Hub page decodes them symmetrically.
+  if (input.companyName) hubUrl.searchParams.set('company', input.companyName);
+  if (input.projectName) hubUrl.searchParams.set('project', input.projectName);
+  if (input.includeSections) hubUrl.searchParams.set('sections', input.includeSections.join(','));
+  if (input.showCanonicalReference) hubUrl.searchParams.set('canonical', '1');
+  if (input.customRequests && input.customRequests.length > 0) {
+    hubUrl.searchParams.set('custom', JSON.stringify(input.customRequests));
+  }
   const downloadHref = hubUrl.toString();
 
+  const sectionCount = built.sections.length;
   const summary = input.targetName
-    ? `Generated IRL workbook for ${input.targetName} (${article.sections.length} sections, ${totalBullets} requests). Filename: ${filename}. Download the same file (same target/context already filled in) at ${downloadHref} — Claude Desktop cannot render arbitrary-mimeType MCP resource attachments today, so the Hub page is the canonical download surface.`
-    : `Generated universal IRL workbook (${article.sections.length} sections, ${totalBullets} requests). Filename: ${filename}. Download the same file from ${downloadHref} — Claude Desktop cannot render arbitrary-mimeType MCP resource attachments today, so the Hub page is the canonical download surface.`;
+    ? `Generated IRL workbook for ${input.targetName} (${sectionCount} sections, ${totalBullets} requests). Filename: ${filename}. Download the same file (same inputs already filled in) at ${downloadHref} — Claude Desktop cannot render arbitrary-mimeType MCP resource attachments today, so the Hub page is the canonical download surface.`
+    : `Generated IRL workbook (${sectionCount} sections, ${totalBullets} requests). Filename: ${filename}. Download the same file from ${downloadHref} — Claude Desktop cannot render arbitrary-mimeType MCP resource attachments today, so the Hub page is the canonical download surface.`;
 
   const payload = {
     filename,
     base64,
     mimeType: IRL_XLSX_MIME_TYPE,
     byteLength: buffer.byteLength,
-    sectionCount: article.sections.length,
+    sectionCount,
     bulletCount: totalBullets,
     canonicalUrl: IRL_CANONICAL_URL,
   };

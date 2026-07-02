@@ -63,6 +63,23 @@ src/utils/irl/generate-xlsx.ts → Uint8Array (.xlsx)       ← pure, Workers + 
 
 ---
 
+## Per-engagement configurability (2026-07 follow-up)
+
+The generator gained four **manual** configuration axes, added once in the shared layer so both the Hub page and the MCP tool inherit them (single source of truth, no drift):
+
+1. **Section pick-list** (`includeSections`) — choose which sections to include. Omit → all sections (byte-identical universal output). Section `number` identity is preserved so Reference IDs (`3-01`) never renumber.
+2. **Custom per-section requests** (`customRequests`) — append engagement-specific `{ section, text }` rows to individual sections; each becomes a new bullet with the next Reference ID. **Section-scoped** — cannot mint a brand-new ad-hoc section (that broader pattern is out of scope; see [`irl-tool-input-mapping`](../../../mcp-server/src/docs/library/irl-tool-input-mapping.md)).
+3. **Company + Project name** (`companyName` / `projectName`) — composed into the title cell as `{Company} {Project} Information Request List`. Distinct from `targetName` (which still feeds the "Target" metadata row + filename slug). Title-only; no metadata rows.
+4. **Canonical reference row** (`showCanonicalReference`) — **default hidden** (behavior change from BL-044 v1, where the row was always shown). The `canonicalUrl` still travels in metadata for the MCP tool's `structuredContent` regardless.
+
+**Shared seam**: [`src/utils/irl/customize-article.ts`](../../../src/utils/irl/customize-article.ts) exposes one composed entry point `customizeIrlArticle(article, { includeSections, customRequests })` (filter → then append; the order lives in exactly one place). Both surfaces call it, then hand the result to the unchanged `generateIrlXlsxBuffer`. The MCP tool encodes every axis into its Hub-page deeplink (`company`, `project`, `sections`, `canonical`, `custom`=JSON) so a one-click landing reproduces the exact file.
+
+**Distinct from BL-044.5** (directive-based subtractive filter, `<!-- skip-if -->` tags authored _in the article_): this is a manual, user-driven pick-list. BL-044.5 remains future work.
+
+**Byte-identical caveat**: the "byte-identical to the printed article" property holds only on the **un-configured** path. The `gst_information_request_list` prompt passes only `targetName`/`transactionContext`, so its emitted preview stays consistent with the file it triggers; a direct tool call with configuration args intentionally diverges. (Note: the [BL-049 extractor](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md) derives its reconstructed H1 from cell A1 — when company/project are set, that H1 embeds them; benign for provenance since the title is non-citation.)
+
+---
+
 ## Library choice — `xlsx-js-style`
 
 **Final pick**: [`xlsx-js-style`](https://www.npmjs.com/package/xlsx-js-style) — a maintained MIT-licensed fork of SheetJS Community that adds full style write support (font, fill, border, alignment). Pure JS, zero native deps, Workers + browser + Node compatible.

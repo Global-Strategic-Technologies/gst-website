@@ -300,6 +300,9 @@ describe('generateIrlXlsxBuffer', () => {
       transactionContext: 'buy-side',
       generatedAt: FIXED_DATE,
       canonicalUrl: 'https://example.test/very/long/canonical/reference/url/that/overflows',
+      // Canonical reference row is opt-in (default hidden) — request it here so
+      // all four metadata rows are present for the merge-count assertion.
+      showCanonicalReference: true,
     });
     const sheet = XLSX.read(buf, { type: 'array' }).Sheets['Information Request List'];
     // Every metadata row (Target / Engagement context / Generated / Canonical

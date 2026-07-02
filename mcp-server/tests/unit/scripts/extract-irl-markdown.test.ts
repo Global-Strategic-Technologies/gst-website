@@ -75,6 +75,9 @@ function buildFilledWorkbookRows(
     transactionContext: 'value-creation',
     generatedAt: FIXED_DATE,
     canonicalUrl: 'https://example.test/canonical',
+    // Canonical reference row is opt-in (default hidden); the extractor
+    // round-trip asserts the row survives, so emit it here.
+    showCanonicalReference: true,
   });
   const wb = XLSX.read(buf, { type: 'array' });
   const sheet = wb.Sheets['Information Request List'];
