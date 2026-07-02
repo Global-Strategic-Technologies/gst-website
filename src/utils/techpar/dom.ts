@@ -563,7 +563,13 @@ export function buildInputs(): TechParInputs | null {
     mode: tp.mode,
     capexView: gaapEl?.checked ? 'gaap' : 'cash',
     growthRate: tp.growthRate || 0,
-    exitMultiple: getInput('exitMult') || 12,
+    // The exit-multiple field is only shown for PE / Enterprise stages (see the
+    // `showExit` toggle in techpar-ui). On any other stage the field is hidden,
+    // so a value entered while on PE/Enterprise must not silently persist into
+    // results or URL state (`syncUrlState` serializes this output). Force the
+    // default unless the stage actually exposes the field.
+    exitMultiple:
+      tp.stageKey === 'pe' || tp.stageKey === 'enterprise' ? getInput('exitMult') || 12 : 12,
     // BL-031.95: schema field is `infraHostingAnnual` (always annual). UI's
     // monthly mode multiplies by 12 here; annual mode passes through.
     infraHostingAnnual: tp.infraPeriod === 'monthly' ? getInput('infra') * 12 : getInput('infra'),
