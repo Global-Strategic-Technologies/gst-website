@@ -133,7 +133,7 @@ To run the exact scenario in this document:
 3. In a fresh Claude conversation with the `gst` server enabled, paste the prose prompt under [What you actually type](#what-you-actually-type).
 4. Compare the brief structure against the model output above.
 
-The cache TTL is 24 hours ([`src/lib/inoreader/cache.ts:18`](../../../../../src/lib/inoreader/cache.ts#L18)) — re-run `npm run radar:seed` if the snapshot has aged out. The seed fixtures are deterministic; outputs are stable across runs against the same cache.
+The offline snapshot has no automatic expiry — re-run `npm run radar:seed` to refresh it. The seed fixtures are deterministic; outputs are stable across runs against the same snapshot.
 
 For other use cases (live agenda drafting, comparable-deal recall), see [`mcp-server/README.md` → Why this exists (use cases)](../../../../README.md#why-this-exists-use-cases).
 

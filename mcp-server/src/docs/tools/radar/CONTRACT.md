@@ -21,7 +21,7 @@ enumParity:
 > - **Validation**: [`mcp-server/src/tools/radar-offline.ts`](../../../tools/radar-offline.ts) — `SearchRadarOfflineInputSchema` (single optional `category` field)
 > - **Category enum**: [`mcp-server/src/content/radar-snapshot.ts`](../../../content/radar-snapshot.ts) — `RADAR_CATEGORIES` const tuple, `RadarCategory` type
 > - **URL encoder**: [`src/utils/radar-url.ts`](../../../../../src/utils/radar-url.ts) — `serializeToParams` / `deserializeFromParams`. Imported by both the website page (`src/components/radar/CategoryFilter.astro` hydrates / syncs) and the MCP wrapper (`buildRadarDeeplink`); single source of truth for radar URL state.
-> - **Cache reader**: [`mcp-server/src/content/radar-snapshot.ts`](../../../content/radar-snapshot.ts) — `readFyiSnapshot()`, `readWireSnapshot()`, `SNAPSHOT_MISSING_MESSAGE`. Cache TTL is 24h ([`src/lib/inoreader/cache.ts:18`](../../../../../src/lib/inoreader/cache.ts#L18)).
+> - **Cache reader**: [`mcp-server/src/content/radar-snapshot.ts`](../../../content/radar-snapshot.ts) — `readFyiSnapshot()`, `readWireSnapshot()`, `SNAPSHOT_MISSING_MESSAGE`. The offline snapshot has no live TTL — its freshness is whenever `npm run radar:seed` last ran. (The live tools cache separately: `RESOURCE_TTL_SECONDS.RADAR` for Resources and a 6h Upstash store for `readFyiLive` / `readWireLive`.)
 >
 > **Used by prompts** (BL-031.75): [`gst_radar_brief_today`](../../../prompts/radar-brief-today.ts) (daily / pre-meeting digest of recent annotated FYI items, summarized in the GST Take voice). The prompt's argsSchema mirrors the same single `category` filter. Earlier versions accepted a `sinceHours` argument; removed in BL-031.95 Phase 3.A under the capability-mirror invariant — see [Capability-mirror invariant](#capability-mirror-invariant) below.
 >
@@ -96,7 +96,7 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 
 1. **`query` (free-text)**: the website has no search box. The cache is small enough that filtering by category alone is sufficient.
 2. **`tier` (`fyi` | `wire`)**: the website renders a unified feed via `mergeFeed(fyi, wire)`. There's no website surface to deep-link into a tier-specific view; the MCP Resources `gst://radar/fyi/latest` and `gst://radar/wire/latest` remain available for prompts that need a tier-specific snapshot embedding.
-3. **`since` (ISO date)**: the cache itself has a 24h TTL ([`src/lib/inoreader/cache.ts:18`](../../../../../src/lib/inoreader/cache.ts#L18)). A `since` filter beyond 24h would filter against items that aren't in the snapshot anyway. The website surfaces no time-window filter — items are sorted by `publishedAt` newest-first, so users naturally see recent items at the top.
+3. **`since` (ISO date)**: the offline snapshot is a point-in-time capture (seeded via `npm run radar:seed`). A `since` filter beyond the captured window would filter against items that aren't in the snapshot anyway. The website surfaces no time-window filter — items are sorted by `publishedAt` newest-first, so users naturally see recent items at the top.
 4. **`limit` (default 20, max 100)**: the website renders all items in the cache (the cache is small enough that pagination isn't needed). A tool-level `limit` would create a deep-link that doesn't match what the user sees on the page.
 
 **Future extension**: if a real consumer need emerges (e.g., the BL-032 live `search_radar` tool can reach further than 24h, so a `since` filter has new value), grow the website's filter UI **and** the MCP tool's input schema in lockstep. The capability-mirror invariant is the contract; it should never be violated unilaterally on either side.
@@ -105,7 +105,7 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 
 ## Hidden semantics
 
-- **Cache TTL bounds the meaningful filter range.** Even though items in `matches[]` carry `publishedAt` timestamps spanning whatever Inoreader's recent feed returned at seed time, the cache itself expires every 24h. Any filter operating on `publishedAt` (none today, but if added) would naturally be bounded to the cache's window.
+- **The snapshot window bounds the meaningful filter range.** Even though items in `matches[]` carry `publishedAt` timestamps spanning whatever Inoreader's recent feed returned at seed time, the snapshot is a point-in-time capture (refreshed by `npm run radar:seed`). Any filter operating on `publishedAt` (none today, but if added) would naturally be bounded to the snapshot's window.
 - **`tier` field on items**: each match in the response carries a `tier: 'fyi' | 'wire'` field telling the consumer which snapshot tier the item came from. This is annotation only — the tool does NOT accept `tier` as an input filter (per the capability-mirror invariant). Consumers can post-filter client-side if needed.
 - **`deeplink` is always emitted**, even on the snapshot-missing path? No — the `isError` branch returns just the error text and `isError: true`. The deeplink is only meaningful when there's actual data to land on.
 
