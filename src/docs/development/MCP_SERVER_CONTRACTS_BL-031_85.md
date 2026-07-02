@@ -21,13 +21,13 @@
 
 **What shipped under BL-031.85 directly** (April 27-28, 2026)
 
-- `mcp-server/src/docs/diligence/CONTRACT.md` — inaugural per-tool contract, v1, all 13 fields, hidden semantics documented
-- `mcp-server/src/docs/contracts/README.md` — registry with "what is", "why", spec template, versioning discipline, IRL forward-look, transitional notes
-- Cross-references: `mcp-server/src/docs/diligence/USAGE.md`, `mcp-server/README.md` Tool Inventory, `src/schemas/diligence.ts` top-of-file comment, `src/docs/README.md` Quick Navigation
+- `mcp-server/src/docs/tools/diligence/CONTRACT.md` — inaugural per-tool contract, v1, all 13 fields, hidden semantics documented
+- `mcp-server/src/docs/tools/README.md` — registry with "what is", "why", spec template, versioning discipline, IRL forward-look, transitional notes
+- Cross-references: `mcp-server/src/docs/tools/diligence/USAGE.md`, `mcp-server/README.md` Tool Inventory, `src/schemas/diligence.ts` top-of-file comment, `src/docs/README.md` Quick Navigation
 
 **What shipped during BL-031.5 closure** (rolled into the contracts pattern as designed)
 
-- `mcp-server/src/docs/icg/CONTRACT.md`, `techpar/CONTRACT.md`, `tech-debt/CONTRACT.md`, `regulatory-map/CONTRACT.md` — all four authored to the BL-031.85 spec template, each with `version: v1`, hidden-semantics callouts, source-of-truth pointers
+- `mcp-server/src/docs/tools/icg/CONTRACT.md`, `techpar/CONTRACT.md`, `tech-debt/CONTRACT.md`, `regulatory-map/CONTRACT.md` — all four authored to the BL-031.85 spec template, each with `version: v1`, hidden-semantics callouts, source-of-truth pointers
 - All four corresponding schema files (`src/schemas/icg.ts`, `techpar.ts`, `tech-debt.ts`, `regulatory-map.ts`) gained the diligence-style top-of-file comment block pointing at their CONTRACT.md
 - Registry table updated in-place: each tool's status flipped from `⏳ BL-031.5` to `✅ Authored (BL-031.5)` as the contracts shipped
 
@@ -37,8 +37,8 @@
 
 **Outstanding — explicitly deferred at closure**
 
-- `mcp-server/src/docs/portfolio/CONTRACT.md` — **broken README link still outstanding**; deferred to [BL-034 follow-up list](BACKLOG.md#bl-034-mcp-server--documentation-cleanup) (decision pending: author or drop the tool from the registry). The `search_portfolio` and `list_portfolio_facets` tools have shipped and are used by 2 BL-031.75 prompts but their contract was never authored
-- `mcp-server/src/docs/radar/CONTRACT.md` — registry status flipped from `⏳ Backlog` to `⏳ BL-032`; will be authored alongside live `search_radar` when BL-032 ships
+- `mcp-server/src/docs/tools/portfolio/CONTRACT.md` — **broken README link still outstanding**; deferred to [BL-034 follow-up list](BACKLOG.md#bl-034-mcp-server--documentation-cleanup) (decision pending: author or drop the tool from the registry). The `search_portfolio` and `list_portfolio_facets` tools have shipped and are used by 2 BL-031.75 prompts but their contract was never authored
+- `mcp-server/src/docs/tools/radar/CONTRACT.md` — registry status flipped from `⏳ Backlog` to `⏳ BL-032`; will be authored alongside live `search_radar` when BL-032 ships
 - Contract-parity Vitest test (architecture doc § Risks listed this as a future enhancement) — see [Proximate opportunities](#proximate-opportunities)
 
 ---
@@ -66,7 +66,7 @@ Identified during BL-031.85 closure audit (2026-05-02). Each is a follow-on that
 
 ### Deferred — file under BL-034 cleanup
 
-- **Cross-tool concept glossary** in `mcp-server/src/docs/contracts/README.md` — added during BL-031.85 closure as a transitional artifact with a "Will be superseded by BL-031.87" note. Once the canonical stage taxonomy ships under BL-031.87, the glossary's stage section retires; remaining content (if any) folds into the registry's main body
+- **Cross-tool concept glossary** in `mcp-server/src/docs/tools/README.md` — added during BL-031.85 closure as a transitional artifact with a "Will be superseded by BL-031.87" note. Once the canonical stage taxonomy ships under BL-031.87, the glossary's stage section retires; remaining content (if any) folds into the registry's main body
 - **Schema-mapping table standardization across `USAGE.md` files** — diligence/USAGE.md has a "phrase → schema field" table (lines 61-77) that's brilliant for orientation; the four BL-031.5 USAGE.md files lack it. Pure doc polish; low strategic leverage; defer
 
 ---
@@ -139,7 +139,7 @@ The contract is a _consolidation_ layer. It does not invent new content beyond L
 
 Two artifacts establish the pattern:
 
-### `mcp-server/src/docs/contracts/README.md` — registry index
+### `mcp-server/src/docs/tools/README.md` — registry index
 
 Three sections:
 
@@ -161,7 +161,7 @@ Three sections:
 
 ### Per-tool `mcp-server/src/docs/<tool>/CONTRACT.md` — full contract
 
-The diligence contract lives at `mcp-server/src/docs/diligence/CONTRACT.md` (sibling to `diligence/USAGE.md`). Future Hub-tool contracts get sibling subdirectories (`techpar/`, `icg/`, `tech-debt/`, `regulatory-map/`), each with its own `CONTRACT.md` and `USAGE.md`.
+The diligence contract lives at `mcp-server/src/docs/tools/diligence/CONTRACT.md` (sibling to `diligence/USAGE.md`). Future Hub-tool contracts get sibling subdirectories (`techpar/`, `icg/`, `tech-debt/`, `regulatory-map/`), each with its own `CONTRACT.md` and `USAGE.md`.
 
 ---
 
@@ -221,12 +221,12 @@ Two phases, each landing as separate commits:
 
 ### Phase 1 — Diligence contract + registry
 
-1. Author `mcp-server/src/docs/contracts/README.md` (registry index, IRL forward-look, contracts table)
-2. Author `mcp-server/src/docs/diligence/CONTRACT.md` (full per-field documentation for `generate_diligence_agenda`)
+1. Author `mcp-server/src/docs/tools/README.md` (registry index, IRL forward-look, contracts table)
+2. Author `mcp-server/src/docs/tools/diligence/CONTRACT.md` (full per-field documentation for `generate_diligence_agenda`)
 3. Cross-references:
-   - `mcp-server/src/docs/diligence/USAGE.md` schema-mapping table → links to `CONTRACT.md`
+   - `mcp-server/src/docs/tools/diligence/USAGE.md` schema-mapping table → links to `CONTRACT.md`
    - `mcp-server/README.md` "What's exposed" table's `Input` column → links to `CONTRACT.md`
-   - `src/schemas/diligence.ts` top-of-file comment → points to `mcp-server/src/docs/diligence/CONTRACT.md`
+   - `src/schemas/diligence.ts` top-of-file comment → points to `mcp-server/src/docs/tools/diligence/CONTRACT.md`
    - `src/docs/README.md` Quick Navigation row → points to the contracts registry
 
 ### Phase 2 — Verification
@@ -241,16 +241,16 @@ The implementation is a single PR (or a small sequence of commits in the same PR
 
 ## Critical files to read or modify
 
-| File                                                                                           | Action                                                                                   | Why                                                                                                                                                       |
-| ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`src/schemas/diligence.ts`](../../schemas/diligence.ts)                                       | Read; small edit (top-of-file comment pointer only)                                      | Canonical Zod schema; the 13-field `UserInputsSchema` and the `*_IDS` tuples are the source for valid enum values                                         |
-| [`src/data/diligence-machine/wizard-config.ts`](../../data/diligence-machine/wizard-config.ts) | Read only                                                                                | Canonical user-facing copy: per-step labels, per-option labels, per-option descriptions. The contract lifts this verbatim                                 |
-| [`src/utils/diligence-engine.ts`](../../utils/diligence-engine.ts) lines 74-87, 333-348        | Read only                                                                                | `meetsMinimumBracket` (ordinal comparison) and `CONDITION_LABELS` (dimension-label canonical values). Cited in the contract for hidden-semantics callouts |
-| `mcp-server/src/docs/contracts/README.md` (new)                                                | Create                                                                                   | Registry index, what-is-an-input-contract narrative, contracts table, IRL forward-look                                                                    |
-| `mcp-server/src/docs/diligence/CONTRACT.md` (new)                                              | Create                                                                                   | The inaugural per-tool contract; reference implementation for the four other Hub-tool contracts that BL-031.5 will author                                 |
-| [`mcp-server/src/docs/diligence/USAGE.md`](../../../mcp-server/src/docs/diligence/USAGE.md)    | Edit — link the schema-mapping table to the new contract                                 | The walkthrough doc currently has the schema-mapping table in isolation; should link to the canonical reference                                           |
-| [`mcp-server/README.md`](../../../mcp-server/README.md)                                        | Edit — link the `Input` column for diligence; add planned-contract notes for other tools | The "What's exposed" table is the natural surface for tool inventory; pointing at the contract from there is high-discoverability                         |
-| [`src/docs/README.md`](../README.md)                                                           | Edit — Quick Navigation row pointing to the contracts registry                           | Site-level discoverability; cross-references workspace docs without duplicating their content                                                             |
+| File                                                                                                    | Action                                                                                   | Why                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`src/schemas/diligence.ts`](../../schemas/diligence.ts)                                                | Read; small edit (top-of-file comment pointer only)                                      | Canonical Zod schema; the 13-field `UserInputsSchema` and the `*_IDS` tuples are the source for valid enum values                                         |
+| [`src/data/diligence-machine/wizard-config.ts`](../../data/diligence-machine/wizard-config.ts)          | Read only                                                                                | Canonical user-facing copy: per-step labels, per-option labels, per-option descriptions. The contract lifts this verbatim                                 |
+| [`src/utils/diligence-engine.ts`](../../utils/diligence-engine.ts) lines 74-87, 333-348                 | Read only                                                                                | `meetsMinimumBracket` (ordinal comparison) and `CONDITION_LABELS` (dimension-label canonical values). Cited in the contract for hidden-semantics callouts |
+| `mcp-server/src/docs/tools/README.md` (new)                                                             | Create                                                                                   | Registry index, what-is-an-input-contract narrative, contracts table, IRL forward-look                                                                    |
+| `mcp-server/src/docs/tools/diligence/CONTRACT.md` (new)                                                 | Create                                                                                   | The inaugural per-tool contract; reference implementation for the four other Hub-tool contracts that BL-031.5 will author                                 |
+| [`mcp-server/src/docs/tools/diligence/USAGE.md`](../../../mcp-server/src/docs/tools/diligence/USAGE.md) | Edit — link the schema-mapping table to the new contract                                 | The walkthrough doc currently has the schema-mapping table in isolation; should link to the canonical reference                                           |
+| [`mcp-server/README.md`](../../../mcp-server/README.md)                                                 | Edit — link the `Input` column for diligence; add planned-contract notes for other tools | The "What's exposed" table is the natural surface for tool inventory; pointing at the contract from there is high-discoverability                         |
+| [`src/docs/README.md`](../README.md)                                                                    | Edit — Quick Navigation row pointing to the contracts registry                           | Site-level discoverability; cross-references workspace docs without duplicating their content                                                             |
 
 ---
 

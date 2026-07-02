@@ -9,7 +9,7 @@ import { z } from 'zod';
  * The human-readable reference for the `assess_infrastructure_cost_governance`
  * MCP tool (per-field labels, valid values, downstream-effect summaries,
  * hidden-semantics callouts like the foundational-domain flag) lives at:
- *   `mcp-server/src/docs/icg/CONTRACT.md`
+ *   `mcp-server/src/docs/tools/icg/CONTRACT.md`
  */
 
 // ─── domains.ts ──────────────────────────────────────────────────────────────

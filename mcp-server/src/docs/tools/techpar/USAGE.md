@@ -1,10 +1,10 @@
 # Usage — `compute_techpar`: A Tech-Cost Benchmarking Walkthrough
 
-A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../README.md) `compute_techpar` tool for a real-shaped task: benchmarking a target's technology cost ratio against stage-specific peer ranges as input to a buy-side investment thesis.
+A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../../README.md) `compute_techpar` tool for a real-shaped task: benchmarking a target's technology cost ratio against stage-specific peer ranges as input to a buy-side investment thesis.
 
 This document is a **stakeholder orientation aid** — it answers "what does it actually look like to use this" without requiring the reader to install the server first. Every input and output below is reproducible by anyone with the MCP server registered in their Claude client.
 
-> Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input reference) | [`../contracts/README.md`](../contracts/README.md) (registry of all per-tool contracts).
+> Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input reference) | [`../contracts/README.md`](../README.md) (registry of all per-tool contracts).
 
 > **The deal in this document is hypothetical.** No real client, target, or codename. Stage labels, zone names, and benchmark ranges are real — they come from `src/data/techpar/stages.ts` — but the example numbers are illustrative.
 
@@ -28,7 +28,7 @@ In the MCP workflow, the benchmarking happens inside the Claude conversation tha
 
 ## What you actually type
 
-Inside any Claude client where the GST MCP server is registered (Claude Desktop, Claude Code, Cursor — see the [MCP server README](../../../README.md) for setup), describe the deal in prose:
+Inside any Claude client where the GST MCP server is registered (Claude Desktop, Claude Code, Cursor — see the [MCP server README](../../../../README.md) for setup), describe the deal in prose:
 
 > _"Run TechPar on this target. Series B–C SaaS, $25M ARR, growing 30% YoY, exit multiple 12×. Cash basis. Annual infra hosting is $960K (so $80K/month), infra personnel $600K/year, R&D OpEx $4M, R&D CapEx $500K. They have 25 engineers."_
 
@@ -156,7 +156,7 @@ The engine is not new. The stage-specific benchmark bands are not new. **What is
 
 To run the exact scenario in this document:
 
-1. Set up the MCP server per [`mcp-server/README.md`](../../../README.md) → "Install & build" and "Configure clients" sections.
+1. Set up the MCP server per [`mcp-server/README.md`](../../../../README.md) → "Install & build" and "Configure clients" sections.
 2. In a fresh Claude conversation with the `gst` server enabled, paste the prose prompt under [What you actually type](#what-you-actually-type).
 3. Compare the benchmark against the structure under [The benchmark the engine returns](#the-benchmark-the-engine-returns). Outputs will be byte-identical for the same input vector.
 
@@ -166,10 +166,10 @@ The engine is deterministic; per-category zones, KPIs, and the 36-month projecti
 
 ## Related documentation
 
-- [`mcp-server/README.md`](../../../README.md) — install, configure, tool inventory, troubleshooting
+- [`mcp-server/README.md`](../../../../README.md) — install, configure, tool inventory, troubleshooting
 - [`CONTRACT.md`](./CONTRACT.md) — the canonical input contract (per-field reference, valid values, mode/capexView interactions, zone classification rules)
-- [`../contracts/README.md`](../contracts/README.md) — registry of all per-tool input contracts; what a contract is; the IRL forward-look
-- [`src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md`](../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md) — architecture and design rationale for BL-031.5
+- [`../contracts/README.md`](../README.md) — registry of all per-tool input contracts; what a contract is; the IRL forward-look
+- [`src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md`](../../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md) — architecture and design rationale for BL-031.5
 
 ---
 

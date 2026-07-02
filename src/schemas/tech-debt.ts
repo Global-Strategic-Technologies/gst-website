@@ -15,7 +15,7 @@ import { z } from 'zod';
  * The human-readable reference for the MCP tool (per-field semantics,
  * the DORA-aligned velocity multiplier table, slider-bypass rationale,
  * payback-period semantics) lives at:
- *   `mcp-server/src/docs/tech-debt/CONTRACT.md`
+ *   `mcp-server/src/docs/tools/tech-debt/CONTRACT.md`
  */
 
 export const DEPLOY_FREQUENCY_VALUES = [

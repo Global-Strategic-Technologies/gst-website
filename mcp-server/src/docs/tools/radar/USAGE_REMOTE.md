@@ -4,7 +4,7 @@ End-to-end examples of the **live** radar tools — calling Inoreader directly w
 
 > **Sister tool**: [`search_radar_offline`](./USAGE.md) (snapshot-only, stdio-only, dev/CI/budget-exhausted fallback) — same shape, different source.
 
-> **Setup**: this assumes you have remote MCP configured per [`REMOTE_CLIENT_SETUP.md`](../operations/REMOTE_CLIENT_SETUP.md). Per-key budgets: 5 calls/min, 50 calls/day for radar tools. The 6h cache amortizes — repeat queries within 6h hit the cache, not Inoreader.
+> **Setup**: this assumes you have remote MCP configured per [`REMOTE_CLIENT_SETUP.md`](../../operations/REMOTE_CLIENT_SETUP.md). Per-key budgets: 5 calls/min, 50 calls/day for radar tools. The 6h cache amortizes — repeat queries within 6h hit the cache, not Inoreader.
 
 ---
 
@@ -121,7 +121,7 @@ Non-radar tools (diligence, portfolio, ICG, etc.) are unaffected.
 
 ### Recovery
 
-The breaker auto-closes via TTL expiry. No manual reset needed in normal operation. For Inoreader-recovered-early scenarios, see [`RATE_LIMITS.md` § Circuit-breaker manual reset](../operations/RATE_LIMITS.md#circuit-breaker-manual-reset).
+The breaker auto-closes via TTL expiry. No manual reset needed in normal operation. For Inoreader-recovered-early scenarios, see [`RATE_LIMITS.md` § Circuit-breaker manual reset](../../operations/RATE_LIMITS.md#circuit-breaker-manual-reset).
 
 ---
 

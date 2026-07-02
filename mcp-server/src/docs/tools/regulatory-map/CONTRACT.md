@@ -3,6 +3,9 @@ tool: search_regulations
 version: v2
 lastAuthored: 2026-05-27
 schema: src/schemas/regulatory-map.ts
+enumParity:
+  - tableHeading: '`category` valid values'
+    schemaExport: src/schemas/regulatory-map.ts#REGULATION_CATEGORY_VALUES
 ---
 
 # Input Contract: `search_regulations` + `list_regulation_facets`
@@ -16,21 +19,21 @@ schema: src/schemas/regulatory-map.ts
 >
 > **Sources of truth** (the contract cites these; it does not duplicate them):
 >
-> - **Validation**: [`src/schemas/regulatory-map.ts`](../../../../src/schemas/regulatory-map.ts) — `RegulationSchema`, `RegulationCategorySchema`, `RegulationSearchInputSchema`, `RegulationFacetsInputSchema`
-> - **Framework dataset**: [`src/data/regulatory-map/*.json`](../../../../src/data/regulatory-map/) — 120 individual JSON files, one per framework
-> - **Engine / loader**: [`mcp-server/src/content/regulation-loader.ts`](../../content/regulation-loader.ts) — URI parsing (`SUB_REGION_RE`), slug index, `loadRegulationByUri`
-> - **Tool wrapper**: [`mcp-server/src/tools/regulations.ts`](../../tools/regulations.ts) — search filtering, facet enumeration, `jurisdictionToRegion()` deep-link normalization (V2 fix: lowercase alpha-2 → uppercase alpha-3)
+> - **Validation**: [`src/schemas/regulatory-map.ts`](../../../../../src/schemas/regulatory-map.ts) — `RegulationSchema`, `RegulationCategorySchema`, `RegulationSearchInputSchema`, `RegulationFacetsInputSchema`
+> - **Framework dataset**: [`src/data/regulatory-map/*.json`](../../../../../src/data/regulatory-map/) — 120 individual JSON files, one per framework
+> - **Engine / loader**: [`mcp-server/src/content/regulation-loader.ts`](../../../content/regulation-loader.ts) — URI parsing (`SUB_REGION_RE`), slug index, `loadRegulationByUri`
+> - **Tool wrapper**: [`mcp-server/src/tools/regulations.ts`](../../../tools/regulations.ts) — search filtering, facet enumeration, `jurisdictionToRegion()` deep-link normalization (V2 fix: lowercase alpha-2 → uppercase alpha-3)
 >
 > **Used by prompts** (BL-031.75):
 >
-> - [`gst_target_quick_look`](../../prompts/target-quick-look.ts) — calls `search_regulations` once per relevant data category for the supplied `hqJurisdiction`; the per-result `deeplink` field surfaces in the brief's Open-in-Hub section.
-> - [`gst_regulatory_exposure_brief`](../../prompts/regulatory-exposure-brief.ts) — calls `search_regulations` per jurisdiction × category combination; builds per-framework summaries from the enriched `SearchResult` fields (`scope` / `keyRequirements` / `penalties` — added in V4 sign-off via commit `cc3b023`) rather than calling `resources/read` (Resources are user-pinned, not model-fetchable from prompt expansion).
+> - [`gst_target_quick_look`](../../../prompts/target-quick-look.ts) — calls `search_regulations` once per relevant data category for the supplied `hqJurisdiction`; the per-result `deeplink` field surfaces in the brief's Open-in-Hub section.
+> - [`gst_regulatory_exposure_brief`](../../../prompts/regulatory-exposure-brief.ts) — calls `search_regulations` per jurisdiction × category combination; builds per-framework summaries from the enriched `SearchResult` fields (`scope` / `keyRequirements` / `penalties` — added in V4 sign-off via commit `cc3b023`) rather than calling `resources/read` (Resources are user-pinned, not model-fetchable from prompt expansion).
 >
 > Both prompts surface `gst://regulations/<jurisdiction>/<framework-id>` URIs as analyst-pinnable references. Adding new fields to `SearchResult`'s wire shape (e.g., for future enrichment beyond `scope`/`keyRequirements`/`penalties`) should be reflected in the regulatory-exposure-brief body's Step 2 source-grounding instruction.
 >
 > **Version**: `v2` | **Last authored**: 2026-05-27 (multi-value filters)
 >
-> **Registry**: see [`../contracts/README.md`](../contracts/README.md).
+> **Registry**: see [`../contracts/README.md`](../README.md).
 
 ---
 
@@ -55,7 +58,7 @@ Filters AND across facets and OR within a facet — `{jurisdiction: ['eu','us'],
 - **Multi-value `filterDeeplink` policy**: when a filter array has >1 element, the response's `filterDeeplink` **omits the corresponding URL param**. When BOTH arrays have >1 element, the deeplink collapses to the bare `https://globalstrategic.tech/hub/tools/regulatory-map/`. The "why" is the **capability-mirror invariant**: the website page uses single-select chips and cannot represent a multi-jurisdiction (or multi-category) filter in its URL state. Returning a misleading deeplink that doesn't reflect the agent's filter would silently drop user intent. Use single-value filters when you need a deeplink that mirrors the agent's filter exactly.
 - **Byte-identical guarantee**: deeplinks for `jurisdiction: 'eu'` and `jurisdiction: ['eu']` are strictly equal (`===`). This is pinned by a unit test (`tests/unit/regulations.test.ts`) so any future schema refactor can't silently produce different deeplinks for the two callsite shapes.
 
-**Why union+transform (not preprocess)**: Zod's `z.union(...).transform(...)` surfaces a clearer parse error on garbage input (`{jurisdiction: 42}` reports `invalid_union` with both arm errors), gives the handler sharp `string[] | undefined` TS inference (no `unknown` cast), and is itself pinned by an `invalid_union` error-code assertion so a future refactor to `z.preprocess` would break CI. See [`tests/unit/regulations.test.ts`](../../../tests/unit/regulations.test.ts) under "RegulationSearchInputSchema — array filters (multi-value)".
+**Why union+transform (not preprocess)**: Zod's `z.union(...).transform(...)` surfaces a clearer parse error on garbage input (`{jurisdiction: 42}` reports `invalid_union` with both arm errors), gives the handler sharp `string[] | undefined` TS inference (no `unknown` cast), and is itself pinned by an `invalid_union` error-code assertion so a future refactor to `z.preprocess` would break CI. See [`tests/unit/regulations.test.ts`](../../../../tests/unit/regulations.test.ts) under "RegulationSearchInputSchema — array filters (multi-value)".
 
 ### `jurisdiction` valid values
 
@@ -135,7 +138,7 @@ The Resource URI format is `gst://regulations/<jurisdiction>/<framework-id>`. Pa
 
 **Sub-region detection** uses the regex `^(us|ca)-([a-z]{2})-(.+)$` — only `us-` and `ca-` prefixes followed by a 2-letter sub-region code are treated as multi-segment jurisdictions. `ca-cccs` falls through (no second 2-letter segment) and is parsed as `ca/cccs`.
 
-URIs are decoupled from filenames — renaming `EU-GDPR.json` to anything else would not change `gst://regulations/eu/gdpr` because the URI is derived from the JSON's `id` field, not the filename. URI stability is enforced by [`tests/integration/resource-uri-stability.test.ts`](../../../tests/integration/resource-uri-stability.test.ts).
+URIs are decoupled from filenames — renaming `EU-GDPR.json` to anything else would not change `gst://regulations/eu/gdpr` because the URI is derived from the JSON's `id` field, not the filename. URI stability is enforced by [`tests/integration/resource-uri-stability.test.ts`](../../../../tests/integration/resource-uri-stability.test.ts).
 
 ---
 
@@ -149,6 +152,6 @@ URIs are decoupled from filenames — renaming `EU-GDPR.json` to anything else w
 
 ## Related
 
-- Resource handler: [`mcp-server/src/resources/regulations.ts`](../../resources/regulations.ts)
+- Resource handler: [`mcp-server/src/resources/regulations.ts`](../../../resources/regulations.ts)
 - Live website: <https://globalstrategic.tech/hub/tools/regulatory-map>
-- Architecture: [BL-031.5 Hub Surface Extension](../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md)
+- Architecture: [BL-031.5 Hub Surface Extension](../../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md)

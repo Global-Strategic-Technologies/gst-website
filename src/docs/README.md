@@ -17,20 +17,20 @@ Master index for all project documentation.
 
 ## Quick Navigation
 
-| I need to...                                        | Go to                                                                                                                       |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Understand the design system                        | [styles/STYLES_GUIDE.md](styles/STYLES_GUIDE.md)                                                                            |
-| Write or fix tests                                  | [testing/TEST_BEST_PRACTICES.md](testing/TEST_BEST_PRACTICES.md)                                                            |
-| Understand CI/CD                                    | [testing/GITHUB_ACTIONS_SETUP.md](testing/GITHUB_ACTIONS_SETUP.md)                                                          |
-| Check lint/format tooling                           | [development/DEVELOPER_TOOLING.md](development/DEVELOPER_TOOLING.md)                                                        |
-| Update SEO metadata                                 | [seo/SEO_IMPLEMENTATION.md](seo/SEO_IMPLEMENTATION.md)                                                                      |
-| Understand a hub tool                               | [hub/README.md](hub/README.md)                                                                                              |
-| Track analytics events                              | [analytics/GOOGLE_ANALYTICS.md](analytics/GOOGLE_ANALYTICS.md)                                                              |
-| Set up Sentry monitoring                            | [development/SENTRY_MANUAL_SETUP.md](development/SENTRY_MANUAL_SETUP.md)                                                    |
-| Investigate a perf regression or read the dashboard | [development/PERFORMANCE_OBSERVABILITY.md](development/PERFORMANCE_OBSERVABILITY.md)                                        |
-| Understand security headers                         | [security/SECURITY_HEADERS.md](security/SECURITY_HEADERS.md)                                                                |
-| Find a secret / understand where each env var lives | [operations/SECRETS_INVENTORY.md](operations/SECRETS_INVENTORY.md)                                                          |
-| See the development roadmap                         | [development/README.md](development/README.md)                                                                              |
-| Set up branch protection                            | [testing/GITHUB_ACTIONS_SETUP.md](testing/GITHUB_ACTIONS_SETUP.md#branch-protection-rules)                                  |
-| See the MCP server in a concrete scenario           | [mcp-server/src/docs/diligence/USAGE.md](../../mcp-server/src/docs/diligence/USAGE.md) (each tool ships its own `USAGE.md`) |
-| Understand a Hub tool's input contract              | [mcp-server/src/docs/contracts/README.md](../../mcp-server/src/docs/contracts/README.md)                                    |
+| I need to...                                        | Go to                                                                                                                                   |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Understand the design system                        | [styles/STYLES_GUIDE.md](styles/STYLES_GUIDE.md)                                                                                        |
+| Write or fix tests                                  | [testing/TEST_BEST_PRACTICES.md](testing/TEST_BEST_PRACTICES.md)                                                                        |
+| Understand CI/CD                                    | [testing/GITHUB_ACTIONS_SETUP.md](testing/GITHUB_ACTIONS_SETUP.md)                                                                      |
+| Check lint/format tooling                           | [development/DEVELOPER_TOOLING.md](development/DEVELOPER_TOOLING.md)                                                                    |
+| Update SEO metadata                                 | [seo/SEO_IMPLEMENTATION.md](seo/SEO_IMPLEMENTATION.md)                                                                                  |
+| Understand a hub tool                               | [hub/README.md](hub/README.md)                                                                                                          |
+| Track analytics events                              | [analytics/GOOGLE_ANALYTICS.md](analytics/GOOGLE_ANALYTICS.md)                                                                          |
+| Set up Sentry monitoring                            | [development/SENTRY_MANUAL_SETUP.md](development/SENTRY_MANUAL_SETUP.md)                                                                |
+| Investigate a perf regression or read the dashboard | [development/PERFORMANCE_OBSERVABILITY.md](development/PERFORMANCE_OBSERVABILITY.md)                                                    |
+| Understand security headers                         | [security/SECURITY_HEADERS.md](security/SECURITY_HEADERS.md)                                                                            |
+| Find a secret / understand where each env var lives | [operations/SECRETS_INVENTORY.md](operations/SECRETS_INVENTORY.md)                                                                      |
+| See the development roadmap                         | [development/README.md](development/README.md)                                                                                          |
+| Set up branch protection                            | [testing/GITHUB_ACTIONS_SETUP.md](testing/GITHUB_ACTIONS_SETUP.md#branch-protection-rules)                                              |
+| See the MCP server in a concrete scenario           | [mcp-server/src/docs/tools/diligence/USAGE.md](../../mcp-server/src/docs/tools/diligence/USAGE.md) (each tool ships its own `USAGE.md`) |
+| Understand a Hub tool's input contract              | [mcp-server/src/docs/tools/README.md](../../mcp-server/src/docs/tools/README.md)                                                        |

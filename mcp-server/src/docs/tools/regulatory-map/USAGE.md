@@ -1,10 +1,10 @@
 # Usage — `search_regulations` + `gst://regulations/...`: A Cross-Border Compliance Walkthrough
 
-A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../README.md) `search_regulations` / `list_regulation_facets` tools and the companion `gst://regulations/<jurisdiction>/<framework-id>` Resources for a real-shaped task: mapping the regulatory exposure of a target operating across multiple jurisdictions and pinning the relevant framework bodies as agent context for a deal review.
+A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../../README.md) `search_regulations` / `list_regulation_facets` tools and the companion `gst://regulations/<jurisdiction>/<framework-id>` Resources for a real-shaped task: mapping the regulatory exposure of a target operating across multiple jurisdictions and pinning the relevant framework bodies as agent context for a deal review.
 
 This document is a **stakeholder orientation aid** — it answers "what does it actually look like to use this" without requiring the reader to install the server first. Every input and output below is reproducible by anyone with the MCP server registered in their Claude client.
 
-> Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input + URI taxonomy reference) | [`../contracts/README.md`](../contracts/README.md) (registry of all per-tool contracts).
+> Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input + URI taxonomy reference) | [`../contracts/README.md`](../README.md) (registry of all per-tool contracts).
 
 > **The deal in this document is hypothetical.** No real client, target, or codename. Framework names, IDs, and effective dates are real — they come from the 120 JSON files in `src/data/regulatory-map/` — but the example deal context is illustrative.
 
@@ -28,7 +28,7 @@ In the MCP workflow, the entire mapping happens in the Claude conversation that'
 
 ## What you actually type
 
-Inside any Claude client where the GST MCP server is registered (Claude Desktop, Claude Code, Cursor — see the [MCP server README](../../../README.md) for setup), describe the target's footprint in prose:
+Inside any Claude client where the GST MCP server is registered (Claude Desktop, Claude Code, Cursor — see the [MCP server README](../../../../README.md) for setup), describe the target's footprint in prose:
 
 > _"Map the regulatory floor for this target. They handle customer PII and run a B2B SaaS platform across: EU (German entity), UK, US California, US New York, Canada federal, and Quebec province. Pull the data-privacy frameworks first, then the AI-governance ones since they have ML scoring features. I'll want the EU GDPR full text pinned for the next conversation."_
 
@@ -172,7 +172,7 @@ The 120-framework dataset is not new. The category taxonomy is not new. **What i
 
 To run the exact scenario in this document:
 
-1. Set up the MCP server per [`mcp-server/README.md`](../../../README.md) → "Install & build" and "Configure clients" sections.
+1. Set up the MCP server per [`mcp-server/README.md`](../../../../README.md) → "Install & build" and "Configure clients" sections.
 2. In a fresh Claude conversation with the `gst` server enabled, paste the prose prompt under [What you actually type](#what-you-actually-type).
 3. Compare the matrix against the structure under [The map the engine returns](#the-map-the-engine-returns). Outputs will be byte-identical for the same jurisdiction × category filter set.
 4. Pin one of the framework Resources (`gst://regulations/eu/gdpr` is the canonical demo URI) and confirm the `keyRequirements[]` array is in the model's context.
@@ -183,10 +183,10 @@ The dataset is deterministic; matches and Resource bodies are direct functions o
 
 ## Related documentation
 
-- [`mcp-server/README.md`](../../../README.md) — install, configure, tool inventory, troubleshooting
+- [`mcp-server/README.md`](../../../../README.md) — install, configure, tool inventory, troubleshooting
 - [`CONTRACT.md`](./CONTRACT.md) — the canonical input contract (per-field reference, URI taxonomy, sub-region detection, hidden semantics)
-- [`../contracts/README.md`](../contracts/README.md) — registry of all per-tool input contracts; what a contract is; the IRL forward-look
-- [`src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md`](../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md) — architecture and design rationale for BL-031.5
+- [`../contracts/README.md`](../README.md) — registry of all per-tool input contracts; what a contract is; the IRL forward-look
+- [`src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md`](../../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md) — architecture and design rationale for BL-031.5
 
 ---
 

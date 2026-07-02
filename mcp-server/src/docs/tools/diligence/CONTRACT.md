@@ -3,6 +3,33 @@ tool: generate_diligence_agenda
 version: v1
 lastAuthored: 2026-04-27
 schema: src/schemas/diligence.ts
+enumParity:
+  - tableHeading: '`transactionType`'
+    schemaExport: src/data/diligence-machine/wizard-config.ts#TRANSACTION_TYPE_IDS
+  - tableHeading: '`productType`'
+    schemaExport: src/data/diligence-machine/wizard-config.ts#PRODUCT_TYPE_IDS
+  - tableHeading: '`techArchetype`'
+    schemaExport: src/data/diligence-machine/wizard-config.ts#TECH_ARCHETYPE_IDS
+  - tableHeading: '`headcount`'
+    schemaExport: src/data/diligence-machine/wizard-config.ts#HEADCOUNT_IDS
+  - tableHeading: '`revenueRange`'
+    schemaExport: src/data/diligence-machine/wizard-config.ts#REVENUE_RANGE_IDS
+  - tableHeading: '`growthStage`'
+    schemaExport: src/data/diligence-machine/wizard-config.ts#GROWTH_STAGE_IDS
+  - tableHeading: '`companyAge`'
+    schemaExport: src/data/diligence-machine/wizard-config.ts#COMPANY_AGE_IDS
+  - tableHeading: '`geographies`'
+    schemaExport: src/data/diligence-machine/wizard-config.ts#GEOGRAPHY_IDS
+  - tableHeading: '`businessModel`'
+    schemaExport: src/data/diligence-machine/wizard-config.ts#BUSINESS_MODEL_IDS
+  - tableHeading: '`scaleIntensity`'
+    schemaExport: src/data/diligence-machine/wizard-config.ts#SCALE_INTENSITY_IDS
+  - tableHeading: '`transformationState`'
+    schemaExport: src/data/diligence-machine/wizard-config.ts#TRANSFORMATION_STATE_IDS
+  - tableHeading: '`dataSensitivity`'
+    schemaExport: src/data/diligence-machine/wizard-config.ts#DATA_SENSITIVITY_IDS
+  - tableHeading: '`operatingModel`'
+    schemaExport: src/data/diligence-machine/wizard-config.ts#OPERATING_MODEL_IDS
 ---
 
 # Input Contract: `generate_diligence_agenda`
@@ -11,11 +38,11 @@ schema: src/schemas/diligence.ts
 >
 > **Sources of truth** (the contract cites these; it does not duplicate them):
 >
-> - **Validation**: [`src/schemas/diligence.ts`](../../../../src/schemas/diligence.ts) — `UserInputsSchema` and the `*_IDS` enum tuples
-> - **Labels & per-option descriptions**: [`src/data/diligence-machine/wizard-config.ts`](../../../../src/data/diligence-machine/wizard-config.ts) — `WizardStep` definitions, lines 85–425
-> - **Downstream effects**: [`src/utils/diligence-engine.ts`](../../../../src/utils/diligence-engine.ts) — `CONDITION_LABELS` (lines 333-348), `meetsMinimumBracket` (lines 74-87), `BRACKET_ORDER` constant
+> - **Validation**: [`src/schemas/diligence.ts`](../../../../../src/schemas/diligence.ts) — `UserInputsSchema` and the `*_IDS` enum tuples
+> - **Labels & per-option descriptions**: [`src/data/diligence-machine/wizard-config.ts`](../../../../../src/data/diligence-machine/wizard-config.ts) — `WizardStep` definitions, lines 85–425
+> - **Downstream effects**: [`src/utils/diligence-engine.ts`](../../../../../src/utils/diligence-engine.ts) — `CONDITION_LABELS` (lines 333-348), `meetsMinimumBracket` (lines 74-87), `BRACKET_ORDER` constant
 >
-> **Registry**: see [`../contracts/README.md`](../contracts/README.md) for the "what is an input contract" narrative, the cross-tool registry, and the per-tool spec template this document follows.
+> **Registry**: see [`../contracts/README.md`](../README.md) for the "what is an input contract" narrative, the cross-tool registry, and the per-tool spec template this document follows.
 
 ---
 
@@ -287,7 +314,7 @@ The `triggerMap`'s dimension labels are sourced from the engine's `CONDITION_LAB
 ## Related
 
 - [`USAGE.md`](./USAGE.md) — end-to-end walkthrough using this contract for a hypothetical TDD scenario
-- [`../contracts/README.md`](../contracts/README.md) — registry of all per-tool input contracts; what an input contract is; the IRL forward-look
-- [BL-031 in BACKLOG.md](../../../../src/docs/development/BACKLOG.md#bl-031-mcp-server--internal-prototype-phase-1) — the initiative that ships the underlying tool
-- [BL-031.85 in BACKLOG.md](../../../../src/docs/development/BACKLOG.md#bl-03185-mcp-server--tool-input-contracts) — the initiative that ships this contract
-- [`MCP_SERVER_CONTRACTS_BL-031_85.md`](../../../../src/docs/development/MCP_SERVER_CONTRACTS_BL-031_85.md) — architecture & design rationale for the contracts pattern
+- [`../contracts/README.md`](../README.md) — registry of all per-tool input contracts; what an input contract is; the IRL forward-look
+- [BL-031 in BACKLOG.md](../../../../../src/docs/development/BACKLOG.md#bl-031-mcp-server--internal-prototype-phase-1) — the initiative that ships the underlying tool
+- [BL-031.85 in BACKLOG.md](../../../../../src/docs/development/BACKLOG.md#bl-03185-mcp-server--tool-input-contracts) — the initiative that ships this contract
+- [`MCP_SERVER_CONTRACTS_BL-031_85.md`](../../../../../src/docs/development/MCP_SERVER_CONTRACTS_BL-031_85.md) — architecture & design rationale for the contracts pattern
