@@ -80,26 +80,33 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-005: BIMI Logo Deployment (Stages 2-3)
 
-**Source**: BIMI_VISUAL_TRUST.md | **Effort**: 30 min code + DNS propagation | **Status**: Open
+**Source**: BIMI_VISUAL_TRUST.md | **Effort**: 30 min code + DNS propagation | **Status**: ✅ Complete (2026-07-02, PR #283) — infrastructure published + validating; **Gmail inbox rendering is cert-gated and moves to BL-006/BL-007** (see Learnings below)
 
-**As a** site operator, **I want** the GST delta icon displayed as the sender avatar in Gmail, Apple Mail, and Yahoo Mail **so that** recipients see a verified brand identity before opening advisory emails.
+**As a** site operator, **I want** the GST delta icon published as a BIMI-compliant, validating logo record **so that** the brand avatar is ready to render in BIMI-aware mail clients the moment a certificate (BL-006/BL-007) is added to the `a=` tag.
 
 #### Acceptance Criteria
 
-- [x] `public/branding/logo-bimi.svg` created in SVG Tiny PS profile (1:1 square, `version="1.2"`, `baseProfile="tiny-ps"`, no `<script>`/`<style>`, under 32KB) — 457 bytes, conformance-checked
+- [x] `public/branding/logo-bimi.svg` created in SVG Tiny PS profile (1:1 square, `version="1.2"`, `baseProfile="tiny-ps"`, no `<script>`/`<style>`, under 32KB) — 457 bytes, conformance-checked. Treatment: dark delta outline on solid teal `#00D9B5` (chosen for small-avatar legibility)
 - [x] `vercel.json` updated with `Content-Type: image/svg+xml` header for `/branding/logo-bimi.svg`
-- [ ] `curl -I https://globalstrategic.tech/branding/logo-bimi.svg` returns HTTP 200 with correct Content-Type, no redirects — _pending merge to `master` + Vercel deploy_
-- [ ] BIMI TXT record added in Cloudflare: `default._bimi` -> `v=BIMI1; l=https://globalstrategic.tech/branding/logo-bimi.svg; a=;`
-- [ ] BIMI Inspector validation passes
-- [ ] Test email to Gmail shows logo in inbox
+- [x] `curl -I https://globalstrategic.tech/branding/logo-bimi.svg` returns HTTP 200 with correct Content-Type, no redirects
+- [x] BIMI TXT record added in Cloudflare: `default._bimi` -> `v=BIMI1; l=https://globalstrategic.tech/branding/logo-bimi.svg; a=;`
+- [x] BIMI Inspector validation passes (bimigroup.org / mxtoolbox — record + SVG P/S both valid; `a=` empty flagged as no-cert, expected)
+- [x] Test email from `globalstrategic.tech` passes DMARC/DKIM/SPF alignment to Gmail (confirmed via "Show original", 2026-07-02)
+- [~] ~~Test email to Gmail shows logo in inbox~~ — **MOVED to BL-006/BL-007.** Gmail (and per Google's docs, "other email clients") render BIMI **only with a PEM certificate**; a valid DNS record + SVG alone is insufficient. Not achievable in BL-005 scope.
 
 #### Technical Context
 
 - Stage 1 (DNS hardening) already complete: DMARC `p=quarantine; pct=100`, SPF `-all`, DKIM active
 - Source logo: `public/images/logo/gst-delta-icon-teal-stroke-thick.svg` (64x64, ~300 bytes)
-- Conversion: scale to 512x512, add solid background (#0a0a0a) for mail client rendering, set SVG Tiny PS attributes
+- Conversion: scale to 512x512, add solid background for mail client rendering, set SVG Tiny PS attributes
 - DNS record is a manual step in Cloudflare (1-48h propagation)
 - Validation tools: bimigroup.org/bimi-generator, mxtoolbox.com/bimi.aspx
+
+#### Learnings (2026-07-02)
+
+- **Gmail requires a VMC or CMC certificate (PEM) to display the logo** — verified against Google Workspace BIMI docs: _"Gmail and other email clients support BIMI only with PEM files."_ A validating BIMI record with an empty `a=;` tag passes every inspector but Gmail still shows its default generated avatar.
+- **The original "Test email to Gmail shows logo" criterion was mis-scoped into BL-005.** BL-005 delivers the publishing + validation infrastructure; actual inbox rendering is the payoff of the cert work (BL-006 CMC / BL-007 VMC), which is why those are the correct home for that criterion.
+- **DMARC alignment is confirmed good** — the sending path already passes DMARC/DKIM/SPF to Gmail, so the _only_ remaining blocker to inbox rendering is the certificate. When a cert is added to `a=`, no further email-auth work is expected.
 
 ---
 
@@ -114,12 +121,13 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 - [ ] CMC certificate purchased from DigiCert or Entrust (~$100-300/year)
 - [ ] Certificate hosted at stable HTTPS URL (e.g., `https://globalstrategic.tech/branding/gst-bimi.pem`)
 - [ ] BIMI DNS record `a=` tag updated with certificate URL
+- [ ] **Test email to Gmail shows logo in inbox** (moved from BL-005 — this is the criterion the cert unblocks)
 
 #### Technical Context
 
-- Requires 12 months of logo usage history as proof
-- Updates the existing BIMI DNS record from BL-005 — adds certificate URL to the `a=` field
-- Delivers 90% of the value without a trademark — logo displays in inboxes
+- Requires 12 months of logo usage history as proof — **note: this may gate purchase timing; confirm eligibility before budgeting**
+- Updates the existing BIMI DNS record from BL-005 — adds certificate URL to the `a=` field. The record, SVG, and DMARC alignment are already live and validating (BL-005, 2026-07-02), so this is the _only_ remaining step to inbox rendering
+- Delivers 90% of the value without a trademark — a CMC (not just VMC) satisfies Gmail's PEM-certificate requirement, so the logo renders in Gmail inboxes (without the blue verified checkmark, which is VMC-only per BL-007)
 
 ---
 
