@@ -86,9 +86,9 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 #### Acceptance Criteria
 
-- [ ] `public/branding/logo-bimi.svg` created in SVG Tiny PS profile (1:1 square, `version="1.2"`, `baseProfile="tiny-ps"`, no `<script>`/`<style>`, under 32KB)
-- [ ] `vercel.json` updated with `Content-Type: image/svg+xml` header for `/branding/logo-bimi.svg`
-- [ ] `curl -I https://globalstrategic.tech/branding/logo-bimi.svg` returns HTTP 200 with correct Content-Type, no redirects
+- [x] `public/branding/logo-bimi.svg` created in SVG Tiny PS profile (1:1 square, `version="1.2"`, `baseProfile="tiny-ps"`, no `<script>`/`<style>`, under 32KB) — 457 bytes, conformance-checked
+- [x] `vercel.json` updated with `Content-Type: image/svg+xml` header for `/branding/logo-bimi.svg`
+- [ ] `curl -I https://globalstrategic.tech/branding/logo-bimi.svg` returns HTTP 200 with correct Content-Type, no redirects — _pending merge to `master` + Vercel deploy_
 - [ ] BIMI TXT record added in Cloudflare: `default._bimi` -> `v=BIMI1; l=https://globalstrategic.tech/branding/logo-bimi.svg; a=;`
 - [ ] BIMI Inspector validation passes
 - [ ] Test email to Gmail shows logo in inbox

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.2" baseProfile="tiny-ps" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Global Strategic Technologies</title>
+  <desc>GST delta icon — dark triangle outline on a solid teal background.</desc>
+  <rect width="512" height="512" fill="#00D9B5"/>
+  <path d="M256 96 L416 416 L96 416 Z" fill="none" stroke="#0a0a0a" stroke-width="48" stroke-linejoin="miter"/>
+</svg>
