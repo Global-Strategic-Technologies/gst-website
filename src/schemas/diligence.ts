@@ -4,7 +4,7 @@
  * Validation surface only — no `.describe()` calls. The human-readable
  * reference (per-field labels, valid-value descriptions, downstream-effect
  * summaries, hidden-semantics callouts) lives at:
- *   `mcp-server/src/docs/diligence/CONTRACT.md`
+ *   `mcp-server/src/docs/tools/diligence/CONTRACT.md`
  *
  * The wizard-config at `src/data/diligence-machine/wizard-config.ts` is the
  * source of user-facing labels; the contract doc cites both files.
@@ -162,7 +162,7 @@ function withUnknown<T extends readonly [string, ...string[]]>(
  *
  * `.describe()` text on every field surfaces in the JSON Schema that
  * MCP clients (Claude Desktop, Cursor) introspect — sourced from
- * `mcp-server/src/docs/diligence/CONTRACT.md` per-field detail.
+ * `mcp-server/src/docs/tools/diligence/CONTRACT.md` per-field detail.
  */
 const UNKNOWN_DESC =
   " Pass `'unknown'` (BL-031.95 Phase 2 sentinel) when the agent cannot derive this from supplied context — the engine treats `'unknown'` as a non-eliminating value, widening the agenda conservatively rather than guessing.";

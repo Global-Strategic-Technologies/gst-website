@@ -276,7 +276,7 @@ export function registerRegulationsTool(
       // produce byte-identical deeplinks (the schema transform
       // normalizes both to `['eu']`, and `pickSingle` extracts the
       // element identically). Documented in
-      // mcp-server/src/docs/regulatory-map/CONTRACT.md v2.
+      // mcp-server/src/docs/tools/regulatory-map/CONTRACT.md v2.
       const singleJur = pickSingle(input.jurisdiction);
       const singleCat = pickSingle(input.category);
       const filterDeeplink =

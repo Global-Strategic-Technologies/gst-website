@@ -10,24 +10,24 @@ enumParity:
 
 # Input Contract: `search_radar_offline`
 
-> **Tool**: `search_radar_offline` (renamed from `search_radar_cache` in [BL-032 Phase 4b](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited)) — strict mirror of the `/hub/radar` website page. Reads the locally-cached Inoreader snapshot (`npm run radar:seed`) and returns a unified FYI + Wire feed. Never makes live Inoreader API calls (protects the shared 200 req/day budget — see [`mcp-server/src/content/radar-snapshot.ts`](../../content/radar-snapshot.ts) for the budget invariant).
+> **Tool**: `search_radar_offline` (renamed from `search_radar_cache` in [BL-032 Phase 4b](../../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited)) — strict mirror of the `/hub/radar` website page. Reads the locally-cached Inoreader snapshot (`npm run radar:seed`) and returns a unified FYI + Wire feed. Never makes live Inoreader API calls (protects the shared 200 req/day budget — see [`mcp-server/src/content/radar-snapshot.ts`](../../../content/radar-snapshot.ts) for the budget invariant).
 >
-> **Sister tool — same shape, different source**: `search_radar` (live, Inoreader-touching, remote-MCP-only) — ships under [BL-032 Phase 4c](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#phase-4--inoreader-client-refactor--live-radar-tools-15-2-days). The "Live tool surface (BL-032)" section below documents the live tool's contract once it lands.
+> **Sister tool — same shape, different source**: `search_radar` (live, Inoreader-touching, remote-MCP-only) — ships under [BL-032 Phase 4c](../../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#phase-4--inoreader-client-refactor--live-radar-tools-15-2-days). The "Live tool surface (BL-032)" section below documents the live tool's contract once it lands.
 >
-> **Deprecated alias**: `search_radar_cache` is registered as a one-release deprecated alias that tail-calls this implementation. Removed in `mcp-server@0.2.0` per [`mcp-server/BREAKING_CHANGES.md`](../../../BREAKING_CHANGES.md).
+> **Deprecated alias**: `search_radar_cache` is registered as a one-release deprecated alias that tail-calls this implementation. Removed in `mcp-server@0.2.0` per [`mcp-server/BREAKING_CHANGES.md`](../../../../BREAKING_CHANGES.md).
 >
 > **Sources of truth** (the contract cites these; it does not duplicate them):
 >
-> - **Validation**: [`mcp-server/src/tools/radar-offline.ts`](../../tools/radar-offline.ts) — `SearchRadarOfflineInputSchema` (single optional `category` field)
-> - **Category enum**: [`mcp-server/src/content/radar-snapshot.ts`](../../content/radar-snapshot.ts) — `RADAR_CATEGORIES` const tuple, `RadarCategory` type
-> - **URL encoder**: [`src/utils/radar-url.ts`](../../../../src/utils/radar-url.ts) — `serializeToParams` / `deserializeFromParams`. Imported by both the website page (`src/components/radar/CategoryFilter.astro` hydrates / syncs) and the MCP wrapper (`buildRadarDeeplink`); single source of truth for radar URL state.
-> - **Cache reader**: [`mcp-server/src/content/radar-snapshot.ts`](../../content/radar-snapshot.ts) — `readFyiSnapshot()`, `readWireSnapshot()`, `SNAPSHOT_MISSING_MESSAGE`. Cache TTL is 24h ([`src/lib/inoreader/cache.ts:18`](../../../../src/lib/inoreader/cache.ts#L18)).
+> - **Validation**: [`mcp-server/src/tools/radar-offline.ts`](../../../tools/radar-offline.ts) — `SearchRadarOfflineInputSchema` (single optional `category` field)
+> - **Category enum**: [`mcp-server/src/content/radar-snapshot.ts`](../../../content/radar-snapshot.ts) — `RADAR_CATEGORIES` const tuple, `RadarCategory` type
+> - **URL encoder**: [`src/utils/radar-url.ts`](../../../../../src/utils/radar-url.ts) — `serializeToParams` / `deserializeFromParams`. Imported by both the website page (`src/components/radar/CategoryFilter.astro` hydrates / syncs) and the MCP wrapper (`buildRadarDeeplink`); single source of truth for radar URL state.
+> - **Cache reader**: [`mcp-server/src/content/radar-snapshot.ts`](../../../content/radar-snapshot.ts) — `readFyiSnapshot()`, `readWireSnapshot()`, `SNAPSHOT_MISSING_MESSAGE`. Cache TTL is 24h ([`src/lib/inoreader/cache.ts:18`](../../../../../src/lib/inoreader/cache.ts#L18)).
 >
-> **Used by prompts** (BL-031.75): [`gst_radar_brief_today`](../../prompts/radar-brief-today.ts) (daily / pre-meeting digest of recent annotated FYI items, summarized in the GST Take voice). The prompt's argsSchema mirrors the same single `category` filter. Earlier versions accepted a `sinceHours` argument; removed in BL-031.95 Phase 3.A under the capability-mirror invariant — see [Capability-mirror invariant](#capability-mirror-invariant) below.
+> **Used by prompts** (BL-031.75): [`gst_radar_brief_today`](../../../prompts/radar-brief-today.ts) (daily / pre-meeting digest of recent annotated FYI items, summarized in the GST Take voice). The prompt's argsSchema mirrors the same single `category` filter. Earlier versions accepted a `sinceHours` argument; removed in BL-031.95 Phase 3.A under the capability-mirror invariant — see [Capability-mirror invariant](#capability-mirror-invariant) below.
 >
 > **Version**: `v1` | **Last authored**: 2026-05-02
 >
-> **Registry**: see [`../contracts/README.md`](../contracts/README.md) for the "what is an input contract" narrative, the cross-tool registry, and the per-tool spec template.
+> **Registry**: see [`../contracts/README.md`](../README.md) for the "what is an input contract" narrative, the cross-tool registry, and the per-tool spec template.
 
 ---
 
@@ -78,7 +78,7 @@ The four categories mirror exactly the four filter pills on `/hub/radar` and the
 }
 ```
 
-**`oldestItemDaysAgo`** (BL-031.95 follow-up): rolling 24h-bucketed age of the oldest item in `matches`, or `null` when `matches` is empty. Lets callers (UI badges, MCP agents deciding whether to re-fetch, Sentry alert rules in BL-032.75 Phase 3) see freshness at a glance without scanning every item's `publishedAt`. Boundary semantics: `0` for items 23h59m ago (rolling buckets, not UTC midnight); `0` for future-dated items (clamped, defensive). See [`mcp-server/src/content/radar-transform.ts`](../../content/radar-transform.ts) `oldestItemDaysAgo` for the helper.
+**`oldestItemDaysAgo`** (BL-031.95 follow-up): rolling 24h-bucketed age of the oldest item in `matches`, or `null` when `matches` is empty. Lets callers (UI badges, MCP agents deciding whether to re-fetch, Sentry alert rules in BL-032.75 Phase 3) see freshness at a glance without scanning every item's `publishedAt`. Boundary semantics: `0` for items 23h59m ago (rolling buckets, not UTC midnight); `0` for future-dated items (clamped, defensive). See [`mcp-server/src/content/radar-transform.ts`](../../../content/radar-transform.ts) `oldestItemDaysAgo` for the helper.
 
 **Sort order**: `publishedAt` newest-first across the unified FYI + Wire set. Matches the website's natural feed order via `mergeFeed()` in `RadarFeed.astro`.
 
@@ -92,11 +92,11 @@ The four categories mirror exactly the four filter pills on `/hub/radar` and the
 
 **The MCP tool's input schema mirrors the website's filter UI exactly.**
 
-The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src/components/radar/CategoryFilter.astro`](../../../../src/components/radar/CategoryFilter.astro)). Pre-BL-031.95-Phase-3.A, the MCP tool accepted `query`, `tier`, `since`, and `limit` fields with no website counterpart; those were removed under the capability-mirror invariant in commit `21e86c8`. The reasons:
+The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src/components/radar/CategoryFilter.astro`](../../../../../src/components/radar/CategoryFilter.astro)). Pre-BL-031.95-Phase-3.A, the MCP tool accepted `query`, `tier`, `since`, and `limit` fields with no website counterpart; those were removed under the capability-mirror invariant in commit `21e86c8`. The reasons:
 
 1. **`query` (free-text)**: the website has no search box. The cache is small enough that filtering by category alone is sufficient.
 2. **`tier` (`fyi` | `wire`)**: the website renders a unified feed via `mergeFeed(fyi, wire)`. There's no website surface to deep-link into a tier-specific view; the MCP Resources `gst://radar/fyi/latest` and `gst://radar/wire/latest` remain available for prompts that need a tier-specific snapshot embedding.
-3. **`since` (ISO date)**: the cache itself has a 24h TTL ([`src/lib/inoreader/cache.ts:18`](../../../../src/lib/inoreader/cache.ts#L18)). A `since` filter beyond 24h would filter against items that aren't in the snapshot anyway. The website surfaces no time-window filter — items are sorted by `publishedAt` newest-first, so users naturally see recent items at the top.
+3. **`since` (ISO date)**: the cache itself has a 24h TTL ([`src/lib/inoreader/cache.ts:18`](../../../../../src/lib/inoreader/cache.ts#L18)). A `since` filter beyond 24h would filter against items that aren't in the snapshot anyway. The website surfaces no time-window filter — items are sorted by `publishedAt` newest-first, so users naturally see recent items at the top.
 4. **`limit` (default 20, max 100)**: the website renders all items in the cache (the cache is small enough that pagination isn't needed). A tool-level `limit` would create a deep-link that doesn't match what the user sees on the page.
 
 **Future extension**: if a real consumer need emerges (e.g., the BL-032 live `search_radar` tool can reach further than 24h, so a `since` filter has new value), grow the website's filter UI **and** the MCP tool's input schema in lockstep. The capability-mirror invariant is the contract; it should never be violated unilaterally on either side.
@@ -113,12 +113,12 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 
 ## Related
 
-- Tool wrapper: [`mcp-server/src/tools/radar-offline.ts`](../../tools/radar-offline.ts)
-- Cache reader: [`mcp-server/src/content/radar-snapshot.ts`](../../content/radar-snapshot.ts)
-- URL encoder: [`src/utils/radar-url.ts`](../../../../src/utils/radar-url.ts)
+- Tool wrapper: [`mcp-server/src/tools/radar-offline.ts`](../../../tools/radar-offline.ts)
+- Cache reader: [`mcp-server/src/content/radar-snapshot.ts`](../../../content/radar-snapshot.ts)
+- URL encoder: [`src/utils/radar-url.ts`](../../../../../src/utils/radar-url.ts)
 - Live website: <https://globalstrategic.tech/hub/radar>
-- Architecture: [BL-031.95 Hub Tools URL State Restoration & MCP Deep-Link Surface](../../../../src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md) — Phase 3 (Radar URL state) closure
-- [BL-032 Phase 4b](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited) — `search_radar_cache` rename to `search_radar_offline` (this tool's current name)
+- Architecture: [BL-031.95 Hub Tools URL State Restoration & MCP Deep-Link Surface](../../../../../src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md) — Phase 3 (Radar URL state) closure
+- [BL-032 Phase 4b](../../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited) — `search_radar_cache` rename to `search_radar_offline` (this tool's current name)
 
 ---
 
@@ -128,11 +128,11 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 
 **Implementation**:
 
-- Wrapper: [`mcp-server/src/tools/radar-live.ts`](../../tools/radar-live.ts)
-- Content adapter: [`mcp-server/src/content/radar-live-store.ts`](../../content/radar-live-store.ts) — Inoreader fetch + Upstash cache (`mcp:radar:cache:wire`, `mcp:radar:cache:fyi`, 6h TTL)
-- API client: [`mcp-server/src/lib/inoreader-client.ts`](../../lib/inoreader-client.ts) — Workers-compatible Inoreader client (Q4 fork-fallback; renamed from `inoreader-worker.ts` in BL-032.8)
-- Shared transform: [`mcp-server/src/content/radar-transform.ts`](../../content/radar-transform.ts) — `InoreaderItem → SnapshotItem` (single source of truth used by both offline + live)
-- Circuit breaker integration: [`mcp-server/src/ratelimit/circuit-breaker.ts`](../../ratelimit/circuit-breaker.ts) — read-side check before fetch + write-side trigger on Inoreader 429
+- Wrapper: [`mcp-server/src/tools/radar-live.ts`](../../../tools/radar-live.ts)
+- Content adapter: [`mcp-server/src/content/radar-live-store.ts`](../../../content/radar-live-store.ts) — Inoreader fetch + Upstash cache (`mcp:radar:cache:wire`, `mcp:radar:cache:fyi`, 6h TTL)
+- API client: [`mcp-server/src/lib/inoreader-client.ts`](../../../lib/inoreader-client.ts) — Workers-compatible Inoreader client (Q4 fork-fallback; renamed from `inoreader-worker.ts` in BL-032.8)
+- Shared transform: [`mcp-server/src/content/radar-transform.ts`](../../../content/radar-transform.ts) — `InoreaderItem → SnapshotItem` (single source of truth used by both offline + live)
+- Circuit breaker integration: [`mcp-server/src/ratelimit/circuit-breaker.ts`](../../../ratelimit/circuit-breaker.ts) — read-side check before fetch + write-side trigger on Inoreader 429
 
 **`search_radar` schema** — same shape as `search_radar_offline` (capability mirror):
 
@@ -185,4 +185,4 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 | `network-timeout`      | 504         | fetch threw / aborted (5s timeout)          | None                           |
 | `service_unavailable`  | 503         | Circuit breaker already open from prior 429 | None (read-only check)         |
 
-Walkthrough for analysts: [`USAGE_REMOTE.md`](./USAGE_REMOTE.md). Per-key + global rate-limiting reference: [`../operations/RATE_LIMITS.md`](../operations/RATE_LIMITS.md).
+Walkthrough for analysts: [`USAGE_REMOTE.md`](./USAGE_REMOTE.md). Per-key + global rate-limiting reference: [`../operations/RATE_LIMITS.md`](../../operations/RATE_LIMITS.md).

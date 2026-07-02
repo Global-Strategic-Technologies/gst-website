@@ -10,7 +10,7 @@ import { z } from 'zod';
  * The human-readable reference for the `compute_techpar` MCP tool
  * (per-field semantics, mode/capexView interactions, zone classification
  * rules, R&D CapEx benchmark derivation) lives at:
- *   `mcp-server/src/docs/techpar/CONTRACT.md`
+ *   `mcp-server/src/docs/tools/techpar/CONTRACT.md`
  */
 
 // ─── Enums ───────────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 /**
  * Contract-parity test (BL-034 — filed 2026-05-02 closure; landed 2026-05-26).
  *
- * Walks every `mcp-server/src/docs/<tool>/CONTRACT.md` and asserts:
+ * Walks every `mcp-server/src/docs/tools/<tool>/CONTRACT.md` and asserts:
  *
  *   1. **Frontmatter present and well-formed.** Every contract carries YAML
  *      frontmatter at the very top of the file with required fields:
@@ -39,7 +39,7 @@ import { resolve, join } from 'node:path';
 
 /** Repo root: this file lives at `mcp-server/tests/integration/`. */
 const REPO_ROOT = resolve(__dirname, '..', '..', '..');
-const CONTRACTS_DIR = resolve(REPO_ROOT, 'mcp-server', 'src', 'docs');
+const CONTRACTS_DIR = resolve(REPO_ROOT, 'mcp-server', 'src', 'docs', 'tools');
 
 interface Frontmatter {
   readonly tool: string;
@@ -139,7 +139,7 @@ function discoverContracts(): DiscoveredContract[] {
     }
     contracts.push({
       path: contractPath,
-      relPath: `mcp-server/src/docs/${entry.name}/CONTRACT.md`,
+      relPath: `mcp-server/src/docs/tools/${entry.name}/CONTRACT.md`,
       body: parsed.body,
       frontmatter: parsed.fm,
     });
