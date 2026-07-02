@@ -1,5 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+// xlsx-js-style is CJS; the namespace-vs-default interop shape differs between
+// the vitest and Playwright runners, so normalize to whichever carries `read`.
+import * as XLSXImport from 'xlsx-js-style';
+const XLSX = (XLSXImport as unknown as { default?: typeof XLSXImport }).default ?? XLSXImport;
 
 const PAGE_URL = '/hub/tools/information-request-list-generator';
 
@@ -214,5 +218,43 @@ test.describe('Hub Tools — Information Request List Generator', () => {
 
     await expect(page.locator('input#targetName')).toHaveValue('Acme');
     await expect(page.locator('input[name="transactionContext"][value=""]')).toBeChecked();
+  });
+
+  test('URL custom param hydrates a pre-filled row that lands in the downloaded .xlsx', async ({
+    page,
+  }) => {
+    // The MCP tool encodes custom requests as a JSON `custom` deeplink param so
+    // the Hub page reproduces them for one-click download. This verifies the
+    // full round-trip: deeplink → hydrated pre-filled row → the request text
+    // actually present in the generated workbook (behavior, not presence).
+    const CUSTOM_TEXT = 'Detail the top 3 customer concentration risks by ARR.';
+    const custom = encodeURIComponent(JSON.stringify([{ section: '01', text: CUSTOM_TEXT }]));
+    await page.goto(`${PAGE_URL}?custom=${custom}`, { waitUntil: 'domcontentloaded' });
+
+    // Readiness gate (§25): wait for the deepest element the test depends on —
+    // the custom-request input the hydration creates inside section 01, not the
+    // outer form. It does not exist in the SSR HTML; the client builds it from
+    // the `custom` param.
+    const customInput = page.locator('.irl-gen__section[data-section="01"] .irl-gen__custom-input');
+    await customInput.waitFor({ state: 'visible', timeout: 10000 });
+
+    // Hydration: the created row is pre-filled with the exact request text
+    // (auto-retrying assertion, not a snapshot read).
+    await expect(customInput).toHaveValue(CUSTOM_TEXT);
+
+    // Full round-trip: the generated .xlsx contains the custom request as a row.
+    const downloadPromise = page.waitForEvent('download', { timeout: 10000 });
+    await page.locator('button.irl-gen__cta').click();
+    const download = await downloadPromise;
+    const path = await download.path();
+    expect(path).toBeTruthy();
+
+    const wb = XLSX.read(readFileSync(path!), { type: 'buffer' });
+    const sheet = wb.Sheets['Information Request List'];
+    const flat = XLSX.utils
+      .sheet_to_json<string[]>(sheet, { header: 1, defval: '' })
+      .flat()
+      .join('\n');
+    expect(flat).toContain(CUSTOM_TEXT);
   });
 });
