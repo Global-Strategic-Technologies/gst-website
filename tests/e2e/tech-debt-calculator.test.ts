@@ -4,7 +4,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 /** Navigate to the TDC and wait for JS initialisation */
 async function gotoCalc(page: Page): Promise<void> {
-  await page.goto('/hub/tools/tech-debt-calculator');
+  await page.goto('/hub/tools/tech-debt-calculator/');
   await page.waitForLoadState('domcontentloaded');
   // Wait until the first metric is populated (—→ real value) by the render() call
   await page.waitForFunction(
@@ -258,9 +258,9 @@ test.describe('Tech Debt Calculator', () => {
         const link = document.querySelector('.back-link') as HTMLAnchorElement;
         if (link) window.location.href = link.href;
       });
-      await page.waitForURL('**/hub/tools', { timeout: 10000 });
+      await page.waitForURL('**/hub/tools/', { timeout: 10000 });
 
-      expect(page.url()).toContain('/hub/tools');
+      expect(page.url()).toContain('/hub/tools/');
     });
   });
 
@@ -268,7 +268,7 @@ test.describe('Tech Debt Calculator', () => {
 
   test.describe('URL state persistence', () => {
     async function gotoCalcWithParams(page: Page, params: string): Promise<void> {
-      await page.goto(`/hub/tools/tech-debt-calculator?s=${params}`);
+      await page.goto(`/hub/tools/tech-debt-calculator/?s=${params}`);
       await page.waitForLoadState('domcontentloaded');
       await page.waitForFunction(
         () => {
@@ -418,7 +418,7 @@ test.describe('Tech Debt Calculator', () => {
     });
 
     test('invalid ?s= param falls back to defaults gracefully', async ({ page }) => {
-      await page.goto('/hub/tools/tech-debt-calculator?s=not-valid-base64!!!');
+      await page.goto('/hub/tools/tech-debt-calculator/?s=not-valid-base64!!!');
       await page.waitForLoadState('domcontentloaded');
       await page.waitForFunction(
         () => {

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Project Details Viewing Journey', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/ma-portfolio', { waitUntil: 'domcontentloaded' });
+    await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
     // Wait for portfolio JS to initialize and bind event handlers
     await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
       timeout: 10000,

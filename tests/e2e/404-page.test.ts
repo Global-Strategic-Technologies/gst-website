@@ -73,7 +73,7 @@ test.describe('404 Page', () => {
       await expect(servicesButton).toBeVisible();
 
       const href = await servicesButton.getAttribute('href');
-      expect(href).toBe('/services');
+      expect(href).toBe('/services/');
     });
 
     test('should navigate to homepage when "Return Home" is clicked', async ({ page }) => {
@@ -101,7 +101,7 @@ test.describe('404 Page', () => {
         btn.click();
       });
 
-      await page.waitForURL('**/services', { timeout: 15000 });
+      await page.waitForURL('**/services/', { timeout: 15000 });
 
       // Verify the services page loaded with actual content
       const main = page.locator('main');

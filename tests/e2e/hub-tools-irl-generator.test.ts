@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import * as XLSXImport from 'xlsx-js-style';
 const XLSX = (XLSXImport as unknown as { default?: typeof XLSXImport }).default ?? XLSXImport;
 
-const PAGE_URL = '/hub/tools/information-request-list-generator';
+const PAGE_URL = '/hub/tools/information-request-list-generator/';
 
 /**
  * Deep readiness gate — wait on the submit button (the element the test cases
@@ -156,10 +156,10 @@ test.describe('Hub Tools — Information Request List Generator', () => {
   });
 
   test('tools landing index has a card linking to this generator', async ({ page }) => {
-    await page.goto('/hub/tools', { waitUntil: 'domcontentloaded' });
+    await page.goto('/hub/tools/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.brutal-gateway-card', { timeout: 10000 });
 
-    const card = page.locator('a[href="/hub/tools/information-request-list-generator"]').first();
+    const card = page.locator('a[href="/hub/tools/information-request-list-generator/"]').first();
     await expect(card).toBeVisible();
   });
 

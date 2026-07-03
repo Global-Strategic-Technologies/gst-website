@@ -20,7 +20,7 @@ test.describe('Terms Page', () => {
     });
 
     // Navigate to terms page
-    await page.goto('/terms', { waitUntil: 'domcontentloaded' });
+    await page.goto('/terms/', { waitUntil: 'domcontentloaded' });
   });
 
   test('should load with correct structure and heading', async ({ page }) => {
@@ -68,7 +68,7 @@ test.describe('Terms Page', () => {
     await expect(emailLink).toBeVisible();
 
     // Privacy policy cross-link
-    const privacyLink = body.locator('a[href="/privacy"]');
+    const privacyLink = body.locator('a[href="/privacy/"]');
     await expect(privacyLink).toBeVisible();
 
     // Website link
@@ -107,7 +107,7 @@ test.describe('Terms Page', () => {
 
   test('should render correctly on mobile viewport', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto('/terms', { waitUntil: 'domcontentloaded' });
+    await page.goto('/terms/', { waitUntil: 'domcontentloaded' });
 
     const container = page.locator('.legal-page-container');
     await expect(container).toBeVisible();

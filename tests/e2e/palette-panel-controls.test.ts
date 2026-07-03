@@ -37,7 +37,7 @@ test.describe('Palette Panel Controls', () => {
     test('should inject swatch controls inside brand-swatch elements when panel opens', async ({
       page,
     }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
@@ -67,7 +67,7 @@ test.describe('Palette Panel Controls', () => {
 
   test.describe('Alpha Slider', () => {
     test('should show alpha slider only for semi-transparent swatches', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
@@ -90,7 +90,7 @@ test.describe('Palette Panel Controls', () => {
     });
 
     test('should update CSS variable with rgba when alpha slider changes', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
@@ -114,7 +114,7 @@ test.describe('Palette Panel Controls', () => {
     test('should sync hex input and RGB sliders when color picker value changes', async ({
       page,
     }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
@@ -165,7 +165,7 @@ test.describe('Palette Panel Controls', () => {
     test('should preserve alpha when color picker changes on a semi-transparent swatch', async ({
       page,
     }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
@@ -223,7 +223,7 @@ test.describe('Palette Panel Controls', () => {
 
   test.describe('Hex Input Sync', () => {
     test('should sync color picker and RGB sliders when hex input changes', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
@@ -274,7 +274,7 @@ test.describe('Palette Panel Controls', () => {
     test('should preserve alpha when hex input changes on a semi-transparent swatch', async ({
       page,
     }) => {
-      await page.goto('/brand', { waitUntil: 'load' });
+      await page.goto('/brand/', { waitUntil: 'load' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
@@ -316,7 +316,7 @@ test.describe('Palette Panel Controls', () => {
 
   test.describe('RGB Slider Sync', () => {
     test('should sync color picker and hex input when RGB slider changes', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
@@ -365,7 +365,7 @@ test.describe('Palette Panel Controls', () => {
     test('should preserve alpha when RGB sliders change on a semi-transparent swatch', async ({
       page,
     }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
@@ -410,7 +410,7 @@ test.describe('Palette Panel Controls', () => {
     test('should restore CSS variable and remove inline style when swatch reset is clicked', async ({
       page,
     }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
@@ -467,7 +467,7 @@ test.describe('Palette Panel Controls', () => {
     test('should restore alpha slider and display when a semi-transparent swatch is reset', async ({
       page,
     }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
@@ -536,7 +536,7 @@ test.describe('Palette Panel Controls', () => {
 
   test.describe('Theme Toggle', () => {
     test('should apply dark-theme class on html and persist to localStorage', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       // Ensure we start in light mode
       await page.evaluate(() => {
@@ -566,7 +566,7 @@ test.describe('Palette Panel Controls', () => {
     });
 
     test('should reset color overrides when theme is toggled', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
@@ -613,7 +613,7 @@ test.describe('Palette Panel Controls', () => {
       page,
     }) => {
       // Set localStorage before navigating so the inline script applies the state
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await page.evaluate(() => localStorage.setItem('palette-popped-out', 'true'));
 
       // Reload to trigger the inline script that reads localStorage
@@ -647,7 +647,7 @@ test.describe('Palette Panel Controls', () => {
     test('should keep panel body width within 280-900px when resize handle is dragged', async ({
       page,
     }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
 
       const resizeHandle = page.locator('#panel-resize');
@@ -692,7 +692,7 @@ test.describe('Palette Panel Controls', () => {
   test.describe('Mobile Viewport (Bottom Sheet)', () => {
     test('should hide edge strip on mobile', async ({ page }) => {
       await page.setViewportSize({ width: 480, height: 800 });
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       const display = await page.evaluate(() => {
         const edge = document.querySelector('.palette-panel__edge');
@@ -703,7 +703,7 @@ test.describe('Palette Panel Controls', () => {
 
     test('should use 3-column swatch grid on mobile', async ({ page }) => {
       await page.setViewportSize({ width: 480, height: 800 });
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       // Open via FAB on mobile
       await page.evaluate(() => {
@@ -728,7 +728,7 @@ test.describe('Palette Panel Controls', () => {
 
     test('should use full-width panel body on mobile', async ({ page }) => {
       await page.setViewportSize({ width: 480, height: 800 });
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       await page.evaluate(() => {
         document
@@ -750,7 +750,7 @@ test.describe('Palette Panel Controls', () => {
 
     test('should hide resize handle on mobile', async ({ page }) => {
       await page.setViewportSize({ width: 480, height: 800 });
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       const display = await page.evaluate(() => {
         const resize = document.getElementById('panel-resize');

@@ -17,7 +17,7 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('FAB Visibility', () => {
   test('FAB visible on brand page', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     const display = await page.evaluate(() => {
       const fab = document.getElementById('panel-fab');
       return fab ? getComputedStyle(fab).display : '';
@@ -49,7 +49,7 @@ test.describe('FAB Visibility', () => {
 
   test('FAB hidden on desktop viewport', async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 768 });
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     const display = await page.evaluate(() => {
       const fab = document.getElementById('panel-fab');
       return fab ? getComputedStyle(fab).display : '';
@@ -58,7 +58,7 @@ test.describe('FAB Visibility', () => {
   });
 
   test('FAB has triangular clip-path', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     const clipPath = await page.evaluate(() => {
       const fab = document.getElementById('panel-fab');
       return fab ? getComputedStyle(fab).clipPath : '';
@@ -71,7 +71,7 @@ test.describe('FAB Visibility', () => {
 
 test.describe('Bottom Sheet Open/Close', () => {
   test('FAB tap opens bottom sheet', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
     const isOpen = await page.evaluate(() =>
       document.getElementById('palette-panel')?.classList.contains('is-open')
@@ -80,7 +80,7 @@ test.describe('Bottom Sheet Open/Close', () => {
   });
 
   test('backdrop visible when sheet is open', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
     const isVisible = await page.evaluate(() =>
       document.getElementById('panel-backdrop')?.classList.contains('is-visible')
@@ -89,7 +89,7 @@ test.describe('Bottom Sheet Open/Close', () => {
   });
 
   test('backdrop tap closes sheet', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
     await closeMobileSheet(page);
     const isOpen = await page.evaluate(() =>
@@ -99,7 +99,7 @@ test.describe('Bottom Sheet Open/Close', () => {
   });
 
   test('FAB not interactive when sheet is open', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
     const pointerEvents = await page.evaluate(() => {
       const fab = document.getElementById('panel-fab');
@@ -109,7 +109,7 @@ test.describe('Bottom Sheet Open/Close', () => {
   });
 
   test('FAB reappears when sheet closes', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
     await closeMobileSheet(page);
     await page.waitForFunction(
@@ -122,14 +122,14 @@ test.describe('Bottom Sheet Open/Close', () => {
   });
 
   test('body scroll locked when sheet open', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
     const overflow = await page.evaluate(() => document.body.style.overflow);
     expect(overflow).toBe('hidden');
   });
 
   test('body scroll unlocked when sheet closes', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
     await closeMobileSheet(page);
     const overflow = await page.evaluate(() => document.body.style.overflow);
@@ -141,7 +141,7 @@ test.describe('Bottom Sheet Open/Close', () => {
 
 test.describe('Mobile Header Controls', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
   });
 
@@ -205,7 +205,7 @@ test.describe('Mobile Header Controls', () => {
 
 test.describe('Popout Scope', () => {
   test('popout label shows "Brand Only" when not active', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await page.evaluate(() => localStorage.removeItem('palette-popped-out'));
     await page.reload({ waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
@@ -217,7 +217,7 @@ test.describe('Popout Scope', () => {
   });
 
   test('popout label changes to "All Pages" when toggled', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await page.evaluate(() => localStorage.removeItem('palette-popped-out'));
     await page.reload({ waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
@@ -232,7 +232,7 @@ test.describe('Popout Scope', () => {
   });
 
   test('popout button has is-active class when popped out', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await setPopoutState(page, true);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
@@ -244,7 +244,7 @@ test.describe('Popout Scope', () => {
   });
 
   test('popout icon filled when active', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await setPopoutState(page, true);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
@@ -263,7 +263,7 @@ test.describe('Popout Scope', () => {
 
 test.describe('Cross-Page Navigation', () => {
   test('brand → homepage: FAB hidden when Brand Only', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await setPopoutState(page, false);
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     const display = await page.evaluate(() => {
@@ -274,7 +274,7 @@ test.describe('Cross-Page Navigation', () => {
   });
 
   test('brand → homepage: FAB visible when All Pages', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await setPopoutState(page, true);
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     const display = await page.evaluate(() => {
@@ -287,7 +287,7 @@ test.describe('Cross-Page Navigation', () => {
   test('homepage → brand: FAB always visible', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await setPopoutState(page, false);
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     const display = await page.evaluate(() => {
       const fab = document.getElementById('panel-fab');
       return fab ? getComputedStyle(fab).display : '';
@@ -296,14 +296,14 @@ test.describe('Cross-Page Navigation', () => {
   });
 
   test('palette selection persists across navigation', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
     await clickMobileTab(page, 3);
     await page.waitForFunction(() => document.documentElement.classList.contains('palette-3'), {
       timeout: 10000,
     });
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     const hasPalette = await page.evaluate(() =>
       document.documentElement.classList.contains('palette-3')
     );
@@ -311,7 +311,7 @@ test.describe('Cross-Page Navigation', () => {
   });
 
   test('popout state persists across navigation', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
     await clickMobilePopout(page);
     await page.waitForFunction(
@@ -348,7 +348,7 @@ test.describe('Cross-Page Navigation', () => {
 
 test.describe('Compact Swatches', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     await openMobileSheet(page);
   });
 
@@ -424,7 +424,7 @@ test.describe('Compact Swatches', () => {
 
 test.describe('FAB Footer Avoidance', () => {
   test('FAB above footer when scrolled to bottom', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     // Scroll to very bottom
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     // Wait for scroll to settle and position to update
@@ -443,7 +443,7 @@ test.describe('FAB Footer Avoidance', () => {
   });
 
   test('FAB at default position when footer not visible', async ({ page }) => {
-    await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
     // Scroll to top
     await page.evaluate(() => window.scrollTo(0, 0));
     const bottom = await page.evaluate(() => {

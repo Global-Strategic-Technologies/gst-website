@@ -30,7 +30,7 @@ const faqItems = [
   {
     question: 'Does GST provide regulatory compliance advisory?',
     answer:
-      "<p>Yes. The Regulatory Map is one component of GST's broader technology diligence capability. When regulatory exposure is identified during an engagement, whether in data privacy, AI governance, cybersecurity, or industry compliance, we assess the scope of non-compliance, estimate remediation costs, and build those findings into our overall risk analysis and integration roadmap.</p><p><a href='/services'>Learn more about our advisory services</a> or <a href='https://calendarbridge.com/book/globalstrategictech/'>schedule a consultation</a>.</p>",
+      "<p>Yes. The Regulatory Map is one component of GST's broader technology diligence capability. When regulatory exposure is identified during an engagement, whether in data privacy, AI governance, cybersecurity, or industry compliance, we assess the scope of non-compliance, estimate remediation costs, and build those findings into our overall risk analysis and integration roadmap.</p><p><a href='/services/'>Learn more about our advisory services</a> or <a href='https://calendarbridge.com/book/globalstrategictech/'>schedule a consultation</a>.</p>",
   },
 ];
 
@@ -44,7 +44,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   ogDescription="Explore data privacy and AI regulatory frameworks, including GDPR, CCPA, EU AI Act and more, across global jurisdictions."
   ogImage="/og-image.png"
   ogImageAlt="Global Data Privacy and AI Regulatory Map"
-  ogUrl="https://globalstrategic.tech/hub/tools/regulatory-map"
+  ogUrl="https://globalstrategic.tech/hub/tools/regulatory-map/"
   faqItems={faqItems}
 >
   {/* Preload geodata so downloads start during HTML parsing, before the D3 module executes */}
@@ -260,7 +260,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
           requirements with qualified counsel.
         </p>
       </div>
-      <a href="/hub/tools" class="cta-button secondary back-link">Back to Tools</a>
+      <a href="/hub/tools/" class="cta-button secondary back-link">Back to Tools</a>
     </div>
   </section>
   <link rel="preload" href="/data/reg-index.json" as="fetch" crossorigin />
@@ -1070,8 +1070,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       .attr('class', function () {
         const el = this as unknown as SVGPathElement;
         const d = select(el).datum() as
-          | { id?: string; properties?: { iso_3166_2?: string } }
-          | undefined;
+          { id?: string; properties?: { iso_3166_2?: string } } | undefined;
         if (!d || !d.id) return 'country-path';
         const alpha3 = numericToAlpha3[d.id as string];
         if (alpha3 === 'USA' || alpha3 === 'CAN') return 'country-path';

@@ -23,28 +23,28 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
       <ul>
         <li>
           <a
-            href="/services"
+            href="/services/"
             onclick="trackNavigation('/services', 'Services')"
             class={currentPath?.startsWith('/services') ? 'active' : ''}>Services</a
           >
         </li>
         <li>
           <a
-            href="/ma-portfolio"
+            href="/ma-portfolio/"
             onclick="trackNavigation('/ma-portfolio', 'M&A Portfolio')"
             class={currentPath?.startsWith('/ma-portfolio') ? 'active' : ''}>M&A</a
           >
         </li>
         <li>
           <a
-            href="/hub"
+            href="/hub/"
             onclick="trackNavigation('/hub', 'Hub')"
             class={currentPath?.startsWith('/hub') ? 'active' : ''}>Hub</a
           >
         </li>
         <li>
           <a
-            href="/about"
+            href="/about/"
             onclick="trackNavigation('/about', 'About')"
             class={currentPath?.startsWith('/about') ? 'active' : ''}>About</a
           >

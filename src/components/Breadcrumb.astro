@@ -16,7 +16,11 @@ const allCrumbs = [
   { name: 'Home', href: '/', isLast: false },
   ...segments.map((slug, index) => ({
     name: slugToName(slug),
-    href: '/' + segments.slice(0, index + 1).join('/'),
+    // Trailing slash keeps these links consistent with the site-wide
+    // trailing-slash canonicalization (Vercel `trailingSlash: true`) and the
+    // BreadcrumbList JSON-LD in SEO.astro (which already emits the slash), so
+    // breadcrumb clicks land on the canonical URL without a 308 hop.
+    href: '/' + segments.slice(0, index + 1).join('/') + '/',
     isLast: index === segments.length - 1,
   })),
 ];

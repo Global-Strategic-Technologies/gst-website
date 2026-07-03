@@ -12,12 +12,12 @@ import { checkA11y, formatViolations } from './helpers/a11y';
 
 const PAGES = [
   { name: 'Homepage', path: '/' },
-  { name: 'Services', path: '/services' },
-  { name: 'About', path: '/about' },
-  { name: 'M&A Portfolio', path: '/ma-portfolio' },
-  { name: 'Hub', path: '/hub' },
-  { name: 'TechPar', path: '/hub/tools/techpar' },
-  { name: 'Tech Debt Calculator', path: '/hub/tools/tech-debt-calculator' },
+  { name: 'Services', path: '/services/' },
+  { name: 'About', path: '/about/' },
+  { name: 'M&A Portfolio', path: '/ma-portfolio/' },
+  { name: 'Hub', path: '/hub/' },
+  { name: 'TechPar', path: '/hub/tools/techpar/' },
+  { name: 'Tech Debt Calculator', path: '/hub/tools/tech-debt-calculator/' },
 ];
 
 /**
@@ -26,12 +26,12 @@ const PAGES = [
  * Each entry documents the violation ID and the max allowed node count.
  */
 const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
-  '/services': { 'color-contrast': 1 },
-  '/about': { 'color-contrast': 1 },
-  '/ma-portfolio': { 'color-contrast': 2 },
-  '/hub': { 'color-contrast': 1 },
-  '/hub/tools/techpar': { 'color-contrast': 4 },
-  '/hub/tools/tech-debt-calculator': { 'color-contrast': 14 },
+  '/services/': { 'color-contrast': 1 },
+  '/about/': { 'color-contrast': 1 },
+  '/ma-portfolio/': { 'color-contrast': 2 },
+  '/hub/': { 'color-contrast': 1 },
+  '/hub/tools/techpar/': { 'color-contrast': 4 },
+  '/hub/tools/tech-debt-calculator/': { 'color-contrast': 14 },
 };
 
 test.describe('Accessibility — WCAG 2.1 AA', () => {
