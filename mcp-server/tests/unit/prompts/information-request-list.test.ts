@@ -125,6 +125,15 @@ describe('gst_information_request_list', () => {
       }
     });
 
+    it('documents the full section catalog in the includeSections describe', () => {
+      // The Claude Desktop prompt form shows this describe; enumerating the
+      // sections there tells the user (and the model) which numbers exist.
+      const description =
+        informationRequestListPrompt.argsSchema.shape.includeSections.description ?? '';
+      expect(description).toContain('02 Software Architecture');
+      expect(description).toContain('09 Governance & Compliance');
+    });
+
     it('treats empty wire strings for includeSections / showCanonicalReference as unsupplied', () => {
       // Unfilled Desktop form fields arrive as "" — the wire adapters normalize
       // them to undefined so an empty field never trips validation.

@@ -79,6 +79,15 @@ describe('generate_information_request_list_xlsx — schema', () => {
     });
     expect(r.success).toBe(false);
   });
+
+  it('documents the full section catalog in the includeSections describe (not just the endpoints)', () => {
+    // Discoverability guard: a model calling this tool cold must be able to see
+    // which section numbers exist and what each covers, straight from the
+    // schema — so a mid-list title must appear in the arg description.
+    const description = GenerateIrlXlsxInputSchema.shape.includeSections.description ?? '';
+    expect(description).toContain('02 Software Architecture');
+    expect(description).toContain('09 Governance & Compliance');
+  });
 });
 
 describe('generate_information_request_list_xlsx — handler', () => {

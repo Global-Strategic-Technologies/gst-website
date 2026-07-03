@@ -43,10 +43,17 @@ import {
   type IRLTransactionContext,
 } from '../../../src/utils/irl/generate-xlsx';
 import { customizeIrlArticle } from '../../../src/utils/irl/customize-article';
+import { irlSectionCatalog } from '../content/irl-section-catalog';
 import { HUB_BASE } from '../config';
 
 const IRL_RESOURCE_URI = 'gst://library/information-request-list';
 const IRL_CANONICAL_URL = `${HUB_BASE}/hub/library/information-request-list/`;
+
+// Section catalog ("00 Basics · 01 Product · …") built once at module load from
+// the canonical article, so the section-number args below are self-documenting
+// — a model calling this tool cold (without having read the Resource) sees the
+// full list of valid section numbers and their titles right in the schema.
+const SECTION_CATALOG = irlSectionCatalog();
 
 const transactionContextValues = ['sell-side', 'buy-side', 'value-creation', 'unknown'] as const;
 
@@ -91,7 +98,7 @@ export const GenerateIrlXlsxInputSchema = z.object({
     .min(1)
     .optional()
     .describe(
-      "Two-digit section numbers to INCLUDE (e.g. ['00','03','09']). Omit for all sections. Numbers mirror the canonical article's section headers (00 Basics … 09 Governance); unknown numbers are ignored. Reference IDs of the kept sections are unchanged."
+      `Two-digit section numbers to INCLUDE (e.g. ['00','03','09']). Omit for all sections. Available sections: ${SECTION_CATALOG}. Unknown numbers are ignored; Reference IDs of the kept sections are unchanged.`
     ),
   customRequests: z
     .array(
@@ -99,14 +106,16 @@ export const GenerateIrlXlsxInputSchema = z.object({
         section: z
           .string()
           .regex(/^\d{2}$/)
-          .describe('Two-digit section number to append this request to.'),
+          .describe(
+            `Two-digit section number to append this request to. One of: ${SECTION_CATALOG}.`
+          ),
         text: z.string().min(1).max(500).describe('The custom request text.'),
       })
     )
     .max(50)
     .optional()
     .describe(
-      'Ad-hoc engagement-specific requests appended to individual sections. Each becomes a new row under its section with the next Reference ID. Requests for a section not included/present are dropped.'
+      `Ad-hoc engagement-specific requests appended to individual sections. Each becomes a new row under its section with the next Reference ID. Each 'section' is one of: ${SECTION_CATALOG}. Requests for a section not included/present are dropped.`
     ),
   showCanonicalReference: z
     .boolean()
@@ -132,6 +141,8 @@ Returns \`{ filename, base64, mimeType }\` — Claude Desktop and other MCP clie
   - \`customRequests\` → ad-hoc \`{ section, text }\` rows appended to individual sections.
   - \`showCanonicalReference\` → show the canonical-URL header row (default hidden).
   - \`productSummary\` → informational only; reserved for the future subtractive-filter directives (BL-044.5).
+
+**Sections** (valid \`includeSections\` / \`customRequests[].section\` values): ${SECTION_CATALOG}.
 
 The request content is read from the same canonical source as the MCP Resource \`${IRL_RESOURCE_URI}\`. With no configuration args the workbook is byte-identical to what a partner would print from \`/hub/library/information-request-list/\`; configuration args (section filter, custom requests, title/canonical options) scope that universal artifact per engagement. Single source of truth.`;
 

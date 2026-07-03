@@ -41,9 +41,15 @@ import { z } from 'zod';
 import type { GstPrompt } from './types';
 import { authorialIntentLine, embedLibraryArticle } from './embed';
 import { arrayFromWire, booleanFromWire } from './wire-shape';
+import { irlSectionCatalog } from '../content/irl-section-catalog';
 
 const RESOURCE_URI = 'gst://library/information-request-list';
 const XLSX_TOOL_NAME = 'generate_information_request_list_xlsx';
+
+// "00 Basics · 01 Product · …" — enumerated in the section-number arg describes
+// so the model AND the human filling the Claude Desktop prompt form know which
+// numbers exist and what each covers, without reading the whole article first.
+const SECTION_CATALOG = irlSectionCatalog();
 
 const transactionContextValues = ['sell-side', 'buy-side', 'value-creation', 'unknown'] as const;
 
@@ -81,13 +87,13 @@ const argsSchema = z.object({
   )
     .optional()
     .describe(
-      "Comma-separated two-digit section numbers to include, e.g. '00,01,03' (00 Basics … 09 Governance). Omit for all sections."
+      `Comma-separated two-digit section numbers to include, e.g. '00,01,03'. Omit for all sections. Available sections: ${SECTION_CATALOG}.`
     ),
   customRequests: z
     .string()
     .optional()
     .describe(
-      "Extra engagement-specific requests to append, one per line as 'NN: request text' (NN = two-digit section number), e.g. '01: Describe your top 3 competitors by ARR'."
+      `Extra engagement-specific requests to append, one per line as 'NN: request text' (NN = two-digit section number), e.g. '01: Describe your top 3 competitors by ARR'. Sections: ${SECTION_CATALOG}.`
     ),
   showCanonicalReference: booleanFromWire(z.boolean().optional())
     .optional()
