@@ -1,11 +1,5 @@
-# Information Request List
-
-Below is information useful to size and execute a client engagement. Per-bullet, short answers are preferred. Note "n/a" or "not yet tracked" rather than skipping; the presence of an answer is signal, including "we don't track this."
-
 ## 00 — Basics
 
-- Company name (legal entity + brand if different)
-- Engagement context: sell-side preparation, buy-side review, post-close value creation, or other
 - Annual recurring revenue (most recent quarter, plus prior 12 months if available)
 - If applicable, funding stage and most recent round details (date, lead investor, headline valuation)
 - Business model (B2B SaaS, B2C subscription, enterprise license + services, marketplace, other)
@@ -99,6 +93,13 @@ Below is information useful to size and execute a client engagement. Per-bullet,
 - Audit history: outstanding remediation items from third-party audits
 - Data-processing agreements: standard contracts, cross-border transfer mechanisms (SCCs, DPAs)
 
+> **Prefer to configure and download your own?** Use the interactive [Information Request List generator](/hub/tools/information-request-list-generator/) in the GST Hub to produce a fillable Excel (`.xlsx`) workbook tailored to a specific engagement — no manual copying required. On top of the canonical list below, the generator lets you:
+>
+> - Include only the sections relevant to the engagement, rather than all ten.
+> - Personalize the workbook with the target or company name, project title, and transaction context (sell-side, buy-side, or value-creation) so it arrives addressed and labeled for the recipient.
+> - Append your own engagement-specific requests to any section, alongside the canonical bullets.
+> - Track responses in the file itself — every request row carries a Status cell (OPEN / PARTIAL / CLOSED) and an answer column, so the recipient fills it in and emails the workbook back instead of inventing a format.
+
 ---
 
-_Last updated: 2026-05-22._
+_Last updated: 2026-07-04._

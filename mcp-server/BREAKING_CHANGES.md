@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-a3f97a4ca97ce8c6784d50ded94c44779ff5f108acb7ff1619dda46c22b041a8
+0b6868c27ce744ec4fc6527590f2d6257f8cf9430b693fd17c61b44316b9cfc5
 ```
 
 Computed over (sorted):
@@ -20,7 +20,7 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1; BL-076 keeps the tool roster intact — `compose_dossier_envelope` schema changes do NOT affect the manifest tool list).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.6` (IRL generator source decoupled from the library article — see the 0.35.0 stanza below) + `gst_irl_ingestion` at `0.20.0`.
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.6` (IRL generator source decoupled from the library article — see the 0.35.0 stanza below) + `gst_irl_ingestion` at `0.21.0` (its IRL taxonomy embed also decoupled onto the generator source — see the 0.36.0 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
@@ -28,6 +28,17 @@ the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
 
 ---
+
+## 0.36.0 — 2026-07-04 — `gst_irl_ingestion` IRL taxonomy embed decoupled onto the generator source (v0.20.0 → v0.21.0)
+
+**Theme**: follow-on to 0.35.0. The library article (`/hub/library/information-request-list/`) gained human-facing content that does not belong in a machine taxonomy — a cross-link + description of the Hub IRL generator tool. Because `gst_irl_ingestion` embedded the **library article** as its filled-IRL reconciliation taxonomy, that prose was leaking into the ingestion prompt. Repointed the ingestion prompt's IRL taxonomy embed onto the decoupled generator source (`gst://irl/source` → `src/data/irl/…`), the same clean canonical list the generator renders. The VDR embed (`gst://library/vdr-structure`) is unchanged.
+
+**What changed**
+
+- `gst_irl_ingestion` **v0.20.0 → v0.21.0**: its second (IRL taxonomy) message now embeds the generator source under label `gst://irl/source` instead of `gst://library/information-request-list`. `orchestrates` swapped the IRL library URI for `gst://irl/source`; the "embedded for taxonomy reference" provenance sentences were reworded. No arg/output shape change.
+- Re-baselined all 7 `irl-ingestion-body-hash-stability` hashes (the IRL embed block is present in every body shape) and the manifest hash (one prompt `name@version` tuple).
+
+**Contract impact**: **none for existing Resources.** `gst://library/information-request-list` remains a registered Library Resource (now serving the free-form article, including the new tool cross-link). `gst://irl/source` is an inline prompt-embed label, not a listable Resource. Manifest drift is solely the one prompt tuple bump. The ingestion taxonomy content is byte-identical to the pre-0.35.0 article, so ingestion behavior is unchanged apart from no longer inheriting future library-page prose edits.
 
 ## 0.35.0 — 2026-07-04 — IRL generator source decoupled from the library article (`gst_information_request_list` v0.0.5 → v0.0.6)
 

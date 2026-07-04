@@ -117,7 +117,11 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // onto the decoupled generator source src/data/irl/…). Manifest drifts solely
 // from that one prompt name@version tuple — the gst://irl/source embed label is
 // NOT a Library/Resource URI, so it is not a manifest input.
-const EXPECTED_MANIFEST_HASH = 'a3f97a4ca97ce8c6784d50ded94c44779ff5f108acb7ff1619dda46c22b041a8';
+// IRL ingestion decoupling rebaseline: gst_irl_ingestion v0.20.0 → v0.21.0 (its
+// IRL taxonomy embed also moved onto gst://irl/source so the library page's
+// prose/promo no longer leaks into the filled-IRL reconciliation taxonomy).
+// Again drifts solely from that one prompt name@version tuple.
+const EXPECTED_MANIFEST_HASH = '0b6868c27ce744ec4fc6527590f2d6257f8cf9430b693fd17c61b44316b9cfc5';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();
