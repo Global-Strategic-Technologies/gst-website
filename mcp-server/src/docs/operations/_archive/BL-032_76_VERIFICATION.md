@@ -84,8 +84,8 @@ Phase B (PR #140, merged 2026-05-27) deleted the BL-039 `triggerWebsiteRefresh` 
 
 ## Related
 
-- BL-032.76 backlog entry: [`src/docs/development/BACKLOG.md` § BL-032.76](../../../../src/docs/development/BACKLOG.md)
+- BL-032.76 backlog entry: [`src/docs/development/BACKLOG.md` § BL-032.76](../../../../../src/docs/development/BACKLOG.md)
 - BL-032.76 PR: <https://github.com/Global-Strategic-Technologies/gst-website/pull/175>
-- Envelope helper source: [`mcp-server/src/observability/sentry-envelope.ts`](../../observability/sentry-envelope.ts)
-- Scheduled handler post-fix: [`mcp-server/src/worker.ts` `async scheduled()`](../../worker.ts)
+- Envelope helper source: [`mcp-server/src/observability/sentry-envelope.ts`](../../../observability/sentry-envelope.ts)
+- Scheduled handler post-fix: [`mcp-server/src/worker.ts` `async scheduled()`](../../../worker.ts)
 - Upstream issue (related, not the same symptom): <https://github.com/getsentry/sentry-javascript/issues/17476> (waitUntil events lost — open)
