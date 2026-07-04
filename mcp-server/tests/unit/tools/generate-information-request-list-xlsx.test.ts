@@ -51,6 +51,43 @@ describe('generate_information_request_list_xlsx — schema', () => {
     const r = GenerateIrlXlsxInputSchema.safeParse({ productSummary: 'x'.repeat(501) });
     expect(r.success).toBe(false);
   });
+
+  it('accepts companyName, projectName, includeSections, customRequests, showCanonicalReference', () => {
+    const r = GenerateIrlXlsxInputSchema.safeParse({
+      companyName: 'Praxis Capital',
+      projectName: 'Project Titan',
+      includeSections: ['00', '03'],
+      customRequests: [{ section: '00', text: 'A bespoke ask.' }],
+      showCanonicalReference: true,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejects an empty includeSections array (min 1)', () => {
+    const r = GenerateIrlXlsxInputSchema.safeParse({ includeSections: [] });
+    expect(r.success).toBe(false);
+  });
+
+  it('rejects a non-two-digit section number in includeSections', () => {
+    const r = GenerateIrlXlsxInputSchema.safeParse({ includeSections: ['0', 'basics'] });
+    expect(r.success).toBe(false);
+  });
+
+  it('rejects a customRequests entry with an empty text', () => {
+    const r = GenerateIrlXlsxInputSchema.safeParse({
+      customRequests: [{ section: '00', text: '' }],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('documents the full section catalog in the includeSections describe (not just the endpoints)', () => {
+    // Discoverability guard: a model calling this tool cold must be able to see
+    // which section numbers exist and what each covers, straight from the
+    // schema — so a mid-list title must appear in the arg description.
+    const description = GenerateIrlXlsxInputSchema.shape.includeSections.description ?? '';
+    expect(description).toContain('02 Software Architecture');
+    expect(description).toContain('09 Governance & Compliance');
+  });
 });
 
 describe('generate_information_request_list_xlsx — handler', () => {
@@ -176,6 +213,84 @@ describe('generate_information_request_list_xlsx — handler', () => {
     const result = await handleGenerateIrlXlsxTool({});
     const payload = result.structuredContent as { canonicalUrl: string };
     expect(payload.canonicalUrl).toMatch(/\/hub\/library\/information-request-list\/?$/);
+  });
+
+  it('includeSections filters the workbook — sectionCount and summary count reflect the subset', async () => {
+    const result = await handleGenerateIrlXlsxTool({ includeSections: ['00', '01'] });
+    const payload = result.structuredContent as { sectionCount: number };
+    expect(payload.sectionCount).toBe(2);
+    const text = (result.content[0] as { text: string }).text;
+    // Human-readable summary count must match the structured count.
+    expect(text).toMatch(/\b2 sections\b/);
+  });
+
+  it('customRequests lift the bulletCount above the canonical total', async () => {
+    const base = await handleGenerateIrlXlsxTool({});
+    const withCustom = await handleGenerateIrlXlsxTool({
+      customRequests: [
+        { section: '00', text: 'Bespoke ask one.' },
+        { section: '00', text: 'Bespoke ask two.' },
+      ],
+    });
+    const baseCount = (base.structuredContent as { bulletCount: number }).bulletCount;
+    const customCount = (withCustom.structuredContent as { bulletCount: number }).bulletCount;
+    expect(customCount).toBe(baseCount + 2);
+  });
+
+  it('composes company + project into the workbook title cell', async () => {
+    const result = await handleGenerateIrlXlsxTool({
+      companyName: 'Praxis Capital',
+      projectName: 'Project Titan',
+    });
+    const { base64 } = result.structuredContent as { base64: string };
+    const wb = XLSX.read(decodeBase64(base64), { type: 'array' });
+    const a1 = wb.Sheets['Information Request List'].A1 as { v: string } | undefined;
+    expect(a1?.v).toBe('Praxis Capital Project Titan Information Request List');
+  });
+
+  it('hides the canonical reference row by default; shows it when requested', async () => {
+    const flatten = (base64: string): string => {
+      const wb = XLSX.read(decodeBase64(base64), { type: 'array' });
+      const rows = XLSX.utils.sheet_to_json<string[]>(wb.Sheets['Information Request List'], {
+        header: 1,
+        defval: '',
+      });
+      return rows.flat().join('\n');
+    };
+    const hidden = await handleGenerateIrlXlsxTool({});
+    expect(flatten((hidden.structuredContent as { base64: string }).base64)).not.toContain(
+      'Canonical reference'
+    );
+    const shown = await handleGenerateIrlXlsxTool({ showCanonicalReference: true });
+    expect(flatten((shown.structuredContent as { base64: string }).base64)).toContain(
+      'Canonical reference'
+    );
+  });
+
+  it('deeplink encodes company/project/sections/canonical/custom query params', async () => {
+    const result = await handleGenerateIrlXlsxTool({
+      companyName: 'Praxis Capital',
+      projectName: 'Project Titan',
+      includeSections: ['00', '01'],
+      showCanonicalReference: true,
+      customRequests: [{ section: '00', text: 'Ask' }],
+    });
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toMatch(/[?&]company=Praxis\+Capital(&|\s|$)/);
+    expect(text).toMatch(/[?&]project=Project\+Titan(&|\s|$)/);
+    // URLSearchParams percent-encodes the comma → %2C (not a literal comma).
+    expect(text).toMatch(/[?&]sections=00%2C01(&|\s|$)/);
+    expect(text).toMatch(/[?&]canonical=1(&|\s|$)/);
+    expect(text).toMatch(/[?&]custom=/);
+  });
+
+  it('throws a descriptive error when includeSections matches no real section', async () => {
+    await expect(handleGenerateIrlXlsxTool({ includeSections: ['77'] })).rejects.toThrow(
+      /No sections matched/
+    );
+    await expect(handleGenerateIrlXlsxTool({ includeSections: ['77'] })).rejects.toThrow(
+      /Valid section numbers/
+    );
   });
 
   it('productSummary is accepted but does not change the generated bytes in v1', async () => {

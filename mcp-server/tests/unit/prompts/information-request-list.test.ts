@@ -4,12 +4,16 @@ import { informationRequestListPrompt } from '../../../src/prompts/information-r
 const RESOURCE_URI = 'gst://library/information-request-list';
 const XLSX_TOOL_NAME = 'generate_information_request_list_xlsx';
 
+// Mirror the MCP SDK: it validates + coerces incoming args against argsSchema
+// (turning wire strings like `includeSections: '00,01'` into `['00','01']`)
+// before invoking build(). Parsing here keeps the test faithful to production.
 function bodyText(
   prompt: typeof informationRequestListPrompt,
-  args: Parameters<typeof prompt.build>[0]
+  args: Record<string, unknown>
 ): string {
+  const parsed = prompt.argsSchema.parse(args);
   return prompt
-    .build(args)
+    .build(parsed)
     .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
     .join('\n');
 }
@@ -26,7 +30,10 @@ describe('gst_information_request_list', () => {
     // v0.0.4 = Step 4 update (don't promise attachment in Claude Desktop;
     // redirect to Hub page after the staging round-trip surfaced the
     // arbitrary-mimeType resource-block limitation).
-    expect(informationRequestListPrompt.version).toBe('0.0.4');
+    // v0.0.5 = configurability parity with the Hub generator (companyName /
+    // projectName title, includeSections pick-list, customRequests,
+    // showCanonicalReference) — forwarded as the exact XLSX tool payload.
+    expect(informationRequestListPrompt.version).toBe('0.0.5');
     expect(informationRequestListPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(informationRequestListPrompt.orchestrates).toEqual([RESOURCE_URI, XLSX_TOOL_NAME]);
   });
@@ -84,6 +91,60 @@ describe('gst_information_request_list', () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.issues[0].path).toEqual(['productSummary']);
+      }
+    });
+
+    it('accepts companyName + projectName', () => {
+      expect(
+        informationRequestListPrompt.argsSchema.safeParse({
+          companyName: 'Praxis Capital',
+          projectName: 'Project Titan',
+        }).success
+      ).toBe(true);
+    });
+
+    it('coerces a comma-separated includeSections wire string into a string array', () => {
+      // Claude Desktop ships every prompt arg as a raw string; arrayFromWire
+      // splits the comma form into the array the tool payload needs.
+      const result = informationRequestListPrompt.argsSchema.safeParse({
+        includeSections: '00,01,03',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.includeSections).toEqual(['00', '01', '03']);
+      }
+    });
+
+    it('coerces a "true" showCanonicalReference wire string into a boolean', () => {
+      const result = informationRequestListPrompt.argsSchema.safeParse({
+        showCanonicalReference: 'true',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.showCanonicalReference).toBe(true);
+      }
+    });
+
+    it('documents the full section catalog in the includeSections describe', () => {
+      // The Claude Desktop prompt form shows this describe; enumerating the
+      // sections there tells the user (and the model) which numbers exist.
+      const description =
+        informationRequestListPrompt.argsSchema.shape.includeSections.description ?? '';
+      expect(description).toContain('02 Software Architecture');
+      expect(description).toContain('09 Governance & Compliance');
+    });
+
+    it('treats empty wire strings for includeSections / showCanonicalReference as unsupplied', () => {
+      // Unfilled Desktop form fields arrive as "" — the wire adapters normalize
+      // them to undefined so an empty field never trips validation.
+      const result = informationRequestListPrompt.argsSchema.safeParse({
+        includeSections: '',
+        showCanonicalReference: '',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.includeSections).toBeUndefined();
+        expect(result.data.showCanonicalReference).toBeUndefined();
       }
     });
   });
@@ -189,6 +250,69 @@ describe('gst_information_request_list', () => {
       // discipline that the post-staging-round-trip fix established.
       expect(text).toMatch(/hub\/tools\/information-request-list-generator/);
       expect(text.toLowerCase()).toMatch(/do not promise an attachment/);
+    });
+
+    it('switches to one-shot mode when only a new config arg (companyName) is supplied', () => {
+      const text = bodyText(informationRequestListPrompt, { companyName: 'Praxis Capital' });
+      expect(text).toContain('Step 1.');
+      expect(text).toContain(XLSX_TOOL_NAME);
+    });
+
+    it('composes the artifact title from companyName + projectName', () => {
+      const text = bodyText(informationRequestListPrompt, {
+        companyName: 'Praxis Capital',
+        projectName: 'Project Titan',
+      });
+      expect(text).toContain('Praxis Capital Project Titan Information Request List');
+    });
+
+    it('forwards the full configuration as the exact XLSX tool payload', () => {
+      // The one-shot body embeds the precise tool arguments so the model passes
+      // them verbatim and the generated .xlsx matches the artifact. Parse the
+      // fenced JSON block and assert the structured shape (not just substrings).
+      const text = bodyText(informationRequestListPrompt, {
+        targetName: 'MedSig Health',
+        companyName: 'Praxis Capital',
+        projectName: 'Project Titan',
+        transactionContext: 'buy-side',
+        includeSections: '00,01',
+        customRequests: '01: Describe your top 3 competitors by ARR',
+        showCanonicalReference: 'true',
+      });
+      const jsonBlock = text.match(/```json\n([\s\S]*?)\n```/);
+      expect(jsonBlock).toBeTruthy();
+      const payload = JSON.parse(jsonBlock![1]);
+      expect(payload).toEqual({
+        targetName: 'MedSig Health',
+        transactionContext: 'buy-side',
+        companyName: 'Praxis Capital',
+        projectName: 'Project Titan',
+        includeSections: ['00', '01'],
+        customRequests: [{ section: '01', text: 'Describe your top 3 competitors by ARR' }],
+        showCanonicalReference: true,
+      });
+    });
+
+    it('instructs the model to reproduce only the requested sections', () => {
+      const text = bodyText(informationRequestListPrompt, { includeSections: '00,03,09' });
+      expect(text).toMatch(/ONLY these sections.*00, 03, 09/);
+    });
+
+    it('appends parsed custom requests under their section in the in-chat artifact', () => {
+      const text = bodyText(informationRequestListPrompt, {
+        customRequests: '01: Ask about competitors\n03: Ask about DR posture',
+      });
+      expect(text).toContain('Section 01: Ask about competitors');
+      expect(text).toContain('Section 03: Ask about DR posture');
+    });
+
+    it('omits config the caller did not supply from the tool payload', () => {
+      const text = bodyText(informationRequestListPrompt, { targetName: 'Acme' });
+      const jsonBlock = text.match(/```json\n([\s\S]*?)\n```/);
+      const payload = JSON.parse(jsonBlock![1]);
+      expect(payload).toEqual({ targetName: 'Acme' });
+      expect(payload.includeSections).toBeUndefined();
+      expect(payload.showCanonicalReference).toBeUndefined();
     });
   });
 

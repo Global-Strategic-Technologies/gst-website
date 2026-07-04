@@ -3,7 +3,7 @@ import { clickSvgPath, waitForMapReady, waitForSubnationalReady } from './helper
 
 test.describe('Regulatory Map E2E', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/hub/tools/regulatory-map', { waitUntil: 'domcontentloaded' });
+    await page.goto('/hub/tools/regulatory-map/', { waitUntil: 'domcontentloaded' });
     await waitForMapReady(page);
   });
 
@@ -41,7 +41,7 @@ test.describe('Regulatory Map E2E', () => {
       const backLink = page.locator('a.back-link');
       await expect(backLink).toBeVisible();
       await expect(backLink).toContainText('Back to Tools');
-      expect(await backLink.getAttribute('href')).toBe('/hub/tools');
+      expect(await backLink.getAttribute('href')).toBe('/hub/tools/');
     });
 
     test('should render highlighted countries with regulation data', async ({ page }) => {
@@ -205,13 +205,13 @@ test.describe('Regulatory Map E2E', () => {
   test.describe('5. Navigation', () => {
     test('should navigate back to Tools', async ({ page }) => {
       await page.evaluate(() => (document.querySelector('a.back-link') as HTMLElement)?.click());
-      await page.waitForURL('**/hub/tools', { timeout: 10000 });
-      await expect(page).toHaveURL(/\/hub\/tools$/);
+      await page.waitForURL('**/hub/tools/', { timeout: 10000 });
+      await expect(page).toHaveURL(/\/hub\/tools\/$/);
     });
 
     test('should have Regulatory Map card on Tools page', async ({ page }) => {
-      await page.goto('/hub/tools', { waitUntil: 'domcontentloaded' });
-      const regMapLink = page.locator('a[href="/hub/tools/regulatory-map"]');
+      await page.goto('/hub/tools/', { waitUntil: 'domcontentloaded' });
+      const regMapLink = page.locator('a[href="/hub/tools/regulatory-map/"]');
       await expect(regMapLink).toBeVisible();
     });
   });

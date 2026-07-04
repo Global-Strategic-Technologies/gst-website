@@ -16,7 +16,7 @@ import {
 
 test.describe('Diligence Machine E2E', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/hub/tools/diligence-machine', { waitUntil: 'domcontentloaded' });
+    await page.goto('/hub/tools/diligence-machine/', { waitUntil: 'domcontentloaded' });
     await waitForWizardReady(page);
   });
 

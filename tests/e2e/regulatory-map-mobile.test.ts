@@ -60,7 +60,7 @@ async function openBottomSheetFor(
 
 test.describe('Regulatory Map — Mobile Layout', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/hub/tools/regulatory-map', { waitUntil: 'domcontentloaded' });
+    await page.goto('/hub/tools/regulatory-map/', { waitUntil: 'domcontentloaded' });
   });
 
   test('should not show CTA on mobile (tap bar provides guidance instead)', async ({ page }) => {
@@ -121,7 +121,7 @@ test.describe('Regulatory Map — Mobile Layout', () => {
 
 test.describe('Regulatory Map — Mobile Interactions', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/hub/tools/regulatory-map', { waitUntil: 'domcontentloaded' });
+    await page.goto('/hub/tools/regulatory-map/', { waitUntil: 'domcontentloaded' });
     await waitForMapReady(page);
   });
 

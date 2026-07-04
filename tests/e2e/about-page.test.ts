@@ -29,7 +29,7 @@ test.describe('About Page - Founder Section', () => {
     await setupAnalyticsMocking(page);
 
     // Navigate to about page
-    await page.goto('/about', { waitUntil: 'domcontentloaded' });
+    await page.goto('/about/', { waitUntil: 'domcontentloaded' });
 
     // Wait for gtag to be available
     await page.waitForFunction(
@@ -228,7 +228,7 @@ test.describe('About Page - Founder Section', () => {
 
     test('should be responsive on mobile viewport', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto('/about');
+      await page.goto('/about/');
 
       const founderSection = page.locator('.founder-section');
       await expect(founderSection).toBeVisible();

@@ -3,7 +3,7 @@ import { openFilterDrawer } from './helpers/portfolio';
 
 test.describe('Filter Drawer Background Scroll - MA Portfolio Page', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/ma-portfolio', { waitUntil: 'domcontentloaded' });
+    await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
       timeout: 10000,
     });
@@ -120,7 +120,7 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
   const EXPECTED_GAP_PX = 16;
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/ma-portfolio', { waitUntil: 'domcontentloaded' });
+    await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
       timeout: 10000,
     });
@@ -250,7 +250,7 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
     // Viewport must be set before reload so the 480px media-query styles apply
     // during the drawer's initial render.
     await page.setViewportSize({ width: 400, height: 700 });
-    await page.goto('/ma-portfolio', { waitUntil: 'domcontentloaded' });
+    await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
       timeout: 10000,
     });

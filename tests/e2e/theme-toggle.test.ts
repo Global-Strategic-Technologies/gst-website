@@ -88,7 +88,7 @@ test.describe('Theme Toggle Journey', () => {
     // Navigate to another page — use a known internal nav link
     const link = page
       .locator(
-        'nav a[href="/services"], nav a[href="/ma-portfolio"], a[href="/services"], a[href="/ma-portfolio"]'
+        'nav a[href="/services/"], nav a[href="/ma-portfolio/"], a[href="/services/"], a[href="/ma-portfolio/"]'
       )
       .first();
     const href = await link.getAttribute('href');
@@ -282,7 +282,7 @@ test.describe('Theme Toggle Journey', () => {
     );
 
     // Find another interactive element (navigation link or other button)
-    const navLink = page.locator('a[href*="/ma-portfolio"], a:has-text("M&A")').first();
+    const navLink = page.locator('a[href*="/ma-portfolio/"], a:has-text("M&A")').first();
     const canInteract = await navLink.isVisible({ timeout: 2000 }).catch(() => false);
 
     if (canInteract) {
