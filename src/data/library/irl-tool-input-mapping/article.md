@@ -203,6 +203,10 @@ After picking a row above, the universal closure steps:
 
 When either lane ships, this section should be updated to reference the new mechanism.
 
+### Generator custom requests are NOT canonical (2026-07)
+
+The BL-044 generator now lets a partner **filter sections** and **append ad-hoc `customRequests`** to individual sections at generation time (both surfaces, via `src/utils/irl/customize-article.ts`). These custom requests are **section-scoped and engagement-local** — they do not add rows to `article.md` and therefore carry no entry in this mapping. They are exactly the "keep the per-engagement IRL as a local copy if it's truly one-off" path in the operator checklist above; if a custom request recurs across 3+ engagements, promote it to canonical via the row-3 path (which _does_ update this doc). The generator cannot mint a brand-new ad-hoc section (e.g., "10 — Marketing Operations") — that still requires the canonical-article edit described in the decision table.
+
 ---
 
-_Last updated: 2026-05-25 (added "Per-engagement IRL drift — decision flow" section documenting situation→right-path responses, operator action checklist, anti-patterns, and future evolution lanes)._
+_Last updated: 2026-07-02 (added "Generator custom requests are NOT canonical" note under Future evolution lanes for the BL-044 configurability follow-up)._

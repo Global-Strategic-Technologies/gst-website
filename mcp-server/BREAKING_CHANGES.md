@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-18d19416405f3989e5ba2975536f44f21a2d82e0e90a6d8eff4225149d4cfe70
+01dee8966d506aa29c274204148750c3d22d6bc1cdf6cf1fc4f2b7ccf9df03c3
 ```
 
 Computed over (sorted):
@@ -20,7 +20,7 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1; BL-076 keeps the tool roster intact — `compose_dossier_envelope` schema changes do NOT affect the manifest tool list).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.4` + `gst_irl_ingestion` at `0.20.0` (authorial-intent preamble reword — see the 0.33.0 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.5` (configurability parity with the Hub generator — see the 0.34.0 stanza below) + `gst_irl_ingestion` at `0.20.0`.
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
@@ -28,6 +28,19 @@ the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
 
 ---
+
+## 0.34.0 — 2026-07-02 — `gst_information_request_list` configurability parity (v0.0.4 → v0.0.5)
+
+**Theme**: the IRL prompt reached full configuration parity with the Hub generator and the `generate_information_request_list_xlsx` tool. It gained four optional args on top of the existing `targetName` / `transactionContext` / `productSummary`:
+
+- `companyName` / `projectName` — composed into the workbook title (`{Company} {Project} Information Request List`).
+- `includeSections` — section pick-list, supplied as a comma-separated string (`"00,01,03"`); coerced to an array by `arrayFromWire`.
+- `customRequests` — extra per-section requests, one per line as `"NN: text"`, parsed into `{ section, text }[]`.
+- `showCanonicalReference` — canonical-row toggle (`"true"` / `"false"`), coerced by `booleanFromWire` (default omitted).
+
+The one-shot body now computes the **exact** `generate_information_request_list_xlsx` payload and instructs the model to pass it verbatim, and reproduces the in-chat artifact honoring the same configuration (filtered sections, appended custom requests, composed title). All new args are optional and additive — **non-breaking** for existing pinned invocations (bare and `targetName`-only calls are unchanged). The prompt `name@version` tuple bump (0.0.4 → 0.0.5) is the only manifest input that moved.
+
+**Surface impact**: manifest hash changes (prompt version tuple); `EXPECTED_MANIFEST_HASH` + this file updated in lockstep; golden frontmatter + README prompt row updated. No tool/resource/prompt names renamed or removed.
 
 ## 0.33.0 — 2026-06-30 — Reword authorial-intent preamble (drop the injection-tell)
 

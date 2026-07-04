@@ -30,7 +30,7 @@ test.describe('Google Analytics E2E Tests', () => {
     test('should load GA4 on all pages', async ({ page }) => {
       const pages = [
         { url: '/', name: 'Home' },
-        { url: '/ma-portfolio', name: 'Portfolio' },
+        { url: '/ma-portfolio/', name: 'Portfolio' },
       ];
 
       for (const { url } of pages) {
@@ -57,10 +57,10 @@ test.describe('Google Analytics E2E Tests', () => {
       const portfolioLink = page.locator('a:has-text("M&A")');
       if (await portfolioLink.isVisible()) {
         await portfolioLink.evaluate((el) => (el as HTMLElement).click());
-        await page.waitForURL('/ma-portfolio');
+        await page.waitForURL('/ma-portfolio/');
 
         // Verify page loaded successfully
-        expect(page.url()).toContain('/ma-portfolio');
+        expect(page.url()).toContain('/ma-portfolio/');
       }
     });
 
@@ -76,8 +76,8 @@ test.describe('Google Analytics E2E Tests', () => {
       const portfolioLink = page.locator('a:has-text("M&A")');
       if (await portfolioLink.isVisible()) {
         await portfolioLink.evaluate((el) => (el as HTMLElement).click());
-        await page.waitForURL('/ma-portfolio');
-        expect(page.url()).toContain('/ma-portfolio');
+        await page.waitForURL('/ma-portfolio/');
+        expect(page.url()).toContain('/ma-portfolio/');
       }
 
       // Go back home if we can — use evaluate for WebKit
@@ -100,7 +100,7 @@ test.describe('Google Analytics E2E Tests', () => {
 
   test.describe('Portfolio Interaction Tracking', () => {
     test('should track project card clicks', async ({ page }) => {
-      await gotoAndSetupAnalytics(page, '/ma-portfolio');
+      await gotoAndSetupAnalytics(page, '/ma-portfolio/');
 
       // Click first project card — use evaluate for WebKit
       const firstCard = page.locator('[data-testid="project-card"]').first();
@@ -122,7 +122,7 @@ test.describe('Google Analytics E2E Tests', () => {
     });
 
     test('should track modal close action', async ({ page }) => {
-      await gotoAndSetupAnalytics(page, '/ma-portfolio');
+      await gotoAndSetupAnalytics(page, '/ma-portfolio/');
 
       // Open modal — use evaluate for WebKit
       const firstCard = page.locator('[data-testid="project-card"]').first();
@@ -149,7 +149,7 @@ test.describe('Google Analytics E2E Tests', () => {
     });
 
     test('should track project view with details', async ({ page }) => {
-      await gotoAndSetupAnalytics(page, '/ma-portfolio');
+      await gotoAndSetupAnalytics(page, '/ma-portfolio/');
 
       // Open project modal — use evaluate for WebKit
       const firstCard = page.locator('[data-testid="project-card"]').first();
@@ -184,7 +184,7 @@ test.describe('Google Analytics E2E Tests', () => {
 
   test.describe('Filter Tracking', () => {
     test('should track filter application', async ({ page }) => {
-      await gotoAndSetupAnalytics(page, '/ma-portfolio');
+      await gotoAndSetupAnalytics(page, '/ma-portfolio/');
 
       // Use specific header filter toggle selector, not generic button selector
       const filterButton = page.locator('[data-testid="portfolio-filter-toggle"]');
@@ -294,8 +294,8 @@ test.describe('Google Analytics E2E Tests', () => {
       const portfolioLink = page.locator('a:has-text("M&A")');
       if (await portfolioLink.isVisible()) {
         await portfolioLink.evaluate((el) => (el as HTMLElement).click());
-        await page.waitForURL('/ma-portfolio');
-        expect(page.url()).toContain('/ma-portfolio');
+        await page.waitForURL('/ma-portfolio/');
+        expect(page.url()).toContain('/ma-portfolio/');
 
         // Step 2: View a project — use evaluate for WebKit
         const firstCard = page.locator('[data-testid="project-card"]').first();
@@ -345,7 +345,7 @@ test.describe('Google Analytics E2E Tests', () => {
       const portfolioLink = page.locator('a:has-text("M&A")');
       await expect(portfolioLink).toBeVisible();
       await portfolioLink.evaluate((el) => (el as HTMLElement).click());
-      await page.waitForURL('/ma-portfolio');
+      await page.waitForURL('/ma-portfolio/');
 
       // Even though we navigated, verify gtag is still functioning
       const gtagExists = await page.evaluate(() => {
@@ -395,7 +395,7 @@ test.describe('Google Analytics E2E Tests', () => {
       const portfolioLink = page.locator('a:has-text("M&A")');
       await expect(portfolioLink).toBeVisible();
       await portfolioLink.evaluate((el) => (el as HTMLElement).click());
-      await page.waitForURL('/ma-portfolio');
+      await page.waitForURL('/ma-portfolio/');
 
       // Restore gtag by re-executing the analytics mocking (since direct restoration doesn't work)
       await setupAnalyticsMocking(page);
@@ -407,7 +407,7 @@ test.describe('Google Analytics E2E Tests', () => {
       expect(gtagExists).toBe(true);
 
       // Verify we're on the new page
-      expect(page.url()).toContain('/ma-portfolio');
+      expect(page.url()).toContain('/ma-portfolio/');
     });
   });
 });

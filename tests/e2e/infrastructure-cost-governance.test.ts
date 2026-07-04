@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const TOOL_URL = '/hub/tools/infrastructure-cost-governance';
+const TOOL_URL = '/hub/tools/infrastructure-cost-governance/';
 
 /** Navigate to the ICG tool and wait for JS initialisation */
 async function gotoTool(page: Page): Promise<void> {
@@ -59,8 +59,7 @@ async function answerAllInStep(page: Page, score: number): Promise<void> {
     for (let safety = 0; safety < 20; safety++) {
       const btns = Array.from(document.querySelectorAll(`[data-score="${s}"]`));
       const target = btns.find((b) => !b.classList.contains('brutal-choice-btn--selected')) as
-        | HTMLElement
-        | undefined;
+        HTMLElement | undefined;
       if (!target) break;
       target.click(); // triggers synchronous render() which rebuilds innerHTML
       clicked++;

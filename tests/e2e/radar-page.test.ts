@@ -8,7 +8,7 @@ import {
 
 test.describe('Radar Page', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/hub/radar');
+    await page.goto('/hub/radar/');
     await waitForRadarReady(page);
   });
 
@@ -18,7 +18,7 @@ test.describe('Radar Page', () => {
 
   test.describe('Loading and Layout', () => {
     test('should load the radar page with meaningful content', async ({ page }) => {
-      expect(page.url()).toContain('/hub/radar');
+      expect(page.url()).toContain('/hub/radar/');
 
       // Verify page renders with real content (not a blank/error page)
       const title = page.locator('.hub-header__title');
@@ -28,7 +28,7 @@ test.describe('Radar Page', () => {
     });
 
     test('should display breadcrumb linking back to Hub', async ({ page }) => {
-      const hubLink = page.locator('nav[aria-label="Breadcrumb"] a[href="/hub"]');
+      const hubLink = page.locator('nav[aria-label="Breadcrumb"] a[href="/hub/"]');
       await expect(hubLink).toBeVisible();
       const linkText = await hubLink.textContent();
       expect(linkText).toContain('The GST Hub');
@@ -56,7 +56,7 @@ test.describe('Radar Page', () => {
     });
 
     test('should display return link and header with valid timestamp', async ({ page }) => {
-      const returnLink = page.locator('.radar-container a.cta-button[href="/hub"]');
+      const returnLink = page.locator('.radar-container a.cta-button[href="/hub/"]');
       await expect(returnLink).toBeVisible();
 
       const timestamp = page.locator('.hub-header__updated');
@@ -349,7 +349,7 @@ test.describe('Radar Page', () => {
   test.describe('Responsive', () => {
     test('filter pills should be horizontally scrollable at mobile width', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 812 });
-      await page.goto('/hub/radar');
+      await page.goto('/hub/radar/');
       await waitForRadarReady(page);
 
       // Verify the filter container has overflow behavior at mobile
@@ -371,7 +371,7 @@ test.describe('Radar Page', () => {
 
     test('filter pills should wrap at desktop width', async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
-      await page.goto('/hub/radar');
+      await page.goto('/hub/radar/');
       await waitForRadarReady(page);
 
       // At desktop, filter should wrap normally

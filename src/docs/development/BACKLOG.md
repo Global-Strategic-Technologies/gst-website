@@ -300,6 +300,8 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 > **Companion**: [`MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md`](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md) — read first. BL-044 is the consumption surface for the article authored under BL-043; the request artifact is unchanged.
 
+> **Configurability follow-up (2026-07)**: the generator gained four manual configuration axes on both surfaces (shared `src/utils/irl/customize-article.ts`): **section pick-list** (`includeSections`), **custom per-section requests** (`customRequests`), **company + project title fields** (`companyName`/`projectName`, distinct from `targetName`), and a **canonical reference row toggle** (`showCanonicalReference`, **now default hidden** — behavior change from v1). Distinct from the still-future directive-based BL-044.5 subtractive filter. See [MCP_SERVER_IRL_GENERATOR_BL-044.md § Per-engagement configurability](MCP_SERVER_IRL_GENERATOR_BL-044.md#per-engagement-configurability-2026-07-follow-up).
+
 #### Planning Criteria
 
 **Use cases**
@@ -338,7 +340,7 @@ All ACs below shipped via the BL-044 PR landed 2026-05-24 (`mcp-server@0.3.5`). 
 
 **MCP Tool**
 
-- [x] `generate_information_request_list_xlsx` tool registered at `mcp-server/src/tools/generate-information-request-list-xlsx.ts` with input schema `{ targetName?, transactionContext?, productSummary? }`.
+- [x] `generate_information_request_list_xlsx` tool registered at `mcp-server/src/tools/generate-information-request-list-xlsx.ts` with input schema `{ targetName?, transactionContext?, productSummary?, companyName?, projectName?, includeSections?, customRequests?, showCanonicalReference? }` (the last five added by the 2026-07 configurability follow-up — see below).
 - [x] Output `{ filename, base64, mimeType }`.
 - [x] Tool reads from `gst://library/information-request-list` Resource (BL-043's codegen-loaded body).
 

@@ -5,7 +5,7 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
   test.beforeEach(async ({ page }) => {
     // domcontentloaded is reliable under parallel worker contention; networkidle
     // can time out when many workers share the same dev server.
-    await page.goto('/ma-portfolio', { waitUntil: 'domcontentloaded' });
+    await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
     // Wait for portfolio initialization
     await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
       timeout: 10000,

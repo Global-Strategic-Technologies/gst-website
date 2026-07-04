@@ -12,7 +12,7 @@ async function clickPanelButton(page: import('@playwright/test').Page, id: strin
 test.describe('Palette Panel', () => {
   test.describe('Visibility Rules', () => {
     test('should be visible on the brand page', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       const panel = page.getByTestId('palette-panel');
       await expect(panel).toBeAttached();
       // Panel edge (toggle button) should be visible even when panel body is closed
@@ -21,7 +21,7 @@ test.describe('Palette Panel', () => {
     });
 
     test('should set data-palette-always on html for brand page', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       const hasAttr = await page.evaluate(() =>
         document.documentElement.hasAttribute('data-palette-always')
       );
@@ -40,7 +40,7 @@ test.describe('Palette Panel', () => {
 
   test.describe('Panel Open/Close', () => {
     test('should toggle is-open class when panel toggle is clicked', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       // Initially closed
       const initiallyOpen = await page.evaluate(() =>
@@ -66,7 +66,7 @@ test.describe('Palette Panel', () => {
 
   test.describe('Palette Switching', () => {
     test('should apply palette-N class to html when tab is clicked', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await clickPanelButton(page, 'panel-toggle');
 
       // Click palette tab 2
@@ -81,7 +81,7 @@ test.describe('Palette Panel', () => {
     });
 
     test('should remove previous palette class when switching', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await clickPanelButton(page, 'panel-toggle');
 
       // Switch to palette 2 then palette 3
@@ -108,7 +108,7 @@ test.describe('Palette Panel', () => {
     });
 
     test('should mark clicked tab as active and deactivate others', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await clickPanelButton(page, 'panel-toggle');
 
       await page.evaluate(() => {
@@ -128,7 +128,7 @@ test.describe('Palette Panel', () => {
 
   test.describe('localStorage Persistence', () => {
     test('should persist palette selection to localStorage', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await clickPanelButton(page, 'panel-toggle');
 
       await page.evaluate(() => {
@@ -141,7 +141,7 @@ test.describe('Palette Panel', () => {
     });
 
     test('should restore palette from localStorage on page load', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await page.evaluate(() => localStorage.setItem('palette', '3'));
       await page.reload({ waitUntil: 'domcontentloaded' });
 
@@ -152,7 +152,7 @@ test.describe('Palette Panel', () => {
     });
 
     test('should persist pop-out state to localStorage', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await clickPanelButton(page, 'panel-popout-toggle');
 
       await page.waitForFunction(() => localStorage.getItem('palette-popped-out') === 'true', {
@@ -161,7 +161,7 @@ test.describe('Palette Panel', () => {
     });
 
     test('should restore pop-out state from localStorage on reload', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await page.evaluate(() => localStorage.setItem('palette-popped-out', 'true'));
       await page.reload({ waitUntil: 'domcontentloaded' });
 
@@ -174,9 +174,9 @@ test.describe('Palette Panel', () => {
 
   test.describe('FOUC Prevention', () => {
     test('should apply palette class synchronously before body renders', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await page.evaluate(() => localStorage.setItem('palette', '5'));
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       const hasPalette = await page.evaluate(() =>
         document.documentElement.classList.contains('palette-5')
@@ -187,7 +187,7 @@ test.describe('Palette Panel', () => {
 
   test.describe('Cross-Page Persistence', () => {
     test('should maintain palette selection when navigating between pages', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await clickPanelButton(page, 'panel-toggle');
 
       await page.evaluate(() => {
@@ -212,7 +212,7 @@ test.describe('Palette Panel', () => {
 
   test.describe('Reset All Overrides', () => {
     test('should clear inline style overrides when reset button is clicked', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await clickPanelButton(page, 'panel-toggle');
 
       // Apply a manual override

@@ -341,7 +341,7 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
         (rdCat.zone === 'elevated' || rdCat.zone === 'critical' || rdCat.zone === 'above')
       ) {
         crossLink.style.display = 'block';
-        crossLink.innerHTML = `R&D spend is ${zoneLabel(rdCat.zone).toLowerCase()}. <a href="/hub/tools/tech-debt-calculator">Explore the Tech Debt Calculator</a> to understand the structural drivers.`;
+        crossLink.innerHTML = `R&D spend is ${zoneLabel(rdCat.zone).toLowerCase()}. <a href="/hub/tools/tech-debt-calculator/">Explore the Tech Debt Calculator</a> to understand the structural drivers.`;
       } else {
         crossLink.style.display = 'none';
         crossLink.innerHTML = '';

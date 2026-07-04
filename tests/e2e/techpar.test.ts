@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-const TOOL_URL = '/hub/tools/techpar';
+const TOOL_URL = '/hub/tools/techpar/';
 
 async function gotoTool(page: Page): Promise<void> {
   await page.goto(TOOL_URL, { waitUntil: 'load' });

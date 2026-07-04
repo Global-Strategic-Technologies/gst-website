@@ -22,7 +22,7 @@ test.describe('TableOfContents Component', () => {
     test('should generate sublists for layer-1 on business-architectures page', async ({
       page,
     }) => {
-      await page.goto('/hub/library/business-architectures', { waitUntil: 'load' });
+      await page.goto('/hub/library/business-architectures/', { waitUntil: 'load' });
       await waitForSublists(page);
 
       // Count h3[id] headings inside #layer-1 (the source of truth)
@@ -40,7 +40,7 @@ test.describe('TableOfContents Component', () => {
     });
 
     test('should render sublist icons at 10x10px on vdr-structure page', async ({ page }) => {
-      await page.goto('/hub/library/vdr-structure', { waitUntil: 'domcontentloaded' });
+      await page.goto('/hub/library/vdr-structure/', { waitUntil: 'domcontentloaded' });
       await waitForSublists(page);
 
       const dimensions = await page.evaluate(() => {
@@ -60,7 +60,7 @@ test.describe('TableOfContents Component', () => {
 
   test.describe('Scroll Spy', () => {
     test('should update active link when scrolling to a mid-page section', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       const toc = page.getByTestId('brand-toc');
       await expect(toc).toBeVisible();
@@ -91,7 +91,7 @@ test.describe('TableOfContents Component', () => {
     });
 
     test('should return active link to first section on scroll-to-top', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       // Scroll down to a later section first
       await page.evaluate(() => {
@@ -125,7 +125,7 @@ test.describe('TableOfContents Component', () => {
     test('should auto-expand when resized from mobile to desktop', async ({ page }) => {
       // Start at mobile width
       await page.setViewportSize({ width: 480, height: 800 });
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       // Wait for collapsed state on mobile
       await page.waitForFunction(
@@ -148,7 +148,7 @@ test.describe('TableOfContents Component', () => {
 
   test.describe('Accessibility & Data Attributes', () => {
     test('should render separators with aria-hidden="true"', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       const separators = await page.evaluate(() => {
         const toc = document.querySelector('[data-testid="brand-toc"]');
@@ -164,7 +164,7 @@ test.describe('TableOfContents Component', () => {
     });
 
     test('should apply custom data-* attributes on layer items', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       // The first layer item should have data-section="identity"
       const sectionAttr = await page.evaluate(() => {
@@ -179,7 +179,7 @@ test.describe('TableOfContents Component', () => {
 
   test.describe('Multi-Instance Isolation', () => {
     test('should not activate scroll-spy links in specimen TOC instances', async ({ page }) => {
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       // Wait for scroll-spy to initialize on the main TOC
       await page.waitForFunction(
@@ -205,7 +205,7 @@ test.describe('TableOfContents Component', () => {
   test.describe('Sticky Positioning', () => {
     test('should stick TOC to viewport on brand page when scrolling', async ({ page }) => {
       await page.setViewportSize({ width: 1200, height: 800 });
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       const toc = page.getByTestId('brand-toc');
       await expect(toc).toBeVisible();
@@ -235,7 +235,7 @@ test.describe('TableOfContents Component', () => {
       page,
     }) => {
       await page.setViewportSize({ width: 1200, height: 800 });
-      await page.goto('/hub/library/business-architectures', { waitUntil: 'load' });
+      await page.goto('/hub/library/business-architectures/', { waitUntil: 'load' });
       await waitForSublists(page);
 
       const toc = page.locator('.toc');
@@ -258,7 +258,7 @@ test.describe('TableOfContents Component', () => {
 
     test('should not be sticky on mobile viewport', async ({ page }) => {
       await page.setViewportSize({ width: 480, height: 800 });
-      await page.goto('/brand', { waitUntil: 'domcontentloaded' });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
 
       const toc = page.getByTestId('brand-toc');
       await expect(toc).toBeVisible();

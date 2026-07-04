@@ -6,7 +6,7 @@ test.use({ ...devices['iPhone 12'] });
 
 test.describe('Mobile Navigation Journey', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/ma-portfolio', { waitUntil: 'domcontentloaded' });
+    await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
   });
 
   test('should have touchable buttons on mobile', async ({ page }) => {

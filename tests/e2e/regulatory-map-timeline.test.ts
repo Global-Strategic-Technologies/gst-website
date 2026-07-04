@@ -41,7 +41,7 @@ test.describe('Regulatory Map — Timeline', () => {
   test.beforeEach(async ({ page }) => {
     // domcontentloaded is reliable under parallel worker contention; networkidle
     // can time out when many workers share the same dev server.
-    await page.goto('/hub/tools/regulatory-map', { waitUntil: 'domcontentloaded' });
+    await page.goto('/hub/tools/regulatory-map/', { waitUntil: 'domcontentloaded' });
     await waitForMapAndTimelineReady(page);
   });
 
