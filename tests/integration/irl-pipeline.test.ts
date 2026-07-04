@@ -1,17 +1,21 @@
 /**
  * Integration test for the IRL BL-044 pipeline:
- *   canonical article.md → parseIrlArticle → generateIrlXlsxBuffer → XLSX.read
+ *   generator source .md → parseIrlArticle → generateIrlXlsxBuffer → XLSX.read
  *
  * The two unit suites (`tests/unit/irl-parse-article.test.ts`,
  * `tests/unit/irl-generate-xlsx.test.ts`) cover each half in isolation
  * against synthetic fixtures. This test exercises the actual contract a
- * consumer sees end-to-end: take the canonical markdown that ships in
+ * consumer sees end-to-end: take the IRL generator source that ships in
  * the repo, pipe it through the public surface, and assert the produced
  * `.xlsx` reflects the markdown's section structure.
  *
+ * Uses the decoupled generator source (`src/data/irl/…`), NOT the library
+ * article (`src/data/library/information-request-list/article.md`) — the
+ * generators render from the former; the latter is free-form library prose.
+ *
  * Catches drift the unit tests can't see — e.g., the parser accepting
- * a grammar variant that the generator can't render, or the canonical
- * article being edited into a shape the parser rejects.
+ * a grammar variant that the generator can't render, or the generator
+ * source being edited into a shape the parser rejects.
  *
  * Per TEST_STRATEGY § 3.2 (integration tests for component flows) — the
  * pipeline IS the user-facing promise; pinning it here means a future
@@ -26,10 +30,7 @@ import { parseIrlArticle } from '../../src/utils/irl/parse-article';
 import { generateIrlXlsxBuffer } from '../../src/utils/irl/generate-xlsx';
 import { customizeIrlArticle } from '../../src/utils/irl/customize-article';
 
-const ARTICLE_PATH = resolve(
-  __dirname,
-  '../../src/data/library/information-request-list/article.md'
-);
+const ARTICLE_PATH = resolve(__dirname, '../../src/data/irl/information-request-list.md');
 
 const ARTICLE_BODY = readFileSync(ARTICLE_PATH, 'utf-8');
 

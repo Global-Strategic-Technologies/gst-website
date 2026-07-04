@@ -499,10 +499,7 @@ describe('generateIrlXlsxBuffer', () => {
     // This test loads the actual canonical article and asserts the
     // ordering invariant against the production-shape output. Pins the
     // exact failure shape from 2026-05-25.
-    const articlePath = resolve(
-      __dirname,
-      '../../../../src/data/library/information-request-list/article.md'
-    );
+    const articlePath = resolve(__dirname, '../../../../src/data/irl/information-request-list.md');
     const md = readFileSync(articlePath, 'utf8');
     const article = parseIrlArticle(md);
     const buf = generateIrlXlsxBuffer(article, {
@@ -551,10 +548,7 @@ describe('generateIrlXlsxBuffer', () => {
     // DV (#18). Reversing puts the file into "Replaced Part" recovery
     // mode on open. Production article exercises the same anchor so
     // any future reshuffling of the splice logic fails here.
-    const articlePath = resolve(
-      __dirname,
-      '../../../../src/data/library/information-request-list/article.md'
-    );
+    const articlePath = resolve(__dirname, '../../../../src/data/irl/information-request-list.md');
     const md = readFileSync(articlePath, 'utf8');
     const article = parseIrlArticle(md);
     const buf = generateIrlXlsxBuffer(article, {

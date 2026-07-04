@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { informationRequestListPrompt } from '../../../src/prompts/information-request-list';
 
-const RESOURCE_URI = 'gst://library/information-request-list';
+// v0.0.6: the prompt embeds the decoupled IRL generator source (inline label
+// gst://irl/source), NOT the gst://library/information-request-list article.
+const IRL_SOURCE_EMBED_URI = 'gst://irl/source';
 const XLSX_TOOL_NAME = 'generate_information_request_list_xlsx';
 
 // Mirror the MCP SDK: it validates + coerces incoming args against argsSchema
@@ -33,9 +35,14 @@ describe('gst_information_request_list', () => {
     // v0.0.5 = configurability parity with the Hub generator (companyName /
     // projectName title, includeSections pick-list, customRequests,
     // showCanonicalReference) — forwarded as the exact XLSX tool payload.
-    expect(informationRequestListPrompt.version).toBe('0.0.5');
+    // v0.0.6 = IRL decoupling: embed + section catalog moved off the library
+    // article Resource onto the dedicated generator source (gst://irl/source).
+    expect(informationRequestListPrompt.version).toBe('0.0.6');
     expect(informationRequestListPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(informationRequestListPrompt.orchestrates).toEqual([RESOURCE_URI, XLSX_TOOL_NAME]);
+    expect(informationRequestListPrompt.orchestrates).toEqual([
+      IRL_SOURCE_EMBED_URI,
+      XLSX_TOOL_NAME,
+    ]);
   });
 
   describe('argsSchema', () => {
@@ -157,24 +164,25 @@ describe('gst_information_request_list', () => {
       ).toBeGreaterThanOrEqual(1);
     });
 
-    it('embeds the canonical Library Resource as the second message in both modes', () => {
+    it('embeds the IRL generator source as the second message in both modes', () => {
       for (const args of [{}, { targetName: 'Acme' }]) {
         const result = informationRequestListPrompt.build(args);
         expect(result.messages.length).toBe(2);
         const second = result.messages[1].content;
         expect(second.type).toBe('resource');
         if (second.type === 'resource' && 'text' in second.resource) {
-          expect(second.resource.uri).toBe(RESOURCE_URI);
+          // Decoupled: the embed is the generator source, NOT the library article.
+          expect(second.resource.uri).toBe(IRL_SOURCE_EMBED_URI);
           expect(typeof second.resource.text).toBe('string');
           expect(second.resource.text.length).toBeGreaterThan(500);
         }
       }
     });
 
-    it('mentions the Resource URI literally in every mode (orchestrates invariant)', () => {
+    it('mentions the generator-source embed URI literally in every mode (orchestrates invariant)', () => {
       for (const args of [{}, { targetName: 'Acme' }]) {
         const text = bodyText(informationRequestListPrompt, args);
-        expect(text).toContain(RESOURCE_URI);
+        expect(text).toContain(IRL_SOURCE_EMBED_URI);
       }
     });
 

@@ -23,6 +23,7 @@
 
 import type { EmbeddedResource, TextContent } from '@modelcontextprotocol/sdk/types.js';
 import { loadLibraryByUri } from '../content/library-loader';
+import { loadIrlSourceBody } from '../content/irl-source-loader';
 import { readFyiSnapshot, SNAPSHOT_MISSING_MESSAGE } from '../content/radar-snapshot';
 
 /** Result of an embed helper — either an embedded Resource or a structured-error text block. */
@@ -50,6 +51,43 @@ export function embedLibraryArticle(uri: string): EmbedResult {
       text: entry.body,
     },
   };
+}
+
+/**
+ * Embed URI label for the IRL generator source. This is an inline embed
+ * identifier, NOT a listable MCP Resource (the generator source is
+ * deliberately decoupled from the `gst://library/information-request-list`
+ * article Resource). The body travels inline, so no `resources/read` is
+ * needed — the label just marks provenance.
+ */
+export const IRL_SOURCE_EMBED_URI = 'gst://irl/source';
+
+/**
+ * Embed the IRL generator source (`src/data/irl/information-request-list.md`,
+ * bundled via `loadIrlSourceBody()`) as an `EmbeddedResource` content block.
+ *
+ * Used by `gst_information_request_list` so the in-chat artifact the model
+ * reproduces is the SAME content `generate_information_request_list_xlsx`
+ * renders — keeping the pasted list and the downloaded .xlsx identical. It is
+ * intentionally NOT `embedLibraryArticle(gst://library/information-request-list)`:
+ * the library article is free-form prose and may differ from this list.
+ */
+export function embedIrlGeneratorSource(): EmbedResult {
+  try {
+    return {
+      type: 'resource',
+      resource: {
+        uri: IRL_SOURCE_EMBED_URI,
+        mimeType: 'text/markdown',
+        text: loadIrlSourceBody(),
+      },
+    };
+  } catch {
+    return {
+      type: 'text',
+      text: `[The GST IRL generator source could not be loaded at prompt expansion time. Re-run \`npm -w @gst/mcp-server run prebuild\` to regenerate the codegen index.]`,
+    };
+  }
 }
 
 /**

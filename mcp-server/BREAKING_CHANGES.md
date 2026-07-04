@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-01dee8966d506aa29c274204148750c3d22d6bc1cdf6cf1fc4f2b7ccf9df03c3
+a3f97a4ca97ce8c6784d50ded94c44779ff5f108acb7ff1619dda46c22b041a8
 ```
 
 Computed over (sorted):
@@ -20,7 +20,7 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1; BL-076 keeps the tool roster intact — `compose_dossier_envelope` schema changes do NOT affect the manifest tool list).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.5` (configurability parity with the Hub generator — see the 0.34.0 stanza below) + `gst_irl_ingestion` at `0.20.0`.
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.6` (IRL generator source decoupled from the library article — see the 0.35.0 stanza below) + `gst_irl_ingestion` at `0.20.0`.
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
@@ -28,6 +28,18 @@ the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
 
 ---
+
+## 0.35.0 — 2026-07-04 — IRL generator source decoupled from the library article (`gst_information_request_list` v0.0.5 → v0.0.6)
+
+**Theme**: the Information Request List `.xlsx` generators (Hub tool + `generate_information_request_list_xlsx` + `gst_information_request_list` prompt) now read a **dedicated generator source** (`src/data/irl/information-request-list.md`) instead of the `gst://library/information-request-list` article. There is no business requirement that the human library article match the generated list, so the two are now free to vary independently: edit the generator source to change the `.xlsx`; edit the library article to change the `/hub/library/information-request-list/` page.
+
+**What changed**
+
+- **New source of truth for the generators**: `src/data/irl/information-request-list.md` (seeded as a byte-identical copy of the article, so output is unchanged at cutover). The library article stays put as free-form prose and is no longer bound by the strict `parseIrlArticle` grammar.
+- **Codegen**: `scripts/generate-regulations-index.mjs` now also emits `src/content/irl-source-data.generated.ts` (`IRL_SOURCE_BODY`), consumed via the new `loadIrlSourceBody()`. The tool, the section catalog, and the prompt embed all read this — never the library loader.
+- **Prompt** `gst_information_request_list` **v0.0.5 → v0.0.6**: the second (embedded) message is now the generator source, embedded inline under the label `gst://irl/source` (a NEW inline embed identifier — **not** a listable Resource). `orchestrates` changed from `[gst://library/information-request-list, generate_information_request_list_xlsx]` to `[gst://irl/source, generate_information_request_list_xlsx]`. No arg/output shape change.
+
+**Contract impact**: **none for existing Resources.** `gst://library/information-request-list` remains a registered Library Resource serving the (now free-form) article — its URI, count, and manifest membership are unchanged. `gst://irl/source` is an inline prompt-embed label only; it is not registered in `resources/list`, so the Library/Regulation/Radar URI sets are untouched. Manifest drift is solely the one prompt `name@version` tuple bump. Seed content is identical, so generated `.xlsx` output is byte-unchanged at this release.
 
 ## 0.34.0 — 2026-07-02 — `gst_information_request_list` configurability parity (v0.0.4 → v0.0.5)
 

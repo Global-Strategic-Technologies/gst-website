@@ -40,7 +40,14 @@ const KNOWN_TOOL_NAMES = new Set([
   'compose_dossier_envelope',
 ]);
 
-const KNOWN_RESOURCE_URI_PREFIXES = ['gst://library/', 'gst://regulations/', 'gst://radar/'];
+const KNOWN_RESOURCE_URI_PREFIXES = [
+  'gst://library/',
+  'gst://regulations/',
+  'gst://radar/',
+  // Inline embed label for the decoupled IRL generator source (not a listable
+  // Resource — the body travels inline in the gst_information_request_list prompt).
+  'gst://irl/',
+];
 
 function resolvesAgainstRegistry(orchestratesEntry: string): boolean {
   if (KNOWN_TOOL_NAMES.has(orchestratesEntry)) return true;

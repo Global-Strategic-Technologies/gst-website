@@ -2,9 +2,13 @@
  * Prompt: gst_information_request_list
  *
  * Emits GST's universal one-page intake checklist, organized by VDR taxonomy
- * (00 Basics + sections 01-09 mirroring the VDR-9 folders). The
- * canonical body lives at `gst://library/information-request-list` and is
- * embedded as the second message of every expansion.
+ * (00 Basics + sections 01-09 mirroring the VDR-9 folders). The canonical
+ * generator source (`src/data/irl/information-request-list.md`, bundled via
+ * `loadIrlSourceBody()`) is embedded inline as the second message of every
+ * expansion — the SAME source `generate_information_request_list_xlsx` renders,
+ * so the reproduced in-chat artifact and the downloaded .xlsx are identical.
+ * This is DECOUPLED from the `gst://library/information-request-list` article
+ * Resource (free-form library prose that may differ).
  *
  * Input modes (any combination of args triggers the one-shot variant):
  *
@@ -35,15 +39,20 @@
  * config (filtered sections, appended custom requests, composed title) so the
  * paste-ready text and the downloadable file match. Prompt args arrive as
  * strings over the wire (`arrayFromWire` / `booleanFromWire` coerce them).
+ *
+ * **v0.0.6 (2026-07 IRL decoupling)**: the embedded body + section catalog moved
+ * off the `gst://library/information-request-list` article Resource onto the
+ * dedicated generator source (`gst://irl/source` → `src/data/irl/…`), so the
+ * library article can vary independently of the generated list. No arg/output
+ * shape change; the seed content is identical, so behavior is unchanged at cutover.
  */
 
 import { z } from 'zod';
 import type { GstPrompt } from './types';
-import { authorialIntentLine, embedLibraryArticle } from './embed';
+import { authorialIntentLine, embedIrlGeneratorSource, IRL_SOURCE_EMBED_URI } from './embed';
 import { arrayFromWire, booleanFromWire } from './wire-shape';
 import { irlSectionCatalog } from '../content/irl-section-catalog';
 
-const RESOURCE_URI = 'gst://library/information-request-list';
 const XLSX_TOOL_NAME = 'generate_information_request_list_xlsx';
 
 // "00 Basics · 01 Product · …" — enumerated in the section-number arg describes
@@ -191,7 +200,7 @@ function buildOneShotBody(args: z.infer<typeof argsSchema>): string {
   return [
     authorialIntentLine(PROMPT_NAME),
     '',
-    `Deliver the GST Information Request List as a paste-ready artifact the partner can email or attach to a kickoff meeting. The canonical text is embedded as the next message (Resource \`${RESOURCE_URI}\`) — use it verbatim, preserving the section structure and bullet ordering.`,
+    `Deliver the GST Information Request List as a paste-ready artifact the partner can email or attach to a kickoff meeting. The canonical IRL text is embedded inline as the next message (\`${IRL_SOURCE_EMBED_URI}\`) — use it verbatim, preserving the section structure and bullet ordering.`,
     '',
     `Context for the personalization:`,
     `- ${targetClause}`,
@@ -220,7 +229,7 @@ function buildOneShotBody(args: z.infer<typeof argsSchema>): string {
 const INTERACTIVE_BODY = [
   authorialIntentLine(PROMPT_NAME),
   '',
-  `Help the user assemble GST's Information Request List for an engagement. The canonical text is embedded as the next message (Resource \`${RESOURCE_URI}\`).`,
+  `Help the user assemble GST's Information Request List for an engagement. The canonical IRL text is embedded inline as the next message (\`${IRL_SOURCE_EMBED_URI}\`).`,
   '',
   'Step 1. Ask the user:',
   '',
@@ -240,9 +249,9 @@ export const informationRequestListPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Assemble the input-gathering ask GST hands to a target/client before running diligence tools. Configurable per engagement — company/project title, section pick-list, custom per-section requests, canonical-row toggle — with the same options as the Hub generator. When called with args, also calls generate_information_request_list_xlsx (forwarding the full configuration) and directs the partner to the Hub page for a one-click .xlsx download. Pair with gst_diligence_kickoff once the IRL is filled.',
-  version: '0.0.5',
-  lastReviewedAt: '2026-07-02',
-  orchestrates: [RESOURCE_URI, XLSX_TOOL_NAME] as const,
+  version: '0.0.6',
+  lastReviewedAt: '2026-07-04',
+  orchestrates: [IRL_SOURCE_EMBED_URI, XLSX_TOOL_NAME] as const,
   argsSchema,
   build: (args) => {
     const hasAnyArg =
@@ -263,7 +272,7 @@ export const informationRequestListPrompt: GstPrompt<typeof argsSchema> = {
         },
         {
           role: 'user',
-          content: embedLibraryArticle(RESOURCE_URI),
+          content: embedIrlGeneratorSource(),
         },
       ],
     };
