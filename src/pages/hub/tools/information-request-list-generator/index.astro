@@ -1,10 +1,10 @@
 ---
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
-import articleBodyRaw from '../../../../data/library/information-request-list/article.md?raw';
+import articleBodyRaw from '../../../../data/irl/information-request-list.md?raw';
 import { parseIrlArticle } from '../../../../utils/irl/parse-article';
 
-// Parse the canonical article at build time so the section checkboxes render
+// Parse the IRL generator source at build time so the section checkboxes render
 // server-side. Client-created DOM does NOT receive Astro's scoped-style
 // attribute, so rendering the rows here (rather than in the client script) is
 // what lets the scoped `.irl-gen__*` styles actually apply to them.
@@ -168,7 +168,7 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
 </BaseLayout>
 
 <script>
-  import articleBody from '../../../../data/library/information-request-list/article.md?raw';
+  import articleBody from '../../../../data/irl/information-request-list.md?raw';
   import { parseIrlArticle } from '../../../../utils/irl/parse-article';
   import {
     generateIrlXlsxBuffer,

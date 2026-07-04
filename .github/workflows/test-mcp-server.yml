@@ -26,6 +26,9 @@ on:
       - '!mcp-server/**/*.md'
       - 'src/utils/diligence-engine.ts'
       - 'src/utils/filterLogic.ts'
+      # IRL generator pipeline the MCP tool/prompt bundle via prebuild codegen.
+      - 'src/utils/irl/**'
+      - 'src/data/irl/**'
       - 'src/schemas/diligence.ts'
       - 'src/schemas/portfolio.ts'
       - 'src/data/ma-portfolio/projects.json'
@@ -44,6 +47,9 @@ on:
       - '!mcp-server/**/*.md'
       - 'src/utils/diligence-engine.ts'
       - 'src/utils/filterLogic.ts'
+      # IRL generator pipeline the MCP tool/prompt bundle via prebuild codegen.
+      - 'src/utils/irl/**'
+      - 'src/data/irl/**'
       - 'src/schemas/diligence.ts'
       - 'src/schemas/portfolio.ts'
       - 'src/data/ma-portfolio/projects.json'

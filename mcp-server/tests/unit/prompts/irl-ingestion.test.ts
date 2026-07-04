@@ -9,7 +9,9 @@ import {
   MTTR_P1_RULE,
 } from '../../../src/prompts/extraction-rules';
 
-const IRL_RESOURCE_URI = 'gst://library/information-request-list';
+// v0.21.0: the IRL taxonomy embed moved off the library article onto the
+// decoupled generator source (inline label gst://irl/source).
+const IRL_SOURCE_EMBED_URI = 'gst://irl/source';
 const VDR_RESOURCE_URI = 'gst://library/vdr-structure';
 
 const SAMPLE_FILLED_IRL = `
@@ -89,7 +91,8 @@ describe('gst_irl_ingestion', () => {
     // BL-045 reset: prompt version restarts at 0.1.0 to signal the substantive
     // rescope (rename, scenario-neutral framing, mode/verbosity/forceTools args,
     // inclusion gates, JSON fences, provenance footer, gap list).
-    expect(irlIngestionPrompt.version).toBe('0.20.0');
+    // v0.21.0: IRL taxonomy embed decoupled onto the generator source (gst://irl/source).
+    expect(irlIngestionPrompt.version).toBe('0.21.0');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -167,13 +170,13 @@ describe('gst_irl_ingestion', () => {
       }
     });
 
-    it('embeds the IRL Library Resource as the second message in both modes', () => {
+    it('embeds the IRL generator source as the second message in both modes', () => {
       for (const args of [{}, { filledIrl: SAMPLE_FILLED_IRL }] as const) {
         const result = irlIngestionPrompt.build(args);
         const second = result.messages[1].content;
         expect(second.type).toBe('resource');
         if (second.type === 'resource' && 'text' in second.resource) {
-          expect(second.resource.uri).toBe(IRL_RESOURCE_URI);
+          expect(second.resource.uri).toBe(IRL_SOURCE_EMBED_URI);
           expect(typeof second.resource.text).toBe('string');
           expect(second.resource.text.length).toBeGreaterThan(500);
         }

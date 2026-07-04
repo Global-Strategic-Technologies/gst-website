@@ -28,7 +28,12 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { GstPrompt } from './types';
-import { authorialIntentLine, embedLibraryArticle } from './embed';
+import {
+  authorialIntentLine,
+  embedLibraryArticle,
+  embedIrlGeneratorSource,
+  IRL_SOURCE_EMBED_URI,
+} from './embed';
 import { arrayFromWire, booleanFromWire } from './wire-shape';
 import {
   UNKNOWN_PROPAGATION_RULE,
@@ -51,7 +56,10 @@ function computeIrlBodyHashForBody(filledIrl: string): string {
   return createHash('sha256').update(filledIrl).digest('hex').slice(0, 16);
 }
 
-const IRL_RESOURCE_URI = 'gst://library/information-request-list';
+// IRL taxonomy reference embeds the decoupled generator source
+// (`IRL_SOURCE_EMBED_URI` = gst://irl/source), NOT the library article — so the
+// filled-IRL reconciliation taxonomy stays the canonical list, free of the
+// library page's prose/promo. VDR still embeds its library article Resource.
 const VDR_RESOURCE_URI = 'gst://library/vdr-structure';
 
 const transactionContextValues = ['sell-side', 'buy-side', 'value-creation', 'unknown'] as const;
@@ -646,7 +654,7 @@ function buildOneShotBody(args: {
   return [
     authorialIntentLine(PROMPT_NAME),
     '',
-    `Run the GST Discovery sweep against the populated Information Request List below. This is the bookend to \`gst_information_request_list\` — the request the partner sent (\`${IRL_RESOURCE_URI}\`, embedded as the next message for taxonomy reference) has come back filled. Your job is to translate the filled answers into a coordinated invocation of every relevant GST Hub tool and downstream artifact, then synthesize the outputs into a single dossier.`,
+    `Run the GST Discovery sweep against the populated Information Request List below. This is the bookend to \`gst_information_request_list\` — the request the partner sent has come back filled — the canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference. Your job is to translate the filled answers into a coordinated invocation of every relevant GST Hub tool and downstream artifact, then synthesize the outputs into a single dossier.`,
     '',
     'Engagement context:',
     `- ${targetClause}`,
@@ -920,7 +928,7 @@ function buildExtractOnlyBody(args: {
   return [
     authorialIntentLine(PROMPT_NAME),
     '',
-    `Run the GST IRL ingestion in **EXTRACT-ONLY mode** against the populated Information Request List below. This is the bookend to \`gst_information_request_list\` — the request the partner sent (\`${IRL_RESOURCE_URI}\`, embedded as the next message for taxonomy reference) has come back filled. **In extract-only mode you DO NOT invoke any tools and DO NOT compose a dossier.** You produce a structured JSON artifact: the dimension worksheet + the per-tool input payloads that WOULD have been submitted if the sweep ran. This is the audit-trail surface for downstream automation, partner inspection, or single-section refinement.`,
+    `Run the GST IRL ingestion in **EXTRACT-ONLY mode** against the populated Information Request List below. This is the bookend to \`gst_information_request_list\` — the request the partner sent has come back filled — the canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference. **In extract-only mode you DO NOT invoke any tools and DO NOT compose a dossier.** You produce a structured JSON artifact: the dimension worksheet + the per-tool input payloads that WOULD have been submitted if the sweep ran. This is the audit-trail surface for downstream automation, partner inspection, or single-section refinement.`,
     '',
     'Engagement context:',
     `- ${targetClause}`,
@@ -968,7 +976,7 @@ function buildExtractOnlyBody(args: {
 const INTERACTIVE_BODY = [
   authorialIntentLine(PROMPT_NAME),
   '',
-  `Help the user run the GST Discovery sweep — the bookend to \`gst_information_request_list\`. The IRL article (\`${IRL_RESOURCE_URI}\`) is embedded as the next message for taxonomy reference; \`${VDR_RESOURCE_URI}\` follows for VDR-folder labels in synthesis.`,
+  `Help the user run the GST Discovery sweep — the bookend to \`gst_information_request_list\`. The canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference; \`${VDR_RESOURCE_URI}\` follows for VDR-folder labels in synthesis.`,
   '',
   'Step 1. Ask the user:',
   '',
@@ -1060,9 +1068,9 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
-  version: '0.20.0',
-  lastReviewedAt: '2026-06-30',
-  orchestrates: [...ORCHESTRATED_TOOLS, IRL_RESOURCE_URI, VDR_RESOURCE_URI] as const,
+  version: '0.21.0',
+  lastReviewedAt: '2026-07-04',
+  orchestrates: [...ORCHESTRATED_TOOLS, IRL_SOURCE_EMBED_URI, VDR_RESOURCE_URI] as const,
   argsSchema,
   build: (args) => {
     // BL-045 PR B body dispatch — three builders:
@@ -1090,7 +1098,7 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
         },
         {
           role: 'user',
-          content: embedLibraryArticle(IRL_RESOURCE_URI),
+          content: embedIrlGeneratorSource(),
         },
         {
           role: 'user',

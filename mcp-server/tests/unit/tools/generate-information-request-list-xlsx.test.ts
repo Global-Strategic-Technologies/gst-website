@@ -1,7 +1,7 @@
 /**
  * Unit tests for the `generate_information_request_list_xlsx` MCP tool.
  *
- * Exercises the full handler pipeline (library load → parse → generate
+ * Exercises the full handler pipeline (IRL source load → parse → generate
  * → base64) without going through the MCP transport. The integration
  * test in `tests/integration/prompts-registry.test.ts` confirms the
  * tool's name appears in the prompt's `orchestrates` list.
@@ -14,7 +14,7 @@ import {
   GenerateIrlXlsxInputSchema,
 } from '../../../src/tools/generate-information-request-list-xlsx';
 import { IRL_XLSX_MIME_TYPE } from '../../../../src/utils/irl/generate-xlsx';
-import * as libraryLoader from '../../../src/content/library-loader';
+import * as irlSourceLoader from '../../../src/content/irl-source-loader';
 
 function decodeBase64(base64: string): Uint8Array {
   const binary = atob(base64);
@@ -306,17 +306,17 @@ describe('generate_information_request_list_xlsx — handler', () => {
 });
 
 describe('generate_information_request_list_xlsx — error paths', () => {
-  it('throws with the prebuild remediation message when the library entry is missing', async () => {
-    // Stub the library loader to simulate a stale / un-regenerated
-    // library-data.generated.ts (the operator-facing failure mode the
-    // handler's specific error message is calibrated for).
-    const spy = vi.spyOn(libraryLoader, 'loadLibraryByUri').mockReturnValue(null);
-    try {
-      await expect(handleGenerateIrlXlsxTool({})).rejects.toThrow(/Library entry missing/);
-      await expect(handleGenerateIrlXlsxTool({})).rejects.toThrow(/prebuild/);
-      await expect(handleGenerateIrlXlsxTool({})).rejects.toThrow(
-        /gst:\/\/library\/information-request-list/
+  it('propagates the prebuild remediation message when the IRL source is missing', async () => {
+    // Simulate a stale / un-regenerated irl-source-data.generated.ts (the
+    // operator-facing failure mode loadIrlSourceBody's error is calibrated for).
+    const spy = vi.spyOn(irlSourceLoader, 'loadIrlSourceBody').mockImplementation(() => {
+      throw new Error(
+        'IRL source body is empty. Re-run `npm -w @gst/mcp-server run prebuild` to regenerate irl-source-data.generated.ts.'
       );
+    });
+    try {
+      await expect(handleGenerateIrlXlsxTool({})).rejects.toThrow(/IRL source body is empty/);
+      await expect(handleGenerateIrlXlsxTool({})).rejects.toThrow(/prebuild/);
     } finally {
       spy.mockRestore();
     }

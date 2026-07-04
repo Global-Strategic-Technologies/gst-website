@@ -1,10 +1,12 @@
 /**
- * Regression guard for the IRL article parser AND the canonical
- * `src/data/library/information-request-list/article.md` structure.
+ * Regression guard for the IRL article parser AND the IRL generator source
+ * (`src/data/irl/information-request-list.md`) structure.
  *
- * A failure here means one of two things changed:
+ * Locks the GENERATOR SOURCE — not the `gst://library/information-request-list`
+ * article, which is decoupled free-form prose and may diverge. A failure here
+ * means one of two things changed:
  *   1. The parser shape, OR
- *   2. The shipped article's section/bullet counts or grammar.
+ *   2. The generator source's section/bullet counts or grammar.
  *
  * Either is intentional sometimes — when so, update the expected counts
  * below and re-capture the BL-044 XLSX golden snapshot.
@@ -12,11 +14,9 @@
 
 import { describe, it, expect } from 'vitest';
 import { parseIrlArticle } from '../../../../src/utils/irl/parse-article';
-import { loadLibraryByUri } from '../../../src/content/library-loader';
+import { loadIrlSourceBody } from '../../../src/content/irl-source-loader';
 
-const IRL_URI = 'gst://library/information-request-list';
-
-/** Lock the current article shape — every entry is a hard regression assertion. */
+/** Lock the current generator-source shape — every entry is a hard regression assertion. */
 const EXPECTED_SECTIONS: ReadonlyArray<{
   number: string;
   titlePrefix: string;
@@ -36,12 +36,10 @@ const EXPECTED_SECTIONS: ReadonlyArray<{
 
 const EXPECTED_TOTAL_BULLETS = EXPECTED_SECTIONS.reduce((sum, s) => sum + s.bulletCount, 0);
 
-describe('parseIrlArticle — canonical article regression', () => {
-  const entry = loadLibraryByUri(IRL_URI);
-  if (!entry) throw new Error(`Library entry not found for ${IRL_URI}`);
-  const article = parseIrlArticle(entry.body);
+describe('parseIrlArticle — generator source regression', () => {
+  const article = parseIrlArticle(loadIrlSourceBody());
 
-  it('parses the canonical article without throwing', () => {
+  it('parses the generator source without throwing', () => {
     expect(article).toBeDefined();
   });
 

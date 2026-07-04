@@ -6,8 +6,10 @@
  *
  * Pipeline:
  *
- *   1. Load `gst://library/information-request-list` via the shared
- *      library loader (BL-043's single source of truth).
+ *   1. Load the IRL generator source (`src/data/irl/information-request-list.md`,
+ *      bundled into the Worker by the prebuild codegen). This is DECOUPLED from
+ *      the `gst://library/information-request-list` Resource — the library
+ *      article is free-form prose and may differ from this list.
  *   2. Parse the markdown into the {@link IRLArticle} AST.
  *   3. Render the AST + optional engagement metadata to a workbook
  *      buffer via {@link generateIrlXlsxBuffer}.
@@ -22,19 +24,20 @@
  *
  * Implementation notes:
  *
- *   - Pure, deterministic, no I/O at handler time (the article body is
+ *   - Pure, deterministic, no I/O at handler time (the source body is
  *     bundled into the Worker binary by the prebuild codegen).
  *   - Workers-runtime safe: `xlsx-js-style` is pure JS, `btoa` is
  *     universally available, no `Buffer` or `nodejs_compat` needed.
- *   - The library URI lookup uses `loadLibraryByUri` — same code path
- *     as the MCP Resource handler — so the tool never drifts from the
- *     prompt's embedded Resource.
+ *   - The source load uses `loadIrlSourceBody()` — the SAME source the
+ *     `gst_information_request_list` prompt embeds and the section catalog
+ *     reads — so these generator surfaces never drift from each other. They
+ *     are collectively decoupled from the library Resource.
  */
 
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
-import { loadLibraryByUri } from '../content/library-loader';
+import { loadIrlSourceBody } from '../content/irl-source-loader';
 import { parseIrlArticle } from '../../../src/utils/irl/parse-article';
 import {
   generateIrlXlsxBuffer,
@@ -46,7 +49,10 @@ import { customizeIrlArticle } from '../../../src/utils/irl/customize-article';
 import { irlSectionCatalog } from '../content/irl-section-catalog';
 import { HUB_BASE } from '../config';
 
-const IRL_RESOURCE_URI = 'gst://library/information-request-list';
+// The library page remains the human "canonical reference" printed into the
+// workbook's optional header row (see showCanonicalReference). The generated
+// list content, however, comes from the decoupled IRL generator source — not
+// this page — so the two may differ.
 const IRL_CANONICAL_URL = `${HUB_BASE}/hub/library/information-request-list/`;
 
 // Section catalog ("00 Basics · 01 Product · …") built once at module load from
@@ -129,7 +135,7 @@ export type GenerateIrlXlsxInput = z.infer<typeof GenerateIrlXlsxInputSchema>;
 
 const TOOL_DESCRIPTION = `Generate the GST **Information Request List** as a downloadable, fillable \`.xlsx\` workbook.
 
-Returns \`{ filename, base64, mimeType }\` — Claude Desktop and other MCP clients can write the file or attach it to a message. The workbook mirrors the canonical IRL article (by default all sections, one per VDR folder) with each request in column A and an empty answer cell in column B for the recipient to fill in.
+Returns \`{ filename, base64, mimeType }\` — Claude Desktop and other MCP clients can write the file or attach it to a message. The workbook mirrors the canonical GST IRL (by default all sections, one per VDR folder) with each request in column A and an empty answer cell in column B for the recipient to fill in.
 
 **When to call this tool**: any time a partner needs to send the IRL to a target/client/portco for intake. Pair with the \`gst_information_request_list\` prompt — the prompt emits the in-chat preview + recipient framing; this tool emits the attachable file. (Prompt v0.0.2+ orchestrates this tool automatically when invoked with args.)
 
@@ -144,7 +150,7 @@ Returns \`{ filename, base64, mimeType }\` — Claude Desktop and other MCP clie
 
 **Sections** (valid \`includeSections\` / \`customRequests[].section\` values): ${SECTION_CATALOG}.
 
-The request content is read from the same canonical source as the MCP Resource \`${IRL_RESOURCE_URI}\`. With no configuration args the workbook is byte-identical to what a partner would print from \`/hub/library/information-request-list/\`; configuration args (section filter, custom requests, title/canonical options) scope that universal artifact per engagement. Single source of truth.`;
+The request content is the canonical GST Information Request List — the same list the Hub generator at \`/hub/tools/information-request-list-generator/\` produces, so this tool and that page yield identical workbooks for identical inputs. It is maintained independently of the \`/hub/library/information-request-list/\` reference article (which may differ). With no configuration args the workbook is the universal template; configuration args (section filter, custom requests, title/canonical options) scope it per engagement.`;
 
 function uint8ToBase64(buf: Uint8Array): string {
   // Chunked conversion: avoids the "too many arguments to apply" failure
@@ -161,14 +167,7 @@ function uint8ToBase64(buf: Uint8Array): string {
 }
 
 export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
-  const entry = loadLibraryByUri(IRL_RESOURCE_URI);
-  if (!entry) {
-    throw new Error(
-      `Library entry missing for ${IRL_RESOURCE_URI}. Re-run \`npm -w @gst/mcp-server run prebuild\`.`
-    );
-  }
-
-  const article = parseIrlArticle(entry.body);
+  const article = parseIrlArticle(loadIrlSourceBody());
 
   // Apply per-engagement customization (section filter + custom requests)
   // through the single shared entry point — same code path the Hub page

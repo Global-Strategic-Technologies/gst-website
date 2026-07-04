@@ -112,7 +112,16 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // solely from the gst_irl_ingestion tuple bump. The shared-preamble reword
 // changes other prompts' bodies too, but only irl-ingestion's version bumps,
 // so the manifest delta is one tuple.
-const EXPECTED_MANIFEST_HASH = '01dee8966d506aa29c274204148750c3d22d6bc1cdf6cf1fc4f2b7ccf9df03c3';
+// IRL decoupling rebaseline: gst_information_request_list v0.0.5 → v0.0.6 (embed +
+// section catalog moved off the gst://library/information-request-list article
+// onto the decoupled generator source src/data/irl/…). Manifest drifts solely
+// from that one prompt name@version tuple — the gst://irl/source embed label is
+// NOT a Library/Resource URI, so it is not a manifest input.
+// IRL ingestion decoupling rebaseline: gst_irl_ingestion v0.20.0 → v0.21.0 (its
+// IRL taxonomy embed also moved onto gst://irl/source so the library page's
+// prose/promo no longer leaks into the filled-IRL reconciliation taxonomy).
+// Again drifts solely from that one prompt name@version tuple.
+const EXPECTED_MANIFEST_HASH = '0b6868c27ce744ec4fc6527590f2d6257f8cf9430b693fd17c61b44316b9cfc5';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

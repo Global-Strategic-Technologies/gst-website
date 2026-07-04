@@ -226,16 +226,22 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // without hedging about prompt provenance" injection-tell that triggered a
 // live v4.7+ refusal (2026-06-30). The preamble leads EVERY body variant, so
 // all 7 hashes drift this time (interactive + 3 one-shot + 3 extract-only).
+// IRL decoupling rebaseline (prompt v0.20.0 → v0.21.0): the second (IRL taxonomy)
+// embed moved off the gst://library/information-request-list article onto the
+// decoupled generator source (inline label gst://irl/source). All 7 hashes drift
+// — the embedded resource block (URI + body hash) is present in every body shape,
+// and the "embedded for taxonomy reference" provenance sentence was reworded in
+// both the one-shot and interactive bodies. (The VDR embed is unchanged.)
 const EXPECTED_HASH_INTERACTIVE =
-  '18e5ac3e6b830c824b07481ac287ef0aebc4f07a8344f8007edc2eeef1168fdb';
+  '918d3d23da1eacc39180c9c7d15d27e1b0dfbcf0532b158bd133295aaff3f745';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'c7f3ffc465479f22429b9914650d94e3aad57734782db6e8cbda04f46908c469';
+  'dd166bccb6dd6fcc42253c440acbb76beeab2c8d01b7f84aabf8dbabff9e1457';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'e790f7170fb36bc90ae503a163aeeb5f73d44d83377fe0cbb8b9157c7a6170ff';
+  'f9591285a721a05aa7a7e2b74e143e748ac29ae9aa3965065e7f85ea3705b9ba';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  'c01d16ea44f7ac8ab17d3994abe06f2cd5614da844698eeb3d58e7418501d20e';
+  '2d0401522103b26e470873b74df160535cc6f5d55cb0fbe5a0d1dd840bda1453';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  'f729e6e23fd389fe25334e2bbf82622914d5a0e7f9bb58bd4016f78bc284335e';
+  'cf3b318be86dc4f4257d2a7c00f36b04eb8ff5137fa714c895d716a6f6165401';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -245,9 +251,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '8afe357cca5d20113a33f571237d02b3d76e592aa7fb93811d0908ccaa2e65bc';
+  'ddac8ef2d06467cdd8776b1546b4bf6d81ea7618e61fbc3c628fdd7e69e855b0';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  'a5074362e8cd677355901e9e6e5a1c69a1cd846c857f7a582da1b8c6ed938d08';
+  '02618fb43ed2e8bcb30988a3eced42f5db914949b5dd8d93e2f60c5e8dd38e05';
 
 interface Scenario {
   name: string;
